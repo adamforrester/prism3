@@ -373,14 +373,12 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'separator type a glyph, and no value would mean the same thing on both defs. The item picks it by its own '
       + '`separator` axis, which holds the same two values.',
   },
-  // `indicator` IS GONE FROM THE REGISTER (#1338), and its absence is the point rather than an omission —
-  // the same shape the `intent` note below records. field-label carried a three-way
-  // `[none/required/optional]` axis whose most important value was ABSENCE, which is exactly why it never
-  // projected to Figma. The owner decision (2026-09-13) reconciled it into Prism 2's `Required` BOOLEAN
-  // (default true) — a node-visibility toggle, not a variant axis — so no def declares `indicator` as a
-  // variant axis any more, and a register entry no def uses is what ARM B fails as stale. Removed, the
-  // register is true again; the marker's presence now lives on `figmaProperties.booleans`, which this
-  // register (a VARIANT-axis census) does not cover.
+  // field-label's `indicator` axis left the register (#1338). It carried a three-way `[none/required/optional]`
+  // axis whose most important value was ABSENCE, which is exactly why it never projected to Figma. The owner
+  // decision (2026-09-13) reconciled it into Prism 2's `Required` BOOLEAN (default true) — a node-visibility toggle,
+  // not a variant axis — and the marker's presence now lives on `figmaProperties.booleans`, which this register (a
+  // VARIANT-axis census) does not cover. The axis NAME came back later for a different job: the accordion's
+  // chevron or plus-minus indicator, registered below with its own entry.
   //
   // `intent` IS GONE FROM THE REGISTER (#1225), and its absence is the point rather than an omission.
   // #1223 made Button's intents three COMPONENTS and left `icon-button` carrying `intent` as an axis of
@@ -593,11 +591,11 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'size',
-    values: ['medium', 'small', 'large', 'xlarge'],
+    values: ['medium', 'small', 'large', 'x-large'],
     defs: ['code-input', 'code-input-cell'],
     relation: 'superset',
     reason:
-      'Code input\'s four cell sizes (#2428, owner decision Q330 A): the field ladder plus `xlarge`, the 68×72 display '
+      'Code input\'s four cell sizes (#2428, owner decision Q330 A): the field ladder plus `x-large`, the 68×72 display '
       + 'cell with a 40px character meant for four-character codes. Led by `medium`, the code default and so the set\'s '
       + 'first member (owner decisions Q347 and Q359), as every size ladder is (#2752, Q1 B); the code enum keeps the '
       + 'ladder\'s own order (`lint-rung-names.ts` DEFAULT_FIRST). The cell carries the same values, so it follows the '
@@ -710,14 +708,15 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'style',
     values: ['outline'],
-    defs: ['text-field', 'textarea', 'password-field', 'search-field', 'card-number-field'],
+    defs: ['text-field', 'textarea', 'password-field', 'search-field', 'card-number-field', 'select'],
     relation: 'canonical',
     reason:
       'An axis of ONE, declared rather than dropped. Underline is a BRAND choice since #2695 (the Field style '
       + 'lever, applied to the def before projection), not a value here: a second value would be a per-instance '
       + 'code coordinate, which Q14 A rules out. The axis keeps filled a place to land without a later API break. '
       + 'The cost of an axis of one is real (`modifiers`, #845) and it is being paid deliberately here. '
-      + '`canonical` since Link (#2580) declared a second `style` set against it.',
+      + '`canonical` since Link (#2580) declared a second `style` set against it. Select joined with Q-CC3 A (#3554): '
+      + 'the Field style setting reaches its control, so it carries the same one-value axis.',
   },
   {
     axis: 'style',

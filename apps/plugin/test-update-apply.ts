@@ -1563,7 +1563,7 @@ section('list marker column — a file built at the old 24/32/40 column updates 
   ok(JSON.stringify(listOld) !== JSON.stringify(pre3330('list')), 'premise: the List built with the old nested-list note differs from the current plan');
   // Since #2683 every List plan carries per-item `nestOverrides` (each item's number), so List.Item's TEXT properties are
   // declared on the host, as in `overrides/…` below; without them the build misses every override and `world()` throws.
-  const lw = await world('list', listOld, { componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, 'number#7:2': { type: 'TEXT', defaultValue: '1.' } } } });
+  const lw = await world('list', listOld, { componentProps: { 'list-item': { 'label#7:1': { type: 'TEXT', defaultValue: 'List item' }, 'number#7:2': { type: 'TEXT', defaultValue: '1.' } } } });
   const lbefore = identityOf(lw.set());
   const lplans = pre3330('list');
   const l = await confirm(lw, [{ def: 'list', plans: lplans }]);
@@ -1628,7 +1628,7 @@ section('list spacing — a file built before #3155 updates in place: the wider 
     return q;
   });
   ok(JSON.stringify(listMain) !== JSON.stringify(pre3330('list')), 'premise: the List built at the old gap differs from the current plan');
-  const lw = await world('list', listMain, { extraVars: ['space/250'], componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, 'number#7:2': { type: 'TEXT', defaultValue: '1.' } } } });
+  const lw = await world('list', listMain, { extraVars: ['space/250'], componentProps: { 'list-item': { 'label#7:1': { type: 'TEXT', defaultValue: 'List item' }, 'number#7:2': { type: 'TEXT', defaultValue: '1.' } } } });
   const gids = new Map<string, string>();
   for (const v of ['space/100', 'space/150', 'space/200', 'space/250']) gids.set(await varIdOf(lw, v), v);
   const gapOf = (n: Node) => gids.get(((n.boundVariables ?? {}) as Record<string, { id: string }>).itemSpacing?.id) ?? 'none';
@@ -2823,6 +2823,52 @@ for (const [def, from, to] of PROPERTY_RENAMES_Q345) {
   ok(after.set.join() === before.set.join() && [...before.members].every(([name, b]) => after.members.get(name)?.key === b.key && after.members.get(name)?.id === b.id), `property rename/keys: ${def}: the set and every member keep their keys and ids`);
   const post = (await previewUpdate(w.host, [{ def, plans: planned }])).sets[0];
   ok(post.counts.current === post.counts.members && !post.properties.rename.length && !post.properties.add.length && !post.properties.remove.length, `property rename/settled: ${def}: a second dry run lists no property change (${JSON.stringify(post.properties)})`);
+}
+
+/* ── TEXT property rename (#3554, Q-CC19 A) ──────────────────────────────────────────────────────────────── */
+section('TEXT property rename — List.Item\'s `text` property becomes `label` in place, and a placed item keeps its typed text (#3554, Q-CC19 A)');
+{
+  // Typed here, not read off COMPONENT_RENAMES: the ledger is the subject, so deleting the shipped entry fails this
+  // section by name (`docs/34` shape 1).
+  const DEF = 'list-item', FROM = 'text', TO = 'label', TYPED = 'At least 12 characters';
+  const planned = plansOf(DEF);
+  const ref = (p: string): string => `"propertyRef":{"field":"characters","prop":${JSON.stringify(p)}}`;
+  // A file built before Q-CC19 A, by the real executor from the plans as they were: the item text's property was `text`.
+  const old = planned.map((p) => JSON.parse(JSON.stringify(p).split(ref(TO)).join(ref(FROM))) as AnatomyPlan);
+  ok(JSON.stringify(planned).includes(ref(TO)) && !JSON.stringify(old).includes(ref(TO)) && JSON.stringify(old).includes(ref(FROM)),
+    `premise: ${DEF}: the plans name the item text's property '${TO}', and the file was built from plans naming it '${FROM}'`);
+  const w = await world(DEF, old);
+  const defs0 = w.set().componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }>;
+  const oldKey = Object.keys(defs0).find((k) => k.split('#')[0] === FROM)!;
+  ok(!!oldKey && defs0[oldKey].type === 'TEXT' && defs0[oldKey].defaultValue === 'List item',
+    `premise: ${DEF}: the set as built declares the TEXT property '${FROM}', default "List item" (${Object.keys(defs0).filter((k) => !k.includes('=')).join(', ')})`);
+  const id = oldKey.slice(oldKey.lastIndexOf('#'));
+  // A designer's placed item with its own text: the value the rename must keep.
+  const comps = w.api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as unknown as { name: string; createInstance: () => Node }[];
+  const inst = comps.find((c) => c.name === String(membersOf(w.set())[0].name))!.createInstance();
+  (inst.setProperties as (p: Record<string, string>) => void)({ [oldKey]: TYPED });
+  const valueOf = (): unknown => Object.entries(inst.componentProperties as Record<string, { value: unknown }>).find(([k]) => k.endsWith(id))?.[1].value;
+  ok(valueOf() === TYPED, `premise: ${DEF}: the placed item reads "${TYPED}" under '${oldKey}' (${String(valueOf())})`);
+  const before = identityOf(w.set());
+  const unclaimed = (await previewUpdate(w.host, [{ def: DEF, plans: planned }], undefined, [])).sets[0].properties;
+  ok(unclaimed.remove.some((x) => x.name === FROM) && unclaimed.add.some((x) => x.name === TO) && !unclaimed.rename.length,
+    `premise: ${DEF}: with no ledger entry the dry run removes '${FROM}' and adds '${TO}', which would reset every placed item's text (${JSON.stringify(unclaimed)})`);
+  // The engine's own ledger, so the shipped entry is what is under test.
+  const pre = await previewUpdate(w.host, [{ def: DEF, plans: planned }]);
+  const props = pre.sets[0].properties;
+  ok(props.rename.length === 1 && props.rename[0].from === FROM && props.rename[0].to === TO && props.rename[0].type === 'TEXT' && !props.add.length && !props.remove.length,
+    `TEXT property rename/dry run: ${DEF}: one rename, '${FROM}' → '${TO}', nothing added or removed (${JSON.stringify(props)})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: DEF, plans: planned }], previewHashOf(pre));
+  ok(applyVerdict(res).ok && pre.sets[0].counts.handEdited === 0, `TEXT property rename/verdict: ${DEF}: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  const defs1 = w.set().componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }>;
+  const named = Object.keys(defs1).filter((k) => !k.includes('=') && (k.split('#')[0] === TO || k.split('#')[0] === FROM));
+  ok(named.length === 1 && named[0] === `${TO}${id}` && defs1[named[0]].type === 'TEXT',
+    `TEXT property rename/in place: ${DEF}: one TEXT property, '${TO}' under the same id ${id}, and no '${FROM}' (${named.join(', ')})`);
+  ok(valueOf() === TYPED, `TEXT property rename/text kept: ${DEF}: the placed item still reads "${TYPED}", now under '${TO}' (${String(valueOf())})`);
+  const after = identityOf(w.set());
+  ok(after.set.join() === before.set.join() && [...before.members].every(([name, b]) => after.members.get(name)?.key === b.key && after.members.get(name)?.id === b.id), `TEXT property rename/keys: ${DEF}: the set and every member keep their keys and ids`);
+  const post = (await previewUpdate(w.host, [{ def: DEF, plans: planned }])).sets[0];
+  ok(post.counts.current === post.counts.members && !post.properties.rename.length && !post.properties.add.length && !post.properties.remove.length, `TEXT property rename/settled: ${DEF}: a second dry run lists no property change (${JSON.stringify(post.properties)})`);
 }
 
 /* ── def rename (#2759) ────────────────────────────────────────────────────────────────────────────────── */
@@ -5715,7 +5761,7 @@ section('overrides — a nested instance with no override yet gains it in place 
   ok(planned.every((p) => JSON.stringify(p).includes('"nestOverrides"')) && old.every((p) => !JSON.stringify(p).includes('nestOverrides')),
     'premise: every List plan carries overrides, and the plans the file was built from carry none');
   const NUM = 'number#7:2';
-  const w = await world(LIST, old, { componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, [NUM]: { type: 'TEXT', defaultValue: '1.' } } } });
+  const w = await world(LIST, old, { componentProps: { 'list-item': { 'label#7:1': { type: 'TEXT', defaultValue: 'List item' }, [NUM]: { type: 'TEXT', defaultValue: '1.' } } } });
   // List's items sit in its `items` slot (#2649), three of them, so each is found at any depth under the member.
   const deep = (n: Node, name: string): Node | undefined => ((n.children as Node[] | undefined) ?? []).map((c) => (c.name === name ? c : deep(c, name))).find(Boolean);
   const items = (m: Node): Node[] => [1, 2, 3].map((i) => deep(m, `item${i}`)!);
@@ -6242,7 +6288,7 @@ section('published — on a set in a team library, what breaks consumer files is
   for (const id of ['list-item', 'list']) {
     const next = plansOf(id);
     const before = pre3330(id);
-    const props = id === 'list' ? { componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT' as const, defaultValue: 'List item' }, 'number#7:2': { type: 'TEXT' as const, defaultValue: '1.' } } } } : {};
+    const props = id === 'list' ? { componentProps: { 'list-item': { 'label#7:1': { type: 'TEXT' as const, defaultValue: 'List item' }, 'number#7:2': { type: 'TEXT' as const, defaultValue: '1.' } } } } : {};
     const w = await world(id, before, { extraVars: [...new Set(next.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))], extraStyles: [...new Set(next.flatMap((p) => planTextStyles(p.root)))], ...props });
     (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
     const was = identityOf(w.set());

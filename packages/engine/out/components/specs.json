@@ -11050,7 +11050,10 @@
           "kind": "state"
         }
       ],
-      "codeOnlyStates": [],
+      "codeOnlyStates": [
+        "pending",
+        "disabled"
+      ],
       "anatomy": [
         {
           "part": "container",
@@ -12771,7 +12774,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.disabled.icon"
+              "icon": "color.disabled.on-fill"
             }
           ]
         },
@@ -12879,7 +12882,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.inverse.disabled.icon"
+              "icon": "color.inverse.disabled.on-fill"
             }
           ]
         },
@@ -12987,7 +12990,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.disabled.icon"
+              "icon": "color.disabled.on-fill"
             }
           ]
         },
@@ -13095,7 +13098,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.inverse.disabled.icon"
+              "icon": "color.inverse.disabled.on-fill"
             }
           ]
         },
@@ -14303,7 +14306,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.disabled.icon"
+              "icon": "color.disabled.on-fill"
             }
           ]
         },
@@ -14411,7 +14414,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.inverse.disabled.icon"
+              "icon": "color.inverse.disabled.on-fill"
             }
           ]
         },
@@ -14519,7 +14522,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.disabled.icon"
+              "icon": "color.disabled.on-fill"
             }
           ]
         },
@@ -14627,7 +14630,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.inverse.disabled.icon"
+              "icon": "color.inverse.disabled.on-fill"
             }
           ]
         },
@@ -15835,7 +15838,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.disabled.icon"
+              "icon": "color.disabled.on-fill"
             }
           ]
         },
@@ -15943,7 +15946,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.inverse.disabled.icon"
+              "icon": "color.inverse.disabled.on-fill"
             }
           ]
         },
@@ -16051,7 +16054,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.disabled.icon"
+              "icon": "color.disabled.on-fill"
             }
           ]
         },
@@ -16159,7 +16162,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.inverse.disabled.icon"
+              "icon": "color.inverse.disabled.on-fill"
             }
           ]
         },
@@ -16685,7 +16688,9 @@
           "kind": "state"
         }
       ],
-      "codeOnlyStates": [],
+      "codeOnlyStates": [
+        "inactive"
+      ],
       "anatomy": [
         {
           "part": "container",
@@ -17300,7 +17305,9 @@
           "kind": "state"
         }
       ],
-      "codeOnlyStates": [],
+      "codeOnlyStates": [
+        "inactive"
+      ],
       "anatomy": [
         {
           "part": "container",
@@ -17915,7 +17922,9 @@
           "kind": "state"
         }
       ],
-      "codeOnlyStates": [],
+      "codeOnlyStates": [
+        "inactive"
+      ],
       "anatomy": [
         {
           "part": "container",
@@ -28617,7 +28626,7 @@
                 "minWidth": {
                   "px": 64,
                   "source": "derived",
-                  "rule": "height × 1.5"
+                  "rule": "height × 1.5, rounded to the nearest 8px"
                 }
               }
             },
@@ -28700,7 +28709,7 @@
                 "minWidth": {
                   "px": 56,
                   "source": "derived",
-                  "rule": "height × 1.5"
+                  "rule": "height × 1.5, rounded to the nearest 8px"
                 }
               }
             },
@@ -28783,7 +28792,7 @@
                 "minWidth": {
                   "px": 88,
                   "source": "derived",
-                  "rule": "height × 1.5"
+                  "rule": "height × 1.5, rounded to the nearest 8px"
                 }
               }
             },
@@ -28866,7 +28875,7 @@
                 "minWidth": {
                   "px": 64,
                   "source": "derived",
-                  "rule": "height × 1.5"
+                  "rule": "height × 1.5, rounded to the nearest 8px"
                 }
               }
             },
@@ -28960,7 +28969,7 @@
                 "minWidth": {
                   "px": 56,
                   "source": "derived",
-                  "rule": "height × 1.5"
+                  "rule": "height × 1.5, rounded to the nearest 8px"
                 }
               }
             },
@@ -29054,7 +29063,7 @@
                 "minWidth": {
                   "px": 88,
                   "source": "derived",
-                  "rule": "height × 1.5"
+                  "rule": "height × 1.5, rounded to the nearest 8px"
                 }
               }
             },
@@ -33239,7 +33248,7 @@
       ],
       "properties": [
         {
-          "name": "text",
+          "name": "label",
           "type": "TEXT",
           "default": "List item"
         },
@@ -41488,11 +41497,12 @@
           "parts": [
             {
               "part": "container/control",
+              "fill": "color.disabled.fill",
               "stroke": "color.disabled.border"
             },
             {
               "part": "container/control/entry/value",
-              "ink": "color.disabled.text"
+              "ink": "color.disabled.on-fill"
             }
           ]
         },
@@ -42469,7 +42479,7 @@
             },
             {
               "part": "container/labelBox/underline",
-              "fill": "color.border.tertiary"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "container/labelBox/underline/underlineReserve/underlineLabel",
@@ -42496,7 +42506,7 @@
             },
             {
               "part": "container/labelBox/underline",
-              "fill": "color.border.tertiary"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "container/labelBox/underline/underlineReserve/underlineLabel",
@@ -49557,7 +49567,7 @@
           "default": false
         },
         {
-          "name": "helper",
+          "name": "message",
           "type": "BOOLEAN",
           "default": false
         }
@@ -49575,7 +49585,7 @@
             "medium",
             "small",
             "large",
-            "xlarge"
+            "x-large"
           ],
           "kind": "size"
         },
@@ -49791,7 +49801,7 @@
         },
         {
           "where": {
-            "size": "xlarge"
+            "size": "x-large"
           },
           "parts": [
             {
@@ -49881,7 +49891,7 @@
         },
         {
           "where": {
-            "size": "xlarge"
+            "size": "x-large"
           },
           "parts": [
             {
@@ -50026,7 +50036,7 @@
             "medium",
             "small",
             "large",
-            "xlarge"
+            "x-large"
           ],
           "kind": "size"
         },
@@ -50174,7 +50184,7 @@
         },
         {
           "where": {
-            "size": "xlarge"
+            "size": "x-large"
           },
           "parts": [
             {
@@ -50220,7 +50230,7 @@
         },
         {
           "where": {
-            "size": "xlarge"
+            "size": "x-large"
           },
           "parts": []
         }

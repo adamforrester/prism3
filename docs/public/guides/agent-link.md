@@ -50,6 +50,7 @@ The Activity drawer's bar shows the link's state in a word: "Listening · bridge
 | `audit-frames` | Checks frames for what a rebuild should have replaced: old components, text with no style, colors bound to no variable, hand-drawn rules and unnamed frames. The agent supplies the old names. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:84-85 --> |
 | `snapshot` | Renders one layer as an image, as this session shows it. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:86-87 --> |
 | `activity` | Lists what Activity shows for this session, newest first: each run's result, its details, every set built with problems and why, and the plugin build that ran it. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:88-89 --> |
+| `panels-clean` | The usage panels Clean up offers while Documentation has panels off: a count, or with a confirm, the delete. A panel edited by hand is never removed. <!-- src: apps/plugin/src/agent-protocol.ts:90-92 --> |
 | `context` | Says what the open file is: its brand and modes, its variable collections, the sets Prism3 built and which are due, and what is read-only: pages whose name contains FINAL, locked layers and `Original · …` copies. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:93-94 --> |
 
 Every write an agent asks for passes the same checks as Update file, and is refused for the same reasons. <!-- src: apps/plugin/src/run-guard.ts:1-14#b6f8158f -->

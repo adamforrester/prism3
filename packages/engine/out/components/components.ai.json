@@ -691,7 +691,7 @@
       "ai": {
         "primaryPurpose": "Render the shared keyboard-focus indicator for a focusable control.",
         "whenToUse": "Every component that can receive keyboard focus nests it as an absolute sibling and picks its surface and offset. It is never placed in a layout on its own.",
-        "avoidWhen": "As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside :focus-visible destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. \"Standalone\" here means placed in a layout: the component is built on its own, because a host can only nest one that already exists.",
+        "avoidWhen": "As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside :focus-visible destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. Fields draw their own focus edge instead. \"Standalone\" here means placed in a layout: the component is built on its own, because a host can only nest one that already exists.",
         "commonPartners": [
           "button",
           "button-destructive",
@@ -761,8 +761,8 @@
       ],
       "category": "form",
       "status": "draft",
-      "summary": "Triggers an action in place, such as submit, save or confirm. For navigation, use a link.",
-      "description": "In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand's primary action style, the expected look of a button. Not navigation (use Link, or give the button an href so it renders an <a>), not a persistent binary (Switch.Row), not one-of-many selection (segmented-control / toggle-button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.",
+      "summary": "Triggers an action in place, such as submit, save or confirm. For navigation, use Link.",
+      "description": "In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand's primary action style, the expected look of a button. Not navigation (use Link, or give the button an href so it renders an <a>), not a persistent binary (Switch.Row), not one-of-many selection (SegmentedControl, or a toggle button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.",
       "props": [
         {
           "name": "label",
@@ -786,7 +786,7 @@
             "outline",
             "text"
           ],
-          "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)"
+          "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only."
         },
         {
           "name": "size",
@@ -940,7 +940,7 @@
         "wcag": [
           "1.4.11 Non-text Contrast (the focus ring and boundary at 3:1)",
           "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
-          "2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)",
+          "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)",
           "2.5.3 Label in Name (an aria-label starts with the visible label text)",
           "2.5.8 Target Size (Minimum) (24×24 — small is 36px tall, 28px at compact density)",
           "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)",
@@ -1112,7 +1112,7 @@
             "outline",
             "text"
           ],
-          "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)"
+          "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only."
         },
         {
           "name": "size",
@@ -1266,7 +1266,7 @@
         "wcag": [
           "1.4.11 Non-text Contrast (the focus ring and boundary at 3:1)",
           "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
-          "2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)",
+          "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)",
           "2.5.3 Label in Name (an aria-label starts with the visible label text)",
           "2.5.8 Target Size (Minimum) (24×24 — small is 36px tall, 28px at compact density)",
           "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)",
@@ -1312,7 +1312,7 @@
       "ai": {
         "primaryPurpose": "Trigger an action in place.",
         "whenToUse": "The user needs to act on this surface — submit, confirm, open, apply, or start async work.",
-        "avoidWhen": "The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.",
+        "avoidWhen": "The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton.Destructive (the accessible name is required there at the type level). The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.",
         "commonPartners": [
           "icon",
           "spinner",
@@ -1440,7 +1440,7 @@
             "outline",
             "text"
           ],
-          "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)"
+          "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only."
         },
         {
           "name": "size",
@@ -1594,7 +1594,7 @@
         "wcag": [
           "1.4.11 Non-text Contrast (the focus ring and boundary at 3:1)",
           "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
-          "2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)",
+          "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)",
           "2.5.3 Label in Name (an aria-label starts with the visible label text)",
           "2.5.8 Target Size (Minimum) (24×24 — small is 36px tall, 28px at compact density)",
           "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)",
@@ -1639,7 +1639,7 @@
       "ai": {
         "primaryPurpose": "Trigger an action in place.",
         "whenToUse": "The user needs to act on this surface — submit, confirm, open, apply, or start async work.",
-        "avoidWhen": "The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action is the view's main one or carries the brand → use Button. It deletes or removes something → use Button.Destructive.",
+        "avoidWhen": "The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton.Neutral (the accessible name is required there at the type level). The action is the view's main one or carries the brand → use Button. It deletes or removes something → use Button.Destructive.",
         "commonPartners": [
           "icon",
           "spinner",
@@ -1785,11 +1785,11 @@
           "description": "The height: 36, 44 or 56px. Google Pay and Shop Pay have no small size and PayPal no large one, because each provider sets a smallest and a largest height."
         },
         {
-          "name": "type",
+          "name": "wording",
           "type": "string",
           "default": "plain",
           "required": false,
-          "description": "The provider's wording, from its own list, passed to the provider: plain shows the logo alone; buy, checkout, donate, order, pay and subscribe add the provider's words, translated by the provider. A value the provider does not offer falls back to plain."
+          "description": "The provider's wording, from its own list, passed to the provider as its button type: plain shows the logo alone; buy, checkout, donate, order, pay and subscribe add the provider's words, translated by the provider. A value the provider does not offer falls back to plain."
         }
       ],
       "states": [
@@ -2007,14 +2007,30 @@
           "name": "onClick",
           "type": "(event: MouseEvent) => void",
           "required": false,
-          "description": "Called before the provider's sign-in starts, for analytics or a loading state. The sign-in itself is the provider's."
+          "description": "Called before the provider's sign-in starts, for analytics or to set isPending. The sign-in itself is the provider's. Not called while isPending or disabled."
+        },
+        {
+          "name": "isPending",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "While the provider's sign-in is in flight: keeps focus (aria-disabled, not native disabled), sets aria-busy, ignores a second click, and announces busy through a polite live region. The provider's mark and words stay as drawn."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled, reserved for a sign-in the view does not offer right now; it leaves the tab order and the accessibility tree."
         }
       ],
       "states": [
         "rest",
         "hover",
         "pressed",
-        "focus-visible"
+        "pending",
+        "focus-visible",
+        "disabled"
       ],
       "variants": {
         "provider": {
@@ -2119,6 +2135,14 @@
         ]
       },
       "syncBoundary": [
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
         {
           "class": "platform-owned",
           "disposition": "REFUSED"
@@ -2319,7 +2343,7 @@
           "2.5.3 Label in Name (a visible tooltip and the aria-label carry the same words)",
           "1.4.11 Non-text Contrast (focus ring at 3:1, and the icon glyph itself at 3:1 against its background)",
           "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
-          "2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)",
+          "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)",
           "1.4.13 Content on Hover or Focus (only where a tooltip is attached: dismissible, hoverable and persistent)",
           "2.5.8 Target Size (Minimum) (24×24 — the small square is 36px, 28px at compact density)",
           "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); icon-only controls are the likeliest to miss it, so reaching 44 elsewhere is a code-side hit-area expansion)"
@@ -2347,7 +2371,7 @@
       },
       "ai": {
         "primaryPurpose": "Trigger an action with an icon alone, no visible label.",
-        "whenToUse": "A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).",
+        "whenToUse": "A self-evident, conventional action in a space-constrained context (toolbar, table row, card header).",
         "avoidWhen": "The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. The action deletes or removes something → use IconButton.Destructive. It carries no brand emphasis (most toolbar and row actions, a close affordance) → use IconButton.Neutral.",
         "commonPartners": [
           "icon",
@@ -2366,7 +2390,7 @@
       "motion": {
         "enter": "none (present on mount)",
         "exit": "none",
-        "reduceMotion": "State transitions (background, border) are meant to run ~100–150ms through the brand's motion tokens; this component binds none yet, so the timing is code-side. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
+        "reduceMotion": "State transitions (background, border) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98), as on Button, gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
       },
       "composition": {
         "composesWith": [
@@ -2577,7 +2601,7 @@
           "2.5.3 Label in Name (a visible tooltip and the aria-label carry the same words)",
           "1.4.11 Non-text Contrast (focus ring at 3:1, and the icon glyph itself at 3:1 against its background)",
           "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
-          "2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)",
+          "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)",
           "1.4.13 Content on Hover or Focus (only where a tooltip is attached: dismissible, hoverable and persistent)",
           "2.5.8 Target Size (Minimum) (24×24 — the small square is 36px, 28px at compact density)",
           "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); icon-only controls are the likeliest to miss it, so reaching 44 elsewhere is a code-side hit-area expansion)"
@@ -2606,7 +2630,7 @@
       },
       "ai": {
         "primaryPurpose": "Trigger an action with an icon alone, no visible label.",
-        "whenToUse": "A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).",
+        "whenToUse": "A self-evident, conventional action in a space-constrained context (toolbar, table row, card header).",
         "avoidWhen": "The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. The action is not destructive → use IconButton, or IconButton.Neutral for one with no brand emphasis.",
         "commonPartners": [
           "icon",
@@ -2625,7 +2649,7 @@
       "motion": {
         "enter": "none (present on mount)",
         "exit": "none",
-        "reduceMotion": "State transitions (background, border) are meant to run ~100–150ms through the brand's motion tokens; this component binds none yet, so the timing is code-side. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
+        "reduceMotion": "State transitions (background, border) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98), as on Button, gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
       },
       "composition": {
         "composesWith": [
@@ -2836,7 +2860,7 @@
           "2.5.3 Label in Name (a visible tooltip and the aria-label carry the same words)",
           "1.4.11 Non-text Contrast (focus ring at 3:1, and the icon glyph itself at 3:1 against its background)",
           "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
-          "2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)",
+          "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)",
           "1.4.13 Content on Hover or Focus (only where a tooltip is attached: dismissible, hoverable and persistent)",
           "2.5.8 Target Size (Minimum) (24×24 — the small square is 36px, 28px at compact density)",
           "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); icon-only controls are the likeliest to miss it, so reaching 44 elsewhere is a code-side hit-area expansion)"
@@ -2883,7 +2907,7 @@
       "motion": {
         "enter": "none (present on mount)",
         "exit": "none",
-        "reduceMotion": "State transitions (background, border) are meant to run ~100–150ms through the brand's motion tokens; this component binds none yet, so the timing is code-side. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
+        "reduceMotion": "State transitions (background, border) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98), as on Button, gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
       },
       "composition": {
         "composesWith": [
@@ -2965,7 +2989,7 @@
           "name": "onClick",
           "type": "function",
           "required": false,
-          "description": "Action handler. Not called while disabled."
+          "description": "Action handler. Not called while disabled or inactive."
         },
         {
           "name": "type",
@@ -3014,11 +3038,18 @@
           "description": "The ground the button sits on, following IconButton. default for a normal page; inverse for a dark or brand-filled card or band, where the glyph binds its color.inverse counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks default, and the designer sets inverse on the instance, the same answer the nested focus ring gives."
         },
         {
+          "name": "isInactive",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+          "description": "Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree."
         }
       ],
       "states": [
@@ -3026,7 +3057,8 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled"
+        "disabled",
+        "inactive"
       ],
       "variants": {
         "shape": {
@@ -3063,7 +3095,7 @@
         ],
         "keyboard": "Native <button>: Enter on keydown, Space on keyup. A host may take it out of the tab order (tabindex=\"-1\") where its own keys do the same job, as a counter's arrow keys do.",
         "focus": "An offset :focus-visible ring around the glyph square, or around the circle on the round shape.",
-        "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that disables it at a limit, set aria-disabled=\"true\" so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
+        "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that blocks it at a limit, set isInactive, which carries aria-disabled=\"true\", so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
       },
       "content": {
         "labelPattern": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape (\"X\", \"plus\")."
@@ -3084,7 +3116,7 @@
       },
       "ai": {
         "primaryPurpose": "Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.",
-        "whenToUse": "The minus and plus of a counter, a card's close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.",
+        "whenToUse": "Any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.",
         "avoidWhen": "The action deletes or removes something (use FlushIconButton.Destructive). It carries no brand emphasis, such as the minus and plus of a counter or the close on a card (use FlushIconButton.Neutral). It stands on its own in a toolbar or a header (use IconButton, which has a visible box). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.",
         "commonPartners": [
           "icon",
@@ -3114,7 +3146,7 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "number-input",
+          "number-field",
           "card"
         ],
         "replacesPatterns": [
@@ -3137,6 +3169,10 @@
         },
         {
           "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
           "disposition": "REFUSED"
         },
         {
@@ -3178,7 +3214,7 @@
           "name": "onClick",
           "type": "function",
           "required": false,
-          "description": "Action handler. Not called while disabled."
+          "description": "Action handler. Not called while disabled or inactive."
         },
         {
           "name": "type",
@@ -3227,11 +3263,18 @@
           "description": "The ground the button sits on, following IconButton. default for a normal page; inverse for a dark or brand-filled card or band, where the glyph binds its color.inverse counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks default, and the designer sets inverse on the instance, the same answer the nested focus ring gives."
         },
         {
+          "name": "isInactive",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+          "description": "Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree."
         }
       ],
       "states": [
@@ -3239,7 +3282,8 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled"
+        "disabled",
+        "inactive"
       ],
       "variants": {
         "shape": {
@@ -3276,7 +3320,7 @@
         ],
         "keyboard": "Native <button>: Enter on keydown, Space on keyup. A host may take it out of the tab order (tabindex=\"-1\") where its own keys do the same job, as a counter's arrow keys do.",
         "focus": "An offset :focus-visible ring around the glyph square, or around the circle on the round shape.",
-        "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that disables it at a limit, set aria-disabled=\"true\" so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
+        "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that blocks it at a limit, set isInactive, which carries aria-disabled=\"true\", so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
       },
       "content": {
         "labelPattern": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape (\"X\", \"plus\")."
@@ -3298,7 +3342,7 @@
       },
       "ai": {
         "primaryPurpose": "Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.",
-        "whenToUse": "The minus and plus of a counter, a card's close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.",
+        "whenToUse": "Any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.",
         "avoidWhen": "The action is not destructive (use FlushIconButton, or FlushIconButton.Neutral for one with no brand emphasis). It stands on its own in a toolbar or a header (use IconButton.Destructive, which has a visible box). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.",
         "commonPartners": [
           "icon",
@@ -3328,7 +3372,7 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "number-input",
+          "number-field",
           "card"
         ],
         "replacesPatterns": [
@@ -3351,6 +3395,10 @@
         },
         {
           "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
           "disposition": "REFUSED"
         },
         {
@@ -3392,7 +3440,7 @@
           "name": "onClick",
           "type": "function",
           "required": false,
-          "description": "Action handler. Not called while disabled."
+          "description": "Action handler. Not called while disabled or inactive."
         },
         {
           "name": "type",
@@ -3441,11 +3489,18 @@
           "description": "The ground the button sits on, following IconButton. default for a normal page; inverse for a dark or brand-filled card or band, where the glyph binds its color.inverse counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks default, and the designer sets inverse on the instance, the same answer the nested focus ring gives."
         },
         {
+          "name": "isInactive",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+          "description": "Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree."
         }
       ],
       "states": [
@@ -3453,7 +3508,8 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled"
+        "disabled",
+        "inactive"
       ],
       "variants": {
         "shape": {
@@ -3490,7 +3546,7 @@
         ],
         "keyboard": "Native <button>: Enter on keydown, Space on keyup. A host may take it out of the tab order (tabindex=\"-1\") where its own keys do the same job, as a counter's arrow keys do.",
         "focus": "An offset :focus-visible ring around the glyph square, or around the circle on the round shape.",
-        "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that disables it at a limit, set aria-disabled=\"true\" so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
+        "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that blocks it at a limit, set isInactive, which carries aria-disabled=\"true\", so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
       },
       "content": {
         "labelPattern": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape (\"X\", \"plus\")."
@@ -3543,7 +3599,7 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "number-input",
+          "number-field",
           "card"
         ],
         "replacesPatterns": [
@@ -3566,6 +3622,10 @@
         },
         {
           "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
           "disposition": "REFUSED"
         },
         {
@@ -3854,7 +3914,7 @@
       "ai": {
         "primaryPurpose": "Carry helper guidance or a validation result below a form field, as icon + caption.",
         "whenToUse": "Under any field control that needs persistent guidance or an error/warning/success message.",
-        "avoidWhen": "As a standalone alert or toast (use an alert/banner) — this is field-scoped and associated to one control. Never as the sole color-coded error signal without text.",
+        "avoidWhen": "As a standalone alert or toast (use Banner or Toast) — this is field-scoped and associated to one control. Never as the sole color-coded error signal without text.",
         "commonPartners": [
           "text-field",
           "textarea",
@@ -4222,7 +4282,8 @@
           "checkbox-row",
           "switch-row",
           "password-field",
-          "search-field"
+          "search-field",
+          "code-input"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -4953,7 +5014,7 @@
         "errorPattern": "Group-level for a set — \"Select at least one option\" — stating what is wrong and how to fix it (SC 3.3.3). Inside a group the group sets status=error on every row and carries the message. A standalone row sets its own status=error (\"Accept the terms to continue\"), and its host shows the message."
       },
       "docs": {
-        "usage": "Use a single Checkbox.Row for one independent opt-in (a consent line, \"Remember me\"), and a Checkbox.Group to select any number — zero to many — from a bounded set. Use the indeterminate state for a select-all broadcasting partial selection over a table or tree. Compose FieldMessage below exactly as TextField does; the host wires the ids and the aria-describedby chain. Past roughly 7-10 options, scanning and vertical space suffer and a filtering multi-select combobox (not built yet) is the better control.",
+        "usage": "Use a single Checkbox.Row for one independent opt-in (a consent line, \"Remember me\"), and a Checkbox.Group to select any number — zero to many — from a bounded set. Use the indeterminate state for a select-all broadcasting partial selection over a table or tree. Compose FieldMessage below exactly as TextField does; the host wires the ids and the aria-describedby chain. Past roughly 7–10 options, scanning and vertical space suffer and a filtering multi-select combobox (not built yet) is the better control.",
         "do": [
           "Make the whole row the hit target with padding on the wrapper — the visual box stays tight while the interactive footprint aims for 24x24 and beyond",
           "Set aria-checked=\"mixed\" explicitly for indeterminate — the dash glyph alone conveys nothing to assistive tech",
@@ -4974,7 +5035,7 @@
       "ai": {
         "primaryPurpose": "Capture an independent binary choice that is staged into a form and submitted, with an associated label that doubles as the hit target and an optional indeterminate state for select-all hierarchy.",
         "whenToUse": "A single opt-in (consent, \"remember me\", \"include X\"), or any-number-from-a-set selection where the change applies on save rather than instantly. The indeterminate state when a parent row summarizes a partially-selected set of children.",
-        "avoidWhen": "The change takes effect the instant it is toggled (Switch.Row — the boundary is staged versus immediate, and only Checkbox.Row has indeterminate), the options are mutually exclusive (Radio.Group — any-number versus exactly-one; a two-option exclusive choice is Radio.Group, never two checkboxes), the control is really an action with a pressed state in a dense toolbar (a toggle button with aria-pressed, not built yet), or the set runs past roughly 7-10 options (a filtering multi-select combobox or listbox, not built yet).",
+        "avoidWhen": "The change takes effect the instant it is toggled (Switch.Row — the boundary is staged versus immediate, and only Checkbox.Row has indeterminate), the options are mutually exclusive (Radio.Group — any-number versus exactly-one; a two-option exclusive choice is Radio.Group, never two checkboxes), the control is really an action with a pressed state in a dense toolbar (a toggle button with aria-pressed, not built yet), or the set runs past roughly 7–10 options (a filtering multi-select combobox or listbox, not built yet).",
         "commonPartners": [
           "checkbox-control",
           "checkbox-group",
@@ -5066,7 +5127,7 @@
       "category": "form",
       "status": "draft",
       "summary": "Labeled stack of Checkbox rows. Owns the value array, required and validation. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
-      "description": "A labeled set for selecting any number — zero to many — from a bounded list of options. A required section label (FieldLabel) above a vertical stack of Checkbox.Row options. Owns the contract a single row cannot: the value array, group-level required, and all validation, announced once for the group. Use for a small bounded multi-select; past roughly 7-10 options a filtering multi-select combobox (not built yet) scans better. Not exactly-one selection (Radio.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row).",
+      "description": "A labeled set for selecting any number — zero to many — from a bounded list of options. A required section label (FieldLabel) above a vertical stack of Checkbox.Row options. Owns the contract a single row cannot: the value array, group-level required, and all validation, announced once for the group. Use for a small bounded multi-select; past roughly 7–10 options a filtering multi-select combobox (not built yet) scans better. Not exactly-one selection (Radio.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row).",
       "props": [
         {
           "name": "label",
@@ -5190,7 +5251,7 @@
         "errorPattern": "Group-level and specific — \"Select at least one option\", stating what is wrong and how to fix it (SC 3.3.3), never \"Invalid\". The group sets status=error on every row (the danger border on each box) and shows the message once, under the options."
       },
       "docs": {
-        "usage": "Use to select any number — zero to many — from a bounded set, where the change is committed on save rather than applied instantly. Give the group a label that names the decision; let it own the value array, required and validation, and derive each row's checked state from the value array rather than wiring it on the row. Compose the rows as items. Past roughly 7-10 options, a filtering multi-select combobox (not built yet) scans better; for exactly-one selection use Radio.Group, and for a single independent opt-in a lone Checkbox.Row.",
+        "usage": "Use to select any number — zero to many — from a bounded set, where the change is committed on save rather than applied instantly. Give the group a label that names the decision; let it own the value array, required and validation, and derive each row's checked state from the value array rather than wiring it on the row. Compose the rows as items. Past roughly 7–10 options, a filtering multi-select combobox (not built yet) scans better; for exactly-one selection use Radio.Group, and for a single independent opt-in a lone Checkbox.Row.",
         "do": [
           "Give the group a label that names the decision, so its rows can read the short abstracted-up remainder",
           "Let the group own the value array, required and validation — a row inside a group never manages its own",
@@ -5202,7 +5263,7 @@
           "Pre-check a consent option — a dark pattern, and for marketing consent often unlawful",
           "Wire checked, onChange or required on an individual row inside a group — all three belong to the group",
           "Model an exclusive one-of-many choice as a checkbox group — that is Radio.Group",
-          "Reach for a checkbox group past roughly 7-10 options — a filtering multi-select combobox (not built yet) scans better",
+          "Reach for a checkbox group past roughly 7–10 options — a filtering multi-select combobox (not built yet) scans better",
           "Override Enter to toggle — Enter submits the form, and that expectation is universal"
         ],
         "contentGuidelines": "The group label names the decision; the rows carry the short options. Group errors read \"Select at least one option\" rather than \"Invalid\"."
@@ -5210,7 +5271,7 @@
       "ai": {
         "primaryPurpose": "Select any number — zero to many — from a bounded set via a labeled stack of Checkbox.Row options, with the group owning the value array, group-level required and all validation.",
         "whenToUse": "A small bounded multi-select committed on save (notification preferences, feature opt-ins, a filter set), where seeing all the options aids the choice and the group needs one label, one required rule and one validation message.",
-        "avoidWhen": "Exactly one option may be chosen (Radio.Group — any-number versus exactly-one), a single independent opt-in with no siblings (a lone Checkbox.Row — a consent line, \"remember me\"), the change takes effect the instant it is toggled (a list of Switch.Row — staged versus immediate), or the set runs past roughly 7-10 options (a filtering multi-select combobox or listbox, not built yet).",
+        "avoidWhen": "Exactly one option may be chosen (Radio.Group — any-number versus exactly-one), a single independent opt-in with no siblings (a lone Checkbox.Row — a consent line, \"remember me\"), the change takes effect the instant it is toggled (a list of Switch.Row — staged versus immediate), or the set runs past roughly 7–10 options (a filtering multi-select combobox or listbox, not built yet).",
         "commonPartners": [
           "checkbox-row",
           "checkbox-control",
@@ -5482,7 +5543,7 @@
       "category": "form",
       "status": "draft",
       "summary": "One labeled option inside a Radio.Group. The whole row is the hit target.",
-      "description": "A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to about 7, where seeing them all aids the decision. Radio.Row is the labeled option: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is mandatory, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox.Row), not an immediate on/off (Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).",
+      "description": "A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to 7, where seeing them all aids the decision. Radio.Row is the labeled option: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is mandatory, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox.Row), not an immediate on/off (Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).",
       "inherits": "checkbox-row",
       "props": [
         {
@@ -5586,7 +5647,7 @@
         "emptyPattern": "A group starts empty by default, so no option carries a pre-selected state — the practice forces a deliberate choice and pre-selects only where a genuinely safe recommended default exists. A radio cannot be deselected, so once chosen the group cannot return to empty: an optional group must therefore carry an explicit \"None\" or \"N/A\" option, or a stray click permanently pollutes the data with no way back. If a \"None\" option would corrupt the data model, the choice belongs in a clearable Select instead."
       },
       "docs": {
-        "usage": "Use a group of these for exactly one of 2 to about 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Always inside a Radio.Group, never alone: the group owns the shared name, the value and the validation. Prefer vertical orientation, which scans better and lets long labels wrap safely; reserve horizontal for a few short options and space them so no label associates with the wrong control. Compose FieldMessage at the group rather than per option.",
+        "usage": "Use a group of these for exactly one of 2 to 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Always inside a Radio.Group, never alone: the group owns the shared name, the value and the validation. Prefer vertical orientation, which scans better and lets long labels wrap safely; reserve horizontal for a few short options and space them so no label associates with the wrong control. Compose FieldMessage at the group rather than per option.",
         "do": [
           "Ship options inside a group — the group owns the shared name, the single value, validation and the tab stop",
           "Give the group a label; without one, assistive tech announces \"radio button, 1 of 3\" with no idea what the choice is",
@@ -5600,15 +5661,15 @@
           "Make each option its own tab stop — the group is one stop with arrow navigation, and getting this wrong is the most common radio accessibility failure",
           "Add toggle-off behavior — no-deselect is native and deliberate",
           "Model an exclusive choice as several checkboxes, or a true/false toggle as two radios",
-          "Reach for radio past about 7 options or in tight vertical space — that is Select",
+          "Reach for radio past 7 options or in tight vertical space — that is Select",
           "Use radio for a choice that takes effect instantly — that is Switch.Row, or SegmentedControl"
         ],
         "contentGuidelines": "Option labels are parallel and brief; the detail that distinguishes them goes in the description. The group label names the decision. Errors are group-level and say what to do."
       },
       "ai": {
         "primaryPurpose": "Present one option within a mutually exclusive set via a labeled row that nests the circle-and-dot control, deriving its selected state from the group that owns the value.",
-        "whenToUse": "Exactly one of 2 to about 7 all-visible options where seeing them together aids the decision, and the choice is committed on submit rather than applied instantly. Always as a child of a Radio.Group.",
-        "avoidWhen": "Any number of options may be selected (Checkbox.Row — never model an exclusive choice as several checkboxes), the change applies immediately (Switch.Row — and never two radios for a true/false toggle), the set runs past about 7 or vertical space is tight (Select, the collapsed alternative), the choice is a dense frequent view-switch (SegmentedControl, which carries a different accessibility model), or it is really an action (Button). Also do not reach for Radio.Row when what is wanted is the group: use Radio.Group (radio-group), which owns the name, the value and the validation.",
+        "whenToUse": "Only as a child of a Radio.Group. Generate a Radio.Group, which places one row per option and sets which one is selected.",
+        "avoidWhen": "Any number of options may be selected (Checkbox.Row — never model an exclusive choice as several checkboxes), the change applies immediately (Switch.Row — and never two radios for a true/false toggle), the set runs past 7 or vertical space is tight (Select, the collapsed alternative), the choice is a dense frequent view-switch (SegmentedControl, which carries a different accessibility model), or it is really an action (Button). Also do not reach for Radio.Row when what is wanted is the group: use Radio.Group (radio-group), which owns the name, the value and the validation.",
         "commonPartners": [
           "radio-control",
           "radio-group",
@@ -5623,7 +5684,7 @@
           "pick one",
           "mutually exclusive"
         ],
-        "generationPriority": 2
+        "generationPriority": 9
       },
       "motion": {
         "enter": "None of the row's own (present on mount). On select, the nested Radio.Control scales its dot in, about 100-150ms; the focus ring appears instantly.",
@@ -5701,7 +5762,7 @@
       "category": "form",
       "status": "draft",
       "summary": "Labeled stack of Radio rows. Owns the shared name, one value and validation. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
-      "description": "A labeled set for choosing exactly one from a small set of mutually exclusive, all-visible options. A required section label (FieldLabel) above a vertical stack of Radio.Row options. Owns the contract a single radio cannot — and without which the radios are not radios at all: the shared name that enforces exclusivity, the single scalar value, the single tab stop with roving focus, and all validation, announced once for the group. Use for 2 to about 7 options where seeing them all aids the decision; past that, a Select or a filtering combobox (not built yet) scans better. Not any-number selection (Checkbox.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).",
+      "description": "A labeled set for choosing exactly one from a small set of mutually exclusive, all-visible options. A required section label (FieldLabel) above a vertical stack of Radio.Row options. Owns the contract a single radio cannot — and without which the radios are not radios at all: the shared name that enforces exclusivity, the single scalar value, the single tab stop with roving focus, and all validation, announced once for the group. Use for 2 to 7 options where seeing them all aids the decision; past that, a Select or a filtering combobox (not built yet) scans better. Not any-number selection (Checkbox.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).",
       "props": [
         {
           "name": "label",
@@ -5825,7 +5886,7 @@
         "emptyPattern": "The group starts empty by default, so no option carries a pre-selected state — this forces a deliberate choice. Pre-select only where a genuinely safe recommended default exists. A radio cannot be deselected, so once chosen the group cannot return to empty: an optional group must carry an explicit \"None\" or \"N/A\" option, or a stray click permanently pollutes the data. If a \"None\" option would corrupt the data model, the choice belongs in a clearable Select instead."
       },
       "docs": {
-        "usage": "Use to choose exactly one of 2 to about 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Give the group a label that names the decision; let it own the shared name, the single scalar value, required and validation, and derive each row's checked state from the value rather than wiring it on the row. Compose the rows as items. Prefer vertical orientation, which scans better and lets long labels wrap safely. Past about 7 options a Select or a filtering combobox (not built yet) scans better; for any-number selection use Checkbox.Group, and for an immediate-effect setting Switch.Row.",
+        "usage": "Use to choose exactly one of 2 to 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Give the group a label that names the decision; let it own the shared name, the single scalar value, required and validation, and derive each row's checked state from the value rather than wiring it on the row. Compose the rows as items. Prefer vertical orientation, which scans better and lets long labels wrap safely. Past 7 options a Select or a filtering combobox (not built yet) scans better; for any-number selection use Checkbox.Group, and for an immediate-effect setting Switch.Row.",
         "do": [
           "Give the group a label that names the decision, so its rows can read the short abstracted-up remainder",
           "Let the group own the shared name, the single scalar value, required and validation — an option never manages its own",
@@ -5838,15 +5899,15 @@
           "Set checked, onChange or name on an individual option — all three belong to the group, and an option setting its own name breaks exclusivity outright",
           "Make each option its own tab stop — the group is one stop with arrow navigation, and getting this wrong is the most common radio accessibility failure",
           "Model an any-number choice as a radio group — that is Checkbox.Group",
-          "Reach for a radio group past about 7 options or in tight vertical space — that is a Select",
+          "Reach for a radio group past 7 options or in tight vertical space — that is a Select",
           "Override Enter to select — Enter submits the form, and that expectation is universal"
         ],
         "contentGuidelines": "The group label names the decision; the rows carry the short options. Group errors read \"Select a shipping method\" rather than \"Invalid\"."
       },
       "ai": {
         "primaryPurpose": "Choose exactly one from a bounded set via a labeled stack of Radio.Row options, with the group owning the shared name, the single scalar value, group-level required and all validation.",
-        "whenToUse": "A small bounded single-select committed on save (shipping method, plan tier, a contact preference), where seeing all 2 to about 7 options aids the choice and the group needs one label, one required rule and one validation message.",
-        "avoidWhen": "Any number of options may be chosen (Checkbox.Group — exactly-one versus any-number), a single independent opt-in with no siblings (a lone Checkbox.Row), the change takes effect the instant it is toggled (Switch.Row, or SegmentedControl), or the set runs past about 7 options or vertical space is tight (a Select, or a filtering combobox, not built yet).",
+        "whenToUse": "A small bounded single-select committed on save (shipping method, plan tier, a contact preference), where seeing all 2 to 7 options aids the choice and the group needs one label, one required rule and one validation message.",
+        "avoidWhen": "Any number of options may be chosen (Checkbox.Group — exactly-one versus any-number), a single independent opt-in with no siblings (a lone Checkbox.Row), the change takes effect the instant it is toggled (Switch.Row, or SegmentedControl), or the set runs past 7 options or vertical space is tight (a Select, or a filtering combobox, not built yet).",
         "commonPartners": [
           "radio-row",
           "radio-control",
@@ -6393,6 +6454,12 @@
           "description": "The displayed text — the selected option's label, or the placeholder when nothing is chosen. Controlled: pair with onChange. When it holds the placeholder the ink is the muted placeholder role; a chosen value shows the full-contrast value ink — the same empty-vs-value polarity text-field uses. This is an internal, content-driven distinction, not a variant a designer picks."
         },
         {
+          "name": "defaultValue",
+          "type": "string",
+          "required": false,
+          "description": "Uncontrolled initial value: the option chosen when the select first renders."
+        },
+        {
           "name": "placeholder",
           "type": "string",
           "required": false,
@@ -6402,7 +6469,7 @@
           "name": "options",
           "type": "array",
           "required": false,
-          "description": "The bounded set of choices. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better."
+          "description": "The bounded set of choices. The select band is 8 to about 15 familiar options: at 7 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better."
         },
         {
           "name": "onChange",
@@ -6470,6 +6537,12 @@
           "description": "Distinct from disabled: focusable, submitted with the form, and at full contrast, with the value shown and not changeable. Native <select> has no readonly attribute, only disabled, so a read-only select is the custom control with aria-readonly, or a hidden input mirroring the value beside a non-interactive display."
         },
         {
+          "name": "autoComplete",
+          "type": "string (WHATWG token)",
+          "required": false,
+          "description": "Satisfies SC 1.3.5 Identify Input Purpose — an accessibility obligation, not a convenience. Set it on a select that collects the user's own information, such as country."
+        },
+        {
           "name": "isPending",
           "type": "boolean",
           "default": false,
@@ -6521,6 +6594,12 @@
           ],
           "kind": "authoring"
         },
+        "style": {
+          "values": [
+            "outline"
+          ],
+          "kind": "authoring"
+        },
         "status": {
           "values": [
             "default",
@@ -6549,7 +6628,7 @@
         "errorPattern": "What is wrong and how to fix it (SC 3.3.3); icon + text, not color-only (carried by the nested field-message)."
       },
       "docs": {
-        "usage": "Use to choose one value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage's status from the validation state. The open menu is the platform's — prefer a native <select> where its OS menu is acceptable. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.",
+        "usage": "Use to choose one value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage's status from the validation state. The open menu is the platform's — prefer a native <select> where its OS menu is acceptable. The select band is 8 to about 15 familiar options: at 7 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.",
         "do": [
           "Render a visible, associated label (FieldLabel) above the control",
           "Show a muted placeholder as a prompt, never as the label or a real option",
@@ -6567,7 +6646,7 @@
       "ai": {
         "primaryPurpose": "Choose one value from a known, bounded set, with an associated label and helper/validation message, modeling the closed control.",
         "whenToUse": "One-of-a-known-set choices too numerous or space-costly to show all at once — a country, a status, a category.",
-        "avoidWhen": "The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 4–5 options or fewer and worth showing at once (Radio.Group, or SegmentedControl), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).",
+        "avoidWhen": "The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 7 options or fewer and worth showing at once (Radio.Group, or SegmentedControl), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).",
         "commonPartners": [
           "field-label",
           "field-message",
@@ -6622,6 +6701,10 @@
         {
           "class": "semantics",
           "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
         },
         {
           "class": "not-projected",
@@ -6959,7 +7042,7 @@
       "category": "foundations",
       "status": "draft",
       "summary": "Indeterminate loading indicator on the icon ladder. Announces \"Loading\" unless its host hides it.",
-      "description": "A rotating arc over a faint full ring, showing that work is in progress with no known end. Sized on the icon ladder (16 / 20 / 24 / 32) and inked from the surrounding text or icon color, so it drops into any icon slot — a button's leading visual, a field's trailing slot. On its own it is a polite status named \"Loading\", or a more specific label; inside a host that announces its own busy state, the host hides it with aria-hidden. It has no value, so it never stands in for a determinate progress bar.",
+      "description": "A rotating arc over a faint full ring, showing that work is in progress with no known end. Sized on the icon ladder (16 / 20 / 24 / 32) and inked from the surrounding text or icon color, so it drops into any icon slot — a button's leading visual, a field's trailing slot. On its own it announces a polite \"Loading\", or a more specific label, through a status region that is already on the page; inside a host that announces its own busy state, the host hides it with aria-hidden. It has no value, so it never stands in for a determinate progress bar.",
       "props": [
         {
           "name": "size",
@@ -6979,7 +7062,7 @@
           "type": "string",
           "default": "Loading",
           "required": false,
-          "description": "The accessible name of the spinner's role=\"status\" wrapper, visually hidden and announced politely. \"Loading\" by default; name the work when it is known (\"Loading results\"). A host that already announces its own busy state (a Button or IconButton isPending, which set aria-busy and carry their own live region) puts aria-hidden=\"true\" on the spinner instead, so the state is announced once."
+          "description": "The text announced when the spinner shows, written into a polite role=\"status\" region that is present and empty before it shows, and visually hidden. \"Loading\" by default; name the work when it is known (\"Loading results\"). A host that already announces its own busy state (a Button or IconButton isPending, which set aria-busy and carry their own live region) puts aria-hidden=\"true\" on the spinner instead, so the state is announced once."
         }
       ],
       "states": [],
@@ -6995,20 +7078,20 @@
         }
       },
       "accessibility": {
-        "role": "status with aria-live=\"polite\", named by label — \"Loading\" by default. Hidden (aria-hidden=\"true\") inside a host that announces its own busy state.",
+        "role": "status with aria-live=\"polite\": a region present and empty before the spinner shows, into which the label (\"Loading\" by default) is written on show. Hidden (aria-hidden=\"true\") inside a host that announces its own busy state.",
         "wcag": [
-          "1.1.1 Non-text Content (the drawing is aria-hidden; the status text is the name)",
+          "1.1.1 Non-text Content (the drawing is aria-hidden; the status text carries the meaning)",
           "1.4.11 Non-text Contrast (the arc takes its host's icon ink, meant to clear 3:1; the track is decorative and exempt)",
           "4.1.3 Status Messages (the polite \"Loading\" status when it stands alone; the host's own announcement when the host hides it)"
         ],
         "focus": "None. The spinner takes no focus. A pending host control keeps its own: it takes aria-disabled=\"true\", not native disabled, which takes the control out of the focus order and sends focus to the page body (USWDS), and it suppresses the repeat click in script — see Button's isPending.",
-        "aria": "Standalone, the default: a role=\"status\" wrapper with aria-live=\"polite\", named by label (\"Loading\" unless a more specific label is given), around an aria-hidden drawing. Inside a host that already announces its busy state — a Button or IconButton isPending, which set aria-busy and carry their own polite live region — the host sets aria-hidden=\"true\" on the spinner, so the state is announced once rather than twice. Never aria-valuenow and never role=\"progressbar\": a spinner has no value, and an indeterminate progressbar can make some screen readers keep announcing the missing value."
+        "aria": "Standalone, the default: a role=\"status\" region with aria-live=\"polite\", the host's or the app's, is present and empty before the spinner shows, and the label (\"Loading\" unless a more specific label is given) is written into it when the spinner shows; the drawing is aria-hidden. The label is the region's content, not its accessible name. Inside a host that already announces its busy state — a Button or IconButton isPending, which set aria-busy and carry their own polite live region — the host sets aria-hidden=\"true\" on the spinner, so the state is announced once rather than twice. Never aria-valuenow and never role=\"progressbar\": a spinner is not a progressbar."
       },
       "content": {
         "labelPattern": "Name the work, in sentence case: \"Loading results\", \"Saving changes\" — not a generic \"Loading…\". \"Loading\" is the fallback only when nothing more specific is known. One status for the whole wait, not a chain of steps (\"Fetching…\", \"Parsing…\") that floods the live region; for a region or a longer wait, the host announces completion (\"Results loaded\")."
       },
       "docs": {
-        "usage": "Use a spinner for a short wait with no known end — about 200ms to 5s — inside the thing that is waiting: a button that is saving, a field checking its value, a region reloading. Size it to the icon slot it sits in, and let it take the ink around it. The host decides when it shows (after a short delay, so a fast operation does not flash). On its own the spinner announces a polite \"Loading\" status, or a more specific label; inside a host that announces its own busy state, such as a Button's isPending, the host sets aria-hidden=\"true\" on it.",
+        "usage": "Use a spinner for a short wait with no known end — about 200ms to 5s — inside the thing that is waiting: a button that is saving, a field checking its value, a region reloading. Size it to the icon slot it sits in, and let it take the ink around it. The host decides when it shows (after a short delay, so a fast operation does not flash). On its own the spinner announces a polite \"Loading\", or a more specific label, through a status region that exists, empty, before it shows; inside a host that announces its own busy state, such as a Button's isPending, the host sets aria-hidden=\"true\" on it.",
         "do": [
           "Put the spinner in the host's own icon slot at that slot's icon size, so nothing around it moves",
           "Let the host delay showing it, so a fast operation does not flash a spinner",
@@ -7022,7 +7105,7 @@
           "Leave a spinner exposed inside a host that already announces its busy state — the state is announced twice; set aria-hidden=\"true\" on it",
           "Keep the generic \"Loading\" when the work is known — name it (\"Loading results\")",
           "Show many spinners at once — a dashboard that starts one per widget on load reads as noise; use one placeholder for the layout and keep the spinner for a single user-triggered wait (Primer)",
-          "Put role=\"progressbar\" or aria-valuenow on a spinner — it has no value, and a value is determinate progress",
+          "Put role=\"progressbar\" or aria-valuenow on a spinner — a spinner is not a progressbar",
           "Stop the turn under reduced motion — slow it"
         ],
         "contentGuidelines": "Label: specific and in sentence case — \"Loading results\", \"Updating profile\" — not a generic \"Loading…\"; \"Loading\" is the fallback when nothing more specific is known. One status for the whole wait, and for a region or a longer wait the host announces completion (\"Results loaded\"). Inside a button, the button keeps its accessible name while pending."
@@ -7305,7 +7388,7 @@
       "ai": {
         "primaryPurpose": "Mark a status, count or presence with a small static badge that nobody clicks.",
         "whenToUse": "A short state or attribute shown next to what it describes (status), an actionable number over an icon button or tab (count), or presence or unread state over an avatar or nav item (dot). Inline style: a quieter status in a list or table row or a card's details, where a filled label would draw too much attention.",
-        "avoidWhen": "The user can click, toggle or remove it (use a tag), the message is feedback about an action (use a toast or banner), or the color would be the only signal.",
+        "avoidWhen": "The user can click, toggle or remove it (use Tag), the message is feedback about an action (use Toast or Banner), or the color would be the only signal.",
         "commonPartners": [
           "icon-button",
           "button",
@@ -7327,9 +7410,9 @@
         "generationPriority": 3
       },
       "motion": {
-        "enter": "A count or dot scales in from zero, from the corner it is anchored to. When a count changes, only the number animates, not the pill. A status label appears with no motion. A dot pulses only for a critical alert.",
-        "exit": "A count or dot scales out to its anchor corner.",
-        "reduceMotion": "Under prefers-reduced-motion every change is instant: no scale, no pulse."
+        "enter": "A count or dot fades in and scales up from a little under full size, from the corner it is anchored to, on motion.transition.enter. When a count changes, only the number changes, on motion.transition.default; the pill does not move. A status label appears with no motion.",
+        "exit": "A count or dot fades out and scales down toward its anchor corner on motion.transition.exit.",
+        "reduceMotion": "Under prefers-reduced-motion a count or dot fades in and out with no scale, on motion.duration-reduced.normal both ways, and a changed count's number fades on the same role."
       },
       "composition": {
         "composesWith": [],
@@ -7547,7 +7630,7 @@
       "ai": {
         "primaryPurpose": "Render a small interactive token the user toggles or removes in place.",
         "whenToUse": "Inline filters toggled on and off (select), applied filters the user can remove, or recipients or keywords entered into a field (dismissible), usually in a group.",
-        "avoidWhen": "Nobody can act on it (use a badge), it runs an action (use a button), or it is a structured choice in a form submission (use a checkbox group or radio group).",
+        "avoidWhen": "Nobody can act on it (use Badge), it runs an action (use Button), or it is a structured choice in a form submission (use Checkbox.Group or Radio.Group).",
         "commonPartners": [
           "badge",
           "icon",
@@ -7983,7 +8066,7 @@
         "labelPattern": "Short, parallel nouns, one or two words each. Past six or seven tabs, rethink the grouping."
       },
       "docs": {
-        "usage": "Use tabs to switch between peer sections of related content in one place, one at a time, such as a product's description, specifications and reviews. Don't use tabs to go to another page (use page navigation), to change a setting or filter the current view (use a segmented control or a select), or for content people need to compare side by side.",
+        "usage": "Use tabs to switch between peer sections of related content in one place, one at a time, such as a product's description, specifications and reviews. Don't use tabs to go to another page (use PageNav), to change a setting or filter the current view (use SegmentedControl or Select), or for content people need to compare side by side.",
         "do": [
           "Keep labels short, parallel nouns",
           "Keep one tab selected at all times",
@@ -8397,6 +8480,11 @@
         ],
         "generationPriority": 9
       },
+      "motion": {
+        "enter": "On open, a chevron turns to its open position on motion.transition.default; a plus and minus swap glyphs.",
+        "exit": "On close, the chevron turns back on motion.transition.default; a plus and minus swap back.",
+        "reduceMotion": "Under prefers-reduced-motion the indicator swaps to its open or closed glyph without turning."
+      },
       "composition": {
         "composesWith": [],
         "alternativeTo": [],
@@ -8584,7 +8672,7 @@
         ],
         "dont": [
           "Hide content most users need. Show it instead.",
-          "Force one section to stay open. If one view must always show, use tabs.",
+          "Force one section to stay open. If one view must always show, use Tabs.",
           "Put an accordion inside an accordion. For more than one level, use a tree.",
           "Truncate a title with an ellipsis"
         ],
@@ -9336,7 +9424,7 @@
         "labelPattern": "Short nouns or noun phrases, one line each, in sentence case: \"List\", \"Grid\". The same kind of content in every option. The control label names what is being chosen (\"View\", \"Time range\")."
       },
       "docs": {
-        "usage": "Use a segmented control for a choice between two to five short options that changes a value in place: a parameter of the current view, such as list or grid, or a form value. Every option stays visible, and one is always selected. Don't use it to switch between panels of content (use tabs), for more than five options or long labels (use a select or a radio group), or for one setting that turns on and off (use a switch).",
+        "usage": "Use a segmented control for a choice between two to five short options that changes a value in place: a parameter of the current view, such as list or grid, or a form value. Every option stays visible, and one is always selected. Don't use it to switch between panels of content (use Tabs), for more than five options or long labels (use Select or Radio.Group), or for one setting that turns on and off (use Switch.Row).",
         "do": [
           "Name what is being chosen, with a visible label or an accessible name",
           "Use two to five options with short, one-line labels",
@@ -9354,7 +9442,7 @@
       "ai": {
         "primaryPurpose": "Choose exactly one of two to five short, always-visible options that change a value in place.",
         "whenToUse": "A short single choice the user changes often or that changes the current view at once, such as list or grid, a time range or a delivery method.",
-        "avoidWhen": "The options switch panels of content (use tabs), there are more than five or the labels are long (use a select or a radio group), options need descriptions (use a radio group), it is one on/off setting (use a switch), or selecting goes to another page (a navigation of links).",
+        "avoidWhen": "The options switch panels of content (use Tabs), there are more than five or the labels are long (use Select or Radio.Group), options need descriptions (use Radio.Group), it is one on/off setting (use Switch.Row), or selecting goes to another page (a navigation of links).",
         "commonPartners": [
           "segmented-control-segment",
           "field-label",
@@ -9598,7 +9686,7 @@
         "labelPattern": "Names the destination and makes sense on its own: \"Shipping and returns\", \"Annual report (PDF, 2 MB)\". Link the noun phrase, not the whole sentence. Never a bare \"click here\" or \"learn more\", and never a raw URL."
       },
       "docs": {
-        "usage": "Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use a button. Keep x-small for dense metadata, such as an order row or a legal line, not running body text. A link inside small print is a text range with that text's own link style.",
+        "usage": "Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use Button. Keep x-small for dense metadata, such as an order row or a legal line, not running body text. A link inside small print is a text range with that text's own link style.",
         "do": [
           "Write link text that names the destination",
           "State the format and size of a file link",
@@ -9727,7 +9815,7 @@
       "category": "form",
       "status": "draft",
       "summary": "One to three buttons laid out together: in a row at the end, stacked, or sharing the width.",
-      "description": "A set of one to three buttons for the actions that close a task: Cancel and Save at the foot of a dialog, the buttons under a form. Inline puts them in a row at the end edge with the main action last; stacked puts them in a column of full-width buttons with the main action on top; fill puts them in a row whose buttons share the width. The buttons are Button, Button.Destructive and Button.Neutral, each its own action and spaced apart. Not a segmented control, whose buttons join edge to edge as one choice, and not a toolbar.",
+      "description": "A set of one to three buttons for the actions that close a task: Cancel and Save at the foot of a dialog, the buttons under a form. Inline puts them in a row at the end edge with the main action last; stacked puts them in a column of full-width buttons with the main action on top; fill puts them in a row whose buttons share the width. The buttons are Button, Button.Destructive and Button.Neutral, each its own action and spaced apart. Not a SegmentedControl, whose buttons join edge to edge as one choice, and not a toolbar.",
       "props": [
         {
           "name": "items",
@@ -10584,7 +10672,7 @@
         "labelPattern": "State the outcome in a few words, in sentence case, with no period: \"Added to bag\", \"Address saved\". The action is one verb or a short verb phrase: \"Undo\", \"View bag\"."
       },
       "docs": {
-        "usage": "Use a Toast to confirm something the user did, when the page already shows the change: \"Added to bag\", \"Address saved\", \"Code copied\". If missing the message would cost the user something, use a banner. A decision before going on is a dialog; a message about one field is a field message.",
+        "usage": "Use a Toast to confirm something the user did, when the page already shows the change: \"Added to bag\", \"Address saved\", \"Code copied\". If missing the message would cost the user something, use Banner. A decision before going on is a dialog; a message about one field is a field message.",
         "do": [
           "Confirm the user's own action in a few words",
           "Use success when the action completed, and neutral otherwise",
@@ -11269,7 +11357,7 @@
       "props": [
         {
           "name": "label",
-          "type": "string",
+          "type": "string | node",
           "required": true,
           "description": "What is counted, such as \"Quantity\". The accessible name of the value, always present in code; shown above the counter only with showLabel."
         },
@@ -11342,8 +11430,8 @@
           "description": "The row height (36, 44 or 56px), the value type (14, 16 or 18px) and the glyph (20, 20 or 24px). Each button keeps a hit area of at least 44×44px in code at every size."
         },
         {
-          "name": "message",
-          "type": "string",
+          "name": "helpText",
+          "type": "string | node",
           "required": false,
           "description": "Text below the counter, such as the reason for a limit (\"Limit 5 per order\"). Added to the value's description."
         },
@@ -11352,7 +11440,7 @@
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Shows the message below the counter. Off by default."
+          "description": "Shows the help text below the counter. Off by default."
         },
         {
           "name": "decrementLabel",
@@ -11430,7 +11518,7 @@
         ],
         "dont": [
           "Use it for a large or precise number, such as a price or a measurement; use a number input",
-          "Use it for a count shown on another element, such as unread messages; use a badge",
+          "Use it for a count shown on another element, such as unread messages; use Badge",
           "Put the minus and plus buttons in the Tab order; the arrow keys already step the value",
           "Hide the minus and plus buttons with aria-hidden; they stay in the accessibility tree for pointer and touch users of assistive technology",
           "Change the value on a mouse wheel or scroll"
@@ -11478,7 +11566,7 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "number-input"
+          "number-field"
         ],
         "replacesPatterns": [
           "an <input type=\"number\"> for an item count",
@@ -11539,7 +11627,7 @@
       "category": "navigation",
       "status": "draft",
       "summary": "A pagination cell: a page, the gap marker, previous or next. The current page is outlined.",
-      "description": "One cell in a pagination row: a page number, the gap marker, three dots, that stands for two or more hidden pages, or the previous or next cell, a chevron that opens the page before or after. A cell is as tall as an icon button and at least as wide as it is tall, so a row of pages between previous and next lines up as equal squares; a page number past two digits, or the word \"Previous\" or \"Next\" beside a chevron, widens it. The current page is marked, not filled: its number in the emphasis weight, with a light gray border around the cell, or a 2px underline under the number in a gray that stands out from the page at 3:1. It keeps its width, so the row does not move. At hover and press, another page and an unlabeled previous or next show a light neutral wash; a labeled previous or next shows no fill and its word and chevron darken, as a text link does. At the first or last page, previous or next stays in place and does nothing, drawn in the disabled ink. The gap marker is decorative: it does not respond to the pointer, takes no focus and is hidden from assistive technology. Pagination places the cells and decides which page is current.",
+      "description": "One cell in a pagination row: a page number, the gap marker, three dots, that stands for two or more hidden pages, or the previous or next cell, a chevron that opens the page before or after. A cell is as tall as an icon button and at least as wide as it is tall, so a row of pages between previous and next lines up as equal squares; a page number past two digits, or the word \"Previous\" or \"Next\" beside a chevron, widens it. The current page is marked, not filled: its number in the emphasis weight, with a light gray border around the cell, or a 2px underline under the number in the number's ink. It keeps its width, so the row does not move. At hover and press, another page and an unlabeled previous or next show a light neutral wash; a labeled previous or next shows no fill and its word and chevron darken, as a text link does. At the first or last page, previous or next stays in place and does nothing, drawn in the disabled ink. The gap marker is decorative: it does not respond to the pointer, takes no focus and is hidden from assistive technology. Pagination places the cells and decides which page is current.",
       "props": [
         {
           "name": "label",
@@ -11975,7 +12063,7 @@
       "ai": {
         "primaryPurpose": "Move between the pages of a long, ordered set of results and show which page is open.",
         "whenToUse": "Search results, a catalog or a table split into pages, where the user benefits from the count and from jumping to a page; or previous and next through an article.",
-        "avoidWhen": "A feed with no useful end (a load more Button), a few fixed views (tabs or a segmented control), the slides of a carousel, or rows per page and a \"Go to page\" field (the table pager, not yet built).",
+        "avoidWhen": "A feed with no useful end (a load more Button), a few fixed views (Tabs or SegmentedControl), the slides of a carousel, or rows per page and a \"Go to page\" field (the table pager, not yet built).",
         "commonPartners": [
           "pagination-item",
           "list"
@@ -12276,7 +12364,7 @@
       "ai": {
         "primaryPurpose": "Show that system work is under way and, when it can be measured, how far along it is.",
         "whenToUse": "An upload, export or batch job that takes more than a few seconds: determinate when the amount is known, indeterminate when it is not. A ring when the space is small, measured or not, for a task that ends in complete or error.",
-        "avoidWhen": "The wait is short and inside a control (use a spinner), the content is loading for the first time (a placeholder in the layout's shape), the value is a static measurement such as storage used (a meter), it marks a user's place in a multi-step flow (a stepper).",
+        "avoidWhen": "The wait is short and inside a control (use Spinner), the content is loading for the first time (a placeholder in the layout's shape), the value is a static measurement such as storage used (a meter), it marks a user's place in a multi-step flow (a stepper).",
         "commonPartners": [
           "button",
           "spinner",
@@ -12911,6 +12999,7 @@
           "3.2.2 On Input (no auto-advance when the number is complete)",
           "3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion",
           "1.4.11 Non-text Contrast (TextField's field boundary)",
+          "2.5.8 Target Size (the field)",
           "2.4.13 Focus Appearance (intent)"
         ],
         "keyboard": "Native text editing. Tab reaches the input; the tile is not a stop. Focus never moves on its own when the number is complete.",
@@ -13480,11 +13569,11 @@
       "category": "form",
       "status": "draft",
       "summary": "Choose a value, or a range, by moving a thumb along a track. Works with arrow keys too.",
-      "description": "A slider picks an approximate value, or a range between two values, by moving a thumb along a track: a price filter, a text size, a volume. It suits a value where the position within the range matters more than the exact number. One thumb sets a single value; two thumbs set a minimum and a maximum. The current value shows as text above the track. For an exact number, turn on the paired inputs, or use a text field.",
+      "description": "A slider picks an approximate value, or a range between two values, by moving a thumb along a track: a price filter, a text size, a volume. It suits a value where the position within the range matters more than the exact number. One thumb sets a single value; two thumbs set a minimum and a maximum. The current value shows as text above the track. For an exact number, turn on the paired inputs, or use TextField.",
       "props": [
         {
           "name": "label",
-          "type": "string",
+          "type": "string | node",
           "required": true,
           "description": "Names the dimension being set, such as \"Price\" or \"Volume\". Shown above the track, and the accessible name of a single thumb."
         },
@@ -13610,9 +13699,16 @@
         },
         {
           "name": "helpText",
-          "type": "string",
+          "type": "string | node",
           "required": false,
           "description": "Guidance under the slider, in a field message."
+        },
+        {
+          "name": "showMessage",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the field message is shown under the slider. Off by default; turn it on to show the help or error text. Never hides a message the slider needs: turn it on wherever there is help text or an error."
         },
         {
           "name": "validation",
@@ -13697,7 +13793,7 @@
         "errorPattern": "Say what is wrong and how to fix it, in the field message: \"Enter a maximum of 200 or less.\""
       },
       "docs": {
-        "usage": "Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use a text field, or turn on the paired inputs. Don't use a slider for a few named options (use a segmented control or a radio group) or for on and off (use a switch).",
+        "usage": "Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use TextField, or turn on the paired inputs. Don't use a slider for a few named options (use SegmentedControl or Radio.Group) or for on and off (use Switch.Row).",
         "do": [
           "Name the dimension with a visible label",
           "Format the value with its unit or currency, and use the same text for aria-valuetext",
@@ -13715,7 +13811,7 @@
       "ai": {
         "primaryPurpose": "Choose an approximate value, or a minimum and maximum, by moving a thumb along a track.",
         "whenToUse": "An approximate value where the position within the range matters more than the exact number, such as a volume, a text size or a price filter window.",
-        "avoidWhen": "The user knows the exact number (use a text field, or turn on the paired inputs), there are a few named options (use a segmented control or a radio group), it is on or off (use a switch), or the range is too wide for the track to reach each value.",
+        "avoidWhen": "The user knows the exact number (use TextField, or turn on the paired inputs), there are a few named options (use SegmentedControl or Radio.Group), it is on or off (use Switch.Row), or the range is too wide for the track to reach each value.",
         "commonPartners": [
           "_slider-thumb",
           "field-label",
@@ -13854,14 +13950,14 @@
         },
         {
           "name": "size",
-          "type": "enum: 'small' | 'medium' | 'large' | 'xlarge'",
+          "type": "enum: 'small' | 'medium' | 'large' | 'x-large'",
           "default": "medium",
           "required": false,
           "values": [
             "small",
             "medium",
             "large",
-            "xlarge"
+            "x-large"
           ],
           "description": "The cell size and its character size. Set by the code input."
         },
@@ -13902,7 +13998,7 @@
             "medium",
             "small",
             "large",
-            "xlarge"
+            "x-large"
           ],
           "kind": "authoring"
         }
@@ -14095,16 +14191,16 @@
         },
         {
           "name": "size",
-          "type": "enum: 'small' | 'medium' | 'large' | 'xlarge'",
+          "type": "enum: 'small' | 'medium' | 'large' | 'x-large'",
           "default": "medium",
           "required": false,
           "values": [
             "small",
             "medium",
             "large",
-            "xlarge"
+            "x-large"
           ],
-          "description": "The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, xlarge 68×72 with 40px, meant for four-character codes."
+          "description": "The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, x-large 68×72 with 40px, meant for four-character codes."
         },
         {
           "name": "width",
@@ -14116,6 +14212,13 @@
             "full"
           ],
           "description": "auto: each cell at its size. full: the row spans its container and the cells share it, shrinking to 32px wide when they must."
+        },
+        {
+          "name": "required",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Sets required / aria-required, and turns on the FieldLabel's required marker."
         },
         {
           "name": "disabled",
@@ -14159,7 +14262,7 @@
             "medium",
             "small",
             "large",
-            "xlarge"
+            "x-large"
           ],
           "kind": "authoring"
         },
@@ -14186,7 +14289,7 @@
         ],
         "keyboard": "One Tab stop. Typing fills the next cell; Backspace removes the last character; arrow keys, Home and End move the caret, and the active cell follows it. Paste fills every cell.",
         "focus": "Focus stays on the one input. The active cell, where the next character goes, shows the 2px focus edge.",
-        "aria": "aria-describedby names the helper and any error, aria-invalid is set in error, and aria-busy while the code is checked. No aria-label on the input: it would hide the real value. Every name is translatable; the cell row stays left to right in every locale."
+        "aria": "aria-describedby names the helper and any error, aria-required is set when the code is required, aria-invalid is set in error, and aria-busy while the code is checked. No aria-label on the input: it would hide the real value. Every name is translatable; the cell row stays left to right in every locale."
       },
       "content": {
         "labelPattern": "Noun phrase, sentence case: \"Verification code\". Spell it out; never an acronym.",

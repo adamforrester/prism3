@@ -637,7 +637,7 @@ const leavesNothingPending = (base: string, tip: string | null, whence: string):
       console.error(`  ${PENDING}/<your-branch-with-slashes-as-dashes>.md holding ONE entry:`);
       console.error('      ## (YYYY-MM-DD) — <title>');
       console.error('      <what changed, what was decided and why, any trap for whoever re-verifies>');
-      console.error('  On the old convention? CONTRIBUTING.md §2, "Converting an open PR from the old convention".\n');
+      console.error('  On the old convention? CONTRIBUTING.md §2, "A PR still on the pre-#1807 convention".\n');
     }
   }
   }

@@ -36,7 +36,7 @@ Shown on the default member: intent `neutral`.
 
 ## Usage guidelines
 
-Use a Toast to confirm something the user did, when the page already shows the change: "Added to bag", "Address saved", "Code copied". If missing the message would cost the user something, use a banner. A decision before going on is a dialog; a message about one field is a field message.
+Use a Toast to confirm something the user did, when the page already shows the change: "Added to bag", "Address saved", "Code copied". If missing the message would cost the user something, use Banner. A decision before going on is a dialog; a message about one field is a field message.
 
 ### Do
 
@@ -90,7 +90,6 @@ Short and factual: the outcome, not a conversation. The glyph carries the tone, 
 
 - **Built from:** `button`, `flush-icon-button-neutral`
 - **Instead, consider:** `dialog`, `field-message`, `banner`
-- **Often used with:** `field-message`, `dialog`
 - **Replaces:**
   - an alert() after a save
   - a status message that moves focus

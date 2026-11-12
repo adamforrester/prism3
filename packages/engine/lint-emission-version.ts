@@ -607,7 +607,7 @@ if (markerAtBase) {
       '',
       '  A PR that adds a rename rule writes its `since` as the quoted placeholder, in the rule and in test.ts\'s',
       '  table for it, and adds a change note in the same diff. The fold writes the version. An existing stamp',
-      '  never changes: a changed rule is a new rule, with a new id. CONTRIBUTING.md §2.',
+      '  never changes: a changed rule is a new rule, with a new id. packages/engine/changes/README.md.',
     ]);
   const pendingNow = atHead.stamps.filter((st) => st.since === PENDING_STAMP).length;
   stampLine = `${atHead.stamps.length} read at HEAD, ${pendingNow} pending the fold${isFold ? ` (this fold filled ${atBase.stamps.filter((st) => st.since === PENDING_STAMP).length} with ${headVersion})` : ''}`;

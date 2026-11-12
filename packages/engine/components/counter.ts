@@ -44,9 +44,10 @@
  *
  * Outline: the field's fill and edge (`color.field.fill`, `color.field.border.rest`, `radius.sm`), insets 12 / 12 /
  * 16, so a 20px glyph sits 12px in and its 44×44 code-side hit area reaches the edge exactly at medium (12 + 20 +
- * 12). Ghost: no box paint and no inset; the round buttons are the ends of the row. The disabled outline keeps an
- * edge in `color.disabled.border`: the cross-cutting disabled branch applies an edge only where the member has one
- * at rest, so a disabled ghost Counter draws none (the Oct 9 proposal's item 3c.3, answered by the paint grammar).
+ * 12). Ghost: no box paint and no inset; the round buttons are the ends of the row. The disabled outline keeps Text
+ * field's disabled fill and edge (`color.disabled.fill`, `color.disabled.border`; Q-CC10 A, #3554), with the value in
+ * the on-fill ink: the cross-cutting disabled branch applies a fill and an edge only where the member has them at
+ * rest, so a disabled ghost Counter draws none (the Oct 9 proposal's item 3c.3, answered by the paint grammar).
  *
  * `state`: rest, focus-visible, disabled. Hover and pressed belong to each button, which carries its own reactions
  * (#2574), so this set carries none. 2 appearances × 3 sizes × 3 states = 18 members.
@@ -82,7 +83,7 @@ export const counter: ComponentDef = {
     'A small whole-number quantity shown between a minus and a plus button, such as the item count on a product card or a bag line. The buttons change the value by one; the value itself is shown, not typed. Min and max are settable, with min 0 by default, and at a limit the matching button is unavailable. Outline draws the field\'s edge around the row, with the glyphs inside it. Ghost draws no box, and each button is a light circle. For typed numeric entry in a form, use a number input.',
 
   props: [
-    { name: 'label', type: 'string', required: true, description: 'What is counted, such as "Quantity". The accessible name of the value, always present in code; shown above the counter only with showLabel.' },
+    { name: 'label', type: 'string | node', required: true, description: 'What is counted, such as "Quantity". The accessible name of the value, always present in code; shown above the counter only with showLabel.' },
     { name: 'showLabel', type: 'boolean', default: false, required: false, description: 'Shows the label above the counter. Off by default: a counter on a product card or a bag line is usually explained by what sits around it, and the label stays its accessible name either way.' },
     { name: 'value', type: 'number', required: false, description: 'Controlled value; pair it with onChange.' },
     { name: 'defaultValue', type: 'number', required: false, description: 'The starting value when the counter manages its own state. Defaults to min.' },
@@ -92,8 +93,8 @@ export const counter: ComponentDef = {
     { name: 'step', type: 'number', default: 1, required: false, description: 'How much one press or one arrow key changes the value.' },
     { name: 'appearance', type: "enum: 'outline' | 'ghost'", values: ['outline', 'ghost'], default: 'outline', required: false, description: 'outline draws the field edge around the row, with the minus and plus glyphs inside it. ghost draws no box, and the minus and plus are light circles at each end.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The row height (36, 44 or 56px), the value type (14, 16 or 18px) and the glyph (20, 20 or 24px). Each button keeps a hit area of at least 44×44px in code at every size.' },
-    { name: 'message', type: 'string', required: false, description: 'Text below the counter, such as the reason for a limit ("Limit 5 per order"). Added to the value\'s description.' },
-    { name: 'showMessage', type: 'boolean', default: false, required: false, description: 'Shows the message below the counter. Off by default.' },
+    { name: 'helpText', type: 'string | node', required: false, description: 'Text below the counter, such as the reason for a limit ("Limit 5 per order"). Added to the value\'s description.' },
+    { name: 'showMessage', type: 'boolean', default: false, required: false, description: 'Shows the help text below the counter. Off by default.' },
     { name: 'decrementLabel', type: 'string', required: false, description: 'The minus button\'s accessible name. Defaults to "Decrease" followed by the label, such as "Decrease quantity". In a list of line items, include the item: "Decrease quantity, Trail runner".' },
     { name: 'incrementLabel', type: 'string', required: false, description: 'The plus button\'s accessible name. Defaults to "Increase" followed by the label. In a list of line items, include the item.' },
     { name: 'name', type: 'string', required: false, description: 'The form field name: a hidden input carries the value when the counter sits in a form.' },
@@ -153,9 +154,14 @@ export const counter: ComponentDef = {
     // The value, full contrast on both appearances.
     'outline.label': 'color.text.primary',
     'ghost.label': 'color.text.primary',
-    // Disabled: the dimmed value, and on outline only (the only appearance with an edge at rest) the disabled edge.
-    'disabled.label': 'color.disabled.text',
+    // Disabled (Q-CC10 A, #3554): outline keeps a box, so it takes Text field's disabled fill and edge, and its value
+    // takes the on-fill ink, gated against that fill (#784). The cross-cutting branch applies the fill and edge only
+    // where the member has them at rest, and the on-fill ink only where the fill lands, so ghost draws no box and its
+    // value keeps the page form, `disabled.label`.
+    'disabled.fill': 'color.disabled.fill',
     'disabled.border': 'color.disabled.border',
+    'disabled.label': 'color.disabled.text',
+    'disabled.label.on-fill': 'color.disabled.on-fill',
   },
 
   anatomy: {
@@ -347,7 +353,7 @@ export const counter: ComponentDef = {
     ],
     dont: [
       'Use it for a large or precise number, such as a price or a measurement; use a number input',
-      'Use it for a count shown on another element, such as unread messages; use a badge',
+      'Use it for a count shown on another element, such as unread messages; use Badge',
       'Put the minus and plus buttons in the Tab order; the arrow keys already step the value',
       'Hide the minus and plus buttons with aria-hidden; they stay in the accessibility tree for pointer and touch users of assistive technology',
       'Change the value on a mouse wheel or scroll',
@@ -367,7 +373,7 @@ export const counter: ComponentDef = {
   composition: {
     composesWith: ['field-label', 'flush-icon-button-neutral', 'focus-ring', 'field-message'],
     alternativeTo: ['select', 'segmented-control', 'text-field'],
-    planned: ['number-input'],
+    planned: ['number-field'],
     replacesPatterns: ['an <input type="number"> for an item count', 'a select of 1 to 10 for a bag quantity', 'two IconButtons around a <span> with no spinbutton semantics'],
   },
 
