@@ -3242,6 +3242,13 @@ const drawerState = (page) => page.evaluate(() => {
     sheet: !!dr && !!br && vis(d) && dr.top >= br.bottom - 1 && Math.abs(dr.bottom - window.innerHeight) <= 1,
   };
 });
+/** #3537: each case's page clock starts at midday on a fixed day, not at the wall clock's time, and runs on at the real
+ *  rate (`clock.setSystemTime` without `install`, so the page's timers and durations are untouched). A run's time
+ *  drops its date only for a run from the same day (`runTime`), so a case that crossed midnight drew its older
+ *  earlier result with a date, and Q3113.6 A's bare-time pattern failed once a day for any run spanning midnight.
+ *  From midday, no case reaches the next day. */
+const PAGE_DAY = new Date(2026, 10, 11, 12, 0, 0);
+const pinPageDay = (page) => page.clock.setSystemTime(PAGE_DAY);
 const sinceMs = async (page, t0, ms) => { const left = t0 + ms - Date.now(); if (left > 0) await page.waitForTimeout(left); };
 /** A write's control's label as drawn: the text of whichever label layer is visible. A control carries its idle
  *  and busy labels in one cell (owner decision #4 on #1956); both visible, or neither, reads as both, or empty. */
@@ -3253,7 +3260,7 @@ for (const host of ['web', 'figma']) {
       const where = `${host} ${theme} ${w}`;
       const narrow = w <= 560;
       const shot = (name) => (SHOTS ? page.screenshot({ path: join(SHOTS, `s14-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-${name}.png`) }) : null);
-      const { ctx, page, errors } = await open({ host, theme, w, h });
+      const { ctx, page, errors } = await open({ host, theme, w, h, prep: pinPageDay });
       try {
         await recordPosts(page);
         // Idle: nothing has run. #2909: the rail shell draws no Activity tile (the drawer's own row is Activity), on both
