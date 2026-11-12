@@ -20,11 +20,11 @@ The **Update** tab lists these items, in this order:
 
 | Item | What it writes | Ticked when the dialog opens |
 |---|---|---|
-| **Set up file** | The pages, the templates and the style-guide cells, and the cover while Documentation has it on. Listed for a file that isn't set up yet, and for a set-up file that lacks something setup builds, such as a deleted template. See [Set up a file](file-setup.md). <!-- src: apps/studio/src/state/update-file.ts:317-318 --> | On a file that isn't set up yet. On a set-up file, it starts unticked and names what is missing. <!-- src: apps/studio/src/state/update-file.ts:178-185#8d8cd69f --> |
+| **Set up file** | The pages, the templates and the style-guide cells, and the cover while Docs has it on. Listed for a file that isn't set up yet, and for a set-up file that lacks something setup builds, such as a deleted template. See [Set up a file](file-setup.md). <!-- src: apps/studio/src/state/update-file.ts:317-318 --> | On a file that isn't set up yet. On a set-up file, it starts unticked and names what is missing. <!-- src: apps/studio/src/state/update-file.ts:178-185#8d8cd69f --> |
 | **Theme** | The brand's variables and styles. Layers bound to them restyle at once. See [Write the theme to a Figma file](apply-a-theme.md). <!-- src: apps/studio/src/state/update-file.ts:321-322 --> | When the file's variables differ from the brand, or the file isn't set up yet. Otherwise it reads "Up to date". <!-- src: apps/studio/src/state/update-file.ts:324 --> |
-| **Components** › **To add** | The sets chosen in the Components area, and each family's usage panel, beside its lead, while Documentation has panels on. See [Build components](build-components.md). <!-- src: apps/studio/src/state/update-file.ts:327-329 --> | Every set listed runs |
+| **Components** › **To add** | The sets chosen in the Components area, and each family's usage panel, beside its lead, while Docs has panels on. See [Build components](build-components.md). <!-- src: apps/studio/src/state/update-file.ts:327-329 --> | Every set listed runs |
 | **Components** › **Due** | The sets in the file that are out of date, updated in place. See [Update sets in place](#update-sets-in-place). <!-- src: apps/studio/src/state/update-file.ts:336-338 --> | Yes |
-| **Style guides** | The token tables, drawn with the settings in Documentation. See [Build style guides](style-guides.md). <!-- src: apps/studio/src/state/update-file.ts:387-390 --> | Only on a file not set up yet |
+| **Style guides** | The token tables, drawn with the settings in Docs. See [Build style guides](style-guides.md). <!-- src: apps/studio/src/state/update-file.ts:387-390 --> | Only on a file not set up yet |
 
 <!-- src: apps/studio/src/state/update-file.ts:174-181#dcd3d3c6 -->
 
