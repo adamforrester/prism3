@@ -15654,7 +15654,7 @@
             "label"
           ],
           "parts": {
-            "current": {
+            "label": {
               "members": 2,
               "where": {
                 "kind": [
@@ -26831,7 +26831,7 @@
             "size.medium.type"
           ],
           "parts": {
-            "current": {
+            "label": {
               "members": 1,
               "where": {
                 "kind": [
@@ -27417,7 +27417,7 @@
             "size.small.type"
           ],
           "parts": {
-            "current": {
+            "label": {
               "members": 1,
               "where": {
                 "kind": [

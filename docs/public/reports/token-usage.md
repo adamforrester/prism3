@@ -2018,7 +2018,7 @@ Type: color. Bound by 21 component(s).
 | badge | `danger.status.inline.subtle.label`, `info.status.inline.subtle.label`, `neutral.status.contained.subtle.label`, `neutral.status.contained.surface.label`, `neutral.status.inline.subtle.label`, `success.status.inline.subtle.label`, `warning.status.inline.subtle.label` | label | emphasis: subtle, surface · type: status (14 of 50) |
 | banner | `body`, `label` | bodyText | every member (10 of 10) |
 |  |  | title | every member (10 of 10) |
-| breadcrumb-item | `label` | current | kind: current · separator: chevron (2 of 10) |
+| breadcrumb-item | `label` | label | kind: current · separator: chevron (2 of 10) |
 | card-number-field | `caret`, `caret-end`, `label` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
 |  |  | value | state: filled, focus-visible-filled, read-only (36 of 84) |
@@ -3309,7 +3309,7 @@ Type: typography. Bound by 17 component(s).
 |---|---|---|---|
 | accordion | `size.medium.panel-type` | placeholder | expansion: expanded · size: medium (8 of 48) |
 | banner | `body-type` | bodyText | every member (10 of 10) |
-| breadcrumb-item | `size.medium.type` | current | kind: current · separator: chevron · size: medium (1 of 10) |
+| breadcrumb-item | `size.medium.type` | label | kind: current · separator: chevron · size: medium (1 of 10) |
 | card-number-field | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
 | checkbox-row | `size.large.text` | label | size: large (2 of 6) |
@@ -3376,7 +3376,7 @@ Type: typography. Bound by 18 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.small.panel-type` | placeholder | expansion: expanded · size: small (8 of 48) |
-| breadcrumb-item | `size.small.type` | current | kind: current · separator: chevron · size: small (1 of 10) |
+| breadcrumb-item | `size.small.type` | label | kind: current · separator: chevron · size: small (1 of 10) |
 | card-number-field | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
 | checkbox-row | `description.large.text`, `size.medium.text` | description | size: large (2 of 6) |

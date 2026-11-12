@@ -691,7 +691,7 @@
     },
     "breadcrumb-item": {
       "members": 10,
-      "sha256": "98bb9f14a50b180786a1a529fb4f5c2685aa488a936b50bd75a55e03dcc13fd3",
+      "sha256": "6f6de712ac8235cf5e54b2d35a634afb1f8985749d03772b559f8b6913c6008d",
       "properties": [
         "label:TEXT"
       ]
@@ -741,7 +741,7 @@
     },
     "pagination": {
       "members": 12,
-      "sha256": "6730d0bd4b611e074b9aa2f911f9ec41cb26e918768c45d3eea4cf318a0989c2",
+      "sha256": "bfdf79c68efb94d86b460d5f24ada87625edb3ad2d7af57b3bcbee3478e7fe68",
       "properties": [
         "items:SLOT",
         "status text:TEXT"

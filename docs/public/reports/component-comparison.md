@@ -431,6 +431,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | tab-item | — | — |
 | current | link | false | — |
 |  | page-nav-item | false | — |
+|  | pagination-item | false | — |
 | defaultValue | card-number-field | — | — |
 |  | checkbox-group | — | — |
 |  | code-input | — | — |
@@ -701,8 +702,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | select | false | — |
 |  | text-field | false | — |
 |  | textarea | false | — |
-| selected | pagination-item | false | — |
-|  | segmented-control-segment | false | — |
+| selected | segmented-control-segment | false | — |
 |  | tab-item | false | — |
 |  | tag | false | — |
 | separator | breadcrumb-item | chevron | chevron, slash |

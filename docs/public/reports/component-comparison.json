@@ -3194,7 +3194,7 @@
           "name": "href"
         },
         {
-          "name": "selected",
+          "name": "current",
           "default": false
         },
         {
@@ -6854,6 +6854,10 @@
       {
         "id": "page-nav-item",
         "default": false
+      },
+      {
+        "id": "pagination-item",
+        "default": false
       }
     ],
     "decorative": [
@@ -8493,10 +8497,6 @@
       }
     ],
     "selected": [
-      {
-        "id": "pagination-item",
-        "default": false
-      },
       {
         "id": "segmented-control-segment",
         "default": false
