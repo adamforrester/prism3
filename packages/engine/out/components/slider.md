@@ -106,7 +106,7 @@ The label names the dimension. The value text shows the value with its unit; a r
 ## Related components
 
 - **Built from:** `field-label`, `_slider-thumb`, `text-field`, `field-message`
-- **Instead, consider:** `text-field`, `segmented-control`, `radio-group`, `switch-row`
+- **Instead, consider:** `segmented-control`, `radio-group`, `switch-row`
 - **Replaces:**
   - a native \<input type="range"> styled per browser engine
   - a drag-only custom slider with no keyboard support

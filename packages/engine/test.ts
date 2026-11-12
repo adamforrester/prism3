@@ -19959,7 +19959,8 @@ arm: {
       ['a literal part on a def with no record', { ...sb, literal: undefined }, /carries no 'literal' record/],
       ['an uppercase color', withEntry({ fill: '#FFFFFF' }), /is not a lowercase #rrggbb/],
       ['an opaque wash', withEntry({ wash: { hover: '#000000' } }), /not a translucent #rrggbbaa/],
-      ['a wash at a state the def lacks', withEntry({ wash: { disabled: '#0000001a' } }), /names a state the def does not have/],
+      // `inactive`, a state SignInButton does not have; `disabled` joined it as code-only (Q-CC23 A).
+      ['a wash at a state the def lacks', withEntry({ wash: { inactive: '#0000001a' } }), /names a state the def does not have/],
       ['a key on an unprojected axis', { ...sb, literal: { ...sb.literal!, key: '{surface}' } }, /not a projected variant axis/],
       ['a line height under the size', withEntry({ font: { family: 'X', style: 'Medium', size: 14, lineHeight: 12, fallback: { family: 'Y', style: 'Medium' } } }), /a line height at least the size/],
     ];
@@ -28860,12 +28861,14 @@ arm: {
     const EXPECTED_ADMISSIONS = [
       'button:width', 'button:inactive', 'button-destructive:width', 'button-destructive:inactive', 'button-neutral:width', 'button-neutral:inactive',
       'icon-button:inactive', 'icon-button-destructive:inactive', 'icon-button-neutral:inactive',
+      'flush-icon-button:inactive', 'flush-icon-button-destructive:inactive', 'flush-icon-button-neutral:inactive',
       'icon:tone', 'focus-ring:offset', 'tag:read-only',
       'text-field:style', 'text-field:pending', 'text-field:empty', 'password-field:style', 'password-field:pending', 'password-field:empty',
       'search-field:style', 'search-field:pending', 'search-field:empty',
       'card-number-field:style', 'card-number-field:pending', 'card-number-field:empty',
-      'textarea:style', 'textarea:pending', 'textarea:empty', 'select:pending', 'select:empty', 'code-input:pending',
+      'textarea:style', 'textarea:pending', 'textarea:empty', 'select:style', 'select:pending', 'select:empty', 'code-input:pending',
       'checkbox-row:read-only', 'radio-row:read-only', 'switch-row:read-only', 'switch-row:pending',
+      'sign-in-button:pending', 'sign-in-button:disabled',
     ];
     ok(JSON.stringify([...found].sort()) === JSON.stringify([...EXPECTED_ADMISSIONS].sort()),
       `#2711 codeOnly admissions: the admissions found are exactly the ${EXPECTED_ADMISSIONS.length} listed (got ${found.length}: ${[...found].sort().join(', ')})`);
@@ -40511,6 +40514,24 @@ arm: {
     && validateComponentDef(withStateMap({ disabled: { tone: 'quiet' } })).errors.some((m) => /variantWhen\.state\.disabled' setting the child's 'tone', which its 'variant' does not name/.test(m))
     && validateComponentDef(withStateMap({ disabled: { size: 'small' } }, ['size'])).errors.some((m) => /variantWhen\.state\.disabled' setting the child's 'size', which is also in 'follow'/.test(m)),
     `#2317 variantWhen.state: the Password field validates clean; a host state off the state axis, an axis the variant does not name, and a followed axis are each refused by name`);
+}
+
+// Q-CC3 A and Q-CC4 A (#3554): Select joins the field family's code surface. Q-CC3: the `style` code axis of one value,
+// `outline`, as every field the Field style setting reaches, with no Figma style axis (the projection stays size ×
+// status × state). Q-CC4: TextField's `defaultValue` and `autoComplete`, in TextField's types, so the SC 1.3.5 claim in
+// its accessibility has a prop behind it. Literals typed here, not read off TextField.
+{
+  const selPlans = figmaAnatomySet(select, {});
+  ok(JSON.stringify(select.variants) === JSON.stringify({ size: ['medium', 'small', 'large'], style: ['outline'], status: ['default', 'error', 'warning', 'success'] })
+    && select.axisKinds?.style === 'authoring'
+    && JSON.stringify(select.figmaProperties?.variantAxes) === JSON.stringify(['size', 'status']) && selPlans.length === 84
+    && (select.anatomy?.codeOnly ?? []).some((c) => c.class === 'not-projected' && c.description.startsWith('style — not projected')),
+    `Q-CC3 select: style is a code axis of one, outline, admitted by a codeOnly style line, and Figma still projects size × status × state = 84 (got ${JSON.stringify(select.variants)}, ${selPlans.length} members)`);
+  const sp = (n: string) => select.props.find((p) => p.name === n);
+  ok(sp('defaultValue')?.type === 'string' && sp('defaultValue')?.required === false
+    && sp('autoComplete')?.type === 'string (WHATWG token)' && sp('autoComplete')?.required === false
+    && (select.accessibility?.wcag ?? []).some((w) => w.startsWith('1.3.5')),
+    `Q-CC4 select: declares defaultValue (string) and autoComplete (string (WHATWG token)), so its 1.3.5 claim has a prop behind it (got ${sp('defaultValue')?.type}, ${sp('autoComplete')?.type})`);
 }
 
 // ------------------------------------------------------------------- #2888: the Search field
