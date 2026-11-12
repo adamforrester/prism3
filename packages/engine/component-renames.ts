@@ -93,6 +93,8 @@ export const COMPONENT_RENAMES: readonly ComponentRename[] = [
   { def: 'tab', kind: 'def', to: 'tab-item', issue: 2759 },
   { def: 'checkbox-control', kind: 'move', axis: 'state', from: 'error', to: { state: 'rest', status: 'error' }, issue: 2751 },
   { def: 'switch-control', kind: 'move', axis: 'state', from: 'error', to: { state: 'rest', status: 'error' }, issue: 2751 },
+  // Q-CC1 A (#3554): the code input cell's error state was a character in the danger border, so it lands on `filled`.
+  { def: 'code-input-cell', kind: 'move', axis: 'state', from: 'error', to: { state: 'filled', status: 'error' }, issue: 3554 },
   // The repeating rows moved into a native `items` slot (#2649, owner decision Q307 A). `from` is the layer that held
   // the rows; `rows` are its row layers in order, the first of them always shown (no boolean of its own).
   { def: 'checkbox-group', kind: 'slot', slot: 'items', from: 'container', rows: ['row1', 'row2', 'row3', 'row4', 'row5', 'row6', 'row7', 'row8'], booleans: ['Option 2', 'Option 3', 'Option 4', 'Option 5', 'Option 6', 'Option 7', 'Option 8'], issue: 2649 },

@@ -60527,14 +60527,18 @@
             }
           }
         },
-        "isInvalid": {
-          "type": "boolean",
-          "default": false,
+        "validation": {
+          "type": "string",
+          "enum": [
+            "default",
+            "error"
+          ],
+          "default": "default",
           "$extensions": {
             "com.prism3": {
-              "type": "boolean",
+              "type": "enum: 'default' | 'error'",
               "required": false,
-              "description": "Whether the code input is in error. Set by the code input."
+              "description": "The validation status. error draws the danger border on the cell at every state but disabled; default is neutral. Set by the code input."
             }
           }
         },
@@ -60549,6 +60553,20 @@
             }
           }
         },
+        "status": {
+          "type": "string",
+          "enum": [
+            "default",
+            "error"
+          ],
+          "default": "default",
+          "$extensions": {
+            "com.prism3": {
+              "axis": "variant",
+              "figmaName": "status"
+            }
+          }
+        },
         "state": {
           "type": "string",
           "enum": [
@@ -60557,8 +60575,7 @@
             "filled",
             "focus-visible",
             "focus-visible-filled",
-            "disabled",
-            "error"
+            "disabled"
           ],
           "default": "rest",
           "$extensions": {
@@ -60571,6 +60588,7 @@
       },
       "default": {
         "configuration": {
+          "status": "default",
           "size": "medium",
           "state": "rest"
         },
@@ -60809,6 +60827,7 @@
         },
         {
           "configuration": {
+            "status": "default",
             "state": "hover"
           },
           "elements": {
@@ -60828,6 +60847,7 @@
         },
         {
           "configuration": {
+            "status": "default",
             "state": "filled"
           },
           "elements": {
@@ -60855,6 +60875,7 @@
         },
         {
           "configuration": {
+            "status": "default",
             "state": "focus-visible"
           },
           "elements": {
@@ -60882,6 +60903,7 @@
         },
         {
           "configuration": {
+            "status": "default",
             "state": "focus-visible-filled"
           },
           "elements": {
@@ -60909,6 +60931,7 @@
         },
         {
           "configuration": {
+            "status": "default",
             "state": "disabled"
           },
           "elements": {
@@ -60928,7 +60951,48 @@
         },
         {
           "configuration": {
-            "state": "error"
+            "status": "error",
+            "state": "rest"
+          },
+          "elements": {
+            "container": {
+              "styles": {
+                "backgroundColor": {
+                  "$token": "color.field.fill",
+                  "$type": "color"
+                },
+                "strokes": {
+                  "$token": "color.border.danger",
+                  "$type": "color"
+                }
+              }
+            }
+          }
+        },
+        {
+          "configuration": {
+            "status": "error",
+            "state": "hover"
+          },
+          "elements": {
+            "container": {
+              "styles": {
+                "backgroundColor": {
+                  "$token": "color.field.fill",
+                  "$type": "color"
+                },
+                "strokes": {
+                  "$token": "color.border.danger",
+                  "$type": "color"
+                }
+              }
+            }
+          }
+        },
+        {
+          "configuration": {
+            "status": "error",
+            "state": "filled"
           },
           "elements": {
             "container": {
@@ -60947,6 +61011,82 @@
               "styles": {
                 "textColor": {
                   "$token": "color.text.primary",
+                  "$type": "color"
+                }
+              }
+            }
+          }
+        },
+        {
+          "configuration": {
+            "status": "error",
+            "state": "focus-visible"
+          },
+          "elements": {
+            "container": {
+              "styles": {
+                "backgroundColor": {
+                  "$token": "color.field.fill",
+                  "$type": "color"
+                },
+                "strokes": {
+                  "$token": "color.border.danger",
+                  "$type": "color"
+                }
+              }
+            },
+            "caret": {
+              "styles": {
+                "backgroundColor": {
+                  "$token": "color.text.primary",
+                  "$type": "color"
+                }
+              }
+            }
+          }
+        },
+        {
+          "configuration": {
+            "status": "error",
+            "state": "focus-visible-filled"
+          },
+          "elements": {
+            "container": {
+              "styles": {
+                "backgroundColor": {
+                  "$token": "color.field.fill",
+                  "$type": "color"
+                },
+                "strokes": {
+                  "$token": "color.border.danger",
+                  "$type": "color"
+                }
+              }
+            },
+            "digit": {
+              "styles": {
+                "textColor": {
+                  "$token": "color.text.primary",
+                  "$type": "color"
+                }
+              }
+            }
+          }
+        },
+        {
+          "configuration": {
+            "status": "error",
+            "state": "disabled"
+          },
+          "elements": {
+            "container": {
+              "styles": {
+                "backgroundColor": {
+                  "$token": "color.disabled.fill",
+                  "$type": "color"
+                },
+                "strokes": {
+                  "$token": "color.disabled.border",
                   "$type": "color"
                 }
               }

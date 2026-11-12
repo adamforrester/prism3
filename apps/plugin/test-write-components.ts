@@ -5759,7 +5759,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     return style === STYLE[size] && d.leadingTrim === 'NONE' ? [] : [`${member}: ${style || 'no style'}, trim ${String(d.leadingTrim)}`];
   });
   const styleMisses = (r.misses ?? []).filter((m: string) => /digit\.(leadingTrim|textStyle)/.test(m));
-  ok(digits.length === wantDigits && wantDigits === 12 && off.length === 0 && styleMisses.length === 0,
+  // 16: 4 sizes × the two states that show a character (filled, active filled) × 2 statuses (Q-CC1 A, #3554).
+  ok(digits.length === wantDigits && wantDigits === 16 && off.length === 0 && styleMisses.length === 0,
     `#2428 code-input-cell: every built character (${digits.length} of ${wantDigits}) carries its size's text style (body md, title sm, md, 2xl), untrimmed, and the executor reports no style miss for it (off: ${[...off, ...styleMisses].slice(0, 4).join(' | ') || 'none'})`);
 }
 

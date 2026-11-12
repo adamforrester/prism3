@@ -6389,13 +6389,13 @@
           "The character weight: no guaranteed type role is above 18px, so the medium, large and x-large characters take the title steps in the brand's bold title weight (strong on most brands), and the small one Text field's body step in the default weight. A brand's own title ladder sets the exact size."
         ],
         "unverified": [
-          "An empty cell in error: the approved states draw error with a character only. A field in error with a short code shows its empty cells at rest in Figma; code draws the danger border on every cell.",
           "The character's centering in Figma: the styled character centers its line box, so a brand font whose descender is deeper than the room above its figures sets the figure slightly high. Code trims to the cap height and centers the figure itself."
         ],
         "evolution": [
           "2026-10-15 (#2428): owner decision Q329 A, the cell as a part in the code input's native items slot, its character edited on the cell; Q330 A, the four sizes.",
           "2026-10-17 (#2789): the character is trimmed to its cap height and baseline, so the cell centers the figure (owner QA 2026-10-16: the digit sat too high at medium and large; option A of the owner question on #2789).",
-          "2026-10-22 (#2789): owner QA Q534, the character carries its size's text style in Figma, so it follows the brand's type. Figma keeps vertical trim inside the style, so the Figma character is no longer trimmed; code still trims."
+          "2026-10-22 (#2789): owner QA Q534, the character carries its size's text style in Figma, so it follows the brand's type. Figma keeps vertical trim inside the style, so the Figma character is no longer trimmed; code still trims.",
+          "2026-11-11 (#3554): owner decision Q-CC1 A, error leaves the state axis for the fields' `status` axis (Q354), and `isInvalid` becomes `validation`. A cell in error now draws at every state but disabled, so an empty or active cell in error can be drawn; the old error member moves to status=error, filled."
         ],
         "projection": []
       },
@@ -6492,7 +6492,7 @@
         {
           "class": "static-placeholder",
           "disposition": "LOWERED",
-          "description": "the field's status and state in Figma — a placed field's cells are the designer's (owner decision Q329 A): switching the field to error or disabled changes its label and message, not its cells, and the designer sets each cell. Each member's default cells show that member's state, as a fresh insert's starting point. In code the input drives every cell."
+          "description": "the field's status and state in Figma — a placed field's cells are the designer's (owner decision Q329 A): switching the field to error or disabled changes its label and message, not its cells, and the designer sets each cell. Each member's default cells show that member's state and status, as a fresh insert's starting point. In code the input drives every cell."
         },
         {
           "class": "responsive-layout",
@@ -6523,7 +6523,7 @@
       "notes": {
         "contested": [
           "The label size: one FieldLabel size at every cell size, because FieldLabel has no x-large. Text field's label follows its size one step down.",
-          "The default cells per member: each member's six cells show its state (filled, active, disabled). Status has no mechanism to reach a nested coordinate, so an error member's default cells are not in error."
+          "The default cells per member: each member's six cells show its state (filled, active, disabled) and, since the cell took the status axis (Q-CC1 A, #3554), its status, so an error member's default cells are in error. A placed field's cells are still the designer's (Q329)."
         ],
         "unverified": [
           "The nested cells' characters are set by an override inside a native slot, as List's item numbers are. Writing them through the plugin is unmeasured on a real host until the first Build."
