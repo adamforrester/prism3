@@ -1,0 +1,49 @@
+/* Direction C · Folded step cards. Chrome tokens only (build.mjs scans this block). */
+.mk-c .mk-body { background: var(--p3-levers-bg); padding: var(--p3-space-200) var(--p3-space-300); gap: var(--p3-space-100); }
+.mk-c .mk-c-lead { color: var(--p3-text-2); padding-bottom: var(--p3-space-050); }
+.mk-c .mk-c-card { display: grid; gap: var(--p3-space-100); padding: var(--p3-space-100) var(--p3-space-150) var(--p3-space-100) var(--p3-space-200); border-radius: var(--p3-radius-xl); border: var(--p3-bw-hairline) solid var(--p3-line-1); background: var(--p3-bg-page); }
+.mk-c .mk-c-card[data-open="true"] { padding-bottom: var(--p3-space-200); }
+.mk-c .mk-c-head { display: flex; align-items: center; gap: var(--p3-space-100); min-height: var(--p3-ctl-h-sm); }
+.mk-c .mk-c-head > .p3-sg-tag { margin-left: auto; }
+.mk-c .mk-c-head > .mk-c-disc { flex: none; }
+.mk-c .mk-c-head > .p3-sg-tag + .mk-c-disc { margin-left: 0; }
+.mk-c .mk-c-head > :is(.mk-c-title, .p3-check) + .mk-c-disc { margin-left: auto; }
+.mk-c .mk-c-disc[aria-expanded="true"] > .p3-ico { transform: rotate(90deg); }
+.mk-c .mk-c-mark { display: inline-flex; color: var(--p3-warn-icon); }
+.mk-c .mk-c-title { font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snugger); color: var(--p3-text); min-width: 0; }
+.mk-c .mk-c-cap { color: var(--p3-text-2); font-weight: var(--p3-fw-emphasis); }
+.mk-c .mk-c-notick { flex: 0 1 auto; }
+.mk-c .p3-btn.p3-check.mk-c-tick { width: auto; flex: 0 1 auto; margin-left: calc(-1 * var(--p3-space-100)); }
+.mk-c .mk-c-card[data-on="false"] .mk-c-title { color: var(--p3-text-2); }
+.mk-c .mk-c-line { padding-right: var(--p3-space-100); }
+.mk-c .mk-c-card > .mk-c-line { margin-top: calc(-1 * var(--p3-space-075)); }
+.mk-c .mk-c-card[data-on] > .mk-c-line { padding-left: var(--mk-indent); }
+.mk-c .mk-c-inset { display: grid; gap: var(--p3-space-075); padding: var(--p3-space-150); margin-right: var(--p3-space-050); border-radius: var(--p3-radius-lg); background: var(--p3-fill-1); }
+.mk-c .mk-c-ihead { display: flex; align-items: center; justify-content: space-between; gap: var(--p3-space-100); min-height: var(--p3-ctl-h-xs); }
+.mk-c .mk-c-ihead > .p3-card-title { color: var(--p3-text); }
+.mk-c .mk-c-rows { display: grid; }
+.mk-c .mk-c-row { display: flex; align-items: center; gap: var(--p3-space-100); min-height: var(--p3-ctl-h-xs); padding: var(--p3-space-075) 0; }
+.mk-c .mk-c-row + .mk-c-row { border-top: var(--p3-bw-hairline) solid var(--p3-line-2); }
+.mk-c .mk-c-row-stack { display: grid; gap: var(--p3-space-025); }
+.mk-c .mk-c-name { flex: 1 1 auto; min-width: 0; display: inline-flex; align-items: center; gap: var(--p3-space-075); }
+.mk-c .mk-c-name > .p3-ico { color: var(--p3-icon-2); }
+.mk-c .p3-sg-tag { background: var(--p3-bg-page); }
+.mk-c .mk-c-head > .p3-sg-tag { background: var(--p3-fill-1); }
+.mk-c .p3-btn.p3-check.mk-c-dtick { margin-left: calc(-1 * var(--p3-space-100)); width: calc(100% + var(--p3-space-100)); }
+.mk-c .mk-c-dtext { flex: 1 1 auto; justify-content: space-between; column-gap: var(--p3-space-150); }
+.mk-c .mk-c-dline { padding-left: var(--mk-indent); }
+.mk-c .mk-c-btop { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--p3-space-050) var(--p3-space-100); }
+.mk-c .mk-c-why { font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
+.mk-c .mk-c-krow { gap: var(--p3-space-150); }
+.mk-c .mk-c-kname { display: grid; gap: var(--p3-space-025); flex: 1 1 auto; min-width: 0; }
+.mk-c .mk-c-kname > span { font-weight: var(--p3-fw-emphasis); }
+.mk-c .mk-c-will { color: var(--p3-text); }
+.mk-c .mk-c-krow > .p3-selwrap { flex: none; width: calc(var(--p3-l-col) * 2.5); }
+.mk-c .mk-c-krow .p3-select { min-height: var(--p3-ctl-h-xs); font-size: var(--p3-fs-12); padding-left: var(--p3-space-150); }
+.mk-c .p3-btn.mk-c-mini, .mk-c .p3-btn.p3-btn-icon.mk-c-x { min-height: var(--p3-ctl-h-xs); min-width: var(--p3-ctl-h-xs); }
+.mk-c .mk-c-addall { justify-self: start; }
+.mk-c .mk-c-cleanline { padding: var(--p3-space-100) 0; }
+.p3-frame[data-w="narrow"] .mk-c .mk-body { padding: var(--p3-space-150); }
+.p3-frame[data-w="narrow"] .mk-c .mk-c-card { padding-left: var(--p3-space-150); padding-right: var(--p3-space-100); }
+.p3-frame[data-w="narrow"] .mk-c .mk-c-krow { flex-wrap: wrap; }
+.p3-frame[data-w="narrow"] .mk-c .mk-c-krow > .p3-selwrap { width: 100%; }
