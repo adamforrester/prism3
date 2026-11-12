@@ -2,7 +2,7 @@
   "$schema": "prism3-ai-metadata/0.5",
   "brand": "prism3",
   "generated": true,
-  "note": "Agent-readable metadata, companion to prism3.tokens.json. Every token in that tree has one entry here, keyed by its path below the brand root; color roles drop the leading `color.` segment. Tiers: `color` (semantic color roles), `typography` (type styles and font roles), `layout` (space, size, radius, border-width, focus-ring, icon, control and grid roles), `motion` (motion roles), `gradient` when the brand has one, and `primitives` (the raw values the roles resolve to). A primitive carries `aliased_by`, every token that resolves to it directly or through another alias, recomputed on every build. On a color role, `sits_on` names the grounds an ink or edge is placed on and `carries` the inks placed on a ground; both are measured in every mode. `tracks` names companion roles and implies no contrast. `contrast_with` is the role's contrast contract: `requirement` states it as a check that resolves both roles in every mode, and `ratio` is the light-mode measurement. `usage_limit` marks an ink that is for large text, icons and non-essential text only. Field definitions: the JSON Schema whose `$id` is this file's `$schema`.",
+  "note": "Agent-readable metadata, companion to prism3.tokens.json. Every token in that tree has one entry here, keyed by its path below the brand root; color roles drop the leading `color.` segment. Tiers: `color` (semantic color roles), `typography` (type styles and font roles), `layout` (space, size, radius, border-width, background-blur, focus-ring, icon, control and grid roles, and the type line boxes), `motion` (motion roles), `gradient` when the brand has one, and `primitives` (the raw values the roles resolve to). A primitive carries `aliased_by`, every token that resolves to it directly or through another alias, recomputed on every build. On a color role, `sits_on` names the grounds an ink or edge is placed on and `carries` the inks placed on a ground; both are measured in every mode. `tracks` names companion roles and implies no contrast. `contrast_with` is the role's contrast contract: `requirement` states it as a check that resolves both roles in every mode, and `ratio` is the light-mode measurement. `usage_limit` marks an ink that is for large text, icons and non-essential text only. Field definitions: the JSON Schema whose `$id` is this file's `$schema`.",
   "color_fields": [
     "$description",
     "meaning",
@@ -4333,7 +4333,7 @@
       "$description": "Secondary text — 4.5:1 on `background.secondary`",
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Secondary text. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `text.primary` there.",
-      "avoid_when": "Do not use on solid or vivid fills. Use the `text.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on solid or vivid fills. Use the `text.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.neutral.550}",
         "dark": "{pds3.core.palette.neutral.450}",
@@ -4358,7 +4358,7 @@
       "$description": "Tertiary text — 3:1 on `background.secondary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Tertiary text. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `text.primary` there.",
-      "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.secondary` (4.5:1). Do not use on solid or vivid fills. Use the `text.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.secondary` (4.5:1). Do not use on solid or vivid fills. Use the `text.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.neutral.450}",
         "dark": "{pds3.core.palette.neutral.550}",
@@ -4397,7 +4397,7 @@
       "$description": "brand text — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Brand identity",
       "when_to_use": "Brand text — e.g. a brand accent or highlighted label. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid brand fill. Use `text.on-brand` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on a solid brand fill. Use `text.on-brand` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.600}",
         "dark": "{pds3.core.palette.primary.450}",
@@ -4422,7 +4422,7 @@
       "$description": "success text — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Success / positive signaling",
       "when_to_use": "Success text — e.g. a success confirmation. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid success fill. Use `text.on-success` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on a solid success fill. Use `text.on-success` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.success.600}",
         "dark": "{pds3.core.palette.success.450}",
@@ -4447,7 +4447,7 @@
       "$description": "warning text — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Warning / caution signaling",
       "when_to_use": "Warning text — e.g. a caution note. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid warning fill. Use `text.on-warning` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on a solid warning fill. Use `text.on-warning` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.warning.600}",
         "dark": "{pds3.core.palette.warning.450}",
@@ -4472,7 +4472,7 @@
       "$description": "danger text — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Destructive / error signaling",
       "when_to_use": "Danger text — e.g. an inline validation error. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid danger fill. Use `text.on-danger` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on a solid danger fill. Use `text.on-danger` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.danger.600}",
         "dark": "{pds3.core.palette.danger.450}",
@@ -4497,7 +4497,7 @@
       "$description": "info text — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Informational signaling",
       "when_to_use": "Info text — e.g. an informational note. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid info fill. Use `text.on-info` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on a solid info fill. Use `text.on-info` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.info.600}",
         "dark": "{pds3.core.palette.info.450}",
@@ -4832,7 +4832,7 @@
       "$description": "Link text — default, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.600}",
         "dark": "{pds3.core.palette.primary.450}",
@@ -4857,7 +4857,7 @@
       "$description": "Link text — hover, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
-      "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.700}",
         "dark": "{pds3.core.palette.primary.350}",
@@ -4885,7 +4885,7 @@
       "$description": "Link text — visited, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text after it has been visited. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
-      "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.900}",
         "dark": "{pds3.core.palette.primary.150}",
@@ -4913,7 +4913,7 @@
       "$description": "Link text — focused, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.600}",
         "dark": "{pds3.core.palette.primary.450}",
@@ -4938,7 +4938,7 @@
       "$description": "Link text — pressed, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
-      "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.800}",
         "dark": "{pds3.core.palette.primary.250}",
@@ -4994,7 +4994,7 @@
       "$description": "Secondary icon — 4.5:1 on `background.secondary`",
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Secondary icon. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `icon.primary` there.",
-      "avoid_when": "Do not use on solid or vivid fills. Use the `icon.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on solid or vivid fills. Use the `icon.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.neutral.550}",
         "dark": "{pds3.core.palette.neutral.450}",
@@ -5019,7 +5019,7 @@
       "$description": "Tertiary icon — 3:1 on `background.secondary`",
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Tertiary icon. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `icon.primary` there.",
-      "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.secondary` (4.5:1). Do not use on solid or vivid fills. Use the `icon.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.secondary` (4.5:1). Do not use on solid or vivid fills. Use the `icon.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.neutral.450}",
         "dark": "{pds3.core.palette.neutral.550}",
@@ -5058,7 +5058,7 @@
       "$description": "brand icon — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Brand identity",
       "when_to_use": "Brand icons — e.g. the icon beside a brand accent or highlighted label. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid brand fill. Use `icon.on-brand` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on a solid brand fill. Use `icon.on-brand` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.600}",
         "dark": "{pds3.core.palette.primary.450}",
@@ -5083,7 +5083,7 @@
       "$description": "success icon — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Success / positive signaling",
       "when_to_use": "Success icons — e.g. the icon beside a success confirmation. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid success fill. Use `icon.on-success` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on a solid success fill. Use `icon.on-success` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.success.600}",
         "dark": "{pds3.core.palette.success.450}",
@@ -5108,7 +5108,7 @@
       "$description": "warning icon — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Warning / caution signaling",
       "when_to_use": "Warning icons — e.g. the icon beside a caution note. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid warning fill. Use `icon.on-warning` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on a solid warning fill. Use `icon.on-warning` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.warning.600}",
         "dark": "{pds3.core.palette.warning.450}",
@@ -5133,7 +5133,7 @@
       "$description": "danger icon — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Destructive / error signaling",
       "when_to_use": "Danger icons — e.g. the icon beside an inline validation error. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid danger fill. Use `icon.on-danger` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on a solid danger fill. Use `icon.on-danger` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.danger.600}",
         "dark": "{pds3.core.palette.danger.450}",
@@ -5158,7 +5158,7 @@
       "$description": "info icon — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Informational signaling",
       "when_to_use": "Info icons — e.g. the icon beside an informational note. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use on a solid info fill. Use `icon.on-info` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on a solid info fill. Use `icon.on-info` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.info.600}",
         "dark": "{pds3.core.palette.info.450}",
@@ -5493,7 +5493,7 @@
       "$description": "Link icon — default, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.600}",
         "dark": "{pds3.core.palette.primary.450}",
@@ -5518,7 +5518,7 @@
       "$description": "Link icon — hover, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
-      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.700}",
         "dark": "{pds3.core.palette.primary.350}",
@@ -5546,7 +5546,7 @@
       "$description": "Link icon — visited, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon after it has been visited. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
-      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.900}",
         "dark": "{pds3.core.palette.primary.150}",
@@ -5574,7 +5574,7 @@
       "$description": "Link icon — focused, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.600}",
         "dark": "{pds3.core.palette.primary.450}",
@@ -5599,7 +5599,7 @@
       "$description": "Link icon — pressed, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
-      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.800}",
         "dark": "{pds3.core.palette.primary.250}",
@@ -5661,7 +5661,7 @@
       "$description": "Secondary text on an inverse surface — 4.5:1 on `inverse.background.secondary`",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Secondary text. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode — use `inverse.text.primary` there. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.secondary`. Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `text.secondary`. Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.neutral.450}",
         "dark": "{pds3.core.palette.neutral.550}",
@@ -5686,7 +5686,7 @@
       "$description": "Tertiary text on an inverse surface — 3:1 on `inverse.background.secondary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Tertiary text. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode — use `inverse.text.primary` there. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.tertiary`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.secondary` (4.5:1). Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `text.tertiary`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.secondary` (4.5:1). Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.neutral.550}",
         "dark": "{pds3.core.palette.neutral.450}",
@@ -5725,7 +5725,7 @@
       "$description": "brand text — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Brand identity (inverse ground)",
       "when_to_use": "Brand text — e.g. a brand accent or highlighted label. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.brand`. Do not use on a solid brand fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `text.brand`. Do not use on a solid brand fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.450}",
         "dark": "{pds3.core.palette.primary.600}",
@@ -5750,7 +5750,7 @@
       "$description": "success text — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Success / positive signaling (inverse ground)",
       "when_to_use": "Success text — e.g. a success confirmation. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.success`. Do not use on a solid success fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `text.success`. Do not use on a solid success fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.success.450}",
         "dark": "{pds3.core.palette.success.600}",
@@ -5775,7 +5775,7 @@
       "$description": "warning text — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Warning / caution signaling (inverse ground)",
       "when_to_use": "Warning text — e.g. a caution note. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.warning`. Do not use on a solid warning fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `text.warning`. Do not use on a solid warning fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.warning.450}",
         "dark": "{pds3.core.palette.warning.600}",
@@ -5800,7 +5800,7 @@
       "$description": "danger text — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Destructive / error signaling (inverse ground)",
       "when_to_use": "Danger text — e.g. an inline validation error. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.danger`. Do not use on a solid danger fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `text.danger`. Do not use on a solid danger fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.danger.450}",
         "dark": "{pds3.core.palette.danger.600}",
@@ -5825,7 +5825,7 @@
       "$description": "info text — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Informational signaling (inverse ground)",
       "when_to_use": "Info text — e.g. an informational note. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.info`. Do not use on a solid info fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `text.info`. Do not use on a solid info fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.info.450}",
         "dark": "{pds3.core.palette.info.600}",
@@ -6045,7 +6045,7 @@
       "$description": "Link text on an inverse surface — default, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.link.default`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `text.link.default`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.450}",
         "dark": "{pds3.core.palette.primary.600}",
@@ -6070,7 +6070,7 @@
       "$description": "Link text on an inverse surface — hover, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.link.hover`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `text.link.hover`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.350}",
         "dark": "{pds3.core.palette.primary.700}",
@@ -6098,7 +6098,7 @@
       "$description": "Link text on an inverse surface — visited, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text after it has been visited. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.link.visited`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `text.link.visited`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.150}",
         "dark": "{pds3.core.palette.primary.900}",
@@ -6126,7 +6126,7 @@
       "$description": "Link text on an inverse surface — focused, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.link.focused`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `text.link.focused`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.450}",
         "dark": "{pds3.core.palette.primary.600}",
@@ -6151,7 +6151,7 @@
       "$description": "Link text on an inverse surface — pressed, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.link.pressed`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `text.link.pressed`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.250}",
         "dark": "{pds3.core.palette.primary.800}",
@@ -6207,7 +6207,7 @@
       "$description": "Secondary icon on an inverse surface — 4.5:1 on `inverse.background.secondary`",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Secondary icon. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode — use `inverse.icon.primary` there. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.secondary`. Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `icon.secondary`. Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.neutral.450}",
         "dark": "{pds3.core.palette.neutral.550}",
@@ -6232,7 +6232,7 @@
       "$description": "Tertiary icon on an inverse surface — 3:1 on `inverse.background.secondary`",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Tertiary icon. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode — use `inverse.icon.primary` there. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.tertiary`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.secondary` (4.5:1). Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `icon.tertiary`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.secondary` (4.5:1). Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.neutral.550}",
         "dark": "{pds3.core.palette.neutral.450}",
@@ -6271,7 +6271,7 @@
       "$description": "brand icon — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Brand identity (inverse ground)",
       "when_to_use": "Brand icons — e.g. the icon beside a brand accent or highlighted label. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.brand`. Do not use on a solid brand fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `icon.brand`. Do not use on a solid brand fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.450}",
         "dark": "{pds3.core.palette.primary.600}",
@@ -6296,7 +6296,7 @@
       "$description": "success icon — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Success / positive signaling (inverse ground)",
       "when_to_use": "Success icons — e.g. the icon beside a success confirmation. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.success`. Do not use on a solid success fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `icon.success`. Do not use on a solid success fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.success.450}",
         "dark": "{pds3.core.palette.success.600}",
@@ -6321,7 +6321,7 @@
       "$description": "warning icon — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Warning / caution signaling (inverse ground)",
       "when_to_use": "Warning icons — e.g. the icon beside a caution note. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.warning`. Do not use on a solid warning fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `icon.warning`. Do not use on a solid warning fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.warning.450}",
         "dark": "{pds3.core.palette.warning.600}",
@@ -6346,7 +6346,7 @@
       "$description": "danger icon — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Destructive / error signaling (inverse ground)",
       "when_to_use": "Danger icons — e.g. the icon beside an inline validation error. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.danger`. Do not use on a solid danger fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `icon.danger`. Do not use on a solid danger fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.danger.450}",
         "dark": "{pds3.core.palette.danger.600}",
@@ -6371,7 +6371,7 @@
       "$description": "info icon — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Informational signaling (inverse ground)",
       "when_to_use": "Info icons — e.g. the icon beside an informational note. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.info`. Do not use on a solid info fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `icon.info`. Do not use on a solid info fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.info.450}",
         "dark": "{pds3.core.palette.info.600}",
@@ -6591,7 +6591,7 @@
       "$description": "Link icon on an inverse surface — default, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.link.default`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `icon.link.default`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.450}",
         "dark": "{pds3.core.palette.primary.600}",
@@ -6616,7 +6616,7 @@
       "$description": "Link icon on an inverse surface — hover, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.link.hover`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `icon.link.hover`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.350}",
         "dark": "{pds3.core.palette.primary.700}",
@@ -6644,7 +6644,7 @@
       "$description": "Link icon on an inverse surface — visited, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon after it has been visited. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.link.visited`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `icon.link.visited`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.150}",
         "dark": "{pds3.core.palette.primary.900}",
@@ -6672,7 +6672,7 @@
       "$description": "Link icon on an inverse surface — focused, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon when keyboard-focused. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.link.focused`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `icon.link.focused`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.450}",
         "dark": "{pds3.core.palette.primary.600}",
@@ -6697,7 +6697,7 @@
       "$description": "Link icon on an inverse surface — pressed, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.link.pressed`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `icon.link.pressed`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.250}",
         "dark": "{pds3.core.palette.primary.800}",
@@ -7094,7 +7094,7 @@
   },
   "typography": {
     "type.display.sm.emphasis": {
-      "$description": "Hero / marketing display type.",
+      "$description": "display sm emphasis — 36→48px fluid Playfair Display, snug line-height, emphasis weight, italic, tight tracking",
       "meaning": "Type style — display sm emphasis (48px, display face)",
       "when_to_use": "Large expressive headlines and hero moments.",
       "avoid_when": "Do not use for product-UI headings (use title) or running text (use body).",
@@ -7108,7 +7108,7 @@
       }
     },
     "type.display.sm.strong": {
-      "$description": "Hero / marketing display type.",
+      "$description": "display sm strong — 36→48px fluid Playfair Display, snug line-height, strong weight, italic, tight tracking",
       "meaning": "Type style — display sm strong (48px, display face)",
       "when_to_use": "Large expressive headlines and hero moments.",
       "avoid_when": "Do not use for product-UI headings (use title) or running text (use body).",
@@ -7122,7 +7122,7 @@
       }
     },
     "type.display.md.emphasis": {
-      "$description": "Hero / marketing display type.",
+      "$description": "display md emphasis — 40→64px fluid Playfair Display, tight line-height, emphasis weight, italic, tight tracking",
       "meaning": "Type style — display md emphasis (64px, display face)",
       "when_to_use": "Large expressive headlines and hero moments.",
       "avoid_when": "Do not use for product-UI headings (use title) or running text (use body).",
@@ -7136,7 +7136,7 @@
       }
     },
     "type.display.md.strong": {
-      "$description": "Hero / marketing display type.",
+      "$description": "display md strong — 40→64px fluid Playfair Display, tight line-height, strong weight, italic, tight tracking",
       "meaning": "Type style — display md strong (64px, display face)",
       "when_to_use": "Large expressive headlines and hero moments.",
       "avoid_when": "Do not use for product-UI headings (use title) or running text (use body).",
@@ -7150,7 +7150,7 @@
       }
     },
     "type.display.lg.emphasis": {
-      "$description": "Hero / marketing display type.",
+      "$description": "display lg emphasis — 40→80px fluid Playfair Display, tight line-height, emphasis weight, italic, tight tracking",
       "meaning": "Type style — display lg emphasis (80px, display face)",
       "when_to_use": "Large expressive headlines and hero moments.",
       "avoid_when": "Do not use for product-UI headings (use title) or running text (use body).",
@@ -7164,7 +7164,7 @@
       }
     },
     "type.display.lg.strong": {
-      "$description": "Hero / marketing display type.",
+      "$description": "display lg strong — 40→80px fluid Playfair Display, tight line-height, strong weight, italic, tight tracking",
       "meaning": "Type style — display lg strong (80px, display face)",
       "when_to_use": "Large expressive headlines and hero moments.",
       "avoid_when": "Do not use for product-UI headings (use title) or running text (use body).",
@@ -7178,7 +7178,7 @@
       }
     },
     "type.display.xl.emphasis": {
-      "$description": "Hero / marketing display type.",
+      "$description": "display xl emphasis — 48→96px fluid Playfair Display, tight line-height, emphasis weight, italic, tighter tracking",
       "meaning": "Type style — display xl emphasis (96px, display face)",
       "when_to_use": "Large expressive headlines and hero moments.",
       "avoid_when": "Do not use for product-UI headings (use title) or running text (use body).",
@@ -7192,7 +7192,7 @@
       }
     },
     "type.display.xl.strong": {
-      "$description": "Hero / marketing display type.",
+      "$description": "display xl strong — 48→96px fluid Playfair Display, tight line-height, strong weight, italic, tighter tracking",
       "meaning": "Type style — display xl strong (96px, display face)",
       "when_to_use": "Large expressive headlines and hero moments.",
       "avoid_when": "Do not use for product-UI headings (use title) or running text (use body).",
@@ -7206,7 +7206,7 @@
       }
     },
     "type.display.2xl.emphasis": {
-      "$description": "Hero / marketing display type.",
+      "$description": "display 2xl emphasis — 48→128px fluid Playfair Display, tight line-height, emphasis weight, italic, tighter tracking",
       "meaning": "Type style — display 2xl emphasis (128px, display face)",
       "when_to_use": "Large expressive headlines and hero moments.",
       "avoid_when": "Do not use for product-UI headings (use title) or running text (use body).",
@@ -7220,7 +7220,7 @@
       }
     },
     "type.display.2xl.strong": {
-      "$description": "Hero / marketing display type.",
+      "$description": "display 2xl strong — 48→128px fluid Playfair Display, tight line-height, strong weight, italic, tighter tracking",
       "meaning": "Type style — display 2xl strong (128px, display face)",
       "when_to_use": "Large expressive headlines and hero moments.",
       "avoid_when": "Do not use for product-UI headings (use title) or running text (use body).",
@@ -7234,7 +7234,7 @@
       }
     },
     "type.display.3xl.emphasis": {
-      "$description": "Hero / marketing display type.",
+      "$description": "display 3xl emphasis — 48→160px fluid Playfair Display, tight line-height, emphasis weight, italic, tighter tracking",
       "meaning": "Type style — display 3xl emphasis (160px, display face)",
       "when_to_use": "Large expressive headlines and hero moments.",
       "avoid_when": "Do not use for product-UI headings (use title) or running text (use body).",
@@ -7248,7 +7248,7 @@
       }
     },
     "type.display.3xl.strong": {
-      "$description": "Hero / marketing display type.",
+      "$description": "display 3xl strong — 48→160px fluid Playfair Display, tight line-height, strong weight, italic, tighter tracking",
       "meaning": "Type style — display 3xl strong (160px, display face)",
       "when_to_use": "Large expressive headlines and hero moments.",
       "avoid_when": "Do not use for product-UI headings (use title) or running text (use body).",
@@ -7262,7 +7262,7 @@
       }
     },
     "type.title.xs.emphasis": {
-      "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
+      "$description": "title xs emphasis — 18px Playfair Display, compact line-height, emphasis weight, italic, snug tracking",
       "meaning": "Type style — title xs emphasis (18px, title face)",
       "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
       "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
@@ -7276,7 +7276,7 @@
       }
     },
     "type.title.xs.strong": {
-      "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
+      "$description": "title xs strong — 18px Playfair Display, compact line-height, strong weight, italic, snug tracking",
       "meaning": "Type style — title xs strong (18px, title face)",
       "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
       "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
@@ -7290,7 +7290,7 @@
       }
     },
     "type.title.sm.emphasis": {
-      "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
+      "$description": "title sm emphasis — 20px Playfair Display, compact line-height, emphasis weight, italic, snug tracking",
       "meaning": "Type style — title sm emphasis (20px, title face)",
       "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
       "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
@@ -7304,7 +7304,7 @@
       }
     },
     "type.title.sm.strong": {
-      "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
+      "$description": "title sm strong — 20px Playfair Display, compact line-height, strong weight, italic, snug tracking",
       "meaning": "Type style — title sm strong (20px, title face)",
       "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
       "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
@@ -7318,7 +7318,7 @@
       }
     },
     "type.title.md.emphasis": {
-      "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
+      "$description": "title md emphasis — 20→24px fluid Playfair Display, compact line-height, emphasis weight, italic, snug tracking",
       "meaning": "Type style — title md emphasis (24px, title face)",
       "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
       "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
@@ -7332,7 +7332,7 @@
       }
     },
     "type.title.md.strong": {
-      "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
+      "$description": "title md strong — 20→24px fluid Playfair Display, compact line-height, strong weight, italic, snug tracking",
       "meaning": "Type style — title md strong (24px, title face)",
       "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
       "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
@@ -7346,7 +7346,7 @@
       }
     },
     "type.title.lg.emphasis": {
-      "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
+      "$description": "title lg emphasis — 24→28px fluid Playfair Display, snug line-height, emphasis weight, italic, snug tracking",
       "meaning": "Type style — title lg emphasis (28px, title face)",
       "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
       "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
@@ -7360,7 +7360,7 @@
       }
     },
     "type.title.lg.strong": {
-      "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
+      "$description": "title lg strong — 24→28px fluid Playfair Display, snug line-height, strong weight, italic, snug tracking",
       "meaning": "Type style — title lg strong (28px, title face)",
       "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
       "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
@@ -7374,7 +7374,7 @@
       }
     },
     "type.title.xl.emphasis": {
-      "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
+      "$description": "title xl emphasis — 28→32px fluid Playfair Display, snug line-height, emphasis weight, italic, snug tracking",
       "meaning": "Type style — title xl emphasis (32px, title face)",
       "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
       "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
@@ -7388,7 +7388,7 @@
       }
     },
     "type.title.xl.strong": {
-      "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
+      "$description": "title xl strong — 28→32px fluid Playfair Display, snug line-height, strong weight, italic, snug tracking",
       "meaning": "Type style — title xl strong (32px, title face)",
       "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
       "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
@@ -7402,7 +7402,7 @@
       }
     },
     "type.title.2xl.emphasis": {
-      "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
+      "$description": "title 2xl emphasis — 36→40px fluid Playfair Display, snug line-height, emphasis weight, italic, snug tracking",
       "meaning": "Type style — title 2xl emphasis (40px, title face)",
       "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
       "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
@@ -7416,7 +7416,7 @@
       }
     },
     "type.title.2xl.strong": {
-      "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
+      "$description": "title 2xl strong — 36→40px fluid Playfair Display, snug line-height, strong weight, italic, snug tracking",
       "meaning": "Type style — title 2xl strong (40px, title face)",
       "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
       "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
@@ -7449,7 +7449,7 @@
       }
     },
     "type.body.xs.default-link": {
-      "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
+      "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with `text.link.*` color).",
       "meaning": "Type style — body xs default link (12px, body face)",
       "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.xs.default`).",
@@ -7483,7 +7483,7 @@
       }
     },
     "type.body.xs.default-italic-link": {
-      "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
+      "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with `text.link.*` color).",
       "meaning": "Type style — body xs default italic link (12px, body face)",
       "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.xs.default-italic`).",
@@ -7517,7 +7517,7 @@
       }
     },
     "type.body.xs.strong-link": {
-      "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
+      "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with `text.link.*` color).",
       "meaning": "Type style — body xs strong link (12px, body face)",
       "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.xs.strong`).",
@@ -7551,7 +7551,7 @@
       }
     },
     "type.body.xs.strong-italic-link": {
-      "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
+      "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with `text.link.*` color).",
       "meaning": "Type style — body xs strong italic link (12px, body face)",
       "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.xs.strong-italic`).",
@@ -7566,7 +7566,7 @@
       }
     },
     "type.body.sm.default": {
-      "$description": "Running text / default UI copy.",
+      "$description": "body sm default — 14px Inter, normal line-height, default weight, normal tracking",
       "meaning": "Type style — body sm default (14px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
       "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
@@ -7585,7 +7585,7 @@
       }
     },
     "type.body.sm.default-link": {
-      "$description": "Running text / default UI copy (underlined link variant).",
+      "$description": "body sm default link — 14px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — body sm default link (14px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.sm.default`).",
@@ -7599,7 +7599,7 @@
       }
     },
     "type.body.sm.default-italic": {
-      "$description": "Running text / default UI copy (italic variant).",
+      "$description": "body sm default italic — 14px Inter, normal line-height, default weight, italic, normal tracking",
       "meaning": "Type style — body sm default italic (14px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
       "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
@@ -7619,7 +7619,7 @@
       }
     },
     "type.body.sm.default-italic-link": {
-      "$description": "Running text / default UI copy (italic variant) (underlined link variant).",
+      "$description": "body sm default italic link — 14px Inter, normal line-height, default weight, italic, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — body sm default italic link (14px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.sm.default-italic`).",
@@ -7634,7 +7634,7 @@
       }
     },
     "type.body.sm.strong": {
-      "$description": "Running text / default UI copy.",
+      "$description": "body sm strong — 14px Inter, normal line-height, strong weight, normal tracking",
       "meaning": "Type style — body sm strong (14px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
       "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
@@ -7653,7 +7653,7 @@
       }
     },
     "type.body.sm.strong-link": {
-      "$description": "Running text / default UI copy (underlined link variant).",
+      "$description": "body sm strong link — 14px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — body sm strong link (14px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.sm.strong`).",
@@ -7667,7 +7667,7 @@
       }
     },
     "type.body.sm.strong-italic": {
-      "$description": "Running text / default UI copy (italic variant).",
+      "$description": "body sm strong italic — 14px Inter, normal line-height, strong weight, italic, normal tracking",
       "meaning": "Type style — body sm strong italic (14px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
       "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
@@ -7687,7 +7687,7 @@
       }
     },
     "type.body.sm.strong-italic-link": {
-      "$description": "Running text / default UI copy (italic variant) (underlined link variant).",
+      "$description": "body sm strong italic link — 14px Inter, normal line-height, strong weight, italic, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — body sm strong italic link (14px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.sm.strong-italic`).",
@@ -7702,7 +7702,7 @@
       }
     },
     "type.body.md.default": {
-      "$description": "Running text / default UI copy.",
+      "$description": "body md default — 16px Inter, normal line-height, default weight, normal tracking",
       "meaning": "Type style — body md default (16px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
       "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
@@ -7721,7 +7721,7 @@
       }
     },
     "type.body.md.default-link": {
-      "$description": "Running text / default UI copy (underlined link variant).",
+      "$description": "body md default link — 16px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — body md default link (16px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.md.default`).",
@@ -7735,7 +7735,7 @@
       }
     },
     "type.body.md.default-italic": {
-      "$description": "Running text / default UI copy (italic variant).",
+      "$description": "body md default italic — 16px Inter, normal line-height, default weight, italic, normal tracking",
       "meaning": "Type style — body md default italic (16px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
       "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
@@ -7755,7 +7755,7 @@
       }
     },
     "type.body.md.default-italic-link": {
-      "$description": "Running text / default UI copy (italic variant) (underlined link variant).",
+      "$description": "body md default italic link — 16px Inter, normal line-height, default weight, italic, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — body md default italic link (16px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.md.default-italic`).",
@@ -7770,7 +7770,7 @@
       }
     },
     "type.body.md.strong": {
-      "$description": "Running text / default UI copy.",
+      "$description": "body md strong — 16px Inter, normal line-height, strong weight, normal tracking",
       "meaning": "Type style — body md strong (16px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
       "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
@@ -7789,7 +7789,7 @@
       }
     },
     "type.body.md.strong-link": {
-      "$description": "Running text / default UI copy (underlined link variant).",
+      "$description": "body md strong link — 16px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — body md strong link (16px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.md.strong`).",
@@ -7803,7 +7803,7 @@
       }
     },
     "type.body.md.strong-italic": {
-      "$description": "Running text / default UI copy (italic variant).",
+      "$description": "body md strong italic — 16px Inter, normal line-height, strong weight, italic, normal tracking",
       "meaning": "Type style — body md strong italic (16px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
       "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
@@ -7823,7 +7823,7 @@
       }
     },
     "type.body.md.strong-italic-link": {
-      "$description": "Running text / default UI copy (italic variant) (underlined link variant).",
+      "$description": "body md strong italic link — 16px Inter, normal line-height, strong weight, italic, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — body md strong italic link (16px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.md.strong-italic`).",
@@ -7838,7 +7838,7 @@
       }
     },
     "type.body.lg.default": {
-      "$description": "Running text / default UI copy.",
+      "$description": "body lg default — 18px Inter, normal line-height, default weight, normal tracking",
       "meaning": "Type style — body lg default (18px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
       "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
@@ -7857,7 +7857,7 @@
       }
     },
     "type.body.lg.default-link": {
-      "$description": "Running text / default UI copy (underlined link variant).",
+      "$description": "body lg default link — 18px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — body lg default link (18px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.lg.default`).",
@@ -7871,7 +7871,7 @@
       }
     },
     "type.body.lg.default-italic": {
-      "$description": "Running text / default UI copy (italic variant).",
+      "$description": "body lg default italic — 18px Inter, normal line-height, default weight, italic, normal tracking",
       "meaning": "Type style — body lg default italic (18px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
       "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
@@ -7891,7 +7891,7 @@
       }
     },
     "type.body.lg.default-italic-link": {
-      "$description": "Running text / default UI copy (italic variant) (underlined link variant).",
+      "$description": "body lg default italic link — 18px Inter, normal line-height, default weight, italic, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — body lg default italic link (18px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.lg.default-italic`).",
@@ -7906,7 +7906,7 @@
       }
     },
     "type.body.lg.strong": {
-      "$description": "Running text / default UI copy.",
+      "$description": "body lg strong — 18px Inter, normal line-height, strong weight, normal tracking",
       "meaning": "Type style — body lg strong (18px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
       "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
@@ -7925,7 +7925,7 @@
       }
     },
     "type.body.lg.strong-link": {
-      "$description": "Running text / default UI copy (underlined link variant).",
+      "$description": "body lg strong link — 18px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — body lg strong link (18px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.lg.strong`).",
@@ -7939,7 +7939,7 @@
       }
     },
     "type.body.lg.strong-italic": {
-      "$description": "Running text / default UI copy (italic variant).",
+      "$description": "body lg strong italic — 18px Inter, normal line-height, strong weight, italic, normal tracking",
       "meaning": "Type style — body lg strong italic (18px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
       "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
@@ -7959,7 +7959,7 @@
       }
     },
     "type.body.lg.strong-italic-link": {
-      "$description": "Running text / default UI copy (italic variant) (underlined link variant).",
+      "$description": "body lg strong italic link — 18px Inter, normal line-height, strong weight, italic, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — body lg strong italic link (18px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.lg.strong-italic`).",
@@ -7974,7 +7974,7 @@
       }
     },
     "type.label.sm.default": {
-      "$description": "UI label type — buttons, form labels, tabs, chips.",
+      "$description": "label sm default — 12px Inter, snug line-height, default weight, normal tracking",
       "meaning": "Type style — label sm default (12px, label face)",
       "when_to_use": "Control and form labels, button text, tabs, chips, badges.",
       "avoid_when": "Do not use for running text (use body).",
@@ -7987,7 +7987,7 @@
       }
     },
     "type.label.sm.default-link": {
-      "$description": "UI label type — buttons, form labels, tabs, chips (underlined link variant).",
+      "$description": "label sm default link — 12px Inter, snug line-height, default weight, normal tracking, underlined (a text button's label)",
       "meaning": "Type style — label sm default link (12px, label face)",
       "when_to_use": "The label of a button at the text appearance, at rest and in every state. The underline is fixed.",
       "avoid_when": "Do not use for a filled or outline button's label (use `type.label.sm.default`).",
@@ -8001,7 +8001,7 @@
       }
     },
     "type.label.sm.emphasis": {
-      "$description": "UI label type — buttons, form labels, tabs, chips.",
+      "$description": "label sm emphasis — 12px Inter, snug line-height, emphasis weight, normal tracking",
       "meaning": "Type style — label sm emphasis (12px, label face)",
       "when_to_use": "Control and form labels, button text, tabs, chips, badges.",
       "avoid_when": "Do not use for running text (use body).",
@@ -8014,7 +8014,7 @@
       }
     },
     "type.label.sm.emphasis-link": {
-      "$description": "UI label type — buttons, form labels, tabs, chips (underlined link variant).",
+      "$description": "label sm emphasis link — 12px Inter, snug line-height, emphasis weight, normal tracking, underlined (a text button's label)",
       "meaning": "Type style — label sm emphasis link (12px, label face)",
       "when_to_use": "The label of a button at the text appearance, at rest and in every state. The underline is fixed.",
       "avoid_when": "Do not use for a filled or outline button's label (use `type.label.sm.emphasis`).",
@@ -8028,7 +8028,7 @@
       }
     },
     "type.label.md.default": {
-      "$description": "UI label type — buttons, form labels, tabs, chips.",
+      "$description": "label md default — 14px Inter, snug line-height, default weight, normal tracking",
       "meaning": "Type style — label md default (14px, label face)",
       "when_to_use": "Control and form labels, button text, tabs, chips, badges.",
       "avoid_when": "Do not use for running text (use body).",
@@ -8041,7 +8041,7 @@
       }
     },
     "type.label.md.default-link": {
-      "$description": "UI label type — buttons, form labels, tabs, chips (underlined link variant).",
+      "$description": "label md default link — 14px Inter, snug line-height, default weight, normal tracking, underlined (a text button's label)",
       "meaning": "Type style — label md default link (14px, label face)",
       "when_to_use": "The label of a button at the text appearance, at rest and in every state. The underline is fixed.",
       "avoid_when": "Do not use for a filled or outline button's label (use `type.label.md.default`).",
@@ -8055,7 +8055,7 @@
       }
     },
     "type.label.md.emphasis": {
-      "$description": "UI label type — buttons, form labels, tabs, chips.",
+      "$description": "label md emphasis — 14px Inter, snug line-height, emphasis weight, normal tracking",
       "meaning": "Type style — label md emphasis (14px, label face)",
       "when_to_use": "Control and form labels, button text, tabs, chips, badges.",
       "avoid_when": "Do not use for running text (use body).",
@@ -8068,7 +8068,7 @@
       }
     },
     "type.label.md.emphasis-link": {
-      "$description": "UI label type — buttons, form labels, tabs, chips (underlined link variant).",
+      "$description": "label md emphasis link — 14px Inter, snug line-height, emphasis weight, normal tracking, underlined (a text button's label)",
       "meaning": "Type style — label md emphasis link (14px, label face)",
       "when_to_use": "The label of a button at the text appearance, at rest and in every state. The underline is fixed.",
       "avoid_when": "Do not use for a filled or outline button's label (use `type.label.md.emphasis`).",
@@ -8082,7 +8082,7 @@
       }
     },
     "type.label.lg.default": {
-      "$description": "UI label type — buttons, form labels, tabs, chips.",
+      "$description": "label lg default — 18px Inter, snug line-height, default weight, normal tracking",
       "meaning": "Type style — label lg default (18px, label face)",
       "when_to_use": "Control and form labels, button text, tabs, chips, badges.",
       "avoid_when": "Do not use for running text (use body).",
@@ -8095,7 +8095,7 @@
       }
     },
     "type.label.lg.default-link": {
-      "$description": "UI label type — buttons, form labels, tabs, chips (underlined link variant).",
+      "$description": "label lg default link — 18px Inter, snug line-height, default weight, normal tracking, underlined (a text button's label)",
       "meaning": "Type style — label lg default link (18px, label face)",
       "when_to_use": "The label of a button at the text appearance, at rest and in every state. The underline is fixed.",
       "avoid_when": "Do not use for a filled or outline button's label (use `type.label.lg.default`).",
@@ -8109,7 +8109,7 @@
       }
     },
     "type.label.lg.emphasis": {
-      "$description": "UI label type — buttons, form labels, tabs, chips.",
+      "$description": "label lg emphasis — 18px Inter, snug line-height, emphasis weight, normal tracking",
       "meaning": "Type style — label lg emphasis (18px, label face)",
       "when_to_use": "Control and form labels, button text, tabs, chips, badges.",
       "avoid_when": "Do not use for running text (use body).",
@@ -8122,7 +8122,7 @@
       }
     },
     "type.label.lg.emphasis-link": {
-      "$description": "UI label type — buttons, form labels, tabs, chips (underlined link variant).",
+      "$description": "label lg emphasis link — 18px Inter, snug line-height, emphasis weight, normal tracking, underlined (a text button's label)",
       "meaning": "Type style — label lg emphasis link (18px, label face)",
       "when_to_use": "The label of a button at the text appearance, at rest and in every state. The underline is fixed.",
       "avoid_when": "Do not use for a filled or outline button's label (use `type.label.lg.emphasis`).",
@@ -8136,7 +8136,7 @@
       }
     },
     "type.caption.md.default": {
-      "$description": "Caption / secondary small text.",
+      "$description": "caption md default — 11px Inter, cozy line-height, default weight, normal tracking",
       "meaning": "Type style — caption md default (11px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
       "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
@@ -8155,7 +8155,7 @@
       }
     },
     "type.caption.md.default-link": {
-      "$description": "Caption / secondary small text (underlined link variant).",
+      "$description": "caption md default link — 11px Inter, cozy line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — caption md default link (11px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.caption.md.default`).",
@@ -8169,7 +8169,7 @@
       }
     },
     "type.caption.md.strong": {
-      "$description": "Caption / secondary small text.",
+      "$description": "caption md strong — 11px Inter, cozy line-height, strong weight, normal tracking",
       "meaning": "Type style — caption md strong (11px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
       "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
@@ -8188,7 +8188,7 @@
       }
     },
     "type.caption.md.strong-link": {
-      "$description": "Caption / secondary small text (underlined link variant).",
+      "$description": "caption md strong link — 11px Inter, cozy line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — caption md strong link (11px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.caption.md.strong`).",
@@ -8202,7 +8202,7 @@
       }
     },
     "type.caption.lg.default": {
-      "$description": "Caption / secondary small text.",
+      "$description": "caption lg default — 12px Inter, cozy line-height, default weight, normal tracking",
       "meaning": "Type style — caption lg default (12px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
       "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
@@ -8221,7 +8221,7 @@
       }
     },
     "type.caption.lg.default-link": {
-      "$description": "Caption / secondary small text (underlined link variant).",
+      "$description": "caption lg default link — 12px Inter, cozy line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — caption lg default link (12px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.caption.lg.default`).",
@@ -8235,7 +8235,7 @@
       }
     },
     "type.caption.lg.strong": {
-      "$description": "Caption / secondary small text.",
+      "$description": "caption lg strong — 12px Inter, cozy line-height, strong weight, normal tracking",
       "meaning": "Type style — caption lg strong (12px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
       "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
@@ -8254,7 +8254,7 @@
       }
     },
     "type.caption.lg.strong-link": {
-      "$description": "Caption / secondary small text (underlined link variant).",
+      "$description": "caption lg strong link — 12px Inter, cozy line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — caption lg strong link (12px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.caption.lg.strong`).",
@@ -8268,7 +8268,7 @@
       }
     },
     "type.eyebrow.sm.emphasis": {
-      "$description": "Eyebrow / kicker — small uppercase label above a heading.",
+      "$description": "eyebrow sm emphasis — 12px Inter, snug line-height, emphasis weight, wider tracking, uppercase",
       "meaning": "Type style — eyebrow sm emphasis (12px, eyebrow face, uppercase)",
       "when_to_use": "A short label sitting above a title or hero (a \"kicker\").",
       "avoid_when": "Do not use as the heading itself (use title) or for body copy.",
@@ -8282,7 +8282,7 @@
       }
     },
     "type.eyebrow.md.emphasis": {
-      "$description": "Eyebrow / kicker — small uppercase label above a heading.",
+      "$description": "eyebrow md emphasis — 14px Inter, snug line-height, emphasis weight, wider tracking, uppercase",
       "meaning": "Type style — eyebrow md emphasis (14px, eyebrow face, uppercase)",
       "when_to_use": "A short label sitting above a title or hero (a \"kicker\").",
       "avoid_when": "Do not use as the heading itself (use title) or for body copy.",
@@ -8296,7 +8296,7 @@
       }
     },
     "type.eyebrow.lg.emphasis": {
-      "$description": "Eyebrow / kicker — small uppercase label above a heading.",
+      "$description": "eyebrow lg emphasis — 18→20px fluid Inter, snug line-height, emphasis weight, wider tracking, uppercase",
       "meaning": "Type style — eyebrow lg emphasis (20px, eyebrow face, uppercase)",
       "when_to_use": "A short label sitting above a title or hero (a \"kicker\").",
       "avoid_when": "Do not use as the heading itself (use title) or for body copy.",
@@ -8310,7 +8310,7 @@
       }
     },
     "type.code.inline.default": {
-      "$description": "Monospace / code type.",
+      "$description": "code inline default — 14px JetBrains Mono, normal line-height, default weight, normal tracking",
       "meaning": "Type style — code inline default (14px, code face)",
       "when_to_use": "Inline code, code blocks, and column-aligned values.",
       "avoid_when": "Do not use for prose (use body).",
@@ -8323,14 +8323,14 @@
       }
     },
     "core.font.weight-role.subtle": {
-      "$description": "The subtle font-weight role.",
+      "$description": "weight role 'subtle' → 300 — function-named, so it survives a brand swap (the brand maps the numeric; a 2-weight brand collapses roles)",
       "meaning": "Function-named weight → 300 — the name holds across brands (the role is the contract; each brand maps the numeric).",
       "when_to_use": "Reference `core.font.weight-role.subtle` (not the numeric) so a brand weight re-map reflows every consumer at once.",
       "avoid_when": "Do not hard-code the numeric (300); reference the role.",
       "resolves_to": "{pds3.core.font.weight.300}"
     },
     "core.font.weight-role.default": {
-      "$description": "The default font-weight role.",
+      "$description": "weight role 'default' → 400 — function-named, so it survives a brand swap (the brand maps the numeric; a 2-weight brand collapses roles)",
       "meaning": "Function-named weight → 400 — the name holds across brands (the role is the contract; each brand maps the numeric).",
       "when_to_use": "Reference `core.font.weight-role.default` (not the numeric) so a brand weight re-map reflows every consumer at once.",
       "avoid_when": "Do not hard-code the numeric (400); reference the role.",
@@ -8366,7 +8366,7 @@
       ]
     },
     "core.font.weight-role.emphasis": {
-      "$description": "The emphasis font-weight role.",
+      "$description": "weight role 'emphasis' → 500 — function-named, so it survives a brand swap (the brand maps the numeric; a 2-weight brand collapses roles)",
       "meaning": "Function-named weight → 500 — the name holds across brands (the role is the contract; each brand maps the numeric).",
       "when_to_use": "Reference `core.font.weight-role.emphasis` (not the numeric) so a brand weight re-map reflows every consumer at once.",
       "avoid_when": "Do not hard-code the numeric (500); reference the role.",
@@ -8396,7 +8396,7 @@
       ]
     },
     "core.font.weight-role.strong": {
-      "$description": "The strong font-weight role.",
+      "$description": "weight role 'strong' → 600 — function-named, so it survives a brand swap (the brand maps the numeric; a 2-weight brand collapses roles)",
       "meaning": "Function-named weight → 600 — the name holds across brands (the role is the contract; each brand maps the numeric).",
       "when_to_use": "Reference `core.font.weight-role.strong` (not the numeric) so a brand weight re-map reflows every consumer at once.",
       "avoid_when": "Do not hard-code the numeric (600); reference the role.",
@@ -8437,7 +8437,7 @@
       ]
     },
     "core.font.weight-role.max": {
-      "$description": "The max font-weight role.",
+      "$description": "weight role 'max' → 900 — function-named, so it survives a brand swap (the brand maps the numeric; a 2-weight brand collapses roles)",
       "meaning": "Function-named weight → 900 — the name holds across brands (the role is the contract; each brand maps the numeric).",
       "when_to_use": "Reference `core.font.weight-role.max` (not the numeric) so a brand weight re-map reflows every consumer at once.",
       "avoid_when": "Do not hard-code the numeric (900); reference the role.",
@@ -8987,25 +8987,25 @@
     "focus.ring.width": {
       "$description": "focus ring width — 2px (meets WCAG 2.4.13, AAA focus appearance)",
       "meaning": "Focus-ring geometry — width",
-      "when_to_use": "The keyboard-focus ring drawn around a focused element. Its color is `border.focus`.",
+      "when_to_use": "The keyboard-focus ring drawn around a focused element. Its color is `color.border.focus`.",
       "resolves_to": "{pds3.core.dimension.2}"
     },
     "focus.ring.offset": {
       "$description": "focus ring offset — 2px (separates ring from the element edge)",
       "meaning": "Focus-ring geometry — offset",
-      "when_to_use": "The keyboard-focus ring drawn around a focused element. Its color is `border.focus`.",
+      "when_to_use": "The keyboard-focus ring drawn around a focused element. Its color is `color.border.focus`.",
       "resolves_to": "{pds3.core.dimension.2}"
     },
     "focus.ring.offset-field": {
       "$description": "focus ring offset, form fields — 0px (the ring sits on the field edge, so it does not collide with adjacent fields)",
       "meaning": "Focus-ring geometry — offset-field",
-      "when_to_use": "The keyboard-focus ring drawn around a focused element. Its color is `border.focus`.",
+      "when_to_use": "The keyboard-focus ring drawn around a focused element. Its color is `color.border.focus`.",
       "resolves_to": "{pds3.core.dimension.0}"
     },
     "focus.ring.style": {
       "$description": "focus ring style — solid (dashed/dotted fail at small sizes)",
       "meaning": "Focus-ring geometry — style",
-      "when_to_use": "The keyboard-focus ring drawn around a focused element. Its color is `border.focus`.",
+      "when_to_use": "The keyboard-focus ring drawn around a focused element. Its color is `color.border.focus`.",
       "resolves_to": "solid"
     },
     "size.xs.height": {
@@ -9385,7 +9385,7 @@
   ],
   "gradient": {
     "gradient.brand": {
-      "$description": "Brand gradient — linear 135°, 2 stops.",
+      "$description": "gradient brand — linear 135°, 2 stops, oklch interpolation — brand gradient (opt-in)",
       "meaning": "Decorative linear gradient (opt-in); stop colors alias the ramp, oklch interpolation.",
       "when_to_use": "Brand / marketing surfaces, hero backgrounds, decorative fills.",
       "avoid_when": "Do not set black body text directly on it — it drops to 2.68:1 at the worst sampled point, below 4.5:1. White text clears 5.36:1 at every sampled point; use white ink, or a scrim or solid container for black.",
@@ -9399,7 +9399,7 @@
       }
     },
     "gradient.glow": {
-      "$description": "Brand gradient — radial circle, 2 stops.",
+      "$description": "gradient glow — radial (circle), 2 stops, oklch interpolation — brand gradient (opt-in)",
       "meaning": "Decorative radial gradient (opt-in); stop colors alias the ramp, oklch interpolation.",
       "when_to_use": "Brand / marketing surfaces, hero backgrounds, decorative fills.",
       "avoid_when": "Do not set body text directly on it — white text drops to 3.61:1 and black text to 1.88:1 at the worst sampled point, below 4.5:1. Use a scrim or a solid container.",
