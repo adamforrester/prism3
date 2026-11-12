@@ -1827,6 +1827,9 @@
           }
         ],
         "codeOnly": {
+          "axes": [
+            "style"
+          ],
           "states": [
             "pending",
             "empty"

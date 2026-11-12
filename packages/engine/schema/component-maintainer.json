@@ -2641,6 +2641,11 @@
         {
           "class": "not-projected",
           "disposition": "LOWERED",
+          "description": "style — not projected: the field's edge is the brand's Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. In code the brand sets it once, every field takes it, and the field sets are built in that style (#2695)."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED",
           "description": "pending — not projected: its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, text-field's posture. In code async options are loading: a spinner replaces the chevron and the control sets aria-busy. It stays in `states` and is held out of the projected `stateAxis`, leaving size(3) × status(4) × state(7) = 84 members."
         },
         {
