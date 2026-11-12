@@ -83,7 +83,7 @@ Open **Update file** again to check afresh. <!-- src: apps/studio/src/state/upda
 
 One undo reverts the whole update. If a run stops partway, the finished sets are current and the rest are still due; running Update file again finishes them. <!-- src: apps/plugin/src/update-apply.ts:36-40#04be1a16 -->
 
-To bring variants Prism3 did not build under its updates, an agent can claim them once with `adopt-members`, through the [agent link](agent-link.md). That command writes plugin data only, no design changes, and the panel has no control for it. <!-- src: apps/plugin/src/agent-protocol.ts:41 -->
+To bring variants Prism3 did not build under its updates, an agent can claim them once with `adopt-members`, through the [agent link](agent-link.md). That command writes plugin data only, no design changes, and the panel has no control for it. <!-- src: apps/plugin/src/agent-protocol.ts:42 -->
 
 ## Remove what the brand no longer uses
 
@@ -103,7 +103,7 @@ What Clean up can delete: <!-- src: apps/plugin/src/prune-figma.ts:18-32#6e2fac9
 - Text, effect, paint and grid styles the brand no longer emits, when they sit in a style group the brand still uses. A style in a group of your own stays.
 - Canvas labels beside a component set that is no longer in the file.
 
-The delete works out the list again from a fresh read of the file before it deletes anything. <!-- src: apps/plugin/src/main.ts:581-582#88108fd2 -->
+The delete works out the list again from a fresh read of the file before it deletes anything. <!-- src: apps/plugin/src/main.ts:582-583#88108fd2 -->
 
 After a style-guide run that found tables Prism3 no longer draws, **Clean up** lists them too: "2 style-guide tables the generator no longer draws." Choose **Remove *N* tables** to delete them. <!-- src: apps/studio/src/state/update-file.ts:403-404 -->
 
@@ -122,8 +122,8 @@ Removing a mode removes its values from every variable in the collection, so mov
 | You see | Why | What to do |
 |---|---|---|
 | `✗ N conflicts`, "Nothing was written." | The file holds a same-named collection or style that Prism3 did not create, or a variable of another type. <!-- src: apps/plugin/src/preflight.ts:237 --> | Rename or remove the named items, then run Update file again. |
-| "is already running. Try again when it finishes." | The same write is already running, from the panel or an agent. <!-- src: apps/plugin/src/run-guard.ts:39-43 --> | Wait for it to finish. |
-| "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." | The brand saved in this file didn't open. The dialog's **Update file** button, Clean up's delete and every other write stay off. <!-- src: apps/studio/src/main.ts:1830 --> | Load the brand again, for example from its `design.md`. |
+| "is already running. Try again when it finishes." | The same write is already running, from the panel or an agent. <!-- src: apps/plugin/src/run-guard.ts:41-45 --> | Wait for it to finish. |
+| "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." | The brand saved in this file didn't open. The dialog's **Update file** button, Clean up's delete and every other write stay off. <!-- src: apps/studio/src/main.ts:1833 --> | Load the brand again, for example from its `design.md`. |
 | `✗ update refused`, "the file changed since the check" | Something in the file moved between the check and the update. <!-- src: apps/plugin/src/update-apply.ts:895 --> | Open Update file again and read the new check. |
 | "the named version could not be saved" | Figma refused to save the safety version, so the update wrote nothing. <!-- src: apps/plugin/src/update-apply.ts:971 --> | Try again. Nothing in the file changed. |
-| `nothing built — set '…' on this page varies by different axes and was left as it is` | A set with that name already exists on the page, built with different options. <!-- src: apps/plugin/src/main.ts:1037 --> | Rename or move the existing set. |
+| `nothing built — set '…' on this page varies by different axes and was left as it is` | A set with that name already exists on the page, built with different options. <!-- src: apps/plugin/src/main.ts:1038 --> | Rename or move the existing set. |

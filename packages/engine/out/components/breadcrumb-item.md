@@ -21,7 +21,7 @@ Shown on the default member: kind `ancestor`, separator `chevron`, size `medium`
 
 1. **Container** — The item: a row that hugs its link, text or button and the separator after it, with no padding and no fill.
 2. **Crumb** — An ancestor: a Link, inline and default weight, underlined at every state, at the item's size. Its state is set on the item.
-3. **Current** — The current page: plain text in the primary text color, not a link.
+3. **Label** — The current page: plain text in the primary text color, not a link.
 4. **Overflow** — The collapsed steps: a FlushIconButton.Neutral, flush and small, showing three dots. Its state is set on the item.
 5. **Separator** — The separator, chevron look: a 16px chevron pointing toward the current page, in the secondary icon color. Absent after the current page.
 6. **Separator slash** — The separator, slash look: a 16px slash in the secondary icon color. Absent after the current page.
@@ -112,7 +112,7 @@ Generated from the plan that builds the design-file component: 10 members. Value
 | `container/crumb` | instance | kind=ancestor |
 | `container/separator` | instance | 4 of 10 members |
 | `container/separatorSlash` | instance | separator=slash |
-| `container/current` | text | kind=current |
+| `container/label` | text | kind=current |
 | `container/overflow` | instance | kind=overflow |
 
 ### Spacing and size
@@ -139,8 +139,8 @@ Keyed by `size`.
 
 | Members | Part | Text style |
 | --- | --- | --- |
-| size=medium | `container/current` | `type.body.md.default` |
-| size=small | `container/current` | `type.body.sm.default` |
+| size=medium | `container/label` | `type.body.md.default` |
+| size=small | `container/label` | `type.body.sm.default` |
 
 ### Color
 
@@ -150,7 +150,7 @@ Keyed by `kind`, `separator`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/current` | — | — | `color.text.primary` | — |
+| `container/label` | — | — | `color.text.primary` | — |
 
 ### Nesting and properties
 
