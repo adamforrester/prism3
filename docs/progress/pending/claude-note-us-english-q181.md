@@ -14,6 +14,9 @@ pending notes once, as an approved exception to "never edit another PR's note".
   mask already exempts; and `claude-3186-centring`, a note about the lint that quoted its en-GB test words,
   reworded to name the en-US spellings instead. Adding those words to `NOT_EN_GB` would have hidden the real
   `centring` above, so the note was edited rather than the allow-set widened.
+  Q181 A named only the two `colour` notes. The owner extended the exception to all five notes the upstream
+  prose gate flags (Q190 A, 2026-11-12), so the #3570 fold re-cut is clean and no allow-set entry is needed.
+  The three extra entries in `APPROVED_NOTE_CORRECTIONS` name both decisions.
 - `lint-emission-version.ts` ONE WRITER fails any edit to a pending note by design. It now carries
   `APPROVED_NOTE_CORRECTIONS`, which pins each correction by its blob at the base and at HEAD. Only that exact
   edit passes, and each entry is spent once `main` carries the corrected blob.
