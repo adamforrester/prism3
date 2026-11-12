@@ -50018,7 +50018,7 @@
           "default": null,
           "$extensions": {
             "com.prism3": {
-              "type": "string",
+              "type": "string | node",
               "required": true,
               "description": "What is counted, such as \"Quantity\". The accessible name of the value, always present in code; shown above the counter only with showLabel."
             }
@@ -50129,12 +50129,12 @@
             }
           }
         },
-        "message": {
+        "helpText": {
           "type": "string",
           "default": null,
           "$extensions": {
             "com.prism3": {
-              "type": "string",
+              "type": "string | node",
               "required": false,
               "description": "Text below the counter, such as the reason for a limit (\"Limit 5 per order\"). Added to the value's description."
             }
@@ -50147,7 +50147,7 @@
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Shows the message below the counter. Off by default."
+              "description": "Shows the help text below the counter. Off by default."
             }
           }
         },
@@ -59249,7 +59249,7 @@
           "default": null,
           "$extensions": {
             "com.prism3": {
-              "type": "string",
+              "type": "string | node",
               "required": true,
               "description": "Names the dimension being set, such as \"Price\" or \"Volume\". Shown above the track, and the accessible name of a single thumb."
             }
@@ -59455,9 +59455,20 @@
           "default": null,
           "$extensions": {
             "com.prism3": {
-              "type": "string",
+              "type": "string | node",
               "required": false,
               "description": "Guidance under the slider, in a field message."
+            }
+          }
+        },
+        "showMessage": {
+          "type": "boolean",
+          "default": false,
+          "$extensions": {
+            "com.prism3": {
+              "type": "boolean",
+              "required": false,
+              "description": "Whether the field message is shown under the slider. Off by default; turn it on to show the help or error text. Never hides a message the slider needs: turn it on wherever there is help text or an error."
             }
           }
         },
@@ -60483,12 +60494,12 @@
             "small",
             "medium",
             "large",
-            "xlarge"
+            "x-large"
           ],
           "default": "medium",
           "$extensions": {
             "com.prism3": {
-              "type": "enum: 'small' | 'medium' | 'large' | 'xlarge'",
+              "type": "enum: 'small' | 'medium' | 'large' | 'x-large'",
               "required": false,
               "description": "The cell size and its character size. Set by the code input."
             }
@@ -60733,7 +60744,7 @@
         },
         {
           "configuration": {
-            "size": "xlarge"
+            "size": "x-large"
           },
           "elements": {
             "container": {
@@ -61125,14 +61136,14 @@
             "small",
             "medium",
             "large",
-            "xlarge"
+            "x-large"
           ],
           "default": "medium",
           "$extensions": {
             "com.prism3": {
-              "type": "enum: 'small' | 'medium' | 'large' | 'xlarge'",
+              "type": "enum: 'small' | 'medium' | 'large' | 'x-large'",
               "required": false,
-              "description": "The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, xlarge 68×72 with 40px, meant for four-character codes."
+              "description": "The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, x-large 68×72 with 40px, meant for four-character codes."
             }
           }
         },
@@ -61334,7 +61345,7 @@
         },
         {
           "configuration": {
-            "size": "xlarge"
+            "size": "x-large"
           },
           "elements": {
             "container": {
