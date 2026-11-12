@@ -76,6 +76,7 @@ Use for a payment card's number in a checkout or a saved-card form. The field ne
 - 3.2.2 On Input (no auto-advance when the number is complete)
 - 3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion
 - 1.4.11 Non-text Contrast (TextField's field boundary)
+- 2.5.8 Target Size (the field)
 - 2.4.13 Focus Appearance (intent)
 
 ### Motion
@@ -96,7 +97,7 @@ Label = "Card number", sentence case, no trailing colon. Placeholder = a format 
 
 - **Built from:** `field-label`, `field-message`
 - **Instead, consider:** `text-field`
-- **Often used with:** `text-field`, `provider-logo`, `button`, `wallet-button`
+- **Often used with:** `provider-logo`, `button`, `wallet-button`
 - **Replaces:**
   - a card number in a plain text input with no card type
   - a manual card-type select
