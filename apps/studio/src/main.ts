@@ -1516,7 +1516,8 @@ const exportView = (): ExportView => {
     // Said out loud rather than left as an empty area: silence reads as a loading state or a bug.
     none: settings.length ? null : exportArtifact === 'component-specs' ? SPECS_NO_SETTINGS : 'Nothing to set — the brief is written one way.',
     right,
-    go: { text: exportArtifact === 'design-md' ? '↓ Download brief' : exportArtifact === 'component-specs' ? '↓ Download component specs' : '↓ Download tokens', off },
+    // #3553 Q-UI8 A: the word alone; the bar draws the vendored download icon before it.
+    go: { text: exportArtifact === 'design-md' ? 'Download brief' : exportArtifact === 'component-specs' ? 'Download component specs' : 'Download tokens', off },
     // The Figma-file path (#677) is absent rather than disabled: `availableImportSlots()` narrows to the copy-bearing
     // variant, so there is no string to render for a path whose behavior is undecided.
     imports: availableImportSlots().map((slot) => ({ label: slot.label, desc: slot.desc })),

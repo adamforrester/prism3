@@ -12,7 +12,7 @@
 
 An icon-only button made to sit inside another component, such as the minus and plus of a counter or the close on a card. It has two shapes. Flush has no padding, no fill and no border: the glyph is the whole visible control, so it lines up with the content edge around it, and hover and press change the glyph color only. Round draws a circle around the glyph with a light edge, and hover and press add a soft fill; its diameter matches the height of a counter at the same size. The flush box is the glyph, 20 or 24px, so in code the hit area extends past it to at least 44×44px. Because there is no visible text, an accessible name is required.
 
-- **Purpose:** Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.
+- **Purpose:** Trigger an action with no brand emphasis inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.
 - **Use when:** The minus and plus of a counter, a card's close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.
 - **Avoid when:** The action carries the brand (use FlushIconButton) or deletes something (use FlushIconButton.Destructive). It stands on its own in a toolbar or a header (use IconButton.Neutral, which has a visible box and a hover wash). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.
 
@@ -34,7 +34,7 @@ Shown on the default member: shape `flush`, size `medium`, surface `default`.
 
 ### States
 
-`rest`, `hover`, `pressed`, `focus-visible`, `disabled`
+`rest`, `hover`, `pressed`, `focus-visible`, `disabled`, `inactive`
 
 ## Usage guidelines
 
@@ -58,7 +58,7 @@ Use inside another component where the icon is itself the control: the minus and
 - **Focus:** An offset :focus-visible ring around the glyph square, or around the circle on the round shape.
 - **Screen readers:** button (native \<button>)
 
-  aria-label is the accessible name (required), a verb naming the action. Inside a host that disables it at a limit, set aria-disabled="true" so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips.
+  aria-label is the accessible name (required), a verb naming the action. Inside a host that blocks it at a limit, set isInactive, which carries aria-disabled="true", so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips.
 
 ### WCAG
 
@@ -97,12 +97,13 @@ The accessible name is a verb naming the action ("Close", "Increase quantity"), 
 | --- | --- | --- | --- | --- |
 | `icon` | slot | — | yes | The single icon. Rendered aria-hidden: the button owns the name. |
 | `aria-label` | string | — | yes | Required accessible name, a verb naming the action ("Close", "Increase quantity"). Required at the type level, since there is no visible text. |
-| `onClick` | function | — | no | Action handler. Not called while disabled. |
+| `onClick` | function | — | no | Action handler. Not called while disabled or inactive. |
 | `type` | enum: 'button' \| 'submit' \| 'reset' | `button` | no | Defaults to 'button', as Button does. The platform default is 'submit', so a flush icon button inside a form would submit it. |
 | `shape` | enum: 'flush' \| 'round' | `flush` | no | flush is the bare glyph, with no padding, fill or border, for a glyph that lines up with the content edge. round is a circle around the glyph with a light edge and a soft fill on hover and press, for a counter whose buttons stand on their own. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The glyph size: 20px at small and medium, 24px at large. A flush box is the glyph, with no padding. A round circle is 36, 44 or 56px across. The hit area in code is at least 44×44px at every size. |
 | `surface` | enum: 'default' \| 'inverse' | `default` | no | The ground the button sits on, following IconButton. default for a normal page; inverse for a dark or brand-filled card or band, where the glyph binds its color.inverse counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks default, and the designer sets inverse on the instance, the same answer the nested focus ring gives. |
-| `disabled` | boolean | `false` | no | Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree. |
+| `isInactive` | boolean | `false` | no | Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus. |
+| `disabled` | boolean | `false` | no | Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree. |
 
 ## Specs
 
@@ -115,6 +116,8 @@ Generated from the plan that builds the design-file component: 60 members. Value
 | `container` | frame | every member |
 | `container/icon` | swap | every member |
 | `container/focusRing` | instance | state=focus-visible |
+
+Code-only states, with no design-file member: `inactive`.
 
 ### Spacing and size
 

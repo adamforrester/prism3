@@ -72,7 +72,9 @@
  * baseline row's `doc` to a file that does not carry the heading · delete a heading that is in the
  * baseline · add a new `Decided (...)` heading with no baseline entry · point a baseline row at a
  * `section` number the live heading's prefix disagrees with · narrow the heading regex (fails as
- * SCOPE NOT REPRESENTED against `KNOWN_DECISION_DOCS`, so a dead detector cannot report a clean zero).
+ * SCOPE NOT REPRESENTED against the stated `REQUIRED_DECISION_DOCS`, so a dead detector cannot report a clean
+ * zero) · delete one doc's baseline rows and retitle its heading (fails as SCOPE NOT REPRESENTED and REQUIRED
+ * DOC NOT INDEXED, #1162; before, the floor was read off the baseline and this reported clean).
  * Negative control: appending a heading plus its baseline row via `--accept` passes.
  *
  * SCOPE — every tracked `docs/**\/*.md` file, and every untracked one git does not ignore (#2358),
@@ -80,8 +82,8 @@
  * the same log before `fold.ts` moves them into it; an index row pointing at a fragment would dangle
  * the moment the fold deleted it) and
  * `docs/42-current-decisions.md` (the index's own convention prose). Representation is asserted, not
- * counted: every doc the baseline currently cites must still be found carrying at least one `Decided`
- * heading by this run, so a regex that stops matching fails instead of reporting a clean zero
+ * counted: every doc in the stated `REQUIRED_DECISION_DOCS` (#1162, never read off the baseline) must be
+ * cited in the baseline and found carrying at least one `Decided` heading by this run, so a regex that stops matching fails instead of reporting a clean zero
  * (`docs/34` shape 9's cheap tell).
  */
 
@@ -333,6 +335,34 @@ for (const d of baseline.decisions) {
 const KNOWN_DECISION_DOCS = [...new Set(baseline.decisions.map((d) => d.doc))];
 const docsWithHeadings = new Set(allHeadings.map((h) => h.doc));
 
+/**
+ * THE SCOPE FLOOR, STATED (#1162). Every doc that carries a `Decided (...)` heading, written here by hand.
+ * The floor used to be `KNOWN_DECISION_DOCS`, computed from the baseline this gate guards (docs/34 shape 1):
+ * delete a doc's rows AND its headings (or let the regex stop matching in that one doc) and the doc left
+ * the scope with them, so the run reported clean over a corpus it had stopped covering. Measured before
+ * this fix on docs/46: rows dropped plus the heading retitled → `✓ clean`, exit 0.
+ *
+ * Checked in both directions, so it cannot go stale silently: a listed doc must be cited in the baseline
+ * AND found carrying a heading; a doc the baseline cites, or the corpus scan finds a heading in, must be
+ * listed. A doc that gains its first decision is added here in the same PR; one whose decisions are all
+ * legitimately removed leaves here in the PR that removes them. The `lint-us-english` `REQUIRED_SURFACES`
+ * posture (#514).
+ */
+const REQUIRED_DECISION_DOCS: readonly string[] = [
+  'docs/06-surface-and-content-color-model.md',
+  'docs/19-code-library-and-dx.md',
+  'docs/20-interactive-color-system.md',
+  'docs/28-component-anatomy-schema.md',
+  'docs/30-versioning-and-compatibility.md',
+  'docs/35-naming-and-packaging.md',
+  'docs/41-internal-and-ejected.md',
+  'docs/43-agent-instruction-surface.md',
+  'docs/44-materialization-renames.md',
+  'docs/45-style-guide-generator.md',
+  'docs/46-never-detach.md',
+];
+const required = new Set(REQUIRED_DECISION_DOCS);
+
 for (const h of allHeadings) {
   if (!baseline.decisions.some((d) => same(h, d))) {
     failures.push(
@@ -343,12 +373,29 @@ for (const h of allHeadings) {
   }
 }
 
-for (const doc of KNOWN_DECISION_DOCS) {
+for (const doc of REQUIRED_DECISION_DOCS) {
   if (!docsWithHeadings.has(doc)) {
     failures.push(
-      `SCOPE NOT REPRESENTED: ${doc} is cited in ${BASELINE} and this run found no \`Decided (...)\` ` +
-        `heading in it at all. Either every decision there was legitimately removed (drop those rows ` +
-        `in this PR) or the heading regex stopped matching — in which case a clean run means nothing.`,
+      `SCOPE NOT REPRESENTED: ${doc} is in REQUIRED_DECISION_DOCS and this run found no \`Decided (...)\` ` +
+        `heading in it at all. Either every decision there was legitimately removed (drop its rows and its ` +
+        `REQUIRED_DECISION_DOCS entry in this PR) or the heading regex stopped matching — in which case a ` +
+        `clean run means nothing.`,
+    );
+  }
+  if (!KNOWN_DECISION_DOCS.includes(doc)) {
+    failures.push(
+      `REQUIRED DOC NOT INDEXED: ${doc} is in REQUIRED_DECISION_DOCS and ${BASELINE} cites no decision in ` +
+        `it. Rows deleted wholesale take their own coverage with them; restore them, or, if the doc's ` +
+        `decisions were legitimately removed, drop its REQUIRED_DECISION_DOCS entry in this PR.`,
+    );
+  }
+}
+for (const doc of new Set([...KNOWN_DECISION_DOCS, ...docsWithHeadings])) {
+  if (!required.has(doc)) {
+    failures.push(
+      `DECISION DOC NOT LISTED: ${doc} carries a \`Decided (...)\` heading or a baseline row but is not in ` +
+        `REQUIRED_DECISION_DOCS in packages/engine/lint-decisions-index.ts. Add it there, so its coverage ` +
+        `cannot leave the scope with its rows.`,
     );
   }
 }

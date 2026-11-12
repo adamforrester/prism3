@@ -35,7 +35,7 @@ export const ICONS_DESC = 'The icon color set by the icon contrast floor: matche
 export const DISABLED_DESC = 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.';
 /** The Interactive levers section's intro (owner decision Q53, APPROVED). */
 /** Color › Interactive's settings card (#3335, the owner's Q3335.1 A). DRAFT, for the owner's final read. */
-export const INTERACTIVE_SETTINGS_COPY = { title: 'Interactive Settings', desc: 'Every button set, in every mode.' } as const;
+export const INTERACTIVE_SETTINGS_COPY = { title: 'Interactive settings', desc: 'Every button set, in every mode.' } as const;
 /** Surfaces & fills' Background copy (S4f), shared by the levers' Background fills section and the preview's
  *  Background section there (Q23): the owner's Q26 intro, APPROVED, now that the scrim has its own section
  *  (QA-B10). The Style guide's own Background section keeps its longer sentence, scrim included. */
@@ -113,7 +113,7 @@ export type Host = 'web' | 'figma';
 /** The views a page can call home, with their titles (the preview header shows the title). */
 export const VIEWS = [
   ['guide', 'Style guide'], ['palettes', 'Palettes'], ['surfaces', 'Surfaces & fills'], ['interactive', 'Interactive'],
-  ['type', 'Type'], ['shape', 'Size & shape'], ['depth', 'Depth & motion'], ['layout', 'Layout'], ['comps', 'Components'],
+  ['type', 'Type'], ['shape', 'Shape'], ['depth', 'Depth & motion'], ['layout', 'Layout'], ['comps', 'Components'],
 ] as const;
 /** The views behind Inspect (F1). They open over any page's preview and are never a page's home. The Decisions log, the
  *  third, was cut (#2909 Q2909.7 A). */
@@ -380,7 +380,7 @@ export const DOMAINS = [
     // sections stay in this data so every lever keeps one home (`test-pages.ts`): Button's keys are drawn in the preview
     // pane's Buttons block, Field's and Search's in the Fields section's two blocks and
     // Tag's in the Tag section's (#2905, #2952), the sets by the list.
-    id: 'components', label: 'Components', home: 'comps', intro: 'The component sets the engine defines, in families. A build places each on its page in this file.',
+    id: 'components', label: 'Components', home: 'comps', intro: 'The component sets the engine defines, in families.',
     sections: [
       // #2909 Q2909.4 A (v2's lever-home table): the shared block, first. Control shape's one home; Density shows as its
       // read-only line, its home Theme › Shape (`domains/shared-options.ts`).
@@ -507,13 +507,14 @@ export const viewLabel = (v: ViewId | InspectId): string =>
 
 // ── the rail (#2909 IA v2; both hosts since phase 2, Q2909.9 A) ─────────────────────────────────────────────────────────────────────────────
 /** The rail's areas, in order (owner decision of 2026-10-24): Theme · Components · Documentation · Export. Labels are the
- *  owner's (Q2909.20 A, Chunk 2, 2026-10-24): one word under each icon, so
- *  Documentation is "Docs" on the rail and "Documentation" in its own header. */
+ *  owner's (Q2909.20 A, Chunk 2, 2026-10-24): one word under each icon. #3553 Q-UI9 A: the rail and the page's title
+ *  agree. "Documentation" does not fit the rail's 55px tile at its 9px label (it needs 60px; "Components" is 53), so the
+ *  area is "Docs" in both, and in its name and tooltip. */
 export const RAIL_AREAS = [
   { id: 'theme', label: 'Theme', name: 'Theme', glyph: 'swatches' },
   // Whole since Q732 A (2026-10-26): at the rail's 9px the word fits one line, so the wireframe's "Compo-nents" break went.
   { id: 'components', label: 'Components', name: 'Components', glyph: 'diamonds' },
-  { id: 'documentation', label: 'Docs', name: 'Documentation', glyph: 'page' },
+  { id: 'documentation', label: 'Docs', name: 'Docs', glyph: 'page' },
   { id: 'export', label: 'Export', name: 'Export', glyph: 'send' },
 ] as const;
 export type AreaId = (typeof RAIL_AREAS)[number]['id'];

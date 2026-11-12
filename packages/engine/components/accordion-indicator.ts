@@ -26,7 +26,7 @@ export const accordionIndicator: ComponentDef = {
   aliases: ['accordion-chevron', 'disclosure-indicator'],
   category: 'navigation',
   status: 'draft',
-  summary: 'The open or closed glyph inside an Accordion header: a chevron or a plus and minus.',
+  summary: 'The open or closed glyph inside an accordion header: a chevron or a plus and minus.',
   description:
     'The glyph an Accordion header shows to say whether its section is open: a chevron that points down when closed and up when open, or a plus that becomes a minus. It lives inside the Accordion and is never placed on its own. Choose chevron or plus-minus on the Accordion; the open or closed glyph follows the Accordion\'s state. The glyph is decorative: the header button\'s expanded state carries the meaning.',
 
@@ -86,7 +86,7 @@ export const accordionIndicator: ComponentDef = {
         class: 'motion',
         disposition: 'refused',
         description:
-          'the turn — a chevron may rotate 180 degrees on open instead of swapping glyphs (motion.transition.enter / exit, the reduced duration under prefers-reduced-motion). Figma swaps the down and up glyphs, since a variant holds no motion.',
+          'the turn — a chevron may rotate 180 degrees on open instead of swapping glyphs, on motion.transition.default both ways, and swaps without turning under prefers-reduced-motion (the prism3-motion accordion recipe). Figma swaps the down and up glyphs, since a variant holds no motion.',
       },
       {
         class: 'right-to-left',
@@ -146,6 +146,14 @@ export const accordionIndicator: ComponentDef = {
     ],
     supersededBy: [],
     planned: [],
+  },
+
+  // Owner decision Q-CC20 (#3554): the indicator carries the accordion recipe's indicator track (prism3-motion), the
+  // Accordion's own panel tracks stay in `accordion.ts` (#3490 owns their reduced-motion wording).
+  motion: {
+    enter: 'On open, a chevron turns to its open position on motion.transition.default; a plus and minus swap glyphs.',
+    exit: 'On close, the chevron turns back on motion.transition.default; a plus and minus swap back.',
+    reduceMotion: 'Under prefers-reduced-motion the indicator swaps to its open or closed glyph without turning.',
   },
 
   notes: {

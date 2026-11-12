@@ -34,7 +34,7 @@ Shown on the default member: provider `apple`, style `black`, size `medium`.
 
 ### States
 
-`rest`, `hover`, `pressed`, `focus-visible`
+`rest`, `hover`, `pressed`, `pending`, `focus-visible`, `disabled`
 
 ## Usage guidelines
 
@@ -100,7 +100,9 @@ Pick one wording from the provider's list and use it on every button in the stac
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The height: 36, 44 or 56px. Give every sign-in button in a group the same size. |
 | `wording` | string | `continue` | no | The provider's wording, from its own list, translated by the app: Apple continue, sign-in, sign-up; Google continue, sign-in, sign-up; Facebook continue, login. The provider's name is never translated. A wording the provider does not offer is refused. |
 | `fullWidth` | boolean | `false` | no | Fill the column instead of hugging the label. The button never drops under 140px wide. |
-| `onClick` | (event: MouseEvent) => void | — | no | Called before the provider's sign-in starts, for analytics or a loading state. The sign-in itself is the provider's. |
+| `onClick` | (event: MouseEvent) => void | — | no | Called before the provider's sign-in starts, for analytics or to set isPending. The sign-in itself is the provider's. Not called while isPending or disabled. |
+| `isPending` | boolean | `false` | no | While the provider's sign-in is in flight: keeps focus (aria-disabled, not native disabled), sets aria-busy, ignores a second click, and announces busy through a polite live region. The provider's mark and words stay as drawn. |
+| `disabled` | boolean | `false` | no | Native disabled, reserved for a sign-in the view does not offer right now; it leaves the tab order and the accessibility tree. |
 
 ## Specs
 
@@ -114,6 +116,8 @@ Generated from the plan that builds the design-file component: 96 members. Value
 | `container/mark` | instance | every member |
 | `container/label` | text | every member |
 | `container/focusRing` | instance | state=focus-visible |
+
+Code-only states, with no design-file member: `pending`, `disabled`.
 
 ### Spacing and size
 

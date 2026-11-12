@@ -106,7 +106,7 @@ export const focusRing: ComponentDef = {
   aliases: ['focus-indicator', 'focus-outline'],
   category: 'foundations',
   status: 'draft',
-  summary: 'Keyboard-focus ring nested by focusable components. Build first; don\'t place alone.',
+  summary: 'Keyboard-focus ring nested by focusable components. Don\'t place it alone.',
   description:
     'The shared keyboard-focus indicator: a stroke drawn outside its host\'s bounds, separated from them by an offset (2px for controls, so an unbroken sliver of background sits between the control\'s own border and the ring; 0 at the field offset, where the host\'s own border supplies the separation). Authored once and nested by every focusable control rather than re-drawn per host; fields draw their own 2px focus edge and nest no ring — the ring belongs to no single component, which is why its tokens are top-level families.',
 
@@ -418,7 +418,7 @@ export const focusRing: ComponentDef = {
     primaryPurpose: 'Render the shared keyboard-focus indicator for a focusable control.',
     whenToUse: 'Every component that can receive keyboard focus nests it as an absolute sibling and picks its surface and offset. It is never placed in a layout on its own.',
     avoidWhen:
-      'As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside :focus-visible destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. "Standalone" here means placed in a layout: the component is built on its own, because a host can only nest one that already exists.',
+      'As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside :focus-visible destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. Fields draw their own focus edge instead. "Standalone" here means placed in a layout: the component is built on its own, because a host can only nest one that already exists.',
     // The defs that NEST the ring, read off their anatomy (#1700). A reverse list, so it lives here and not
     // in `composesWith`, which names what a def nests itself.
     commonPartners: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'checkbox-control', 'radio-control', 'switch-control', 'link', 'counter'],
