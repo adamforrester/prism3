@@ -196,7 +196,7 @@ export const createBridgeRelay = (deps: RelayDeps) => {
       if (m.type === 'welcome') {
         // #3697 R8: only a server that holds the token can prove it over this connection's nonce.
         if (connected) return;
-        if (token === null || !sameProof(welcomeProof(token, clientNonce), m.proof)) { drop(sock, true); return; }
+        // MUTATION (#3697 R8): the welcome's proof is not checked.
         setPairing('none'); setHeld(false); setConnected(true); return;
       }
       if (!connected) return;
