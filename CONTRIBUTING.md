@@ -1321,6 +1321,10 @@ npx tsx packages/engine/lint-code-only-classes.ts   # every def's codeOnly entry
                                                     # register class no entry uses fails; an admission
                                                     # is classed not-projected; the payload's
                                                     # syncBoundary matches the defs.
+npx tsx packages/engine/lint-locale-order.ts        # no comparison under packages/engine/ depends on
+                                                    # the host's locale (#3698): no bare localeCompare,
+                                                    # ICU collator or locale-aware case fold. Order goes
+                                                    # through localeFreeCompare (locale-free-order.ts).
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,

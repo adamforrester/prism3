@@ -49,6 +49,7 @@ import { TOOLS as BRIDGE_TOOLS, SERVER_INFO as BRIDGE_INFO } from '../../tools/f
 import { AGENT_COMMANDS, AGENT_PROTOCOL_VERSION, MAILBOX } from '../../apps/plugin/src/agent-protocol';
 import { RUN_CODE } from '../../apps/plugin/src/dev-commands';
 import { BRIDGE_PORT } from '../../apps/plugin/src/agent-bridge-relay';
+import { localeFreeCompare } from './locale-free-order';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '..', '..');
@@ -373,7 +374,7 @@ const cliEntry = (p: string) => {
     file: p,
     summary,
     usage,
-    flags: [...flags].sort(([a], [b]) => a.localeCompare(b)).map(([flag, source]) => ({ flag, source })),
+    flags: [...flags].sort(([a], [b]) => localeFreeCompare(a, b)).map(([flag, source]) => ({ flag, source })),
   };
 };
 

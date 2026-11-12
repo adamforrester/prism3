@@ -107,6 +107,7 @@ const planIconComps = (n: { nestTarget?: string; children?: readonly unknown[] }
 
 import { Session as InspectorSession } from 'node:inspector/promises';
 import { componentSpec, specMaterialize } from './component-specs';
+import { localeFreeCompare } from './locale-free-order';
 
 // ---- #1268 EVERY ASSERTION SITE RAN — a section going quiet is a failure, not a smaller pass ----------
 //
@@ -28094,8 +28095,8 @@ arm: {
         const check = (label: string, plans: AnatomyPlan[], keys: [string, string], want: Record<string, string>) => {
           const got = [...cellMap(plans).entries()]
             .map(([n, cell]) => [`${at(n, keys[0])}/${at(n, keys[1])}`, cell] as const)
-            .sort(([a], [b]) => a.localeCompare(b));
-          const wantSorted = Object.entries(want).sort(([a], [b]) => a.localeCompare(b));
+            .sort(([a], [b]) => localeFreeCompare(a, b));
+          const wantSorted = Object.entries(want).sort(([a], [b]) => localeFreeCompare(a, b));
           ok(JSON.stringify(got) === JSON.stringify(wantSorted),
             `#656 ${label} — got ${JSON.stringify(got)} vs hand-written ${JSON.stringify(wantSorted)}`);
         };

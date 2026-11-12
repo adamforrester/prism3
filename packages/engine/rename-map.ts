@@ -126,6 +126,7 @@ import { DEPRECATIONS, satisfiesBump, type Deprecation } from './version';
 // cannot drift from the emitters. Re-deriving it here would be a duplicate that this module's own gate
 // could not distinguish from the original.
 import { figmaVarName } from './anatomy-figma';
+import { localeFreeCompare } from './locale-free-order';
 
 /** A variable to migrate, scoped to the collection it lives in. */
 export type VarRename = {
@@ -587,7 +588,7 @@ export const planVariableRenames = (
     else out.push(at(live[0], 'migrated'));
   }
   // Stable order so two runs diff cleanly and a truncated report head is not arbitrary.
-  return out.sort((a, b) => a.from.localeCompare(b.from) || a.to.localeCompare(b.to));
+  return out.sort((a, b) => localeFreeCompare(a.from, b.from) || localeFreeCompare(a.to, b.to));
 };
 
 /**
