@@ -619,7 +619,10 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
   motion: {
     enter: 'none (present on mount)',
     exit: 'none',
-    reduceMotion: 'State transitions (background, border) are meant to run ~100–150ms through the brand\'s motion tokens; this component binds none yet, so the timing is code-side. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
+    // Owner decision Q-CC29a A (#3554): the press scale is stated, Button's 0.98, so the clause that resolves
+    // scale to none under reduced motion names a scale that exists. Q-MD4 A (#3555): the brief's ~100–150ms maps to
+    // motion.duration.fast.
+    reduceMotion: 'State transitions (background, border) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98), as on Button, gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
   },
 
   notes: {
@@ -636,7 +639,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
       'RESOLVED (#1697): the pending member swaps in the real spinner. The disabled edge #1697 also rebound to the disabled icon ink was superseded by Q346 (#2749): a border never binds an icon or text role, so it binds `color.disabled.border`.',
     ],
     unverified: [
-      'motion timing — the button brief\'s ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.',
+      'motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.',
       'the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host\'s own edge or fill is not measured.',
     ],
   },
