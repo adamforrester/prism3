@@ -100,7 +100,7 @@ Titles are short, parallel noun phrases or questions, in sentence case, with no 
 
 - **Built from:** `_accordion-indicator`, `focus-ring`, `divider`
 - **Instead, consider:** `tabs`
-- **Often used with:** `tabs`, `icon`, `button`, `text-field`
+- **Often used with:** `icon`, `button`, `text-field`
 - **Replaces:**
   - a show/hide div with no aria-expanded or heading
   - a tablist used for vertical sections that open together

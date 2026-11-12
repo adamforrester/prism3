@@ -58,6 +58,12 @@ Part of an Accordion. Choose chevron or plus-minus on the Accordion; the glyph f
 - 1.4.1 Use of Color — open and closed differ by glyph, never by color alone
 - 1.4.11 Non-text Contrast — the glyph clears 3:1 against the page in the header's icon ink
 
+### Motion
+
+- **Enter:** On open, a chevron turns to its open position on motion.transition.default; a plus and minus swap glyphs.
+- **Exit:** On close, the chevron turns back on motion.transition.default; a plus and minus swap back.
+- **Reduced motion:** Under prefers-reduced-motion the indicator swaps to its open or closed glyph without turning.
+
 ## Content guidelines
 
 The indicator holds no copy.

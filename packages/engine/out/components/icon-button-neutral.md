@@ -76,7 +76,7 @@ Use for a self-evident action where space is tight and a text label would be red
 
 - **Enter:** none (present on mount)
 - **Exit:** none
-- **Reduced motion:** State transitions (background, border) are meant to run ~100–150ms through the brand's motion tokens; this component binds none yet, so the timing is code-side. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.
+- **Reduced motion:** State transitions (background, border) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98), as on Button, gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.
 
 ## Content guidelines
 
