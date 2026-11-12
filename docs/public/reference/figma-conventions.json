@@ -3761,6 +3761,12 @@
         ]
       },
       {
+        "name": "text-spacing",
+        "modes": [
+          "Default"
+        ]
+      },
+      {
         "name": "core",
         "modes": [
           "Default"

@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Line-height and letter-spacing multipliers are typed as numbers.** A
+  `font/line-height/…` or `font/letter-spacing/…` variable, or its `-role`
+  alias, with no line-height or letter-spacing scope now exports as a unitless
+  `number`: `font/line-height/105` holding 1.05 exports as `1.05`. Before, the
+  numeric step read as a breakpoint and a `neg-` step as a negative dimension,
+  so both exported as pixels. A variable scoped to line height or letter
+  spacing is typed by that scope as before.
 - **Underline thickness and offset are exported.** A text style's
   `textDecorationThickness` and `textDecorationOffset` now export inside its
   typography composite, beside `textDecoration`: a PERCENT value as a `%`

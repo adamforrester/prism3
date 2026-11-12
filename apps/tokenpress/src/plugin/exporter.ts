@@ -797,6 +797,14 @@ export class TokenExporter {
           return 'fontWeight';
         }
 
+        // Name-based line-height / letter-spacing MULTIPLIER detection, for a variable with no
+        // LINE_HEIGHT or LETTER_SPACING scope (prism3 #2423: `font/line-height/105` holds 1.05 and
+        // `font/letter-spacing/neg-40` holds -0.04, unscoped because Figma would bind them as pixels).
+        // Before the breakpoint and `neg-` rules, which read them as px dimensions.
+        if (variableName && this.typeDetector.isFontSpacingMultiplierVariable(variableName)) {
+          return 'number';
+        }
+
         // Breakpoint detection - should be dimension with px units for DTCG compliance
         if (variableName && this.typeDetector.isBreakpointVariable(variableName)) {
           return 'dimension';

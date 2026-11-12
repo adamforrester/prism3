@@ -163,6 +163,19 @@ export class TokenTypeDetector {
     return this.hasFontSegment(variableName, 'weight');
   }
 
+  /**
+   * Determines if a variable is a font line-height or letter-spacing MULTIPLIER, by its path. Matches a
+   * `font` segment followed by `line-height` / `letter-spacing` or a `line-height-…` / `letter-spacing-…`
+   * compound (`font/line-height/105`, `font/letter-spacing-role/tight`). Lets an unscoped one type as a
+   * unitless `number` instead of the bare-number breakpoint or `neg-` dimension rules (prism3 #2423).
+   *
+   * @param variableName Name of the variable to check
+   * @returns True if the path names a line-height or letter-spacing multiplier
+   */
+  isFontSpacingMultiplierVariable(variableName: string): boolean {
+    return this.hasFontSegment(variableName, 'line-height') || this.hasFontSegment(variableName, 'letter-spacing');
+  }
+
   // A `font` segment followed by `<word>` (or `<word>-…` / `<word>_…`), or one `font<sep><word>` segment.
   // Whole segments only, so `fontweightless` or `iconfont/weight` do not match.
   private hasFontSegment(variableName: string, word: string): boolean {
