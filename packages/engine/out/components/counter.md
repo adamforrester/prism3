@@ -105,7 +105,7 @@ The label is a noun ("Quantity"). Button names are a verb with the object. A lim
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `label` | string | — | yes | What is counted, such as "Quantity". The accessible name of the value, always present in code; shown above the counter only with showLabel. |
+| `label` | string \| node | — | yes | What is counted, such as "Quantity". The accessible name of the value, always present in code; shown above the counter only with showLabel. |
 | `showLabel` | boolean | `false` | no | Shows the label above the counter. Off by default: a counter on a product card or a bag line is usually explained by what sits around it, and the label stays its accessible name either way. |
 | `value` | number | — | no | Controlled value; pair it with onChange. |
 | `defaultValue` | number | — | no | The starting value when the counter manages its own state. Defaults to min. |
@@ -115,8 +115,8 @@ The label is a noun ("Quantity"). Button names are a verb with the object. A lim
 | `step` | number | `1` | no | How much one press or one arrow key changes the value. |
 | `appearance` | enum: 'outline' \| 'ghost' | `outline` | no | outline draws the field edge around the row, with the minus and plus glyphs inside it. ghost draws no box, and the minus and plus are light circles at each end. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The row height (36, 44 or 56px), the value type (14, 16 or 18px) and the glyph (20, 20 or 24px). Each button keeps a hit area of at least 44×44px in code at every size. |
-| `message` | string | — | no | Text below the counter, such as the reason for a limit ("Limit 5 per order"). Added to the value's description. |
-| `showMessage` | boolean | `false` | no | Shows the message below the counter. Off by default. |
+| `helpText` | string \| node | — | no | Text below the counter, such as the reason for a limit ("Limit 5 per order"). Added to the value's description. |
+| `showMessage` | boolean | `false` | no | Shows the help text below the counter. Off by default. |
 | `decrementLabel` | string | — | no | The minus button's accessible name. Defaults to "Decrease" followed by the label, such as "Decrease quantity". In a list of line items, include the item: "Decrease quantity, Trail runner". |
 | `incrementLabel` | string | — | no | The plus button's accessible name. Defaults to "Increase" followed by the label. In a list of line items, include the item. |
 | `name` | string | — | no | The form field name: a hidden input carries the value when the counter sits in a form. |

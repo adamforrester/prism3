@@ -852,6 +852,18 @@ for (const [id, e] of Object.entries<any>(entries)) walkStrings(e, '', (text, pa
 });
 if (unbuiltChecked < 5) note(`NOT BUILT YET floor: only ${unbuiltChecked} "…, not built yet" phrase(s) found in components.ai.json — the scan has stopped seeing them`);
 
+// ---- ARM I: a labeled field states its target size (#3554 M-A) --------------------------------------------------------
+// CardNumberField was the one field host with no 2.5.8 line; every sibling carried one. A def that nests FieldLabel is a
+// labeled form control a pointer must hit, so its WCAG list names 2.5.8. The hosts are read off the anatomy (a part that
+// nests `field-label`), never from a list here.
+let targetChecked = 0;
+for (const def of componentDefs) {
+  if (!Object.values(def.anatomy?.parts ?? {}).some((p) => (p as { nests?: string }).nests === 'field-label')) continue;
+  targetChecked++;
+  if (!(def.accessibility?.wcag ?? []).some((w) => /\b2\.5\.8\b/.test(w))) note(`TARGET SIZE: \`${def.id}\` nests field-label, and its accessibility.wcag names no 2.5.8 Target Size line`);
+}
+if (targetChecked < 8) note(`TARGET SIZE floor: only ${targetChecked} defs nest field-label — the arm is reading almost nothing`);
+
 // ---- report ----------------------------------------------------------------------------------
 if (fail.length) {
   console.error(`\n✗ component docs — ${fail.length} problem(s):\n`);

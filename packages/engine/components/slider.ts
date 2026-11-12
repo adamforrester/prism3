@@ -314,7 +314,7 @@ export const slider: ComponentDef = {
     'A slider picks an approximate value, or a range between two values, by moving a thumb along a track: a price filter, a text size, a volume. It suits a value where the position within the range matters more than the exact number. One thumb sets a single value; two thumbs set a minimum and a maximum. The current value shows as text above the track. For an exact number, turn on the paired inputs, or use TextField.',
 
   props: [
-    { name: 'label', type: 'string', required: true, description: 'Names the dimension being set, such as "Price" or "Volume". Shown above the track, and the accessible name of a single thumb.' },
+    { name: 'label', type: 'string | node', required: true, description: 'Names the dimension being set, such as "Price" or "Volume". Shown above the track, and the accessible name of a single thumb.' },
     { name: 'value', type: 'number | [number, number]', required: false, description: 'The value. A number sets one thumb; a pair of numbers, such as [40, 120], sets a range with two thumbs. Controlled; pair it with onChange.' },
     { name: 'defaultValue', type: 'number | [number, number]', required: false, description: 'The starting value when the slider manages its own state. A pair starts a range.' },
     { name: 'onChange', type: 'function', required: false, description: 'Called on every change while dragging or stepping, for a live preview.' },
@@ -332,7 +332,8 @@ export const slider: ComponentDef = {
     { name: 'showMilestones', type: 'boolean', default: false, required: false, description: 'Shows labeled milestones under the track: the minimum and the maximum at its ends, and any values in milestones between them, each under its own position.' },
     { name: 'milestones', type: 'Array<number | { value: number; label: string }>', required: false, description: 'The values labeled under the track when showMilestones is on, such as [500, 1000]. A plain number is formatted like the value text; an object gives its own label. The minimum and the maximum are always labeled.' },
     { name: 'showInputs', type: 'boolean', default: false, required: false, description: 'Shows paired number inputs under the track: one for a single value, "Minimum" and "Maximum" for a range. Typing moves the thumb; dragging updates the input. With inputs on, turn the value text off.' },
-    { name: 'helpText', type: 'string', required: false, description: 'Guidance under the slider, in a field message.' },
+    { name: 'helpText', type: 'string | node', required: false, description: 'Guidance under the slider, in a field message.' },
+    { name: 'showMessage', type: 'boolean', default: false, required: false, description: 'Whether the field message is shown under the slider. Off by default; turn it on to show the help or error text. Never hides a message the slider needs: turn it on wherever there is help text or an error.' },
     { name: 'validation', type: "enum: 'default' | 'error'", values: ['default', 'error'], default: 'default', required: false, description: 'error marks the slider invalid: the field message shows the error status and each thumb carries aria-invalid. A slider\'s own value is always in range, so an error comes from a paired input or from validation elsewhere in the form.' },
     { name: 'validationMessage', type: 'string', required: false, description: 'The error text, shown in the field message and added to aria-describedby. Say what is wrong and how to fix it.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Takes the slider out of interaction and out of the form payload, and dims it.' },
@@ -648,7 +649,7 @@ export const slider: ComponentDef = {
       showValue: { part: ['valueSingle', 'valueRange'], default: true, figmaName: 'value' },
       showMilestones: { part: 'milestones', default: false, figmaName: 'milestones' },
       showInputs: { part: 'inputs', default: false, figmaName: 'inputs' },
-      showHelper: { part: 'message', default: false, figmaName: 'helper', figmaOnly: true },
+      showMessage: { part: 'message', default: false, figmaName: 'message' },
     },
   },
 

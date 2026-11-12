@@ -29,7 +29,7 @@ Shown on the default member: appearance `filled`, size `medium`, width `auto`, s
 
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
-| `appearance` | `filled`, `outline`, `text` | at runtime | Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.) |
+| `appearance` | `filled`, `outline`, `text` | at runtime | Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. |
 | `size` | `medium`, `small`, `large` | once, when authored | Control size — drives height, padding, and label type. |
 | `width` | `auto`, `full` | once, when authored | — |
 | `surface` | `default`, `inverse` | once, when authored | The ground the button sits on. default for a normal page; inverse for a dark or brand-filled band, where the button binds its color.inverse counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. A host that cannot know its ground picks default, and the designer sets inverse on the instance — the same answer the nested focus ring gives. |
@@ -80,7 +80,7 @@ Use for an immediate action in the current context — submit/save/reset a form,
 
 - 1.4.11 Non-text Contrast (the focus ring and boundary at 3:1)
 - 2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)
-- 2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)
+- 2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)
 - 2.5.3 Label in Name (an aria-label starts with the visible label text)
 - 2.5.8 Target Size (Minimum) (24×24 — small is 36px tall, 28px at compact density)
 - 2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)
@@ -117,7 +117,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 | --- | --- | --- | --- | --- |
 | `label` | node (label) | — | yes | Visible label; verb-first, sentence case, ≤3 words. Always required here — an icon-only control is the separate icon-button, which requires an accessible name instead. |
 | `onClick` | function | — | no | Action handler. Suppressed while isPending or isInactive. |
-| `appearance` | enum: 'filled' \| 'outline' \| 'text' | `filled` | no | Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.) |
+| `appearance` | enum: 'filled' \| 'outline' \| 'text' | `filled` | no | Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Control size — drives height, padding, and label type. |
 | `surface` | enum: 'default' \| 'inverse' | `default` | no | The ground the button sits on. default for a normal page; inverse for a dark or brand-filled band, where the button binds its color.inverse counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. A host that cannot know its ground picks default, and the designer sets inverse on the instance — the same answer the nested focus ring gives. |
 | `inset` | enum: 'default' \| 'flush' | `default` | no | Text appearance only. flush removes the inline padding on both sides, so the label lines up with the content edge above and below it, whether the button starts, ends or centers a row. A flush button hovers by color only, and its hit target keeps its height. |
