@@ -21,7 +21,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **axis selection** — the selection axis takes 4 value sets — [selected, unselected] in link, page-nav-item, pagination-item, segmented-control-segment, tab-item, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control
 - **axis shape** — the shape axis takes 3 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral; [circular, linear] in progress
 - **axis size** — the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell
-- **axis status** — the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, code-input, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in card-number-field, field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress
+- **axis status** — the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, code-input, code-input-cell, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in card-number-field, field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress
 - **axis style** — the style axis takes 6 value sets — [outline] in card-number-field, password-field, search-field, select, text-field, textarea; [border, underline] in pagination, pagination-item; [any, black, blue, gold, purple, silver, white, white-outline] in wallet-button; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [contained, inline] in badge; [inline, standalone] in link
 - **axis tone** — the tone axis takes 2 value sets — [danger, info, neutral, success, warning] in badge, banner; [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon
 - **axis type** — the type axis takes 8 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item; [range, single] in slider
@@ -39,6 +39,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **checkbox-group** — checkbox-group has the variant axis status and no prop of that name
 - **checkbox-row** — checkbox-row has the variant axis status and no prop of that name
 - **code-input** — code-input has the variant axis status and no prop of that name
+- **code-input-cell** — code-input-cell has the variant axis status and no prop of that name
 - **divider** — divider has the variant axis labeled and no prop of that name
 - **link** — link has the variant axis selection and no prop of that name
 - **page-nav-item** — page-nav-item has the variant axis selection and no prop of that name
@@ -145,7 +146,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### state set
 
-- **variant family: CodeInput** — no state set is shared by most of the group — code-input [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled]; code-input-cell [rest, hover, filled, focus-visible, focus-visible-filled, disabled, error]
+- **variant family: CodeInput** — no state set is shared by most of the group — code-input [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled]; code-input-cell [rest, hover, filled, focus-visible, focus-visible-filled, disabled]
 - **role peers: *.Row** — switch-row differs from the group's common set [disabled, focus-visible, hover, pressed, read-only, rest] — adds pending
 - **role peers: *.Item** — no state set is shared by most of the group — list-item []; page-nav-item []; pagination-item [rest, hover, pressed, focus-visible, disabled]; tab-item [rest, hover, pressed, focus-visible, disabled]
 - **substrate: button** — flush-icon-button differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks pending
@@ -155,7 +156,6 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### variant axes
 
-- **variant family: CodeInput** — code-input-cell's variant axes differ from the family's common set
 - **variant family: Slider** — _slider-thumb's variant axes differ from the family's common set
 
 ## Peer groups
@@ -197,7 +197,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | checkbox-group | form | — | — |
 | checkbox-row | form | rest, hover, pressed, focus-visible, disabled, read-only | — |
 | code-input | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled | rest, hover, filled, focus-visible, focus-visible-filled, disabled |
-| code-input-cell | form | rest, hover, filled, focus-visible, focus-visible-filled, disabled, error | rest, hover, filled, focus-visible, focus-visible-filled, disabled, error |
+| code-input-cell | form | rest, hover, filled, focus-visible, focus-visible-filled, disabled | rest, hover, filled, focus-visible, focus-visible-filled, disabled |
 | counter | form | rest, focus-visible, disabled | rest, focus-visible, disabled |
 | dialog | overlay | — | — |
 | divider | foundations | — | — |
@@ -249,7 +249,6 @@ Generated from the component definitions and the emission by `packages/engine/em
 |---|---|
 | disabled | _slider-thumb, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-row, code-input, code-input-cell, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination-item, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, sign-in-button, slider, switch-control, switch-row, tab-item, tag, text-field, textarea |
 | empty | card-number-field, password-field, search-field, select, text-field, textarea |
-| error | code-input-cell |
 | filled | card-number-field, code-input, code-input-cell, password-field, search-field, select, text-field, textarea |
 | focus-visible | _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-row, code-input, code-input-cell, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, sign-in-button, slider, switch-control, switch-row, tab-item, tag, text-field, textarea, wallet-button |
 | focus-visible-filled | card-number-field, code-input, code-input-cell, password-field, search-field, select, text-field, textarea |
@@ -303,7 +302,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | medium, small | badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, switch-control, switch-row |
 |  | large, medium, small, x-small | link, list, list-item, spinner |
 |  | large, medium, small, x-large | code-input, code-input-cell |
-| status | default, error | checkbox-control, checkbox-group, checkbox-row, code-input, radio-control, radio-group, radio-row, switch-control, switch-row |
+| status | default, error | checkbox-control, checkbox-group, checkbox-row, code-input, code-input-cell, radio-control, radio-group, radio-row, switch-control, switch-row |
 |  | default, error, success, warning | card-number-field, field-message, password-field, search-field, select, text-field, textarea |
 |  | active, complete, error | progress |
 | style | outline | card-number-field, password-field, search-field, select, text-field, textarea |
@@ -838,6 +837,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | checkbox-group | default | default, error |
 |  | checkbox-row | default | default, error |
 |  | code-input | default | default, error |
+|  | code-input-cell | default | default, error |
 |  | password-field | default | default, error, warning, success |
 |  | radio-control | default | default, error |
 |  | radio-group | default | default, error |
