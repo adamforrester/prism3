@@ -21720,7 +21720,7 @@ arm: {
 
       // THE CURRENT PAGE (calls 2 A, 4 A, 5 A): text, not a link, in text.primary at the default body weight. Only on current.
       const curOff = itemPlans.filter((p) => {
-        const t = find(p.root, 'current');
+        const t = find(p.root, 'label');
         if (p.kind !== 'current') return !!t;
         return !(t && t.type === 'TEXT' && t.paints?.fills === 'color/text/primary' && t.textStyle === `body/${RUNG[p.size]}/default` && t.characters === 'Current page'
           && !all(p.root).some((n) => n.nestTarget === 'link'));
@@ -22545,7 +22545,7 @@ arm: {
       { def: componentDefs.find((d) => d.id === 'link')!, part: 'label', axes: { size: 4, weight: 2, style: 2, selection: 1, state: 2 } },
       // BREADCRUMBS (#2666, call 4 A): the current page binds the two default body rungs. It exists only on a current
       // member.
-      { def: componentDefs.find((d) => d.id === 'breadcrumb-item')!, part: 'current', axes: { size: 2 }, at: { kind: 'current' } },
+      { def: componentDefs.find((d) => d.id === 'breadcrumb-item')!, part: 'label', axes: { size: 2 }, at: { kind: 'current' } },
       // Pagination (#2665): the item's number by selection (the current page's emphasis weight) and size, its bold reserve
       // by size alone, and the compact text by size. The ellipsis is an icon (Q404 A), so it binds no type.
       { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'label', axes: { selection: 2, size: 3 } },
@@ -38446,7 +38446,7 @@ arm: {
     'tag.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a select tag is selected by `selected`' },
     'tab-item.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a tab is selected by `selected`' },
     'segmented-control-segment.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a segment is selected by `selected`' },
-    'pagination-item.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'the current page is marked by `selected` (aria-current="page", #2665)' },
+    'pagination-item.selection': { prop: 'current', map: off('unselected', 'selected'), reason: 'the current page is marked by `current`, rendering aria-current="page", as Link does (#2665, #3554 Q-CC15 A)' },
     'page-nav-item.selection': { prop: 'current', map: off('unselected', 'selected'), reason: 'a page navigation item marks the current page by `current`, as Link does (#3345)' },
     'link.selection': { prop: 'current', map: off('unselected', 'selected'), reason: 'a link marks the current page by `current`, rendering aria-current="page" (#2872, Q507.3 A)' },
     'accordion.expansion': { prop: 'defaultExpanded', map: off('collapsed', 'expanded'), reason: 'an accordion opens by `defaultExpanded`' },
