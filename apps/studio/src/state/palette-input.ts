@@ -77,11 +77,19 @@ export const cascadeRename = (prev: string, next: string): void => {
   const renamesColumn = cols.some((e) => e.name === undefined && e.palette === prev) && !cols.some((e) => e.name === prev);
   brandState.interactivePalettes?.forEach((e) => { if (e.palette === prev) e.palette = next; });
   if (renamesColumn) {
-    for (const m of Object.values(brandState.modeAnchors ?? {})) {
+    // A mode map left empty (its only key was a dropped leftover, and the old name had no anchor there) is pruned, as
+    // `setAnchor` prunes, and so is an emptied `modeAnchors` (#3613). Only a map this drop emptied: one already empty stays.
+    const ma = brandState.modeAnchors;
+    let pruned = false;
+    for (const mode of Object.keys(ma ?? {})) {
+      const m = ma![mode];
       if (!m) continue;
+      const stale = next in m;
       delete m[next];
       if (prev in m) { m[next] = m[prev]; delete m[prev]; }
+      if (stale && !Object.keys(m).length) { delete ma![mode]; pruned = true; }
     }
+    if (pruned && !Object.keys(ma!).length) brandState.modeAnchors = undefined;
     const heads = [[`interactive.${prev}.`, `interactive.${next}.`], [`inverse.interactive.${prev}.`, `inverse.interactive.${next}.`]];
     for (const m of Object.values(brandState.overrides ?? {})) {
       if (!m) continue;
