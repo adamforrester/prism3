@@ -28596,7 +28596,7 @@
           }
         },
         {
-          "part": "container/dismiss/dismissGlyph",
+          "part": "container/dismiss/closeGlyph",
           "kind": "instance",
           "members": 15,
           "when": {
@@ -28942,7 +28942,7 @@
               }
             },
             {
-              "part": "container/dismiss/dismissGlyph",
+              "part": "container/dismiss/closeGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.sm"
@@ -29036,7 +29036,7 @@
               }
             },
             {
-              "part": "container/dismiss/dismissGlyph",
+              "part": "container/dismiss/closeGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -29130,7 +29130,7 @@
               }
             },
             {
-              "part": "container/dismiss/dismissGlyph",
+              "part": "container/dismiss/closeGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.md"
@@ -29443,7 +29443,7 @@
               "ink": "color.interactive.neutral.text.rest"
             },
             {
-              "part": "container/dismiss/dismissGlyph",
+              "part": "container/dismiss/closeGlyph",
               "icon": "color.interactive.neutral.icon.rest"
             }
           ]
@@ -29469,7 +29469,7 @@
               "ink": "color.interactive.neutral.text.hover"
             },
             {
-              "part": "container/dismiss/dismissGlyph",
+              "part": "container/dismiss/closeGlyph",
               "icon": "color.interactive.neutral.icon.hover"
             }
           ]
@@ -29495,7 +29495,7 @@
               "ink": "color.interactive.neutral.text.pressed"
             },
             {
-              "part": "container/dismiss/dismissGlyph",
+              "part": "container/dismiss/closeGlyph",
               "icon": "color.interactive.neutral.icon.pressed"
             }
           ]
@@ -29520,7 +29520,7 @@
               "ink": "color.interactive.neutral.text.rest"
             },
             {
-              "part": "container/dismiss/dismissGlyph",
+              "part": "container/dismiss/closeGlyph",
               "icon": "color.interactive.neutral.icon.rest"
             }
           ]
@@ -29545,7 +29545,7 @@
               "ink": "color.disabled.text"
             },
             {
-              "part": "container/dismiss/dismissGlyph",
+              "part": "container/dismiss/closeGlyph",
               "icon": "color.disabled.icon"
             }
           ]
@@ -29577,7 +29577,7 @@
           "exposes": []
         },
         {
-          "part": "container/dismiss/dismissGlyph",
+          "part": "container/dismiss/closeGlyph",
           "kind": "instance",
           "component": "icon/close",
           "variant": {},

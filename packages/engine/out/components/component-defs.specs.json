@@ -35359,7 +35359,7 @@
         "dismiss": {
           "type": "container"
         },
-        "dismissGlyph": {
+        "closeGlyph": {
           "type": "instance",
           "instanceOf": "icon/close"
         }
@@ -35542,7 +35542,7 @@
               "focusRing",
               {
                 "dismiss": [
-                  "dismissGlyph"
+                  "closeGlyph"
                 ]
               }
             ]
@@ -35934,7 +35934,7 @@
                 }
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "styles": {
                 "height": {
                   "$token": "icon.size.sm",
@@ -36039,7 +36039,7 @@
                 }
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "styles": {
                 "height": {
                   "$token": "icon.size.xs",
@@ -36144,7 +36144,7 @@
                 }
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "styles": {
                 "height": {
                   "$token": "icon.size.md",
@@ -36580,7 +36580,7 @@
                 }
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "styles": {
                 "fillColor": {
                   "$token": "color.interactive.neutral.icon.rest",
@@ -36625,7 +36625,7 @@
                 }
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "styles": {
                 "fillColor": {
                   "$token": "color.interactive.neutral.icon.hover",
@@ -36670,7 +36670,7 @@
                 }
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "styles": {
                 "fillColor": {
                   "$token": "color.interactive.neutral.icon.pressed",
@@ -36711,7 +36711,7 @@
                 }
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "styles": {
                 "fillColor": {
                   "$token": "color.interactive.neutral.icon.rest",
@@ -36752,7 +36752,7 @@
                 }
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "styles": {
                 "fillColor": {
                   "$token": "color.disabled.icon",

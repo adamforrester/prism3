@@ -132,7 +132,7 @@ import { PROVIDER_LOGO_SOURCES } from './provider-logo-set';
 const MUST_COVER = [
   'icon.glyph', 'spinner.ringGlyph',
   // The icon INSTANCES (#2380): every icon-set glyph inside another component.
-  'checkbox-control.checkGlyph', 'checkbox-control.dashGlyph', 'textarea.gripGlyph', 'tag.checkGlyph', 'tag.dismissGlyph',
+  'checkbox-control.checkGlyph', 'checkbox-control.dashGlyph', 'textarea.gripGlyph', 'tag.checkGlyph', 'tag.closeGlyph',
   'field-message.errorGlyph', 'field-message.warningGlyph', 'field-message.successGlyph',
   'switch-control.onGlyph', 'switch-control.offGlyph', 'select.chevronGlyph', 'image-placeholder.markerGlyph',
   '_accordion-indicator.chevronDownGlyph', '_accordion-indicator.chevronUpGlyph', '_accordion-indicator.plusGlyph', '_accordion-indicator.minusGlyph',
@@ -353,7 +353,7 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
   },
   // TAG'S × (owner, 2026-09-28) — a plain glyph in the dismissible tag's square trailing slot, replacing the
   // nested IconButton.Neutral that showed the file's placeholder icon (a nest cannot set the nested swap).
-  'tag.dismissGlyph': {
+  'tag.closeGlyph': {
     glyph: 'close',
     at: { type: ['dismissible'] },
     why: "the × of a dismissible tag, a plain `close` glyph centered in the square remove slot (owner, 2026-09-28: NOT a nested IconButton). Present only at `type=dismissible` (`presentWhen`, the same gate its slot carries); a select tag has no ×. Fixed rather than templated: the shape is what \"remove\" looks like, not a coordinate a designer picks",

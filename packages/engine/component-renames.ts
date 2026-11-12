@@ -170,7 +170,9 @@ export const COMPONENT_RENAMES: readonly ComponentRename[] = [
   { def: 'slider', kind: 'property-rename', from: 'helper', to: 'message', issue: 3554 },
   // #3554 (owner decision Q-CC19 A) — List.Item's TEXT property takes its layer's name, `label` (the layer was renamed
   // under #2759 above). Renamed in place, so every placed item keeps the text a designer typed into it.
-  { def: 'list-item', kind: 'property-rename', from: 'text', to: 'label', issue: 3554 },
+  { def: 'list-item', kind: 'property-rename', from: 'text', to: 'label', issue: 3554 },  // #3647 (owner decision Q192 A) — Tag's × glyph is named by its shape, a fixed `close`, like the `close` control on Banner,
+  // Toast and Dialog. Renamed in place, so every placed tag keeps the overrides a designer made on the glyph.
+  { def: 'tag', kind: 'part', from: 'dismissGlyph', to: 'closeGlyph', issue: 3647 },
 ];
 
 /** The ledger's slot entry for `def`, if its rows moved into a native slot (#2649). */
