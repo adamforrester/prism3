@@ -690,6 +690,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | page-nav | — | — |
 | required | card-number-field | false | — |
 |  | checkbox-group | false | — |
+|  | code-input | false | — |
 |  | field-label | false | — |
 |  | password-field | false | — |
 |  | radio-group | false | — |
