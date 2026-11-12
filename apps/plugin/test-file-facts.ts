@@ -27,6 +27,10 @@
  *   · a layer's counts committed before every read succeeds (`pending` flushed as it fills) →
  *     `partway/the fill read before the throw is not kept`;
  *   · an unreadable layer's children left unwalked → `partway/coverage: the layer unread, its two children read`;
+ *   · `localDefs.components++` or `localDefs.componentSets++` written eagerly, outside `pending` →
+ *     `partway definitions/an unread component and set count no local definition`;
+ *   · `missingMain++` written eagerly → `partway definitions/an unread main-less instance counts no missing main`;
+ *     never committed → `partway definitions/a readable main-less instance counts one missing main`;
  *   · `btn` or `cta` dropped from `BUTTON_WORD` → `button words/a frame named "btn" is button-like; …` (or "cta").
  */
 import { readFileSync } from 'node:fs';
@@ -366,6 +370,26 @@ section('partway counters — an instance and a text layer whose child list thro
   ok(eq(r.styles.text.map((x) => [x.name, x.layers]), [['Body', 0]]), "partway counters/the text layer's text style counts no layer", r.styles.text);
   ok(eq(r.variables.variables.map((x) => [x.name, x.boundLayers]), [['brand/blue', 0]]), 'partway counters/the bound variable counts no layer', r.variables.variables);
   ok(r.usage.paints.length === 0 && r.components.used.length === 0, 'partway counters/no usage row and no component row', [r.usage.paints, r.components.used]);
+}
+
+/* ── the definition and missing-main counters, unread and read (re-review of #3685, second round) ───────────────────── */
+section('partway definitions — a component, a set and a main-less instance whose child list throws; a readable main-less instance');
+{
+  // The three unread layers reach `children` after queuing their counter, so an eager counter would show here as a 1.
+  // The readable main-less instance pins `missingMain` from the other side: a counter never committed would read 0.
+  const throwsKids = <T extends object>(n: T) => Object.defineProperty(n, 'children', { get() { throw new Error('children could not be read'); }, enumerable: true }) as FactsNode;
+  const comp = throwsKids({ id: 'comp', type: 'COMPONENT', name: 'Card' });
+  const set = throwsKids({ id: 'set', type: 'COMPONENT_SET', name: 'Chip' });
+  const lost = throwsKids({ id: 'lost', type: 'INSTANCE', name: 'Card', mainComponentId: 'gone' });
+  const unread = await scanFileFacts(sourceFromSnapshot({ collections: [], variables: [], styles: { paint: [], text: [], effect: [], grid: [] },
+    components: [], pages: [{ id: 'p', name: 'P', children: [comp, set, lost] }] }));
+  ok(validate(SCHEMA, unread).length === 0, 'partway definitions/the report matches schema/file-facts.schema.json', validate(SCHEMA, unread).slice(0, 5));
+  ok(unread.coverage.unreadableLayers === 3 && unread.coverage.instances === 0, 'partway definitions/coverage: all three unread, no instance counted', unread.coverage);
+  ok(eq(unread.components.localDefinitions, { components: 0, componentSets: 0 }), 'partway definitions/an unread component and set count no local definition', unread.components.localDefinitions);
+  ok(unread.components.missingMain === 0, 'partway definitions/an unread main-less instance counts no missing main', unread.components.missingMain);
+  const read = await scanFileFacts(sourceFromSnapshot({ collections: [], variables: [], styles: { paint: [], text: [], effect: [], grid: [] },
+    components: [], pages: [{ id: 'p', name: 'P', children: [{ id: 'lost', type: 'INSTANCE', name: 'Card', mainComponentId: 'gone', children: [] }] }] }));
+  ok(read.components.missingMain === 1 && read.coverage.instances === 1, 'partway definitions/a readable main-less instance counts one missing main', [read.components.missingMain, read.coverage]);
 }
 
 /* ── the button words, each on its own (ROLE_RULE name-and-type/1) ──────────────────────────────────────────────────── */
