@@ -274,6 +274,29 @@ export const COLUMN_REFS: readonly NameRef[] = [
     },
     effects: () => [],
   },
+  {
+    field: 'outlineHoverFill.<mode>.sets.<column>', kind: 'column',
+    rename: (b, p, n) => {
+      for (const m of Object.values((b.outlineHoverFill ?? {}) as ByMode)) {
+        if (!m || !isObj(m.sets)) continue;
+        delete m.sets[n];
+        if (p in m.sets) { m.sets[n] = m.sets[p]; delete m.sets[p]; }
+      }
+    },
+    remove: (b, x) => {
+      const ohf = b.outlineHoverFill as ByMode | undefined;
+      let dropped = false;
+      for (const mode of Object.keys(ohf ?? {})) {
+        const m = ohf![mode];
+        if (!m || !isObj(m.sets) || !(x in m.sets)) continue;
+        delete m.sets[x]; dropped = true;
+        if (!Object.keys(m.sets).length) delete m.sets;
+        if (!m.hover && !m.sets) delete ohf![mode];
+      }
+      if (dropped && !Object.keys(ohf!).length) delete b.outlineHoverFill;
+    },
+    effects: () => [],
+  },
 ];
 
 // ── mode rows ───────────────────────────────────────────────────────────────────────────────────
