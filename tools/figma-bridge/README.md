@@ -38,6 +38,15 @@ A wrong code is closed with 4403; after 5 wrong codes the server retires the cod
 A code lasts 10 minutes. After 3 codes are retired, pairing closes until the next request. Once a plugin
 has proved its token, no code is live, so a paired machine has none.
 
+**The server proves itself too (#3697 R8, the owner's A).** The plugin draws its own random
+`clientNonce` for every connection and sends it with its pair and its hello. The `welcome` carries
+`proof: HMAC(token, "prism3-bridge-welcome-v1:" + clientNonce)`, and the `paired` carries
+`proof: HMAC(code, "prism3-bridge-paired-v1:" + clientNonce + ":" + token)`. The plugin hears neither
+without a proof that verifies, and ignores a `paired` while it has no code pending, so a process holding the
+port while this server is down can't drive the open file. A hello or pair without a well-formed
+`clientNonce` is refused like a wrong proof. A plugin built before this change sends none, so update the
+server and the plugin together.
+
 The token comes from a random secret the server keeps in a user-only file (mode 0600, in a 0700
 directory): `$PRISM3_BRIDGE_CONFIG`, else `~/.config/prism3/figma-bridge.json` (`$XDG_CONFIG_HOME`
 when set, `%APPDATA%` on Windows), or the path given with `--config`. Pairing survives a restart.

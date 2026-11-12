@@ -18,7 +18,7 @@
  * Arms, by name: mcp · relay/url · instructions/length · instructions/rules · instructions/same · resources/capability ·
  * resources/list · resources/resolve · resources/public-only · served/no-file-keys (#3300) · pair/on-demand · no-plugin · origin/refused · pair/secret-file · pair/expiry · pair/cap · pair/challenge · pair/wrong-code · pair/replay · pair/limit · pair/no-request · pair/no-evict ·
  * handshake · fragmented · ping · run · stream · progress · big-frame · timeout · unmasked · disconnect · reconnect ·
- * resend/hand · pair/relay · pair/not-in-file · pair/refused · e2e/routes · e2e/parity · resend/e2e · resend/running ·
+ * resend/hand · server-proof/<arm> · pair/relay · pair/not-in-file · pair/refused · e2e/routes · e2e/parity · resend/e2e · resend/running ·
  * mcp/args (#2639; mutation: the hand-typed args line back → `mcp/args`) · e2e/link-off · e2e/switch-off · bridge/<read> · envelope/<read> · no-write/<read> · context/commands · context/engine-mcp · context/read-first (#3300 B) ·
  * arm/0-starts · arm/1-starts · arm/<n>-context · arm/<n>-resources · arm/no-leak · arm/1-note · record/calls · record/args · arm/bad-value (#3440;
  * mutation: one sentence of the note leaked into arm 0's figma_status description → `arm/no-leak: arm 0's tools/list …`;
@@ -49,6 +49,15 @@
  * its first retirement → `pair/cap` (review S3). The window arms drive `createPairing` in process on an injected clock.
  * Only the stdio agent opens a window (review B3): a `pair` message on the socket issuing a code when none is live
  * (`if (pairing.code() === null) pairing.request();` before `pairOk`) → `pair/no-request`, against the spawned server.
+ *
+ * #3697 R8 (the owner's A): the server proves itself back. `server-proof/welcome`, `server-proof/paired` and
+ * `server-proof/no-nonce` read the spawned server's answers against proofs derived here with `node:crypto`; the relay
+ * arms drive the real relay over a fake socket that speaks for an impostor on the port: `server-proof/impostor` (a
+ * welcome with no proof, or proved with another token), `server-proof/replay` (proved over an earlier nonce),
+ * `server-proof/unsolicited-paired` (a paired with no code pending), `server-proof/impostor-paired` (a code pending, the
+ * wrong proof). MUTATIONS, each failing by name: the relay's welcome check removed → `server-proof/impostor`; its paired
+ * checks removed → `server-proof/unsolicited-paired` and `server-proof/impostor-paired`; the server's welcome sent with
+ * no proof → `server-proof/welcome` and `pair/relay`.
  *
  * #2497: the server runs with a short `--grace-ms`, so a dropped plugin's command fails in seconds here. `resend/e2e`
  * drops the real relay's socket while a command runs in the real main.ts, keeps it down until the result is
