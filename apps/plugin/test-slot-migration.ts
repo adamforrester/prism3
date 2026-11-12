@@ -53,6 +53,7 @@ import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost } from './src/
 import { captureSlotMigration, fillSlots, migrationLines, type MigNode } from './src/slot-migration';
 import { slotMigrationFor } from './src/update-plan';
 import { COMPONENT_RENAMES, slotMigrationOf } from '@prism3/engine/component-renames';
+import { UPDATING_KEY } from './src/member-baseline';
 
 let failed = 0, executed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -310,6 +311,55 @@ section('carry — a Checkbox group instance with five visible rows becomes five
     `converge/checkbox: the next dry run has nothing to carry and every member reads current (${JSON.stringify(again.sets[0].counts)})`);
   ok(again.sets[0].properties.remove.length === 0,
     `converge/booleans gone: the next dry run has no property left to remove (${again.sets[0].properties.remove.map((p) => p.name).join(', ')})`);
+}
+
+// ---- stopped ------------------------------------------------------------------------------------------------------
+
+section('stopped — a set that stops at member N still fills the instances of the members it reached (#3697 H1)');
+{
+  // The host throws as the update marks member N in progress, the first write of its update, so the members before it
+  // are finished (they hold the slot, and have lost their rows) and member N and those after it are untouched. The
+  // capture is in memory only: a fill skipped on the stop is content the next run can no longer read. Mutation: the
+  // stopped set not filled (`!o.stopped` back on the fill) → `stopped/earlier kept`.
+  const target: UpdateTarget = { def: 'checkbox-group', plans: figmaAnatomySet(defOf('checkbox-group'), { swapTarget: SWAP_TARGET }) };
+  const w = await world(LEGACY['checkbox-group'](), target.plans);
+  const members = w.set().children as Node[];
+  const marks: Node[] = [];
+  for (const m of members) {
+    const real = m.setSharedPluginData as (ns: string, k: string, v: string) => void;
+    m.setSharedPluginData = (ns: string, k: string, v: string) => {
+      if (k === UPDATING_KEY && v) { marks.push(m); if (marks.length === 3) throw new Error('in setSharedPluginData: the host stopped'); }
+      real.call(m, ns, k, v);
+    };
+  }
+  // Which members are marked first is the executor's order: read it from a dry pass of the marks, by placing an
+  // instance on every member and naming the earliest and the last after the run.
+  const placedOn = new Map<Node, Placed>();
+  for (const [i, m] of members.entries()) {
+    placedOn.set(m, w.put(place(`Filters ${i + 1}`, m, w.set(), {}, {
+      row1: { props: { 'Label#1:0': `Email ${i + 1}` }, control: 'checked' },
+      row2: { props: { 'Label#1:0': `SMS ${i + 1}` } },
+    }), m));
+  }
+  const pre = await previewUpdate(w.host, [target]);
+  const res = await applyUpdate(w.host, w.api as any, [target], previewHashOf(pre));
+  const o = res.outcomes[0];
+  ok(!!o?.stopped && /the host stopped/.test(o.stopped) && marks.length === 3,
+    `premise: the set stopped as the update marked its third member (${o?.stopped}; ${marks.length} marks of ${members.length} members)`);
+  const first = placedOn.get(marks[0])!, stoppedAt = placedOn.get(marks[2])!;
+  const labels = (inst: Placed): unknown[] => (slotOf(inst)?.children ?? []).map((x) => (x.componentProperties as Record<string, { value: Val }>)['Label#1:0']?.value);
+  ok(!!slotOf(first) && JSON.stringify(labels(first).slice(0, 2)) === JSON.stringify([`Email ${members.indexOf(marks[0]) + 1}`, `SMS ${members.indexOf(marks[0]) + 1}`]),
+    `stopped/earlier kept: an instance of a member finished before the stop holds its rows' content in the slot (${JSON.stringify(labels(first))})`);
+  const checked = (slotOf(first)?.children ?? []).map((x) => ((x.exposedInstances as Model[] | undefined)?.[0]?.componentProperties as Record<string, { value: Val }> | undefined)?.selection?.value);
+  ok(checked[0] === 'checked', `stopped/earlier state: its first item keeps the row's checked state (${JSON.stringify(checked)})`);
+  ok(!slotOf(stoppedAt) && stoppedAt.children.some((c) => c.name === 'row1'),
+    `stopped/later untouched: an instance of the member the stop hit still has its rows, for the next run to read (${stoppedAt.children.map((c) => c.name).join(',')})`);
+  ok(!!o.carried && !o.carried.misses.some((m) => m.includes('after the update')),
+    `stopped/no false miss: an unreached instance is not reported as missing its slot (${JSON.stringify(o.carried?.misses ?? [])})`);
+  const again = await previewUpdate(w.host, [target]);
+  const caps = again.sets[0].slotMigration?.instances.map((c) => c.name) ?? [];
+  ok(!caps.includes(first.name) && caps.includes(stoppedAt.name),
+    `stopped/rerun: the next dry run reads the untouched instance's rows, and has nothing left to read on the filled one (${JSON.stringify(caps)})`);
 }
 
 // ---- tabs ----------------------------------------------------------------------------------------------------
