@@ -443,6 +443,14 @@
   font-weight: var(--p3-fw-bold); letter-spacing: var(--p3-ls-tightest); line-height: var(--p3-lh-compact); white-space: nowrap;
 }
 .p3-preview-head > .p3-popwrap { margin-left: auto; }
+/* #3553 Q-UI1 A: at 1280 the mode control fell back to its select on the pages with longer titles (Style guide, Surfaces &
+   fills, Shape, Depth & motion), so the control changed form between tabs. The fit logic stays; the header gives it
+   room at the wide tier instead: the Contrast tile sets its icon beside its word rather than above it, and Inspect is
+   its icon alone. */
+.p3-frame[data-w="wide"] .p3-preview-head > .p3-tile-start { flex-direction: row; gap: var(--p3-space-075); }
+.p3-frame[data-w="wide"] .p3-preview-head [data-p3="inspect-open"] > :is(.p3-btn-label, .p3-ico:last-child) { display: none; }
+/* Square, as the chrome's other icon buttons (`.p3-btn-icon`), at the control height. */
+.p3-frame[data-w="wide"] .p3-preview-head [data-p3="inspect-open"] { padding: 0; min-width: var(--p3-ctl-h-sm); justify-content: center; }
 /* A button on the page ground takes the page's edge (B1), not the bar's. */
 .p3-btn-page { border-color: var(--p3-edge); }
 /* The mode control (Q1, model B): a radio group on the bar's step, the selected mode filled like a selected
