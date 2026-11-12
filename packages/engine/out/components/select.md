@@ -74,9 +74,9 @@ Use to choose one value from a known, bounded set where the options are not wort
 
 ### Motion
 
-- **Enter:** The open list (the platform's or a listbox component's): ~100–150ms opacity fade with a small vertical translate (translateY(-4px) → 0), anchored to the control. The chevron rotates on open under the same rule.
-- **Exit:** The open list closes faster than it opens — ~75ms, a fade without translate — so dismissal reads as instant.
-- **Reduced motion:** Under prefers-reduced-motion, drop the translate and scale and keep an accelerated opacity fade (~50ms); the chevron rotation follows the same rule. The closed control's border and state changes are short token-driven transitions, text-field's ~100–150ms, and resolve to an instant color change under reduced motion.
+- **Enter:** The open list (the platform's or a listbox component's): an opacity fade with a small vertical translate (translateY(-4px) → 0) on motion.duration.fast with motion.easing-role.enter, anchored to the control. The chevron rotates on open under the same rule.
+- **Exit:** The open list closes faster than it opens — a fade without translate on motion.duration.instant with motion.easing-role.exit — so dismissal reads as instant.
+- **Reduced motion:** Under prefers-reduced-motion, drop the translate and scale and keep an opacity fade on motion.duration-reduced.instant both ways; the chevron rotation follows the same rule. The closed control's border and state changes follow text-field's, motion.duration.fast, and run on motion.duration-reduced.fast under reduced motion.
 
 ## Content guidelines
 
