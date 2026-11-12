@@ -24,6 +24,13 @@ code comments, where they read as code.
 - The sidecar truth block's prose arm now reads `$description` with the other prose fields: capitals, each backticked
   path resolving, and no bare name. "CSS" joins its acronym list; the letter-spacing descriptions use it as the term
   it is.
+- The "no bare name" check takes its families from each brand's emitted tree (its top-level groups and `color`'s
+  groups) over a hand-written floor, never from `tree.ts`'s quoting list. So a family the source stops quoting
+  (`opacity`, `control`, `focus`, `blur`, `shadow`, `glass`, …) still fails.
+- A new arm, `#3555 Q-MD2 token tree prose`, walks every brand's committed `out/<brand>.tokens.json` (the five brands
+  read from `out/`). It holds each `$description` and each per-mode `description` to the same three checks. Its scope
+  check requires every brand, each with more than 500 `$description`s and 100 per-mode lines. The base and overlay
+  projections aren't walked: `regen --check` keeps them in step with the canonical tree.
 - `lint-description-claims` reads a backticked partner ("4.5:1 on `background.secondary`") the same way as a bare one. A
   new self-check holds both forms. Without it, a lost backtick arm would fall back to the leaf's `against`, and pass
   wherever the two agree.
@@ -32,3 +39,7 @@ code comments, where they read as code.
 Mutations, each failing by name:
 - One `$description` unquoted in the committed sidecar → `sidecar paths: … unquoted background.secondary`.
 - The backtick arm dropped from the claims grammar → `self-check: "… on \`background.secondary\`" reads partner none`.
+- `opacity` dropped from `tree.ts`'s `PATH_FAMILIES`, then regenerated → `sidecar paths: … unquoted opacity.3` and
+  `#3555 Q-MD2 token tree prose: … unquoted opacity.3`.
+- The per-mode quoting branch dropped from `quoteDescriptionPaths`, then regenerated → `#3555 Q-MD2 token tree prose:
+  … — 900: aurora color.foreground.brand modes.hc-light.description: unquoted background.s…`.

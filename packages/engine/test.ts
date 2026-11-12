@@ -10399,8 +10399,16 @@ arm: {
   const isGround = (role: string) => { const s = role.replace(/^inverse\./, '').split('.'); return ['background', 'foreground', 'scrim', 'veil'].includes(s[0]) || s.includes('fill') || s.includes('overlay'); };
   const isBorder = (role: string) => role.replace(/^inverse\./, '').split('.').includes('border');
   const PATHISH = /^[a-z][a-z0-9-]*(?:\.[a-z0-9*-]+)+$/;
-  // Role-shaped names written OUTSIDE backticks — prose the path arm could not otherwise see.
-  const BARE = /\b(?:text|icon|background|foreground|border|interactive|disabled|field|scrim|veil|inverse|type|core|color|font|space|radius|size|motion)\.[a-z0-9*<]/g;
+  // Role-shaped names written OUTSIDE backticks — prose the path arm could not otherwise see. The families are read
+  // per brand from the EMITTED tree: its top-level groups, plus `color`'s groups for the role-relative names. They are
+  // never imported or copied from `tree.ts`'s quoting list (#3555 Q-MD2 review): a gate that shares its subject's list
+  // cannot fail on the subject's omissions (docs/34). This hand list is a floor under the tree's.
+  const BARE_FLOOR = ['text', 'icon', 'background', 'foreground', 'border', 'interactive', 'disabled', 'field', 'scrim', 'veil', 'inverse', 'type', 'core', 'color', 'font', 'space', 'radius', 'size', 'motion'];
+  const bareRe = (tree: any): RegExp => {
+    const groups = (o: any) => Object.keys(o ?? {}).filter((k) => !k.startsWith('$'));
+    const fams = [...new Set([...BARE_FLOOR, ...groups(tree), ...groups(tree?.color)])];
+    return new RegExp(`\\b(?:${fams.map((f) => f.replace(/-/g, '\\-')).join('|')})\\.[a-z0-9*<]`, 'g');
+  };
   // The AI/A-11 exemption that stood here (held for #1614) is gone (#3555 S1): #1614 shipped, and the
   // `foreground.<category>-subtle` names it let through were false in every brand (#3555 F2). Bare names now fail
   // the BARE arm like any other.
@@ -10424,6 +10432,7 @@ arm: {
     const tj = JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'));
     const ai = JSON.parse(readFileSync(resolve(HERE, `out/${b}.ai.json`), 'utf8'));
     const root = Object.keys(tj).find((k) => !k.startsWith('$'))!;
+    const BARE = bareRe(tj[root]);
     const at = (p: string): any => p.split('.').reduce((o: any, k) => o?.[k], tj[root]);
     const leaves: string[] = [];
     const walk = (o: any, p: string[]) => { if (!o || typeof o !== 'object') return; if (o.$type !== undefined) { leaves.push(p.join('.')); return; } for (const [k, v] of Object.entries(o)) if (!k.startsWith('$')) walk(v, [...p, k]); };
@@ -10669,6 +10678,52 @@ arm: {
     && entriesChecked > 2_500 && skillNamesChecked >= 4 * 10 && capsChecked > 3_000 && limitsChecked > 800 && tracking > 50,
     `sidecar gate scope: ${pathsChecked} paths, ${pairsChecked} legibility relations (+${tracking} tracks), ${cwChecked} contrast_with, ${clausesChecked} surface clauses, ${entriesChecked} tree leaves, ${skillNamesChecked} skill names, ${capsChecked} prose fields for capitals, ${limitsChecked} usage-limit checks across ${BRANDS.length} brands`);
   ok(pathBad.length === 0, 'sidecar paths: every token path named in .ai.json resolves in the brand\'s emitted tree' + (pathBad.length ? ` — ${pathBad.length}: ${pathBad.slice(0, 5).join(' | ')}` : ''));
+
+  // #3555 Q-MD2 A, THE TREE'S OWN PROSE. The arm above reads `.ai.json` only, so the DTCG tree's per-mode
+  // `description`s, and the `$description`s of tokens outside the sidecar's tiers, were quoted at the source and held
+  // by nothing (#3667 review: dropping the per-mode quoting branch left every gate green). This walks every brand's
+  // COMMITTED `out/<brand>.tokens.json`, the brands read from `out/` itself, and holds each `$description` and each
+  // `$extensions.prism3.modes.<mode>.description` to the same three checks: no capitals for emphasis, every
+  // backticked path resolves in that tree (as a path, or under `color.`), and no family-shaped name outside backticks.
+  {
+    const treeBrands = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f)).map((f) => f.replace(/\.tokens\.json$/, '')).sort();
+    const treeBad: string[] = [];
+    const seen = new Map<string, { desc: number; mode: number }>();
+    for (const b of treeBrands) {
+      const tj = JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'));
+      const root = Object.keys(tj).find((k) => !k.startsWith('$'))!;
+      const BARE = bareRe(tj[root]);
+      const leaves: string[] = [];
+      const collect = (o: any, p: string[]) => { if (!o || typeof o !== 'object') return; if (o.$type !== undefined) leaves.push(p.join('.')); for (const [k, v] of Object.entries(o)) if (!k.startsWith('$')) collect(v, [...p, k]); };
+      collect(tj[root], []);
+      const at = (p: string): any => p.split('.').reduce((o: any, k) => o?.[k], tj[root]);
+      const globRe = (p: string) => new RegExp('^' + p.split('.').map((s) => s.split('*').map((x) => x.replace(/[-]/g, '\\-')).join('[^.]*')).join('\\.') + '(?:\\..+)?$');
+      const exists = (p: string) => (p.includes('*') ? leaves.some((l) => globRe(p).test(l)) : at(p) !== undefined);
+      const n = { desc: 0, mode: 0 };
+      const check = (where: string, t: string) => {
+        const shout = (t.replace(/`[^`]*`/g, '').match(/\b[A-Z]{2,}\b/g) ?? []).filter((w) => !ACRONYMS.has(w));
+        if (shout.length) treeBad.push(`${b} ${where}: capitals for emphasis ${[...new Set(shout)].join(', ')}`);
+        for (const m of t.matchAll(/`([^`]+)`/g)) if (PATHISH.test(m[1]) && !exists(m[1]) && !exists(`color.${m[1]}`)) treeBad.push(`${b} ${where}: \`${m[1]}\` resolves to no token`);
+        const bare = t.replace(/`[^`]*`/g, '').match(BARE);
+        if (bare) treeBad.push(`${b} ${where}: unquoted ${bare.join(', ')}`);
+      };
+      const walk = (o: any, p: string[]) => {
+        if (!o || typeof o !== 'object') return;
+        if (typeof o.$description === 'string') { n.desc++; check(`${p.join('.') || '(root)'} $description`, o.$description); }
+        for (const [m, v] of Object.entries<any>(o.$extensions?.prism3?.modes ?? {})) if (typeof v?.description === 'string') { n.mode++; check(`${p.join('.')} modes.${m}.description`, v.description); }
+        for (const [k, v] of Object.entries(o)) if (!k.startsWith('$')) walk(v, [...p, k]);
+      };
+      walk(tj[root], []);
+      seen.set(b, n);
+    }
+    // Represented, not counted (docs/34): every brand the sidecar arm reads plus `prism3`, and each one carrying both
+    // kinds of prose, so a walk that stopped reading per-mode lines, or a brand, fails here rather than passing empty.
+    const want = [...BRANDS, 'prism3'];
+    const thin = want.filter((b) => !(seen.get(b)?.desc! > 500 && seen.get(b)?.mode! > 100));
+    ok(thin.length === 0 && treeBrands.length >= want.length,
+      `#3555 Q-MD2 token tree prose scope: ${[...seen].map(([b, v]) => `${b} ${v.desc} $description + ${v.mode} per-mode`).join(', ')}${thin.length ? ` — too thin or missing: ${thin.join(', ')}` : ''}`);
+    ok(treeBad.length === 0, '#3555 Q-MD2 token tree prose: every $description and per-mode description in out/<brand>.tokens.json backticks each token name, each resolves, and none uses capitals for emphasis' + (treeBad.length ? ` — ${treeBad.length}: ${treeBad.slice(0, 5).join(' | ')}` : ''));
+  }
 
 // THE TINTED WASH IN THE SIDECAR (2026-09-29). Every overlay-neutral brand now carries one tinted wash,
 // `interactive.primary.subtle-fill.selected`, whose `$value` is a literal composite — which exposed two readings
