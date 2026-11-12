@@ -40479,7 +40479,7 @@
           }
         },
         {
-          "part": "container/current",
+          "part": "container/label",
           "kind": "text",
           "members": 2,
           "when": {
@@ -40544,7 +40544,7 @@
           },
           "parts": [
             {
-              "part": "container/current",
+              "part": "container/label",
               "textStyle": "type.body.md.default"
             }
           ]
@@ -40555,7 +40555,7 @@
           },
           "parts": [
             {
-              "part": "container/current",
+              "part": "container/label",
               "textStyle": "type.body.sm.default"
             }
           ]
@@ -40587,7 +40587,7 @@
           },
           "parts": [
             {
-              "part": "container/current",
+              "part": "container/label",
               "ink": "color.text.primary"
             }
           ]
