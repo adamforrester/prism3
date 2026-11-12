@@ -49,6 +49,8 @@
  * #3566 (owner decision A, before the first scored run): `DATE_RE`'s `birth[-_ ]?dates?` dropped →
  * `R5/birthdate-word` (1 of 99); the identifier normalization (`words`: `[-_]` and camelCase to spaces) made the identity
  * → `R5/ident-camel`, `R5/ident-snake` (2 of 99). 99 assertions run.
+ * #3566 review: the `data-component` check back to `[-_]` only → `R5/data-component-camel`; the id/class check back to
+ * `[-_]` only → `R5/class-camel` (1 of 101 each). 101 assertions run.
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -350,6 +352,13 @@ if (o) {
   const snakeDob = await run(edit('<button', '<div class="field" data-component="text-field"><label for="sd">Your day</label><input id="sd" name="dob_field" type="text"></div>\n  <button'));
   ok(snakeDob.r5 === 'faked' && snakeDob.violations.some((v) => v.where.includes('input#sd (a control that reads as a date)')),
     `R5/ident-snake: name=dob_field reads as "dob field", a date (${v5(snakeDob)})`);
+  // The other two sites `words` reads at, each alone: "datePicker" matches no DATE_RE word raw, only as "date Picker".
+  const dcCamel = await run(edit('<button', '<div data-component="datePicker"></div>\n  <button'));
+  ok(dcCamel.r5 === 'faked' && dcCamel.violations.some((v) => v.where.includes('(a data-component naming a date)')),
+    `R5/data-component-camel: data-component="datePicker" names a date (${v5(dcCamel)})`);
+  const classCamel = await run(edit('<button', '<div class="datePicker"><button type="button">Pick a day</button></div>\n  <button'));
+  ok(classCamel.r5 === 'faked' && classCamel.violations.some((v) => v.where.includes('div.datePicker (an element styled as a date)')),
+    `R5/class-camel: a div.datePicker that holds a button is styled as a date (${v5(classCamel)})`);
 }
 await closeBrowser();
 
