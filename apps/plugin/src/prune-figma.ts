@@ -489,7 +489,13 @@ export interface PruneResult {
    *  computed from the same file state (the normal path). Recorded, never thrown, so a race that dropped
    *  a name between compute and apply is reported rather than silent. */
   misses: string[];
+  /** #3697 R6: items whose own `remove()` threw, as `<kind>:<name>`. Each removal is tried on its own, so one
+   *  that throws is recorded here and the run goes on to the next; the counts above stay true. */
+  failed: string[];
 }
+
+/** An empty result — the running counts `applyPrunePlan` fills in place (#3697 R6). */
+export const emptyPruneResult = (): PruneResult => ({ variables: 0, collections: 0, modes: 0, styles: 0, misses: [], failed: [] });
 
 /**
  * Delete exactly what `plan` names, and nothing else. Variables are matched by (collection name,
@@ -508,8 +514,13 @@ export interface PruneResult {
  * (the detector only proposes modes inside plan-owned collections), so the order changes no outcome — but
  * it keeps the destructive-and-narrow step ahead of the destructive-and-wide one, so a throw in the
  * collection sweep cannot leave a half-reconciled mode set behind it.
+ *
+ * EACH REMOVAL IS TRIED ON ITS OWN, AND THE COUNTS RUN IN PLACE (#3697 R6, H2). A `remove()` that throws is
+ * recorded in `failed` and the run moves on; the counts count only removals that returned. They are kept in
+ * `counts`, which the caller owns, so a throw outside a removal (a read of the file) still leaves the caller
+ * holding what was removed before it, and the verdict never says 0 for a half-pruned file.
  */
-export const applyPrunePlan = async (plan: PrunePlan, api: PruneApi): Promise<PruneResult> => {
+export const applyPrunePlan = async (plan: PrunePlan, api: PruneApi, counts: PruneResult = emptyPruneResult()): Promise<PruneResult> => {
   const collections = await api.getLocalVariableCollectionsAsync();
   const vars = await api.getLocalVariablesAsync();
   const stylesByKind: Record<StyleKind, RemovableStyle[]> = {
@@ -518,7 +529,11 @@ export const applyPrunePlan = async (plan: PrunePlan, api: PruneApi): Promise<Pr
     paint: await api.getLocalPaintStylesAsync(),
     grid: await api.getLocalGridStylesAsync(),
   };
-  const misses: string[] = [];
+  const misses = counts.misses;
+  /** One removal, tried on its own: true when it returned, false (and recorded) when it threw. */
+  const tryRemove = (label: string, remove: () => void): boolean => {
+    try { remove(); return true; } catch (e) { counts.failed.push(`${label} (${(e as Error)?.message ?? String(e)})`); return false; }
+  };
 
   // Every property the executor matches on, read BEFORE the first `remove()` (see above). `gone` marks what
   // this run removed, so an object two plan groups both name is removed once and never read again; the
@@ -535,7 +550,6 @@ export const applyPrunePlan = async (plan: PrunePlan, api: PruneApi): Promise<Pr
   // Orphan variables, scoped to their own collection by id so a name shared across collections can't
   // cross-delete.
   const collByName = new Map(liveColls.map((c) => [c.name, c] as const));
-  let variables = 0;
   for (const grp of plan.variables) {
     const coll = collByName.get(grp.collection);
     if (!coll) {
@@ -546,10 +560,11 @@ export const applyPrunePlan = async (plan: PrunePlan, api: PruneApi): Promise<Pr
     const found = new Set<string>();
     for (const v of liveVars) {
       if (!v.gone && v.collectionId === coll.id && want.has(v.name)) {
-        v.obj.remove();
-        v.gone = true;
+        // Found, whether or not its removal returns: a throw is a failure, not a miss. Marked gone either way, so
+        // the object is never touched again.
         found.add(v.name);
-        variables++;
+        v.gone = true;
+        if (tryRemove(`var:${grp.collection}/${v.name}`, () => v.obj.remove())) counts.variables++;
       }
     }
     for (const n of grp.names) if (!found.has(n)) misses.push(`var:${grp.collection}/${n}`);
@@ -558,7 +573,6 @@ export const applyPrunePlan = async (plan: PrunePlan, api: PruneApi): Promise<Pr
   // Stale modes, by modeId inside their own collection. Resolved against the live mode list rather than
   // removed blind, so a mode that has already gone is a miss (named by its NAME, which is what a designer
   // recognises) instead of a throw out of Figma's `removeMode`.
-  let modesRemoved = 0;
   for (const grp of plan.modes) {
     const entry = collByName.get(grp.collection);
     if (!entry) {
@@ -571,9 +585,9 @@ export const applyPrunePlan = async (plan: PrunePlan, api: PruneApi): Promise<Pr
     const removed: string[] = [];
     for (const m of grp.modes) {
       if (!coll.modes.some((x) => x.modeId === m.modeId)) { misses.push(`mode:${grp.collection}/${m.name}`); continue; }
-      coll.removeMode(m.modeId);
+      if (!tryRemove(`mode:${grp.collection}/${m.name}`, () => coll.removeMode(m.modeId))) continue;
       removed.push(m.name);
-      modesRemoved++;
+      counts.modes++;
     }
     // A pruned mode leaves the collection's planned-modes record too (#1704): the prune plan is built from the
     // knobs, which need not have been applied, so a mode the last apply planned can be removed here — and a
@@ -584,34 +598,28 @@ export const applyPrunePlan = async (plan: PrunePlan, api: PruneApi): Promise<Pr
 
   // Stranded collections — the whole collection, its variables with it.
   const strand = new Set(plan.collections);
-  let collectionsRemoved = 0;
   for (const c of liveColls) {
-    if (strand.has(c.name)) {
-      c.obj.remove();
-      collectionsRemoved++;
-    }
+    if (strand.has(c.name) && tryRemove(`collection:${c.name}`, () => c.obj.remove())) counts.collections++;
   }
   const presentCollections = new Set(liveColls.map((c) => c.name));
   for (const name of plan.collections) if (!presentCollections.has(name)) misses.push(`collection:${name}`);
 
   // Orphan styles, by name WITHIN their kind — a `shadow/lg` effect style and a `shadow/lg` paint style
   // are two different objects on two different APIs, so the kind is part of the key.
-  let stylesRemoved = 0;
   for (const grp of plan.styles) {
     const want = new Set(grp.names);
     const found = new Set<string>();
     for (const s of liveStyles[grp.kind] ?? []) {
       if (!s.gone && want.has(s.name)) {
-        s.obj.remove();
-        s.gone = true;
         found.add(s.name);
-        stylesRemoved++;
+        s.gone = true;
+        if (tryRemove(`${grp.kind}-style:${s.name}`, () => s.obj.remove())) counts.styles++;
       }
     }
     for (const n of grp.names) if (!found.has(n)) misses.push(`${grp.kind}-style:${n}`);
   }
 
-  return { variables, collections: collectionsRemoved, modes: modesRemoved, styles: stylesRemoved, misses };
+  return counts;
 };
 
 /* ── prose (shipped in the plugin bundle; voice-standard applies) ────────────────────────────────── */
@@ -707,7 +715,50 @@ export const prunePreviewSummary = (p: PrunePlan): string => {
 /** The verdict text after a prune runs — what was removed, in the file's terms (no congratulation). */
 export const pruneAppliedSummary = (r: PruneResult): string => {
   const total = r.variables + r.collections + r.modes + r.styles;
-  if (total === 0) return 'Nothing removed — the file held no stale items in this theme’s namespace.';
+  const failNote = r.failed.length ? ` ${PRUNE_COPY.failed(r.failed.length)}` : '';
+  if (total === 0) return r.failed.length ? `Nothing removed.${failNote}` : 'Nothing removed — the file held no stale items in this theme’s namespace.';
   const missNote = r.misses.length ? ` ${r.misses.length} named item${r.misses.length === 1 ? '' : 's'} could not be found.` : '';
-  return `Removed ${total} stale item${total === 1 ? '' : 's'}: ${parts(r.styles, r.modes, r.variables, r.collections)}.${missNote}`;
+  return `Removed ${total} stale item${total === 1 ? '' : 's'}: ${parts(r.styles, r.modes, r.variables, r.collections)}.${missNote}${failNote}`;
 };
+
+/**
+ * #3697 R6 (H2): the lines a confirmed prune says when it removes nothing, or stops partway. Every one is a DRAFT for the
+ * owner (OWNER DECISION on R6's PR): the decision named the behavior, not the words.
+ */
+export const PRUNE_COPY = {
+  /** DRAFT: the confirm's input is not the brand the file holds (`holdsInput`), so the plan may name what the file still uses. */
+  notApplied: "Nothing removed — the file doesn't hold this brand yet. Apply the theme first, then check again.",
+  /** DRAFT: the confirm's `previewHash` is not the plan a fresh read gives now. */
+  moved: 'Nothing removed — the file changed after the check. Check again.',
+  /** DRAFT: the named version could not be saved, so nothing is removed. */
+  noVersion: (why: string): string => `Nothing removed — the named version could not be saved (${why}).`,
+  /** DRAFT: removals whose own `remove()` threw (`PruneResult.failed`). */
+  failed: (n: number): string => `${n} item${n === 1 ? '' : 's'} could not be removed.`,
+  /** DRAFT: a throw outside a removal, with the counts removed before it. */
+  stopped: (r: PruneResult, why: string): string => {
+    const total = r.variables + r.collections + r.modes + r.styles;
+    return `Prune stopped — ${why}. ` + (total
+      ? `Removed ${total} stale item${total === 1 ? '' : 's'} before it stopped: ${parts(r.styles, r.modes, r.variables, r.collections)}.`
+      : 'Nothing was removed.');
+  },
+} as const;
+
+/** FNV-1a over a string, as `update-apply.ts` hashes its check. */
+const fnv = (s: string): string => {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(16).padStart(8, '0');
+};
+
+/**
+ * #3697 R6 (H2): the one hash a prune confirm echoes, as `update-components` echoes its check's. Over the plan a fresh
+ * read gives and the stale canvas labels (by id), so a confirm acts on exactly the list its preview showed: an item that
+ * came or went between the two refuses the delete.
+ */
+export const prunePreviewHashOf = (plan: PrunePlan, furniture: readonly string[]): string =>
+  fnv(JSON.stringify([plan.variables, plan.collections, plan.modes.map((g) => [g.collection, g.modes.map((m) => m.modeId)]), plan.styles.map((g) => [g.kind, g.names]), [...furniture].sort()]));
+
+/** Why a prune confirm is refused before anything is removed, or null to go ahead (#3697 R6). Pure, so the shim
+ *  test drives every arm. `previewHash` empty is a missing echo, refused as a moved file. */
+export const pruneConfirmRefusal = (o: { holdsInput: boolean; previewHash: string; currentHash: string }): string | null =>
+  !o.holdsInput ? PRUNE_COPY.notApplied : o.previewHash !== o.currentHash ? PRUNE_COPY.moved : null;

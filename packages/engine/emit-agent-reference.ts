@@ -120,7 +120,7 @@ export const WRITES: Record<string, string> = {
   'build-components': 'Component sets on their component pages, creating a page when it is missing.',
   'file-setup': 'The page structure (cover, dividers, section pages) and the helper components on ↳ File Components; _Doc-block only once badge, tag, list-item, divider and the theme are in the file. Idempotent. The cover is drawn only from a saved brand, and apply-theme does not draw it: run file-setup again after apply-theme.',
   'style-guide': 'Style-guide tables on the canvas.',
-  prune: 'With confirm: false, nothing (a preview of what would go). With confirm: true, deletes the variables and styles the brand no longer emits, recomputed from a fresh read.',
+  prune: 'With confirm: false, nothing: a preview of what would go, whose result carries a previewHash. With confirm: true and that previewHash, saves a named version, then deletes the variables and styles the brand no longer emits, recomputed from a fresh read; refused when the file does not hold the brand sent, or no longer hashes the same.',
   readback: 'Nothing. Reads the file\'s themed state and a census of every component page.',
   'update-components': 'With confirm: false (or none), nothing: a check whose result carries a previewHash. With confirm: true and that previewHash, updates the sets in place; refused when the file no longer hashes the same.',
   'capture-baseline': 'Plugin data only: the as-built record on members built before it existed.',

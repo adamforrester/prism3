@@ -774,15 +774,16 @@ export const staleFurniture = <T extends { tag: FurnitureTag }>(items: readonly 
 
 /**
  * PRUNE'S HALF: remove the stale furniture among `nodes` (every tagged instance in the file). Returns how many went.
- * A node with no furniture tag is never touched, so a hand-placed `inverse-bg` rectangle stays (Q172.5).
+ * A node with no furniture tag is never touched, so a hand-placed `inverse-bg` rectangle stays (Q172.5). Each removal
+ * is tried on its own (#3697 R6): one that throws is recorded in `failed`, when given, and not counted.
  */
-export const pruneFurniture = (nodes: readonly XNode[], setAlive: (setId: string) => boolean): number => {
+export const pruneFurniture = (nodes: readonly XNode[], setAlive: (setId: string) => boolean, failed?: string[]): number => {
   const tagged = nodes.map((node) => ({ node, tag: readTag(node) })).filter((x): x is { node: XNode; tag: FurnitureTag } => x.tag !== null);
   let n = 0;
   for (const f of staleFurniture(tagged, setAlive)) {
     if (f.node.removed) continue;
-    f.node.remove?.();
-    n++;
+    try { f.node.remove?.(); n++; }
+    catch (e) { failed?.push(`furniture:${f.tag.def} (${(e as Error)?.message ?? String(e)})`); }
   }
   return n;
 };

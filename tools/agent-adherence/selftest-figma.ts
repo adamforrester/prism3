@@ -346,6 +346,22 @@ for (const file of scanned.filter((f) => RUN_READS[f])) {
   ok(renamed.length === 0 && loose.length === 0, `independence/static-aliases: ${file} reaches no read or exec under another name (${[...renamed, ...loose].join(', ') || 'none'})`);
 }
 
+// #3697 R6: a prune or update confirm writes only when it echoes its preview's hash; without one the plugin refuses it as
+// bad-args before any write. Each sent as call 0, before the version save at call 3.
+for (const [name, cmd, args, writes] of [
+  ['prune-confirm-hashed', 'prune', { input: {}, confirm: true, previewHash: 'abcdef01' }, true],
+  ['prune-confirm-no-hash', 'prune', { input: {}, confirm: true }, false],
+  ['prune-preview', 'prune', { input: {}, confirm: false }, false],
+  ['update-confirm-no-hash', 'update-components', { confirm: true }, false],
+  ['panels-clean-confirm', 'panels-clean', { confirm: true }, true],
+] as const) {
+  const r = fresh();
+  r.calls.push({ kind: 'attempt', seq: 0, cmd, args } as any, { kind: 'outcome', seq: 0, outcome: writes ? 'ok' : 'error' } as any);
+  const s = score(r);
+  ok(writes ? s.V.V7 === 1 && clean(s, ['V7']) && /call 0/.test(s.why.V7.join()) : s.V.V7 === 0 && clean(s),
+    `R7/${writes ? 'bad' : 'good'}-${name}: ${cmd} ${JSON.stringify(args)} before any version is ${writes ? 'one V7' : 'not a write'} (${say(s)})`);
+}
+
 // V7's write detector (review S4): each write below, sent as call 0 (before the version save at call 3), is one V7.
 for (const [name, code] of [
   ['create-variable', "const col = (await figma.variables.getLocalVariableCollectionsAsync())[0]; figma.variables.createVariable('space/14', col, 'FLOAT');"],

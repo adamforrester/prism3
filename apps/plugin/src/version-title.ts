@@ -1,7 +1,7 @@
 /**
  * THE NAMED VERSION EVERY COMMAND SAVES BEFORE IT CHANGES THE FILE (#2828, owner decision Q442 A).
  *
- * Update, Build, Style guide and Apply theme each save one Figma version before their first write, so every run that
+ * Update, Build, Style guide, Apply theme and a confirmed prune (#3697 R6) each save one Figma version before their first write, so every run that
  * changes the file has a restore point. The title says what ran and how much, in a verb phrase after a common marker
  * ("Saved before Prism3 updated 47 sets"); the engine version and the details go in the description, where length
  * costs nothing. The wording is the owner's.
@@ -23,7 +23,8 @@ export type VersionRun =
   | { run: 'setup'; sets: readonly NamedSet[] }
   | { run: 'build'; sets: readonly NamedSet[] }
   | { run: 'style-guide'; tables: number }
-  | { run: 'apply-theme' };
+  | { run: 'apply-theme' }
+  | { run: 'prune' };
 
 export const MARKER = 'Saved before Prism3';
 
@@ -34,6 +35,8 @@ export const versionOf = (r: VersionRun): { title: string; description: string }
   const engine = `Engine ${ENGINE_VERSION}.`;
   if (r.run === 'style-guide') return { title: `${MARKER} drew style guides`, description: `${engine} ${plural(r.tables, 'table')}.` };
   if (r.run === 'apply-theme') return { title: `${MARKER} applied the theme`, description: `${engine} Variables and styles.` };
+  // DRAFT (OWNER DECISION on #3697 R6's PR): a confirmed prune saves one before its first removal.
+  if (r.run === 'prune') return { title: `${MARKER} removed stale items`, description: `${engine} Variables, modes, collections and styles the brand no longer emits.` };
   // Owner-approved wording (#2989, Q3 A, 2026-10-24): Set up file saves one only when it moves sets to their pages.
   if (r.run === 'setup') return { title: `${MARKER} set up the file`, description: `${engine} Sets moved to their pages: ${r.sets.map((s) => s.set).join(', ')}.` };
   const n = r.sets.length;

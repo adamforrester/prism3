@@ -119,6 +119,8 @@ accepts('agent-progress (a style guide\'s table reading)', { type: 'agent-progre
   { kind: 'agent-progress', id: 'a1', phase: 'table', done: 6, total: 22 });
 accepts('prune-result (preview)', { type: 'prune-result', ok: true, applied: false, count: 5, summary: 'r' },
   { kind: 'prune-result', ok: true, applied: false, count: 5, summary: 'r' });
+accepts('prune-result (preview, with the hash its delete echoes, #3697 R6)', { type: 'prune-result', ok: true, applied: false, count: 5, summary: 'r', previewHash: 'abcdef01' },
+  { kind: 'prune-result', ok: true, applied: false, count: 5, summary: 'r', previewHash: 'abcdef01' });
 accepts('prune-result (agent preview, pillOnly)', { type: 'prune-result', ok: true, applied: false, count: 2, summary: 'r', pillOnly: true },
   { kind: 'prune-result', ok: true, applied: false, count: 2, summary: 'r', pillOnly: true });
 accepts('seed-info', { type: 'seed-info', ok: false, present: true, summary: 'ours', failed: 2 },

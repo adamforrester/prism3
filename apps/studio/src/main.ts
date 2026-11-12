@@ -1571,7 +1571,9 @@ const barActions: BarActions = {
  *  thread recomputes the plan from a fresh read before it acts. Its preview's Cancel deletes nothing. */
 const deletePrune = (): void => {
   if (restoreFailure) return;
-  setHost({ pruneBusy: 'delete', prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, true);
+  // #3697 R6: the Delete echoes its preview's hash, so the host removes exactly the list the designer read.
+  const previewHash = host.prunePreview?.previewHash ?? '';
+  setHost({ pruneBusy: 'delete', prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, true, previewHash);
 };
 
 

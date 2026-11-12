@@ -70,7 +70,7 @@ export type HostMessage =
   // #1521 — a prune preview (`applied: false`, `count` = what would be removed) or its outcome
   // (`applied: true`, `count` = what was removed). The UI reads `count` on a preview to decide
   // whether to open its confirm dialog, and `applied` to tell a preview from a verdict.
-  | { kind: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string; pillOnly?: boolean }
+  | { kind: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string; pillOnly?: boolean; previewHash?: string }
   // UI redesign S11: an agent command's start, its build progress, and its end, for the Activity drawer.
   // `cmd` stays a string here; which commands have an operation to show is the host session's call.
   | { kind: 'agent-started'; id: string; cmd: string; confirmed?: true }
@@ -203,8 +203,9 @@ export interface HostCommit {
    *  Figma only, no-op on web — the web host writes CSS custom properties, which have no stale-item
    *  problem). `confirm: false` asks for a preview (a `prune-result` with `applied: false`); `confirm:
    *  true` performs the delete. `input` is the `BrandInput`, typed `unknown` here for the same reason
-   *  `postTheme` is — to keep this DOM layer free of the engine type import. */
-  postPrune(input: unknown, confirm: boolean): void;
+   *  `postTheme` is — to keep this DOM layer free of the engine type import. A delete echoes `previewHash`, the hash
+   *  its preview's `prune-result` carried (#3697 R6); the host refuses one that does not match the file now. */
+  postPrune(input: unknown, confirm: boolean, previewHash?: string): void;
   /** #2830 Q2830.3 A: Documentation › Specs' Draw specs, the spec panels for the current page (`draw-specs`). Figma
    *  only; inert on the web. */
   postDrawSpecs(): void;
@@ -525,7 +526,8 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
     const count = typeof m.count === 'number' && Number.isFinite(m.count) && m.count >= 0 ? Math.floor(m.count) : null;
     if (count === null) return null;
     // `pillOnly` (the agent link): a preview the panel did not ask for — shown, never opened as a dialog.
-    return { kind: 'prune-result', ok: !!m.ok, applied: !!m.applied, count, summary: String(m.summary ?? ''), ...(m.pillOnly === true ? { pillOnly: true } : {}) };
+    return { kind: 'prune-result', ok: !!m.ok, applied: !!m.applied, count, summary: String(m.summary ?? ''), ...(m.pillOnly === true ? { pillOnly: true } : {}),
+      ...(typeof m.previewHash === 'string' && m.previewHash ? { previewHash: m.previewHash } : {}) };
   },
   // `present` defaults FALSE when a host omits it (an older plugin build against a newer UI):
   // absent → #721's state 3, "not a Prism3 file". That is the safe default because state 3
@@ -697,8 +699,8 @@ const figmaCommit = (): HostCommit => ({
   cleanUpStyleGuide(ids) {
     post({ type: 'style-guide-cleanup', ids: [...ids] });
   },
-  postPrune(input, confirm) {
-    post({ type: 'prune', input: input as ApplyTheme['input'], confirm });
+  postPrune(input, confirm, previewHash) {
+    post(confirm ? { type: 'prune', input: input as ApplyTheme['input'], confirm: true, previewHash: previewHash ?? '' } : { type: 'prune', input: input as ApplyTheme['input'], confirm: false });
   },
   requestFileSets(input) {
     post({ type: 'file-sets-request', input: input as ApplyTheme['input'] });

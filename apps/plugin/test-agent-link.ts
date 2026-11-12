@@ -896,6 +896,24 @@ section('failures — answered, never silent');
   const rp = (await read(p.id)) as AgentResult;
   ok(rp.ok === false && rp.error?.code === 'bad-args' && calls.length === 0, 'prune without confirm → bad-args, and prune is not run');
 
+  // #3697 R6: a delete echoes its preview's hash, as `update-components` does. Without it, refused before any handler.
+  calls.length = 0;
+  const pn = await send('prune', { input: brand, confirm: true });
+  await tick();
+  const rpn = (await read(pn.id)) as AgentResult;
+  ok(rpn.ok === false && rpn.error?.code === 'bad-args' && rpn.error?.message === 'prune with confirm: true needs args.previewHash: the previewHash its preview returned' && calls.length === 0,
+    `prune/needs the hash: confirm: true with no previewHash → bad-args, and prune is not run (${rpn.error?.code})`);
+  {
+    const got: unknown[][] = [];
+    const fake = { prune: async (...a: unknown[]) => { got.push(a); } } as unknown as Parameters<(typeof ROUTES)['prune']>[1];
+    const env = (args: unknown) => parseCommand({ v: AGENT_PROTOCOL_VERSION, id: 'pr-h', cmd: 'prune', args, issuedAt: '2026-11-12T00:00:00Z' });
+    const yes = env({ input: brand, confirm: true, previewHash: 'abcdef01' });
+    const no = env({ input: brand, confirm: false, previewHash: 'abcdef01' });
+    for (const c of [yes, no]) if (c.ok) await ROUTES.prune(c.command, fake, {} as Parameters<(typeof ROUTES)['prune']>[2], {} as Parameters<(typeof ROUTES)['prune']>[3]);
+    ok(got.length === 2 && got[0][1] === true && got[0][2] === 'abcdef01' && got[1][1] === false && got[1][2] === null,
+      `prune/hash dispatch: a delete reaches the handler with its hash, and a preview with none, whatever it carries (${JSON.stringify(got.map((a) => [a[1], a[2]]))})`);
+  }
+
   calls.length = 0;
   const sg = await send('style-guide', { collections: 'color' });
   await tick();
