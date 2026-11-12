@@ -92,7 +92,7 @@ The label states what becomes true when checked. Group errors read "Select at le
 ## Related components
 
 - **Built from:** `checkbox-control`
-- **Instead, consider:** `switch-row`, `radio-row`
+- **Instead, consider:** `switch-row`, `radio-row`, `text-field`
 - **Often used with:** `checkbox-group`, `field-label`, `field-message`, `focus-ring`, `button`
 - **Replaces:**
   - a bare \<input type="checkbox"> with no label wiring

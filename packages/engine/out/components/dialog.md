@@ -102,7 +102,7 @@ Titles are specific and in sentence case. Body text is short and states the cons
 ## Related components
 
 - **Built from:** `flush-icon-button-neutral`, `divider`, `button-group`
-- **Instead, consider:** `accordion`
+- **Instead, consider:** `accordion`, `toast`, `banner`
 - **Often used with:** `button`, `button-neutral`, `button-destructive`, `text-field`, `select`, `checkbox-group`, `radio-group`
 - **Replaces:**
   - a div overlay with a z-index and a hand-written focus trap
