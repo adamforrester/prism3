@@ -20,9 +20,9 @@ An icon-only trigger that carries no brand weight — a toolbar control, a dense
 
 Shown on the default member: appearance `ghost`, size `medium`, shape `square`, surface `default`.
 
-1. **Icon**
-2. **Spinner**
-3. **Focus ring**
+1. **Icon** — The one icon and the whole content, hidden from screen readers because the button carries the name; it matches a standalone icon at the same size.
+2. **Spinner** — Takes the icon's place while the button is busy, at the icon's size, so the button keeps its size.
+3. **Focus ring** — The shared focus ring, shown on keyboard focus; it sits outside the button and moves nothing in its layout.
 
 ## Styles
 
@@ -67,7 +67,7 @@ Use for a self-evident action where space is tight and a text label would be red
 - 2.5.3 Label in Name (a visible tooltip and the aria-label carry the same words)
 - 1.4.11 Non-text Contrast (focus ring at 3:1, and the icon glyph itself at 3:1 against its background)
 - 2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)
-- 2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)
+- 2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)
 - 1.4.13 Content on Hover or Focus (only where a tooltip is attached: dismissible, hoverable and persistent)
 - 2.5.8 Target Size (Minimum) (24×24 — the small square is 36px, 28px at compact density)
 - 2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); icon-only controls are the likeliest to miss it, so reaching 44 elsewhere is a code-side hit-area expansion)
@@ -76,7 +76,7 @@ Use for a self-evident action where space is tight and a text label would be red
 
 - **Enter:** none (present on mount)
 - **Exit:** none
-- **Reduced motion:** State transitions (background, border) are meant to run ~100–150ms through the brand's motion tokens; this component binds none yet, so the timing is code-side. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.
+- **Reduced motion:** State transitions (background, border) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98), as on Button, gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.
 
 ## Content guidelines
 
@@ -352,7 +352,7 @@ Keyed by `appearance`, `shape`, `surface`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.disabled.fill` | — | — | — |
-| `container/icon` | — | — | — | `color.disabled.icon` |
+| `container/icon` | — | — | — | `color.disabled.on-fill` |
 
 **appearance=filled, shape=square, surface=inverse, state=rest**
 
@@ -394,7 +394,7 @@ Keyed by `appearance`, `shape`, `surface`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.inverse.disabled.fill` | — | — | — |
-| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+| `container/icon` | — | — | — | `color.inverse.disabled.on-fill` |
 
 **appearance=filled, shape=circular, surface=default, state=rest**
 
@@ -436,7 +436,7 @@ Keyed by `appearance`, `shape`, `surface`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.disabled.fill` | — | — | — |
-| `container/icon` | — | — | — | `color.disabled.icon` |
+| `container/icon` | — | — | — | `color.disabled.on-fill` |
 
 **appearance=filled, shape=circular, surface=inverse, state=rest**
 
@@ -478,7 +478,7 @@ Keyed by `appearance`, `shape`, `surface`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.inverse.disabled.fill` | — | — | — |
-| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+| `container/icon` | — | — | — | `color.inverse.disabled.on-fill` |
 
 **appearance=outline, shape=square, surface=default, state=rest**
 

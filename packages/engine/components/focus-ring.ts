@@ -267,7 +267,13 @@ export const focusRing: ComponentDef = {
         // was true of the projector and was #933: paint moved to `paintSlots` above, and the two
         // readings this comment noticed were coming apart are now two fields.
         role: 'target',
-        note: 'The ring itself: one node, zero children, `clipsContent: false`. Nested by a host as an ABSOLUTE sibling, so it takes no cell in the host\'s row and its size is the host\'s bounds grown by the host\'s `inset` — which is why it binds no radius of its own and why its own square side is nominal, supplied only so the component is buildable on its own and overwritten the moment it is nested. The one dimension it truly owns is its stroke\'s width, because that one is nobody else\'s to supply.',
+        // Maintainer detail, out of the reader caption (#3610): The ring itself: one node, zero children,
+        // `clipsContent: false`. Nested by a host as an ABSOLUTE sibling, so it takes no cell in the host's row and
+        // its size is the host's bounds grown by the host's `inset` — which is why it binds no radius of its own and
+        // why its own square side is nominal, supplied only so the component is buildable on its own and overwritten
+        // the moment it is nested. The one dimension it truly owns is its stroke's width, because that one is nobody
+        // else's to supply.
+        note: 'The ring itself, drawn outside its host\'s edge at the host\'s size plus its offset, so it takes no space in the host\'s layout.',
       },
     },
     derived: {
@@ -412,7 +418,7 @@ export const focusRing: ComponentDef = {
     primaryPurpose: 'Render the shared keyboard-focus indicator for a focusable control.',
     whenToUse: 'Every component that can receive keyboard focus nests it as an absolute sibling and picks its surface and offset. It is never placed in a layout on its own.',
     avoidWhen:
-      'As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside :focus-visible destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. "Standalone" here means placed in a layout: the component is built on its own, because a host can only nest one that already exists.',
+      'As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside :focus-visible destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. Fields draw their own focus edge instead. "Standalone" here means placed in a layout: the component is built on its own, because a host can only nest one that already exists.',
     // The defs that NEST the ring, read off their anatomy (#1700). A reverse list, so it lives here and not
     // in `composesWith`, which names what a def nests itself.
     commonPartners: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'checkbox-control', 'radio-control', 'switch-control', 'link', 'counter'],

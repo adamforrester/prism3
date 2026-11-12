@@ -5,9 +5,10 @@ description: >-
   which duration, easing role, spring or transition token each change uses, how
   exits differ from entrances, and what reduced motion substitutes. Every rule
   binds to the brand's emitted motion tokens, never to a number, because the
-  numbers move with the brand's tempo. Six recipes cover the components that move
-  today: dialog, accordion, tabs, toast and banner, the spinner's delayed show,
-  and focus.
+  numbers move with the brand's tempo. Nine recipes cover dialog, accordion,
+  tabs, toast and banner, the spinner's delayed show, progress, badge, the
+  selection controls, and focus; every other component follows the rules
+  directly.
 when_to_use: >-
   When adding a transition, an animation, a spring or a reduced-motion rule to UI
   built on a Prism3 token system, or when writing the `motion` field of a component
@@ -194,6 +195,47 @@ changes at once.
 
 **Reduced:** it turns slower on `motion.duration-reduced.spin` and never stops while the work runs;
 the fade-in stays, on `motion.duration-reduced.fast`.
+
+### Progress
+
+| Step | Tokens |
+|---|---|
+| The wait before it shows, so a fast task shows nothing, and the least time it stays once shown | no token yet (#3486): Progress's own `delay` and `minDisplay` |
+| The fill moves to each new value | `motion.duration.moderate`, `motion.easing-role.default` |
+| An indeterminate bar sweeps its segment across the track, until the work ends | `motion.duration.sweep` per pass, `motion.easing.calm` |
+| An indeterminate ring turns its arc, until the work ends | `motion.duration.sweep` per turn, `motion.easing.linear` |
+| At complete or error, the fill's color crossfades | `motion.duration.fast`, `motion.easing-role.default` |
+
+**Reduced:** the fill moves on `motion.duration-reduced.moderate`, which can resolve to zero (#3484).
+The sweep and the turn slow to `motion.duration-reduced.sweep` and never stop while the work runs
+(R7, R8).
+
+### Badge
+
+| Track | Enter | Exit |
+|---|---|---|
+| Count or dot | fades in and scales up from a little under full size (R10), from the corner it is anchored to, on `motion.transition.enter` | fades out and scales down toward its anchor, on `motion.transition.exit` |
+| A changed count | only the number changes, on `motion.transition.default`; the pill doesn't move | — |
+| Status label | no motion | no motion |
+
+A badge doesn't pulse: none of its states loops (R8).
+
+**Reduced:** a count or dot fades only, with no scale, on `motion.duration-reduced.normal` both
+ways (R3); a changed count's number fades on the same role.
+
+### Selection controls
+
+| Control | Track | On a change |
+|---|---|---|
+| Checkbox | the check glyph draws in as a stroke while the fill crossfades | `motion.duration.fast`, `motion.easing-role.default` (R6) |
+| Radio | the dot scales in from a little under full size (R10), the previous choice's dot scales out, and the ring's color crossfades | `motion.duration.fast`, `motion.easing-role.default` (R6) |
+| Switch | the thumb travels across the track as a transform, and the track's color crossfades with it | `motion.transition.default` |
+| Segmented control | the pill travels to the new option as a transform, as the tabs underline does | `motion.transition.default` |
+
+The focus ring on each of them follows the focus recipe below.
+
+**Reduced:** nothing draws, scales or travels. The glyph, the dot, the thumb and the pill take their
+new place at once, and the color change fades on `motion.duration-reduced.fast`.
 
 ### Focus
 

@@ -224,7 +224,9 @@ export const accordion: ComponentDef = {
         inset: 'ring-offset',
         drawnInside: true,
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
-        note: 'The shared focus ring, drawn inside the header row\'s edge while it has keyboard focus (Q257), so it never overlaps the Divider or gets clipped.',
+        // Maintainer detail, out of the reader caption (#3610): The shared focus ring, drawn inside the header row's
+        // edge while it has keyboard focus (Q257), so it never overlaps the Divider or gets clipped.
+        note: 'The shared focus ring, drawn inside the header row\'s edge on keyboard focus, so it never overlaps the divider or gets clipped.',
       },
       content: {
         kind: 'box',
@@ -366,7 +368,7 @@ export const accordion: ComponentDef = {
     ],
     dont: [
       'Hide content most users need. Show it instead.',
-      'Force one section to stay open. If one view must always show, use tabs.',
+      'Force one section to stay open. If one view must always show, use Tabs.',
       'Put an accordion inside an accordion. For more than one level, use a tree.',
       'Truncate a title with an ellipsis',
     ],

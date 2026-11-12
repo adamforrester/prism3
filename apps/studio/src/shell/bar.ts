@@ -228,10 +228,13 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     // Beneath the list it belongs to, so the sentence sits where the click was.
     if (v.confirm?.at === 'example') menu.append(confirmBox(v.confirm.text));
     menu.append(h('div', 'p3-menu-div'));
-    const nb = hook(h('button', 'p3-menu-item', '+ New brand'), 'brand-menu-new');
+    // #3553 Q-UI8 A: the vendored icons, not text glyphs ("+", "↑"), as Add brand color draws its plus.
+    const nb = hook(h('button', 'p3-menu-item'), 'brand-menu-new');
+    nb.append(glyph('plus'), h('span', 'p3-menu-label', 'New brand'));
     nb.type = 'button';
     nb.onclick = () => act.newBrand();
-    const imp = hook(h('button', 'p3-menu-item', '↑ Import design.md…'), 'brand-menu-import');
+    const imp = hook(h('button', 'p3-menu-item'), 'brand-menu-import');
+    imp.append(glyph('upload'), h('span', 'p3-menu-label', 'Import design.md…'));
     imp.type = 'button';
     imp.setAttribute('aria-expanded', String(v.importOpen));
     imp.onclick = () => act.toggleImport();
@@ -286,7 +289,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     fi.type = 'file';
     fi.accept = lend.importAccept;
     fi.onchange = () => { const f = fi.files?.[0]; if (f) act.importFile(f); };
-    up.append(h('span', undefined, '↑ Upload .md'), fi);
+    up.append(glyph('upload'), h('span', undefined, 'Upload .md'), fi);
     const load = hook(h('button', 'p3-btn p3-btn-primary', 'Load'), 'import-load');
     load.type = 'button';
     load.onclick = () => act.importLoad(ta.value);
@@ -309,17 +312,44 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     // Two columns: the settings on the left, what they produce on the right (#720's verify item: a preview you have
     // to scroll to is not a preview). One column at narrow widths, the preview after the settings.
     const body = h('div', 'p3-bardlg-body p3-export-body');
+    body.id = 'p3-export-body';
+    body.setAttribute('role', 'tabpanel');
     const left = h('div', 'p3-bardlg-col');
     const right = h('div', 'p3-bardlg-col p3-export-out');
-    const seg = h('div', 'p3-seg p3-export-seg');
-    for (const a of x.artifacts) {
-      const b = hook(h('button', 'p3-seg-tab', a.label), 'export-artifact');
+    // #3553 Q-UI11 A: "which kind of output" is Documentation's switcher here too, a row of underline tabs (it was a
+    // segmented control, which at the plugin's 380 ran past the panel's edge, M8). Every width: the three fit 380.
+    const seg = h('div', 'p3-tabs p3-export-tabs');
+    seg.setAttribute('role', 'tablist');
+    seg.setAttribute('aria-label', 'Export');
+    const tabs = x.artifacts.map((a) => {
+      const b = hook(h('button', 'p3-tab', a.label), 'export-artifact');
       b.type = 'button';
-      b.setAttribute('aria-pressed', String(a.on));
+      b.id = `p3-export-tab-${a.id}`;
+      b.setAttribute('role', 'tab');
+      b.setAttribute('aria-selected', String(a.on));
+      b.tabIndex = a.on ? 0 : -1;
+      b.setAttribute('aria-controls', 'p3-export-body');
       b.onclick = () => act.artifact(a.id);
-      seg.append(b);
-    }
-    left.append(seg, h('p', 'p3-bardlg-desc', x.desc));
+      return b;
+    });
+    seg.append(...tabs);
+    // The panel is named by its selected tab, as Documentation's is (`p3-docs-tab-…`), so a screen reader reads its kind.
+    const on = x.artifacts.find((a) => a.on);
+    if (on) body.setAttribute('aria-labelledby', `p3-export-tab-${on.id}`);
+    seg.addEventListener('keydown', (e) => {
+      const i = tabs.indexOf(e.target as HTMLButtonElement);
+      const to = i < 0 ? -1 : e.key === 'ArrowRight' ? (i + 1) % tabs.length : e.key === 'ArrowLeft' ? (i - 1 + tabs.length) % tabs.length
+        : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : -1;
+      if (to < 0) return;
+      e.preventDefault();
+      act.artifact(x.artifacts[to].id);
+      // The page is drawn again for the new artifact; the key moves focus with the selection, as Documentation's tabs do.
+      requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-p3="export-artifact"][aria-selected="true"]')?.focus());
+    });
+    // The hairline is the head's, as Documentation's is, so it keeps to the column while the tabs keep their focus-ring room.
+    const tabHead = h('div', 'p3-export-tabhead');
+    tabHead.append(seg);
+    left.append(tabHead, h('p', 'p3-bardlg-desc', x.desc));
     if (x.settings.length) {
       left.append(h('div', 'p3-menu-div'));
       // #3337: the settings are one list, a grid at the row rhythm (`.p3-export-sets`).
@@ -328,6 +358,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
         const row = h('div', 'p3-export-set');
         row.append(h('div', 'p3-export-lab', s.label));
         const sseg = h('div', 'p3-seg p3-export-oseg');
+        sseg.dataset.key = s.key;   // #3553 Q-UI7 A: the Token names options alone are set in mono (`chrome.css`)
         for (const o of s.options) {
           const b = hook(h('button', 'p3-seg-tab', o.label), 'export-setting');
           b.type = 'button';
@@ -361,7 +392,8 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     body.append(left, right);
     dlg.append(body);
     const foot = h('div', 'p3-bardlg-foot');
-    const go = hook(h('button', 'p3-btn p3-btn-primary', x.go.text), 'dialog-confirm');
+    const go = hook(h('button', 'p3-btn p3-btn-primary'), 'dialog-confirm');
+    go.append(glyph('download'), h('span', 'p3-btn-label', x.go.text));
     go.type = 'button';
     if (x.go.off) { go.disabled = true; go.title = x.go.off; }
     go.onclick = act.download;
@@ -372,7 +404,8 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
       const imp = h('div', 'p3-bardlg-import');
       imp.append(h('div', 'p3-menu-cap', 'Import'));
       for (const slot of x.imports) {
-        const b = hook(h('button', 'p3-menu-item', `↑ ${slot.label}…`), 'export-import');
+        const b = hook(h('button', 'p3-menu-item'), 'export-import');
+        b.append(glyph('upload'), h('span', 'p3-menu-label', `${slot.label}…`));
         b.type = 'button';
         b.setAttribute('aria-expanded', String(v.importOpen));
         b.onclick = () => act.toggleImport();

@@ -313,7 +313,7 @@ export const link: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use a button. Keep x-small for dense metadata, such as an order row or a legal line, not running body text. A link inside small print is a text range with that text\'s own link style.',
+    usage: 'Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use Button. Keep x-small for dense metadata, such as an order row or a legal line, not running body text. A link inside small print is a text range with that text\'s own link style.',
     do: [
       'Write link text that names the destination',
       'State the format and size of a file link',

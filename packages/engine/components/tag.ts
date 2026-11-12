@@ -359,7 +359,10 @@ export const tag: ComponentDef = {
       label: {
         kind: 'text',
         type: 'size.{size}.type',
-        note: 'The tag text, at the same weight whether or not the tag is selected, so the label keeps its width when the tag is selected; the check mark, when shown, adds a cell after it. In code a long label wraps; Figma holds one line.',
+        // Maintainer detail, out of the reader caption (#3610): The tag text, at the same weight whether or not the
+        // tag is selected, so the label keeps its width when the tag is selected; the check mark, when shown, adds a
+        // cell after it. In code a long label wraps; Figma holds one line.
+        note: 'The tag\'s text, at the same weight whether or not the tag is selected, so the tag keeps its width when selected.',
       },
       checkGlyph: {
         kind: 'vector',
@@ -577,7 +580,7 @@ export const tag: ComponentDef = {
   ai: {
     primaryPurpose: 'Render a small interactive token the user toggles or removes in place.',
     whenToUse: 'Inline filters toggled on and off (select), applied filters the user can remove, or recipients or keywords entered into a field (dismissible), usually in a group.',
-    avoidWhen: 'Nobody can act on it (use a badge), it runs an action (use a button), or it is a structured choice in a form submission (use a checkbox group or radio group).',
+    avoidWhen: 'Nobody can act on it (use Badge), it runs an action (use Button), or it is a structured choice in a form submission (use Checkbox.Group or Radio.Group).',
     commonPartners: ['badge', 'icon', 'checkbox-group', 'radio-group'],
     triggerKeywords: ['tag', 'chip', 'filter tag', 'filter chip', 'input tag', 'input chip', 'removable tag', 'dismissible tag', 'selectable tag', 'select tag', 'choice chip', 'facet', 'applied filter', 'recipient token'],
     generationPriority: 3,

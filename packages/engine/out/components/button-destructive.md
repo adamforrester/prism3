@@ -13,7 +13,7 @@ In-flow trigger for a destructive action — delete, remove, discard, disconnect
 
 - **Purpose:** Trigger an action in place.
 - **Use when:** The user needs to act on this surface — submit, confirm, open, apply, or start async work.
-- **Avoid when:** The target is a different location/URL → use Link (or give the button an href, which renders an \<a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.
+- **Avoid when:** The target is a different location/URL → use Link (or give the button an href, which renders an \<a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton.Destructive (the accessible name is required there at the type level). The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.
 
 ## Anatomy
 
@@ -21,15 +21,15 @@ Shown on the default member: appearance `filled`, size `medium`, width `auto`, s
 
 1. **Leading visual** (optional) — Icon / avatar / counter / spinner before the label.
 2. **Label** — Its own node so truncation, wrap and line-height are controllable independently of the row.
-3. **Trailing visual** (optional)
-4. **Spinner**
-5. **Focus ring**
+3. **Trailing visual** (optional) — An icon, caret or indicator after the label.
+4. **Spinner** — Shown while the button is busy: it takes the place of an icon when there is one, and otherwise sits over the hidden label, so the button keeps its width.
+5. **Focus ring** — The shared focus ring, shown on keyboard focus; it sits outside the button and moves nothing in its layout.
 
 ## Styles
 
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
-| `appearance` | `filled`, `outline`, `text` | at runtime | Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.) |
+| `appearance` | `filled`, `outline`, `text` | at runtime | Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. |
 | `size` | `medium`, `small`, `large` | once, when authored | Control size — drives height, padding, and label type. |
 | `width` | `auto`, `full` | once, when authored | — |
 | `surface` | `default`, `inverse` | once, when authored | The ground the button sits on. default for a normal page; inverse for a dark or brand-filled band, where the button binds its color.inverse counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. A host that cannot know its ground picks default, and the designer sets inverse on the instance — the same answer the nested focus ring gives. |
@@ -81,7 +81,7 @@ Use for an immediate action in the current context — submit/save/reset a form,
 
 - 1.4.11 Non-text Contrast (the focus ring and boundary at 3:1)
 - 2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)
-- 2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)
+- 2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)
 - 2.5.3 Label in Name (an aria-label starts with the visible label text)
 - 2.5.8 Target Size (Minimum) (24×24 — small is 36px tall, 28px at compact density)
 - 2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)
@@ -118,7 +118,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 | --- | --- | --- | --- | --- |
 | `label` | node (label) | — | yes | Visible label; verb-first, sentence case, ≤3 words. Always required here — an icon-only control is the separate icon-button, which requires an accessible name instead. |
 | `onClick` | function | — | no | Action handler. Suppressed while isPending or isInactive. |
-| `appearance` | enum: 'filled' \| 'outline' \| 'text' | `filled` | no | Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.) |
+| `appearance` | enum: 'filled' \| 'outline' \| 'text' | `filled` | no | Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Control size — drives height, padding, and label type. |
 | `surface` | enum: 'default' \| 'inverse' | `default` | no | The ground the button sits on. default for a normal page; inverse for a dark or brand-filled band, where the button binds its color.inverse counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. A host that cannot know its ground picks default, and the designer sets inverse on the instance — the same answer the nested focus ring gives. |
 | `inset` | enum: 'default' \| 'flush' | `default` | no | Text appearance only. flush removes the inline padding on both sides, so the label lines up with the content edge above and below it, whether the button starts, ends or centers a row. A flush button hovers by color only, and its hit target keeps its height. |
