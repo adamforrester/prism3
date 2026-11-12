@@ -338,7 +338,13 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
         kind: 'slot',
         size: 'size.{size}.icon',
         nesting: { kind: 'swap' },
-        note: 'The single icon, and the entire content. Rendered aria-hidden — the IconButton owns the accessible name, so the glyph is decorative even though it is the only thing visible. Bound to the `icon.size.*` ladder (#324\'s 1:1 rule), so an IconButton\'s glyph matches a standalone `<Icon>` at the same size — the identity the text-bearing Button family deliberately gives up one rung of (owner-decided, #1350): a medium IconButton\'s glyph is 24 where a medium Button\'s leading visual is 20.',
+        // Maintainer detail, out of the reader caption (#3610): The single icon, and the entire content. Rendered
+        // aria-hidden — the IconButton owns the accessible name, so the glyph is decorative even though it is the
+        // only thing visible. Bound to the `icon.size.*` ladder (#324's 1:1 rule), so an IconButton's glyph matches a
+        // standalone `<Icon>` at the same size — the identity the text-bearing Button family deliberately gives up
+        // one rung of (owner-decided, #1350): a medium IconButton's glyph is 24 where a medium Button's leading
+        // visual is 20.
+        note: 'The one icon and the whole content, hidden from screen readers because the button carries the name; it matches a standalone icon at the same size.',
       },
       // THE PENDING SPINNER PROJECTS (#1697), as Button's has since #1677/#1670. Before this the def
       // admitted it as a code-tier ceiling, on the reasoning that an overlay replacing the ONLY part had no
@@ -354,7 +360,11 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
         replaces: ['icon'],
         when: 'pending',
         size: 'size.{size}.icon',
-        note: 'Takes the icon\'s own cell while pending, at the icon\'s size, so the square keeps its size. The accessible name stays on the control (aria-label), and the busy state is announced through a polite live region, with `aria-hidden="true"` on the spinner so it does not announce its own "Loading" as well.',
+        // Maintainer detail, out of the reader caption (#3610): Takes the icon's own cell while pending, at the
+        // icon's size, so the square keeps its size. The accessible name stays on the control (aria-label), and the
+        // busy state is announced through a polite live region, with `aria-hidden="true"` on the spinner so it does
+        // not announce its own "Loading" as well.
+        note: 'Takes the icon\'s place while the button is busy, at the icon\'s size, so the button keeps its size.',
       },
       focusRing: {
         kind: 'absolute',
@@ -374,7 +384,11 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
         // the exact one line Button carries — #1427 added icon-button's own `surface` axis, closing the
         // "icon-button has no surface axis of its own yet" gap this note used to record (docs/20 §9.8).
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' }, follow: ['surface'] },
-        note: 'The same absolutely-positioned sibling nesting the same shared `focus-ring` as Button, at the same bound offset. Its own stroke is the point: an icon-only control is the most likely to be `appearance=outline` in a dense toolbar, and a ring drawn on the target would have to win that border\'s single stroke away from it.',
+        // Maintainer detail, out of the reader caption (#3610): The same absolutely-positioned sibling nesting the
+        // same shared `focus-ring` as Button, at the same bound offset. Its own stroke is the point: an icon-only
+        // control is the most likely to be `appearance=outline` in a dense toolbar, and a ring drawn on the target
+        // would have to win that border's single stroke away from it.
+        note: 'The shared focus ring, shown on keyboard focus; it sits outside the button and moves nothing in its layout.',
       },
     },
     derived: {
@@ -605,7 +619,10 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
   motion: {
     enter: 'none (present on mount)',
     exit: 'none',
-    reduceMotion: 'State transitions (background, border) are meant to run ~100–150ms through the brand\'s motion tokens; this component binds none yet, so the timing is code-side. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
+    // Owner decision Q-CC29a A (#3554): the press scale is stated, Button's 0.98, so the clause that resolves
+    // scale to none under reduced motion names a scale that exists. Q-MD4 A (#3555): the brief's ~100–150ms maps to
+    // motion.duration.fast.
+    reduceMotion: 'State transitions (background, border) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98), as on Button, gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
   },
 
   notes: {
@@ -622,7 +639,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
       'RESOLVED (#1697): the pending member swaps in the real spinner. The disabled edge #1697 also rebound to the disabled icon ink was superseded by Q346 (#2749): a border never binds an icon or text role, so it binds `color.disabled.border`.',
     ],
     unverified: [
-      'motion timing — the button brief\'s ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.',
+      'motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.',
       'the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host\'s own edge or fill is not measured.',
     ],
   },

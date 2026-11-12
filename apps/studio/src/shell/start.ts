@@ -165,7 +165,7 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
 
   // ── 1. from a color (G14: the working brand's primary; S1, S3) ───────────────────────────────────
   // The owner's answer N1 A (review of #2142): the neutral default is this card's secondary action, not a card of its own.
-  const c1 = card('Start from your color', 'Your primary brand color; everything else takes smart defaults you can tune. No color yet? Start blank with a neutral gray.', 'p3-start-card');
+  const c1 = card('Start from your color', 'Your primary brand color; everything else starts from defaults you can tune. No color yet? Start blank with a neutral gray.', 'p3-start-card');
   const row1 = h('div', 'p3-start-row');
   const field = h('div', 'p3-colorfield');
   const start = hex(oklchToRgb(brandState.primary));

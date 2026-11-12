@@ -31,7 +31,7 @@
  *     member's `logo/` mark keeps the icon heights. Apple's and PayPal's SDKs scale the logo with the height; Google's
  *     keeps 22px of padding (its logo is the height minus 22) and draws nothing under 40, and Shop Pay's logo is 22 high
  *     at every height. At 36 and 56 the ratio is a reading of the 44 render, not those two SDKs' drawing (on the PR).
- *   - `plain` only (Q3174.5 A): the worded types stay a code setting, because each provider owns its wording and its
+ *   - `plain` only (Q3174.5 A): the other wordings stay a code setting (`wording`, #3554 Q-CC21 A), because each provider owns its wording and its
  *     translation.
  *   - Apple's HIG says not to replicate its button. Apple publishes its own design template of these buttons for design
  *     files, so a design-file stand-in drawn from Apple's own artwork matches what Apple gives designers; the code
@@ -120,7 +120,7 @@ export const walletButton: ComponentDef = {
     { name: 'provider', type: "enum: 'apple-pay' | 'google-pay' | 'paypal' | 'shop-pay'", values: [...PROVIDERS], required: true, description: 'Which wallet. Each needs its provider\'s script on the page, which draws the button.' },
     { name: 'style', type: `enum: ${STYLE_VALUES.map((v) => `'${v}'`).join(' | ')}`, values: [...STYLE_VALUES], default: ANY, required: false, description: `The provider\'s color style, from its own list, passed to the provider: Apple Pay ${stylesOf('apple-pay').join(', ')}; Google Pay ${stylesOf('google-pay').join(', ')}; PayPal ${stylesOf('paypal').join(', ')}; Shop Pay ${stylesOf('shop-pay').join(', ')}. Pick it for the ground the button sits on: dark buttons on light grounds, light ones on dark grounds. any passes no style, so the provider draws its default. A style the provider does not offer is refused.` },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The height: 36, 44 or 56px. Google Pay and Shop Pay have no small size and PayPal no large one, because each provider sets a smallest and a largest height.' },
-    { name: 'type', type: 'string', default: 'plain', required: false, description: 'The provider\'s wording, from its own list, passed to the provider: plain shows the logo alone; buy, checkout, donate, order, pay and subscribe add the provider\'s words, translated by the provider. A value the provider does not offer falls back to plain.' },
+    { name: 'wording', type: 'string', default: 'plain', required: false, description: 'The provider\'s wording, from its own list, passed to the provider as its button type: plain shows the logo alone; buy, checkout, donate, order, pay and subscribe add the provider\'s words, translated by the provider. A value the provider does not offer falls back to plain.' },
   ],
 
   states: ['rest', 'focus-visible'],
@@ -179,7 +179,7 @@ export const walletButton: ComponentDef = {
         class: 'platform-owned',
         disposition: 'refused',
         description:
-          'the provider\'s element — the component is a container the provider\'s element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify\'s Shop Pay element. It never draws a button of its own. It passes size as the element\'s height, the brand radius as the element\'s radius option (clamped for Google Pay, below), and type and style through unchanged.',
+          'the provider\'s element — the component is a container the provider\'s element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify\'s Shop Pay element. It never draws a button of its own. It passes size as the element\'s height, the brand radius as the element\'s radius option (clamped for Google Pay, below), and wording (as the provider\'s button type) and style through unchanged.',
       },
       {
         class: 'runtime-behavior',
@@ -314,6 +314,7 @@ export const walletButton: ComponentDef = {
       'The style artwork, grounds and edges were captured from each provider\'s public SDK on 2026-10-30 (the records in marks/provenance.json). An SDK that changes its paint later is not seen until the artwork is captured again.',
     ],
     evolution: [
+      '2026-11-11 (#3554 Q-CC21 A): the wording prop is `wording`, as SignInButton names the same job, not `type`, which is the HTML button type on Button, IconButton and FlushIconButton. It still reaches the provider as its button type.',
       'Proposed on #2343 (2026-10-25, §2) as one of two branded buttons from one factory; the owner chose two components (Q-B4 A), valid provider × style pairs only (Q-B5 A) and the provider\'s own element in code (Q-B8 A). Built in PR 4 on the owner\'s logo marks (PR 3).',
       'Q-W1 (the Figma member) was built as A, a layout stand-in with no fill, while the providers\' artwork was not in. #3174 took B (Q3174.1–6, all A): a style axis in each SDK\'s own names, each style drawn from the provider\'s SDK artwork with its record\'s ground and edge, and the stand-in kept as the any style, so every member built before is still there at style any.',
       'Q-W2 (heights outside a provider\'s range): built as A, no member, and kept by Q3174.4 A: PayPal has no large member, because 55 is its documented ceiling.',
