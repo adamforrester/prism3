@@ -305,7 +305,7 @@ export const checkboxControl: ComponentDef = {
         class: 'motion',
         disposition: 'refused',
         description:
-          'motion — the check-glyph draw animation (brief §8: a stroke-dasharray draw at roughly 100-150ms, morphing dash to check, bypassed under prefers-reduced-motion). The def states it in `motion`; a Figma variant carries no motion, so the two glyph parts are static outlines at every coordinate.',
+          'motion — the check-glyph draw animation (brief §8: a stroke-dasharray draw, morphing dash to check, on motion.duration.fast, bypassed under prefers-reduced-motion). The def states it in `motion`; a Figma variant carries no motion, so the two glyph parts are static outlines at every coordinate.',
       },
       {
         class: 'right-to-left',
@@ -390,9 +390,9 @@ export const checkboxControl: ComponentDef = {
 
   // Brief §8 — the check-draw is this atom's, because the glyph is here.
   motion: {
-    enter: 'On check, the check glyph draws in as a pen stroke (SVG stroke-dashoffset) while the fill crossfades in, about 100-150ms, eased. Indeterminate to checked morphs the dash into the check.',
+    enter: 'On check, the check glyph draws in as a pen stroke (SVG stroke-dashoffset) while the fill crossfades in, on motion.duration.fast with motion.easing-role.default. Indeterminate to checked morphs the dash into the check.',
     exit: 'On uncheck, the same glyph transition runs back and the fill crossfades out.',
-    reduceMotion: 'Under prefers-reduced-motion, the draw and any spatial animation are bypassed and the box flips instantly; a crossfade under 150ms may remain, since opacity does not trigger vestibular symptoms. No layout motion.',
+    reduceMotion: 'Under prefers-reduced-motion, the draw and any spatial animation are bypassed and the box takes its new state at once; the fill\'s color change fades on motion.duration-reduced.fast, since opacity does not trigger vestibular symptoms. No layout motion.',
   },
 
   notes: {

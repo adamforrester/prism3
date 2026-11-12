@@ -74,9 +74,9 @@ Use inside SegmentedControl only. An option names one value; selecting it change
 
 ### Motion
 
-- **Enter:** None. On selection the pill moves to this option, or cross-fades, over a short duration.
+- **Enter:** None. On selection the pill travels to this option on motion.transition.default, or cross-fades.
 - **Exit:** None.
-- **Reduced motion:** The indicator moves at once; only the color change remains.
+- **Reduced motion:** The indicator moves at once; only the color change remains, fading on motion.duration-reduced.fast.
 
 ## Content guidelines
 

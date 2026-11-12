@@ -71,9 +71,9 @@ Do not place this on its own as a form control. It is the box Checkbox.Row nests
 
 ### Motion
 
-- **Enter:** On check, the check glyph draws in as a pen stroke (SVG stroke-dashoffset) while the fill crossfades in, about 100-150ms, eased. Indeterminate to checked morphs the dash into the check.
+- **Enter:** On check, the check glyph draws in as a pen stroke (SVG stroke-dashoffset) while the fill crossfades in, on motion.duration.fast with motion.easing-role.default. Indeterminate to checked morphs the dash into the check.
 - **Exit:** On uncheck, the same glyph transition runs back and the fill crossfades out.
-- **Reduced motion:** Under prefers-reduced-motion, the draw and any spatial animation are bypassed and the box flips instantly; a crossfade under 150ms may remain, since opacity does not trigger vestibular symptoms. No layout motion.
+- **Reduced motion:** Under prefers-reduced-motion, the draw and any spatial animation are bypassed and the box takes its new state at once; the fill's color change fades on motion.duration-reduced.fast, since opacity does not trigger vestibular symptoms. No layout motion.
 
 ## Content guidelines
 

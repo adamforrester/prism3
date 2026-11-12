@@ -35,6 +35,10 @@ export const PALETTES_LIGHT_NOTE_ID = 'p3-palettes-light-note';
 
 /** The preview width below which a strip holds five squares instead of ten. */
 const SLIM_MAX = 560;
+/** #3553 M7 A: the wider width below which the ALPHA ramps go five to a strip. Their keys are 8-digit hexes (`000000e6`,
+ *  56px of mono text), which need a strip about 640px wide at ten; the strip is the preview less about 114px, so ten
+ *  fit from a 760px preview (measured: 707 at a 1280 web window, where each key cut by 5px). */
+const ALPHA_SLIM_MAX = 760;
 /** The alpha steps the engine emits for `black-alpha` and `white-alpha`, and the `opacity` scale it emits
  *  from the same set. Constants in the engine, so constants here (the legacy page's `ALPHA_STEPS_UI`). */
 const ALPHA_STEPS = [0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
@@ -173,6 +177,8 @@ export const mountPalettesPreview = (host: HTMLElement, cleanups: (() => void)[]
   const root = hook(h('div', 'p3-stack p3-preview-stack'), 'palettes-preview');
   host.replaceChildren(root);
   let per = 10;
+  /** The alpha ramps' own count per strip (#3553 M7 A): five below `ALPHA_SLIM_MAX`, else `per`. */
+  let alphaPer = 10;
 
   // THE BOARDS ARE KEPT, AND SO IS EVERY BLOCK THAT DID NOT CHANGE. Each block is keyed by everything it
   // draws (its steps' colors, its anchor, the roles it drives, the ground, the strip width); an edit rebuilds
@@ -265,8 +271,9 @@ export const mountPalettesPreview = (host: HTMLElement, cleanups: (() => void)[]
     }));
 
     const ink = resolvedModes(theme).find((x) => x.mode === currentMode)?.roles['text.primary']?.hex ?? '#000000';
-    const alphaRamp = (base: 'black' | 'white'): HTMLElement => keyed(['alpha', base, per].join('|'), () => {
+    const alphaRamp = (base: 'black' | 'white'): HTMLElement => keyed(['alpha', base, alphaPer].join('|'), () => {
       const blk = hook(h('div', 'p3-pal'), 'alpha-ramp');
+      blk.dataset.per = String(alphaPer);
       const head = h('div', 'p3-palh');
       const nm = h('div', 'p3-palh-name');
       nm.append(h('b', 'p3-pal-title', `${base}-alpha`));
@@ -275,8 +282,8 @@ export const mountPalettesPreview = (host: HTMLElement, cleanups: (() => void)[]
       nm.append(meta);
       head.append(nm);
       blk.append(head);
-      for (let i = 0; i < ALPHA_STEPS.length; i += per) {
-        const half = ALPHA_STEPS.slice(i, i + per);
+      for (let i = 0; i < ALPHA_STEPS.length; i += alphaPer) {
+        const half = ALPHA_STEPS.slice(i, i + alphaPer);
         const row = h('div', 'p3-sqrow');
         const sq = h('div', 'p3-sqs p3-checker');
         sq.dataset.content = '';
@@ -322,7 +329,8 @@ export const mountPalettesPreview = (host: HTMLElement, cleanups: (() => void)[]
   const ro = new ResizeObserver(() => {
     const w = host.getBoundingClientRect().width;
     const want = w > 0 && w < SLIM_MAX ? 5 : 10;
-    if (want !== per) { per = want; render(); }
+    const wantAlpha = w > 0 && w < ALPHA_SLIM_MAX ? 5 : want;
+    if (want !== per || wantAlpha !== alphaPer) { per = want; alphaPer = wantAlpha; render(); }
   });
   ro.observe(host);
   cleanups.push(() => ro.disconnect());
@@ -330,5 +338,6 @@ export const mountPalettesPreview = (host: HTMLElement, cleanups: (() => void)[]
   cleanups.push(subscribe('brand', () => { render(); const p = takeEdit(); if (p) revealGroup(host, p); }), subscribe('mode', render));
   const w0 = host.getBoundingClientRect().width;
   per = w0 > 0 && w0 < SLIM_MAX ? 5 : 10;
+  alphaPer = w0 > 0 && w0 < ALPHA_SLIM_MAX ? 5 : per;
   render();
 };
