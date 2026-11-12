@@ -7916,6 +7916,28 @@ arm: {
   }
 }
 
+// ---- #3554 Q-CC24 A, Q-CC25 A: SPINNER'S ANNOUNCEMENT — the region exists first; a spinner is not a progressbar ----
+// The phrases are the OWNER'S decisions, typed here rather than read from the def: the region is present and
+// empty before the spinner shows and the label is its content, not its name (Q-CC25 A); a spinner is not a
+// progressbar, with no screen-reader claim, while Progress keeps its indeterminate role="progressbar" (Q-CC24 A).
+{
+  const a = spinner.accessibility as { role: string; aria: string; wcag: string[] };
+  const labelDesc = spinner.props.find((p) => p.name === 'label')?.description ?? '';
+  const ann = (spinner.anatomy.codeOnly ?? []).find((c) => c.class === 'announcement')?.description ?? '';
+  const fields: Record<string, string> = { role: a.role, aria: a.aria, wcag: a.wcag.join(' | '), 'label prop': labelDesc, 'codeOnly announcement': ann, description: spinner.description };
+  const stale = Object.entries(fields).filter(([, v]) => /named by|keep(s)? announcing|is the name|missing value/i.test(v)).map(([k]) => k);
+  ok(stale.length === 0,
+    `#3554 Q-CC25 A spinner: no field names the region by its label or repeats the screen-reader claim Q-CC24 A dropped (no "named by", "keep announcing", "is the name", "missing value")${stale.length ? ` — STALE in: ${stale.join(', ')}` : ''}`);
+  ok(a.aria.includes('is present and empty before the spinner shows') && a.aria.includes("The label is the region's content, not its accessible name") && ann.includes('empty before the spinner shows'),
+    `#3554 Q-CC25 A spinner: aria and the codeOnly announcement say the region is present and empty before the spinner shows, and the label is its content, not its name`);
+  const dont = (spinner.docs?.dont ?? []).join(' | ');
+  ok(a.aria.includes('a spinner is not a progressbar') && dont.includes('a spinner is not a progressbar'),
+    `#3554 Q-CC24 A spinner: aria and the dont list both say "a spinner is not a progressbar"`);
+  const pa = (progress.accessibility as { aria: string }).aria;
+  ok(/Indeterminate: role="progressbar" with no value attributes/.test(pa),
+    `#3554 Q-CC24 A progress: the indeterminate bar keeps role="progressbar" with no value attributes`);
+}
+
 // ---- #1670: THE SPINNER — the button's pending state nests it, and its motion is two tokens ----------------
 // Expectations are the OWNER'S (2026-09-26), written here rather than read from the def or the geometry
 // module: the icon ladder 16 / 20 / 24 / 32, a button slot one rung below its size (#1350), 0.8s per turn
@@ -9579,7 +9601,8 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
       const wantDesc = k.endsWith('-link') ? `${XS_DESC} Underlined (link — pair with \`text.link.*\` color).` : XS_DESC;
       if (c.$description !== wantDesc) bad.push(`${where}: $description "${c.$description}"`);
       const meta = aiType[`type.body.xs.${k}`];
-      if (meta?.$description !== XS_DESC) bad.push(`${where}: .ai.json $description "${meta?.$description}"`);
+      // The sidecar copies the token's own description (#3555 G2), so its link variants carry Q117 A's link guidance too.
+      if (meta?.$description !== wantDesc) bad.push(`${where}: .ai.json $description "${meta?.$description}"`);
       if (!k.endsWith('-link') && !(meta?.avoid_when ?? '').includes('`type.caption.lg`')) bad.push(`${where}: .ai.json avoid_when does not send standalone small print to caption.lg ("${meta?.avoid_when}")`);
     }
   }
@@ -10383,7 +10406,9 @@ arm: {
 // (docs/34: a gate whose expected value comes from its subject cannot fail). The color math below is this
 // block's own; `regen --check` is what keeps the two committed files in step.
 {
-  const BRANDS = ['aurora', 'harbor', 'nb', 'wendys'];
+  // Every committed sidecar, prism3 included (#3555 G3: it was left out of both gates while the schema gate's message
+  // claimed every committed out/*.ai.json).
+  const BRANDS = ['aurora', 'harbor', 'nb', 'prism3', 'wendys'];
   type C4 = { r: number; g: number; b: number; a: number };
   const parseColor = (v: string): C4 => {
     const m = v.match(/^rgba?\(([^)]+)\)$/);
@@ -10481,8 +10506,16 @@ arm: {
       if (!hit) pathBad.push(`${b} consume skill names \`${n}\`, which has no sidecar entry`);
     }
     for (const [k, e] of Object.entries<any>(ai.gradient ?? {})) { miss('gradient key', k); for (const v of e.resolves_to ?? []) refMiss(`${k}.resolves_to`, v); }
+    // #3555 G2: an entry's `$description` IS the token's own, copied (AI/A-22), in every tier. The typography, weight-role
+    // and gradient entries regenerated theirs and lost the face, the fluid range and "underlined". The key is the tree
+    // path (color roles gain back their `color.` segment), and the expected text is read off the tree, never the sidecar.
+    for (const tier of ['color', 'typography', 'layout', 'motion', 'primitives', 'gradient']) for (const [k, e] of Object.entries<any>(ai[tier] ?? {})) {
+      const own = at(tier === 'color' ? `color.${k}` : k)?.$description;
+      if (typeof own === 'string' && e.$description !== own) pathBad.push(`${b} ${tier}.${k}.$description is not the token's own ("${String(e.$description).slice(0, 60)}" vs "${own.slice(0, 60)}")`);
+    }
     // #3555 Q-MD2 A: `$description` is held too. It is copied from the tree, and the schema's prose promise (every token
-    // name backticked, every backticked name resolves) covers it like every other prose field.
+    // name backticked, every backticked name resolves) covers it like every other prose field. This loop's AI/C-3
+    // capitals check is the one that reaches `$description` (#3555 V1: "PAGE" shipped in nine overlay descriptions).
     for (const tier of ['color', 'typography', 'layout', 'motion', 'primitives', 'gradient']) for (const [k, e] of Object.entries<any>(ai[tier] ?? {})) for (const f of ['$description', 'meaning', 'intent', 'consume', 'when_to_use', 'avoid_when']) {
       const t: string = e[f]; if (typeof t !== 'string') continue;
       // AI/C-3: no capitals for emphasis in generated guidance — an agent can read `INVERSE` as an enum or
@@ -10718,7 +10751,7 @@ arm: {
     }
     // Represented, not counted (docs/34): every brand the sidecar arm reads plus `prism3`, and each one carrying both
     // kinds of prose, so a walk that stopped reading per-mode lines, or a brand, fails here rather than passing empty.
-    const want = [...BRANDS, 'prism3'];
+    const want = [...new Set([...BRANDS, 'prism3'])];
     const thin = want.filter((b) => !(seen.get(b)?.desc! > 500 && seen.get(b)?.mode! > 100));
     ok(thin.length === 0 && treeBrands.length >= want.length,
       `#3555 Q-MD2 token tree prose scope: ${[...seen].map(([b, v]) => `${b} ${v.desc} $description + ${v.mode} per-mode`).join(', ')}${thin.length ? ` — too thin or missing: ${thin.join(', ')}` : ''}`);
@@ -10762,7 +10795,9 @@ arm: {
 // state a constraint nothing checks.
 {
   const schema = JSON.parse(readFileSync(resolve(HERE, 'schema/ai-metadata.schema.json'), 'utf8'));
-  const BRANDS = ['aurora', 'harbor', 'nb', 'wendys'];
+  // Every committed sidecar, prism3 included (#3555 G3: it was left out of both gates while the schema gate's message
+  // claimed every committed out/*.ai.json).
+  const BRANDS = ['aurora', 'harbor', 'nb', 'prism3', 'wendys'];
   const docs = BRANDS.map((b) => ({ b, ai: JSON.parse(readFileSync(resolve(HERE, `out/${b}.ai.json`), 'utf8')) }));
   const bad = docs.flatMap(({ b, ai }) => validateJsonSchema(schema, ai).map((e) => `${b} ${e}`));
   let entries = 0;
