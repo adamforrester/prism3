@@ -426,7 +426,11 @@ export type MainToUi =
     causes?: Cause[];
     /** #2858: after an Update that wrote, the library publish description for Figma's Publish library dialog. No
      *  Plugin API call sets it, so the drawer offers it with a Copy button. */
-    publish?: string }
+    publish?: string;
+    /** #3711 (Q-UF3 A): the applied update went through every set it was given, none stopped or refused, and no stop
+     *  was asked for (`applyVerdict`). Not `ok` with it: every set written, some left to check, so Update file's run goes
+     *  on as a warning. Absent from every other verdict of this kind. */
+    completed?: boolean }
   /** Result of a `file-setup` scaffold (#1554) — the same `{ok, headline, summary}` shape as
    *  `apply-result` / `component-result`, a DISTINCT variant for the same one-kind-per-fact reason: "did
    *  the page skeleton get laid" is separately true and separately actionable from a theme or component

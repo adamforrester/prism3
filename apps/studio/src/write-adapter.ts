@@ -41,7 +41,9 @@ export type HostMessage =
       alsoBuilt?: readonly string[] }
   // #2265 — the in-place update's dry run, or a baseline capture: what an update WOULD change, which is not
   // whether a build landed, so it has its own kind and never overwrites the build's verdict.
-  | { kind: 'component-update-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null; publish: string | null; causes: readonly Cause[] | null }
+  | { kind: 'component-update-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null; publish: string | null; causes: readonly Cause[] | null;
+      /** #3711 (Q-UF3 A): the applied update went through every set, some left to check; false when the host did not say. */
+      completed: boolean }
   // #1558 — the outcome of a `file-setup` scaffold. A FOURTH kind of the `{ok, headline, summary}`
   // shape, distinct for the same one-kind-per-fact reason `component-result` is: "did the page
   // skeleton get laid" is separately true and separately actionable from a theme or component write,
@@ -456,7 +458,7 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   // panel on "Building…", #870); it reads as a build that did not finish, the claim that needs no evidence.
   'component-result': (m) => ({ ...verdict('component-result', m, '✓ built', '✗ build failed'), completed: m.completed === true, lines: linesOf(m.lines), causes: causesOf(m.causes), ...(linesOf(m.alsoBuilt) ? { alsoBuilt: linesOf(m.alsoBuilt)! } : {}) }),
   'component-update-result': (m) => ({ ...verdict('component-update-result', m, '✓ checked', '✗ check failed'), lines: linesOf(m.lines),   // #2265
-    publish: typeof m.publish === 'string' && m.publish ? m.publish : null, causes: causesOf(m.causes) }),   // #2858, #3326
+    publish: typeof m.publish === 'string' && m.publish ? m.publish : null, causes: causesOf(m.causes), completed: m.completed === true }),   // #2858, #3326, #3711
   'file-setup-result': (m) => verdict('file-setup-result', m, '✓ file set up', '✗ setup failed'),   // #1558
   // #3394: the plugin always sends a headline; one that arrives without falls back to the summary's first words.
   'override-result': (m) => {

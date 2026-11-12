@@ -2123,7 +2123,9 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
     postUpdate(u, m.previewHash);
     return;
   }
-  if ((step === 'update' || step === 'cover') && updatePhase === 'apply' && m.kind === 'component-update-result') { updatePhase = null; endStep(m.ok, m.headline, false, true); return; }
+  // #3711 (Q-UF3 A): an update that wrote every set, some left to check, did all it was asked: the run goes on (`warn`),
+  // as past a To add step with problems (#3308). A set that stopped or was refused, or a stop asked for, still ends it.
+  if ((step === 'update' || step === 'cover') && updatePhase === 'apply' && m.kind === 'component-update-result') { updatePhase = null; endStep(m.ok, m.headline, m.completed, true); return; }
   // The build queue posts its sets one after another (`runAfterResult`); the step ends with the queue.
   // #3308: a queue that built every set, some with problems, did all it was asked: the run goes on (`warn`). A set that
   // failed, or a stop that left sets unbuilt, still ends it.
