@@ -25,6 +25,11 @@
  * `customModes[].name` left out → `#3523 Q147 opt-in: off, a custom mode name is replaced`; either matched by substring
  * instead of as a whole segment → `#3523 Q147 a palette or mode name inside an ordinary word is left`.
  *
+ * #3561 (owner decision A: every brand-authored path segment is a brand word): `interactivePalettes[].name`,
+ * `glassRoles` keys or `gradients[].name` left out of `brandWords` → the matching `#3561 A opt-in: off, … is replaced`
+ * arm, and `#3561 A every brand-authored segment the engine emits is replaced … LEAKED <name>`, which finds the authored
+ * segments by building the brand twice with every authored name renamed, not from `brandWords`' own list.
+ *
  * #3525 review finding 1 (a name next to `,` `:` `;` `(` `)` leaked): `SEGMENT` narrowed back to `/.\\- "'` → each
  * `#3525 R1 … bounded by punctuation is replaced (…)` arm; letters added to `SEGMENT` → `#3525 R1 an ordinary word
  * holding a name stays whole next to punctuation` and `#3525 R1 a short root inside an ordinary word stays whole …`.
@@ -32,6 +37,8 @@
  * `#3525 R1 … bounded by punctuation is replaced (…)`; `0-9` added → `#3525 R1 an ordinary word holding a name stays whole …`.
  */
 import { brandWords, buildReport, isIssueUrl, issueUrl, scrub, ISSUE_BASE, URL_LIMIT, type ReportInput } from './src/state/report';
+import { brandTheme, type BrandInput } from '@prism3/engine/theme';
+import { buildTree } from '@prism3/engine/tree';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -112,6 +119,63 @@ ok(namedOff.includes('- Apply Theme: ✓ applied, mode [brand]') && !namedOff.in
 ok(namedOff.includes('tidewaters and overnight-watchers stay'), '#3523 Q147 a palette or mode name inside an ordinary word is left: only a whole segment is replaced');
 const namedOn = buildReport({ ...BASE, brand: NAMED, includeBrand: true, activity: [{ title: 'Apply Theme', verdict: '✓ applied, mode night-watch', lines: ['wrote hf/core/palette/tidewater/500'], agent: false }] });
 ok(namedOn.includes('wrote hf/core/palette/tidewater/500') && namedOn.includes('mode night-watch'), '#3523 Q147 opt-in: on, palette and mode names are left in');
+
+// ── #3561 (owner decision A): EVERY brand-authored path segment is a brand word ──
+// The issue's reproduction, word for word: a collision refusal naming an interactive palette's and a glass role's variable.
+const AUTHORED = { id: 'harbor', root: 'hds', brandColors: [{ name: 'tidewater', oklch: { l: 0.6, c: 0.1, h: 200 } }],
+  interactivePalettes: [{ palette: 'tidewater', name: 'seaside' }], glassRoles: { lagoon: { palette: 'tidewater.500', alpha: 40 } },
+  gradients: [{ name: 'sunrise', stops: [{ palette: 'tidewater', step: 300, position: 0 }, { palette: 'primary', step: 600, position: 1 }] }] };
+const collide = 'Nothing was written. 2 conflicts with existing content: variable "hds/color/interactive/seaside/fill/rest" is STRING in "color"; variable "hds/color/glass/lagoon" is FLOAT in "color"; gradient hds/gradient/sunrise';
+const authoredOff = buildReport({ ...BASE, brand: AUTHORED, activity: [{ title: 'Apply Theme', verdict: '✗ 2 conflicts', lines: [collide, 'a seasides lagoons sunrises line stays'], agent: false }] });
+ok(authoredOff.includes('"[brand]/color/interactive/[brand]/fill/rest"') && !/\bseaside\//.test(authoredOff),
+  '#3561 A opt-in: off, an interactive palette name is replaced with [brand] (color/interactive/seaside)');
+ok(authoredOff.includes('"[brand]/color/glass/[brand]"') && !/glass\/lagoon/.test(authoredOff),
+  '#3561 A opt-in: off, a glass role key is replaced with [brand] (color/glass/lagoon)');
+ok(authoredOff.includes('gradient [brand]/gradient/[brand]') && !/gradient\/sunrise/.test(authoredOff),
+  '#3561 A opt-in: off, a gradient name is replaced with [brand] (gradient/sunrise)');
+ok(authoredOff.includes('a seasides lagoons sunrises line stays'), '#3561 A an authored name inside an ordinary word is left: only a whole segment is replaced');
+ok(brandWords({ ...AUTHORED, gradients: true }).every((w) => typeof w === 'string' || w.whole !== 'brand'),
+  '#3561 A `gradients: true` names no gradient: the engine\'s default set adds no brand word');
+const authoredOn = buildReport({ ...BASE, brand: AUTHORED, includeBrand: true, activity: [{ title: 'Apply Theme', verdict: '✗ 2 conflicts', lines: [collide], agent: false }] });
+ok(authoredOn.includes('hds/color/interactive/seaside/fill/rest') && authoredOn.includes('hds/color/glass/lagoon'), '#3561 A opt-in: on, authored names are left in');
+
+// REPRESENTED, NOT LISTED (docs/34): which segments the author named is read from the ENGINE, not from `brandWords`'
+// field list. The same brand is built twice, every authored name renamed and nothing else changed: a key that differs
+// between the two trees can only have come from the author. Every one of them, in every token path the brand emits
+// (and every mode key), must come out of a scrubbed line as [brand].
+{
+  const ALT: Record<string, string> = { tidewater: 'brinewood', 'night-watch': 'dog-watch', seaside: 'shoreline', lagoon: 'estuary', sunrise: 'daybreak' };
+  const mk = (n: (w: string) => string): BrandInput => ({ id: 'harbor', root: 'hds', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 },
+    brandColors: [{ name: n('tidewater'), oklch: { l: 0.6, c: 0.1, h: 200 } }], customModes: [{ name: n('night-watch'), base: 'dark' }],
+    interactivePalettes: [{ palette: n('tidewater'), name: n('seaside') }], glassRoles: { [n('lagoon')]: { palette: `${n('tidewater')}.500`, alpha: 40 } },
+    gradients: [{ name: n('sunrise'), stops: [{ palette: n('tidewater'), step: 300, position: 0 }, { palette: 'primary', step: 600, position: 1 }] }] } as BrandInput);
+  const keysOf = (b: BrandInput): Set<string> => {
+    const out = new Set<string>();
+    const walk = (o: unknown): void => { if (!o || typeof o !== 'object') return; for (const [k, v] of Object.entries(o)) { if (!k.startsWith('$')) out.add(k); walk(v); } };
+    walk(buildTree(brandTheme(b)).tree);
+    return out;
+  };
+  const paths = (b: BrandInput): string[] => {
+    const out: string[] = [];
+    const walk = (o: unknown, at: string[]): void => { if (!o || typeof o !== 'object') return; for (const [k, v] of Object.entries(o)) { if (k.startsWith('$')) continue; if (v && typeof v === 'object' && '$value' in v) out.push([...at, k].join('/')); walk(v, [...at, k]); } };
+    walk(buildTree(brandTheme(b)).tree, []);
+    return out;
+  };
+  const real = mk((w) => w), alt = mk((w) => ALT[w]);
+  const realKeys = keysOf(real), altKeys = keysOf(alt);
+  const authored = [...realKeys].filter((k) => !altKeys.has(k));
+  const realPaths = paths(real);
+  // The diff must find each name the fixture authors, or the arm below would pass on an empty set.
+  ok(Object.keys(ALT).every((w) => authored.includes(w)),
+    `#3561 A the engine emits every authored name as a key (${Object.keys(ALT).filter((w) => !authored.includes(w)).join(', ') || 'all found'}; diff ${JSON.stringify(authored)})`);
+  const words = brandWords(real as unknown as Record<string, unknown>);
+  // A compound key (`tidewater-500-alpha`, a glass role's alpha step) holds the name as a `-` segment: it leaks only if
+  // the key comes back whole. Mode names live under `$extensions`, never in a path, so a mode line carries them.
+  const leaked = authored.filter((seg) => realPaths.some((p) => p.split('/').includes(seg) && scrub(p, words).split('/').includes(seg)))
+    .concat(authored.filter((seg) => scrub(`mode ${seg}`, words).includes(seg)));
+  ok(leaked.length === 0 && realPaths.length > 100,
+    `#3561 A every brand-authored segment the engine emits is replaced with [brand] in every one of ${realPaths.length} token paths${leaked.length ? ` — LEAKED ${[...new Set(leaked)].join(', ')}` : ''}`);
+}
 
 // ── #3525 review finding 1: a name next to prose punctuation is still a whole segment ──
 // Each fixture is the reviewer's, or a plugin line shape it cited (`style-guide.ts` `per mode (…)`, `prune-figma.ts` `→ …;`).

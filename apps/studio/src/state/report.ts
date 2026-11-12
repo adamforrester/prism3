@@ -8,7 +8,8 @@
  * default). **No file names and no keys**: the panel never holds the Figma file's name, and `scrub` takes out of every
  * line what could still carry one or a key — a Figma file URL, a long hex or token-shaped run (a key, a token, a
  * hash), and, while the brand is not included, the brand's own words (its `id`, `name` and `root`, which every token
- * name carries as its first segment, and its palette and mode names, #3523). Built from these fields alone, never from a dump of the session.
+ * name carries as its first segment, and every path segment its author named: palette, mode, interactive palette and
+ * gradient names and glass role keys, #3523, #3561). Built from these fields alone, never from a dump of the session.
  *
  * Every string is a DRAFT placeholder (#2069: the placement and copy are the owner's call), in `REPORT_COPY`.
  */
@@ -41,10 +42,11 @@ export type BrandWord = string | { readonly whole: string };
 const wordText = (w: BrandWord): string => (typeof w === 'string' ? w : w.whole);
 
 /** The brand's own words, longest first so a word inside another goes second: its `id`, display `name` and token
- *  `root`, and (#3523, Q147 A) each `brandColors[].name` and `customModes[].name`. A word of any length counts (a root
- *  can be one letter, `root: 'g'`); `scrub` matches the short ones only as a whole segment, and a palette or mode name
- *  always so (`{ whole }`), since those are often ordinary words (`tidewater`, `night-watch`). The product's own name is
- *  never one. */
+ *  `root`, and every path segment the brand author named (#3523, Q147 A; #3561, owner decision A): each
+ *  `brandColors[].name`, `customModes[].name`, `interactivePalettes[].name` and `gradients[].name`, and each key of
+ *  `glassRoles`. A word of any length counts (a root can be one letter, `root: 'g'`); `scrub` matches the short ones
+ *  only as a whole segment, and an authored segment always so (`{ whole }`), since those are often ordinary words
+ *  (`tidewater`, `night-watch`, `lagoon`). The product's own name is never one. */
 export const brandWords = (brand: Readonly<Record<string, unknown>> | null): BrandWord[] => {
   if (!brand) return [];
   // The product's own name is never the client's: the house brand is named for it, and every result line says it.
@@ -54,7 +56,10 @@ export const brandWords = (brand: Readonly<Record<string, unknown>> | null): Bra
     .map((e) => (e && typeof e === 'object' ? (e as Record<string, unknown>).name : undefined)).filter(keep).map((v) => v.trim());
   const seen = new Set(words.map((w) => w.toLowerCase()));
   const whole: BrandWord[] = [];
-  for (const n of [...names('brandColors'), ...names('customModes')]) {
+  // `gradients: true` is the engine's own default set, not a list the author named; `names` reads only an array.
+  const keys = (k: string): string[] => (brand[k] && typeof brand[k] === 'object' && !Array.isArray(brand[k]) ? Object.keys(brand[k] as object) : [])
+    .filter(keep).map((v) => v.trim());
+  for (const n of [...names('brandColors'), ...names('customModes'), ...names('interactivePalettes'), ...names('gradients'), ...keys('glassRoles')]) {
     if (seen.has(n.toLowerCase())) continue;
     seen.add(n.toLowerCase());
     whole.push({ whole: n });
