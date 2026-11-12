@@ -843,34 +843,85 @@ for (const [w, why] of Object.entries(NOT_DECLARED)) {
 // backticked file name resolves. A name with a `/` resolves from the repo root; a bare one (`verify.ts`,
 // `lint-skills.ts`) must exist in one of the places the command's readers look. Its advice is out of reach
 // here, as the skills' is.
+//
+// Two more shapes since #2794, each found by a mutation that left the scan clean:
+//   - a SCRIPT RUN BY A BACKTICKED COMMAND: in `npx tsx fold.ts`, `tsx x.ts`, `node x.mjs`, `bash x.sh` or
+//     `sh x.sh`, the runner's first operand that is not a flag is a file name, and resolves by the rule above.
+//     `npx tsx folds.ts` failed nothing before. Only the runner's operand: other words in a command
+//     (`npm install <pkg> --prefix <worktree>`, a `git` ref) name nothing that has to exist.
+//   - a BACKTICKED DIRECTORY, a path ending in `/`: with an inner `/` (`docs/public/releases/`) it resolves
+//     from the repo root to a directory git tracks; a bare one (`changes/`, `figma/`) must be the last segment
+//     of SOME tracked directory. The bare rule is looser than the bare-file rule, because the command names
+//     directories by their own name inside a sentence that already gave the parent
+//     ("under `packages/engine/out/` ... `figma/` and `components/`"). It still catches a misspelled one.
+// The directory set is read from `git ls-files`, independent of the command's text (docs/34).
 let commandNamesRead = 0;
-export const commandFileFindings = (text: string, rel: string, exists: (p: string) => boolean): Finding[] => {
+let commandOperandsRead = 0;
+let commandDirsRead = 0;
+const RUNNER = /^(?:npx\s+)?(?:tsx|node|bash|sh)\s+(.*)$/;
+const FILE_NAME = /^[A-Za-z0-9_./-]+\.(?:ts|md|mjs|js|json|sh)$/;
+const DIR_PATH = /^[A-Za-z0-9_-][A-Za-z0-9_.-]*(?:\/[A-Za-z0-9_.-]+)*\/$/;
+export const commandFileFindings = (text: string, rel: string, exists: (p: string) => boolean, trackedDirs: ReadonlySet<string>): Finding[] => {
   const out: Finding[] = [];
   const BARE_HOMES = ['', 'docs/', 'packages/engine/', 'apps/plugin/', 'apps/plugin/src/', 'apps/studio/', '.claude/commands/', 'docs/progress/pending/'];
-  for (const m of text.matchAll(/`([A-Za-z0-9_./-]+\.(?:ts|md|mjs|json))`/g)) {
-    const name = m[1];
-    if (name.startsWith('.')) continue; // an extension named as a kind (`.ai.json`), not a file
-    commandNamesRead++;
+  const fileFinding = (name: string, how: string): void => {
     const ok = name.includes('/') ? exists(name) : BARE_HOMES.some((h) => exists(h + name));
-    if (!ok) out.push({ file: rel, kind: 'missing file', detail: `\`${name}\` does not exist${name.includes('/') ? '' : ` in any of: ${BARE_HOMES.map((h) => h || '(repo root)').join(', ')}`}` });
+    if (!ok) out.push({ file: rel, kind: 'missing file', detail: `\`${name}\`${how} does not exist${name.includes('/') ? '' : ` in any of: ${BARE_HOMES.map((h) => h || '(repo root)').join(', ')}`}` });
+  };
+  // A code span may wrap onto the next line, as Markdown allows (`npm install --no-save` and its flags do): a
+  // span read only within one line pairs the backticks after it the wrong way round and skips a name.
+  for (const m of text.matchAll(/`((?:[^`\n]|\n(?![ \t]*\n))+)`/g)) {
+    const span = m[1].trim().replace(/\s+/g, ' ');
+    if (/^[A-Za-z0-9_./-]+\.(?:ts|md|mjs|json)$/.test(span)) {
+      if (span.startsWith('.')) continue; // an extension named as a kind (`.ai.json`), not a file
+      commandNamesRead++;
+      fileFinding(span, '');
+      continue;
+    }
+    const run = RUNNER.exec(span);
+    if (run) {
+      const operand = run[1].split(/\s+/).find((w) => !w.startsWith('-'));
+      if (operand && FILE_NAME.test(operand) && !operand.startsWith('.')) {
+        commandOperandsRead++;
+        fileFinding(operand, `, the script \`${span}\` runs,`);
+      }
+      continue;
+    }
+    if (DIR_PATH.test(span)) {
+      commandDirsRead++;
+      const dir = span.slice(0, -1);
+      const ok = dir.includes('/') ? trackedDirs.has(dir) : [...trackedDirs].some((d) => d === dir || d.endsWith('/' + dir));
+      if (!ok) out.push({ file: rel, kind: 'missing directory', detail: `\`${span}\` is not a directory git tracks${dir.includes('/') ? ' (resolved from the repo root)' : ', under any parent'}` });
+    }
   }
   return out;
 };
 const COMMAND = '.claude/commands/review-pr.md';
 {
   const real = (p: string) => existsSync(resolve(repo, p));
-  const self = commandFileFindings('`docs/no-such-doc.md` and `no-such-gate.ts` and `verify.ts` and `.ai.json`', 'self-check', real);
-  const before7 = commandNamesRead;
-  if (self.length !== 2 || !self.some((f) => f.detail.includes('docs/no-such-doc.md')) || !self.some((f) => f.detail.includes('no-such-gate.ts'))) {
-    console.error(`\n❌ the review-command file check is broken: expected exactly the two dead names, got ${self.length}: ${self.map((f) => f.detail).join(' | ')}`);
+  const trackedDirs = new Set<string>();
+  for (const f of execFileSync('git', ['ls-files'], { cwd: repo, encoding: 'utf8', maxBuffer: 1 << 28 }).split('\n')) {
+    for (let i = f.indexOf('/'); i > 0; i = f.indexOf('/', i + 1)) trackedDirs.add(f.slice(0, i));
+  }
+  const sample = '`docs/no-such-doc.md` and `no-such-gate.ts` and `verify.ts` and `.ai.json`; run `npx tsx no-such-script.ts --flag`, '
+    + '`npx tsx verify.ts --list`, `node -e`, `npx tsx`; look under `docs/no-such-dir/`, `docs/progress/`, `nosuchdir/` and `pending/`';
+  const self = commandFileFindings(sample, 'self-check', real, trackedDirs);
+  const before7 = { names: commandNamesRead, operands: commandOperandsRead, dirs: commandDirsRead };
+  const want = ['docs/no-such-doc.md', 'no-such-gate.ts', 'no-such-script.ts', 'docs/no-such-dir/', 'nosuchdir/'];
+  if (self.length !== want.length || !want.every((w) => self.some((f) => f.detail.startsWith(`\`${w}\``)))) {
+    console.error(`\n❌ the review-command file check is broken: expected exactly the ${want.length} dead names (${want.join(', ')}), got ${self.length}: ${self.map((f) => f.detail).join(' | ')}`);
     process.exit(1);
   }
   const text = existsSync(resolve(repo, COMMAND)) ? readFileSync(resolve(repo, COMMAND), 'utf8') : '';
   if (!text) findings.push({ file: COMMAND, kind: 'missing file', detail: 'the review command is gone; this check reads nothing' });
-  findings.push(...commandFileFindings(text, COMMAND, real));
-  // A floor, not a count: the command names a dozen-plus files today. Fewer than five read means the pattern
-  // stopped matching the command's backticked names, and every one would then pass by never being looked at.
-  if (text && commandNamesRead - before7 < 5) findings.push({ file: COMMAND, kind: 'scan went dark', detail: `only ${commandNamesRead - before7} backticked file name(s) read from the review command, below the floor of 5` });
+  findings.push(...commandFileFindings(text, COMMAND, real, trackedDirs));
+  // Floors, not counts: the command names a dozen-plus files, eight scripts run by a command and a dozen
+  // directories today. Fewer than five of any means that shape's pattern stopped matching, and every one
+  // would then pass by never being looked at.
+  const read = { names: commandNamesRead - before7.names, operands: commandOperandsRead - before7.operands, dirs: commandDirsRead - before7.dirs };
+  for (const [shape, n] of [['backticked file name', read.names], ['script run by a backticked command', read.operands], ['backticked directory', read.dirs]] as const) {
+    if (text && n < 5) findings.push({ file: COMMAND, kind: 'scan went dark', detail: `only ${n} ${shape}(s) read from the review command, below the floor of 5` });
+  }
 }
 
 // ---- 8. OWNER RULES (#2986) -----------------------------------------------------------------------
