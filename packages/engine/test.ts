@@ -15123,6 +15123,15 @@ arm: {
   const corpusRoots = [...new Set([NB_ROOT, auroraTheme.root, harborTheme.root, prism3Theme.root, wendysTheme.root])];
   ok(corpusRoots.length === 5 && corpusRoots.every((r) => typeof r === 'string' && r.length > 0),
     `figma generalise: the five corpus brands carry five distinct roots for the doubled-root check [${corpusRoots.join(', ')}] (#3575)`);
+  // The engine's DEFAULT root (what an undeclared `root` resolves to), read off `brandTheme` of an input with its
+  // root removed, never spelled. A path that falls back to the default namespace inside a declared-root brand
+  // (`ads/prism/…`) is a second root just as much as another brand's is (#3575 review). It must differ from every
+  // corpus root, or it would add nothing to the set.
+  const undeclaredInput = { ...parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input };
+  delete (undeclaredInput as { root?: string }).root;
+  const defaultRoot = brandTheme(undeclaredInput).root;
+  ok(typeof defaultRoot === 'string' && defaultRoot.length > 0 && !corpusRoots.includes(defaultRoot),
+    `figma generalise: the engine's default root \`${defaultRoot}\` is read from brandTheme and is no corpus brand's root, for the doubled-root check (#3575)`);
 
   // Each brand runs through every axis. We assert structural claims uniformly:
   // - palette + color(×4 modes when default) shape correct
@@ -15218,9 +15227,9 @@ arm: {
     // #3575: the root set is READ from every corpus brand's theme, never spelled. The literal it replaces,
     // `['prism', 'nbds', 'acme']`, held neither root this loop walks (`ads`, `wds`), so a doubled
     // `ads/ads/…` never matched and the assertion below could not fail. This brand's own root is always in
-    // the set (that is the doubled case); the others catch one corpus brand's root leaking into another.
+    // the set (that is the doubled case); the others catch one corpus brand's root, or the engine's default root, leaking into another.
     // Roots come from the themes (the input), the names from the emitter (the subject): docs/34 shape 2.
-    const KNOWN_ROOTS = [...new Set([theme.root, ...corpusRoots])];
+    const KNOWN_ROOTS = [...new Set([theme.root, ...corpusRoots, defaultRoot])];
     const unrooted = allEmittedNames.filter((n) => !n.startsWith(`${theme.root}/`));
     ok(allEmittedNames.length > 500 && unrooted.length === 0,
       `figma generalise (${id}): every one of the ${allEmittedNames.length} emitted variable names carries this brand's own root \`${theme.root}/\` (#1097)` + (unrooted.length ? ` — UNROOTED: ${unrooted.slice(0, 3).join(', ')}` : ''));
