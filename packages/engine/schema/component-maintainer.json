@@ -1910,7 +1910,7 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "motion — the check-glyph draw animation (brief §8: a stroke-dasharray draw at roughly 100-150ms, morphing dash to check, bypassed under prefers-reduced-motion). The def states it in `motion`; a Figma variant carries no motion, so the two glyph parts are static outlines at every coordinate."
+          "description": "motion — the check-glyph draw animation (brief §8: a stroke-dasharray draw, morphing dash to check, on motion.duration.fast, bypassed under prefers-reduced-motion). The def states it in `motion`; a Figma variant carries no motion, so the two glyph parts are static outlines at every coordinate."
         },
         {
           "class": "right-to-left",
@@ -2022,7 +2022,7 @@
           "The unchecked box has no `pressed` binding. `color.field.border.*` emits `rest` and `hover` only, so a pressed unchecked box falls through to its rest border. Reaching into `color.interactive.neutral.border.pressed` for that one coordinate would put two families on one ladder, which is the inconsistency `lint-paint.ts` arm 1 exists to see in its axis-led form. The checked and indeterminate coordinates DO paint pressed, so the gap is asymmetric — worth knowing before anyone reads the pressed row as covered.",
           "`read-only` is declared and binds nothing (see `states`). The brief calls it \"the awkward one\" and recommends static text over a styled locked control, so there is no treatment to bind; a consumer choosing `aria-readonly` plus a prevented toggle has no token telling them what it should look like.",
           "The whole-row hit target — at least 24x24 (SC 2.5.8), 44 (Apple) / 48 (Material) on touch. Since #2894 the row's floor, `size.*.min-height`, is bound in Figma as well as code, and every row clears 24 by measurement (`test.ts` #2894: 29px at its smallest, small at compact). History: before #1433b gave the row 12px of block padding, an aurora `small` row at compact hugged to 21px, short of 24. `lint-hit-target` holds only the default (medium) row's `min-height` to 44px on comfortable and spacious density, which is why `accessibility.wcag` states 2.5.8 as intent (#1698). The heights are measured from emitted tokens and plans, not yet read back from a real host.",
-          "The check-glyph micro-motion (brief §8: an SVG stroke-dasharray draw at roughly 100-150ms, morphing dash to check) is stated in `checkbox-control`'s `motion`, and nothing checks it: `motion` is prose, and no token binding in either def points at the emitted `motion.duration-ms.*`."
+          "The check-glyph micro-motion (brief §8: an SVG stroke-dasharray draw, morphing dash to check) is stated in `checkbox-control`'s `motion` on motion.duration.fast, and nothing checks it: `motion` is prose, and no token binding in either def points at the emitted `motion.duration-ms.*`."
         ],
         "evolution": [
           "THE PAINT GRAMMAR IS AXIS-LED and the exemption is declared per-AXIS in `lint-paint.ts` (`NON_FAMILY_AXES`) rather than per-key. RESOLVED, not open — kept here because the rejected alternative is the instructive part. This def first shipped SLOT-led (`fill.checked`), which skips arm 1 by construction, since that rule only examines a key whose literal lead is an axis value: the same net coverage, none of the visibility, and exactly the shape the house rule forbids — a false positive is fixed by adding to the exemption list, never by narrowing a scan. The other alternative, axis-led with a `PROVENANCE_EXCEPTIONS` entry per binding, was costed at roughly four times `field-message`'s whole list for this one def; the axis-level entry replaces all twenty with one declaration that `radio-control` and `switch-control` inherit. What stays genuinely open is only the underlying fact, and it is a TOKEN-TIER claim anyone can check: the tier emits no `color.checked.*` family and should not grow one. If that stops being true, arm 1 should cover this axis and the exemption fails as no-longer-exercised, which is the direction it is checked in.",
@@ -2185,7 +2185,7 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "motion — the select micro-motion (a spring/scale-up of the dot at roughly 100-150ms, and — uniquely — a SIBLING's dot animating OUT, the only exit animation a radio has, since it can never be deselected on its own). The def states it in `motion`; a Figma variant carries no motion, so the dot is static at every coordinate."
+          "description": "motion — the select micro-motion (a scale-up of the dot on motion.duration.fast, and — uniquely — a SIBLING's dot animating OUT, the only exit animation a radio has, since it can never be deselected on its own). The def states it in `motion`; a Figma variant carries no motion, so the dot is static at every coordinate."
         },
         {
           "class": "hit-target",
@@ -2583,7 +2583,7 @@
           "THE DECOMPOSITION IS UNVERIFIED ON A REAL HOST, the same way `checkbox-control`'s was: the nested control instance must pin its own HEIGHT (the track height) rather than stretch to the `control-box` line box, and whether the instance's inherited sizing mode cooperates with the row's auto-layout is a real-host question the offline shim cannot answer. The symptom to look for: a control instance stretched to the line-box height instead of centered within it. The control is non-square, so the Row pins HEIGHT only and the width is the control's own 2:1 — a narrower pin than checkbox's square.",
           "THE THUMB GLYPH IS UNVERIFIED ON A REAL HOST for legibility at its smallest size. Since #1425 the thumb is 0.75 × the track (`control.size.*.thumb`), 18px at `small` and 24px at `medium` in every corpus brand, so the glyph is ~12.7px and ~17px after its optical inset; the smallest case is compact density `small`, a 12px thumb and a ~8.5px glyph. The measurement is in `switch-control.ts`.",
           "THE LABEL SIDE HAS ONE EXPRESSION AND `labelPosition` STILL HAS NONE. The anatomy states the DEFAULT (`row.children` is `[label, trackBox]`, label-leading); the flipped order the prop selects is not expressible, because a prop is not a coordinate. RTL is the sharper half and inverts twice over (the row mirrors AND the thumb travel flips).",
-          "THE TRAVEL'S TWO ENDPOINTS ARE EXPRESSED AND THE MOTION BETWEEN THEM IS NOT — on `switch-control` now. The ~150–200ms ease-in-out slide with the synchronized track-color crossfade (dropping to 0ms under prefers-reduced-motion) is the animation the component is most recognized by and has no expression in the schema.",
+          "THE TRAVEL'S TWO ENDPOINTS ARE EXPRESSED AND THE MOTION BETWEEN THEM IS NOT — on `switch-control` now. The slide on motion.transition.default with the synchronized track-color crossfade (at once under prefers-reduced-motion) is the animation the component is most recognized by and has no expression in the schema.",
           "THE role=\"switch\" ANNOUNCEMENT INSIDE A SHADOW ROOT on older Safari with VoiceOver, where no explicit aria-label or aria-labelledby is set (KB switch brief §15, from Material 3's notes). The `aria` block already tells a web-component host to set the name explicitly; whether older Safari announces the role and state correctly across the shadow boundary is not checked by anything here.",
           "THE WHOLE-ROW HIT TARGET HAS A NUMBER SINCE #2894: the row's floor, `size.*.min-height` (the control-height ladder), is bound in Figma as well as code, so a single-line row measures 36/44 at comfortable and 29/36 at compact, and every row clears SC 2.5.8's 24×24 (`test.ts` #2894). Still unverified on a real host, and sharper here than on the siblings because the row is label-leading (the control sits at the trailing edge, furthest from the label). The track spilling past its line-box cell is #1439, which the taller row hides but does not fix."
         ],
@@ -4228,7 +4228,7 @@
         {
           "class": "implementation",
           "disposition": "REFUSED",
-          "description": "The sliding indicator (optional) — one aria-hidden node behind the options, moved with transform from the selected option's measured box (a ResizeObserver, re-measured when fonts load or the direction changes), about 150–200ms. Under prefers-reduced-motion it moves without animation."
+          "description": "The sliding indicator (optional) — one aria-hidden node behind the options, moved with transform from the selected option's measured box (a ResizeObserver, re-measured when fonts load or the direction changes), on motion.transition.default. Under prefers-reduced-motion it moves without animation."
         },
         {
           "class": "responsive-layout",

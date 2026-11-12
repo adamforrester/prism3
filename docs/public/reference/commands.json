@@ -406,7 +406,7 @@
               },
               "args": {
                 "type": "object",
-                "description": "apply-theme: {input: BrandInput}; build-components: {def?}; prune: {input, confirm}; others: {}"
+                "description": "status: Record<string, never>; apply-theme: { input: BrandInput }; build-components: { def?: string }; file-setup: Record<string, never>; style-guide: StyleGuideOptions; prune: { input: BrandInput; confirm: boolean }; readback: Record<string, never>; update-components: { def?: string; confirm: false } | { def?: string; confirm: true; previewHash: string; choices?: UpdateChoiceArgs }; capture-baseline: { def?: string }; adopt-members: { def?: string }; draw-specs: { def?: string }; inspect: { ids: string[]; depth?: number; fields?: Array<'props' | 'bindings' | 'styles' | 'layout' | 'text'>; maxNodes?: number }; component-keys: { names?: string[]; sets?: boolean }; audit-frames: { ids: string[]; legacy?: { textStyles?: string[]; components?: string[]; variablePrefixes?: string[] }; nameRule?: string }; snapshot: { id: string; scale?: number }; activity: { since?: number; limit?: number }; panels-clean: { confirm?: boolean }; context: Record<string, never>. Record<string, never> means send {}. Each field's meaning: docs/public/reference/commands.json."
               },
               "timeoutMs": {
                 "type": "number",

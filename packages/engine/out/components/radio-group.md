@@ -73,9 +73,9 @@ Use to choose exactly one of 2 to 7 mutually exclusive, all-visible options wher
 
 ### Motion
 
-- **Enter:** None (present on mount). On select, the chosen option's dot scales in, about 100-150ms.
+- **Enter:** None (present on mount). On select, the chosen option's dot scales in, on motion.duration.fast.
 - **Exit:** Selecting an option animates the previously selected option's dot out — exclusivity made visible, and the only exit a radio has. Rows do not animate in or out of the stack.
-- **Reduced motion:** No layout motion. Under prefers-reduced-motion, both dots snap through opacity and color only; the focus ring appears instantly at every setting.
+- **Reduced motion:** No layout motion. Under prefers-reduced-motion, both dots fade with no scale, on motion.duration-reduced.fast; the focus ring appears instantly at every setting.
 
 ## Content guidelines
 
