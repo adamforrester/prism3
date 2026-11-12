@@ -61,7 +61,7 @@ Use an Accordion to compress a set of independent sections into scannable header
 ### Don't
 
 - Hide content most users need. Show it instead.
-- Force one section to stay open. If one view must always show, use tabs.
+- Force one section to stay open. If one view must always show, use Tabs.
 - Put an accordion inside an accordion. For more than one level, use a tree.
 - Truncate a title with an ellipsis
 

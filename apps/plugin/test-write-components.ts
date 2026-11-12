@@ -5745,7 +5745,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 // after the style detaches it (#1567), which the shim models. The style names are typed here, not read from the plan.
 {
   const cell = componentDefs.find((d) => d.id === 'code-input-cell')!;
-  const STYLE: Record<string, string> = { small: 'body/md/default', medium: 'title/sm/strong', large: 'title/md/strong', xlarge: 'title/2xl/strong' };
+  const STYLE: Record<string, string> = { small: 'body/md/default', medium: 'title/sm/strong', large: 'title/md/strong', 'x-large': 'title/2xl/strong' };
   const plans = figmaAnatomySet(cell, { swapTarget: SWAP });
   const page: Page = { children: [] };
   const r = await applyComponentPlan(plans, makeShim({ ...fullFor(plans), page }) as any);
@@ -5754,7 +5754,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const wantDigits = plans.filter((p) => JSON.stringify(p.root).includes('"name":"digit"')).length;
   const off = digits.flatMap((d) => {
     const member = String((d.parent as Node | undefined)?.parent?.name);
-    const size = /size=(\w+)/.exec(member)?.[1] ?? '';
+    const size = /size=([\w-]+)/.exec(member)?.[1] ?? '';
     const style = String(d._textStyleId ?? '').replace(/^S:/, '');
     return style === STYLE[size] && d.leadingTrim === 'NONE' ? [] : [`${member}: ${style || 'no style'}, trim ${String(d.leadingTrim)}`];
   });

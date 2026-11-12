@@ -224,7 +224,7 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | slider | inputMax | nest | text-field | nest-fixed | size=medium, status=default, state=filled | — | — |
 | slider | inputMin | nest | text-field | nest-fixed | size=medium, status=default, state=filled | — | — |
 | slider | inputSingle | nest | text-field | nest-fixed | size=medium, status=default, state=filled | — | — |
-| slider | label | nest | field-label | nest-fixed | size=medium, emphasis=primary, weight=bold, state=rest | — | — |
+| slider | label | nest | field-label | nest-exposed | size=medium, emphasis=primary, weight=regular, state=rest | size | emphasis, weight |
 | slider | message | nest | field-message | nest-fixed | status=default | — | — |
 | slider | thumb | nest | _slider-thumb | nest-fixed | size=medium, state=rest | size | — |
 | slider | thumbMin | nest | _slider-thumb | nest-fixed | size=medium, state=rest | size | — |

@@ -9,11 +9,11 @@
 
 ## Overview
 
-A labeled set for selecting any number — zero to many — from a bounded list of options. A required section label (FieldLabel) above a vertical stack of Checkbox.Row options. Owns the contract a single row cannot: the value array, group-level required, and all validation, announced once for the group. Use for a small bounded multi-select; past roughly 7-10 options a filtering multi-select combobox (not built yet) scans better. Not exactly-one selection (Radio.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row).
+A labeled set for selecting any number — zero to many — from a bounded list of options. A required section label (FieldLabel) above a vertical stack of Checkbox.Row options. Owns the contract a single row cannot: the value array, group-level required, and all validation, announced once for the group. Use for a small bounded multi-select; past roughly 7–10 options a filtering multi-select combobox (not built yet) scans better. Not exactly-one selection (Radio.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row).
 
 - **Purpose:** Select any number — zero to many — from a bounded set via a labeled stack of Checkbox.Row options, with the group owning the value array, group-level required and all validation.
 - **Use when:** A small bounded multi-select committed on save (notification preferences, feature opt-ins, a filter set), where seeing all the options aids the choice and the group needs one label, one required rule and one validation message.
-- **Avoid when:** Exactly one option may be chosen (Radio.Group — any-number versus exactly-one), a single independent opt-in with no siblings (a lone Checkbox.Row — a consent line, "remember me"), the change takes effect the instant it is toggled (a list of Switch.Row — staged versus immediate), or the set runs past roughly 7-10 options (a filtering multi-select combobox or listbox, not built yet).
+- **Avoid when:** Exactly one option may be chosen (Radio.Group — any-number versus exactly-one), a single independent opt-in with no siblings (a lone Checkbox.Row — a consent line, "remember me"), the change takes effect the instant it is toggled (a list of Switch.Row — staged versus immediate), or the set runs past roughly 7–10 options (a filtering multi-select combobox or listbox, not built yet).
 
 ## Anatomy
 
@@ -35,7 +35,7 @@ Shown on the default member: size `medium`, status `default`.
 
 ## Usage guidelines
 
-Use to select any number — zero to many — from a bounded set, where the change is committed on save rather than applied instantly. Give the group a label that names the decision; let it own the value array, required and validation, and derive each row's checked state from the value array rather than wiring it on the row. Compose the rows as items. Past roughly 7-10 options, a filtering multi-select combobox (not built yet) scans better; for exactly-one selection use Radio.Group, and for a single independent opt-in a lone Checkbox.Row.
+Use to select any number — zero to many — from a bounded set, where the change is committed on save rather than applied instantly. Give the group a label that names the decision; let it own the value array, required and validation, and derive each row's checked state from the value array rather than wiring it on the row. Compose the rows as items. Past roughly 7–10 options, a filtering multi-select combobox (not built yet) scans better; for exactly-one selection use Radio.Group, and for a single independent opt-in a lone Checkbox.Row.
 
 ### Do
 
@@ -50,7 +50,7 @@ Use to select any number — zero to many — from a bounded set, where the chan
 - Pre-check a consent option — a dark pattern, and for marketing consent often unlawful
 - Wire checked, onChange or required on an individual row inside a group — all three belong to the group
 - Model an exclusive one-of-many choice as a checkbox group — that is Radio.Group
-- Reach for a checkbox group past roughly 7-10 options — a filtering multi-select combobox (not built yet) scans better
+- Reach for a checkbox group past roughly 7–10 options — a filtering multi-select combobox (not built yet) scans better
 - Override Enter to toggle — Enter submits the form, and that expectation is universal
 
 ## Accessibility
@@ -73,9 +73,9 @@ Use to select any number — zero to many — from a bounded set, where the chan
 
 ### Motion
 
-- **Enter:** None (present on mount). Each row's nested control draws its own check, about 100-150ms.
+- **Enter:** None (present on mount). Each row's nested control draws its own check, on motion.duration.fast.
 - **Exit:** None. Rows do not animate in or out of the stack.
-- **Reduced motion:** No layout motion at any setting. Under prefers-reduced-motion, each nested control flips instantly.
+- **Reduced motion:** No layout motion at any setting. Under prefers-reduced-motion, each nested control takes its new state at once and fades its color change.
 
 ## Content guidelines
 

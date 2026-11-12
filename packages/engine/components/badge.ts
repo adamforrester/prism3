@@ -151,7 +151,7 @@ export const badge: ComponentDef = {
   aliases: ['status-badge', 'counter-badge', 'notification-badge', 'notification-dot', 'presence-badge', 'label', 'counter', 'state-label'],
   category: 'foundations',
   status: 'draft',
-  summary: 'A static status label, count or dot. Nothing to click, and color is never the only signal.',
+  summary: 'A static status label, count or dot. Nothing to click; color is not meant to be the only signal.',
   description:
     'A small, static marker of one of three types. A status label is short text in the flow of content, such as a lifecycle state, a keyword or a file size, and it announces its own text. A count is a number over a host, such as unread messages on an icon button, capped at a maximum. A dot is a contentless mark over a host for presence or unread state. A count or dot is hidden from assistive technology, and its meaning goes in the host\'s accessible name. A badge has no hover, focus or pressed state. Anything a user can click, toggle or remove is a tag.',
 
@@ -482,7 +482,7 @@ export const badge: ComponentDef = {
   accessibility: {
     role: 'none. A status label is plain text and announces itself; a count or dot is aria-hidden and its meaning is in the host\'s accessible name.',
     wcag: [
-      '1.4.1 Use of Color (the text carries the meaning; a tone, or a dot, is never the only signal)',
+      '1.4.1 Use of Color, as intent (the text carries the meaning, so a tone or a dot is not the only signal)',
       '1.4.3 Contrast (the label ink clears 4.5:1 on its own fill, measured in every mode of the example brands; an inline label clears 4.5:1 against the page and card surfaces)',
       '1.4.11 Non-text Contrast (applies to the dot, which has no text, so the colored circle is the information: its bold fill clears 3:1 against the page, measured in every mode of the example brands. For a status label or count the text carries the meaning, and the separation from the page is design intent rather than a 1.4.11 requirement: the subtle label\'s 1px edge and every bold fill clear 3:1 against the page in the same measurement. The same holds for the inline style\'s dot: its label says the same thing, so 1.4.11 does not require 3:1, and the dot clears 3:1 against the page and card surfaces as design intent)',
       '4.1.2 Name, Role, Value (a count or dot joins its host\'s accessible name, so the host says what it means)',
@@ -523,7 +523,7 @@ export const badge: ComponentDef = {
   ai: {
     primaryPurpose: 'Mark a status, count or presence with a small static badge that nobody clicks.',
     whenToUse: 'A short state or attribute shown next to what it describes (status), an actionable number over an icon button or tab (count), or presence or unread state over an avatar or nav item (dot). Inline style: a quieter status in a list or table row or a card\'s details, where a filled label would draw too much attention.',
-    avoidWhen: 'The user can click, toggle or remove it (use a tag), the message is feedback about an action (use a toast or banner), or the color would be the only signal.',
+    avoidWhen: 'The user can click, toggle or remove it (use Tag), the message is feedback about an action (use Toast or Banner), or the color would be the only signal.',
     // `tab` moved here from `planned` when it was built (#2416): a tab nests a count badge.
     commonPartners: ['icon-button', 'button', 'tab-item'],
     triggerKeywords: ['badge', 'status badge', 'status label', 'counter badge', 'count badge', 'notification badge', 'notification dot', 'unread count', 'presence dot', 'label', 'pill label'],

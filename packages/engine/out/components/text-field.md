@@ -65,7 +65,7 @@ Use for free-form, non-enumerable single-line input — names, titles, SKUs, ide
 - **Focus:** :focus-visible draws the 2px focus edge in place of the border: from the field's outer edge, at its own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color), boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. forwardRef must reach the \<input>, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.
 - **Screen readers:** textbox (native \<input>)
 
-  The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the highest-frequency real a11y failure). placeholder is not the accessible name. Error timing: validate on blur, re-validate on input after the first error, announce politely, and on submit move focus to the first invalid field (with an error summary on a long form). While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir="auto" on the input so content direction can differ from UI direction.
+  The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the most frequent real accessibility failure). placeholder is not the accessible name. Error timing: validate on blur, re-validate on input after the first error, announce politely, and on submit move focus to the first invalid field (with an error summary on a long form). While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir="auto" on the input so content direction can differ from UI direction.
 
 ### WCAG
 
@@ -94,7 +94,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 ## Related components
 
 - **Built from:** `field-label`, `field-message`
-- **Instead, consider:** `textarea`, `select`, `checkbox-row`, `switch-row`, `password-field`, `search-field`
+- **Instead, consider:** `textarea`, `select`, `checkbox-row`, `switch-row`, `password-field`, `search-field`, `code-input`
 - **Often used with:** `icon`, `button`, `spinner`
 - **Replaces:**
   - bare input without label wiring

@@ -136,7 +136,7 @@ export const switchControl: ComponentDef = {
   aliases: ['switch-track', 'toggle-control', 'switch-atom'],
   category: 'form',
   status: 'draft',
-  summary: 'Switch track, thumb, state glyph and focus ring. Nested by Switch.Row; no label.',
+  summary: 'Switch track, thumb, state glyph and focus ring. Nested by a switch row; no label.',
   description:
     'The atomic switch control — the painted pill track, its traveling thumb, the X/checkmark state glyph in that thumb, and the focus ring, and nothing else. Nested by the labeled Switch.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Carries the two-value selection axis (off / on) whose thumb position is the part that varies, the off-track border that is load-bearing for WCAG 1.4.11, and the 2px control border.',
 
@@ -486,7 +486,7 @@ export const switchControl: ComponentDef = {
   motion: {
     enter: 'none (present on mount)',
     exit: 'none',
-    reduceMotion: 'The thumb slides across the track in ~150–200ms, ease-in-out, with a synchronized track-color crossfade; it is the receipt that the immediate change registered. Translate the thumb (`transform`), never animate width or layout, and do not spring it. Under prefers-reduced-motion the slide drops and the thumb snaps (0ms); the track-color crossfade may remain if it stays under flashing thresholds. On an async toggle the thumb snaps to the new position and a spinner cross-fades onto it; if the change fails, the thumb slides back.',
+    reduceMotion: 'The thumb travels across the track on motion.transition.default, with a synchronized track-color crossfade; it is the receipt that the immediate change registered. Translate the thumb (`transform`), never animate width or layout, and do not spring it. Under prefers-reduced-motion the travel drops and the thumb takes its new place at once; the track-color change fades on motion.duration-reduced.fast. On an async toggle the thumb snaps to the new position and a spinner cross-fades onto it; if the change fails, the thumb slides back.',
   },
 
   notes: {

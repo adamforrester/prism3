@@ -94,6 +94,9 @@ type FlushIconButtonSibling = {
   iconButton: string;
   triggerKeywords: string[];
   avoidWhen: string;
+  /** #3555 C2: the sibling's own opening for `whenToUse`, before the shared shape guidance. The counter and card-close
+   *  examples belong to the neutral sibling, which every other sibling's `avoidWhen` sends them to. */
+  whenToUse?: string;
   generationPriority: number;
   /** Appended to the shared `docs.do`. */
   do: string[];
@@ -297,8 +300,8 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
   },
 
   ai: {
-    primaryPurpose: 'Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.',
-    whenToUse: 'The minus and plus of a counter, a card\'s close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.',
+    primaryPurpose: `Trigger ${{ primary: 'a brand action', destructive: 'a destructive action', neutral: 'an action with no brand emphasis' }[family]} inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.`,
+    whenToUse: `${sibling.whenToUse ?? 'Any icon action inside a component.'} shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.`,
     avoidWhen: `${sibling.avoidWhen} ${AVOID_WHEN}`,
     commonPartners: ['icon', 'focus-ring', 'counter'],
     triggerKeywords: sibling.triggerKeywords,
@@ -308,7 +311,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
   composition: {
     composesWith: ['focus-ring'],
     alternativeTo: [sibling.iconButton],
-    planned: ['number-input', 'card'],
+    planned: ['number-field', 'card'],
     replacesPatterns: ['an <svg> with a click handler and no button', 'an IconButton with its padding overridden to zero'],
   },
 
@@ -385,6 +388,7 @@ export const flushIconButtonNeutral: ComponentDef = makeFlushIconButton(
     iconButton: 'icon-button-neutral',
     triggerKeywords: ['flush icon button', 'bare icon button', 'round icon button in a counter', 'counter plus minus', 'card close icon', 'stepper button'],
     avoidWhen: 'The action carries the brand (use FlushIconButton) or deletes something (use FlushIconButton.Destructive). It stands on its own in a toolbar or a header (use IconButton.Neutral, which has a visible box and a hover wash).',
+    whenToUse: 'The minus and plus of a counter, a card\'s close, or any icon action inside a component.',
     generationPriority: 4,
     do: [],
   },

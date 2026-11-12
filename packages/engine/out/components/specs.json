@@ -12774,7 +12774,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.disabled.icon"
+              "icon": "color.disabled.on-fill"
             }
           ]
         },
@@ -12882,7 +12882,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.inverse.disabled.icon"
+              "icon": "color.inverse.disabled.on-fill"
             }
           ]
         },
@@ -12990,7 +12990,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.disabled.icon"
+              "icon": "color.disabled.on-fill"
             }
           ]
         },
@@ -13098,7 +13098,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.inverse.disabled.icon"
+              "icon": "color.inverse.disabled.on-fill"
             }
           ]
         },
@@ -14306,7 +14306,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.disabled.icon"
+              "icon": "color.disabled.on-fill"
             }
           ]
         },
@@ -14414,7 +14414,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.inverse.disabled.icon"
+              "icon": "color.inverse.disabled.on-fill"
             }
           ]
         },
@@ -14522,7 +14522,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.disabled.icon"
+              "icon": "color.disabled.on-fill"
             }
           ]
         },
@@ -14630,7 +14630,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.inverse.disabled.icon"
+              "icon": "color.inverse.disabled.on-fill"
             }
           ]
         },
@@ -15838,7 +15838,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.disabled.icon"
+              "icon": "color.disabled.on-fill"
             }
           ]
         },
@@ -15946,7 +15946,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.inverse.disabled.icon"
+              "icon": "color.inverse.disabled.on-fill"
             }
           ]
         },
@@ -16054,7 +16054,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.disabled.icon"
+              "icon": "color.disabled.on-fill"
             }
           ]
         },
@@ -16162,7 +16162,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.inverse.disabled.icon"
+              "icon": "color.inverse.disabled.on-fill"
             }
           ]
         },
@@ -42479,7 +42479,7 @@
             },
             {
               "part": "container/labelBox/underline",
-              "fill": "color.border.tertiary"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "container/labelBox/underline/underlineReserve/underlineLabel",
@@ -42506,7 +42506,7 @@
             },
             {
               "part": "container/labelBox/underline",
-              "fill": "color.border.tertiary"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "container/labelBox/underline/underlineReserve/underlineLabel",
@@ -49390,7 +49390,7 @@
           "variant": {
             "size": "medium",
             "emphasis": "primary",
-            "weight": "bold",
+            "weight": "regular",
             "state": "rest"
           },
           "when": {
@@ -49400,8 +49400,13 @@
               }
             }
           },
-          "follows": [],
-          "exposes": []
+          "follows": [
+            "size"
+          ],
+          "exposes": [
+            "emphasis",
+            "weight"
+          ]
         },
         {
           "part": "container/field/control/track/thumb",
@@ -49567,7 +49572,7 @@
           "default": false
         },
         {
-          "name": "helper",
+          "name": "message",
           "type": "BOOLEAN",
           "default": false
         }
@@ -49594,7 +49599,7 @@
             "medium",
             "small",
             "large",
-            "xlarge"
+            "x-large"
           ],
           "kind": "size"
         },
@@ -49808,7 +49813,7 @@
         },
         {
           "where": {
-            "size": "xlarge"
+            "size": "x-large"
           },
           "parts": [
             {
@@ -49898,7 +49903,7 @@
         },
         {
           "where": {
-            "size": "xlarge"
+            "size": "x-large"
           },
           "parts": [
             {
@@ -50124,7 +50129,7 @@
             "medium",
             "small",
             "large",
-            "xlarge"
+            "x-large"
           ],
           "kind": "size"
         },
@@ -50272,7 +50277,7 @@
         },
         {
           "where": {
-            "size": "xlarge"
+            "size": "x-large"
           },
           "parts": [
             {
@@ -50318,7 +50323,7 @@
         },
         {
           "where": {
-            "size": "xlarge"
+            "size": "x-large"
           },
           "parts": []
         }
