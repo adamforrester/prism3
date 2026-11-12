@@ -54,7 +54,7 @@ Use for a small whole-number quantity that usually changes by one, such as the i
 ### Don't
 
 - Use it for a large or precise number, such as a price or a measurement; use a number input
-- Use it for a count shown on another element, such as unread messages; use a badge
+- Use it for a count shown on another element, such as unread messages; use Badge
 - Put the minus and plus buttons in the Tab order; the arrow keys already step the value
 - Hide the minus and plus buttons with aria-hidden; they stay in the accessibility tree for pointer and touch users of assistive technology
 - Change the value on a mouse wheel or scroll
@@ -105,8 +105,8 @@ The label is a noun ("Quantity"). Button names are a verb with the object. A lim
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `label` | string \| node | — | yes | What is counted, such as "Quantity". The accessible name of the value, always present in code; shown above the counter only with showLabel. |
-| `showLabel` | boolean | `false` | no | Shows the label above the counter. Off by default: a counter on a product card or a bag line is usually explained by what sits around it, and the label stays its accessible name either way. |
+| `label` | string \| node | — | yes | What is counted, such as "Quantity". The accessible name of the value, always present in code; shown above the counter unless hideLabel is set. |
+| `hideLabel` | boolean | `true` | no | Hides the label visually and keeps it in the accessibility tree, so the value keeps its name. On by default: a counter on a product card or a bag line is usually explained by what sits around it. Set it to false to show the label above the counter. Never display: none. |
 | `value` | number | — | no | Controlled value; pair it with onChange. |
 | `defaultValue` | number | — | no | The starting value when the counter manages its own state. Defaults to min. |
 | `onChange` | function | — | no | Called with the new number after each step. Never called with a value outside min and max. |

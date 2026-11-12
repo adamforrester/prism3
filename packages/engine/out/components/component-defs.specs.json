@@ -14757,7 +14757,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.disabled.icon",
+                  "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -14913,7 +14913,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.inverse.disabled.icon",
+                  "$token": "color.inverse.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -15069,7 +15069,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.disabled.icon",
+                  "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -15225,7 +15225,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.inverse.disabled.icon",
+                  "$token": "color.inverse.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -16847,7 +16847,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.disabled.icon",
+                  "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -17003,7 +17003,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.inverse.disabled.icon",
+                  "$token": "color.inverse.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -17159,7 +17159,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.disabled.icon",
+                  "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -17315,7 +17315,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.inverse.disabled.icon",
+                  "$token": "color.inverse.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -18937,7 +18937,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.disabled.icon",
+                  "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -19093,7 +19093,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.inverse.disabled.icon",
+                  "$token": "color.inverse.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -19249,7 +19249,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.disabled.icon",
+                  "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -19405,7 +19405,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.inverse.disabled.icon",
+                  "$token": "color.inverse.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -33938,7 +33938,7 @@
             "com.prism3": {
               "type": "string",
               "required": false,
-              "description": "The accessible name of the spinner's role=\"status\" wrapper, visually hidden and announced politely. \"Loading\" by default; name the work when it is known (\"Loading results\"). A host that already announces its own busy state (a Button or IconButton isPending, which set aria-busy and carry their own live region) puts aria-hidden=\"true\" on the spinner instead, so the state is announced once."
+              "description": "The text announced when the spinner shows, written into a polite role=\"status\" region that is present and empty before it shows, and visually hidden. \"Loading\" by default; name the work when it is known (\"Loading results\"). A host that already announces its own busy state (a Button or IconButton isPending, which set aria-busy and carry their own live region) puts aria-hidden=\"true\" on the spinner instead, so the state is announced once."
             }
           }
         }
@@ -50020,18 +50020,18 @@
             "com.prism3": {
               "type": "string | node",
               "required": true,
-              "description": "What is counted, such as \"Quantity\". The accessible name of the value, always present in code; shown above the counter only with showLabel."
+              "description": "What is counted, such as \"Quantity\". The accessible name of the value, always present in code; shown above the counter unless hideLabel is set."
             }
           }
         },
-        "showLabel": {
+        "hideLabel": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "$extensions": {
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Shows the label above the counter. Off by default: a counter on a product card or a bag line is usually explained by what sits around it, and the label stays its accessible name either way."
+              "description": "Hides the label visually and keeps it in the accessibility tree, so the value keeps its name. On by default: a counter on a product card or a bag line is usually explained by what sits around it. Set it to false to show the label above the counter. Never display: none."
             }
           }
         },
@@ -51794,7 +51794,7 @@
             "underline": {
               "styles": {
                 "backgroundColor": {
-                  "$token": "color.border.tertiary",
+                  "$token": "color.interactive.neutral.indicator.rest",
                   "$type": "color"
                 }
               }
@@ -51837,7 +51837,7 @@
             "underline": {
               "styles": {
                 "backgroundColor": {
-                  "$token": "color.border.tertiary",
+                  "$token": "color.interactive.neutral.indicator.rest",
                   "$type": "color"
                 }
               }
@@ -59252,6 +59252,17 @@
               "type": "string | node",
               "required": true,
               "description": "Names the dimension being set, such as \"Price\" or \"Volume\". Shown above the track, and the accessible name of a single thumb."
+            }
+          }
+        },
+        "hideLabel": {
+          "type": "boolean",
+          "default": false,
+          "$extensions": {
+            "com.prism3": {
+              "type": "boolean",
+              "required": false,
+              "description": "Hides the label visually and keeps it in the accessibility tree, so the slider keeps its name. For a slider whose purpose is plain from where it sits. Never display: none."
             }
           }
         },

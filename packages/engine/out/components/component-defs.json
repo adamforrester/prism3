@@ -2138,7 +2138,7 @@
       }
     },
     "button": {
-      "digest": "a9343da8",
+      "digest": "ca796274",
       "def": {
         "id": "button",
         "name": "Button",
@@ -2148,8 +2148,8 @@
         ],
         "category": "form",
         "status": "draft",
-        "summary": "Triggers an action in place, such as submit, save or confirm. For navigation, use a link.",
-        "description": "In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand's primary action style, the expected look of a button. Not navigation (use Link, or give the button an href so it renders an <a>), not a persistent binary (Switch.Row), not one-of-many selection (segmented-control / toggle-button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.",
+        "summary": "Triggers an action in place, such as submit, save or confirm. For navigation, use Link.",
+        "description": "In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand's primary action style, the expected look of a button. Not navigation (use Link, or give the button an href so it renders an <a>), not a persistent binary (Switch.Row), not one-of-many selection (SegmentedControl, or a toggle button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.",
         "props": [
           {
             "name": "label",
@@ -14255,7 +14255,7 @@
       }
     },
     "icon-button": {
-      "digest": "988e589e",
+      "digest": "e8c3589e",
       "def": {
         "id": "icon-button",
         "name": "IconButton",
@@ -15242,7 +15242,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.disabled.icon"
+                "icon": "color.disabled.on-fill"
               }
             ]
           },
@@ -15350,7 +15350,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.inverse.disabled.icon"
+                "icon": "color.inverse.disabled.on-fill"
               }
             ]
           },
@@ -15458,7 +15458,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.disabled.icon"
+                "icon": "color.disabled.on-fill"
               }
             ]
           },
@@ -15566,7 +15566,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.inverse.disabled.icon"
+                "icon": "color.inverse.disabled.on-fill"
               }
             ]
           },
@@ -16048,7 +16048,7 @@
       }
     },
     "icon-button-destructive": {
-      "digest": "d848e8f4",
+      "digest": "456112c4",
       "def": {
         "id": "icon-button-destructive",
         "name": "IconButton.Destructive",
@@ -17036,7 +17036,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.disabled.icon"
+                "icon": "color.disabled.on-fill"
               }
             ]
           },
@@ -17144,7 +17144,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.inverse.disabled.icon"
+                "icon": "color.inverse.disabled.on-fill"
               }
             ]
           },
@@ -17252,7 +17252,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.disabled.icon"
+                "icon": "color.disabled.on-fill"
               }
             ]
           },
@@ -17360,7 +17360,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.inverse.disabled.icon"
+                "icon": "color.inverse.disabled.on-fill"
               }
             ]
           },
@@ -17842,7 +17842,7 @@
       }
     },
     "icon-button-neutral": {
-      "digest": "b795979d",
+      "digest": "d97456ed",
       "def": {
         "id": "icon-button-neutral",
         "name": "IconButton.Neutral",
@@ -18829,7 +18829,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.disabled.icon"
+                "icon": "color.disabled.on-fill"
               }
             ]
           },
@@ -18937,7 +18937,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.inverse.disabled.icon"
+                "icon": "color.inverse.disabled.on-fill"
               }
             ]
           },
@@ -19045,7 +19045,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.disabled.icon"
+                "icon": "color.disabled.on-fill"
               }
             ]
           },
@@ -19153,7 +19153,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.inverse.disabled.icon"
+                "icon": "color.inverse.disabled.on-fill"
               }
             ]
           },
@@ -19635,7 +19635,7 @@
       }
     },
     "flush-icon-button": {
-      "digest": "285520a3",
+      "digest": "be95d2d7",
       "def": {
         "id": "flush-icon-button",
         "name": "FlushIconButton",
@@ -19822,7 +19822,7 @@
           "supersedes": [],
           "supersededBy": [],
           "planned": [
-            "number-input",
+            "number-field",
             "card"
           ],
           "replacesPatterns": [
@@ -20480,7 +20480,7 @@
       }
     },
     "flush-icon-button-destructive": {
-      "digest": "dc597691",
+      "digest": "d89539e9",
       "def": {
         "id": "flush-icon-button-destructive",
         "name": "FlushIconButton.Destructive",
@@ -20668,7 +20668,7 @@
           "supersedes": [],
           "supersededBy": [],
           "planned": [
-            "number-input",
+            "number-field",
             "card"
           ],
           "replacesPatterns": [
@@ -21326,7 +21326,7 @@
       }
     },
     "flush-icon-button-neutral": {
-      "digest": "75055c49",
+      "digest": "fd436c09",
       "def": {
         "id": "flush-icon-button-neutral",
         "name": "FlushIconButton.Neutral",
@@ -21515,7 +21515,7 @@
           "supersedes": [],
           "supersededBy": [],
           "planned": [
-            "number-input",
+            "number-field",
             "card"
           ],
           "replacesPatterns": [
@@ -22773,7 +22773,7 @@
       }
     },
     "field-message": {
-      "digest": "84044863",
+      "digest": "4873fb4f",
       "def": {
         "id": "field-message",
         "name": "FieldMessage",
@@ -22867,7 +22867,7 @@
         "ai": {
           "primaryPurpose": "Carry helper guidance or a validation result below a form field, as icon + caption.",
           "whenToUse": "Under any field control that needs persistent guidance or an error/warning/success message.",
-          "avoidWhen": "As a standalone alert or toast (use an alert/banner) — this is field-scoped and associated to one control. Never as the sole color-coded error signal without text.",
+          "avoidWhen": "As a standalone alert or toast (use Banner or Toast) — this is field-scoped and associated to one control. Never as the sole color-coded error signal without text.",
           "commonPartners": [
             "text-field",
             "textarea",
@@ -23188,7 +23188,7 @@
       }
     },
     "text-field": {
-      "digest": "d433f459",
+      "digest": "5b97f5a7",
       "def": {
         "id": "text-field",
         "name": "TextField",
@@ -23496,7 +23496,8 @@
             "checkbox-row",
             "switch-row",
             "password-field",
-            "search-field"
+            "search-field",
+            "code-input"
           ],
           "supersedes": [],
           "supersededBy": [],
@@ -26472,7 +26473,7 @@
       }
     },
     "checkbox-control": {
-      "digest": "824f74b5",
+      "digest": "ad9cfe01",
       "def": {
         "id": "checkbox-control",
         "name": "Checkbox.Control",
@@ -26618,9 +26619,9 @@
           "generationPriority": 6
         },
         "motion": {
-          "enter": "On check, the check glyph draws in as a pen stroke (SVG stroke-dashoffset) while the fill crossfades in, about 100-150ms, eased. Indeterminate to checked morphs the dash into the check.",
+          "enter": "On check, the check glyph draws in as a pen stroke (SVG stroke-dashoffset) while the fill crossfades in, on motion.duration.fast with motion.easing-role.default. Indeterminate to checked morphs the dash into the check.",
           "exit": "On uncheck, the same glyph transition runs back and the fill crossfades out.",
-          "reduceMotion": "Under prefers-reduced-motion, the draw and any spatial animation are bypassed and the box flips instantly; a crossfade under 150ms may remain, since opacity does not trigger vestibular symptoms. No layout motion."
+          "reduceMotion": "Under prefers-reduced-motion, the draw and any spatial animation are bypassed and the box takes its new state at once; the fill's color change fades on motion.duration-reduced.fast, since opacity does not trigger vestibular symptoms. No layout motion."
         },
         "composition": {
           "composesWith": [
@@ -27426,7 +27427,7 @@
       }
     },
     "checkbox-row": {
-      "digest": "868c371b",
+      "digest": "4f98c36f",
       "def": {
         "id": "checkbox-row",
         "name": "Checkbox.Row",
@@ -27612,9 +27613,9 @@
           "generationPriority": 2
         },
         "motion": {
-          "enter": "None of the row's own (present on mount). On check, the nested Checkbox.Control draws its glyph and crossfades its fill, about 100-150ms.",
+          "enter": "None of the row's own (present on mount). On check, the nested Checkbox.Control draws its glyph and crossfades its fill, on motion.duration.fast.",
           "exit": "None of the row's own. On uncheck, the nested control runs the same glyph transition back.",
-          "reduceMotion": "No layout motion. Under prefers-reduced-motion, the nested glyph flips instantly; a crossfade under 150ms may remain."
+          "reduceMotion": "No layout motion. Under prefers-reduced-motion, the nested glyph is not drawn, and the color change fades on motion.duration-reduced.fast."
         },
         "composition": {
           "composesWith": [
@@ -28080,7 +28081,7 @@
       }
     },
     "checkbox-group": {
-      "digest": "4527fc45",
+      "digest": "e92dc25f",
       "def": {
         "id": "checkbox-group",
         "name": "Checkbox.Group",
@@ -28260,9 +28261,9 @@
           "generationPriority": 2
         },
         "motion": {
-          "enter": "None (present on mount). Each row's nested control draws its own check, about 100-150ms.",
+          "enter": "None (present on mount). Each row's nested control draws its own check, on motion.duration.fast.",
           "exit": "None. Rows do not animate in or out of the stack.",
-          "reduceMotion": "No layout motion at any setting. Under prefers-reduced-motion, each nested control flips instantly."
+          "reduceMotion": "No layout motion at any setting. Under prefers-reduced-motion, each nested control takes its new state at once and fades its color change."
         },
         "composition": {
           "composesWith": [
@@ -28656,7 +28657,7 @@
       }
     },
     "radio-control": {
-      "digest": "015ef969",
+      "digest": "d63bc677",
       "def": {
         "id": "radio-control",
         "name": "Radio.Control",
@@ -28794,9 +28795,9 @@
           "generationPriority": 6
         },
         "motion": {
-          "enter": "On select, the inner dot scales in with a border-color crossfade on the ring, about 100-150ms. The focus ring appears instantly — a fade lags rapid arrow navigation through the group.",
-          "exit": "When a sibling is selected, this dot animates out — the one exit a radio has, since it is never deselected on its own.",
-          "reduceMotion": "Under prefers-reduced-motion, the dot snaps in and out through opacity and color only, with no scale."
+          "enter": "On select, the inner dot scales in from a little under full size with a border-color crossfade on the ring, on motion.duration.fast with motion.easing-role.default. The focus ring appears instantly — a fade lags rapid arrow navigation through the group.",
+          "exit": "When a sibling is selected, this dot scales out on the same timing — the one exit a radio has, since it is never deselected on its own.",
+          "reduceMotion": "Under prefers-reduced-motion, the dot has no scale: it fades in and out with the color change, on motion.duration-reduced.fast."
         },
         "composition": {
           "composesWith": [
@@ -29345,7 +29346,7 @@
       }
     },
     "radio-row": {
-      "digest": "4f7eff81",
+      "digest": "6b03f766",
       "def": {
         "id": "radio-row",
         "name": "Radio.Row",
@@ -29501,9 +29502,9 @@
           "generationPriority": 9
         },
         "motion": {
-          "enter": "None of the row's own (present on mount). On select, the nested Radio.Control scales its dot in, about 100-150ms; the focus ring appears instantly.",
+          "enter": "None of the row's own (present on mount). On select, the nested Radio.Control scales its dot in, on motion.duration.fast; the focus ring appears instantly.",
           "exit": "None of the row's own. When a sibling option is selected, this option's dot animates out — exclusivity made visible.",
-          "reduceMotion": "No layout motion. Under prefers-reduced-motion, the nested dot snaps through opacity and color only."
+          "reduceMotion": "No layout motion. Under prefers-reduced-motion, the nested dot fades with no scale, on motion.duration-reduced.fast."
         },
         "composition": {
           "composesWith": [
@@ -29973,7 +29974,7 @@
       }
     },
     "radio-group": {
-      "digest": "00ee2a3a",
+      "digest": "8b52e66f",
       "def": {
         "id": "radio-group",
         "name": "Radio.Group",
@@ -30157,9 +30158,9 @@
           "generationPriority": 2
         },
         "motion": {
-          "enter": "None (present on mount). On select, the chosen option's dot scales in, about 100-150ms.",
+          "enter": "None (present on mount). On select, the chosen option's dot scales in, on motion.duration.fast.",
           "exit": "Selecting an option animates the previously selected option's dot out — exclusivity made visible, and the only exit a radio has. Rows do not animate in or out of the stack.",
-          "reduceMotion": "No layout motion. Under prefers-reduced-motion, both dots snap through opacity and color only; the focus ring appears instantly at every setting."
+          "reduceMotion": "No layout motion. Under prefers-reduced-motion, both dots fade with no scale, on motion.duration-reduced.fast; the focus ring appears instantly at every setting."
         },
         "composition": {
           "composesWith": [
@@ -30560,7 +30561,7 @@
       }
     },
     "switch-control": {
-      "digest": "bec59501",
+      "digest": "d599689e",
       "def": {
         "id": "switch-control",
         "name": "Switch.Control",
@@ -30704,7 +30705,7 @@
         "motion": {
           "enter": "none (present on mount)",
           "exit": "none",
-          "reduceMotion": "The thumb slides across the track in ~150–200ms, ease-in-out, with a synchronized track-color crossfade; it is the receipt that the immediate change registered. Translate the thumb (`transform`), never animate width or layout, and do not spring it. Under prefers-reduced-motion the slide drops and the thumb snaps (0ms); the track-color crossfade may remain if it stays under flashing thresholds. On an async toggle the thumb snaps to the new position and a spinner cross-fades onto it; if the change fails, the thumb slides back."
+          "reduceMotion": "The thumb travels across the track on motion.transition.default, with a synchronized track-color crossfade; it is the receipt that the immediate change registered. Translate the thumb (`transform`), never animate width or layout, and do not spring it. Under prefers-reduced-motion the travel drops and the thumb takes its new place at once; the track-color change fades on motion.duration-reduced.fast. On an async toggle the thumb snaps to the new position and a spinner cross-fades onto it; if the change fails, the thumb slides back."
         },
         "composition": {
           "composesWith": [
@@ -31459,7 +31460,7 @@
       }
     },
     "switch-row": {
-      "digest": "80f4c6cf",
+      "digest": "ee2fcc34",
       "def": {
         "id": "switch-row",
         "name": "Switch.Row",
@@ -31647,7 +31648,7 @@
         "motion": {
           "enter": "none (present on mount)",
           "exit": "none",
-          "reduceMotion": "The nested control carries the thumb slide (~150–200ms, ease-in-out, snapping to 0ms under prefers-reduced-motion). The Row's motion is the async outcome: on an optimistic toggle the thumb snaps to the new state and a spinner cross-fades onto it while pending; on failure the thumb slides back, the track flashes the error color, and a message says what did not happen, so the reversal is explained. Under prefers-reduced-motion the slide back snaps too; the message still appears."
+          "reduceMotion": "The nested control carries the thumb travel (motion.transition.default; at once under prefers-reduced-motion, with the track color fading). The Row's motion is the async outcome: on an optimistic toggle the thumb snaps to the new state and a spinner cross-fades onto it while pending; on failure the thumb slides back, the track flashes the error color, and a message says what did not happen, so the reversal is explained. Under prefers-reduced-motion the slide back snaps too; the message still appears."
         },
         "composition": {
           "composesWith": [
@@ -34459,7 +34460,7 @@
       }
     },
     "spinner": {
-      "digest": "77b1b285",
+      "digest": "1ca43c44",
       "def": {
         "id": "spinner",
         "name": "Spinner",
@@ -34475,7 +34476,7 @@
         "category": "foundations",
         "status": "draft",
         "summary": "Indeterminate loading indicator on the icon ladder. Announces \"Loading\" unless its host hides it.",
-        "description": "A rotating arc over a faint full ring, showing that work is in progress with no known end. Sized on the icon ladder (16 / 20 / 24 / 32) and inked from the surrounding text or icon color, so it drops into any icon slot — a button's leading visual, a field's trailing slot. On its own it is a polite status named \"Loading\", or a more specific label; inside a host that announces its own busy state, the host hides it with aria-hidden. It has no value, so it never stands in for a determinate progress bar.",
+        "description": "A rotating arc over a faint full ring, showing that work is in progress with no known end. Sized on the icon ladder (16 / 20 / 24 / 32) and inked from the surrounding text or icon color, so it drops into any icon slot — a button's leading visual, a field's trailing slot. On its own it announces a polite \"Loading\", or a more specific label, through a status region that is already on the page; inside a host that announces its own busy state, the host hides it with aria-hidden. It has no value, so it never stands in for a determinate progress bar.",
         "props": [
           {
             "name": "size",
@@ -34495,7 +34496,7 @@
             "type": "string",
             "default": "Loading",
             "required": false,
-            "description": "The accessible name of the spinner's role=\"status\" wrapper, visually hidden and announced politely. \"Loading\" by default; name the work when it is known (\"Loading results\"). A host that already announces its own busy state (a Button or IconButton isPending, which set aria-busy and carry their own live region) puts aria-hidden=\"true\" on the spinner instead, so the state is announced once."
+            "description": "The text announced when the spinner shows, written into a polite role=\"status\" region that is present and empty before it shows, and visually hidden. \"Loading\" by default; name the work when it is known (\"Loading results\"). A host that already announces its own busy state (a Button or IconButton isPending, which set aria-busy and carry their own live region) puts aria-hidden=\"true\" on the spinner instead, so the state is announced once."
           }
         ],
         "states": [],
@@ -34511,20 +34512,20 @@
           }
         },
         "accessibility": {
-          "role": "status with aria-live=\"polite\", named by label — \"Loading\" by default. Hidden (aria-hidden=\"true\") inside a host that announces its own busy state.",
+          "role": "status with aria-live=\"polite\": a region present and empty before the spinner shows, into which the label (\"Loading\" by default) is written on show. Hidden (aria-hidden=\"true\") inside a host that announces its own busy state.",
           "wcag": [
-            "1.1.1 Non-text Content (the drawing is aria-hidden; the status text is the name)",
+            "1.1.1 Non-text Content (the drawing is aria-hidden; the status text carries the meaning)",
             "1.4.11 Non-text Contrast (the arc takes its host's icon ink, meant to clear 3:1; the track is decorative and exempt)",
             "4.1.3 Status Messages (the polite \"Loading\" status when it stands alone; the host's own announcement when the host hides it)"
           ],
           "focus": "None. The spinner takes no focus. A pending host control keeps its own: it takes aria-disabled=\"true\", not native disabled, which takes the control out of the focus order and sends focus to the page body (USWDS), and it suppresses the repeat click in script — see Button's isPending.",
-          "aria": "Standalone, the default: a role=\"status\" wrapper with aria-live=\"polite\", named by label (\"Loading\" unless a more specific label is given), around an aria-hidden drawing. Inside a host that already announces its busy state — a Button or IconButton isPending, which set aria-busy and carry their own polite live region — the host sets aria-hidden=\"true\" on the spinner, so the state is announced once rather than twice. Never aria-valuenow and never role=\"progressbar\": a spinner has no value, and an indeterminate progressbar can make some screen readers keep announcing the missing value."
+          "aria": "Standalone, the default: a role=\"status\" region with aria-live=\"polite\", the host's or the app's, is present and empty before the spinner shows, and the label (\"Loading\" unless a more specific label is given) is written into it when the spinner shows; the drawing is aria-hidden. The label is the region's content, not its accessible name. Inside a host that already announces its busy state — a Button or IconButton isPending, which set aria-busy and carry their own polite live region — the host sets aria-hidden=\"true\" on the spinner, so the state is announced once rather than twice. Never aria-valuenow and never role=\"progressbar\": a spinner is not a progressbar."
         },
         "content": {
           "labelPattern": "Name the work, in sentence case: \"Loading results\", \"Saving changes\" — not a generic \"Loading…\". \"Loading\" is the fallback only when nothing more specific is known. One status for the whole wait, not a chain of steps (\"Fetching…\", \"Parsing…\") that floods the live region; for a region or a longer wait, the host announces completion (\"Results loaded\")."
         },
         "docs": {
-          "usage": "Use a spinner for a short wait with no known end — about 200ms to 5s — inside the thing that is waiting: a button that is saving, a field checking its value, a region reloading. Size it to the icon slot it sits in, and let it take the ink around it. The host decides when it shows (after a short delay, so a fast operation does not flash). On its own the spinner announces a polite \"Loading\" status, or a more specific label; inside a host that announces its own busy state, such as a Button's isPending, the host sets aria-hidden=\"true\" on it.",
+          "usage": "Use a spinner for a short wait with no known end — about 200ms to 5s — inside the thing that is waiting: a button that is saving, a field checking its value, a region reloading. Size it to the icon slot it sits in, and let it take the ink around it. The host decides when it shows (after a short delay, so a fast operation does not flash). On its own the spinner announces a polite \"Loading\", or a more specific label, through a status region that exists, empty, before it shows; inside a host that announces its own busy state, such as a Button's isPending, the host sets aria-hidden=\"true\" on it.",
           "do": [
             "Put the spinner in the host's own icon slot at that slot's icon size, so nothing around it moves",
             "Let the host delay showing it, so a fast operation does not flash a spinner",
@@ -34538,7 +34539,7 @@
             "Leave a spinner exposed inside a host that already announces its busy state — the state is announced twice; set aria-hidden=\"true\" on it",
             "Keep the generic \"Loading\" when the work is known — name it (\"Loading results\")",
             "Show many spinners at once — a dashboard that starts one per widget on load reads as noise; use one placeholder for the layout and keep the spinner for a single user-triggered wait (Primer)",
-            "Put role=\"progressbar\" or aria-valuenow on a spinner — it has no value, and a value is determinate progress",
+            "Put role=\"progressbar\" or aria-valuenow on a spinner — a spinner is not a progressbar",
             "Stop the turn under reduced motion — slow it"
           ],
           "contentGuidelines": "Label: specific and in sentence case — \"Loading results\", \"Updating profile\" — not a generic \"Loading…\"; \"Loading\" is the fallback when nothing more specific is known. One status for the whole wait, and for a region or a longer wait the host announces completion (\"Results loaded\"). Inside a button, the button keeps its accessible name while pending."
@@ -34818,7 +34819,7 @@
       }
     },
     "badge": {
-      "digest": "4df9d55d",
+      "digest": "c3df7d3f",
       "def": {
         "id": "badge",
         "name": "Badge",
@@ -35019,7 +35020,7 @@
         "ai": {
           "primaryPurpose": "Mark a status, count or presence with a small static badge that nobody clicks.",
           "whenToUse": "A short state or attribute shown next to what it describes (status), an actionable number over an icon button or tab (count), or presence or unread state over an avatar or nav item (dot). Inline style: a quieter status in a list or table row or a card's details, where a filled label would draw too much attention.",
-          "avoidWhen": "The user can click, toggle or remove it (use a tag), the message is feedback about an action (use a toast or banner), or the color would be the only signal.",
+          "avoidWhen": "The user can click, toggle or remove it (use Tag), the message is feedback about an action (use Toast or Banner), or the color would be the only signal.",
           "commonPartners": [
             "icon-button",
             "button",
@@ -36039,7 +36040,7 @@
       }
     },
     "tag": {
-      "digest": "6b399e06",
+      "digest": "91df112d",
       "def": {
         "id": "tag",
         "name": "Tag",
@@ -36213,7 +36214,7 @@
         "ai": {
           "primaryPurpose": "Render a small interactive token the user toggles or removes in place.",
           "whenToUse": "Inline filters toggled on and off (select), applied filters the user can remove, or recipients or keywords entered into a field (dismissible), usually in a group.",
-          "avoidWhen": "Nobody can act on it (use a badge), it runs an action (use a button), or it is a structured choice in a form submission (use a checkbox group or radio group).",
+          "avoidWhen": "Nobody can act on it (use Badge), it runs an action (use Button), or it is a structured choice in a form submission (use Checkbox.Group or Radio.Group).",
           "commonPartners": [
             "badge",
             "icon",
@@ -38363,7 +38364,7 @@
       }
     },
     "tabs": {
-      "digest": "991560fb",
+      "digest": "e8bed752",
       "def": {
         "id": "tabs",
         "name": "Tabs",
@@ -38484,7 +38485,7 @@
           "labelPattern": "Short, parallel nouns, one or two words each. Past six or seven tabs, rethink the grouping."
         },
         "docs": {
-          "usage": "Use tabs to switch between peer sections of related content in one place, one at a time, such as a product's description, specifications and reviews. Don't use tabs to go to another page (use page navigation), to change a setting or filter the current view (use a segmented control or a select), or for content people need to compare side by side.",
+          "usage": "Use tabs to switch between peer sections of related content in one place, one at a time, such as a product's description, specifications and reviews. Don't use tabs to go to another page (use PageNav), to change a setting or filter the current view (use SegmentedControl or Select), or for content people need to compare side by side.",
           "do": [
             "Keep labels short, parallel nouns",
             "Keep one tab selected at all times",
@@ -40379,7 +40380,7 @@
       }
     },
     "accordion": {
-      "digest": "4745d24f",
+      "digest": "186ef96f",
       "def": {
         "id": "accordion",
         "name": "Accordion",
@@ -40542,7 +40543,7 @@
           ],
           "dont": [
             "Hide content most users need. Show it instead.",
-            "Force one section to stay open. If one view must always show, use tabs.",
+            "Force one section to stay open. If one view must always show, use Tabs.",
             "Put an accordion inside an accordion. For more than one level, use a tree.",
             "Truncate a title with an ellipsis"
           ],
@@ -42789,7 +42790,7 @@
       }
     },
     "segmented-control-segment": {
-      "digest": "7e9a9b4d",
+      "digest": "1c23c947",
       "def": {
         "id": "segmented-control-segment",
         "name": "SegmentedControl.Segment",
@@ -42917,9 +42918,9 @@
           "generationPriority": 9
         },
         "motion": {
-          "enter": "None. On selection the pill moves to this option, or cross-fades, over a short duration.",
+          "enter": "None. On selection the pill travels to this option on motion.transition.default, or cross-fades.",
           "exit": "None.",
-          "reduceMotion": "The indicator moves at once; only the color change remains."
+          "reduceMotion": "The indicator moves at once; only the color change remains, fading on motion.duration-reduced.fast."
         },
         "composition": {
           "composesWith": [
@@ -43646,7 +43647,7 @@
       }
     },
     "segmented-control": {
-      "digest": "5d327a0a",
+      "digest": "e873abb2",
       "def": {
         "id": "segmented-control",
         "name": "SegmentedControl",
@@ -43777,7 +43778,7 @@
           "labelPattern": "Short nouns or noun phrases, one line each, in sentence case: \"List\", \"Grid\". The same kind of content in every option. The control label names what is being chosen (\"View\", \"Time range\")."
         },
         "docs": {
-          "usage": "Use a segmented control for a choice between two to five short options that changes a value in place: a parameter of the current view, such as list or grid, or a form value. Every option stays visible, and one is always selected. Don't use it to switch between panels of content (use tabs), for more than five options or long labels (use a select or a radio group), or for one setting that turns on and off (use a switch).",
+          "usage": "Use a segmented control for a choice between two to five short options that changes a value in place: a parameter of the current view, such as list or grid, or a form value. Every option stays visible, and one is always selected. Don't use it to switch between panels of content (use Tabs), for more than five options or long labels (use Select or Radio.Group), or for one setting that turns on and off (use Switch.Row).",
           "do": [
             "Name what is being chosen, with a visible label or an accessible name",
             "Use two to five options with short, one-line labels",
@@ -43795,7 +43796,7 @@
         "ai": {
           "primaryPurpose": "Choose exactly one of two to five short, always-visible options that change a value in place.",
           "whenToUse": "A short single choice the user changes often or that changes the current view at once, such as list or grid, a time range or a delivery method.",
-          "avoidWhen": "The options switch panels of content (use tabs), there are more than five or the labels are long (use a select or a radio group), options need descriptions (use a radio group), it is one on/off setting (use a switch), or selecting goes to another page (a navigation of links).",
+          "avoidWhen": "The options switch panels of content (use Tabs), there are more than five or the labels are long (use Select or Radio.Group), options need descriptions (use Radio.Group), it is one on/off setting (use Switch.Row), or selecting goes to another page (a navigation of links).",
           "commonPartners": [
             "segmented-control-segment",
             "field-label",
@@ -43812,9 +43813,9 @@
           "generationPriority": 3
         },
         "motion": {
-          "enter": "None. On selection the pill moves to the new option, about 150–200ms, or cross-fades.",
+          "enter": "None. On selection the pill travels to the new option on motion.transition.default, or cross-fades.",
           "exit": "None.",
-          "reduceMotion": "The indicator moves at once; only the color change remains."
+          "reduceMotion": "The indicator moves at once; only the color change remains, fading on motion.duration-reduced.fast."
         },
         "composition": {
           "composesWith": [
@@ -44192,7 +44193,7 @@
       }
     },
     "link": {
-      "digest": "68949edd",
+      "digest": "c8ad0202",
       "def": {
         "id": "link",
         "name": "Link",
@@ -44358,7 +44359,7 @@
           "labelPattern": "Names the destination and makes sense on its own: \"Shipping and returns\", \"Annual report (PDF, 2 MB)\". Link the noun phrase, not the whole sentence. Never a bare \"click here\" or \"learn more\", and never a raw URL."
         },
         "docs": {
-          "usage": "Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use a button. Keep x-small for dense metadata, such as an order row or a legal line, not running body text. A link inside small print is a text range with that text's own link style.",
+          "usage": "Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use Button. Keep x-small for dense metadata, such as an order row or a legal line, not running body text. A link inside small print is a text range with that text's own link style.",
           "do": [
             "Write link text that names the destination",
             "State the format and size of a file link",
@@ -47133,7 +47134,7 @@
       }
     },
     "button-group": {
-      "digest": "202150ed",
+      "digest": "55151957",
       "def": {
         "id": "button-group",
         "name": "Button.Group",
@@ -47145,7 +47146,7 @@
         "category": "form",
         "status": "draft",
         "summary": "One to three buttons laid out together: in a row at the end, stacked, or sharing the width.",
-        "description": "A set of one to three buttons for the actions that close a task: Cancel and Save at the foot of a dialog, the buttons under a form. Inline puts them in a row at the end edge with the main action last; stacked puts them in a column of full-width buttons with the main action on top; fill puts them in a row whose buttons share the width. The buttons are Button, Button.Destructive and Button.Neutral, each its own action and spaced apart. Not a segmented control, whose buttons join edge to edge as one choice, and not a toolbar.",
+        "description": "A set of one to three buttons for the actions that close a task: Cancel and Save at the foot of a dialog, the buttons under a form. Inline puts them in a row at the end edge with the main action last; stacked puts them in a column of full-width buttons with the main action on top; fill puts them in a row whose buttons share the width. The buttons are Button, Button.Destructive and Button.Neutral, each its own action and spaced apart. Not a SegmentedControl, whose buttons join edge to edge as one choice, and not a toolbar.",
         "props": [
           {
             "name": "items",
@@ -50745,7 +50746,7 @@
       }
     },
     "toast": {
-      "digest": "c7778274",
+      "digest": "f297cdf9",
       "def": {
         "id": "toast",
         "name": "Toast",
@@ -50835,7 +50836,7 @@
           "labelPattern": "State the outcome in a few words, in sentence case, with no period: \"Added to bag\", \"Address saved\". The action is one verb or a short verb phrase: \"Undo\", \"View bag\"."
         },
         "docs": {
-          "usage": "Use a Toast to confirm something the user did, when the page already shows the change: \"Added to bag\", \"Address saved\", \"Code copied\". If missing the message would cost the user something, use a banner. A decision before going on is a dialog; a message about one field is a field message.",
+          "usage": "Use a Toast to confirm something the user did, when the page already shows the change: \"Added to bag\", \"Address saved\", \"Code copied\". If missing the message would cost the user something, use Banner. A decision before going on is a dialog; a message about one field is a field message.",
           "do": [
             "Confirm the user's own action in a few words",
             "Use success when the action completed, and neutral otherwise",
@@ -52468,7 +52469,7 @@
       }
     },
     "counter": {
-      "digest": "7f452ef1",
+      "digest": "84f85c3b",
       "def": {
         "id": "counter",
         "name": "Counter",
@@ -52487,14 +52488,14 @@
             "name": "label",
             "type": "string | node",
             "required": true,
-            "description": "What is counted, such as \"Quantity\". The accessible name of the value, always present in code; shown above the counter only with showLabel."
+            "description": "What is counted, such as \"Quantity\". The accessible name of the value, always present in code; shown above the counter unless hideLabel is set."
           },
           {
-            "name": "showLabel",
+            "name": "hideLabel",
             "type": "boolean",
-            "default": false,
+            "default": true,
             "required": false,
-            "description": "Shows the label above the counter. Off by default: a counter on a product card or a bag line is usually explained by what sits around it, and the label stays its accessible name either way."
+            "description": "Hides the label visually and keeps it in the accessibility tree, so the value keeps its name. On by default: a counter on a product card or a bag line is usually explained by what sits around it. Set it to false to show the label above the counter. Never display: none."
           },
           {
             "name": "value",
@@ -52646,7 +52647,7 @@
           ],
           "dont": [
             "Use it for a large or precise number, such as a price or a measurement; use a number input",
-            "Use it for a count shown on another element, such as unread messages; use a badge",
+            "Use it for a count shown on another element, such as unread messages; use Badge",
             "Put the minus and plus buttons in the Tab order; the arrow keys already step the value",
             "Hide the minus and plus buttons with aria-hidden; they stay in the accessibility tree for pointer and touch users of assistive technology",
             "Change the value on a mouse wheel or scroll"
@@ -52694,7 +52695,7 @@
           "supersedes": [],
           "supersededBy": [],
           "planned": [
-            "number-input"
+            "number-field"
           ],
           "replacesPatterns": [
             "an <input type=\"number\"> for an item count",
@@ -53438,7 +53439,7 @@
       }
     },
     "pagination-item": {
-      "digest": "a9023f50",
+      "digest": "38d69f9b",
       "def": {
         "id": "pagination-item",
         "name": "Pagination.Item",
@@ -53449,7 +53450,7 @@
         "category": "navigation",
         "status": "draft",
         "summary": "A pagination cell: a page, the gap marker, previous or next. The current page is outlined.",
-        "description": "One cell in a pagination row: a page number, the gap marker, three dots, that stands for two or more hidden pages, or the previous or next cell, a chevron that opens the page before or after. A cell is as tall as an icon button and at least as wide as it is tall, so a row of pages between previous and next lines up as equal squares; a page number past two digits, or the word \"Previous\" or \"Next\" beside a chevron, widens it. The current page is marked, not filled: its number in the emphasis weight, with a light gray border around the cell, or a 2px underline under the number in a gray that stands out from the page at 3:1. It keeps its width, so the row does not move. At hover and press, another page and an unlabeled previous or next show a light neutral wash; a labeled previous or next shows no fill and its word and chevron darken, as a text link does. At the first or last page, previous or next stays in place and does nothing, drawn in the disabled ink. The gap marker is decorative: it does not respond to the pointer, takes no focus and is hidden from assistive technology. Pagination places the cells and decides which page is current.",
+        "description": "One cell in a pagination row: a page number, the gap marker, three dots, that stands for two or more hidden pages, or the previous or next cell, a chevron that opens the page before or after. A cell is as tall as an icon button and at least as wide as it is tall, so a row of pages between previous and next lines up as equal squares; a page number past two digits, or the word \"Previous\" or \"Next\" beside a chevron, widens it. The current page is marked, not filled: its number in the emphasis weight, with a light gray border around the cell, or a 2px underline under the number in the number's ink. It keeps its width, so the row does not move. At hover and press, another page and an unlabeled previous or next show a light neutral wash; a labeled previous or next shows no fill and its word and chevron darken, as a text link does. At the first or last page, previous or next stays in place and does nothing, drawn in the disabled ink. The gap marker is decorative: it does not respond to the pointer, takes no focus and is hidden from assistive technology. Pagination places the cells and decides which page is current.",
         "props": [
           {
             "name": "label",
@@ -54508,7 +54509,7 @@
               },
               {
                 "part": "container/labelBox/underline",
-                "fill": "color.border.tertiary"
+                "fill": "color.interactive.neutral.indicator.rest"
               },
               {
                 "part": "container/labelBox/underline/underlineReserve/underlineLabel",
@@ -54535,7 +54536,7 @@
               },
               {
                 "part": "container/labelBox/underline",
-                "fill": "color.border.tertiary"
+                "fill": "color.interactive.neutral.indicator.rest"
               },
               {
                 "part": "container/labelBox/underline/underlineReserve/underlineLabel",
@@ -54971,7 +54972,7 @@
       }
     },
     "pagination": {
-      "digest": "4347d65d",
+      "digest": "ae6b531a",
       "def": {
         "id": "pagination",
         "name": "Pagination",
@@ -55156,7 +55157,7 @@
         "ai": {
           "primaryPurpose": "Move between the pages of a long, ordered set of results and show which page is open.",
           "whenToUse": "Search results, a catalog or a table split into pages, where the user benefits from the count and from jumping to a page; or previous and next through an article.",
-          "avoidWhen": "A feed with no useful end (a load more Button), a few fixed views (tabs or a segmented control), the slides of a carousel, or rows per page and a \"Go to page\" field (the table pager, not yet built).",
+          "avoidWhen": "A feed with no useful end (a load more Button), a few fixed views (Tabs or SegmentedControl), the slides of a carousel, or rows per page and a \"Go to page\" field (the table pager, not yet built).",
           "commonPartners": [
             "pagination-item",
             "list"
@@ -55947,7 +55948,7 @@
       }
     },
     "progress": {
-      "digest": "6c6e44b5",
+      "digest": "e52f66a4",
       "def": {
         "id": "progress",
         "name": "Progress",
@@ -56151,7 +56152,7 @@
         "ai": {
           "primaryPurpose": "Show that system work is under way and, when it can be measured, how far along it is.",
           "whenToUse": "An upload, export or batch job that takes more than a few seconds: determinate when the amount is known, indeterminate when it is not. A ring when the space is small, measured or not, for a task that ends in complete or error.",
-          "avoidWhen": "The wait is short and inside a control (use a spinner), the content is loading for the first time (a placeholder in the layout's shape), the value is a static measurement such as storage used (a meter), it marks a user's place in a multi-step flow (a stepper).",
+          "avoidWhen": "The wait is short and inside a control (use Spinner), the content is loading for the first time (a placeholder in the layout's shape), the value is a static measurement such as storage used (a meter), it marks a user's place in a multi-step flow (a stepper).",
           "commonPartners": [
             "button",
             "spinner",
@@ -58573,7 +58574,7 @@
       }
     },
     "card-number-field": {
-      "digest": "de99fd12",
+      "digest": "b86a1ce5",
       "def": {
         "id": "card-number-field",
         "name": "CardNumberField",
@@ -58788,6 +58789,7 @@
             "3.2.2 On Input (no auto-advance when the number is complete)",
             "3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion",
             "1.4.11 Non-text Contrast (TextField's field boundary)",
+            "2.5.8 Target Size (the field)",
             "2.4.13 Focus Appearance (intent)"
           ],
           "keyboard": "Native text editing. Tab reaches the input; the tile is not a stop. Focus never moves on its own when the number is complete.",
@@ -62282,7 +62284,7 @@
       }
     },
     "slider": {
-      "digest": "876f8d3d",
+      "digest": "322005bb",
       "def": {
         "id": "slider",
         "name": "Slider",
@@ -62294,13 +62296,20 @@
         "category": "form",
         "status": "draft",
         "summary": "Choose a value, or a range, by moving a thumb along a track. Works with arrow keys too.",
-        "description": "A slider picks an approximate value, or a range between two values, by moving a thumb along a track: a price filter, a text size, a volume. It suits a value where the position within the range matters more than the exact number. One thumb sets a single value; two thumbs set a minimum and a maximum. The current value shows as text above the track. For an exact number, turn on the paired inputs, or use a text field.",
+        "description": "A slider picks an approximate value, or a range between two values, by moving a thumb along a track: a price filter, a text size, a volume. It suits a value where the position within the range matters more than the exact number. One thumb sets a single value; two thumbs set a minimum and a maximum. The current value shows as text above the track. For an exact number, turn on the paired inputs, or use TextField.",
         "props": [
           {
             "name": "label",
             "type": "string | node",
             "required": true,
             "description": "Names the dimension being set, such as \"Price\" or \"Volume\". Shown above the track, and the accessible name of a single thumb."
+          },
+          {
+            "name": "hideLabel",
+            "type": "boolean",
+            "default": false,
+            "required": false,
+            "description": "Hides the label visually and keeps it in the accessibility tree, so the slider keeps its name. For a slider whose purpose is plain from where it sits. Never display: none."
           },
           {
             "name": "value",
@@ -62518,7 +62527,7 @@
           "errorPattern": "Say what is wrong and how to fix it, in the field message: \"Enter a maximum of 200 or less.\""
         },
         "docs": {
-          "usage": "Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use a text field, or turn on the paired inputs. Don't use a slider for a few named options (use a segmented control or a radio group) or for on and off (use a switch).",
+          "usage": "Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use TextField, or turn on the paired inputs. Don't use a slider for a few named options (use SegmentedControl or Radio.Group) or for on and off (use Switch.Row).",
           "do": [
             "Name the dimension with a visible label",
             "Format the value with its unit or currency, and use the same text for aria-valuetext",
@@ -62536,7 +62545,7 @@
         "ai": {
           "primaryPurpose": "Choose an approximate value, or a minimum and maximum, by moving a thumb along a track.",
           "whenToUse": "An approximate value where the position within the range matters more than the exact number, such as a volume, a text size or a price filter window.",
-          "avoidWhen": "The user knows the exact number (use a text field, or turn on the paired inputs), there are a few named options (use a segmented control or a radio group), it is on or off (use a switch), or the range is too wide for the track to reach each value.",
+          "avoidWhen": "The user knows the exact number (use TextField, or turn on the paired inputs), there are a few named options (use SegmentedControl or Radio.Group), it is on or off (use Switch.Row), or the range is too wide for the track to reach each value.",
           "commonPartners": [
             "_slider-thumb",
             "field-label",
@@ -63490,7 +63499,7 @@
             "variant": {
               "size": "medium",
               "emphasis": "primary",
-              "weight": "bold",
+              "weight": "regular",
               "state": "rest"
             },
             "when": {
@@ -63500,8 +63509,13 @@
                 }
               }
             },
-            "follows": [],
-            "exposes": []
+            "follows": [
+              "size"
+            ],
+            "exposes": [
+              "emphasis",
+              "weight"
+            ]
           },
           {
             "part": "container/field/control/track/thumb",

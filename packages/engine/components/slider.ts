@@ -311,10 +311,13 @@ export const slider: ComponentDef = {
   status: 'draft',
   summary: 'Choose a value, or a range, by moving a thumb along a track. Works with arrow keys too.',
   description:
-    'A slider picks an approximate value, or a range between two values, by moving a thumb along a track: a price filter, a text size, a volume. It suits a value where the position within the range matters more than the exact number. One thumb sets a single value; two thumbs set a minimum and a maximum. The current value shows as text above the track. For an exact number, turn on the paired inputs, or use a text field.',
+    'A slider picks an approximate value, or a range between two values, by moving a thumb along a track: a price filter, a text size, a volume. It suits a value where the position within the range matters more than the exact number. One thumb sets a single value; two thumbs set a minimum and a maximum. The current value shows as text above the track. For an exact number, turn on the paired inputs, or use TextField.',
 
   props: [
     { name: 'label', type: 'string | node', required: true, description: 'Names the dimension being set, such as "Price" or "Volume". Shown above the track, and the accessible name of a single thumb.' },
+    // Q-CC7 A (#3554): the hidden label is one code prop across Search, Counter and Slider. Figma's `label` switch stands
+    // for it, so code can now hide what Figma can.
+    { name: 'hideLabel', type: 'boolean', default: false, required: false, description: 'Hides the label visually and keeps it in the accessibility tree, so the slider keeps its name. For a slider whose purpose is plain from where it sits. Never display: none.' },
     { name: 'value', type: 'number | [number, number]', required: false, description: 'The value. A number sets one thumb; a pair of numbers, such as [40, 120], sets a range with two thumbs. Controlled; pair it with onChange.' },
     { name: 'defaultValue', type: 'number | [number, number]', required: false, description: 'The starting value when the slider manages its own state. A pair starts a range.' },
     { name: 'onChange', type: 'function', required: false, description: 'Called on every change while dragging or stepping, for a live preview.' },
@@ -415,12 +418,15 @@ export const slider: ComponentDef = {
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium', emphasis: 'primary', weight: 'bold', state: 'rest' }, variantWhen: { state: { disabled: { state: 'disabled' } } } },
+        // Nested as the fields nest it (Q-CC5 A, #3554; Q399 A, the Counter's precedent): `emphasis` and `weight` EXPOSED,
+        // starting primary and regular; `size` follows the slider's, so the label stays one body step below the field's
+        // type at every size; it dims with a disabled slider.
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'primary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
         optional: true,
         // The nested FieldLabel is built at its own 320, so left to hug it fills the header and pushes the value out of the
         // component to the right. It grows into what the value leaves instead, so the value sits at the header's end.
         grow: true,
-        note: 'The visible label, naming the dimension being set; it fills the room the value leaves.',
+        note: 'The visible label, naming the dimension being set; it fills the room the value leaves. Its label text, required marker, emphasis and weight surface on the slider. Starts primary and regular, and follows the slider\'s size.',
       },
       valueSingle: {
         kind: 'text',
@@ -676,7 +682,7 @@ export const slider: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use a text field, or turn on the paired inputs. Don\'t use a slider for a few named options (use a segmented control or a radio group) or for on and off (use a switch).',
+    usage: 'Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use TextField, or turn on the paired inputs. Don\'t use a slider for a few named options (use SegmentedControl or Radio.Group) or for on and off (use Switch.Row).',
     do: [
       'Name the dimension with a visible label',
       'Format the value with its unit or currency, and use the same text for aria-valuetext',
@@ -695,7 +701,7 @@ export const slider: ComponentDef = {
   ai: {
     primaryPurpose: 'Choose an approximate value, or a minimum and maximum, by moving a thumb along a track.',
     whenToUse: 'An approximate value where the position within the range matters more than the exact number, such as a volume, a text size or a price filter window.',
-    avoidWhen: 'The user knows the exact number (use a text field, or turn on the paired inputs), there are a few named options (use a segmented control or a radio group), it is on or off (use a switch), or the range is too wide for the track to reach each value.',
+    avoidWhen: 'The user knows the exact number (use TextField, or turn on the paired inputs), there are a few named options (use SegmentedControl or Radio.Group), it is on or off (use Switch.Row), or the range is too wide for the track to reach each value.',
     commonPartners: ['_slider-thumb', 'field-label', 'field-message', 'text-field'],
     triggerKeywords: ['slider', 'range slider', 'price filter', 'volume control', 'range input', 'min max slider'],
     generationPriority: 2,

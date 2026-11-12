@@ -231,6 +231,9 @@
   animation: p3-spin-show var(--p3-dur-fast) linear calc(var(--p3-dur-fast) * 3) both, p3-spin var(--p3-dur-spin) linear infinite;
 }
 .p3-btn-primary .p3-spin::before { border-top-color: var(--p3-inv-text); }
+/* #3553 Q-UI8 A: an icon on a primary button (Export's Download) takes the button's own ink, as its words do (the
+   inverse text; a disabled one takes the disabled icon ink, below), never the page's secondary icon gray. */
+.p3-btn-primary .p3-ico { color: var(--p3-inv-text); }
 /* A control's spinner is made with its label, at mount, and held invisible until the control turns busy, and
    an invisible element still runs its animations: the wait and the fade would be spent unseen, long before
    any write (#2332). So it holds no animation until then, and they start when the control turns busy. A
@@ -443,6 +446,14 @@
   font-weight: var(--p3-fw-bold); letter-spacing: var(--p3-ls-tightest); line-height: var(--p3-lh-compact); white-space: nowrap;
 }
 .p3-preview-head > .p3-popwrap { margin-left: auto; }
+/* #3553 Q-UI1 A: at 1280 the mode control fell back to its select on the pages with longer titles (Style guide, Surfaces &
+   fills, Shape, Depth & motion), so the control changed form between tabs. The fit logic stays; the header gives it
+   room at the wide tier instead: the Contrast tile sets its icon beside its word rather than above it, and Inspect is
+   its icon alone. */
+.p3-frame[data-w="wide"] .p3-preview-head > .p3-tile-start { flex-direction: row; gap: var(--p3-space-075); }
+.p3-frame[data-w="wide"] .p3-preview-head [data-p3="inspect-open"] > :is(.p3-btn-label, .p3-ico:last-child) { display: none; }
+/* Square, as the chrome's other icon buttons (`.p3-btn-icon`), at the control height. */
+.p3-frame[data-w="wide"] .p3-preview-head [data-p3="inspect-open"] { padding: 0; min-width: var(--p3-ctl-h-sm); justify-content: center; }
 /* A button on the page ground takes the page's edge (B1), not the bar's. */
 .p3-btn-page { border-color: var(--p3-edge); }
 /* The mode control (Q1, model B): a radio group on the bar's step, the selected mode filled like a selected
@@ -521,6 +532,10 @@
    edge, radius and padding; only its ground moves, and its specimens stay on the brand's page. The card is
    pinned light, so this reads the light value in either chrome theme. */
 .p3-legacy-card .p3-sgsec { background: var(--p3-levers-bg); }
+/* #3553 M5 A: in the Style guide's galleries an inverse token pill shares its inline-flex wrap with its `inverse` badge. In a
+   narrow card the pill shrank below its longest segment and broke inside it, per character. The wrap wraps, so the
+   badge goes above the pill where the two do not fit side by side. */
+.p3-legacy-card .sg-pills .tpill-wrap { flex-wrap: wrap; }
 /* QA-I2, on Surfaces & fills (S4f): a ratio badge's mark in the chrome's status icon colors, a pass in the success
    icon and a miss in the danger icon, from the chrome theme `preview/badge-marks.ts` stamps on the mark (the one that
    contrasts most with the ground under it). An unstamped mark (no theme reaches 3:1 there) keeps the badge's ink. */
