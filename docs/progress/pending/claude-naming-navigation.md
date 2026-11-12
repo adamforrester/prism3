@@ -8,7 +8,10 @@
 - **Q-CC17 A.** The current page's text part is `label`, the main-text name (Q350), not `current`. It is
   renamed in place through a `part` entry in `COMPONENT_RENAMES`, so a placed current page keeps its
   text. #3054 (the item's `label` driving an ancestor's nested Link) is not built here: a host property
-  cannot yet reach a nested instance's text (#2781), which is executor work, not naming.
+  cannot yet reach a nested instance's text (#2781), which is executor work, not naming. The owner chose
+  to land the rename ahead of #3054 (Q191 A, 2026-11-12). **Dependency:** #3054 waits on #2781 and builds
+  on this rename. The part is already `label` and the `label:TEXT` property does not move, so #3054 only
+  adds a binding, with no second rename.
 - **Q-CC18 A.** Pagination.Item's summary, also its Figma description, ends "The current page is marked."
 
 ### Held: Q-CC16 and Q-MD7 (b), the breadcrumb children's dotted names
