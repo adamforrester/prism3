@@ -318,7 +318,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
   motion: {
     enter: 'none (present on mount)',
     exit: 'none',
-    reduceMotion: 'The glyph color change, and the round shape\'s fill, are meant to run about 100–150ms through the brand\'s motion tokens; none is bound yet, so the timing is code-side. Under prefers-reduced-motion the change stays, instantly.',
+    reduceMotion: 'The glyph color change, and the round shape\'s fill, run on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the change stays, on motion.duration-reduced.fast.',
   },
 
   notes: {
@@ -334,7 +334,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
       'Q305.1 A (2026-10-14): the round edge stays the decorative color.border.secondary (color.disabled.border at disabled) on all three families; the glyph carries the family color.',
     ],
     unverified: [
-      'motion timing — no motion token is bound, so nothing gates the 100–150ms target.',
+      'motion timing — the change names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.',
       'The focus ring clears 3:1 against the page (gated, focus-ring.ts); against a host\'s fill it is not measured.',
       'The round edge, `color.border.secondary`, is about 2:1 against the page by design (decorative, no floor). The glyph ink clears 3:1 against the page per family (gated, `test.ts` #2457); on the round shape\'s hover and pressed wash it keeps its contrast through the overlay contract (`interactive.<family>.overlay.*` against the family\'s text ink), which is gated for text ink, not the icon ink. Under `outlineInteraction: opaque-fill` (#3071) the round hover and pressed fill is the opaque `interactive.<family>.hover-fill.*` instead, and the icon ink is measured on it as its second pair.',
     ],
