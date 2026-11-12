@@ -403,7 +403,7 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   // no longer boot's, by identity) or edited the placeholder, the file's brand would replace their work: it is held
   // instead (`heldRestore`), and the strip offers to load it. Only the boot read is held: a restore the host sends later
   // (#3394's override sync, which it sends only while the panel's brand is the one it wrote) still loads.
-  const late = effect === 'loadBrand' && m.kind === 'restore-input' && !bootRestoreSeen && userActed();
+  const late = false; // MUTATION (#3697 R9): the guard is gone
   if (m.kind === 'restore-input' || m.kind === 'restore-input-empty' || m.kind === 'restore-input-error' || m.kind === 'restore-input-library') bootRestoreSeen = true;
   if (late) { heldRestore = structuredClone(m.input as BrandInput); syncErrorBar(); }
   else if (effect === 'loadBrand' && m.kind === 'restore-input') {
