@@ -15105,8 +15105,8 @@ arm: {
 // own emitted collections, (c) since #1097 the namespace transform CARRIES the
 // brand's own root (the arms select by each brand's theme, `theme.root`: #3315,
 // this line once named two brands' roots wrongly, and an arm that trusted it would
-// select nothing; the doubled-root check in (e) still tests against a hardcoded
-// root list, #3575) exactly once and with no other brand's root anywhere, and (d) the aurora
+// select nothing; since #3575 the doubled-root check in (e) reads every corpus
+// brand's root off its theme too) exactly once and with no other brand's root anywhere, and (d) the aurora
 // gradient axis actually ships alias-driven stops that resolve to palette leaves
 // in the aurora tree (the alias-driven Paint Style form parked in the shadow +
 // gradient PR now materialises through the generalise pass).
@@ -15115,6 +15115,14 @@ arm: {
   const wendysStd = parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'));
   const wendysTheme = exampleTheme('wendys', () => brandTheme(standardToBrandInput(wendysStd).input));
   if (!auroraTheme || !wendysTheme) break arm;
+  const harborTheme = exampleTheme('harbor', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input));
+  const prism3Theme = exampleTheme('prism3', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input));
+  if (!harborTheme || !prism3Theme) break arm;
+  // Every corpus brand's root, for (e)'s second-root check (#3575). Five brands, so five distinct roots: a
+  // theme that lost its root, or two that collapsed onto one, would shrink the set and fail here first.
+  const corpusRoots = [...new Set([NB_ROOT, auroraTheme.root, harborTheme.root, prism3Theme.root, wendysTheme.root])];
+  ok(corpusRoots.length === 5 && corpusRoots.every((r) => typeof r === 'string' && r.length > 0),
+    `figma generalise: the five corpus brands carry five distinct roots for the doubled-root check [${corpusRoots.join(', ')}] (#3575)`);
 
   // Each brand runs through every axis. We assert structural claims uniformly:
   // - palette + color(×4 modes when default) shape correct
@@ -15207,7 +15215,12 @@ arm: {
       ...font.variables.map((v) => v.name),
       ...fluid.flatMap((f) => f.variables.map((v) => v.name)),
     ];
-    const KNOWN_ROOTS = ['prism', 'nbds', 'acme'];
+    // #3575: the root set is READ from every corpus brand's theme, never spelled. The literal it replaces,
+    // `['prism', 'nbds', 'acme']`, held neither root this loop walks (`ads`, `wds`), so a doubled
+    // `ads/ads/…` never matched and the assertion below could not fail. This brand's own root is always in
+    // the set (that is the doubled case); the others catch one corpus brand's root leaking into another.
+    // Roots come from the themes (the input), the names from the emitter (the subject): docs/34 shape 2.
+    const KNOWN_ROOTS = [...new Set([theme.root, ...corpusRoots])];
     const unrooted = allEmittedNames.filter((n) => !n.startsWith(`${theme.root}/`));
     ok(allEmittedNames.length > 500 && unrooted.length === 0,
       `figma generalise (${id}): every one of the ${allEmittedNames.length} emitted variable names carries this brand's own root \`${theme.root}/\` (#1097)` + (unrooted.length ? ` — UNROOTED: ${unrooted.slice(0, 3).join(', ')}` : ''));
