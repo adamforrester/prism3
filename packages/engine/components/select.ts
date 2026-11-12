@@ -706,7 +706,7 @@ export const select: ComponentDef = {
   composition: {
     // What the anatomy nests (#1700). The leading glyph and the chevron are partners, not parts.
     composesWith: ['field-label', 'field-message'],
-    alternativeTo: ['text-field', 'radio-group', 'checkbox-group', 'segmented-control'],
+    alternativeTo: ['text-field', 'radio-group', 'checkbox-group', 'segmented-control', 'textarea', 'radio-row', 'tabs', 'counter'],
     replacesPatterns: ['a bare <select> with no label wiring', 'placeholder-as-label'],
     // Nothing supersedes the select — combobox / radio / text-field are sibling alternatives chosen by
     // intent and scale, not replacements.
@@ -717,9 +717,9 @@ export const select: ComponentDef = {
   // KB select brief §8. The signature motion is the open list's, which this def does not model; what the closed
   // control owns is its border/state transition and the chevron's rotation on open.
   motion: {
-    enter: 'The open list (the platform\'s or a listbox component\'s): ~100–150ms opacity fade with a small vertical translate (translateY(-4px) → 0), anchored to the control. The chevron rotates on open under the same rule.',
-    exit: 'The open list closes faster than it opens — ~75ms, a fade without translate — so dismissal reads as instant.',
-    reduceMotion: 'Under prefers-reduced-motion, drop the translate and scale and keep an accelerated opacity fade (~50ms); the chevron rotation follows the same rule. The closed control\'s border and state changes are short token-driven transitions, text-field\'s ~100–150ms, and resolve to an instant color change under reduced motion.',
+    enter: 'The open list (the platform\'s or a listbox component\'s): an opacity fade with a small vertical translate (translateY(-4px) → 0) on motion.duration.fast with motion.easing-role.enter, anchored to the control. The chevron rotates on open under the same rule.',
+    exit: 'The open list closes faster than it opens — a fade without translate on motion.duration.instant with motion.easing-role.exit — so dismissal reads as instant.',
+    reduceMotion: 'Under prefers-reduced-motion, drop the translate and scale and keep an opacity fade on motion.duration-reduced.instant both ways; the chevron rotation follows the same rule. The closed control\'s border and state changes follow text-field\'s, motion.duration.fast, and run on motion.duration-reduced.fast under reduced motion.',
   },
 
   notes: {
