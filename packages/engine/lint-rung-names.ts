@@ -196,7 +196,7 @@ const OUT = join(import.meta.dirname, 'out');
  * tree per brand in arm 1. So the gate authors the one thing the artifact cannot tell it and reads the
  * one thing it can.
  *
- * `2xl` is APPENDED (#2428: Code input's xlarge character is `type.title.2xl.strong`), never inserted, so every rung
+ * `2xl` is APPENDED (#2428: Code input's x-large character is `type.title.2xl.strong`), never inserted, so every rung
  * this file computes by index from `md` lands where it did before: the one-below and two-below offsets here, and an
  * upward offset beside them: Progress's ring (#2670) is `md` plus two, which stays `xl` with `2xl` appended.
  * `expectedDefaultRung` and the failure message keep both branches, since the pinned ladder and the ring offset name

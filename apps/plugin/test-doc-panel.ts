@@ -127,6 +127,16 @@
  *                   sentences. Mutations: the open-quote extension dropped from `firstSentences` → `quote/progress`,
  *                   `quote/card-number-field`, `quote/code-input`, `quote/every lead`; the cut extended past any quote,
  *                   open or closed → `quote/textarea-count`, `quote/switch-row-count`.
+ *   code/…          (#3552 Q-UG2 A) a backtick span is written without its backticks and drawn in the brand's inline
+ *                   code style (`code/inline/default`, typed here) by range: Button's Do item, typed by hand, reads
+ *                   "buttonIcons" and "attached" in it; a file without the style writes the same text plain and names
+ *                   the style; over every lead, no drawn text carries a backtick; `codeRuns` pairs spans and drops a
+ *                   lone backtick. Mutations: the range call dropped → `code/button`; the backticks written as planned
+ *                   → `code/button`, `code/no style`, `code/every lead`, `panel/do-dont`; the missing style not named →
+ *                   `code/no style`. A code font that won't load leaves the text plain with no code range and names the
+ *                   font; Related's links, past a code-bearing entry (Tag's Badge typed as code here), land on the linked
+ *                   names. Mutations: the font failure no longer clears the style → `code/no font`; the link offsets
+ *                   counted in the planned text → `code/related links`.
  *   markers/…       (#2916) each leader's tip lies inside its part's box, at the part's middle, and each bracket runs
  *                   exactly its part's height with both ticks ending inside it; Breadcrumbs' six entries (the `items`
  *                   slot's among them) on two specimens, pinned by hand in `marks/breadcrumbs`. Mutations: a slot
@@ -154,7 +164,7 @@ import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffe
 import { applyComponentPlan } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { fixHostMethods, makeShim, type Node } from './component-shim';
-import { anatomyEntry, anatomyMarks, clearOrphanPanels, docPanelReach, docPanelReaches, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, printV2, PANEL_FORMAT, type PanelApi, type PNode } from './src/doc-panel';
+import { anatomyEntry, anatomyMarks, clearOrphanPanels, codeRuns, docPanelReach, docPanelReaches, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, printV2, PANEL_FORMAT, type PanelApi, type PNode } from './src/doc-panel';
 import { dueOf, entryFor, readLedger, recordSets, type LedgerEntry } from './src/as-built-ledger';
 import { checkedSetOf } from './src/update-plan';
 import { TAXONOMY } from './src/file-taxonomy';
@@ -265,7 +275,9 @@ const mk = (type: string, name: string, children: N[] = [], extra: Record<string
     n.fontName = { family: 'Inter', style: 'Regular' }; n.characters = n.characters ?? name;
     // The range calls Related's lists make (#2970), recorded as the host would hold them; a range past the text throws.
     const range = (s0: number, e0: number, what: string) => { if (s0 < 0 || e0 > String(n.characters).length || s0 >= e0) throw new Error(`in ${what}: range ${s0}–${e0} outside the text`); };
-    n._links = []; n._lists = []; n._decos = [];
+    n._links = []; n._lists = []; n._decos = []; n._codes = [];
+    // A code span drawn in a text style (#3552 Q-UG2 A), recorded by the text it covers.
+    n.setRangeTextStyleIdAsync = async (s0: number, e0: number, id: string) => { range(s0, e0, 'setRangeTextStyleIdAsync'); (n._codes as unknown[]).push({ text: String(n.characters).slice(s0, e0), id }); };
     n.setRangeHyperlink = (s0: number, e0: number, l: unknown) => { range(s0, e0, 'setRangeHyperlink'); (n._links as unknown[]).push({ text: String(n.characters).slice(s0, e0), link: l }); };
     n.setRangeListOptions = (s0: number, e0: number, o: unknown) => { range(s0, e0, 'setRangeListOptions'); (n._lists as unknown[]).push({ s: s0, e: e0, o }); };
     n.setRangeTextDecoration = (s0: number, e0: number, d: unknown) => { range(s0, e0, 'setRangeTextDecoration'); (n._decos as unknown[]).push({ text: String(n.characters).slice(s0, e0), d }); };
@@ -513,7 +525,9 @@ const docBlockSet = (): N => mk('COMPONENT_SET', '_Doc-block', TYPES.flatMap((t)
 const VARS = ['color/background/primary', 'color/border/secondary', 'color/text/primary', 'color/text/secondary', 'color/background/secondary', 'color/border/success', 'color/border/danger'].map((name, i) => ({ id: `V:${i}`, name: `zz/${name}`, variableCollectionId: 'VC:color' }));
 const COLLECTION = { id: 'VC:color', name: 'color', modes: [{ modeId: 'M:light', name: 'light' }, { modeId: 'M:dark', name: 'dark' }, { modeId: 'M:hc-light', name: 'hc-light' }] };
 /** A host over `pages`: the template set (unless `template: false`) and every node on them. */
-const host = (pages: N[], o: { template?: boolean; modes?: boolean } = {}): PanelApi & FurnitureApi => {
+/** The brand's inline code style, as the engine emits it (`code/inline/default`), typed here. */
+const CODE_TEXT_STYLE = { id: 'S:code', name: 'code/inline/default', fontName: { family: 'JetBrains Mono', style: 'Regular' } };
+const host = (pages: N[], o: { template?: boolean; modes?: boolean; codeStyle?: boolean } = {}): PanelApi & FurnitureApi => {
   const blocks = o.template === false ? [] : [docBlockSet()];
   const all = () => [...blocks, ...pages.flatMap((p) => p.children.flatMap(walk))];
   return {
@@ -522,6 +536,7 @@ const host = (pages: N[], o: { template?: boolean; modes?: boolean } = {}): Pane
         all().filter((n) => c.types.includes(String(n.type)) && !n.removed && (!c.sharedPluginData || c.sharedPluginData.keys.some((k) => n.getSharedPluginData!(c.sharedPluginData!.namespace, k)))),
     },
     loadFontAsync: async () => {},
+    getLocalTextStylesAsync: async () => (o.codeStyle === false ? [] : [CODE_TEXT_STYLE]),
     createFrame: () => mk('FRAME', 'Frame'),
     createText: () => mk('TEXT', 'Text'),
     variables: {
@@ -612,7 +627,8 @@ section('panel/do-dont — each Do and Don\'t item\'s text is written into List.
       if (b.type !== 'Do-Dont') continue;
       for (const t of [...b.do, ...b.dont]) {
         items++;
-        if (!shown.includes(t)) unwritten.push(`${def.id}: "${t.slice(0, 40)}"`);
+        // As written: a code span without its backticks (#3552 Q-UG2 A), stripped here, not by the panel's own split.
+        if (!shown.includes(t.replace(/`/g, ''))) unwritten.push(`${def.id}: "${t.slice(0, 40)}"`);
       }
     }
     if (r.misses.some((m) => m.includes('item text'))) unwritten.push(`${def.id}: ${r.misses.join('; ')}`);
@@ -1931,6 +1947,64 @@ section('template/… — `_Doc-block`');
 }
 
 /* ── line: the missing template, once ──────────────────────────────────────────────────────────────────── */
+/* ── code: a backtick span drawn as code (#3552 Q-UG2 A) ──────────────────────────────────────────────────── */
+section('code/… — a code span is written without its backticks and drawn in the brand\'s inline code style (#3552 Q-UG2 A)');
+{
+  // The one panel line with code spans today, typed from Button's def: its first Do item.
+  const want = "Place the icons the way the brand's buttonIcons setting says; attached (Attached to label, the default) keeps them beside the label with the group centered";
+  const drawButton = async (o: { codeStyle?: boolean } = {}) => {
+    const p = page(`↳ code ${o.codeStyle === false ? 'none' : 'style'}`);
+    const r = await drawDocPanel(host([p], o), fakeSet(p, 'button'), componentDefs.find((d) => d.id === 'button')!, { names });
+    const t = walk(panelsOn(p)[0]).find((c) => c.type === 'TEXT' && String(c.characters).startsWith('Place the icons the way'));
+    return { r, t };
+  };
+  const a = await drawButton();
+  ok(a.t?.characters === want && JSON.stringify(a.t?._codes) === JSON.stringify([{ text: 'buttonIcons', id: 'S:code' }, { text: 'attached', id: 'S:code' }]),
+    'code/button: Button\'s Do item reads without backticks, buttonIcons and attached in code/inline/default', `${String(a.t?.characters)} ${JSON.stringify(a.t?._codes)}`);
+  const b = await drawButton({ codeStyle: false });
+  ok(b.t?.characters === want && !(b.t?._codes as unknown[]).length && b.r.misses.some((m) => m.includes('code/inline/default')),
+    'code/no style: a file without the code style writes the same text plain and names the style', `${JSON.stringify(b.t?._codes)} misses ${b.r.misses.join('; ')}`);
+  // The code style's font won't load: the text is written plain, no range points at the unloaded font, the miss names it.
+  {
+    const p = page('↳ code font');
+    const api = host([p]);
+    api.loadFontAsync = async (f) => { if (f.family === CODE_TEXT_STYLE.fontName.family) throw new Error('no font'); };
+    const r = await drawDocPanel(api, fakeSet(p, 'button'), componentDefs.find((d) => d.id === 'button')!, { names });
+    const t = walk(panelsOn(p)[0]).find((c) => c.type === 'TEXT' && String(c.characters).startsWith('Place the icons the way'));
+    ok(t?.characters === want && !(t?._codes as unknown[]).length && r.misses.some((m) => m.includes('JetBrains Mono Regular unavailable')),
+      'code/no font: the code style\'s font won\'t load, so the text is plain, no code range is set, and the miss names the font', `${JSON.stringify(t?._codes)} misses ${r.misses.join('; ')}`);
+  }
+  // Related's links are placed in the written text: a code-bearing entry ahead of a linked one can't shift the link.
+  // Tag's def, with Badge's name typed as code here; Badge and Button have sets in the file.
+  {
+    const p = page('↳ code related');
+    const set = fakeSet(p, 'tag');
+    const badge = fakeSet(p, 'badge', 0, 3000), button = fakeSet(p, 'button', 0, 4000);
+    await drawDocPanel(host([p]), set, componentDefs.find((d) => d.id === 'tag')!, { names: (id) => (id === 'badge' ? '`Badge`' : names(id)) });
+    const texts = walk(panelsOn(p)[0]).filter((c) => c.type === 'TEXT');
+    const list = texts.find((t) => String(t.characters).startsWith('Badge\nButtons'));
+    const links = (list?._links ?? []) as { text: string; link: { value: string } }[];
+    const decos = ((list?._decos ?? []) as { text: string }[]).map((d) => d.text);
+    ok(JSON.stringify(links.map((l) => `${l.text}>${l.link.value}`)) === JSON.stringify([`Badge>${badge.id}`, `Buttons>${button.id}`]) && JSON.stringify(decos) === '["Badge","Buttons"]'
+      && JSON.stringify(list?._codes) === JSON.stringify([{ text: 'Badge', id: 'S:code' }]),
+      'code/related links: past a code-bearing entry, the link and underline land on "Badge" and "Buttons" exactly', `${String(list?.characters).split('\n').join(' / ')} links ${JSON.stringify(links)} decos ${JSON.stringify(decos)}`);
+  }
+  // Over every lead: no drawn text carries a backtick, and every code range is a whole word of its text.
+  const ticks: string[] = [];
+  for (const def of leads) {
+    const p = page(`↳ code ${def.id}`);
+    await drawDocPanel(host([p]), fakeSet(p, def.id), def, { names });
+    for (const t of walk(panelsOn(p)[0]).filter((c) => c.type === 'TEXT')) {
+      if (String(t.characters).includes('`')) ticks.push(`${def.id}: ${String(t.characters).slice(0, 60)}`);
+      for (const c of t._codes as { text: string }[]) if (!c.text.trim() || c.text !== c.text.trim()) ticks.push(`${def.id}: code range "${c.text}"`);
+    }
+  }
+  ok(ticks.length === 0, `code/every lead: no drawn text in ${leads.length} panels carries a backtick, and no code range is empty or padded`, ticks.slice(0, 3).join('; '));
+  // The split, typed: a pair is a span, a backtick with no partner is dropped.
+  const cr = codeRuns('Use `type="number"` or `step` (3`)');
+  ok(cr.text === 'Use type="number" or step (3)' && JSON.stringify(cr.runs) === '[[4,17],[21,25]]', `code/runs: spans by pairs, an unpaired backtick dropped (${JSON.stringify(cr)})`);
+}
+
 section('qa/… — usage panels QA round 1 (#2970): titles, the space above Do and Don\'t, Related as linked lists');
 {
   const p = page('↳ QA r1');

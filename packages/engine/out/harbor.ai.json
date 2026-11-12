@@ -187,7 +187,7 @@
       }
     },
     "veil.dark.subtle": {
-      "$description": "Media veil, dark — a subtle black wash (50%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+      "$description": "Media veil, dark — a subtle black wash (50%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is `scrim.default`",
       "meaning": "Text legibility over a photograph",
       "when_to_use": "A subtle dark wash over a photograph or video, to lift light text off it. Pick the polarity from the image (dark veil under light text), then the intensity for how much the image needs muting; verify contrast against your own photo. Keep the ink light in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.",
       "avoid_when": "Do not use as a modal backdrop (use `scrim.default`) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.",
@@ -199,7 +199,7 @@
       }
     },
     "veil.dark.medium": {
-      "$description": "Media veil, dark — a medium black wash (60%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+      "$description": "Media veil, dark — a medium black wash (60%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is `scrim.default`",
       "meaning": "Text legibility over a photograph",
       "when_to_use": "A medium dark wash over a photograph or video, to lift light text off it. Pick the polarity from the image (dark veil under light text), then the intensity for how much the image needs muting; verify contrast against your own photo. Keep the ink light in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.",
       "avoid_when": "Do not use as a modal backdrop (use `scrim.default`) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.",
@@ -211,7 +211,7 @@
       }
     },
     "veil.dark.strong": {
-      "$description": "Media veil, dark — a strong black wash (70%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+      "$description": "Media veil, dark — a strong black wash (70%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is `scrim.default`",
       "meaning": "Text legibility over a photograph",
       "when_to_use": "A strong dark wash over a photograph or video, to lift light text off it. Pick the polarity from the image (dark veil under light text), then the intensity for how much the image needs muting; verify contrast against your own photo. Keep the ink light in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.",
       "avoid_when": "Do not use as a modal backdrop (use `scrim.default`) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.",
@@ -235,7 +235,7 @@
       }
     },
     "veil.light.subtle": {
-      "$description": "Media veil, light — a subtle white wash (40%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+      "$description": "Media veil, light — a subtle white wash (40%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is `scrim.default`",
       "meaning": "Text legibility over a photograph",
       "when_to_use": "A subtle light wash over a photograph or video, to lift dark text off it. Pick the polarity from the image (light veil under dark text), then the intensity for how much the image needs muting; verify contrast against your own photo. Keep the ink dark in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.",
       "avoid_when": "Do not use as a modal backdrop (use `scrim.default`) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.",
@@ -247,7 +247,7 @@
       }
     },
     "veil.light.medium": {
-      "$description": "Media veil, light — a medium white wash (50%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+      "$description": "Media veil, light — a medium white wash (50%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is `scrim.default`",
       "meaning": "Text legibility over a photograph",
       "when_to_use": "A medium light wash over a photograph or video, to lift dark text off it. Pick the polarity from the image (light veil under dark text), then the intensity for how much the image needs muting; verify contrast against your own photo. Keep the ink dark in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.",
       "avoid_when": "Do not use as a modal backdrop (use `scrim.default`) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.",
@@ -259,7 +259,7 @@
       }
     },
     "veil.light.strong": {
-      "$description": "Media veil, light — a strong white wash (60%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+      "$description": "Media veil, light — a strong white wash (60%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is `scrim.default`",
       "meaning": "Text legibility over a photograph",
       "when_to_use": "A strong light wash over a photograph or video, to lift dark text off it. Pick the polarity from the image (light veil under dark text), then the intensity for how much the image needs muting; verify contrast against your own photo. Keep the ink dark in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.",
       "avoid_when": "Do not use as a modal backdrop (use `scrim.default`) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.",
@@ -345,7 +345,7 @@
       ]
     },
     "foreground.raised": {
-      "$description": "Raised surface — the panel a dialog or sheet draws over the scrim. The card surface (foreground.primary) unless the brand sets it to the page or to white; in dark modes it is always the card surface",
+      "$description": "Raised surface — the panel a dialog or sheet draws over the scrim. The card surface (`foreground.primary`) unless the brand sets it to the page or to white; in dark modes it is always the card surface",
       "meaning": "Surface / fill on the canvas",
       "when_to_use": "The panel over the scrim — a dialog, bottom sheet, full-screen panel or end drawer. It is the card surface unless the brand sets it to the page or to white in light modes; in dark modes it is always the card surface, so the panel keeps its lift.",
       "avoid_when": "Do not use for a card, sheet or panel that is not over the scrim (use `foreground.primary`), for the page itself (use `background.*`) or for ink (use `text.*` or `icon.*`).",
@@ -432,7 +432,7 @@
       ]
     },
     "foreground.brand": {
-      "$description": "Bold brand fill — clears 3:1 on background.secondary",
+      "$description": "Bold brand fill — clears 3:1 on `background.secondary`",
       "meaning": "Brand identity",
       "when_to_use": "Filled brand elements — badges, banners, status chips.",
       "avoid_when": "Do not use for brand ink (use `text.brand`) or as a subtle tint (use `foreground.brand-subtle`).",
@@ -456,7 +456,7 @@
       ]
     },
     "foreground.success": {
-      "$description": "Bold success fill — clears 3:1 on background.secondary",
+      "$description": "Bold success fill — clears 3:1 on `background.secondary`",
       "meaning": "Success / positive signaling",
       "when_to_use": "Filled success elements — badges, banners, status chips.",
       "avoid_when": "Do not use for success ink (use `text.success`) or as a subtle tint (use `foreground.success-subtle`).",
@@ -480,7 +480,7 @@
       ]
     },
     "foreground.warning": {
-      "$description": "Bold warning fill — clears 3:1 on background.secondary",
+      "$description": "Bold warning fill — clears 3:1 on `background.secondary`",
       "meaning": "Warning / caution signaling",
       "when_to_use": "Filled warning elements — badges, banners, status chips.",
       "avoid_when": "Do not use for warning ink (use `text.warning`) or as a subtle tint (use `foreground.warning-subtle`).",
@@ -504,7 +504,7 @@
       ]
     },
     "foreground.info": {
-      "$description": "Bold info fill — clears 3:1 on background.secondary",
+      "$description": "Bold info fill — clears 3:1 on `background.secondary`",
       "meaning": "Informational signaling",
       "when_to_use": "Filled info elements — badges, banners, status chips.",
       "avoid_when": "Do not use for info ink (use `text.info`) or as a subtle tint (use `foreground.info-subtle`).",
@@ -608,7 +608,7 @@
       ]
     },
     "inverse.foreground.brand": {
-      "$description": "Bold brand fill on an inverse surface — clears 3:1 on inverse.background.secondary",
+      "$description": "Bold brand fill on an inverse surface — clears 3:1 on `inverse.background.secondary`",
       "meaning": "Brand identity (inverse ground)",
       "when_to_use": "Filled brand elements — badges, banners, status chips. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.brand`. Do not use for brand ink (use `inverse.text.brand`) or as a subtle tint (use `inverse.foreground.brand-subtle`).",
@@ -628,7 +628,7 @@
       ]
     },
     "inverse.foreground.success": {
-      "$description": "Bold success fill on an inverse surface — clears 3:1 on inverse.background.secondary",
+      "$description": "Bold success fill on an inverse surface — clears 3:1 on `inverse.background.secondary`",
       "meaning": "Success / positive signaling (inverse ground)",
       "when_to_use": "Filled success elements — badges, banners, status chips. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.success`. Do not use for success ink (use `inverse.text.success`) or as a subtle tint (use `inverse.foreground.success-subtle`).",
@@ -648,7 +648,7 @@
       ]
     },
     "inverse.foreground.warning": {
-      "$description": "Bold warning fill on an inverse surface — clears 3:1 on inverse.background.secondary",
+      "$description": "Bold warning fill on an inverse surface — clears 3:1 on `inverse.background.secondary`",
       "meaning": "Warning / caution signaling (inverse ground)",
       "when_to_use": "Filled warning elements — badges, banners, status chips. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.warning`. Do not use for warning ink (use `inverse.text.warning`) or as a subtle tint (use `inverse.foreground.warning-subtle`).",
@@ -668,7 +668,7 @@
       ]
     },
     "inverse.foreground.danger": {
-      "$description": "Bold danger fill on an inverse surface — clears 3:1 on inverse.background.secondary",
+      "$description": "Bold danger fill on an inverse surface — clears 3:1 on `inverse.background.secondary`",
       "meaning": "Destructive / error signaling (inverse ground)",
       "when_to_use": "Filled danger elements — badges, banners, status chips. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.danger`. Do not use for danger ink (use `inverse.text.danger`) or as a subtle tint (use `inverse.foreground.danger-subtle`).",
@@ -688,7 +688,7 @@
       ]
     },
     "inverse.foreground.info": {
-      "$description": "Bold info fill on an inverse surface — clears 3:1 on inverse.background.secondary",
+      "$description": "Bold info fill on an inverse surface — clears 3:1 on `inverse.background.secondary`",
       "meaning": "Informational signaling (inverse ground)",
       "when_to_use": "Filled info elements — badges, banners, status chips. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.info`. Do not use for info ink (use `inverse.text.info`) or as a subtle tint (use `inverse.foreground.info-subtle`).",
@@ -788,7 +788,7 @@
       ]
     },
     "foreground.danger": {
-      "$description": "Bold danger fill — clears 3:1 on background.secondary",
+      "$description": "Bold danger fill — clears 3:1 on `background.secondary`",
       "meaning": "Destructive / error signaling",
       "when_to_use": "Filled danger elements — badges, banners, status chips.",
       "avoid_when": "Do not use for danger ink (use `text.danger`) or as a subtle tint (use `foreground.danger-subtle`).",
@@ -812,7 +812,7 @@
       ]
     },
     "interactive.primary.fill.rest": {
-      "$description": "primary interactive fill — rest, clears 3:1 on background.secondary",
+      "$description": "primary interactive fill — rest, clears 3:1 on `background.secondary`",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows.",
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -835,7 +835,7 @@
       ]
     },
     "interactive.primary.fill.hover": {
-      "$description": "primary interactive fill — hover, clears 3:1 on background.secondary",
+      "$description": "primary interactive fill — hover, clears 3:1 on `background.secondary`",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows on pointer hover. The label stays `interactive.primary.on-fill`, which is gated against `interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in dark mode.",
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -855,7 +855,7 @@
       ]
     },
     "interactive.primary.fill.pressed": {
-      "$description": "primary interactive fill — pressed, clears 3:1 on background.secondary",
+      "$description": "primary interactive fill — pressed, clears 3:1 on `background.secondary`",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows while pressed. The label stays `interactive.primary.on-fill`, which is gated against `interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in dark mode.",
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -875,7 +875,7 @@
       ]
     },
     "interactive.primary.fill.focused": {
-      "$description": "primary interactive fill — focused, clears 3:1 on background.secondary",
+      "$description": "primary interactive fill — focused, clears 3:1 on `background.secondary`",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `interactive.primary.on-fill`, which is gated against `interactive.primary.fill.rest` only.",
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -895,7 +895,7 @@
       ]
     },
     "interactive.primary.fill.selected": {
-      "$description": "primary interactive fill — selected, clears 3:1 on background.secondary",
+      "$description": "primary interactive fill — selected, clears 3:1 on `background.secondary`",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a filled primary interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline. The label stays `interactive.primary.on-fill`, which is gated against `interactive.primary.fill.rest` only.",
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -1256,7 +1256,7 @@
       ]
     },
     "interactive.destructive.fill.rest": {
-      "$description": "destructive interactive fill — rest, clears 3:1 on background.secondary",
+      "$description": "destructive interactive fill — rest, clears 3:1 on `background.secondary`",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows.",
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -1279,7 +1279,7 @@
       ]
     },
     "interactive.destructive.fill.hover": {
-      "$description": "destructive interactive fill — hover, clears 3:1 on background.secondary",
+      "$description": "destructive interactive fill — hover, clears 3:1 on `background.secondary`",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows on pointer hover. The label stays `interactive.destructive.on-fill`, which is gated against `interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in dark mode.",
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -1299,7 +1299,7 @@
       ]
     },
     "interactive.destructive.fill.pressed": {
-      "$description": "destructive interactive fill — pressed, clears 3:1 on background.secondary",
+      "$description": "destructive interactive fill — pressed, clears 3:1 on `background.secondary`",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows while pressed. The label stays `interactive.destructive.on-fill`, which is gated against `interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in dark mode.",
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -1319,7 +1319,7 @@
       ]
     },
     "interactive.destructive.fill.focused": {
-      "$description": "destructive interactive fill — focused, clears 3:1 on background.secondary",
+      "$description": "destructive interactive fill — focused, clears 3:1 on `background.secondary`",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `interactive.destructive.on-fill`, which is gated against `interactive.destructive.fill.rest` only.",
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -1339,7 +1339,7 @@
       ]
     },
     "interactive.destructive.fill.selected": {
-      "$description": "destructive interactive fill — selected, clears 3:1 on background.secondary",
+      "$description": "destructive interactive fill — selected, clears 3:1 on `background.secondary`",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a filled destructive interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline. The label stays `interactive.destructive.on-fill`, which is gated against `interactive.destructive.fill.rest` only.",
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -1704,7 +1704,7 @@
       ]
     },
     "interactive.neutral.fill.rest": {
-      "$description": "neutral interactive fill — rest, clears 0:1 on background.secondary",
+      "$description": "neutral interactive fill — rest, clears 0:1 on `background.secondary`",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a filled neutral interactive element — buttons, controls, selectable rows.",
       "avoid_when": "Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -1719,7 +1719,7 @@
       ]
     },
     "interactive.neutral.fill.hover": {
-      "$description": "neutral interactive fill — hover, clears 0:1 on background.secondary",
+      "$description": "neutral interactive fill — hover, clears 0:1 on `background.secondary`",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a filled neutral interactive element — buttons, controls, selectable rows on pointer hover. The label stays `interactive.neutral.on-fill`, which is gated against `interactive.neutral.fill.rest` only.",
       "avoid_when": "Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -1731,7 +1731,7 @@
       }
     },
     "interactive.neutral.fill.pressed": {
-      "$description": "neutral interactive fill — pressed, clears 0:1 on background.secondary",
+      "$description": "neutral interactive fill — pressed, clears 0:1 on `background.secondary`",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a filled neutral interactive element — buttons, controls, selectable rows while pressed. The label stays `interactive.neutral.on-fill`, which is gated against `interactive.neutral.fill.rest` only.",
       "avoid_when": "Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -1743,7 +1743,7 @@
       }
     },
     "interactive.neutral.fill.focused": {
-      "$description": "neutral interactive fill — focused, clears 0:1 on background.secondary",
+      "$description": "neutral interactive fill — focused, clears 0:1 on `background.secondary`",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a filled neutral interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `interactive.neutral.on-fill`, which is gated against `interactive.neutral.fill.rest` only.",
       "avoid_when": "Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -1755,7 +1755,7 @@
       }
     },
     "interactive.neutral.fill.selected": {
-      "$description": "neutral interactive fill — selected, clears 0:1 on background.secondary",
+      "$description": "neutral interactive fill — selected, clears 0:1 on `background.secondary`",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a filled neutral interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline. The label stays `interactive.neutral.on-fill`, which is gated against `interactive.neutral.fill.rest` only.",
       "avoid_when": "Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -3456,7 +3456,7 @@
       ]
     },
     "interactive.primary.overlay.hover": {
-      "$description": "primary interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.hover)",
+      "$description": "primary interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is `inverse.interactive.primary.overlay.hover`)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral hover wash for outline/text primary controls and hover/pressed/selected rows, menus, cards.",
       "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.primary.overlay.*` — the page wash takes the page's polarity.",
@@ -3480,7 +3480,7 @@
       ]
     },
     "interactive.primary.overlay.pressed": {
-      "$description": "primary interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.pressed)",
+      "$description": "primary interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is `inverse.interactive.primary.overlay.pressed`)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral pressed wash for outline/text primary controls and hover/pressed/selected rows, menus, cards.",
       "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.primary.overlay.*` — the page wash takes the page's polarity.",
@@ -3504,7 +3504,7 @@
       ]
     },
     "interactive.primary.overlay.selected": {
-      "$description": "primary interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.selected)",
+      "$description": "primary interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is `inverse.interactive.primary.overlay.selected`)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral selected wash for outline/text primary controls and hover/pressed/selected rows, menus, cards.",
       "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.primary.overlay.*` — the page wash takes the page's polarity.",
@@ -3528,7 +3528,7 @@
       ]
     },
     "interactive.neutral.overlay.hover": {
-      "$description": "neutral interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.hover)",
+      "$description": "neutral interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is `inverse.interactive.neutral.overlay.hover`)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral hover wash for outline/text neutral controls and hover/pressed/selected rows, menus, cards.",
       "avoid_when": "Do not use as an opaque fill (use `interactive.neutral.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.neutral.overlay.*` — the page wash takes the page's polarity.",
@@ -3552,7 +3552,7 @@
       ]
     },
     "interactive.neutral.overlay.pressed": {
-      "$description": "neutral interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.pressed)",
+      "$description": "neutral interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is `inverse.interactive.neutral.overlay.pressed`)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral pressed wash for outline/text neutral controls and hover/pressed/selected rows, menus, cards.",
       "avoid_when": "Do not use as an opaque fill (use `interactive.neutral.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.neutral.overlay.*` — the page wash takes the page's polarity.",
@@ -3576,7 +3576,7 @@
       ]
     },
     "interactive.neutral.overlay.selected": {
-      "$description": "neutral interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.selected)",
+      "$description": "neutral interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is `inverse.interactive.neutral.overlay.selected`)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral selected wash for outline/text neutral controls and hover/pressed/selected rows, menus, cards.",
       "avoid_when": "Do not use as an opaque fill (use `interactive.neutral.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.neutral.overlay.*` — the page wash takes the page's polarity.",
@@ -3600,7 +3600,7 @@
       ]
     },
     "interactive.destructive.overlay.hover": {
-      "$description": "destructive interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.hover)",
+      "$description": "destructive interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is `inverse.interactive.destructive.overlay.hover`)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral hover wash for outline/text destructive controls and hover/pressed/selected rows, menus, cards.",
       "avoid_when": "Do not use as an opaque fill (use `interactive.destructive.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.destructive.overlay.*` — the page wash takes the page's polarity.",
@@ -3624,7 +3624,7 @@
       ]
     },
     "interactive.destructive.overlay.pressed": {
-      "$description": "destructive interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.pressed)",
+      "$description": "destructive interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is `inverse.interactive.destructive.overlay.pressed`)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral pressed wash for outline/text destructive controls and hover/pressed/selected rows, menus, cards.",
       "avoid_when": "Do not use as an opaque fill (use `interactive.destructive.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.destructive.overlay.*` — the page wash takes the page's polarity.",
@@ -3648,7 +3648,7 @@
       ]
     },
     "interactive.destructive.overlay.selected": {
-      "$description": "destructive interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.selected)",
+      "$description": "destructive interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is `inverse.interactive.destructive.overlay.selected`)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral selected wash for outline/text destructive controls and hover/pressed/selected rows, menus, cards.",
       "avoid_when": "Do not use as an opaque fill (use `interactive.destructive.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.destructive.overlay.*` — the page wash takes the page's polarity.",
@@ -4330,7 +4330,7 @@
       ]
     },
     "text.secondary": {
-      "$description": "Secondary text — 4.5:1 on background.secondary",
+      "$description": "Secondary text — 4.5:1 on `background.secondary`",
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Secondary text. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `text.primary` there.",
       "avoid_when": "Do not use on solid or vivid fills. Use the `text.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -4355,7 +4355,7 @@
       ]
     },
     "text.tertiary": {
-      "$description": "Tertiary text — 3:1 on background.secondary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Tertiary text — 3:1 on `background.secondary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Tertiary text. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `text.primary` there.",
       "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.secondary` (4.5:1). Do not use on solid or vivid fills. Use the `text.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -4394,7 +4394,7 @@
       ]
     },
     "text.brand": {
-      "$description": "brand text — 4.5:1 on background.secondary and on its own tint",
+      "$description": "brand text — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Brand identity",
       "when_to_use": "Brand text — e.g. a brand accent or highlighted label. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid brand fill. Use `text.on-brand` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -4419,7 +4419,7 @@
       ]
     },
     "text.success": {
-      "$description": "success text — 4.5:1 on background.secondary and on its own tint",
+      "$description": "success text — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Success / positive signaling",
       "when_to_use": "Success text — e.g. a success confirmation. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid success fill. Use `text.on-success` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -4444,7 +4444,7 @@
       ]
     },
     "text.warning": {
-      "$description": "warning text — 4.5:1 on background.secondary and on its own tint",
+      "$description": "warning text — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Warning / caution signaling",
       "when_to_use": "Warning text — e.g. a caution note. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid warning fill. Use `text.on-warning` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -4469,7 +4469,7 @@
       ]
     },
     "text.danger": {
-      "$description": "danger text — 4.5:1 on background.secondary and on its own tint",
+      "$description": "danger text — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Destructive / error signaling",
       "when_to_use": "Danger text — e.g. an inline validation error. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid danger fill. Use `text.on-danger` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -4494,7 +4494,7 @@
       ]
     },
     "text.info": {
-      "$description": "info text — 4.5:1 on background.secondary and on its own tint",
+      "$description": "info text — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Informational signaling",
       "when_to_use": "Info text — e.g. an informational note. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid info fill. Use `text.on-info` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -4519,7 +4519,7 @@
       ]
     },
     "text.brand-subtle": {
-      "$description": "Muted brand text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted brand text — 3:1 on `background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Brand identity (low-emphasis)",
       "when_to_use": "Low-emphasis brand text and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.brand` (4.5:1). For safety-critical brand messaging use the bold `text.brand`.",
@@ -4556,7 +4556,7 @@
       ]
     },
     "text.success-subtle": {
-      "$description": "Muted success text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted success text — 3:1 on `background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Success / positive signaling (low-emphasis)",
       "when_to_use": "Low-emphasis success text and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.success` (4.5:1). For safety-critical success messaging use the bold `text.success`.",
@@ -4593,7 +4593,7 @@
       ]
     },
     "text.warning-subtle": {
-      "$description": "Muted warning text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted warning text — 3:1 on `background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Warning / caution signaling (low-emphasis)",
       "when_to_use": "Low-emphasis warning text and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.warning` (4.5:1). For safety-critical warning messaging use the bold `text.warning`.",
@@ -4630,7 +4630,7 @@
       ]
     },
     "text.danger-subtle": {
-      "$description": "Muted danger text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted danger text — 3:1 on `background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Destructive / error signaling (low-emphasis)",
       "when_to_use": "Low-emphasis danger text and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.danger` (4.5:1). For safety-critical danger messaging use the bold `text.danger`.",
@@ -4667,7 +4667,7 @@
       ]
     },
     "text.info-subtle": {
-      "$description": "Muted info text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted info text — 3:1 on `background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Informational signaling (low-emphasis)",
       "when_to_use": "Low-emphasis info text and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.info` (4.5:1). For safety-critical info messaging use the bold `text.info`.",
@@ -4819,7 +4819,7 @@
       ]
     },
     "text.link.default": {
-      "$description": "Link text — default, 4.5:1 on background.secondary",
+      "$description": "Link text — default, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -4844,7 +4844,7 @@
       ]
     },
     "text.link.hover": {
-      "$description": "Link text — hover, 4.5:1 on background.secondary",
+      "$description": "Link text — hover, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -4872,7 +4872,7 @@
       ]
     },
     "text.link.visited": {
-      "$description": "Link text — visited, 4.5:1 on background.secondary",
+      "$description": "Link text — visited, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text after it has been visited. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -4900,7 +4900,7 @@
       ]
     },
     "text.link.focused": {
-      "$description": "Link text — focused, 4.5:1 on background.secondary",
+      "$description": "Link text — focused, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -4925,7 +4925,7 @@
       ]
     },
     "text.link.pressed": {
-      "$description": "Link text — pressed, 4.5:1 on background.secondary",
+      "$description": "Link text — pressed, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -4981,7 +4981,7 @@
       ]
     },
     "icon.secondary": {
-      "$description": "Secondary icon — 4.5:1 on background.secondary",
+      "$description": "Secondary icon — 4.5:1 on `background.secondary`",
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Secondary icon. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `icon.primary` there.",
       "avoid_when": "Do not use on solid or vivid fills. Use the `icon.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -5006,7 +5006,7 @@
       ]
     },
     "icon.tertiary": {
-      "$description": "Tertiary icon — 3:1 on background.secondary",
+      "$description": "Tertiary icon — 3:1 on `background.secondary`",
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Tertiary icon. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `icon.primary` there.",
       "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.secondary` (4.5:1). Do not use on solid or vivid fills. Use the `icon.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -5045,7 +5045,7 @@
       ]
     },
     "icon.brand": {
-      "$description": "brand icon — 4.5:1 on background.secondary and on its own tint",
+      "$description": "brand icon — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Brand identity",
       "when_to_use": "Brand icons — e.g. the icon beside a brand accent or highlighted label. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid brand fill. Use `icon.on-brand` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -5070,7 +5070,7 @@
       ]
     },
     "icon.success": {
-      "$description": "success icon — 4.5:1 on background.secondary and on its own tint",
+      "$description": "success icon — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Success / positive signaling",
       "when_to_use": "Success icons — e.g. the icon beside a success confirmation. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid success fill. Use `icon.on-success` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -5095,7 +5095,7 @@
       ]
     },
     "icon.warning": {
-      "$description": "warning icon — 4.5:1 on background.secondary and on its own tint",
+      "$description": "warning icon — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Warning / caution signaling",
       "when_to_use": "Warning icons — e.g. the icon beside a caution note. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid warning fill. Use `icon.on-warning` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -5120,7 +5120,7 @@
       ]
     },
     "icon.danger": {
-      "$description": "danger icon — 4.5:1 on background.secondary and on its own tint",
+      "$description": "danger icon — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Destructive / error signaling",
       "when_to_use": "Danger icons — e.g. the icon beside an inline validation error. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid danger fill. Use `icon.on-danger` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -5145,7 +5145,7 @@
       ]
     },
     "icon.info": {
-      "$description": "info icon — 4.5:1 on background.secondary and on its own tint",
+      "$description": "info icon — 4.5:1 on `background.secondary` and on its own tint",
       "meaning": "Informational signaling",
       "when_to_use": "Info icons — e.g. the icon beside an informational note. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid info fill. Use `icon.on-info` there. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -5170,7 +5170,7 @@
       ]
     },
     "icon.brand-subtle": {
-      "$description": "Muted brand icon — low-emphasis accent, 3:1 on background.primary",
+      "$description": "Muted brand icon — low-emphasis accent, 3:1 on `background.primary`",
       "meaning": "Brand identity (low-emphasis)",
       "when_to_use": "Low-emphasis brand icons and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.brand` (4.5:1). For safety-critical brand messaging use the bold `icon.brand`.",
@@ -5207,7 +5207,7 @@
       ]
     },
     "icon.success-subtle": {
-      "$description": "Muted success icon — low-emphasis accent, 3:1 on background.primary",
+      "$description": "Muted success icon — low-emphasis accent, 3:1 on `background.primary`",
       "meaning": "Success / positive signaling (low-emphasis)",
       "when_to_use": "Low-emphasis success icons and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.success` (4.5:1). For safety-critical success messaging use the bold `icon.success`.",
@@ -5244,7 +5244,7 @@
       ]
     },
     "icon.warning-subtle": {
-      "$description": "Muted warning icon — low-emphasis accent, 3:1 on background.primary",
+      "$description": "Muted warning icon — low-emphasis accent, 3:1 on `background.primary`",
       "meaning": "Warning / caution signaling (low-emphasis)",
       "when_to_use": "Low-emphasis warning icons and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.warning` (4.5:1). For safety-critical warning messaging use the bold `icon.warning`.",
@@ -5281,7 +5281,7 @@
       ]
     },
     "icon.danger-subtle": {
-      "$description": "Muted danger icon — low-emphasis accent, 3:1 on background.primary",
+      "$description": "Muted danger icon — low-emphasis accent, 3:1 on `background.primary`",
       "meaning": "Destructive / error signaling (low-emphasis)",
       "when_to_use": "Low-emphasis danger icons and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.danger` (4.5:1). For safety-critical danger messaging use the bold `icon.danger`.",
@@ -5318,7 +5318,7 @@
       ]
     },
     "icon.info-subtle": {
-      "$description": "Muted info icon — low-emphasis accent, 3:1 on background.primary",
+      "$description": "Muted info icon — low-emphasis accent, 3:1 on `background.primary`",
       "meaning": "Informational signaling (low-emphasis)",
       "when_to_use": "Low-emphasis info icons and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.info` (4.5:1). For safety-critical info messaging use the bold `icon.info`.",
@@ -5470,7 +5470,7 @@
       ]
     },
     "icon.link.default": {
-      "$description": "Link icon — default, 4.5:1 on background.secondary",
+      "$description": "Link icon — default, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -5495,7 +5495,7 @@
       ]
     },
     "icon.link.hover": {
-      "$description": "Link icon — hover, 4.5:1 on background.secondary",
+      "$description": "Link icon — hover, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -5523,7 +5523,7 @@
       ]
     },
     "icon.link.visited": {
-      "$description": "Link icon — visited, 4.5:1 on background.secondary",
+      "$description": "Link icon — visited, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon after it has been visited. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -5551,7 +5551,7 @@
       ]
     },
     "icon.link.focused": {
-      "$description": "Link icon — focused, 4.5:1 on background.secondary",
+      "$description": "Link icon — focused, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -5576,7 +5576,7 @@
       ]
     },
     "icon.link.pressed": {
-      "$description": "Link icon — pressed, 4.5:1 on background.secondary",
+      "$description": "Link icon — pressed, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -5638,7 +5638,7 @@
       ]
     },
     "inverse.text.secondary": {
-      "$description": "Secondary text on an inverse surface — 4.5:1 on inverse.background.secondary",
+      "$description": "Secondary text on an inverse surface — 4.5:1 on `inverse.background.secondary`",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Secondary text. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode — use `inverse.text.primary` there. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.secondary`. Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -5663,7 +5663,7 @@
       ]
     },
     "inverse.text.tertiary": {
-      "$description": "Tertiary text on an inverse surface — 3:1 on inverse.background.secondary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Tertiary text on an inverse surface — 3:1 on `inverse.background.secondary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Tertiary text. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode — use `inverse.text.primary` there. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.tertiary`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.secondary` (4.5:1). Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -5702,7 +5702,7 @@
       ]
     },
     "inverse.text.brand": {
-      "$description": "brand text — 4.5:1 on inverse.background.secondary and on its own tint",
+      "$description": "brand text — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Brand identity (inverse ground)",
       "when_to_use": "Brand text — e.g. a brand accent or highlighted label. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.brand`. Do not use on a solid brand fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -5727,7 +5727,7 @@
       ]
     },
     "inverse.text.success": {
-      "$description": "success text — 4.5:1 on inverse.background.secondary and on its own tint",
+      "$description": "success text — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Success / positive signaling (inverse ground)",
       "when_to_use": "Success text — e.g. a success confirmation. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.success`. Do not use on a solid success fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -5752,7 +5752,7 @@
       ]
     },
     "inverse.text.warning": {
-      "$description": "warning text — 4.5:1 on inverse.background.secondary and on its own tint",
+      "$description": "warning text — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Warning / caution signaling (inverse ground)",
       "when_to_use": "Warning text — e.g. a caution note. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.warning`. Do not use on a solid warning fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -5777,7 +5777,7 @@
       ]
     },
     "inverse.text.danger": {
-      "$description": "danger text — 4.5:1 on inverse.background.secondary and on its own tint",
+      "$description": "danger text — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Destructive / error signaling (inverse ground)",
       "when_to_use": "Danger text — e.g. an inline validation error. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.danger`. Do not use on a solid danger fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -5802,7 +5802,7 @@
       ]
     },
     "inverse.text.info": {
-      "$description": "info text — 4.5:1 on inverse.background.secondary and on its own tint",
+      "$description": "info text — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Informational signaling (inverse ground)",
       "when_to_use": "Info text — e.g. an informational note. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.info`. Do not use on a solid info fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -5827,7 +5827,7 @@
       ]
     },
     "inverse.text.brand-subtle": {
-      "$description": "Muted brand text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted brand text — 3:1 on `inverse.background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Brand identity (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis brand text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.brand-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.brand` (4.5:1). For safety-critical brand messaging use the bold `inverse.text.brand`.",
@@ -5866,7 +5866,7 @@
       ]
     },
     "inverse.text.success-subtle": {
-      "$description": "Muted success text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted success text — 3:1 on `inverse.background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Success / positive signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis success text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.success-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.success` (4.5:1). For safety-critical success messaging use the bold `inverse.text.success`.",
@@ -5905,7 +5905,7 @@
       ]
     },
     "inverse.text.warning-subtle": {
-      "$description": "Muted warning text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted warning text — 3:1 on `inverse.background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Warning / caution signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis warning text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.warning-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.warning` (4.5:1). For safety-critical warning messaging use the bold `inverse.text.warning`.",
@@ -5944,7 +5944,7 @@
       ]
     },
     "inverse.text.danger-subtle": {
-      "$description": "Muted danger text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted danger text — 3:1 on `inverse.background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Destructive / error signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis danger text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.danger-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.danger` (4.5:1). For safety-critical danger messaging use the bold `inverse.text.danger`.",
@@ -5983,7 +5983,7 @@
       ]
     },
     "inverse.text.info-subtle": {
-      "$description": "Muted info text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted info text — 3:1 on `inverse.background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Informational signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis info text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.info-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.info` (4.5:1). For safety-critical info messaging use the bold `inverse.text.info`.",
@@ -6022,7 +6022,7 @@
       ]
     },
     "inverse.text.link.default": {
-      "$description": "Link text on an inverse surface — default, 4.5:1 on inverse.background.secondary",
+      "$description": "Link text on an inverse surface — default, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.link.default`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -6047,7 +6047,7 @@
       ]
     },
     "inverse.text.link.hover": {
-      "$description": "Link text on an inverse surface — hover, 4.5:1 on inverse.background.secondary",
+      "$description": "Link text on an inverse surface — hover, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.link.hover`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -6075,7 +6075,7 @@
       ]
     },
     "inverse.text.link.visited": {
-      "$description": "Link text on an inverse surface — visited, 4.5:1 on inverse.background.secondary",
+      "$description": "Link text on an inverse surface — visited, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text after it has been visited. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.link.visited`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -6103,7 +6103,7 @@
       ]
     },
     "inverse.text.link.focused": {
-      "$description": "Link text on an inverse surface — focused, 4.5:1 on inverse.background.secondary",
+      "$description": "Link text on an inverse surface — focused, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.link.focused`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -6128,7 +6128,7 @@
       ]
     },
     "inverse.text.link.pressed": {
-      "$description": "Link text on an inverse surface — pressed, 4.5:1 on inverse.background.secondary",
+      "$description": "Link text on an inverse surface — pressed, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.link.pressed`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -6184,7 +6184,7 @@
       ]
     },
     "inverse.icon.secondary": {
-      "$description": "Secondary icon on an inverse surface — 4.5:1 on inverse.background.secondary",
+      "$description": "Secondary icon on an inverse surface — 4.5:1 on `inverse.background.secondary`",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Secondary icon. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode — use `inverse.icon.primary` there. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.secondary`. Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -6209,7 +6209,7 @@
       ]
     },
     "inverse.icon.tertiary": {
-      "$description": "Tertiary icon on an inverse surface — 3:1 on inverse.background.secondary",
+      "$description": "Tertiary icon on an inverse surface — 3:1 on `inverse.background.secondary`",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Tertiary icon. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode — use `inverse.icon.primary` there. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.tertiary`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.secondary` (4.5:1). Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -6248,7 +6248,7 @@
       ]
     },
     "inverse.icon.brand": {
-      "$description": "brand icon — 4.5:1 on inverse.background.secondary and on its own tint",
+      "$description": "brand icon — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Brand identity (inverse ground)",
       "when_to_use": "Brand icons — e.g. the icon beside a brand accent or highlighted label. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.brand`. Do not use on a solid brand fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -6273,7 +6273,7 @@
       ]
     },
     "inverse.icon.success": {
-      "$description": "success icon — 4.5:1 on inverse.background.secondary and on its own tint",
+      "$description": "success icon — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Success / positive signaling (inverse ground)",
       "when_to_use": "Success icons — e.g. the icon beside a success confirmation. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.success`. Do not use on a solid success fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -6298,7 +6298,7 @@
       ]
     },
     "inverse.icon.warning": {
-      "$description": "warning icon — 4.5:1 on inverse.background.secondary and on its own tint",
+      "$description": "warning icon — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Warning / caution signaling (inverse ground)",
       "when_to_use": "Warning icons — e.g. the icon beside a caution note. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.warning`. Do not use on a solid warning fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -6323,7 +6323,7 @@
       ]
     },
     "inverse.icon.danger": {
-      "$description": "danger icon — 4.5:1 on inverse.background.secondary and on its own tint",
+      "$description": "danger icon — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Destructive / error signaling (inverse ground)",
       "when_to_use": "Danger icons — e.g. the icon beside an inline validation error. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.danger`. Do not use on a solid danger fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -6348,7 +6348,7 @@
       ]
     },
     "inverse.icon.info": {
-      "$description": "info icon — 4.5:1 on inverse.background.secondary and on its own tint",
+      "$description": "info icon — 4.5:1 on `inverse.background.secondary` and on its own tint",
       "meaning": "Informational signaling (inverse ground)",
       "when_to_use": "Info icons — e.g. the icon beside an informational note. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.info`. Do not use on a solid info fill. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -6373,7 +6373,7 @@
       ]
     },
     "inverse.icon.brand-subtle": {
-      "$description": "Muted brand icon — low-emphasis accent, 3:1 on inverse.background.primary",
+      "$description": "Muted brand icon — low-emphasis accent, 3:1 on `inverse.background.primary`",
       "meaning": "Brand identity (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis brand icons and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.brand-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.brand` (4.5:1). For safety-critical brand messaging use the bold `inverse.icon.brand`.",
@@ -6412,7 +6412,7 @@
       ]
     },
     "inverse.icon.success-subtle": {
-      "$description": "Muted success icon — low-emphasis accent, 3:1 on inverse.background.primary",
+      "$description": "Muted success icon — low-emphasis accent, 3:1 on `inverse.background.primary`",
       "meaning": "Success / positive signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis success icons and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.success-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.success` (4.5:1). For safety-critical success messaging use the bold `inverse.icon.success`.",
@@ -6451,7 +6451,7 @@
       ]
     },
     "inverse.icon.warning-subtle": {
-      "$description": "Muted warning icon — low-emphasis accent, 3:1 on inverse.background.primary",
+      "$description": "Muted warning icon — low-emphasis accent, 3:1 on `inverse.background.primary`",
       "meaning": "Warning / caution signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis warning icons and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.warning-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.warning` (4.5:1). For safety-critical warning messaging use the bold `inverse.icon.warning`.",
@@ -6490,7 +6490,7 @@
       ]
     },
     "inverse.icon.danger-subtle": {
-      "$description": "Muted danger icon — low-emphasis accent, 3:1 on inverse.background.primary",
+      "$description": "Muted danger icon — low-emphasis accent, 3:1 on `inverse.background.primary`",
       "meaning": "Destructive / error signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis danger icons and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.danger-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.danger` (4.5:1). For safety-critical danger messaging use the bold `inverse.icon.danger`.",
@@ -6529,7 +6529,7 @@
       ]
     },
     "inverse.icon.info-subtle": {
-      "$description": "Muted info icon — low-emphasis accent, 3:1 on inverse.background.primary",
+      "$description": "Muted info icon — low-emphasis accent, 3:1 on `inverse.background.primary`",
       "meaning": "Informational signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis info icons and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.info-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.info` (4.5:1). For safety-critical info messaging use the bold `inverse.icon.info`.",
@@ -6568,7 +6568,7 @@
       ]
     },
     "inverse.icon.link.default": {
-      "$description": "Link icon on an inverse surface — default, 4.5:1 on inverse.background.secondary",
+      "$description": "Link icon on an inverse surface — default, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.link.default`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -6593,7 +6593,7 @@
       ]
     },
     "inverse.icon.link.hover": {
-      "$description": "Link icon on an inverse surface — hover, 4.5:1 on inverse.background.secondary",
+      "$description": "Link icon on an inverse surface — hover, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.link.hover`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -6621,7 +6621,7 @@
       ]
     },
     "inverse.icon.link.visited": {
-      "$description": "Link icon on an inverse surface — visited, 4.5:1 on inverse.background.secondary",
+      "$description": "Link icon on an inverse surface — visited, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon after it has been visited. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.link.visited`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -6649,7 +6649,7 @@
       ]
     },
     "inverse.icon.link.focused": {
-      "$description": "Link icon on an inverse surface — focused, 4.5:1 on inverse.background.secondary",
+      "$description": "Link icon on an inverse surface — focused, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon when keyboard-focused. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.link.focused`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -6674,7 +6674,7 @@
       ]
     },
     "inverse.icon.link.pressed": {
-      "$description": "Link icon on an inverse surface — pressed, 4.5:1 on inverse.background.secondary",
+      "$description": "Link icon on an inverse surface — pressed, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.link.pressed`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
@@ -6852,7 +6852,7 @@
       ]
     },
     "border.focus": {
-      "$description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on background.primary",
+      "$description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on `background.primary`",
       "meaning": "Keyboard focus indication",
       "when_to_use": "The keyboard-focus indicator on interactive elements. Clears 3:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use as a decorative divider (use `border.primary`). On an inverse band, use `inverse.border.focus`.",
@@ -7016,7 +7016,7 @@
       ]
     },
     "inverse.border.focus": {
-      "$description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on inverse.background.primary",
+      "$description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on `inverse.background.primary`",
       "meaning": "Keyboard focus indication (inverse ground)",
       "when_to_use": "The keyboard-focus indicator on interactive elements. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `border.focus`. Do not use as a decorative divider (use `inverse.border.primary`).",
@@ -7044,7 +7044,7 @@
       ]
     },
     "interactive.primary.subtle-fill.selected": {
-      "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the selected background of a selectable control or an outline/text control)",
+      "$description": "primary interactive subtle fill — selected (the primary fill at `opacity.30`; translucent, the selected background of a selectable control or an outline/text control)",
       "meaning": "Interactivity / actions",
       "when_to_use": "The primary selected tint: the primary fill at a set opacity, laid over `background.primary`, behind a control the user selects in place (a select tag) or an outline or text primary control in its selected state. The label keeps the control's own ink; the recorded ratio is `interactive.primary.text.pressed` on the tint.",
       "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*`) or for another intent (use `interactive.neutral.*` or `interactive.destructive.*`).",
@@ -7249,7 +7249,7 @@
       }
     },
     "type.body.xs.default-link": {
-      "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with text.link.* color).",
+      "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with `text.link.*` color).",
       "meaning": "Type style — body xs default link (12px, body face)",
       "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.xs.default`).",
@@ -7282,7 +7282,7 @@
       }
     },
     "type.body.xs.strong-link": {
-      "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with text.link.* color).",
+      "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with `text.link.*` color).",
       "meaning": "Type style — body xs strong link (12px, body face)",
       "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.xs.strong`).",
@@ -7315,7 +7315,7 @@
       }
     },
     "type.body.sm.default-link": {
-      "$description": "body sm default link — 14px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
+      "$description": "body sm default link — 14px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — body sm default link (14px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.sm.default`).",
@@ -7348,7 +7348,7 @@
       }
     },
     "type.body.sm.strong-link": {
-      "$description": "body sm strong link — 14px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
+      "$description": "body sm strong link — 14px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — body sm strong link (14px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.sm.strong`).",
@@ -7381,7 +7381,7 @@
       }
     },
     "type.body.md.default-link": {
-      "$description": "body md default link — 16px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
+      "$description": "body md default link — 16px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — body md default link (16px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.md.default`).",
@@ -7414,7 +7414,7 @@
       }
     },
     "type.body.md.strong-link": {
-      "$description": "body md strong link — 16px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
+      "$description": "body md strong link — 16px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — body md strong link (16px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.md.strong`).",
@@ -7447,7 +7447,7 @@
       }
     },
     "type.body.lg.default-link": {
-      "$description": "body lg default link — 18px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
+      "$description": "body lg default link — 18px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — body lg default link (18px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.lg.default`).",
@@ -7480,7 +7480,7 @@
       }
     },
     "type.body.lg.strong-link": {
-      "$description": "body lg strong link — 18px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
+      "$description": "body lg strong link — 18px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — body lg strong link (18px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.body.lg.strong`).",
@@ -7675,7 +7675,7 @@
       }
     },
     "type.caption.md.default-link": {
-      "$description": "caption md default link — 11px Inter, cozy line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
+      "$description": "caption md default link — 11px Inter, cozy line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — caption md default link (11px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.caption.md.default`).",
@@ -7708,7 +7708,7 @@
       }
     },
     "type.caption.md.strong-link": {
-      "$description": "caption md strong link — 11px Inter, cozy line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
+      "$description": "caption md strong link — 11px Inter, cozy line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — caption md strong link (11px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.caption.md.strong`).",
@@ -7741,7 +7741,7 @@
       }
     },
     "type.caption.lg.default-link": {
-      "$description": "caption lg default link — 12px Inter, cozy line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
+      "$description": "caption lg default link — 12px Inter, cozy line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — caption lg default link (12px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.caption.lg.default`).",
@@ -7774,7 +7774,7 @@
       }
     },
     "type.caption.lg.strong-link": {
-      "$description": "caption lg strong link — 12px Inter, cozy line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
+      "$description": "caption lg strong link — 12px Inter, cozy line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)",
       "meaning": "Type style — caption lg strong link (12px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with a `text.link.*` color.",
       "avoid_when": "Do not use for non-link text (use `type.caption.lg.strong`).",
@@ -8099,91 +8099,91 @@
   },
   "layout": {
     "type.body.xs.line-box": {
-      "$description": "type.body.xs line-box — 18px, the height of one line of the `body.xs` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
+      "$description": "`type.body.xs` line-box — 18px, the height of one line of the `type.body.xs` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
       "meaning": "Body line height, xs — one line of the body xs type",
       "when_to_use": "The least height of the box a control beside a body label sits in (an option row's control cell), so the control stays on the label's first line.",
       "resolves_to": "18px"
     },
     "type.body.sm.line-box": {
-      "$description": "type.body.sm line-box — 21px, the height of one line of the `body.sm` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
+      "$description": "`type.body.sm` line-box — 21px, the height of one line of the `type.body.sm` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
       "meaning": "Body line height, sm — one line of the body sm type",
       "when_to_use": "The least height of the box a control beside a body label sits in (an option row's control cell), so the control stays on the label's first line.",
       "resolves_to": "21px"
     },
     "type.body.md.line-box": {
-      "$description": "type.body.md line-box — 24px, the height of one line of the `body.md` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
+      "$description": "`type.body.md` line-box — 24px, the height of one line of the `type.body.md` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
       "meaning": "Body line height, md — one line of the body md type",
       "when_to_use": "The least height of the box a control beside a body label sits in (an option row's control cell), so the control stays on the label's first line.",
       "resolves_to": "24px"
     },
     "type.body.lg.line-box": {
-      "$description": "type.body.lg line-box — 27px, the height of one line of the `body.lg` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
+      "$description": "`type.body.lg` line-box — 27px, the height of one line of the `type.body.lg` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
       "meaning": "Body line height, lg — one line of the body lg type",
       "when_to_use": "The least height of the box a control beside a body label sits in (an option row's control cell), so the control stays on the label's first line.",
       "resolves_to": "27px"
     },
     "type.label.sm.line-box": {
-      "$description": "type.label.sm line-box — 14px, the height of one line of the `label.sm` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
+      "$description": "`type.label.sm` line-box — 14px, the height of one line of the `type.label.sm` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
       "meaning": "Label line height, sm — one line of the label sm type",
       "when_to_use": "The box a glyph beside a title centers in, so it stays on the title's first line.",
       "resolves_to": "14px"
     },
     "type.label.md.line-box": {
-      "$description": "type.label.md line-box — 16px, the height of one line of the `label.md` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
+      "$description": "`type.label.md` line-box — 16px, the height of one line of the `type.label.md` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
       "meaning": "Label line height, md — one line of the label md type",
       "when_to_use": "The box a glyph beside a title centers in, so it stays on the title's first line.",
       "resolves_to": "16px"
     },
     "type.label.lg.line-box": {
-      "$description": "type.label.lg line-box — 21px, the height of one line of the `label.lg` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
+      "$description": "`type.label.lg` line-box — 21px, the height of one line of the `type.label.lg` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
       "meaning": "Label line height, lg — one line of the label lg type",
       "when_to_use": "The box a glyph beside a title centers in, so it stays on the title's first line.",
       "resolves_to": "21px"
     },
     "type.caption.md.line-box": {
-      "$description": "type.caption.md line-box — 15px, the height of one line of the `caption.md` type (font size × line height). A mark beside a caption sits in a box this tall and centers within it, so it stays on the caption's first line when the caption wraps.",
+      "$description": "`type.caption.md` line-box — 15px, the height of one line of the `type.caption.md` type (font size × line height). A mark beside a caption sits in a box this tall and centers within it, so it stays on the caption's first line when the caption wraps.",
       "meaning": "Caption line height, md — one line of the caption md type",
       "when_to_use": "The box a mark beside a caption centers in, such as a small inline status dot, so it stays on the caption's first line.",
       "resolves_to": "15px"
     },
     "type.caption.lg.line-box": {
-      "$description": "type.caption.lg line-box — 17px, the height of one line of the `caption.lg` type (font size × line height). A mark beside a caption sits in a box this tall and centers within it, so it stays on the caption's first line when the caption wraps.",
+      "$description": "`type.caption.lg` line-box — 17px, the height of one line of the `type.caption.lg` type (font size × line height). A mark beside a caption sits in a box this tall and centers within it, so it stays on the caption's first line when the caption wraps.",
       "meaning": "Caption line height, lg — one line of the caption lg type",
       "when_to_use": "The box a mark beside a caption centers in, such as a small inline status dot, so it stays on the caption's first line.",
       "resolves_to": "17px"
     },
     "blur.glass": {
-      "$description": "blur glass — 32px background blur behind a glass band over a photograph; pair it with color.glass.surface",
+      "$description": "blur glass — 32px background blur behind a glass band over a photograph; pair it with `color.glass.surface`",
       "meaning": "Background-blur radius — glass",
       "when_to_use": "The background blur behind a glass band over a photograph (`backdrop-filter: blur()` in code). Its fill is `color.glass.surface`.",
       "resolves_to": "32px"
     },
     "icon.size.xs": {
-      "$description": "icon.size.xs — 16px artboard (fixed grid; pairs with size.xs)",
+      "$description": "`icon.size.xs` — 16px artboard (fixed grid; pairs with `size.xs`)",
       "meaning": "Icon size step xs",
       "when_to_use": "The rendered size of an icon glyph.",
       "resolves_to": "{hds.core.dimension.16}"
     },
     "icon.size.sm": {
-      "$description": "icon.size.sm — 20px artboard (fixed grid; pairs with size.sm)",
+      "$description": "`icon.size.sm` — 20px artboard (fixed grid; pairs with `size.sm`)",
       "meaning": "Icon size step sm",
       "when_to_use": "The rendered size of an icon glyph.",
       "resolves_to": "{hds.core.dimension.20}"
     },
     "icon.size.md": {
-      "$description": "icon.size.md — 24px artboard (fixed grid; pairs with size.md)",
+      "$description": "`icon.size.md` — 24px artboard (fixed grid; pairs with `size.md`)",
       "meaning": "Icon size step md",
       "when_to_use": "The rendered size of an icon glyph.",
       "resolves_to": "{hds.core.dimension.24}"
     },
     "icon.size.lg": {
-      "$description": "icon.size.lg — 32px artboard (fixed grid; pairs with size.lg)",
+      "$description": "`icon.size.lg` — 32px artboard (fixed grid; pairs with `size.lg`)",
       "meaning": "Icon size step lg",
       "when_to_use": "The rendered size of an icon glyph.",
       "resolves_to": "{hds.core.dimension.32}"
     },
     "icon.size.xl": {
-      "$description": "icon.size.xl — 40px artboard (fixed grid; pairs with size.xl)",
+      "$description": "`icon.size.xl` — 40px artboard (fixed grid; pairs with `size.xl`)",
       "meaning": "Icon size step xl",
       "when_to_use": "The rendered size of an icon glyph.",
       "resolves_to": "{hds.core.dimension.40}"
@@ -8279,109 +8279,109 @@
       "resolves_to": "{hds.space.600}"
     },
     "space.0": {
-      "$description": "space.0 — 0px (0× 8px base)",
+      "$description": "`space.0` — 0px (0× 8px base)",
       "meaning": "Spacing step 0",
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{hds.core.dimension.0}"
     },
     "space.100": {
-      "$description": "space.100 — 8px (1× 8px base)",
+      "$description": "`space.100` — 8px (1× 8px base)",
       "meaning": "Spacing step 100",
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{hds.core.dimension.8}"
     },
     "space.150": {
-      "$description": "space.150 — 12px (1.5× 8px base)",
+      "$description": "`space.150` — 12px (1.5× 8px base)",
       "meaning": "Spacing step 150",
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{hds.core.dimension.12}"
     },
     "space.200": {
-      "$description": "space.200 — 16px (2× 8px base)",
+      "$description": "`space.200` — 16px (2× 8px base)",
       "meaning": "Spacing step 200",
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{hds.core.dimension.16}"
     },
     "space.250": {
-      "$description": "space.250 — 20px (2.5× 8px base)",
+      "$description": "`space.250` — 20px (2.5× 8px base)",
       "meaning": "Spacing step 250",
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{hds.core.dimension.20}"
     },
     "space.300": {
-      "$description": "space.300 — 24px (3× 8px base)",
+      "$description": "`space.300` — 24px (3× 8px base)",
       "meaning": "Spacing step 300",
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{hds.core.dimension.24}"
     },
     "space.400": {
-      "$description": "space.400 — 32px (4× 8px base)",
+      "$description": "`space.400` — 32px (4× 8px base)",
       "meaning": "Spacing step 400",
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{hds.core.dimension.32}"
     },
     "space.500": {
-      "$description": "space.500 — 40px (5× 8px base)",
+      "$description": "`space.500` — 40px (5× 8px base)",
       "meaning": "Spacing step 500",
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{hds.core.dimension.40}"
     },
     "space.600": {
-      "$description": "space.600 — 48px (6× 8px base)",
+      "$description": "`space.600` — 48px (6× 8px base)",
       "meaning": "Spacing step 600",
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{hds.core.dimension.48}"
     },
     "space.700": {
-      "$description": "space.700 — 56px (7× 8px base)",
+      "$description": "`space.700` — 56px (7× 8px base)",
       "meaning": "Spacing step 700",
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{hds.core.dimension.56}"
     },
     "space.800": {
-      "$description": "space.800 — 64px (8× 8px base)",
+      "$description": "`space.800` — 64px (8× 8px base)",
       "meaning": "Spacing step 800",
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{hds.core.dimension.64}"
     },
     "space.900": {
-      "$description": "space.900 — 72px (9× 8px base)",
+      "$description": "`space.900` — 72px (9× 8px base)",
       "meaning": "Spacing step 900",
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{hds.core.dimension.72}"
     },
     "space.1000": {
-      "$description": "space.1000 — 80px (10× 8px base)",
+      "$description": "`space.1000` — 80px (10× 8px base)",
       "meaning": "Spacing step 1000",
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{hds.core.dimension.80}"
     },
     "space.1100": {
-      "$description": "space.1100 — 88px (11× 8px base)",
+      "$description": "`space.1100` — 88px (11× 8px base)",
       "meaning": "Spacing step 1100",
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{hds.core.dimension.88}"
     },
     "space.1200": {
-      "$description": "space.1200 — 96px (12× 8px base)",
+      "$description": "`space.1200` — 96px (12× 8px base)",
       "meaning": "Spacing step 1200",
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{hds.core.dimension.96}"
     },
     "space.025": {
-      "$description": "space.025 — 2px (0.25× 8px base)",
+      "$description": "`space.025` — 2px (0.25× 8px base)",
       "meaning": "Spacing step 025",
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{hds.core.dimension.2}"
     },
     "space.050": {
-      "$description": "space.050 — 4px (0.5× 8px base)",
+      "$description": "`space.050` — 4px (0.5× 8px base)",
       "meaning": "Spacing step 050",
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{hds.core.dimension.4}"
     },
     "space.075": {
-      "$description": "space.075 — 6px (0.75× 8px base)",
+      "$description": "`space.075` — 6px (0.75× 8px base)",
       "meaning": "Spacing step 075",
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{hds.core.dimension.6}"
@@ -8501,199 +8501,199 @@
       "resolves_to": "solid"
     },
     "size.xs.height": {
-      "$description": "size.xs control height — 28px (density: comfortable)",
+      "$description": "`size.xs` control height — 28px (density: comfortable)",
       "meaning": "Control size step xs — height",
       "when_to_use": "The height of a button, field or other control at the xs size step. Take every dimension of one control from the same step.",
       "resolves_to": "{hds.core.dimension.28}"
     },
     "size.sm.height": {
-      "$description": "size.sm control height — 36px (density: comfortable)",
+      "$description": "`size.sm` control height — 36px (density: comfortable)",
       "meaning": "Control size step sm — height",
       "when_to_use": "The height of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
       "resolves_to": "{hds.core.dimension.36}"
     },
     "size.md.height": {
-      "$description": "size.md control height — 44px (density: comfortable)",
+      "$description": "`size.md` control height — 44px (density: comfortable)",
       "meaning": "Control size step md — height",
       "when_to_use": "The height of a button, field or other control at the md size step. Take every dimension of one control from the same step.",
       "resolves_to": "{hds.core.dimension.44}"
     },
     "size.md.min-height": {
-      "$description": "size.md.min-height — interactive target-size floor (WCAG 2.2 SC 2.5.5): max(size.md.height 44, 44) = 44px",
+      "$description": "`size.md.min-height` — interactive target-size floor (WCAG 2.2 SC 2.5.5): max(`size.md.height` 44, 44) = 44px",
       "meaning": "Control size step md — min-height",
       "when_to_use": "The min-height of a button, field or other control at the md size step. Take every dimension of one control from the same step.",
       "resolves_to": "{hds.core.dimension.44}"
     },
     "size.lg.height": {
-      "$description": "size.lg control height — 56px (density: comfortable)",
+      "$description": "`size.lg` control height — 56px (density: comfortable)",
       "meaning": "Control size step lg — height",
       "when_to_use": "The height of a button, field or other control at the lg size step. Take every dimension of one control from the same step.",
       "resolves_to": "{hds.core.dimension.56}"
     },
     "size.xl.height": {
-      "$description": "size.xl control height — 68px (density: comfortable)",
+      "$description": "`size.xl` control height — 68px (density: comfortable)",
       "meaning": "Control size step xl — height",
       "when_to_use": "The height of a button, field or other control at the xl size step. Take every dimension of one control from the same step.",
       "resolves_to": "{hds.core.dimension.68}"
     },
     "control.size.sm.height": {
-      "$description": "control.size.sm — 16px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
+      "$description": "`control.size.sm` — 16px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
       "meaning": "Selection-control geometry, sm step — height",
       "when_to_use": "The height of a checkbox, radio or switch at the sm step.",
       "resolves_to": "{hds.core.dimension.16}"
     },
     "control.size.sm.width": {
-      "$description": "control.size.sm width — 48px track width for a two-position control, i.e. a switch (2x the 24px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+      "$description": "`control.size.sm` width — 48px track width for a two-position control, i.e. a switch (2x the 24px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
       "meaning": "Selection-control geometry, sm step — width",
       "when_to_use": "The width of a checkbox, radio or switch at the sm step.",
       "resolves_to": "{hds.core.dimension.48}"
     },
     "control.size.sm.dot": {
-      "$description": "control.size.sm dot — 8px inner mark for a radio's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+      "$description": "`control.size.sm` dot — 8px inner mark for a radio's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
       "meaning": "Selection-control geometry, sm step — dot",
       "when_to_use": "The dot of a checkbox, radio or switch at the sm step.",
       "resolves_to": "{hds.core.dimension.8}"
     },
     "control.size.sm.inset": {
-      "$description": "control.size.sm inset — 3px gap between the thumb and the track's boundary ((24px track − 18px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
+      "$description": "`control.size.sm` inset — 3px gap between the thumb and the track's boundary ((24px track − 18px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
       "meaning": "Selection-control geometry, sm step — inset",
       "when_to_use": "The inset of a checkbox, radio or switch at the sm step.",
       "resolves_to": "{hds.core.dimension.3}"
     },
     "control.size.sm.track": {
-      "$description": "control.size.sm track — 24px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 16px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+      "$description": "`control.size.sm` track — 24px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 16px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
       "meaning": "Selection-control geometry, sm step — track",
       "when_to_use": "The track of a checkbox, radio or switch at the sm step.",
       "resolves_to": "{hds.core.dimension.24}"
     },
     "control.size.sm.thumb": {
-      "$description": "control.size.sm thumb — 18px traveling thumb for a switch (0.75 × the 24px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+      "$description": "`control.size.sm` thumb — 18px traveling thumb for a switch (0.75 × the 24px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
       "meaning": "Selection-control geometry, sm step — thumb",
       "when_to_use": "The thumb of a checkbox, radio or switch at the sm step.",
       "resolves_to": "{hds.core.dimension.18}"
     },
     "control.size.sm.radius": {
-      "$description": "control.size.sm radius — 2px corner on the 16px box edge (min of radius.sm 2px and one eighth of the box, 16px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+      "$description": "`control.size.sm` radius — 2px corner on the 16px box edge (min of `radius.sm` 2px and one eighth of the box, 16px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
       "meaning": "Selection-control geometry, sm step — radius",
       "when_to_use": "The radius of a checkbox, radio or switch at the sm step.",
       "resolves_to": "{hds.core.dimension.2}"
     },
     "control.size.sm.line-box": {
-      "$description": "control.size.sm line-box — 21px, the height of one line of the `body.sm` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
+      "$description": "`control.size.sm` line-box — 21px, the height of one line of the `type.body.sm` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
       "meaning": "Selection-control geometry, sm step — line-box",
       "when_to_use": "The line-box of a checkbox, radio or switch at the sm step.",
       "resolves_to": "21px"
     },
     "control.size.sm.label-inset": {
-      "$description": "control.size.sm label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 16px box less the 18px `body.xs` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.",
+      "$description": "`control.size.sm` label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 16px box less the 18px `type.body.xs` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.",
       "meaning": "Selection-control geometry, sm step — label-inset",
       "when_to_use": "The label-inset of a checkbox, radio or switch at the sm step.",
       "resolves_to": "0px"
     },
     "control.size.md.height": {
-      "$description": "control.size.md — 20px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
+      "$description": "`control.size.md` — 20px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
       "meaning": "Selection-control geometry, md step — height",
       "when_to_use": "The height of a checkbox, radio or switch at the md step.",
       "resolves_to": "{hds.core.dimension.20}"
     },
     "control.size.md.width": {
-      "$description": "control.size.md width — 64px track width for a two-position control, i.e. a switch (2x the 32px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+      "$description": "`control.size.md` width — 64px track width for a two-position control, i.e. a switch (2x the 32px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
       "meaning": "Selection-control geometry, md step — width",
       "when_to_use": "The width of a checkbox, radio or switch at the md step.",
       "resolves_to": "{hds.core.dimension.64}"
     },
     "control.size.md.dot": {
-      "$description": "control.size.md dot — 10px inner mark for a radio's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+      "$description": "`control.size.md` dot — 10px inner mark for a radio's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
       "meaning": "Selection-control geometry, md step — dot",
       "when_to_use": "The dot of a checkbox, radio or switch at the md step.",
       "resolves_to": "{hds.core.dimension.10}"
     },
     "control.size.md.inset": {
-      "$description": "control.size.md inset — 4px gap between the thumb and the track's boundary ((32px track − 24px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
+      "$description": "`control.size.md` inset — 4px gap between the thumb and the track's boundary ((32px track − 24px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
       "meaning": "Selection-control geometry, md step — inset",
       "when_to_use": "The inset of a checkbox, radio or switch at the md step.",
       "resolves_to": "{hds.core.dimension.4}"
     },
     "control.size.md.track": {
-      "$description": "control.size.md track — 32px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 20px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+      "$description": "`control.size.md` track — 32px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 20px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
       "meaning": "Selection-control geometry, md step — track",
       "when_to_use": "The track of a checkbox, radio or switch at the md step.",
       "resolves_to": "{hds.core.dimension.32}"
     },
     "control.size.md.thumb": {
-      "$description": "control.size.md thumb — 24px traveling thumb for a switch (0.75 × the 32px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+      "$description": "`control.size.md` thumb — 24px traveling thumb for a switch (0.75 × the 32px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
       "meaning": "Selection-control geometry, md step — thumb",
       "when_to_use": "The thumb of a checkbox, radio or switch at the md step.",
       "resolves_to": "{hds.core.dimension.24}"
     },
     "control.size.md.radius": {
-      "$description": "control.size.md radius — 2px corner on the 20px box edge (min of radius.sm 2px and one eighth of the box, 20px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+      "$description": "`control.size.md` radius — 2px corner on the 20px box edge (min of `radius.sm` 2px and one eighth of the box, 20px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
       "meaning": "Selection-control geometry, md step — radius",
       "when_to_use": "The radius of a checkbox, radio or switch at the md step.",
       "resolves_to": "{hds.core.dimension.2}"
     },
     "control.size.md.line-box": {
-      "$description": "control.size.md line-box — 24px, the height of one line of the `body.md` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
+      "$description": "`control.size.md` line-box — 24px, the height of one line of the `type.body.md` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
       "meaning": "Selection-control geometry, md step — line-box",
       "when_to_use": "The line-box of a checkbox, radio or switch at the md step.",
       "resolves_to": "24px"
     },
     "control.size.md.label-inset": {
-      "$description": "control.size.md label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 20px box less the 21px `body.sm` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.",
+      "$description": "`control.size.md` label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 20px box less the 21px `type.body.sm` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.",
       "meaning": "Selection-control geometry, md step — label-inset",
       "when_to_use": "The label-inset of a checkbox, radio or switch at the md step.",
       "resolves_to": "0px"
     },
     "control.size.lg.height": {
-      "$description": "control.size.lg — 24px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
+      "$description": "`control.size.lg` — 24px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
       "meaning": "Selection-control geometry, lg step — height",
       "when_to_use": "The height of a checkbox, radio or switch at the lg step.",
       "resolves_to": "{hds.core.dimension.24}"
     },
     "control.size.lg.width": {
-      "$description": "control.size.lg width — 80px track width for a two-position control, i.e. a switch (2x the 40px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+      "$description": "`control.size.lg` width — 80px track width for a two-position control, i.e. a switch (2x the 40px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
       "meaning": "Selection-control geometry, lg step — width",
       "when_to_use": "The width of a checkbox, radio or switch at the lg step.",
       "resolves_to": "{hds.core.dimension.80}"
     },
     "control.size.lg.dot": {
-      "$description": "control.size.lg dot — 12px inner mark for a radio's dot (half the 24px box edge, leaving a 6px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+      "$description": "`control.size.lg` dot — 12px inner mark for a radio's dot (half the 24px box edge, leaving a 6px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
       "meaning": "Selection-control geometry, lg step — dot",
       "when_to_use": "The dot of a checkbox, radio or switch at the lg step.",
       "resolves_to": "{hds.core.dimension.12}"
     },
     "control.size.lg.inset": {
-      "$description": "control.size.lg inset — 5px gap between the thumb and the track's boundary ((40px track − 30px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
+      "$description": "`control.size.lg` inset — 5px gap between the thumb and the track's boundary ((40px track − 30px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
       "meaning": "Selection-control geometry, lg step — inset",
       "when_to_use": "The inset of a checkbox, radio or switch at the lg step.",
       "resolves_to": "{hds.core.dimension.5}"
     },
     "control.size.lg.track": {
-      "$description": "control.size.lg track — 40px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 24px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+      "$description": "`control.size.lg` track — 40px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 24px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
       "meaning": "Selection-control geometry, lg step — track",
       "when_to_use": "The track of a checkbox, radio or switch at the lg step.",
       "resolves_to": "{hds.core.dimension.40}"
     },
     "control.size.lg.thumb": {
-      "$description": "control.size.lg thumb — 30px traveling thumb for a switch (0.75 × the 40px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+      "$description": "`control.size.lg` thumb — 30px traveling thumb for a switch (0.75 × the 40px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
       "meaning": "Selection-control geometry, lg step — thumb",
       "when_to_use": "The thumb of a checkbox, radio or switch at the lg step.",
       "resolves_to": "{hds.core.dimension.30}"
     },
     "control.size.lg.radius": {
-      "$description": "control.size.lg radius — 2px corner on the 24px box edge (min of radius.sm 2px and one eighth of the box, 24px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+      "$description": "`control.size.lg` radius — 2px corner on the 24px box edge (min of `radius.sm` 2px and one eighth of the box, 24px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
       "meaning": "Selection-control geometry, lg step — radius",
       "when_to_use": "The radius of a checkbox, radio or switch at the lg step.",
       "resolves_to": "{hds.core.dimension.2}"
     },
     "control.size.lg.line-box": {
-      "$description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
+      "$description": "`control.size.lg` line-box — 27px, the height of one line of the `type.body.lg` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
       "meaning": "Selection-control geometry, lg step — line-box",
       "when_to_use": "The line-box of a checkbox, radio or switch at the lg step.",
       "resolves_to": "27px"
     },
     "control.size.lg.label-inset": {
-      "$description": "control.size.lg label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 24px box less the 24px `body.md` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.",
+      "$description": "`control.size.lg` label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 24px box less the 24px `type.body.md` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.",
       "meaning": "Selection-control geometry, lg step — label-inset",
       "when_to_use": "The label-inset of a checkbox, radio or switch at the lg step.",
       "resolves_to": "0px"
@@ -8975,7 +8975,7 @@
       ]
     },
     "core.palette.transparent": {
-      "$description": "Transparent — alpha 0, no paint. field.fill aliases it, so a field is framed by its border on any ground",
+      "$description": "Transparent — alpha 0, no paint. `field.fill` aliases it, so a field is framed by its border on any ground",
       "meaning": "Pure transparent primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",

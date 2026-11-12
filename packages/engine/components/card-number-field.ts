@@ -190,6 +190,7 @@ export const cardNumberField: ComponentDef = makeTextField({
       '3.2.2 On Input (no auto-advance when the number is complete)',
       '3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion',
       '1.4.11 Non-text Contrast (TextField\'s field boundary)',
+      '2.5.8 Target Size (the field)',
       '2.4.13 Focus Appearance (intent)',
     ],
     keyboard: 'Native text editing. Tab reaches the input; the tile is not a stop. Focus never moves on its own when the number is complete.',

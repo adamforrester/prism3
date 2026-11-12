@@ -146,8 +146,11 @@ export const select: ComponentDef = {
     // displayed text: the selected option's label, or the placeholder when nothing is chosen. The
     // controlled selection is wired in code via `onChange` and the option set. LOWERCASE per #1333.
     { name: 'value', type: 'string', required: false, description: 'The displayed text — the selected option\'s label, or the placeholder when nothing is chosen. Controlled: pair with onChange. When it holds the placeholder the ink is the muted placeholder role; a chosen value shows the full-contrast value ink — the same empty-vs-value polarity text-field uses. This is an internal, content-driven distinction, not a variant a designer picks.' },
+    // Q-CC4 A (#3554): TextField's two props in TextField's shapes, so a select can start uncontrolled and can name its
+    // input purpose for SC 1.3.5 (the claim in `accessibility.wcag`).
+    { name: 'defaultValue', type: 'string', required: false, description: 'Uncontrolled initial value: the option chosen when the select first renders.' },
     { name: 'placeholder', type: 'string', required: false, description: 'The null state shown before a choice is made — plainly the thing to choose ("Country"), not an instruction ("Select a country from the list"), and omittable when the label suffices. Muted, and never load-bearing — it is not the label, not a real option, and it vanishes once a value is chosen.' },
-    { name: 'options', type: 'array', required: false, description: 'The bounded set of choices. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better.' },
+    { name: 'options', type: 'array', required: false, description: 'The bounded set of choices. The select band is 8 to about 15 familiar options: at 7 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better.' },
     { name: 'onChange', type: 'function', required: false, description: 'Fires with the newly chosen value (also onBlur / onFocus). A controlled value with no onChange is read-only by accident.' },
     { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance, rendered as the nested FieldMessage in its default status; wired via aria-describedby. Show the constraint before failure.' },
     // The UI reads "Validation"; the Figma variant axis is `status` so it drives the nested message's own
@@ -166,6 +169,7 @@ export const select: ComponentDef = {
     // #1699 decision 2 (owner-delegated): read-only and pending, text-field's and textarea's two states, so the
     // field family carries one state set. Native <select> has no `readonly` (brief §4), which the prop says.
     { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'Distinct from disabled: focusable, submitted with the form, and at full contrast, with the value shown and not changeable. Native <select> has no readonly attribute, only disabled, so a read-only select is the custom control with aria-readonly, or a hidden input mirroring the value beside a non-interactive display.' },
+    { name: 'autoComplete', type: 'string (WHATWG token)', required: false, description: 'Satisfies SC 1.3.5 Identify Input Purpose — an accessibility obligation, not a convenience. Set it on a select that collects the user\'s own information, such as country.' },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Async options are loading — a spinner replaces the chevron and the control sets aria-busy. Not an empty state: the option list is still arriving. The same name Button and TextField use.' },
     { name: 'id', type: 'string', required: false, description: 'Wiring + form submission; auto-generated with useId if omitted, tying the label to the control and stitching the aria-describedby chain to the message.' },
     { name: 'name', type: 'string', required: false, description: 'A real control name so the field works uncontrolled, in a native form, and with Server Actions.' },
@@ -204,11 +208,15 @@ export const select: ComponentDef = {
   // text-field's `variants` comment has the full argument.
   variants: {
     size: ['medium', 'small', 'large'],
+    // Q-CC3 A (#3554): ONE value, as on every field the Field style setting reaches (`FIELD_FRAME_PARTS` reaches the
+    // control). The brand may set `underline` (#2695; `applyFieldStyle` rewrites the def before projection); a second
+    // value here would be a code coordinate, which Q14 A rules out. The codeOnly `style` entry names both.
+    style: ['outline'],
     status: ['default', 'error', 'warning', 'success'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
   // `status` changes live as validation runs; `size` is picked once per field.
-  axisKinds: { size: 'authoring', status: 'runtime' },
+  axisKinds: { size: 'authoring', style: 'authoring', status: 'runtime' },
 
   // THE PAINT GRAMMAR. Status-led-and-state-qualified first (so the `error` border swap WINS over the
   // interactive state progression at every coordinate — see the header's precedence note), then
@@ -574,6 +582,12 @@ export const select: ComponentDef = {
         class: 'not-projected',
         disposition: 'lowered',
         description:
+          'style — not projected: the field\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. In code the brand sets it once, every field takes it, and the field sets are built in that style (#2695).',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'lowered',
+        description:
           'pending — not projected: its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, text-field\'s posture. In code async options are loading: a spinner replaces the chevron and the control sets aria-busy. It stays in `states` and is held out of the projected `stateAxis`, leaving size(3) × status(4) × state(7) = 84 members.',
       },
       {
@@ -662,7 +676,7 @@ export const select: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use to choose one value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage\'s status from the validation state. The open menu is the platform\'s — prefer a native <select> where its OS menu is acceptable. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.',
+    usage: 'Use to choose one value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage\'s status from the validation state. The open menu is the platform\'s — prefer a native <select> where its OS menu is acceptable. The select band is 8 to about 15 familiar options: at 7 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.',
     do: [
       'Render a visible, associated label (FieldLabel) above the control',
       'Show a muted placeholder as a prompt, never as the label or a real option',
@@ -681,7 +695,7 @@ export const select: ComponentDef = {
   ai: {
     primaryPurpose: 'Choose one value from a known, bounded set, with an associated label and helper/validation message, modeling the closed control.',
     whenToUse: 'One-of-a-known-set choices too numerous or space-costly to show all at once — a country, a status, a category.',
-    avoidWhen: 'The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 4–5 options or fewer and worth showing at once (Radio.Group, or SegmentedControl), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).',
+    avoidWhen: 'The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 7 options or fewer and worth showing at once (Radio.Group, or SegmentedControl), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).',
     commonPartners: ['field-label', 'field-message', 'icon'],
     // No `combobox` (brief §10: the mis-conflation, a different component) and no `menu` (a menu performs an
     // action, a select sets a value — brief §12; it is an alternative, not this) (#1699).

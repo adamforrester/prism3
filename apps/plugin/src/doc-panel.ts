@@ -75,7 +75,7 @@ import { STAMP_KEY } from './write-components';
 import { builtByPrism3, readBaseline } from './member-baseline';
 import { readTag } from './canvas-furniture';
 import { readSpecTag } from './spec-tag';
-import { CAPTION, CHIP_SLOTS, DOC_BLOCK_SET, DO_ROWS, SPECIMEN, STAGE_PAD, TOP_PADDING, docBlockVariant, variantValues, type DocBlockSize, type DocBlockType } from './doc-block';
+import { CAPTION, CHIP_SLOTS, CODE_STYLE, DOC_BLOCK_SET, DO_ROWS, SPECIMEN, STAGE_PAD, TOP_PADDING, docBlockVariant, variantValues, type DocBlockSize, type DocBlockType } from './doc-block';
 
 export const DOC_PANEL_NS = 'prism3';
 export const DOC_PANEL_KEY = 'docPanel';
@@ -197,8 +197,23 @@ export const nameInFamily = (name: string, page: string): string => (name.starts
 
 /** A variant value or axis as text: hyphens to spaces, first letter capitalized. The labels' rule (`sentenceCase`). */
 const sentence = (s: string): string => { const t = s.replace(/-/g, ' '); return t.charAt(0).toUpperCase() + t.slice(1); };
-/** Prose as the panel shows it: code spans as plain text, whitespace folded. */
-export const plain = (s: string): string => s.replace(/`/g, '').replace(/\s+/g, ' ').trim();
+/** Prose as the panel plans it: whitespace folded, code spans kept in their backticks (#3552 Q-UG2 A). The draw writes
+ *  each line without them and draws each span in the brand's inline code style (`CODE_STYLE`, `codeRuns`), so
+ *  `<button>` reads as code; a file without the style gets the text plain, and the run names the style. */
+export const plain = (s: string): string => s.replace(/\s+/g, ' ').trim();
+/** CODE AS CODE (#3552 Q-UG2 A): a planned line as the panel writes it, its backticks removed, with the range of each code
+ *  span in the written text. A backtick with no partner is dropped and starts no span. */
+export const codeRuns = (s: string): { text: string; runs: [number, number][] } => {
+  const runs: [number, number][] = [];
+  let text = '', last = 0;
+  for (const m of s.matchAll(/`([^`\n]+)`/g)) {
+    text += s.slice(last, m.index).replace(/`/g, '');
+    runs.push([text.length, text.length + m[1].length]);
+    text += m[1];
+    last = m.index! + m[0].length;
+  }
+  return { text: text + s.slice(last).replace(/`/g, ''), runs };
+};
 /** The first `n` sentences of `s`, the wireframe's cut: a sentence ends at `.` or `)` before a capital or a quote. Each
  *  sentence inside a quoted example still counts toward `n`, but the cut never falls inside an open `"…"` (#3552 N1):
  *  when the `n`th sentence leaves a quote open, the sentences after it are kept until it closes. */
@@ -433,6 +448,7 @@ export interface PNode {
   setRangeHyperlink?(start: number, end: number, link: { type: 'NODE' | 'URL'; value: string } | null): void;
   setRangeListOptions?(start: number, end: number, options: { type: 'ORDERED' | 'UNORDERED' | 'NONE' }): void;
   setRangeTextDecoration?(start: number, end: number, decoration: 'NONE' | 'UNDERLINE' | 'STRIKETHROUGH'): void;
+  setRangeTextStyleIdAsync?(start: number, end: number, styleId: string): Promise<void>;
   visible?: boolean;
   fills?: unknown;
   strokes?: unknown;
@@ -478,6 +494,8 @@ export interface PanelVariable { id: string; name: string; variableCollectionId?
 export interface PanelApi {
   root: { findAllWithCriteria(criteria: { types: ('COMPONENT' | 'COMPONENT_SET' | 'INSTANCE' | 'FRAME')[]; sharedPluginData?: { namespace: string; keys: string[] } }): readonly unknown[] };
   loadFontAsync(font: { family: string; style: string }): Promise<void>;
+  /** The file's text styles: the code style a code span is drawn in (#3552 Q-UG2 A). */
+  getLocalTextStylesAsync?(): Promise<readonly { id: string; name: string; fontName?: { family: string; style: string } }[]>;
   createFrame(): PNode;
   variables?: {
     getLocalVariablesAsync(): Promise<readonly PanelVariable[]>;
@@ -745,6 +763,8 @@ const writtenTexts = (api: Pick<PanelApi, 'root'>, defId: string): Set<string> |
     for (const c of n.children ?? []) walkAll(c);
   };
   walkAll(findDocBlock(api));
+  // As written: a planned line's code spans without their backticks (#3552 Q-UG2 A).
+  for (const t of [...out]) out.add(codeRuns(t).text);
   return out;
 };
 /**
@@ -1052,13 +1072,34 @@ export const drawDocPanel = async (
     return f;
   };
   const fill = (n: PNode): void => { try { n.layoutSizingHorizontal = 'FILL'; } catch { /* outside auto layout */ } };
-  /** Write `text` into a layer, and when `type` is given, its size and letter-spacing over the block's text style. */
+  /** The file's code style and its font loaded, looked up once, at the first code span (#3552 Q-UG2 A); null when the
+   *  file lacks it or its font, a miss named once. */
+  let codeStyle: { id: string } | null | undefined;
+  const codeStyleOf = async (): Promise<{ id: string } | null> => {
+    if (codeStyle !== undefined) return codeStyle;
+    const s = byTail((await api.getLocalTextStylesAsync?.()) ?? [], CODE_STYLE);
+    codeStyle = s ?? null;
+    if (!s) out.misses.push(`the ${CODE_STYLE} text style, so code is drawn as plain text`);
+    else if (s.fontName) {
+      try { await api.loadFontAsync(s.fontName); } catch { out.misses.push(`${s.fontName.family} ${s.fontName.style} unavailable, so code is drawn as plain text`); codeStyle = null; }
+    }
+    return codeStyle;
+  };
+  /** Write `text` into a layer, and when `type` is given, its size and letter-spacing over the block's text style. A code
+   *  span in it is written without its backticks and drawn in the code style (#3552 Q-UG2 A). */
   const write = async (n: PNode | undefined, text: string, what: string, type?: { size: number; tracking: number }): Promise<boolean> => {
     if (!n) { out.misses.push(`${DOC_BLOCK_SET} has no ${what} layer`); return false; }
     const f = n.fontName as { family?: unknown; style?: unknown } | undefined;
     if (!f || typeof f.family !== 'string' || typeof f.style !== 'string') { out.misses.push(`${what}: mixed or unreadable font`); return false; }
     try { await api.loadFontAsync({ family: f.family, style: f.style }); } catch { out.misses.push(`${f.family} ${f.style} unavailable`); return false; }
-    n.characters = text;
+    const shown = codeRuns(text);
+    n.characters = shown.text;
+    if (shown.runs.length) {
+      const code = await codeStyleOf();
+      if (code) for (const [a, b] of shown.runs) {
+        try { await n.setRangeTextStyleIdAsync?.(a, b, code.id); } catch { out.misses.push(`${what}: code not drawn in ${CODE_STYLE}`); }
+      }
+    }
     if (type) {
       try { n.fontSize = type.size; n.letterSpacing = { value: type.tracking, unit: 'PERCENT' }; } catch { out.misses.push(`${what}: size not set`); }
     }
@@ -1215,15 +1256,16 @@ export const drawDocPanel = async (
         const t = findText(row, 'text');
         if (!(await write(t, b.items.map(linkLine).join('\n'), 'text')) || !t) break;
         try { t.setRangeListOptions?.(0, String(t.characters).length, { type: 'UNORDERED' }); } catch { out.misses.push(`${b.label}: list bullets not set`); }
-        // Only the name is the link; a note after it is plain.
+        // Only the name is the link; a note after it is plain. Offsets are in the written text, its backticks removed.
         let at = 0;
         for (const x of b.items) {
           const node = x.def ? links[x.def] : undefined;
+          const len = codeRuns(x.name).text.length;
           if (node) {
-            try { t.setRangeHyperlink?.(at, at + x.name.length, { type: 'NODE', value: node }); t.setRangeTextDecoration?.(at, at + x.name.length, 'UNDERLINE'); }
+            try { t.setRangeHyperlink?.(at, at + len, { type: 'NODE', value: node }); t.setRangeTextDecoration?.(at, at + len, 'UNDERLINE'); }
             catch { out.misses.push(`${b.label}: no link to ${x.name}`); }
           }
-          at += linkLine(x).length + 1;
+          at += codeRuns(linkLine(x)).text.length + 1;
         }
         break;
       }
