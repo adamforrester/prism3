@@ -37,9 +37,18 @@ export const applyHeadline = (misses: number, skippedFonts: number): string => {
   return '✓ applied';
 };
 
-/** A thrown write is the one case with no counts: nothing partial is claimed. The message is the whole
- *  of what is known, and it goes in the detail — the pill only says which of the three states this is. */
+/** A thrown write is the one case with no counts: nothing partial is claimed. The error's class is the whole
+ *  of what the detail says (`errorClass`) — the pill only says which of the three states this is. */
 export const APPLY_FAILED_HEADLINE = '✗ write failed';
+
+/** What a result line says about a thrown error: its class (`TypeError`, `Error`), never its message (#3697 H4). A
+ *  host message can carry anything the file holds — a typeface, a style or layer name — and a result line goes into
+ *  Report a problem, which takes out only the words it knows. A throw that is not an `Error`, or whose name is not one
+ *  word, reads `Error`. */
+export const errorClass = (e: unknown): string => {
+  const n = e instanceof Error || (e && typeof e === 'object') ? (e as { name?: unknown }).name : undefined;
+  return typeof n === 'string' && /^[A-Za-z][A-Za-z0-9]*$/.test(n) ? n : 'Error';
+};
 
 /** The pre-flight refused the apply (#506): the file already holds same-named content Prism3 did not
  *  create, or a variable of another type, so NOTHING was written. The count is the whole pill; the detail
