@@ -22,7 +22,7 @@
  * The judge checks the same thing again on the run file, so this is the Mac's stop, not the guarantee.
  *
  * `collect` reads `request.json` and each `<key>.json` the session saved in the run directory (`status`, `readback`,
- * `update-components`, `prune`, `run-code`, `status-after`), verbatim, and writes one run file keyed by command:
+ * `update-components`, `prune`, `set-override`, `run-code`, `status-after`), verbatim, and writes one run file keyed by command:
  * `{ format, commit, responses }`. A response the session did not save is left out, and the judge holds on it. A saved
  * file that is not JSON is kept as its text, and the judge holds on that too.
  *

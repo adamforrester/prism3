@@ -46,7 +46,8 @@ export const extractFiles = (message: string): Record<string, string> => {
 /** Literals, fixed before any run. Each names what it found, so a void says why. Matched against TOOL-CALL INPUTS only. */
 const CONTAMINATION: [RegExp, string][] = [
   [/CLAUDE\.md/i, 'a CLAUDE.md appears'],   // any case: `find / -iname claude.md` reaches the file too (#3567)
-  [/skills\/prism3-/, 'a read of skills/prism3-*'],
+  // No hyphen required, either slash, any case (#3584): `cat skills/prism3*/SKILL.md` reads the skill through a glob.
+  [/skills[\\/]+prism3/i, 'a read of skills/prism3-*'],
   [/github\.com\/adamforrester\/prism3|raw\.githubusercontent\.com\/adamforrester\/prism3|api\.github\.com\/repos\/adamforrester\/prism3/i, 'a fetch of the repository'],
 ];
 /** The tools whose input can reach the repo, a CLAUDE.md or a skill file. A `Skill` call is judged by its skill name. */

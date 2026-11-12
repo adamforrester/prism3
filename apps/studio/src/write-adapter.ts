@@ -47,6 +47,8 @@ export type HostMessage =
   // skeleton get laid" is separately true and separately actionable from a theme or component write,
   // so it needs its own verdict slot and cannot overwrite theirs.
   | { kind: 'file-setup-result'; ok: boolean; headline: string; summary: string }
+  // #3394 — the agent link's color overrides: a preview, or a write, its own row (Q3394.7 A).
+  | { kind: 'override-result'; ok: boolean; preview: boolean; applied: boolean; headline: string; summary: string; lines: readonly string[] | null }
   // #259 — the outcome of a `style-guide` run, its own slot.
   | { kind: 'style-guide-result'; ok: boolean; headline: string; summary: string; stopped?: { done: number; total: number }; lines: readonly string[] | null;
     /** The cleanup offer (Q412 A, #2816): the tables the generator no longer draws that the run left, empty when none. */
@@ -456,6 +458,11 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   'component-update-result': (m) => ({ ...verdict('component-update-result', m, '✓ checked', '✗ check failed'), lines: linesOf(m.lines),   // #2265
     publish: typeof m.publish === 'string' && m.publish ? m.publish : null, causes: causesOf(m.causes) }),   // #2858, #3326
   'file-setup-result': (m) => verdict('file-setup-result', m, '✓ file set up', '✗ setup failed'),   // #1558
+  // #3394: the plugin always sends a headline; one that arrives without falls back to the summary's first words.
+  'override-result': (m) => {
+    const summary = String(m.summary ?? '');
+    return { kind: 'override-result', ok: !!m.ok, preview: !!m.preview, applied: !!m.applied, headline: typeof m.headline === 'string' && m.headline ? m.headline : summary, summary, lines: linesOf(m.lines) };
+  },
   'style-guide-result': (m) => {   // #259
     // S11.2: a cancelled run says how far it got; a malformed `stopped` is left off rather than guessed.
     const st = m.stopped && typeof m.stopped === 'object' ? tableReading(m.stopped as { done?: unknown; total?: unknown }) : null;

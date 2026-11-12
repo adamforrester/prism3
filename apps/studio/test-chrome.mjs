@@ -1147,6 +1147,12 @@ const goPlace = async (page, place) => {
  *  out on CI (section 24, #3083's merge with #3094). Settled: its choice and row are the same across two frames and one of
  *  the two is drawn. Bounded; on a timeout the caller's own wait names the hook. */
 async function settleModes(page) {
+  // #3668: the header's resize is delivered in the frame after a page opens, and the fit it asks for runs in the frame
+  // after that, so two frames here could both read the old answer and call it settled. Wait until a frame has drawn
+  // since the call (any resize it carried is delivered by then), then for that fit to run (`data-fit-pending` clears).
+  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
+  await page.waitForFunction(() => !document.querySelector('[data-p3="mode-control"]')?.parentElement?.hasAttribute('data-fit-pending'),
+    null, { polling: 'raf', timeout: 5000 }).catch(() => {});
   for (let i = 0; i < 25; i++) {
     const still = await page.evaluate(() => new Promise((done) => {
       const w = document.querySelector('[data-p3="mode-control"]')?.parentElement;
@@ -7112,6 +7118,9 @@ const EVERY_SET = 'Every button set is shown, including ones you added.';
 const ADD_SET_HINT = 'Add a brand color on Palettes to use it for another button set.';
 /** Every mode on the page by its picker: a radio where they fit, else the select of the same modes. */
 const chooseAnyMode = async (page, mode) => {
+  // #3668: look only once the fit has settled. Looking first found the radio drawn, and the fit that ran a frame later
+  // hid it for the select, so the click waited for a radio that never came back (section 26, Components to Brand).
+  await settleModes(page);
   const radio = page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`);
   if (await radio.count() && await radio.isVisible()) await hooks.click(radio);
   else await page.locator('[data-p3="mode-select"]').selectOption(mode);
