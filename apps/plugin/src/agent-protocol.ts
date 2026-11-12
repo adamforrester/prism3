@@ -32,13 +32,14 @@
 import type { RunCodeArgs } from './dev-commands';
 import type { BrandInput } from '@prism3/engine/theme';
 import type { MainToUi, StyleGuideOptions } from './messages';
+import type { OverrideChange } from './set-override';
 
 /** The protocol revision. See the header for when it moves. */
 export const AGENT_PROTOCOL_VERSION = 1;
 
 /** Every command this plugin answers, in the order the runbook documents them. Stable ids: renaming one
  *  is a breaking change for every agent that sends it, so it is a version bump, not an edit. */
-export const AGENT_COMMANDS = ['status', 'apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'readback', 'update-components', 'capture-baseline', 'adopt-members', 'draw-specs', 'inspect', 'component-keys', 'audit-frames', 'snapshot', 'activity', 'panels-clean', 'context'] as const;
+export const AGENT_COMMANDS = ['status', 'apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'readback', 'update-components', 'capture-baseline', 'adopt-members', 'draw-specs', 'inspect', 'component-keys', 'audit-frames', 'snapshot', 'activity', 'panels-clean', 'context', 'set-override'] as const;
 /** #3147 Phase 2a: the commands that only read nodes (`agent-reads.ts`). They post no verdict: like `status`, their value
  *  is their `data`. Each writes nothing to the file, which `test-agent-link.ts` and `test-agent-bridge.ts` assert. */
 export const READ_COMMANDS = ['inspect', 'component-keys', 'audit-frames', 'snapshot', 'activity', 'context'] as const;
@@ -92,6 +93,9 @@ export type AgentArgs = {
   'panels-clean': { confirm?: boolean };
   /** #3300 B. Writes nothing. What the open file is, for an agent's first read: { file { name, currentPage, pages }, prism3 { source: local | none | unreadable, brand { id, name, modes } | null, engine { plugin, lastBuilt }, collections, themed }, sets { present, due: [{ set, why }], queued, partial: true }, protected { finalPages, locked, originals: [{ id, name, page }], counts, note }, commands { read, write }, readFirst, engineMcp { server, for, tools }, unreadable, truncated }. `protected` lists what Q3147.11 protects by default: pages whose name contains FINAL, locked nodes, `Original · …` copies. The page walk is capped (`truncated`); the set counts come from the as-built ledger alone (`partial`). */
   context: Record<string, never>;
+  /** #3394 Q3394.1 A: color overrides, 1 to 32 changes applied all or nothing. `confirm: false` previews and writes nothing; its
+   *  result carries a `previewHash`. `confirm: true` must echo it, and runs the Theme write itself. */
+  'set-override': { changes: OverrideChange[]; confirm: false } | { changes: OverrideChange[]; confirm: true; previewHash: string };
   /** #2530, dev builds only: the body of an async function to run in the main thread (`dev-commands.ts`). */
   'run-code': RunCodeArgs;
 };
@@ -110,6 +114,29 @@ export type ActivityArgs = AgentArgs['activity'];
 export type UpdateChoiceArgs = {
   handEdits?: 'keep' | 'overwrite' | 'accept'; noBaseline?: 'update' | 'skip';
   sets?: Record<string, { handEdits?: 'keep' | 'overwrite' | 'accept'; noBaseline?: 'update' | 'skip' }>;
+};
+/** #3394: the most changes one `set-override` takes (`MAX_CHANGES` in `set-override.ts`, which this file may not import at
+ *  runtime: it is context-neutral and type-only). `test-agent-link.ts` holds the two equal. */
+export const SET_OVERRIDE_MAX = 32;
+/** `set-override`'s changes when well formed, or the reason they are not. */
+const parseChanges = (raw: unknown): OverrideChange[] | string => {
+  const bad = 'set-override needs args.changes: 1 to 32 changes, each { mode, role, palette, step } or { mode, role, clear: true }';
+  if (!Array.isArray(raw) || raw.length < 1 || raw.length > SET_OVERRIDE_MAX) return bad;
+  const seen = new Set<string>();
+  const out: OverrideChange[] = [];
+  for (const [i, c] of raw.entries()) {
+    if (!isObject(c)) return bad;
+    const str = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
+    if (!str(c.mode) || !str(c.role)) return `set-override: change ${i} needs a mode and a role`;
+    const keys = Object.keys(c).sort().join(',');
+    if (keys === 'mode,palette,role,step' && str(c.palette) && str(c.step)) out.push({ mode: c.mode, role: c.role, palette: c.palette, step: c.step });
+    else if (keys === 'clear,mode,role' && c.clear === true) out.push({ mode: c.mode, role: c.role, clear: true });
+    else return `set-override: change ${i} takes exactly palette and step, or clear: true`;
+    const key = `${c.mode}\u0000${c.role}`;
+    if (seen.has(key)) return `set-override: ${c.role} is listed twice for ${c.mode}`;
+    seen.add(key);
+  }
+  return out;
 };
 const HAND_EDIT_CHOICES = ['keep', 'overwrite', 'accept'] as const;
 const NO_RECORD_CHOICES = ['update', 'skip'] as const;
@@ -356,6 +383,15 @@ export const parseCommand = (raw: unknown): ParsedCommand => {
         return fail('bad-args', 'panels-clean takes args.confirm: false (or none) to count, true to remove the unedited panels');
       }
       return { ok: true, command: { ...base, cmd: 'panels-clean', args: args.confirm === undefined ? {} : { confirm: args.confirm } } };
+    // #3394: the one Theme write that takes changes rather than a whole brand.
+    case 'set-override': {
+      const changes = parseChanges(args.changes);
+      if (typeof changes === 'string') return fail('bad-args', changes);
+      if (typeof args.confirm !== 'boolean') return fail('bad-args', 'set-override needs args.confirm: false to preview, true to write');
+      if (!args.confirm) return { ok: true, command: { ...base, cmd: 'set-override', args: { changes, confirm: false } } };
+      if (typeof args.previewHash !== 'string' || !args.previewHash) return fail('bad-args', 'set-override with confirm: true needs args.previewHash: the previewHash its preview returned');
+      return { ok: true, command: { ...base, cmd: 'set-override', args: { changes, confirm: true, previewHash: args.previewHash } } };
+    }
     case 'status':
     case 'context':
     case 'file-setup':

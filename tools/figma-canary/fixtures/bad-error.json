@@ -50,7 +50,8 @@
        "capture-baseline",
        "adopt-members",
        "draw-specs",
-       "run-code"
+       "run-code",
+       "set-override"
       ]
      }
     },
@@ -145,6 +146,76 @@
     "message": "figma.variables is undefined"
    }
   },
+  "set-override": {
+   "v": 1,
+   "id": "canary-4o",
+   "cmd": "set-override",
+   "ok": true,
+   "startedAt": "2026-11-02T09:20:16Z",
+   "finishedAt": "2026-11-02T09:20:16Z",
+   "engineVersion": "0.237.0",
+   "transport": "bridge",
+   "result": {
+    "verdict": {
+     "type": "override-result",
+     "ok": true,
+     "preview": true,
+     "applied": false,
+     "headline": "Preview — 1 change; no pair moves below its minimum.",
+     "summary": "Light · interactive.primary.border.rest: primary 600 → primary 600 (5.17:1 → 5.17:1)"
+    },
+    "data": {
+     "previewHash": "4c1d07e2",
+     "changes": [
+      {
+       "index": 0,
+       "mode": "light",
+       "role": "interactive.primary.border.rest",
+       "before": {
+        "override": null,
+        "resolved": {
+         "palette": "primary",
+         "step": "600"
+        },
+        "hex": "#3d63dd",
+        "ratio": 5.17,
+        "min": 3,
+        "against": "background.primary"
+       },
+       "after": {
+        "override": {
+         "palette": "primary",
+         "step": "600"
+        },
+        "resolved": {
+         "palette": "primary",
+         "step": "600"
+        },
+        "hex": "#3d63dd",
+        "ratio": 5.17,
+        "min": 3,
+        "against": "background.primary"
+       }
+      }
+     ],
+     "moved": [],
+     "newMisses": [],
+     "stillBelow": [],
+     "contrast": {
+      "before": {
+       "total": 972,
+       "fail": 0
+      },
+      "after": {
+       "total": 972,
+       "fail": 0
+      }
+     },
+     "refusals": []
+    },
+    "logs": []
+   }
+  },
   "run-code": {
    "v": 1,
    "id": "canary-4",
@@ -219,7 +290,8 @@
        "capture-baseline",
        "adopt-members",
        "draw-specs",
-       "run-code"
+       "run-code",
+       "set-override"
       ]
      }
     },
