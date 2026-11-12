@@ -277,7 +277,7 @@ export const snapshotMember = async (root: unknown): Promise<SnapNode> => {
       if (main) out.mainComponent = main;
       const own = ownOverrides(n, live);
       if (own) out.overridden = own;
-      // THE VECTORS INSIDE (owner's Update file run, 2026-11-12). The walk stops here, but the read-back's `literalTint`
+      // THE VECTORS INSIDE (#3393; the owner's Update file run, 2026-11-12). The walk stops here, but the read-back's `literalTint`
       // (SignInButton's white glyph on a dark fill, Q846 A) is checked on the VECTORs inside the instance, through
       // `findAll`, as on the host. A snapshot with no way in read "no VECTOR inside" on every tinted member, so each failed
       // the verify after the build had painted it. Their type and fills only, copied now, and NON-ENUMERABLE as `parent`

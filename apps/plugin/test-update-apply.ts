@@ -6548,7 +6548,7 @@ section('causes — a stopped run names each set it left by its def id');
     `causes/halted: the set the stop left is a cause, its subject the def id and the stop its reason (${JSON.stringify(v.causes)})`);
 }
 
-// THE OWNER'S UPDATE FILE RUN, 2026-11-12: SignInButton's provider glyph, painted white on Apple black and Facebook blue (owner
+// #3393, AND THE OWNER'S UPDATE FILE RUN, 2026-11-12: SignInButton's provider glyph, painted white on Apple black and Facebook blue (owner
 // decision Q846 A, the plan's `literalTint`), is checked on the VECTORs inside the nested instance (`anatomy-readback.ts`
 // `literalTint`, through `findAll`). The dry run and the verify read a SNAPSHOT of each member (`snapshotMember`), which
 // stopped at every instance with no way into it, so the check read "no VECTOR inside to read the tint from" on all 24 tinted
