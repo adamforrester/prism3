@@ -22,8 +22,9 @@
  *   · Every visible layer on every page is walked, inside instances too: what an instance draws is on screen. Each
  *     usage row splits its count into `layers` and `inInstances`, so a reader can tell drawn-here from inherited.
  *     A hidden layer (`visible: false`) and everything under it is skipped and counted in `coverage.hiddenLayers`;
- *     a hidden paint is skipped. A layer whose properties cannot be read is skipped and counted in
- *     `coverage.unreadableLayers`.
+ *     a hidden paint is skipped. A layer whose properties cannot be read is counted in `coverage.unreadableLayers`
+ *     and adds no row, even when the read fails partway; its children are still walked. When the layer's own
+ *     visibility cannot be read, or its child list cannot, the subtree is not walked, and only the layer is counted.
  *   · Every value carries its BINDING: `variable` (with the variable), `style` (with the style) or `raw`. A paint on
  *     a layer with a fill or stroke style is the style's, even when the style's own paint is bound to a variable.
  *     A text property is the text style's when the layer (or the run) has one, else a variable's, else raw.
@@ -306,13 +307,18 @@ export async function scanFileFacts(src: FactsSource): Promise<FileFactsReport> 
   const localDefs = { components: 0, componentSets: 0 };
 
   const bindKey = (b: Binding): string => (b.kind === 'raw' ? 'raw' : `${b.kind}:${b.id}`);
+  // A layer's counts wait here and reach the report only once every read of that layer has succeeded (`walk`), so a
+  // layer that throws partway leaves no row behind.
+  let pending: (() => void)[] = [];
   const add = <T>(m: Map<string, Row<T>>, key: string, row: T, seen: Set<string>, inInstance: boolean): void => {
     if (seen.has(key)) return;
     seen.add(key);
-    const r = m.get(key) ?? { row, layers: 0, inInstances: 0 };
-    r.layers++;
-    if (inInstance) r.inInstances++;
-    m.set(key, r);
+    pending.push(() => {
+      const r = m.get(key) ?? { row, layers: 0, inInstances: 0 };
+      r.layers++;
+      if (inInstance) r.inInstances++;
+      m.set(key, r);
+    });
   };
 
   const readPaints = async (prop: 'fills' | 'strokes', paints: unknown, styleId: unknown, role: Role, seen: Set<string>, inInstance: boolean): Promise<void> => {
@@ -388,7 +394,7 @@ export async function scanFileFacts(src: FactsSource): Promise<FileFactsReport> 
       if (id) ids.add(id);
     }
     for (const r of runs ?? []) for (const id of [str(r.textStyleId), str(r.fillStyleId)]) if (id) ids.add(id);
-    for (const id of ids) styleLayers.set(id, (styleLayers.get(id) ?? 0) + 1);
+    for (const id of ids) pending.push(() => styleLayers.set(id, (styleLayers.get(id) ?? 0) + 1));
   };
   const countVars = async (node: FactsNode, runs: readonly TextRun[] | null): Promise<void> => {
     const ids = new Set<string>(aliasIds(node.boundVariables));
@@ -397,7 +403,7 @@ export async function scanFileFacts(src: FactsSource): Promise<FileFactsReport> 
       aliasIds(r.boundVariables).forEach((id) => ids.add(id));
       if (Array.isArray(r.fills)) for (const p of r.fills) if (isObj(p)) aliasIds(p.boundVariables).forEach((id) => ids.add(id));
     }
-    for (const id of ids) { await variable(id); varLayers.set(id, (varLayers.get(id) ?? 0) + 1); }
+    for (const id of ids) { await variable(id); pending.push(() => varLayers.set(id, (varLayers.get(id) ?? 0) + 1)); }
   };
 
   const walk = async (node: FactsNode, page: string, ctx: { icon: boolean; buttonParent: boolean; inInstance: boolean }): Promise<void> => {
@@ -405,29 +411,35 @@ export async function scanFileFacts(src: FactsSource): Promise<FileFactsReport> 
     try {
       if (node.visible === false) { coverage.hiddenLayers++; return; }
       type = node.type; name = String(node.name ?? '');
-    } catch { coverage.unreadableLayers++; return; }
+    } catch { coverage.unreadableLayers++; return; }   // visibility unknown: the subtree may be hidden, so it is not walked
+    // What this layer passes to its children: inherited until the layer's own name has been read.
+    let next = { ...ctx, inInstance: ctx.inInstance || type === 'INSTANCE' };
+    let children: readonly FactsNode[] | null = null;
+    pending = [];
     try {
-      coverage.layers++;
       let names = WORDS(name);
-      if (type === 'COMPONENT') localDefs.components++;
-      if (type === 'COMPONENT_SET') localDefs.componentSets++;
+      if (type === 'COMPONENT') pending.push(() => localDefs.components++);
+      if (type === 'COMPONENT_SET') pending.push(() => localDefs.componentSets++);
       if (type === 'INSTANCE') {
-        coverage.instances++;
+        pending.push(() => coverage.instances++);
         const main = await src.mainComponent(node).catch(() => null);
-        if (!main) missingMain++;
+        if (!main) pending.push(() => missingMain++);
         else {
           names += WORDS(main.name) + WORDS(main.setName ?? '');
-          const r = compRows.get(main.id) ?? { comp: main, pages: new Set<string>(), layers: 0, inInstances: 0 };
-          r.layers++;
-          if (ctx.inInstance) r.inInstances++;
-          r.pages.add(page);
-          compRows.set(main.id, r);
+          pending.push(() => {
+            const r = compRows.get(main.id) ?? { comp: main, pages: new Set<string>(), layers: 0, inInstances: 0 };
+            r.layers++;
+            if (ctx.inInstance) r.inInstances++;
+            r.pages.add(page);
+            compRows.set(main.id, r);
+          });
         }
       }
       const icon = ctx.icon || VECTOR_TYPES.has(type) || ICON_WORD.test(names);
       const buttonSelf = BUTTON_WORD.test(names);
+      next = { icon, buttonParent: buttonSelf, inInstance: next.inInstance };
       const isText = type === 'TEXT';
-      if (isText) coverage.textLayers++;
+      if (isText) pending.push(() => coverage.textLayers++);
 
       const runs = isText && src.textRuns && [node.fills, node.fontName, node.fontSize, node.fontWeight, node.lineHeight, node.textStyleId, node.fillStyleId].some(isMixed)
         ? src.textRuns(node) : null;
@@ -445,14 +457,18 @@ export async function scanFileFacts(src: FactsSource): Promise<FileFactsReport> 
       await readSpacing(node, seen, ctx.inInstance);
       countStyles(node, runs);
       await countVars(node, runs);
-
-      const next = { icon, buttonParent: buttonSelf, inInstance: ctx.inInstance || type === 'INSTANCE' };
-      for (const child of node.children ?? []) await walk(child, page, next);
+      children = node.children ?? [];
+      // Every read succeeded: the layer and everything it counted join the report together.
+      coverage.layers++;
+      for (const commit of pending) commit();
     } catch {
-      // A read that throws partway: the layer moves from `layers` to `unreadableLayers`, so the two stay disjoint.
-      coverage.layers--;
+      // A read that throws partway: nothing the layer counted is kept, so `layers` and `unreadableLayers` stay
+      // disjoint and no row comes from a layer the report calls unread. Its children are on screen and still walked.
       coverage.unreadableLayers++;
+      try { children = node.children ?? []; } catch { children = null; }   // no list to walk: the subtree goes uncounted
     }
+    pending = [];
+    for (const child of children ?? []) await walk(child, page, next);
   };
 
   for (const page of src.pages) for (const n of page.children) await walk(n, page.name, { icon: false, buttonParent: false, inInstance: false });

@@ -23,7 +23,11 @@
  *     `vars/a fill style whose paint is bound to a variable is the style's`;
  *   · the icon rule dropped (`ICON_WORD` never matches) → `raw/a layer named as an icon is an icon`;
  *   · hidden layers walked → `vars/coverage`;
- *   · per-layer dedupe dropped (`seen` ignored) → `vars/spacing: one layer, four equal paddings, one use`.
+ *   · per-layer dedupe dropped (`seen` ignored) → `vars/spacing: one layer, four equal paddings, one use`;
+ *   · a layer's counts committed before every read succeeds (`pending` flushed as it fills) →
+ *     `partway/the fill read before the throw is not kept`;
+ *   · an unreadable layer's children left unwalked → `partway/coverage: the layer unread, its two children read`;
+ *   · `btn` or `cta` dropped from `BUTTON_WORD` → `button words/a frame named "btn" is button-like; …` (or "cta").
  */
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -31,7 +35,7 @@ import { fileURLToPath } from 'node:url';
 import { FileShim, NodeShim, type NodeSpec } from './file-shim';
 import { scanOpenFile, type FactsHost } from './src/file-facts-figma';
 import { validate } from '../../packages/engine/json-schema-lite';
-import { FILE_FACTS_FORMAT, type Binding, type FileFactsReport } from '../../packages/engine/file-facts';
+import { FILE_FACTS_FORMAT, scanFileFacts, sourceFromSnapshot, type Binding, type FactsNode, type FileFactsReport } from '../../packages/engine/file-facts';
 
 let failed = 0;
 let executed = 0;
@@ -318,6 +322,37 @@ section('unreadable — a layer whose properties throw');
   const nodes = new NodeShim([{ id: 'p', type: 'PAGE', name: 'P', children: [{ id: 'ok', type: 'FRAME', name: 'Fine', fills: [] }, { id: 'bad', type: 'FRAME', name: 'Bad', unreadable: true }] }]);
   const r = await scan('unreadable', new FileShim(), nodes);
   ok(r.coverage.layers === 1 && r.coverage.unreadableLayers === 1, 'unreadable/one layer read, one skipped and counted', r.coverage);
+}
+
+/* ── a layer that throws partway: no row from it, and its children still walked (review of #3685) ─────────────────── */
+section('partway — a layer whose fills read and whose strokes throw');
+{
+  const RED = { r: 1, g: 0, b: 0 };             // #ff0000
+  const snap = (bad: FactsNode) => sourceFromSnapshot({ collections: [], variables: [], styles: { paint: [], text: [], effect: [], grid: [] },
+    pages: [{ id: 'p', name: 'P', children: [bad] }] });
+  const bad = {
+    id: 'bad', type: 'FRAME', name: 'Card', fills: [solid(RED.r, RED.g, RED.b)],
+    get strokes(): unknown { throw new Error('strokes could not be read'); },
+    children: [{ id: 'kid-a', type: 'FRAME', name: 'Inner', fills: [solid(BLUE.r, BLUE.g, BLUE.b)] }, { id: 'kid-b', type: 'FRAME', name: 'Empty', fills: [] }],
+  } as FactsNode;
+  const r = await scanFileFacts(snap(bad));
+  const errors = validate(SCHEMA, r);
+  ok(errors.length === 0, 'partway/the report matches schema/file-facts.schema.json', errors.slice(0, 5));
+  ok(eq(r.coverage, { pages: 1, layers: 2, hiddenLayers: 0, unreadableLayers: 1, textLayers: 0, instances: 0 }), 'partway/coverage: the layer unread, its two children read', r.coverage);
+  ok(paintRow(r, 'fill', 'background', '#ff0000', 'raw').length === 0, 'partway/the fill read before the throw is not kept', r.usage.paints);
+  ok(eq(counts(one(paintRow(r, 'fill', 'background', '#0066ff', 'raw'))), [1, 0]), "partway/a child's fill is counted", r.usage.paints);
+}
+
+/* ── the button words, each on its own (ROLE_RULE name-and-type/1) ──────────────────────────────────────────────────── */
+section('button words — btn and cta, with no other cue');
+{
+  const frame = (id: string, name: string): FactsNode => ({ id, type: 'FRAME', name, fills: [solid(BLUE.r, BLUE.g, BLUE.b)] });
+  for (const word of ['btn', 'cta', 'Btns', 'CTAs']) {
+    const r = await scanFileFacts(sourceFromSnapshot({ collections: [], variables: [], styles: { paint: [], text: [], effect: [], grid: [] },
+      pages: [{ id: 'p', name: 'P', children: [frame('a', `Hero/${word}`), frame('b', 'Hero/panel')] }] }));
+    ok(eq(counts(one(paintRow(r, 'fill', 'button-like', '#0066ff', 'raw'))), [1, 0]) && eq(counts(one(paintRow(r, 'fill', 'background', '#0066ff', 'raw'))), [1, 0]),
+      `button words/a frame named "${word}" is button-like; its neighbor is a background`, r.usage.paints);
+  }
 }
 
 console.log(`\n${executed - failed}/${executed} passed`);
