@@ -99,7 +99,7 @@ Titles are short, parallel noun phrases or questions, in sentence case, with no 
 ## Related components
 
 - **Built from:** `_accordion-indicator`, `focus-ring`, `divider`
-- **Instead, consider:** `tabs`
+- **Instead, consider:** `tabs`, `dialog`
 - **Often used with:** `icon`, `button`, `text-field`
 - **Replaces:**
   - a show/hide div with no aria-expanded or heading

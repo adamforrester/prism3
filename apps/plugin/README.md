@@ -383,8 +383,13 @@ transports: A, the file mailbox, and B, the local desktop bridge.
   `{v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result|error, progress?}`, the
   commands (`AGENT_COMMANDS`: `status`, `apply-theme`, `build-components`, `file-setup`, `style-guide`, `prune`,
   `readback`, `update-components`, `capture-baseline`, `adopt-members`, `draw-specs`, the four read-only node
-  commands below, `activity`, `panels-clean` and `context`) and the validation both transports share. Unknown command, wrong version and malformed args are failed results,
+  commands below, `activity`, `panels-clean`, `context` and `set-override`) and the validation both transports share. Unknown command, wrong version and malformed args are failed results,
   never silence.
+- ✅ **Color overrides** (#3394, Q3394.1–.7 A) — `set-override` (`src/set-override.ts` plans, `main.ts`'s `setOverride`
+  writes) changes Theme color overrides: 1 to 32 changes, all or nothing, judged on the final state. A preview writes
+  nothing and returns a `previewHash`; the confirm echoes it and runs the Theme write through `ACTIONS.applyTheme`. A
+  change that puts a contracted pair below its minimum refuses the whole list, by pair and ratio. Its verdict is
+  `override-result`, the Activity drawer's "Color override" row. `test-agent-link.ts`'s `set-override/*` arms hold it.
 - ✅ **Read-only node commands** (#3147 Phase 2a, Q3147.10 and .14 A) — `inspect`, `component-keys`, `audit-frames`
   and `snapshot` (`src/agent-reads.ts`) read any layer, so a file where Prism3 is open needs no second plugin for the
   reads an agent makes there: keys and properties in the master, the done check on a rebuild, a local picture. They

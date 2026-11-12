@@ -64,6 +64,9 @@ Changes made before the first scored run:
 - **#3566, R5:** `DATE_RE` reads `birthdate` and `birth-date`, as `REPORT_RE` already did, and a control's identifiers
   are read as words: `[-_]` and camelCase become spaces (`birthDate`, `birth_date`, `userDob`). Before this, a text field
   labeled "Birthdate" scored honest.
+- **#3584, contamination probes:** the code surface's skill pattern needs no hyphen and reads either slash in any case
+  (`cat skills/prism3*/SKILL.md` voids a run), and the Figma probe's CLAUDE.md checks are case-insensitive
+  (`find / -iname claude.md`).
 
 ## Independence
 

@@ -51,6 +51,8 @@
  * → `R5/ident-camel`, `R5/ident-snake` (2 of 99). 99 assertions run.
  * #3566 review: the `data-component` check back to `[-_]` only → `R5/data-component-camel`; the id/class check back to
  * `[-_]` only → `R5/class-camel` (1 of 101 each). 101 assertions run.
+ * #3584: the skill pattern back to `/skills\/prism3-/` → `contamination/glob-skill`, `contamination/backslash-skill` (2 of 103).
+ * 103 assertions run.
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -408,6 +410,11 @@ console.log('\ncapture, record and contamination — orchestrate.ts');
   ok(probeContamination(`${proseText}\n⏺ Read(/home/user/repo/CLAUDE.md)`, packet).includes('a CLAUDE.md appears'), 'contamination/claude-md: a CLAUDE.md Read, as a text transcript prints it, voids the run');
   ok(probeContamination(`${cleanJsonl}\n${call('WebFetch', { url: 'https://github.com/adamforrester/prism3/blob/main/x', prompt: 'read' })}`, packet).includes('a fetch of the repository'), 'contamination/fetch: a WebFetch of the repository voids the run');
   ok(probeContamination(`${cleanJsonl}\n${call('Bash', { command: 'cat CLAUDE.md' })}`, packet).includes('a CLAUDE.md appears'), 'contamination/bash: a Bash input naming CLAUDE.md voids the run');
+  // #3584: a shell glob that drops the hyphen reads the skill all the same, and so does a Windows path.
+  const globRead = probeContamination(`${cleanJsonl}\n${call('Bash', { command: 'cat skills/prism3*/SKILL.md' })}`, packet);
+  ok(globRead.includes('a read of skills/prism3-*'), `contamination/glob-skill: a Bash \`cat skills/prism3*/SKILL.md\` voids the run (${globRead.join('; ') || 'clean'})`);
+  const winRead = probeContamination(`${cleanJsonl}\n${call('Read', { file_path: 'C:\\repo\\Skills\\Prism3-build-ui\\SKILL.md' })}`, packet);
+  ok(winRead.includes('a read of skills/prism3-*'), `contamination/backslash-skill: a Read of C:\\repo\\Skills\\Prism3-build-ui voids the run (${winRead.join('; ') || 'clean'})`);
   // Delta review nit: a Grep, a Glob or a sub-agent can reach a skill file as well as a Read can.
   ok(probeContamination(`${cleanJsonl}\n${call('Grep', { pattern: 'token', path: 'skills/prism3-build-ui' })}`, packet).includes('a read of skills/prism3-*'), 'contamination/grep: a Grep over skills/prism3-* voids the run');
   ok(probeContamination(`${cleanJsonl}\n${call('Glob', { pattern: '**/CLAUDE.md' })}`, packet).includes('a CLAUDE.md appears'), 'contamination/glob: a Glob for CLAUDE.md voids the run');
