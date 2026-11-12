@@ -167,7 +167,7 @@ export const probe = (lines: unknown[], cwd?: string): { clean: boolean; reasons
     const parts: any[] = Array.isArray(content) ? content : typeof content === 'string' ? [{ type: 'text', text: content }] : [];
     for (const p of parts) {
       // What the host put in front of the agent (a user turn that is not a tool result) must carry no CLAUDE.md.
-      if (m.type === 'user' && p?.type === 'text' && /CLAUDE\.md/.test(String(p.text))) reasons.push('a CLAUDE.md reached the agent');
+      if (m.type === 'user' && p?.type === 'text' && /CLAUDE\.md/i.test(String(p.text))) reasons.push('a CLAUDE.md reached the agent');
       if (m.type === 'assistant' && p?.type === 'tool_use') {
         const input = JSON.stringify(p.input ?? {});
         if (p.name === 'Skill') reasons.push(`the agent called the Skill tool (${input})`);
@@ -175,7 +175,8 @@ export const probe = (lines: unknown[], cwd?: string): { clean: boolean; reasons
         if (p.name === 'Task' || p.name === 'Agent') reasons.push(`the agent started a subagent (${p.name})`);
         // A call with no result on record (a cut-off transcript) counts: it can't be shown to have failed.
         if (failed.has(p.id) || emptySearch(p)) continue;
-        if (/CLAUDE\.md/.test(input) && p.name !== `mcp__${BRIDGE_NAME}__figma_run`) reasons.push(`the agent reached for a CLAUDE.md (${p.name})`);
+        // Any case (#3584, as #3567 did in orchestrate.ts): `find / -iname claude.md` reaches the file too.
+        if (/CLAUDE\.md/i.test(input) && p.name !== `mcp__${BRIDGE_NAME}__figma_run`) reasons.push(`the agent reached for a CLAUDE.md (${p.name})`);
         if (/(^|[\\/"])skills[\\/]/.test(input) && !/prism3:\/\/skills\//.test(input)) reasons.push(`the agent read a skills/ path (${p.name})`);
         if (/github\.com|githubusercontent/.test(input)) reasons.push(`the agent fetched from GitHub (${p.name})`);
       }
