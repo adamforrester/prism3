@@ -158,8 +158,11 @@ export const lastChangedLines = (l: LastChanged): string[] =>
   l.kind === 'changed' ? [`Last changed in ${l.version} · ${l.date}`, ...l.items] : l.kind === 'unchanged' ? [`Unchanged since ${l.since}`] : [];
 
 /**
- * THE PUBLISH DESCRIPTION, offered after an Update. The first sentence is the named version the Update saved before
- * it wrote (`update-apply.ts`'s title, whichever builder made it), then the engine, the engine the file held before
+ * THE PUBLISH DESCRIPTION, offered after an Update. The first sentence says what this publish brings: "Prism3 updated
+ * <sets>." with the set ids the Update changed (#2914, owner decision A). It is NOT the named version's title: that one
+ * reads "Saved before Prism3 updated …", which fits version history, but read as a publish note it told subscribers what
+ * the library was before. With no set changed (a run that only reorders pages), the head is still `title`, as it was
+ * before #2914: that wording is an open owner decision on #2914. Then the engine, the engine the file held before
  * (the About frame's own record, when there was one) and the token contract. Then, for each set the Update changed,
  * the Figma items of every release it crossed that name the set: after `from`, up to the engine. With no `from`, the
  * engine's own release. Then whether any of it is breaking. The library-consumer breaks the Update listed (#2831) and a
@@ -168,6 +171,7 @@ export const lastChangedLines = (l: LastChanged): string[] =>
  * the release items above include breaking changes.
  */
 export const publishDescription = (o: {
+  /** The named version's title. The head only when no set changed (#2914). */
   title: string; sets: readonly string[]; from?: string | null; engine?: string; contract?: string;
   /** How many changes the Update listed as breaking library consumers (#2831). */
   consumerBreaks?: number; ix?: ReleaseIndex;
@@ -175,7 +179,7 @@ export const publishDescription = (o: {
   const engine = o.engine ?? ENGINE_VERSION;
   const ix = o.ix ?? RELEASES;
   const crossed = upTo(engine, ix).filter((r) => (o.from ? cmp(r.version, o.from) > 0 : r === releaseFor(engine, ix)));
-  const head = `${o.title}. Engine ${engine}${o.from && o.from !== engine ? `, from ${o.from}` : ''}. Token contract ${o.contract ?? CONTRACT_VERSION}.`;
+  const head = `${o.sets.length ? `Prism3 updated ${o.sets.join(', ')}` : o.title}. Engine ${engine}${o.from && o.from !== engine ? `, from ${o.from}` : ''}. Token contract ${o.contract ?? CONTRACT_VERSION}.`;
   const lines: string[] = [];
   let released = false;
   for (const set of o.sets) {

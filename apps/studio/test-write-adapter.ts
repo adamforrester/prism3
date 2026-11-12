@@ -56,8 +56,8 @@ accepts('component-update-result', { type: 'component-update-result', ok: true, 
 accepts('component-update-result without a headline', { type: 'component-update-result', ok: false, summary: 's' },
   { kind: 'component-update-result', ok: false, headline: '✗ check failed', summary: 's', lines: null, publish: null, causes: null });
 // #2858: an Update's publish description is carried; anything but a non-empty string is dropped.
-accepts('component-update-result with a publish description', { type: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['a'], publish: 'Before Prism3 updated tag. Engine 0.237.0.' },
-  { kind: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['a'], publish: 'Before Prism3 updated tag. Engine 0.237.0.', causes: null });
+accepts('component-update-result with a publish description', { type: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['a'], publish: 'Prism3 updated tag. Engine 0.237.0.' },
+  { kind: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['a'], publish: 'Prism3 updated tag. Engine 0.237.0.', causes: null });
 accepts('component-update-result with a malformed publish description', { type: 'component-update-result', ok: true, headline: 'h', summary: 's', publish: 42 },
   { kind: 'component-update-result', ok: true, headline: 'h', summary: 's', lines: null, publish: null, causes: null });
 accepts('component-result that stopped before the set', { type: 'component-result', ok: false, completed: false, headline: '✗ unknown def', summary: 's' },
