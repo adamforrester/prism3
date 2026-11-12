@@ -13,7 +13,7 @@
 An icon-only trigger for a destructive action — delete, remove, discard — in the destructive color, so the consequence reads before the click. Same anatomy as IconButton; the color is the whole difference, and the accessible name is still mandatory (a bare trash glyph is not a name). For a quiet destructive icon action, use appearance=ghost on this component.
 
 - **Purpose:** Trigger an action with an icon alone, no visible label.
-- **Use when:** A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).
+- **Use when:** A self-evident, conventional action in a space-constrained context (toolbar, table row, card header).
 - **Avoid when:** The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. The action is not destructive → use IconButton, or IconButton.Neutral for one with no brand emphasis.
 
 ## Anatomy

@@ -13,7 +13,7 @@
 A Button whose entire content is a single icon, with no visible text label, in the brand's primary action style. Use for space-constrained, self-evident actions (close, more, edit) in toolbars, table rows, and headers. Because there is no visible label, an accessible name is mandatory. For a destructive or a weightless icon action, use the IconButton.Destructive / IconButton.Neutral sibling components.
 
 - **Purpose:** Trigger an action with an icon alone, no visible label.
-- **Use when:** A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).
+- **Use when:** A self-evident, conventional action in a space-constrained context (toolbar, table row, card header).
 - **Avoid when:** The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. The action deletes or removes something → use IconButton.Destructive. It carries no brand emphasis (most toolbar and row actions, a close affordance) → use IconButton.Neutral.
 
 ## Anatomy

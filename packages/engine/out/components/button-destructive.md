@@ -13,7 +13,7 @@ In-flow trigger for a destructive action — delete, remove, discard, disconnect
 
 - **Purpose:** Trigger an action in place.
 - **Use when:** The user needs to act on this surface — submit, confirm, open, apply, or start async work.
-- **Avoid when:** The target is a different location/URL → use Link (or give the button an href, which renders an \<a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.
+- **Avoid when:** The target is a different location/URL → use Link (or give the button an href, which renders an \<a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton.Destructive (the accessible name is required there at the type level). The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.
 
 ## Anatomy
 
