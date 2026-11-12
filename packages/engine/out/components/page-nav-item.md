@@ -65,9 +65,9 @@ Items make up a PageNav row and are set inside it: one current page and links to
 
 ### Motion
 
-- **Enter:** None. The link's color changes over about 150ms at hover and focus.
+- **Enter:** None. The link's color changes on motion.duration.fast at hover and focus.
 - **Exit:** None.
-- **Reduced motion:** The color changes at once, with no transition.
+- **Reduced motion:** The color changes on motion.duration-reduced.fast.
 
 ## Content guidelines
 
