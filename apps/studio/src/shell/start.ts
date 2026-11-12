@@ -165,7 +165,7 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
 
   // ── 1. from a color (G14: the working brand's primary; S1, S3) ───────────────────────────────────
   // The owner's answer N1 A (review of #2142): the neutral default is this card's secondary action, not a card of its own.
-  const c1 = card('Start from your color', 'Your primary brand color; everything else takes smart defaults you can tune. No color yet? Start blank with a neutral gray.', 'p3-start-card');
+  const c1 = card('Start from your color', 'Your primary brand color; everything else starts from defaults you can tune. No color yet? Start blank with a neutral gray.', 'p3-start-card');
   const row1 = h('div', 'p3-start-row');
   const field = h('div', 'p3-colorfield');
   const start = hex(oklchToRgb(brandState.primary));
@@ -223,7 +223,10 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
   paste.setAttribute('aria-label', 'Paste a design.md brief');
   paste.spellcheck = false;
   const row4 = h('div', 'p3-start-row p3-start-pasterow');
-  const upload = button('p3-btn p3-btn-page', 'start-upload', '↑ Upload…');
+  // #3553 Q-UI8 A: the vendored upload icon, not a text "↑".
+  const upload = hook(h('button', 'p3-btn p3-btn-page'), 'start-upload');
+  upload.type = 'button';
+  upload.append(glyph('upload'), h('span', 'p3-btn-label', 'Upload…'));
   const file = hook(h('input', 'p3-start-file'), 'start-file');
   file.type = 'file'; file.accept = IMPORT_ACCEPT; file.tabIndex = -1;
   file.setAttribute('aria-hidden', 'true');

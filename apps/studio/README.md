@@ -100,7 +100,7 @@ Two smaller traps worth inheriting rather than rediscovering:
   Type, Shape, Depth & motion and Layout (`DOMAINS`, `THEME_TABS`). Every lever edit runs the
   engine again, and the preview redraws.
 - ✅ **The brand menu** (`src/shell/bar.ts`) switches between the example brands, starts a
-  **+ New brand**, or opens **↑ Import design.md…**. An import is parsed (`parseDesignMd`) and then
+  **New brand**, or opens **Import design.md…**. An import is parsed (`parseDesignMd`) and then
   built (`brandTheme`) before it loads. If either refuses, the menu shows why and the working brand
   stays as it was (`validateDesignMd`, `src/state/start-input.ts`).
 - ✅ **Theme › Brand** holds the brand's **Identity** (name, and the namespace `root`, checked

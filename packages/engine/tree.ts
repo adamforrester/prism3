@@ -405,6 +405,24 @@ type Stats = {
   aliases: number; resolved: number; modeChecks: number; modePass: number; broken: { path: string; ref: string }[];
 };
 
+/** #3555 Q-MD2 A: every token name a `$description` mentions is written as code, `background.secondary`, so a reader (the
+ *  sidecar copies these, and its schema promises every name is backticked and resolves) can tell a name from prose.
+ *  One pass over the finished tree, rather than a backtick at each of the ~60 sites that compose a description: a
+ *  dotted name that opens with a token family is quoted unless it already sits in backticks. Whether each quoted name
+ *  resolves is the sidecar gate's job (`test.ts`), read from the emitted tree, not from this pattern. */
+const PATH_FAMILIES = 'text|icon|background|foreground|border|interactive|disabled|field|scrim|veil|inverse|type|core|color|font|space|radius|size|motion|control|focus|blur|shadow|opacity|glass';
+const DESCRIPTION_PATH = new RegExp(`(?<![\\w.\`/-])((?:${PATH_FAMILIES})\\.[a-z0-9*][a-z0-9*-]*(?:\\.[a-z0-9*][a-z0-9*-]*)*)`, 'g');
+export const quotePaths = (s: string): string =>
+  s.split(/(`[^`]*`)/).map((seg, i) => (i % 2 ? seg : seg.replace(DESCRIPTION_PATH, '`$1`'))).join('');
+const quoteDescriptionPaths = (node: any): void => {
+  if (!node || typeof node !== 'object') return;
+  for (const [k, v] of Object.entries(node)) {
+    if (k === '$description' && typeof v === 'string') node[k] = quotePaths(v);
+    else if (k === 'modes' && v && typeof v === 'object') for (const m of Object.values<any>(v)) { if (m && typeof m.description === 'string') m.description = quotePaths(m.description); quoteDescriptionPaths(m); }
+    else quoteDescriptionPaths(v);
+  }
+};
+
 export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats: Stats } => {
   const root = theme.root;
 
@@ -878,7 +896,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     // dimension, and a mode that resized the body ramp would re-derive this from the same product.
     const lineBoxPx = bodyLineBox[c.name];
     const lineBox = lineBoxPx !== undefined
-      ? dimLeaf(lineBoxPx, `control.size.${c.name} line-box — ${lineBoxPx}px, the height of one line of the \`body.${c.name}\` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.`)
+      ? dimLeaf(lineBoxPx, `control.size.${c.name} line-box — ${lineBoxPx}px, the height of one line of the \`type.body.${c.name}\` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.`)
       : undefined;
     // #3153 (owner Q852, Q3153.1 A) — the OPTION ROW's label sits one body rung below its control's rung (a medium
     // row is a 20px box beside a 14px `body.sm` label), and the row's control cell is that label's own line box,
@@ -897,7 +915,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     if (rowLine !== undefined) {
       const lr = ROW_LABEL_RUNG[c.name];
       const li = inset(c.height);
-      rowInsets['label-inset'] = dimLeaf(li, `control.size.${c.name} label-inset — ${li}px, how far an option row's label starts below the top of its control cell: half of the ${c.height}px box less the ${rowLine}px \`body.${lr}\` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.`);
+      rowInsets['label-inset'] = dimLeaf(li, `control.size.${c.name} label-inset — ${li}px, how far an option row's label starts below the top of its control cell: half of the ${c.height}px box less the ${rowLine}px \`type.body.${lr}\` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.`);
     }
     // #1015 — the corner, clamped to this rung's own edge (see `controlRadiusLeaf` above).
     const radiusPx = controlRadius(c.height, radiusSmPx);
@@ -1168,19 +1186,19 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // measures, baked and mode-free like `control.size.*.line-box`.
   for (const [rung, px] of Object.entries(labelLineBox)) {
     if (!typeGroup.label?.[rung]) continue;
-    typeGroup.label[rung]['line-box'] = dimLeaf(px, `type.label.${rung} line-box — ${px}px, the height of one line of the \`label.${rung}\` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.`);
+    typeGroup.label[rung]['line-box'] = dimLeaf(px, `type.label.${rung} line-box — ${px}px, the height of one line of the \`type.label.${rung}\` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.`);
   }
   // #3475 — the caption twin: the small inline Badge's dot cell is one line of its `caption.md` label.
   for (const [rung, px] of Object.entries(captionLineBox)) {
     if (!typeGroup.caption?.[rung]) continue;
-    typeGroup.caption[rung]['line-box'] = dimLeaf(px, `type.caption.${rung} line-box — ${px}px, the height of one line of the \`caption.${rung}\` type (font size × line height). A mark beside a caption sits in a box this tall and centers within it, so it stays on the caption's first line when the caption wraps.`);
+    typeGroup.caption[rung]['line-box'] = dimLeaf(px, `type.caption.${rung} line-box — ${px}px, the height of one line of the \`type.caption.${rung}\` type (font size × line height). A mark beside a caption sits in a box this tall and centers within it, so it stays on the caption's first line when the caption wraps.`);
   }
   // #3153 — the body twin (owner Q852): an option row's control cell is its label's OWN line box, and the label is
   // body one rung below the control's (`ROW_LABEL_RUNG`), so the cell reads `type.body.{label rung}.line-box`
   // rather than the control rung's `control.size.*.line-box`. Same bake, same agreement check (`bodyLineBox`).
   for (const [rung, px] of Object.entries(bodyLineBox)) {
     if (!typeGroup.body?.[rung]) continue;
-    typeGroup.body[rung]['line-box'] = dimLeaf(px, `type.body.${rung} line-box — ${px}px, the height of one line of the \`body.${rung}\` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.`);
+    typeGroup.body[rung]['line-box'] = dimLeaf(px, `type.body.${rung} line-box — ${px}px, the height of one line of the \`type.body.${rung}\` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.`);
   }
 
   // ---- shadow / elevation axis (Phase A) ----
@@ -1346,6 +1364,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // 3 base swatches: white, black, and the alpha-0 `transparent` primitive (#1341).
   // `+ glassAlphaLeaves` — the brand glass roles' alpha steps (#3073), one per distinct color and alpha the modes read.
   const colorLeaves = 3 + theme.palettes.reduce((n, p) => n + p.steps.length, 0) + alphaLeaves + glassAlphaLeaves;
+  quoteDescriptionPaths(tree);
   return { tree, modes, stats: { colorLeaves, dimLeaves: theme.dims.grid.length, spaceTokens: theme.dims.space.length, radiusTokens: theme.dims.radius.length, sizeSteps: theme.dims.sizes.length, fontSizes: theme.typography.sizesPx.length, fontWeights: theme.typography.weightsRef.length, typeComposites: theme.typography.composites.length, aliases: aliases.length, resolved: aliases.length - broken.length, broken, modeChecks, modePass } };
 };
 
