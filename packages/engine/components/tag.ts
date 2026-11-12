@@ -359,7 +359,10 @@ export const tag: ComponentDef = {
       label: {
         kind: 'text',
         type: 'size.{size}.type',
-        note: 'The tag text, at the same weight whether or not the tag is selected, so the label keeps its width when the tag is selected; the check mark, when shown, adds a cell after it. In code a long label wraps; Figma holds one line.',
+        // Maintainer detail, out of the reader caption (#3610): The tag text, at the same weight whether or not the
+        // tag is selected, so the label keeps its width when the tag is selected; the check mark, when shown, adds a
+        // cell after it. In code a long label wraps; Figma holds one line.
+        note: 'The tag\'s text, at the same weight whether or not the tag is selected, so the tag keeps its width when selected.',
       },
       checkGlyph: {
         kind: 'vector',
