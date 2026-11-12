@@ -1842,7 +1842,7 @@ const takeHeldRestore = (): void => {
   const input = heldRestore;
   if (!input) return;
   heldRestore = null;
-  // MUTATION (#3697 R9): the offer loads nothing.
+  loadBrand(input, { kind: 'file' });
   if (lastError) { restoreFailure = { kind: 'unresolved', reason: lastError, brand: failedBrandOf(brandState) }; build(); }
   syncErrorBar();
 };
