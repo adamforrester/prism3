@@ -27,6 +27,9 @@
  * #3568: the save's call outcome ignored → `R7/bad-failed-save`; comments not blanked before the save search →
  * `R7/bad-commented-save`, `R7/bad-commented-save-same-call`; the first write's own outcome ignored →
  * `R7/bad-failed-save-same-call`; the `//`-after-`:` URL guard dropped → `R7/good-url-before-save`. 184 assertions run.
+ * #3584: the tool-call CLAUDE.md check case-sensitive again → `probe/claude-md-iname`; the user-turn check case-sensitive
+ * again → `probe/claude-md-lower-turn`.
+ * #3584 review: the `skills/` path check case-sensitive again → `probe/skills-path-case` (1 of 187). 187 assertions run.
  * THE PLUGIN IS THE ORACLE for the `args/*` arms (#3469): every command `setupCommands`, `resetCommands` and
  * `captureCommands` send goes through the plugin's own `parseCommand` (and `parseRunCode` for the dev `run-code`),
  * imported from `apps/plugin/src/`, and an arg it refuses, drops or rewrites fails that command's arm by its key.
@@ -874,8 +877,14 @@ console.log('\nthe contamination probe');
     ['slash-commands', [{ ...init, slash_commands: ['review'] }], /slash_commands/],
     ['servers', [{ ...init, mcp_servers: [{ name: 'prism3-figma' }, { name: 'other' }] }], /not only prism3-figma/],
     ['claude-md', [init, { type: 'user', message: { content: [{ type: 'text', text: 'Contents of /x/CLAUDE.md (project instructions)' }] } }], /CLAUDE\.md reached/],
+    // #3584: any case, as #3567 made orchestrate.ts. `find / -iname claude.md` reaches the file too.
+    ['claude-md-iname', [init, { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'find / -iname claude.md' } }] } }], /reached for a CLAUDE\.md \(Bash\)/],
+    ['claude-md-lower-turn', [init, { type: 'user', message: { content: [{ type: 'text', text: 'Contents of /x/claude.md (project instructions)' }] } }], /CLAUDE\.md reached/],
     ['skill-tool', [init, { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Skill', input: { skill: 'prism3-rebind' } }] } }], /Skill tool/],
     ['skills-path', [init, { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Read', input: { file_path: '/repo/skills/prism3-rebind/SKILL.md' } }] } }], /skills\/ path/],
+    // #3584 review: any case, as the code surface's pattern and CLAUDE.md are. The Mac runner's filesystem is
+    // case-insensitive by default, so `Skills/` opens the same file.
+    ['skills-path-case', [init, { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'cat /repo/Skills/prism3-rebind/SKILL.md' } }] } }], /skills\/ path \(Bash\)/],
     ['github', [init, { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'WebFetch', input: { url: 'https://github.com/x/y' } }] } }], /GitHub/],
     ['no-init', [read], /no init/],
     ['own-agent', [{ ...init, agents: [...BUILTIN_AGENTS, 'reviewer'] }], /registered agents: reviewer$/],
