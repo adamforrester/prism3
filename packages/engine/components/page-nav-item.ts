@@ -172,7 +172,7 @@ export const pageNavItem: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'One link in a row of sibling pages: another page, plain until hover, or the current page, marked with a bar and aria-current="page".',
+    primaryPurpose: 'Show one link in a row of sibling pages: another page, plain until hover, or the current page, marked with a bar and aria-current="page".',
     whenToUse: 'Only as a child of PageNav. Generate PageNav, which places one item per sibling page and marks the current one.',
     avoidWhen: 'Anywhere outside PageNav: a link on its own is Link, and a tab that shows a panel in place is Tab.Item inside Tabs.',
     commonPartners: ['page-nav', 'link'],

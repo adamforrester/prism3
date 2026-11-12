@@ -1,6 +1,6 @@
 # Checkbox.Control
 
-> Checkbox box with check/dash glyph and focus ring. Nested by Checkbox.Row; no label.
+> Checkbox box with check/dash glyph and focus ring. Nested by a checkbox row; no label.
 
 - **ID:** `checkbox-control`
 - **Category:** form

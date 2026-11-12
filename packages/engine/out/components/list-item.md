@@ -11,7 +11,7 @@
 
 One item in a List: a marker in a fixed-width column, then short text that wraps under itself rather than under the marker. The marker is a bullet, a number or an icon, and it sits on the first line of the text however many lines the item runs to. The marker column has one width for each type, so the text of every item in a list starts at one edge. Used inside a List; the List sets the type and size of every item it holds.
 
-- **Purpose:** One item inside a List: a marker in a fixed column, then text that wraps under itself.
+- **Purpose:** Hold one item inside a List: a marker in a fixed column, then text that wraps under itself.
 - **Use when:** Only as a child of a List. Generate a List, which places its items and sets their marker type and size.
 - **Avoid when:** Content a writer edits as normal copy (use a native text list in the text itself), a choice the user makes (a listbox), a command (a menu), or a navigation link (a navigation, not built yet).
 
