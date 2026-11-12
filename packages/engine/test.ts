@@ -8345,6 +8345,25 @@ arm: {
   // (c) inset also carries the per-mode overrides (the whole ramp re-derives).
   ok(!!pmTree.shadow.inset.$extensions.prism3.modes.marketing, 'D-shadow(c): the inset shadow carries the per-mode override too');
 
+  // (c2) [#3603] the inner shadow SAYS it is inner, in DTCG's own field, in EVERY mode it ships: the light
+  //      `$value` and each `modes.<mode>.$value` (dark and the light-based marketing here). Without
+  //      `inset: true` a stock consumer (Style Dictionary → `--pds3-shadow-inset`) writes no `inset` keyword
+  //      and draws a drop shadow. The drop shadows must NOT carry it. The Figma half already keyed
+  //      INNER_SHADOW on the step name; the last check holds the two projections to the same answer.
+  {
+    const insetLeaf = pmTree.shadow.inset;
+    const insetSets: [string, any[]][] = [['light', insetLeaf.$value], ...Object.entries(insetLeaf.$extensions.prism3.modes as Record<string, { $value: any[] }>).map(([m, e]) => [m, e.$value] as [string, any[]])];
+    const missing = insetSets.filter(([, ls]) => !ls.length || !ls.every((l) => l.inset === true)).map(([m]) => m);
+    ok(insetSets.length >= 3 && missing.length === 0,
+      `[#3603] shadow.inset carries inset: true on every layer in every mode (${insetSets.map(([m]) => m).join(', ')})` + (missing.length ? ` — MISSING in ${missing.join(', ')}` : ''));
+    const dropsFlagged = Object.entries(pmTree.shadow).filter(([k]) => k !== 'inset').filter(([, leaf]: [string, any]) =>
+      [leaf.$value, ...Object.values(leaf.$extensions.prism3.modes).map((e: any) => e.$value)].some((ls: any[]) => ls.some((l) => 'inset' in l))).map(([k]) => k);
+    ok(dropsFlagged.length === 0, `[#3603] no drop shadow carries an inset field` + (dropsFlagged.length ? ` — got ${dropsFlagged.join(', ')}` : ''));
+    const figInset = buildFigmaShadow(brandTheme(perMode)).styles.filter((st) => st.name.endsWith('/inset'));
+    ok(figInset.length === insetSets.length && figInset.every((st) => st.effects.every((e: any) => e.type === 'INNER_SHADOW')),
+      `[#3603] every Figma inset effect style is INNER_SHADOW, one per DTCG mode (${figInset.length} styles for ${insetSets.length} modes)`);
+  }
+
   // (d) every DTCG alias resolves.
   ok(built.stats.broken.length === 0 && built.stats.aliases > 0, `D-shadow(d): all ${built.stats.aliases} aliases resolve` + (built.stats.broken.length ? ` — BROKEN ${built.stats.broken.slice(0, 3).map((b: any) => b.ref).join(',')}` : ''));
 

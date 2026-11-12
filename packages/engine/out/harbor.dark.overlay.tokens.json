@@ -1532,7 +1532,8 @@
             "offsetX": "0px",
             "offsetY": "2px",
             "blur": "4px",
-            "spread": "0px"
+            "spread": "0px",
+            "inset": true
           }
         ],
         "$description": "shadow inset — inner shadow for wells / pressed states / inputs"
