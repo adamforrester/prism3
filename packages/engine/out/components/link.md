@@ -96,8 +96,8 @@ Descriptive text that stands alone, sentence case. Front-load the words that nam
 ## Related components
 
 - **Built from:** `focus-ring`
-- **Instead, consider:** `button`
-- **Often used with:** `icon`, `text-field`, `breadcrumbs`, `page-nav`
+- **Instead, consider:** `button`, `breadcrumbs`
+- **Often used with:** `icon`, `text-field`, `page-nav`
 - **Replaces:**
   - a click handler on a div or span styled as a link
   - an \<a> with no href, href="#" or javascript:void(0)

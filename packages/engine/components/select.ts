@@ -706,7 +706,7 @@ export const select: ComponentDef = {
   composition: {
     // What the anatomy nests (#1700). The leading glyph and the chevron are partners, not parts.
     composesWith: ['field-label', 'field-message'],
-    alternativeTo: ['text-field', 'radio-group', 'checkbox-group', 'segmented-control'],
+    alternativeTo: ['text-field', 'radio-group', 'checkbox-group', 'segmented-control', 'textarea', 'radio-row', 'tabs', 'counter'],
     replacesPatterns: ['a bare <select> with no label wiring', 'placeholder-as-label'],
     // Nothing supersedes the select — combobox / radio / text-field are sibling alternatives chosen by
     // intent and scale, not replacements.

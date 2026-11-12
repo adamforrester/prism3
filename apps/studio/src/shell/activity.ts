@@ -87,6 +87,8 @@ export const OP_TITLE: Readonly<Record<OpKey, string>> = {
   'apply': 'Theme', components: 'Build set', filesetup: 'Set up file', styleguide: 'Style guides', prune: 'Prune stale', readback: 'Read-back',
   // #2830 Q713 A: Documentation › Specs' Draw specs, a row of its own. DRAFT wording (Q685 A).
   specs: 'Specs',
+  // #3394 Q3394.7 A: the agent link's color overrides, their own row.
+  override: 'Color override',
 };
 /** #3326 PR 2 (Q3326.4 A): each row's title, Update file's run among them (the approved renders' words). */
 export const ROW_TITLE: Readonly<Record<RowKey, string>> = { ...OP_TITLE, update: 'Update file' };

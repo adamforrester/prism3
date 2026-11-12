@@ -1147,6 +1147,12 @@ const goPlace = async (page, place) => {
  *  out on CI (section 24, #3083's merge with #3094). Settled: its choice and row are the same across two frames and one of
  *  the two is drawn. Bounded; on a timeout the caller's own wait names the hook. */
 async function settleModes(page) {
+  // #3668: the header's resize is delivered in the frame after a page opens, and the fit it asks for runs in the frame
+  // after that, so two frames here could both read the old answer and call it settled. Wait until a frame has drawn
+  // since the call (any resize it carried is delivered by then), then for that fit to run (`data-fit-pending` clears).
+  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
+  await page.waitForFunction(() => !document.querySelector('[data-p3="mode-control"]')?.parentElement?.hasAttribute('data-fit-pending'),
+    null, { polling: 'raf', timeout: 5000 }).catch(() => {});
   for (let i = 0; i < 25; i++) {
     const still = await page.evaluate(() => new Promise((done) => {
       const w = document.querySelector('[data-p3="mode-control"]')?.parentElement;
@@ -1159,11 +1165,23 @@ async function settleModes(page) {
     if (still) return;
   }
 }
+/** #3700: the guard for a step that acts on the mode control. Such a step picks a radio or the select by what is on
+ *  screen, so it must look only after the header's fit has run: `settleModes` first, then this, then the look. With
+ *  `data-fit-pending` still set, the step would act on the answer the fit is about to replace (S7 Shape edits went
+ *  from Brand, on the select, to Shape, where the radios fit, and `selectOption` then waited 30 s on a hidden select).
+ *  So it fails here by name, with the mode and the page. Read off the page, independent of the settle it guards.
+ *  Its mutation, and the case that holds the fit back so the mutation fails every run, are section 24's (#3700). */
+async function modeLook(page, mode) {
+  const s = await page.evaluate(() => ({ pending: !!document.querySelector('[data-p3="mode-control"]')?.parentElement?.hasAttribute('data-fit-pending'),
+    place: document.querySelector('[data-p3="frame"]')?.dataset.place ?? null }));
+  ok(!s.pending, `#3700: choosing ${mode} on ${s.place}, the mode control is read only once the preview header's fit has run${s.pending ? ' — data-fit-pending was still set' : ''}`);
+}
 /** Choose a mode in the preview header by whichever control represents it: its radio, or, where the modes do not all
  *  fit, the select of the same modes (both are the mode choice, PREVIEW_HEAD_ALL). #2909: the plugin's preview header is
  *  narrower by the rail and holds Contrast, so at 1280 it can show the select where the web shows radios. */
 async function pickMode(page, mode) {
   await settleModes(page);
+  await modeLook(page, mode);
   if (await page.locator('[data-p3="mode-select"]').isVisible()) await page.locator('[data-p3="mode-select"]').selectOption(mode);
   else await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
   await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true'
@@ -2955,6 +2973,9 @@ for (const theme of ['light', 'dark']) {
   const mp = await measure(page, `${where} / preview header`, 'web', 1280);
   check(mp, `${where} / preview header`, 'web wide', PLACE_FLOOR);
   if (SHOTS) await page.screenshot({ path: join(SHOTS, `s13-studio-${theme}-1280-mode-control.png`) });
+  // #3700: each step on the mode control waits for its fit first (`modeLook`).
+  await settleModes(page);
+  await modeLook(page, 'dark');
   await hooks.click(page.locator('[data-p3="mode-option"][data-mode="dark"]'));
   const a = await modeState(page);
   ok(a.radios.find((r) => r.mode === 'dark')?.checked === 'true', `${where}: choosing Dark in the mode control checks it`);
@@ -2964,11 +2985,15 @@ for (const theme of ['light', 'dark']) {
   // The mode chosen on one page is the mode every page that previews modes draws in: HC light, chosen on Brand, holds on
   // Surfaces & fills. (Palettes always shows Light, PM1 B; section 36. Components shows none, #3129 R4.)
   await goPlace(page, 'brand');
+  await settleModes(page);
+  await modeLook(page, 'hc-light');
   await hooks.click(page.locator('[data-p3="mode-option"][data-mode="hc-light"]'));
   await goPlace(page, 'color-fills');
   const b = await modeState(page);
   ok(b.radios.find((r) => r.mode === 'hc-light')?.checked === 'true', `${where}: HC light, chosen on Brand, is the mode Surfaces & fills shows (${b.radios.filter((r) => r.checked === 'true').map((r) => r.mode)})`);
   // Arrow keys move along the radios and choose as they go.
+  await settleModes(page);
+  await modeLook(page, 'hc-dark');
   await page.locator('[data-p3="mode-option"][data-mode="hc-light"]').focus();
   await page.keyboard.press('ArrowRight');
   const c = await modeState(page);
@@ -4903,7 +4928,9 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   // the mode nor the preview's scroll.
   const before = await toBottom();
   // #2909 Q2909.9 A: at 1280 the web's header may show the select (Contrast beside the rail); a click reaches whichever
-  // the header draws, and a held select takes none, as the held radios do.
+  // the header draws, and a held select takes none, as the held radios do. #3700: read once the fit has run.
+  await settleModes(page);
+  await modeLook(page, 'dark');
   await page.evaluate(() => { const r = document.querySelector('[data-p3="mode-option"][data-mode="dark"]'); if (r?.getClientRects().length) r.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     else document.querySelector('[data-p3="mode-select"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
   const held = await page.evaluate(() => document.querySelector('[data-p3="mode-option"][aria-checked="true"]')?.dataset.mode);
@@ -5142,6 +5169,7 @@ const choosable = (page) => page.evaluate(() => {
  *  has settled (the select shown, or radios with none clipped), a frame apart, for at most 2 s; a control that
  *  never settles is still read and reported as it stands. */
 const settled = async (page) => {
+  await settleModes(page); // #3700: past any fit still owed, then read until settled as before.
   for (const end = Date.now() + 2000; Date.now() < end;) {
     const c = await choosable(page);
     if (c.select || (c.radios > 0 && c.clipped.length === 0)) return c;
@@ -5173,6 +5201,7 @@ for (const { w, h } of WIDTHS) {
       const where = `web light ${w} / brand, ${want.length} modes`;
       ok(c.clipped.length === 0 && JSON.stringify(c.modes) === JSON.stringify(want), `${where}: every mode is choosable in the preview header, none clipped — ${JSON.stringify(c)}`);
       if (c.select) {
+        await modeLook(page, `custom-${n}`);
         await page.locator('[data-p3="mode-select"]').selectOption(`custom-${n}`);
         const now = await choosable(page);
         ok(now.selected === `custom-${n}`, `${where}: choosing custom-${n} in the select previews it (${now.selected})`);
@@ -5877,8 +5906,10 @@ const VISIBLE_WORDS = () => {
 /** Show `mode` in the preview: its radio, or the select when the radios do not all fit. */
 const showMode = async (page, mode) => {
   // The control measures whether its radios fit once it is drawn (#2909: the rail narrows the plugin's preview, so at 380
-  // they can be drawn and then give way to the select): read that after it settles, as `roShowMode` does.
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  // they can be drawn and then give way to the select): read that after it settles, as `roShowMode` does. #3700: by
+  // `settleModes`, not two frames, which can both land before a resize's fit.
+  await settleModes(page);
+  await modeLook(page, mode);
   const radio = page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`);
   if (await radio.count() && await radio.first().isVisible()) await hooks.click(radio.first());
   else await page.locator('[data-p3="mode-select"]').selectOption(mode);
@@ -7112,6 +7143,10 @@ const EVERY_SET = 'Every button set is shown, including ones you added.';
 const ADD_SET_HINT = 'Add a brand color on Palettes to use it for another button set.';
 /** Every mode on the page by its picker: a radio where they fit, else the select of the same modes. */
 const chooseAnyMode = async (page, mode) => {
+  // #3668: look only once the fit has settled. Looking first found the radio drawn, and the fit that ran a frame later
+  // hid it for the select, so the click waited for a radio that never came back (section 26, Components to Brand).
+  await settleModes(page);
+  await modeLook(page, mode);
   const radio = page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`);
   if (await radio.count() && await radio.isVisible()) await hooks.click(radio);
   else await page.locator('[data-p3="mode-select"]').selectOption(mode);
@@ -9296,6 +9331,7 @@ const openDepth = async (page) => {
 /** Choose a mode in the preview header: its radio, or, where the modes do not all fit, the select of the same modes. */
 const chooseModeAny = async (page, mode) => {
   await settleModes(page);
+  await modeLook(page, mode);
   if (await page.locator('[data-p3="mode-select"]').isVisible()) await page.locator('[data-p3="mode-select"]').selectOption(mode);
   else await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
   await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true'
@@ -9972,7 +10008,8 @@ const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-base-md'];
 /** The preview's sections, in order (D1 A). Literal. */
 const EXPECT_SHAPE_SPECIMENS = ['Density', 'Radius', 'Spacing', 'Building blocks'];
 /** Q23: each lever section, in order, and the preview section it pairs with (Base radius with Radius, D1 A). */
-const SHAPE_PAIRS = [['Density', 'Density'], ['Radius', 'Radius'], ['Base radius', 'Radius']];
+/** #3553 Q-UI14 A: Base radius is drawn inside Radius, behind that card's Show advanced, so it is no lever section of its own. */
+const SHAPE_PAIRS = [['Density', 'Density'], ['Radius', 'Radius']];
 /** The approved copy (owner, 2026-10-04), verbatim. */
 const SHAPE_COPY = {
   intro: 'Control heights and corners. Padding is set per component.',
@@ -10231,6 +10268,43 @@ for (const host of ['web', 'figma']) {
     if (!e?.reported) ok(false, `S7 Shape edits: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+// #3700: a mode chosen while the header's fit is still owed. S7 Shape edits goes from Brand, where five modes put the
+// select in the header at 1280, to Shape, where the radios fit, and chooses the custom mode at once. On CI the choice
+// could land before the fit: it read the select, the fit then hid it, and `selectOption` waited 30 s. Natural speed
+// hits that window only some of the time, so here every frame is slowed 600 ms from Brand on, which holds the fit
+// back (`data-fit-pending` set) when Shape opens, every run. EXPECTED: the window is there (the first check, so a
+// change that closes it is said, not passed), and `chooseAnyMode` still checks the custom mode's radio, since it
+// settles first. ACTUAL: the drawn control.
+// MUTATION (after a `wip:` commit): `chooseAnyMode`'s `settleModes` call removed → `#3700: choosing custom-1 on shape,
+// the mode control is read only once the preview header's fit has run — data-fit-pending was still set` and `#3700 web
+// light 1280, Brand to Shape with the fit owed: the custom mode is chosen by its radio once the fit has run — fit select,
+// checked custom-1`, 3 runs of 3. (At natural speed the same mutation failed S7 Shape edits in 2 runs of 3, once with
+// the issue's `selectOption` timeout: the reason for holding the fit back here.)
+{
+  const where = '#3700 web light 1280, Brand to Shape with the fit owed';
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'brand');
+    await hooks.click(page.locator('[data-p3="custom-mode-add"]'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="custom-1"]'));
+    await settleModes(page);
+    await page.evaluate(() => {
+      const raf = window.requestAnimationFrame.bind(window);
+      window.requestAnimationFrame = (cb) => setTimeout(() => raf(cb), 600);
+      window.cancelAnimationFrame = (id) => clearTimeout(id);
+    });
+    await goPlace(page, 'shape');
+    const owed = await page.evaluate(() => { const w = document.querySelector('[data-p3="mode-control"]')?.parentElement; return { fit: w?.dataset.fit ?? null, pending: !!w?.hasAttribute('data-fit-pending') }; });
+    ok(owed.fit === 'select' && owed.pending, `${where}: Shape opens with Brand's select still shown and its fit still owed — fit ${owed.fit}, data-fit-pending ${owed.pending}`);
+    await chooseAnyMode(page, 'custom-1');
+    const now = await page.evaluate(() => { const w = document.querySelector('[data-p3="mode-control"]')?.parentElement;
+      return { fit: w?.dataset.fit ?? null, checked: document.querySelector('[data-p3="mode-option"][aria-checked="true"]')?.dataset.mode ?? null }; });
+    ok(now.fit === 'radios' && now.checked === 'custom-1', `${where}: the custom mode is chosen by its radio once the fit has run — fit ${now.fit}, checked ${now.checked}`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    if (!e?.reported) ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
 // Q59: in each derived mode every control on Shape is disabled, the advanced one included, under the derived line, and
 // the preview is still drawn. Enumerated from the DOM: every button and input in a lever section but the info toggletips
 // and the way to Components (it only navigates).
@@ -10248,7 +10322,8 @@ for (const host of ['web', 'figma']) {
       const d = await page.evaluate(() => {
         const pane = document.querySelector('[data-p3="levers-pane"]');
         // #2909: Control shape's line only navigates too (its home is Components), so it stays live, as the way to Components does.
-        const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"], [data-p3="shape-see-components"], [data-p3="shape-control-shape-link"]'));
+        // #3553 Q-UI14 A: Show advanced sits in Radius now, and stays live as a disclosure (`STAYS_LIVE`), as Depth & motion's does.
+        const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"], [data-p3="shape-see-components"], [data-p3="shape-control-shape-link"], [data-p3="shape-advanced"]'));
         return { n: ctls.length, enabled: ctls.filter((n) => !n.matches(':disabled')).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
           line: document.querySelector('[data-p3="levers-derived-note"]')?.textContent ?? null,
           preview: [...document.querySelectorAll('[data-p3="shape-style-guide"] .psec-t')].map((t) => t.textContent),
@@ -13328,8 +13403,9 @@ const EXPECT_HEADINGS = {
     TH: ['Family', 'Text type', 'Text type', 'Line height', 'Letter spacing', 'Desktop', 'Mobile'],
   },
   shape: {
-    L1: ['Density', 'Radius', 'Base radius'],
-    L2: ['Radius softness', 'Control shape'],
+    // #3553 Q-UI14 A: Base radius sits in Radius, behind its Show advanced, a lever at L2 as Shadow tint is in Elevation.
+    L1: ['Density', 'Radius'],
+    L2: ['Radius softness', 'Control shape', 'Base radius'],
   },
   depth: {
     L1: ['Elevation', 'Motion'],
@@ -13432,7 +13508,7 @@ const PROMOTED = {
   },
   shape: {
     Density: 'Sets every control height, and moves each component’s padding and gaps one step on the spacing scale.',
-    'Base radius': 'The medium radius at standard softness, from 2 to 12px. Every other radius size is a multiple of it.',
+    // #3553 Q-UI14 A: Base radius is no section of its own any more; it is a lever in Radius, under its own name and ⓘ.
   },
   layout: { Breakpoints: manifest.levers.find((l) => l.key === 'layout.breakpoints')?.description },
 };
@@ -15089,7 +15165,9 @@ const roShowMode = async (page, mode) => {
   const narrow = await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
   if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
   // The control measures whether its radios fit once it is drawn (radios, or a select); read that after it settles.
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  // #3700: by `settleModes`, not two frames, which can both land before a resize's fit.
+  await settleModes(page);
+  await modeLook(page, mode);
   const radios = await page.evaluate(() => document.querySelector('[data-p3="mode-control"]')?.parentElement?.dataset.fit === 'radios');
   if (radios) await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`).first());
   else await page.locator('[data-p3="mode-select"]').selectOption(mode);
@@ -21623,6 +21701,71 @@ if (runs('3553-me')) {
     } finally { await ctx.close(); }
   }
 } // 3553-me
+// #3553 Q-UI12 AND Q-UI14 (the owner's A on each): BRAND'S STYLE GUIDE SECTIONS AND SHOW ADVANCED. Q-UI12: Brand's Style
+// guide drew its sections white, so previewing Dark showed the dark sample in a stray white panel in the dark chrome;
+// they now take Q24's levers gray (`p3-sgsec`), as every other preview's sections do, the card still pinned light.
+// Held: each Brand section's ground is the ground Surfaces & fills' sections are drawn on, read from that page (another
+// renderer). Q-UI14: Shape's Show advanced sat below the cards at page level while Depth & motion's sits in Elevation;
+// both now sit in the card they belong to, Base radius in Radius. Held: each Show advanced, closed and open, is inside
+// its card, and Base radius opens there. Both hosts, both themes, at 1280 and 380. MUTATIONS (each after a `wip:`
+// commit): the `p3-sgsec` loop dropped from `preview/brand.ts` → `#3553 Q-UI12 … Brand's style guide sections take the
+// levers gray`; Shape's fold put back at page level (`unhosted = adv`) → `#3553 Q-UI14 … Show advanced sits in its card`.
+if (runs('3553-cards')) {
+  console.log(`\nBrand's style guide sections and Show advanced (#3553 Q-UI12, Q-UI14)\n${'='.repeat(78)}`);
+  for (const host of ['web', 'figma']) for (const [w, h] of [[1280, 900], [380, 420]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-cards ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    let step = 'surfaces';
+    try {
+      if (w === 1280) {
+        await goPlace(page, 'color-fills');
+        await hooks.need(page, '.p3-sgsec');
+        const want = await page.evaluate(() => getComputedStyle(document.querySelector('.p3-sgsec')).backgroundColor);
+        step = 'brand';
+        await goPlace(page, 'brand');
+        await hooks.need(page, '[data-p3="brand-style-guide"] .psec');
+        await pickMode(page, 'dark');
+        await settle(page);
+        const got = await page.evaluate(() => [...document.querySelectorAll('[data-p3="brand-style-guide"] > .psec')].map((n) => getComputedStyle(n).backgroundColor));
+        ok(got.length > 0 && got.every((c) => c === want), `#3553 Q-UI12 ${where}: Brand's style guide sections take the levers gray Surfaces & fills' sections are drawn on (${want}), previewing Dark (read ${JSON.stringify([...new Set(got)])})`);
+        if (SHOTS && theme === 'dark' && host === 'web') await page.screenshot({ path: join(SHOTS, `s3553-cards-${host}-brand-dark.png`) });
+        await pickMode(page, 'light');
+      }
+      for (const [place, fold, card, inner] of [['shape', 'shape-advanced', 'Radius', 'base-radius-pick'], ['depth', 'depth-tint-advanced', 'Elevation', 'shadow-tint-hue']]) {
+        step = place;
+        await goPlace(page, place);
+        await hooks.need(page, `[data-p3="${fold}"]`);
+        const inCard = (sel) => page.evaluate((q) => {
+          const n = document.querySelector(q);
+          return n?.closest('.p3-lsec')?.querySelector(':scope > .p3-lsec-head .p3-lsec-title')?.textContent ?? null;
+        }, sel);
+        const closed = await inCard(`[data-p3="${fold}"]`);
+        if ((await page.locator(`[data-p3="${fold}"]`).getAttribute('aria-expanded')) !== 'true') await hooks.click(page.locator(`[data-p3="${fold}"]`));
+        await hooks.need(page, `[data-p3="${inner}"]`);
+        const open = await inCard(`[data-p3="${inner}"]`);
+        ok(closed === card && open === card, `#3553 Q-UI14 ${where} ${place}: Show advanced sits in its card, ${card}, and opens there (button in ${JSON.stringify(closed)}, opened lever in ${JSON.stringify(open)})`);
+        // Moving Base radius out of its own section moved its approved words with it (review of #3646): the line under
+        // the lever and its ⓘ, typed here as the owner approved them (BG1 A's PROMOTED entry held the ⓘ before Q-UI14),
+        // as D8 A holds Shadow tint's line inside Elevation.
+        if (place === 'shape') {
+          const words = await page.evaluate(() => {
+            const lv = document.querySelector('[data-p3="base-radius-pick"]')?.closest('.p3-lever');
+            const btn = lv?.querySelector('.p3-lever-head [aria-describedby], .p3-lever-head [aria-controls]');
+            const tipId = btn?.getAttribute('aria-describedby') ?? btn?.getAttribute('aria-controls');
+            return { line: lv?.querySelector('.p3-lever-ctl')?.textContent ?? null, tip: (tipId && document.getElementById(tipId)?.textContent) || lv?.querySelector(':scope > [id^="p3-tip-"]')?.textContent || null };
+          });
+          const LINE = 'The medium radius at standard softness. Every other radius size is a multiple of it.';
+          const TIP = 'The medium radius at standard softness, from 2 to 12px. Every other radius size is a multiple of it.';
+          ok(!!words.line?.includes(LINE) && !!words.tip?.includes(TIP), `#3553 Q-UI14 ${where} shape: Base radius, opened in Radius, carries its approved line and its ⓘ (line ${JSON.stringify(words.line?.slice(0, 90))}, ⓘ ${JSON.stringify(words.tip?.slice(0, 110))})`);
+        }
+        await hooks.click(page.locator(`[data-p3="${fold}"]`));
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-cards
 // #3553 Q-UI9, Q-UI10 AND Q-UI13 (the owner's A on each): PLACE NAMES, THE AGENT LABEL AND THE RAIL'S TOOLTIPS. Q-UI9: the
 // rail read "Docs" while the area's name, tooltip and title read "Documentation", which does not fit the rail's tile, so
 // the area is "Docs" throughout; Shape's preview is titled "Shape", not "Size & shape". Q-UI10: at 380 the Agent switch

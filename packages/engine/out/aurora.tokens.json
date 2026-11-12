@@ -21792,7 +21792,8 @@
             "offsetX": "0px",
             "offsetY": "2px",
             "blur": "5px",
-            "spread": "0px"
+            "spread": "0px",
+            "inset": true
           }
         ],
         "$description": "shadow inset — inner shadow for wells / pressed states / inputs",
@@ -21809,7 +21810,8 @@
                     "offsetX": "0px",
                     "offsetY": "2px",
                     "blur": "5px",
-                    "spread": "0px"
+                    "spread": "0px",
+                    "inset": true
                   }
                 ]
               }

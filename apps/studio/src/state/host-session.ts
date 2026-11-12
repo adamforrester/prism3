@@ -47,7 +47,7 @@ export type SgRunTable = { readonly key: string; readonly title: string; readonl
 export type DetailKey = 'apply' | 'components' | 'filesetup' | 'styleguide';
 /** The operations the Activity drawer shows (UI redesign S11): the four writes with a verdict slot, the
  *  prune, the boot read-back, and Draw specs (#2830, owner decision Q713 A: a row of its own, like Style guides). */
-export type OpKey = DetailKey | 'prune' | 'readback' | 'specs';
+export type OpKey = DetailKey | 'prune' | 'readback' | 'specs' | 'override';
 /** The operation an agent command runs, by the command's name. `status` writes nothing and posts no
  *  verdict, so it has none. Keyed by the plugin's `AgentCmd` names, which arrive as strings. */
 export const AGENT_OP: Readonly<Record<string, OpKey>> = {
@@ -58,11 +58,13 @@ export const AGENT_OP: Readonly<Record<string, OpKey>> = {
   'update-components': 'components', 'capture-baseline': 'components', 'adopt-members': 'components',
   // #2830 Q713 A: Draw specs is its own row. It holds the build's guard (`run-guard.ts`), so a refusal names the build.
   'draw-specs': 'specs',
+  // #3394 Q3394.7 A: the agent link's color overrides, a row of their own. Only the agent link sends them.
+  'set-override': 'override',
 };
 /** Which operation's verdict a host message is. */
 const VERDICT_OP: Partial<Record<HostMessage['kind'], OpKey>> = {
   'apply-result': 'apply', 'component-result': 'components', 'component-update-result': 'components', 'file-setup-result': 'filesetup', 'style-guide-result': 'styleguide',
-  'prune-result': 'prune', 'seed-info': 'readback',
+  'prune-result': 'prune', 'seed-info': 'readback', 'override-result': 'override',
 };
 
 /** Every host-fed slot, one per fact: the host sends one kind per fact, and the UI keeps a slot per
@@ -130,6 +132,9 @@ export interface HostSession {
    *  The panel posts no other components write while it is pending (`componentBusy`), so the next one is its own.
    *  An agent's `draw-specs` verdict lands here too, as an agent's style guide lands in `styleGuideState`. */
   readonly specsState: ActionState;
+  /** #3394: the agent link's last `set-override` write this session: its verdict. A preview leaves it. Never `pending`: the
+   *  panel sends none, and an agent's running row is `agentRun`'s. */
+  readonly overrideState: ActionState;
   /** The state of the file-setup scaffold (#1558) — same shape, its own slot, for the same reason
    *  `componentState` is separate from `applyState`: three actions, three buttons, three verdicts. A
    *  file-setup verdict cannot report into the theme or component write's pill without claiming something
@@ -281,6 +286,7 @@ export const initialHostSession = (): HostSession => ({
   componentUpdate: null,
   componentLatest: null,
   specsState: null,
+  overrideState: null,
   fileSetupState: null,
   styleGuideState: null,
   componentProgress: null,
@@ -324,6 +330,7 @@ const unpend = (op: OpKey, s: HostSession): Partial<HostSession> => {
     case 'readback': return {};
     // A refusal names the build's guard, never Specs; a declined Draw specs gets its result in `refused` itself.
     case 'specs': return {};
+    case 'override': return {};
   }
 };
 
@@ -383,7 +390,8 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       // The panel's own request, declined behind an agent's run: it posted, set `pending`, and will get no
       // verdict. A panel request declined behind the panel's own run leaves `pending` to that run's verdict.
       // An agent's Draw specs holds the build's guard, so it declines the panel's components request too.
-      const holds = s.agentRun?.op === 'specs' ? 'components' : s.agentRun?.op;
+      // #3394: an agent's confirmed set-override writes through Theme's guard, so it declines the panel's Apply too.
+      const holds = s.agentRun?.op === 'specs' ? 'components' : s.agentRun?.op === 'override' ? 'apply' : s.agentRun?.op;
       if (m.agent || holds !== op) return next;
       return { ...next, ...unpend(op, s) };
     }
@@ -410,6 +418,10 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
         return { ...s, specsState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines, causes: m.causes } };
       // The build's slot, its progress and its set record are left alone: a check is not a build.
       return { ...s, componentUpdate: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines, publish: m.publish, causes: m.causes }, componentLatest: 'update' };
+    case 'override-result':
+      // A preview writes nothing and is not an Activity run (#3394): it settles the agent's run and fills no slot.
+      if (m.preview) return s;
+      return { ...s, overrideState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines } };
     case 'file-setup-result':
       return { ...s, fileSetupState: { ok: m.ok, headline: m.headline, summary: m.summary }, openDetail: m.ok ? null : 'filesetup' };
     case 'style-guide-result': {
@@ -542,6 +554,7 @@ export const topicsFor = (m: HostMessage, prev: HostSession, next: HostSession):
     // The drawer's row, and the Build control, which an agent's check held busy until its verdict.
     case 'component-update-result': return ['host', 'host:components'];
     case 'file-setup-result': return ['host', 'host:detail', 'host:filesetup'];
+    case 'override-result': return ['host'];
     case 'style-guide-result': return ['host', 'host:detail', 'host:styleguide'];
     case 'component-progress': return next === prev ? [] : ['host:progress'];
     case 'style-guide-progress': return next === prev ? [] : ['host:progress'];

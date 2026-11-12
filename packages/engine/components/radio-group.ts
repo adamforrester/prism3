@@ -403,7 +403,7 @@ export const radioGroup: ComponentDef = {
     // WHAT THIS DEF NESTS, and only that (#1698, the #1700 rule): the label, the rows and, since owner Q354
     // (#2751), the error message under them.
     composesWith: ['radio-row', 'field-label', 'field-message'],
-    alternativeTo: ['checkbox-group', 'select', 'switch-row', 'segmented-control'],
+    alternativeTo: ['checkbox-group', 'select', 'switch-row', 'segmented-control', 'tag', 'slider'],
     replacesPatterns: [
       'a bare set of <input type="radio"> with no shared label or group wiring',
       'a set of checkboxes misused for a mutually exclusive choice',

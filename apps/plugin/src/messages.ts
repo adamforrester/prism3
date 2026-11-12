@@ -383,6 +383,11 @@ export type MainToUi =
      *  name someone else holds) made the collisions listed. The panel posts them back with the new choices, so it never
      *  asks the earlier list again. Absent when the apply used none. */
     chosen?: Record<string, 'skip' | 'rename'> }
+  /** #3394: the agent link's `set-override`. `preview`: a `confirm: false` call, which writes nothing (`ok` when no change is
+   *  refused). Otherwise a write, `applied` when the Theme write ran and stored the brand. Its own kind and its own Activity
+   *  row, "Color override" (Q3394.7 A), never Theme's `apply-result`. `lines`: one per change, before → after, or one per
+   *  refusal. */
+  | { type: 'override-result'; ok: boolean; preview: boolean; applied: boolean; headline: string; summary: string; lines: string[] }
   /** Result of a `build-components` write (#483) — the same `{ok, headline, summary}` shape as
    *  `apply-result`, and a DISTINCT variant for the same reason `seed-info` is: one kind per fact.
    *

@@ -77,7 +77,8 @@ import { listFamilyStyleNames } from './list-fonts';
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
 import { verifyReadback } from '@prism3/engine/read-back';
-import { restoreInput } from './persist-figma';
+import { restoreInput, holdsInput, canon } from './persist-figma';
+import { planOverride, overrideVerdict, overrideData, wholeRunRefusal, type OverrideChange, type OverrideRefusal } from './set-override';
 import { declaredModesOf, failedChecks, seedSummary } from './seed-modes';
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
@@ -2279,6 +2280,68 @@ const panelsClean = async (confirm: boolean, sink: ActionSink): Promise<void> =>
   }
 };
 
+/**
+ * #3394 (Q3394.1–.7 all A): THE AGENT LINK'S COLOR OVERRIDES. A preview plans the changes against the brand the file holds
+ * and writes nothing. A confirmed write plans them again, refuses when the plan's hash is not the preview's (the file's
+ * brand moved) or when the panel holds Theme edits the file does not, and then hands the planned brand to
+ * `ACTIONS.applyTheme`, the entry the panel's Apply reaches (so its guard, its saved version and its persist are the
+ * Theme write's own). Its verdict is its own, `override-result`, one Activity row (Q3394.7 A); the Theme write's verdict
+ * is read here and not posted. After a write the panel is sent the brand, so Theme shows what the agent stored.
+ */
+/** The brand the panel last asked the badge's recount or the checklist about: the brand on its screen (#3081). */
+let panelInput: BrandInput | null = null;
+const setOverride = async (changes: readonly OverrideChange[], previewHash: string | null, sink: ActionSink): Promise<void> => {
+  const applied = previewHash !== null;
+  const refused = (r: OverrideRefusal, extra: Record<string, unknown> = {}): void => {
+    sink.data({ refusals: [r], ...extra });
+    sink.post({ type: 'override-result', ok: false, preview: !applied, applied: false, headline: r.line, summary: r.line, lines: [r.line] });
+  };
+  let stored: BrandInput | null;
+  try { stored = restoreInput(figma.root); } catch { refused(wholeRunRefusal('unreadable-brand')); return; }
+  if (!stored) { refused(wholeRunRefusal('no-brand')); return; }
+  // A stored brand the engine refuses to build is one this build can't read, as far as an override is concerned.
+  let plan: ReturnType<typeof planOverride>;
+  try { plan = planOverride(stored, changes); } catch (e) { refused(wholeRunRefusal('unreadable-brand'), { error: (e as Error)?.message ?? String(e) }); return; }
+  if (!plan.ok || !applied) {
+    sink.data(overrideData(plan));
+    const v = overrideVerdict(plan, false);
+    sink.post({ type: 'override-result', ok: v.ok, preview: !applied, applied: false, headline: v.headline, summary: v.lines.join('; '), lines: v.lines });
+    return;
+  }
+  if (plan.previewHash !== previewHash) { refused(wholeRunRefusal('brand-moved'), { previewHash: plan.previewHash }); return; }
+  if (panelInput && !holdsInput(figma.root, panelInput)) { refused(wholeRunRefusal('theme-unsaved')); return; }
+  // The Theme write, through the table: the same function object the panel's Apply reaches, read at call time.
+  const posts: MainToUi[] = [];
+  const inner: ActionSink = { post: (m) => { posts.push(m); }, data: (d) => { sink.data({ theme: d }); } };
+  // The panel's brand as the write starts: an edit the designer makes while it runs must not be reloaded over.
+  const asked = panelInput ? canon(panelInput) : null;
+  let threw: string | null = null;
+  try { await ACTIONS.applyTheme(plan.input, undefined, inner); } catch (e) { threw = (e as Error)?.message ?? String(e); }
+  const busy = posts.find((m) => m.type === 'refused');
+  if (busy) { sink.post(busy); return; }
+  sink.data(overrideData(plan));
+  // The Theme write stores the brand once its variables are written, misses or not, so the panel is sent what the file
+  // holds, unless the panel's brand moved while it ran: then the panel keeps its edits, and Theme counts as due.
+  if (holdsInput(figma.root, plan.input) && (panelInput ? canon(panelInput) : null) === asked) {
+    panelInput = plan.input;
+    postToUi({ type: 'restore-input', input: plan.input });
+  }
+  if (threw !== null) {
+    const failure = `write failed: ${threw}`;
+    sink.post({ type: 'override-result', ok: false, preview: false, applied: holdsInput(figma.root, plan.input), headline: APPLY_FAILED_HEADLINE, summary: failure, lines: [failure] });
+    return;
+  }
+  const res = posts.find((m): m is Extract<MainToUi, { type: 'apply-result' }> => m.type === 'apply-result');
+  if (!res || !res.ok) {
+    // The Theme write's own words: it refused, failed or missed, and the brand it stores is only stored when it ran.
+    const headline = res?.headline ?? APPLY_FAILED_HEADLINE;
+    sink.post({ type: 'override-result', ok: false, preview: false, applied: holdsInput(figma.root, plan.input), headline, summary: res?.summary ?? headline, lines: res?.lines ?? [headline] });
+    return;
+  }
+  const v = overrideVerdict(plan, true);
+  sink.post({ type: 'override-result', ok: true, preview: false, applied: true, headline: v.headline, summary: v.lines.join('; '), lines: v.lines });
+};
+
 export const ACTIONS: AgentActions = {
   applyTheme: guarded('apply-theme', thenRestamp(applyTheme)),
   buildComponents: guarded('build-components', thenRestamp(buildComponents)),
@@ -2291,6 +2354,8 @@ export const ACTIONS: AgentActions = {
   adoptMembers: guarded('build-components', adoptMembers),
   drawSpecs: guarded('build-components', drawSpecs),
   panelsClean: guarded('prune', panelsClean, (confirm) => confirm),
+  // Not `guarded`: its write is `applyTheme`'s, which is.
+  setOverride,
 };
 
 /**
@@ -2313,6 +2378,8 @@ const dispatch = createDispatcher({
   refuse: (c) => {
     const held = guardFor(c.cmd);
     if (!held || !writes(held, c.cmd === 'prune' ? c.args.confirm : c.cmd === 'panels-clean' ? c.args.confirm === true : undefined) || !guard.busy(held)) return null;
+    // #3394: a `set-override` preview reads and writes nothing, so it is never declined.
+    if (c.cmd === 'set-override' && !c.args.confirm) return null;
     return { message: busyMessage(held), post: refusal(held, true) };
   },
   // The panel's pills show an agent's result as they would a button's. An agent's prune PREVIEW goes as a
@@ -2434,10 +2501,12 @@ onUiMessage((msg: UiToMain) => {
     case 'file-sets-request':
       // #2909: Update file's checklist — which sets the file holds, whether it is set up, and what is due. A read: never
       // guarded.
+      if (msg.input) panelInput = msg.input;   // #3394: the brand on the panel's screen
       void fileSets(msg.input);
       return;
     case 'due-request':
       // #3081 Q810 A: the badge's live recount, against the brand the panel holds. A read: never guarded.
+      if (msg.input) panelInput = msg.input;   // #3394: the brand on the panel's screen
       void fileDue(msg.input, msg.seq);
       return;
     case 'add-queue':

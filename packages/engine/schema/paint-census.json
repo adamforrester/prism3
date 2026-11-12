@@ -569,12 +569,12 @@
       "set": {
         "members": 10,
         "assignments": 2,
-        "sha256": "c24044ad2abdc33df23750eab33413b8195e68b60ab01c6423b9e69e310bc087"
+        "sha256": "e13f10e623f99e58095f0ab3aa3c071ade61feb3cda2a16698f1c518705840b4"
       },
       "grid": {
         "members": 10,
         "assignments": 2,
-        "sha256": "9e0ef9db6ebdf4a4510225d6e95d19dc0580b712aa014dc453fad7adf511c7e6"
+        "sha256": "a62a702dc55d011becc3851766f1e9fb0b63d0c823472b17e4d9149f2125fdec"
       }
     },
     "breadcrumbs": {
@@ -699,14 +699,14 @@
     },
     "code-input-cell": {
       "set": {
-        "members": 28,
-        "assignments": 72,
-        "sha256": "60d58fe0826fe5e39fc639c13b2f1511a6dc38173e08a673efb06a4edcb60636"
+        "members": 48,
+        "assignments": 120,
+        "sha256": "db9b1ceb24c230ce523ee5f1f5c83078c3330377d409a309e5b8d7f9d3e7d9d5"
       },
       "grid": {
-        "members": 28,
-        "assignments": 72,
-        "sha256": "27e742171eef6fc7684c2c7e6416e752fedf8b849265e257836eaf8c49bdb1f9"
+        "members": 48,
+        "assignments": 120,
+        "sha256": "6405ac4cbd6423f61a17600bc5d138623f77f007a41436209574c722bdd0f13b"
       }
     },
     "code-input": {

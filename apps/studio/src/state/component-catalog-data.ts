@@ -1544,7 +1544,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "pagination-item",
     "name": "Pagination.Item",
     "category": "navigation",
-    "summary": "A pagination cell: a page, the gap marker, previous or next. The current page is outlined.",
+    "summary": "A pagination cell: a page, the gap marker, previous or next. The current page is marked.",
     "unit": "variants",
     "spacing": [],
     "page": "Pagination",
@@ -1778,7 +1778,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 28,
+    "members": 48,
     "nests": []
   },
   {

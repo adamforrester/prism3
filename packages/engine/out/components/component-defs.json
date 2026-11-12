@@ -7,7 +7,7 @@
   "brand": null,
   "components": {
     "icon": {
-      "digest": "e51a1a9e",
+      "digest": "07b2eaef",
       "def": {
         "id": "icon",
         "name": "Icon",
@@ -245,7 +245,9 @@
         },
         "composition": {
           "composesWith": [],
-          "alternativeTo": [],
+          "alternativeTo": [
+            "provider-logo"
+          ],
           "supersedes": [],
           "supersededBy": [],
           "planned": [
@@ -2138,7 +2140,7 @@
       }
     },
     "button": {
-      "digest": "63d7c5bd",
+      "digest": "4d03f5f3",
       "def": {
         "id": "button",
         "name": "Button",
@@ -2402,7 +2404,9 @@
           ],
           "alternativeTo": [
             "icon-button",
-            "switch-row"
+            "switch-row",
+            "tag",
+            "link"
           ],
           "supersedes": [],
           "supersededBy": [],
@@ -14255,7 +14259,7 @@
       }
     },
     "icon-button": {
-      "digest": "1514102e",
+      "digest": "1c223331",
       "def": {
         "id": "icon-button",
         "name": "IconButton",
@@ -14469,7 +14473,8 @@
             "spinner"
           ],
           "alternativeTo": [
-            "button"
+            "button",
+            "flush-icon-button"
           ],
           "supersedes": [],
           "supersededBy": [],
@@ -16048,7 +16053,7 @@
       }
     },
     "icon-button-destructive": {
-      "digest": "dc287b12",
+      "digest": "6bfc0078",
       "def": {
         "id": "icon-button-destructive",
         "name": "IconButton.Destructive",
@@ -16263,7 +16268,8 @@
             "spinner"
           ],
           "alternativeTo": [
-            "button-destructive"
+            "button-destructive",
+            "flush-icon-button-destructive"
           ],
           "supersedes": [],
           "supersededBy": [],
@@ -17842,7 +17848,7 @@
       }
     },
     "icon-button-neutral": {
-      "digest": "9a28c1e0",
+      "digest": "d9c2d645",
       "def": {
         "id": "icon-button-neutral",
         "name": "IconButton.Neutral",
@@ -18056,7 +18062,8 @@
             "spinner"
           ],
           "alternativeTo": [
-            "button-neutral"
+            "button-neutral",
+            "flush-icon-button-neutral"
           ],
           "supersedes": [],
           "supersededBy": [],
@@ -22773,7 +22780,7 @@
       }
     },
     "field-message": {
-      "digest": "4873fb4f",
+      "digest": "abaa1354",
       "def": {
         "id": "field-message",
         "name": "FieldMessage",
@@ -22895,7 +22902,10 @@
         },
         "composition": {
           "composesWith": [],
-          "alternativeTo": [],
+          "alternativeTo": [
+            "toast",
+            "banner"
+          ],
           "supersedes": [],
           "supersededBy": [],
           "planned": [
@@ -23188,7 +23198,7 @@
       }
     },
     "text-field": {
-      "digest": "70b4f6eb",
+      "digest": "7c82bd03",
       "def": {
         "id": "text-field",
         "name": "TextField",
@@ -23497,6 +23507,9 @@
             "switch-row",
             "password-field",
             "search-field",
+            "counter",
+            "card-number-field",
+            "slider",
             "code-input"
           ],
           "supersedes": [],
@@ -27427,7 +27440,7 @@
       }
     },
     "checkbox-row": {
-      "digest": "bc6c7c40",
+      "digest": "5f4a6772",
       "def": {
         "id": "checkbox-row",
         "name": "Checkbox.Row",
@@ -27623,7 +27636,8 @@
           ],
           "alternativeTo": [
             "switch-row",
-            "radio-row"
+            "radio-row",
+            "text-field"
           ],
           "supersedes": [],
           "supersededBy": [],
@@ -28081,7 +28095,7 @@
       }
     },
     "checkbox-group": {
-      "digest": "e92dc25f",
+      "digest": "b50ab8ef",
       "def": {
         "id": "checkbox-group",
         "name": "Checkbox.Group",
@@ -28273,7 +28287,9 @@
           ],
           "alternativeTo": [
             "radio-group",
-            "switch-row"
+            "switch-row",
+            "select",
+            "tag"
           ],
           "supersedes": [],
           "supersededBy": [],
@@ -29974,7 +29990,7 @@
       }
     },
     "radio-group": {
-      "digest": "8b52e66f",
+      "digest": "a6a0fe52",
       "def": {
         "id": "radio-group",
         "name": "Radio.Group",
@@ -30172,7 +30188,9 @@
             "checkbox-group",
             "select",
             "switch-row",
-            "segmented-control"
+            "segmented-control",
+            "tag",
+            "slider"
           ],
           "supersedes": [],
           "supersededBy": [],
@@ -31460,7 +31478,7 @@
       }
     },
     "switch-row": {
-      "digest": "acd0c35a",
+      "digest": "6ff0a85c",
       "def": {
         "id": "switch-row",
         "name": "Switch.Row",
@@ -31657,7 +31675,14 @@
           "alternativeTo": [
             "checkbox-row",
             "radio-row",
-            "segmented-control"
+            "segmented-control",
+            "button",
+            "button-destructive",
+            "button-neutral",
+            "text-field",
+            "checkbox-group",
+            "radio-group",
+            "slider"
           ],
           "supersedes": [],
           "supersededBy": [],
@@ -31946,7 +31971,7 @@
       }
     },
     "select": {
-      "digest": "a2d8c728",
+      "digest": "2ff7167c",
       "def": {
         "id": "select",
         "name": "Select",
@@ -32197,7 +32222,11 @@
             "text-field",
             "radio-group",
             "checkbox-group",
-            "segmented-control"
+            "segmented-control",
+            "textarea",
+            "radio-row",
+            "tabs",
+            "counter"
           ],
           "supersedes": [],
           "supersededBy": [],
@@ -38364,7 +38393,7 @@
       }
     },
     "tabs": {
-      "digest": "e8bed752",
+      "digest": "ae006bea",
       "def": {
         "id": "tabs",
         "name": "Tabs",
@@ -38532,7 +38561,9 @@
             "select",
             "accordion",
             "segmented-control",
-            "page-nav"
+            "page-nav",
+            "breadcrumbs",
+            "pagination"
           ],
           "supersedes": [],
           "supersededBy": [],
@@ -40380,7 +40411,7 @@
       }
     },
     "accordion": {
-      "digest": "186ef96f",
+      "digest": "999801af",
       "def": {
         "id": "accordion",
         "name": "Accordion",
@@ -40584,7 +40615,8 @@
             "divider"
           ],
           "alternativeTo": [
-            "tabs"
+            "tabs",
+            "dialog"
           ],
           "supersedes": [],
           "supersededBy": [],
@@ -43647,7 +43679,7 @@
       }
     },
     "segmented-control": {
-      "digest": "e873abb2",
+      "digest": "9edbef49",
       "def": {
         "id": "segmented-control",
         "name": "SegmentedControl",
@@ -43826,7 +43858,11 @@
             "tabs",
             "radio-group",
             "select",
-            "switch-row"
+            "switch-row",
+            "radio-row",
+            "button-group",
+            "counter",
+            "slider"
           ],
           "supersedes": [],
           "supersededBy": [],
@@ -44193,7 +44229,7 @@
       }
     },
     "link": {
-      "digest": "c6cfe7b0",
+      "digest": "d4bfc386",
       "def": {
         "id": "link",
         "name": "Link",
@@ -44413,7 +44449,8 @@
             "focus-ring"
           ],
           "alternativeTo": [
-            "button"
+            "button",
+            "breadcrumbs"
           ],
           "supersedes": [],
           "supersededBy": [],
@@ -47596,7 +47633,7 @@
       }
     },
     "dialog": {
-      "digest": "2b63b362",
+      "digest": "16007153",
       "def": {
         "id": "dialog",
         "name": "Dialog",
@@ -47819,7 +47856,9 @@
             "button-group"
           ],
           "alternativeTo": [
-            "accordion"
+            "accordion",
+            "toast",
+            "banner"
           ],
           "supersedes": [],
           "supersededBy": [],
@@ -51450,7 +51489,7 @@
       }
     },
     "breadcrumb-item": {
-      "digest": "9b4fcc26",
+      "digest": "fdeb2cbe",
       "def": {
         "id": "breadcrumb-item",
         "name": "BreadcrumbItem",
@@ -51705,7 +51744,7 @@
             }
           },
           {
-            "part": "container/current",
+            "part": "container/label",
             "kind": "text",
             "members": 2,
             "when": {
@@ -51770,7 +51809,7 @@
             },
             "parts": [
               {
-                "part": "container/current",
+                "part": "container/label",
                 "textStyle": "type.body.md.default"
               }
             ]
@@ -51781,7 +51820,7 @@
             },
             "parts": [
               {
-                "part": "container/current",
+                "part": "container/label",
                 "textStyle": "type.body.sm.default"
               }
             ]
@@ -51813,7 +51852,7 @@
             },
             "parts": [
               {
-                "part": "container/current",
+                "part": "container/label",
                 "ink": "color.text.primary"
               }
             ]
@@ -51899,7 +51938,7 @@
       }
     },
     "breadcrumbs": {
-      "digest": "49e309e7",
+      "digest": "8fc9a858",
       "def": {
         "id": "breadcrumbs",
         "name": "Breadcrumbs",
@@ -52089,7 +52128,8 @@
           ],
           "alternativeTo": [
             "link",
-            "tabs"
+            "tabs",
+            "page-nav"
           ],
           "supersedes": [],
           "supersededBy": [],
@@ -53439,7 +53479,7 @@
       }
     },
     "pagination-item": {
-      "digest": "8dbd5cfc",
+      "digest": "315a6274",
       "def": {
         "id": "pagination-item",
         "name": "Pagination.Item",
@@ -53449,7 +53489,7 @@
         ],
         "category": "navigation",
         "status": "draft",
-        "summary": "A pagination cell: a page, the gap marker, previous or next. The current page is outlined.",
+        "summary": "A pagination cell: a page, the gap marker, previous or next. The current page is marked.",
         "description": "One cell in a pagination row: a page number, the gap marker, three dots, that stands for two or more hidden pages, or the previous or next cell, a chevron that opens the page before or after. A cell is as tall as an icon button and at least as wide as it is tall, so a row of pages between previous and next lines up as equal squares; a page number past two digits, or the word \"Previous\" or \"Next\" beside a chevron, widens it. The current page is marked, not filled: its number in the emphasis weight, with a light gray border around the cell, or a 2px underline under the number in the number's ink. It keeps its width, so the row does not move. At hover and press, another page and an unlabeled previous or next show a light neutral wash; a labeled previous or next shows no fill and its word and chevron darken, as a text link does. At the first or last page, previous or next stays in place and does nothing, drawn in the disabled ink. The gap marker is decorative: it does not respond to the pointer, takes no focus and is hidden from assistive technology. Pagination places the cells and decides which page is current.",
         "props": [
           {
@@ -53471,11 +53511,11 @@
             "description": "The address of the page. Present, the cell is a link; absent, it is a button that changes the page in place."
           },
           {
-            "name": "selected",
+            "name": "current",
             "type": "boolean",
             "default": false,
             "required": false,
-            "description": "Whether this is the current page. Set by Pagination; do not set it on a cell inside a pagination row."
+            "description": "Whether this is the current page: the mark and aria-current=\"page\". Set by Pagination; do not set it on a cell inside a pagination row."
           },
           {
             "name": "type",
@@ -63696,7 +63736,7 @@
       }
     },
     "code-input-cell": {
-      "digest": "6dd99bfe",
+      "digest": "731bd4ec",
       "def": {
         "id": "code-input-cell",
         "name": "CodeInput.Cell",
@@ -63736,11 +63776,15 @@
             "description": "Whether this is the cell the next character goes into while the input has focus. Set by the code input."
           },
           {
-            "name": "isInvalid",
-            "type": "boolean",
-            "default": false,
+            "name": "validation",
+            "type": "enum: 'default' | 'error'",
+            "default": "default",
             "required": false,
-            "description": "Whether the code input is in error. Set by the code input."
+            "values": [
+              "default",
+              "error"
+            ],
+            "description": "The validation status. error draws the danger border on the cell at every state but disabled; default is neutral. Set by the code input."
           },
           {
             "name": "disabled",
@@ -63756,8 +63800,7 @@
           "filled",
           "focus-visible",
           "focus-visible-filled",
-          "disabled",
-          "error"
+          "disabled"
         ],
         "variants": {
           "size": {
@@ -63768,6 +63811,13 @@
               "x-large"
             ],
             "kind": "authoring"
+          },
+          "status": {
+            "values": [
+              "default",
+              "error"
+            ],
+            "kind": "runtime"
           }
         },
         "accessibility": {
@@ -63782,9 +63832,9 @@
           "aria": "aria-hidden=\"true\". A screen reader meets the code input's one input and its whole value, never a cell."
         },
         "docs": {
-          "usage": "Use inside CodeInput only, one cell per character of the code. In a design, add or remove cells in the code input's cell slot and set each cell's state to match the field: error cells when the field is in error, disabled cells when it is disabled. In code, the code input sets every cell.",
+          "usage": "Use inside CodeInput only, one cell per character of the code. In a design, add or remove cells in the code input's cell slot and set each cell to match the field: its status to error when the field is in error, its state to disabled when the field is disabled. In code, the code input sets every cell.",
           "do": [
-            "Set every cell to error when the code input is in error",
+            "Set every cell's status to error when the code input is in error",
             "Set every cell to disabled when the code input is disabled"
           ],
           "dont": [
@@ -63860,8 +63910,17 @@
       "spec": {
         "id": "code-input-cell",
         "name": "CodeInput.Cell",
-        "members": 28,
+        "members": 48,
         "axes": [
+          {
+            "name": "status",
+            "figmaName": "status",
+            "values": [
+              "default",
+              "error"
+            ],
+            "kind": "variant"
+          },
           {
             "name": "size",
             "figmaName": "size",
@@ -63882,8 +63941,7 @@
               "filled",
               "focus-visible",
               "focus-visible-filled",
-              "disabled",
-              "error"
+              "disabled"
             ],
             "kind": "state"
           }
@@ -63893,29 +63951,28 @@
           {
             "part": "container",
             "kind": "frame",
-            "members": 28
+            "members": 48
           },
           {
             "part": "container/content",
             "kind": "frame",
-            "members": 28
+            "members": 48
           },
           {
             "part": "container/content/digit",
             "kind": "text",
-            "members": 12,
+            "members": 16,
             "when": {
               "state": [
                 "filled",
-                "focus-visible-filled",
-                "error"
+                "focus-visible-filled"
               ]
             }
           },
           {
             "part": "container/content/caret",
             "kind": "frame",
-            "members": 4,
+            "members": 8,
             "when": {
               "state": [
                 "focus-visible"
@@ -64186,11 +64243,13 @@
           }
         ],
         "colorKey": [
+          "status",
           "state"
         ],
         "colors": [
           {
             "where": {
+              "status": "default",
               "state": "rest"
             },
             "parts": [
@@ -64203,6 +64262,7 @@
           },
           {
             "where": {
+              "status": "default",
               "state": "hover"
             },
             "parts": [
@@ -64215,6 +64275,7 @@
           },
           {
             "where": {
+              "status": "default",
               "state": "filled"
             },
             "parts": [
@@ -64231,6 +64292,7 @@
           },
           {
             "where": {
+              "status": "default",
               "state": "focus-visible"
             },
             "parts": [
@@ -64247,6 +64309,7 @@
           },
           {
             "where": {
+              "status": "default",
               "state": "focus-visible-filled"
             },
             "parts": [
@@ -64263,6 +64326,7 @@
           },
           {
             "where": {
+              "status": "default",
               "state": "disabled"
             },
             "parts": [
@@ -64275,7 +64339,34 @@
           },
           {
             "where": {
-              "state": "error"
+              "status": "error",
+              "state": "rest"
+            },
+            "parts": [
+              {
+                "part": "container",
+                "fill": "color.field.fill",
+                "stroke": "color.border.danger"
+              }
+            ]
+          },
+          {
+            "where": {
+              "status": "error",
+              "state": "hover"
+            },
+            "parts": [
+              {
+                "part": "container",
+                "fill": "color.field.fill",
+                "stroke": "color.border.danger"
+              }
+            ]
+          },
+          {
+            "where": {
+              "status": "error",
+              "state": "filled"
             },
             "parts": [
               {
@@ -64286,6 +64377,53 @@
               {
                 "part": "container/content/digit",
                 "ink": "color.text.primary"
+              }
+            ]
+          },
+          {
+            "where": {
+              "status": "error",
+              "state": "focus-visible"
+            },
+            "parts": [
+              {
+                "part": "container",
+                "fill": "color.field.fill",
+                "stroke": "color.border.danger"
+              },
+              {
+                "part": "container/content/caret",
+                "fill": "color.text.primary"
+              }
+            ]
+          },
+          {
+            "where": {
+              "status": "error",
+              "state": "focus-visible-filled"
+            },
+            "parts": [
+              {
+                "part": "container",
+                "fill": "color.field.fill",
+                "stroke": "color.border.danger"
+              },
+              {
+                "part": "container/content/digit",
+                "ink": "color.text.primary"
+              }
+            ]
+          },
+          {
+            "where": {
+              "status": "error",
+              "state": "disabled"
+            },
+            "parts": [
+              {
+                "part": "container",
+                "fill": "color.disabled.fill",
+                "stroke": "color.disabled.border"
               }
             ]
           }
@@ -64301,7 +64439,7 @@
       }
     },
     "code-input": {
-      "digest": "60752ac3",
+      "digest": "00371821",
       "def": {
         "id": "code-input",
         "name": "CodeInput",
@@ -64969,6 +65107,7 @@
             "component": "code-input-cell",
             "variant": {
               "size": "medium",
+              "status": "default",
               "state": "rest"
             },
             "when": {
@@ -64991,7 +65130,8 @@
               }
             },
             "follows": [
-              "size"
+              "size",
+              "status"
             ],
             "exposes": []
           },
@@ -65001,6 +65141,7 @@
             "component": "code-input-cell",
             "variant": {
               "size": "medium",
+              "status": "default",
               "state": "rest"
             },
             "when": {
@@ -65023,7 +65164,8 @@
               }
             },
             "follows": [
-              "size"
+              "size",
+              "status"
             ],
             "exposes": []
           },
@@ -65033,6 +65175,7 @@
             "component": "code-input-cell",
             "variant": {
               "size": "medium",
+              "status": "default",
               "state": "rest"
             },
             "when": {
@@ -65055,7 +65198,8 @@
               }
             },
             "follows": [
-              "size"
+              "size",
+              "status"
             ],
             "exposes": []
           },
@@ -65065,6 +65209,7 @@
             "component": "code-input-cell",
             "variant": {
               "size": "medium",
+              "status": "default",
               "state": "rest"
             },
             "when": {
@@ -65087,7 +65232,8 @@
               }
             },
             "follows": [
-              "size"
+              "size",
+              "status"
             ],
             "exposes": []
           },
@@ -65097,6 +65243,7 @@
             "component": "code-input-cell",
             "variant": {
               "size": "medium",
+              "status": "default",
               "state": "rest"
             },
             "when": {
@@ -65119,7 +65266,8 @@
               }
             },
             "follows": [
-              "size"
+              "size",
+              "status"
             ],
             "exposes": []
           },
@@ -65129,6 +65277,7 @@
             "component": "code-input-cell",
             "variant": {
               "size": "medium",
+              "status": "default",
               "state": "rest"
             },
             "when": {
@@ -65151,7 +65300,8 @@
               }
             },
             "follows": [
-              "size"
+              "size",
+              "status"
             ],
             "exposes": []
           },
