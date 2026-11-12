@@ -272,7 +272,9 @@ export const overrideVerdict = (plan: OverridePlan, applied: boolean): { ok: boo
     const owned = new Set(plan.refusals.map((r) => r.index).filter((i): i is number => i !== null));
     // A miss on a dependent or a twin names no one change: the changes in the modes it is in are the ones that could.
     const missModes = new Set(plan.refusals.filter((r) => r.index === null && r.mode !== null).map((r) => r.mode));
-    for (const c of plan.changes) if (missModes.has(c.mode) && !owned.size) owned.add(c.index);
+    // Only when no change owns a refusal: read once, before the loop adds to `owned`.
+    const none = owned.size === 0;
+    for (const c of plan.changes) if (none && missModes.has(c.mode)) owned.add(c.index);
     const n = owned.size || plan.changes.length;
     const contrastOnly = plan.refusals.every((r) => r.reason === 'below-minimum');
     return { ok: false, headline: contrastOnly ? OVERRIDE_COPY.headlineBelow(n) : OVERRIDE_COPY.headlineRefused(n), lines: plan.refusals.map((r) => r.line) };

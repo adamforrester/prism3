@@ -113,7 +113,8 @@ import { createRunGuard, TITLE } from './src/run-guard';
 import { restorePlacement, stripPlacement } from './src/window-place';
 import { createDispatcher, ROUTES } from './src/agent-dispatch';
 import { NodeShim, FileShim } from './file-shim';
-import { MAX_CHANGES } from './src/set-override';
+import { MAX_CHANGES, overrideVerdict } from './src/set-override';
+import type { OverridePlan } from './src/set-override';
 import { SET_OVERRIDE_MAX } from './src/agent-protocol';
 import type { NodeSpec } from './file-shim';
 import { EXECUTOR_REVISION } from './src/executor-revision';
@@ -1502,6 +1503,36 @@ section('set-override — color overrides: a preview that writes nothing, refusa
       'Light · text.primary has no override to clear.',
       'Light · text.secondary: brand-neutral is not a palette in this brand.',
     ]), `set-override/refuses-unknown-role: every refusal, in order (${JSON.stringify(dataOf(un).refusals?.map((x: any) => x.reason))})`);
+
+  // The roles the engine sets from elsewhere, or that Studio shows read-only, are refused by name, one line each (the
+  // proposal's §3 table). The brand gains a glass role and the opaque outline hover fill, so both are real roles here:
+  // without the refusal, the engine throws on either and the agent reads `unreadable-brand`. A focus ring and an icon
+  // carried from its text would be written, though Studio shows both rows read-only.
+  putBrand({ ...(stored as Record<string, unknown>), glassRoles: { card: { palette: 'neutral.050', alpha: 80 } }, outlineInteraction: 'opaque-fill' } as unknown as BrandInput);
+  const fs = await run({ changes: [{ mode: 'light', role: 'glass.card', palette: 'neutral', step: '100' }, { mode: 'light', role: 'interactive.primary.hover-fill.hover', palette: 'neutral', step: '100' },
+    { mode: 'light', role: 'border.focus', palette: 'neutral', step: '600' }, { mode: 'light', role: 'interactive.primary.icon.rest', palette: 'neutral', step: '700' }], confirm: false });
+  const fsr = (dataOf(fs).refusals ?? []) as any[];
+  const fsLine = (i: number): string | undefined => fsr.find((x) => x.index === i)?.line;
+  const fsReason = (i: number): string | undefined => fsr.find((x) => x.index === i)?.reason;
+  ok(fsReason(0) === 'follows-source' && fsLine(0) === 'Light · glass.card follows its source color — change the source instead.',
+    `set-override/refuses-glass: a brand glass role follows its source (${fsReason(0)}: "${fsLine(0)}")`);
+  ok(fsReason(1) === 'follows-source' && fsLine(1) === 'Light · interactive.primary.hover-fill.hover follows its source color — change the source instead.',
+    `set-override/refuses-hover-fill: the opaque outline hover fill follows its source (${fsReason(1)}: "${fsLine(1)}")`);
+  ok(fsReason(2) === 'locked' && fsLine(2) === "Light · border.focus isn't editable in Theme yet.",
+    `set-override/refuses-focus-ring: a focus ring is locked (${fsReason(2)}: "${fsLine(2)}")`);
+  ok(fsReason(3) === 'locked' && fsLine(3) === 'Light · interactive.primary.icon.rest follows interactive.primary.text.rest while icons match text.',
+    `set-override/refuses-carried-icon: an icon carried from its text is locked (${fsReason(3)}: "${fsLine(3)}")`);
+  ok(fs.ok === false && fsr.length === 4 && verdictOf(fs)?.headline === "Not saved — 4 changes can't be made as sent.",
+    `set-override/refuses-set-elsewhere: four refusals, no other, one headline (${JSON.stringify(fsr.map((x) => x.reason))}, "${verdictOf(fs)?.headline}")`);
+  putBrand(stored);
+
+  // The refusal headline counts the changes in a mode whose miss no one change owns (a dependent or a twin), all of
+  // them, not only the first. No example brand reaches this shape through `planOverride` yet, so the plan is built.
+  const light3 = [0, 1, 2].map((index) => ({ index, mode: 'light', role: `text.r${index}`, before: null, after: null }));
+  const dep = { index: null, mode: 'light', role: 'text.dependent', reason: 'below-minimum', line: 'L', ratio: 2, min: 4.5, against: 'background.primary' };
+  const hv = overrideVerdict({ ok: false, previewHash: '00000000', input: stored, changes: light3, moved: [], newMisses: [], stillBelow: [],
+    contrast: { before: { total: 0, fail: 0 }, after: { total: 0, fail: 0 } }, refusals: [dep] } as unknown as OverridePlan, false);
+  ok(hv.headline === 'Not saved — 3 changes put a pair below its minimum.', `set-override/headline-counts-mode: an unowned light miss counts all three light changes ("${hv.headline}")`);
 
   // The panel holds Theme edits the file does not: the write is refused, its preview is not.
   const pv2 = await run({ changes: [one], confirm: false });
