@@ -21415,11 +21415,28 @@ arm: {
     // Q-CC8 A (#3554): CodeInput surfaces the nested FieldLabel's required marker, so it takes the field family's
     // `required` prop: a boolean, off by default as the marker is, in TextField's words. The literal list is the fields
     // that surface the marker and carry the prop; Counter's `required` is decided separately and is not listed.
-    // Q-FL2 A (#3554): Slider surfaces the marker too (Q-CC5 A's nest-exposed label), so it joins the list.
-    for (const id of ['text-field', 'textarea', 'select', 'password-field', 'search-field', 'card-number-field', 'code-input', 'slider']) {
+    for (const id of ['text-field', 'textarea', 'select', 'password-field', 'search-field', 'card-number-field', 'code-input']) {
       const r = componentDefs.find((d) => d.id === id)?.props.find((p) => p.name === 'required');
       ok(r?.type === 'boolean' && r.default === false && r.default === flDefault('required') && r.description.startsWith('Sets required / aria-required, and turns on the FieldLabel\'s required marker.'),
         `Q-CC8 ${id} declares the field family's required prop, a boolean off by default like the label's marker (got ${r ? `${r.type} ${String(r.default)}` : 'none'})`);
+    }
+    // Q-FL2 A (#3554) gives Slider the same prop for the marker it surfaces (Q-CC5 A's nest-exposed label), but
+    // Q-FL2.1 A (#3699) words it apart from the family: ARIA 1.2 does not support aria-required on role="slider", so
+    // "required" rides in each thumb's accessible name and no aria-required is set. The literals are the owner's
+    // wording, so a drift back to the family sentence, or an aria line that names aria-required as set, fails here.
+    {
+      const sliderDef = componentDefs.find((d) => d.id === 'slider');
+      const r = sliderDef?.props.find((p) => p.name === 'required');
+      const aria = sliderDef?.accessibility.aria ?? '';
+      const nameClause = 'adds "required" to each thumb\'s accessible name, such as "Price range, required"';
+      const noAriaRequired = 'sets no aria-required, which the slider role does not support';
+      ok(r?.type === 'boolean' && r.default === false && r.default === flDefault('required')
+        && r.description.includes('Turns on the FieldLabel\'s required marker') && r.description.includes(nameClause)
+        && /Sets no aria-required, which the slider role does not support/.test(r.description)
+        && !/Sets required \/ aria-required/.test(r.description)
+        && aria.includes(nameClause) && aria.includes(noAriaRequired)
+        && !/aria-required (is|are) set/.test(aria) && aria.split('aria-required').length === 2,
+        `Q-FL2.1 slider's required prop carries "required" in each thumb's accessible name and sets no aria-required, in its prop description and accessibility.aria (got ${r ? `${r.type} ${String(r.default)}: ${r.description}` : 'none'} / aria: ${aria})`);
     }
     // Since #2266 the three field hosts are sized, and the label's SIZE follows the host's (pinned per member in
     // the #2266 block); what stays the label's own default is its emphasis.

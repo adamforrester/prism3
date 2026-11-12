@@ -340,8 +340,10 @@ export const slider: ComponentDef = {
     { name: 'validation', type: "enum: 'default' | 'error'", values: ['default', 'error'], default: 'default', required: false, description: 'error marks the slider invalid: the field message shows the error status and each thumb carries aria-invalid. A slider\'s own value is always in range, so an error comes from a paired input or from validation elsewhere in the form.' },
     { name: 'validationMessage', type: 'string', required: false, description: 'The error text, shown in the field message and added to aria-describedby. Say what is wrong and how to fix it.' },
     // Q-FL2 A (#3554): the nested FieldLabel shows a required marker, so the slider takes the field family's `required`,
-    // as CodeInput did under Q-CC8 A.
-    { name: 'required', type: 'boolean', default: false, required: false, description: 'Sets required / aria-required, and turns on the FieldLabel\'s required marker.' },
+    // as CodeInput did under Q-CC8 A. Q-FL2.1 A (#3699): ARIA 1.2 does not support aria-required on role="slider", so
+    // the semantics ride in each thumb's accessible name instead, and the family's "Sets required / aria-required"
+    // wording does not apply here.
+    { name: 'required', type: 'boolean', default: false, required: false, description: 'Turns on the FieldLabel\'s required marker and adds "required" to each thumb\'s accessible name, such as "Price range, required". Sets no aria-required, which the slider role does not support.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Takes the slider out of interaction and out of the form payload, and dims it.' },
     { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'The thumbs stay focusable and the value is still submitted, but it cannot change. Looks like rest.' },
     { name: 'name', type: 'string', required: false, description: 'The form field name. A range submits two values.' },
@@ -676,7 +678,7 @@ export const slider: ComponentDef = {
     ],
     keyboard: 'Right and Up raise one step; Left and Down lower one step; Page Up and Page Down move ten steps; Home and End go to the minimum and maximum, or for a range thumb to the other thumb. Tab moves from the minimum thumb to the maximum thumb. In right-to-left text, Right lowers and Left raises.',
     focus: 'A focus ring around the focused thumb on :focus-visible, never around the track.',
-    aria: 'Each thumb carries aria-valuenow, aria-valuemin, aria-valuemax and, for a formatted value, aria-valuetext from the same formatter as the visible text. A range names its thumbs "Minimum {label}" and "Maximum {label}", which are translatable. Help and error text join aria-describedby; aria-required is set on each thumb when the slider is required, and an error sets aria-invalid on each thumb. The layout mirrors right to left.',
+    aria: 'Each thumb carries aria-valuenow, aria-valuemin, aria-valuemax and, for a formatted value, aria-valuetext from the same formatter as the visible text. A range names its thumbs "Minimum {label}" and "Maximum {label}", which are translatable. Help and error text join aria-describedby, and an error sets aria-invalid on each thumb. A required slider adds "required" to each thumb\'s accessible name, such as "Price range, required", and sets no aria-required, which the slider role does not support. The layout mirrors right to left.',
   },
 
   content: {

@@ -59516,7 +59516,7 @@
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Sets required / aria-required, and turns on the FieldLabel's required marker."
+              "description": "Turns on the FieldLabel's required marker and adds \"required\" to each thumb's accessible name, such as \"Price range, required\". Sets no aria-required, which the slider role does not support."
             }
           }
         },
