@@ -2459,6 +2459,8 @@ export const agentLink = createAgentLink({
   schedule: (fn, ms) => setTimeout(fn, ms),
   cancel: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
   onState: (state) => postToUi({ type: 'agent-link-state', state }),
+  // #3697 R8: the mailbox's session code, for the panel's status line only.
+  onSession: (code) => postToUi({ type: 'agent-link-session', code }),
 });
 // Closing the plugin ends the session, so the link record says so — an agent reading `link` then knows
 // nobody is listening rather than waiting on a poll that will never come.
@@ -2471,6 +2473,7 @@ onUiMessage((msg: UiToMain) => {
       restoreToUi();
       // The link is off on every launch; the panel's control starts from this.
       postToUi({ type: 'agent-link-state', state: agentLink.state() });
+      postToUi({ type: 'agent-link-session', code: agentLink.session() });
       void sendThemePref();
       void sendActivityHeight();
       if (typeof PRISM3_NETWORK !== 'boolean' || PRISM3_NETWORK) void sendBridgeToken();

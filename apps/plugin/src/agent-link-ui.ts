@@ -92,12 +92,13 @@ export const agoWords = (ms: number): string => {
  *  mailbox, every 2 s). Last: Build set, built 48 variants, 2 min ago." DRAFT wording. `now` is milliseconds since the
  *  epoch. `bridgeHeld` (#3297): the relay was told another paired instance holds the desktop bridge (Prism3 open with the
  *  link on in another file), so this one listens on its mailbox and the line says why. Pure. */
-export const agentLinkStatusText = (s: AgentLinkState | null, now: number = Date.now(), bridgeHeld = false): string => {
+export const agentLinkStatusText = (s: AgentLinkState | null, now: number = Date.now(), bridgeHeld = false, session: string | null = null): string => {
   if (!s || !s.on) return 'Off — agent commands are ignored.';
   const every = `${Math.round(s.pollMs / 100) / 10} s`;
   const how = [s.transports.mailbox && `file mailbox, every ${every}`, s.transports.bridge && 'desktop bridge'].filter(Boolean).join(', and the ');
   const listening = (how ? `Listening for agent commands (${how}).` : 'On, but not listening: no transport is open.')
-    + (bridgeHeld && !s.transports.bridge ? ` ${BRIDGE_HELD_LINE}` : '');
+    + (bridgeHeld && !s.transports.bridge ? ` ${BRIDGE_HELD_LINE}` : '')
+    + (session && s.transports.mailbox ? ` ${sessionLine(session)}` : '');
   const c = s.lastCommand;
   const at = c ? Date.parse(c.finishedAt) : NaN;
   const words = c ? c.headline.replace(/^[^\p{L}\p{N}]+/u, '').trim() : '';
@@ -107,6 +108,11 @@ export const agentLinkStatusText = (s: AgentLinkState | null, now: number = Date
   const inbox = s.inboxError ? ` Inbox error: ${s.inboxError.replace(/[.\s]+$/, '')}.` : '';
   return listening + last + inbox;
 };
+
+/** #3697 R8: the full line's note naming the mailbox session code, which the person gives their agent so its theme writes
+ *  and confirmed deletes through the file are run (`needsSession`, `agent-protocol.ts`). OWNER DECISION: copy — a DRAFT
+ *  to `docs/voice-standard.md`, a placeholder until approved. Shown only while the mailbox listens. Pure. */
+export const sessionLine = (code: string): string => `Session code for your agent: ${code}.`;
 
 /** #3297: the full line's note while another Prism3 instance holds the desktop bridge. DRAFT wording, for the owner (the
  *  PR's Owner Q-block). The short word stays "Listening · mailbox", which is true and holds still. */
@@ -213,6 +219,8 @@ export const mountAgentLink = (): void => {
   let state: AgentLinkState | null = null;
   /** #3297: another paired instance holds the desktop bridge (the relay's `onHeld`). */
   let bridgeHeld = false;
+  /** #3697 R8: the mailbox session code the main thread last posted, or null. */
+  let session: string | null = null;
   const live = statusRegion();
   /** The short status last drawn, and whether it was an error state, so a repeat or a full-line-only change is not a
    *  change, and a change out of an error state clears the region. */
@@ -295,7 +303,7 @@ export const mountAgentLink = (): void => {
     const on = !!state?.on;
     stripDot.hidden = !on;
     turnOff.hidden = !on;
-    strip.title = on && state ? agentLinkStatusText(state, Date.now(), bridgeHeld) : '';
+    strip.title = on && state ? agentLinkStatusText(state, Date.now(), bridgeHeld, session) : '';
   };
   const setMinimized = (on: boolean): void => {
     if (on === minimized) return;
@@ -312,7 +320,7 @@ export const mountAgentLink = (): void => {
     const on = !!state?.on;
     setChip(on);
     homeSwitch.set(on);
-    homeStatus.textContent = agentLinkStatusText(state, Date.now(), bridgeHeld);
+    homeStatus.textContent = agentLinkStatusText(state, Date.now(), bridgeHeld, session);
     renderStrip();
     // Activity's name and tooltip say "agent link on" while it is (the owner's top-bar decision, 2026-10-05).
     setAgentLinkOn(on);
@@ -330,7 +338,7 @@ export const mountAgentLink = (): void => {
     // age current while the link is on.
     const word = agentLinkWord(state, PRISM3_NETWORK);
     setAgentLinkStatus({ short: word?.text ?? null, error: !!word?.error,
-      full: state && (state.on || state.inboxError) ? agentLinkStatusText(state, Date.now(), bridgeHeld) : null });
+      full: state && (state.on || state.inboxError) ? agentLinkStatusText(state, Date.now(), bridgeHeld, session) : null });
     renderPair();
     if (on && drawerTicker === null) drawerTicker = setInterval(render, 30_000);
     if (!on && drawerTicker !== null) { clearInterval(drawerTicker); drawerTicker = null; }
@@ -422,6 +430,7 @@ export const mountAgentLink = (): void => {
       state = m.state;
       render();
     }
+    if (m.type === 'agent-link-session') { const c = (m as { code?: unknown }).code; session = typeof c === 'string' && c ? c : null; render(); }
     if (m.type === 'agent-started') { running = { cmd: String((m as { cmd?: unknown }).cmd ?? ''), since: Date.now() }; render(); }
     if (m.type === 'agent-finished') { running = null; render(); }
     relay?.fromMain(m as Parameters<ReturnType<typeof createBridgeRelay>['fromMain']>[0]);

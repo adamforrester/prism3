@@ -94,6 +94,13 @@
  *     inspect/cap, keys/fixture, audit/each-count/<count>, audit/clean, audit/legacy-lists, snapshot/scale and
  *     refuse/<case>. (mutations: `readOne` assigning `n.name = n.name` → `no-write/inspect`; `locked` dropped from its
  *     entry → `envelope/inspect`, each by name)
+ *   · session/<arm> (#3697 R8, the owner's A): through the mailbox, a command that changes or removes what is in the file
+ *     runs only with this link session's code. session/refused (none), session/wrong (another), session/spent (past
+ *     SESSION_TRIES wrong ones, the right one too) are answered `no-session` and reach no handler; session/right runs;
+ *     session/previews (a preview or a read needs none); session/not-in-file (the code is in no mailbox key and no
+ *     result); session/panel (the panel is told it); session/new (switching on again draws a new one); session/which
+ *     (`needsSession` against a literal list). (mutations: the check in `poll` removed → session/refused, session/wrong
+ *     and session/spent fail by name; the code written into the link record → session/not-in-file)
  *   · switch-off: with the link off again, nothing new is run
  *   · state: the panel receives the link state and the last command's headline
  *   · snippets: every agent-side script is short
@@ -106,7 +113,8 @@ import { MAILBOX, AGENT_COMMANDS, READ_COMMANDS, AGENT_PROTOCOL_VERSION, resultK
 import { readFixture, ARGS, EXPECTED, canon, ACTIVITY_NOTES, activityExpected, atRead, AT, contextExpected } from './agent-read-fixture';
 import { ACTIVITY_KEEP } from './src/activity-log';
 import type { AgentResult, AgentLinkState } from './src/agent-protocol';
-import { storeResult } from './src/agent-link';
+import { storeResult, SESSION_TRIES } from './src/agent-link';
+import { needsSession } from './src/agent-protocol';
 import { envelope, sendSnippet, readSnippet, linkSnippet } from './agent-snippets';
 import { agentLinkShortStatus, agentLinkStatusText, agentLinkWord, agentStripText, agentAge } from './src/agent-link-ui';
 import { createRunGuard, TITLE } from './src/run-guard';
@@ -204,11 +212,14 @@ const agent = async (js: string): Promise<any> => {
   agentSide = true;
   try { return await new AsyncFn('figma', js)({ root }); } finally { agentSide = false; }
 };
-const send = async (cmd: string, args: unknown = {}, id?: string) => {
-  const c = envelope(cmd, args, id);
+/** Sends as the person's agent does: with this link session's code (#3697 R8), which the panel shows. `sendBare` leaves it
+ *  out, as an agent that was not given it would. */
+const send = async (cmd: string, args: unknown = {}, id?: string, session: string | null | undefined = main.agentLink.session()) => {
+  const c = envelope(cmd, args, id, undefined, session ?? undefined);
   const r = await agent(sendSnippet(c));
   return { id: c.id, sent: r };
 };
+const sendBare = (cmd: string, args: unknown = {}, id?: string) => send(cmd, args, id, null);
 const read = (id: string, path?: string[]): Promise<any> => agent(readSnippet(id, path));
 
 /* ── spies on the ACTION TABLE ──────────────────────────────────────────────────────────────────────── */
@@ -1642,6 +1653,62 @@ section('set-override — color overrides: a preview that writes nothing, refusa
 }
 
 /* ── switch-off ─────────────────────────────────────────────────────────────────────────────────────── */
+section('session — a mailbox command that changes the file needs this session\'s code (#3697 R8)');
+{
+  // Switched off and on here, so the posts this section reads are its own (earlier sections clear `posted`).
+  await toUi({ type: 'agent-link', on: false });
+  await toUi({ type: 'agent-link', on: true });
+  const code = main.agentLink.session();
+  ok(typeof code === 'string' && /^[2-9A-HJKMNP-TV-Z]{4}-[2-9A-HJKMNP-TV-Z]{4}$/.test(code), `session/panel: the link on holds a code in the pairing code's form (${code})`);
+  ok(posted.filter((m) => m.type === 'agent-link-session').pop()?.code === code, 'session/panel: and the panel is told it, to show the person');
+  // Literal, not read from SESSION_COMMANDS (docs/34 shape 1).
+  const want: Array<[string, unknown, boolean]> = [
+    ['apply-theme', { input: {} }, true], ['run-code', { code: '' }, true], ['prune', { confirm: true }, true], ['prune', { confirm: false }, false],
+    ['update-components', { confirm: true, previewHash: 'x' }, true], ['update-components', {}, false], ['panels-clean', { confirm: true }, true],
+    ['panels-clean', {}, false], ['set-override', { confirm: true }, true], ['set-override', { confirm: false }, false],
+    ['build-components', {}, false], ['file-setup', {}, false], ['style-guide', {}, false], ['draw-specs', {}, false],
+    ['capture-baseline', {}, false], ['adopt-members', {}, false], ['status', {}, false], ['readback', {}, false], ['context', {}, false],
+  ];
+  const wrongWhich = want.filter(([cmd, args, need]) => needsSession({ v: 1, id: 'x', cmd, args, issuedAt: '' }) !== need);
+  ok(!wrongWhich.length, `session/which: needsSession names exactly the theme write, run-code and each confirm (${wrongWhich.map(([c, a]) => `${c} ${JSON.stringify(a)}`).join(', ') || 'all as listed'})`);
+
+  calls.length = 0;
+  const bare = await sendBare('apply-theme', { input: brand });
+  await tick();
+  const rb = (await read(bare.id)) as AgentResult;
+  ok(rb.ok === false && rb.error?.code === 'no-session' && !calls.includes('applyTheme'),
+    `session/refused: apply-theme through the mailbox with no session code is answered no-session and not run (${rb.error?.code}; ${calls.join(', ') || 'no handler'})`);
+  const del = await sendBare('prune', { input: brand, confirm: true });
+  await tick();
+  const rd = (await read(del.id)) as AgentResult;
+  ok(rd.error?.code === 'no-session' && !calls.includes('prune') && /session/.test(rd.error?.message ?? ''),
+    `session/refused: a prune confirm with no code is refused, and the message says what is missing (${rd.error?.code})`);
+  const other = code === 'ZZZZ-ZZZZ' ? 'YYYY-YYYY' : 'ZZZZ-ZZZZ';
+  const wrong = await send('apply-theme', { input: brand }, undefined, other);
+  await tick();
+  ok(((await read(wrong.id)) as AgentResult).error?.code === 'no-session' && !calls.includes('applyTheme'), 'session/wrong: another code is refused the same way');
+  const preview = await sendBare('prune', { input: brand, confirm: false });
+  await tick();
+  ok(((await read(preview.id)) as AgentResult).error?.code !== 'no-session' && calls.includes('prune'), 'session/previews: a prune preview needs no code and reaches its handler');
+  const right = await send('apply-theme', { input: brand }, undefined, code!.toLowerCase().replace('-', ' '));
+  await tick();
+  ok(((await read(right.id)) as AgentResult).error?.code !== 'no-session' && calls.includes('applyTheme'), 'session/right: the code as shown, typed in lower case, runs apply-theme');
+  const everything = mailboxKeys().map((key) => root.getSharedPluginData(MAILBOX.ns, key)).join('\n');
+  ok(!everything.includes(code!) && !everything.includes(code!.replace('-', '')), `session/not-in-file: the code is in no ${MAILBOX.ns} key, the link record and every result included`);
+
+  for (let i = 0; i < SESSION_TRIES; i++) { await send('panels-clean', { confirm: true }, undefined, other); await tick(); }
+  calls.length = 0;
+  const late = await send('apply-theme', { input: brand }, undefined, code);
+  await tick();
+  ok(((await read(late.id)) as AgentResult).error?.code === 'no-session' && !calls.includes('applyTheme') && main.agentLink.session() === null && posted.filter((m) => m.type === 'agent-link-session').pop()?.code === null,
+    `session/spent: after ${SESSION_TRIES} wrong codes the code is spent: the right one is refused too, and the panel stops showing it`);
+  await toUi({ type: 'agent-link', on: false });
+  ok(main.agentLink.session() === null && posted.filter((m) => m.type === 'agent-link-session').pop()?.code === null, 'session/new: switching off forgets the code');
+  await toUi({ type: 'agent-link', on: true });
+  const next = main.agentLink.session();
+  ok(typeof next === 'string' && next !== code, `session/new: switching on again draws a new one (${next})`);
+}
+
 section('switch-off');
 {
   await toUi({ type: 'agent-link', on: false });

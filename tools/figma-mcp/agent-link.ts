@@ -2,13 +2,17 @@
  * agent-link — print the short `use_figma` script that sends a command to the RUNNING Prism3 plugin through
  * the file, or reads its result back. The plugin does the writing; this prints the trigger and the reader.
  *
- *   npx tsx tools/figma-mcp/agent-link.ts send <cmd> [<args.json> | '<json>'] [--brand <id|path>] [--id <id>]
+ *   npx tsx tools/figma-mcp/agent-link.ts send <cmd> [<args.json> | '<json>'] [--brand <id|path>] [--id <id>] [--session <code>]
  *   npx tsx tools/figma-mcp/agent-link.ts read <id> [--path result.data.apply.misses]
  *   npx tsx tools/figma-mcp/agent-link.ts link
  *
  * `send` prints the script on stdout and the command id on stderr (`id: …`) — keep the id, `read` needs it.
  * `--brand` fills `args.input` for `apply-theme` / `prune` from an example id (`aurora`, `harbor`,
  * `nb-redesign`, `wendys`) or a `.design.md` path, the same resolution `plan.ts` uses.
+ *
+ * `--session` (#3697 R8) is the link session's code, which the owner reads in the plugin's agent link status. Through the
+ * mailbox, `apply-theme`, `run-code` and every `confirm: true` (`prune`, `update-components`, `panels-clean`,
+ * `set-override`) are refused `no-session` without it; `send` warns when one of those goes out without it.
  *
  * Commands: status · apply-theme {input} · build-components {def?} · file-setup · style-guide {collections?, types?, tables?} ·
  * prune {input, confirm} · readback. The runbook, and the one precondition that matters (the owner has switched the agent link on in
@@ -18,7 +22,7 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { envelope, sendSnippet, readSnippet, linkSnippet } from '../../apps/plugin/agent-snippets';
-import { AGENT_COMMANDS } from '../../apps/plugin/src/agent-protocol';
+import { AGENT_COMMANDS, needsSession } from '../../apps/plugin/src/agent-protocol';
 import { brandFromDesignMd } from '../../apps/plugin/mcp-paste';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import type { BrandInput } from '@prism3/engine/theme';
@@ -63,7 +67,9 @@ if (verb === 'send') {
   const args = readArgs(argSpec);
   const brand = opt('brand');
   if (brand) args.input = loadBrand(brand);
-  const c = envelope(cmd, args, opt('id'));
+  const session = opt('session');
+  const c = envelope(cmd, args, opt('id'), undefined, session);
+  if (!session && needsSession(c)) console.error(`agent-link.ts: warning — '${cmd}'${args.confirm === true ? ' with confirm: true' : ''} changes the file, and the plugin refuses it (no-session) without --session <code>: ask the owner for the code the plugin's agent link status shows`);
   console.error(`id: ${c.id}`);
   process.stdout.write(sendSnippet(c) + '\n');
 } else if (verb === 'read') {

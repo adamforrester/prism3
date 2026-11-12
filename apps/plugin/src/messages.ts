@@ -587,6 +587,9 @@ export type MainToUi =
   /** The desktop bridge's pairing token from `figma.clientStorage`, or null when none is kept (#3204). Sent on `ui-ready`;
    *  the relay connects only after it arrives. Read by the relay (`agent-bridge-relay.ts`) alone. */
   | { type: 'agent-bridge-token'; token: string | null }
+  /** #3697 R8: the agent link's mailbox session code (`XXXX-XXXX`) while the link is on, or null. Sent on `ui-ready` and on
+   *  every switch. Read by the agent-link control alone, which shows it in the link's status; never written to the file. */
+  | { type: 'agent-link-session'; code: string | null }
   /** Whether the window is the link strip (#2949), after each `minimize-ui` and when turning the link off restores it.
    *  The main thread is the authority, as for the link itself; read by the agent-link control (`agent-link-ui.ts`). */
   | { type: 'ui-minimized'; minimized: boolean }

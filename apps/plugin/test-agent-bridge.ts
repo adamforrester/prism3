@@ -112,6 +112,9 @@ const hmacHex = (key: string | Buffer, msg: string) => createHmac('sha256', key)
 const TOKEN = hmacHex(SECRET, 'prism3-bridge-token-v1');
 const proveHello = (nonce: string, token = TOKEN) => hmacHex(token, `prism3-bridge-hello-v1:${nonce}`);
 const provePair = (code: string, nonce: string) => hmacHex(code.replace(/-/g, ''), `prism3-bridge-pair-v1:${nonce}`);
+/** #3697 R8: the server's answers, derived HERE with `node:crypto` from literals (docs/34 shape 1). */
+const proveWelcome = (clientNonce: string, token = TOKEN) => hmacHex(token, `prism3-bridge-welcome-v1:${clientNonce}`);
+const provePaired = (code: string, clientNonce: string, token = TOKEN) => hmacHex(code.replace(/-/g, ''), `prism3-bridge-paired-v1:${clientNonce}:${token}`);
 const child = spawn('npx', ['tsx', resolve(HERE, '../../tools/figma-bridge/server.ts'), '--port', '0', '--grace-ms', String(GRACE_MS), '--config', CONFIG], { stdio: ['pipe', 'pipe', 'pipe'] });
 let stderr = '';
 child.stderr.on('data', (d) => { stderr += d; });
@@ -223,9 +226,15 @@ const openClient = async (origin: string | null = IFRAME_ORIGIN) => {
   const texts = () => frames.filter((f) => f.op === 0x1).map((f) => JSON.parse(f.payload.toString('utf8')));
   /** The challenge's nonce (#3204), once it has arrived. */
   const nonce = async (): Promise<string> => { await until(() => texts().some((m) => m.type === 'challenge')); return texts().find((m) => m.type === 'challenge')?.nonce ?? ''; };
-  const sendJson = (o: unknown) => sock.write(frame(0x1, Buffer.from(JSON.stringify(o))));
+  /** #3697 R8: this client's own nonce, sent with every pair and hello that does not name one itself. */
+  const clientNonce = randomBytes(32).toString('hex');
+  const sendJson = (o: unknown) => {
+    const m = o as Record<string, unknown>;
+    const body = m && (m.type === 'pair' || m.type === 'hello') && !('clientNonce' in m) ? { ...m, clientNonce } : o;
+    return sock.write(frame(0x1, Buffer.from(JSON.stringify(body))));
+  };
   return {
-    head: head ?? '', expected, frames, sock, texts, nonce, sendJson,
+    head: head ?? '', expected, frames, sock, texts, nonce, sendJson, clientNonce,
     closed: () => closed,
     /** The close code the server sent, or null. */
     closeCode: (): number | null => { const f = frames.find((x) => x.op === 0x8); return f && f.payload.length >= 2 ? f.payload.readUInt16BE(0) : null; },
@@ -478,6 +487,16 @@ section('pairing — the secret file, a wrong code, and no eviction by an unpair
   ok(!first.closed() && first.closeCode() === null && (await call('figma_status')).value?.connected === true,
     'pair/replay: the replayed hello never becomes the plugin: the first connection keeps the slot');
   second.sock.destroy();
+  // #3697 R8: the server proves the token back. The welcome above carries an HMAC of the token over THIS client's nonce,
+  // derived here independently; a hello with no clientNonce is refused like a wrong proof.
+  const welcome = first.texts().find((m) => m.type === 'welcome');
+  ok(typeof welcome?.proof === 'string' && welcome.proof === proveWelcome(first.clientNonce),
+    `server-proof/welcome: the welcome proves the token over the plugin's own nonce (${welcome?.proof ? 'a proof' : 'no proof'})`);
+  const bare = await openClient();
+  bare.sendJson({ type: 'hello', state: state(), proof: proveHello(await bare.nonce()), clientNonce: undefined });
+  ok(await until(() => bare.closeCode() === 4401) && !bare.texts().some((m) => m.type === 'welcome'),
+    `server-proof/no-nonce: a hello with no clientNonce is closed with 4401 and never welcomed (close ${bare.closeCode()})`);
+  bare.sock.destroy();
   first.sock.destroy();
   ok(await untilAsync(async () => (await call('figma_status')).value?.connected === false), 'pair/replay: closed');
   // The welcome left no code live (Q3204.5 A); with no plugin connected, figma_status asks for a new one.
@@ -533,12 +552,16 @@ section('pairing — the secret file, a wrong code, and no eviction by an unpair
   const MAX_RETIREMENTS = 3;
   const printed = () => [...stderr.matchAll(/pairing code: ([2-9A-Z]{4}-[2-9A-Z]{4})/g)].map((m) => m[1]);
   const wrongBut = (...avoid: string[]) => ['ZZZZ-ZZZZ', 'YYYY-YYYY', 'XXXX-XXXX'].find((w) => !avoid.includes(w))!;
+  /** #3697 R8: whether each paired answer carried the right proof. */
+  const pairedProofs: boolean[] = [];
   /** One `pair` attempt on a fresh connection: whether it was given a token. */
   const tryPair = async (code: string): Promise<boolean> => {
     const g = await openClient();
     g.sendJson({ type: 'pair', proof: provePair(code, await g.nonce()) });
     await until(() => g.closeCode() !== null || g.texts().some((m) => m.type === 'paired'));
     const paired = g.texts().some((m) => m.type === 'paired');
+    const answer = g.texts().find((m) => m.type === 'paired');
+    if (answer) pairedProofs.push(answer.proof === provePaired(code, g.clientNonce) && answer.token === TOKEN);
     g.sock.destroy();
     return paired;
   };
@@ -561,6 +584,8 @@ section('pairing — the secret file, a wrong code, and no eviction by an unpair
 
   // 1. A pair spends the live code, so none is live.
   ok(await tryPair(CODE), 'pair/no-request: the live code pairs, and is spent');
+  ok(pairedProofs.length > 0 && pairedProofs.every(Boolean),
+    `server-proof/paired: each paired answer proves the code just spent over the plugin's nonce and the token (${pairedProofs.filter(Boolean).length}/${pairedProofs.length})`);
   CODE = await probe('after a pair has spent the code', CODE);
 
   // 2. MAX_RETIREMENTS codes retired by wrong guesses close pairing, so none is live.
@@ -600,7 +625,7 @@ const c1 = await openClient();
 {
   ok(/^HTTP\/1\.1 101/.test(c1.head) && c1.head.includes(`Sec-WebSocket-Accept: ${c1.expected}`), 'handshake: 101 with the RFC 6455 accept key');
   // A FRAGMENTED hello: text frame (FIN=0) + continuation (FIN=1). It carries the pairing proof (#3204).
-  const hello = Buffer.from(JSON.stringify({ type: 'hello', state: state(), proof: proveHello(await c1.nonce()) }));
+  const hello = Buffer.from(JSON.stringify({ type: 'hello', state: state(), proof: proveHello(await c1.nonce()), clientNonce: c1.clientNonce }));
   const cut = 17;
   c1.sock.write(frame(0x1, hello.subarray(0, cut), false));
   c1.sock.write(frame(0x0, hello.subarray(cut), true));
@@ -1286,6 +1311,85 @@ section('arms — what arm 0 and arm 1 show a fresh agent (#3440)');
   await until(() => bad.exitCode !== null, 60000);
   ok(bad.exitCode === 2, `arm/bad-value: PRISM3_BRIDGE_ARM=3 refuses to start (exit ${bad.exitCode})`);
   if (bad.exitCode === null) bad.kill();
+}
+
+/* ── the server proves itself (#3697 R8, the owner's A) ────────────────────────────────────────────────────── */
+section('server-proof — the relay hears only a server that proves the secret');
+{
+  // A fake socket the test speaks for: an impostor on the port, which knows the wire but not the secret. The proofs it
+  // must give are derived HERE (`proveWelcome`, `provePaired`), never from the relay's own hash (docs/34 shape 1).
+  type Fake = WsLike & { sent: any[]; closed: boolean };
+  const socks: Fake[] = [];
+  const told: any[] = [];
+  const later: Array<() => void> = [];
+  const make = (): WsLike => {
+    const f: Fake = { readyState: 1, sent: [], closed: false, send(d: string) { f.sent.push(JSON.parse(d)); }, close() { f.closed = true; },
+      onopen: null, onmessage: null, onclose: null, onerror: null };
+    socks.push(f);
+    return f;
+  };
+  const say = (f: Fake, m: unknown) => f.onmessage?.({ data: JSON.stringify(m) });
+  const relayOf = () => createBridgeRelay({ open: make, post: (m) => told.push(m), schedule: (fn) => { later.push(fn); return later.length; }, cancel: () => undefined, holdMs: 0 });
+  const runLater = () => later.splice(0).forEach((fn) => fn());
+  const posted = (type: string) => told.filter((m) => m.type === type);
+
+  const r = relayOf();
+  r.fromMain({ type: 'agent-bridge-token', token: TOKEN });
+  r.fromMain({ type: 'agent-link-state', state: state() });
+  const s1 = socks[0];
+  say(s1, { type: 'challenge', v: 1, nonce: 'aa'.repeat(32) });
+  const h1 = s1.sent.find((m) => m.type === 'hello');
+  ok(typeof h1?.clientNonce === 'string' && /^[0-9a-f]{64}$/.test(h1.clientNonce), `server-proof/nonce: the hello carries a 32-byte clientNonce (${h1?.clientNonce})`);
+  say(s1, { type: 'welcome' });
+  say(s1, { type: 'command', command: { v: 1, id: 'imp-1', cmd: 'prune', args: { confirm: true }, issuedAt: '2026-11-12T00:00:00Z' } });
+  ok(!r.connected() && s1.closed && !posted('agent-bridge').some((m) => m.connected) && !posted('agent-command').length,
+    `server-proof/impostor: a welcome with no proof is refused: the socket is dropped, the link never reads connected and its command is never posted (${posted('agent-command').length} posted)`);
+  runLater();
+  const s2 = socks[1];
+  say(s2, { type: 'challenge', v: 1, nonce: 'bb'.repeat(32) });
+  const h2 = s2.sent.find((m) => m.type === 'hello');
+  say(s2, { type: 'welcome', proof: proveWelcome(h2.clientNonce, 'f'.repeat(64)) });
+  ok(!r.connected() && s2.closed, 'server-proof/impostor: a welcome proved with another token is refused');
+  runLater();
+  const s3 = socks[2];
+  say(s3, { type: 'challenge', v: 1, nonce: 'cc'.repeat(32) });
+  const h3 = s3.sent.find((m) => m.type === 'hello');
+  say(s3, { type: 'welcome', proof: proveWelcome(h2.clientNonce) });
+  ok(!r.connected() && s3.closed && h3.clientNonce !== h2.clientNonce, 'server-proof/replay: a welcome proved over an earlier connection\'s nonce is refused, and each connection draws its own');
+  runLater();
+  const s4 = socks[3];
+  say(s4, { type: 'challenge', v: 1, nonce: 'dd'.repeat(32) });
+  const h4 = s4.sent.find((m) => m.type === 'hello');
+  say(s4, { type: 'paired', token: 'e'.repeat(64), proof: provePaired('ABCD-EFGH', h4.clientNonce, 'e'.repeat(64)) });
+  ok(!posted('agent-bridge-paired').length && s4.sent.filter((m) => m.type === 'hello').length === 1,
+    `server-proof/unsolicited-paired: a paired with no code pending is ignored: no token is kept and no second hello sent (${posted('agent-bridge-paired').length} kept)`);
+  say(s4, { type: 'welcome', proof: proveWelcome(h4.clientNonce) });
+  ok(r.connected() && !s4.closed && posted('agent-bridge').some((m) => m.connected), 'server-proof/welcome: a welcome proving the token over this connection\'s nonce connects');
+  say(s4, { type: 'paired', token: 'e'.repeat(64), proof: 'x' });
+  ok(!posted('agent-bridge-paired').length && r.connected(), 'server-proof/unsolicited-paired: and once welcomed, a paired is ignored too');
+  r.fromMain({ type: 'agent-link-state', state: state(false) });
+
+  // A code pending: the paired must prove THAT code. A wrong proof is an impostor; the right one is kept.
+  told.length = 0;
+  const q = relayOf();
+  q.fromMain({ type: 'agent-bridge-token', token: null });
+  q.fromMain({ type: 'agent-link-state', state: state() });
+  say(socks[socks.length - 1], { type: 'challenge', v: 1, nonce: 'ee'.repeat(32) });
+  q.pair('abcd-efgh');
+  const p1 = socks[socks.length - 1];
+  say(p1, { type: 'challenge', v: 1, nonce: 'ff'.repeat(32) });
+  const pair1 = p1.sent.find((m) => m.type === 'pair');
+  say(p1, { type: 'paired', token: 'e'.repeat(64), proof: provePaired('WXYZ-WXYZ', pair1.clientNonce, 'e'.repeat(64)) });
+  ok(!posted('agent-bridge-paired').length && p1.closed && !p1.sent.some((m) => m.type === 'hello'),
+    'server-proof/impostor-paired: with a code pending, a paired that cannot prove that code keeps no token and is dropped');
+  runLater();
+  const p2 = socks[socks.length - 1];
+  say(p2, { type: 'challenge', v: 1, nonce: '12'.repeat(32) });
+  const pair2 = p2.sent.find((m) => m.type === 'pair');
+  say(p2, { type: 'paired', token: TOKEN, proof: provePaired('ABCD-EFGH', pair2.clientNonce) });
+  ok(posted('agent-bridge-paired').some((m) => m.token === TOKEN) && p2.sent.some((m) => m.type === 'hello'),
+    'server-proof/paired: a paired proving the pending code over this connection\'s nonce is kept, and the hello follows');
+  q.fromMain({ type: 'agent-link-state', state: state(false) });
 }
 
 child.stdin.end();
