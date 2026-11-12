@@ -13,7 +13,7 @@ The small icon + caption below a form field. In its default status it is persist
 
 - **Purpose:** Carry helper guidance or a validation result below a form field, as icon + caption.
 - **Use when:** Under any field control that needs persistent guidance or an error/warning/success message.
-- **Avoid when:** As a standalone alert or toast (use an alert/banner) — this is field-scoped and associated to one control. Never as the sole color-coded error signal without text.
+- **Avoid when:** As a standalone alert or toast (use Banner or Toast) — this is field-scoped and associated to one control. Never as the sole color-coded error signal without text.
 
 ## Anatomy
 

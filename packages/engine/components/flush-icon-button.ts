@@ -311,7 +311,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
   composition: {
     composesWith: ['focus-ring'],
     alternativeTo: [sibling.iconButton],
-    planned: ['number-input', 'card'],
+    planned: ['number-field', 'card'],
     replacesPatterns: ['an <svg> with a click handler and no button', 'an IconButton with its padding overridden to zero'],
   },
 

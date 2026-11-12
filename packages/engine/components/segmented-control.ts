@@ -537,7 +537,7 @@ export const segmentedControl: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use a segmented control for a choice between two to five short options that changes a value in place: a parameter of the current view, such as list or grid, or a form value. Every option stays visible, and one is always selected. Don\'t use it to switch between panels of content (use tabs), for more than five options or long labels (use a select or a radio group), or for one setting that turns on and off (use a switch).',
+    usage: 'Use a segmented control for a choice between two to five short options that changes a value in place: a parameter of the current view, such as list or grid, or a form value. Every option stays visible, and one is always selected. Don\'t use it to switch between panels of content (use Tabs), for more than five options or long labels (use Select or Radio.Group), or for one setting that turns on and off (use Switch.Row).',
     do: [
       'Name what is being chosen, with a visible label or an accessible name',
       'Use two to five options with short, one-line labels',
@@ -556,7 +556,7 @@ export const segmentedControl: ComponentDef = {
   ai: {
     primaryPurpose: 'Choose exactly one of two to five short, always-visible options that change a value in place.',
     whenToUse: 'A short single choice the user changes often or that changes the current view at once, such as list or grid, a time range or a delivery method.',
-    avoidWhen: 'The options switch panels of content (use tabs), there are more than five or the labels are long (use a select or a radio group), options need descriptions (use a radio group), it is one on/off setting (use a switch), or selecting goes to another page (a navigation of links).',
+    avoidWhen: 'The options switch panels of content (use Tabs), there are more than five or the labels are long (use Select or Radio.Group), options need descriptions (use Radio.Group), it is one on/off setting (use Switch.Row), or selecting goes to another page (a navigation of links).',
     commonPartners: ['segmented-control-segment', 'field-label', 'icon'],
     triggerKeywords: ['segmented control', 'segmented button', 'view switcher', 'content switcher', 'toggle group', 'list grid toggle'],
     generationPriority: 3,
