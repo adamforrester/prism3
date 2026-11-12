@@ -23,7 +23,9 @@
  *     usage row splits its count into `layers` and `inInstances`, so a reader can tell drawn-here from inherited.
  *     A hidden layer (`visible: false`) and everything under it is skipped and counted in `coverage.hiddenLayers`;
  *     a hidden paint is skipped. A layer whose properties cannot be read is counted in `coverage.unreadableLayers`
- *     and adds no row, even when the read fails partway; its children are still walked. When the layer's own
+ *     and adds no usage row and no count, even when the read fails partway; its children are still walked. A
+ *     variable or style its bindings name still enters `variables`, `styles` and `libraries`, since the binding was
+ *     read, with that layer uncounted (`boundLayers`, `layers`). When the layer's own
  *     visibility cannot be read, or its child list cannot, the subtree is not walked, and only the layer is counted.
  *   · Every value carries its BINDING: `variable` (with the variable), `style` (with the style) or `raw`. A paint on
  *     a layer with a fill or stroke style is the style's, even when the style's own paint is bound to a variable.

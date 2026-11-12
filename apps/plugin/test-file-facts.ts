@@ -343,6 +343,31 @@ section('partway — a layer whose fills read and whose strokes throw');
   ok(eq(counts(one(paintRow(r, 'fill', 'background', '#0066ff', 'raw'))), [1, 0]), "partway/a child's fill is counted", r.usage.paints);
 }
 
+/* ── a layer that throws on its LAST read keeps none of its counters (re-review of #3685) ──────────────────────────── */
+section('partway counters — an instance and a text layer whose child list throws, after every count was taken');
+{
+  // `children` is the last read in `walk`, after the style and variable counts, so a throw there reaches every
+  // buffered counter: a counter written eagerly would show here as a 1.
+  const coll = { id: 'c', name: 'Color', modes: [{ modeId: 'm', name: 'Default' }], defaultModeId: 'm' };
+  const v = { id: 'v', name: 'brand/blue', variableCollectionId: 'c', resolvedType: 'COLOR', valuesByMode: { m: { r: 0, g: 0.4, b: 1, a: 1 } } };
+  const paintStyle = { id: 'S:paint', name: 'Brand/Blue', paints: [solid(BLUE.r, BLUE.g, BLUE.b)] };
+  const textStyle = { id: 'S:text', name: 'Body', fontName: { family: 'Inter', style: 'Regular' }, fontSize: 14, lineHeight: { unit: 'AUTO' } };
+  const throwsKids = <T extends object>(n: T) => Object.defineProperty(n, 'children', { get() { throw new Error('children could not be read'); }, enumerable: true }) as FactsNode;
+  const inst = throwsKids({ id: 'inst', type: 'INSTANCE', name: 'Card', mainComponentId: 'main', fillStyleId: 'S:paint',
+    fills: [solid(BLUE.r, BLUE.g, BLUE.b)], strokes: [solid(BLUE.r, BLUE.g, BLUE.b, { boundVariables: { color: alias(v) } })] });
+  const text = throwsKids({ id: 'txt', type: 'TEXT', name: 'Label', textStyleId: 'S:text', fontName: { family: 'Inter', style: 'Regular' }, fontSize: 14,
+    fontWeight: 400, lineHeight: { unit: 'AUTO' }, fills: [solid(BLUE.r, BLUE.g, BLUE.b, { boundVariables: { color: alias(v) } })] });
+  const r = await scanFileFacts(sourceFromSnapshot({ collections: [coll], variables: [v], styles: { paint: [paintStyle], text: [textStyle], effect: [], grid: [] },
+    components: [{ id: 'main', name: 'Card' }], pages: [{ id: 'p', name: 'P', children: [inst, text] }] }));
+  const errors = validate(SCHEMA, r);
+  ok(errors.length === 0, 'partway counters/the report matches schema/file-facts.schema.json', errors.slice(0, 5));
+  ok(eq(r.coverage, { pages: 1, layers: 0, hiddenLayers: 0, unreadableLayers: 2, textLayers: 0, instances: 0 }), 'partway counters/coverage: both unread, no instance and no text layer counted', r.coverage);
+  ok(eq(r.styles.paint.map((x) => [x.name, x.layers]), [['Brand/Blue', 0]]), "partway counters/the instance's fill style counts no layer", r.styles.paint);
+  ok(eq(r.styles.text.map((x) => [x.name, x.layers]), [['Body', 0]]), "partway counters/the text layer's text style counts no layer", r.styles.text);
+  ok(eq(r.variables.variables.map((x) => [x.name, x.boundLayers]), [['brand/blue', 0]]), 'partway counters/the bound variable counts no layer', r.variables.variables);
+  ok(r.usage.paints.length === 0 && r.components.used.length === 0, 'partway counters/no usage row and no component row', [r.usage.paints, r.components.used]);
+}
+
 /* ── the button words, each on its own (ROLE_RULE name-and-type/1) ──────────────────────────────────────────────────── */
 section('button words — btn and cta, with no other cue');
 {
