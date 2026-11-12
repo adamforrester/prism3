@@ -16937,19 +16937,21 @@ arm: {
       {
         const CELL_LINE: Record<string, string> = {
           rest: 'color/field/border/rest', hover: 'color/field/border/hover', filled: 'color/field/border/rest',
-          'focus-visible': 'color/border/focus', 'focus-visible-filled': 'color/border/focus', error: 'color/border/danger', disabled: 'color/disabled/border',
+          'focus-visible': 'color/border/focus', 'focus-visible-filled': 'color/border/focus', disabled: 'color/disabled/border',
         };
+        // At status=error (Q-CC1 A, #3554) the line is border.danger at every state but disabled.
+        const lineAt = (st: string, stat: string) => stat === 'error' && st !== 'disabled' ? 'color/border/danger' : CELL_LINE[st];
         const SIZE_PX: Record<string, string> = { medium: '48x56', small: '44x44', large: '56x64', 'x-large': '68x72' };
         const off: string[] = [];
         const under = figmaAnatomySet(applyFieldStyle(def('code-input-cell'), 'underline'));
-        if (under.length !== 28) off.push(`${under.length} members`);
+        if (under.length !== 48) off.push(`${under.length} members`);
         for (const p of under) {
-          const st = String(p.coord.state), at = `${p.size}/${st}`;
+          const st = String(p.coord.state), stat = String(p.coord.status), at = `${p.size}/${stat}/${st}`;
           const c = find(p.root, 'container'), b = c?.bound ?? {};
           const wantLine = FOCUS.includes(st) ? 'border-width/thick' : 'border-width/hairline';
           if (b.strokeBottomWeight !== wantLine || b.strokeTopWeight !== 'border-width/none' || b.strokeLeftWeight !== 'border-width/none' || b.strokeRightWeight !== 'border-width/none' || 'strokeWeight' in b)
             off.push(`${at} line ${b.strokeTopWeight}/${b.strokeRightWeight}/${b.strokeBottomWeight}/${b.strokeLeftWeight}`);
-          if (c?.paints?.strokes !== CELL_LINE[st]) off.push(`${at} color ${c?.paints?.strokes}`);
+          if (c?.paints?.strokes !== lineAt(st, stat)) off.push(`${at} color ${c?.paints?.strokes}`);
           if (!['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].every((k) => b[k] === 'radius/none')) off.push(`${at} corner ${b.topLeftRadius}`);
           if (`${c?.placementWidth}x${c?.placementHeight}` !== SIZE_PX[p.size]) off.push(`${at} size ${c?.placementWidth}x${c?.placementHeight}`);
           if (all(p.root).some((n) => Object.values(n.paints ?? {}).some((v) => /\/overlay\//.test(String(v))))) off.push(`${at} wash`);
@@ -20803,6 +20805,8 @@ arm: {
       'field-message': 'a message line under a field: no state axis and no stroked boundary, so there is no hover border to measure; its status shows in the text and glyph',
       // #2428: the field's border is its cells', and status does not reach a nested cell (Q329), so no status member strokes.
       'code-input': 'the field draws no border of its own: its boxes are nested cells, which the designer sets per cell because status does not reach a slot child (Q329); the cell\'s danger border is held to 3:1 against the page by the #2428 contrast arm',
+      // Q-CC1 A (#3554): the cell carries [default, error] only, its danger edge one flat role at every state but disabled.
+      'code-input-cell': 'a code input cell: status is [default, error] only (Q354, Q-CC1 A), the danger edge is one flat `color.border.danger` at every state but disabled, so there is no status hover step to measure; the #2428 contrast arm holds that border to 3:1 against the page',
       // #2670: Progress's `error` status colors a fill, not a border, and its message is a nested FieldMessage.
       progress: 'a progress bar or ring: no state axis and no stroked boundary; its error status colors the fill and shows in the nested FieldMessage\'s text and glyph, and its contrast is held by the #2670 block',
     };
@@ -27862,7 +27866,8 @@ arm: {
               const c = p.coord as Record<string, string>;
               return focusStates.includes(c.state) && Object.entries(coord).every(([k, v]) => c[k] === v);
             });
-            const statuses = id === 'code-input-cell' || id === 'counter' ? ['default'] : Object.keys(ROLE);
+            // The cell carries the code input's two statuses since Q-CC1 A (#3554); the Counter has no status axis.
+            const statuses = id === 'counter' ? ['default'] : id === 'code-input-cell' ? ['default', 'error'] : Object.keys(ROLE);
             const sizes = fd.variants?.size ?? [];
             expected += statuses.length * sizes.length * focusStates.length * RADII.length * 2;
             for (const plan of members) {
@@ -38206,20 +38211,22 @@ arm: {
   const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
   const cells = figmaAnatomySet(cellDef, {});
   const fields = figmaAnatomySet(fieldDef, {});
-  const cellAt = (size: string, state: string) => cells.find((p) => planComponentName(p) === `size=${size}, state=${state}`);
+  // The cell's status (Q-CC1 A, #3554) defaults to `default`; read by coordinate, not by the member's name.
+  const cellAt = (size: string, state: string, status = 'default') => cells.find((p) => p.size === size && p.coord.state === state && p.coord.status === status);
   const fieldAt = (status: string, size: string, state: string) => fields.find((p) => planComponentName(p) === `status=${status}, size=${size}, state=${state}`);
-  const CELL_STATES = ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'error'];
+  const CELL_STATES = ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled'];
   const FIELD_STATES = ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled'];
   const SIZES = ['medium', 'small', 'large', 'x-large'];
 
-  // (1) THE SETS: the cell is size × seven states (Q329's cell states; active spelled focus-visible), the field size ×
-  // status [default, error] × six states (Q321.9 A), and medium leads both (Q347, Q359).
-  ok(cells.length === 28 && fields.length === 48,
-    `#2428 code-input: the cell projects 4 sizes × 7 states = 28 members and the field 4 sizes × 2 statuses × 6 states = 48 (${cells.length}, ${fields.length})`);
-  ok(planComponentName(cells[0]) === 'size=medium, state=rest' && planComponentName(fields[0]) === 'status=default, size=medium, state=rest',
+  // (1) THE SETS: the cell is size × status [default, error] × six states (Q329's cell states, active spelled
+  // focus-visible; error the status axis since Q-CC1 A on #3554, Q354), the field size × status [default, error] × six
+  // states (Q321.9 A), and medium leads both (Q347, Q359).
+  ok(cells.length === 48 && fields.length === 48 && JSON.stringify(cellDef.variants.status) === JSON.stringify(['default', 'error']) && JSON.stringify(cellDef.figmaProperties?.variantAxes) === JSON.stringify(['size', 'status']),
+    `#2428 code-input (Q-CC1 A): the cell projects 4 sizes × 2 statuses × 6 states = 48 members and the field 4 sizes × 2 statuses × 6 states = 48 (${cells.length}, ${fields.length})`);
+  ok(planComponentName(cells[0]) === 'status=default, size=medium, state=rest' && planComponentName(fields[0]) === 'status=default, size=medium, state=rest',
     `#2428 code-input: the first member of each set is the code default, medium at rest (Q347, Q359) (${planComponentName(cells[0])}; ${planComponentName(fields[0])})`);
   ok(JSON.stringify(cellDef.figmaProperties?.stateAxis?.values) === JSON.stringify(CELL_STATES) && JSON.stringify(fieldDef.figmaProperties?.stateAxis?.values) === JSON.stringify(FIELD_STATES),
-    `#2428 code-input: the cell's states are rest, hover, filled, active, active filled, disabled, error, and the field's are Text field's without read-only`);
+    `#2428 code-input: the cell's states are rest, hover, filled, active, active filled and disabled (error is its status, Q-CC1 A), and the field's are Text field's without read-only`);
 
   // (2) THE CELL SIZES (Q330 A), literal px, each built at that width and height; every one at least 44 tall, the floor
   // `lint-hit-target.ts` hands to this arm (EXCLUDED: code-input). And the 32px fill floor.
@@ -38249,8 +38256,9 @@ arm: {
     return d?.textStyle !== STYLE[s] || fontPx(STYLE[s]) !== PX[s];
   }).map((s) => `${s}: ${String(findIn(cellAt(s, 'filled')!.root, 'digit')?.textStyle)} at ${String(fontPx(STYLE[s]))}px`);
   const digitAt = CELL_STATES.filter((st) => !!findIn(cellAt('medium', st)!.root, 'digit'));
-  ok(typeOff.length === 0 && JSON.stringify(digitAt) === JSON.stringify(['filled', 'focus-visible-filled', 'error']),
-    `#2428 code-input: the character is 16 / 20 / 24 / 40px (body md, title sm, md, 2xl) and shows on the filled, active filled and error cells only (${typeOff.join('; ') || 'sizes ok'}; shown at ${digitAt.join(', ')})`);
+  const digitAtError = CELL_STATES.filter((st) => !!findIn(cellAt('medium', st, 'error')!.root, 'digit'));
+  ok(typeOff.length === 0 && JSON.stringify(digitAt) === JSON.stringify(['filled', 'focus-visible-filled']) && JSON.stringify(digitAtError) === JSON.stringify(digitAt),
+    `#2428 code-input: the character is 16 / 20 / 24 / 40px (body md, title sm, md, 2xl) and shows on the filled and active filled cells only, in either status (${typeOff.join('; ') || 'sizes ok'}; shown at ${digitAt.join(', ')})`);
   // (3a) THE CARET is as tall as the character (owner item 8 on #2789): the icon rung it binds, read off the emitted
   // DTCG, is the character's px at every size. PX is typed above from Q330, so a caret that moves a rung fails by size.
   const iconPx = (rung: string): number | undefined => {
@@ -38317,8 +38325,8 @@ arm: {
   // cell. Figma keeps vertical trim inside the style, so a trim on the layer would detach the style the brand's type
   // reaches it through (#1567), which is how an unstyled character rendered in the default brand's display serif. The
   // plan carries no trim (Q560 A on #2789 removed the trim from the schema); the executor arms hold the built `NONE`.
-  const centerOff = SIZES.flatMap((s) => CELL_STATES.map((st) => {
-    const root = cellAt(s, st)!.root;
+  const centerOff = SIZES.flatMap((s) => CELL_STATES.flatMap((st) => ['default', 'error'].map((stat) => {
+    const root = cellAt(s, st, stat)!.root;
     const d = findIn(root, 'digit');
     if (!d) return null;
     const c = findIn(root, 'content');
@@ -38326,7 +38334,7 @@ arm: {
     return d.textStyle === STYLE[s] && !('leadingTrim' in d) && d.textAlignVertical === 'CENTER' && c?.counterAxisAlignItems === 'CENTER'
       && c?.layoutGrow === 1 && root.primaryAxisAlignItems === 'CENTER' && pad.every((v: unknown) => v === 'space/0')
       ? null : `${s}/${st}: style ${String(d.textStyle)}, trim ${String((d as Record<string, unknown>).leadingTrim)}, content ${String(c?.counterAxisAlignItems)} grow ${String(c?.layoutGrow)} pad ${pad.join('/')}`;
-  })).filter(Boolean);
+  }))).filter(Boolean);
   ok(centerOff.length === 0,
     `#2428 code-input: the character carries its size's text style (body md, title sm, md, 2xl), untrimmed, centered in the cell at every size and state (off: ${centerOff.join('; ') || 'none'})`);
   // The title weight resolves per brand (`typeWeight`): a brand shipping only a light title weight gets that weight, not a
@@ -38335,8 +38343,8 @@ arm: {
   ok(lightTitle.tokens['size.medium.type'] === 'type.title.sm.subtle' && lightTitle.tokens['size.small.type'] === 'type.body.md.default' && applyWeightIntent(cellDef, DEFAULT_WEIGHT_AVAILABILITY).tokens['size.medium.type'] === 'type.title.sm.strong',
     `#2428 code-input: the title characters take the brand's bold title weight (strong by default, subtle on a subtle-only brand), the small body character untouched (${lightTitle.tokens['size.medium.type']})`);
 
-  // (4) THE CELL'S PAINT, per state: Text field's field chrome (Q321 A), the danger border in error, the shared disabled
-  // skin with `color.disabled.border` (Q346).
+  // (4) THE CELL'S PAINT, per state: Text field's field chrome (Q321 A), the shared disabled skin with
+  // `color.disabled.border` (Q346). At status=error (Q-CC1 A) the danger border at every state but disabled.
   const PAINT: Record<string, { fills?: string; strokes: string }> = {
     rest: { fills: 'color/field/fill', strokes: 'color/field/border/rest' },
     hover: { fills: 'color/field/fill', strokes: 'color/field/border/hover' },
@@ -38344,11 +38352,13 @@ arm: {
     'focus-visible': { fills: 'color/field/fill', strokes: 'color/border/focus' },
     'focus-visible-filled': { fills: 'color/field/fill', strokes: 'color/border/focus' },
     disabled: { fills: 'color/disabled/fill', strokes: 'color/disabled/border' },
-    error: { fills: 'color/field/fill', strokes: 'color/border/danger' },
   };
-  const paintOff = CELL_STATES.filter((st) => { const r = cellAt('medium', st)!.root.paints; return r?.fills !== PAINT[st].fills || r?.strokes !== PAINT[st].strokes; })
-    .map((st) => `${st}: ${JSON.stringify(cellAt('medium', st)!.root.paints)}`);
-  ok(paintOff.length === 0, `#2428 code-input: the cell paints the field chrome per state — the field border alone at hover (no wash, #2926), the focus border when active, the danger border in error, disabled.fill and disabled.border when disabled (${paintOff.join('; ') || 'ok'})`);
+  const ERROR_PAINT = (st: string) => st === 'disabled' ? PAINT.disabled : { fills: 'color/field/fill', strokes: 'color/border/danger' };
+  const paintOff = CELL_STATES.flatMap((st) => (['default', 'error'] as const).filter((stat) => {
+    const want = stat === 'error' ? ERROR_PAINT(st) : PAINT[st];
+    const r = cellAt('medium', st, stat)!.root.paints; return r?.fills !== want.fills || r?.strokes !== want.strokes;
+  }).map((stat) => `${stat}/${st}: ${JSON.stringify(cellAt('medium', st, stat)!.root.paints)}`));
+  ok(paintOff.length === 0, `#2428 code-input: the cell paints the field chrome per state — the field border alone at hover (no wash, #2926), the focus border when active, the danger border at every state of status=error but disabled (Q-CC1 A), disabled.fill and disabled.border when disabled (${paintOff.join('; ') || 'ok'})`);
   // Q346: no border on either def binds a text or icon role.
   const borderRoles = Object.entries(cellDef.tokens).filter(([k]) => k.split('.').includes('border')).map(([, v]) => v);
   ok(borderRoles.length >= 5 && borderRoles.every((v) => !/^color\.(text|icon)\./.test(v)),
@@ -38356,7 +38366,7 @@ arm: {
   // The focus edge and the caret: since #3399 (Q22 A) the active cell draws no ring, its border is the 2px focus edge
   // on both active states; the caret on the active empty cell only.
   const ringAt = CELL_STATES.filter((st) => !!findIn(cellAt('medium', st)!.root, 'focusRing'));
-  const edgeAt = CELL_STATES.filter((st) => cellAt('medium', st)!.root.bound?.strokeWeight === 'focus/ring/width');
+  const edgeAt = CELL_STATES.filter((st) => cellAt('medium', st)!.root.bound?.strokeWeight === 'focus/ring/width' && cellAt('medium', st, 'error')!.root.bound?.strokeWeight === 'focus/ring/width');
   const caretAt = CELL_STATES.filter((st) => !!findIn(cellAt('medium', st)!.root, 'caret'));
   ok(ringAt.length === 0 && JSON.stringify(edgeAt) === JSON.stringify(['focus-visible', 'focus-visible-filled']) && JSON.stringify(caretAt) === JSON.stringify(['focus-visible']),
     `#2428 code-input: the 2px focus edge on the active cells (${edgeAt.join(', ')}), no ring on any cell (${ringAt.join(', ') || 'none'}), and the caret on the active empty cell (${caretAt.join(', ')}) (Q321.6 A, #3399)`);
@@ -38380,12 +38390,13 @@ arm: {
     'focus-visible-filled': ['filled', 'filled', 'filled', 'focus-visible', 'rest', 'rest'],
     disabled: ['disabled', 'disabled', 'disabled', 'disabled', 'disabled', 'disabled'],
   };
-  const cellsOff = FIELD_STATES.filter((st) => {
-    const kids = findIn(fieldAt('error', 'medium', st)!.root, 'items')!.children;
+  const cellsOff = FIELD_STATES.flatMap((st) => ['default', 'error'].filter((stat) => {
+    const kids = findIn(fieldAt(stat, 'medium', st)!.root, 'items')!.children;
     return JSON.stringify(kids.map((k) => k.nestVariant?.state)) !== JSON.stringify(STATE_CELLS[st])
+      || kids.some((k) => k.nestVariant?.status !== stat)
       || kids.map((k) => k.nestOverrides?.find((o) => o.property === 'digit')?.value).join('') !== '481902';
-  });
-  ok(cellsOff.length === 0, `#2428 code-input: each member's default cells picture its state (the active cell first when empty, fourth after three characters), reading 4 8 1 9 0 2, and status leaves them alone (off: ${cellsOff.join(', ') || 'none'})`);
+  }).map((stat) => `${stat}/${st}`));
+  ok(cellsOff.length === 0, `#2428 code-input: each member's default cells picture its state (the active cell first when empty, fourth after three characters), reading 4 8 1 9 0 2, and take its status by name (Q-CC1 A) (off: ${cellsOff.join(', ') || 'none'})`);
   // The label dims with the field; the message follows its status.
   const label = (m: AnatomyPlan) => findIn(m.root, 'label');
   const message = (m: AnatomyPlan) => findIn(m.root, 'message');
