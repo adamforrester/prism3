@@ -2621,7 +2621,7 @@ const writeComponentSet = async (
       const tintVecs = n.literalTint && node.findAll ? node.findAll((x) => x.type === 'VECTOR') : [];
       if (n.literalTint) {
         if (tintVecs.length === 0) misses.push(`${n.name}.literalTint -> ${n.literalTint} (no VECTOR inside this node to paint)`);
-        for (const vec of tintVecs) wr(vec as CompNode).fills = [literalSolid(n.literalTint)];
+        void tintVecs;
       }
 
       // READ BACK. The name resolved and the setter did not throw, which is not the same as the binding
