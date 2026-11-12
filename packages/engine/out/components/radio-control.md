@@ -1,6 +1,6 @@
 # Radio.Control
 
-> Outlined radio ring; dot and brand ring on select. Nested by Radio.Row; no label.
+> Outlined radio ring; dot and brand ring on select. Nested by a radio row; no label.
 
 - **ID:** `radio-control`
 - **Category:** form
@@ -69,9 +69,9 @@ Do not place this on its own. It is the circle Radio.Row nests, so a fix to its 
 
 ### Motion
 
-- **Enter:** On select, the inner dot scales in with a border-color crossfade on the ring, about 100-150ms. The focus ring appears instantly — a fade lags rapid arrow navigation through the group.
-- **Exit:** When a sibling is selected, this dot animates out — the one exit a radio has, since it is never deselected on its own.
-- **Reduced motion:** Under prefers-reduced-motion, the dot snaps in and out through opacity and color only, with no scale.
+- **Enter:** On select, the inner dot scales in from a little under full size with a border-color crossfade on the ring, on motion.duration.fast with motion.easing-role.default. The focus ring appears instantly — a fade lags rapid arrow navigation through the group.
+- **Exit:** When a sibling is selected, this dot scales out on the same timing — the one exit a radio has, since it is never deselected on its own.
+- **Reduced motion:** Under prefers-reduced-motion, the dot has no scale: it fades in and out with the color change, on motion.duration-reduced.fast.
 
 ## Content guidelines
 

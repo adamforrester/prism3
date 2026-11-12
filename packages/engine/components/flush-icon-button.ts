@@ -94,6 +94,9 @@ type FlushIconButtonSibling = {
   iconButton: string;
   triggerKeywords: string[];
   avoidWhen: string;
+  /** #3555 C2: the sibling's own opening for `whenToUse`, before the shared shape guidance. The counter and card-close
+   *  examples belong to the neutral sibling, which every other sibling's `avoidWhen` sends them to. */
+  whenToUse?: string;
   generationPriority: number;
   /** Appended to the shared `docs.do`. */
   do: string[];
@@ -116,15 +119,18 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
   props: [
     { name: 'icon', type: 'slot', required: true, description: 'The single icon. Rendered aria-hidden: the button owns the name.' },
     { name: 'aria-label', type: 'string', required: true, description: 'Required accessible name, a verb naming the action ("Close", "Increase quantity"). Required at the type level, since there is no visible text.' },
-    { name: 'onClick', type: 'function', required: false, description: 'Action handler. Not called while disabled.' },
+    { name: 'onClick', type: 'function', required: false, description: 'Action handler. Not called while disabled or inactive.' },
     { name: 'type', type: "enum: 'button' | 'submit' | 'reset'", values: ['button', 'submit', 'reset'], default: 'button', required: false, description: "Defaults to 'button', as Button does. The platform default is 'submit', so a flush icon button inside a form would submit it." },
     { name: 'shape', type: "enum: 'flush' | 'round'", values: ['flush', 'round'], default: 'flush', required: false, description: 'flush is the bare glyph, with no padding, fill or border, for a glyph that lines up with the content edge. round is a circle around the glyph with a light edge and a soft fill on hover and press, for a counter whose buttons stand on their own.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The glyph size: 20px at small and medium, 24px at large. A flush box is the glyph, with no padding. A round circle is 36, 44 or 56px across. The hit area in code is at least 44×44px at every size.' },
     { name: 'surface', type: "enum: 'default' | 'inverse'", values: ['default', 'inverse'], default: 'default', required: false, description: 'The ground the button sits on, following IconButton. default for a normal page; inverse for a dark or brand-filled card or band, where the glyph binds its color.inverse counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks default, and the designer sets inverse on the instance, the same answer the nested focus ring gives.' },
-    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree.' },
+    // Owner decision Q-CC22 A (#3554): a code-only `isInactive`, as IconButton carries, so a host that blocks the
+    // button at a limit has a prop for it instead of advice on `disabled`. Pending stays out.
+    { name: 'isInactive', type: 'boolean', default: false, required: false, description: 'Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree.' },
   ],
 
-  states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'],
+  states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'inactive'],
   variants: {
     // Q287 A: flush first, the shape built first and the code default, so Figma's inserted member is flush.
     shape: ['flush', 'round'],
@@ -228,7 +234,13 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
         class: 'composition',
         disposition: 'refused',
         description:
-          'Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled="true"` on that button at the limit rather than native disabled, so it stays in the accessibility tree.',
+          'Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets isInactive on that button at the limit rather than native disabled, so it stays in the accessibility tree.',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'refused',
+        description:
+          'inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === \'disabled\'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus.',
       },
       {
         class: 'right-to-left',
@@ -264,7 +276,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
     ],
     keyboard: 'Native <button>: Enter on keydown, Space on keyup. A host may take it out of the tab order (tabindex="-1") where its own keys do the same job, as a counter\'s arrow keys do.',
     focus: 'An offset :focus-visible ring around the glyph square, or around the circle on the round shape.',
-    aria: 'aria-label is the accessible name (required), a verb naming the action. Inside a host that disables it at a limit, set aria-disabled="true" so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips.',
+    aria: 'aria-label is the accessible name (required), a verb naming the action. Inside a host that blocks it at a limit, set isInactive, which carries aria-disabled="true", so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips.',
   },
 
   content: {
@@ -288,8 +300,8 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
   },
 
   ai: {
-    primaryPurpose: 'Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.',
-    whenToUse: 'The minus and plus of a counter, a card\'s close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.',
+    primaryPurpose: `Trigger ${{ primary: 'a brand action', destructive: 'a destructive action', neutral: 'an action with no brand emphasis' }[family]} inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.`,
+    whenToUse: `${sibling.whenToUse ?? 'Any icon action inside a component.'} shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.`,
     avoidWhen: `${sibling.avoidWhen} ${AVOID_WHEN}`,
     commonPartners: ['icon', 'focus-ring', 'counter'],
     triggerKeywords: sibling.triggerKeywords,
@@ -299,14 +311,14 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
   composition: {
     composesWith: ['focus-ring'],
     alternativeTo: [sibling.iconButton],
-    planned: ['number-input', 'card'],
+    planned: ['number-field', 'card'],
     replacesPatterns: ['an <svg> with a click handler and no button', 'an IconButton with its padding overridden to zero'],
   },
 
   motion: {
     enter: 'none (present on mount)',
     exit: 'none',
-    reduceMotion: 'The glyph color change, and the round shape\'s fill, are meant to run about 100–150ms through the brand\'s motion tokens; none is bound yet, so the timing is code-side. Under prefers-reduced-motion the change stays, instantly.',
+    reduceMotion: 'The glyph color change, and the round shape\'s fill, run on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the change stays, on motion.duration-reduced.fast.',
   },
 
   notes: {
@@ -322,7 +334,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
       'Q305.1 A (2026-10-14): the round edge stays the decorative color.border.secondary (color.disabled.border at disabled) on all three families; the glyph carries the family color.',
     ],
     unverified: [
-      'motion timing — no motion token is bound, so nothing gates the 100–150ms target.',
+      'motion timing — the change names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.',
       'The focus ring clears 3:1 against the page (gated, focus-ring.ts); against a host\'s fill it is not measured.',
       'The round edge, `color.border.secondary`, is about 2:1 against the page by design (decorative, no floor). The glyph ink clears 3:1 against the page per family (gated, `test.ts` #2457); on the round shape\'s hover and pressed wash it keeps its contrast through the overlay contract (`interactive.<family>.overlay.*` against the family\'s text ink), which is gated for text ink, not the icon ink. Under `outlineInteraction: opaque-fill` (#3071) the round hover and pressed fill is the opaque `interactive.<family>.hover-fill.*` instead, and the icon ink is measured on it as its second pair.',
     ],
@@ -376,6 +388,7 @@ export const flushIconButtonNeutral: ComponentDef = makeFlushIconButton(
     iconButton: 'icon-button-neutral',
     triggerKeywords: ['flush icon button', 'bare icon button', 'round icon button in a counter', 'counter plus minus', 'card close icon', 'stepper button'],
     avoidWhen: 'The action carries the brand (use FlushIconButton) or deletes something (use FlushIconButton.Destructive). It stands on its own in a toolbar or a header (use IconButton.Neutral, which has a visible box and a hover wash).',
+    whenToUse: 'The minus and plus of a counter, a card\'s close, or any icon action inside a component.',
     generationPriority: 4,
     do: [],
   },

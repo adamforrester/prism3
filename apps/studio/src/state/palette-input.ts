@@ -77,11 +77,19 @@ export const cascadeRename = (prev: string, next: string): void => {
   const renamesColumn = cols.some((e) => e.name === undefined && e.palette === prev) && !cols.some((e) => e.name === prev);
   brandState.interactivePalettes?.forEach((e) => { if (e.palette === prev) e.palette = next; });
   if (renamesColumn) {
-    for (const m of Object.values(brandState.modeAnchors ?? {})) {
+    // A mode map left empty (its only key was a dropped leftover, and the old name had no anchor there) is pruned, as
+    // `setAnchor` prunes, and so is an emptied `modeAnchors` (#3613). Only a map this drop emptied: one already empty stays.
+    const ma = brandState.modeAnchors;
+    let pruned = false;
+    for (const mode of Object.keys(ma ?? {})) {
+      const m = ma![mode];
       if (!m) continue;
+      const stale = next in m;
       delete m[next];
       if (prev in m) { m[next] = m[prev]; delete m[prev]; }
+      if (stale && !Object.keys(m).length) { delete ma![mode]; pruned = true; }
     }
+    if (pruned && !Object.keys(ma!).length) brandState.modeAnchors = undefined;
     const heads = [[`interactive.${prev}.`, `interactive.${next}.`], [`inverse.interactive.${prev}.`, `inverse.interactive.${next}.`]];
     for (const m of Object.values(brandState.overrides ?? {})) {
       if (!m) continue;
@@ -102,6 +110,15 @@ export const cascadeRename = (prev: string, next: string): void => {
     for (const ref of Object.values(m ?? {})) if ((ref as { palette?: string } | undefined)?.palette === prev) (ref as { palette: string }).palette = next;
   }
 };
+/** Whether removing palette `name` drops the keys of the interactive column it names (#3549): it has an unnamed
+ *  column, and no column carries `name` as its explicit name. */
+const dropsColumnKeys = (name: string): boolean => {
+  const cols = brandState.interactivePalettes ?? [];
+  return cols.some((e) => e.name === undefined && e.palette === name) && !cols.some((e) => e.name === name);
+};
+/** Whether override key `key` names column `col` (`interactive.<col>.…` or `inverse.interactive.<col>.…`). */
+const isColumnKey = (key: string, col: string): boolean =>
+  key.startsWith(`interactive.${col}.`) || key.startsWith(`inverse.interactive.${col}.`);
 /** …and when one is removed, every field that named it falls back (actions to primary, links to their
  *  default, a borrow to Auto, a column away, a gradient stop to primary, since a gradient needs its stops). */
 export const cascadeRemove = (removed: string): void => {
@@ -109,6 +126,28 @@ export const cascadeRemove = (removed: string): void => {
   if (brandState.linkPalette === removed) brandState.linkPalette = undefined;
   const rc = brandState.roleColors as Record<string, string> | undefined;
   if (rc) { for (const r of Object.keys(rc)) if (rc[r] === removed) delete rc[r]; if (!Object.keys(rc).length) brandState.roleColors = undefined; }
+  // The removed palette's unnamed column was named by it, so the keys that named the column go with it (#3549): its
+  // per-mode anchor and its `interactive.<removed>.…` / `inverse.interactive.<removed>.…` overrides, in every mode.
+  // Left behind, the engine ignores them until a column takes the name again (a rename, or a new color of that name),
+  // and then they come back without a word. Same rule as `cascadeRename`: when another column carries `removed` as its
+  // explicit name, the keys name that column too, so none of them is dropped.
+  if (dropsColumnKeys(removed)) {
+    for (const field of ['modeAnchors', 'overrides'] as const) {
+      const byMode = brandState[field] as Record<string, Record<string, unknown> | undefined> | undefined;
+      if (!byMode) continue;
+      let dropped = false;
+      for (const mode of Object.keys(byMode)) {
+        const m = byMode[mode];
+        if (!m) continue;
+        const keys = Object.keys(m).filter((key) => field === 'modeAnchors' ? key === removed : isColumnKey(key, removed));
+        for (const key of keys) delete m[key];
+        // Pruned as `setAnchor` and `setRoleOverride` prune, but only what this drop emptied: an empty map the brand
+        // already held is not this removal's to change.
+        if (keys.length) { dropped = true; if (!Object.keys(m).length) delete byMode[mode]; }
+      }
+      if (dropped && !Object.keys(byMode).length) brandState[field] = undefined;
+    }
+  }
   if (brandState.interactivePalettes) {
     brandState.interactivePalettes = brandState.interactivePalettes.filter((e) => e.palette !== removed);
     if (!brandState.interactivePalettes.length) brandState.interactivePalettes = undefined;
@@ -137,8 +176,11 @@ export const removalEffects = (name: string): string[] => {
   }
   // An override that names the palette is NOT cascaded (#3391): it dangles, and the engine refuses the brand
   // ("unknown palette"). Listed here, by role, so the removal is never a surprise. Last: it is not a step of the cascade.
+  // An override keyed by the removed column is not held: `cascadeRemove` drops it with the column (#3549).
+  const dropsKeys = dropsColumnKeys(name);
   const held = [...new Set(Object.values(brandState.overrides ?? {}).flatMap((m) =>
-    Object.entries(m ?? {}).filter(([, ref]) => (ref as { palette?: string } | undefined)?.palette === name).map(([role]) => role)))];
+    Object.entries(m ?? {}).filter(([role, ref]) => (ref as { palette?: string } | undefined)?.palette === name && !(dropsKeys && isColumnKey(role, name)))
+      .map(([role]) => role)))];
   if (held.length) {
     out.push(held.length === 1
       ? `1 role is still overridden to it: ${held[0]} — the brand won't build until it's re-picked.`

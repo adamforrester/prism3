@@ -117,6 +117,9 @@ type IconButtonSibling = {
   triggerKeywords: string[];
   /** Appended to the shared avoid-when: the sibling that fits better, named. */
   avoidWhen: string;
+  /** #3555 C2: the sibling's own `whenToUse`. A close affordance belongs to the neutral sibling, which the other two
+   *  send it to. */
+  whenToUse?: string;
   generationPriority: number;
   /** Appended to the shared `docs.do`. */
   do: string[];
@@ -151,7 +154,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     { name: 'surface', type: "enum: 'default' | 'inverse'", values: ['default', 'inverse'], default: 'default', required: false, description: 'The ground the icon button sits on, as on Button. default for a normal page; inverse for a dark or brand-filled band, where the control binds its color.inverse counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. An inverse icon button takes the shared white-inverse treatment with the icon as the ink: a white fill and a per-family icon ink derived to clear AA on white. A host that cannot know its ground picks default, and the designer sets inverse on the instance — the same answer the nested focus ring gives.' },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Swaps the icon for a spinner after a short delay, keeps focus (aria-disabled, not native disabled), suppresses re-fire, and announces busy through a polite live region. The square keeps its size.' },
     { name: 'isInactive', type: 'boolean', default: false, required: false, description: 'Focusable disabled for relevant-but-blocked actions — retains tab order and surfaces the blockage reason on focus.' },
-    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the a11y tree.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the accessibility tree.' },
   ],
 
   states: ['rest', 'hover', 'pressed', 'pending', 'focus-visible', 'disabled', 'inactive'],
@@ -198,8 +201,8 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
   // Icon-only is SQUARE: the height role drives both dimensions, so padding-x = padding-y.
   // Color skin follows Button's reconciled interactive.* model (same color × appearance);
   // this delta binds the square geometry + the base focus contract + the icon-glyph skins.
-  // The icon glyph binds the same interactive inks Button's label does (on-fill for filled,
-  // text for outline/text) — every color now carries the full state shape (v1 gap closed).
+  // The icon glyph binds the on-fill ink for filled, and the dedicated `icon.*` role (#1471) for
+  // outline and ghost — every color now carries the full state shape (v1 gap closed).
 
   // Same paint grammar as the substrate (#758), and stated rather than inherited: `inherits` records
   // the API delta, not the skin, and `paintOf` reads this def's own field. Repeating two lines is the
@@ -266,6 +269,11 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     // components (that identity is why splitting the intents loses no coverage — #1225).
     'disabled.fill': 'color.disabled.fill',
     'disabled.icon': 'color.disabled.icon',
+    // The glyph's ink is keyed twice, per ground, as on Button (#784; owner decision Q-CC11 A, #3554): on
+    // `filled` the glyph sits on `disabled.fill`, so it takes `color.disabled.on-fill`, the ink gated against
+    // that fill (3.06:1 where the page ink gave 2.14:1 on the default brand's light mode). The projector picks
+    // the `.on-fill` form only where the appearance has a disabled fill beneath the glyph.
+    'disabled.icon.on-fill': 'color.disabled.on-fill',
     // A border never binds an icon or text role (Q346, #2749): the disabled edge is `color.disabled.border`,
     // as on Button. It once bound the disabled icon ink to clear 3:1 against the page (#1697); the owner
     // superseded that. It paints only on `outline` (STRUCTURAL, no fill beneath).
@@ -564,7 +572,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
       '2.5.3 Label in Name (a visible tooltip and the aria-label carry the same words)',
       '1.4.11 Non-text Contrast (focus ring at 3:1, and the icon glyph itself at 3:1 against its background)',
       '2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)',
-      '2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)',
+      '2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)',
       '1.4.13 Content on Hover or Focus (only where a tooltip is attached: dismissible, hoverable and persistent)',
       '2.5.8 Target Size (Minimum) (24×24 — the small square is 36px, 28px at compact density)',
       '2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); icon-only controls are the likeliest to miss it, so reaching 44 elsewhere is a code-side hit-area expansion)',
@@ -596,8 +604,8 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
   },
 
   ai: {
-    primaryPurpose: 'Trigger an action with an icon alone, no visible label.',
-    whenToUse: 'A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).',
+    primaryPurpose: { primary: 'Trigger an action with an icon alone, no visible label, in the brand\'s primary style.', destructive: 'With an icon alone and no visible label, trigger an action that deletes or removes something.', neutral: 'With an icon alone and no visible label, trigger an action that carries no brand emphasis.' }[family],
+    whenToUse: sibling.whenToUse ?? 'A self-evident, conventional action in a space-constrained context (toolbar, table row, card header).',
     avoidWhen: `The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. ${sibling.avoidWhen}`,
     commonPartners: ['icon', 'spinner', 'focus-ring'],
     triggerKeywords: sibling.triggerKeywords,
@@ -619,7 +627,10 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
   motion: {
     enter: 'none (present on mount)',
     exit: 'none',
-    reduceMotion: 'State transitions (background, border) are meant to run ~100–150ms through the brand\'s motion tokens; this component binds none yet, so the timing is code-side. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
+    // Owner decision Q-CC29a A (#3554): the press scale is stated, Button's 0.98, so the clause that resolves
+    // scale to none under reduced motion names a scale that exists. Q-MD4 A (#3555): the brief's ~100–150ms maps to
+    // motion.duration.fast.
+    reduceMotion: 'State transitions (background, border) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98), as on Button, gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
   },
 
   notes: {
@@ -636,7 +647,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
       'RESOLVED (#1697): the pending member swaps in the real spinner. The disabled edge #1697 also rebound to the disabled icon ink was superseded by Q346 (#2749): a border never binds an icon or text role, so it binds `color.disabled.border`.',
     ],
     unverified: [
-      'motion timing — the button brief\'s ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.',
+      'motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.',
       'the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host\'s own edge or fill is not measured.',
     ],
   },
@@ -694,6 +705,7 @@ export const iconButtonNeutral: ComponentDef = makeIconButton(
   {
     triggerKeywords: ['close button', 'dismiss button', 'toolbar icon button', 'neutral icon button', 'row action'],
     avoidWhen: 'The action carries the brand → use IconButton. It deletes or removes something → use IconButton.Destructive.',
+    whenToUse: 'A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).',
     generationPriority: 2,
     do: [],
   },

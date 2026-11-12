@@ -127,8 +127,8 @@ round: the **real plugin, open in the owner's Figma**, does the writing, and you
 the output. Every command runs through the same main-thread handler the panel's button reaches, and
 the result carries the verdict the panel would show plus the structured facts behind it.
 
-**Precondition — ask for it, never assume it.** The owner opens the file, runs the Prism3 plugin, and
-switches **Agent link** on (the dashed chip, bottom-left of the panel). The link is off at every
+**Precondition — ask for it, never assume it.** The owner opens the file, runs the Prism3 plugin, and turns
+on the **Agent** switch on the top bar, just before **Update file** (or **Agent link** on the library home). The link is off at every
 launch. While it is off the plugin ignores the mailbox entirely, and a command you queued before it was
 switched on is answered `stale` rather than run. The same scratch-file rule as above applies: the
 commands write to that file.
