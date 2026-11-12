@@ -26,6 +26,8 @@
  *   segmented/… rows that sat in a layer the update keeps (`track`): four options, the second selected, each growing.
  *   converge/…  the next dry run has nothing to carry: the set reads current, and no old boolean is left to remove.
  *   untouched/… an instance left at its defaults carries its three default rows as three items.
+ *   stopped/…   #3697 H1 — a set that stops at member N fills the instances of the members it reached, and leaves the
+ *               rest with their rows for the next run.
  *   dialog/…    #2661 — the footer's two fixed Buttons move into a nested Button.Group's slot, which holds the same two by
  *               default: a designer's changed labels land on those defaults in order, an unchanged instance is left
  *               out, and a swapped or hidden button is named. Driven on a hand-built model of the placed instances
@@ -40,6 +42,8 @@
  *   · the apply stops deleting removed properties → `converge/booleans gone`.
  *   · the capture keeps values equal to the set default (the `defaultValue` filter dropped) → `dialog/only changes`;
  *   · the within fill removes the slot's defaults and remakes them → `dialog/defaults kept`.
+ *   · a stopped set skips the fill again (`!o.stopped` back on `fillSlots`, #3697 H1) → `stopped/earlier kept`;
+ *   · the stopped fill reports every unreached instance (`reachedOnly` dropped) → `stopped/no false miss`.
  */
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
