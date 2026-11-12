@@ -20,7 +20,7 @@ A compact row of two to five short options in one neutral track, where exactly o
 Shown on the default member: size `medium`.
 
 1. **Container** — The control: a label above the track. It fills its column.
-2. **Label** (optional)
+2. **Label** (optional) — The visible label, naming what is being chosen, shown by default; its text, required marker and weight are set on the control.
 3. **Track** — The track: a neutral fill behind every option, with no outline. Each option fills an equal share of it, and the selected one shows a pill on it.
 4. **Items** — The options: a native slot holding Segment instances, three by default, the first selected. Each option fills an equal share of the track.
 5. **Segment1** — The first option, selected.

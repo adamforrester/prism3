@@ -21,12 +21,12 @@ A control for free-form text expected to wrap across multiple lines — comments
 Shown on the default member: size `medium`, style `outline`, status `default`.
 
 1. **Label** — The accessible name, composed rather than re-declared. Its size follows the field's, one step below the value; its label text, required marker, emphasis and weight surface on the textarea. Starts primary and regular. Fills the field's width; a long name wraps at FieldLabel's max width.
-2. **Caret**
+2. **Caret** — The insertion point in a focused, empty field, right before the placeholder, in the value color.
 3. **Placeholder** — The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. Wraps across the field width and reserves the default rows of its own line height.
 4. **Value** — The entered value, in the value ink. Shown on the filled, focused filled and read-only field. Wraps across the field width and reserves the default rows of its own line height.
-5. **Grip glyph** (optional)
-6. **Message**
-7. **Counter**
+5. **Grip glyph** (optional) — The resize grip in the bottom-right corner, shown by default; it takes no space, so the field keeps its size with it on or off.
+6. **Message** — Helper or validation text, hidden until the field has something to say; it takes the field's status.
+7. **Counter** — The character count at the end of the message row, hidden by default; it shows with or without a message.
 
 ## Styles
 
