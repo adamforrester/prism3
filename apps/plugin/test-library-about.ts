@@ -132,6 +132,12 @@ section('publish — the description offered after an Update');
     publishDescription({ title: versionOf({ run: 'update', sets: [{ set: 'tag', name: 'Tag' }] }).title, sets: ['tag'], from: null, engine: '0.237.0', contract: '14.7.0' })];
   ok(heads.every((h) => !h.startsWith(MARKER) && !/^[^.]*\bbefore\b/i.test(h)) && heads[0].startsWith('Prism3 updated icon, badge. ') && heads[1].startsWith('Prism3 updated tag. '),
     `publish/head: "Prism3 updated <sets>.", never the version title's "${MARKER}" (#2914) (${JSON.stringify(heads.map((h) => h.split('\n')[0]))})`);
+  // The no-set arm: an Update that only reordered pages changed no set, so the head is still that version's own title,
+  // word for word, as main shipped it before #2914 (the wording is an open owner decision on #2914).
+  const pageOrder = versionOf({ run: 'update', sets: [], pageOrder: true }).title;
+  const noSet = publishDescription({ title: pageOrder, sets: [], from: null, engine: '0.237.0', contract: '14.7.0' });
+  ok(pageOrder === `${MARKER} updated the page order` && noSet.split('\n')[0] === `${pageOrder}. Engine 0.237.0. Token contract 14.7.0.`,
+    `publish/no set changed: the head is the version title word for word (#2914) (${JSON.stringify(noSet.split('\n')[0])})`);
 }
 
 /* ── the shim as a file with a Cover page ────────────────────────────────────────────────────────────── */
