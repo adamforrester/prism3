@@ -352,7 +352,7 @@ Keyed by `appearance`, `shape`, `surface`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.disabled.fill` | — | — | — |
-| `container/icon` | — | — | — | `color.disabled.icon` |
+| `container/icon` | — | — | — | `color.disabled.on-fill` |
 
 **appearance=filled, shape=square, surface=inverse, state=rest**
 
@@ -394,7 +394,7 @@ Keyed by `appearance`, `shape`, `surface`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.inverse.disabled.fill` | — | — | — |
-| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+| `container/icon` | — | — | — | `color.inverse.disabled.on-fill` |
 
 **appearance=filled, shape=circular, surface=default, state=rest**
 
@@ -436,7 +436,7 @@ Keyed by `appearance`, `shape`, `surface`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.disabled.fill` | — | — | — |
-| `container/icon` | — | — | — | `color.disabled.icon` |
+| `container/icon` | — | — | — | `color.disabled.on-fill` |
 
 **appearance=filled, shape=circular, surface=inverse, state=rest**
 
@@ -478,7 +478,7 @@ Keyed by `appearance`, `shape`, `surface`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.inverse.disabled.fill` | — | — | — |
-| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+| `container/icon` | — | — | — | `color.inverse.disabled.on-fill` |
 
 **appearance=outline, shape=square, surface=default, state=rest**
 

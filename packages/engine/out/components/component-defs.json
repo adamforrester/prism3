@@ -14255,7 +14255,7 @@
       }
     },
     "icon-button": {
-      "digest": "988e589e",
+      "digest": "e8c3589e",
       "def": {
         "id": "icon-button",
         "name": "IconButton",
@@ -15242,7 +15242,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.disabled.icon"
+                "icon": "color.disabled.on-fill"
               }
             ]
           },
@@ -15350,7 +15350,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.inverse.disabled.icon"
+                "icon": "color.inverse.disabled.on-fill"
               }
             ]
           },
@@ -15458,7 +15458,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.disabled.icon"
+                "icon": "color.disabled.on-fill"
               }
             ]
           },
@@ -15566,7 +15566,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.inverse.disabled.icon"
+                "icon": "color.inverse.disabled.on-fill"
               }
             ]
           },
@@ -16048,7 +16048,7 @@
       }
     },
     "icon-button-destructive": {
-      "digest": "d848e8f4",
+      "digest": "456112c4",
       "def": {
         "id": "icon-button-destructive",
         "name": "IconButton.Destructive",
@@ -17036,7 +17036,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.disabled.icon"
+                "icon": "color.disabled.on-fill"
               }
             ]
           },
@@ -17144,7 +17144,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.inverse.disabled.icon"
+                "icon": "color.inverse.disabled.on-fill"
               }
             ]
           },
@@ -17252,7 +17252,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.disabled.icon"
+                "icon": "color.disabled.on-fill"
               }
             ]
           },
@@ -17360,7 +17360,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.inverse.disabled.icon"
+                "icon": "color.inverse.disabled.on-fill"
               }
             ]
           },
@@ -17842,7 +17842,7 @@
       }
     },
     "icon-button-neutral": {
-      "digest": "b795979d",
+      "digest": "d97456ed",
       "def": {
         "id": "icon-button-neutral",
         "name": "IconButton.Neutral",
@@ -18829,7 +18829,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.disabled.icon"
+                "icon": "color.disabled.on-fill"
               }
             ]
           },
@@ -18937,7 +18937,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.inverse.disabled.icon"
+                "icon": "color.inverse.disabled.on-fill"
               }
             ]
           },
@@ -19045,7 +19045,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.disabled.icon"
+                "icon": "color.disabled.on-fill"
               }
             ]
           },
@@ -19153,7 +19153,7 @@
               },
               {
                 "part": "container/icon",
-                "icon": "color.inverse.disabled.icon"
+                "icon": "color.inverse.disabled.on-fill"
               }
             ]
           },

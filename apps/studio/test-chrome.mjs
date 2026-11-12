@@ -21890,6 +21890,58 @@ if (runs('3553-q1')) {
     } finally { await ctx.close(); }
   }
 } // 3553-q1
+// #3553 Q-UI8 (the owner's Q-UI8 A): THE CHROME'S ACTIONS DRAW ITS VENDORED ICONS, NOT TEXT GLYPHS. "+ New brand",
+// "↑ Import design.md…", "↑ Upload…", "↓ Download tokens" and "↑ Brand brief…" drew text characters where "Add brand color"
+// draws Tabler's plus. Each now draws the vendored icon (`svg[data-icon]`, the Tabler name, written here) before words
+// that carry no "+", "↑" or "↓". Held on both hosts at 1280, both themes: the brand menu's New brand (plus) and Import
+// design.md… (upload) and the import box's Upload .md (upload); Export's Download (download) and its Brand brief… import
+// (upload); and the start window's Upload… (upload). On a primary button (Download) the icon takes the button's ink, as
+// its words do. MUTATION (after a `wip:` commit): New brand back to the text
+// "+ New brand" → `#3553 Q-UI8 … brand-menu-new draws the plus icon`.
+const ICON_ACTIONS = [['brand-menu-new', 'plus'], ['brand-menu-import', 'upload'], ['import-upload', 'upload'], ['dialog-confirm', 'download'], ['export-import', 'upload'], ['start-upload', 'upload']];
+if (runs('3553-icons')) {
+  console.log(`\nThe actions draw the vendored icons (#3553 Q-UI8)\n${'='.repeat(78)}`);
+  for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+    const where = `3553-icons ${host} ${theme} 1280`;
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    let step = 'brand menu';
+    const seen = {};
+    const read = (hk) => page.evaluate((k) => {
+      const b = [...document.querySelectorAll(`[data-p3="${k}"]`)].find((n) => n.getClientRects().length > 0);
+      if (!b) return null;
+      const g0 = [...b.querySelectorAll('svg')].find((g) => g.getClientRects().length > 0);
+      return { icons: [...b.querySelectorAll('svg')].filter((g) => g.getClientRects().length > 0).map((g) => g.dataset.icon ?? '?'), text: b.textContent.trim(),
+        // On a primary button the icon takes the button's ink, as its words do.
+        inkMatch: !b.classList.contains('p3-btn-primary') || (!!g0 && getComputedStyle(g0).color === getComputedStyle(b).color) };
+    }, hk);
+    try {
+      await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
+      await hooks.need(page, '[data-p3="brand-menu"]');
+      for (const hk of ['brand-menu-new', 'brand-menu-import']) seen[hk] = await read(hk);
+      await hooks.click(page.locator('[data-p3="brand-menu-import"]'));
+      await hooks.need(page, '[data-p3="import-upload"]');
+      seen['import-upload'] = await read('import-upload');
+      await page.keyboard.press('Escape');
+      step = 'export';
+      await hooks.click(page.locator('[data-p3="rail-export"]'));
+      await hooks.need(page, '[data-p3="export-page"] [data-p3="dialog-confirm"]');
+      for (const hk of ['dialog-confirm', 'export-import']) seen[hk] = await read(hk);
+      step = 'start window';
+      await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
+      await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
+      await hooks.need(page, '[data-p3="start-upload"]');
+      seen['start-upload'] = await read('start-upload');
+      for (const [hk, icon] of ICON_ACTIONS) {
+        const s = seen[hk];
+        ok(!!s && s.icons[0] === icon && !/[+↑↓]/.test(s.text) && s.text.length > 0 && s.inkMatch,
+          `#3553 Q-UI8 ${where}: ${hk} draws the ${icon} icon first, its words with no text glyph (${JSON.stringify(s)})`);
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-icons
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
