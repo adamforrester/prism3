@@ -78,7 +78,7 @@
  */
 
 import type { AnatomyPlan, FigmaNodePlan, NestOverride } from './anatomy-figma.ts';
-import { localeFreeCompare } from './locale-free-order.ts';
+import { localeFreeCompare } from './locale-free-order';
 
 /** What the reader needs of a host node. Deliberately structural and open: a host carries far more,
  *  and naming only what is read keeps this file honest about its own scope. */
