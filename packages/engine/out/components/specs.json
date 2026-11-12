@@ -16688,7 +16688,9 @@
           "kind": "state"
         }
       ],
-      "codeOnlyStates": [],
+      "codeOnlyStates": [
+        "inactive"
+      ],
       "anatomy": [
         {
           "part": "container",
@@ -17303,7 +17305,9 @@
           "kind": "state"
         }
       ],
-      "codeOnlyStates": [],
+      "codeOnlyStates": [
+        "inactive"
+      ],
       "anatomy": [
         {
           "part": "container",
@@ -17918,7 +17922,9 @@
           "kind": "state"
         }
       ],
-      "codeOnlyStates": [],
+      "codeOnlyStates": [
+        "inactive"
+      ],
       "anatomy": [
         {
           "part": "container",

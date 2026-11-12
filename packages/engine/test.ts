@@ -28853,6 +28853,7 @@ arm: {
     const EXPECTED_ADMISSIONS = [
       'button:width', 'button:inactive', 'button-destructive:width', 'button-destructive:inactive', 'button-neutral:width', 'button-neutral:inactive',
       'icon-button:inactive', 'icon-button-destructive:inactive', 'icon-button-neutral:inactive',
+      'flush-icon-button:inactive', 'flush-icon-button-destructive:inactive', 'flush-icon-button-neutral:inactive',
       'icon:tone', 'focus-ring:offset', 'tag:read-only',
       'text-field:style', 'text-field:pending', 'text-field:empty', 'password-field:style', 'password-field:pending', 'password-field:empty',
       'search-field:style', 'search-field:pending', 'search-field:empty',

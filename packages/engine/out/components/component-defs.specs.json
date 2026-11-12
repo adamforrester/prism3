@@ -20113,7 +20113,7 @@
             "com.prism3": {
               "type": "function",
               "required": false,
-              "description": "Action handler. Not called while disabled."
+              "description": "Action handler. Not called while disabled or inactive."
             }
           }
         },
@@ -20179,6 +20179,17 @@
             }
           }
         },
+        "isInactive": {
+          "type": "boolean",
+          "default": false,
+          "$extensions": {
+            "com.prism3": {
+              "type": "boolean",
+              "required": false,
+              "description": "Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus."
+            }
+          }
+        },
         "disabled": {
           "type": "boolean",
           "default": false,
@@ -20186,7 +20197,7 @@
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+              "description": "Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree."
             }
           }
         },
@@ -20203,7 +20214,10 @@
           "$extensions": {
             "com.prism3": {
               "axis": "state",
-              "figmaName": "state"
+              "figmaName": "state",
+              "codeOnlyStates": [
+                "inactive"
+              ]
             }
           }
         }
@@ -20879,7 +20893,7 @@
             "com.prism3": {
               "type": "function",
               "required": false,
-              "description": "Action handler. Not called while disabled."
+              "description": "Action handler. Not called while disabled or inactive."
             }
           }
         },
@@ -20945,6 +20959,17 @@
             }
           }
         },
+        "isInactive": {
+          "type": "boolean",
+          "default": false,
+          "$extensions": {
+            "com.prism3": {
+              "type": "boolean",
+              "required": false,
+              "description": "Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus."
+            }
+          }
+        },
         "disabled": {
           "type": "boolean",
           "default": false,
@@ -20952,7 +20977,7 @@
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+              "description": "Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree."
             }
           }
         },
@@ -20969,7 +20994,10 @@
           "$extensions": {
             "com.prism3": {
               "axis": "state",
-              "figmaName": "state"
+              "figmaName": "state",
+              "codeOnlyStates": [
+                "inactive"
+              ]
             }
           }
         }
@@ -21645,7 +21673,7 @@
             "com.prism3": {
               "type": "function",
               "required": false,
-              "description": "Action handler. Not called while disabled."
+              "description": "Action handler. Not called while disabled or inactive."
             }
           }
         },
@@ -21711,6 +21739,17 @@
             }
           }
         },
+        "isInactive": {
+          "type": "boolean",
+          "default": false,
+          "$extensions": {
+            "com.prism3": {
+              "type": "boolean",
+              "required": false,
+              "description": "Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus."
+            }
+          }
+        },
         "disabled": {
           "type": "boolean",
           "default": false,
@@ -21718,7 +21757,7 @@
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+              "description": "Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree."
             }
           }
         },
@@ -21735,7 +21774,10 @@
           "$extensions": {
             "com.prism3": {
               "axis": "state",
-              "figmaName": "state"
+              "figmaName": "state",
+              "codeOnlyStates": [
+                "inactive"
+              ]
             }
           }
         }
