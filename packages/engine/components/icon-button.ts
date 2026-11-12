@@ -117,6 +117,9 @@ type IconButtonSibling = {
   triggerKeywords: string[];
   /** Appended to the shared avoid-when: the sibling that fits better, named. */
   avoidWhen: string;
+  /** #3555 C2: the sibling's own `whenToUse`. A close affordance belongs to the neutral sibling, which the other two
+   *  send it to. */
+  whenToUse?: string;
   generationPriority: number;
   /** Appended to the shared `docs.do`. */
   do: string[];
@@ -597,7 +600,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
 
   ai: {
     primaryPurpose: 'Trigger an action with an icon alone, no visible label.',
-    whenToUse: 'A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).',
+    whenToUse: sibling.whenToUse ?? 'A self-evident, conventional action in a space-constrained context (toolbar, table row, card header).',
     avoidWhen: `The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. ${sibling.avoidWhen}`,
     commonPartners: ['icon', 'spinner', 'focus-ring'],
     triggerKeywords: sibling.triggerKeywords,
@@ -697,6 +700,7 @@ export const iconButtonNeutral: ComponentDef = makeIconButton(
   {
     triggerKeywords: ['close button', 'dismiss button', 'toolbar icon button', 'neutral icon button', 'row action'],
     avoidWhen: 'The action carries the brand → use IconButton. It deletes or removes something → use IconButton.Destructive.',
+    whenToUse: 'A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).',
     generationPriority: 2,
     do: [],
   },
