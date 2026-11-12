@@ -13,14 +13,14 @@ A compact row of two to five short options in one neutral track, where exactly o
 
 - **Purpose:** Choose exactly one of two to five short, always-visible options that change a value in place.
 - **Use when:** A short single choice the user changes often or that changes the current view at once, such as list or grid, a time range or a delivery method.
-- **Avoid when:** The options switch panels of content (use tabs), there are more than five or the labels are long (use a select or a radio group), options need descriptions (use a radio group), it is one on/off setting (use a switch), or selecting goes to another page (a navigation of links).
+- **Avoid when:** The options switch panels of content (use Tabs), there are more than five or the labels are long (use Select or Radio.Group), options need descriptions (use Radio.Group), it is one on/off setting (use Switch.Row), or selecting goes to another page (a navigation of links).
 
 ## Anatomy
 
 Shown on the default member: size `medium`.
 
 1. **Container** — The control: a label above the track. It fills its column.
-2. **Label** (optional)
+2. **Label** (optional) — The visible label, naming what is being chosen, shown by default; its text, required marker and weight are set on the control.
 3. **Track** — The track: a neutral fill behind every option, with no outline. Each option fills an equal share of it, and the selected one shows a pill on it.
 4. **Items** — The options: a native slot holding Segment instances, three by default, the first selected. Each option fills an equal share of the track.
 5. **Segment1** — The first option, selected.
@@ -35,7 +35,7 @@ Shown on the default member: size `medium`.
 
 ## Usage guidelines
 
-Use a segmented control for a choice between two to five short options that changes a value in place: a parameter of the current view, such as list or grid, or a form value. Every option stays visible, and one is always selected. Don't use it to switch between panels of content (use tabs), for more than five options or long labels (use a select or a radio group), or for one setting that turns on and off (use a switch).
+Use a segmented control for a choice between two to five short options that changes a value in place: a parameter of the current view, such as list or grid, or a form value. Every option stays visible, and one is always selected. Don't use it to switch between panels of content (use Tabs), for more than five options or long labels (use Select or Radio.Group), or for one setting that turns on and off (use Switch.Row).
 
 ### Do
 

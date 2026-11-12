@@ -19,11 +19,11 @@ The atomic switch control — the painted pill track, its traveling thumb, the X
 
 Shown on the default member: size `medium`, selection `off`, status `default`.
 
-1. **Track**
-2. **Thumb**
-3. **On glyph** (optional)
-4. **Off glyph** (optional)
-5. **Focus ring**
+1. **Track** — The pill-shaped track, twice as wide as it is tall; a person clicks the whole labeled row, not the track alone.
+2. **Thumb** — The thumb, which moves from one end of the track to the other and carries the state icon.
+3. **On glyph** (optional) — The check on the thumb when the switch is on, shown by default; the thumb's position already shows the state.
+4. **Off glyph** (optional) — The X on the thumb when the switch is off, shown by default; the thumb's position already shows the state.
+5. **Focus ring** — The shared focus ring, drawn around the track on keyboard focus, never around the moving thumb.
 
 ## Styles
 

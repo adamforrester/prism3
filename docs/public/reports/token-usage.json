@@ -2289,35 +2289,6 @@
             "separator.rule.border"
           ],
           "parts": {}
-        },
-        "pagination-item": {
-          "keys": [
-            "selected.underline.page.fill.focus-visible",
-            "selected.underline.page.fill.rest"
-          ],
-          "parts": {
-            "underline": {
-              "members": 6,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "style": [
-                  "underline"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            }
-          }
         }
       }
     },
@@ -3527,8 +3498,12 @@
           ],
           "parts": {
             "icon": {
-              "members": 18,
+              "members": 12,
               "where": {
+                "appearance": [
+                  "ghost",
+                  "outline"
+                ],
                 "state": [
                   "disabled"
                 ],
@@ -3545,8 +3520,12 @@
           ],
           "parts": {
             "icon": {
-              "members": 18,
+              "members": 12,
               "where": {
+                "appearance": [
+                  "ghost",
+                  "outline"
+                ],
                 "state": [
                   "disabled"
                 ],
@@ -3563,8 +3542,12 @@
           ],
           "parts": {
             "icon": {
-              "members": 18,
+              "members": 12,
               "where": {
+                "appearance": [
+                  "ghost",
+                  "outline"
+                ],
                 "state": [
                   "disabled"
                 ],
@@ -3960,6 +3943,69 @@
                 ],
                 "state": [
                   "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "icon-button": {
+          "keys": [
+            "disabled.icon.on-fill"
+          ],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "filled"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
+        "icon-button-destructive": {
+          "keys": [
+            "disabled.icon.on-fill"
+          ],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "filled"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
+        "icon-button-neutral": {
+          "keys": [
+            "disabled.icon.on-fill"
+          ],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "filled"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "default"
                 ]
               }
             }
@@ -8491,6 +8537,35 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "selected.underline.page.fill.focus-visible",
+            "selected.underline.page.fill.rest"
+          ],
+          "parts": {
+            "underline": {
+              "members": 6,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "style": [
+                  "underline"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            }
+          }
+        },
         "switch-control": {
           "keys": [
             "off.indicator"
@@ -11686,8 +11761,12 @@
           "keys": [],
           "parts": {
             "icon": {
-              "members": 18,
+              "members": 12,
               "where": {
+                "appearance": [
+                  "ghost",
+                  "outline"
+                ],
                 "state": [
                   "disabled"
                 ],
@@ -11702,8 +11781,12 @@
           "keys": [],
           "parts": {
             "icon": {
-              "members": 18,
+              "members": 12,
               "where": {
+                "appearance": [
+                  "ghost",
+                  "outline"
+                ],
                 "state": [
                   "disabled"
                 ],
@@ -11718,8 +11801,12 @@
           "keys": [],
           "parts": {
             "icon": {
-              "members": 18,
+              "members": 12,
               "where": {
+                "appearance": [
+                  "ghost",
+                  "outline"
+                ],
                 "state": [
                   "disabled"
                 ],
@@ -11916,6 +12003,63 @@
                 ],
                 "trailing": [
                   "true"
+                ]
+              }
+            }
+          }
+        },
+        "icon-button": {
+          "keys": [],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "filled"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        },
+        "icon-button-destructive": {
+          "keys": [],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "filled"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        },
+        "icon-button-neutral": {
+          "keys": [],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "filled"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "inverse"
                 ]
               }
             }
@@ -20426,14 +20570,14 @@
       "components": {
         "code-input-cell": {
           "keys": [
-            "size.xlarge.caret-height"
+            "size.x-large.caret-height"
           ],
           "parts": {
             "caret": {
               "members": 1,
               "where": {
                 "size": [
-                  "xlarge"
+                  "x-large"
                 ],
                 "state": [
                   "focus-visible"
@@ -21114,14 +21258,14 @@
       "components": {
         "code-input-cell": {
           "keys": [
-            "size.xlarge.radius"
+            "size.x-large.radius"
           ],
           "parts": {
             "container": {
               "members": 7,
               "where": {
                 "size": [
-                  "xlarge"
+                  "x-large"
                 ]
               }
             }
@@ -29961,14 +30105,14 @@
       "components": {
         "code-input-cell": {
           "keys": [
-            "size.xlarge.type"
+            "size.x-large.type"
           ],
           "parts": {
             "digit": {
               "members": 3,
               "where": {
                 "size": [
-                  "xlarge"
+                  "x-large"
                 ],
                 "state": [
                   "error",
@@ -30921,7 +31065,7 @@
           "large",
           "medium",
           "small",
-          "xlarge"
+          "x-large"
         ],
         "state": [
           "disabled",
@@ -30949,7 +31093,7 @@
           "large",
           "medium",
           "small",
-          "xlarge"
+          "x-large"
         ],
         "state": [
           "disabled",
@@ -31513,6 +31657,7 @@
         "color.disabled.border",
         "color.disabled.fill",
         "color.disabled.icon",
+        "color.disabled.on-fill",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.border.rest",
@@ -31528,6 +31673,7 @@
         "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
+        "color.inverse.disabled.on-fill",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.border.rest",
@@ -31558,6 +31704,7 @@
         "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
+        "color.inverse.disabled.on-fill",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.border.rest",
@@ -31608,6 +31755,7 @@
         "color.disabled.border",
         "color.disabled.fill",
         "color.disabled.icon",
+        "color.disabled.on-fill",
         "color.interactive.destructive.border.hover",
         "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.border.rest",
@@ -31623,6 +31771,7 @@
         "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
+        "color.inverse.disabled.on-fill",
         "color.inverse.interactive.destructive.border.hover",
         "color.inverse.interactive.destructive.border.pressed",
         "color.inverse.interactive.destructive.border.rest",
@@ -31653,6 +31802,7 @@
         "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
+        "color.inverse.disabled.on-fill",
         "color.inverse.interactive.destructive.border.hover",
         "color.inverse.interactive.destructive.border.pressed",
         "color.inverse.interactive.destructive.border.rest",
@@ -31703,6 +31853,7 @@
         "color.disabled.border",
         "color.disabled.fill",
         "color.disabled.icon",
+        "color.disabled.on-fill",
         "color.interactive.neutral.border.hover",
         "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.border.rest",
@@ -31718,6 +31869,7 @@
         "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
+        "color.inverse.disabled.on-fill",
         "color.inverse.interactive.neutral.border.hover",
         "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.interactive.neutral.border.rest",
@@ -31748,6 +31900,7 @@
         "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
+        "color.inverse.disabled.on-fill",
         "color.inverse.interactive.neutral.border.hover",
         "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.interactive.neutral.border.rest",
@@ -32036,13 +32189,13 @@
         "border-width.thick",
         "color.border.focus",
         "color.border.secondary",
-        "color.border.tertiary",
         "color.disabled.icon",
         "color.disabled.text",
         "color.icon.primary",
         "color.interactive.neutral.icon.hover",
         "color.interactive.neutral.icon.pressed",
         "color.interactive.neutral.icon.rest",
+        "color.interactive.neutral.indicator.rest",
         "color.interactive.neutral.overlay.hover",
         "color.interactive.neutral.overlay.pressed",
         "color.interactive.neutral.text.hover",

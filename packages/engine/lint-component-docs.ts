@@ -48,8 +48,9 @@
  *      committed page's `##` headings are exactly the def's sections, in order, then `Specs` for a def the
  *      committed `specs.json` covers (#2830) (`SECTION PARITY`), and its
  *      Anatomy is the gate's reading of the def: the default member, each noted part's line, and no held-back
- *      note anywhere on the page (`SPECIMEN` / `ANATOMY LINE` / `HELD-BACK NOTE`), with role and ARIA under
- *      one Screen readers row (`SCREEN READERS`); F5 the
+ *      note anywhere on the page (`SPECIMEN` / `ANATOMY LINE` / `HELD-BACK NOTE`), and, since every part note
+ *      became a caption (#3610, owner Q-UG1 A), no Anatomy line without one (`UNCAPTIONED PART`), with role and
+ *      ARIA under one Screen readers row (`SCREEN READERS`); F5 the
  *      maintainer record's `docGaps` names every section not drawn and every part note held back.
  *   G  THE COMPONENT-DEFS EXPORT (#3425). `out/components/component-defs.json` validates against the AUTHORED
  *      `schema/component-defs.schema.json`, its `format` names the schema's `$id`, its two version stamps are
@@ -152,6 +153,13 @@ const LABEL: Record<string, string> = {
   supersedes: '- **Supersedes:**',
   supersededBy: '- **Superseded by:**',
 };
+
+/** EACH COMPONENT ONCE ACROSS RELATED'S LISTS (#3552 Q-UG3 A), in the owner's order, written here: a component a def
+ *  names in more than one list is on the line of the first list that names it, and on no later one. */
+const RELATED_ORDER = ['composesWith', 'alternativeTo', 'commonPartners', 'supersedes', 'supersededBy'] as const;
+type RelatedKey = (typeof RELATED_ORDER)[number];
+const relatedList = (def: ComponentDef, k: RelatedKey): readonly string[] => (k === 'commonPartners' ? def.ai.commonPartners : def.composition?.[k]) ?? [];
+const firstListOf = (def: ComponentDef, id: string): RelatedKey | undefined => RELATED_ORDER.find((k) => relatedList(def, k).includes(id));
 
 /** THE SECTION MAP — written here, never read from the projector. Each value's own section, and for a
  *  table its own row and column. `none` is a field the page deliberately leaves out. */
@@ -344,9 +352,11 @@ for (const def of componentDefs) {
 
   const onPage = (v: string | number | boolean, path: Path) => {
     if (!page) return; // arm A already named it
-    // A partner the def is already built from is drawn once, on the Built from line (the #846 wireframe).
-    const place = path[0] === 'ai' && path[1] === 'commonPartners' && (def.composition?.composesWith ?? []).includes(String(v))
-      ? { kind: 'list' as const, heading: '## Related components', label: LABEL.composesWith } : SECTION(path);
+    // A component named in more than one Related list is drawn once, on the first list's line (#3552 Q-UG3 A; a partner
+    // the def is built from on the Built from line, as the #846 wireframe drew it).
+    const listKey = (path[0] === 'ai' && path[1] === 'commonPartners') || (path[0] === 'composition' && (RELATED_ORDER as readonly unknown[]).includes(path[1]))
+      ? firstListOf(def, String(v)) : undefined;
+    const place = listKey ? { kind: 'list' as const, heading: '## Related components', label: LABEL[listKey] } : SECTION(path);
     if (!place) { note(`NO SECTION: ${where(path)} has no page section in this gate's SECTION map — add one, or \`none\` with a reason`); return; }
     if (place.kind === 'none') return;
     if (place.kind === 'text' && typeof v !== 'string') return; // numbers and booleans outside tables are JSON-only
@@ -435,9 +445,14 @@ for (const def of componentDefs) {
     extra('the ID line', [def.id], listSpans(page, { heading: null, label: LABEL.id }));
     extra('the Builds on line', def.inherits ? [def.inherits] : [], listSpans(page, { heading: null, label: LABEL.inherits }));
     extra('### States', def.states, listSpans(page, { heading: '### States' }));
-    extra('the Often used with line', (def.ai.commonPartners ?? []).filter((id) => !(def.composition?.composesWith ?? []).includes(id)), listSpans(page, { heading: '## Related components', label: LABEL.commonPartners }));
-    for (const k of ['composesWith', 'alternativeTo', 'supersedes', 'supersededBy'] as const)
-      extra(`the ${LABEL[k]} line`, def.composition?.[k] ?? [], listSpans(page, { heading: '## Related components', label: LABEL[k] }));
+    for (const k of RELATED_ORDER)
+      extra(`the ${LABEL[k]} line`, relatedList(def, k).filter((id) => firstListOf(def, id) === k), listSpans(page, { heading: '## Related components', label: LABEL[k] }));
+    // ONCE (#3552 Q-UG3 A): no component on two of Related's lines.
+    const lines = RELATED_ORDER.flatMap((k) => (listSpans(page, { heading: '## Related components', label: LABEL[k] }) ?? []).map((id) => [id, k] as const));
+    for (const [id, k] of lines) {
+      const other = lines.find(([o, ok]) => o === id && ok !== k);
+      if (other && RELATED_ORDER.indexOf(k) > RELATED_ORDER.indexOf(other[1])) note(`RELATED TWICE: out/components/${def.id}.md names \`${id}\` under ${LABEL[other[1]]} and again under ${LABEL[k]} — a component is listed once, in the first list that names it (#3552 Q-UG3 A)`);
+    }
     for (const [axis, values] of Object.entries(def.variants)) extra(`the Styles \`Values\` cell of \`${axis}\``, values ?? [], cell('## Styles', axis, 'Values'));
     for (const pr of def.props) extra(`the Props \`Default\` cell of \`${pr.name}\``, pr.default === undefined ? [] : [String(pr.default)], cell('### Props', pr.name, 'Default'));
   }
@@ -622,6 +637,9 @@ for (const def of componentDefs) {
         const got = lines[i] === undefined ? undefined : unescape(lines[i]);
         anatomyChecked++;
         if (got !== want) note(`ANATOMY LINE (page): out/components/${def.id}.md part ${i + 1} reads ${JSON.stringify(got?.slice(0, 90) ?? null)}; the def gives ${JSON.stringify(want.slice(0, 90))}${reader ? '' : ' (its note is held back)'}`);
+        // Every Anatomy line carries a caption (#3610): a held-back note lists its part bare, so rewrite the note
+        // for a reader and keep the maintainer half in a code comment beside the part.
+        if (!reader) note(`UNCAPTIONED PART (page): out/components/${def.id}.md lists part \`${id}\` with no caption: its note is held back as maintainer prose — rewrite it for a reader`);
       });
     }
     // F4, Screen readers: the wireframe draws \`accessibility.role\` and \`.aria\` under that one label, role first.
@@ -833,6 +851,18 @@ for (const [id, e] of Object.entries<any>(entries)) walkStrings(e, '', (text, pa
   }
 });
 if (unbuiltChecked < 5) note(`NOT BUILT YET floor: only ${unbuiltChecked} "…, not built yet" phrase(s) found in components.ai.json — the scan has stopped seeing them`);
+
+// ---- ARM I: a labeled field states its target size (#3554 M-A) --------------------------------------------------------
+// CardNumberField was the one field host with no 2.5.8 line; every sibling carried one. A def that nests FieldLabel is a
+// labeled form control a pointer must hit, so its WCAG list names 2.5.8. The hosts are read off the anatomy (a part that
+// nests `field-label`), never from a list here.
+let targetChecked = 0;
+for (const def of componentDefs) {
+  if (!Object.values(def.anatomy?.parts ?? {}).some((p) => (p as { nests?: string }).nests === 'field-label')) continue;
+  targetChecked++;
+  if (!(def.accessibility?.wcag ?? []).some((w) => /\b2\.5\.8\b/.test(w))) note(`TARGET SIZE: \`${def.id}\` nests field-label, and its accessibility.wcag names no 2.5.8 Target Size line`);
+}
+if (targetChecked < 8) note(`TARGET SIZE floor: only ${targetChecked} defs nest field-label — the arm is reading almost nothing`);
 
 // ---- report ----------------------------------------------------------------------------------
 if (fail.length) {

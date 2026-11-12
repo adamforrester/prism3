@@ -16,9 +16,9 @@
  *   Accessibility         `accessibility.*`, `role` and `aria` together as "Screen readers"; `motion.*` beside it
  *   Content guidelines    `docs.contentGuidelines`, `content.*`
  *   Theming               the brand's modes; no def field
- *   Related components    `composition.composesWith`, `.alternativeTo`, `ai.commonPartners` (less any id
- *                         already under "Built from"), and
- *                         `.supersedes`, `.supersededBy`, `.replacesPatterns`
+ *   Related components    `composition.composesWith`, `.alternativeTo`, `ai.commonPartners`, `.supersedes`,
+ *                         `.supersededBy` (each component once, in the first of these lists that names it, #3552
+ *                         Q-UG3 A), and `.replacesPatterns`
  *   Building it in code   `props`; `docs.implementation` once Q362 adds it
  *
  * Three placements go past the wireframe's table, which names no section for them: the `props` table,
@@ -32,10 +32,12 @@
  * pattern is no row, not an empty one. What is missing is returned in `gaps` instead, for the maintainer
  * record (`schema/component-maintainer.json`), never for a reader.
  *
- * ANATOMY CAPTIONS AND THE MAINTAINER REGISTER. A part `note` is the caption (Q406 follow-up 4, A), but
- * 64 of them are written for maintainers: issue numbers, doc paths, owner-decision ids, code spans. Until those are rewritten
- * (a follow-up the owner split out), such a part is listed by name with no caption, and its note is a gap.
- * So is a note that names a tool (Figma, a plugin, an exporter): consumer prose names none (#2411).
+ * ANATOMY CAPTIONS AND THE MAINTAINER REGISTER. A part `note` is the caption (Q406 follow-up 4, A). A note
+ * written for maintainers (issue numbers, doc paths, owner-decision ids, code spans) is held back: the part is
+ * listed by name with no caption, and its note is a gap. So is a note that names a tool (Figma, a plugin, an
+ * exporter): consumer prose names none (#2411). Since #3610 (owner decision Q-UG1 A) every note in the library is
+ * a reader caption, its maintainer half in a code comment beside the part, and a held-back note fails by name
+ * (`lint-component-docs.ts` `UNCAPTIONED PART`, `test-doc-panel.ts` `anatomy/uncaptioned`).
  *
  * THEMING NEEDS A BRAND. The modes come from the brand, not the def, so the section is drawn only when
  * the caller passes them. The Markdown page is brand-independent (#1701), so it passes none and has no
@@ -199,18 +201,24 @@ export const docSections = (def: ComponentDef, ctx: DocContext = {}): { sections
     all.push(modes.length ? { id: 'theming', title: title('theming'), modes } : undefined);
   }
 
-  // Related components. `planned` ids are not built, so they stay off the doc. A partner the def is already
-  // built from is not repeated under "Often used with", as the wireframe draws it.
+  // Related components. `planned` ids are not built, so they stay off the doc. EACH COMPONENT ONCE (#3552 Q-UG3 A): a
+  // component is listed in the first list that names it, in the order below, and left out of every later one. So a
+  // partner the def is already built from is not repeated under "Often used with", as the wireframe draws it, and a
+  // def that names one component as both an alternative and a partner shows it under "Instead, consider" alone.
   {
     const c = def.composition ?? {};
-    const partners = (def.ai.commonPartners ?? []).filter((id) => !(c.composesWith ?? []).includes(id));
+    const seen = new Set<string>();
     const lists = ([
       ['Built from', 'composition.composesWith', c.composesWith],
       ['Instead, consider', 'composition.alternativeTo', c.alternativeTo],
-      ['Often used with', 'ai.commonPartners', partners],
+      ['Often used with', 'ai.commonPartners', def.ai.commonPartners],
       ['Supersedes', 'composition.supersedes', c.supersedes],
       ['Superseded by', 'composition.supersededBy', c.supersededBy],
-    ] as [string, string, string[] | undefined][]).flatMap(([label, path, ids]) => (ids?.length ? [{ label, ids: [...ids] }] : (gap('related', path), [])));
+    ] as [string, string, string[] | undefined][]).flatMap(([label, path, all]) => {
+      const ids = (all ?? []).filter((id) => !seen.has(id));
+      for (const id of ids) seen.add(id);
+      return ids.length ? [{ label, ids: [...new Set(ids)] }] : (gap('related', path), []);
+    });
     const replaces = [...(c.replacesPatterns ?? [])];
     if (!replaces.length) gap('related', 'composition.replacesPatterns');
     all.push(lists.length || replaces.length ? { id: 'related', title: title('related'), lists, replaces } : undefined);

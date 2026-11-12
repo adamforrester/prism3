@@ -19,10 +19,10 @@ The atomic checkbox control — the painted square with its check or dash glyph 
 
 Shown on the default member: size `medium`, selection `unchecked`, status `default`.
 
-1. **Control**
-2. **Check glyph**
-3. **Dash glyph**
-4. **Focus ring**
+1. **Control** — The checkbox square; a person clicks the whole labeled row, not the square alone.
+2. **Check glyph** — The check mark, shown when the box is checked.
+3. **Dash glyph** — The dash, shown when the box is partly checked; screen readers announce it as mixed.
+4. **Focus ring** — The shared focus ring, drawn around the square on keyboard focus.
 
 ## Styles
 

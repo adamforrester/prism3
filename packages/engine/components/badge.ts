@@ -523,7 +523,7 @@ export const badge: ComponentDef = {
   ai: {
     primaryPurpose: 'Mark a status, count or presence with a small static badge that nobody clicks.',
     whenToUse: 'A short state or attribute shown next to what it describes (status), an actionable number over an icon button or tab (count), or presence or unread state over an avatar or nav item (dot). Inline style: a quieter status in a list or table row or a card\'s details, where a filled label would draw too much attention.',
-    avoidWhen: 'The user can click, toggle or remove it (use a tag), the message is feedback about an action (use a toast or banner), or the color would be the only signal.',
+    avoidWhen: 'The user can click, toggle or remove it (use Tag), the message is feedback about an action (use Toast or Banner), or the color would be the only signal.',
     // `tab` moved here from `planned` when it was built (#2416): a tab nests a count badge.
     commonPartners: ['icon-button', 'button', 'tab-item'],
     triggerKeywords: ['badge', 'status badge', 'status label', 'counter badge', 'count badge', 'notification badge', 'notification dot', 'unread count', 'presence dot', 'label', 'pill label'],
@@ -538,10 +538,13 @@ export const badge: ComponentDef = {
     replacesPatterns: ['a hand-drawn colored pill', 'a red circle with a number drawn over an icon'],
   },
 
+  // Owner decisions Q-CC28 A (#3554) and Q-MD4 A (#3555, prism3-motion R7, R8, R10): no pulse (no tone, prop or state
+  // carried one, and it had no stop), the scale on named transitions from a little under full size (R10), and a fade
+  // under reduced motion in place of "every change is instant" (R7).
   motion: {
-    enter: 'A count or dot scales in from zero, from the corner it is anchored to. When a count changes, only the number animates, not the pill. A status label appears with no motion. A dot pulses only for a critical alert.',
-    exit: 'A count or dot scales out to its anchor corner.',
-    reduceMotion: 'Under prefers-reduced-motion every change is instant: no scale, no pulse.',
+    enter: 'A count or dot fades in and scales up from a little under full size, from the corner it is anchored to, on motion.transition.enter. When a count changes, only the number changes, on motion.transition.default; the pill does not move. A status label appears with no motion.',
+    exit: 'A count or dot fades out and scales down toward its anchor corner on motion.transition.exit.',
+    reduceMotion: 'Under prefers-reduced-motion a count or dot fades in and out with no scale, on motion.duration-reduced.normal both ways, and a changed count\'s number fades on the same role.',
   },
 
   notes: {
