@@ -41,7 +41,7 @@ Shown on the default member: style `standalone`, weight `emphasis`, size `medium
 
 ## Usage guidelines
 
-Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use a button. Keep x-small for dense metadata, such as an order row or a legal line, not running body text. A link inside small print is a text range with that text's own link style.
+Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use Button. Keep x-small for dense metadata, such as an order row or a legal line, not running body text. A link inside small print is a text range with that text's own link style.
 
 ### Do
 
@@ -97,7 +97,7 @@ Descriptive text that stands alone, sentence case. Front-load the words that nam
 
 - **Built from:** `focus-ring`
 - **Instead, consider:** `button`
-- **Often used with:** `icon`, `button`, `text-field`, `breadcrumbs`, `page-nav`
+- **Often used with:** `icon`, `text-field`, `breadcrumbs`, `page-nav`
 - **Replaces:**
   - a click handler on a div or span styled as a link
   - an \<a> with no href, href="#" or javascript:void(0)

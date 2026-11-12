@@ -57,6 +57,9 @@
  *            `border.tertiary`: a subtle edge that need not clear 3:1, because the number's emphasis weight is the
  *            second cue (WCAG 1.4.11, the reasoning in `notes.evolution`). The underline style's underline is its only
  *            cue, so it keeps `border.tertiary` and 3:1.
+ *   Q-CC12 A (2026-11-11, #3554) The underline is a mark, not an edge: it binds `color.interactive.neutral.indicator.rest`,
+ *            the selection mark, so its value moves from the mid gray to the number's ink and #3346's edge setting
+ *            never reaches it. The border style's border stays an edge on `border.secondary`.
  *   Q428 A   The chevrons and the gap marker are one icon-size rung smaller at every size. Cell sizes and the 44px
  *            targets are unchanged.
  *
@@ -97,7 +100,7 @@ export const paginationItem: ComponentDef = {
   status: 'draft',
   summary: 'A pagination cell: a page, the gap marker, previous or next. The current page is marked.',
   description:
-    'One cell in a pagination row: a page number, the gap marker, three dots, that stands for two or more hidden pages, or the previous or next cell, a chevron that opens the page before or after. A cell is as tall as an icon button and at least as wide as it is tall, so a row of pages between previous and next lines up as equal squares; a page number past two digits, or the word "Previous" or "Next" beside a chevron, widens it. The current page is marked, not filled: its number in the emphasis weight, with a light gray border around the cell, or a 2px underline under the number in a gray that stands out from the page at 3:1. It keeps its width, so the row does not move. At hover and press, another page and an unlabeled previous or next show a light neutral wash; a labeled previous or next shows no fill and its word and chevron darken, as a text link does. At the first or last page, previous or next stays in place and does nothing, drawn in the disabled ink. The gap marker is decorative: it does not respond to the pointer, takes no focus and is hidden from assistive technology. Pagination places the cells and decides which page is current.',
+    'One cell in a pagination row: a page number, the gap marker, three dots, that stands for two or more hidden pages, or the previous or next cell, a chevron that opens the page before or after. A cell is as tall as an icon button and at least as wide as it is tall, so a row of pages between previous and next lines up as equal squares; a page number past two digits, or the word "Previous" or "Next" beside a chevron, widens it. The current page is marked, not filled: its number in the emphasis weight, with a light gray border around the cell, or a 2px underline under the number in the number\'s ink. It keeps its width, so the row does not move. At hover and press, another page and an unlabeled previous or next show a light neutral wash; a labeled previous or next shows no fill and its word and chevron darken, as a text link does. At the first or last page, previous or next stays in place and does nothing, drawn in the disabled ink. The gap marker is decorative: it does not respond to the pointer, takes no focus and is hidden from assistive technology. Pagination places the cells and decides which page is current.',
 
   props: [
     { name: 'label', type: 'string', required: true, description: 'The page number as shown, such as "4". Pagination sets it, through the locale\'s number format.' },
@@ -182,11 +185,13 @@ export const paginationItem: ComponentDef = {
     // THE CURRENT PAGE (Q381 1 A): no fill; the number in the neutral ink, in the emphasis weight. Rest and
     // focus-visible only (call 7 A). Q427 A: the border style's border is border.secondary, one rung lighter than
     // border.tertiary, a subtle edge that need not clear 3:1, because the emphasis weight is the second cue (WCAG 1.4.11,
-    // in `notes`). The underline is that style's only cue, so it keeps border.tertiary and 3:1.
+    // in `notes`); it stays an edge (Q-CC12 A). The underline is that style's only cue and a mark, not an edge
+    // (owner decision Q-CC12 A, #3554, under #3346): it binds the neutral selection mark, which matches the number's
+    // ink, so a brand that quiets its `border.*` edges never thins it below 3:1. It bound border.tertiary.
     'selected.border.page.border.rest': 'color.border.secondary',
     'selected.border.page.border.focus-visible': 'color.border.secondary',
-    'selected.underline.page.fill.rest': 'color.border.tertiary',
-    'selected.underline.page.fill.focus-visible': 'color.border.tertiary',
+    'selected.underline.page.fill.rest': 'color.interactive.neutral.indicator.rest',
+    'selected.underline.page.fill.focus-visible': 'color.interactive.neutral.indicator.rest',
     'selected.page.label': 'color.interactive.neutral.text.rest',
     // THE ELLIPSIS — the more-horizontal icon (Q404 A), no fill, no state. Owner QA (2026-10-19): in the page numbers'
     // ink, so two inks do not sit side by side. icon.primary is the icon role with the same value as the numbers'
@@ -239,7 +244,9 @@ export const paginationItem: ComponentDef = {
         glyph: 'chevron-left',
         size: 'size.{size}.icon',
         presentWhen: { type: ['previous'] },
-        note: 'The previous cell\'s left chevron (Q414 A), at the gap icon\'s size, one rung under the icon button\'s glyph (Q428 A).',
+        // Maintainer detail, out of the reader caption (#3610): The previous cell's left chevron (Q414 A), at the gap
+        // icon's size, one rung under the icon button's glyph (Q428 A).
+        note: 'The previous cell\'s left chevron, one size under an icon button\'s glyph.',
       },
       previousText: {
         kind: 'text',
@@ -299,7 +306,7 @@ export const paginationItem: ComponentDef = {
         // honor under a hugging parent (see `balance`). Its width is the number's in the emphasis weight, the width
         // `reserve` holds the box at, so the bar is exactly as wide as the number at every size.
         layout: { direction: 'column', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'fixed' } },
-        note: 'The 2px line under the current page\'s number, in the underline style: as wide as the number, not the cell, in a gray that stands out from the page at 3:1.',
+        note: 'The 2px line under the current page\'s number, in the underline style: as wide as the number, not the cell, in the number\'s ink (the neutral selection mark), at 3:1 or more against the page.',
       },
       underlineReserve: {
         kind: 'box',
@@ -320,7 +327,9 @@ export const paginationItem: ComponentDef = {
         glyph: 'more-horizontal-filled',
         size: 'size.{size}.icon',
         presentWhen: { type: ['ellipsis'] },
-        note: 'The gap marker: the more-horizontal icon, three dots, decorative and hidden from assistive technology (Q404 A). It is not a control.',
+        // Maintainer detail, out of the reader caption (#3610): The gap marker: the more-horizontal icon, three dots,
+        // decorative and hidden from assistive technology (Q404 A). It is not a control.
+        note: 'The gap marker, three dots, decorative and hidden from screen readers; it is not a control.',
       },
       nextText: {
         kind: 'text',
@@ -333,7 +342,8 @@ export const paginationItem: ComponentDef = {
         glyph: 'chevron-right',
         size: 'size.{size}.icon',
         presentWhen: { type: ['next'] },
-        note: 'The next cell\'s right chevron (Q414 A).',
+        // Maintainer detail, out of the reader caption (#3610): The next cell's right chevron (Q414 A).
+        note: 'The next cell\'s right chevron.',
       },
       focusRing: {
         kind: 'absolute',
@@ -507,6 +517,7 @@ export const paginationItem: ComponentDef = {
       '2026-10-18 (Q414 A): `type` gains previous and next, the square cell with a chevron in the neutral ink and wash, with a disabled state for an end; `labeled` adds the word for simple.',
       '2026-10-19 (owner QA, Q426 A, Q427 A, Q428 A): the underline is as wide as the number (its childless balance frame stretches to the number instead of keeping a new frame\'s default width); the gap icon is in the page numbers\' ink; the labeled previous and next lose the wash and change ink only; the chevrons and the gap icon are one icon-size rung smaller (xs, sm, md), the cells unchanged.',
       '2026-10-19 (Q427 A), WCAG 1.4.11 and the second cue: in the border style the current page\'s border is color.border.secondary, one rung lighter than border.tertiary (lowest 2.00 against color.background.primary in light and dark; 9.8 and up in high contrast). 1.4.11 asks 3:1 of the visual information needed to identify a state. Here the border is not needed: the current page\'s number is in the emphasis weight, and each page keeps the width of that weight, so the weight alone identifies it, with aria-current in code. The border is a second, decorative cue, so it may be subtle. The underline style has no other visual cue in its box, so its underline keeps border.tertiary at 3:1. The exception is this part only: test.ts holds the border to the emphasis weight and the underline to 3:1.',
+      '2026-11-11 (Q-CC12 A, #3554): the underline style\'s underline is a selection mark, so it binds color.interactive.neutral.indicator.rest, the mark that matches the number\'s ink, in place of border.tertiary. Its value moves from the mid gray to the label ink, and a brand that quiets its outline edges (#3346) no longer thins it below the 3:1 Q427 A requires. The border style\'s border stays an edge on border.secondary.',
       '2026-10-17 (Q394 A, Q395 A, Q404 A): the id loses the `_` prefix and the item becomes the items slot\'s preferred item, preferred-only; border.tertiary at 1px kept; the ellipsis becomes the decorative more-horizontal icon, so its text part, its TEXT property and the `mark` prop go.',
     ],
   },
@@ -602,7 +613,9 @@ export const pagination: ComponentDef = {
         gap: 'gap',
         note: 'The previous cell, the pages or the "Page 5 of 10" text, and the next cell, 4px apart.',
       },
-      previous: step('previous', 'false', 'The previous cell: a Pagination.Item with a left chevron, the same square as the page cells (Q414 A). On the first page it stays in place and does nothing.'),
+      // Maintainer detail, out of the reader caption (#3610): The previous cell: a Pagination.Item with a left
+      // chevron, the same square as the page cells (Q414 A). On the first page it stays in place and does nothing.
+      previous: step('previous', 'false', 'The previous cell, a left chevron the size of the page cells; on the first page it stays in place and does nothing.'),
       items: {
         kind: 'box',
         role: 'presentation',
@@ -630,7 +643,9 @@ export const pagination: ComponentDef = {
         type: 'size.{size}.type',
         note: 'The position, "Page 5 of 10", between the previous and next buttons.',
       },
-      next: step('next', 'false', 'The next cell: a Pagination.Item with a right chevron (Q414 A). On the last page it stays in place and does nothing.'),
+      // Maintainer detail, out of the reader caption (#3610): The next cell: a Pagination.Item with a right chevron
+      // (Q414 A). On the last page it stays in place and does nothing.
+      next: step('next', 'false', 'The next cell, a right chevron; on the last page it stays in place and does nothing.'),
       simpleRow: {
         kind: 'box',
         role: 'presentation',
@@ -641,8 +656,9 @@ export const pagination: ComponentDef = {
         gap: 'gap',
         note: 'The simple row: Previous at the start and Next at the end.',
       },
-      previousButton: step('previous', 'true', 'Previous: a Pagination.Item, a left chevron and the word "Previous" (Q414 A).'),
-      nextButton: step('next', 'true', 'Next: a Pagination.Item, the word "Next" and a right chevron (Q414 A).'),
+      // Maintainer detail, out of the reader captions (#3610): each is a Pagination.Item (Q414 A).
+      previousButton: step('previous', 'true', 'Previous: a left chevron and the word "Previous".'),
+      nextButton: step('next', 'true', 'Next: the word "Next" and a right chevron.'),
     },
     codeOnly: [
       {
@@ -789,7 +805,7 @@ export const pagination: ComponentDef = {
   ai: {
     primaryPurpose: 'Move between the pages of a long, ordered set of results and show which page is open.',
     whenToUse: 'Search results, a catalog or a table split into pages, where the user benefits from the count and from jumping to a page; or previous and next through an article.',
-    avoidWhen: 'A feed with no useful end (a load more Button), a few fixed views (tabs or a segmented control), the slides of a carousel, or rows per page and a "Go to page" field (the table pager, not yet built).',
+    avoidWhen: 'A feed with no useful end (a load more Button), a few fixed views (Tabs or SegmentedControl), the slides of a carousel, or rows per page and a "Go to page" field (the table pager, not yet built).',
     commonPartners: ['pagination-item', 'list'],
     triggerKeywords: ['pagination', 'pager', 'page numbers', 'previous and next', 'page 1 of 10', 'next page'],
     generationPriority: 2,

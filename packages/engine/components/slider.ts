@@ -311,10 +311,10 @@ export const slider: ComponentDef = {
   status: 'draft',
   summary: 'Choose a value, or a range, by moving a thumb along a track. Works with arrow keys too.',
   description:
-    'A slider picks an approximate value, or a range between two values, by moving a thumb along a track: a price filter, a text size, a volume. It suits a value where the position within the range matters more than the exact number. One thumb sets a single value; two thumbs set a minimum and a maximum. The current value shows as text above the track. For an exact number, turn on the paired inputs, or use a text field.',
+    'A slider picks an approximate value, or a range between two values, by moving a thumb along a track: a price filter, a text size, a volume. It suits a value where the position within the range matters more than the exact number. One thumb sets a single value; two thumbs set a minimum and a maximum. The current value shows as text above the track. For an exact number, turn on the paired inputs, or use TextField.',
 
   props: [
-    { name: 'label', type: 'string', required: true, description: 'Names the dimension being set, such as "Price" or "Volume". Shown above the track, and the accessible name of a single thumb.' },
+    { name: 'label', type: 'string | node', required: true, description: 'Names the dimension being set, such as "Price" or "Volume". Shown above the track, and the accessible name of a single thumb.' },
     { name: 'value', type: 'number | [number, number]', required: false, description: 'The value. A number sets one thumb; a pair of numbers, such as [40, 120], sets a range with two thumbs. Controlled; pair it with onChange.' },
     { name: 'defaultValue', type: 'number | [number, number]', required: false, description: 'The starting value when the slider manages its own state. A pair starts a range.' },
     { name: 'onChange', type: 'function', required: false, description: 'Called on every change while dragging or stepping, for a live preview.' },
@@ -332,7 +332,8 @@ export const slider: ComponentDef = {
     { name: 'showMilestones', type: 'boolean', default: false, required: false, description: 'Shows labeled milestones under the track: the minimum and the maximum at its ends, and any values in milestones between them, each under its own position.' },
     { name: 'milestones', type: 'Array<number | { value: number; label: string }>', required: false, description: 'The values labeled under the track when showMilestones is on, such as [500, 1000]. A plain number is formatted like the value text; an object gives its own label. The minimum and the maximum are always labeled.' },
     { name: 'showInputs', type: 'boolean', default: false, required: false, description: 'Shows paired number inputs under the track: one for a single value, "Minimum" and "Maximum" for a range. Typing moves the thumb; dragging updates the input. With inputs on, turn the value text off.' },
-    { name: 'helpText', type: 'string', required: false, description: 'Guidance under the slider, in a field message.' },
+    { name: 'helpText', type: 'string | node', required: false, description: 'Guidance under the slider, in a field message.' },
+    { name: 'showMessage', type: 'boolean', default: false, required: false, description: 'Whether the field message is shown under the slider. Off by default; turn it on to show the help or error text. Never hides a message the slider needs: turn it on wherever there is help text or an error.' },
     { name: 'validation', type: "enum: 'default' | 'error'", values: ['default', 'error'], default: 'default', required: false, description: 'error marks the slider invalid: the field message shows the error status and each thumb carries aria-invalid. A slider\'s own value is always in range, so an error comes from a paired input or from validation elsewhere in the form.' },
     { name: 'validationMessage', type: 'string', required: false, description: 'The error text, shown in the field message and added to aria-describedby. Say what is wrong and how to fix it.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Takes the slider out of interaction and out of the form payload, and dims it.' },
@@ -399,7 +400,9 @@ export const slider: ComponentDef = {
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'header-gap',
         crossAxisFill: true,
-        note: 'The header, the track and the milestones, with no gap between them (Q550 c).',
+        // Maintainer detail, out of the reader caption (#3610): The header, the track and the milestones, with no gap
+        // between them (Q550 c).
+        note: 'The header, the track and the milestones, with no space between them.',
       },
       header: {
         kind: 'box',
@@ -483,10 +486,13 @@ export const slider: ComponentDef = {
         layout: { direction: 'row', align: 'center', justify: 'space-between', sizing: { x: 'hug', y: 'hug' } },
         crossAxisFill: true,
         optional: true,
-        note: 'Labeled milestones under the track (Q550 d): the minimum, a value between, and the maximum, spaced evenly. Off by default. No tick marks.',
+        // Maintainer detail, out of the reader caption (#3610): Labeled milestones under the track (Q550 d): the
+        // minimum, a value between, and the maximum, spaced evenly. Off by default. No tick marks.
+        note: 'Labels under the track for the minimum, a value between and the maximum, evenly spaced; off by default, with no tick marks.',
       },
       minLabel: { kind: 'text', type: 'milestone-type', paintSlot: 'body', note: 'The minimum value, under the start of the track.' },
-      milestone: { kind: 'text', type: 'milestone-type', paintSlot: 'body', note: 'A milestone between the ends, halfway along in Figma.' },
+      // Maintainer detail, out of the reader caption (#3610): A milestone between the ends, halfway along in Figma.
+      milestone: { kind: 'text', type: 'milestone-type', paintSlot: 'body', note: 'A milestone between the ends, halfway along the track.' },
       maxLabel: { kind: 'text', type: 'milestone-type', paintSlot: 'body', note: 'The maximum value, under the end of the track.' },
       inputs: {
         kind: 'box',
@@ -643,7 +649,7 @@ export const slider: ComponentDef = {
       showValue: { part: ['valueSingle', 'valueRange'], default: true, figmaName: 'value' },
       showMilestones: { part: 'milestones', default: false, figmaName: 'milestones' },
       showInputs: { part: 'inputs', default: false, figmaName: 'inputs' },
-      showHelper: { part: 'message', default: false, figmaName: 'helper', figmaOnly: true },
+      showMessage: { part: 'message', default: false, figmaName: 'message' },
     },
   },
 
@@ -670,7 +676,7 @@ export const slider: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use a text field, or turn on the paired inputs. Don\'t use a slider for a few named options (use a segmented control or a radio group) or for on and off (use a switch).',
+    usage: 'Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use TextField, or turn on the paired inputs. Don\'t use a slider for a few named options (use SegmentedControl or Radio.Group) or for on and off (use Switch.Row).',
     do: [
       'Name the dimension with a visible label',
       'Format the value with its unit or currency, and use the same text for aria-valuetext',
@@ -689,7 +695,7 @@ export const slider: ComponentDef = {
   ai: {
     primaryPurpose: 'Choose an approximate value, or a minimum and maximum, by moving a thumb along a track.',
     whenToUse: 'An approximate value where the position within the range matters more than the exact number, such as a volume, a text size or a price filter window.',
-    avoidWhen: 'The user knows the exact number (use a text field, or turn on the paired inputs), there are a few named options (use a segmented control or a radio group), it is on or off (use a switch), or the range is too wide for the track to reach each value.',
+    avoidWhen: 'The user knows the exact number (use TextField, or turn on the paired inputs), there are a few named options (use SegmentedControl or Radio.Group), it is on or off (use Switch.Row), or the range is too wide for the track to reach each value.',
     commonPartners: ['_slider-thumb', 'field-label', 'field-message', 'text-field'],
     triggerKeywords: ['slider', 'range slider', 'price filter', 'volume control', 'range input', 'min max slider'],
     generationPriority: 2,

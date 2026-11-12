@@ -228,102 +228,102 @@
     },
     "wallet-button": {
       "members": 68,
-      "sha256": "c8f1aac4328cba74d80c8d87dc2493ae80ccb1913199bb758a7ad4f3cb551982",
+      "sha256": "ce64c6a23d644b3af8a1729f13996d6860f625d52313b52d5048feb11a6f0173",
       "properties": []
     },
     "sign-in-button": {
       "members": 96,
-      "sha256": "9a4d39342b35aa1f46094c12968b581a9446d91eb78c0c51b873cdbee57dfbac",
+      "sha256": "15c630daad4c710b661ecb96b119bad74390b22856e794dbf0c88e607e38b824",
       "properties": []
     },
     "icon-button": {
       "members": 216,
-      "sha256": "4724cde09169b3cf5ab137114bd9c3cf9ec9fccfd24e724fb9c5a8df7332ef8c",
+      "sha256": "2b37321d0e35df139baafff9d256fca7eb5587fb399bc69989c79a869c07ef6b",
       "properties": []
     },
     "icon-button@outline-solid-tint": {
       "members": 216,
-      "sha256": "5adf8ca33e83782e45e9c8406dee9fd2de5fa1ac89212f4270f88bfb5f0dc1e7",
+      "sha256": "d00902cb83d38f2bafa080716a65db72233f452309f90739689845ab0b0cfc81",
       "properties": []
     },
     "icon-button@outline-none": {
       "members": 216,
-      "sha256": "6c259fdb7cf1bfde19f3f24561687bc7cd0666dd497cb83f06d881d5dbf9647b",
+      "sha256": "84f59a41eabcda8b3ed1ccb85db02a8c8c0cdbb93049c290e01afc9d9e5d8819",
       "properties": []
     },
     "icon-button-destructive": {
       "members": 216,
-      "sha256": "6487add7d4d85a46195bd2b75d4e1d721ac07fdaffa6b5f1c780bd063264c9f1",
+      "sha256": "a65cbb6b5856c753cceb996f1f5d25fcc743972e3b6031d30a4397bfab47240b",
       "properties": []
     },
     "icon-button-destructive@outline-solid-tint": {
       "members": 216,
-      "sha256": "b1296e3955e0c98183aaa038732a866d1fc4e49913d19c6c5996bcea00d4a0a3",
+      "sha256": "fa76a50a5f4f8291d807d2c806b1651dbcf2edd013084ccaa827128f0154d846",
       "properties": []
     },
     "icon-button-destructive@outline-none": {
       "members": 216,
-      "sha256": "694a70e9c526c61b49cb908cf7e740973e02cafcb23b33c0b8e0152f66c01cbf",
+      "sha256": "277eb3735d56d57de9987287175ae197782cae213dc75acdcf752cbc37b9521c",
       "properties": []
     },
     "icon-button-neutral": {
       "members": 216,
-      "sha256": "3ec855108369416414e7df04b1d26385278f1080a6a59eeb2d94c4a3b4e8ed6c",
+      "sha256": "459493f4a4891cefc0ce83247f49adc1cafd1dd6a5fd1c66c6b734675e494cad",
       "properties": []
     },
     "icon-button-neutral@outline-solid-tint": {
       "members": 216,
-      "sha256": "fcb3e37ba376a5e460f863b5a9c3dabafd6a96797715f12363db010d5aa46839",
+      "sha256": "f79deebc0faba04823cd8e3f99cbdbfb3a6fb822b47b5af04bd87e8bc1195916",
       "properties": []
     },
     "icon-button-neutral@outline-none": {
       "members": 216,
-      "sha256": "bd587e18e7b809a0efca59349d4af5a30f1eaca734187a0d5fa92c5eef2c27f9",
+      "sha256": "111e8b2d5b2d3df57eab3d8e97369450d537555df0498ab26b2ae96c531fc800",
       "properties": []
     },
     "flush-icon-button": {
       "members": 60,
-      "sha256": "883bed625005b937a619449b95421dadd915969e51c8726d1c1a452a746709ac",
+      "sha256": "bee236db809c97af6adbf384d3e599c886a2e7d702945f9f38e89a9acb261742",
       "properties": []
     },
     "flush-icon-button@outline-solid-tint": {
       "members": 60,
-      "sha256": "e64153e1c86dd23d557f31148be6a68a35edf4cf568deae8a58744f92a4709bc",
+      "sha256": "b63f423683cd4e6081db4927d963a390bdbcf7b9a6fdbb45f2a4a479c69b6dd6",
       "properties": []
     },
     "flush-icon-button@outline-none": {
       "members": 60,
-      "sha256": "8d6eb54e74c3571cf5888f96b1187148420fe270c45bd35e838f4e359a1f814a",
+      "sha256": "7f0c7fce30d416bd2977c70ea70d1eade910c52d391c0894cecd6eb8076af9e1",
       "properties": []
     },
     "flush-icon-button-destructive": {
       "members": 60,
-      "sha256": "9f4c8e30a2511a02d37f2ec0769b713c27f68ce7a91714b4111d2af4b6613069",
+      "sha256": "de85eb6efc508ed13a5f5397a8442a0de57d8c993e2b523bd6c52beba333d322",
       "properties": []
     },
     "flush-icon-button-destructive@outline-solid-tint": {
       "members": 60,
-      "sha256": "135634d4dc2db5338b657fe438f3f0ce7842f59f0db47d39c9fea29e7e11cfcb",
+      "sha256": "6b24bbb6d35694fc4bca1777f6c848d0a781e8c2b767e41096e990eacec8cba8",
       "properties": []
     },
     "flush-icon-button-destructive@outline-none": {
       "members": 60,
-      "sha256": "eeb53d20ed51e606d8c2383d03f7df96faa6017f61dceb7f1700e4ce834b3fda",
+      "sha256": "3f8a1ea480e9ce4d360405890a410dc3e5a564a75d0ace92e4e7b88b1d36915e",
       "properties": []
     },
     "flush-icon-button-neutral": {
       "members": 60,
-      "sha256": "85253aa1b0d44e9af005d780c91849f6c3874742ee3d2fdb68bcd46614ae85d9",
+      "sha256": "46cc1aa3e9da5fc7a3a1941fecc316bd52b86d00ae227bf9790d61f8b4b93591",
       "properties": []
     },
     "flush-icon-button-neutral@outline-solid-tint": {
       "members": 60,
-      "sha256": "e5f6df8aa346fc41fb9eef7c25cc39372d8777f121814dcf001cee5f10adce2b",
+      "sha256": "1baa8bd0cb5c37d0d6378dc19d5a16aa4a2885dd3b559da89a7eccf9f1e17a0f",
       "properties": []
     },
     "flush-icon-button-neutral@outline-none": {
       "members": 60,
-      "sha256": "12cb8a3cba84e7fce83b222d04cdbd4f2f795dd36090f2b703ddd4eb7b686503",
+      "sha256": "9f310a9f47ce85fdd3eda0744bee64b3ff4c00bd22ecdd31c8433f9a04ede751",
       "properties": []
     },
     "field-label": {
@@ -441,7 +441,7 @@
     },
     "select": {
       "members": 84,
-      "sha256": "a218a54c13cfadf6538c74c668d369e8df4b98785b6047c9534f4057ee21cae3",
+      "sha256": "4e35265577de52fcb3030661f6ca2dc305c750c735bdf85b65d76d6fd1aa6a44",
       "properties": [
         "leading icon:BOOLEAN",
         "message:BOOLEAN",
@@ -463,7 +463,7 @@
     },
     "spinner": {
       "members": 4,
-      "sha256": "b8aee8820742a8158f7aa454099cab850a36da63911537024fba97837bac6288",
+      "sha256": "e9cb349f1064b8dc2115cb071f2f012b6b9908ed78cbe6752bc6e7321352fdf2",
       "properties": []
     },
     "badge": {
@@ -562,7 +562,7 @@
     },
     "_accordion-indicator": {
       "members": 12,
-      "sha256": "608768a6d100d88fdce8be96cf7cfffcee8797739e53d96de5a926c3eb212a96",
+      "sha256": "a1cf9dab3ba1ede6342bc6e4fdeba13b055542b15361689b6683a6f2173d7742",
       "properties": []
     },
     "accordion": {
@@ -714,7 +714,7 @@
     },
     "pagination-item": {
       "members": 87,
-      "sha256": "bc82027ec4cbc419f90c14efd1debf7b15f4d314d34d164f8891ba1e334970f7",
+      "sha256": "3c4a9757dade4edef41bde63ec05ddbb5a52a78117fe99c3eadf2bbe156658f8",
       "properties": [
         "label:TEXT",
         "next label:TEXT",
@@ -723,7 +723,7 @@
     },
     "pagination-item@outline-solid-tint": {
       "members": 87,
-      "sha256": "6f15a2c7aa5db7b183667bb17c008f0d6de608a87532c4e2b357936ed0df140b",
+      "sha256": "d02368d142875069ba03662087a875c7fd69d6ac0743e2b14db5c5212bc3cb43",
       "properties": [
         "label:TEXT",
         "next label:TEXT",
@@ -732,7 +732,7 @@
     },
     "pagination-item@outline-none": {
       "members": 87,
-      "sha256": "29f2c5f44cb5a91e4a637b41ef7450a6753206b8e22cfb7d53d9e47ae9ca5eaf",
+      "sha256": "ae008089b20ffd499df50c93992970a97f63d4e49ac4434e93ac2e57cb2e7c97",
       "properties": [
         "label:TEXT",
         "next label:TEXT",
@@ -808,12 +808,12 @@
     },
     "slider": {
       "members": 30,
-      "sha256": "db34f8aee7c07e6a742d6729edc04a8fd4c9ca23c355ca9258dbf7b95ed06c33",
+      "sha256": "17e160cb58aedf41ff20106843f01c612f2ecde9a991b93c07f90d47c2705013",
       "properties": [
-        "helper:BOOLEAN",
         "inputs:BOOLEAN",
         "label:BOOLEAN",
         "max label:TEXT",
+        "message:BOOLEAN",
         "milestone:TEXT",
         "milestones:BOOLEAN",
         "min label:TEXT",
@@ -824,14 +824,14 @@
     },
     "code-input-cell": {
       "members": 28,
-      "sha256": "f8d119c11f9a3f6a1ef57949760412eb5f5120b1039a273386f35bb0f2df734b",
+      "sha256": "df964398407d9cd47d5cc4a1cfda6e95ebefc68b300453ad49e66e72bc93b17f",
       "properties": [
         "digit:TEXT"
       ]
     },
     "code-input": {
       "members": 48,
-      "sha256": "fdff824f37d4f05c11c312d928203931f90fd61c036fd5419384079eaeb2e5ed",
+      "sha256": "239f8f46d7eda984d56d6ce3f48cbd9750e19bfcd2eec086bb06b98a9b09c07c",
       "properties": [
         "items:SLOT",
         "message:BOOLEAN"

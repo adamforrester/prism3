@@ -28,13 +28,13 @@ Shown on the default member: size `medium`, status `default`.
 7. **Cell4** — Cell 4 of the default six.
 8. **Cell5** — Cell 5 of the default six.
 9. **Cell6** — Cell 6 of the default six.
-10. **Message** (optional)
+10. **Message** (optional) — Helper or error text, hidden until the field has something to say; it takes the field's status.
 
 ## Styles
 
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
-| `size` | `medium`, `small`, `large`, `xlarge` | once, when authored | The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, xlarge 68×72 with 40px, meant for four-character codes. |
+| `size` | `medium`, `small`, `large`, `x-large` | once, when authored | The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, x-large 68×72 with 40px, meant for four-character codes. |
 | `status` | `default`, `error` | at runtime | — |
 
 ### States
@@ -63,7 +63,7 @@ Use for a short, fixed-length code sent by text message, email or an authenticat
 - **Focus:** Focus stays on the one input. The active cell, where the next character goes, shows the 2px focus edge.
 - **Screen readers:** textbox (one native \<input>); the cells are aria-hidden
 
-  aria-describedby names the helper and any error, aria-invalid is set in error, and aria-busy while the code is checked. No aria-label on the input: it would hide the real value. Every name is translatable; the cell row stays left to right in every locale.
+  aria-describedby names the helper and any error, aria-required is set when the code is required, aria-invalid is set in error, and aria-busy while the code is checked. No aria-label on the input: it would hide the real value. Every name is translatable; the cell row stays left to right in every locale.
 
 ### WCAG
 
@@ -119,8 +119,9 @@ Label = noun phrase, sentence case. Helper = the length and where the code went.
 | `validation` | enum: 'default' \| 'error' | `default` | no | error swaps every cell to the danger border, sets the message to the error status and sets aria-invalid. |
 | `validationMessage` | string \| node | — | no | The error text: too few characters, a wrong code or an expired code, each said plainly. |
 | `showMessage` | boolean | `false` | no | Whether the composed FieldMessage is shown. Off by default; turn it on to show the helper or validation message below the cells. Never hides a message the field needs: turn it on wherever there is helper or validation text. |
-| `size` | enum: 'small' \| 'medium' \| 'large' \| 'xlarge' | `medium` | no | The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, xlarge 68×72 with 40px, meant for four-character codes. |
+| `size` | enum: 'small' \| 'medium' \| 'large' \| 'x-large' | `medium` | no | The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, x-large 68×72 with 40px, meant for four-character codes. |
 | `width` | enum: 'auto' \| 'full' | `auto` | no | auto: each cell at its size. full: the row spans its container and the cells share it, shrinking to 32px wide when they must. |
+| `required` | boolean | `false` | no | Sets required / aria-required, and turns on the FieldLabel's required marker. |
 | `disabled` | boolean | `false` | no | Native disabled. |
 | `isPending` | boolean | `false` | no | The code is being checked; sets aria-busy and keeps the input editable. |
 | `name` | string | — | no | A real \<input name>, so the field works in a native \<form>. |
@@ -174,7 +175,7 @@ Keyed by `size`.
 | `container` | — | `space.100` | — | — | — | — |
 | `container/items` | — | `space.100` | — | — | — | — |
 
-**size=xlarge**
+**size=x-large**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |

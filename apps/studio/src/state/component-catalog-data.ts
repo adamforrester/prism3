@@ -55,7 +55,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "button",
     "name": "Button",
     "category": "form",
-    "summary": "Triggers an action in place, such as submit, save or confirm. For navigation, use a link.",
+    "summary": "Triggers an action in place, such as submit, save or confirm. For navigation, use Link.",
     "unit": "variants",
     "spacing": [
       {

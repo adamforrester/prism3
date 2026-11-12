@@ -35,7 +35,7 @@ Shown on the default member: size `medium`, alignment `start`.
 
 ## Usage guidelines
 
-Use tabs to switch between peer sections of related content in one place, one at a time, such as a product's description, specifications and reviews. Don't use tabs to go to another page (use page navigation), to change a setting or filter the current view (use a segmented control or a select), or for content people need to compare side by side.
+Use tabs to switch between peer sections of related content in one place, one at a time, such as a product's description, specifications and reviews. Don't use tabs to go to another page (use PageNav), to change a setting or filter the current view (use SegmentedControl or Select), or for content people need to compare side by side.
 
 ### Do
 

@@ -17,7 +17,7 @@
  *        THE ACCEPTED TRADE-OFF: the field's status and state do not flow into slot children in Figma; the designer
  *        sets each cell's state, and code drives every cell from the one input.
  *   Q330 (2026-10-15) A: four sizes, small 44×44 with a 16px digit, medium 48×56 / 20 (the default), large 56×64 / 24,
- *        xlarge 68×72 / 40; a fill-width option sharing the row with a 32px floor. Replaces Q321.12.
+ *        x-large 68×72 / 40; a fill-width option sharing the row with a 32px floor. Replaces Q321.12.
  *   As-built wireframe approved 2026-10-16. Cleared for build per #2382.
  * Rules decided on #2706 that this file follows: Q345 lowercase Figma property names; Q346 a border never binds an
  * icon or text role, and a disabled border binds `color.disabled.border`; Q347 / Q359 the first member is the code
@@ -31,7 +31,7 @@
  * segmented-control segment, `_tab-item` and `_list-item` (Q353, Q355) meet the same collision in the rename sweep.
  *
  * ── THE CELL ─────────────────────────────────────────────────────────────────────────────────────────────────
- * `size` [medium, small, large, xlarge] × seven states = 28 members. The approved cell states are rest, hover,
+ * `size` [medium, small, large, x-large] × seven states = 28 members. The approved cell states are rest, hover,
  * active, filled, active filled, error and disabled; the closed state vocabulary spells active `focus-visible` and
  * active filled `focus-visible-filled`, the names Text field gives the same look (the ring and the caret). Its
  * SIZE IS A LITERAL PER SIZE (`builtSize`, Dialog's construction, Q303.5 A): Q330's 48, 64 and 72 sit on no size
@@ -52,8 +52,8 @@ import { ComponentDef } from '../component-schema';
 import { fieldEdgeWidths, FOCUS_EDGE_DEFAULT_NOTE } from './text-field';
 
 // The cell geometry per size (owner decision Q330 A): width, height. Literal px, no new token.
-const CELL_WIDTH = { medium: 48, small: 44, large: 56, xlarge: 68 };
-const CELL_HEIGHT = { medium: 56, small: 44, large: 64, xlarge: 72 };
+const CELL_WIDTH = { medium: 48, small: 44, large: 56, 'x-large': 68 };
+const CELL_HEIGHT = { medium: 56, small: 44, large: 64, 'x-large': 72 };
 
 export const codeInputCell: ComponentDef = {
   id: 'code-input-cell',
@@ -67,7 +67,7 @@ export const codeInputCell: ComponentDef = {
 
   props: [
     { name: 'digit', type: 'string', required: false, description: 'The character this cell shows: one digit, or one letter in a code that allows letters. Empty until the user reaches it.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large' | 'xlarge'", values: ['small', 'medium', 'large', 'xlarge'], default: 'medium', required: false, description: 'The cell size and its character size. Set by the code input.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large' | 'x-large'", values: ['small', 'medium', 'large', 'x-large'], default: 'medium', required: false, description: 'The cell size and its character size. Set by the code input.' },
     { name: 'isActive', type: 'boolean', default: false, required: false, description: 'Whether this is the cell the next character goes into while the input has focus. Set by the code input.' },
     { name: 'isInvalid', type: 'boolean', default: false, required: false, description: 'Whether the code input is in error. Set by the code input.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Whether the code input is disabled. Set by the code input.' },
@@ -76,7 +76,7 @@ export const codeInputCell: ComponentDef = {
   states: ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'error'],
   // Medium FIRST (owner decisions Q347 and Q359): the set's first member is the code default.
   variants: {
-    size: ['medium', 'small', 'large', 'xlarge'],
+    size: ['medium', 'small', 'large', 'x-large'],
   },
   axisKinds: { size: 'authoring' },
 
@@ -85,11 +85,11 @@ export const codeInputCell: ComponentDef = {
 
   tokens: {
     // ── GEOMETRY ───────────────────────────────────────────────────────────────────────────────────────────
-    // The xlarge cell's corner (as-built wireframe): a 6px corner on the 68×72 display cell, 2px on the others.
+    // The x-large cell's corner (as-built wireframe): a 6px corner on the 68×72 display cell, 2px on the others.
     'size.medium.radius': 'radius.sm',
     'size.small.radius': 'radius.sm',
     'size.large.radius': 'radius.sm',
-    'size.xlarge.radius': 'radius.lg',
+    'size.x-large.radius': 'radius.lg',
     // Text field's edge weight per state (#3399): the hairline, and the 2px focus edge on the active cell.
     ...fieldEdgeWidths(['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'error']),
     'pad': 'space.0',
@@ -101,12 +101,12 @@ export const codeInputCell: ComponentDef = {
     'size.medium.type': 'type.title.sm.strong',
     'size.small.type': 'type.body.md.default',
     'size.large.type': 'type.title.md.strong',
-    'size.xlarge.type': 'type.title.2xl.strong',
+    'size.x-large.type': 'type.title.2xl.strong',
     // The caret is as tall as the character's size: the icon rungs are the dimension steps at 16, 20, 24 and 40.
     'size.medium.caret-height': 'icon.size.sm',
     'size.small.caret-height': 'icon.size.xs',
     'size.large.caret-height': 'icon.size.md',
-    'size.xlarge.caret-height': 'icon.size.xl',
+    'size.x-large.caret-height': 'icon.size.xl',
 
     // ── PAINT — Text field's field chrome. A transparent fill, no hover wash (#2926), the field border stepping
     // at hover, the focus border at both active states, the danger border in error, the shared disabled skin.
@@ -277,7 +277,7 @@ export const codeInputCell: ComponentDef = {
     contested: [
       FOCUS_EDGE_DEFAULT_NOTE,
       'The state names: the approved cell states say active and active filled; the closed state vocabulary has no `active`, so the cell spells them focus-visible and focus-visible-filled, Text field\'s names for the same ring and caret. Renaming them is a schema change held for the owner.',
-      'The character weight: no guaranteed type role is above 18px, so the medium, large and xlarge characters take the title steps in the brand\'s bold title weight (strong on most brands), and the small one Text field\'s body step in the default weight. A brand\'s own title ladder sets the exact size.',
+      'The character weight: no guaranteed type role is above 18px, so the medium, large and x-large characters take the title steps in the brand\'s bold title weight (strong on most brands), and the small one Text field\'s body step in the default weight. A brand\'s own title ladder sets the exact size.',
     ],
     unverified: [
       'An empty cell in error: the approved states draw error with a character only. A field in error with a short code shows its empty cells at rest in Figma; code draws the danger border on every cell.',
@@ -343,8 +343,10 @@ export const codeInput: ComponentDef = {
     { name: 'validation', type: "enum: 'default' | 'error'", values: ['default', 'error'], default: 'default', required: false, description: 'error swaps every cell to the danger border, sets the message to the error status and sets aria-invalid.' },
     { name: 'validationMessage', type: 'string | node', required: false, description: 'The error text: too few characters, a wrong code or an expired code, each said plainly.' },
     { name: 'showMessage', type: 'boolean', default: false, required: false, description: 'Whether the composed FieldMessage is shown. Off by default; turn it on to show the helper or validation message below the cells. Never hides a message the field needs: turn it on wherever there is helper or validation text.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large' | 'xlarge'", values: ['small', 'medium', 'large', 'xlarge'], default: 'medium', required: false, description: 'The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, xlarge 68×72 with 40px, meant for four-character codes.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large' | 'x-large'", values: ['small', 'medium', 'large', 'x-large'], default: 'medium', required: false, description: 'The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, x-large 68×72 with 40px, meant for four-character codes.' },
     { name: 'width', type: "enum: 'auto' | 'full'", values: ['auto', 'full'], default: 'auto', required: false, description: 'auto: each cell at its size. full: the row spans its container and the cells share it, shrinking to 32px wide when they must.' },
+    // Q-CC8 A (#3554): the nested FieldLabel shows a required marker, so the field takes the field family's `required`.
+    { name: 'required', type: 'boolean', default: false, required: false, description: 'Sets required / aria-required, and turns on the FieldLabel\'s required marker.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled.' },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'The code is being checked; sets aria-busy and keeps the input editable.' },
     { name: 'name', type: 'string', required: false, description: 'A real <input name>, so the field works in a native <form>.' },
@@ -354,7 +356,7 @@ export const codeInput: ComponentDef = {
   states: ['rest', 'hover', 'pending', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled'],
   // Medium FIRST (owner decisions Q347 and Q359), as every field's.
   variants: {
-    size: ['medium', 'small', 'large', 'xlarge'],
+    size: ['medium', 'small', 'large', 'x-large'],
     status: ['default', 'error'],
   },
   axisKinds: { size: 'authoring', status: 'runtime' },
@@ -379,7 +381,7 @@ export const codeInput: ComponentDef = {
       label: {
         kind: 'nest',
         nests: 'field-label',
-        // One label size at every cell size: FieldLabel has no xlarge, and the label names the field, it does not
+        // One label size at every cell size: FieldLabel has no x-large, and the label names the field, it does not
         // scale with the cells. Dims with the field (`variantWhen`).
         nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'primary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
         // NOT STRETCHED (#2928): the host does not let a column hug a child that fills it. The label was the first child
@@ -411,7 +413,10 @@ export const codeInput: ComponentDef = {
         nesting: { kind: 'nest-fixed', variant: { status: 'default' }, follow: ['status'] },
         optional: true,
         // NOT STRETCHED (#2928), for the label's reason above.
-        note: 'Helper or error text, composed. Its status follows the field\'s. Hidden by default (#2926); the `showMessage` boolean shows it where the field has something to say.',
+        // Maintainer detail, out of the reader caption (#3610): Helper or error text, composed. Its status follows
+        // the field's. Hidden by default (#2926); the `showMessage` boolean shows it where the field has something to
+        // say.
+        note: 'Helper or error text, hidden until the field has something to say; it takes the field\'s status.',
       },
     },
     codeOnly: [
@@ -521,7 +526,7 @@ export const codeInput: ComponentDef = {
     ],
     keyboard: 'One Tab stop. Typing fills the next cell; Backspace removes the last character; arrow keys, Home and End move the caret, and the active cell follows it. Paste fills every cell.',
     focus: 'Focus stays on the one input. The active cell, where the next character goes, shows the 2px focus edge.',
-    aria: 'aria-describedby names the helper and any error, aria-invalid is set in error, and aria-busy while the code is checked. No aria-label on the input: it would hide the real value. Every name is translatable; the cell row stays left to right in every locale.',
+    aria: 'aria-describedby names the helper and any error, aria-required is set when the code is required, aria-invalid is set in error, and aria-busy while the code is checked. No aria-label on the input: it would hide the real value. Every name is translatable; the cell row stays left to right in every locale.',
   },
 
   content: {
@@ -569,7 +574,7 @@ export const codeInput: ComponentDef = {
 
   notes: {
     contested: [
-      'The label size: one FieldLabel size at every cell size, because FieldLabel has no xlarge. Text field\'s label follows its size one step down.',
+      'The label size: one FieldLabel size at every cell size, because FieldLabel has no x-large. Text field\'s label follows its size one step down.',
       'The default cells per member: each member\'s six cells show its state (filled, active, disabled). Status has no mechanism to reach a nested coordinate, so an error member\'s default cells are not in error.',
     ],
     unverified: [
