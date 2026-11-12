@@ -353,7 +353,7 @@ export const counter: ComponentDef = {
     ],
     dont: [
       'Use it for a large or precise number, such as a price or a measurement; use a number input',
-      'Use it for a count shown on another element, such as unread messages; use a badge',
+      'Use it for a count shown on another element, such as unread messages; use Badge',
       'Put the minus and plus buttons in the Tab order; the arrow keys already step the value',
       'Hide the minus and plus buttons with aria-hidden; they stay in the accessibility tree for pointer and touch users of assistive technology',
       'Change the value on a mouse wheel or scroll',
@@ -373,7 +373,7 @@ export const counter: ComponentDef = {
   composition: {
     composesWith: ['field-label', 'flush-icon-button-neutral', 'focus-ring', 'field-message'],
     alternativeTo: ['select', 'segmented-control', 'text-field'],
-    planned: ['number-input'],
+    planned: ['number-field'],
     replacesPatterns: ['an <input type="number"> for an item count', 'a select of 1 to 10 for a bag quantity', 'two IconButtons around a <span> with no spinbutton semantics'],
   },
 

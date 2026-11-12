@@ -860,8 +860,8 @@ const makeButton = (id: string, name: string, summary: string, description: stri
 export const button: ComponentDef = makeButton(
   'button',
   'Button',
-  'Triggers an action in place, such as submit, save or confirm. For navigation, use a link.',
-  'In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand\'s primary action style, the expected look of a button. Not navigation (use Link, or give the button an href so it renders an <a>), not a persistent binary (Switch.Row), not one-of-many selection (segmented-control / toggle-button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.',
+  'Triggers an action in place, such as submit, save or confirm. For navigation, use Link.',
+  'In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand\'s primary action style, the expected look of a button. Not navigation (use Link, or give the button an href so it renders an <a>), not a persistent binary (Switch.Row), not one-of-many selection (SegmentedControl, or a toggle button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.',
   'primary',
   {
     triggerKeywords: ['button', 'submit', 'cta', 'confirm', 'action', 'primary action', 'save'],

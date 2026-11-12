@@ -13,7 +13,7 @@ A small, static marker of one of three types. A status label is short text in th
 
 - **Purpose:** Mark a status, count or presence with a small static badge that nobody clicks.
 - **Use when:** A short state or attribute shown next to what it describes (status), an actionable number over an icon button or tab (count), or presence or unread state over an avatar or nav item (dot). Inline style: a quieter status in a list or table row or a card's details, where a filled label would draw too much attention.
-- **Avoid when:** The user can click, toggle or remove it (use a tag), the message is feedback about an action (use a toast or banner), or the color would be the only signal.
+- **Avoid when:** The user can click, toggle or remove it (use Tag), the message is feedback about an action (use Toast or Banner), or the color would be the only signal.
 
 ## Anatomy
 
