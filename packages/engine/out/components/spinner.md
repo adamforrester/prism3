@@ -12,7 +12,7 @@
 A rotating arc over a faint full ring, showing that work is in progress with no known end. Sized on the icon ladder (16 / 20 / 24 / 32) and inked from the surrounding text or icon color, so it drops into any icon slot — a button's leading visual, a field's trailing slot. On its own it announces a polite "Loading", or a more specific label, through a status region that is already on the page; inside a host that announces its own busy state, the host hides it with aria-hidden. It has no value, so it never stands in for a determinate progress bar.
 
 - **Purpose:** Show that work is in progress with no known end, inside the control or region that is waiting.
-- **Use when:** A short indeterminate wait of about 200ms to 5s (Material 3's bands) inside a host: a pending Button, a field validating its value, a region reloading. Size it to the host's icon slot.
+- **Use when:** A short indeterminate wait of about 200ms to 5s inside a host: a pending Button, a field validating its value, a region reloading. Size it to the host's icon slot.
 - **Avoid when:** The wait is under 200ms (show nothing — a spinner shown that briefly only flashes), runs past about 5s or has a known length (Progress: a bar, or a ring in a small space), or is a task that ends in complete or error (a Progress ring, indeterminate until the amount is known), the page is loading its layout (a skeleton, not built yet), or you want a static icon — the spinner is behavior, not a glyph.
 
 ## Anatomy

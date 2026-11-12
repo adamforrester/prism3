@@ -16522,7 +16522,7 @@ arm: {
   // grow into a hole. The child-only arm holds the two whenToUse templates and resolves the host each names
   // against the anatomy of the OTHER defs, so a template naming a host that does not nest the part fails.
   {
-    const ACRONYMS = new Set(['AA', 'AAA', 'AI', 'APG', 'API', 'ARIA', 'CSS', 'DOM', 'FAQ', 'FAQs', 'HIG', 'HTML', 'IME', 'JSX', 'KB', 'MB', 'OK', 'OS', 'PDF', 'PIN', 'RTL', 'SC', 'SKUs', 'SMS', 'SVG', 'UI', 'URL', 'USWDS', 'UTF', 'W3C', 'WCAG', 'ZWJ']);
+    const ACRONYMS = new Set(['AA', 'AAA', 'AI', 'APG', 'API', 'ARIA', 'CSS', 'DOM', 'FAQ', 'FAQs', 'HTML', 'IME', 'JSX', 'KB', 'MB', 'OK', 'OS', 'PDF', 'PIN', 'RTL', 'SC', 'SKUs', 'SMS', 'SVG', 'UI', 'URL', 'USWDS', 'UTF', 'W3C', 'WCAG', 'ZWJ']);
     const consumerStrings = (d: ComponentDef): [string, string][] => {
       const out: [string, string][] = [];
       const walk = (path: string, v: unknown): void => {
@@ -19642,9 +19642,10 @@ arm: {
   // field by field rather than dropping `ai` / `docs` / `composition` whole: the shared remainder of each
   // (usage, dont, primaryPurpose, composesWith, …) must still stay byte-identical.
   const sharedPart = (d: ComponentDef, field: string): unknown => {
+    // #3555 Q-MD14 A: `primaryPurpose` is per-sibling too, one imperative line each; the Q-MD5 arm below holds it.
     // #3555 C2: `whenToUse` joined the per-sibling fields for the icon-only families (a counter's minus and plus, a card's
     // close and a close affordance are the neutral sibling's). The C2 arm below holds what still has to agree.
-    if (field === 'ai') { const { triggerKeywords, avoidWhen, generationPriority, whenToUse, ...rest } = d.ai; return rest; }
+    if (field === 'ai') { const { triggerKeywords, avoidWhen, generationPriority, whenToUse, primaryPurpose, ...rest } = d.ai; return rest; }
     if (field === 'docs') return { ...d.docs, do: undefined };
     if (field === 'composition') return { ...d.composition, alternativeTo: undefined };
     return (d as Record<string, unknown>)[field];
@@ -20584,6 +20585,29 @@ arm: {
     const ref = JSON.stringify(sharedPart(iconButton, field));
     const diverged = iconButtonFamily.filter((d) => JSON.stringify(sharedPart(d, field)) !== ref).map((d) => d.id);
     ok(diverged.length === 0, `#1225 the three icon-button components share byte-identical '${field}' — only colour may differ (diverged: ${diverged.join(', ') || 'none'})`);
+  }
+  // #3555 Q-MD5 A and Q-MD14 A. A summary is the Figma set description a designer reads, so it names other components in
+  // plain words, never by a code name (`Checkbox.Row`), and carries no build instruction. And each sibling of an action
+  // family states its own primaryPurpose. The oracle for a code name is the registry's names, not the summary: every
+  // dotted name (`Checkbox.Row`), and every one-word name (`Accordion`, `Slider`) as a whole capitalized word. A word
+  // joined by a hyphen is a different word ("Icon-only" is not the Icon component), and one before a dot and a letter
+  // is part of a dotted name, so neither is a reference here.
+  {
+    const mdBad: string[] = [];
+    const dotted = componentDefs.map((d) => d.name).filter((n) => n.includes('.'));
+    const oneWord = componentDefs.map((d) => d.name).filter((n) => /^[A-Z][A-Za-z]*$/.test(n));
+    for (const d of componentDefs) {
+      const s = d.summary ?? '';
+      // #3555 Q206 A: a name directly after "use" is an alternative pointer ("For navigation, use Link."), which a designer
+      // reads as a plain word; any other placement of a registered name still fails.
+      const ptr = (n: string) => new RegExp(`(?<!\\buse )${n.replace(/\./g, '\\.')}`);
+      for (const n of dotted) if (n !== d.name && ptr(n).test(s)) mdBad.push(`${d.id} summary names ${n}`);
+      for (const n of oneWord) if (n !== d.name && new RegExp(`(?<![\\w.-]|\\buse )${n}(?![\\w-]|\\.\\w)`).test(s)) mdBad.push(`${d.id} summary names ${n}`);
+      if (/\bbuild\b/i.test(s)) mdBad.push(`${d.id} summary carries a build instruction: "${s}"`);
+    }
+    for (const fam of [[button, buttonDestructive, buttonNeutral], [iconButton, iconButtonDestructive, iconButtonNeutral], [flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral]])
+      if (new Set(fam.map((d) => d.ai.primaryPurpose)).size !== 3) mdBad.push(`${fam[0].id} family shares a primaryPurpose`);
+    ok(mdBad.length === 0 && dotted.length > 10 && oneWord.length > 20, `#3555 Q-MD5 summaries name components in plain words with no build instruction, and action siblings each state their own primaryPurpose${mdBad.length ? ` — ${mdBad.join(' | ')}` : ''}`);
   }
   // #3555 C2: a sibling's whenToUse never recommends it for a case its own avoidWhen sends to another sibling. The examples
   // (a counter's minus and plus, a card's close, a close affordance) are the neutral sibling's, and each icon-only family's

@@ -85,7 +85,7 @@ export const checkboxControl: ComponentDef = {
   aliases: ['checkbox-box', 'check-control', 'checkbox-atom'],
   category: 'form',
   status: 'draft',
-  summary: 'Checkbox box with check/dash glyph and focus ring. Nested by Checkbox.Row; no label.',
+  summary: 'Checkbox box with check/dash glyph and focus ring. Nested by a checkbox row; no label.',
   description:
     'The atomic checkbox control — the painted square with its check or dash glyph and its focus ring, and nothing else. Nested by the labeled Checkbox.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Carries the three-value selection axis (unchecked / checked / indeterminate) whose mark is a real part gated on the coordinate, the per-rung clamped corner, and the 2px control border.',
 

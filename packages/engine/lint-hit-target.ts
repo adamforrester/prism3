@@ -110,6 +110,7 @@ import { buildTree } from './tree';
 import { brandTheme } from './theme';
 import { parseDesignMd } from './design-md';
 import { codeOnlyText } from './code-only-register';
+import { COMPONENT_RENAMES } from './component-renames';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -340,13 +341,13 @@ const EXCLUDED: Record<string, string> = {
   'progress': 'a progress bar or ring shows system work and is never interactive (#2670) — a retry after an error is the host\'s own control, placed beside it, which is gated',
   'spinner': 'a decorative loading indicator on the icon ladder, never interactive — the tap target is the host control it sits in (a pending button), which is gated',
   'badge': 'a static marker, never interactive (owner decision, 2026-09-27) — a count or dot on an icon button relies on the host\'s target, which is gated',
-  'checkbox-control': 'a nested-only atom — the tap target is the labelled row (checkbox-row), gated here',
-  'radio-control': 'a nested-only atom — the tap target is the labelled row (radio), gated here',
-  'switch-control': 'a nested-only atom — the tap target is the labelled row (switch), gated here; its bare 24–32px track fails SC 2.5.8 in isolation by its own codeOnly',
+  'checkbox-control': 'a nested-only atom — the tap target is the labeled row (checkbox-row), gated here',
+  'radio-control': 'a nested-only atom — the tap target is the labeled row (radio-row), gated here',
+  'switch-control': 'a nested-only atom — the tap target is the labeled row (switch-row), gated here; its bare 24–32px track fails SC 2.5.8 in isolation by its own codeOnly',
   'checkbox-group': 'a group container — its interactive tap targets are the nested checkbox-rows, which are gated',
   'radio-group': 'a group container — its interactive tap targets are the nested radio-rows, which are gated',
   'pagination': 'a navigation row — its tap targets are the nested page cells, gated as pagination-item, and the previous and next IconButton.Neutral and Button.Neutral, each measured under its own name (#2665)',
-  'tabs': 'a tab list container — its interactive tap targets are the nested tabs, which are gated as tab',
+  'tabs': 'a tab list container — its interactive tap targets are the nested tabs, which are gated as tab-item',
   'link': 'one text line tall in Figma by owner decision (Q289.4 A), so its box is the line, not a control height: code expands the hit area to at least 24px (SC 2.5.8, codeOnly), and an inline link in a sentence is exempt under the inline exception; each size\'s line box is held to 24px below, as drawn or code-side (#3179)',
   // #2428: Code input's target is its row of cells, one target over the one input, built at the owner's literal cell
   // heights (Q330 A: 44, 56, 64, 72px; `builtSize`, no token), so there is no binding here to read. test.ts holds those
@@ -420,6 +421,29 @@ for (const id of Object.keys(INTERACTIVE)) if (!defIds.has(id)) failures.push(`I
 for (const id of Object.keys(EXCLUDED)) if (!defIds.has(id)) failures.push(`EXCLUDED names '${id}', which is not a def in componentDefs — a stale exclusion.`);
 for (const id of Object.keys(CODE_SIDE_TARGETS)) if (!defIds.has(id)) failures.push(`CODE_SIDE_TARGETS names '${id}', which is not a def in componentDefs — a stale entry.`);
 for (const id of SMALL_SIZE) if (!(id in INTERACTIVE)) failures.push(`SMALL_SIZE names '${id}', which is not an INTERACTIVE control — a stale exception entry.`);
+
+// ── RETIRED IDS IN A REASON (#1707) ─────────────────────────────────────────────────────────────────
+// The keys above are checked against componentDefs; the prose was not, so `radio-control`'s reason named the
+// `radio` row id for a year after #1468 renamed it `radio-row`. A reason names the def that carries the target in
+// two set forms: a parenthesized id ("the labeled row (radio-row)") and "gated as <id>". Each id written that way
+// must not be a RETIRED one. Retired is read from the registry, never from this file: a def-kind entry in
+// COMPONENT_RENAMES (`tab` → `tab-item`), or an alias that is a strict prefix of its def's id (`radio` →
+// `radio-row`, the shape test.ts's component-refs arm reads). A parenthesized word that was never an id, such as
+// "(fluid)", is not a hit: the rule is "not retired", not "is a def", so prose keeps its parentheses.
+const retiredIds = new Map<string, string>([
+  ...COMPONENT_RENAMES.flatMap((r): [string, string][] => (r.kind === 'def' ? [[r.def, r.to]] : [])),
+  ...componentDefs.flatMap((d) => (d.aliases ?? []).filter((a) => d.id.startsWith(`${a}-`)).map((a): [string, string] => [a, d.id])),
+].filter(([id]) => !defIds.has(id)));
+if (!retiredIds.has('radio') || !retiredIds.has('tab'))
+  failures.push(`the retired-id set is missing 'radio' or 'tab' (${retiredIds.size} read) — the registry read is broken, so the reason check below asserts nothing.`);
+const citedIds = (why: string): string[] =>
+  [...why.matchAll(/\(([a-z][a-z0-9-]*)\)|gated as ([a-z][a-z0-9-]*)/g)].map((m) => m[1] ?? m[2]);
+let citedRead = 0;
+for (const [id, why] of Object.entries(EXCLUDED)) for (const cited of citedIds(why)) {
+  citedRead++;
+  if (retiredIds.has(cited)) failures.push(`EXCLUDED['${id}']'s reason names '${cited}', a retired def id — name the current one, '${retiredIds.get(cited)}'.`);
+}
+if (citedRead < 5) failures.push(`only ${citedRead} id(s) cited in EXCLUDED reasons were read — the reason check is scanning nothing.`);
 
 /** A control's DEFAULT size — the `size` prop's default, or `single` for the no-size-axis control. */
 const defaultSizeOf = (def: ComponentDef): string | undefined =>
