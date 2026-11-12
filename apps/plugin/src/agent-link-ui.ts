@@ -223,14 +223,17 @@ export const mountAgentLink = (): void => {
   // switch, at the bar's own size, on the bar ground. It replaced the Agent tile (T7 A), its green dot and the on mark's
   // fill and edge (Q738 A, Q788 C). A click switches the link, the same request the tile posted: the main thread is the
   // authority, so the switch shows only the state it publishes (`set`, in `render`), never its own click. One fixed name,
-  // "Agent" (the owner's Q44 note), and `aria-checked` says on or off; at 380 the label drops and the name stays.
+  // "Agent" (the owner's Q44 note), and `aria-checked` says on or off; at 380 the label is the agent glyph (#3553 Q-UI10 A).
   // The label is a `<label>` beside the switch, not inside it, so the switch stays the chrome's one track-and-knob kind
   // (#2183) and a click on the word turns it too. It is hidden from assistive tech: the switch's own name says "Agent".
   const wrap = h('div', 'p3-popwrap');
   const { el: chip, set: setChip } = switchEl('agent-toggle', 'Agent', () => post({ type: 'agent-link', on: !state?.on }));
   chip.classList.add('p3-agent-switch');
   chip.id = 'p3-agent-switch';
-  const label = h('label', 'p3-agent-switch-label', 'Agent');
+  // #3553 Q-UI10 A: the word at the wide tier, the agent glyph at the narrow one, so the switch is never a bare toggle at
+  // 380 and the brand switcher keeps its room (the word there trimmed the brand name).
+  const label = h('label', 'p3-agent-switch-label');
+  label.append(glyph('agent'), h('span', 'p3-agent-switch-word', 'Agent'));
   label.htmlFor = chip.id;
   label.setAttribute('aria-hidden', 'true');
   // #2949 (Q600 A): Minimize, at the rail's foot since Q731, whether the link is on or off. A plain button: the main thread decides.

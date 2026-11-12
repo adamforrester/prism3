@@ -33,6 +33,8 @@
  *                    already has) may not be edited at all. The changelog may never carry a literal `{{`,
  *                    which is an unsubstituted placeholder. A PR that picks a number, or a merge
  *                    resolution that drops or rewrites someone's pending note, fails here by name.
+ *                    One exception, owner-approved: `APPROVED_NOTE_CORRECTIONS` (Q181 A, Q190 A, #3574) pins a
+ *                    note correction by its blob at the base and at HEAD, so only that exact edit passes.
  *   FOLD INTEGRITY — in a fold, HEAD's version is EXACTLY the next one at the highest level the deleted
  *                    notes declare (one version per fold), the first section under the FOLD MARKER is
  *                    headed by that version, and every deleted note's prose appears in that section.
@@ -451,11 +453,33 @@ const exactNext = (from: string, level: string): string => {
 };
 const squash = (s: string): string => s.replace(/\s+/g, ' ').trim();
 
+// APPROVED NOTE CORRECTIONS (Q181 A, Q190 A, #3570, #3574) — the one owner-approved exception to the arm below.
+// The first fold to carry notes into served release pages found shipped en-GB in pending notes, written
+// before any prose gate read `changes/`. The owner approved one correction PR (Q181 A), covering every note
+// the upstream prose gate flags (Q190 A: the two `colour` notes and three more). Each entry pins the exact
+// edit: the note's blob at the base (`from`) and at HEAD (`to`), so nothing else rides along, and the
+// entry is spent once `main` carries `to` (a later edit starts from `to`, not `from`, and fails as usual).
+// Never add an entry without an owner decision named in `decision`: this list is that decision's record.
+const APPROVED_NOTE_CORRECTIONS: { path: string; from: string; to: string; decision: string }[] = [
+  { path: `${NOTES_DIR}/claude-color-family-order-2900.md`, from: 'd4626053ae73c6ec7b176ca1ee4e1a0c120f666c', to: 'c150a32e0df92410ab847931004d3c92a45061d3', decision: 'Q181 A' },
+  { path: `${NOTES_DIR}/claude-color-variable-order.md`, from: '79c6e7f3be9d70007298ba2f42d9a749068fa8b6', to: '342be9b537ecffe985935e6712410b1a6dce0b9d', decision: 'Q181 A' },
+  { path: `${NOTES_DIR}/claude-toast-message-14-3165.md`, from: '92c24aa32600cc2881c5d8a97c203fcbc5ddfa96', to: 'e971f2307ffa3fdc8caa40027b3bff8f3f2766d7', decision: 'Q181 A, Q190 A' },
+  { path: `${NOTES_DIR}/claude-1024-paste-rename-migration.md`, from: '574d138625ffc5282907a80c0c62d432362e8e7d', to: '44637a58439eaf2a422a00e0600b5be1b8d35619', decision: 'Q181 A, Q190 A' },
+  { path: `${NOTES_DIR}/claude-3186-centring.md`, from: '4de26788d7eeeb08ff2e70f62bd3f5152f1ee114', to: '5dd368282fd56379b88ce8ecc9838625384cf1fe', decision: 'Q181 A, Q190 A' },
+];
+const blobAt = (rev: string, p: string): string | null => { const r = git('rev-parse', `${rev}:${p}`); return r.ok ? r.out.trim() : null; };
+const approvedCorrections: string[] = [];
+const unapprovedEdits = modifiedNotes.filter((p) => {
+  const a = APPROVED_NOTE_CORRECTIONS.find((c) => c.path === p);
+  if (a && blobAt(base, p) === a.from && blobAt('HEAD', p) === a.to) { approvedCorrections.push(`${p} (${a.decision})`); return false; }
+  return true;
+});
+
 let writerLine: string;
-if (markerAtBase && modifiedNotes.length)
+if (markerAtBase && unapprovedEdits.length)
   die([
-    `ONE WRITER — this diff edits ${modifiedNotes.length} pending change note(s) that a merged PR wrote (#1807).`,
-    ...modifiedNotes.map((p) => `      ${p}`),
+    `ONE WRITER — this diff edits ${unapprovedEdits.length} pending change note(s) that a merged PR wrote (#1807).`,
+    ...unapprovedEdits.map((p) => `      ${p}${APPROVED_NOTE_CORRECTIONS.some((c) => c.path === p) ? '  (listed in APPROVED_NOTE_CORRECTIONS, but not this exact edit)' : ''}`),
     `    ${where}`,
     '',
     '  A pending note is another PR\'s declared bump, and only the fold consumes it. To add to or correct',
@@ -536,7 +560,7 @@ if (!markerAtBase) {
     ]);
   writerLine = `a fold — ${folded.length} note(s) consumed at ${top}, ${baseVersion} → ${headVersion}, every note's prose under it`;
 } else {
-  writerLine = 'no edit to ENGINE_VERSION or its changelog, and no note deleted';
+  writerLine = `no edit to ENGINE_VERSION or its changelog, and no note deleted${approvedCorrections.length ? `; ${approvedCorrections.length} owner-approved note correction(s): ${approvedCorrections.join(', ')}` : ''}`;
 }
 
 // ---- RENAME STAMPS (#1816) -----------------------------------------------------------------------

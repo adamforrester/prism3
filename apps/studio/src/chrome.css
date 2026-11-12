@@ -881,7 +881,14 @@
 }
 /* One class over the page switch's on rule, which comes later in this file at the same weight. */
 .p3-switch.p3-agent-switch[aria-checked="true"] .p3-switch-knob { transform: translateX(calc(var(--p3-bar-track-w) - var(--p3-bar-thumb) - 2 * var(--p3-bar-thumb-inset))); }
-.p3-frame:is([data-w="narrow"], [data-bar-fit]) .p3-agent-switch-label { display: none; }
+/* #3553 Q-UI10 A: the label stays at the narrow tier, where Q3083.6 A had dropped it and left a bare toggle: there it is the
+   agent glyph rather than the word, so the brand switcher keeps its room. Only the wide bar's fit steps drop it, with the
+   other bar labels. */
+.p3-agent-switch-label { display: inline-flex; align-items: center; }
+.p3-agent-switch-label > .p3-ico { display: none; color: var(--p3-icon); }
+.p3-frame[data-w="wide"][data-bar-fit] .p3-agent-switch-label { display: none; }
+.p3-frame[data-w="narrow"] .p3-agent-switch-label > .p3-ico { display: block; }
+.p3-frame[data-w="narrow"] .p3-agent-switch-word { display: none; }
 .p3-frame[data-w="narrow"] .p3-switch.p3-agent-switch { min-height: var(--p3-ctl-h-xs); }
 /* Minimize (#2949, the owner's Q600 A): a tile at the rail's foot (Q731; on the top bar under #2909), drawn whether the
    agent link is on or off. */

@@ -516,6 +516,28 @@ console.log('\n11. #3448: renaming a brand color carries its interactive column\
   const bfill = pathOf('dark', FILL('own-n')), bborder = pathOf('light', BORDER('own-n'));
   ok(bfill.endsWith('.palette.acc-n.300') && bborder.endsWith('.palette.acc-n.700') && store.brandState.modeAnchors?.dark?.['own-n'] === 300 && !!store.brandState.overrides?.light?.[BORDER('own-n')],
     `#3545 rename back off a named column's name: \`own-n\` keeps its Dark anchor and border override, acc-n 300 / 700, on its own name (${bfill}, ${bborder}; ${JSON.stringify(store.brandState.modeAnchors)} ${JSON.stringify(store.brandState.overrides)})`);
+
+  // NO MODE MAP IS LEFT EMPTY (#3613). The drop above can delete a mode's only key: a stale anchor on the new name, in a
+  // mode where the old name has none. That map is pruned, as `setAnchor` prunes, and so is an emptied `modeAnchors`.
+  // A map that still holds another key stays, and an empty map the brand already held is not the rename's to change.
+  // The expected shapes are literals typed here.
+  reset();
+  (store.brandState.brandColors ??= []).push({ name: 'acc-p', oklch: { l: 0.55, c: 0.15, h: 235 } });
+  store.brandState.customModes = [{ name: 'promo', base: 'light' }];
+  store.brandState.interactivePalettes = [{ palette: 'acc-p' }];
+  store.rebuild();
+  const empties = (): string[] => Object.entries(store.brandState.modeAnchors ?? {}).filter(([, m]) => !Object.keys(m ?? {}).length).map(([mode]) => mode);
+  store.brandState.modeAnchors = { dark: { 'acc-q': 300 }, promo: { primary: 400, 'acc-q': 200 } };
+  const p = store.brandState.brandColors!.findIndex((b) => b.name === 'acc-p');
+  ok(P.renameBrandColor(p, 'acc-q'), 'the rename onto a name whose only Dark key is stale is taken');
+  ok(same(store.brandState.modeAnchors, { promo: { primary: 400 } }) && !empties().length && takes(),
+    `#3613 prune: Dark's emptied map is pruned, promo keeps primary 400, and no mode map is left empty (${JSON.stringify(store.brandState.modeAnchors)})`);
+  store.brandState.modeAnchors = { dark: { 'acc-r': 300 } };
+  ok(P.renameBrandColor(p, 'acc-r') && store.brandState.modeAnchors === undefined,
+    `#3613 prune: a rename that empties the only mode map leaves no modeAnchors at all (${JSON.stringify(store.brandState.modeAnchors)})`);
+  store.brandState.modeAnchors = { dark: {} };
+  ok(P.renameBrandColor(p, 'acc-s') && same(store.brandState.modeAnchors, { dark: {} }),
+    `#3613 prune: an empty map the brand already held is left as it was (${JSON.stringify(store.brandState.modeAnchors)})`);
 }
 
 console.log('\n12. #3562: a brand color cannot be renamed to a palette the engine always mints');
