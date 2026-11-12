@@ -273,21 +273,31 @@ export const fieldMessage: ComponentDef = {
         glyph: 'warning-triangle',
         size: 'glyph-size',
         presentWhen: { status: ['error'] },
-        note: 'The error glyph, aria-hidden — the caption carries the meaning. An exclamation in a triangle, and the only status whose enclosure is not a circle: shape is the channel that survives when the ink cannot be told from `warning`\'s. Its ink is `error.icon`, applied as `descendantFills` (never a fill on the artboard — #864), so the icon+text pairing that satisfies SC 1.4.1 is one token decision rather than two.',
+        // Maintainer detail, out of the reader caption (#3610): The error glyph, aria-hidden — the caption carries
+        // the meaning. An exclamation in a triangle, and the only status whose enclosure is not a circle: shape is
+        // the channel that survives when the ink cannot be told from `warning`'s. Its ink is `error.icon`, applied as
+        // `descendantFills` (never a fill on the artboard — #864), so the icon+text pairing that satisfies SC 1.4.1
+        // is one token decision rather than two.
+        note: 'The error icon, an exclamation in a triangle, decorative because the message carries the meaning; the triangle tells error from warning when the colors are hard to tell apart.',
       },
       warningGlyph: {
         kind: 'vector',
         glyph: 'error-circle',
         size: 'glyph-size',
         presentWhen: { status: ['warning'] },
-        note: 'The warning glyph, aria-hidden. An exclamation in a CIRCLE — the same mark as `error`\'s in a different enclosure, which is what the reference asks for. Its ink is `warning.icon`.',
+        // Maintainer detail, out of the reader caption (#3610): The warning glyph, aria-hidden. An exclamation in a
+        // CIRCLE — the same mark as `error`'s in a different enclosure, which is what the reference asks for. Its ink
+        // is `warning.icon`.
+        note: 'The warning icon, an exclamation in a circle, decorative because the message carries the meaning.',
       },
       successGlyph: {
         kind: 'vector',
         glyph: 'check-circle',
         size: 'glyph-size',
         presentWhen: { status: ['success'] },
-        note: 'The success glyph, aria-hidden — a circled check. Its ink is `success.icon`.',
+        // Maintainer detail, out of the reader caption (#3610): The success glyph, aria-hidden — a circled check. Its
+        // ink is `success.icon`.
+        note: 'The success icon, a check in a circle, decorative because the message carries the meaning.',
       },
       label: {
         kind: 'text',
@@ -299,7 +309,9 @@ export const fieldMessage: ComponentDef = {
         // it, at the host's width where a field stretches the instance and at the root's 320 build width where
         // nothing does (#1757).
         wrap: true,
-        note: 'The message itself. `paintSlot` is absent because the default `label` is right: this is the only text node, and its ink is the status\'s text role.',
+        // Maintainer detail, out of the reader caption (#3610): The message itself. `paintSlot` is absent because the
+        // default `label` is right: this is the only text node, and its ink is the status's text role.
+        note: 'The message itself, in the status\'s text color.',
       },
     },
     codeOnly: [

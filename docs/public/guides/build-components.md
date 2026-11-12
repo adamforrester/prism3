@@ -10,13 +10,13 @@ Building needs the Figma plugin. On the web, the Components area lists the same 
 
 ## Choose the sets to add
 
-1. Open **Components** in the rail. The list reads "Tick a set or a family to add it to this file; sets it needs come with it. Update file adds them." <!-- src: apps/studio/src/state/component-groups.ts:135 -->
+1. Open **Components** in the rail. The list reads "Tick a set or a family to add it to this file; sets it needs come with it. Update file adds them." <!-- src: apps/studio/src/state/component-groups.ts:136 -->
 2. Tick each family or set you want. A tier's caption has **Select all**, or **Deselect all** once anything in it is ticked. <!-- src: apps/studio/src/state/component-groups.ts:139-140 -->
 3. Choose **Update file** in the top bar. The ticked sets are listed under **Components** › **To add**. <!-- src: apps/studio/src/state/update-file.ts:327-328 -->
 4. Choose **Update file** in the dialog to build them. <!-- src: apps/studio/src/state/update-file.ts:391 -->
 
 Each set in the list carries its state in this file: **To add**, **Needed**, **Not in file**, **Due**, **Kept edits**, **Hand-edited**, **Not checked yet** or **Up to date**. <!-- src: apps/studio/src/state/update-file.ts:374 -->
-A set already in the file has a checked box you can't change, and **In file** comes first among its states. A family partly in the file can still be ticked, to add the sets it lacks. <!-- src: apps/studio/src/state/component-groups.ts:147 -->
+A set already in the file has a checked box you can't change, and **In file** comes first among its states. A family partly in the file can still be ticked, to add the sets it lacks. <!-- src: apps/studio/src/state/component-groups.ts:148 -->
 
 The sets you tick are kept in the file, not in the panel, so a teammate who opens Update file sees the same list. A set leaves the list once it is built whole; one that fails or is stopped stays on it. <!-- src: apps/plugin/src/add-queue.ts:1-11#32cbe7e4 -->
 
@@ -31,7 +31,7 @@ For each set, the plugin: <!-- src: apps/plugin/src/main.ts:879-1002#34f3a25b --
 - creates the set's page if the file does not have it, and switches Figma to that page;
 - builds the set, its properties and its prototype interactions;
 - adds the page header and the labels beside the set;
-- draws the family's usage panel beside its lead, while Documentation has usage panels on. <!-- src: apps/plugin/src/main.ts:967-968#03cbfa05 --> A family has one panel, beside its lead set: the Buttons page has one, beside Button, and the other sets on the page have none of their own. An icon, the spinner and a provider logo are single components, with no set and no panel. <!-- src: apps/plugin/src/doc-panel.ts:185-186#b6f87a5f -->
+- draws the family's usage panel beside its lead, while Documentation has usage panels on. <!-- src: apps/plugin/src/main.ts:967-968#03cbfa05 --> A family has one panel, beside its lead set: the Buttons page has one, beside Button, and the other sets on the page have none of their own. An icon, the spinner and a provider logo are single components, with no set and no panel. <!-- src: apps/plugin/src/doc-panel.ts:186-187#b6f87a5f -->
 
 A new set's description in Figma is its one-line summary from the engine. A description you wrote on an existing set is kept. <!-- src: apps/plugin/src/write-components.ts:150-151#7bb3ec74 -->
 

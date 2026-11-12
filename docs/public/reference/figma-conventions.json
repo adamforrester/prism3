@@ -878,6 +878,12 @@
           }
         ],
         "properties": [],
+        "codeOnly": {
+          "states": [
+            "pending",
+            "disabled"
+          ]
+        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/sign-in-button.md"
       },
       {
@@ -1836,6 +1842,9 @@
           }
         ],
         "codeOnly": {
+          "axes": [
+            "style"
+          ],
           "states": [
             "pending",
             "empty"
