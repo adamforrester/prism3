@@ -1,0 +1,4 @@
+---
+engine: minor
+---
+Each component is listed once in a component doc's Related components section, in the first list that names it: Built from, then Instead, consider, then Often used with, then Supersedes, then Superseded by (#3552, owner decision Q-UG3 A). The rule extends the existing one that kept a component the def is built from out of Often used with. Eleven pages under `out/components/` lose a repeated name: Accordion, Breadcrumbs, Card number field, Link, Page navigation, Progress, Provider logo, Radio row, Slider, Tag and Toast. Radio row's Superseded by line goes, because Select is already under Instead, consider. Three lists that end up empty are recorded in `schema/component-maintainer.json`'s `docGaps`. `components.ai.json` doesn't move, because it carries each def's lists as they are.

@@ -78,9 +78,9 @@ Use a status label to show a state or attribute next to what it describes, such 
 
 ### Motion
 
-- **Enter:** A count or dot scales in from zero, from the corner it is anchored to. When a count changes, only the number animates, not the pill. A status label appears with no motion. A dot pulses only for a critical alert.
-- **Exit:** A count or dot scales out to its anchor corner.
-- **Reduced motion:** Under prefers-reduced-motion every change is instant: no scale, no pulse.
+- **Enter:** A count or dot fades in and scales up from a little under full size, from the corner it is anchored to, on motion.transition.enter. When a count changes, only the number changes, on motion.transition.default; the pill does not move. A status label appears with no motion.
+- **Exit:** A count or dot fades out and scales down toward its anchor corner on motion.transition.exit.
+- **Reduced motion:** Under prefers-reduced-motion a count or dot fades in and out with no scale, on motion.duration-reduced.normal both ways, and a changed count's number fades on the same role.
 
 ## Content guidelines
 

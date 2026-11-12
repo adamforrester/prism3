@@ -96,7 +96,7 @@ Label = "Card number", sentence case, no trailing colon. Placeholder = a format 
 
 - **Built from:** `field-label`, `field-message`
 - **Instead, consider:** `text-field`
-- **Often used with:** `text-field`, `provider-logo`, `button`, `wallet-button`
+- **Often used with:** `provider-logo`, `button`, `wallet-button`
 - **Replaces:**
   - a card number in a plain text input with no card type
   - a manual card-type select
