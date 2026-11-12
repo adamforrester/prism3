@@ -31,7 +31,7 @@
         "transparent": {
           "$type": "color",
           "$value": "#00000000",
-          "$description": "Transparent — alpha 0, no paint. field.fill aliases it, so a field is framed by its border on any ground",
+          "$description": "Transparent — alpha 0, no paint. `field.fill` aliases it, so a field is framed by its border on any ground",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -5478,7 +5478,7 @@
         "raised": {
           "$type": "color",
           "$value": "{wds.core.palette.neutral.050}",
-          "$description": "Raised surface — the panel a dialog or sheet draws over the scrim. The card surface (foreground.primary) unless the brand sets it to the page or to white; in dark modes it is always the card surface",
+          "$description": "Raised surface — the panel a dialog or sheet draws over the scrim. The card surface (`foreground.primary`) unless the brand sets it to the page or to white; in dark modes it is always the card surface",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5520,7 +5520,7 @@
         "brand": {
           "$type": "color",
           "$value": "{wds.core.palette.primary.500}",
-          "$description": "Bold brand fill — clears 3:1 on background.secondary",
+          "$description": "Bold brand fill — clears 3:1 on `background.secondary`",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5542,7 +5542,7 @@
                   "contrast": 8.05,
                   "against": "neutral.050",
                   "min": 7,
-                  "description": "Bold brand fill — clears 7:1 on background.secondary"
+                  "description": "Bold brand fill — clears 7:1 on `background.secondary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.primary.250}",
@@ -5550,7 +5550,7 @@
                   "contrast": 7.84,
                   "against": "neutral.900",
                   "min": 7,
-                  "description": "Bold brand fill — clears 7:1 on background.secondary"
+                  "description": "Bold brand fill — clears 7:1 on `background.secondary`"
                 }
               },
               "figma": {
@@ -5568,7 +5568,7 @@
         "success": {
           "$type": "color",
           "$value": "{wds.core.palette.success.500}",
-          "$description": "Bold success fill — clears 3:1 on background.secondary",
+          "$description": "Bold success fill — clears 3:1 on `background.secondary`",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5590,7 +5590,7 @@
                   "contrast": 7.96,
                   "against": "neutral.050",
                   "min": 7,
-                  "description": "Bold success fill — clears 7:1 on background.secondary"
+                  "description": "Bold success fill — clears 7:1 on `background.secondary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.success.300}",
@@ -5598,7 +5598,7 @@
                   "contrast": 7.64,
                   "against": "neutral.900",
                   "min": 7,
-                  "description": "Bold success fill — clears 7:1 on background.secondary"
+                  "description": "Bold success fill — clears 7:1 on `background.secondary`"
                 }
               },
               "figma": {
@@ -5616,7 +5616,7 @@
         "warning": {
           "$type": "color",
           "$value": "{wds.core.palette.warning.500}",
-          "$description": "Bold warning fill — clears 3:1 on background.secondary",
+          "$description": "Bold warning fill — clears 3:1 on `background.secondary`",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5638,7 +5638,7 @@
                   "contrast": 8.2,
                   "against": "neutral.050",
                   "min": 7,
-                  "description": "Bold warning fill — clears 7:1 on background.secondary"
+                  "description": "Bold warning fill — clears 7:1 on `background.secondary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.warning.300}",
@@ -5646,7 +5646,7 @@
                   "contrast": 7.3,
                   "against": "neutral.900",
                   "min": 7,
-                  "description": "Bold warning fill — clears 7:1 on background.secondary"
+                  "description": "Bold warning fill — clears 7:1 on `background.secondary`"
                 }
               },
               "figma": {
@@ -5664,7 +5664,7 @@
         "danger": {
           "$type": "color",
           "$value": "{wds.core.palette.danger.500}",
-          "$description": "Bold danger fill — clears 3:1 on background.secondary",
+          "$description": "Bold danger fill — clears 3:1 on `background.secondary`",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5686,7 +5686,7 @@
                   "contrast": 8.23,
                   "against": "neutral.050",
                   "min": 7,
-                  "description": "Bold danger fill — clears 7:1 on background.secondary"
+                  "description": "Bold danger fill — clears 7:1 on `background.secondary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.danger.300}",
@@ -5694,7 +5694,7 @@
                   "contrast": 7.43,
                   "against": "neutral.900",
                   "min": 7,
-                  "description": "Bold danger fill — clears 7:1 on background.secondary"
+                  "description": "Bold danger fill — clears 7:1 on `background.secondary`"
                 }
               },
               "figma": {
@@ -5712,7 +5712,7 @@
         "info": {
           "$type": "color",
           "$value": "{wds.core.palette.info.500}",
-          "$description": "Bold info fill — clears 3:1 on background.secondary",
+          "$description": "Bold info fill — clears 3:1 on `background.secondary`",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5734,7 +5734,7 @@
                   "contrast": 8.05,
                   "against": "neutral.050",
                   "min": 7,
-                  "description": "Bold info fill — clears 7:1 on background.secondary"
+                  "description": "Bold info fill — clears 7:1 on `background.secondary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.info.300}",
@@ -5742,7 +5742,7 @@
                   "contrast": 7.5,
                   "against": "neutral.900",
                   "min": 7,
-                  "description": "Bold info fill — clears 7:1 on background.secondary"
+                  "description": "Bold info fill — clears 7:1 on `background.secondary`"
                 }
               },
               "figma": {
@@ -6018,7 +6018,7 @@
         "secondary": {
           "$type": "color",
           "$value": "{wds.core.palette.neutral.550}",
-          "$description": "Secondary text — 4.5:1 on background.secondary",
+          "$description": "Secondary text — 4.5:1 on `background.secondary`",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -6040,7 +6040,7 @@
                   "contrast": 8.16,
                   "against": "neutral.050",
                   "min": 7,
-                  "description": "Secondary text — 7:1 on background.secondary"
+                  "description": "Secondary text — 7:1 on `background.secondary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.neutral.300}",
@@ -6048,7 +6048,7 @@
                   "contrast": 7.43,
                   "against": "neutral.900",
                   "min": 7,
-                  "description": "Secondary text — 7:1 on background.secondary"
+                  "description": "Secondary text — 7:1 on `background.secondary`"
                 }
               },
               "figma": {
@@ -6066,7 +6066,7 @@
         "tertiary": {
           "$type": "color",
           "$value": "{wds.core.palette.neutral.450}",
-          "$description": "Tertiary text — 3:1 on background.secondary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+          "$description": "Tertiary text — 3:1 on `background.secondary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -6088,7 +6088,7 @@
                   "contrast": 4.55,
                   "against": "neutral.050",
                   "min": 4.5,
-                  "description": "Tertiary text — 4.5:1 on background.secondary"
+                  "description": "Tertiary text — 4.5:1 on `background.secondary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.neutral.450}",
@@ -6096,7 +6096,7 @@
                   "contrast": 4.64,
                   "against": "neutral.900",
                   "min": 4.5,
-                  "description": "Tertiary text — 4.5:1 on background.secondary"
+                  "description": "Tertiary text — 4.5:1 on `background.secondary`"
                 }
               },
               "figma": {
@@ -6114,7 +6114,7 @@
         "brand": {
           "$type": "color",
           "$value": "{wds.core.palette.primary.550}",
-          "$description": "brand text — 4.5:1 on background.secondary and on its own tint",
+          "$description": "brand text — 4.5:1 on `background.secondary` and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -6136,7 +6136,7 @@
                   "contrast": 9.41,
                   "against": "neutral.050",
                   "min": 7,
-                  "description": "brand text — 7:1 on background.secondary and on its own tint"
+                  "description": "brand text — 7:1 on `background.secondary` and on its own tint"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.primary.250}",
@@ -6144,7 +6144,7 @@
                   "contrast": 7.84,
                   "against": "neutral.900",
                   "min": 7,
-                  "description": "brand text — 7:1 on background.secondary and on its own tint"
+                  "description": "brand text — 7:1 on `background.secondary` and on its own tint"
                 }
               },
               "figma": {
@@ -6162,7 +6162,7 @@
         "success": {
           "$type": "color",
           "$value": "{wds.core.palette.success.600}",
-          "$description": "success text — 4.5:1 on background.secondary and on its own tint",
+          "$description": "success text — 4.5:1 on `background.secondary` and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -6184,7 +6184,7 @@
                   "contrast": 7.96,
                   "against": "neutral.050",
                   "min": 7,
-                  "description": "success text — 7:1 on background.secondary and on its own tint"
+                  "description": "success text — 7:1 on `background.secondary` and on its own tint"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.success.300}",
@@ -6192,7 +6192,7 @@
                   "contrast": 7.64,
                   "against": "neutral.900",
                   "min": 7,
-                  "description": "success text — 7:1 on background.secondary and on its own tint"
+                  "description": "success text — 7:1 on `background.secondary` and on its own tint"
                 }
               },
               "figma": {
@@ -6210,7 +6210,7 @@
         "warning": {
           "$type": "color",
           "$value": "{wds.core.palette.warning.600}",
-          "$description": "warning text — 4.5:1 on background.secondary and on its own tint",
+          "$description": "warning text — 4.5:1 on `background.secondary` and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -6232,7 +6232,7 @@
                   "contrast": 8.2,
                   "against": "neutral.050",
                   "min": 7,
-                  "description": "warning text — 7:1 on background.secondary and on its own tint"
+                  "description": "warning text — 7:1 on `background.secondary` and on its own tint"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.warning.300}",
@@ -6240,7 +6240,7 @@
                   "contrast": 7.3,
                   "against": "neutral.900",
                   "min": 7,
-                  "description": "warning text — 7:1 on background.secondary and on its own tint"
+                  "description": "warning text — 7:1 on `background.secondary` and on its own tint"
                 }
               },
               "figma": {
@@ -6258,7 +6258,7 @@
         "danger": {
           "$type": "color",
           "$value": "{wds.core.palette.danger.600}",
-          "$description": "danger text — 4.5:1 on background.secondary and on its own tint",
+          "$description": "danger text — 4.5:1 on `background.secondary` and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -6280,7 +6280,7 @@
                   "contrast": 8.23,
                   "against": "neutral.050",
                   "min": 7,
-                  "description": "danger text — 7:1 on background.secondary and on its own tint"
+                  "description": "danger text — 7:1 on `background.secondary` and on its own tint"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.danger.300}",
@@ -6288,7 +6288,7 @@
                   "contrast": 7.43,
                   "against": "neutral.900",
                   "min": 7,
-                  "description": "danger text — 7:1 on background.secondary and on its own tint"
+                  "description": "danger text — 7:1 on `background.secondary` and on its own tint"
                 }
               },
               "figma": {
@@ -6306,7 +6306,7 @@
         "info": {
           "$type": "color",
           "$value": "{wds.core.palette.info.600}",
-          "$description": "info text — 4.5:1 on background.secondary and on its own tint",
+          "$description": "info text — 4.5:1 on `background.secondary` and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -6328,7 +6328,7 @@
                   "contrast": 8.05,
                   "against": "neutral.050",
                   "min": 7,
-                  "description": "info text — 7:1 on background.secondary and on its own tint"
+                  "description": "info text — 7:1 on `background.secondary` and on its own tint"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.info.300}",
@@ -6336,7 +6336,7 @@
                   "contrast": 7.5,
                   "against": "neutral.900",
                   "min": 7,
-                  "description": "info text — 7:1 on background.secondary and on its own tint"
+                  "description": "info text — 7:1 on `background.secondary` and on its own tint"
                 }
               },
               "figma": {
@@ -6354,7 +6354,7 @@
         "brand-subtle": {
           "$type": "color",
           "$value": "{wds.core.palette.primary.450}",
-          "$description": "Muted brand text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+          "$description": "Muted brand text — 3:1 on `background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -6376,7 +6376,7 @@
                   "contrast": 4.8,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted brand text — 4.5:1 on background.primary"
+                  "description": "Muted brand text — 4.5:1 on `background.primary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.primary.350}",
@@ -6384,7 +6384,7 @@
                   "contrast": 6.44,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted brand text — 4.5:1 on background.primary"
+                  "description": "Muted brand text — 4.5:1 on `background.primary`"
                 }
               },
               "figma": {
@@ -6402,7 +6402,7 @@
         "success-subtle": {
           "$type": "color",
           "$value": "{wds.core.palette.success.450}",
-          "$description": "Muted success text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+          "$description": "Muted success text — 3:1 on `background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -6424,7 +6424,7 @@
                   "contrast": 4.55,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted success text — 4.5:1 on background.primary"
+                  "description": "Muted success text — 4.5:1 on `background.primary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.success.350}",
@@ -6432,7 +6432,7 @@
                   "contrast": 7.67,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted success text — 4.5:1 on background.primary"
+                  "description": "Muted success text — 4.5:1 on `background.primary`"
                 }
               },
               "figma": {
@@ -6450,7 +6450,7 @@
         "warning-subtle": {
           "$type": "color",
           "$value": "{wds.core.palette.warning.450}",
-          "$description": "Muted warning text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+          "$description": "Muted warning text — 3:1 on `background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -6472,7 +6472,7 @@
                   "contrast": 4.6,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted warning text — 4.5:1 on background.primary"
+                  "description": "Muted warning text — 4.5:1 on `background.primary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.warning.350}",
@@ -6480,7 +6480,7 @@
                   "contrast": 7.33,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted warning text — 4.5:1 on background.primary"
+                  "description": "Muted warning text — 4.5:1 on `background.primary`"
                 }
               },
               "figma": {
@@ -6498,7 +6498,7 @@
         "danger-subtle": {
           "$type": "color",
           "$value": "{wds.core.palette.danger.450}",
-          "$description": "Muted danger text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+          "$description": "Muted danger text — 3:1 on `background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -6520,7 +6520,7 @@
                   "contrast": 4.59,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted danger text — 4.5:1 on background.primary"
+                  "description": "Muted danger text — 4.5:1 on `background.primary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.danger.350}",
@@ -6528,7 +6528,7 @@
                   "contrast": 7.41,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted danger text — 4.5:1 on background.primary"
+                  "description": "Muted danger text — 4.5:1 on `background.primary`"
                 }
               },
               "figma": {
@@ -6546,7 +6546,7 @@
         "info-subtle": {
           "$type": "color",
           "$value": "{wds.core.palette.info.450}",
-          "$description": "Muted info text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+          "$description": "Muted info text — 3:1 on `background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -6568,7 +6568,7 @@
                   "contrast": 4.56,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted info text — 4.5:1 on background.primary"
+                  "description": "Muted info text — 4.5:1 on `background.primary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.info.350}",
@@ -6576,7 +6576,7 @@
                   "contrast": 7.52,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted info text — 4.5:1 on background.primary"
+                  "description": "Muted info text — 4.5:1 on `background.primary`"
                 }
               },
               "figma": {
@@ -6825,7 +6825,7 @@
           "default": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.550}",
-            "$description": "Link text — default, 4.5:1 on background.secondary",
+            "$description": "Link text — default, 4.5:1 on `background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -6847,7 +6847,7 @@
                     "contrast": 8.05,
                     "against": "neutral.050",
                     "min": 7,
-                    "description": "Link text — default, 7:1 on background.secondary"
+                    "description": "Link text — default, 7:1 on `background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.primary.250}",
@@ -6855,7 +6855,7 @@
                     "contrast": 7.84,
                     "against": "neutral.900",
                     "min": 7,
-                    "description": "Link text — default, 7:1 on background.secondary"
+                    "description": "Link text — default, 7:1 on `background.secondary`"
                   }
                 },
                 "figma": {
@@ -6873,7 +6873,7 @@
           "hover": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.650}",
-            "$description": "Link text — hover, 4.5:1 on background.secondary",
+            "$description": "Link text — hover, 4.5:1 on `background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -6895,7 +6895,7 @@
                     "contrast": 10.91,
                     "against": "neutral.050",
                     "min": 7,
-                    "description": "Link text — hover, 7:1 on background.secondary"
+                    "description": "Link text — hover, 7:1 on `background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.primary.150}",
@@ -6903,7 +6903,7 @@
                     "contrast": 10.84,
                     "against": "neutral.900",
                     "min": 7,
-                    "description": "Link text — hover, 7:1 on background.secondary"
+                    "description": "Link text — hover, 7:1 on `background.secondary`"
                   }
                 },
                 "figma": {
@@ -6921,7 +6921,7 @@
           "visited": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.850}",
-            "$description": "Link text — visited, 4.5:1 on background.secondary",
+            "$description": "Link text — visited, 4.5:1 on `background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -6943,7 +6943,7 @@
                     "contrast": 16.13,
                     "against": "neutral.050",
                     "min": 7,
-                    "description": "Link text — visited, 7:1 on background.secondary"
+                    "description": "Link text — visited, 7:1 on `background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.primary.025}",
@@ -6951,7 +6951,7 @@
                     "contrast": 16.6,
                     "against": "neutral.900",
                     "min": 7,
-                    "description": "Link text — visited, 7:1 on background.secondary"
+                    "description": "Link text — visited, 7:1 on `background.secondary`"
                   }
                 },
                 "figma": {
@@ -6969,7 +6969,7 @@
           "focused": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.550}",
-            "$description": "Link text — focused, 4.5:1 on background.secondary",
+            "$description": "Link text — focused, 4.5:1 on `background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -6991,7 +6991,7 @@
                     "contrast": 8.05,
                     "against": "neutral.050",
                     "min": 7,
-                    "description": "Link text — focused, 7:1 on background.secondary"
+                    "description": "Link text — focused, 7:1 on `background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.primary.250}",
@@ -6999,7 +6999,7 @@
                     "contrast": 7.84,
                     "against": "neutral.900",
                     "min": 7,
-                    "description": "Link text — focused, 7:1 on background.secondary"
+                    "description": "Link text — focused, 7:1 on `background.secondary`"
                   }
                 },
                 "figma": {
@@ -7017,7 +7017,7 @@
           "pressed": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.750}",
-            "$description": "Link text — pressed, 4.5:1 on background.secondary",
+            "$description": "Link text — pressed, 4.5:1 on `background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -7039,7 +7039,7 @@
                     "contrast": 13.92,
                     "against": "neutral.050",
                     "min": 7,
-                    "description": "Link text — pressed, 7:1 on background.secondary"
+                    "description": "Link text — pressed, 7:1 on `background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.primary.050}",
@@ -7047,7 +7047,7 @@
                     "contrast": 14.48,
                     "against": "neutral.900",
                     "min": 7,
-                    "description": "Link text — pressed, 7:1 on background.secondary"
+                    "description": "Link text — pressed, 7:1 on `background.secondary`"
                   }
                 },
                 "figma": {
@@ -7446,7 +7446,7 @@
         "focus": {
           "$type": "color",
           "$value": "{wds.core.palette.primary.500}",
-          "$description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on background.primary",
+          "$description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on `background.primary`",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7468,7 +7468,7 @@
                   "contrast": 9.77,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on background.primary"
+                  "description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on `background.primary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.primary.250}",
@@ -7476,7 +7476,7 @@
                   "contrast": 9.19,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on background.primary"
+                  "description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on `background.primary`"
                 }
               },
               "figma": {
@@ -7542,7 +7542,7 @@
         "secondary": {
           "$type": "color",
           "$value": "{wds.core.palette.neutral.550}",
-          "$description": "Secondary icon — 4.5:1 on background.secondary",
+          "$description": "Secondary icon — 4.5:1 on `background.secondary`",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7564,7 +7564,7 @@
                   "contrast": 8.16,
                   "against": "neutral.050",
                   "min": 7,
-                  "description": "Secondary icon — 7:1 on background.secondary"
+                  "description": "Secondary icon — 7:1 on `background.secondary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.neutral.300}",
@@ -7572,7 +7572,7 @@
                   "contrast": 7.43,
                   "against": "neutral.900",
                   "min": 7,
-                  "description": "Secondary icon — 7:1 on background.secondary"
+                  "description": "Secondary icon — 7:1 on `background.secondary`"
                 }
               },
               "figma": {
@@ -7590,7 +7590,7 @@
         "tertiary": {
           "$type": "color",
           "$value": "{wds.core.palette.neutral.450}",
-          "$description": "Tertiary icon — 3:1 on background.secondary",
+          "$description": "Tertiary icon — 3:1 on `background.secondary`",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7612,7 +7612,7 @@
                   "contrast": 4.55,
                   "against": "neutral.050",
                   "min": 4.5,
-                  "description": "Tertiary icon — 4.5:1 on background.secondary"
+                  "description": "Tertiary icon — 4.5:1 on `background.secondary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.neutral.450}",
@@ -7620,7 +7620,7 @@
                   "contrast": 4.64,
                   "against": "neutral.900",
                   "min": 4.5,
-                  "description": "Tertiary icon — 4.5:1 on background.secondary"
+                  "description": "Tertiary icon — 4.5:1 on `background.secondary`"
                 }
               },
               "figma": {
@@ -7638,7 +7638,7 @@
         "brand": {
           "$type": "color",
           "$value": "{wds.core.palette.primary.550}",
-          "$description": "brand icon — 4.5:1 on background.secondary and on its own tint",
+          "$description": "brand icon — 4.5:1 on `background.secondary` and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7660,7 +7660,7 @@
                   "contrast": 9.41,
                   "against": "neutral.050",
                   "min": 7,
-                  "description": "brand icon — 7:1 on background.secondary and on its own tint"
+                  "description": "brand icon — 7:1 on `background.secondary` and on its own tint"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.primary.250}",
@@ -7668,7 +7668,7 @@
                   "contrast": 7.84,
                   "against": "neutral.900",
                   "min": 7,
-                  "description": "brand icon — 7:1 on background.secondary and on its own tint"
+                  "description": "brand icon — 7:1 on `background.secondary` and on its own tint"
                 }
               },
               "figma": {
@@ -7686,7 +7686,7 @@
         "success": {
           "$type": "color",
           "$value": "{wds.core.palette.success.600}",
-          "$description": "success icon — 4.5:1 on background.secondary and on its own tint",
+          "$description": "success icon — 4.5:1 on `background.secondary` and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7708,7 +7708,7 @@
                   "contrast": 7.96,
                   "against": "neutral.050",
                   "min": 7,
-                  "description": "success icon — 7:1 on background.secondary and on its own tint"
+                  "description": "success icon — 7:1 on `background.secondary` and on its own tint"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.success.300}",
@@ -7716,7 +7716,7 @@
                   "contrast": 7.64,
                   "against": "neutral.900",
                   "min": 7,
-                  "description": "success icon — 7:1 on background.secondary and on its own tint"
+                  "description": "success icon — 7:1 on `background.secondary` and on its own tint"
                 }
               },
               "figma": {
@@ -7734,7 +7734,7 @@
         "warning": {
           "$type": "color",
           "$value": "{wds.core.palette.warning.600}",
-          "$description": "warning icon — 4.5:1 on background.secondary and on its own tint",
+          "$description": "warning icon — 4.5:1 on `background.secondary` and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7756,7 +7756,7 @@
                   "contrast": 8.2,
                   "against": "neutral.050",
                   "min": 7,
-                  "description": "warning icon — 7:1 on background.secondary and on its own tint"
+                  "description": "warning icon — 7:1 on `background.secondary` and on its own tint"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.warning.300}",
@@ -7764,7 +7764,7 @@
                   "contrast": 7.3,
                   "against": "neutral.900",
                   "min": 7,
-                  "description": "warning icon — 7:1 on background.secondary and on its own tint"
+                  "description": "warning icon — 7:1 on `background.secondary` and on its own tint"
                 }
               },
               "figma": {
@@ -7782,7 +7782,7 @@
         "danger": {
           "$type": "color",
           "$value": "{wds.core.palette.danger.600}",
-          "$description": "danger icon — 4.5:1 on background.secondary and on its own tint",
+          "$description": "danger icon — 4.5:1 on `background.secondary` and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7804,7 +7804,7 @@
                   "contrast": 8.23,
                   "against": "neutral.050",
                   "min": 7,
-                  "description": "danger icon — 7:1 on background.secondary and on its own tint"
+                  "description": "danger icon — 7:1 on `background.secondary` and on its own tint"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.danger.300}",
@@ -7812,7 +7812,7 @@
                   "contrast": 7.43,
                   "against": "neutral.900",
                   "min": 7,
-                  "description": "danger icon — 7:1 on background.secondary and on its own tint"
+                  "description": "danger icon — 7:1 on `background.secondary` and on its own tint"
                 }
               },
               "figma": {
@@ -7830,7 +7830,7 @@
         "info": {
           "$type": "color",
           "$value": "{wds.core.palette.info.600}",
-          "$description": "info icon — 4.5:1 on background.secondary and on its own tint",
+          "$description": "info icon — 4.5:1 on `background.secondary` and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7852,7 +7852,7 @@
                   "contrast": 8.05,
                   "against": "neutral.050",
                   "min": 7,
-                  "description": "info icon — 7:1 on background.secondary and on its own tint"
+                  "description": "info icon — 7:1 on `background.secondary` and on its own tint"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.info.300}",
@@ -7860,7 +7860,7 @@
                   "contrast": 7.5,
                   "against": "neutral.900",
                   "min": 7,
-                  "description": "info icon — 7:1 on background.secondary and on its own tint"
+                  "description": "info icon — 7:1 on `background.secondary` and on its own tint"
                 }
               },
               "figma": {
@@ -7878,7 +7878,7 @@
         "brand-subtle": {
           "$type": "color",
           "$value": "{wds.core.palette.primary.450}",
-          "$description": "Muted brand icon — low-emphasis accent, 3:1 on background.primary",
+          "$description": "Muted brand icon — low-emphasis accent, 3:1 on `background.primary`",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7900,7 +7900,7 @@
                   "contrast": 4.8,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted brand icon — low-emphasis accent, 4.5:1 on background.primary"
+                  "description": "Muted brand icon — low-emphasis accent, 4.5:1 on `background.primary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.primary.350}",
@@ -7908,7 +7908,7 @@
                   "contrast": 6.44,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted brand icon — low-emphasis accent, 4.5:1 on background.primary"
+                  "description": "Muted brand icon — low-emphasis accent, 4.5:1 on `background.primary`"
                 }
               },
               "figma": {
@@ -7926,7 +7926,7 @@
         "success-subtle": {
           "$type": "color",
           "$value": "{wds.core.palette.success.450}",
-          "$description": "Muted success icon — low-emphasis accent, 3:1 on background.primary",
+          "$description": "Muted success icon — low-emphasis accent, 3:1 on `background.primary`",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7948,7 +7948,7 @@
                   "contrast": 4.55,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted success icon — low-emphasis accent, 4.5:1 on background.primary"
+                  "description": "Muted success icon — low-emphasis accent, 4.5:1 on `background.primary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.success.350}",
@@ -7956,7 +7956,7 @@
                   "contrast": 7.67,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted success icon — low-emphasis accent, 4.5:1 on background.primary"
+                  "description": "Muted success icon — low-emphasis accent, 4.5:1 on `background.primary`"
                 }
               },
               "figma": {
@@ -7974,7 +7974,7 @@
         "warning-subtle": {
           "$type": "color",
           "$value": "{wds.core.palette.warning.450}",
-          "$description": "Muted warning icon — low-emphasis accent, 3:1 on background.primary",
+          "$description": "Muted warning icon — low-emphasis accent, 3:1 on `background.primary`",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7996,7 +7996,7 @@
                   "contrast": 4.6,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted warning icon — low-emphasis accent, 4.5:1 on background.primary"
+                  "description": "Muted warning icon — low-emphasis accent, 4.5:1 on `background.primary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.warning.350}",
@@ -8004,7 +8004,7 @@
                   "contrast": 7.33,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted warning icon — low-emphasis accent, 4.5:1 on background.primary"
+                  "description": "Muted warning icon — low-emphasis accent, 4.5:1 on `background.primary`"
                 }
               },
               "figma": {
@@ -8022,7 +8022,7 @@
         "danger-subtle": {
           "$type": "color",
           "$value": "{wds.core.palette.danger.450}",
-          "$description": "Muted danger icon — low-emphasis accent, 3:1 on background.primary",
+          "$description": "Muted danger icon — low-emphasis accent, 3:1 on `background.primary`",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -8044,7 +8044,7 @@
                   "contrast": 4.59,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted danger icon — low-emphasis accent, 4.5:1 on background.primary"
+                  "description": "Muted danger icon — low-emphasis accent, 4.5:1 on `background.primary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.danger.350}",
@@ -8052,7 +8052,7 @@
                   "contrast": 7.41,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted danger icon — low-emphasis accent, 4.5:1 on background.primary"
+                  "description": "Muted danger icon — low-emphasis accent, 4.5:1 on `background.primary`"
                 }
               },
               "figma": {
@@ -8070,7 +8070,7 @@
         "info-subtle": {
           "$type": "color",
           "$value": "{wds.core.palette.info.450}",
-          "$description": "Muted info icon — low-emphasis accent, 3:1 on background.primary",
+          "$description": "Muted info icon — low-emphasis accent, 3:1 on `background.primary`",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -8092,7 +8092,7 @@
                   "contrast": 4.56,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted info icon — low-emphasis accent, 4.5:1 on background.primary"
+                  "description": "Muted info icon — low-emphasis accent, 4.5:1 on `background.primary`"
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.info.350}",
@@ -8100,7 +8100,7 @@
                   "contrast": 7.52,
                   "against": "background.primary",
                   "min": 4.5,
-                  "description": "Muted info icon — low-emphasis accent, 4.5:1 on background.primary"
+                  "description": "Muted info icon — low-emphasis accent, 4.5:1 on `background.primary`"
                 }
               },
               "figma": {
@@ -8349,7 +8349,7 @@
           "default": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.550}",
-            "$description": "Link icon — default, 4.5:1 on background.secondary",
+            "$description": "Link icon — default, 4.5:1 on `background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -8371,7 +8371,7 @@
                     "contrast": 8.05,
                     "against": "neutral.050",
                     "min": 7,
-                    "description": "Link icon — default, 7:1 on background.secondary"
+                    "description": "Link icon — default, 7:1 on `background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.primary.250}",
@@ -8379,7 +8379,7 @@
                     "contrast": 7.84,
                     "against": "neutral.900",
                     "min": 7,
-                    "description": "Link icon — default, 7:1 on background.secondary"
+                    "description": "Link icon — default, 7:1 on `background.secondary`"
                   }
                 },
                 "figma": {
@@ -8397,7 +8397,7 @@
           "hover": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.650}",
-            "$description": "Link icon — hover, 4.5:1 on background.secondary",
+            "$description": "Link icon — hover, 4.5:1 on `background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -8419,7 +8419,7 @@
                     "contrast": 10.91,
                     "against": "neutral.050",
                     "min": 7,
-                    "description": "Link icon — hover, 7:1 on background.secondary"
+                    "description": "Link icon — hover, 7:1 on `background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.primary.150}",
@@ -8427,7 +8427,7 @@
                     "contrast": 10.84,
                     "against": "neutral.900",
                     "min": 7,
-                    "description": "Link icon — hover, 7:1 on background.secondary"
+                    "description": "Link icon — hover, 7:1 on `background.secondary`"
                   }
                 },
                 "figma": {
@@ -8445,7 +8445,7 @@
           "visited": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.850}",
-            "$description": "Link icon — visited, 4.5:1 on background.secondary",
+            "$description": "Link icon — visited, 4.5:1 on `background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -8467,7 +8467,7 @@
                     "contrast": 16.13,
                     "against": "neutral.050",
                     "min": 7,
-                    "description": "Link icon — visited, 7:1 on background.secondary"
+                    "description": "Link icon — visited, 7:1 on `background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.primary.025}",
@@ -8475,7 +8475,7 @@
                     "contrast": 16.6,
                     "against": "neutral.900",
                     "min": 7,
-                    "description": "Link icon — visited, 7:1 on background.secondary"
+                    "description": "Link icon — visited, 7:1 on `background.secondary`"
                   }
                 },
                 "figma": {
@@ -8493,7 +8493,7 @@
           "focused": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.550}",
-            "$description": "Link icon — focused, 4.5:1 on background.secondary",
+            "$description": "Link icon — focused, 4.5:1 on `background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -8515,7 +8515,7 @@
                     "contrast": 8.05,
                     "against": "neutral.050",
                     "min": 7,
-                    "description": "Link icon — focused, 7:1 on background.secondary"
+                    "description": "Link icon — focused, 7:1 on `background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.primary.250}",
@@ -8523,7 +8523,7 @@
                     "contrast": 7.84,
                     "against": "neutral.900",
                     "min": 7,
-                    "description": "Link icon — focused, 7:1 on background.secondary"
+                    "description": "Link icon — focused, 7:1 on `background.secondary`"
                   }
                 },
                 "figma": {
@@ -8541,7 +8541,7 @@
           "pressed": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.750}",
-            "$description": "Link icon — pressed, 4.5:1 on background.secondary",
+            "$description": "Link icon — pressed, 4.5:1 on `background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -8563,7 +8563,7 @@
                     "contrast": 13.92,
                     "against": "neutral.050",
                     "min": 7,
-                    "description": "Link icon — pressed, 7:1 on background.secondary"
+                    "description": "Link icon — pressed, 7:1 on `background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.primary.050}",
@@ -8571,7 +8571,7 @@
                     "contrast": 14.48,
                     "against": "neutral.900",
                     "min": 7,
-                    "description": "Link icon — pressed, 7:1 on background.secondary"
+                    "description": "Link icon — pressed, 7:1 on `background.secondary`"
                   }
                 },
                 "figma": {
@@ -8594,7 +8594,7 @@
             "rest": {
               "$type": "color",
               "$value": "{wds.core.palette.primary.500}",
-              "$description": "primary interactive fill — rest, clears 3:1 on background.secondary",
+              "$description": "primary interactive fill — rest, clears 3:1 on `background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -8616,7 +8616,7 @@
                       "contrast": 8.05,
                       "against": "neutral.050",
                       "min": 7,
-                      "description": "primary interactive fill — rest, clears 7:1 on background.secondary"
+                      "description": "primary interactive fill — rest, clears 7:1 on `background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.primary.250}",
@@ -8624,7 +8624,7 @@
                       "contrast": 7.84,
                       "against": "neutral.900",
                       "min": 7,
-                      "description": "primary interactive fill — rest, clears 7:1 on background.secondary"
+                      "description": "primary interactive fill — rest, clears 7:1 on `background.secondary`"
                     }
                   },
                   "figma": {
@@ -8642,7 +8642,7 @@
             "hover": {
               "$type": "color",
               "$value": "{wds.core.palette.primary.600}",
-              "$description": "primary interactive fill — hover, clears 3:1 on background.secondary",
+              "$description": "primary interactive fill — hover, clears 3:1 on `background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -8664,7 +8664,7 @@
                       "contrast": 10.91,
                       "against": "neutral.050",
                       "min": 7,
-                      "description": "primary interactive fill — hover, clears 7:1 on background.secondary"
+                      "description": "primary interactive fill — hover, clears 7:1 on `background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.primary.150}",
@@ -8672,7 +8672,7 @@
                       "contrast": 10.84,
                       "against": "neutral.900",
                       "min": 7,
-                      "description": "primary interactive fill — hover, clears 7:1 on background.secondary"
+                      "description": "primary interactive fill — hover, clears 7:1 on `background.secondary`"
                     }
                   },
                   "figma": {
@@ -8690,7 +8690,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{wds.core.palette.primary.700}",
-              "$description": "primary interactive fill — pressed, clears 3:1 on background.secondary",
+              "$description": "primary interactive fill — pressed, clears 3:1 on `background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -8712,7 +8712,7 @@
                       "contrast": 13.92,
                       "against": "neutral.050",
                       "min": 7,
-                      "description": "primary interactive fill — pressed, clears 7:1 on background.secondary"
+                      "description": "primary interactive fill — pressed, clears 7:1 on `background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.primary.050}",
@@ -8720,7 +8720,7 @@
                       "contrast": 14.48,
                       "against": "neutral.900",
                       "min": 7,
-                      "description": "primary interactive fill — pressed, clears 7:1 on background.secondary"
+                      "description": "primary interactive fill — pressed, clears 7:1 on `background.secondary`"
                     }
                   },
                   "figma": {
@@ -8738,7 +8738,7 @@
             "focused": {
               "$type": "color",
               "$value": "{wds.core.palette.primary.500}",
-              "$description": "primary interactive fill — focused, clears 3:1 on background.secondary",
+              "$description": "primary interactive fill — focused, clears 3:1 on `background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -8760,7 +8760,7 @@
                       "contrast": 8.05,
                       "against": "neutral.050",
                       "min": 7,
-                      "description": "primary interactive fill — focused, clears 7:1 on background.secondary"
+                      "description": "primary interactive fill — focused, clears 7:1 on `background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.primary.250}",
@@ -8768,7 +8768,7 @@
                       "contrast": 7.84,
                       "against": "neutral.900",
                       "min": 7,
-                      "description": "primary interactive fill — focused, clears 7:1 on background.secondary"
+                      "description": "primary interactive fill — focused, clears 7:1 on `background.secondary`"
                     }
                   },
                   "figma": {
@@ -8786,7 +8786,7 @@
             "selected": {
               "$type": "color",
               "$value": "{wds.core.palette.primary.500}",
-              "$description": "primary interactive fill — selected, clears 3:1 on background.secondary",
+              "$description": "primary interactive fill — selected, clears 3:1 on `background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -8808,7 +8808,7 @@
                       "contrast": 8.05,
                       "against": "neutral.050",
                       "min": 7,
-                      "description": "primary interactive fill — selected, clears 7:1 on background.secondary"
+                      "description": "primary interactive fill — selected, clears 7:1 on `background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.primary.250}",
@@ -8816,7 +8816,7 @@
                       "contrast": 7.84,
                       "against": "neutral.900",
                       "min": 7,
-                      "description": "primary interactive fill — selected, clears 7:1 on background.secondary"
+                      "description": "primary interactive fill — selected, clears 7:1 on `background.secondary`"
                     }
                   },
                   "figma": {
@@ -9442,7 +9442,7 @@
             "hover": {
               "$type": "color",
               "$value": "{wds.core.palette.black-alpha.10}",
-              "$description": "primary interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.hover)",
+              "$description": "primary interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is `inverse.interactive.primary.overlay.hover`)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -9496,7 +9496,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{wds.core.palette.black-alpha.20}",
-              "$description": "primary interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.pressed)",
+              "$description": "primary interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is `inverse.interactive.primary.overlay.pressed`)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -9550,7 +9550,7 @@
             "selected": {
               "$type": "color",
               "$value": "{wds.core.palette.black-alpha.20}",
-              "$description": "primary interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.selected)",
+              "$description": "primary interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is `inverse.interactive.primary.overlay.selected`)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -9606,7 +9606,7 @@
             "selected": {
               "$type": "color",
               "$value": "#c8102e4d",
-              "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the selected background of a selectable control or an outline/text control)",
+              "$description": "primary interactive subtle fill — selected (the primary fill at `opacity.30`; translucent, the selected background of a selectable control or an outline/text control)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -9672,7 +9672,7 @@
             "rest": {
               "$type": "color",
               "$value": "{wds.core.palette.danger.500}",
-              "$description": "destructive interactive fill — rest, clears 3:1 on background.secondary",
+              "$description": "destructive interactive fill — rest, clears 3:1 on `background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -9694,7 +9694,7 @@
                       "contrast": 8.23,
                       "against": "neutral.050",
                       "min": 7,
-                      "description": "destructive interactive fill — rest, clears 7:1 on background.secondary"
+                      "description": "destructive interactive fill — rest, clears 7:1 on `background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.danger.300}",
@@ -9702,7 +9702,7 @@
                       "contrast": 7.43,
                       "against": "neutral.900",
                       "min": 7,
-                      "description": "destructive interactive fill — rest, clears 7:1 on background.secondary"
+                      "description": "destructive interactive fill — rest, clears 7:1 on `background.secondary`"
                     }
                   },
                   "figma": {
@@ -9720,7 +9720,7 @@
             "hover": {
               "$type": "color",
               "$value": "{wds.core.palette.danger.600}",
-              "$description": "destructive interactive fill — hover, clears 3:1 on background.secondary",
+              "$description": "destructive interactive fill — hover, clears 3:1 on `background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -9742,7 +9742,7 @@
                       "contrast": 11.67,
                       "against": "neutral.050",
                       "min": 7,
-                      "description": "destructive interactive fill — hover, clears 7:1 on background.secondary"
+                      "description": "destructive interactive fill — hover, clears 7:1 on `background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.danger.200}",
@@ -9750,7 +9750,7 @@
                       "contrast": 9.93,
                       "against": "neutral.900",
                       "min": 7,
-                      "description": "destructive interactive fill — hover, clears 7:1 on background.secondary"
+                      "description": "destructive interactive fill — hover, clears 7:1 on `background.secondary`"
                     }
                   },
                   "figma": {
@@ -9768,7 +9768,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{wds.core.palette.danger.700}",
-              "$description": "destructive interactive fill — pressed, clears 3:1 on background.secondary",
+              "$description": "destructive interactive fill — pressed, clears 3:1 on `background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -9790,7 +9790,7 @@
                       "contrast": 14.99,
                       "against": "neutral.050",
                       "min": 7,
-                      "description": "destructive interactive fill — pressed, clears 7:1 on background.secondary"
+                      "description": "destructive interactive fill — pressed, clears 7:1 on `background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.danger.100}",
@@ -9798,7 +9798,7 @@
                       "contrast": 13,
                       "against": "neutral.900",
                       "min": 7,
-                      "description": "destructive interactive fill — pressed, clears 7:1 on background.secondary"
+                      "description": "destructive interactive fill — pressed, clears 7:1 on `background.secondary`"
                     }
                   },
                   "figma": {
@@ -9816,7 +9816,7 @@
             "focused": {
               "$type": "color",
               "$value": "{wds.core.palette.danger.500}",
-              "$description": "destructive interactive fill — focused, clears 3:1 on background.secondary",
+              "$description": "destructive interactive fill — focused, clears 3:1 on `background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -9838,7 +9838,7 @@
                       "contrast": 8.23,
                       "against": "neutral.050",
                       "min": 7,
-                      "description": "destructive interactive fill — focused, clears 7:1 on background.secondary"
+                      "description": "destructive interactive fill — focused, clears 7:1 on `background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.danger.300}",
@@ -9846,7 +9846,7 @@
                       "contrast": 7.43,
                       "against": "neutral.900",
                       "min": 7,
-                      "description": "destructive interactive fill — focused, clears 7:1 on background.secondary"
+                      "description": "destructive interactive fill — focused, clears 7:1 on `background.secondary`"
                     }
                   },
                   "figma": {
@@ -9864,7 +9864,7 @@
             "selected": {
               "$type": "color",
               "$value": "{wds.core.palette.danger.500}",
-              "$description": "destructive interactive fill — selected, clears 3:1 on background.secondary",
+              "$description": "destructive interactive fill — selected, clears 3:1 on `background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -9886,7 +9886,7 @@
                       "contrast": 8.23,
                       "against": "neutral.050",
                       "min": 7,
-                      "description": "destructive interactive fill — selected, clears 7:1 on background.secondary"
+                      "description": "destructive interactive fill — selected, clears 7:1 on `background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.danger.300}",
@@ -9894,7 +9894,7 @@
                       "contrast": 7.43,
                       "against": "neutral.900",
                       "min": 7,
-                      "description": "destructive interactive fill — selected, clears 7:1 on background.secondary"
+                      "description": "destructive interactive fill — selected, clears 7:1 on `background.secondary`"
                     }
                   },
                   "figma": {
@@ -10520,7 +10520,7 @@
             "hover": {
               "$type": "color",
               "$value": "{wds.core.palette.black-alpha.10}",
-              "$description": "destructive interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.hover)",
+              "$description": "destructive interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is `inverse.interactive.destructive.overlay.hover`)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -10574,7 +10574,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{wds.core.palette.black-alpha.20}",
-              "$description": "destructive interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.pressed)",
+              "$description": "destructive interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is `inverse.interactive.destructive.overlay.pressed`)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -10628,7 +10628,7 @@
             "selected": {
               "$type": "color",
               "$value": "{wds.core.palette.black-alpha.20}",
-              "$description": "destructive interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.selected)",
+              "$description": "destructive interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is `inverse.interactive.destructive.overlay.selected`)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -10686,7 +10686,7 @@
             "rest": {
               "$type": "color",
               "$value": "{wds.core.palette.neutral.150}",
-              "$description": "neutral interactive fill — rest, clears 0:1 on background.secondary",
+              "$description": "neutral interactive fill — rest, clears 0:1 on `background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -10728,7 +10728,7 @@
             "hover": {
               "$type": "color",
               "$value": "{wds.core.palette.neutral.250}",
-              "$description": "neutral interactive fill — hover, clears 0:1 on background.secondary",
+              "$description": "neutral interactive fill — hover, clears 0:1 on `background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -10770,7 +10770,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{wds.core.palette.neutral.350}",
-              "$description": "neutral interactive fill — pressed, clears 0:1 on background.secondary",
+              "$description": "neutral interactive fill — pressed, clears 0:1 on `background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -10812,7 +10812,7 @@
             "focused": {
               "$type": "color",
               "$value": "{wds.core.palette.neutral.150}",
-              "$description": "neutral interactive fill — focused, clears 0:1 on background.secondary",
+              "$description": "neutral interactive fill — focused, clears 0:1 on `background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -10854,7 +10854,7 @@
             "selected": {
               "$type": "color",
               "$value": "{wds.core.palette.neutral.150}",
-              "$description": "neutral interactive fill — selected, clears 0:1 on background.secondary",
+              "$description": "neutral interactive fill — selected, clears 0:1 on `background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -11504,7 +11504,7 @@
             "hover": {
               "$type": "color",
               "$value": "{wds.core.palette.black-alpha.10}",
-              "$description": "neutral interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.hover)",
+              "$description": "neutral interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is `inverse.interactive.neutral.overlay.hover`)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -11558,7 +11558,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{wds.core.palette.black-alpha.20}",
-              "$description": "neutral interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.pressed)",
+              "$description": "neutral interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is `inverse.interactive.neutral.overlay.pressed`)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -11612,7 +11612,7 @@
             "selected": {
               "$type": "color",
               "$value": "{wds.core.palette.black-alpha.20}",
-              "$description": "neutral interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.selected)",
+              "$description": "neutral interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is `inverse.interactive.neutral.overlay.selected`)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -11995,7 +11995,7 @@
           "subtle": {
             "$type": "color",
             "$value": "{wds.core.palette.black-alpha.50}",
-            "$description": "Media veil, dark — a subtle black wash (50%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+            "$description": "Media veil, dark — a subtle black wash (50%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is `scrim.default`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -12037,7 +12037,7 @@
           "medium": {
             "$type": "color",
             "$value": "{wds.core.palette.black-alpha.60}",
-            "$description": "Media veil, dark — a medium black wash (60%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+            "$description": "Media veil, dark — a medium black wash (60%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is `scrim.default`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -12079,7 +12079,7 @@
           "strong": {
             "$type": "color",
             "$value": "{wds.core.palette.black-alpha.70}",
-            "$description": "Media veil, dark — a strong black wash (70%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+            "$description": "Media veil, dark — a strong black wash (70%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is `scrim.default`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -12165,7 +12165,7 @@
           "subtle": {
             "$type": "color",
             "$value": "{wds.core.palette.white-alpha.40}",
-            "$description": "Media veil, light — a subtle white wash (40%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+            "$description": "Media veil, light — a subtle white wash (40%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is `scrim.default`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -12207,7 +12207,7 @@
           "medium": {
             "$type": "color",
             "$value": "{wds.core.palette.white-alpha.50}",
-            "$description": "Media veil, light — a medium white wash (50%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+            "$description": "Media veil, light — a medium white wash (50%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is `scrim.default`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -12249,7 +12249,7 @@
           "strong": {
             "$type": "color",
             "$value": "{wds.core.palette.white-alpha.60}",
-            "$description": "Media veil, light — a strong white wash (60%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+            "$description": "Media veil, light — a strong white wash (60%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is `scrim.default`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -12785,7 +12785,7 @@
           "brand": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.500}",
-            "$description": "Bold brand fill on an inverse surface — clears 3:1 on inverse.background.secondary",
+            "$description": "Bold brand fill on an inverse surface — clears 3:1 on `inverse.background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -12807,7 +12807,7 @@
                     "contrast": 7.72,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "Bold brand fill on an inverse surface — clears 7:1 on inverse.background.secondary"
+                    "description": "Bold brand fill on an inverse surface — clears 7:1 on `inverse.background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.primary.600}",
@@ -12815,7 +12815,7 @@
                     "contrast": 8.28,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "Bold brand fill on an inverse surface — clears 7:1 on inverse.background.secondary"
+                    "description": "Bold brand fill on an inverse surface — clears 7:1 on `inverse.background.secondary`"
                   }
                 },
                 "figma": {
@@ -12833,7 +12833,7 @@
           "success": {
             "$type": "color",
             "$value": "{wds.core.palette.success.500}",
-            "$description": "Bold success fill on an inverse surface — clears 3:1 on inverse.background.secondary",
+            "$description": "Bold success fill on an inverse surface — clears 3:1 on `inverse.background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -12855,7 +12855,7 @@
                     "contrast": 7.67,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "Bold success fill on an inverse surface — clears 7:1 on inverse.background.secondary"
+                    "description": "Bold success fill on an inverse surface — clears 7:1 on `inverse.background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.success.650}",
@@ -12863,7 +12863,7 @@
                     "contrast": 8.11,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "Bold success fill on an inverse surface — clears 7:1 on inverse.background.secondary"
+                    "description": "Bold success fill on an inverse surface — clears 7:1 on `inverse.background.secondary`"
                   }
                 },
                 "figma": {
@@ -12881,7 +12881,7 @@
           "warning": {
             "$type": "color",
             "$value": "{wds.core.palette.warning.500}",
-            "$description": "Bold warning fill on an inverse surface — clears 3:1 on inverse.background.secondary",
+            "$description": "Bold warning fill on an inverse surface — clears 3:1 on `inverse.background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -12903,7 +12903,7 @@
                     "contrast": 7.33,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "Bold warning fill on an inverse surface — clears 7:1 on inverse.background.secondary"
+                    "description": "Bold warning fill on an inverse surface — clears 7:1 on `inverse.background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.warning.650}",
@@ -12911,7 +12911,7 @@
                     "contrast": 8.21,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "Bold warning fill on an inverse surface — clears 7:1 on inverse.background.secondary"
+                    "description": "Bold warning fill on an inverse surface — clears 7:1 on `inverse.background.secondary`"
                   }
                 },
                 "figma": {
@@ -12929,7 +12929,7 @@
           "danger": {
             "$type": "color",
             "$value": "{wds.core.palette.danger.500}",
-            "$description": "Bold danger fill on an inverse surface — clears 3:1 on inverse.background.secondary",
+            "$description": "Bold danger fill on an inverse surface — clears 3:1 on `inverse.background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -12951,7 +12951,7 @@
                     "contrast": 7.41,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "Bold danger fill on an inverse surface — clears 7:1 on inverse.background.secondary"
+                    "description": "Bold danger fill on an inverse surface — clears 7:1 on `inverse.background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.danger.650}",
@@ -12959,7 +12959,7 @@
                     "contrast": 8.22,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "Bold danger fill on an inverse surface — clears 7:1 on inverse.background.secondary"
+                    "description": "Bold danger fill on an inverse surface — clears 7:1 on `inverse.background.secondary`"
                   }
                 },
                 "figma": {
@@ -12977,7 +12977,7 @@
           "info": {
             "$type": "color",
             "$value": "{wds.core.palette.info.500}",
-            "$description": "Bold info fill on an inverse surface — clears 3:1 on inverse.background.secondary",
+            "$description": "Bold info fill on an inverse surface — clears 3:1 on `inverse.background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -12999,7 +12999,7 @@
                     "contrast": 7.52,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "Bold info fill on an inverse surface — clears 7:1 on inverse.background.secondary"
+                    "description": "Bold info fill on an inverse surface — clears 7:1 on `inverse.background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.info.650}",
@@ -13007,7 +13007,7 @@
                     "contrast": 8.15,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "Bold info fill on an inverse surface — clears 7:1 on inverse.background.secondary"
+                    "description": "Bold info fill on an inverse surface — clears 7:1 on `inverse.background.secondary`"
                   }
                 },
                 "figma": {
@@ -13283,7 +13283,7 @@
           "secondary": {
             "$type": "color",
             "$value": "{wds.core.palette.neutral.450}",
-            "$description": "Secondary text on an inverse surface — 4.5:1 on inverse.background.secondary",
+            "$description": "Secondary text on an inverse surface — 4.5:1 on `inverse.background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13305,7 +13305,7 @@
                     "contrast": 7.46,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "Secondary text on an inverse surface — 7:1 on inverse.background.secondary"
+                    "description": "Secondary text on an inverse surface — 7:1 on `inverse.background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.neutral.650}",
@@ -13313,7 +13313,7 @@
                     "contrast": 8.11,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "Secondary text on an inverse surface — 7:1 on inverse.background.secondary"
+                    "description": "Secondary text on an inverse surface — 7:1 on `inverse.background.secondary`"
                   }
                 },
                 "figma": {
@@ -13331,7 +13331,7 @@
           "tertiary": {
             "$type": "color",
             "$value": "{wds.core.palette.neutral.550}",
-            "$description": "Tertiary text on an inverse surface — 3:1 on inverse.background.secondary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+            "$description": "Tertiary text on an inverse surface — 3:1 on `inverse.background.secondary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13353,7 +13353,7 @@
                     "contrast": 4.55,
                     "against": "inverse.background.secondary",
                     "min": 4.5,
-                    "description": "Tertiary text on an inverse surface — 4.5:1 on inverse.background.secondary"
+                    "description": "Tertiary text on an inverse surface — 4.5:1 on `inverse.background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.neutral.500}",
@@ -13361,7 +13361,7 @@
                     "contrast": 4.61,
                     "against": "inverse.background.secondary",
                     "min": 4.5,
-                    "description": "Tertiary text on an inverse surface — 4.5:1 on inverse.background.secondary"
+                    "description": "Tertiary text on an inverse surface — 4.5:1 on `inverse.background.secondary`"
                   }
                 },
                 "figma": {
@@ -13379,7 +13379,7 @@
           "brand": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.400}",
-            "$description": "brand text — 4.5:1 on inverse.background.secondary and on its own tint",
+            "$description": "brand text — 4.5:1 on `inverse.background.secondary` and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13401,7 +13401,7 @@
                     "contrast": 9.19,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "brand text — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "brand text — 7:1 on `inverse.background.secondary` and on its own tint"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.primary.700}",
@@ -13409,7 +13409,7 @@
                     "contrast": 11.42,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "brand text — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "brand text — 7:1 on `inverse.background.secondary` and on its own tint"
                   }
                 },
                 "figma": {
@@ -13427,7 +13427,7 @@
           "success": {
             "$type": "color",
             "$value": "{wds.core.palette.success.450}",
-            "$description": "success text — 4.5:1 on inverse.background.secondary and on its own tint",
+            "$description": "success text — 4.5:1 on `inverse.background.secondary` and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13449,7 +13449,7 @@
                     "contrast": 8.96,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "success text — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "success text — 7:1 on `inverse.background.secondary` and on its own tint"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.success.700}",
@@ -13457,7 +13457,7 @@
                     "contrast": 9.66,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "success text — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "success text — 7:1 on `inverse.background.secondary` and on its own tint"
                   }
                 },
                 "figma": {
@@ -13475,7 +13475,7 @@
           "warning": {
             "$type": "color",
             "$value": "{wds.core.palette.warning.450}",
-            "$description": "warning text — 4.5:1 on inverse.background.secondary and on its own tint",
+            "$description": "warning text — 4.5:1 on `inverse.background.secondary` and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13497,7 +13497,7 @@
                     "contrast": 8.56,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "warning text — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "warning text — 7:1 on `inverse.background.secondary` and on its own tint"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.warning.700}",
@@ -13505,7 +13505,7 @@
                     "contrast": 9.96,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "warning text — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "warning text — 7:1 on `inverse.background.secondary` and on its own tint"
                   }
                 },
                 "figma": {
@@ -13523,7 +13523,7 @@
           "danger": {
             "$type": "color",
             "$value": "{wds.core.palette.danger.450}",
-            "$description": "danger text — 4.5:1 on inverse.background.secondary and on its own tint",
+            "$description": "danger text — 4.5:1 on `inverse.background.secondary` and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13545,7 +13545,7 @@
                     "contrast": 8.71,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "danger text — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "danger text — 7:1 on `inverse.background.secondary` and on its own tint"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.danger.700}",
@@ -13553,7 +13553,7 @@
                     "contrast": 9.99,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "danger text — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "danger text — 7:1 on `inverse.background.secondary` and on its own tint"
                   }
                 },
                 "figma": {
@@ -13571,7 +13571,7 @@
           "info": {
             "$type": "color",
             "$value": "{wds.core.palette.info.450}",
-            "$description": "info text — 4.5:1 on inverse.background.secondary and on its own tint",
+            "$description": "info text — 4.5:1 on `inverse.background.secondary` and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13593,7 +13593,7 @@
                     "contrast": 8.8,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "info text — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "info text — 7:1 on `inverse.background.secondary` and on its own tint"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.info.700}",
@@ -13601,7 +13601,7 @@
                     "contrast": 9.78,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "info text — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "info text — 7:1 on `inverse.background.secondary` and on its own tint"
                   }
                 },
                 "figma": {
@@ -13619,7 +13619,7 @@
           "brand-subtle": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.500}",
-            "$description": "Muted brand text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+            "$description": "Muted brand text — 3:1 on `inverse.background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13641,7 +13641,7 @@
                     "contrast": 5.34,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted brand text — 4.5:1 on inverse.background.primary"
+                    "description": "Muted brand text — 4.5:1 on `inverse.background.primary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.primary.650}",
@@ -13649,7 +13649,7 @@
                     "contrast": 9.77,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted brand text — 4.5:1 on inverse.background.primary"
+                    "description": "Muted brand text — 4.5:1 on `inverse.background.primary`"
                   }
                 },
                 "figma": {
@@ -13667,7 +13667,7 @@
           "success-subtle": {
             "$type": "color",
             "$value": "{wds.core.palette.success.550}",
-            "$description": "Muted success text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+            "$description": "Muted success text — 3:1 on `inverse.background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13689,7 +13689,7 @@
                     "contrast": 4.61,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted success text — 4.5:1 on inverse.background.primary"
+                    "description": "Muted success text — 4.5:1 on `inverse.background.primary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.success.650}",
@@ -13697,7 +13697,7 @@
                     "contrast": 8.11,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted success text — 4.5:1 on inverse.background.primary"
+                    "description": "Muted success text — 4.5:1 on `inverse.background.primary`"
                   }
                 },
                 "figma": {
@@ -13715,7 +13715,7 @@
           "warning-subtle": {
             "$type": "color",
             "$value": "{wds.core.palette.warning.550}",
-            "$description": "Muted warning text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+            "$description": "Muted warning text — 3:1 on `inverse.background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13737,7 +13737,7 @@
                     "contrast": 4.57,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted warning text — 4.5:1 on inverse.background.primary"
+                    "description": "Muted warning text — 4.5:1 on `inverse.background.primary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.warning.650}",
@@ -13745,7 +13745,7 @@
                     "contrast": 8.21,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted warning text — 4.5:1 on inverse.background.primary"
+                    "description": "Muted warning text — 4.5:1 on `inverse.background.primary`"
                   }
                 },
                 "figma": {
@@ -13763,7 +13763,7 @@
           "danger-subtle": {
             "$type": "color",
             "$value": "{wds.core.palette.danger.550}",
-            "$description": "Muted danger text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+            "$description": "Muted danger text — 3:1 on `inverse.background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13785,7 +13785,7 @@
                     "contrast": 4.57,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted danger text — 4.5:1 on inverse.background.primary"
+                    "description": "Muted danger text — 4.5:1 on `inverse.background.primary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.danger.650}",
@@ -13793,7 +13793,7 @@
                     "contrast": 8.22,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted danger text — 4.5:1 on inverse.background.primary"
+                    "description": "Muted danger text — 4.5:1 on `inverse.background.primary`"
                   }
                 },
                 "figma": {
@@ -13811,7 +13811,7 @@
           "info-subtle": {
             "$type": "color",
             "$value": "{wds.core.palette.info.550}",
-            "$description": "Muted info text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
+            "$description": "Muted info text — 3:1 on `inverse.background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13833,7 +13833,7 @@
                     "contrast": 4.61,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted info text — 4.5:1 on inverse.background.primary"
+                    "description": "Muted info text — 4.5:1 on `inverse.background.primary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.info.650}",
@@ -13841,7 +13841,7 @@
                     "contrast": 8.15,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted info text — 4.5:1 on inverse.background.primary"
+                    "description": "Muted info text — 4.5:1 on `inverse.background.primary`"
                   }
                 },
                 "figma": {
@@ -13860,7 +13860,7 @@
             "default": {
               "$type": "color",
               "$value": "{wds.core.palette.primary.400}",
-              "$description": "Link text on an inverse surface — default, 4.5:1 on inverse.background.secondary",
+              "$description": "Link text on an inverse surface — default, 4.5:1 on `inverse.background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -13882,7 +13882,7 @@
                       "contrast": 7.72,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link text on an inverse surface — default, 7:1 on inverse.background.secondary"
+                      "description": "Link text on an inverse surface — default, 7:1 on `inverse.background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.primary.600}",
@@ -13890,7 +13890,7 @@
                       "contrast": 8.28,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link text on an inverse surface — default, 7:1 on inverse.background.secondary"
+                      "description": "Link text on an inverse surface — default, 7:1 on `inverse.background.secondary`"
                     }
                   },
                   "figma": {
@@ -13908,7 +13908,7 @@
             "hover": {
               "$type": "color",
               "$value": "{wds.core.palette.primary.300}",
-              "$description": "Link text on an inverse surface — hover, 4.5:1 on inverse.background.secondary",
+              "$description": "Link text on an inverse surface — hover, 4.5:1 on `inverse.background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -13930,7 +13930,7 @@
                       "contrast": 10.86,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link text on an inverse surface — hover, 7:1 on inverse.background.secondary"
+                      "description": "Link text on an inverse surface — hover, 7:1 on `inverse.background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.primary.700}",
@@ -13938,7 +13938,7 @@
                       "contrast": 11.42,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link text on an inverse surface — hover, 7:1 on inverse.background.secondary"
+                      "description": "Link text on an inverse surface — hover, 7:1 on `inverse.background.secondary`"
                     }
                   },
                   "figma": {
@@ -13956,7 +13956,7 @@
             "visited": {
               "$type": "color",
               "$value": "{wds.core.palette.primary.100}",
-              "$description": "Link text on an inverse surface — visited, 4.5:1 on inverse.background.secondary",
+              "$description": "Link text on an inverse surface — visited, 4.5:1 on `inverse.background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -13978,7 +13978,7 @@
                       "contrast": 19.46,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link text on an inverse surface — visited, 7:1 on inverse.background.secondary"
+                      "description": "Link text on an inverse surface — visited, 7:1 on `inverse.background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.primary.900}",
@@ -13986,7 +13986,7 @@
                       "contrast": 18.38,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link text on an inverse surface — visited, 7:1 on inverse.background.secondary"
+                      "description": "Link text on an inverse surface — visited, 7:1 on `inverse.background.secondary`"
                     }
                   },
                   "figma": {
@@ -14004,7 +14004,7 @@
             "focused": {
               "$type": "color",
               "$value": "{wds.core.palette.primary.400}",
-              "$description": "Link text on an inverse surface — focused, 4.5:1 on inverse.background.secondary",
+              "$description": "Link text on an inverse surface — focused, 4.5:1 on `inverse.background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -14026,7 +14026,7 @@
                       "contrast": 7.72,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link text on an inverse surface — focused, 7:1 on inverse.background.secondary"
+                      "description": "Link text on an inverse surface — focused, 7:1 on `inverse.background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.primary.600}",
@@ -14034,7 +14034,7 @@
                       "contrast": 8.28,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link text on an inverse surface — focused, 7:1 on inverse.background.secondary"
+                      "description": "Link text on an inverse surface — focused, 7:1 on `inverse.background.secondary`"
                     }
                   },
                   "figma": {
@@ -14052,7 +14052,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{wds.core.palette.primary.200}",
-              "$description": "Link text on an inverse surface — pressed, 4.5:1 on inverse.background.secondary",
+              "$description": "Link text on an inverse surface — pressed, 4.5:1 on `inverse.background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -14074,7 +14074,7 @@
                       "contrast": 14.73,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link text on an inverse surface — pressed, 7:1 on inverse.background.secondary"
+                      "description": "Link text on an inverse surface — pressed, 7:1 on `inverse.background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.primary.800}",
@@ -14082,7 +14082,7 @@
                       "contrast": 15.09,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link text on an inverse surface — pressed, 7:1 on inverse.background.secondary"
+                      "description": "Link text on an inverse surface — pressed, 7:1 on `inverse.background.secondary`"
                     }
                   },
                   "figma": {
@@ -14472,7 +14472,7 @@
           "focus": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.400}",
-            "$description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on inverse.background.primary",
+            "$description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on `inverse.background.primary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14494,7 +14494,7 @@
                     "contrast": 7.72,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on inverse.background.primary"
+                    "description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on `inverse.background.primary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.primary.600}",
@@ -14502,7 +14502,7 @@
                     "contrast": 8.28,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on inverse.background.primary"
+                    "description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on `inverse.background.primary`"
                   }
                 },
                 "figma": {
@@ -14568,7 +14568,7 @@
           "secondary": {
             "$type": "color",
             "$value": "{wds.core.palette.neutral.450}",
-            "$description": "Secondary icon on an inverse surface — 4.5:1 on inverse.background.secondary",
+            "$description": "Secondary icon on an inverse surface — 4.5:1 on `inverse.background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14590,7 +14590,7 @@
                     "contrast": 7.46,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "Secondary icon on an inverse surface — 7:1 on inverse.background.secondary"
+                    "description": "Secondary icon on an inverse surface — 7:1 on `inverse.background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.neutral.650}",
@@ -14598,7 +14598,7 @@
                     "contrast": 8.11,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "Secondary icon on an inverse surface — 7:1 on inverse.background.secondary"
+                    "description": "Secondary icon on an inverse surface — 7:1 on `inverse.background.secondary`"
                   }
                 },
                 "figma": {
@@ -14616,7 +14616,7 @@
           "tertiary": {
             "$type": "color",
             "$value": "{wds.core.palette.neutral.550}",
-            "$description": "Tertiary icon on an inverse surface — 3:1 on inverse.background.secondary",
+            "$description": "Tertiary icon on an inverse surface — 3:1 on `inverse.background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14638,7 +14638,7 @@
                     "contrast": 4.55,
                     "against": "inverse.background.secondary",
                     "min": 4.5,
-                    "description": "Tertiary icon on an inverse surface — 4.5:1 on inverse.background.secondary"
+                    "description": "Tertiary icon on an inverse surface — 4.5:1 on `inverse.background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.neutral.500}",
@@ -14646,7 +14646,7 @@
                     "contrast": 4.61,
                     "against": "inverse.background.secondary",
                     "min": 4.5,
-                    "description": "Tertiary icon on an inverse surface — 4.5:1 on inverse.background.secondary"
+                    "description": "Tertiary icon on an inverse surface — 4.5:1 on `inverse.background.secondary`"
                   }
                 },
                 "figma": {
@@ -14664,7 +14664,7 @@
           "brand": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.400}",
-            "$description": "brand icon — 4.5:1 on inverse.background.secondary and on its own tint",
+            "$description": "brand icon — 4.5:1 on `inverse.background.secondary` and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14686,7 +14686,7 @@
                     "contrast": 9.19,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "brand icon — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "brand icon — 7:1 on `inverse.background.secondary` and on its own tint"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.primary.700}",
@@ -14694,7 +14694,7 @@
                     "contrast": 11.42,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "brand icon — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "brand icon — 7:1 on `inverse.background.secondary` and on its own tint"
                   }
                 },
                 "figma": {
@@ -14712,7 +14712,7 @@
           "success": {
             "$type": "color",
             "$value": "{wds.core.palette.success.450}",
-            "$description": "success icon — 4.5:1 on inverse.background.secondary and on its own tint",
+            "$description": "success icon — 4.5:1 on `inverse.background.secondary` and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14734,7 +14734,7 @@
                     "contrast": 8.96,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "success icon — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "success icon — 7:1 on `inverse.background.secondary` and on its own tint"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.success.700}",
@@ -14742,7 +14742,7 @@
                     "contrast": 9.66,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "success icon — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "success icon — 7:1 on `inverse.background.secondary` and on its own tint"
                   }
                 },
                 "figma": {
@@ -14760,7 +14760,7 @@
           "warning": {
             "$type": "color",
             "$value": "{wds.core.palette.warning.450}",
-            "$description": "warning icon — 4.5:1 on inverse.background.secondary and on its own tint",
+            "$description": "warning icon — 4.5:1 on `inverse.background.secondary` and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14782,7 +14782,7 @@
                     "contrast": 8.56,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "warning icon — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "warning icon — 7:1 on `inverse.background.secondary` and on its own tint"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.warning.700}",
@@ -14790,7 +14790,7 @@
                     "contrast": 9.96,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "warning icon — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "warning icon — 7:1 on `inverse.background.secondary` and on its own tint"
                   }
                 },
                 "figma": {
@@ -14808,7 +14808,7 @@
           "danger": {
             "$type": "color",
             "$value": "{wds.core.palette.danger.450}",
-            "$description": "danger icon — 4.5:1 on inverse.background.secondary and on its own tint",
+            "$description": "danger icon — 4.5:1 on `inverse.background.secondary` and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14830,7 +14830,7 @@
                     "contrast": 8.71,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "danger icon — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "danger icon — 7:1 on `inverse.background.secondary` and on its own tint"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.danger.700}",
@@ -14838,7 +14838,7 @@
                     "contrast": 9.99,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "danger icon — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "danger icon — 7:1 on `inverse.background.secondary` and on its own tint"
                   }
                 },
                 "figma": {
@@ -14856,7 +14856,7 @@
           "info": {
             "$type": "color",
             "$value": "{wds.core.palette.info.450}",
-            "$description": "info icon — 4.5:1 on inverse.background.secondary and on its own tint",
+            "$description": "info icon — 4.5:1 on `inverse.background.secondary` and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14878,7 +14878,7 @@
                     "contrast": 8.8,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "info icon — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "info icon — 7:1 on `inverse.background.secondary` and on its own tint"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.info.700}",
@@ -14886,7 +14886,7 @@
                     "contrast": 9.78,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "info icon — 7:1 on inverse.background.secondary and on its own tint"
+                    "description": "info icon — 7:1 on `inverse.background.secondary` and on its own tint"
                   }
                 },
                 "figma": {
@@ -14904,7 +14904,7 @@
           "brand-subtle": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.500}",
-            "$description": "Muted brand icon — low-emphasis accent, 3:1 on inverse.background.primary",
+            "$description": "Muted brand icon — low-emphasis accent, 3:1 on `inverse.background.primary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14926,7 +14926,7 @@
                     "contrast": 5.34,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted brand icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+                    "description": "Muted brand icon — low-emphasis accent, 4.5:1 on `inverse.background.primary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.primary.650}",
@@ -14934,7 +14934,7 @@
                     "contrast": 9.77,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted brand icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+                    "description": "Muted brand icon — low-emphasis accent, 4.5:1 on `inverse.background.primary`"
                   }
                 },
                 "figma": {
@@ -14952,7 +14952,7 @@
           "success-subtle": {
             "$type": "color",
             "$value": "{wds.core.palette.success.550}",
-            "$description": "Muted success icon — low-emphasis accent, 3:1 on inverse.background.primary",
+            "$description": "Muted success icon — low-emphasis accent, 3:1 on `inverse.background.primary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14974,7 +14974,7 @@
                     "contrast": 4.61,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted success icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+                    "description": "Muted success icon — low-emphasis accent, 4.5:1 on `inverse.background.primary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.success.650}",
@@ -14982,7 +14982,7 @@
                     "contrast": 8.11,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted success icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+                    "description": "Muted success icon — low-emphasis accent, 4.5:1 on `inverse.background.primary`"
                   }
                 },
                 "figma": {
@@ -15000,7 +15000,7 @@
           "warning-subtle": {
             "$type": "color",
             "$value": "{wds.core.palette.warning.550}",
-            "$description": "Muted warning icon — low-emphasis accent, 3:1 on inverse.background.primary",
+            "$description": "Muted warning icon — low-emphasis accent, 3:1 on `inverse.background.primary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -15022,7 +15022,7 @@
                     "contrast": 4.57,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted warning icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+                    "description": "Muted warning icon — low-emphasis accent, 4.5:1 on `inverse.background.primary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.warning.650}",
@@ -15030,7 +15030,7 @@
                     "contrast": 8.21,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted warning icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+                    "description": "Muted warning icon — low-emphasis accent, 4.5:1 on `inverse.background.primary`"
                   }
                 },
                 "figma": {
@@ -15048,7 +15048,7 @@
           "danger-subtle": {
             "$type": "color",
             "$value": "{wds.core.palette.danger.550}",
-            "$description": "Muted danger icon — low-emphasis accent, 3:1 on inverse.background.primary",
+            "$description": "Muted danger icon — low-emphasis accent, 3:1 on `inverse.background.primary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -15070,7 +15070,7 @@
                     "contrast": 4.57,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted danger icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+                    "description": "Muted danger icon — low-emphasis accent, 4.5:1 on `inverse.background.primary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.danger.650}",
@@ -15078,7 +15078,7 @@
                     "contrast": 8.22,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted danger icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+                    "description": "Muted danger icon — low-emphasis accent, 4.5:1 on `inverse.background.primary`"
                   }
                 },
                 "figma": {
@@ -15096,7 +15096,7 @@
           "info-subtle": {
             "$type": "color",
             "$value": "{wds.core.palette.info.550}",
-            "$description": "Muted info icon — low-emphasis accent, 3:1 on inverse.background.primary",
+            "$description": "Muted info icon — low-emphasis accent, 3:1 on `inverse.background.primary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -15118,7 +15118,7 @@
                     "contrast": 4.61,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted info icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+                    "description": "Muted info icon — low-emphasis accent, 4.5:1 on `inverse.background.primary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.info.650}",
@@ -15126,7 +15126,7 @@
                     "contrast": 8.15,
                     "against": "inverse.background.primary",
                     "min": 4.5,
-                    "description": "Muted info icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+                    "description": "Muted info icon — low-emphasis accent, 4.5:1 on `inverse.background.primary`"
                   }
                 },
                 "figma": {
@@ -15145,7 +15145,7 @@
             "default": {
               "$type": "color",
               "$value": "{wds.core.palette.primary.400}",
-              "$description": "Link icon on an inverse surface — default, 4.5:1 on inverse.background.secondary",
+              "$description": "Link icon on an inverse surface — default, 4.5:1 on `inverse.background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -15167,7 +15167,7 @@
                       "contrast": 7.72,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link icon on an inverse surface — default, 7:1 on inverse.background.secondary"
+                      "description": "Link icon on an inverse surface — default, 7:1 on `inverse.background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.primary.600}",
@@ -15175,7 +15175,7 @@
                       "contrast": 8.28,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link icon on an inverse surface — default, 7:1 on inverse.background.secondary"
+                      "description": "Link icon on an inverse surface — default, 7:1 on `inverse.background.secondary`"
                     }
                   },
                   "figma": {
@@ -15193,7 +15193,7 @@
             "hover": {
               "$type": "color",
               "$value": "{wds.core.palette.primary.300}",
-              "$description": "Link icon on an inverse surface — hover, 4.5:1 on inverse.background.secondary",
+              "$description": "Link icon on an inverse surface — hover, 4.5:1 on `inverse.background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -15215,7 +15215,7 @@
                       "contrast": 10.86,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link icon on an inverse surface — hover, 7:1 on inverse.background.secondary"
+                      "description": "Link icon on an inverse surface — hover, 7:1 on `inverse.background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.primary.700}",
@@ -15223,7 +15223,7 @@
                       "contrast": 11.42,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link icon on an inverse surface — hover, 7:1 on inverse.background.secondary"
+                      "description": "Link icon on an inverse surface — hover, 7:1 on `inverse.background.secondary`"
                     }
                   },
                   "figma": {
@@ -15241,7 +15241,7 @@
             "visited": {
               "$type": "color",
               "$value": "{wds.core.palette.primary.100}",
-              "$description": "Link icon on an inverse surface — visited, 4.5:1 on inverse.background.secondary",
+              "$description": "Link icon on an inverse surface — visited, 4.5:1 on `inverse.background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -15263,7 +15263,7 @@
                       "contrast": 19.46,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link icon on an inverse surface — visited, 7:1 on inverse.background.secondary"
+                      "description": "Link icon on an inverse surface — visited, 7:1 on `inverse.background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.primary.900}",
@@ -15271,7 +15271,7 @@
                       "contrast": 18.38,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link icon on an inverse surface — visited, 7:1 on inverse.background.secondary"
+                      "description": "Link icon on an inverse surface — visited, 7:1 on `inverse.background.secondary`"
                     }
                   },
                   "figma": {
@@ -15289,7 +15289,7 @@
             "focused": {
               "$type": "color",
               "$value": "{wds.core.palette.primary.400}",
-              "$description": "Link icon on an inverse surface — focused, 4.5:1 on inverse.background.secondary",
+              "$description": "Link icon on an inverse surface — focused, 4.5:1 on `inverse.background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -15311,7 +15311,7 @@
                       "contrast": 7.72,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link icon on an inverse surface — focused, 7:1 on inverse.background.secondary"
+                      "description": "Link icon on an inverse surface — focused, 7:1 on `inverse.background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.primary.600}",
@@ -15319,7 +15319,7 @@
                       "contrast": 8.28,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link icon on an inverse surface — focused, 7:1 on inverse.background.secondary"
+                      "description": "Link icon on an inverse surface — focused, 7:1 on `inverse.background.secondary`"
                     }
                   },
                   "figma": {
@@ -15337,7 +15337,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{wds.core.palette.primary.200}",
-              "$description": "Link icon on an inverse surface — pressed, 4.5:1 on inverse.background.secondary",
+              "$description": "Link icon on an inverse surface — pressed, 4.5:1 on `inverse.background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -15359,7 +15359,7 @@
                       "contrast": 14.73,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link icon on an inverse surface — pressed, 7:1 on inverse.background.secondary"
+                      "description": "Link icon on an inverse surface — pressed, 7:1 on `inverse.background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.primary.800}",
@@ -15367,7 +15367,7 @@
                       "contrast": 15.09,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link icon on an inverse surface — pressed, 7:1 on inverse.background.secondary"
+                      "description": "Link icon on an inverse surface — pressed, 7:1 on `inverse.background.secondary`"
                     }
                   },
                   "figma": {
@@ -20206,7 +20206,7 @@
               "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with text.link.* color).",
+            "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with `text.link.*` color).",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -20283,7 +20283,7 @@
               "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with text.link.* color).",
+            "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with `text.link.*` color).",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -20316,7 +20316,7 @@
           "line-box": {
             "$type": "dimension",
             "$value": "18px",
-            "$description": "type.body.xs line-box — 18px, the height of one line of the `body.xs` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
+            "$description": "`type.body.xs` line-box — 18px, the height of one line of the `type.body.xs` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -20373,7 +20373,7 @@
               "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body sm default link — 14px Roboto, normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "body sm default link — 14px Roboto, normal line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -20450,7 +20450,7 @@
               "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body sm strong link — 14px Roboto, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "body sm strong link — 14px Roboto, normal line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -20483,7 +20483,7 @@
           "line-box": {
             "$type": "dimension",
             "$value": "21px",
-            "$description": "type.body.sm line-box — 21px, the height of one line of the `body.sm` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
+            "$description": "`type.body.sm` line-box — 21px, the height of one line of the `type.body.sm` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -20540,7 +20540,7 @@
               "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body md default link — 16px Roboto, normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "body md default link — 16px Roboto, normal line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -20617,7 +20617,7 @@
               "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body md strong link — 16px Roboto, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "body md strong link — 16px Roboto, normal line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -20650,7 +20650,7 @@
           "line-box": {
             "$type": "dimension",
             "$value": "24px",
-            "$description": "type.body.md line-box — 24px, the height of one line of the `body.md` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
+            "$description": "`type.body.md` line-box — 24px, the height of one line of the `type.body.md` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -20707,7 +20707,7 @@
               "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body lg default link — 18px Roboto, normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "body lg default link — 18px Roboto, normal line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -20784,7 +20784,7 @@
               "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body lg strong link — 18px Roboto, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "body lg strong link — 18px Roboto, normal line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -20817,7 +20817,7 @@
           "line-box": {
             "$type": "dimension",
             "$value": "27px",
-            "$description": "type.body.lg line-box — 27px, the height of one line of the `body.lg` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
+            "$description": "`type.body.lg` line-box — 27px, the height of one line of the `type.body.lg` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -20986,7 +20986,7 @@
           "line-box": {
             "$type": "dimension",
             "$value": "14px",
-            "$description": "type.label.sm line-box — 14px, the height of one line of the `label.sm` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
+            "$description": "`type.label.sm` line-box — 14px, the height of one line of the `type.label.sm` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -21153,7 +21153,7 @@
           "line-box": {
             "$type": "dimension",
             "$value": "16px",
-            "$description": "type.label.md line-box — 16px, the height of one line of the `label.md` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
+            "$description": "`type.label.md` line-box — 16px, the height of one line of the `type.label.md` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -21320,7 +21320,7 @@
           "line-box": {
             "$type": "dimension",
             "$value": "21px",
-            "$description": "type.label.lg line-box — 21px, the height of one line of the `label.lg` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
+            "$description": "`type.label.lg` line-box — 21px, the height of one line of the `type.label.lg` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -21379,7 +21379,7 @@
               "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption md default link — 11px Roboto, cozy line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "caption md default link — 11px Roboto, cozy line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -21456,7 +21456,7 @@
               "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption md strong link — 11px Roboto, cozy line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "caption md strong link — 11px Roboto, cozy line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -21489,7 +21489,7 @@
           "line-box": {
             "$type": "dimension",
             "$value": "15px",
-            "$description": "type.caption.md line-box — 15px, the height of one line of the `caption.md` type (font size × line height). A mark beside a caption sits in a box this tall and centers within it, so it stays on the caption's first line when the caption wraps.",
+            "$description": "`type.caption.md` line-box — 15px, the height of one line of the `type.caption.md` type (font size × line height). A mark beside a caption sits in a box this tall and centers within it, so it stays on the caption's first line when the caption wraps.",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -21546,7 +21546,7 @@
               "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption lg default link — 12px Roboto, cozy line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "caption lg default link — 12px Roboto, cozy line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -21623,7 +21623,7 @@
               "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption lg strong link — 12px Roboto, cozy line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
+            "$description": "caption lg strong link — 12px Roboto, cozy line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -21656,7 +21656,7 @@
           "line-box": {
             "$type": "dimension",
             "$value": "17px",
-            "$description": "type.caption.lg line-box — 17px, the height of one line of the `caption.lg` type (font size × line height). A mark beside a caption sits in a box this tall and centers within it, so it stays on the caption's first line when the caption wraps.",
+            "$description": "`type.caption.lg` line-box — 17px, the height of one line of the `type.caption.lg` type (font size × line height). A mark beside a caption sits in a box this tall and centers within it, so it stays on the caption's first line when the caption wraps.",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -22252,7 +22252,7 @@
       "glass": {
         "$type": "dimension",
         "$value": "32px",
-        "$description": "blur glass — 32px background blur behind a glass band over a photograph; pair it with color.glass.surface",
+        "$description": "blur glass — 32px background blur behind a glass band over a photograph; pair it with `color.glass.surface`",
         "$extensions": {
           "prism3": {
             "generated": true,
@@ -22266,7 +22266,7 @@
         "xs": {
           "$type": "dimension",
           "$value": "{wds.core.dimension.16}",
-          "$description": "icon.size.xs — 16px artboard (fixed grid; pairs with size.xs)",
+          "$description": "`icon.size.xs` — 16px artboard (fixed grid; pairs with `size.xs`)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -22278,7 +22278,7 @@
         "sm": {
           "$type": "dimension",
           "$value": "{wds.core.dimension.20}",
-          "$description": "icon.size.sm — 20px artboard (fixed grid; pairs with size.sm)",
+          "$description": "`icon.size.sm` — 20px artboard (fixed grid; pairs with `size.sm`)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -22290,7 +22290,7 @@
         "md": {
           "$type": "dimension",
           "$value": "{wds.core.dimension.24}",
-          "$description": "icon.size.md — 24px artboard (fixed grid; pairs with size.md)",
+          "$description": "`icon.size.md` — 24px artboard (fixed grid; pairs with `size.md`)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -22302,7 +22302,7 @@
         "lg": {
           "$type": "dimension",
           "$value": "{wds.core.dimension.32}",
-          "$description": "icon.size.lg — 32px artboard (fixed grid; pairs with size.lg)",
+          "$description": "`icon.size.lg` — 32px artboard (fixed grid; pairs with `size.lg`)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -22314,7 +22314,7 @@
         "xl": {
           "$type": "dimension",
           "$value": "{wds.core.dimension.40}",
-          "$description": "icon.size.xl — 40px artboard (fixed grid; pairs with size.xl)",
+          "$description": "`icon.size.xl` — 40px artboard (fixed grid; pairs with `size.xl`)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -22678,7 +22678,7 @@
       "0": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.0}",
-        "$description": "space.0 — 0px (0× 8px base)",
+        "$description": "`space.0` — 0px (0× 8px base)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -22691,7 +22691,7 @@
       "100": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.8}",
-        "$description": "space.100 — 8px (1× 8px base)",
+        "$description": "`space.100` — 8px (1× 8px base)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -22704,7 +22704,7 @@
       "150": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.12}",
-        "$description": "space.150 — 12px (1.5× 8px base)",
+        "$description": "`space.150` — 12px (1.5× 8px base)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -22717,7 +22717,7 @@
       "200": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.16}",
-        "$description": "space.200 — 16px (2× 8px base)",
+        "$description": "`space.200` — 16px (2× 8px base)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -22730,7 +22730,7 @@
       "250": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.20}",
-        "$description": "space.250 — 20px (2.5× 8px base)",
+        "$description": "`space.250` — 20px (2.5× 8px base)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -22743,7 +22743,7 @@
       "300": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.24}",
-        "$description": "space.300 — 24px (3× 8px base)",
+        "$description": "`space.300` — 24px (3× 8px base)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -22756,7 +22756,7 @@
       "400": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.32}",
-        "$description": "space.400 — 32px (4× 8px base)",
+        "$description": "`space.400` — 32px (4× 8px base)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -22769,7 +22769,7 @@
       "500": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.40}",
-        "$description": "space.500 — 40px (5× 8px base)",
+        "$description": "`space.500` — 40px (5× 8px base)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -22782,7 +22782,7 @@
       "600": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.48}",
-        "$description": "space.600 — 48px (6× 8px base)",
+        "$description": "`space.600` — 48px (6× 8px base)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -22795,7 +22795,7 @@
       "700": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.56}",
-        "$description": "space.700 — 56px (7× 8px base)",
+        "$description": "`space.700` — 56px (7× 8px base)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -22808,7 +22808,7 @@
       "800": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.64}",
-        "$description": "space.800 — 64px (8× 8px base)",
+        "$description": "`space.800` — 64px (8× 8px base)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -22821,7 +22821,7 @@
       "900": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.72}",
-        "$description": "space.900 — 72px (9× 8px base)",
+        "$description": "`space.900` — 72px (9× 8px base)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -22834,7 +22834,7 @@
       "1000": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.80}",
-        "$description": "space.1000 — 80px (10× 8px base)",
+        "$description": "`space.1000` — 80px (10× 8px base)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -22847,7 +22847,7 @@
       "1100": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.88}",
-        "$description": "space.1100 — 88px (11× 8px base)",
+        "$description": "`space.1100` — 88px (11× 8px base)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -22860,7 +22860,7 @@
       "1200": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.96}",
-        "$description": "space.1200 — 96px (12× 8px base)",
+        "$description": "`space.1200` — 96px (12× 8px base)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -22873,7 +22873,7 @@
       "025": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.2}",
-        "$description": "space.025 — 2px (0.25× 8px base)",
+        "$description": "`space.025` — 2px (0.25× 8px base)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -22886,7 +22886,7 @@
       "050": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.4}",
-        "$description": "space.050 — 4px (0.5× 8px base)",
+        "$description": "`space.050` — 4px (0.5× 8px base)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -22899,7 +22899,7 @@
       "075": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.6}",
-        "$description": "space.075 — 6px (0.75× 8px base)",
+        "$description": "`space.075` — 6px (0.75× 8px base)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -23157,7 +23157,7 @@
         "height": {
           "$type": "dimension",
           "$value": "{wds.core.dimension.28}",
-          "$description": "size.xs control height — 28px (density: comfortable)",
+          "$description": "`size.xs` control height — 28px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -23172,7 +23172,7 @@
         "height": {
           "$type": "dimension",
           "$value": "{wds.core.dimension.36}",
-          "$description": "size.sm control height — 36px (density: comfortable)",
+          "$description": "`size.sm` control height — 36px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -23187,7 +23187,7 @@
         "height": {
           "$type": "dimension",
           "$value": "{wds.core.dimension.44}",
-          "$description": "size.md control height — 44px (density: comfortable)",
+          "$description": "`size.md` control height — 44px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -23200,7 +23200,7 @@
         "min-height": {
           "$type": "dimension",
           "$value": "{wds.core.dimension.44}",
-          "$description": "size.md.min-height — interactive target-size floor (WCAG 2.2 SC 2.5.5): max(size.md.height 44, 44) = 44px",
+          "$description": "`size.md.min-height` — interactive target-size floor (WCAG 2.2 SC 2.5.5): max(`size.md.height` 44, 44) = 44px",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -23214,7 +23214,7 @@
         "height": {
           "$type": "dimension",
           "$value": "{wds.core.dimension.56}",
-          "$description": "size.lg control height — 56px (density: comfortable)",
+          "$description": "`size.lg` control height — 56px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -23229,7 +23229,7 @@
         "height": {
           "$type": "dimension",
           "$value": "{wds.core.dimension.68}",
-          "$description": "size.xl control height — 68px (density: comfortable)",
+          "$description": "`size.xl` control height — 68px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -23247,7 +23247,7 @@
           "height": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.16}",
-            "$description": "control.size.sm — 16px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
+            "$description": "`control.size.sm` — 16px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23260,7 +23260,7 @@
           "width": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.48}",
-            "$description": "control.size.sm width — 48px track width for a two-position control, i.e. a switch (2x the 24px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+            "$description": "`control.size.sm` width — 48px track width for a two-position control, i.e. a switch (2x the 24px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23273,7 +23273,7 @@
           "dot": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.8}",
-            "$description": "control.size.sm dot — 8px inner mark for a radio's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+            "$description": "`control.size.sm` dot — 8px inner mark for a radio's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23286,7 +23286,7 @@
           "inset": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.3}",
-            "$description": "control.size.sm inset — 3px gap between the thumb and the track's boundary ((24px track − 18px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
+            "$description": "`control.size.sm` inset — 3px gap between the thumb and the track's boundary ((24px track − 18px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23299,7 +23299,7 @@
           "track": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.24}",
-            "$description": "control.size.sm track — 24px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 16px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+            "$description": "`control.size.sm` track — 24px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 16px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23312,7 +23312,7 @@
           "thumb": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.18}",
-            "$description": "control.size.sm thumb — 18px traveling thumb for a switch (0.75 × the 24px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+            "$description": "`control.size.sm` thumb — 18px traveling thumb for a switch (0.75 × the 24px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23325,7 +23325,7 @@
           "radius": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.2}",
-            "$description": "control.size.sm radius — 2px corner on the 16px box edge (min of radius.sm 2px and one eighth of the box, 16px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+            "$description": "`control.size.sm` radius — 2px corner on the 16px box edge (min of `radius.sm` 2px and one eighth of the box, 16px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23339,7 +23339,7 @@
           "line-box": {
             "$type": "dimension",
             "$value": "21px",
-            "$description": "control.size.sm line-box — 21px, the height of one line of the `body.sm` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
+            "$description": "`control.size.sm` line-box — 21px, the height of one line of the `type.body.sm` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -23350,7 +23350,7 @@
           "label-inset": {
             "$type": "dimension",
             "$value": "0px",
-            "$description": "control.size.sm label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 16px box less the 18px `body.xs` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.",
+            "$description": "`control.size.sm` label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 16px box less the 18px `type.body.xs` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -23363,7 +23363,7 @@
           "height": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.20}",
-            "$description": "control.size.md — 20px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
+            "$description": "`control.size.md` — 20px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23376,7 +23376,7 @@
           "width": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.64}",
-            "$description": "control.size.md width — 64px track width for a two-position control, i.e. a switch (2x the 32px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+            "$description": "`control.size.md` width — 64px track width for a two-position control, i.e. a switch (2x the 32px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23389,7 +23389,7 @@
           "dot": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.10}",
-            "$description": "control.size.md dot — 10px inner mark for a radio's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+            "$description": "`control.size.md` dot — 10px inner mark for a radio's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23402,7 +23402,7 @@
           "inset": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.4}",
-            "$description": "control.size.md inset — 4px gap between the thumb and the track's boundary ((32px track − 24px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
+            "$description": "`control.size.md` inset — 4px gap between the thumb and the track's boundary ((32px track − 24px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23415,7 +23415,7 @@
           "track": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.32}",
-            "$description": "control.size.md track — 32px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 20px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+            "$description": "`control.size.md` track — 32px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 20px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23428,7 +23428,7 @@
           "thumb": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.24}",
-            "$description": "control.size.md thumb — 24px traveling thumb for a switch (0.75 × the 32px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+            "$description": "`control.size.md` thumb — 24px traveling thumb for a switch (0.75 × the 32px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23441,7 +23441,7 @@
           "radius": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.2}",
-            "$description": "control.size.md radius — 2px corner on the 20px box edge (min of radius.sm 2px and one eighth of the box, 20px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+            "$description": "`control.size.md` radius — 2px corner on the 20px box edge (min of `radius.sm` 2px and one eighth of the box, 20px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23455,7 +23455,7 @@
           "line-box": {
             "$type": "dimension",
             "$value": "24px",
-            "$description": "control.size.md line-box — 24px, the height of one line of the `body.md` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
+            "$description": "`control.size.md` line-box — 24px, the height of one line of the `type.body.md` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -23466,7 +23466,7 @@
           "label-inset": {
             "$type": "dimension",
             "$value": "0px",
-            "$description": "control.size.md label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 20px box less the 21px `body.sm` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.",
+            "$description": "`control.size.md` label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 20px box less the 21px `type.body.sm` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -23479,7 +23479,7 @@
           "height": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.24}",
-            "$description": "control.size.lg — 24px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
+            "$description": "`control.size.lg` — 24px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23492,7 +23492,7 @@
           "width": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.80}",
-            "$description": "control.size.lg width — 80px track width for a two-position control, i.e. a switch (2x the 40px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+            "$description": "`control.size.lg` width — 80px track width for a two-position control, i.e. a switch (2x the 40px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23505,7 +23505,7 @@
           "dot": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.12}",
-            "$description": "control.size.lg dot — 12px inner mark for a radio's dot (half the 24px box edge, leaving a 6px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+            "$description": "`control.size.lg` dot — 12px inner mark for a radio's dot (half the 24px box edge, leaving a 6px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23518,7 +23518,7 @@
           "inset": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.5}",
-            "$description": "control.size.lg inset — 5px gap between the thumb and the track's boundary ((40px track − 30px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
+            "$description": "`control.size.lg` inset — 5px gap between the thumb and the track's boundary ((40px track − 30px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23531,7 +23531,7 @@
           "track": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.40}",
-            "$description": "control.size.lg track — 40px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 24px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+            "$description": "`control.size.lg` track — 40px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 24px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23544,7 +23544,7 @@
           "thumb": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.30}",
-            "$description": "control.size.lg thumb — 30px traveling thumb for a switch (0.75 × the 40px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+            "$description": "`control.size.lg` thumb — 30px traveling thumb for a switch (0.75 × the 40px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23557,7 +23557,7 @@
           "radius": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.2}",
-            "$description": "control.size.lg radius — 2px corner on the 24px box edge (min of radius.sm 2px and one eighth of the box, 24px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+            "$description": "`control.size.lg` radius — 2px corner on the 24px box edge (min of `radius.sm` 2px and one eighth of the box, 24px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -23571,7 +23571,7 @@
           "line-box": {
             "$type": "dimension",
             "$value": "27px",
-            "$description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
+            "$description": "`control.size.lg` line-box — 27px, the height of one line of the `type.body.lg` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -23582,7 +23582,7 @@
           "label-inset": {
             "$type": "dimension",
             "$value": "0px",
-            "$description": "control.size.lg label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 24px box less the 24px `body.md` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.",
+            "$description": "`control.size.lg` label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 24px box less the 24px `type.body.md` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.",
             "$extensions": {
               "prism3": {
                 "generated": true,
