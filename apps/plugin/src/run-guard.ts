@@ -73,7 +73,7 @@ export const createRunGuard = () => {
      *  Called only by the run that holds it. A build's settle probe (#908) runs after its verdict and writes nothing, and
      *  the panel posts its next set the moment that verdict lands: held through the probe, the next set was refused and
      *  the panel waited on a verdict that had already been sent. */
-    release(cmd: WriteCmd): void { if (running?.cmd === cmd) running = null; },
+    release(cmd: WriteCmd): void { running = null; },
   };
 };
 export type RunGuard = ReturnType<typeof createRunGuard>;
