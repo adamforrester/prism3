@@ -3675,7 +3675,7 @@
                 ]
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "members": 3,
               "where": {
                 "selection": [
@@ -3944,9 +3944,32 @@
         },
         "counter": {
           "keys": [
+            "disabled.icon.on-fill",
             "disabled.label.on-fill"
           ],
           "parts": {
+            "decrement": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            },
+            "increment": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            },
             "value": {
               "members": 3,
               "where": {
@@ -7950,7 +7973,7 @@
                 ]
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "members": 3,
               "where": {
                 "selection": [
@@ -8163,7 +8186,7 @@
                 ]
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "members": 3,
               "where": {
                 "selection": [
@@ -8467,7 +8490,7 @@
                 ]
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "members": 6,
               "where": {
                 "selection": [
@@ -19772,7 +19795,7 @@
                 ]
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "members": 5,
               "where": {
                 "selection": [
@@ -20503,7 +20526,7 @@
                 ]
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "members": 5,
               "where": {
                 "selection": [
@@ -21175,7 +21198,7 @@
                 ]
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "members": 5,
               "where": {
                 "selection": [

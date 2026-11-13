@@ -15,7 +15,7 @@ import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, 
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, densitySpace, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { codeOnlyText } from './code-only-register';
-import { at, deref, pxOf, buildTree, familyOf } from './tree';
+import { at, deref, pxOf, buildTree, familyOf, aliasFaults, type AliasFault } from './tree';
 import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, type Theme } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes, overrideGroundRgb, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS, pureExtremeInk } from './modes';
@@ -31,6 +31,7 @@ import { previewSpec, previewTokenRefs, buildPreviewSpec } from './preview';
 import { resolvePreview } from './resolve-preview';
 import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput';
 import { exportComponentDefs } from './component-defs-export';
+import { buildIdentity } from './build-identity';
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, buildFigmaGridStyles, fontStyleName, figName, parseColor, figmaArtifacts, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
 import type { FigmaCollectionFile } from './emit-figma';
 import { MOTION_FIGMA_COVERAGE, springBounce } from './emit-figma-dims';
@@ -4895,9 +4896,10 @@ arm: {
   // `motion` joined in #2394 as FLOAT milliseconds and left with #2412: TIMING + EASING, so it is
   // `buildMotionVarPlan`'s, not a FLOAT axis. Asserted absent here so it cannot be written twice.
   // `blur` joined in #2869: the glass radius, a FLOAT the `glass` Effect Style binds.
-  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'blur', 'layout'];
+  // `text-spacing` joined in #2423: the line-height and letter-spacing multipliers, bound to nothing.
+  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'blur', 'text-spacing', 'layout'];
   ok(EXPECTED.every((n) => names.includes(n)) && names.length === EXPECTED.length,
-    `float-plan: eleven collections present, motion not among them (${names.join(', ')})`);
+    `float-plan: twelve collections present, motion not among them (${names.join(', ')})`);
 
   // Single-mode dims axes vs per-breakpoint layout.
   ok(auroraFloat.find((c) => c.name === 'core')!.modes.join(',') === 'Default',
@@ -7390,9 +7392,9 @@ arm: {
   const tagParts = tagDef.anatomy!.parts;
   const nests = Object.entries(tagParts).filter(([, p]) => p.kind === 'nest').map(([n]) => n);
   ok(nests.length === 0 && JSON.stringify(tagDef.composition.composesWith) === '["focus-ring"]'
-    && tagParts.dismissGlyph?.kind === 'vector' && tagParts.dismissGlyph?.glyph === 'close'
-    && JSON.stringify(tagParts.dismiss?.children) === '["dismissGlyph"]',
-    `tag: the × is a plain close glyph in the dismiss slot, and nothing nests IconButton.Neutral (nests [${nests.join(', ')}], composesWith ${JSON.stringify(tagDef.composition.composesWith)}, × ${tagParts.dismissGlyph?.kind}/${tagParts.dismissGlyph?.glyph})`);
+    && tagParts.closeGlyph?.kind === 'vector' && tagParts.closeGlyph?.glyph === 'close'
+    && JSON.stringify(tagParts.dismiss?.children) === '["closeGlyph"]',
+    `tag: the × is a plain close glyph in the dismiss slot, and nothing nests IconButton.Neutral (nests [${nests.join(', ')}], composesWith ${JSON.stringify(tagDef.composition.composesWith)}, × ${tagParts.closeGlyph?.kind}/${tagParts.closeGlyph?.glyph})`);
   // THE × SLOT IS MARKED AS A TARGET INSIDE THE TAG (#1741), which `lint-hit-target.ts` reads; and the marker is
   // validated: on the role target, or on a part with no bound side, it is refused by name.
   const withPart = (name: string, patch: Record<string, unknown>) => ({ ...tagDef, anatomy: { ...tagDef.anatomy!, parts: { ...tagParts, [name]: { ...tagParts[name], ...patch } } } }) as ComponentDef;
@@ -7482,8 +7484,8 @@ arm: {
   ok(tagSet.length === 45 && dismissSelected.length === 0 && countOf('select', 'unselected') === 15 && countOf('select', 'selected') === 15 && countOf('dismissible', 'unselected') === 15,
     `tag projects to Figma: exactly 45 members — select unselected and selected, dismissible unselected only — and none at type=dismissible, selection=selected (got ${tagSet.length}: select/unselected ${countOf('select', 'unselected')}, select/selected ${countOf('select', 'selected')}, dismissible/unselected ${countOf('dismissible', 'unselected')}${dismissSelected.length ? `; excluded members present: ${dismissSelected.map((m) => m.name).join(' | ')}` : ''})`);
   // SELECT HAS NO × IN ANY MEMBER, and every dismissible member has it (owner decisions B and C).
-  const selectWithX = tagMembers.filter((m) => m.type === 'select' && (m.parts.includes('dismiss') || m.parts.includes('dismissGlyph')));
-  const dismissWithoutX = tagMembers.filter((m) => m.type === 'dismissible' && !(m.parts.includes('dismiss') && m.parts.includes('dismissGlyph')));
+  const selectWithX = tagMembers.filter((m) => m.type === 'select' && (m.parts.includes('dismiss') || m.parts.includes('closeGlyph')));
+  const dismissWithoutX = tagMembers.filter((m) => m.type === 'dismissible' && !(m.parts.includes('dismiss') && m.parts.includes('closeGlyph')));
   ok(selectWithX.length === 0 && dismissWithoutX.length === 0,
     `tag: no select member carries the × slot, and every dismissible member does${selectWithX.length ? ` — select with ×: ${selectWithX.map((m) => m.name).join(' | ')}` : ''}${dismissWithoutX.length ? ` — dismissible without ×: ${dismissWithoutX.map((m) => m.name).join(' | ')}` : ''}`);
   // THE × IS TRAILING (owner decision C): on every dismissible member the × slot is the LAST flow cell of the pill,
@@ -10016,14 +10018,25 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(bpMsg('bpDec', [0.5, 768]) === 'The first breakpoint must be 0px. This brand starts at 0.5px.',
     `[#2132] the message carries the value as entered, not rounded (got "${bpMsg('bpDec', [0.5, 768])}")`);
   // #2137 — an EMPTY breakpoints list is refused (owner decision 2026-10-05, Q22 a). It built a brand with no
-  // layout at all. EXPECTED is the owner-approved sentence, typed here literally. A single breakpoint at 0 is
-  // the smallest list that builds. BY-NAME MUTATION: delete the empty-list refusal in `buildLayout` → the
-  // refused arm fails (and nothing else names it: the #2132 check reads `floors[0]`, undefined here, so it
-  // throws #2132's message instead, which this arm's exact match rejects).
-  ok(bpMsg('bpEmpty', []) === 'The brand needs at least one breakpoint, starting at 0px.',
-    `[#2137] an empty breakpoints list is refused with the approved wording (got "${bpMsg('bpEmpty', [])}")`);
-  ok(bpMsg('bpOne', [0]) === '' && lyBrand('bpOneB', { breakpoints: [0] }).layout.breakpoints.length === 1,
-    `[#2137] a single breakpoint at 0px builds, with one breakpoint (got "${bpMsg('bpOne', [0])}")`);
+  // layout at all. #3698 R2 (owner decision 2026-11-12) raised the floor to two, so the empty list now takes
+  // R2's sentence, and a single breakpoint, which built and dropped four guaranteed contract paths
+  // (`breakpoint.md`, `grid.md.*`), is refused too. EXPECTED is the sentence typed here literally, with the count
+  // as entered. Two is the smallest list that builds. BY-NAME MUTATION: restore `floors.length === 0` in
+  // `buildLayout` → the bpOne arm fails (one floor builds again); delete the refusal → both refused arms fail
+  // (the empty list throws #2132's first-breakpoint message instead, which the exact match rejects).
+  ok(bpMsg('bpEmpty', []) === 'The brand needs at least two breakpoints, starting at 0px. This brand has 0.',
+    `[#2137, #3698 R2] an empty breakpoints list is refused (got "${bpMsg('bpEmpty', [])}")`);
+  ok(bpMsg('bpOne', [0]) === 'The brand needs at least two breakpoints, starting at 0px. This brand has 1.',
+    `[#3698 R2] a single breakpoint at 0px is refused, with the count as entered (got "${bpMsg('bpOne', [0])}")`);
+  ok(bpMsg('bpTwo', [0, 768]) === '' && lyBrand('bpTwoB', { breakpoints: [0, 768] }).layout.breakpoints.length === 2,
+    `[#3698 R2] two breakpoints, the first at 0px, build with two breakpoints (got "${bpMsg('bpTwo', [0, 768])}")`);
+  // The schema states the same floor, so `validateBrandInput` (the CLI, `validate_brand`, `theme_brand`) refuses
+  // one floor before the build path runs, and accepts two. BY-NAME MUTATION: drop `minItems` from the schema →
+  // this arm fails.
+  ok(validateBrandInput({ id: 'bpS1', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, layout: { breakpoints: [0] } })
+      .some((e) => /layout\.breakpoints.*1 item\(s\) < minItems 2/.test(e))
+    && validateBrandInput({ id: 'bpS2', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, layout: { breakpoints: [0, 768] } }).length === 0,
+    '[#3698 R2] the schema refuses one breakpoint (minItems 2) and accepts two');
   // #2198 — more than seven breakpoints are refused (owner decision 2026-10-06, Q43 A). `bpNames` names seven
   // (xs to 3xl), and an eighth took the placeholder `bp7`. EXPECTED is the sentence typed here literally, with
   // the count as entered. Seven is the largest list that builds, and it carries real names. BY-NAME MUTATION:
@@ -13928,6 +13941,60 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   }
 }
 
+// TEXT SPACING (#2423, owner Q175 A; collection name 2026-11-12) — the line-height and letter-spacing ladders and their
+// roles as one `text-spacing` FLOAT collection, each variable named by its DTCG path. Two independent sides:
+//   · LITERALS — the owner's collection name and name shape, the empty scope list (Figma binds line height and letter
+//     spacing as pixels, and these are multipliers), the publishing split (steps hidden, roles published), and a few
+//     values written out for every brand (1.05, -0.04, -0.015: letter spacing is the multiplier, Q175 A, not percent).
+//   · THE ENGINE'S DTCG (`out/<brand>.tokens.json`, which no Figma emitter writes) — every leaf of the four groups has
+//     exactly one variable at its path, holding its number, and a role aliases the step its DTCG alias names.
+{
+  const GROUPS = ['line-height', 'line-height-role', 'letter-spacing', 'letter-spacing-role'];
+  const VALUES: Record<string, number> = { 'line-height/105': 1.05, 'line-height/150': 1.5, 'letter-spacing/neg-40': -0.04, 'letter-spacing/neg-15': -0.015, 'letter-spacing/0': 0, 'letter-spacing/50': 0.05 };
+  const ROLE_ALIASES: Record<string, string> = { 'line-height-role/tight': 'line-height/105', 'letter-spacing-role/tightest': 'letter-spacing/neg-40' };
+  const tsBrands = readdirSync(resolve(HERE, './out/figma')).sort();
+  ok(['aurora', 'nb', 'prism3', 'wendys'].every((b) => tsBrands.includes(b)), `text-spacing: every canonical Figma brand is read (${tsBrands.join(', ')})`);
+  for (const b of tsBrands) {
+    const dir = resolve(HERE, './out/figma', b);
+    const files = readdirSync(dir).filter((x) => /^text-spacing(\.|$)/.test(x));
+    ok(files.length === 1 && files[0] === 'text-spacing.json', `text-spacing ${b}: one file, text-spacing.json, one Default mode (${files.join(', ') || 'none'})`);
+    if (files[0] !== 'text-spacing.json') continue;
+    const file = JSON.parse(readFileSync(resolve(dir, 'text-spacing.json'), 'utf8'));
+    const vars = file.variables as any[];
+    const tree = JSON.parse(readFileSync(resolve(HERE, `./out/${b}.tokens.json`), 'utf8'));
+    const root = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+    const fontGroup = tree[root].core.font;
+    ok(file.$collection === 'text-spacing' && file.$mode === 'Default', `text-spacing ${b}: $collection 'text-spacing', $mode 'Default' (got ${file.$collection}, ${file.$mode})`);
+    const byName = new Map(vars.map((v) => [v.name, v]));
+    const want: string[] = [];
+    const off: string[] = [];
+    for (const g of GROUPS) {
+      const leaves = Object.entries(fontGroup[g] ?? {}).filter(([k]) => !k.startsWith('$')) as Array<[string, any]>;
+      if (leaves.length < 5) off.push(`${g}: only ${leaves.length} DTCG leaves`);
+      for (const [k, leaf] of leaves) {
+        const name = `${root}/core/font/${g}/${k}`;
+        want.push(name);
+        const v = byName.get(name);
+        if (!v) { off.push(`${name}: missing`); continue; }
+        const role = g.endsWith('-role');
+        const ref = /^\{(.+)\}$/.exec(String(leaf.$value));
+        const target = ref ? ref[1].split('.').reduce((n: any, k2: string) => n?.[k2], tree) : leaf;
+        if (v.resolvedType !== 'FLOAT') off.push(`${name}: ${v.resolvedType}`);
+        if (JSON.stringify(v.scopes) !== '[]') off.push(`${name}: scopes ${JSON.stringify(v.scopes)}`);
+        if (v.value !== target?.$value) off.push(`${name}: value ${v.value}, DTCG ${target?.$value}`);
+        if (role !== !!v.alias) off.push(`${name}: alias ${JSON.stringify(v.alias)} on a ${role ? 'role (must alias its step)' : 'step (must be a literal)'}`);
+        if (ref && v.alias?.name !== ref[1].replace(/\./g, '/')) off.push(`${name}: aliases ${v.alias?.name}, DTCG ${ref[1]}`);
+        if (role ? v.hiddenFromPublishing !== undefined : v.hiddenFromPublishing !== true) off.push(`${name}: hiddenFromPublishing ${v.hiddenFromPublishing} on a ${role ? 'role (published)' : 'step (hidden)'}`);
+      }
+    }
+    const extra = vars.filter((v) => !want.includes(v.name)).map((v) => v.name);
+    for (const [tail, n] of Object.entries(VALUES)) if (byName.get(`${root}/core/font/${tail}`)?.value !== n) off.push(`${tail}: ${byName.get(`${root}/core/font/${tail}`)?.value}, want ${n}`);
+    for (const [role, step] of Object.entries(ROLE_ALIASES)) if (byName.get(`${root}/core/font/${role}`)?.alias?.name !== `${root}/core/font/${step}`) off.push(`${role}: does not alias ${step}`);
+    ok(off.length === 0 && extra.length === 0 && vars.length === want.length,
+      `text-spacing ${b}: ${vars.length} variables, one per DTCG line-height / letter-spacing step and role, named by path, FLOAT with no scopes, the DTCG's multiplier, roles aliasing their steps, steps hidden and roles published${off.length || extra.length ? ` — ${[...off, ...extra.map((x) => `extra ${x}`)].slice(0, 6).join('; ')}` : ''}`);
+  }
+}
+
 // (14) EMIT-FIGMA SHADOW + GRADIENT (docs/10 §7 item 3) — styles, not variables.
 // Figma Effect Styles + Paint Styles ride the Plugin API (docs/08 §5). Shadow
 // is mode-aware via two style sets (light + dark); gradient is opt-in per brand.
@@ -17113,7 +17180,9 @@ arm: {
       // Re-pinned by #3346 (owner Q1 revised A): the selected outline moved from `interactive.primary.border.*` to the
       // selection mark `interactive.primary.indicator.*` on 12 members. Measured when re-pinned: the new plans with those
       // 12 refs swapped back hash to the pre-#2945 literal (85641a65e850…), so nothing else in the pill moved.
-      ok(pillHash === '48c09571c7cabd5cfa52439754c15e5c9b4afb438dc462a6d658c5ed5d4b3ad4',
+      // Re-pinned by #3647 (owner Q192 A): the × glyph layer is renamed `dismissGlyph` → `closeGlyph`. Measured when
+      // re-pinned: the new plans with `closeGlyph` swapped back hash to the #3346 literal (48c09571c7ca…), so only the name moved.
+      ok(pillHash === '84f9b7a09d286df0bfe9e3de362696d3a6e288bc8fc574ba8833bce054d6ce26',
         `tag pill unchanged (#2945): the 45 pill members, materialized at the null brand, are byte-identical to main before the underline hug, its code-tier prose and #3346's selection mark aside (sha256 ${pillHash.slice(0, 12)}…)`);
       // #2946 review: after the hug the rung heights (28 / 36 / 44 / 56px) and "1.5 times its height" hold under Pill only, so
       // every shipped Tag string (everything but the maintainer-only `notes`) that states one names the style it is true of.
@@ -17259,7 +17328,7 @@ arm: {
           const inset = r.counterAxisAlignItems === 'MAX' ? pxVar(content?.bound?.paddingBottom) : NaN;
           const labelBottom = inset + (lcH - lineBox) / 2;
           // The × slot hugs too (#2945): its glyph plus its own block paddings, unless it binds a height.
-          const slotGlyph = slot ? find(slot, 'dismissGlyph') : undefined;
+          const slotGlyph = slot ? find(slot, 'closeGlyph') : undefined;
           const slotH = !slot ? 0 : slot.bound?.height ? pxVar(slot.bound.height) : pxVar(slotGlyph?.bound?.height) + pxVar(slot.bound?.paddingTop) + pxVar(slot.bound?.paddingBottom);
           const frameH = Math.max(pxVar(r.bound?.minHeight), pxVar(r.bound?.height), lcH + pxVar(content?.bound?.paddingTop) + pxVar(content?.bound?.paddingBottom), slotH);
           const checkBottom = check ? inset + (lcH - pxVar(check.bound?.height)) / 2 : undefined;
@@ -20549,6 +20618,72 @@ arm: {
     ok(validateComponentDef(counter).errors.length === 0, `#2427 variantWhen: the Counter's own mapping validates clean (${validateComponentDef(counter).errors.join(' | ') || 'none'})`);
   }
 
+  // ---- #3554 Q-FL1 A, built as Q-FL1.1 A: THE COUNTER'S NESTED GLYPHS ON ITS DISABLED FILL (`PartDef.hostInk`) ----
+  // The owner's decisions, typed here as literals and never read off the def (docs/34): on a disabled OUTLINE Counter the
+  // nested FlushIconButton's minus and plus glyphs draw in `color.disabled.on-fill`, the value's ink on that fill; a
+  // disabled GHOST Counter draws no fill, so its glyphs keep the flush button's own ink and the host pushes nothing; no
+  // other member pushes anything. ACTUAL is each projected member's nest node. The contrast arm reads the GROUND off the
+  // plan (the control's own fill at that member), asserts it is the disabled fill, and computes WCAG contrast HERE from
+  // the resolved hexes in every corpus brand and mode against the 1.4.11 floor, 3:1, never reading the tier's own ratio.
+  // Mutations, each failing a named line: drop `hostInk` from the stepper (counter/host-ink), rebind
+  // `disabled.icon.on-fill` to `color.disabled.icon` (counter/host-ink, and the contrast arm), add a plain `disabled.icon`
+  // (counter/host-ink: ghost pushes).
+  {
+    const plans = figmaAnatomySet(counter, { swapTarget: 'FPO-default-icon' });
+    const off: string[] = [];
+    const pairs: { at: string; ink: string; ground: string | undefined }[] = [];
+    for (const p of plans) {
+      const ap = String(p.coord.appearance), st = String(p.coord.state);
+      const control = p.root.children.find((c) => c.name === 'control');
+      for (const side of ['decrement', 'increment']) {
+        const n = control?.children.find((c) => c.name === side);
+        const want = ap === 'outline' && st === 'disabled' ? 'color/disabled/on-fill' : undefined;
+        if (n?.type !== 'NESTED_INSTANCE' || n.descendantFills !== want) off.push(`${planComponentName(p)}/${side}: ${n?.type} ${String(n?.descendantFills)}, want ${String(want)}`);
+        if (n?.descendantFills) pairs.push({ at: `${planComponentName(p)}/${side}`, ink: n.descendantFills, ground: control?.paints?.fills });
+      }
+    }
+    ok(off.length === 0 && pairs.length === 6,
+      `#3554 counter/host-ink: on a disabled outline Counter both nested glyphs draw in color/disabled/on-fill (Q-FL1 A), pushed as descendantFills on the nested instance (Q-FL1.1 A); ghost and every enabled member push nothing (${pairs.length} pushed of 6${off.length ? ` — ${off.slice(0, 3).join('; ')}` : ''})`);
+    ok(pairs.every((x) => x.ground === 'color/disabled/fill'),
+      `#3554 counter/host-ink ground: every pushed glyph sits on the control's color/disabled/fill (${pairs.filter((x) => x.ground !== 'color/disabled/fill').map((x) => `${x.at} on ${String(x.ground)}`).join('; ') || 'ok'})`);
+    const roleOf = (v: string) => v.replace(/^color\//, '').replace(/\//g, '.');
+    const low: string[] = [];
+    let measured = 0, expected = 0;
+    for (const { id, theme: th } of corpus()) {
+      const modes = resolveAllModes(th);
+      expected += modes.length * new Set(pairs.map((x) => `${x.ink}|${x.ground}`)).size;
+      for (const M of modes) for (const pair of new Set(pairs.map((x) => `${x.ink}|${x.ground}`))) {
+        const [inkVar, groundVar] = pair.split('|');
+        const roles = M.roles as Record<string, { hex: string; alpha?: number } | undefined>;
+        const ink = roles[roleOf(inkVar)], g = roles[roleOf(groundVar)], page = roles['background.primary'];
+        if (!ink || !g || !page) { low.push(`${id.split(' ')[0]}/${M.mode}: ${inkVar} on ${groundVar} resolves no role`); continue; }
+        const r = contrast(hexToRgb(ink.hex), composite(hexToRgb(page.hex), hexToRgb(g.hex), g.alpha ?? 1));
+        measured++;
+        if (!(r >= 3)) low.push(`${id.split(' ')[0]}/${M.mode}: ${roleOf(inkVar)} on ${roleOf(groundVar)} ${r.toFixed(2)}:1`);
+      }
+    }
+    ok(measured > 0 && measured === expected && low.length === 0,
+      `#3554 counter/host-ink contrast: the pushed glyph ink clears 3:1 (SC 1.4.11) against color.disabled.fill in every corpus brand and mode (${measured} of ${expected} measured${low.length ? ` — ${low.slice(0, 4).join('; ')}` : ''})`);
+
+    // The schema field: the Counter validates clean, and each refusal fires by name on a case built for it.
+    const withStep = (patch: Record<string, unknown>, tokens?: Record<string, string>) => ({
+      ...counter,
+      ...(tokens ? { tokens } : {}),
+      anatomy: { ...counter.anatomy!, parts: { ...counter.anatomy!.parts, decrement: { ...counter.anatomy!.parts.decrement!, ...patch } } },
+    }) as unknown as ComponentDef;
+    const noIcon = Object.fromEntries(Object.entries(counter.tokens).filter(([k]) => !/(^|\.)icon(\.|$)/.test(k)));
+    const HOST_INK_CASES: Array<{ why: string; def: ComponentDef; want: RegExp }> = [
+      { why: 'a part that builds no instance', def: { ...counter, anatomy: { ...counter.anatomy!, parts: { ...counter.anatomy!.parts, entry: { ...counter.anatomy!.parts.entry!, hostInk: 'icon' } } } } as unknown as ComponentDef, want: /'entry' declares 'hostInk' but is kind 'box'/ },
+      { why: 'a slot other than icon', def: withStep({ hostInk: 'label' }), want: /declares hostInk 'label' — only 'icon'/ },
+      { why: 'hostInk beside fixedPaint', def: withStep({ fixedPaint: true }), want: /declares both 'hostInk' and 'fixedPaint'/ },
+      { why: 'a host that keys no icon ink', def: withStep({}, noIcon), want: /declares hostInk 'icon' but the def binds no 'icon' paint key/ },
+    ];
+    for (const c of HOST_INK_CASES) {
+      const errs = validateComponentDef(c.def).errors;
+      ok(errs.some((e) => c.want.test(e)), `#3554 hostInk refuses ${c.why} (errors: ${errs.join(' | ') || 'none'})`);
+    }
+  }
+
   // ---- #2725: THE TEXT-BEARING CONTROLS STEP THEIR GLYPH DOWN ONE RUNG — owner decision Q337 A (2026-10-15) ----
   // Segmented control, Tab and Tag follow Button (#1350): small 16, medium 20, large 24 (`icon.size.xs` / `sm` / `md`).
   // Icon button keeps its 1:1 rung (20 / 24 / 32); Flush icon button its own (20 / 20 / 24, asserted above). EXPECTED is
@@ -20562,7 +20697,7 @@ arm: {
     const GLYPH_CASES: Array<{ id: string; parts: string[]; want: Record<string, [string, number]> }> = [
       { id: 'segmented-control-segment', parts: ['leadingVisual'], want: STEP_DOWN },
       { id: 'tab-item', parts: ['leadingVisual'], want: STEP_DOWN },
-      { id: 'tag', parts: ['leadingVisual', 'checkGlyph', 'dismissGlyph'], want: STEP_DOWN },
+      { id: 'tag', parts: ['leadingVisual', 'checkGlyph', 'closeGlyph'], want: STEP_DOWN },
       { id: 'icon-button', parts: ['icon'], want: ONE_TO_ONE },
       { id: 'icon-button-destructive', parts: ['icon'], want: ONE_TO_ONE },
       { id: 'icon-button-neutral', parts: ['icon'], want: ONE_TO_ONE },
@@ -21438,6 +21573,36 @@ arm: {
         && aria.includes(nameClause) && aria.includes(noAriaRequired)
         && !/aria-required (is|are) set/.test(aria) && aria.split('aria-required').length === 2,
         `Q-FL2.1 slider's required prop carries "required" in each thumb's accessible name and sets no aria-required, in its prop description and accessibility.aria (got ${r ? `${r.type} ${String(r.default)}: ${r.description}` : 'none'} / aria: ${aria})`);
+    }
+    // D3699.1 B / D3699.2 (#3699 follow-up): the two descriptions of a thumb's name carry the ", required" rule, and
+    // it applies to custom thumbLabels too (the clause follows "when not set", not inside it). Literals: the owner's
+    // approved clause, so a description that drops it, or rewords it, fails here.
+    {
+      const clause = ', with ", required" added when the slider is required';
+      const thumbName = componentDefs.find((d) => d.id === '_slider-thumb')?.props.find((p) => p.name === 'aria-label')?.description ?? '';
+      ok(thumbName === 'The thumb\'s accessible name. Set by the Slider: the label for a single value, "Minimum {label}" and "Maximum {label}" for a range, with ", required" added when the slider is required.' && thumbName.includes(clause),
+        `D3699.1 _slider-thumb's aria-label description carries the ", required" rule (got ${thumbName})`);
+      const thumbLabels = componentDefs.find((d) => d.id === 'slider')?.props.find((p) => p.name === 'thumbLabels')?.description ?? '';
+      ok(thumbLabels === 'For a range, the two thumb names, "Minimum {label}" and "Maximum {label}" when not set, with ", required" added when the slider is required.' && thumbLabels.includes(clause),
+        `D3699.2 slider's thumbLabels description carries the ", required" rule, set or not (got ${thumbLabels})`);
+    }
+    // D3699.3 (#3699 follow-up): FieldLabel says the required state is never marker-only. For a slider that is not
+    // aria-required (Q-FL2.1 A) but "required" in the thumb's accessible name, so each place FieldLabel says it names
+    // the slider case, and the old field-only wording is gone.
+    {
+      const fl = componentDefs.find((d) => d.id === 'field-label');
+      const sliderCase = 'or for a slider, "required" in the thumb\'s accessible name';
+      const places: [string, string][] = [
+        ['required prop', fl?.props.find((p) => p.name === 'required')?.description ?? ''],
+        ['accessibility.aria', fl?.accessibility.aria ?? ''],
+        ['guidance', (fl?.docs?.do ?? []).find((s) => s.includes('back the marker')) ?? ''],
+      ];
+      for (const [where, text] of places) {
+        ok(text.includes(sliderCase)
+          && !text.includes('the field also carries required / aria-required, so the state is not marker-only')
+          && !text.includes('back the marker with aria-required'),
+          `D3699.3 field-label's ${where} names the slider case, "required" in the thumb's accessible name (got ${text})`);
+      }
     }
     // Since #2266 the three field hosts are sized, and the label's SIZE follows the host's (pinned per member in
     // the #2266 block); what stays the label's own default is its emphasis.
@@ -23177,7 +23342,7 @@ arm: {
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; nestedItems?: Record<string, { name: string; set: string; member: string }[]>; compTexts?: Record<string, Record<string, string>>; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean; colors?: Record<string, { r: number; g: number; b: number; a: number }>; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>>; unavailableFonts?: string[]; discardLiteralFills?: string[] };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; nestedItems?: Record<string, { name: string; set: string; member: string }[]>; compTexts?: Record<string, Record<string, string>>; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean; colors?: Record<string, { r: number; g: number; b: number; a: number }>; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>>; unavailableFonts?: string[]; fontRefusal?: 'error' | 'string'; discardLiteralFills?: string[] };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -23744,7 +23909,12 @@ arm: {
         // #2343 PR 5 — a font the file lacks (`opts.unavailableFonts`, as 'Family Style') is refused at the load, as Figma
         // refuses one that is not installed, so the paste executor's literal-font fallback has a host to fall back on.
         loadFontAsync: async (fn: { family?: string; style?: string }) => {
-          if (opts.unavailableFonts?.includes(`${fn?.family} ${fn?.style}`)) throw new Error(`Cannot load font "${fn.family} ${fn.style}": it is not available.`);
+          // `fontRefusal: 'string'` rejects with a plain string, no `.message`, as the owner's run of 2026-11-12 showed Figma does.
+          if (opts.unavailableFonts?.includes(`${fn?.family} ${fn?.style}`)) {
+            const why = `Cannot load font "${fn.family} ${fn.style}": it is not available.`;
+            if (opts.fontRefusal === 'string') throw why;
+            throw new Error(why);
+          }
         },
         // #1007 — a file CAN hold effect styles (`opts.effectStyles`), so the payload's effect-style apply has
         // a success path to take. Was `async () => []`, which left the apply unreachable on this harness.
@@ -24521,6 +24691,31 @@ arm: {
         const other = run.misses.filter((m) => /\.(fills|strokes|font|literalFont|characters) ->|THREW/.test(m) && !/^mark/.test(m) && !m.startsWith('label.font -> Google Sans Medium ('));
         ok(landed && refused.length === 1 && other.length === 0 && text?.characters === 'Continue with Google' && all.length > 1,
           `#2343 PR 5 paste executor font fallback: with Google Sans refused, the label lands in Roboto Medium 14/20, the refused face is reported as 'label.font -> Google Sans Medium (…)', and the member still builds (${JSON.stringify(fn)} ${String(text?.fontSize)}/${JSON.stringify(lh)}; reported ${refused.length}; other ${other[0] ?? 'none'})`);
+      }
+      // THE REFUSAL'S REASON, WHATEVER THE HOST REJECTS WITH (the owner's Update file run, 2026-11-12, where every refused
+      // load read `(undefined)`): a host that rejects with a plain string has that string reported, typed here, byte for
+      // byte the executor's line (`test-write-components.ts` `sign-in build/font reason`). Mutation: the payload's catch back
+      // to `err.message` fails this arm by name.
+      {
+        const plan = figmaAnatomyPlan(sb, 'medium', { provider: 'google', style: 'light', state: 'rest' } as never);
+        const run = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: [], page: { children: [] }, unavailableFonts: ['Google Sans Medium'], fontRefusal: 'string' });
+        const refused = run.misses.filter((m) => m.startsWith('label.font -> Google Sans Medium ('));
+        const want = 'label.font -> Google Sans Medium (Cannot load font "Google Sans Medium": it is not available.)';
+        ok(refused.length === 1 && refused[0] === want,
+          `paste executor font reason: a host that rejects the load with a string has it reported (${JSON.stringify(refused)})`);
+      }
+      // THE STYLE-FONT REFUSAL'S REASON (#3731 review S1): the text-style load is the path every style-bound label takes,
+      // so a file missing the brand's typeface hits it. Code input's digit carries a text style, whose font the stub names
+      // `Inter Semi Bold`; refused with a plain string, that string is reported, the whole line typed here. Mutation: the
+      // payload `build`'s text-style catch back to `err.message` fails this arm by name.
+      {
+        const cellDef = componentDefs.find((x) => x.id === 'code-input-cell')!;
+        const plan = figmaAnatomyPlan(cellDef, 'medium', { state: 'filled' } as never);
+        const run = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: [], page: { children: [] }, unavailableFonts: ['Inter Semi Bold'], fontRefusal: 'string' });
+        const refused = run.misses.filter((m) => m.includes('.font -> '));
+        const want = 'digit.font -> Inter Semi Bold (Cannot load font "Inter Semi Bold": it is not available.)';
+        ok(refused.length === 1 && refused[0] === want,
+          `paste executor style font reason: a host that rejects a text style's font with a string has it reported (${JSON.stringify(refused)})`);
       }
       // THE LITERAL READ-BACK SPEAKS: a host that drops the container's literal fill is reported by value. Mutation: the
       // payload's `__litHeld` read-back guard → `false` fails this arm by name.
@@ -25959,7 +26154,7 @@ arm: {
         const slotDefs = Object.entries(((set?.componentPropertyDefinitions ?? {}) as Record<string, { type: string }>)).filter(([, d]) => d.type === 'SLOT');
         ok(run.misses.length === 0 && cells.length === 15 && cells.every((n) => n.type === 'SLOT') && slotDefs.length === 1
           && cells.every((n) => (n.componentPropertyReferences as Record<string, string> | null)?.slotContentId === slotDefs[0][0])
-          && cells.every((n) => ((n.children as Record<string, unknown>[]) ?? []).map((c) => String(c.name)).join() === 'dismissGlyph'),
+          && cells.every((n) => ((n.children as Record<string, unknown>[]) ?? []).map((c) => String(c.name)).join() === 'closeGlyph'),
           `#2417 paste: the paste executor builds each dismiss cell as a native SLOT holding its glyph, and the set holds one SLOT property they all reference (${cells.length} cells, ${[...new Set(cells.map((n) => n.type))].join('/')}; ${slotDefs.map(([k]) => k).join(', ') || 'no SLOT property'}${run.misses.length ? `; misses ${JSON.stringify(run.misses.slice(0, 2))}` : ''})`);
         // A SLOT'S TEXT IS LITERAL (#2417): Figma refuses a component-property reference on a slot sublayer (measured), so
         // a text part inside a slot carries its own `characters`, and a TEXT property claiming one is refused, as is
@@ -25983,7 +26178,7 @@ arm: {
         const refused = (d: ComponentDef, re: RegExp): string => { const all = errs(d); return all.some((m) => re.test(m)) ? '' : `none matched; got ${JSON.stringify(all.slice(0, 2))}`; };
         const onBox = refused(patched({ dismiss: { ...tagParts.dismiss, characters: 'x' } }), /declares 'characters' — only a 'text' part/);
         ok(onBox === '', `#2417 validator: copy on a box is refused, only a text part holds it ${onBox}`);
-        const onGlyph = refused(patched({ dismissGlyph: { ...tagParts.dismissGlyph, contentSlot: true } }), /only a 'box' can be a native slot/);
+        const onGlyph = refused(patched({ closeGlyph: { ...tagParts.closeGlyph, contentSlot: true } }), /only a 'box' can be a native slot/);
         ok(onGlyph === '', `#2417 validator: a native slot on a non-box part is refused ${onGlyph}`);
         const { layout: _layout, ...noLayout } = tagParts.dismiss;
         const bare0 = refused(patched({ dismiss: { ...noLayout, contentSlot: true } }), /binds no 'layout'/);
@@ -30626,7 +30821,57 @@ arm: {
 
   // One version, stamped everywhere it is claimed. Two hardcoded copies is how a server ends up
   // reporting a version its own artifacts disagree with.
-  ok(SERVER_INFO.version === ENGINE_VERSION, 'version: the MCP serverInfo reports the engine version rather than a second hardcoded copy');
+  // #3698 R1: the server reports the BUILD identity, the engine version plus the change notes pending since the last fold.
+  // EXPECTED is built here from git's index (`git ls-files`), not from `build-identity.ts`'s directory read, so the two
+  // count the notes independently; and the format is typed literally. BY-NAME MUTATION: make SERVER_INFO's version the
+  // bare ENGINE_VERSION again, or make `pendingNoteCount` count README.md too → this arm fails.
+  {
+    const ls = spawnSync('git', ['ls-files', '--', 'packages/engine/changes/*.md'], { cwd: resolve(HERE, '..', '..'), encoding: 'utf8' });
+    const notes = ls.status === 0 ? ls.stdout.split('\n').filter((f) => f && !f.endsWith('/README.md')).length : -1;
+    const expected = notes > 0 ? `${ENGINE_VERSION}+pending.${notes}` : ENGINE_VERSION;
+    ok(notes >= 0 && SERVER_INFO.version === expected,
+      `version: the MCP serverInfo reports the build identity (#3698 R1) — expected ${expected} from ${notes} tracked note(s), got ${SERVER_INFO.version}`);
+    ok(buildIdentity(0, '1.2.3') === '1.2.3' && buildIdentity(null, '1.2.3') === '1.2.3' && buildIdentity(7, '1.2.3') === '1.2.3+pending.7',
+      'version: a folded or unknown state is the plain version, and a pending count is semver build metadata (#3698 R1)');
+    // The committed corpus keeps the fold's stamp: the pure tree carries no build identity, whatever is pending.
+    ok(buildTree(brandTheme(MINIMAL_BRAND)).tree.$extensions?.generator?.build === undefined,
+      'version: the pure tree carries no build identity; only a live shell stamps one (#3698 R1)');
+    // A brand export written live carries it (format 1.3); the committed brand-neutral one does not.
+    const liveDoc = exportComponentDefs(componentDefs, { brand: MINIMAL_BRAND, build: '9.9.9+pending.4' });
+    ok((liveDoc as any).build === '9.9.9+pending.4' && (exportComponentDefs(componentDefs) as any).build === undefined,
+      'version: a live defs export carries the build identity, the committed one none (#3698 R1)');
+
+    // THE LIVE SURFACES, driven end to end (review of #3749). EXPECTED is still git's count above, so a shell that stops
+    // stamping fails here whatever `build-identity.ts` says. On a folded tree (no notes) every surface must carry NO
+    // build, which these arms also hold. BY-NAME MUTATIONS: empty `stampBuild` in mcp.ts → the theme_brand and
+    // export_theme tokens arms fail; drop `build: BUILD_IDENTITY` from export_theme → its defs arm fails; drop `build`
+    // from either call in cli.ts → the CLI arm fails. score_consumption returns no tree, so it has no stamp to assert.
+    const want = notes > 0 ? expected : undefined;
+    const themed = JSON.parse(callTool('theme_brand', { brand: MINIMAL_BRAND, include: ['tokens'] }).content[0].text);
+    ok(themed.tokens?.$extensions?.generator?.version === ENGINE_VERSION && themed.tokens.$extensions.generator.build === want,
+      `version: theme_brand's token tree carries the build identity (#3698 R1) — expected ${want}, got ${themed.tokens?.$extensions?.generator?.build}`);
+    const files = new Map<string, string>();
+    const io = { mkdir: () => {}, writeFile: (q: string, c: string) => { files.set(q, c); } };
+    const ex = callTool('export_theme', { brand: MINIMAL_BRAND, outDir: './bid', include: ['tokens', 'componentSpecs'] }, undefined, io);
+    const exTree = JSON.parse(files.get('./bid/tokens.json') ?? '{}');
+    const exDefs = JSON.parse(files.get('./bid/component-defs.json') ?? '{}');
+    ok(!ex.isError && exTree.$extensions?.generator?.version === ENGINE_VERSION && exTree.$extensions.generator.build === want,
+      `version: export_theme's tokens.json carries the build identity (#3698 R1) — expected ${want}, got ${exTree.$extensions?.generator?.build}`);
+    ok(exDefs.engineVersion === ENGINE_VERSION && exDefs.build === want,
+      `version: export_theme's component-defs.json carries the build identity (#3698 R1) — expected ${want}, got ${exDefs.build}`);
+    // The CLI, as a user runs it: a brief in, the tree and the defs export out.
+    const cliOut = mkdtempSync(join(tmpdir(), 'prism3-cli-build-'));
+    try {
+      const r = spawnSync('npx', ['tsx', resolve(HERE, 'cli.ts'), resolve(HERE, 'examples', 'harbor.design.md'), '--out', cliOut, '--component-specs'], { cwd: HERE, encoding: 'utf8' });
+      // `<id>.tokens.json` is the whole tree; the base and overlay projections beside it carry no generator block.
+      const defFile = readdirSync(cliOut).find((n) => n.endsWith('.component-defs.json'));
+      const tokFile = defFile && readdirSync(cliOut).find((n) => n === defFile.replace('.component-defs.json', '.tokens.json'));
+      const cliTree = tokFile ? JSON.parse(readFileSync(join(cliOut, tokFile), 'utf8')) : {};
+      const cliDefs = defFile ? JSON.parse(readFileSync(join(cliOut, defFile), 'utf8')) : {};
+      ok(r.status === 0 && !!tokFile && !!defFile && cliTree.$extensions?.generator?.build === want && cliDefs.build === want,
+        `version: cli.ts stamps the build identity on the tree and the defs export it writes (#3698 R1) — expected ${want}, got tree ${cliTree.$extensions?.generator?.build} / defs ${cliDefs.build} (exit ${r.status}${r.status ? `: ${r.stderr.slice(-300)}` : ''})`);
+    } finally { rmSync(cliOut, { recursive: true, force: true }); }
+  }
   const stamped = buildTree(brandTheme(MINIMAL_BRAND)).tree as any;
   ok(stamped.$extensions?.generator?.version === ENGINE_VERSION,
     'version: every emitted tree carries the engine version, so a suspect value can be traced to the code that produced it');
@@ -31083,7 +31328,7 @@ arm: {
   ok(cs.files.size === 2 && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json'),
     `export_theme: include:[componentSpecs] writes exactly the export and its Specs projection (${[...cs.files.keys()].join(', ')})`);
   const csDoc = JSON.parse(cs.files.get('./cs/component-defs.json') ?? '{}');
-  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.2' && Object.keys(csDoc.components ?? {}).length >= 40,
+  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.3' && Object.keys(csDoc.components ?? {}).length >= 40,
     `export_theme: the component-defs export is the brand's (${csDoc.brand?.id}), in its format, with every component (${Object.keys(csDoc.components ?? {}).length})`);
 
   // A bad brand must fail BEFORE anything is written — a partial export is worse than none.
@@ -41540,6 +41785,65 @@ arm: {
     }
   }
   ok(checked >= 9 && bad.length === 0, `#3555 C10: every derived minWidth rule with a numeric ratio states the arithmetic that gives its px (${checked} rows across ${EXAMPLE_IDS.length} brands)${bad.length ? ` — ${bad.slice(0, 4).join('; ')}` : ''}`);
+}
+
+// #3698 finding 7b — THE ALIAS VALIDATOR REFUSES A CYCLE AND A CHAIN THE READERS CANNOT FOLLOW. The gate checked one
+// hop: a ref that named a token passed, whatever that token pointed at. `deref` gives up after 10 hops and `pxOf` /
+// `numOf` read that as `0`, so a cycle, or a chain of 11, emitted clean and was consumed as zero. `aliasFaults` (tree.ts)
+// now follows each chain. The CLEAN case is a committed fixture (`fixtures/aliases/chains.tokens.json`: a 10-hop chain,
+// a per-mode chain, a composite sub-value) that must report nothing. Each FAULT is planted here in a copy of it and
+// must be reported by path and reason. The cap is typed here as 10, never read from `ALIAS_MAX_HOPS`, and tied to the
+// reader by driving `deref` over the same chains. Every committed tree is then walked too.
+{
+  const FIX = 'fixtures/aliases/chains.tokens.json';
+  const clean = JSON.parse(readFileSync(resolve(HERE, FIX), 'utf8'));
+  const copy = (): any => JSON.parse(JSON.stringify(clean));
+  const show = (fs: AliasFault[]): string => fs.map((f) => `${f.reason} ${f.path}${f.mode ? ` [${f.mode}]` : ''}${f.chain ? ` (${f.chain.join(' → ')})` : ''}`).join('; ') || 'none';
+  const c = aliasFaults(clean);
+  ok(c.faults.length === 0 && c.aliases.length >= 16,
+    `#3698 7b: the clean fixture ${FIX} reports no alias fault (${c.aliases.length} aliases, floor 16; faults: ${show(c.faults)})`);
+  ok(deref(clean, at(clean, 'fx.cap.n0'))?.$value === '#336699',
+    `#3698 7b: deref follows the fixture's 10-hop chain to its literal, so the validator's cap is no tighter than the reader's`);
+
+  const has = (fs: AliasFault[], path: string, reason: AliasFault['reason'], mode?: string): boolean =>
+    fs.some((f) => f.path === path && f.reason === reason && f.mode === mode);
+  const planted: [string, (t: any) => void, string, AliasFault['reason'], string?][] = [
+    ['a self-alias', (t) => { t.fx.self = { $type: 'color', $value: '{fx.self}' }; }, 'fx.self', 'cycle'],
+    ['a two-token loop', (t) => { t.fx.p = { $type: 'color', $value: '{fx.q}' }; t.fx.q = { $type: 'color', $value: '{fx.p}' }; }, 'fx.p', 'cycle'],
+    ['a loop reached through a clean leaf', (t) => { t.fx.cap.n9.$value = '{fx.cap.n5}'; }, 'fx.cap.n0', 'cycle'],
+    ['a loop in one mode only', (t) => { t.fx.mode.other.$extensions.prism3.modes.dark.$value = '{fx.mode.leaf}'; }, 'fx.mode.leaf', 'cycle', 'dark'],
+    ['an 11-hop chain', (t) => { t.fx.cap.n10 = { $type: 'color', $value: '{fx.lit}' }; t.fx.cap.n9.$value = '{fx.cap.n10}'; }, 'fx.cap.n0', 'too-deep'],
+    ['a dangling ref', (t) => { t.fx.one.$value = '{fx.nowhere}'; }, 'fx.one', 'dangling'],
+  ];
+  for (const [what, plant, path, reason, mode] of planted) {
+    const t = copy();
+    plant(t);
+    const f = aliasFaults(t).faults;
+    ok(has(f, path, reason, mode), `#3698 7b: ${what} is reported as ${reason} at ${path}${mode ? ` [${mode}]` : ''} (got: ${show(f)})`);
+  }
+  {
+    const t = copy();
+    t.fx.cap.n10 = { $type: 'color', $value: '{fx.lit}' }; t.fx.cap.n9.$value = '{fx.cap.n10}';
+    ok(deref(t, at(t, 'fx.cap.n0')) === undefined,
+      `#3698 7b: deref gives up on the same 11-hop chain the validator refuses, so nothing the validator passes reads as 0`);
+  }
+
+  const ids = readdirSync(resolve(HERE, './out')).filter((f) => /^[^.]+\.tokens\.json$/.test(f)).sort();
+  const bad: string[] = [];
+  let total = 0, deepest = 0;
+  for (const f of ids) {
+    const tree = JSON.parse(readFileSync(resolve(HERE, './out', f), 'utf8'));
+    const r = aliasFaults(tree);
+    total += r.aliases.length;
+    if (r.faults.length) bad.push(`${f}: ${show(r.faults.slice(0, 3))}`);
+    for (const a of r.aliases) {
+      let hops = 0, node = at(tree, a.ref);
+      for (; hops < 20 && typeof node?.$value === 'string' && /^\{.+\}$/.test(node.$value); hops++) node = at(tree, node.$value.slice(1, -1));
+      deepest = Math.max(deepest, hops + 1);
+    }
+  }
+  ok(ids.length >= 4 && total >= 7000 && bad.length === 0,
+    `#3698 7b: every committed tree's aliases resolve with no cycle and within 10 hops (${ids.length} trees, ${total} aliases, floors 4 and 7000; deepest base chain ${deepest} hops)${bad.length ? ` — ${bad.join(' | ')}` : ''}`);
 }
 
 // #3698 finding 7a — A TINT'S PUBLISHED CONTRAST IS MEASURED AT THE ALPHA THAT SHIPS. `settleSolidTint` composited the

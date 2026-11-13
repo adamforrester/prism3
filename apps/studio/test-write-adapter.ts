@@ -52,14 +52,19 @@ accepts('component-result that completed with misses', { type: 'component-result
   { kind: 'component-result', ok: false, headline: '⚠ 48, 2 missed', summary: 's', completed: true , lines: null, causes: null });
 // #2265: the update check's verdict, its own kind, so it can never be read as a build's.
 accepts('component-update-result', { type: 'component-update-result', ok: true, headline: 'Would change 1 of 26', summary: 's', lines: ['a: 1 to update.', 'b: up to date.'] },
-  { kind: 'component-update-result', ok: true, headline: 'Would change 1 of 26', summary: 's', lines: ['a: 1 to update.', 'b: up to date.'], publish: null, causes: null });
+  { kind: 'component-update-result', ok: true, headline: 'Would change 1 of 26', summary: 's', lines: ['a: 1 to update.', 'b: up to date.'], publish: null, causes: null, completed: false });
 accepts('component-update-result without a headline', { type: 'component-update-result', ok: false, summary: 's' },
-  { kind: 'component-update-result', ok: false, headline: '✗ check failed', summary: 's', lines: null, publish: null, causes: null });
+  { kind: 'component-update-result', ok: false, headline: '✗ check failed', summary: 's', lines: null, publish: null, causes: null, completed: false });
 // #2858: an Update's publish description is carried; anything but a non-empty string is dropped.
 accepts('component-update-result with a publish description', { type: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['a'], publish: 'Prism3 updated tag. Engine 0.237.0.' },
-  { kind: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['a'], publish: 'Prism3 updated tag. Engine 0.237.0.', causes: null });
+  { kind: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['a'], publish: 'Prism3 updated tag. Engine 0.237.0.', causes: null, completed: false });
 accepts('component-update-result with a malformed publish description', { type: 'component-update-result', ok: true, headline: 'h', summary: 's', publish: 42 },
-  { kind: 'component-update-result', ok: true, headline: 'h', summary: 's', lines: null, publish: null, causes: null });
+  { kind: 'component-update-result', ok: true, headline: 'h', summary: 's', lines: null, publish: null, causes: null, completed: false });
+// #3711 (Q-UF3 A): an applied update that went through every set says so; anything but `true` reads false.
+accepts('component-update-result that completed with sets to check', { type: 'component-update-result', ok: false, completed: true, headline: '⚠ Updated 47 sets · 2 to check', summary: 's', lines: ['s'] },
+  { kind: 'component-update-result', ok: false, headline: '⚠ Updated 47 sets · 2 to check', summary: 's', lines: ['s'], publish: null, causes: null, completed: true });
+accepts('component-update-result with a malformed completed', { type: 'component-update-result', ok: false, completed: 'yes', headline: '✗ x', summary: 's' },
+  { kind: 'component-update-result', ok: false, headline: '✗ x', summary: 's', lines: null, publish: null, causes: null, completed: false });
 accepts('component-result that stopped before the set', { type: 'component-result', ok: false, completed: false, headline: '✗ unknown def', summary: 's' },
   { kind: 'component-result', ok: false, headline: '✗ unknown def', summary: 's', completed: false , lines: null, causes: null });
 accepts('component-result with a malformed completed', { type: 'component-result', ok: false, completed: 'yes', headline: '✗ x', summary: 's' },
@@ -82,10 +87,10 @@ accepts('component-result with its causes', { type: 'component-result', ok: fals
 accepts('component-result with a cause holding every field', { type: 'component-result', ok: false, completed: true, headline: '⚠ built', summary: 's', lines: ['s'], causes: [{ ...CAUSE, step: 'Build', why: 'w', stays: 'The set stays as it was.', todo: 't' }] },
   { kind: 'component-result', ok: false, headline: '⚠ built', summary: 's', completed: true, lines: ['s'], causes: [{ ...CAUSE, step: 'Build', why: 'w', stays: 'The set stays as it was.', todo: 't' }] });
 accepts('component-update-result with no causes found', { type: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['s'], causes: [] },
-  { kind: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['s'], publish: null, causes: [] });
+  { kind: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['s'], publish: null, causes: [], completed: false });
 // #3326 PR 2 (Q3390.3 A): `note` is a cause kind, carried through on any verdict, a clean one included.
 accepts('component-update-result with a note', { type: 'component-update-result', ok: true, headline: '✓ updated 4 in place', summary: 's', lines: ['s'], causes: [{ ...CAUSE, kind: 'note', subject: null }] },
-  { kind: 'component-update-result', ok: true, headline: '✓ updated 4 in place', summary: 's', lines: ['s'], publish: null, causes: [{ ...CAUSE, kind: 'note', subject: null }] });
+  { kind: 'component-update-result', ok: true, headline: '✓ updated 4 in place', summary: 's', lines: ['s'], publish: null, causes: [{ ...CAUSE, kind: 'note', subject: null }], completed: false });
 for (const [label, bad] of [['an unknown kind', { ...CAUSE, kind: 'info' }], ['a numeric subject', { ...CAUSE, subject: 3 }], ['a reason not a string', { ...CAUSE, reasons: ['a', 2] }], ['no what', { ...CAUSE, what: undefined }], ['a todo not a string', { ...CAUSE, todo: 1 }],
   // #3326 PR 1 review N3: each optional field is checked, so `causesOf` losing any one of them fails its arm by name.
   ['a step not a string', { ...CAUSE, step: 1 }], ['a why not a string', { ...CAUSE, why: 1 }], ['a stays not a string', { ...CAUSE, stays: 1 }]] as const) {
@@ -223,8 +228,8 @@ accepts('style-guide-result with a malformed stopped leaves it off', { type: 'st
 // #2831: a checked set's consumer-breaking line crosses as given; one that is not a string is left off, the set kept.
 {
   const base = { def: 'button', hash: 'h', members: 4, update: 2, add: 0, drop: 1, handEdited: 0, noBaseline: 0, blocked: false, upToDate: false };
-  accepts('update-check with a published set\'s breaks line', { type: 'update-check', previewHash: 'H', missing: [], refused: [], sets: [{ ...base, breaks: 'Breaks library consumers: x.' }, base] },
-    { kind: 'update-check', previewHash: 'H', missing: [], sets: [{ ...base, breaks: 'Breaks library consumers: x.' }, base], error: null });
+  accepts('update-check with a published set\'s breaks line', { type: 'update-check', previewHash: 'H', missing: [], refused: [], sets: [{ ...base, breaks: '2 changes affect files that use this library: 2 Button members retired. Their instances keep working and show as deprecated.' }, base] },
+    { kind: 'update-check', previewHash: 'H', missing: [], sets: [{ ...base, breaks: '2 changes affect files that use this library: 2 Button members retired. Their instances keep working and show as deprecated.' }, base], error: null });
   accepts('update-check with a malformed breaks line leaves it off', { type: 'update-check', previewHash: 'H', missing: [], refused: [], sets: [{ ...base, breaks: 7 }] },
     { kind: 'update-check', previewHash: 'H', missing: [], sets: [base], error: null });
   // #3302: the check's progress: its counts, the set being checked now, and the one just checked; a count of the wrong

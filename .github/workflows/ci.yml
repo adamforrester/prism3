@@ -14,6 +14,22 @@ on:
   pull_request:
   push:
     branches: [main]
+  # #3698 R3 (owner decision 2026-11-12): THE MERGE QUEUE. Two PRs can each pass against a base that no longer exists
+  # and merge with no git conflict, leaving `main` red or `out/` stale (semantic staleness, the one failure a text merge
+  # cannot see). With a merge queue on `main`, GitHub builds each queued PR on top of `main` plus the PRs ahead of it
+  # and runs this whole workflow there, `regen --check` included, BEFORE the merge; a red run drops the PR from the
+  # queue and `main` never moves. Turning the queue on is a repository setting (branch protection / rulesets on
+  # `main`), which only the owner can change; the steps are in the PR that added this trigger (#3698 R3). Until it is
+  # on, this trigger never fires and changes nothing.
+  #
+  # How the gates read a merge-group run, checked against each ladder when this was added: `GITHUB_EVENT_NAME` is
+  # `merge_group`, `GITHUB_BASE_REF` is empty, and the checkout (`fetch-depth: 0`) is the queue's commit, whose first
+  # parent is `main` (or the group ahead of it). Every git-history gate's ladder then falls to `origin/main`, whose merge
+  # base with HEAD is `main`'s tip, so each compares the queued result with `main`: the PR's diff, plus any group ahead
+  # of it in the queue. `lint-progress-order.ts` treats it as a PR run (only `push` skips its CARRIES AN ENTRY arm), so
+  # the queued PR's fragment is still required.
+  merge_group:
+    types: [checks_requested]
 
 # A force-push to a PR supersedes the previous run; don't burn minutes finishing a stale one. A push
 # run on main is never cancelled (#2617): it is the only run that compares a squash with its parent
@@ -47,6 +63,28 @@ jobs:
   #   surfaces  what reads both bundles or TokenPress: export parity, the two exporters, and the two
   #             prose gates that scan both built bundles, so they run after both builds (CLAUDE.md, principle 4).
 
+  # #3698 R4 (owner decision 2026-11-12) — THE DOCS-ONLY EXEMPTION, decided once. A pull request whose every changed
+  # file is docs skips the browser jobs (`studio`, `plugin`, `chrome`, `chrome-shards`, `surfaces`): each carries
+  # `if: needs.changes.outputs.docs_only != 'true'`. It is a NAMED exemption, never a bare skip: `gates` passes a
+  # skipped browser job only when this job succeeded and said `true`, and records the exemption by name in its log
+  # and the run summary (`all-gates.sh`). The engine job always runs. Which files count as docs, and why every doubt
+  # resolves to "run everything", is `docs-only.sh`'s header. A push to main never qualifies.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      docs_only: ${{ steps.classify.outputs.docs_only }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Decide the docs-only exemption (#3698 R4)
+        id: classify
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: bash .github/scripts/docs-only.sh
+
   engine:
     runs-on: ubuntu-latest
     steps:
@@ -71,38 +109,43 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: .node-version
           cache: npm
 
       # The engine core is buildless (run via tsx) and dependency-free, but the `web` + `plugin`
-      # workspaces need esbuild + typescript, and `tsx` itself is not pinned anywhere in the repo
-      # (the root package.json has no devDependencies). `npm ci` covers the workspaces; tsx is
-      # pinned at the call site below so a new major can't silently change how the engine parses.
+      # workspaces need esbuild + typescript. `tsx` is an EXACT root devDependency (#3698 R4), so `npm ci`
+      # installs the one version the lockfile names and every `npx tsx` below runs it, and Node is the exact
+      # version in `.node-version`. Before, steps named `tsx@4` and Node `22`, both floating.
       - name: Install workspace deps
         run: npm ci
 
       # ---- the gates, cheapest-first so a fast failure reports fast -------------------------
 
       - name: Engine unit tests
-        run: npx --yes tsx@4 packages/engine/test.ts
+        run: npx tsx packages/engine/test.ts
 
       # The MCP surface, driven over the REAL stdio transport as a subprocess. test.ts covers
       # handleRpc/callTool in-process; this covers what a CLIENT meets — newline framing, a message
       # split across chunks, a parse error that must not kill the process — plus 2026-07-28
       # conformance and the agent journey (discover → generate from a brief → verify → self-score).
       - name: MCP conformance + journey
-        run: npx --yes tsx@4 packages/engine/mcp-test.ts
+        run: npx tsx packages/engine/mcp-test.ts
 
       # Reproduces New Balance perceptually from the schema alone; every step within its ΔE00
       # ceiling, plus the contrast contracts. Exits non-zero on any regression.
       - name: NB regression
-        run: npx --yes tsx@4 packages/engine/nb-regression.ts
+        run: npx tsx packages/engine/nb-regression.ts
 
       # The ONLY gate that reads the COMMITTED artifacts. Every other one runs the engine live and
       # compares it against itself, so a stale committed artifact passes them all (#281). Snapshots,
       # regenerates, byte-compares, restores — so it never leaves the tree dirty.
+      #
+      # #3698 R4: it writes its artifact count to REGEN_CHECK_REPORT, and the coverage step below reads that file
+      # rather than running `--check` a second time (the way `verify.ts`'s `drift-coverage` reads this gate's output).
       - name: Committed artifacts have not drifted
-        run: npx --yes tsx@4 packages/engine/regen.ts --check
+        env:
+          REGEN_CHECK_REPORT: ${{ runner.temp }}/regen-check.txt
+        run: npx tsx packages/engine/regen.ts --check
 
       # The FORCING FUNCTION for a materialization rename — one the contract cannot see, because the
       # Figma collection a variable sits in and the namespace folder its name sits under are not
@@ -119,7 +162,7 @@ jobs:
       # It FAILS rather than skips when it cannot find a base ref: a check that downgrades "cannot run"
       # into "nothing to compare, clean" reports green over the whole corpus it could not see.
       - name: A materialization rename is recorded as a rule, and the accounting over it is total
-        run: npx --yes tsx@4 packages/engine/lint-materialization-renames.ts
+        run: npx tsx packages/engine/lint-materialization-renames.ts
 
       # The second gate that reads git HISTORY, and for the same reason the first one does: the two
       # facts it needs — did the emitted bytes move, did ENGINE_VERSION move — are indistinguishable
@@ -127,7 +170,7 @@ jobs:
       # and therefore agrees with it at every commit including the broken ones. Also covered by the
       # job-level `fetch-depth: 0` above.
       - name: The emission moved only with ENGINE_VERSION
-        run: npx --yes tsx@4 packages/engine/lint-emission-version.ts
+        run: npx tsx packages/engine/lint-emission-version.ts
 
       # The THIRD git-history gate (#1252), and the one that closes the hole in the step above: the
       # emission gate is scoped to `out/`, and COMPONENT PAYLOADS ARE NOT COMMITTED THERE — the plugin
@@ -139,7 +182,7 @@ jobs:
       # and therefore the same need for history, plus an in-tree drift arm against an authored baseline
       # that only `--accept` rewrites. Also covered by the job-level `fetch-depth: 0` above.
       - name: The projected component surface moved only with ENGINE_VERSION
-        run: npx --yes tsx@4 packages/engine/lint-component-surface.ts
+        run: npx tsx packages/engine/lint-component-surface.ts
 
       # Two more git-history gates (#2265), both for the in-place component update. The dry run matches
       # a set's existing members to the plan by variant coordinate, which cannot see a rename: a value
@@ -148,7 +191,7 @@ jobs:
       # this gate fails a PR in which a def, an axis or a value leaves `schema/component-axes.json` with
       # no entry. The baseline's `from` side is the merge base, read with `git show`, never the tree.
       - name: A removed component variant is declared in COMPONENT_RENAMES (#2265)
-        run: npx --yes tsx@4 packages/engine/lint-component-renames.ts
+        run: npx tsx packages/engine/lint-component-renames.ts
 
       # The four git-history gates above read their "before" at the merge base of HEAD and the base
       # branch, and on this file's push run on main that merge base is HEAD itself: each compared a squash
@@ -156,7 +199,7 @@ jobs:
       # there. This replays main's push run against each real gate in a `$TMPDIR` clone and requires a
       # squash that breaks the gate's rule to fail by the gate's own assertion, and one that keeps it to pass.
       - name: "On main's push run each git-history gate compares a squash with its parent (#2556)"
-        run: npx --yes tsx@4 packages/engine/lint-push-base.ts
+        run: npx tsx packages/engine/lint-push-base.ts
 
       # The dry run reports a member written by an older executor as needing a re-apply, by comparing
       # the stamp's third field with EXECUTOR_REVISION (#1098). A hand-bumped number is forgotten, and a
@@ -165,14 +208,14 @@ jobs:
       # PR it re-fetches the base branch and fails a number main already holds; on main's push run it also
       # compares HEAD with its first parent, so a squash that lands a taken number fails there.
       - name: "The component executor's code moved only with EXECUTOR_REVISION (#1098, #2265)"
-        run: npx --yes tsx@4 apps/plugin/lint-executor-revision.ts
+        run: npx tsx apps/plugin/lint-executor-revision.ts
 
       # Update file makes a set due for an executor change only when the revision names it (#3101,
       # executor-reach.json). When the revision rose, this draws every set the new entries do not name with
       # the base's executor and with this tree's, in the component shim, and fails one that drew differently.
       # Entries at or below the base's revision may not change. Minutes when it measures; a file read otherwise.
       - name: "Each EXECUTOR_REVISION names every set it redraws (#3101)"
-        run: npx --yes tsx@4 apps/plugin/lint-executor-reach.ts
+        run: npx tsx apps/plugin/lint-executor-reach.ts
 
       # The token-NAME contract (#464). Deliberately NOT part of `regen`: regen rewrites every
       # generated artifact, so if the baseline were regenerated a deleted token would rewrite the
@@ -180,7 +223,7 @@ jobs:
       # rewritten by an explicit `--accept`, which itself refuses unless CONTRACT_VERSION has
       # already been raised by the increment the diff requires.
       - name: Token name contract (breaking-change gate)
-        run: npx --yes tsx@4 packages/engine/token-contract.ts --check
+        run: npx tsx packages/engine/token-contract.ts --check
 
       # The step above holds the constant to the baseline's recorded number, and both are in the tree, so
       # writing the old number back into both after an --accept passed it (#2334). This reads the baseline
@@ -188,7 +231,7 @@ jobs:
       # increment for a removed or retyped guaranteed path, at least a MINOR for an added one, and the
       # base's own number when nothing moved. Needs history: the job-level `fetch-depth: 0` above.
       - name: "CONTRACT_VERSION moved by the increment the surface needs, against the base (#2334)"
-        run: npx --yes tsx@4 packages/engine/lint-contract-version.ts
+        run: npx tsx packages/engine/lint-contract-version.ts
       # #2637 — the agent reference, docs/public/reference/commands.json, still matches the code: every MCP
       # tool of both servers, every agent-link command and every CLI entry point, regenerated in memory from
       # the code (toolDefs, TOOLS, AGENT_COMMANDS/AgentArgs/parseCommand, each CLI's usage and argv reads)
@@ -196,14 +239,14 @@ jobs:
       # not engine emission, and carries no engine version. A tool or command added or renamed in code fails
       # here by name until the reference is regenerated.
       - name: The agent reference matches the code (#2637)
-        run: npx --yes tsx@4 packages/engine/emit-agent-reference.ts --check
+        run: npx tsx packages/engine/emit-agent-reference.ts --check
       # #2647 — the Figma conventions file, docs/public/reference/figma-conventions.json, still matches the
       # code: the page taxonomy, every component set's name and properties, the icon namespace, the native
       # slots, the variable collections and modes, and the canvas furniture, regenerated in memory from the
       # modules that decide them and compared with the committed file. Its own gate for the reason the agent
       # reference has one: served docs, no engine version. A convention changed in code fails here by name.
       - name: The Figma conventions file matches the code (#2647)
-        run: npx --yes tsx@4 packages/engine/emit-figma-conventions.ts --check
+        run: npx tsx packages/engine/emit-figma-conventions.ts --check
 
       # Can a STRANGER consume what the engine emits? This runs Style Dictionary with a deliberately
       # naive config — no preprocessors, no custom transforms — because that is the only configuration
@@ -229,14 +272,14 @@ jobs:
       # was not. Its first run found `prism3-consume` (now `prism3-build-ui`) teaching the pre-rename `action.*` family,
       # which an agent would emit as references resolving to nothing.
       - name: Skills gate (shipped skills make true claims)
-        run: npx --yes tsx@4 packages/engine/lint-skills.ts
+        run: npx tsx packages/engine/lint-skills.ts
 
       # #3413 P1 — the motion skill teaches "every timing is a token", so it is held to it: no duration,
       # curve or spring constant in its text (the oracle is a typed SHAPE, never the emitted values, which
       # would pass an off-ramp duration), and every motion.* name it quotes resolves in every brand's
       # committed DTCG. Non-motion numbers are admitted by exact text, each with a reason.
       - name: The motion skill names tokens, never durations or curves (#3413)
-        run: npx --yes tsx@4 packages/engine/lint-motion-literals.ts
+        run: npx tsx packages/engine/lint-motion-literals.ts
 
       # A gate that silently stops running is worse than no gate, because green starts meaning
       # "nothing ran". If any emitter, report or schema artifact ever leaves the compared set, this
@@ -245,11 +288,16 @@ jobs:
       # #3698 R3: the expected number is no longer typed here. It is a FLOOR, `ARTIFACT_FLOOR` in verify.ts, the one
       # place it is authored, read below; growth passes, so two PRs that each add an artifact no longer collide.
       # verify.ts's comment says why a floor, and what it cannot see.
+      #
+      # #3698 R4: reads the count the drift step above wrote, instead of a second `regen --check` (about 35 s, and
+      # a second run of the same comparison). Only an in-sync run writes the file, so a missing file fails here.
       - name: Drift gate still covers the full artifact set
+        env:
+          REGEN_CHECK_REPORT: ${{ runner.temp }}/regen-check.txt
         run: |
           set -euo pipefail
-          count=$(npx --yes tsx@4 packages/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts' | grep -oE '^[0-9]+')
-          floor=$(npx --yes tsx@4 verify.ts --artifact-floor)
+          count=$(grep -oE '[0-9]+ committed artifacts' "$REGEN_CHECK_REPORT" | grep -oE '^[0-9]+')
+          floor=$(npx tsx verify.ts --artifact-floor)
           echo "reported: $count committed artifacts; floor: $floor (ARTIFACT_FLOOR in verify.ts)"
           if [ "$count" -ge "$floor" ]; then echo "✓ at or above the floor"; else echo "✗ artifact coverage shrank below the floor. If that is deliberate, lower ARTIFACT_FLOOR in verify.ts in the same PR."; exit 1; fi
 
@@ -269,7 +317,7 @@ jobs:
       # authored array. A `verify.ts` whose own checks are broken must not reach main just because CI
       # never imported it.
       - name: The gate runner's list and order are sound
-        run: npx --yes tsx@4 verify.ts --list
+        run: npx tsx verify.ts --list
 
       # #610 fixed CLAUDE.md/CONTRIBUTING.md/the PR template being out of sync with the gates above —
       # the PR template listed 4 checks against this workflow's 17, and #601/#602 each shipped a gate
@@ -278,7 +326,7 @@ jobs:
       # stay represented in all three documents, checked against the real file rather than a restated
       # list — which is also what made #770's own deletion a four-document edit rather than a one-line one.
       - name: Docs stay in sync with this workflow's gates
-        run: npx --yes tsx@4 packages/engine/lint-doc-gates.ts
+        run: npx tsx packages/engine/lint-doc-gates.ts
 
       # The component defs under packages/engine/components/ were typechecked by NOTHING: no root or
       # engine tsconfig existed, and test.ts runs under tsx, which transpiles without typechecking.
@@ -290,7 +338,7 @@ jobs:
       # part that matters — asserts every tracked def is REPRESENTED in what tsc actually read. A
       # passing typecheck proves nothing about which files it opened.
       - name: Component defs typecheck against their schema
-        run: npx --yes tsx@4 packages/engine/typecheck-components.ts
+        run: npx tsx packages/engine/typecheck-components.ts
 
       # The sibling problem, one level out: the gate above keeps the CHECKLISTS honest, this one keeps
       # the LAYOUT DESCRIPTIONS honest. #651, #663 and #669 each shipped a doc describing a repo that
@@ -299,21 +347,21 @@ jobs:
       # (against `git ls-files`, from the doc's own directory), and every tracked layer must be named
       # in the tables that promise to describe the repo.
       - name: Docs describe the repo that exists
-        run: npx --yes tsx@4 packages/engine/lint-layout-claims.ts
+        run: npx tsx packages/engine/lint-layout-claims.ts
 
       # Nothing anywhere caught a decision superseded by a later one, or a decision that exists only
       # in an issue thread with no doc pointing at it (#886). `docs/42-current-decisions.md` is the
       # router; this keeps it honest both directions — every indexed decision resolves to a real
       # `Decided (date, #issue): title` heading, and every such heading anywhere in `docs/` is indexed.
       - name: Every recorded decision is indexed, and every index row is real
-        run: npx --yes tsx@4 packages/engine/lint-decisions-index.ts
+        run: npx tsx packages/engine/lint-decisions-index.ts
 
       # A leaf that later needs siblings is a MAJOR contract break — we paid one for `border.inverse`
       # in #891 (a major, two DEPRECATIONS entries, and a new NB_KNOWN_RENAMES mechanism). A group with
       # one child is verbosity. Asymmetric costs, so the default is the cheap error and the expensive
       # one is argued for in `LEAF_OK` with a reason (#892).
       - name: A context node is a group unless a stated reason says otherwise
-        run: npx --yes tsx@4 packages/engine/lint-context-nodes.ts
+        run: npx tsx packages/engine/lint-context-nodes.ts
 
       # `test.ts` has long asserted "all mode contrast contracts hold" by reading each role's own
       # recorded `ratio` — so it asks the reporting path whether the reporting path is right, and in
@@ -324,7 +372,7 @@ jobs:
       # silent. It sweeps declared surfaces deliberately: at defaults every brand is clean, so a
       # corpus-only run would report a confident zero over the only inputs that cannot show the bug.
       - name: Every reported contrast ratio matches the color it was measured against
-        run: npx --yes tsx@4 packages/engine/lint-ratio-truth.ts
+        run: npx tsx packages/engine/lint-ratio-truth.ts
 
       # The gate above holds the `$extensions` ratios to the colors; nothing held the PROSE to them
       # (#1623). A step-500 "≥4.5:1 on white & black" was stamped by step number and was false on two
@@ -333,7 +381,7 @@ jobs:
       # base + overlay as a consumer merges them, and the Figma rows — and recomputes it from the value
       # in the mode it is read in, never from the engine's own `contrast` field.
       - name: Every ratio and percentage a description states holds in its mode
-        run: npx --yes tsx@4 packages/engine/lint-description-claims.ts
+        run: npx tsx packages/engine/lint-description-claims.ts
 
       # `VARIANT_AXES` closed the axis NAME vocabulary after #756 found four spellings of one axis,
       # each individually defensible, caught by a census that ran after all three had shipped. The
@@ -346,7 +394,7 @@ jobs:
       # two, and two OTHER axes diverge as well. The expensive case is not `switch`'s disjoint set but
       # `tone`'s overlap, where `error` and `danger` are one concept spelled two ways.
       - name: Every axis value set is declared, and stands in the relation it declares
-        run: npx --yes tsx@4 packages/engine/lint-axis-values.ts
+        run: npx tsx packages/engine/lint-axis-values.ts
 
       # docs/00-progress.md is newest-entry-first, and a rebase routinely lands the incoming entry
       # SECOND with no textual conflict and nothing to report it (#931 — three hand-fixes in 24
@@ -371,7 +419,7 @@ jobs:
       # log and `docs/progress/archive/` as one sequence, and fails any write to the archive that is
       # not a pure move of whole entries out of the log.
       - name: docs/00-progress.md and its archive stay newest-entry-first
-        run: npx --yes tsx@4 packages/engine/lint-progress-order.ts
+        run: npx tsx packages/engine/lint-progress-order.ts
 
       # `out/` mixed the brand's token trees (which travel to a client on eject) with a regression
       # report and a preview page (which do not), and NOTHING said which was which — the only thing
@@ -382,7 +430,7 @@ jobs:
       # pass, which is the defect it exists to remove. Adding an emitted artifact fails this until a
       # human classifies it — that friction is the feature.
       - name: Every emitted artifact is classified payload or ours
-        run: npx --yes tsx@4 packages/engine/lint-payload-manifest.ts
+        run: npx tsx packages/engine/lint-payload-manifest.ts
 
       # #708: every mode-varying leaf reaches its mode's overlay, and nothing else does. The defect was
       # silent in every direction — `$extensions.prism3.modes` was written in two shapes (color wrapped
@@ -396,7 +444,7 @@ jobs:
       # OUTPUT (the emitted overlays) — never by re-running the projector, which would be the gate
       # agreeing with itself. Covers every composite type by rule, not by a list naming `shadow`.
       - name: Overlays carry exactly the leaves that vary per mode
-        run: npx --yes tsx@4 packages/engine/lint-overlay-completeness.ts
+        run: npx tsx packages/engine/lint-overlay-completeness.ts
 
       # #1257: the sibling question the completeness gate does not ask. That one checks WHICH leaves
       # are in an overlay and what their `$value` is — both were right. This checks whether a leaf is
@@ -408,7 +456,7 @@ jobs:
       # consistently. EXPECTED is the canonical tree (`tree.ts`'s output), ACTUAL is the overlay
       # (`emit-dtcg-overlay.ts`'s): two artifacts, two producers, and never `buildOverlay` re-run.
       - name: "An overlay leaf's provenance describes its own value, not the base mode's"
-        run: npx --yes tsx@4 packages/engine/lint-overlay-provenance.ts
+        run: npx tsx packages/engine/lint-overlay-provenance.ts
 
       # #1138: every pointer-tier leaf carries `$extensions.prism3.figma.{collection,mode(s),variable}`
       # — its own claim about where it materializes in Figma, and the ONLY place a DTCG consumer can
@@ -428,7 +476,7 @@ jobs:
       # Harbor emits no out/figma/, so its emission is BUILT IN MEMORY rather than skipped — a quarter
       # of the subject, and its layout `mode` claims are brand-derived (docs/34 shape 15).
       - name: A leaf's declared Figma destination is the one it materializes into
-        run: npx --yes tsx@4 packages/engine/lint-figma-destination.ts
+        run: npx tsx packages/engine/lint-figma-destination.ts
       # #1152: the orphan report (#479) is produced BY an executor ABOUT the collection it just walked,
       # so it can only describe drift INSIDE somewhere a plan reaches. A collection nothing plans is
       # never upserted, never indexed, never counted — the absence of a finding about it is
@@ -443,7 +491,7 @@ jobs:
       # collection NAMES are read off the emission by construction (#1097), so comparing them to it is
       # x === x — docs/34 shape 17, stated in the header so nobody adds it back as "coverage".
       - name: No collection ships that nothing writes
-        run: npx --yes tsx@4 packages/engine/lint-stranded-collections.ts
+        run: npx tsx packages/engine/lint-stranded-collections.ts
 
       # #1179: a studio ramp's hardcoded step list must be a subset of the ladder it resolves against.
       # `paintRadiusPreview` iterated an authored RADIUS_STEPS and read each step's px out of `rp.dims`,
@@ -459,7 +507,7 @@ jobs:
       # declaring it — plus floors that fail when the scan finds nothing rather than reporting a clean
       # zero, and that require every `*STEPS*` literal in the studio to be classified here.
       - name: A studio ramp step resolves to a real rung
-        run: npx --yes tsx@4 packages/engine/lint-ramp-steps.ts
+        run: npx tsx packages/engine/lint-ramp-steps.ts
 
       # #1186: the VALUE half of the same class, and the actual #1177 mechanism. lint-ramp-steps proves
       # a step NAME is a real rung; it explicitly does not prove the step resolves to a VALUE in the map
@@ -473,7 +521,7 @@ jobs:
       # exists to make that discovery trustworthy: it turns an over-collecting scan from a silent false
       # negative into a failure. SUBJECT = the studio source; ORACLE = resolvePreview() run for real.
       - name: A ramp rung resolves to a value, or is special-cased
-        run: npx --yes tsx@4 packages/engine/lint-ramp-values.ts
+        run: npx tsx packages/engine/lint-ramp-values.ts
 
       # #758: the component tier's colour bindings, in two arms — because #758's own stated acceptance
       # ("Button's 648-member paint is byte-identical: regen --check reports 104") cannot fail.
@@ -495,7 +543,7 @@ jobs:
       # reads as coverage. `schema/paint-census.json` is AUTHORED and NOT a regen artifact, for the same
       # reason as `token-contract.json`: regenerated, it would rewrite itself to agree with a regression.
       - name: Component paint is where the defs say it is
-        run: npx --yes tsx@4 packages/engine/lint-paint.ts
+        run: npx tsx packages/engine/lint-paint.ts
 
       # #933, and the seam with the step above is the point: `lint-paint.ts` asks whether a binding is
       # painted AT ALL — its arm 3 collects every variable of every coordinate into one flat set and
@@ -509,7 +557,7 @@ jobs:
       # Which is why this gate CARRIES ITS OWN TWO-BOX FIXTURE: the corpus cannot express the shape, so a
       # corpus-only run would be a gate nothing can exercise.
       - name: Component paint lands on the part the def nominated
-        run: npx --yes tsx@4 packages/engine/lint-paint-placement.ts
+        run: npx tsx packages/engine/lint-paint-placement.ts
 
       # #756: the KB briefs and the emitted tier use THE SAME RUNG NAMES FOR DIFFERENT VALUES, offset
       # by one rung and agreeing on every value over the overlap. A def adopting the brief's names makes
@@ -526,7 +574,7 @@ jobs:
       # default rule (a default resolves to `md`), which holds 5/5 across the corpus and was settled by
       # composition: `button`/`icon-button` at their own default bind `icon.size.md` = 24.
       - name: A def's size enum names the engine's rungs, not a brief's
-        run: npx --yes tsx@4 packages/engine/lint-rung-names.ts
+        run: npx tsx packages/engine/lint-rung-names.ts
 
       # #786: `docs/34`'s sub-shape numbers are cited as stable ids from across the repo, and
       # nothing enforced that a published number keeps its meaning. Note what this is: a hazard with
@@ -543,7 +591,7 @@ jobs:
       # cited number resolves. It CANNOT check a citation names the right shape — stated in the gate's
       # header, because "citations clean" reads like a correctness claim and is only an existence one.
       - name: A published docs/34 shape number still means what it meant
-        run: npx --yes tsx@4 packages/engine/lint-shape-index.ts
+        run: npx tsx packages/engine/lint-shape-index.ts
 
       # #807: CLAUDE.md principle 5 says a schema file kept out of regen must be hand-named in both
       # prose gates — a rule that lived in prose and was carried out by whoever remembered. Three files
@@ -558,7 +606,7 @@ jobs:
       # Its limit is stated in the header: it proves a human wrote an answer down, not that the answer
       # is right — moving a prose-carrying file to EXEMPT passes, which is what the `why` is for.
       - name: Every packages/engine/schema file has a decided place in the prose gates
-        run: npx --yes tsx@4 packages/engine/lint-schema-classification.ts
+        run: npx tsx packages/engine/lint-schema-classification.ts
 
       # #801, the first instance of #802: Button's focus ring shipped FLUSH against the component. The
       # issue named two candidate causes and both were WRONG — measured against the real executor over
@@ -592,7 +640,7 @@ jobs:
       # 2 → 0 fails this gate 18× by name while test.ts, token-contract, nb-regression,
       # lint-overlay-completeness, the plugin suite and `regen --check` all stay green.
       - name: An absolutely-positioned part lands outside its parent
-        run: npx --yes tsx@4 packages/engine/lint-absolute-inset.ts
+        run: npx tsx packages/engine/lint-absolute-inset.ts
 
       # A text style's line height is emitted as an UNBOUND, mode-invariant PERCENT bake, never a
       # variable binding (#1356, part of the #1329 host-truth audit). The audit found lineHeight
@@ -604,7 +652,7 @@ jobs:
       # someone flips bound:false→true or breaks the PERCENT bake. Independent of the emitter (reads
       # the committed out/figma export; EXPECTED is the documented contract, not a computed value).
       - name: A text style's line height is an unbound, mode-invariant PERCENT bake
-        run: npx --yes tsx@4 packages/engine/lint-lineheight-bake.ts
+        run: npx tsx packages/engine/lint-lineheight-bake.ts
 
       # #1485 — a text style's cut (weight/style) is BOUND to a STRING variable, never baked. The
       # numeric weight axis cannot reach a WIDTH cut like "Light Condensed"; the STRING cut can, so it
@@ -615,7 +663,7 @@ jobs:
       # onto one value (the silent "Light Condensed"->"Light" downgrade). Independent of the emitter
       # (reads the committed out/figma export; EXPECTED is #1485's contract, not a computed value).
       - name: A text style's cut is bound to a per-category STRING variable
-        run: npx --yes tsx@4 packages/engine/lint-cut-binding.ts
+        run: npx tsx packages/engine/lint-cut-binding.ts
 
       # #1587 — an opt-in per-rung DESKTOP/MOBILE type-size override (typography.sizeOverrides) may not
       # produce an incoherent fluid ramp: mobile <= desktop per rung (no inverted rung, growing on the
@@ -628,7 +676,7 @@ jobs:
       # deleting the invert throw fires ARM B; deleting the monotonicity throw fires ARM B; dropping the
       # resolution hook fires ARM C; dropping mobileEndpoint's Math.min (+regen) fires ARM A.
       - name: A per-rung viewport size override never inverts or un-orders the ramp
-        run: npx --yes tsx@4 packages/engine/lint-size-override-coherence.ts
+        run: npx tsx packages/engine/lint-size-override-coherence.ts
 
       # A def offered as a build target must project members that acquire an EXTENT, and a def that
       # cannot must declare `figmaProperties.notStandalone`. #869: building `focus-ring` produced a
@@ -658,7 +706,7 @@ jobs:
       # predicate to bare `layoutMode` — which on the first attempt changed NOTHING, since no def has
       # a childless auto-layout root — now fails the PREDICATE_CASES arm that was added because of it.
       - name: A def offered as a build target projects something with an extent
-        run: npx --yes tsx@4 packages/engine/lint-standalone-floor.ts
+        run: npx tsx packages/engine/lint-standalone-floor.ts
 
       # #864 is #802's class again, and the largest instance of it: `icon` built four EMPTY ARTBOARDS.
       # The def carried a size axis and no geometry anywhere, so every gate in this workflow was green
@@ -682,34 +730,34 @@ jobs:
       # It CANNOT see the subtree Figma returns — there is no SVG importer in Node; that is the
       # executors' runtime `NO VECTOR` miss, and the gate's header says so rather than implying cover.
       - name: A glyph draws its own filled outline on a square artboard
-        run: npx --yes tsx@4 packages/engine/lint-glyph-geometry.ts
+        run: npx tsx packages/engine/lint-glyph-geometry.ts
 
       # #1293: the icon def's metadata prose may not restate a glyph count that disagrees with
       # ICON_NAMES.length. EXPECTED is derived from the set, not a second numeral. Changelog history
       # (version.ts, docs/00-progress.md) is out of scope; this covers the shipping icon metadata only.
       - name: The icon def's metadata states no stale glyph count
-        run: npx --yes tsx@4 packages/engine/lint-icon-count.ts
+        run: npx tsx packages/engine/lint-icon-count.ts
 
       # #2343: every provider logo under marks/ has a provenance record, and every record a file (folder vs
       # provenance.json, both directions), with source, rightsHolder, dateRetrieved, terms, usage, colors,
       # allowedForms and placeholder; plus the repository-visibility note (owner decision Q-B1 B).
       - name: Every provider logo has a provenance record and every record a file
-        run: npx --yes tsx@4 packages/engine/lint-mark-provenance.ts
+        run: npx tsx packages/engine/lint-mark-provenance.ts
 
       # #2343: a provider logo is never retinted. Fills re-parsed from each source SVG (its own reader) against
       # the record's colors, the emitted module and the provider-logo Figma plans; no variable on a mark, and no
       # host pushes descendantFills into one.
       - name: A provider logo keeps its own colors from file to plan
-        run: npx --yes tsx@4 packages/engine/lint-mark-colors.ts
+        run: npx tsx packages/engine/lint-mark-colors.ts
 
       # #2343 PR 4: a payment-tile slot (the Card number field's) offers exactly its listed card networks, each a tile in
       # the marks folder (Q-C7 A), starts at the generic tile on every member and in its swap property, and binds its
       # height alone under the aspect lock.
       - name: A payment-tile slot takes card networks only and starts at the generic tile
-        run: npx --yes tsx@4 packages/engine/lint-mark-slots.ts
+        run: npx tsx packages/engine/lint-mark-slots.ts
 
       - name: The component nesting graph resolves and is acyclic
-        run: npx --yes tsx@4 packages/engine/lint-nesting.ts
+        run: npx tsx packages/engine/lint-nesting.ts
 
       # #1443: every interactive control presents a >=44px hit target (WCAG 2.5.5) at its default size on
       # the comfortable + spacious densities, or is one of two named PERMANENT exceptions — small button,
@@ -721,7 +769,7 @@ jobs:
       # actually below the floor (so a lift fails by name). Every def is represented (measured or excluded
       # with a reason), so a new sub-44 control cannot arrive unseen.
       - name: Interactive controls meet the 44px hit-target floor
-        run: npx --yes tsx@4 packages/engine/lint-hit-target.ts
+        run: npx tsx packages/engine/lint-hit-target.ts
 
       # #957 — the LEVER SWEEP. Every other gate sees a brand at its own settings, and the contract
       # corpus runs almost every lever at its default, so a lever that deletes something OFF its default
@@ -734,7 +782,7 @@ jobs:
       # that setting's Figma EMISSION holds. Both oracles are emitted output, never the lever table.
       # Stated limits: sliders and structured levers are not swept (#1632), nor lever combinations.
       - name: No lever setting silently deletes a guaranteed path or a component binding (#957)
-        run: npx --yes tsx@4 packages/engine/lint-lever-sweep.ts
+        run: npx tsx packages/engine/lint-lever-sweep.ts
 
       # #1623 sign-off — the FIGMA REGISTER. A Figma variable or style has one description, read by a
       # designer mid-task; the owner chose about 90 characters, with the full detail kept in the DTCG
@@ -744,7 +792,7 @@ jobs:
       # Prism 2 — over every committed brand plus harbor built in memory (no committed emission, #1119).
       # Also: no DTCG description names Prism 2 or an issue. Every kind of Figma file is represented.
       - name: Every Figma description is in the plugin register (#1623)
-        run: npx --yes tsx@4 packages/engine/lint-figma-descriptions.ts
+        run: npx tsx packages/engine/lint-figma-descriptions.ts
 
       # #2411 (owner Q167) — CONSUMER PROSE NAMES NO TOOL. Reads the committed out/ files: every DTCG
       # $description (token, group, per mode), the decision record, the .ai.json guidance fields and the
@@ -754,14 +802,14 @@ jobs:
       # a11y.clears.<ink> matches the worst case recomputed from its stops (#2422). Every promised field
       # is represented in every brand and file, with floors.
       - name: Consumer prose names no tool (#2411)
-        run: npx --yes tsx@4 packages/engine/lint-tool-neutral-prose.ts
+        run: npx tsx packages/engine/lint-tool-neutral-prose.ts
 
       # #2552 (owner Q250 A) — THE CONSUMER SET CARRIES NO BUILD METADATA. The base + overlay files are the
       # handoff: no $extensions anywhere, a token keeps only $value, $type and $description, and no key or
       # string names a tool. Each file byte-matches the gate's OWN derivation from the committed canonical
       # tree (never the projector), every alias resolves against its base, and every brand ships its set.
       - name: The consumer set carries no build metadata (#2552)
-        run: npx --yes tsx@4 packages/engine/lint-consumer-build.ts
+        run: npx tsx packages/engine/lint-consumer-build.ts
 
       # A stated advisory window, once it closes, fails the build. The step below this one is
       # advisory with a date on it, and that date is written in six places — this workflow twice,
@@ -782,7 +830,7 @@ jobs:
       # docs/00-progress.md is out of scope BY GENRE — its dated entries describe the repo as it was,
       # so a closed window recorded there is correct prose forever.
       - name: A stated advisory window has not expired
-        run: npx --yes tsx@4 packages/engine/lint-advisory-expiry.ts
+        run: npx tsx packages/engine/lint-advisory-expiry.ts
 
       # #1701 — every registered component def reaches its documentation, and its maintainer record reaches
       # nothing that ships. Reads the COMMITTED out/components/** and schema/component-maintainer.json,
@@ -792,7 +840,7 @@ jobs:
       # path and into its OWN page section or table cell, axis kinds included; codeOnly/notes sit in the
       # maintainer record and in neither payload form; no Prism 2 in the payload.
       - name: Every component def is documented in both forms (#1701)
-        run: npx --yes tsx@4 packages/engine/lint-component-docs.ts
+        run: npx tsx packages/engine/lint-component-docs.ts
 
       # #2637, Q304 — the ecosystem diagram's data (docs/public/ecosystem/ecosystem.json) agrees with the
       # code. The data is the SUBJECT, the code the ORACLE: every source path and docs link is tracked by
@@ -803,7 +851,7 @@ jobs:
       # data are exactly the ones the code ships, both directions, each with a floor; the page reads the
       # data; and the page's text tokens clear 4.5:1 in light and dark.
       - name: The ecosystem diagram's data matches the code (#2637)
-        run: npx --yes tsx@4 packages/engine/lint-ecosystem.ts
+        run: npx tsx packages/engine/lint-ecosystem.ts
 
       # #3264, owner decision 3 — the designer guides (docs/public/guides/*.md) still describe the app. The guides
       # are the SUBJECT, the code the ORACLE: every **bold** UI label is a whole string literal (or HTML text) in
@@ -812,7 +860,7 @@ jobs:
       # spans or labels of the claim it backs; every "<n> component sets" equals componentDefs; and every guide the
       # index lists is read and cites something, each source tree yields literals.
       - name: The designer guides still describe the app (#3264)
-        run: npx --yes tsx@4 packages/engine/lint-guide-claims.ts
+        run: npx tsx packages/engine/lint-guide-claims.ts
 
       # #2650 — every release's notes (docs/public/releases/) list exactly the changes git shows between the
       # fold before it and its own fold, classified by docs/30's rule. Re-derives each diff from the committed
@@ -821,7 +869,7 @@ jobs:
       # item, a sentence that does not say what its kind says, a date git rules out, a page that drifts from
       # its JSON, the wrong folded notes, or a version from 0.234.0 on with no release. Reads git HISTORY (`git log`, merges never read as folds), covered by the job-level `fetch-depth: 0` above.
       - name: Release notes match the diff between folds (#2650)
-        run: npx --yes tsx@4 packages/engine/lint-release-notes.ts
+        run: npx tsx packages/engine/lint-release-notes.ts
 
       # #2759, owner decisions Q345, Q349, Q350, Q355 on #2706 — the defs follow the naming table in the
       # build-component skill: lowercase Figma property names, the `_` prefix exactly where whenToUse says a
@@ -829,33 +877,33 @@ jobs:
       # Row's `controlCell`. The rules are literals in the gate, never read off a def; known breaches wait in
       # a ledger that fails as stale when one clears.
       - name: Component names follow the naming table (#2759)
-        run: npx --yes tsx@4 packages/engine/lint-naming.ts
+        run: npx tsx packages/engine/lint-naming.ts
 
       # #2928, the shape owner QA Q537 found in Pagination — no projected member stretches a child across a
       # column that hugs its width, or grows one along a row that does. The host turns that width FIXED when the
       # fill is written, so the frame stops following its content. The rule is typed in the gate and the subject
       # is the plans the executors build from.
       - name: No member fills a width that hugs (#2928)
-        run: npx --yes tsx@4 packages/engine/lint-fill-under-hug.ts
+        run: npx tsx packages/engine/lint-fill-under-hug.ts
 
       # #3409, owner decision Q33 A — every token in the guaranteed contract is read by a def, an alias in the
       # committed emission or the preview spec, or is declared unread in the gate's authored register with a reason
       # and the count it claims. Tokens that look like they should be bound are held there as owner questions.
       - name: Every contract token is read, or declared unread with a reason (#3409)
-        run: npx --yes tsx@4 packages/engine/lint-token-consumers.ts
+        run: npx tsx packages/engine/lint-token-consumers.ts
 
       # #3441, owner decision #3437 Q1 A — every def's `codeOnly` entry is data: a class from the declared
       # register in `code-only-register.ts` and one of four dispositions, with its prose kept as the
       # description. An unregistered class, a missing disposition and a register class no entry uses each
       # fail by name, and components.ai.json's syncBoundary must match the defs.
       - name: Every codeOnly entry has a registered class and a disposition (#3441)
-        run: npx --yes tsx@4 packages/engine/lint-code-only-classes.ts
+        run: npx tsx packages/engine/lint-code-only-classes.ts
 
       # #3698 finding 2 — a bare localeCompare ordered emitted lists by the host's locale, so a Czech machine
       # emitted 8 artifacts in a different order. Every comparison under packages/engine/ goes through
       # localeFreeCompare; a locale-dependent call, an ICU collator or a locale-aware case fold fails by file and line.
       - name: No engine comparison depends on the host locale (#3698)
-        run: npx --yes tsx@4 packages/engine/lint-locale-order.ts
+        run: npx tsx packages/engine/lint-locale-order.ts
 
       # #1123 — the mutation battery for the CLAUDE.md-freshness SessionStart report (#1110), the one
       # `tools/` harness wired into CI. It is NAMED FOR THE DETECTOR, never for this tree, because
@@ -883,7 +931,17 @@ jobs:
       - name: The Chromium install script retries cleanly after a stall (#2981)
         run: bash .github/scripts/test-install-chromium.sh
 
+      # #3698 R4 — the test for the docs-only exemption: the classifier (`docs-only.sh`) and the aggregator's half
+      # (`all-gates.sh`), by literal cases, including a docs change that also touches an app file (never exempt), and
+      # its `scope/…` cases: no file a prose gate scans (`lint-us-english`/`lint-voice --files`) counts as docs.
+      # Here, in the job that always runs, because the jobs it can exempt cannot be where it is checked.
+      - name: The docs-only exemption decides by path and is recorded by name
+        run: bash .github/scripts/test-docs-only.sh
+
   studio:
+    # #3698 R4: skipped on a docs-only pull request, by the named exemption (`changes`, then `gates`).
+    needs: [changes]
+    if: ${{ needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     steps:
       # Full history, as in the `engine` job (whose comment says why, #1039): nothing here is known to
@@ -894,7 +952,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: .node-version
           cache: npm
 
       - name: Install workspace deps
@@ -1028,6 +1086,9 @@ jobs:
         run: npm run -w @prism3/studio test:smoke
 
   plugin:
+    # #3698 R4: skipped on a docs-only pull request, by the named exemption (`changes`, then `gates`).
+    needs: [changes]
+    if: ${{ needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     steps:
       # Full history, as in the `engine` job (whose comment says why, #1039): nothing here is known to
@@ -1038,7 +1099,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: .node-version
           cache: npm
 
       - name: Install workspace deps
@@ -1203,7 +1264,7 @@ jobs:
       # (A5) — plus corpus reach (A0), node-type representation (A2) and row exercise (A3), because a
       # sweep that builds no VECTOR reports its VECTOR rows as passing.
       - name: Every visually-significant property on a built node traces to a decision
-        run: npx --yes tsx@4 apps/plugin/lint-unclaimed-defaults.ts
+        run: npx tsx apps/plugin/lint-unclaimed-defaults.ts
 
       # THE FIGMA MAIN-THREAD SANDBOX REJECT SCAN (#1461). Figma's plugin sandbox
       # (rejectImportExpressions) scans the built main.js source text — string literals included — for
@@ -1214,27 +1275,27 @@ jobs:
       # build; scoped to main.js (ui.html is a browser iframe where import() is valid syntax). It scans both builds'
       # main.js (#2530): the release build's is rewritten by minifySyntax.
       - name: The built main.js carries no Figma-sandbox-rejected token sequence (#1461)
-        run: npx --yes tsx@4 apps/plugin/lint-sandbox-reject.ts
+        run: npx tsx apps/plugin/lint-sandbox-reject.ts
 
       # WHAT THE BUILT PLUGIN SHIPS OF A COMPONENT DEF (#1623 sign-off). A def's `notes` and
       # `anatomy.codeOnly` are maintainer-only and are stripped on the way into dist/; shipped component
       # text cites no Prism 2; every def's one-line summary (the Figma description) is present. Reads
       # both built bundles against the real defs, so it runs after the plugin build.
       - name: The built plugin ships no maintainer notes and no Prism 2 in component text (#1623)
-        run: npx --yes tsx@4 apps/plugin/lint-bundle-prose.ts
+        run: npx tsx apps/plugin/lint-bundle-prose.ts
 
       # THE RELEASE BUILD CARRIES NO DEV-ONLY CODE (#2530). Each dev-only marker, authored in the gate, must be found
       # in dist/ (so it names real code) and absent from release/, and release/manifest.json must be manifest.json
       # less devAllowedDomains with its bundle paths beside it. Runs after both plugin builds.
       - name: The release build carries no dev-only code (#2530)
-        run: npx --yes tsx@4 apps/plugin/lint-release-bundle.ts
+        run: npx tsx apps/plugin/lint-release-bundle.ts
 
       # #3138 (THE OWNER'S NETWORK MODEL): one codebase, two plugins. "Prism3 Studio" (release/) reaches only the domains
       # its manifest lists, the two Google Fonts hosts and the local desktop bridge (#3147); "Prism3 Studio Offline" (release-offline/) carries no network call
       # at all. The domains, the reference-only hosts and the request primitives are authored in the gate (docs/34). Runs
       # after the release build, which builds both.
       - name: Each plugin build reaches only what its manifest allows (#3138)
-        run: npx --yes tsx@4 apps/plugin/lint-network-reach.ts
+        run: npx tsx apps/plugin/lint-network-reach.ts
 
   # #2898: THE CHROME SUITE IN SHARDS. It was the whole critical path after Q503 A (about 24 minutes, against 12 or
   # less for every other job), so it runs as one job per shard, side by side: shard n runs the sections
@@ -1243,6 +1304,9 @@ jobs:
   # others' reports. `gates` needs this job, and a matrix job's result is `success` only when every shard succeeded.
   # What no result can show, a section in no shard or in two, is `chrome-shards`'s check below.
   chrome:
+    # #3698 R4: skipped on a docs-only pull request, by the named exemption (`changes`, then `gates`).
+    needs: [changes]
+    if: ${{ needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -1257,7 +1321,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: .node-version
           cache: npm
 
       - name: Install workspace deps
@@ -1321,7 +1385,9 @@ jobs:
   # exactly one shard, by name, never read off the shard map; then the end-of-run checks, which read the whole sweep
   # (#2238's check boxes on each host and theme, every hook the suite names rendered), run once over what every shard saw.
   chrome-shards:
-    needs: [chrome]
+    # #3698 R4: skipped on a docs-only pull request, by the named exemption (`changes`, then `gates`).
+    needs: [changes, chrome]
+    if: ${{ needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     steps:
       # Full history, as in the `engine` job (whose comment says why, #1039): nothing here is known to
@@ -1332,7 +1398,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: .node-version
           cache: npm
 
       - name: Install workspace deps
@@ -1349,6 +1415,9 @@ jobs:
         run: npm run -w @prism3/studio test:chrome-shards
 
   surfaces:
+    # #3698 R4: skipped on a docs-only pull request, by the named exemption (`changes`, then `gates`).
+    needs: [changes]
+    if: ${{ needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     steps:
       # Full history, as in the `engine` job (whose comment says why, #1039): nothing here is known to
@@ -1359,7 +1428,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: .node-version
           cache: npm
 
       - name: Install workspace deps
@@ -1433,7 +1502,7 @@ jobs:
       # file and TRACKED as #747 (under #697, which must close it): the types arm only sees paths that
       # PAIR, which is 71-73 paths per brand — ~14% of the paired surface — that it cannot type-check.
       - name: The two DTCG exporters agree where a difference would be a defect
-        run: npx --yes tsx@4 tools/exporter-comparison/gate.ts
+        run: npx tsx tools/exporter-comparison/gate.ts
 
       # #2351 gap 2 (offline): after the plugin's Apply Theme writes a brand into the file shim
       # (apps/plugin/file-shim.ts, shared with test-mcp-paste.ts), TokenPress's real exporter over that
@@ -1454,7 +1523,7 @@ jobs:
       # node:-builtin check. Gates out/, the emitted schema + reports, and both built bundles — there is
       # no reported-but-not-fatal surface left, the two CLAUDE.md once held open having been converted.
       - name: US-English gate (shipped text)
-        run: npx --yes tsx@4 packages/engine/lint-us-english.ts
+        run: npx tsx packages/engine/lint-us-english.ts
 
       # Voice-standard §2 banned-phrase list ("simply", "just" outside its exactly/barely sense,
       # "easy", "obviously", "please note"/"note that", "Oops"/"Sorry", exclamation marks in prose)
@@ -1464,7 +1533,7 @@ jobs:
       # `apps/studio/dist/*.js` bundle, so it has to run after the web build too. Its client-name arm
       # (#1824) also reads `apps/plugin/dist` raw, so "Build plugin" is load-bearing for it as well.
       - name: Voice lint gate (shipped text)
-        run: npx --yes tsx@4 packages/engine/lint-voice.ts
+        run: npx tsx packages/engine/lint-voice.ts
 
   # THE ONE CHECK THE MERGE RULE READS, under the name it has always had. Before Q503 A the whole run was
   # one job with the id `gates`, so its check run was named `gates`; this job keeps that id, so branch
@@ -1476,7 +1545,7 @@ jobs:
   # (`.github/scripts/all-gates.sh`, tested by `test-all-gates.sh` beside it). `needs` must list every
   # other job in this file; `lint-doc-gates.ts` fails when one is missing.
   gates:
-    needs: [engine, studio, plugin, chrome, chrome-shards, surfaces]
+    needs: [changes, engine, studio, plugin, chrome, chrome-shards, surfaces]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:

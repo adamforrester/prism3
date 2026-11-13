@@ -130,7 +130,7 @@ The label names the dimension. The value text shows the value with its unit; a r
 | `largeStep` | number | — | no | The amount Page Up and Page Down move. Ten steps when not set. |
 | `minStepsBetweenThumbs` | number | `0` | no | For a range, how many steps the two thumbs must stay apart. A thumb stops there and never crosses the other. |
 | `formatOptions` | Intl.NumberFormatOptions | — | no | How the value reads: a currency, a percent, a unit. Drives the visible value text and each thumb's aria-valuetext from one formatter, so what is seen and what is heard match. |
-| `thumbLabels` | [string, string] | — | no | For a range, the two thumb names. "Minimum {label}" and "Maximum {label}" when not set. |
+| `thumbLabels` | [string, string] | — | no | For a range, the two thumb names, "Minimum {label}" and "Maximum {label}" when not set, with ", required" added when the slider is required. |
 | `type` | enum: 'single' \| 'range' | `single` | no | Read from value: a number is single, a pair is range. Not set on its own; listed so the two looks have a name. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The thumb and the track: an 18px thumb on a 2px track, 24 on 4, or 30 on 6. The label, the value text and the 44px hit area stay the same at every size. |
 | `showValue` | boolean | `true` | no | Shows the value text above the track. Turn it off only when the paired inputs show the value instead. |

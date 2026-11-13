@@ -293,6 +293,10 @@ const NOT_A_RUNNABLE_GATE = new Set<string>([
   // Q503 A: the `gates` job's one step. It reads the other jobs' results, asserts nothing about the tree,
   // and has no meaning outside CI — `verify.ts` runs every gate itself and reports each one.
   'Every gate job succeeded',
+  // #3698 R4: the `changes` job's one step. It decides whether the browser jobs run, from the event and the diff,
+  // and has no meaning outside CI. Its test is a gate (`test-docs-only.sh`), and `exemptionGaps` holds the jobs it
+  // can exempt.
+  'Decide the docs-only exemption (#3698 R4)',
 ]);
 
 /** `ci.yml` steps arm 3 requires `verify.ts` to carry: everything with a `run:`, minus the named
@@ -480,6 +484,116 @@ export const aggregatorGaps = (tree: YamlValue): string[] => {
   if (!(agg.steps ?? []).some((st) => typeof st.run === 'string' && st.run.trim() === `bash ${AGGREGATOR_SCRIPT}`)) {
     problems.push(`\`${AGGREGATOR_JOB}\` does not run \`bash ${AGGREGATOR_SCRIPT}\`, the step that fails on any result but \`success\``);
   }
+  return problems;
+};
+
+/** #3698 R1 — THE FOLD BOT'S SHAPE (`.github/workflows/fold.yml`). Read as text, not parsed: the file is not `ci.yml`
+ *  and runs no gate. What must hold, each a way the bot would fail quietly or do harm:
+ *   · it runs `fold.ts --dry-run` and then `fold.ts`, the documented sequence (CONTRIBUTING §2);
+ *   · it pushes and opens the PR with `secrets.FOLD_TOKEN`, never `GITHUB_TOKEN`/`github.token`: a PR opened with the
+ *     default token starts no CI, so the fold PR would never get `gates`;
+ *   · it fails by name when that secret is unset, instead of opening such a PR;
+ *   · it refuses while a `fold/` PR is open (one fold at a time);
+ *   · it merges nothing: no `gh pr merge`, no auto-merge.
+ *  Empty when sound. */
+export const FOLD_WORKFLOW = '.github/workflows/fold.yml';
+export const foldWorkflowGaps = (text: string): string[] => {
+  const problems: string[] = [];
+  const code = text.split('\n').filter((l) => !l.trim().startsWith('#')).join('\n');
+  if (!/\bfold\.ts --dry-run\b/.test(code)) problems.push('it never runs `fold.ts --dry-run`, the plan the PR body carries');
+  if (!/\bfold\.ts\s*$/m.test(code)) problems.push('it never runs `fold.ts` itself');
+  if (/GITHUB_TOKEN|github\.token/.test(code)) problems.push('it names GITHUB_TOKEN/github.token; a PR opened with the default token starts no CI, so use secrets.FOLD_TOKEN only');
+  if ((code.match(/secrets\.FOLD_TOKEN/g) ?? []).length < 3) problems.push('it does not use secrets.FOLD_TOKEN for the token check, the checkout and the PR');
+  // Each refusal must exit 1 inside ITS OWN step: the match stops at the next `- name:`/`- uses:`, so a refusal turned to
+  // `exit 0` cannot borrow a later step's `exit 1` (review of #3749).
+  if (!/if \[ -z "\$FOLD_TOKEN" \]; then(?:(?!\n\s*- (?:name|uses):)[\s\S])*?\bexit 1\b/.test(code)) problems.push('it does not fail by name when FOLD_TOKEN is unset');
+  if (!/startswith\("fold\/"\)(?:(?!\n\s*- (?:name|uses):)[\s\S])*?\bexit 1\b/.test(code)) problems.push('it does not refuse while a fold/ PR is already open');
+  if (/gh pr merge|--auto\b|enable-auto-merge/.test(code)) problems.push('it merges or enables auto-merge; the fold PR must pass review and gates like any other');
+  if (!/^\s*workflow_dispatch:/m.test(code)) problems.push('it cannot be run by hand (no workflow_dispatch)');
+  return problems;
+};
+
+/** #3698 R4 — THE DOCS-ONLY EXEMPTION'S SHAPE. Two files state which jobs a docs-only pull request may skip: the jobs
+ *  in `ci.yml` that carry `EXEMPTION_IF`, and `EXEMPT_JOBS` in `all-gates.sh`, which lets exactly those through as
+ *  EXEMPT. They are authored separately, so they are compared, in both directions. A job carrying the `if:` that the
+ *  script does not list goes red as a bare skip (safe, but broken); a listed job without the `if:` is a stale entry.
+ *  Each exempt job must need `changes` and be a BROWSER job: it runs `INSTALL_CHROMIUM`, or needs an exempt job that
+ *  does (`chrome-shards`). So the engine job can never be made skippable by adding the `if:` and a list entry
+ *  together. The `changes` job itself must run `DOCS_ONLY_SCRIPT`. Empty when sound. */
+export const EXEMPTION_IF = "${{ needs.changes.outputs.docs_only != 'true' }}";
+export const DOCS_ONLY_SCRIPT = '.github/scripts/docs-only.sh';
+const INSTALL_CHROMIUM = 'bash .github/scripts/install-chromium.sh';
+export const exemptJobsOf = (script: string): string[] | undefined =>
+  /^EXEMPT_JOBS="([^"]*)"$/m.exec(script)?.[1].split(/\s+/).filter(Boolean);
+export const exemptionGaps = (tree: YamlValue, script: string): string[] => {
+  type Job = { needs?: YamlValue; if?: YamlValue; steps?: { run?: YamlValue }[] };
+  const jobs = (tree as { jobs?: Record<string, Job> }).jobs ?? {};
+  const problems: string[] = [];
+  const listed = exemptJobsOf(script);
+  if (!listed?.length) return [`\`${AGGREGATOR_SCRIPT}\` states no EXEMPT_JOBS="…" line, so the exemption's job list cannot be read`];
+  const needsOf = (j: Job): string[] => (Array.isArray(j.needs) ? j.needs : typeof j.needs === 'string' ? [j.needs] : []).map(String);
+  const carrying = Object.keys(jobs).filter((k) => typeof jobs[k].if === 'string' && (jobs[k].if as string).trim() === EXEMPTION_IF);
+  for (const k of carrying) if (!listed.includes(k)) problems.push(`\`${k}\` carries the docs-only \`if:\` and is not in EXEMPT_JOBS, so a docs-only PR would fail \`gates\` as a bare skip`);
+  for (const k of listed) if (!carrying.includes(k)) problems.push(`EXEMPT_JOBS lists \`${k}\`, which ${jobs[k] ? 'does not carry the docs-only `if:`' : 'is not a job in ci.yml'}`);
+  const installs = (k: string): boolean => (jobs[k]?.steps ?? []).some((st) => typeof st.run === 'string' && st.run.trim() === INSTALL_CHROMIUM);
+  for (const k of carrying) {
+    if (!needsOf(jobs[k]).includes('changes')) problems.push(`\`${k}\` carries the docs-only \`if:\` without needing \`changes\`, so the output it reads is empty`);
+    if (!installs(k) && !needsOf(jobs[k]).some((n) => carrying.includes(n) && installs(n)))
+      problems.push(`\`${k}\` carries the docs-only \`if:\` and is not a browser job (it neither runs \`${INSTALL_CHROMIUM}\` nor needs an exempt job that does)`);
+  }
+  const changes = jobs.changes;
+  if (!changes) problems.push('no `changes` job, so nothing decides the exemption');
+  else if (!(changes.steps ?? []).some((st) => typeof st.run === 'string' && st.run.trim() === `bash ${DOCS_ONLY_SCRIPT}`))
+    problems.push(`the \`changes\` job does not run \`bash ${DOCS_ONLY_SCRIPT}\``);
+  return problems;
+};
+
+/** #3698 R4 — THE EXACT PINS. Node and tsx are pinned exactly, so every CI job runs one Node and one parser, and a new one
+ *  arrives only as a reviewed change. Four things hold that, each read from its own file and checked here: root
+ *  `package.json`'s `devDependencies.tsx` is an exact `x.y.z` (no range); `.node-version` is an exact `x.y.z`; every
+ *  `actions/setup-node` step in `ci.yml` reads `node-version-file: .node-version` and names no `node-version:` of its
+ *  own; and no `ci.yml` step's `run:` names a `tsx@` spec, which would fetch a tsx beside the lockfile's. Empty when
+ *  sound. */
+export const NODE_VERSION_FILE = '.node-version';
+const EXACT = /^\d+\.\d+\.\d+$/;
+export const pinGaps = (tree: YamlValue, pkgJson: string, nodeVersion: string): string[] => {
+  type Step = { uses?: YamlValue; run?: YamlValue; with?: YamlValue };
+  const jobs = (tree as { jobs?: Record<string, { steps?: Step[] }> }).jobs ?? {};
+  const problems: string[] = [];
+  let tsx: unknown;
+  try { tsx = (JSON.parse(pkgJson) as { devDependencies?: Record<string, unknown> }).devDependencies?.tsx; } catch { return ['root `package.json` does not parse, so its tsx pin cannot be read']; }
+  if (typeof tsx !== 'string' || !EXACT.test(tsx)) problems.push(`root \`package.json\` pins tsx as ${JSON.stringify(tsx)}, not an exact x.y.z`);
+  if (!EXACT.test(nodeVersion.trim())) problems.push(`\`${NODE_VERSION_FILE}\` holds ${JSON.stringify(nodeVersion.trim())}, not an exact x.y.z`);
+  let setups = 0;
+  for (const [k, j] of Object.entries(jobs)) for (const st of j.steps ?? []) {
+    if (typeof st.uses === 'string' && st.uses.startsWith('actions/setup-node')) {
+      setups++;
+      const w = (st.with && typeof st.with === 'object' ? st.with : {}) as Record<string, YamlValue>;
+      if (w['node-version-file'] !== NODE_VERSION_FILE) problems.push(`\`${k}\`'s setup-node step does not read \`node-version-file: ${NODE_VERSION_FILE}\``);
+      if ('node-version' in w) problems.push(`\`${k}\`'s setup-node step names its own \`node-version:\``);
+    }
+    if (typeof st.run === 'string' && /\btsx@/.test(st.run)) problems.push(`a \`${k}\` step runs a \`tsx@\` spec (${st.run.trim().split('\n')[0]}), which fetches a tsx beside the pinned one`);
+  }
+  if (!setups) problems.push('no `actions/setup-node` step found in ci.yml, so the Node pin reaches no job');
+  return problems;
+};
+
+/** #3698 R3 — THE TRIGGERS. `gates` is the check the merge rule reads, so the workflow must run on a pull request, on
+ *  a push to `main`, and on a merge-queue group (`merge_group`, with `checks_requested`): a queue whose required check
+ *  never reports holds every PR forever, and one whose workflow lost the trigger would wait on a check nothing starts.
+ *  The `gates` job must also run in a merge-group run, so it may carry no `if:` other than `always()`, which
+ *  `aggregatorGaps` already holds. Empty when sound. */
+export const triggerGaps = (tree: YamlValue): string[] => {
+  const on = (tree as { on?: YamlValue }).on;
+  const problems: string[] = [];
+  if (!on || typeof on !== 'object' || Array.isArray(on)) return ['ci.yml has no `on:` map, so no event is known to start it'];
+  const o = on as Record<string, YamlValue>;
+  if (!('pull_request' in o)) problems.push('ci.yml does not run on `pull_request`, so no PR gets a `gates` check');
+  const push = o.push as { branches?: YamlValue } | undefined;
+  if (!push || !Array.isArray(push.branches) || !push.branches.includes('main')) problems.push('ci.yml does not run on a push to `main`, the run that compares a squash with its parent (#2617)');
+  const mg = o.merge_group as { types?: YamlValue } | undefined;
+  if (!mg || typeof mg !== 'object') problems.push('ci.yml does not run on `merge_group`, so a merge queue on `main` would wait on a `gates` check nothing starts (#3698 R3)');
+  else if (!Array.isArray(mg.types) || !mg.types.includes('checks_requested')) problems.push('ci.yml\'s `merge_group` trigger does not list `checks_requested`, the one type GitHub sends (#3698 R3)');
   return problems;
 };
 
@@ -1147,6 +1261,103 @@ if (!/unclosed double-quoted/.test(refusal(SAMPLE_YAML.replace('"Sample gate: ha
   if (!gaps(AGG.replace('  gates:', '  other:')).some((p) => p.startsWith(`no \`${AGGREGATOR_JOB}\` job`))) selfFails.push('the aggregator check misses a workflow with no `gates` job');
 }
 
+// 6c. THE DOCS-ONLY EXEMPTION (#3698 R4), driven through the shipped `exemptionGaps` over a hand-made workflow.
+{
+  const W = `jobs:
+  changes:
+    runs-on: ubuntu-latest
+    steps:
+      - run: bash ${DOCS_ONLY_SCRIPT}
+  engine:
+    runs-on: ubuntu-latest
+    steps:
+      - run: true
+  web:
+    needs: [changes]
+    if: ${EXEMPTION_IF}
+    runs-on: ubuntu-latest
+    steps:
+      - run: bash .github/scripts/install-chromium.sh
+  after:
+    needs: [changes, web]
+    if: ${EXEMPTION_IF}
+    runs-on: ubuntu-latest
+    steps:
+      - run: true
+`;
+  const SCRIPT = 'EXEMPT_JOBS="web after"\n';
+  const gaps = (yaml: string, script = SCRIPT): string[] => exemptionGaps(parseYamlSubset(yaml), script);
+  if (gaps(W).length) selfFails.push(`the exemption check flags a sound workflow: ${gaps(W).join('; ')}`);
+  const engineIf = W.replace('  engine:\n    runs-on', `  engine:\n    needs: [changes]\n    if: ${EXEMPTION_IF}\n    runs-on`);
+  if (!gaps(engineIf, 'EXEMPT_JOBS="web after engine"\n').some((p) => p.includes('`engine` carries the docs-only `if:` and is not a browser job')))
+    selfFails.push('the exemption check misses a non-browser job made exempt in both files');
+  if (!gaps(engineIf).some((p) => p.includes('`engine` carries the docs-only `if:` and is not in EXEMPT_JOBS'))) selfFails.push('the exemption check misses a job with the `if:` that the script does not list');
+  if (!gaps(W, 'EXEMPT_JOBS="web after engine"\n').some((p) => p.includes('EXEMPT_JOBS lists `engine`'))) selfFails.push('the exemption check misses a listed job without the `if:`');
+  if (!gaps(W.replace('    needs: [changes]\n', '')).some((p) => p.includes('without needing `changes`'))) selfFails.push('the exemption check misses an exempt job that does not need `changes`');
+  if (!gaps(W, 'nothing\n').some((p) => p.includes('no EXEMPT_JOBS'))) selfFails.push('the exemption check reads a script with no EXEMPT_JOBS line as sound');
+  if (!gaps(W.replace(`bash ${DOCS_ONLY_SCRIPT}`, 'true')).some((p) => p.includes('does not run'))) selfFails.push('the exemption check misses a `changes` job that does not run the classifier');
+}
+
+// 6d. THE EXACT PINS (#3698 R4), driven through the shipped `pinGaps` over hand-made files.
+{
+  const W = `jobs:
+  a:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ${NODE_VERSION_FILE}
+      - run: npx tsx verify.ts
+`;
+  const PKG = '{"devDependencies":{"tsx":"4.23.15"}}';
+  const gaps = (yaml = W, pkg = PKG, node = '22.23.4\n'): string[] => pinGaps(parseYamlSubset(yaml), pkg, node);
+  if (gaps().length) selfFails.push(`the pin check flags sound pins: ${gaps().join('; ')}`);
+  if (!gaps(W, '{"devDependencies":{"tsx":"^4.23.15"}}').some((p) => p.includes('pins tsx as "^4.23.15"'))) selfFails.push('the pin check misses a tsx range in package.json');
+  if (!gaps(W, '{}').some((p) => p.includes('pins tsx as undefined'))) selfFails.push('the pin check misses a missing tsx pin');
+  if (!gaps(W, PKG, '22\n').some((p) => p.includes('not an exact x.y.z'))) selfFails.push('the pin check misses a floating .node-version');
+  if (!gaps(W.replace('npx tsx verify.ts', 'npx --yes tsx@4 verify.ts')).some((p) => p.includes('`tsx@` spec'))) selfFails.push('the pin check misses a `tsx@` spec on a CI step');
+  if (!gaps(W.replace(`node-version-file: ${NODE_VERSION_FILE}`, 'node-version: 22')).some((p) => p.includes('does not read'))) selfFails.push('the pin check misses a setup-node step that does not read .node-version');
+  if (!gaps(W.replace(`node-version-file: ${NODE_VERSION_FILE}`, `node-version-file: ${NODE_VERSION_FILE}\n          node-version: 22`)).some((p) => p.includes('names its own'))) selfFails.push('the pin check misses a setup-node step that also names node-version');
+}
+
+// 6e. THE TRIGGERS (#3698 R3), through the shipped `triggerGaps` over hand-made `on:` maps.
+{
+  const ON = `on:
+  pull_request:
+  push:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+jobs:
+  a:
+    runs-on: ubuntu-latest
+    steps:
+      - run: true
+`;
+  const gaps = (yaml: string): string[] => triggerGaps(parseYamlSubset(yaml));
+  if (gaps(ON).length) selfFails.push(`the trigger check flags a sound workflow: ${gaps(ON).join('; ')}`);
+  if (!gaps(ON.replace('  merge_group:\n    types: [checks_requested]\n', '')).some((p) => p.includes('`merge_group`'))) selfFails.push('the trigger check misses a dropped `merge_group` trigger');
+  if (!gaps(ON.replace('[checks_requested]', '[other]')).some((p) => p.includes('checks_requested'))) selfFails.push('the trigger check misses a `merge_group` without `checks_requested`');
+  if (!gaps(ON.replace('  pull_request:\n', '')).some((p) => p.includes('`pull_request`'))) selfFails.push('the trigger check misses a dropped `pull_request` trigger');
+  if (!gaps(ON.replace('[main]', '[dev]')).some((p) => p.includes('push to `main`'))) selfFails.push('the trigger check misses a push trigger that no longer names `main`');
+}
+
+// 6f. THE FOLD BOT (#3698 R1), through the shipped `foldWorkflowGaps` over mutations of the real file.
+{
+  const real = readFileSync(resolve(repo, FOLD_WORKFLOW), 'utf8');
+  const gaps = foldWorkflowGaps;
+  if (gaps(real).length) selfFails.push(`the fold-bot check flags the real workflow: ${gaps(real).join('; ')}`);
+  if (!gaps(real.replace(/GH_TOKEN: \$\{\{ secrets\.FOLD_TOKEN \}\}/g, 'GH_TOKEN: ${{ github.token }}')).some((p) => p.includes('GITHUB_TOKEN/github.token'))) selfFails.push('the fold-bot check misses the default token');
+  if (!gaps(real.replace('if [ -z "$FOLD_TOKEN" ]; then', 'if false; then')).some((p) => p.includes('unset'))) selfFails.push('the fold-bot check misses a missing token check');
+  if (!gaps(real.replace('startswith("fold/")', 'startswith("x/")')).some((p) => p.includes('already open'))) selfFails.push('the fold-bot check misses a dropped open-fold refusal');
+  // A refusal that exits 0 must not borrow the next step's `exit 1` (review of #3749, mutation C).
+  const tokenExit0 = real.replace(/(if \[ -z "\$FOLD_TOKEN" \]; then[^]*?)exit 1/, '$1exit 0');
+  if (tokenExit0 === real || !gaps(tokenExit0).some((p) => p.includes('unset'))) selfFails.push('the fold-bot check misses a token check that exits 0');
+  const openExit0 = real.replace(/(startswith\("fold\/"\)[^]*?)exit 1/, '$1exit 0');
+  if (openExit0 === real || !gaps(openExit0).some((p) => p.includes('already open'))) selfFails.push('the fold-bot check misses an open-fold refusal that exits 0');
+  if (!gaps(`${real}\n          gh pr merge --squash\n`).some((p) => p.includes('merges'))) selfFails.push('the fold-bot check misses a bot that merges');
+}
+
 // 6b. ARM 9 — a step with its limit is clean; the limit dropped, zero, or the step renamed is named.
 {
   const T = `
@@ -1249,6 +1460,48 @@ const realSteps = parseSteps(readFileSync(CI_PATH, 'utf8'));
     for (const p of problems) console.error(`    ${p}`);
     console.error(`\n  The merge rule reads ONE check, \`${AGGREGATOR_JOB}\`. A job it does not wait on, or waits on without`);
     console.error('  `if: always()`, can go red while that check reads green. Fix the `gates` job in ci.yml.');
+    process.exit(1);
+  }
+}
+// THE FOLD BOT (#3698 R1), on the real file.
+{
+  const problems = foldWorkflowGaps(readFileSync(resolve(repo, FOLD_WORKFLOW), 'utf8'));
+  console.log(`    fold bot: ${FOLD_WORKFLOW} checked for its token, its refusals and the fold sequence`);
+  if (problems.length) {
+    console.error(`\n❌ ${FOLD_WORKFLOW} is out of shape (#3698 R1):\n`);
+    for (const p of problems) console.error(`    ${p}`);
+    process.exit(1);
+  }
+}
+// THE DOCS-ONLY EXEMPTION (#3698 R4), on the real files: the jobs that carry the `if:` are the jobs the aggregator lists.
+{
+  const problems = exemptionGaps(ciTree, readFileSync(resolve(repo, AGGREGATOR_SCRIPT), 'utf8'));
+  console.log(`    docs-only exemption: ${exemptJobsOf(readFileSync(resolve(repo, AGGREGATOR_SCRIPT), 'utf8'))?.length ?? 0} exempt job(s) checked against ci.yml's \`if:\`, both directions`);
+  if (problems.length) {
+    console.error('\n❌ the docs-only exemption (#3698 R4) is out of shape:\n');
+    for (const p of problems) console.error(`    ${p}`);
+    console.error(`\n  ci.yml's jobs carrying \`${EXEMPTION_IF}\` and EXEMPT_JOBS in ${AGGREGATOR_SCRIPT} must name the same`);
+    console.error('  jobs, each a browser job that needs `changes`. Fix whichever file went short.');
+    process.exit(1);
+  }
+}
+// THE EXACT PINS (#3698 R4), on the real files: package.json's tsx, .node-version, and every setup-node step and run in ci.yml.
+{
+  const problems = pinGaps(ciTree, readFileSync(resolve(repo, 'package.json'), 'utf8'), readFileSync(resolve(repo, NODE_VERSION_FILE), 'utf8'));
+  console.log('    exact pins: tsx in package.json, .node-version, and every setup-node step and run in ci.yml');
+  if (problems.length) {
+    console.error('\n❌ the Node and tsx pins (#3698 R4) are not exact:\n');
+    for (const p of problems) console.error(`    ${p}`);
+    process.exit(1);
+  }
+}
+// THE TRIGGERS (#3698 R3), on the real file: pull request, push to main, and the merge queue.
+{
+  const problems = triggerGaps(ciTree);
+  console.log('    triggers: pull_request, push to main and merge_group checked');
+  if (problems.length) {
+    console.error('\n❌ ci.yml does not start on every event the merge rule needs (#3698 R3):\n');
+    for (const p of problems) console.error(`    ${p}`);
     process.exit(1);
   }
 }

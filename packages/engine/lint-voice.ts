@@ -442,6 +442,28 @@ const gated: string[] = [
   ...walk(join(repo, 'docs/public')).filter((f) => !f.startsWith(`${join(repo, REPORTS_DIR)}/`) && !(f.startsWith(`${repo}/docs/public/guides/`) && f.endsWith('.md'))),
 ];
 
+// The BUNDLES, named per file (#948's reasoning: a directory predicate stays satisfied by either file
+// alone). RAW text — no comment stripping, unlike the voice rules: a comment inside an expression survives
+// into an unminified bundle (header: CLIENT NAMES), and a client name there is a leak like one in a string.
+// The source map is out of scope on purpose; the header says why.
+const CLIENT_BUNDLES = ['apps/studio/dist/main.js', 'apps/plugin/dist/main.js', 'apps/plugin/dist/ui.html'];
+// ---- `--files`: the scanned set, printed (#1117) ----------------------------------------------
+// The scope crossing noted in the header claims "no design-record docs/ file is in this gate's scope". A grep over
+// this source cannot check that claim — it matches the comment making it. This prints the set the
+// gate actually walks, so the claim is decided by the gate rather than by prose about it:
+//
+//   npx tsx packages/engine/lint-voice.ts --files | grep '^docs/' | grep -vc '^docs/public/'    # must be 0
+//
+// Exits before any scanning, so it is cheap and cannot be confused with a verdict. It also exits before the surface
+// and self checks (#3698 R4), so it lists the walked set in a tree with no build, as `test-docs-only.sh`'s
+// `scope/…` cases read it in CI's engine job: an unbuilt bundle lists no file, and every bundle is under `apps/`.
+if (process.argv.includes('--files')) {
+  for (const f of gated) console.log(shown(f));
+  // The client-name arm's bundles, where the voice rules do not already walk them.
+  for (const b of CLIENT_BUNDLES) if (!gated.includes(join(repo, b))) console.log(b);
+  process.exit(0);
+}
+
 // ---- SELF-CHECK: does the scanner still detect what it claims to? ----
 // One true-positive sample per rule, the stated "just" exception, and three code-context samples
 // pulled from patterns that actually occur in apps/studio/dist/main.js today — so this doubles as the
@@ -624,31 +646,11 @@ if (selfFails.length) {
   for (const f of selfFails) console.error(`    ${f}`);
   process.exit(1);
 }
-// The BUNDLES, named per file (#948's reasoning: a directory predicate stays satisfied by either file
-// alone). RAW text — no comment stripping, unlike the voice rules: a comment inside an expression survives
-// into an unminified bundle (header: CLIENT NAMES), and a client name there is a leak like one in a string.
-// The source map is out of scope on purpose; the header says why.
-const CLIENT_BUNDLES = ['apps/studio/dist/main.js', 'apps/plugin/dist/main.js', 'apps/plugin/dist/ui.html'];
 // What proves a bundle is one that carries the personality vocabulary, so a clean scan of it means the
 // trait notes were in what was read. The resolver's own refusal message: a string of the subject, and
 // that is the point of a representation probe — if the vocabulary leaves a bundle, this fails loudly
 // rather than scanning a bundle the issue no longer concerns and calling it clean.
 const VOCABULARY_MARKER = 'unknown personality trait';
-
-// ---- `--files`: the scanned set, printed (#1117) ----------------------------------------------
-// The scope crossing noted in the header claims "no design-record docs/ file is in this gate's scope". A grep over
-// this source cannot check that claim — it matches the comment making it. This prints the set the
-// gate actually walks, so the claim is decided by the gate rather than by prose about it:
-//
-//   npx tsx packages/engine/lint-voice.ts --files | grep '^docs/' | grep -vc '^docs/public/'    # must be 0
-//
-// Exits before any scanning, so it is cheap and cannot be confused with a verdict.
-if (process.argv.includes('--files')) {
-  for (const f of gated) console.log(shown(f));
-  // The client-name arm's bundles, where the voice rules do not already walk them.
-  for (const b of CLIENT_BUNDLES) if (!gated.includes(join(repo, b))) console.log(b);
-  process.exit(0);
-}
 
 const gatedHits = gated.flatMap(scan);
 

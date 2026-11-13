@@ -18,7 +18,7 @@
  * Compiled under `tsconfig.main.json` (plugin-typings, `lib` WITHOUT `dom`), so any accidental
  * `document`/`window` reference is a COMPILE error — the two-context split is enforced by types.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, failureDetail, conflictHeadline, componentHeadline, staleNote, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { appendBuildNote, buildNote, parseBuildId } from '../../studio/src/build-identity';
 import { isIssueUrl } from '../../studio/src/state/report';
@@ -559,7 +559,8 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
     });
     postVerdict({ type: 'apply-result', ok: misses === 0, headline: applyHeadline(misses, ts.skipped.length), summary, lines }, sink);
   } catch (e) {
-    const failure = `write failed: ${(e as Error).message}`;
+    // #3697 H4 (D3703.1 B): the class, then the host's message; Report a problem keeps only the class.
+    const failure = `write failed: ${failureDetail(e)}`;
     postVerdict({ type: 'apply-result', ok: false, headline: APPLY_FAILED_HEADLINE, summary: failure, lines: [failure] }, sink);
   }
 };
@@ -711,7 +712,7 @@ const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Pro
     sink.post({ type: 'prune-result', ok: res.misses.length === 0, applied: true, count: removed + furnRemoved, summary });
   } catch (e) {
     // A thrown prune reports rather than crashing the UI — same posture as `applyTheme`'s catch.
-    sink.post({ type: 'prune-result', ok: false, applied: confirm, count: 0, summary: `prune failed: ${(e as Error).message}` });
+    sink.post({ type: 'prune-result', ok: false, applied: confirm, count: 0, summary: `prune failed: ${failureDetail(e)}` });   // #3697 H4: as `applyTheme`'s
   }
 };
 
@@ -2233,7 +2234,7 @@ const styleGuideCleanup = async (ids: string[], sink: ActionSink): Promise<void>
  */
 const guard = createRunGuard();
 /** `cmd` is the write asked for; `held`, the one holding the file (#3697 R7: they can differ). */
-const refusal = (cmd: WriteCmd, agent: boolean, held: WriteCmd): MainToUi => ({ type: 'refused', code: 'busy', cmd, agent, message: busyMessage(cmd), held });
+const refusal = (cmd: WriteCmd, agent: boolean, held: WriteCmd): MainToUi => ({ type: 'refused', code: 'busy', cmd, agent, message: busyMessage(held), held });
 const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<void>, confirm?: (...a: A) => boolean) =>
   (...a: A): Promise<void> => {
     if (!writes(cmd, confirm ? confirm(...a) : undefined)) return fn(...a);
@@ -2383,7 +2384,7 @@ const dispatch = createDispatcher({
     if (!asked || !holder || !writes(asked, c.cmd === 'prune' ? c.args.confirm : c.cmd === 'panels-clean' ? c.args.confirm === true : undefined)) return null;
     // #3394: a `set-override` preview reads and writes nothing, so it is never declined.
     if (c.cmd === 'set-override' && !c.args.confirm) return null;
-    return { message: busyMessage(asked), post: refusal(asked, true, holder) };
+    return { message: busyMessage(holder), post: refusal(asked, true, holder) };
   },
   // The panel's pills show an agent's result as they would a button's. An agent's prune PREVIEW goes as a
   // pill only: opened as the confirm dialog, the owner's Confirm would prune against the panel's knobs,

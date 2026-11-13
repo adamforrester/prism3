@@ -199,6 +199,11 @@ export const brandFor = <B>(theme: boolean, panel: B): B | undefined => (theme ?
 /** Whether the scoped check's reading of a set lets the run update it: not blocked; or (#3421) blocked only by variables
  *  or styles the brand's Theme writes, in a run whose Theme step goes first. */
 const runnable = (c: CheckedSetView, theme: boolean): boolean => !c.blocked || (theme && !!c.themeBlocked);
+/** #3713 (2 of 4): the Due sets the check's answer reads as blocked for this run, in the order given: listed apart under
+ *  Can't update yet, with no tick, since the run would leave them anyway. A set only Theme blocks is not among them while
+ *  Theme is ticked (#3421). Empty before the answer: until then every Due set is listed, ticked. */
+export const blockedDueOf = (ids: readonly string[], check: { readonly sets: readonly CheckedSetView[] } | null, theme: boolean): string[] =>
+  check ? ids.filter((id) => { const c = check.sets.find((x) => x.def === id); return !!c && !runnable(c, theme); }) : [];
 /** What the scoped check says of the ticked sets the update would act on: the ones it read and did not block, and
  *  (#3421) with Theme ticked, the ones only Theme's variables and styles block. The run checks those again after Theme. */
 export const updatableOf = (t: Ticks, check: { readonly sets: readonly CheckedSetView[] }): string[] =>
@@ -303,6 +308,16 @@ export const engineWhy = (m: MovedView): string => {
   return `Engine update: ${items.slice(0, 3).join(', ')}${items.length > 3 ? `, ${items.length - 3} more` : ''}`;
 };
 
+/** #3713 (3 of 4): names as a list: "A", "A and B", "A, B and C", then "A, B and 2 more". */
+const andList = (names: readonly string[]): string =>
+  names.length <= 3 ? names.join(', ').replace(/, ([^,]*)$/, ' and $1') : `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`;
+/** #3713 (3 of 4): why Update file is disabled, said beside it; null while it is enabled, and while the check is out
+ *  (its progress in the foot says that already). The file's brand not restored (`off`) says so; else there are no steps
+ *  to run, because each set ticked is one the check blocks (`blocked`, by name), or nothing is ticked. It never names a
+ *  write it does not make: the button stays disabled. DRAFT (OWNER DECISION: copy). */
+export const goWhyOf = (o: { readonly off: string | null; readonly waiting: boolean; readonly steps: number; readonly blocked: readonly string[] }): string | null =>
+  o.off ? o.off : o.waiting || o.steps > 0 ? null : UPDATE_COPY.nothing(o.blocked);
+
 /** The checklist's words, DRAFT placeholders until the owner words them (Q2909.10 A). */
 export const UPDATE_COPY = {
   button: 'Update file',
@@ -335,6 +350,8 @@ export const UPDATE_COPY = {
   addAll: (n: number): string => `Add all ${n}`,
   due: 'Due',
   dueSub: (n: number): string => `${plural(n)} to update in place. Ticked by default.`,
+  /** #3713 (2 of 4, DRAFT): the group a blocked Due set is listed in, apart from Due and with no tick. */
+  blocked: 'Can’t update yet',
   updateStep: 'Update sets in place',
   /** A due set's one-line reason (#3082 Q811 A): a setting it follows, or what an engine update moved in its drawing. */
   dueWhy: (d: Extract<SetDueView, { state: 'due' }>): string => (d.reason === 'engine' ? (d.moved ? engineWhy(d.moved) : UPDATE_COPY.engineUnprinted)
@@ -389,6 +406,8 @@ export const UPDATE_COPY = {
   coverStep: 'Cover and About this library',
   guidesSub: 'Drawn with the settings in Docs. A rerun updates each table in place.',
   go: 'Update file',
+  /** #3713 (3 of 4, DRAFT): beside a disabled Update file, `goWhyOf`. */
+  nothing: (blocked: readonly string[]): string => (blocked.length ? `Nothing to write: ${andList(blocked)} can’t be updated yet.` : 'Nothing to write: nothing above is ticked.'),
   goFresh: 'Set up and update',
   cancel: 'Cancel',
   close: 'Close',
@@ -420,44 +439,52 @@ const s_ = (n: number, one: string, many: string): string => `${n} ${n === 1 ? o
  *  same words `blockedWhy` reads them by. With Theme ticked they no longer block, so the row skips them. */
 const THEME_CLEARS = /^(?:\d+ variables? the plan binds (?:is|are) not in this file|(?:text|effect) styles? not in this file: )/;
 /** #3713: one of the check's blocker lines (`update-plan.ts`, `fileBlockers` and `setRefusal`) in plain words, as the
- *  clause after "Can’t update yet —", with the step that clears it where Studio or Figma offers one. A line of a shape not known here is shown as written, less
- *  its issue references. DRAFT (OWNER DECISION: copy). The shapes are matched by their words, so a reworded blocker
- *  falls through to its own text, never to a wrong reason. */
+ *  clause after "Can’t update yet —", with the step that clears it where Studio or Figma offers one. The words are the
+ *  owner's (#3721, D3721.1–.6, 2026-11-12), except the unknown-shape line, which is DRAFT. A line of a shape not known
+ *  here gets that one fixed line and Report a problem (`state/report.ts`), never the engine's words (D3721.1 b). The
+ *  shapes are matched by their words, so a reworded blocker falls through to the fixed line, never to a wrong reason. */
 export const blockedWhy = (line: string, nameOf: (id: string) => string = (id) => id): { readonly why: string; readonly next: string | null } => {
   let m: RegExpMatchArray | null;
   if ((m = line.match(/^Not in this file: (.+)\. Build (.+) first, then run the update again$/)))
-    return { why: `it needs ${setNames(m[2], nameOf)}, which this file doesn’t have.`, next: `Add ${setNames(m[2], nameOf)} on Components first.` };
+    return { why: `it needs ${setNames(m[2], nameOf)}, which this file doesn’t have.`, next: `Tick ${setNames(m[2], nameOf)} on Components first.` };
   if ((m = line.match(/^(\d+) variables? the plan binds (?:is|are) not in this file/)))
     return { why: `it needs ${s_(Number(m[1]), 'variable', 'variables')} this file doesn’t have.`, next: 'Tick Theme to write them.' };
   if ((m = line.match(/^(text|effect) styles? not in this file: (.+)$/)))
     return { why: `it needs ${listCount(m[2]) === 1 ? `a ${m[1]} style` : `${m[1]} styles`} this file doesn’t have: ${m[2]}.`, next: 'Tick Theme to write them.' };
   if ((m = line.match(/^components? the plan swaps to (?:is|are) not in this file: (.+)$/)))
-    return { why: `it swaps to ${setNames(m[1], nameOf)}, which this file doesn’t have.`, next: `Add ${setNames(m[1], nameOf)} on Components first.` };
+    return { why: `it swaps to ${setNames(m[1], nameOf)}, which this file doesn’t have.`, next: `Tick ${setNames(m[1], nameOf)} on Components first.` };
   if ((m = line.match(/^fonts: (.+) will not load/)))
     return { why: `these fonts won’t load: ${m[1]}.`, next: 'Install or turn them on in Figma, then open this again.' };
   if (/^an axis the plan removed would collapse members/.test(line))
     return { why: 'a property it drops would merge variants into one.', next: null };
+  // D3721.4: only the agent's Adopt clears this, and Studio has none; its write path is #3714.
   if ((m = line.match(/^the axes change, and (\d+) members? not built by Prism3/)))
-    return { why: `its properties change, and ${s_(Number(m[1]), 'variant', 'variants')} not built by Prism3 would be left behind.`, next: 'The agent’s Adopt can claim them first.' };
+    return { why: `its properties change, and ${s_(Number(m[1]), 'variant', 'variants')} not built by Prism3 would be left behind.`, next: 'Studio can’t do this yet.' };
   if ((m = line.match(/^renaming (.+) would give it the name of another member \((.+)\)$/)))
     return { why: `renaming ${m[1]} would clash with ${m[2]}.`, next: 'Rename or remove one of them in Figma.' };
   if ((m = line.match(/^(\d+) members share the coordinate (\S+)/)))
     return { why: `${m[1]} variants share one name, ${m[2]}.`, next: 'Rename or remove the extra one in Figma.' };
   if (/^the members disagree on the axis list/.test(line))
     return { why: 'its variants don’t all have the same properties.', next: 'Fix the variant names in Figma.' };
-  const t = line.replace(/\s*\(#\d+\)/g, '').trim().replace(/:$/, '').replace(/'/g, '’');
-  return { why: `${t}${/[.!?]$/.test(t) ? '' : '.'}`, next: null };
+  // DRAFT (D3721.1 b: the decision is the owner's, these words are not yet): Report a problem is the control's own name.
+  return { why: 'the check gave a reason Studio doesn’t recognize.', next: 'Report it with Report a problem.' };
 };
-/** #3713: a blocked set's line: its first reason in plain words, the step that clears it, and how many more. With Theme
- *  ticked (`theme`), the reasons Theme's run clears are skipped, so the row never asks for a step already taken and
+/** #3713: a blocked set's first reason in plain words, the step that clears it, and how many more; `lead` opens it. With
+ *  Theme ticked (`theme`), the reasons Theme's run clears are skipped, so the row never asks for a step already taken and
  *  leads with what still blocks. DRAFT. */
-export const blockedLine = (reasons: readonly string[] | undefined, theme = false, nameOf?: (id: string) => string): string => {
-  if (!reasons?.length) return 'Can’t update yet — the check gave no reason.';
+const reasonText = (reasons: readonly string[] | undefined, theme: boolean, nameOf: ((id: string) => string) | undefined, lead: (why: string) => string): string => {
+  if (!reasons?.length) return lead('the check gave no reason.');
   const left = theme ? reasons.filter((r) => !THEME_CLEARS.test(r)) : reasons;
   const shown = left.length ? left : reasons;
   const { why, next } = blockedWhy(shown[0], nameOf);
-  return [`Can’t update yet — ${why}`, next, shown.length > 1 ? `${s_(shown.length - 1, 'more reason', 'more reasons')}.` : ''].filter(Boolean).join(' ');
+  return [lead(why), next, shown.length > 1 ? `${s_(shown.length - 1, 'more reason', 'more reasons')}.` : ''].filter(Boolean).join(' ');
 };
+/** #3713: a blocked set's line where it stands among the checked sets: "Can't update yet — …". DRAFT. */
+export const blockedLine = (reasons: readonly string[] | undefined, theme = false, nameOf?: (id: string) => string): string =>
+  reasonText(reasons, theme, nameOf, (why) => `Can’t update yet — ${why}`);
+/** #3713 (2 of 4): its line under Can't update yet, whose title already says so: the reason as a sentence. DRAFT. */
+export const blockedReason = (reasons: readonly string[] | undefined, theme = false, nameOf?: (id: string) => string): string =>
+  reasonText(reasons, theme, nameOf, (why) => `${why.charAt(0).toUpperCase()}${why.slice(1)}`);
 
 /** Each step's name in the checklist and in the run line. */
 export const STEP_TITLE: Readonly<Record<StepKey, string>> = { setup: UPDATE_COPY.setup, theme: UPDATE_COPY.theme, update: UPDATE_COPY.updateStep, sets: UPDATE_COPY.toAdd, guides: UPDATE_COPY.guides, cover: UPDATE_COPY.coverStep };

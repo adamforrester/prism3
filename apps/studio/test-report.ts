@@ -30,15 +30,24 @@
  * arm, and `#3561 A every brand-authored segment the engine emits is replaced … LEAKED <name>`, which finds the authored
  * segments by building the brand twice with every authored name renamed, not from `brandWords`' own list.
  *
- * #3525 review finding 1 (a name next to `,` `:` `;` `(` `)` leaked): `SEGMENT` narrowed back to `/.\\- "'` → each
+ * #3525 review finding 1 (a name next to `,` `:` `;` `(` `)` leaked): `SEGMENT` narrowed to a list like `/.\\- "'` → each
  * `#3525 R1 … bounded by punctuation is replaced (…)` arm; letters added to `SEGMENT` → `#3525 R1 an ordinary word
  * holding a name stays whole next to punctuation` and `#3525 R1 a short root inside an ordinary word stays whole …`.
  * Delta review: curly quotes, the backtick or `{}` dropped, or straight quotes dropped → the matching quote arm of
  * `#3525 R1 … bounded by punctuation is replaced (…)`; `0-9` added → `#3525 R1 an ordinary word holding a name stays whole …`.
+ *
+ * #3697 H4 (every string leaf of the brand input is a brand word, the engine's closed words excepted): a value put in
+ * `ENGINE_VOCABULARY` that the schema does not close → `#3697 H4 every engine word … is a value the schema closes`,
+ * read from `theme-schema.json`, not from the list; typeface families dropped from `brandWords` → `#3697 H4 opt-in:
+ * off, a typeface family is replaced`. The same drop fails `apps/plugin/test-report-redaction.ts` over the plugin's
+ * own lines. D3703.1 B (the drawer keeps the host's message; only the report reduces a `write failed:` or `prune failed:`
+ * line to the error's class): `reduceFailure` dropped from `buildReport` → `#3697 H4 D3703.1 B a thrown write's and
+ * prune's lines keep the error's class, not the host's message`.
  */
-import { brandWords, buildReport, isIssueUrl, issueUrl, scrub, ISSUE_BASE, URL_LIMIT, type ReportInput } from './src/state/report';
+import { ENGINE_VOCABULARY, brandWords, buildReport, isIssueUrl, issueUrl, scrub, ISSUE_BASE, URL_LIMIT, type ReportInput } from './src/state/report';
 import { brandTheme, type BrandInput } from '@prism3/engine/theme';
 import { buildTree } from '@prism3/engine/tree';
+import { readFileSync } from 'node:fs';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -175,6 +184,51 @@ ok(authoredOn.includes('hds/color/interactive/seaside/fill/rest') && authoredOn.
     .concat(authored.filter((seg) => scrub(`mode ${seg}`, words).includes(seg)));
   ok(leaked.length === 0 && realPaths.length > 100,
     `#3561 A every brand-authored segment the engine emits is replaced with [brand] in every one of ${realPaths.length} token paths${leaked.length ? ` — LEAKED ${[...new Set(leaked)].join(', ')}` : ''}`);
+}
+
+// ── #3697 H4: every string leaf of the brand input, typeface families included ──
+{
+  // The schema's closed values, read from the schema: an engine word the list exempts must be one of them, or an
+  // authored word could pass the scrub. (A value the list misses is only over-redacted: the safe direction.)
+  const closed = new Set<string>();
+  const walk = (n: unknown): void => {
+    if (!n || typeof n !== 'object') return;
+    const o = n as Record<string, unknown>;
+    if (Array.isArray(o.enum)) for (const v of o.enum) if (typeof v === 'string') closed.add(v);
+    if (typeof o.const === 'string') closed.add(o.const);
+    for (const v of Object.values(o)) walk(v);
+  };
+  walk(JSON.parse(readFileSync(new URL('../../packages/engine/schema/theme-schema.json', import.meta.url), 'utf8')));
+  const open = [...ENGINE_VOCABULARY].filter((w) => !closed.has(w));
+  ok(open.length === 0 && closed.size > 50, `#3697 H4 every engine word the scrub keeps is a value the schema closes (${open.join(', ') || `all ${ENGINE_VOCABULARY.size} of ${closed.size}`})`);
+  const TYPED = { id: 'harbor', root: 'hfs', density: 'comfortable',
+    typography: { families: { display: 'Ivar Headline', body: 'Calibre Office' }, weights: { display: ['strong'] }, facePins: { display: { family: 'Ivar Headline', style: 'Hairline' } } } };
+  const typed = buildReport({ ...BASE, brand: TYPED, activity: [{ title: 'Apply Theme', verdict: '✓ applied, 1 skipped',
+    lines: ['⚠ 2 typefaces unavailable (Calibre Office|Regular, Ivar Headline Hairline)', 'type/display/strong, body text, comfortable density'], agent: false }] });
+  ok(typed.includes('⚠ 2 typefaces unavailable ([brand]|Regular, [brand] [brand])') && !/Calibre|Ivar/.test(typed),
+    '#3697 H4 opt-in: off, a typeface family is replaced with [brand], next to the `|` the plugin joins a face with');
+  ok(typed.includes('type/display/strong, body text, comfortable density'), '#3697 H4 the engine\'s own words stay: a closed value names no brand');
+  ok(brandWords({ id: 'harbor', actionPalette: 'primary', gradients: [{ name: 'dawn', stops: [{ palette: 'neutral' }] }] })
+    .every((w) => !['primary', 'neutral'].includes(typeof w === 'string' ? w : w.whole)), '#3697 H4 a reserved palette (primary, neutral) is the engine\'s name, not a brand word');
+}
+
+// ── #3697 H4, D3703.1 B: the drawer shows the host's message; the report keeps only the error's class ──
+// The lines are typed as the plugin posts them (`write failed: <Class>: <message>`), and every expected string is a
+// literal, so a `reduceFailure` dropped from `buildReport`, or one that keeps the message, fails here by name.
+{
+  const failedRep = (includeBrand: boolean): string => buildReport({ ...BASE, includeBrand, activity: [
+    { title: 'Apply Theme', verdict: '✗ write failed', lines: ['write failed: TypeError: cannot write to Checkout Hero / Q3 launch'], agent: false },
+    { title: 'Prune', verdict: '✗ failed', lines: ['prune failed: Error: in remove: node "Unannounced pricing"'], agent: true },
+    { title: 'Build', verdict: '✗ failed', lines: ['write failed: cannot write to Checkout Hero', 'member 3 failed to bind: Checkout Hero'], agent: false },
+  ] });
+  for (const on of [false, true]) {
+    const rep = failedRep(on);
+    ok(rep.includes('  - write failed: TypeError\n') && rep.includes('  - prune failed: Error\n') && !/Q3 launch|Unannounced|in remove/.test(rep),
+      `#3697 H4 D3703.1 B a thrown write's and prune's lines keep the error's class, not the host's message (brand ${on ? 'included' : 'left out'})`);
+  }
+  const rep = failedRep(false);
+  ok(rep.includes('  - write failed: Error\n'), '#3697 H4 D3703.1 B a failure line with no class at its head reads `Error`, never the message');
+  ok(rep.includes('  - member 3 failed to bind: Checkout Hero'), '#3697 H4 D3703.1 B a line that is not a write or prune failure is left as it is');
 }
 
 // ── #3525 review finding 1: a name next to prose punctuation is still a whole segment ──
