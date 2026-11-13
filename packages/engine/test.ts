@@ -15,7 +15,7 @@ import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, 
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, densitySpace, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { codeOnlyText } from './code-only-register';
-import { at, deref, pxOf, buildTree, familyOf } from './tree';
+import { at, deref, pxOf, buildTree, familyOf, aliasFaults, type AliasFault } from './tree';
 import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, type Theme } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes, overrideGroundRgb, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS, pureExtremeInk } from './modes';
@@ -41606,6 +41606,65 @@ arm: {
     }
   }
   ok(checked >= 9 && bad.length === 0, `#3555 C10: every derived minWidth rule with a numeric ratio states the arithmetic that gives its px (${checked} rows across ${EXAMPLE_IDS.length} brands)${bad.length ? ` — ${bad.slice(0, 4).join('; ')}` : ''}`);
+}
+
+// #3698 finding 7b — THE ALIAS VALIDATOR REFUSES A CYCLE AND A CHAIN THE READERS CANNOT FOLLOW. The gate checked one
+// hop: a ref that named a token passed, whatever that token pointed at. `deref` gives up after 10 hops and `pxOf` /
+// `numOf` read that as `0`, so a cycle, or a chain of 11, emitted clean and was consumed as zero. `aliasFaults` (tree.ts)
+// now follows each chain. The CLEAN case is a committed fixture (`fixtures/aliases/chains.tokens.json`: a 10-hop chain,
+// a per-mode chain, a composite sub-value) that must report nothing. Each FAULT is planted here in a copy of it and
+// must be reported by path and reason. The cap is typed here as 10, never read from `ALIAS_MAX_HOPS`, and tied to the
+// reader by driving `deref` over the same chains. Every committed tree is then walked too.
+{
+  const FIX = 'fixtures/aliases/chains.tokens.json';
+  const clean = JSON.parse(readFileSync(resolve(HERE, FIX), 'utf8'));
+  const copy = (): any => JSON.parse(JSON.stringify(clean));
+  const show = (fs: AliasFault[]): string => fs.map((f) => `${f.reason} ${f.path}${f.mode ? ` [${f.mode}]` : ''}${f.chain ? ` (${f.chain.join(' → ')})` : ''}`).join('; ') || 'none';
+  const c = aliasFaults(clean);
+  ok(c.faults.length === 0 && c.aliases.length >= 16,
+    `#3698 7b: the clean fixture ${FIX} reports no alias fault (${c.aliases.length} aliases, floor 16; faults: ${show(c.faults)})`);
+  ok(deref(clean, at(clean, 'fx.cap.n0'))?.$value === '#336699',
+    `#3698 7b: deref follows the fixture's 10-hop chain to its literal, so the validator's cap is no tighter than the reader's`);
+
+  const has = (fs: AliasFault[], path: string, reason: AliasFault['reason'], mode?: string): boolean =>
+    fs.some((f) => f.path === path && f.reason === reason && f.mode === mode);
+  const planted: [string, (t: any) => void, string, AliasFault['reason'], string?][] = [
+    ['a self-alias', (t) => { t.fx.self = { $type: 'color', $value: '{fx.self}' }; }, 'fx.self', 'cycle'],
+    ['a two-token loop', (t) => { t.fx.p = { $type: 'color', $value: '{fx.q}' }; t.fx.q = { $type: 'color', $value: '{fx.p}' }; }, 'fx.p', 'cycle'],
+    ['a loop reached through a clean leaf', (t) => { t.fx.cap.n9.$value = '{fx.cap.n5}'; }, 'fx.cap.n0', 'cycle'],
+    ['a loop in one mode only', (t) => { t.fx.mode.other.$extensions.prism3.modes.dark.$value = '{fx.mode.leaf}'; }, 'fx.mode.leaf', 'cycle', 'dark'],
+    ['an 11-hop chain', (t) => { t.fx.cap.n10 = { $type: 'color', $value: '{fx.lit}' }; t.fx.cap.n9.$value = '{fx.cap.n10}'; }, 'fx.cap.n0', 'too-deep'],
+    ['a dangling ref', (t) => { t.fx.one.$value = '{fx.nowhere}'; }, 'fx.one', 'dangling'],
+  ];
+  for (const [what, plant, path, reason, mode] of planted) {
+    const t = copy();
+    plant(t);
+    const f = aliasFaults(t).faults;
+    ok(has(f, path, reason, mode), `#3698 7b: ${what} is reported as ${reason} at ${path}${mode ? ` [${mode}]` : ''} (got: ${show(f)})`);
+  }
+  {
+    const t = copy();
+    t.fx.cap.n10 = { $type: 'color', $value: '{fx.lit}' }; t.fx.cap.n9.$value = '{fx.cap.n10}';
+    ok(deref(t, at(t, 'fx.cap.n0')) === undefined,
+      `#3698 7b: deref gives up on the same 11-hop chain the validator refuses, so nothing the validator passes reads as 0`);
+  }
+
+  const ids = readdirSync(resolve(HERE, './out')).filter((f) => /^[^.]+\.tokens\.json$/.test(f)).sort();
+  const bad: string[] = [];
+  let total = 0, deepest = 0;
+  for (const f of ids) {
+    const tree = JSON.parse(readFileSync(resolve(HERE, './out', f), 'utf8'));
+    const r = aliasFaults(tree);
+    total += r.aliases.length;
+    if (r.faults.length) bad.push(`${f}: ${show(r.faults.slice(0, 3))}`);
+    for (const a of r.aliases) {
+      let hops = 0, node = at(tree, a.ref);
+      for (; hops < 20 && typeof node?.$value === 'string' && /^\{.+\}$/.test(node.$value); hops++) node = at(tree, node.$value.slice(1, -1));
+      deepest = Math.max(deepest, hops + 1);
+    }
+  }
+  ok(ids.length >= 4 && total >= 7000 && bad.length === 0,
+    `#3698 7b: every committed tree's aliases resolve with no cycle and within 10 hops (${ids.length} trees, ${total} aliases, floors 4 and 7000; deepest base chain ${deepest} hops)${bad.length ? ` — ${bad.join(' | ')}` : ''}`);
 }
 
 // #3698 finding 7a — A TINT'S PUBLISHED CONTRAST IS MEASURED AT THE ALPHA THAT SHIPS. `settleSolidTint` composited the

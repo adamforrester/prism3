@@ -1,0 +1,100 @@
+{
+  "$description": "#3698 finding 7b: a CLEAN alias fixture for `aliasFaults` (tree.ts). Every alias here resolves, none loops, and the longest chain is exactly ALIAS_MAX_HOPS (10). test.ts asserts it reports nothing; the faulty cases are built in test.ts from copies of this tree.",
+  "fx": {
+    "lit": {
+      "$type": "color",
+      "$value": "#336699"
+    },
+    "dur": {
+      "$type": "duration",
+      "$value": "200ms"
+    },
+    "one": {
+      "$type": "color",
+      "$value": "{fx.lit}"
+    },
+    "cap": {
+      "n0": {
+        "$type": "color",
+        "$value": "{fx.cap.n1}"
+      },
+      "n1": {
+        "$type": "color",
+        "$value": "{fx.cap.n2}"
+      },
+      "n2": {
+        "$type": "color",
+        "$value": "{fx.cap.n3}"
+      },
+      "n3": {
+        "$type": "color",
+        "$value": "{fx.cap.n4}"
+      },
+      "n4": {
+        "$type": "color",
+        "$value": "{fx.cap.n5}"
+      },
+      "n5": {
+        "$type": "color",
+        "$value": "{fx.cap.n6}"
+      },
+      "n6": {
+        "$type": "color",
+        "$value": "{fx.cap.n7}"
+      },
+      "n7": {
+        "$type": "color",
+        "$value": "{fx.cap.n8}"
+      },
+      "n8": {
+        "$type": "color",
+        "$value": "{fx.cap.n9}"
+      },
+      "n9": {
+        "$type": "color",
+        "$value": "{fx.lit}"
+      }
+    },
+    "mode": {
+      "leaf": {
+        "$type": "color",
+        "$value": "{fx.lit}",
+        "$extensions": {
+          "prism3": {
+            "modes": {
+              "dark": {
+                "$value": "{fx.mode.other}"
+              }
+            }
+          }
+        }
+      },
+      "other": {
+        "$type": "color",
+        "$value": "{fx.lit}",
+        "$extensions": {
+          "prism3": {
+            "modes": {
+              "dark": {
+                "$value": "{fx.one}"
+              }
+            }
+          }
+        }
+      }
+    },
+    "transition": {
+      "$type": "transition",
+      "$value": {
+        "duration": "{fx.dur}",
+        "delay": "0ms",
+        "timingFunction": [
+          0,
+          0,
+          1,
+          1
+        ]
+      }
+    }
+  }
+}
