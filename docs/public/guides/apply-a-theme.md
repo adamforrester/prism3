@@ -17,11 +17,11 @@ The rest of the checklist, and how a run works, is in [Update a Figma file](upda
 |---|---|
 | Variable collections | `core`, holding the palette ramps, base dimensions and fonts; `color`, holding every color role; `layout`; `type-sets`; and one collection each for space, size, radius, border width, focus, opacity, motion, icon and control sizes. <!-- src: packages/engine/emit-figma.ts:173-258 --> |
 | Modes | On `color`, one mode per appearance mode the brand ships, such as light, dark and the high-contrast pair. On `layout`, one mode per breakpoint. On `type-sets`, a desktop and a mobile mode. <!-- src: packages/engine/emit-figma.ts:173-258 --> |
-| Text styles | One per text role, bound to the font variables, so changing a variable restyles the text. <!-- src: apps/plugin/src/apply-theme.ts:166-169#1bee3622 --> |
-| Effect styles | The shadow ramp. <!-- src: apps/plugin/src/apply-theme.ts:118-180#52aaae82 --> |
-| Paint styles | Gradients, when the brand turns them on. <!-- src: apps/plugin/src/apply-theme.ts:118-180#52aaae82 --> |
+| Text styles | One per text role, bound to the font variables, so changing a variable restyles the text. <!-- src: apps/plugin/src/apply-theme.ts:171-174#1bee3622 --> |
+| Effect styles | The shadow ramp. <!-- src: apps/plugin/src/apply-theme.ts:118-185#b170bd97 --> |
+| Paint styles | Gradients, when the brand turns them on. <!-- src: apps/plugin/src/apply-theme.ts:118-185#b170bd97 --> |
 | Grid styles | One per breakpoint, from the same layout values as the `layout` collection. A grid style can't switch modes, so each breakpoint gets its own. <!-- src: packages/engine/emit-figma-styles.ts:289-302 --> |
-| The brand itself | The settings you applied, saved in the file, so the plugin reopens on this brand next time. <!-- src: apps/plugin/src/apply-theme.ts:173-175#ede61fb0 --> <!-- src: apps/plugin/src/persist-figma.ts:30-35#ba150bb3 --> |
+| The brand itself | The settings you applied, saved in the file, so the plugin reopens on this brand next time. <!-- src: apps/plugin/src/apply-theme.ts:178-180#ede61fb0 --> <!-- src: apps/plugin/src/persist-figma.ts:30-35#ba150bb3 --> |
 
 Every collection and style Prism3 creates carries a small mark that says Prism3 made it. That mark is how later runs tell Prism3's content from yours. <!-- src: apps/plugin/src/provenance.ts:1-57#dce1a9a1 -->
 
@@ -63,7 +63,7 @@ One exception: a grid style whose name is taken is skipped for that breakpoint, 
 
 Two more cases stop the theme before it starts:
 
-- Another theme write is running, from an agent: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:41-45 -->
+- Another write is running, from an agent: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:49-52 -->
 - The file's saved brand didn't open. Update file's write stays off, with the reason: "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." <!-- src: apps/studio/src/main.ts:1868 -->
 
 ## Writing it again
