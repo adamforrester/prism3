@@ -1,0 +1,9 @@
+## (2026-11-13) — File facts report: the format id is 0.x and unstable (#2075, D3685.1 C)
+
+**What changed.** The owner accepted D3685.1 C on #3685: the file facts report's format id is `prism3-file-facts/0.1`, not `/1.0`, until #2075 part 2's findings are in. `FILE_FACTS_FORMAT` in `packages/engine/file-facts.ts` and the `$id` and `format` const in `packages/engine/schema/file-facts.schema.json` moved together. The scanner's header gains an UNSTABLE paragraph, and the schema says it in two places: its top-level description, and the `format` field, which drops "minor for a field added, major for one removed or renamed" for "any field may be added, renamed or removed, and each such change raises the number after the dot". Moving to `/1.0` is the owner's call, after part 2.
+
+**The other two decisions.** D3685.2 A keeps the role rule `name-and-type/1` as it is, so nothing moves for it. D3685.3 (a dev-only agent-link read command that returns the report) is filed as #3752 rather than built here: a dev command touches the dispatcher's `PRISM3_DEV` branch, `lint-release-bundle.ts`'s markers, the runbook and the agent-link suites, which is more than this small PR.
+
+**Why the test holds a literal.** The suite already checked `report.format === FILE_FACTS_FORMAT && SCHEMA.$id === FILE_FACTS_FORMAT`, which compares the scanner with itself and the schema with the scanner: move both to `/1.0` and it still passes. `apps/plugin/test-file-facts.ts` now also checks `report.format === 'prism3-file-facts/0.1'` for every fixture, and checks the schema's two "Unstable" sentences, so leaving 0.x has to edit the test on purpose (docs/34).
+
+**The pending notes from #3685 still say `/1.0`.** `changes/claude-2075-file-facts.md` and its progress fragment were written before the decision. A merged note is not edited, so this PR's own change note and this entry carry the correction; the fold prints both.

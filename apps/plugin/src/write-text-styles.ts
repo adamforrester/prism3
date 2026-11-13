@@ -24,6 +24,7 @@
 import type { TextStylePlan } from '@prism3/engine/write-plan';
 import type { VariablesApi, Variable } from './write-figma';
 import { markOwned, type Markable } from './provenance';
+import { errorClass } from './apply-summary';
 
 /** A Figma font descriptor. */
 export type FontName = { family: string; style: string };
@@ -202,7 +203,8 @@ export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi
     try {
       await api.loadFontAsync({ family: row.fontFamilyPrimary, style });
     } catch (e) {
-      skipped.push({ name: row.name, reason: `font unavailable: ${row.fontFamilyPrimary} ${style}${(e as Error)?.message ? ` (${(e as Error).message})` : ''}` });
+      // #3697 H4: the error's class, not the host's message, which can name anything the file holds.
+      skipped.push({ name: row.name, reason: `font unavailable: ${row.fontFamilyPrimary} ${style} (${errorClass(e)})` });
       continue;
     }
 
