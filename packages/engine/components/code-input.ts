@@ -83,9 +83,14 @@ export const codeInputCell: ComponentDef = {
   // input's own axis and values (Q-CC1 A on #3554, Q354), so the field follows it into its default cells by name.
   variants: {
     size: ['medium', 'small', 'large', 'x-large'],
+    // Q193 A (#3554): ONE value, as Select took under Q-CC3 A and every field the Field style setting reaches
+    // (`FIELD_FRAME_PARTS` reaches the cell). The brand may set `underline` (#2695; `applyFieldStyle` rewrites the def
+    // before projection); a second value here would be a code coordinate, which Q14 A rules out. The codeOnly `style`
+    // entry names both.
+    style: ['outline'],
     status: ['default', 'error'],
   },
-  axisKinds: { size: 'authoring', status: 'runtime' },
+  axisKinds: { size: 'authoring', style: 'authoring', status: 'runtime' },
 
   // Text field's grammar: status-led and state-qualified first, so the danger border wins over the interaction states.
   paintKeys: ['{status}.{slot}.{state}', '{slot}.{state}', '{slot}'],
@@ -221,10 +226,10 @@ export const codeInputCell: ComponentDef = {
           'fill width — Figma keeps each cell at its size until a designer sets it to fill; code\'s `width="full"` makes every cell `flex: 1 1 0` with `min-inline-size: 32px`, and the height stays the size\'s.',
       },
       {
-        class: 'brand-setting',
+        class: 'not-projected',
         disposition: 'lowered',
         description:
-          'style — the cell\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box around each cell, `underline` one line under each cell. The brand sets it once, every field takes it, and the cell set is built in that style (#2695, #2719).',
+          'style — not projected: the cell\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box around each cell, `underline` one line under each cell. In code the brand sets it once, every field takes it, and the cell set is built in that style (#2695, #2719).',
       },
       {
         class: 'forced-colors',
