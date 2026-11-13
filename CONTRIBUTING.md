@@ -121,6 +121,13 @@ or two accepted baselines interact. The fold PR's run is the first run of every 
 the whole batch, so fix such a break **in the fold PR**, before the version and the log move on.
 `main`'s own push CI also runs on every merge, so a red `main` shows up there first.
 
+**The merge queue closes that gap before the merge (#3698 R3).** `ci.yml` also runs on `merge_group`. With
+GitHub's merge queue turned on for `main` (a repository setting only the owner can change), a PR leaves the queue
+only after the whole workflow, `regen --check` included, has passed on `main` plus that PR plus any PR queued ahead
+of it. Two clean merges that would leave `out/` stale, or two notes that collide, then fail in the queue rather than
+on `main`. Until the setting is on, the trigger never fires and the fold PR stays the net described above.
+`lint-doc-gates.ts` fails if the trigger is dropped.
+
 What to check before you push the fold:
 
 - **`token-contract.ts --check` needs nothing from a fold.** The contract baseline records no engine
