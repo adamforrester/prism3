@@ -952,6 +952,34 @@ const OWNER_RULES: OwnerRule[] = [
     must: [/photo/i, /`inverse\.text\.primary`[^.]*underline/i, /`veil\.\*`/],
     resolve: ['inverse.text.primary', 'veil.dark.medium'],
   },
+  // #3768: in a file that holds Prism3 locally, never import its published twin by key, because local
+  // always wins. A rebind rule with no emitted role, so `roles` and `resolve` are empty and only the skill
+  // is held. Three placements, one rule each, so dropping any one of them fails by its own id.
+  {
+    // Section 8 opens with the local check, ahead of every import-by-key step.
+    id: '#3768 local Prism3 first (section 8)',
+    skills: ['prism3-rebind'],
+    roles: [],
+    must: [/`figma\.variables\.getLocalVariableCollectionsAsync\(\)`/, /never import[^.]*by key/i, /local always wins/i],
+    resolve: [],
+  },
+  {
+    // The trap-table row. One pattern, held to one table row (a table is one block), so a `remote` in one
+    // row and a local twin in another cannot add up to the rule.
+    id: '#3768 reject a remote twin reached through an instance (section 4)',
+    skills: ['prism3-rebind'],
+    roles: [],
+    must: [/^\|[^\n]*`remote`[^\n]*local twin[^\n]*reject[^\n]*local always wins[^\n]*\|[ \t]*$/m],
+    resolve: [],
+  },
+  {
+    // The rogue-binding audit line.
+    id: '#3768 a remote Prism3 key beside a local Prism3 is a finding (section 7)',
+    skills: ['prism3-rebind'],
+    roles: [],
+    must: [/remote Prism3 key in a file that holds Prism3 locally is a finding/i],
+    resolve: [],
+  },
 ];
 const blocks = (text: string): string[] => text.split(/\n(?=\s*\n|- |\d+\. )/);
 export const ownerRuleFindings = (rule: OwnerRule, skillText: (name: string) => string | undefined, color: Record<string, { avoid_when?: string }>, paths: Set<string>): Finding[] => {
