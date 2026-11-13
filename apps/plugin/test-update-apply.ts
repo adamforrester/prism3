@@ -6548,6 +6548,38 @@ section('causes — a stopped run names each set it left by its def id');
     `causes/halted: the set the stop left is a cause, its subject the def id and the stop its reason (${JSON.stringify(v.causes)})`);
 }
 
+// #3393, AND THE OWNER'S UPDATE FILE RUN, 2026-11-12: SignInButton's provider glyph, painted white on Apple black and Facebook blue (owner
+// decision Q846 A, the plan's `literalTint`), is checked on the VECTORs inside the nested instance (`anatomy-readback.ts`
+// `literalTint`, through `findAll`). The dry run and the verify read a SNAPSHOT of each member (`snapshotMember`), which
+// stopped at every instance with no way into it, so the check read "no VECTOR inside to read the tint from" on all 24 tinted
+// members: each read "to update" on every dry run, and each failed the verify after the build had painted it. Expected
+// counts are literals typed here: 96 members, 24 tinted. Mutation: `snapshotMember` not attaching the instance's vectors
+// → `glyph tint/dry run` and `glyph tint/verify`.
+section('tint — SignInButton\'s white glyph on a dark fill reads current, and verifies after an update (owner run 2026-11-12)');
+{
+  const id = 'sign-in-button';
+  const plans = plansOf(id);
+  const tinted = plans.filter((p) => JSON.stringify(p.root).includes('"literalTint"')).map(planComponentName);
+  ok(plans.length === 96 && tinted.length === 24, `glyph tint/premise: 96 members, 24 of them tinted (${plans.length}, ${tinted.length})`);
+  // The harness's provider logo is a stand-in with no size, so the mark's aspect lock is the one build miss (the card
+  // mark's limit in `<host> leads`): this arm reads the tint and nothing else of the mark.
+  const allowMisses: string[] = [];
+  const w = await world(id, plans, { extraVars: ['space/999'], allowMisses });
+  const other = allowMisses.filter((x) => !x.startsWith('mark.aspectLock -> '));
+  ok(other.length === 0, `glyph tint/build: the build's only misses are the stand-in's aspect lock, none a tint (${other[0] ?? 'none'})`);
+  const pre = await previewUpdate(w.host, [{ def: id, plans }]);
+  const c = pre.sets[0]?.counts;
+  ok(!!c && c.update === 0 && c.handEdited === 0 && c.current === 96,
+    `glyph tint/dry run: the set as just built reads current, its 24 tinted members too (${JSON.stringify(c)}; ${JSON.stringify(pre.sets[0]?.changes ?? []).slice(0, 300)})`);
+  // Every member changes (the root's gap), so the apply writes all 96 and the verify reads every tinted glyph.
+  const moved = plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root.bound as Record<string, string>).itemSpacing = 'space/999'; return q; });
+  const { res } = await confirm(w, [{ def: id, plans: moved }]);
+  const o = res.outcomes[0];
+  const tint = o.content.filter((x) => x.includes('literalTint'));
+  ok(o.updated.length === 96 && tint.length === 0,
+    `glyph tint/verify: all 96 updated, and no tinted glyph reads as differing from the plan (${o.updated.length} updated; ${tint.length} tint lines${tint.length ? `: ${tint[0]}` : ''})`);
+}
+
 // #3326 PR 1 review S2: THE INVARIANT, over every verdict this suite read. A verdict that is not ok says why: at least one
 // cause, and each subject is a def id (one of the engine's, or one a hand-written outcome names), or null for the run's
 // own cause. Never a set's name in the file. Mutations: any writer path's cause dropped, or a subject taken from a set's

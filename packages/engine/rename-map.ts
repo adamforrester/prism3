@@ -586,8 +586,16 @@ export const planVariableRenames = (
     else if (live.length > 1) out.push(...live.map((r) => at(r, 'ambiguous-source')));
     else out.push(at(live[0], 'migrated'));
   }
-  // Stable order so two runs diff cleanly and a truncated report head is not arbitrary.
-  return out.sort((a, b) => a.from.localeCompare(b.from) || a.to.localeCompare(b.to));
+  // Stable order so two runs diff cleanly and a truncated report head is not arbitrary. Locale-free (#3698):
+  // `localeFreeCompare` (locale-free-order.ts) restated, because this function ships as SOURCE in the paste
+  // payload (#1024, `plannerSources`) and an imported name does not exist there. Keep the two identical.
+  const cmp = (p: string, q: string): number => {
+    const x = p.toLowerCase();
+    const y = q.toLowerCase();
+    if (x !== y) return x < y ? -1 : 1;
+    return p < q ? -1 : p > q ? 1 : 0;
+  };
+  return out.sort((a, b) => cmp(a.from, b.from) || cmp(a.to, b.to));
 };
 
 /**
