@@ -183,7 +183,7 @@ if (isMain) {
     console.log(`  gradient: ${theme.gradient.gradients.length ? theme.gradient.gradients.map((g) => `${g.name}(${g.kind}${g.kind === 'linear' ? ` ${g.angle}°` : ''}, ${g.stops.length} stops, ${g.interpolation}, worst-on-white ${g.worstOnWhite}:1)`).join(' · ') : 'none (opt-in axis)'}`);
     console.log(`  aliases: ${stats.resolved}/${stats.aliases} resolve | mode contracts: ${stats.modePass}/${stats.modeChecks} pass`);
     console.log(`  [written] ${outPath}`);
-    if (stats.broken.length) { ok = false; stats.broken.forEach((b) => console.log(`   ❌ ${b.path} -> {${b.ref}}`)); }
+    if (stats.broken.length) { ok = false; stats.broken.forEach((b) => console.log(`   ❌ ${b.reason}: ${b.path} -> {${b.ref}}${b.mode ? ` (${b.mode})` : ''}${b.chain ? ` — ${b.chain.join(' -> ')}` : ''}`)); }
     if (stats.modePass < stats.modeChecks) ok = false;
 
     md.push(`# Theme: ${theme.id} (${theme.root}.* / ${theme.colorFormat})`, '');

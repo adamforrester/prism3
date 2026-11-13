@@ -548,7 +548,7 @@
           }
         },
         {
-          "part": "dismissGlyph",
+          "part": "closeGlyph",
           "glyph": "close",
           "source": "icon set",
           "how": "drawn",

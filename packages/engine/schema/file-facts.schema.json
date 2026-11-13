@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "prism3-file-facts/1.0",
+  "$id": "prism3-file-facts/0.1",
   "$comment": "AUTHORED, NOT GENERATED, and deliberately not a `regen.ts` artifact: a schema regenerated from the scanner would agree with whatever the scanner wrote (`docs/34`). Validated in `apps/plugin/test-file-facts.ts`, which scans every fixture file and checks the report against this schema with `json-schema-lite.ts`. Every object closes `additionalProperties`, so a field the scanner adds, drops or renames fails until this schema and its `$id` move with it. #2075 part 1.",
   "title": "Prism3 file facts report",
-  "description": "A deterministic scan of one Figma file: its variables, its styles, the values its layers use and how each is applied (bound to a variable, applied through a style, or raw), and the components it places. Evidence only: it proposes nothing. No file name, no file key and no timestamp, so the same file scans to the same report.",
+  "description": "A deterministic scan of one Figma file: its variables, its styles, the values its layers use and how each is applied (bound to a variable, applied through a style, or raw), and the components it places. Evidence only: it proposes nothing. No file name, no file key and no timestamp, so the same file scans to the same report. Unstable while `format` reads 0.x: fields may still be added, renamed or removed.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -20,8 +20,8 @@
   ],
   "properties": {
     "format": {
-      "const": "prism3-file-facts/1.0",
-      "description": "The shape this report follows. Equal to this schema's `$id`; minor for a field added, major for one removed or renamed."
+      "const": "prism3-file-facts/0.1",
+      "description": "The shape this report follows. Equal to this schema's `$id`. Unstable while it reads 0.x: any field may be added, renamed or removed, and each such change raises the number after the dot. Check the exact id, and refuse one you do not know."
     },
     "engineVersion": {
       "type": "string",

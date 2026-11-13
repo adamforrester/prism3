@@ -373,6 +373,16 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
   const prune = step({ ...step(init, { kind: 'agent-started', id: 'p1', cmd: 'prune' }).next, pruneBusy: 'delete' },
     { kind: 'refused', code: 'busy', cmd: 'prune', agent: false, message: 'Update file is already running. Try again when it finishes.' });
   ok(prune.next.pruneBusy === false, 'refused: a declined delete behind an agent\'s prune clears the panel\'s delete');
+  // #3697 R7: one hold for the whole file. The panel's build, declined behind an agent's APPLY (another operation), gets
+  // no verdict from that run, so its pending is cleared; declined behind the panel's own apply, the same.
+  const otherOp = step({ ...agentRun, componentState: 'pending' }, { kind: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: BUSY, held: 'apply-theme' });
+  ok(otherOp.next.componentState === null && otherOp.next.applyState === agentRun.applyState,
+    'refused (#3697 R7): a panel build declined behind an agent\'s apply clears the build\'s pending, and leaves Theme as it was');
+  const ownOther = step({ ...panelRun, componentState: 'pending' }, { kind: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: BUSY, held: 'apply-theme' });
+  ok(ownOther.next.componentState === null && ownOther.next.applyState === 'pending',
+    'refused (#3697 R7): a panel build declined behind the panel\'s own apply clears the build\'s pending; the apply stays pending');
+  const ownSame = step(panelRun, { kind: 'refused', code: 'busy', cmd: 'apply-theme', agent: false, message: BUSY, held: 'apply-theme' });
+  ok(ownSame.next.applyState === 'pending', 'refused (#3697 R7): declined behind the panel\'s own run of the same write, the pending stays that run\'s');
   const unknown = step(init, { kind: 'refused', code: 'busy', cmd: 'readback', agent: true, message: 'x' });
   ok(unknown.next === init && unknown.topics.length === 0, 'refused: a command with no write operation changes nothing');
 }

@@ -48,6 +48,7 @@ import { brandTheme, weightAvailability } from './theme';
 import type { BrandInput, Theme } from './theme';
 import { at, buildTree, pxOf } from './tree';
 import { CONTRACT_VERSION, ENGINE_VERSION } from './version';
+import { localeFreeCompare } from './locale-free-order';
 
 export const COMPONENT_DEFS_FORMAT = 'prism3-component-defs/1.2';
 /** The Specs schema version the projection is written against, and checked against (`packages/tokens/check-specs.mjs`). */
@@ -310,7 +311,7 @@ export const toSpecsComponent = (entry: ComponentDefEntry, root: string | null):
     if (!Object.keys(styles).length) return;
     // One variant per coordinate, whatever key order the row wrote it in: redline and color rows can name the same
     // coordinate as `{tone, width}` and `{width, tone}`, and keying on the raw object made two variants of it.
-    const coord: SpecWhere = Object.fromEntries(Object.entries(where).sort(([a], [b]) => axisRank(a) - axisRank(b) || a.localeCompare(b)));
+    const coord: SpecWhere = Object.fromEntries(Object.entries(where).sort(([a], [b]) => axisRank(a) - axisRank(b) || localeFreeCompare(a, b)));
     const id = isDefault(coord) ? '' : JSON.stringify(coord);
     if (!rows.has(id)) rows.set(id, { where: coord, elements: new Map() });
     const els = rows.get(id)!.elements;
