@@ -3674,7 +3674,7 @@
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Whether the field is required. On shows the marker beside the label; off, the default, hides it, and the host's own required prop defaults off too. Never the sole signal: the field also carries required / aria-required, so the state is not marker-only."
+          "description": "Whether the field is required. On shows the marker beside the label; off, the default, hides it, and the host's own required prop defaults off too. Never the sole signal: the field also carries required / aria-required, or for a slider, \"required\" in the thumb's accessible name, so the state is not marker-only."
         },
         {
           "name": "size",
