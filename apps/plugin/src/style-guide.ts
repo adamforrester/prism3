@@ -37,7 +37,7 @@
  * the contrast column measures against; and rows sorted as text (10, 11, 112, 12) — here primitive steps sort
  * numerically.
  */
-import { contrast, composite } from '@prism3/engine/color';
+import { contrast, composite, formatRatio } from '@prism3/engine/color';
 import { STYLE_GUIDE_GROUPS, styleGuideGroup, styleGuideGroupOf } from '@prism3/engine/style-guide-groups';
 import type { RGB } from '@prism3/engine/color';
 import { SECTION_HEADER_SET, isTemplateSet } from './file-components';
@@ -334,8 +334,9 @@ export const formatColor = (c: RGBA, format: ValueFormat): string => {
   return a < 1 ? `${h} · ${pct(a)}` : h;
 };
 
-/** A ratio as the table prints it: floored to two places, so a 4.499 never reads "4.50" beside a 4.5 floor. */
-export const formatRatio = (ratio: number): string => `${(Math.floor(ratio * 100) / 100).toFixed(2)}:1`;
+/** A ratio as the table prints it: the engine's one formatter (#3697 L3), floored to two places, so a 4.499 never reads
+ *  "4.50" beside a 4.5 floor. Re-exported under the name this module's readers import. */
+export { formatRatio } from '@prism3/engine/color';
 
 /** The contrast cell's words — the ratio, the floor and the verdict, then the ground on a second line. */
 export const contrastText = (c: SgContrast | null): string => {

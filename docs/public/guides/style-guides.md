@@ -5,7 +5,7 @@
 Style guides are tables, one for each group of tokens in the file, drawn from the file's own variables, text styles, effect styles, gradient styles and grid styles. A rerun updates each table in place. <!-- src: apps/studio/src/shell/style-guides.ts:75#46a11854 --> <!-- src: apps/studio/src/shell/style-guides.ts:79#3d2941b6 -->
 They are in the Figma plugin only. You choose what to draw in the **Docs** area, and **Update file** draws it. <!-- src: apps/studio/src/state/update-file.ts:404-408 --> <!-- src: apps/studio/src/shell/pages.ts:517 -->
 
-Because the tables read the file rather than the studio, they show what the file holds right now, including anything you changed by hand. <!-- src: apps/plugin/src/style-guide.ts:1-40#46e5df6d -->
+Because the tables read the file rather than the studio, they show what the file holds right now, including anything you changed by hand. <!-- src: apps/plugin/src/style-guide.ts:1-40#cdae1e6b -->
 
 ## Before you draw
 
