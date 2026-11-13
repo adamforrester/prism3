@@ -30735,8 +30735,9 @@ arm: {
     const cliOut = mkdtempSync(join(tmpdir(), 'prism3-cli-build-'));
     try {
       const r = spawnSync('npx', ['tsx', resolve(HERE, 'cli.ts'), resolve(HERE, 'examples', 'harbor.design.md'), '--out', cliOut, '--component-specs'], { cwd: HERE, encoding: 'utf8' });
-      const tokFile = readdirSync(cliOut).find((n) => n.endsWith('.tokens.json') && !n.includes('.base.'));
+      // `<id>.tokens.json` is the whole tree; the base and overlay projections beside it carry no generator block.
       const defFile = readdirSync(cliOut).find((n) => n.endsWith('.component-defs.json'));
+      const tokFile = defFile && readdirSync(cliOut).find((n) => n === defFile.replace('.component-defs.json', '.tokens.json'));
       const cliTree = tokFile ? JSON.parse(readFileSync(join(cliOut, tokFile), 'utf8')) : {};
       const cliDefs = defFile ? JSON.parse(readFileSync(join(cliOut, defFile), 'utf8')) : {};
       ok(r.status === 0 && !!tokFile && !!defFile && cliTree.$extensions?.generator?.build === want && cliDefs.build === want,
