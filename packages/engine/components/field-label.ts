@@ -474,7 +474,7 @@ export const fieldLabel: ComponentDef = {
     do: [
       'Always render a label, even for search (visually-hidden, still in the DOM)',
       'Keep it a short noun phrase in sentence case, no trailing colon',
-      'Set required consistently across a form, and back the marker with aria-required — never the marker alone',
+      'Set required consistently across a form, and back the marker with required / aria-required, or for a slider, "required" in the thumb\'s accessible name — never the marker alone',
     ],
     dont: [
       'Use the placeholder as the label (it vanishes on input — fails SC 3.3.2)',
