@@ -55,7 +55,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: .node-version
           cache: npm
 
       - name: Install workspace deps
@@ -75,7 +75,7 @@ jobs:
         id: plan
         run: |
           set -o pipefail
-          npx --yes tsx@4 fold.ts --dry-run | tee "$RUNNER_TEMP/fold-plan.txt"
+          npx tsx fold.ts --dry-run | tee "$RUNNER_TEMP/fold-plan.txt"
           if grep -q 'nothing to fold' "$RUNNER_TEMP/fold-plan.txt"; then echo "pending=false" >> "$GITHUB_OUTPUT"; else echo "pending=true" >> "$GITHUB_OUTPUT"; fi
 
       - name: Fold, commit, push and open the PR
@@ -86,7 +86,7 @@ jobs:
           set -euo pipefail
           branch="fold/$(date -u +%F)-${GITHUB_RUN_ID}"
           git switch -c "$branch"
-          npx --yes tsx@4 fold.ts
+          npx tsx fold.ts
           version=$(sed -n "s/^export const ENGINE_VERSION = '\([^']*\)'.*/\1/p" packages/engine/version.ts)
           git config user.name 'prism3-fold[bot]'
           git config user.email 'prism3-fold-bot@users.noreply.github.com'
