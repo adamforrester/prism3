@@ -21,7 +21,7 @@
  */
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
-import { hex, oklchToRgb } from '@prism3/engine/color';
+import { formatRatio, hex, oklchToRgb } from '@prism3/engine/color';
 import { resolveAllModes } from '@prism3/engine/modes';
 import { toDesignMd } from '@prism3/engine/design-md';
 import { componentSpecsExporter } from './state/component-specs-export';
@@ -494,7 +494,7 @@ const contractTableEl = (contracts: typeof rp.contracts, paths = false): HTMLEle
     for (const m of rp.modes) {
       const cell = el('td', 'mcol');
       const r = ct.byMode[m];
-      if (r) { cell.append(el('span', `dot ${r.pass ? 'ok' : 'no'}`), el('span', 'ratio', r.ratio.toFixed(2))); }
+      if (r) { cell.append(el('span', `dot ${r.pass ? 'ok' : 'no'}`), el('span', 'ratio', formatRatio(r.ratio, { bare: true }))); }
       else cell.textContent = '—';
       tr.append(cell);
     }

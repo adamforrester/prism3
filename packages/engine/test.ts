@@ -65,6 +65,7 @@ import { COMPONENT_RENAMES, coordKey, currentDefId, formerDefIds, partRenames, r
 // they agree. `write-components.ts` is pure TypeScript against a declared port — it touches no `figma`
 // global at runtime — so importing it into a Node harness costs nothing and needs no shim of its own.
 import { applyComponentPlan } from '../../apps/plugin/src/write-components';
+import { OVERRIDE_COPY } from '../../apps/plugin/src/set-override';
 // The second, for the same reason in the other direction (#2412): the CLI's `motion-vars` paste payload is EXECUTED
 // against the plugin suites' file model, so the two paste paths are judged by one model of Figma, not two. The shim
 // is a HOST that imports no executor (`file-shim.ts`'s header), so this brings no plugin code under test here.
@@ -978,6 +979,29 @@ for (const hx of ['#000000', '#333333', '#7f7f7f', '#808080', '#ffffff']) {
   // #3697 L3: the one contrast-ratio formatter floors to two places, never rounds. Literals, from the review's case.
   for (const [r, want] of [[4.496, '4.49:1'], [4.5, '4.50:1'], [4.4999, '4.49:1'], [21, '21.00:1'], [3.0049, '3.00:1'], [1, '1.00:1']] as const)
     ok(formatRatio(r) === want, `formatRatio(${r}) floors to ${want} (got ${formatRatio(r)})`);
+  ok(formatRatio(4.496, { bare: true }) === '4.49', `formatRatio(4.496, bare) floors to 4.49 (got ${formatRatio(4.496, { bare: true })})`);
+  // The surfaces print through it (docs/34: the formatter's own literals cannot see a call site that stopped calling it).
+  // One boundary arm on a real surface: the plugin's override line for a 4.496 pair under a 4.5 minimum.
+  const below = OVERRIDE_COPY.belowMinimum('light', 'text-default', null, 4.496, 4.5, 'surface-default');
+  ok(below.includes('4.49:1 against') && !below.includes('4.50:1'), `#3697 L3 set-override's below-minimum line floors a 4.496 pair to 4.49:1 (got "${below}")`);
+  // And a source scan: no hand-rolled `toFixed` on a contrast ratio anywhere under apps/*/src. A ratio printed by hand
+  // rounds (4.496 → "4.50" beside a 4.5 floor) or drifts from the engine's form; print through `formatRatio`.
+  const APPS = resolve(HERE, '../../apps');
+  const walk = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap((d) =>
+    d.isDirectory() ? (d.name === 'node_modules' ? [] : walk(resolve(dir, d.name))) : /\.tsx?$/.test(d.name) ? [resolve(dir, d.name)] : []);
+  const srcFiles = readdirSync(APPS, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(resolve(APPS, d.name, 'src')))
+    .flatMap((d) => walk(resolve(APPS, d.name, 'src')));
+  const rel = (f: string) => f.slice(resolve(APPS, '..').length + 1);
+  // A ratio's own `.toFixed(` (`r.ratio.toFixed(2)`, `minRatio.toFixed(`), or any `toFixed(n)` followed by `:1`.
+  const HAND_ROLLED = [/ratio\w*\)?\.toFixed\(/i, /\.toFixed\(\d\)\}:1/];
+  const rolled = srcFiles.flatMap((f) => readFileSync(f, 'utf8').split('\n').flatMap((text, i) =>
+    HAND_ROLLED.some((re) => re.test(text)) ? [`${rel(f)}:${i + 1}`] : []));
+  ok(rolled.length === 0, `#3697 L3 no hand-rolled contrast-ratio toFixed under apps/*/src — print through formatRatio (found: ${rolled.join(', ') || 'none'})`);
+  // Represented, not counted: each known call site is in the scan and still names the formatter.
+  for (const site of ['apps/plugin/src/set-override.ts', 'apps/plugin/src/style-guide.ts', 'apps/studio/src/preview/sections/kit.ts', 'apps/studio/src/ui/step-picker.ts', 'apps/studio/src/main.ts']) {
+    const f = srcFiles.find((x) => rel(x) === site);
+    ok(!!f && /\b(formatRatio|fmtRatio)\b/.test(readFileSync(f, 'utf8')), `#3697 L3 ${site} is in the ratio scan and prints through formatRatio`);
+  }
   const grayPrimary = storedOklch(rgbToOklch(hexToRgb('#808080')));
   const sameRgb = (c: RGB) => c.r === c.g && c.g === c.b;
   const neutralGray = (t: any) => t.palettes.find((p: any) => p.palette === 'neutral').steps.every((st: any) => sameRgb(st.rgb));
