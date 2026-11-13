@@ -182,7 +182,7 @@ export const SESSION_CONFIRMS = ['prune', 'update-components', 'panels-clean', '
 export const needsSession = (raw: unknown): boolean => {
   if (!isObject(raw) || typeof raw.cmd !== 'string') return false;
   if ((SESSION_COMMANDS as readonly string[]).includes(raw.cmd)) return true;
-  return (SESSION_CONFIRMS as readonly string[]).includes(raw.cmd) && isObject(raw.args) && raw.args.confirm === true;
+  return false;
 };
 
 /** A command `parseCommand` accepted: a known `cmd`, the current version, and args of that cmd's shape. */
