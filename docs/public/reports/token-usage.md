@@ -352,7 +352,7 @@ Type: color. Bound by 15 component(s).
 | slider | `disabled.indicator` | bar | state: disabled (6 of 30) |
 | tab-item | `disabled.icon` | leadingVisual | state: disabled (6 of 30) |
 | tag | `disabled.icon` | checkGlyph | selection: selected · state: disabled · type: select (3 of 45) |
-|  |  | dismissGlyph | selection: unselected · state: disabled · type: dismissible (3 of 45) |
+|  |  | closeGlyph | selection: unselected · state: disabled · type: dismissible (3 of 45) |
 |  |  | leadingVisual | state: disabled (9 of 45) |
 
 ### `color.disabled.on-fill`
@@ -373,7 +373,9 @@ Type: color. Bound by 15 component(s).
 | card-number-field | `disabled.icon.on-fill`, `disabled.label.on-fill` | leadingVisual | state: disabled (12 of 84) |
 |  |  | placeholder | state: disabled (12 of 84) |
 | checkbox-control | `disabled.icon.on-fill` | glyph | selection: checked, indeterminate · state: disabled (12 of 90) |
-| counter | `disabled.label.on-fill` | value | appearance: outline · state: disabled (3 of 18) |
+| counter | `disabled.icon.on-fill`, `disabled.label.on-fill` | decrement | appearance: outline · state: disabled (3 of 18) |
+|  |  | increment | appearance: outline · state: disabled (3 of 18) |
+|  |  | value | appearance: outline · state: disabled (3 of 18) |
 | icon-button | `disabled.icon.on-fill` | icon | appearance: filled · state: disabled · surface: default (6 of 216) |
 | icon-button-destructive | `disabled.icon.on-fill` | icon | appearance: filled · state: disabled · surface: default (6 of 216) |
 | icon-button-neutral | `disabled.icon.on-fill` | icon | appearance: filled · state: disabled · surface: default (6 of 216) |
@@ -915,7 +917,7 @@ Type: color. Bound by 7 component(s).
 | segmented-control-segment | `unselected.icon.hover` | leadingVisual | selection: unselected · state: hover (3 of 30) |
 | tab-item | `unselected.icon.hover` | leadingVisual | selection: unselected · state: hover (3 of 30) |
 | tag | `selected.icon.hover`, `unselected.icon.hover` | checkGlyph | selection: selected · state: hover · type: select (3 of 45) |
-|  |  | dismissGlyph | selection: unselected · state: hover · type: dismissible (3 of 45) |
+|  |  | closeGlyph | selection: unselected · state: hover · type: dismissible (3 of 45) |
 |  |  | leadingVisual | state: hover (9 of 45) |
 
 ### `color.interactive.neutral.icon.pressed`
@@ -933,7 +935,7 @@ Type: color. Bound by 7 component(s).
 | segmented-control-segment | `unselected.icon.pressed` | leadingVisual | selection: unselected · state: pressed (3 of 30) |
 | tab-item | `unselected.icon.pressed` | leadingVisual | selection: unselected · state: pressed (3 of 30) |
 | tag | `selected.icon.pressed`, `unselected.icon.pressed` | checkGlyph | selection: selected · state: pressed · type: select (3 of 45) |
-|  |  | dismissGlyph | selection: unselected · state: pressed · type: dismissible (3 of 45) |
+|  |  | closeGlyph | selection: unselected · state: pressed · type: dismissible (3 of 45) |
 |  |  | leadingVisual | state: pressed (9 of 45) |
 
 ### `color.interactive.neutral.icon.rest`
@@ -957,7 +959,7 @@ Type: color. Bound by 8 component(s).
 | segmented-control-segment | `selected.icon`, `unselected.icon` | leadingVisual | state: focus-visible, hover, pressed, rest (18 of 30) |
 | tab-item | `unselected.icon` | leadingVisual | selection: unselected · state: focus-visible, rest (6 of 30) |
 | tag | `selected.icon`, `unselected.icon` | checkGlyph | selection: selected · state: focus-visible, rest · type: select (6 of 45) |
-|  |  | dismissGlyph | selection: unselected · state: focus-visible, rest · type: dismissible (6 of 45) |
+|  |  | closeGlyph | selection: unselected · state: focus-visible, rest · type: dismissible (6 of 45) |
 |  |  | leadingVisual | state: focus-visible, rest (18 of 45) |
 
 ### `color.interactive.neutral.indicator.hover`
@@ -2584,7 +2586,7 @@ Type: dimension. Bound by 24 component(s).
 |  |  | ringGlyph | size: medium (1 of 4) |
 | tab-item | `size.large.icon` | leadingVisual | size: large (10 of 30) |
 | tag | `size.large.icon` | checkGlyph | selection: selected · size: large · type: select (5 of 45) |
-|  |  | dismissGlyph | selection: unselected · size: large · type: dismissible (5 of 45) |
+|  |  | closeGlyph | selection: unselected · size: large · type: dismissible (5 of 45) |
 |  |  | leadingVisual | size: large (15 of 45) |
 | wallet-button | `size.medium.any.mark` | mark | size: medium · style: any (8 of 68) |
 
@@ -2641,7 +2643,7 @@ Type: dimension. Bound by 28 component(s).
 |  |  | ringGlyph | size: small (1 of 4) |
 | tab-item | `size.medium.icon` | leadingVisual | size: medium (10 of 30) |
 | tag | `size.medium.icon` | checkGlyph | selection: selected · size: medium · type: select (5 of 45) |
-|  |  | dismissGlyph | selection: unselected · size: medium · type: dismissible (5 of 45) |
+|  |  | closeGlyph | selection: unselected · size: medium · type: dismissible (5 of 45) |
 |  |  | leadingVisual | size: medium (15 of 45) |
 | text-field | `icon-size` | leadingVisual | every member (84 of 84) |
 |  |  | trailingVisual | every member (84 of 84) |
@@ -2701,7 +2703,7 @@ Type: dimension. Bound by 18 component(s).
 |  |  | ringGlyph | size: x-small (1 of 4) |
 | tab-item | `size.small.icon` | leadingVisual | size: small (10 of 30) |
 | tag | `size.small.icon` | checkGlyph | selection: selected · size: small · type: select (5 of 45) |
-|  |  | dismissGlyph | selection: unselected · size: small · type: dismissible (5 of 45) |
+|  |  | closeGlyph | selection: unselected · size: small · type: dismissible (5 of 45) |
 |  |  | leadingVisual | size: small (15 of 45) |
 | textarea | `grip-size` | gripGlyph | every member (84 of 84) |
 

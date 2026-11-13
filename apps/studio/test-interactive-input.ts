@@ -294,22 +294,28 @@ console.log('\n9. #3391: an override is labeled by the palette it names, and rem
     `#3391 label: with the action palette on neutral, the label still reads "Override · brand-neutral 350" (got "${moved}", engine ${resolvedPalette()})`);
   ok(I.overrideHeldOf('dark', row) === null && I.overrideLabel(null) === 'Override · ', 'a row with no override in the mode holds nothing');
 
-  // THE WARNING: the remove confirm names the role, and what it says (the brand won't build) is the engine's answer.
+  // THE WARNING: the remove confirm names the role, and what it says (the color can't be removed) is the engine's answer:
+  // the removal is atomic (#3697 M1), so the engine's refusal refuses the removal and leaves the brand as it was.
   const i = store.brandState.brandColors!.findIndex((b) => b.name === BC);
   const effects = P.removalEffects(BC);
-  ok(effects.includes(`1 role is still overridden to it: ${ROLE} — the brand won't build until it's re-picked.`),
+  ok(effects.includes(`1 role is still overridden to it: ${ROLE} — the color can't be removed until it's re-picked.`),
     `#3391 warning: removing ${BC} lists the override that still names it (${JSON.stringify(effects)})`);
   store.brandState.overrides!.dark = { 'interactive.primary.text.rest': { palette: BC, step: '700' }, [ROLE]: { palette: BC, step: STEP } };
   const two = P.removalEffects(BC).at(-1);
-  ok(two === `2 roles are still overridden to it: ${ROLE}, interactive.primary.text.rest — the brand won't build until each is re-picked.`,
+  ok(two === `2 roles are still overridden to it: ${ROLE}, interactive.primary.text.rest — the color can't be removed until each is re-picked.`,
     `#3391 warning: two roles across two modes are counted once each (got "${two}")`);
   ok(!P.removalEffects('primary').some((e) => e.includes('overridden')), 'a palette no override names gets no override line');
-  P.removeBrandColor(i);
   // `brandTheme` alone takes it: the refusal comes when the modes resolve, which every build does.
+  const removedCopy = structuredClone(store.brandState);
+  removedCopy.brandColors = removedCopy.brandColors!.filter((b) => b.name !== BC);
   let refused = '';
-  try { resolveAllModes(brandTheme(structuredClone(store.brandState))); } catch (e) { refused = (e as Error).message; }
+  try { resolveAllModes(brandTheme(removedCopy)); } catch (e) { refused = (e as Error).message; }
   ok(refused.includes(`unknown palette '${BC}'`),
     `#3391 warning, what it claims: with ${BC} removed and the overrides left, the engine refuses the brand (${refused || 'it built'})`);
+  const before = JSON.stringify(store.brandState);
+  const why = P.removeBrandColor(i);
+  ok(why !== null && JSON.stringify(store.brandState) === before,
+    `#3697 M1: the removal is refused whole, the brand byte for byte as it was (${why ?? 'it was taken'})`);
 
   // The inverse fill's rest row (write 'inverse-fill') reads through the same helper: an override there that names
   // brand-neutral is labeled by it too, by the engine's resolved path again.
@@ -610,7 +616,7 @@ console.log('\n13. #3549: removing a brand color drops its interactive column\'s
   // "won't build" line. An override on a role of another column that names accent-y still is.
   store.brandState.overrides.light![BORDER('primary')] = { palette: 'accent-y', step: '600' };
   const effects = P.removalEffects('accent-y');
-  ok(effects.at(-1) === `1 role is still overridden to it: ${BORDER('primary')} — the brand won't build until it's re-picked.`,
+  ok(effects.at(-1) === `1 role is still overridden to it: ${BORDER('primary')} — the color can't be removed until it's re-picked.`,
     `#3549 confirm: only the override that outlives the removal is held, not the column's own (${JSON.stringify(effects)})`);
   delete store.brandState.overrides.light![BORDER('primary')];
 
