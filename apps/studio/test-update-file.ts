@@ -379,6 +379,14 @@ ok(reduce(s2, fd(3, false)).liveDue?.theme === false, 'Q810 A recount (control):
     `uf2/button: the button carries the count (${UPDATE_COPY.goLibrary(2)} | ${UPDATE_COPY.goLibrary(1)})`);
   ok(UPDATE_COPY.library === 'Files that use this library' && UPDATE_COPY.librarySub(2) === '2 changes in this update reach them at the next library publish:'
     && UPDATE_COPY.librarySub(1) === '1 change in this update reaches them at the next library publish:', `uf2/callout words: the title and the count line (${UPDATE_COPY.librarySub(1)})`);
+  // Review of #3751 at 6fa8b4cd, S2: THE PANEL'S COUNT PAST THE CAP. The host caps a set's lines at 8 plus one "n more"
+  // line but counts every change (`uf2/checked set past the cap`, plugin side); the panel's count must be the host's
+  // count, not the lines it was sent. Literal: 11 changes arrive as 9 lines. (mutation: `libraryChangesOf` summing
+  // `c.lines.length` → this arm)
+  const nine = [...Array.from({ length: 8 }, (_, i) => `Wallet button · variant=v${i + 1} · retired`), 'wallet-button: 3 more changes not listed.'];
+  const cap = libraryChangesOf(['wallet-button'], { sets: [set('wallet-button', { count: 11, lines: nine })] });
+  ok(cap.count === 11 && cap.lines.length === 9 && UPDATE_COPY.goLibrary(cap.count) === 'Update, including 11 library changes',
+    `uf2/past the cap: the button counts all 11 changes while the callout lists 9 lines (${JSON.stringify({ count: cap.count, lines: cap.lines.length })})`);
   // Review of #3751, should-fix 2, pinned AS BUILT pending the owner's call: a set the check read as blocked only by
   // Theme's variables and styles (#3421) carries no `changes`, because the host lists nothing as breaking on a blocked
   // set (`breakingOf`). With Theme ticked it is in the run, yet adds nothing to the callout or the button. The run checks
