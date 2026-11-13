@@ -17,7 +17,8 @@
  *   · `main.ts`'s `saveVersion(figma, { run: 'prune' })` dropped → `main/version first`;
  *   · `pruneConfirmRefusal` ignoring `holdsInput` → `main/unapplied input refused`;
  *   · `pruneConfirmRefusal` ignoring the hash → `main/missing hash refused`, `main/wrong hash refused`;
- *   · `applyPrunePlan`'s per-removal try dropped (a bare `remove()`) → `main/throw at removal 2`.
+ *   · `applyPrunePlan`'s per-removal try dropped (a bare `remove()`) → `main/throw at removal 2`;
+ *   · `main.ts` calling `applyPrunePlan` without its running `counts` → `main/throw after removals` (#3709 S1).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -47,13 +48,16 @@ const faces = new Map<string, { family: string; style: string }>();
 for (const r of themePlans(input).textPlan) faces.set(`${r.fontFamilyPrimary}|${r.fontStyle}`, { family: r.fontFamilyPrimary, style: r.fontStyle });
 file.faces = [...faces.values()];
 
+/** Tagged canvas furniture `findAllWithCriteria` returns: empty until the throw-after-removals arm plants one. */
+let furniture: unknown[] = [];
+
 /** One ordered log of what changes the file: `version:<title>` and `remove:<name>`. */
 const events: string[] = [];
 const posted: any[] = [];
 const shared = file.root;
 const root = {
   ...shared, name: 'prune file', type: 'DOCUMENT', children: [] as unknown[],
-  findAllWithCriteria: () => [], findAll: () => [], getPluginData: () => '', setPluginData: () => undefined,
+  findAllWithCriteria: () => furniture, findAll: () => [], getPluginData: () => '', setPluginData: () => undefined,
 };
 Object.defineProperty(file, 'root', { value: root });
 Object.assign(file, {
@@ -133,6 +137,32 @@ ok(events[0] === 'version:Saved before Prism3 removed stale items' && events.sli
 ok(r4?.applied === true && r4.ok === false && r4.count === 2 && JSON.stringify(live()) === JSON.stringify([STALE[1]])
   && /Removed 2 stale items: 2 variables\. 1 item could not be removed\./.test(String(r4.summary)),
   `main/throw at removal 2: removals 1 and 3 still run, the count says 2, and the one that threw is reported (count ${r4?.count}, left ${JSON.stringify(live())}, ${JSON.stringify(r4?.summary)})`);
+
+// #3709 S1 — a throw OUTSIDE any removal, after removals ran: a stale furniture node whose `removed` read throws once
+// the confirm reaches `pruneFurniture`. The variables went first, so the posted count must be theirs, not 0.
+throwAt2 = false;
+const STALE2 = [4, 5].map((i) => `${rootName}/color/zz-stale-${i}`);
+for (const v of STALE2.map((n) => file.createVariable(n, coll, 'COLOR'))) {
+  const real = v.remove.bind(v);
+  v.remove = () => { events.push(`remove:${v.name}`); real(); };
+}
+let readThrows = false;
+furniture = [{
+  id: 'furn-1', type: 'INSTANCE',
+  getSharedPluginData: () => JSON.stringify({ v: 1, def: 'button', set: 'gone-set', kind: 'label' }),
+  get removed(): boolean { if (readThrows) throw new Error('node read failed'); return false; },
+  remove: () => undefined,
+}];
+const liveAll = (): string[] => file.vars.filter((v: any) => !v.removed).map((v: any) => String(v.name)).filter((n) => STALE.includes(n) || STALE2.includes(n));
+const preview2 = await send({ type: 'prune', input, confirm: false }, ['prune-result']);
+ok(preview2?.applied === false && preview2.count === 4,
+  `main/throw after removals premise: the preview offers the three stale variables and the one stale label (count ${preview2?.count})`);
+events.length = 0;
+readThrows = true;
+const r5 = await send({ type: 'prune', input, confirm: true, previewHash: String(preview2?.previewHash ?? '') }, ['prune-result']);
+ok(r5?.applied === true && r5.ok === false && r5.count === 3 && liveAll().length === 0
+  && /^Prune stopped — .*node read failed.*\. Removed 3 stale items before it stopped: 3 variables\.$/.test(String(r5.summary)),
+  `main/throw after removals: a throw after three removals reports the three, not 0 (count ${r5?.count}, left ${JSON.stringify(liveAll())}, ${JSON.stringify(r5?.summary)})`);
 
 console.log = log;
 if (failed) { console.error(`\n${failed} check(s) failed`); process.exit(1); }
