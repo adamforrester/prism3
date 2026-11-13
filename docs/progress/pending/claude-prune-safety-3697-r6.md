@@ -25,5 +25,7 @@ removal on its own, and reports running counts.
   then an unapplied input, a missing hash, a wrong hash, a confirm whose second removal throws, and a confirm that
   throws after its removals (a stale canvas label's node read), which must report their running count. Every expected
   line is a literal; the version-first order is read from one log of host calls.
+- `test-prune.ts`'s `R6/each kind tried` throws at one mode, one stranded collection and one style removal, and
+  checks each sibling still goes and each throw is named in `failed` (#3709 N1).
 - The refusal lines, the version title, the "could not be removed" line and the guide sentence are the owner's
   approved wording (D3709.1, as drafted; `PRUNE_COPY`, `versionOf({ run: 'prune' })`).
