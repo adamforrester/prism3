@@ -116,7 +116,7 @@ Then push and open the PR. What the fold does, in order:
    writes the release notes again over the regenerated tree.
 
 **The fold PR's CI is the semantic-conflict net.** Two PRs can merge cleanly and still leave `main` red:
-both set `EXPECTED_ARTIFACTS` to the same new number, two regens do not add up to the regen of both,
+two regens do not add up to the regen of both,
 or two accepted baselines interact. The fold PR's run is the first run of every gate over `main` plus
 the whole batch, so fix such a break **in the fold PR**, before the version and the log move on.
 `main`'s own push CI also runs on every merge, so a red `main` shows up there first.

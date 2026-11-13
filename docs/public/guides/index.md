@@ -18,7 +18,7 @@ Each guide covers one task. The list runs from starting a brand, through writing
 3. [Write the theme to a Figma file](apply-a-theme.md): what the theme writes, and what makes it refuse.
 4. [Set up a file](file-setup.md): the pages and helper components setup adds.
 5. [Build components](build-components.md): choose sets in the Components area, and add them with Update file.
-6. [Build style guides](style-guides.md): set them up in Documentation, and draw them with Update file.
+6. [Build style guides](style-guides.md): set them up in Docs, and draw them with Update file.
 7. [Export tokens](export-tokens.md): from the studio, from the plugin, and from any Figma file with TokenPress.
 8. [Use the agent link](agent-link.md): let an AI agent drive the open plugin, and how it stays off by default.
 

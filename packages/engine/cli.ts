@@ -25,7 +25,7 @@
  *
  * `--component-specs` (#3425) also writes the brand's component-defs export: `<id>.component-defs.json` (every
  * component definition with the brand's component settings resolved) and `<id>.component-defs.specs.json` (the same
- * as a Specs components set). The brand-neutral pair is committed under `out/components/` by `regen`.
+ * as a Specs components set). The brand-neutral pair is written under `out/components/` by `regen`, and not committed (#3698 R3).
  *
  * Exit codes: 0 = clean; 1 = schema violation, a broken alias, or a failed mode
  * contrast contract (so it fails CI). Errors print a readable diagnosis.

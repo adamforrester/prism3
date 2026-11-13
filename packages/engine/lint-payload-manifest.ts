@@ -93,7 +93,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ENGINE_ARTIFACTS, MAINTAINER_ARTIFACTS, ON_DEMAND_OUT, SCHEMA_ARTIFACTS } from './regen';
+import { ENGINE_ARTIFACTS, MAINTAINER_ARTIFACTS, ON_DEMAND_OUT, SCHEMA_ARTIFACTS, UNCOMMITTED_OUT } from './regen';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, 'out');
@@ -115,13 +115,15 @@ const walk = (dir: string, prefix: string): string[] => {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
     if (statSync(p).isDirectory()) found.push(...walk(p, `${prefix}${name}/`));
-    else if (!ON_DEMAND_OUT.includes(`${prefix}${name}`.slice('out/'.length))) found.push(`${prefix}${name}`);
+    else if (!ON_DEMAND_OUT.includes(`${prefix}${name}`.slice('out/'.length)) && !UNCOMMITTED_OUT.includes(`${prefix}${name}`.slice('out/'.length))) found.push(`${prefix}${name}`);
   }
   return found;
 };
 
 const actual = [
   ...walk(outDir, 'out/'),
+  // #3698 R3: emitted by regen and never committed, so CI's `out/` has no copy; still payload, so still classified.
+  ...UNCOMMITTED_OUT.map((f) => `out/${f}`),
   ...ENGINE_ARTIFACTS,
   ...SCHEMA_ARTIFACTS.map((f) => `schema/${f}`),
   ...MAINTAINER_ARTIFACTS.map((f) => `schema/${f}`),

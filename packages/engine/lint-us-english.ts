@@ -156,7 +156,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
-import { ENGINE_ARTIFACTS, ON_DEMAND_OUT, REPORT_ARTIFACTS, REPORTS_DIR, SCHEMA_ARTIFACTS, renderOnDemand } from './regen';
+import { ENGINE_ARTIFACTS, ON_DEMAND_OUT, UNCOMMITTED_OUT, renderUncommitted, REPORT_ARTIFACTS, REPORTS_DIR, SCHEMA_ARTIFACTS, renderOnDemand } from './regen';
 import { servedToolsList, servedStrings, servedBridgeInstructions } from './mcp-served';
 
 // ---- the RULE, imported (#1117) --------------------------------------------------------------
@@ -188,6 +188,13 @@ const onDemand = new Map<string, string>();
   const r = renderOnDemand();
   if ('error' in r) blind.push(`packages/engine/out/${ON_DEMAND_OUT.join(', ')} — the on-demand page did not render (${r.error})`);
   else r.files.forEach((abs, i) => onDemand.set(abs, `packages/engine/out/${ON_DEMAND_OUT[i]} (rendered on demand)`));
+}
+// The same for the exports regen writes and git does not track (#3698 R3): shipped prose, so still scanned, from a
+// fresh render rather than whatever `out/` holds. They share the on-demand map, so findings name their `out/` path.
+{
+  const r = renderUncommitted();
+  if ('error' in r) blind.push(`packages/engine/out/${UNCOMMITTED_OUT.join(', ')} — the uncommitted exports did not render (${r.error})`);
+  else r.files.forEach((abs, i) => onDemand.set(abs, `packages/engine/out/${UNCOMMITTED_OUT[i]} (rendered, not committed)`));
 }
 const shown = (abs: string): string => onDemand.get(abs) ?? relative(repo, abs);
 
@@ -241,7 +248,7 @@ const walkRequired = (dir: string, why: string): string[] => {
 // under this gate automatically instead of quietly widening the blind spot.
 const gated: string[] = [
   ...walkRequired(join(repo, 'packages/engine/out'), 'no emitted artifacts found — run `npx tsx packages/engine/regen.ts`')
-    .filter((f) => !ON_DEMAND_OUT.includes(relative(join(repo, 'packages/engine/out'), f))),
+    .filter((f) => !ON_DEMAND_OUT.includes(relative(join(repo, 'packages/engine/out'), f)) && !UNCOMMITTED_OUT.includes(relative(join(repo, 'packages/engine/out'), f))),
   // The on-demand preview page (Q319.6), rendered fresh above rather than read from `out/`.
   ...onDemand.keys(),
   ...SCHEMA_ARTIFACTS.map((f) => join(repo, 'packages/engine/schema', f)),
@@ -318,6 +325,7 @@ const gated: string[] = [
   // field in it carries a `description` an agent reads to learn `out/components/components.ai.json`.
   join(repo, 'packages/engine/schema/component-docs.schema.json'),
   join(repo, 'packages/engine/schema/component-defs.schema.json'),   // #3425: the component-defs export's authored schema
+  join(repo, 'packages/engine/schema/file-facts.schema.json'),   // #2075: the file facts report's authored schema; every field carries a `description`
   // Shipped skills (#492). Prose an agent reads and follows, so it ships in the same sense `out/**`
   // does — and like the token contract above it is named by hand, because skills are not a `regen`
   // artifact and so inherit none of that list's coverage.

@@ -307,6 +307,7 @@ export const CLI_EXCLUDED: Record<string, string> = {
   'packages/engine/emit-brandinput.ts': 'a regen step; run regen.ts',
   'packages/engine/emit-component-docs.ts': 'a regen step; run regen.ts',
   'packages/engine/emit-analysis-reports.ts': 'a regen step; run regen.ts',
+  'packages/engine/file-facts-cli.ts': 'the file facts scan over a plain-data snapshot (#2075 part 1), a working tool for the #2075 part 2 comparison harness; its snapshot format is not a published contract yet, so it is not offered to agents',
   'packages/engine/kb-briefs-refresh.ts': 'a maintainer refresh of schema/kb-briefs.json that reads a knowledge-base checkout outside this repository (#2488); nothing an agent can run here',
 };
 /** Gates are excluded by name pattern: there are dozens, and `verify.ts --list` is their reference. */
