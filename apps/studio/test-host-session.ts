@@ -289,8 +289,8 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
     'component-update-result: fills componentUpdate, marks it latest, settles the agent run, and leaves the build\'s slot and set record alone');
   ok(same(v.topics, ['host', 'host:components']) && v.effect === null, 'component-update-result: invalidates host and host:components (the Build control the run held busy)');
   // #2858: an Update's publish description reaches the slot the Activity drawer reads.
-  const pub = step(run, { kind: 'component-update-result', ok: true, headline: '✓ updated 1 in place', summary: 's', lines: null, publish: 'Before Prism3 updated tag.' });
-  ok(pub.next.componentUpdate !== null && pub.next.componentUpdate !== 'pending' && pub.next.componentUpdate.publish === 'Before Prism3 updated tag.', 'component-update-result: the publish description is kept on the verdict');
+  const pub = step(run, { kind: 'component-update-result', ok: true, headline: '✓ updated 1 in place', summary: 's', lines: null, publish: 'Prism3 updated tag.' });
+  ok(pub.next.componentUpdate !== null && pub.next.componentUpdate !== 'pending' && pub.next.componentUpdate.publish === 'Prism3 updated tag.', 'component-update-result: the publish description is kept on the verdict');
   const rebuilt = step({ ...v.next, componentState: 'pending' }, { kind: 'component-result', ok: true, completed: true, headline: 'H', summary: 'S' });
   ok(rebuilt.next.componentLatest === 'build' && same(rebuilt.next.componentUpdate, v.next.componentUpdate),
     'component-result after a check: the build is latest again, and the check\'s verdict is kept');
@@ -373,6 +373,16 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
   const prune = step({ ...step(init, { kind: 'agent-started', id: 'p1', cmd: 'prune' }).next, pruneBusy: 'delete' },
     { kind: 'refused', code: 'busy', cmd: 'prune', agent: false, message: 'Update file is already running. Try again when it finishes.' });
   ok(prune.next.pruneBusy === false, 'refused: a declined delete behind an agent\'s prune clears the panel\'s delete');
+  // #3697 R7: one hold for the whole file. The panel's build, declined behind an agent's APPLY (another operation), gets
+  // no verdict from that run, so its pending is cleared; declined behind the panel's own apply, the same.
+  const otherOp = step({ ...agentRun, componentState: 'pending' }, { kind: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: BUSY, held: 'apply-theme' });
+  ok(otherOp.next.componentState === null && otherOp.next.applyState === agentRun.applyState,
+    'refused (#3697 R7): a panel build declined behind an agent\'s apply clears the build\'s pending, and leaves Theme as it was');
+  const ownOther = step({ ...panelRun, componentState: 'pending' }, { kind: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: BUSY, held: 'apply-theme' });
+  ok(ownOther.next.componentState === null && ownOther.next.applyState === 'pending',
+    'refused (#3697 R7): a panel build declined behind the panel\'s own apply clears the build\'s pending; the apply stays pending');
+  const ownSame = step(panelRun, { kind: 'refused', code: 'busy', cmd: 'apply-theme', agent: false, message: BUSY, held: 'apply-theme' });
+  ok(ownSame.next.applyState === 'pending', 'refused (#3697 R7): declined behind the panel\'s own run of the same write, the pending stays that run\'s');
   const unknown = step(init, { kind: 'refused', code: 'busy', cmd: 'readback', agent: true, message: 'x' });
   ok(unknown.next === init && unknown.topics.length === 0, 'refused: a command with no write operation changes nothing');
 }

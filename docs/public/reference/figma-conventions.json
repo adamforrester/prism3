@@ -3234,7 +3234,7 @@
             "type": "BOOLEAN"
           },
           {
-            "name": "dismiss",
+            "name": "close",
             "type": "BOOLEAN"
           }
         ],
@@ -3762,6 +3762,12 @@
       },
       {
         "name": "blur",
+        "modes": [
+          "Default"
+        ]
+      },
+      {
+        "name": "text-spacing",
         "modes": [
           "Default"
         ]

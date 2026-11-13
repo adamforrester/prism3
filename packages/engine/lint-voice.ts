@@ -240,7 +240,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
-import { ENGINE_ARTIFACTS, ON_DEMAND_OUT, REPORT_ARTIFACTS, REPORTS_DIR, SCHEMA_ARTIFACTS, renderOnDemand } from './regen';
+import { ENGINE_ARTIFACTS, ON_DEMAND_OUT, UNCOMMITTED_OUT, renderUncommitted, REPORT_ARTIFACTS, REPORTS_DIR, SCHEMA_ARTIFACTS, renderOnDemand } from './regen';
 import { brandTheme } from './theme';
 
 // ---- the RULES, imported (#1117) -------------------------------------------------------------
@@ -321,6 +321,13 @@ const onDemand = new Map<string, string>();
   if ('error' in r) blind.push(`packages/engine/out/${ON_DEMAND_OUT.join(', ')} — the on-demand page did not render (${r.error})`);
   else r.files.forEach((abs, i) => onDemand.set(abs, `packages/engine/out/${ON_DEMAND_OUT[i]} (rendered on demand)`));
 }
+// The same for the exports regen writes and git does not track (#3698 R3): shipped prose, so still scanned, from a
+// fresh render rather than whatever `out/` holds. They share the on-demand map, so findings name their `out/` path.
+{
+  const r = renderUncommitted();
+  if ('error' in r) blind.push(`packages/engine/out/${UNCOMMITTED_OUT.join(', ')} — the uncommitted exports did not render (${r.error})`);
+  else r.files.forEach((abs, i) => onDemand.set(abs, `packages/engine/out/${UNCOMMITTED_OUT[i]} (rendered, not committed)`));
+}
 const shown = (abs: string): string => onDemand.get(abs) ?? relative(repo, abs);
 
 
@@ -377,7 +384,7 @@ const walkRequired = (dir: string, why: string): string[] => {
 // regen.ts exports so a new emitted artifact is covered here automatically too.
 const gated: string[] = [
   ...walkRequired(join(repo, 'packages/engine/out'), 'no emitted artifacts found — run `npx tsx packages/engine/regen.ts`')
-    .filter((f) => !ON_DEMAND_OUT.includes(relative(join(repo, 'packages/engine/out'), f))),
+    .filter((f) => !ON_DEMAND_OUT.includes(relative(join(repo, 'packages/engine/out'), f)) && !UNCOMMITTED_OUT.includes(relative(join(repo, 'packages/engine/out'), f))),
   // The on-demand preview page (Q319.6), rendered fresh above rather than read from `out/`.
   ...onDemand.keys(),
   ...SCHEMA_ARTIFACTS.map((f) => join(repo, 'packages/engine/schema', f)),
@@ -418,6 +425,7 @@ const gated: string[] = [
   // field in it carries a `description` an agent reads to learn `out/components/components.ai.json`.
   join(repo, 'packages/engine/schema/component-docs.schema.json'),
   join(repo, 'packages/engine/schema/component-defs.schema.json'),   // #3425: the component-defs export's authored schema
+  join(repo, 'packages/engine/schema/file-facts.schema.json'),   // #2075: the file facts report's authored schema; every field carries a `description`
   // Shipped skills — prose an agent reads and follows, named by hand for the same reason.
   ...walk(join(repo, 'skills')).filter((f) => f.endsWith('.md')),
   // The designer guides (#2637): published docs a designer reads, served by the studio and readable on GitHub,
@@ -433,6 +441,28 @@ const gated: string[] = [
   // walk leaves both to their own lists rather than reading them twice.
   ...walk(join(repo, 'docs/public')).filter((f) => !f.startsWith(`${join(repo, REPORTS_DIR)}/`) && !(f.startsWith(`${repo}/docs/public/guides/`) && f.endsWith('.md'))),
 ];
+
+// The BUNDLES, named per file (#948's reasoning: a directory predicate stays satisfied by either file
+// alone). RAW text — no comment stripping, unlike the voice rules: a comment inside an expression survives
+// into an unminified bundle (header: CLIENT NAMES), and a client name there is a leak like one in a string.
+// The source map is out of scope on purpose; the header says why.
+const CLIENT_BUNDLES = ['apps/studio/dist/main.js', 'apps/plugin/dist/main.js', 'apps/plugin/dist/ui.html'];
+// ---- `--files`: the scanned set, printed (#1117) ----------------------------------------------
+// The scope crossing noted in the header claims "no design-record docs/ file is in this gate's scope". A grep over
+// this source cannot check that claim — it matches the comment making it. This prints the set the
+// gate actually walks, so the claim is decided by the gate rather than by prose about it:
+//
+//   npx tsx packages/engine/lint-voice.ts --files | grep '^docs/' | grep -vc '^docs/public/'    # must be 0
+//
+// Exits before any scanning, so it is cheap and cannot be confused with a verdict. It also exits before the surface
+// and self checks (#3698 R4), so it lists the walked set in a tree with no build, as `test-docs-only.sh`'s
+// `scope/…` cases read it in CI's engine job: an unbuilt bundle lists no file, and every bundle is under `apps/`.
+if (process.argv.includes('--files')) {
+  for (const f of gated) console.log(shown(f));
+  // The client-name arm's bundles, where the voice rules do not already walk them.
+  for (const b of CLIENT_BUNDLES) if (!gated.includes(join(repo, b))) console.log(b);
+  process.exit(0);
+}
 
 // ---- SELF-CHECK: does the scanner still detect what it claims to? ----
 // One true-positive sample per rule, the stated "just" exception, and three code-context samples
@@ -616,31 +646,11 @@ if (selfFails.length) {
   for (const f of selfFails) console.error(`    ${f}`);
   process.exit(1);
 }
-// The BUNDLES, named per file (#948's reasoning: a directory predicate stays satisfied by either file
-// alone). RAW text — no comment stripping, unlike the voice rules: a comment inside an expression survives
-// into an unminified bundle (header: CLIENT NAMES), and a client name there is a leak like one in a string.
-// The source map is out of scope on purpose; the header says why.
-const CLIENT_BUNDLES = ['apps/studio/dist/main.js', 'apps/plugin/dist/main.js', 'apps/plugin/dist/ui.html'];
 // What proves a bundle is one that carries the personality vocabulary, so a clean scan of it means the
 // trait notes were in what was read. The resolver's own refusal message: a string of the subject, and
 // that is the point of a representation probe — if the vocabulary leaves a bundle, this fails loudly
 // rather than scanning a bundle the issue no longer concerns and calling it clean.
 const VOCABULARY_MARKER = 'unknown personality trait';
-
-// ---- `--files`: the scanned set, printed (#1117) ----------------------------------------------
-// The scope crossing noted in the header claims "no design-record docs/ file is in this gate's scope". A grep over
-// this source cannot check that claim — it matches the comment making it. This prints the set the
-// gate actually walks, so the claim is decided by the gate rather than by prose about it:
-//
-//   npx tsx packages/engine/lint-voice.ts --files | grep '^docs/' | grep -vc '^docs/public/'    # must be 0
-//
-// Exits before any scanning, so it is cheap and cannot be confused with a verdict.
-if (process.argv.includes('--files')) {
-  for (const f of gated) console.log(shown(f));
-  // The client-name arm's bundles, where the voice rules do not already walk them.
-  for (const b of CLIENT_BUNDLES) if (!gated.includes(join(repo, b))) console.log(b);
-  process.exit(0);
-}
 
 const gatedHits = gated.flatMap(scan);
 

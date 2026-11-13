@@ -824,7 +824,8 @@ const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview
  * THE ABOUT FRAME AND THE PUBLISH DESCRIPTION (#2858), once a run has written: `res.version` is set by whichever path
  * saved the named version first, the apply's or `settle`'s re-spacing. The frame is redrawn last, so its date is the
  * run's; a run that stopped in a set leaves it, and the next run finishes the sets and draws it. A host write refused
- * here is named, never thrown: the sets are already written. The description's first sentence is that version's title.
+ * here is named, never thrown: the sets are already written. The description's first sentence is "Prism3 updated <sets>.",
+ * naming the sets the run changed; only a run that changed no set falls back to the version's title (#2914).
  */
 const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdatePreview, res: ApplyResult, today: string | undefined): Promise<void> => {
   if (!res.version && !res.aboutOnly) return;
@@ -1116,10 +1117,13 @@ const coverDid = (c: CoverOutcome | undefined): boolean => !!c && c.did !== 'non
 /** A set the apply entered and wrote nothing to (see `idle` in `applyVerdict`). */
 const isIdle = (o: SetOutcome): boolean => !o.refused && !o.stopped && o.skipped.length > 0 && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length && !o.moved && !o.setMoved;
 
-export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; summary: string; lines: string[]; causes: Cause[] } => {
+/** #3711 (Q-UF3 A): `completed` is true when the run went through every set it was given: none stopped, none refused or
+ *  left not updated, and no stop asked for. A run that wrote every set and left some to check is `completed` and not
+ *  `ok`: Update file's run goes on past it as a warning, as a To add step with problems does (#3308). */
+export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean; headline: string; summary: string; lines: string[]; causes: Cause[] } => {
   if (r.refusedAll) {
     const lines = [`Nothing was updated: ${r.refusedAll}.`];
-    return { ok: false, headline: '✗ update refused', summary: lines.join('\n'), lines, causes: [runCause('✗ update refused', r.refusedAll)] };
+    return { ok: false, completed: false, headline: '✗ update refused', summary: lines.join('\n'), lines, causes: [runCause('✗ update refused', r.refusedAll)] };
   }
   const stopped = r.outcomes.find((o) => o.stopped);
   // A miss from the build's own pass is a set not verified, as an identity or content difference is (#2477): the set
@@ -1219,10 +1223,15 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   if (r.about) lines.push(aboutLine(r.about));
   if (r.version) lines.push(`Saved a version first: "${r.version}".`);
   else if (r.aboutOnly && (r.about?.drawn || coverDid(r.cover))) lines.push(coverPageOnlyLine({ about: !!r.about?.drawn, cover: coverDid(r.cover) }, true));
+  const completed = !stopped && !r.halted && !refused;
+  // #3711 (Q-UF3 A, DRAFT wording): every set written, some left to check. The count is the sets the run wrote,
+  // those to check among them; each one's lines above name what differs.
+  const written = r.outcomes.filter((o) => !o.refused && !o.stopped && !isIdle(o)).length;
   const headline = stopped ? `✗ update stopped at ${stopped.set}`
     : r.halted ? haltedHeadline(r.halted)
-    : failed.length ? `⚠ ${n(failed.length, 'set')} not verified`
-      : refused ? `✗ ${n(refused, 'set')} not updated`
+    // A set not updated stops the run, so it heads the verdict over any set to check beside it.
+    : refused ? `✗ ${n(refused, 'set')} not updated`
+      : failed.length ? `⚠ Updated ${n(written, 'set')} · ${failed.length} to check`
         : updated ? `✓ updated ${updated} in place`
           : added ? `✓ added ${added}`
             : deprecated ? `✓ ${deprecated} marked deprecated`
@@ -1247,5 +1256,5 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   // #3421: Keep is a choice, so the run goes on; the headline says how many sets hold changes back, never a bare ✓.
   const held = r.outcomes.filter((o) => o.held).length;
   const ok = !stopped && !r.halted && !failed.length && !refused;
-  return { ok, headline: `${headline}${held ? ` · ${n(held, 'set')} kept edits over changes` : ''}${breakingClause(r.outcomes)}`, summary: lines.join('\n'), lines, causes: ok ? [] : mergeCauses(causes) };
+  return { ok, completed, headline: `${headline}${held ? ` · ${n(held, 'set')} kept edits over changes` : ''}${breakingClause(r.outcomes)}`, summary: lines.join('\n'), lines, causes: ok ? [] : mergeCauses(causes) };
 };

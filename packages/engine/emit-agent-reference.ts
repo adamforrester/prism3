@@ -49,6 +49,7 @@ import { TOOLS as BRIDGE_TOOLS, SERVER_INFO as BRIDGE_INFO } from '../../tools/f
 import { AGENT_COMMANDS, AGENT_PROTOCOL_VERSION, MAILBOX } from '../../apps/plugin/src/agent-protocol';
 import { RUN_CODE } from '../../apps/plugin/src/dev-commands';
 import { BRIDGE_PORT } from '../../apps/plugin/src/agent-bridge-relay';
+import { localeFreeCompare } from './locale-free-order';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '..', '..');
@@ -306,6 +307,7 @@ export const CLI_EXCLUDED: Record<string, string> = {
   'packages/engine/emit-brandinput.ts': 'a regen step; run regen.ts',
   'packages/engine/emit-component-docs.ts': 'a regen step; run regen.ts',
   'packages/engine/emit-analysis-reports.ts': 'a regen step; run regen.ts',
+  'packages/engine/file-facts-cli.ts': 'the file facts scan over a plain-data snapshot (#2075 part 1), a working tool for the #2075 part 2 comparison harness; its snapshot format is not a published contract yet, so it is not offered to agents',
   'packages/engine/kb-briefs-refresh.ts': 'a maintainer refresh of schema/kb-briefs.json that reads a knowledge-base checkout outside this repository (#2488); nothing an agent can run here',
 };
 /** Gates are excluded by name pattern: there are dozens, and `verify.ts --list` is their reference. */
@@ -373,7 +375,7 @@ const cliEntry = (p: string) => {
     file: p,
     summary,
     usage,
-    flags: [...flags].sort(([a], [b]) => a.localeCompare(b)).map(([flag, source]) => ({ flag, source })),
+    flags: [...flags].sort(([a], [b]) => localeFreeCompare(a, b)).map(([flag, source]) => ({ flag, source })),
   };
 };
 

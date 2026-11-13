@@ -615,10 +615,8 @@ ok((EXERCISED.slotSettings ?? 0) > 0 && (EXERCISED.slotPreferred ?? 0) > 0,
 {
   // KNOWN GAPS, each a filed issue, each by def AND field. An entry that no longer fires fails below, so the ledger
   // empties as the issues close rather than outliving them.
-  const KNOWN: { def: string; field: string; issue: string }[] = [
-    // A snapshot has no `findAll`, and stops at an instance, so the mark's vectors are out of its reach.
-    { def: 'sign-in-button', field: 'literalTint', issue: '#3393' },
-  ];
+  // Empty since #3393: the snapshot now carries an instance's vectors, so SignInButton's mark tint reads as live.
+  const KNOWN: { def: string; field: string; issue: string }[] = [];
   const fired = new Set<string>();
   const known = (def: string, d: Divergence): boolean => {
     const k = KNOWN.find((x) => x.def === def && x.field === d.field);
@@ -3124,9 +3122,9 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     const shim = makeShim({ ...fullFor(plans), page });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
     const r = await applyComponentPlan(plans, shim as any);
-    // The one miss the harness owns: the shim declares no INSTANCE_SWAP on a nested FlushIconButton, so the dismiss's
+    // The one miss the harness owns: the shim declares no INSTANCE_SWAP on a nested FlushIconButton, so the close button's
     // close-glyph override reports itself (the corpus loop above judges divergences, so it never reads it). Named here.
-    const harness = (m: string): boolean => /^dismiss\.nestOverrides -> swap icon \(no INSTANCE_SWAP property/.test(m);
+    const harness = (m: string): boolean => /^close\.nestOverrides -> swap icon \(no INSTANCE_SWAP property/.test(m);
     return { r: { ...r, misses: r.misses.filter((m) => !harness(m)) }, set: page.children.find((c) => c.type === 'COMPONENT_SET') as Node | undefined };
   };
   const find = (n: Node | undefined, name: string): Node | undefined => (!n ? undefined : n.name === name ? n : ((n.children ?? []) as Node[]).map((c) => find(c, name)).find(Boolean));
@@ -3159,7 +3157,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       placeholder: { kind: 'text', type: 'body-type', paintSlot: 'body', wrap: true, characters: OLD_COPY },
     } },
     composition: { ...banner.composition!, composesWith: ['button', 'flush-icon-button-neutral'] },
-    figmaProperties: { ...banner.figmaProperties!, texts: { title: banner.figmaProperties!.texts!.title }, booleans: { title: { part: 'titleBox', default: true }, icon: banner.figmaProperties!.booleans!.icon, actions: { part: 'actions', default: false }, dismissible: { part: 'dismiss', default: false, figmaName: 'dismiss' } } },
+    figmaProperties: { ...banner.figmaProperties!, texts: { title: banner.figmaProperties!.texts!.title }, booleans: { title: { part: 'titleBox', default: true }, icon: banner.figmaProperties!.booleans!.icon, actions: { part: 'actions', default: false }, dismissible: { part: 'close', default: false, figmaName: 'close' } } },
   };
   const before = await build(old);
   const oldMembers = ((before.set?.children ?? []) as Node[]);

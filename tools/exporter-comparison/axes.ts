@@ -178,6 +178,7 @@ export const COLLECTION_AXIS: Record<string, Axis> = {
   motion: 'none',
   opacity: 'none',
   blur: 'none',          // #2869 — one Default mode: the glass radius does not vary
+  'text-spacing': 'none', // #2423 — one Default mode: no brand's mode levers move line height or letter spacing
   radius: 'none',
   size: 'none',
   space: 'none',
