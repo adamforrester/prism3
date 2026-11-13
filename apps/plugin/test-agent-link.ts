@@ -41,9 +41,10 @@
  *     (mutations: the guard's `busy` check removed from `guarded` → busy/panel and busy/agent-first fail;
  *     the dispatcher's `refuse` removed → busy/agent fails; the `delete` moved out of the `finally` →
  *     busy/release fails, each by name)
- *   · busy/one hold (#3697 R7): while the panel's apply runs, the panel's file setup and an agent's build and
- *     prune delete are refused as busy, each naming Theme as the holder, and the apply's verdict is the
- *     baseline's (mutation: a hold per operation, as before R7 → every `busy/one hold` arm fails by name). busy/preview: a prune preview, from the panel or an agent, is not
+ *   · busy/one hold (#3697 R7): while the panel's apply runs, the panel's file setup and style-guide cleanup and an
+ *     agent's build and prune delete are refused as busy, each naming Theme as the holder, and the apply's verdict is the
+ *     baseline's (mutation: a hold per operation, as before R7 → every `busy/one hold` arm fails by name; the style-guide cleanup's check alone put back on its own operation →
+ *     `busy/one hold: the panel's style-guide cleanup arriving mid Apply Theme is refused, …`). busy/preview: a prune preview, from the panel or an agent, is not
  *     refused while a delete runs, and a second delete is (mutations: `writes` true for a preview, or the
  *     panel's prune confirm read as always true → busy/preview's preview arms fail; the delete unguarded →
  *     its control arm fails).
@@ -806,6 +807,11 @@ section('busy — a second write of an operation, while one is running, is refus
   const rpc = (await read(pc.id)) as AgentResult;
   ok(rpc.ok === false && rpc.error?.code === 'busy' && !calls.includes('prune'),
     `busy/one hold: an agent's prune delete arriving mid Apply Theme is refused as busy (${rpc.error?.code})`);
+  posted.length = 0;
+  await toUi({ type: 'style-guide-cleanup', ids: [] });
+  const sgc = refusals(false);
+  ok(sgc.length === 1 && isRefusal(sgc[0], false, 'style-guide') && !posted.some((m) => m.type === 'style-guide-cleanup-result'),
+    `busy/one hold: the panel's style-guide cleanup arriving mid Apply Theme is refused, naming Theme as the holder, and never runs (${JSON.stringify(sgc[0])})`);
   await release();
   const ov = posted.filter((m) => m.type === 'apply-result');
   ok(ov.length === 1 && JSON.stringify(ov[0]) === baseline, 'busy/one hold: the running apply is unaffected: one verdict, the baseline\'s');

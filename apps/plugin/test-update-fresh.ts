@@ -31,7 +31,8 @@
  * Mutation this fails by name: `buildComponents` no longer releasing the build's guard when its verdict posts (`main.ts`,
  * the `guard.release` call after `verdictPosted = true`) → `sets/provider-logo: answered by a component-result …` (refused) and
  * `update/after the last set: answered by component-update-result`. `run-guard.ts`'s `finally` deleting the operation
- * whoever holds it (the hold token dropped) → `guard/release: released, …`. The #3325 patch put back (the root's search
+ * whoever holds it (the hold token dropped) → `guard/release: released, …`. `release(cmd)` freeing the file whoever
+ * holds it (`running = null`, #3697 R7) → `guard/release: releasing a write that does not hold the file leaves the holder in place`. The #3325 patch put back (the root's search
  * also returning the raw nodes on the pages, the strict host opted out) → `sets/button: answered by a component-result that
  * completed, clean`, and the same for each set that nests another.
  */
@@ -178,6 +179,8 @@ ok(upd?.type === 'component-update-result', `update/after the last set: answered
   const second = g2.run('build-components', () => new Promise<void>((res) => { endSecond = res; }));
   endFirst(); await first;
   ok(freed && g2.holding('build-components'), `guard/release: released, the file is free (${freed}); a later run's hold outlives the first run's end (held ${g2.held()})`);
+  g2.release('prune');
+  ok(g2.held() === 'build-components', `guard/release: releasing a write that does not hold the file leaves the holder in place (held ${g2.held()})`);
   endSecond(); await second;
   ok(!g2.busy(), 'guard/release: the later run releases its own hold when it ends');
 }
