@@ -1349,6 +1349,18 @@ const agrees = async (w: World, targets: UpdateTarget[], ledger?: Parameters<typ
       return w.plans;
     }, says: /fonts: Inter Semi Bold will not load/ },
   ];
+  // #3713 (D3721.6 b): a swap-target list is cut by SET. Five targets over four sets the file lacks (two in zz-a): the line
+  // keeps every target of the first three sets, grouped by set in the order the plans first name them, and counts the
+  // fourth set, so Studio's "…, and 1 more" names one more set. Cut by target, it read "…, and 2 more".
+  {
+    const five = ['zz-a/1', 'zz-a/2', 'zz-b/1', 'zz-c/1', 'zz-d/1'];
+    const w = await world('button', plansOf('button'));
+    const plans = w.plans.map((p, i) => swapTo([p], five[i % five.length]!)[0]!);
+    const r = await agrees(w, [{ def: 'button', plans }]);
+    const line = r.pre.sets[0]?.blockers.find((b) => b.startsWith('component')) ?? '';
+    ok(plans.length >= five.length && line === 'components the plan swaps to are not in this file: zz-a/2, zz-a/1, zz-b/1, zz-c/1, and 1 more',
+      `agree/file swap targets over four sets: the list keeps the first three sets' targets and counts one more set (${plans.length} plans; ${line || r.pre.sets[0]?.blockers.join('; ') || 'none'})`);
+  }
   for (const c of cases) {
     const w = await world(c.def, plansOf(c.def), c.name === 'font' ? { looseHost: 'patches loadFontAsync so one font will not load' } : {});
     const r = await agrees(w, [{ def: c.def, plans: c.mk(w) }]);
@@ -3104,6 +3116,43 @@ section('part rename — a layer the ledger renames is renamed in place, keeping
     'part rename/members: the set and every member keep their keys and ids');
   const post = (await previewUpdate(w.host, [{ def: TAG, plans: planned }])).sets[0];
   ok(post.counts.current === post.counts.members, `part rename/settled: a second dry run reads every member current (${JSON.stringify(post.counts)})`);
+}
+{
+  // #3647 (owner Q192 A): Tag's × glyph was `dismissGlyph`, and is `closeGlyph`. The names are typed here, not read off
+  // COMPONENT_RENAMES: the ledger is the subject, so deleting its entry fails this block by name (`docs/34` shape 1).
+  // `lint-component-renames` does not check part renames (#2776), so this block is the entry's only gate.
+  const FROM = 'dismissGlyph', TO = 'closeGlyph';
+  const planned = plansOf(TAG);
+  const old = planned.map((p) => JSON.parse(JSON.stringify(p).split(`"${TO}"`).join(`"${FROM}"`)) as AnatomyPlan);
+  ok(JSON.stringify(planned).includes(`"name":"${TO}"`) && !JSON.stringify(old).includes(TO), `premise/×: the plans name the layer '${TO}', and the file was built from plans naming it '${FROM}'`);
+  const w = await world(TAG, old);
+  const dismissible = (): Node[] => membersOf(w.set()).filter((m) => /type=dismissible/.test(String(m.name)));
+  const findIn = (n: Node, name: string): Node | undefined => {
+    if (n.name === name) return n;
+    if (n.type === 'INSTANCE') return undefined;
+    for (const c of (n.children as Node[] | undefined) ?? []) { const f = findIn(c, name); if (f) return f; }
+    return undefined;
+  };
+  const idsBefore = new Map(dismissible().map((m) => [String(m.name), String(findIn(m, FROM)?.id ?? '')] as const));
+  ok(idsBefore.size === 15 && [...idsBefore.values()].every(Boolean), `premise/×: all 15 dismissible members hold a '${FROM}' layer (${idsBefore.size})`);
+  const before = identityOf(w.set());
+  const unclaimed = (await previewUpdate(w.host, [{ def: TAG, plans: planned }], undefined, [])).sets[0];
+  ok(unclaimed.changes.some((c) => c.part.endsWith(`/${FROM}`) && c.to.startsWith('removed')),
+    `premise/×: with no ledger entry the dry run removes '${FROM}' and adds '${TO}' (${JSON.stringify(unclaimed.changes.filter((c) => c.field === 'children').map((c) => [c.part, c.from, c.to])).slice(0, 240)})`);
+  // The engine's own ledger, so the shipped entry is what is under test.
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: planned }]);
+  const p0 = pre.sets[0];
+  ok(!p0.changes.some((c) => c.field === 'children' || c.field === 'type') && !p0.replacements.length && !p0.blockers.length && p0.counts.handEdited === 0,
+    `part rename/× dry run: '${FROM}' → '${TO}' removes, adds and replaces no layer, and nothing reads as a hand edit (${JSON.stringify(p0.changes.map((c) => [c.part, c.field])).slice(0, 240)})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: planned }], previewHashOf(pre));
+  ok(applyVerdict(res).ok, `part rename/× verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  const off = dismissible().filter((m) => { const n = findIn(m, TO); return !n || String(n.id) !== idsBefore.get(String(m.name)) || !!findIn(m, FROM); }).map((m) => String(m.name));
+  ok(off.length === 0, `part rename/× in place: on every dismissible member the layer is now '${TO}' under the id it had as '${FROM}' (${off.slice(0, 3).join('; ') || 'all 15'})`);
+  const after = identityOf(w.set());
+  ok(after.set.join() === before.set.join() && [...before.members].every(([name, b]) => after.members.get(name)?.id === b.id && after.members.get(name)?.key === b.key),
+    'part rename/× members: the set and every member keep their keys and ids');
+  const post = (await previewUpdate(w.host, [{ def: TAG, plans: planned }])).sets[0];
+  ok(post.counts.current === post.counts.members, `part rename/× settled: a second dry run reads every member current (${JSON.stringify(post.counts)})`);
 }
 
 /* ── rename ──────────────────────────────────────────────────────────────────────────────────────────── */
@@ -5516,7 +5565,7 @@ section('stepdown — Segmented control, Tab and Tag move their glyph one rung d
   const CASES: Array<{ id: string; parts: string[]; members: number }> = [
     { id: 'segmented-control-segment', parts: ['leadingVisual'], members: 30 },
     { id: 'tab-item', parts: ['leadingVisual'], members: 30 },
-    { id: 'tag', parts: ['leadingVisual', 'checkGlyph', 'dismissGlyph'], members: 45 },
+    { id: 'tag', parts: ['leadingVisual', 'checkGlyph', 'closeGlyph'], members: 45 },
   ];
   const sizeOf = (m: Node): string => /size=(small|medium|large)/.exec(String(m.name))?.[1] ?? '?';
   const glyphsOf = (m: Node, parts: string[]): Node[] => {

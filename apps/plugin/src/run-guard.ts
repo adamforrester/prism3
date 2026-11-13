@@ -46,10 +46,10 @@ export const guardFor = (cmd: string): WriteCmd | null =>
 /** Whether this call of `cmd` writes: every call does, except a prune preview. */
 export const writes = (cmd: WriteCmd, confirm?: boolean): boolean => cmd !== 'prune' || confirm === true;
 
-/** The refusal's words. Since IA v2 every panel write goes through Update file, so the refusal names it rather than
- *  the operation (#3264 decision 2, DRAFT wording). `cmd` stays in the signature: the refusal's `cmd` field names the
- *  operation asked for, for the Activity row it belongs to, and its `held` field the one holding the file (#3697 R7). */
-export const busyMessage = (_cmd: WriteCmd): string => 'Update file is already running. Try again when it finishes.';
+/** The refusal's words: they name the write that holds the file, by its title (#3718 D3718.1 B, owner decision
+ *  2026-11-12; was "Update file" whatever held it, #3264 decision 2). Called with the refusal's `held`, never its `cmd`:
+ *  since #3697 R7 the two can differ, and the `cmd` field alone names the operation asked for, for its Activity row. */
+export const busyMessage = (held: WriteCmd): string => `${TITLE[held]} is already running. Try again when it finishes.`;
 
 export const createRunGuard = () => {
   /** The one write holding the file, with the hold object of its run, so a run's own end never releases a later run's
