@@ -966,15 +966,18 @@ console.log('\n#3697 R6 — each removal tried, running counts, the confirm guar
   const p1 = new RStyle('old/x'); const p2 = new RStyle('old/y');
   p1.remove = () => { throw new Error('style refused'); };
   const sh3 = new PruneShim([c81, c82, c83], [], { text: [], effect: [], paint: [p1, p2], grid: [] });
-  const r3 = await applyPrunePlan({
+  // Fail soft: a throw that escapes the executor is this arm's failure, reported by name, not a crash.
+  const counts3 = emptyPruneResult();
+  const escaped = await applyPrunePlan({
     variables: [], collections: ['stale-a', 'stale-b'],
     modes: [{ collection: 'color', modes: [{ modeId: 'm1', name: 'old-a' }, { modeId: 'm2', name: 'old-b' }] }],
     styles: [{ kind: 'paint', names: ['old/x', 'old/y'] }],
-  }, sh3 as any as PruneApi);
-  ok(r3.modes === 1 && r3.collections === 1 && r3.styles === 1 && r3.misses.length === 0
+  }, sh3 as any as PruneApi, counts3).then(() => '', (e: Error) => e.message);
+  const r3 = counts3;
+  ok(escaped === '' && r3.modes === 1 && r3.collections === 1 && r3.styles === 1 && r3.misses.length === 0
     && JSON.stringify(r3.failed) === JSON.stringify(['mode:color/old-a (mode refused)', 'collection:stale-a (collection refused)', 'paint-style:old/x (style refused)'])
     && c81.modes.map((m) => m.name).join(',') === 'light,old-a' && !sh3.liveCollNames().has('stale-b') && [...sh3.liveStyleNames('paint')].join(',') === 'old/x',
-    `R6/each kind tried: a throw at one mode, one collection and one style leaves its sibling removed (modes ${r3.modes}, collections ${r3.collections}, styles ${r3.styles}, failed ${JSON.stringify(r3.failed)})`);
+    `R6/each kind tried: a throw at one mode, one collection and one style leaves its sibling removed (escaped ${JSON.stringify(escaped)}, modes ${r3.modes}, collections ${r3.collections}, styles ${r3.styles}, failed ${JSON.stringify(r3.failed)})`);
 
   // The confirm guard: input held, then the hash, both literal.
   const plan = { variables: [{ collection: 'color', names: ['nbds/color/a'] }], collections: [], modes: [], styles: [] };
