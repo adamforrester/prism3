@@ -13474,7 +13474,7 @@
           "name": "aria-label",
           "type": "string",
           "required": false,
-          "description": "The thumb's accessible name. Set by the Slider: the label for a single value, \"Minimum {label}\" and \"Maximum {label}\" for a range, with \", required\" added when the slider is required."
+          "description": "The thumb's accessible name. Set by the Slider: the label for a single value, \"Minimum {label}\" and \"Maximum {label}\" for a range."
         },
         {
           "name": "size",

@@ -88,7 +88,7 @@ No copy of its own.
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `aria-label` | string | — | no | The thumb's accessible name. Set by the Slider: the label for a single value, "Minimum {label}" and "Maximum {label}" for a range, with ", required" added when the slider is required. |
+| `aria-label` | string | — | no | The thumb's accessible name. Set by the Slider: the label for a single value, "Minimum {label}" and "Maximum {label}" for a range. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The disc's diameter: 18, 24 or 30px at the default density, from control.size.*.thumb. Set by the Slider. |
 | `disabled` | boolean | `false` | no | The disabled look. Set by the Slider when the whole control is disabled. |
 
