@@ -5,8 +5,8 @@
  * `h`, so the same code emitted a different order on a Czech machine and `regen --check` reported drift on 8 artifacts
  * with nothing changed. This compares UTF-16 code units, which no locale, ICU build or Node version moves.
  *
- * It folds ASCII case first (`toLowerCase`, which unlike `toLocaleLowerCase` reads no locale) and breaks a tie by raw
- * code unit, so the order is total. The fold is deliberate: it is the order the artifacts were committed in under an
+ * It folds case first (`toLowerCase`, which folds all of Unicode by its default mapping and, unlike `toLocaleLowerCase`,
+ * reads no locale, so no tailoring such as Turkish dotless i) and breaks a tie by raw code unit, so the order is total. The fold is deliberate: it is the order the artifacts were committed in under an
  * English host, so this fix moved no emitted byte there. Pure code-unit order would have put `FPO-default-icon` ahead
  * of `arrow-down` and made it Icon's default member in Figma, which is a design change and not this fix's to make.
  *

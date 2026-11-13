@@ -14,7 +14,9 @@
  *                  and line. The scan covers tests and lints too: a test that sorts by locale compares two sides
  *                  that can each move by machine, and one rule is simpler to hold than a list of exemptions.
  *   PROBE          the comparator, run on a literal probe, does not return the literal order typed below, or the
- *                  probe no longer separates a Czech collation from it (so the probe could not catch the defect).
+ *                  probe no longer separates a Czech collation from it (so the probe could not catch the defect),
+ *                  or `planVariableRenames` (which restates the comparator for the paste payload) orders a
+ *                  case-split pair differently from the literal folded order typed below.
  *   REPRESENTED    the scan did not reach each emitter the defect was found in, or reached too few files.
  *
  * INDEPENDENCE (docs/34). The SUBJECT is the engine's source text. The REFERENCE is the banned spellings and the
@@ -33,6 +35,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { localeFreeCompare } from './locale-free-order';
+import { planVariableRenames } from './rename-map';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '..', '..');
@@ -42,7 +45,9 @@ const failures: string[] = [];
 // The banned spellings. A regex source never contains the dotted, called form it matches, so these lines do not
 // trip the scan; the self-skip is for the probe below, which has to call the method.
 const BANNED: { what: string; re: RegExp }[] = [
-  { what: 'locale-dependent string comparison', re: /\.\s*localeCompare\s*\(/ },
+  // The called form and the reached-through forms (`String.prototype.localeCompare.call(…)`, `.apply`, `.bind`).
+  // Prose that names the method bare, with neither after it, stays clean.
+  { what: 'locale-dependent string comparison', re: /\blocaleCompare\b\s*(?:\(|\.\s*(?:call|apply|bind)\b)/ },
   { what: 'ICU collator', re: /\bIntl\s*\.\s*Collator\b/ },
   { what: 'locale-aware case fold', re: /\.\s*toLocale(?:Lower|Upper)Case\s*\(/ },
 ];
@@ -75,6 +80,18 @@ if (got.join(',') !== PROBE_ORDER.join(',')) {
 const czech = [...PROBE].sort((a, b) => a.localeCompare(b, 'cs'));
 if (czech.join(',') === PROBE_ORDER.join(',')) {
   failures.push('PROBE: a Czech collation orders the probe the same as the comparator, so the probe cannot tell them apart (is ICU missing?)');
+}
+
+// `rename-map.ts` restates the comparator (it ships as source in the paste payload, where an import does not exist).
+// Drive the restated copy on a pair whose folded order and code-unit order disagree: `a` < `B` folded, `B` < `a` by
+// code unit. The expected order is typed, never read from `localeFreeCompare`.
+const RENAME_ORDER = ['a', 'B'];
+const renamed = planVariableRenames(['B', 'a'], ['x', 'y'], [
+  { collection: 'probe', from: 'B', to: 'x', since: '0' },
+  { collection: 'probe', from: 'a', to: 'y', since: '0' },
+]).map((r) => r.from);
+if (renamed.join(',') !== RENAME_ORDER.join(',')) {
+  failures.push(`PROBE: planVariableRenames ordered ${renamed.join(', ')}; expected ${RENAME_ORDER.join(', ')} (rename-map.ts's restated comparator has drifted from localeFreeCompare)`);
 }
 
 // ── SCAN ─────────────────────────────────────────────────────────────────────────────────────────────────────
