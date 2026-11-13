@@ -14,6 +14,22 @@ on:
   pull_request:
   push:
     branches: [main]
+  # #3698 R3 (owner decision 2026-11-12): THE MERGE QUEUE. Two PRs can each pass against a base that no longer exists
+  # and merge with no git conflict, leaving `main` red or `out/` stale (semantic staleness, the one failure a text merge
+  # cannot see). With a merge queue on `main`, GitHub builds each queued PR on top of `main` plus the PRs ahead of it
+  # and runs this whole workflow there, `regen --check` included, BEFORE the merge; a red run drops the PR from the
+  # queue and `main` never moves. Turning the queue on is a repository setting (branch protection / rulesets on
+  # `main`), which only the owner can change; the steps are in the PR that added this trigger (#3698 R3). Until it is
+  # on, this trigger never fires and changes nothing.
+  #
+  # How the gates read a merge-group run, checked against each ladder when this was added: `GITHUB_EVENT_NAME` is
+  # `merge_group`, `GITHUB_BASE_REF` is empty, and the checkout (`fetch-depth: 0`) is the queue's commit, whose first
+  # parent is `main` (or the group ahead of it). Every git-history gate's ladder then falls to `origin/main`, whose merge
+  # base with HEAD is `main`'s tip, so each compares the queued result with `main`: the PR's diff, plus any group ahead
+  # of it in the queue. `lint-progress-order.ts` treats it as a PR run (only `push` skips its CARRIES AN ENTRY arm), so
+  # the queued PR's fragment is still required.
+  merge_group:
+    types: [checks_requested]
 
 # A force-push to a PR supersedes the previous run; don't burn minutes finishing a stale one. A push
 # run on main is never cancelled (#2617): it is the only run that compares a squash with its parent
@@ -240,17 +256,18 @@ jobs:
 
       # A gate that silently stops running is worse than no gate, because green starts meaning
       # "nothing ran". If any emitter, report or schema artifact ever leaves the compared set, this
-      # fails loudly rather than quietly shrinking. Update the number deliberately when the set
-      # legitimately grows.
+      # fails loudly rather than quietly shrinking.
+      #
+      # #3698 R3: the expected number is no longer typed here. It is a FLOOR, `ARTIFACT_FLOOR` in verify.ts, the one
+      # place it is authored, read below; growth passes, so two PRs that each add an artifact no longer collide.
+      # verify.ts's comment says why a floor, and what it cannot see.
       - name: Drift gate still covers the full artifact set
         run: |
           set -euo pipefail
-          count=$(npx --yes tsx@4 packages/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts')
-          echo "reported: $count"
-          case "$count" in
-            "229 committed artifacts") echo "✓ full set covered" ;;
-            *) echo "✗ artifact coverage changed — expected 229. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
-          esac
+          count=$(npx --yes tsx@4 packages/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts' | grep -oE '^[0-9]+')
+          floor=$(npx --yes tsx@4 verify.ts --artifact-floor)
+          echo "reported: $count committed artifacts; floor: $floor (ARTIFACT_FLOOR in verify.ts)"
+          if [ "$count" -ge "$floor" ]; then echo "✓ at or above the floor"; else echo "✗ artifact coverage shrank below the floor. If that is deliberate, lower ARTIFACT_FLOOR in verify.ts in the same PR."; exit 1; fi
 
       # The RUNNER's own checks, not a second run of the gates (#789). `verify.ts` is what a contributor
       # types instead of hand-assembling ~30 commands, and its list is the FIFTH authored statement of
@@ -849,6 +866,12 @@ jobs:
       # fail by name, and components.ai.json's syncBoundary must match the defs.
       - name: Every codeOnly entry has a registered class and a disposition (#3441)
         run: npx --yes tsx@4 packages/engine/lint-code-only-classes.ts
+
+      # #3698 finding 2 — a bare localeCompare ordered emitted lists by the host's locale, so a Czech machine
+      # emitted 8 artifacts in a different order. Every comparison under packages/engine/ goes through
+      # localeFreeCompare; a locale-dependent call, an ICU collator or a locale-aware case fold fails by file and line.
+      - name: No engine comparison depends on the host locale (#3698)
+        run: npx --yes tsx@4 packages/engine/lint-locale-order.ts
 
       # #1123 — the mutation battery for the CLAUDE.md-freshness SessionStart report (#1110), the one
       # `tools/` harness wired into CI. It is NAMED FOR THE DETECTOR, never for this tree, because

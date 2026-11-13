@@ -116,10 +116,17 @@ Then push and open the PR. What the fold does, in order:
    writes the release notes again over the regenerated tree.
 
 **The fold PR's CI is the semantic-conflict net.** Two PRs can merge cleanly and still leave `main` red:
-both set `EXPECTED_ARTIFACTS` to the same new number, two regens do not add up to the regen of both,
+two regens do not add up to the regen of both,
 or two accepted baselines interact. The fold PR's run is the first run of every gate over `main` plus
 the whole batch, so fix such a break **in the fold PR**, before the version and the log move on.
 `main`'s own push CI also runs on every merge, so a red `main` shows up there first.
+
+**The merge queue closes that gap before the merge (#3698 R3).** `ci.yml` also runs on `merge_group`. With
+GitHub's merge queue turned on for `main` (a repository setting only the owner can change), a PR leaves the queue
+only after the whole workflow, `regen --check` included, has passed on `main` plus that PR plus any PR queued ahead
+of it. Two clean merges that would leave `out/` stale, or two notes that collide, then fail in the queue rather than
+on `main`. Until the setting is on, the trigger never fires and the fold PR stays the net described above.
+`lint-doc-gates.ts` fails if the trigger is dropped.
 
 What to check before you push the fold:
 
@@ -1321,6 +1328,10 @@ npx tsx packages/engine/lint-code-only-classes.ts   # every def's codeOnly entry
                                                     # register class no entry uses fails; an admission
                                                     # is classed not-projected; the payload's
                                                     # syncBoundary matches the defs.
+npx tsx packages/engine/lint-locale-order.ts        # no comparison under packages/engine/ depends on
+                                                    # the host's locale (#3698): no bare localeCompare,
+                                                    # ICU collator or locale-aware case fold. Order goes
+                                                    # through localeFreeCompare (locale-free-order.ts).
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,
