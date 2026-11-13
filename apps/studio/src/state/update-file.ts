@@ -427,7 +427,7 @@ const THEME_CLEARS = /^(?:\d+ variables? the plan binds (?:is|are) not in this f
 export const blockedWhy = (line: string, nameOf: (id: string) => string = (id) => id): { readonly why: string; readonly next: string | null } => {
   let m: RegExpMatchArray | null;
   if ((m = line.match(/^Not in this file: (.+)\. Build (.+) first, then run the update again$/)))
-    return { why: `it needs ${setNames(m[2], nameOf)}, which this file doesn’t have.`, next: `Add ${setNames(m[2], nameOf)} on Components first.` };
+    return { why: `it needs ${setNames(m[2], nameOf)}, which this file doesn’t have.`, next: `Tick ${setNames(m[2], nameOf)} on Components first.` };
   if ((m = line.match(/^(\d+) variables? the plan binds (?:is|are) not in this file/)))
     return { why: `it needs ${s_(Number(m[1]), 'variable', 'variables')} this file doesn’t have.`, next: 'Tick Theme to write them.' };
   if ((m = line.match(/^(text|effect) styles? not in this file: (.+)$/)))
