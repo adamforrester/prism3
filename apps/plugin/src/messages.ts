@@ -212,6 +212,9 @@ export type CheckedSet = {
   blocked: boolean; upToDate: boolean;
   /** #3421 — blocked only by variables or styles the brand's Theme writes (`SetPreview.themeBlocked`). */
   themeBlocked?: true;
+  /** #3713 — a blocked set's reasons, the dry run's own blocker lines (`SetPreview.blockers`), so Update file can name
+   *  them. Absent when the set is not blocked. */
+  reasons?: string[];
   /** #2831 — on a published set, what this update breaks for library consumers, as one line (`breakingSummary`).
    *  Absent for a set that is not published, or where nothing breaks. */
   breaks?: string;
