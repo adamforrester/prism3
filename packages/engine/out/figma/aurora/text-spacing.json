@@ -1,0 +1,326 @@
+{
+  "$collection": "text-spacing",
+  "$mode": "Default",
+  "variables": [
+    {
+      "name": "ads/core/font/line-height/105",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "1.05 × font size — line height primitive",
+      "value": 1.05,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/core/font/line-height/115",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "1.15 × font size — line height primitive",
+      "value": 1.15,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/core/font/line-height/125",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "1.25 × font size — line height primitive",
+      "value": 1.25,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/core/font/line-height/140",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "1.4 × font size — line height primitive",
+      "value": 1.4,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/core/font/line-height/150",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "1.5 × font size — line height primitive",
+      "value": 1.5,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/core/font/line-height/165",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "1.65 × font size — line height primitive",
+      "value": 1.65,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/core/font/line-height/175",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "1.75 × font size — line height primitive",
+      "value": 1.75,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/core/font/line-height-role/tight",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "1.05 × font size — tight line height",
+      "value": 1.05,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/font/line-height/105"
+      }
+    },
+    {
+      "name": "ads/core/font/line-height-role/snug",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "1.15 × font size — snug line height",
+      "value": 1.15,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/font/line-height/115"
+      }
+    },
+    {
+      "name": "ads/core/font/line-height-role/compact",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "1.25 × font size — compact line height",
+      "value": 1.25,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/font/line-height/125"
+      }
+    },
+    {
+      "name": "ads/core/font/line-height-role/cozy",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "1.4 × font size — cozy line height",
+      "value": 1.4,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/font/line-height/140"
+      }
+    },
+    {
+      "name": "ads/core/font/line-height-role/normal",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "1.5 × font size — normal line height",
+      "value": 1.5,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/font/line-height/150"
+      }
+    },
+    {
+      "name": "ads/core/font/line-height-role/relaxed",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "1.65 × font size — relaxed line height",
+      "value": 1.65,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/font/line-height/165"
+      }
+    },
+    {
+      "name": "ads/core/font/line-height-role/loose",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "1.75 × font size — loose line height",
+      "value": 1.75,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/font/line-height/175"
+      }
+    },
+    {
+      "name": "ads/core/font/letter-spacing/neg-40",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "-0.04 × font size — letter spacing primitive",
+      "value": -0.04,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/core/font/letter-spacing/neg-30",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "-0.03 × font size — letter spacing primitive",
+      "value": -0.03,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/core/font/letter-spacing/neg-20",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "-0.02 × font size — letter spacing primitive",
+      "value": -0.02,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/core/font/letter-spacing/neg-15",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "-0.015 × font size — letter spacing primitive",
+      "value": -0.015,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/core/font/letter-spacing/neg-10",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "-0.01 × font size — letter spacing primitive",
+      "value": -0.01,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/core/font/letter-spacing/0",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "0 × font size — letter spacing primitive",
+      "value": 0,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/core/font/letter-spacing/10",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "0.01 × font size — letter spacing primitive",
+      "value": 0.01,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/core/font/letter-spacing/20",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "0.02 × font size — letter spacing primitive",
+      "value": 0.02,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/core/font/letter-spacing/50",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "0.05 × font size — letter spacing primitive",
+      "value": 0.05,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/core/font/letter-spacing-role/tightest",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "-0.04 × font size — tightest letter spacing",
+      "value": -0.04,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/font/letter-spacing/neg-40"
+      }
+    },
+    {
+      "name": "ads/core/font/letter-spacing-role/tighter",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "-0.03 × font size — tighter letter spacing",
+      "value": -0.03,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/font/letter-spacing/neg-30"
+      }
+    },
+    {
+      "name": "ads/core/font/letter-spacing-role/tight",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "-0.02 × font size — tight letter spacing",
+      "value": -0.02,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/font/letter-spacing/neg-20"
+      }
+    },
+    {
+      "name": "ads/core/font/letter-spacing-role/snugger",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "-0.015 × font size — snugger letter spacing",
+      "value": -0.015,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/font/letter-spacing/neg-15"
+      }
+    },
+    {
+      "name": "ads/core/font/letter-spacing-role/snug",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "-0.01 × font size — snug letter spacing",
+      "value": -0.01,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/font/letter-spacing/neg-10"
+      }
+    },
+    {
+      "name": "ads/core/font/letter-spacing-role/normal",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "0 × font size — normal letter spacing",
+      "value": 0,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/font/letter-spacing/0"
+      }
+    },
+    {
+      "name": "ads/core/font/letter-spacing-role/open",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "0.01 × font size — open letter spacing",
+      "value": 0.01,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/font/letter-spacing/10"
+      }
+    },
+    {
+      "name": "ads/core/font/letter-spacing-role/wide",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "0.02 × font size — wide letter spacing",
+      "value": 0.02,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/font/letter-spacing/20"
+      }
+    },
+    {
+      "name": "ads/core/font/letter-spacing-role/wider",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "0.05 × font size — wider letter spacing",
+      "value": 0.05,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/font/letter-spacing/50"
+      }
+    }
+  ]
+}

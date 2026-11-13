@@ -251,6 +251,14 @@ export const figmaOpacityDescription = (pct: number): string => `${pct}% opacity
 export const figmaBlurDescription = (key: string, px: number): string =>
   key === 'glass' ? `${px}px background blur — the glass effect style binds it` : `${px}px blur`;
 
+// ── text spacing (#2423) ─────────────────────────────────────────────────────────────────────────
+// A multiplier of the font size, bound to nothing: the line says what the number multiplies, since a bare 1.05
+// in a FLOAT field reads as pixels everywhere else in Figma.
+export const figmaTextSpacingPrimitiveDescription = (kind: 'line height' | 'letter spacing', n: number): string =>
+  `${n} × font size — ${kind} primitive`;
+export const figmaTextSpacingRoleDescription = (kind: 'line height' | 'letter spacing', role: string, n: number): string =>
+  `${n} × font size — ${role} ${kind}`;
+
 // ── motion (#2394) ───────────────────────────────────────────────────────────────────────────────
 // Figma has no time scope, so a duration is a plain number of milliseconds bound to nothing; the line
 // says what the number is for. `byMode` is the per-mode ms where a mode's tempo moves it — one
