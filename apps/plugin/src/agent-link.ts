@@ -233,7 +233,7 @@ export const createAgentLink = (deps: AgentLinkDeps) => {
   const setOn = (on: boolean): void => {
     if (on === state.on) { deps.onState?.(state); return; }
     if (timer !== null) { deps.cancel(timer); timer = null; }
-    if (!on) { setSession(null); publish({ on: false, since: null, transports: { mailbox: false, bridge: false } }); return; }
+    if (!on) { publish({ on: false, since: null, transports: { mailbox: false, bridge: false } }); return; }
     setSession(Array.from({ length: CODE_LENGTH }, () => CODE_ALPHABET[rand(CODE_ALPHABET.length)]).join(''));
     publish({ on: true, since: now().toISOString(), transports: { mailbox: true, bridge: state.transports.bridge } });
     retireStale();
