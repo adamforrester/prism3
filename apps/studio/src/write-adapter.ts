@@ -137,6 +137,8 @@ export type CheckedSetView = {
   readonly handEdited: number; readonly noBaseline: number; readonly blocked: boolean; readonly upToDate: boolean;
   /** #3421 — blocked only by variables or styles the brand's Theme writes: a run with Theme updates it after Theme. */
   readonly themeBlocked?: true;
+  /** #3713 — a blocked set's reasons, as the check's dry run wrote them. Absent when the set is not blocked. */
+  readonly reasons?: readonly string[];
   /** #2831 — on a published set, what the update breaks for library consumers, as one line. Absent otherwise. */
   readonly breaks?: string;
 };
@@ -408,7 +410,8 @@ const checkedSet = (x: unknown): CheckedSetView[] => {
   const n = (['members', 'update', 'add', 'drop', 'handEdited', 'noBaseline'] as const).map((k) => count(c[k]));
   if (n.some((v) => v === null)) return [];
   const [members, update, add, drop, handEdited, noBaseline] = n as number[];
-  return [{ def: c.def, hash: c.hash, members, update, add, drop, handEdited, noBaseline, blocked: c.blocked, upToDate: c.upToDate, ...(c.blocked && c.themeBlocked === true ? { themeBlocked: true as const } : {}), ...(str(c.breaks) ? { breaks: c.breaks } : {}) }];
+  return [{ def: c.def, hash: c.hash, members, update, add, drop, handEdited, noBaseline, blocked: c.blocked, upToDate: c.upToDate, ...(c.blocked && c.themeBlocked === true ? { themeBlocked: true as const } : {}),
+    ...(c.blocked && Array.isArray(c.reasons) && c.reasons.some(str) ? { reasons: (c.reasons as unknown[]).filter(str) } : {}), ...(str(c.breaks) ? { breaks: c.breaks } : {}) }];
 };
 const KINDS: readonly StyleGuideKind[] = ['color', 'dimension', 'font', 'text', 'effect', 'gradient', 'grid'];
 /** The style guide's catalog (S11.2), checked entry by entry: an entry with a field of the wrong type is dropped, and
