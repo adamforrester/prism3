@@ -3234,7 +3234,7 @@
             "type": "BOOLEAN"
           },
           {
-            "name": "dismiss",
+            "name": "close",
             "type": "BOOLEAN"
           }
         ],

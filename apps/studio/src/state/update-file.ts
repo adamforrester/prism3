@@ -315,7 +315,7 @@ export const UPDATE_COPY = {
   leadFresh: 'This file isn’t set up for Prism3 yet. This first update sets it up.',
   lead: 'Tick what to write. Untick what should wait.',
   setup: 'Set up file',
-  setupSub: 'The pages, the templates and the style-guide cells. The cover too, while Documentation has it on.',
+  setupSub: 'The pages, the templates and the style-guide cells. The cover too, while Docs has it on.',
   /** #3467 (Q3 A): Set up file's line on a set-up file that lacks something setup owns. DRAFT for the owner's sign-off. */
   setupMissing: (names: readonly string[]) => `Builds what this file lacks: ${names.join(', ')}.`,
   theme: 'Theme',
@@ -326,7 +326,7 @@ export const UPDATE_COPY = {
    *  R6 (the owner, 2026-10-28): both sit under one section, Components, at Theme's level, as its two subtitles. */
   components: 'Components',
   toAdd: 'To add',
-  toAddSub: (n: number): string => `${plural(n)} chosen on Components. Each is added with its usage panel while Documentation has panels on.`,
+  toAddSub: (n: number): string => `${plural(n)} chosen on Components. Each is added with its usage panel while Docs has panels on.`,
   removeSet: (name: string): string => `Remove ${name} from To add`,
   /** #3306 Q3306.5 A: the line under To add's rows naming the sets they nest that the file lacks. DRAFT, the proposal's words. */
   alsoAdds: (names: readonly string[]): string => `Also adds: ${names.join(', ')}.`,
@@ -381,13 +381,13 @@ export const UPDATE_COPY = {
   panelsAll: 'No set in this file has its usage panel yet. Each is drawn beside its set, and sets move apart to make room. No member changes.',
   panelsSome: (n: number): string => `${n} set${n === 1 ? ' in this file has' : 's in this file have'} no usage panel. Each is drawn beside its set, and sets move apart to make room. No member changes.`,
   panelsShow: (n: number): string => `Show the ${n} sets`,
-  cleanPanels: (n: number): string => `${n} usage panel${n === 1 ? '' : 's'}, drawn while Documentation had panels on.`,
+  cleanPanels: (n: number): string => `${n} usage panel${n === 1 ? '' : 's'}, drawn while Docs had panels on.`,
   cleanPanelsKeep: 'Panels edited by hand stay. Turning panels on again draws them back.',
   removePanels: (n: number): string => `Remove ${n} panel${n === 1 ? '' : 's'}`,
   guides: 'Style guides',
   /** #3308 (Q3308.4 A): the last step of a run that sets the file up and writes its theme. DRAFT. */
   coverStep: 'Cover and About this library',
-  guidesSub: 'Drawn with the settings in Documentation. A rerun updates each table in place.',
+  guidesSub: 'Drawn with the settings in Docs. A rerun updates each table in place.',
   go: 'Update file',
   goFresh: 'Set up and update',
   cancel: 'Cancel',
