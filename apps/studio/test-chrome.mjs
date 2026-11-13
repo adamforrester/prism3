@@ -18501,7 +18501,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
         go: document.querySelector('[data-p3="update-go"]')?.disabled ?? null,
       }));
       ok(JSON.stringify(bl.due) === '["button"]' && bl.dueLine === '1 set to update in place. Ticked by default.' && bl.title === 'Can’t update yet'
-        && JSON.stringify(bl.rows) === JSON.stringify([['select', 'Engine update: focus ring size', 'It needs Icon, which this file doesn’t have. Add Icon on Components first.']]) && bl.boxes === 0 && bl.go === false,
+        && JSON.stringify(bl.rows) === JSON.stringify([['select', 'Engine update: focus ring size', 'It needs Icon, which this file doesn’t have. Tick Icon on Components first.']]) && bl.boxes === 0 && bl.go === false,
         `${where}: #3713 blocked apart: a blocked set is listed under Can't update yet with its reason and no tick, and Due counts only the set that can run (${JSON.stringify(bl)})`);
       // #3713 (3 of 4): with every Due set blocked and nothing else ticked, Update file is disabled and says why beside
       // it, naming the sets, as its description; with a set to run (above) it says nothing. Literals, DRAFT copy.
