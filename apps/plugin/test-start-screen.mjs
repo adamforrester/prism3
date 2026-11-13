@@ -1123,7 +1123,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
    *  designer opens it and given a small file, so its tree and every option group draw. #3717: the start window it left
    *  is removed first, so the page is measured without it (`settleStart`). */
   const openStyleGuides = async (page, tag) => {
-    // MUTATED
+    ok(await settleStart(page, false), `#3717 ${tag} / Documentation › Style guides: the start window is removed before the page is measured`);
     await hooks.need(page, '[data-p3="frame"]');   // the app view (Color › Palettes draws the two panes from S2)
     await hooks.click(page.locator('[data-p3="rail-documentation"]'));
     await hooks.need(page, '[data-p3="style-guides"]');
