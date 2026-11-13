@@ -13,9 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `-role` alias, with no scopes at all, now exports as a unitless `number`:
   `font/line-height/105` holding 1.05 exports as `1.05`. Before, the numeric
   step read as a breakpoint and a `neg-` step as a negative dimension, so both
-  exported as pixels. A variable with any scope, Figma's default All scopes
-  included, is typed as before, so a `font/line-height/24` holding 24 px stays
-  a dimension.
+  exported as pixels. Only a value in a multiplier's range is read this way:
+  a line height above 0 and at most 4, or a letter spacing at most 0.25 either
+  way, read through any alias. A variable with any scope, Figma's default All
+  scopes included, or with a value outside that range, is typed as before, so a
+  `font/line-height/24` holding 24 px stays a dimension, scoped or not.
 - **Underline thickness and offset are exported.** A text style's
   `textDecorationThickness` and `textDecorationOffset` now export inside its
   typography composite, beside `textDecoration`: a PERCENT value as a `%`
