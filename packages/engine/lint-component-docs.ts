@@ -107,6 +107,7 @@ import { codeOnlyText, DISPOSITION_NAMES } from './code-only-register';
 import { exportComponentDefs } from './component-defs-export';
 import type { BrandInput } from './theme';
 import { CONTRACT_VERSION, ENGINE_VERSION } from './version';
+import { renderUncommitted, UNCOMMITTED_OUT } from './regen';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const DIR = resolve(here, 'out', 'components');
@@ -238,7 +239,16 @@ const manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'));
 const pages = new Map(readdirSync(DIR).filter((f) => f.endsWith('.md')).map((f) => [f.replace(/\.md$/, ''), readFileSync(resolve(DIR, f), 'utf8')]));
 // #2830 — the defs the committed spec emission covers. Their pages end with a `Specs` section, after the section
 // model's (F4); it is read off the emitted file, not the emitter's own condition, so the two can disagree.
-const specIds = new Set(Object.keys(JSON.parse(readFileSync(resolve(DIR, 'specs.json'), 'utf8')).components ?? {}));
+// #3698 R3: `specs.json` and the defs export are no longer committed, so they are generated first, into a temp dir, and
+// read from there: CI has no copy in `out/`, and a local copy may be stale. A render that fails is blindness, not clean.
+const rendered = renderUncommitted();
+if ('error' in rendered) {
+  console.error(`❌ lint-component-docs CANNOT RUN — the uncommitted exports did not render (${rendered.error})`);
+  process.exit(1);
+}
+const uncommitted = (name: string): string => rendered.files[UNCOMMITTED_OUT.indexOf(`components/${name}`)];
+const SPECS_FILE = uncommitted('specs.json');
+const specIds = new Set(Object.keys(JSON.parse(readFileSync(SPECS_FILE, 'utf8')).components ?? {}));
 const entries: Record<string, any> = doc.components ?? {};
 const maintEntries: Record<string, any> = maint.components ?? {};
 
@@ -763,20 +773,20 @@ for (const def of itemsSizeHosts) {
 }
 
 // ---- ARM G: the component-defs export (#3425, owner decision Q45 A) ------------------------------------------------
-// ACTUAL is the committed export on disk. EXPECTED is the two committed projections it composes (each held to the defs
+// ACTUAL is the export as regen writes it, rendered fresh (#3698 R3: no longer committed). EXPECTED is the two committed projections it composes (each held to the defs
 // by the arms above and by `regen --check`), the authored schema, and `version.ts`. The digest is recomputed with this
 // file's own FNV-1a, never the exporter's. A brand export is never committed, so it is held live: for every example
 // brand, and for one brand with every component setting off its default, it validates against the same schema, its
 // `brand.settings` say what the input set (literals here), and a setting that moves a spec moves it.
-const DEFS_FILE = resolve(DIR, 'component-defs.json');
+const DEFS_FILE = uncommitted('component-defs.json');
 const DEFS_SCHEMA = JSON.parse(readFileSync(resolve(here, 'schema', 'component-defs.schema.json'), 'utf8'));
 const fnv = (str: string): string => { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); };
 let defsChecked = 0;
-if (!existsSync(DEFS_FILE)) note('DEFS EXPORT: out/components/component-defs.json does not exist — run `npx tsx packages/engine/regen.ts`');
+if (!existsSync(DEFS_FILE)) note('DEFS EXPORT: the rendered component-defs.json does not exist');
 else {
   const defsText = readFileSync(DEFS_FILE, 'utf8');
   const ex = JSON.parse(defsText);
-  const specsDoc = JSON.parse(readFileSync(resolve(DIR, 'specs.json'), 'utf8'));
+  const specsDoc = JSON.parse(readFileSync(SPECS_FILE, 'utf8'));
   for (const e of validate(DEFS_SCHEMA, ex)) note(`DEFS SCHEMA: ${e}`);
   if (ex.format !== DEFS_SCHEMA.$id) note(`DEFS SCHEMA: the export's format (${ex.format}) does not name the schema's $id (${DEFS_SCHEMA.$id}) — bump both together`);
   if (ex.engineVersion !== ENGINE_VERSION) note(`DEFS VERSION: engineVersion ${ex.engineVersion} is not version.ts's ENGINE_VERSION ${ENGINE_VERSION}`);
