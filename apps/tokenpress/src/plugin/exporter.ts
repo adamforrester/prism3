@@ -603,7 +603,8 @@ export class TokenExporter {
     let dtcgType = this.mapVariableTypeToDTCG(
       variable.resolvedType,
       effectiveScopes,
-      variable.name
+      variable.name,
+      this.resolveAliasSourceValue(value, variableMap)
     );
     // An EASING variable is a curve or a spring, and only its value says which:
     // follow an alias to the variable that holds one.
@@ -751,7 +752,8 @@ export class TokenExporter {
   private mapVariableTypeToDTCG(
     type: VariableResolvedDataType,
     scopes: VariableScope[],
-    variableName?: string
+    variableName?: string,
+    resolvedValue?: VariableValue
   ): string {
     switch (type) {
       case 'COLOR':
@@ -795,6 +797,23 @@ export class TokenExporter {
         // would read `font/weight/700` as a dimension.
         if (variableName && this.typeDetector.isFontWeightVariable(variableName)) {
           return 'fontWeight';
+        }
+
+        // Name-based line-height / letter-spacing MULTIPLIER detection, for an UNSCOPED variable only
+        // (prism3 #2423: `font/line-height/105` holds 1.05 and `font/letter-spacing/neg-40` holds -0.04,
+        // unscoped because Figma would bind them as pixels). Not on Figma's default ALL_SCOPES or any
+        // other scope: many files keep px line heights at `font/line-height/24` and never change the
+        // default, and a `number` 24 would read as 24x the font size. Unscoped is not enough either: a
+        // file may clear every scope to hide its px primitives (the #2616 note above), so the value,
+        // followed through any alias, must also be in a multiplier's range. Before the breakpoint and
+        // `neg-` rules, which read the unscoped multipliers as px dimensions.
+        if (
+          scopes.length === 0 &&
+          variableName &&
+          this.typeDetector.isFontSpacingMultiplierVariable(variableName) &&
+          this.typeDetector.isFontSpacingMultiplierValue(variableName, resolvedValue)
+        ) {
+          return 'number';
         }
 
         // Breakpoint detection - should be dimension with px units for DTCG compliance

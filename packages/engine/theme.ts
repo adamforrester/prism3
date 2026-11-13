@@ -2498,8 +2498,15 @@ const buildLayout = (input: BrandInput['layout'] = {}): LayoutAxis => {
   //
   // #2137 (owner decision 2026-10-05, Q22 a: refuse). An EMPTY list built a brand with no layout at all, and
   // has no first value for the message above to name, so it is refused first, in its own approved wording.
-  if (floors.length === 0)
-    throw new Error('The brand needs at least one breakpoint, starting at 0px.');
+  //
+  // #3698 R2 (owner decision 2026-11-12: refuse fewer than two). One floor built, and emitted no `md` tier, so
+  // four GUARANTEED contract paths (`breakpoint.md`, `grid.md.*`) went missing from a brand that validated.
+  // The contract's sparsest layout member is `minimal-bp2`, so two is the smallest list the contract covers.
+  // The schema says the same (`minItems: 2`); this refusal is for input that never meets the schema (the studio,
+  // a direct `brandTheme` call). It absorbs #2137's empty list, whose "at least one" sentence is now untrue.
+  // DRAFT wording, awaiting the owner (OWNER DECISION on the PR), with the count as entered.
+  if (floors.length < 2)
+    throw new Error(`The brand needs at least two breakpoints, starting at 0px. This brand has ${floors.length}.`);
   if (floors[0] !== 0)
     throw new Error(`The first breakpoint must be 0px. This brand starts at ${floors[0]}px.`);
   // #2198 (owner decision 2026-10-06, Q43 A: refuse). `bpNames` names seven, xs to 3xl. An eighth built and
