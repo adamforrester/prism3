@@ -18,7 +18,7 @@
 // exactly "does the committed `out/` match the committed sources".
 
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -262,6 +262,9 @@ const check = (): void => {
     const checked = after.size + SCHEMA_ARTIFACTS.length + MAINTAINER_ARTIFACTS.length + ENGINE_ARTIFACTS.length + REPORT_ARTIFACTS.length + REFERENCE_ARTIFACTS.length;
     if (!drifted.length && !added.length && !removed.length && !onDemandWritten.length && !onDemandTracked.length) {
       console.log(`\n✓ in sync — ${checked} committed artifacts byte-match what the engine emits.`);
+      // #3698 R4: CI's coverage step reads this count instead of running `--check` a second time. Written only
+      // in sync, so a drifted or failed run leaves no file and the coverage step fails on reading nothing.
+      if (process.env.REGEN_CHECK_REPORT) writeFileSync(process.env.REGEN_CHECK_REPORT, `${checked} committed artifacts\n`);
       return;
     }
     console.error('\n✗ committed artifacts have DRIFTED from what the engine emits:');

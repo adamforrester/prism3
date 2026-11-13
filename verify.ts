@@ -126,7 +126,7 @@ export const repoRoot = here;
 
 /** The pinned tsx major, matching `ci.yml`'s call sites — a new major must not silently change how
  *  the engine parses. `--yes` so a cold cache does not turn into an interactive prompt. */
-const TSX = ['npx', '--yes', 'tsx@4'];
+const TSX = ['npx', 'tsx'];
 
 const engine = (file: string, ...args: string[]) => [...TSX, `packages/engine/${file}`, ...args];
 const ws = (workspace: string, script: string) => ['npm', 'run', '-w', workspace, script];
@@ -1277,6 +1277,13 @@ export const GATES: Gate[] = [
     id: 'install-chromium',
     ciStep: 'The Chromium install script retries cleanly after a stall (#2981)',
     cmd: ['bash', '.github/scripts/test-install-chromium.sh'],
+  },
+  {
+    // #3698 R4 — the test for the docs-only exemption: the classifier and the aggregator's half, by literal cases.
+    // No git, no network, no `after`.
+    id: 'docs-only-exemption',
+    ciStep: 'The docs-only exemption decides by path and is recorded by name',
+    cmd: ['bash', '.github/scripts/test-docs-only.sh'],
   },
   {
     id: 'smoke',

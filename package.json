@@ -9,7 +9,11 @@
   ],
   "// scripts": "The repo's first root scripts (#789). `verify` is the gate runner — the same list ci.yml runs, in an order it declares and checks, with a per-gate PASS/FAIL table. Read verify.ts's header before changing it: the four things it exists to get right (status captured with no pipeline between, output buffered per gate, ordering declared and enforced, and a gate that did not run never printed as a pass) are each a defect that has actually shipped here.",
   "scripts": {
-    "verify": "npx --yes tsx@4 verify.ts",
-    "tokens-html": "npx --yes tsx@4 packages/engine/visualize.ts"
+    "verify": "npx tsx verify.ts",
+    "tokens-html": "npx tsx packages/engine/visualize.ts"
+  },
+  "// devDependencies": "tsx is pinned EXACTLY (#3698 R4), so every `npx tsx` in CI, verify.ts and the workspace scripts runs one parser, and a new tsx reaches the repo only as a reviewed lockfile change. Before this, CI named `tsx@4` and floated within the major, and the workspace scripts' bare `npx tsx` fetched whatever was latest. Node is pinned the same way, in `.node-version`. `lint-doc-gates.ts` fails a range here or a `tsx@` spec on a CI step.",
+  "devDependencies": {
+    "tsx": "4.23.15"
   }
 }

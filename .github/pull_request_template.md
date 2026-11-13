@@ -36,8 +36,9 @@
 
 <!-- Run these and report the results. Not a formality — a PR isn't done until they're
      green. CI (.github/workflows/ci.yml) runs every one of these on every PR regardless
-     of which files changed — there is no "skip web/plugin, I only touched the engine"
-     exemption, so don't skip any locally either. A checklist shorter than CI's is a
+     of which files changed, with one named exception: a PR whose every file is docs skips
+     the browser jobs (#3698 R4, CONTRIBUTING.md §3). There is no "skip web/plugin, I only
+     touched the engine" exemption, so don't skip any locally either. A checklist shorter than CI's is a
      checklist a diligent contributor can follow exactly and still ship broken: two PRs
      (#601, #602) each shipped a gate broken because they stopped their Gates table at an
      older, shorter version of this template. -->
@@ -143,6 +144,7 @@
 - [ ] `npx tsx packages/engine/lint-us-english.ts` → clean — run AFTER the web build; its scope includes the built `apps/studio/dist/*.js` bundle
 - [ ] `npx tsx packages/engine/lint-voice.ts` → clean — voice-standard.md §2 banned-phrase list (#617); sibling to lint-us-english.ts, same reason it runs here
 - [ ] `sh tools/claude-md-freshness/mutations.sh` → _N pass · 0 fail_ — the mutation battery for the CLAUDE.md-freshness SessionStart hook (#1110), wired into CI as **#1123** and the one `tools/` battery that is a gate. **Named for the DETECTOR, not this tree**: `docs/34` shape 17 is explicit that a stale checkout is internally consistent, so CI — running inside the tree — can never check that _this_ checkout is current; what it proves is that the detector still **fires** on a stale world (M1, naming the file), goes **silent** when its fetch is dropped (M2 — a mutant that still fired would prove the fetch decoration), and says **CANNOT DETERMINE** when the oracle is unavailable (M3). Two arms invert the usual direction, so read the battery's header before adding one. **Shallow-clone safe**: it builds its own bare repo + clones in `$TMPDIR` (local `file://` git, no network, no git history), so it runs under CI's depth-1 checkout — unlike the git-HISTORY gates that need `fetch-depth: 0`. Confirmed from a depth-1 clone before wiring
+- [ ] `bash .github/scripts/test-docs-only.sh` → _all cases hold_ — the docs-only exemption (#3698 R4): the classifier and the aggregator's half, by literal cases; a docs change that also touches an app file is never exempt
 - [ ] `bash .github/scripts/test-install-chromium.sh` → _all pass_ — the test for `install-chromium.sh`, which all four browser jobs run (#2981): a stand-in install and dpkg lock in `$TMPDIR`, no browser, no network
 
 ## out/* + fixtures
