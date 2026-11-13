@@ -129,6 +129,12 @@ const syncErrorBar = (): void => {
   // Owner Q189 A (#2146): a brand that arrives starting above 0px gets a one-click fix beside the line.
   else if (lastError) globalErr.show(`That change didn't apply: ${lastError} — you are seeing the last theme that resolved.`,
     firstBreakpointFix(lastError));
+  // #3697 Q-R9.1 A: the offer taken over unsaved edits stages the load, and the usual replace confirm takes the offer's
+  // place: the same sentence and the same two buttons the brand menu draws, under the same hooks.
+  else if (heldRestore && pendingLoad?.origin.kind === 'file') globalErr.show(overwriteText(pendingLoad), [
+    { label: 'Replace brand', run: barActions.replace, hook: 'overwrite-replace' },
+    { label: 'Cancel', run: barActions.cancelReplace, hook: 'overwrite-cancel' },
+  ]);
   // #3697 R9: the file's brand, held because it arrived after the designer acted, with the action that loads it.
   else if (heldRestore) globalErr.show(LATE_RESTORE.line, { label: LATE_RESTORE.action, run: takeHeldRestore });
   else globalErr.show(null);
@@ -392,7 +398,11 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   if (DUE_AFTER.has(m.kind)) recountDue();
   const effect = brandEffectFor(m, prev, host);
   // #3697 R9: a Theme write that landed stores the panel's brand in the file, so the held one is no longer the file's.
-  if (heldRestore && m.kind === 'apply-result' && m.ok) { heldRestore = null; syncErrorBar(); }
+  if (heldRestore && m.kind === 'apply-result' && m.ok) {
+    heldRestore = null;
+    if (pendingLoad?.origin.kind === 'file') pendingLoad = null;   // its confirm goes with the offer it stood for
+    barChanged(); syncErrorBar();
+  }
   // Origin `file`: this brand IS what the Figma file holds, so it is what a reset returns to and what
   // dirtiness is measured against (#722).
   // #1989: a restore the engine refuses in RESOLUTION leaves `lastGoodInput` on the boot demo, so Apply and
@@ -1457,7 +1467,12 @@ const overwriteText = (pending: { input: BrandInput; origin: Origin }): string =
 
 /** Tell the top bar its own state moved (UI redesign S13.1). It was `renderBar()`, which drew the bar here; the
  *  shell draws it now (`shell/bar.ts`) and repaints from the store's `bar` topic. */
-const barChanged = (): void => invalidate('bar');
+const barChanged = (): void => {
+  invalidate('bar');
+  // #3697 Q-R9.1 A: a `file` load waiting on the confirm is drawn by the error strip, not the bar, so a change to the
+  // pending load (staged, cancelled, or dropped as a menu closes) repaints the strip too.
+  if (heldRestore) syncErrorBar();
+};
 
 /** The bar's view of this file's state: the brand menu, the import box, the pending load, the dialogs. */
 const barRead = (): BarView => ({
@@ -1563,7 +1578,11 @@ const barActions: BarActions = {
       stageImport(read.text, 'file');
     });
   },
-  replace: () => { const p = pendingLoad; if (!p) return; pendingLoad = null; loadBrand(p.input, p.origin); },
+  replace: () => {
+    const p = pendingLoad; if (!p) return; pendingLoad = null;
+    loadBrand(p.input, p.origin);
+    if (p.origin.kind === 'file' && heldRestore === p.input) heldRestoreLoaded();   // #3697 Q-R9.1 A: the offer's confirm
+  },
   cancelReplace: () => { pendingLoad = null; barChanged(); },
   toggleExport: () => { exportMenuOpen = !exportMenuOpen; brandMenuOpen = false; importOpen = false; barChanged(); },
   closeExport: () => { exportMenuOpen = false; barChanged(); },
@@ -1837,12 +1856,20 @@ export const LATE_RESTORE = {
   line: 'This file holds a saved brand. Your choice came first, so it stays on screen.',
   action: 'Load the file\'s brand',
 } as const;
-/** #3697 R9: the offer taken: load the held brand as the file's, exactly as an early restore would have. */
+/** #3697 R9, Q-R9.1 A: the offer taken. It goes through `stageLoad`, the one place that decides whether a replacement
+ *  needs confirming (#1033): with unsaved edits it stages the load and the strip shows the replace confirm in the offer's
+ *  place (`syncErrorBar`); with none it loads straight away. The held brand stays held until it loads, so a Cancel puts
+ *  the offer back and the edits stay. */
 const takeHeldRestore = (): void => {
   const input = heldRestore;
   if (!input) return;
+  stageLoad(input, { kind: 'file' });
+  if (!pendingLoad) heldRestoreLoaded();   // no edits to lose: `stageLoad` loaded it (and `loadBrand` clears `pendingLoad`)
+  else syncErrorBar();
+};
+/** #3697 R9: the held brand has loaded as the file's; finish exactly as an early restore would have (#1989's failure). */
+const heldRestoreLoaded = (): void => {
   heldRestore = null;
-  loadBrand(input, { kind: 'file' });
   if (lastError) { restoreFailure = { kind: 'unresolved', reason: lastError, brand: failedBrandOf(brandState) }; build(); }
   syncErrorBar();
 };

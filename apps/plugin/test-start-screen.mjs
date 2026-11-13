@@ -242,6 +242,7 @@ console.log('\n3b. a late restore-input after the designer acted is offered, not
 {
   const OFFER = 'This file holds a saved brand. Your choice came first, so it stays on screen.';
   const ACTION = "Load the file's brand";
+  const CONFIRM = /^Replace the current brand with this file’s brand\? Your edits to .+ are not saved anywhere else\.$/;
   const strip = (page) => page.evaluate(() => {
     const bar = document.querySelector('[data-p3="error-bar"]');
     return { shown: !!bar && !bar.hidden, text: bar?.querySelector('.p3-errstrip-text')?.textContent ?? '', action: document.querySelector('[data-p3="error-fix"]')?.textContent ?? null };
@@ -303,6 +304,52 @@ console.log('\n3b. a late restore-input after the designer acted is offered, not
     const bar = await strip(page);
     ok(v1 !== v0 && !(s.brandSel ?? '').includes('restored-brand') && s.brandSel === before && bar.shown && bar.text === OFFER && bar.action === ACTION,
       `#3697 R9 edit-only: a restore after the designer only edited a lever does not replace the edit, and the strip offers the file's brand — lever ${v0} → ${v1}, brand "${s.brandSel}" (was "${before}"), ${JSON.stringify(bar)}`);
+    ok(errors.length === 0, `no console errors (${errors.slice(0, 1).join('') || 'none'})`);
+    await page.close();
+  }
+  // Edits, then the offer taken (#3740 review S1, owner Q-R9.1 A): the click goes through the same guard as every other
+  // replacement (`stageLoad` → `needsOverwriteConfirm`, #1033), so with unsaved edits the usual replace confirm shows in
+  // the strip's place, and a Cancel keeps the edits and puts the offer back; Replace brand then loads the file's brand.
+  // EXPECTED is the confirm's own sentence, written here. Mutation: `takeHeldRestore` calling `loadBrand` directly (the
+  // bypass the review reproduced) fails `#3697 R9 confirm-edits` by name.
+  {
+    const { page, errors } = await openPanel();
+    await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
+    await hooks.click(page.locator('[data-p3="brand-menu-example"]').first());
+    await page.waitForTimeout(150);
+    const chosen = (await readStart(page)).brandSel ?? '';
+    await hooks.click(page.locator('[data-p3="tab-shape"]'));
+    const range = page.locator('[data-p3="shape-levers"] input[type="range"]:not([disabled])').first();
+    const v0 = await range.inputValue();
+    await range.focus();
+    for (let i = 0; i < 5; i++) await range.press('ArrowRight');
+    await page.waitForTimeout(150);
+    const v1 = await range.inputValue();
+    await post(page, { type: 'restore-input', input: NB_BRAND });
+    await page.waitForTimeout(150);
+    const held = await strip(page);
+    await hooks.click(page.locator('[data-p3="error-fix"]'));
+    await page.waitForTimeout(150);
+    const asked = await strip(page);
+    const buttons = await page.evaluate(() => ['overwrite-replace', 'overwrite-cancel'].map((k) => document.querySelector(`[data-p3="error-bar"] [data-p3="${k}"]`)?.textContent ?? null));
+    const mid = await readStart(page);
+    ok(held.action === ACTION && asked.shown && CONFIRM.test(asked.text) && buttons[0] === 'Replace brand' && buttons[1] === 'Cancel' && mid.brandSel === chosen,
+      `#3697 R9 confirm-edits: taking the offer over unsaved edits asks first, in the strip, and replaces nothing yet — ${JSON.stringify(asked)}, buttons ${JSON.stringify(buttons)}, brand "${mid.brandSel}" (chosen "${chosen}")`);
+    await hooks.click(page.locator('[data-p3="error-bar"] [data-p3="overwrite-cancel"]'));
+    await page.waitForTimeout(150);
+    const kept = await readStart(page);
+    const v2 = await range.inputValue();
+    const back = await strip(page);
+    ok(v1 !== v0 && v2 === v1 && kept.brandSel === chosen && chosen !== '' && back.text === OFFER && back.action === ACTION,
+      `#3697 R9 confirm-cancel: Cancel keeps the edits and the designer's brand, and the offer stays — lever ${v0} → ${v1}, now ${v2}, brand "${kept.brandSel}" (chosen "${chosen}"), ${JSON.stringify(back)}`);
+    await hooks.click(page.locator('[data-p3="error-fix"]'));
+    await page.waitForTimeout(150);
+    await hooks.click(page.locator('[data-p3="error-bar"] [data-p3="overwrite-replace"]'));
+    await page.waitForTimeout(150);
+    const after = await readStart(page);
+    const gone = await strip(page);
+    ok((after.brandSel ?? '').includes('restored-brand') && !gone.shown && gone.action === null,
+      `#3697 R9 confirm-replace: Replace brand loads the file's brand and the strip clears — brand "${after.brandSel}", ${JSON.stringify(gone)}`);
     ok(errors.length === 0, `no console errors (${errors.slice(0, 1).join('') || 'none'})`);
     await page.close();
   }
