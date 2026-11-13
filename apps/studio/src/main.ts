@@ -392,7 +392,7 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   if (DUE_AFTER.has(m.kind)) recountDue();
   const effect = brandEffectFor(m, prev, host);
   // #3697 R9: a Theme write that landed stores the panel's brand in the file, so the held one is no longer the file's.
-  if (false) { heldRestore = null; syncErrorBar(); }
+  if (heldRestore && m.kind === 'apply-result' && m.ok) { heldRestore = null; syncErrorBar(); }
   // Origin `file`: this brand IS what the Figma file holds, so it is what a reset returns to and what
   // dirtiness is measured against (#722).
   // #1989: a restore the engine refuses in RESOLUTION leaves `lastGoodInput` on the boot demo, so Apply and
@@ -403,7 +403,7 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   // no longer boot's, by identity) or edited the placeholder, the file's brand would replace their work: it is held
   // instead (`heldRestore`), and the strip offers to load it. Only the boot read is held: a restore the host sends later
   // (#3394's override sync, which it sends only while the panel's brand is the one it wrote) still loads.
-  const late = effect === 'loadBrand' && m.kind === 'restore-input' && userActed();
+  const late = effect === 'loadBrand' && m.kind === 'restore-input' && !bootRestoreSeen && userActed();
   if (m.kind === 'restore-input' || m.kind === 'restore-input-empty' || m.kind === 'restore-input-error' || m.kind === 'restore-input-library') bootRestoreSeen = true;
   if (late) { heldRestore = structuredClone(m.input as BrandInput); syncErrorBar(); }
   else if (effect === 'loadBrand' && m.kind === 'restore-input') {
@@ -1830,7 +1830,7 @@ let bootRestoreSeen = false;
 /** #3697 R9: the file's brand, held because the boot read arrived after the designer had acted; null when none is held. */
 let heldRestore: BrandInput | null = null;
 /** #3697 R9: the designer has acted — chosen a brand (the sibling guards' identity test) or edited the placeholder. */
-const userActed = (): boolean => provenance !== bootProvenance;
+const userActed = (): boolean => provenance !== bootProvenance || isDirty(brandState, bootProvenance);
 /** #3697 R9: the strip's offer while a late restore is held. OWNER DECISION: copy — a DRAFT to `docs/voice-standard.md`,
  *  a placeholder until approved. So is drawing it in the error strip, which is the strip that already carries an action. */
 export const LATE_RESTORE = {
