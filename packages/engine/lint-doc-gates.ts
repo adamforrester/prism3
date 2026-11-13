@@ -507,6 +507,25 @@ export const foldWorkflowGaps = (text: string): string[] => {
   return problems;
 };
 
+/** #3698 R3 — THE TRIGGERS. `gates` is the check the merge rule reads, so the workflow must run on a pull request, on
+ *  a push to `main`, and on a merge-queue group (`merge_group`, with `checks_requested`): a queue whose required check
+ *  never reports holds every PR forever, and one whose workflow lost the trigger would wait on a check nothing starts.
+ *  The `gates` job must also run in a merge-group run, so it may carry no `if:` other than `always()`, which
+ *  `aggregatorGaps` already holds. Empty when sound. */
+export const triggerGaps = (tree: YamlValue): string[] => {
+  const on = (tree as { on?: YamlValue }).on;
+  const problems: string[] = [];
+  if (!on || typeof on !== 'object' || Array.isArray(on)) return ['ci.yml has no `on:` map, so no event is known to start it'];
+  const o = on as Record<string, YamlValue>;
+  if (!('pull_request' in o)) problems.push('ci.yml does not run on `pull_request`, so no PR gets a `gates` check');
+  const push = o.push as { branches?: YamlValue } | undefined;
+  if (!push || !Array.isArray(push.branches) || !push.branches.includes('main')) problems.push('ci.yml does not run on a push to `main`, the run that compares a squash with its parent (#2617)');
+  const mg = o.merge_group as { types?: YamlValue } | undefined;
+  if (!mg || typeof mg !== 'object') problems.push('ci.yml does not run on `merge_group`, so a merge queue on `main` would wait on a `gates` check nothing starts (#3698 R3)');
+  else if (!Array.isArray(mg.types) || !mg.types.includes('checks_requested')) problems.push('ci.yml\'s `merge_group` trigger does not list `checks_requested`, the one type GitHub sends (#3698 R3)');
+  return problems;
+};
+
 /** ARM 9 (#3044): the steps that must carry a `timeout-minutes`, by job and `- name:`, typed here. The chrome suite's
  *  step: its healthy shard runs peak at 651 s (120 runs on main and PRs, measured 2026-11-02), and `ci.yml` gives it 30
  *  minutes, 2.8x that, the margin `verify.ts` point 5 gives its own limits. */
@@ -1182,6 +1201,28 @@ if (!/unclosed double-quoted/.test(refusal(SAMPLE_YAML.replace('"Sample gate: ha
   if (!gaps(`${real}\n          gh pr merge --squash\n`).some((p) => p.includes('merges'))) selfFails.push('the fold-bot check misses a bot that merges');
 }
 
+// 6d. THE TRIGGERS (#3698 R3), through the shipped `triggerGaps` over hand-made `on:` maps.
+{
+  const ON = `on:
+  pull_request:
+  push:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+jobs:
+  a:
+    runs-on: ubuntu-latest
+    steps:
+      - run: true
+`;
+  const gaps = (yaml: string): string[] => triggerGaps(parseYamlSubset(yaml));
+  if (gaps(ON).length) selfFails.push(`the trigger check flags a sound workflow: ${gaps(ON).join('; ')}`);
+  if (!gaps(ON.replace('  merge_group:\n    types: [checks_requested]\n', '')).some((p) => p.includes('`merge_group`'))) selfFails.push('the trigger check misses a dropped `merge_group` trigger');
+  if (!gaps(ON.replace('[checks_requested]', '[other]')).some((p) => p.includes('checks_requested'))) selfFails.push('the trigger check misses a `merge_group` without `checks_requested`');
+  if (!gaps(ON.replace('  pull_request:\n', '')).some((p) => p.includes('`pull_request`'))) selfFails.push('the trigger check misses a dropped `pull_request` trigger');
+  if (!gaps(ON.replace('[main]', '[dev]')).some((p) => p.includes('push to `main`'))) selfFails.push('the trigger check misses a push trigger that no longer names `main`');
+}
+
 // 6b. ARM 9 — a step with its limit is clean; the limit dropped, zero, or the step renamed is named.
 {
   const T = `
@@ -1293,6 +1334,16 @@ const realSteps = parseSteps(readFileSync(CI_PATH, 'utf8'));
   console.log(`    fold bot: ${FOLD_WORKFLOW} checked for its token, its refusals and the fold sequence`);
   if (problems.length) {
     console.error(`\n❌ ${FOLD_WORKFLOW} is out of shape (#3698 R1):\n`);
+    for (const p of problems) console.error(`    ${p}`);
+    process.exit(1);
+  }
+}
+// THE TRIGGERS (#3698 R3), on the real file: pull request, push to main, and the merge queue.
+{
+  const problems = triggerGaps(ciTree);
+  console.log('    triggers: pull_request, push to main and merge_group checked');
+  if (problems.length) {
+    console.error('\n❌ ci.yml does not start on every event the merge rule needs (#3698 R3):\n');
     for (const p of problems) console.error(`    ${p}`);
     process.exit(1);
   }
