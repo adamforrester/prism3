@@ -203,7 +203,7 @@ export const createAgentLink = (deps: AgentLinkDeps) => {
         const sent = (next as { session?: unknown }).session;
         const right = session !== null && typeof sent === 'string' && normalizeCode(sent) === session;
         if (!right) {
-          if (session !== null && typeof sent === 'string' && ++wrongSessions >= Infinity) { session = null; deps.onSession?.(null); }
+          if (session !== null && typeof sent === 'string' && ++wrongSessions >= SESSION_TRIES) { session = null; deps.onSession?.(null); }
           const cmd = typeof (next as { cmd?: unknown }).cmd === 'string' ? (next as { cmd: string }).cmd : '';
           const r = failedResult({ id, cmd, transport: 'mailbox', engineVersion: deps.engineVersion, at: now().toISOString() }, { code: 'no-session', message: NO_SESSION_MESSAGE });
           storeResult(root, r);
