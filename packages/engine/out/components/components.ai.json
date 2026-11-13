@@ -13692,7 +13692,7 @@
           "name": "thumbLabels",
           "type": "[string, string]",
           "required": false,
-          "description": "For a range, the two thumb names, \"Minimum {label}\" and \"Maximum {label}\" when not set, with \", required\" added when the slider is required."
+          "description": "For a range, the two thumb names, \"Minimum {label}\" and \"Maximum {label}\" when not set."
         },
         {
           "name": "type",
