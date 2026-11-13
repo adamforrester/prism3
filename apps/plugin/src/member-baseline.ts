@@ -239,6 +239,23 @@ const bindingsOf = (n: Record<string, unknown>, k: 'boundVariables'): Record<str
   return out;
 };
 
+/** Every VECTOR inside an instance, as `{ name, type, fills }` copied now: what `snapshotMember`'s `findAll` answers. */
+const instanceVectors = (n: LiveNode): SnapNode[] => {
+  let found: unknown[] = [];
+  try {
+    const x = n as { findAllWithCriteria?: (c: { types: string[] }) => unknown[]; findAll?: (f: (v: { type?: unknown }) => boolean) => unknown[] };
+    found = x.findAllWithCriteria ? x.findAllWithCriteria({ types: ['VECTOR'] }) : x.findAll ? x.findAll((v) => v.type === 'VECTOR') : [];
+  } catch { found = []; }
+  return (Array.isArray(found) ? found : []).filter((v) => (v as LiveNode)?.type === 'VECTOR').map((v) => {
+    const out: SnapNode = { name: String((v as LiveNode).name ?? ''), type: 'VECTOR' };
+    let fills: unknown;
+    try { fills = (v as LiveNode).fills; } catch { fills = undefined; }
+    const p = plain(fills);
+    if (p !== undefined) out.fills = p;
+    return out;
+  });
+};
+
 export const snapshotMember = async (root: unknown): Promise<SnapNode> => {
   const walk = async (raw: unknown, parentWidth: unknown, parentHeight: unknown, isRoot = false): Promise<SnapNode> => {
     const n = raw as LiveNode;
@@ -260,6 +277,13 @@ export const snapshotMember = async (root: unknown): Promise<SnapNode> => {
       if (main) out.mainComponent = main;
       const own = ownOverrides(n, live);
       if (own) out.overridden = own;
+      // THE VECTORS INSIDE (#3393; the owner's Update file run, 2026-11-12). The walk stops here, but the read-back's `literalTint`
+      // (SignInButton's white glyph on a dark fill, Q846 A) is checked on the VECTORs inside the instance, through
+      // `findAll`, as on the host. A snapshot with no way in read "no VECTOR inside" on every tinted member, so each failed
+      // the verify after the build had painted it. Their type and fills only, copied now, and NON-ENUMERABLE as `parent`
+      // is: the record hashes the snapshot's own keys, so no record moves.
+      const vecs = instanceVectors(n);
+      Object.defineProperty(out, 'findAll', { enumerable: false, value: (f: (x: SnapNode) => boolean): SnapNode[] => vecs.filter(f) });
       return out;
     }
     let kids: unknown[] = [];

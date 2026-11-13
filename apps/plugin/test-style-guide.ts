@@ -2232,7 +2232,7 @@ const main = async (): Promise<void> => {
     // second run is asked for through the same guard.
     const guard = createRunGuard();
     const request = <T>(fn: () => Promise<T>): Promise<{ ran: true; value: T } | { ran: false; message: string }> => {
-      if (guard.busy('style-guide')) return Promise.resolve({ ran: false, message: busyMessage('style-guide') });
+      if (guard.busy()) return Promise.resolve({ ran: false, message: busyMessage('style-guide') });
       let value!: T;
       return guard.run('style-guide', async () => { value = await fn(); }).then(() => ({ ran: true as const, value }));
     };

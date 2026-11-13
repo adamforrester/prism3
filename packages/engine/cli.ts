@@ -25,7 +25,7 @@
  *
  * `--component-specs` (#3425) also writes the brand's component-defs export: `<id>.component-defs.json` (every
  * component definition with the brand's component settings resolved) and `<id>.component-defs.specs.json` (the same
- * as a Specs components set). The brand-neutral pair is committed under `out/components/` by `regen`.
+ * as a Specs components set). The brand-neutral pair is written under `out/components/` by `regen`, and not committed (#3698 R3).
  *
  * Exit codes: 0 = clean; 1 = schema violation, a broken alias, or a failed mode
  * contrast contract (so it fails CI). Errors print a readable diagnosis.
@@ -77,7 +77,7 @@ const emitAndGate = (theme: Theme, resolvedOut: string, designPath: string, sour
   console.log(`  [written] ${resolve(resolvedOut, theme.id + '.ai.json')}`);
   const broken = stats.broken.length > 0;
   const contractsFail = stats.modePass < stats.modeChecks;
-  if (broken) stats.broken.forEach((b) => console.error(`   ❌ unresolved alias: ${b.path} -> {${b.ref}}`));
+  if (broken) stats.broken.forEach((b) => console.error(`   ❌ ${b.reason === 'dangling' ? 'unresolved alias' : b.reason === 'cycle' ? 'alias cycle' : 'alias chain too deep'}: ${b.path} -> {${b.ref}}${b.mode ? ` (${b.mode})` : ''}${b.chain ? ` — ${b.chain.join(' -> ')}` : ''}`));
   if (contractsFail) console.error(`   ❌ ${stats.modeChecks - stats.modePass} mode contrast contract(s) failed`);
   if (broken || contractsFail) process.exit(1);
   console.log(`  ✓ ${theme.id} generated cleanly — all aliases resolve, all contrast contracts hold`);

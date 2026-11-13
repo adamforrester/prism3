@@ -525,6 +525,11 @@
         "code": "busy",
         "meaning": "A run of the same write was already going, the panel's or an agent's, so this one was not run (#1957).",
         "source": "apps/plugin/src/agent-protocol.ts#AgentErrorCode.busy"
+      },
+      {
+        "code": "no-session",
+        "meaning": "#3697 R8: a command that changes or removes what is in the file came through the mailbox without this link session's code (`session`), or with another, so it was not run.",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentErrorCode.no-session"
       }
     ],
     "commands": [
@@ -1121,6 +1126,10 @@
       ],
       "flags": [
         {
+          "flag": "--artifact-floor",
+          "source": "verify.ts#argv"
+        },
+        {
           "flag": "--list",
           "source": "verify.ts#argv"
         },
@@ -1175,7 +1184,7 @@
       "summary": "agent-link — print the short `use_figma` script that sends a command to the RUNNING Prism3 plugin through the file, or reads its result back.",
       "usage": [
         {
-          "text": "npx tsx tools/figma-mcp/agent-link.ts send <cmd> [<args.json> | '<json>'] [--brand <id|path>] [--id <id>]",
+          "text": "npx tsx tools/figma-mcp/agent-link.ts send <cmd> [<args.json> | '<json>'] [--brand <id|path>] [--id <id>] [--session <code>]",
           "source": "tools/figma-mcp/agent-link.ts#header"
         },
         {
@@ -1203,6 +1212,10 @@
         {
           "flag": "--path",
           "source": "tools/figma-mcp/agent-link.ts#opt('path')"
+        },
+        {
+          "flag": "--session",
+          "source": "tools/figma-mcp/agent-link.ts#opt('session')"
         }
       ]
     },

@@ -20,11 +20,11 @@ The **Update** tab lists these items, in this order:
 
 | Item | What it writes | Ticked when the dialog opens |
 |---|---|---|
-| **Set up file** | The pages, the templates and the style-guide cells, and the cover while Documentation has it on. Listed for a file that isn't set up yet, and for a set-up file that lacks something setup builds, such as a deleted template. See [Set up a file](file-setup.md). <!-- src: apps/studio/src/state/update-file.ts:317-318 --> | On a file that isn't set up yet. On a set-up file, it starts unticked and names what is missing. <!-- src: apps/studio/src/state/update-file.ts:178-185#8d8cd69f --> |
+| **Set up file** | The pages, the templates and the style-guide cells, and the cover while Docs has it on. Listed for a file that isn't set up yet, and for a set-up file that lacks something setup builds, such as a deleted template. See [Set up a file](file-setup.md). <!-- src: apps/studio/src/state/update-file.ts:317-318 --> | On a file that isn't set up yet. On a set-up file, it starts unticked and names what is missing. <!-- src: apps/studio/src/state/update-file.ts:178-185#8d8cd69f --> |
 | **Theme** | The brand's variables and styles. Layers bound to them restyle at once. See [Write the theme to a Figma file](apply-a-theme.md). <!-- src: apps/studio/src/state/update-file.ts:321-322 --> | When the file's variables differ from the brand, or the file isn't set up yet. Otherwise it reads "Up to date". <!-- src: apps/studio/src/state/update-file.ts:324 --> |
-| **Components** › **To add** | The sets chosen in the Components area, and each family's usage panel, beside its lead, while Documentation has panels on. See [Build components](build-components.md). <!-- src: apps/studio/src/state/update-file.ts:327-329 --> | Every set listed runs |
+| **Components** › **To add** | The sets chosen in the Components area, and each family's usage panel, beside its lead, while Docs has panels on. See [Build components](build-components.md). <!-- src: apps/studio/src/state/update-file.ts:327-329 --> | Every set listed runs |
 | **Components** › **Due** | The sets in the file that are out of date, updated in place. See [Update sets in place](#update-sets-in-place). <!-- src: apps/studio/src/state/update-file.ts:336-338 --> | Yes |
-| **Style guides** | The token tables, drawn with the settings in Documentation. See [Build style guides](style-guides.md). <!-- src: apps/studio/src/state/update-file.ts:387-390 --> | Only on a file not set up yet |
+| **Style guides** | The token tables, drawn with the settings in Docs. See [Build style guides](style-guides.md). <!-- src: apps/studio/src/state/update-file.ts:387-390 --> | Only on a file not set up yet |
 
 <!-- src: apps/studio/src/state/update-file.ts:174-181#dcd3d3c6 -->
 
@@ -45,12 +45,14 @@ Choose **Update file** again during a run to follow it: "Step 2 of 4 · Theme", 
 
 If a step fails, the dialog opens next time with "The last update stopped at" and the step and its reason. <!-- src: apps/studio/src/state/update-file.ts:399 -->
 
+If the update writes every set and some still differ from the plan, the run goes on to its next step and ends as a warning: it counts the sets written and those still "to check". Activity names what differs in each set to check. A set that stopped or was not updated still ends the run. <!-- src: apps/plugin/src/update-apply.ts:1231 -->
+
 ## The rules every write follows
 
 - **Check first, write second.** The theme step reads everything it will touch before its first write, and writes nothing if anything conflicts, unless you choose Skip or Rename for each conflict. <!-- src: apps/plugin/src/apply-theme.ts:80-121#6a30db6f --> <!-- src: apps/plugin/src/preflight.ts:157-216#328537d5 -->
 - **Prism3 changes only what Prism3 made.** Each collection, style and component Prism3 creates carries a mark saying so, and later runs read that mark before changing anything. <!-- src: apps/plugin/src/provenance.ts:1-57#dce1a9a1 --> <!-- src: apps/plugin/src/preflight.ts:21#f83b8069 -->
 - **Nothing is deleted unless you ask.** The **Update** tab never deletes. Removing what the brand no longer uses is the **Clean up** tab, and it shows what it will delete before it deletes. <!-- src: apps/studio/src/state/update-file.ts:311-312 -->
-- **One write at a time.** While a write runs, a second request for the same write is refused, whether the panel or an agent asked. <!-- src: apps/plugin/src/run-guard.ts:1-14#b6f8158f -->
+- **One write at a time.** While any write runs, every other write is refused, whether the panel or an agent asked. <!-- src: apps/plugin/src/run-guard.ts:1-20#802b70d3 -->
 
 ## Update sets in place
 
@@ -67,7 +69,7 @@ When a ticked set carries hand edits, a **Hand edits** choice appears beside the
 
 Before its first write, the update saves a named version in the file's version history: "Saves a version first. If Figma refuses the save, nothing is written." <!-- src: apps/studio/src/state/update-file.ts:373 -->
 
-The update writes exactly what the check read. If the file changed in between, it writes nothing and says so in Activity, under `✗ update refused`: "Nothing was updated: the file changed since the check." <!-- src: apps/plugin/src/update-apply.ts:1117-1119 -->
+The update writes exactly what the check read. If the file changed in between, it writes nothing and says so in Activity, under `✗ update refused`: "Nothing was updated: the file changed since the check." <!-- src: apps/plugin/src/update-apply.ts:1121-1123 -->
 Open **Update file** again to check afresh. <!-- src: apps/studio/src/state/update-file.ts:308 -->
 
 ### What an update keeps
@@ -103,7 +105,7 @@ What Clean up can delete: <!-- src: apps/plugin/src/prune-figma.ts:18-32#6e2fac9
 - Text, effect, paint and grid styles the brand no longer emits, when they sit in a style group the brand still uses. A style in a group of your own stays.
 - Canvas labels beside a component set that is no longer in the file.
 
-The delete works out the list again from a fresh read of the file before it deletes anything. <!-- src: apps/plugin/src/main.ts:582-583#88108fd2 -->
+The delete works out the list again from a fresh read of the file before it deletes anything. <!-- src: apps/plugin/src/main.ts:583-584#88108fd2 -->
 
 After a style-guide run that found tables Prism3 no longer draws, **Clean up** lists them too: "2 style-guide tables the generator no longer draws." Choose **Remove *N* tables** to delete them. <!-- src: apps/studio/src/state/update-file.ts:403-404 -->
 
@@ -122,8 +124,8 @@ Removing a mode removes its values from every variable in the collection, so mov
 | You see | Why | What to do |
 |---|---|---|
 | `✗ N conflicts`, "Nothing was written." | The file holds a same-named collection or style that Prism3 did not create, or a variable of another type. <!-- src: apps/plugin/src/preflight.ts:237 --> | Rename or remove the named items, then run Update file again. |
-| "is already running. Try again when it finishes." | The same write is already running, from the panel or an agent. <!-- src: apps/plugin/src/run-guard.ts:41-45 --> | Wait for it to finish. |
+| "is already running. Try again when it finishes." | Another write is already running, from the panel or an agent. <!-- src: apps/plugin/src/run-guard.ts:49-52 --> | Wait for it to finish. |
 | "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." | The brand saved in this file didn't open. The dialog's **Update file** button, Clean up's delete and every other write stay off. <!-- src: apps/studio/src/main.ts:1833 --> | Load the brand again, for example from its `design.md`. |
 | `✗ update refused`, "the file changed since the check" | Something in the file moved between the check and the update. <!-- src: apps/plugin/src/update-apply.ts:895 --> | Open Update file again and read the new check. |
 | "the named version could not be saved" | Figma refused to save the safety version, so the update wrote nothing. <!-- src: apps/plugin/src/update-apply.ts:971 --> | Try again. Nothing in the file changed. |
-| `nothing built — set '…' on this page varies by different axes and was left as it is` | A set with that name already exists on the page, built with different options. <!-- src: apps/plugin/src/main.ts:1038 --> | Rename or move the existing set. |
+| `nothing built — set '…' on this page varies by different axes and was left as it is` | A set with that name already exists on the page, built with different options. <!-- src: apps/plugin/src/main.ts:1039 --> | Rename or move the existing set. |

@@ -18,7 +18,7 @@
 // exactly "does the committed `out/` match the committed sources".
 
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -73,6 +73,29 @@ export const renderOnDemand = (): { files: string[] } | { error: string } => {
   const missing = ON_DEMAND_OUT.filter((f) => !existsSync(join(dir, f)));
   if (missing.length) return { error: `visualize.ts --out wrote no ${missing.join(', ')}` };
   return { files: ON_DEMAND_OUT.map((f) => join(dir, f)) };
+};
+
+// Files under `out/` that regen WRITES but git does not track (#3698 R3, owner decision 2026-11-12). The three
+// whole-catalog component exports are 5.1 MB and about 178k lines, and moved in a third of the PRs that touched
+// `out/`, so they left review and stopped conflicting. regen still emits them (a developer's `out/` has them, the
+// payload still includes them), and every reader generates them first: `renderUncommitted` below writes a fresh
+// set into a temp dir for a gate, and `packages/tokens/check-specs.mjs` does the same through
+// `emit-component-docs.ts --uncommitted --out`. Like `ON_DEMAND_OUT`, both `out/` walks here skip the names, so a
+// local copy never changes the count; unlike it, regen must still WRITE each one, and `check()` fails by name when
+// it stops, or when git tracks one. They are in `.gitignore`.
+export const UNCOMMITTED_OUT = ['components/component-defs.json', 'components/component-defs.specs.json', 'components/specs.json'];
+
+/** A fresh copy of every `UNCOMMITTED_OUT` file, written into a temp dir for a reader that must not depend on what a
+ *  local `out/` holds (CI holds none). Returns the files in `UNCOMMITTED_OUT` order, or an error the caller reports as
+ *  blindness, never as clean. The temp dir is removed when the process exits. */
+export const renderUncommitted = (): { files: string[] } | { error: string } => {
+  const dir = mkdtempSync(join(tmpdir(), 'prism3-uncommitted-'));
+  process.on('exit', () => rmSync(dir, { recursive: true, force: true }));
+  const r = spawnSync('npx', ['tsx', join(here, 'emit-component-docs.ts'), '--uncommitted', '--out', dir], { cwd: repoRoot, encoding: 'utf8' });
+  if (r.status !== 0) return { error: `emit-component-docs.ts --uncommitted exited ${r.status}: ${(r.stderr || r.stdout || '').trim().split('\n').slice(-3).join(' / ')}` };
+  const missing = UNCOMMITTED_OUT.filter((f) => !existsSync(join(dir, f)));
+  if (missing.length) return { error: `emit-component-docs.ts --uncommitted wrote no ${missing.join(', ')}` };
+  return { files: UNCOMMITTED_OUT.map((f) => join(dir, f)) };
 };
 
 // Committed generated artifacts that live at the ENGINE ROOT rather than under `out/`. Both were
@@ -142,7 +165,7 @@ const walk = (dir: string, root = dir): string[] => {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
     if (statSync(p).isDirectory()) found.push(...walk(p, root));
-    else if (!ON_DEMAND_OUT.includes(relative(root, p))) found.push(p);
+    else if (!ON_DEMAND_OUT.includes(relative(root, p)) && !UNCOMMITTED_OUT.includes(relative(root, p))) found.push(p);
   }
   return found.sort();
 };
@@ -198,6 +221,14 @@ const check = (): void => {
     // go stale unseen. Read from the index, not the disk: a local, ignored copy is expected. A git that cannot answer
     // fails closed, never passes.
     const lsFiles = spawnSync('git', ['ls-files', '--', ...ON_DEMAND_OUT.map((f) => `packages/engine/out/${f}`)], { cwd: repoRoot, encoding: 'utf8' });
+    // The same question for the uncommitted exports (#3698 R3): regen writes them, git must not track them.
+    const lsUncommitted = spawnSync('git', ['ls-files', '--', ...UNCOMMITTED_OUT.map((f) => `packages/engine/out/${f}`)], { cwd: repoRoot, encoding: 'utf8' });
+    if (lsUncommitted.status !== 0) {
+      console.error(`\n✗ cannot tell whether an uncommitted export is committed — git ls-files exited ${lsUncommitted.status}: ${(lsUncommitted.stderr || '').trim()}`);
+      rmSync(tmp, { recursive: true, force: true });
+      process.exit(1);
+    }
+    const uncommittedTracked = lsUncommitted.stdout.split('\n').map((l) => l.trim()).filter(Boolean);
     if (lsFiles.status !== 0) {
       console.error(`\n✗ cannot tell whether an on-demand file is committed — git ls-files exited ${lsFiles.status}: ${(lsFiles.stderr || '').trim()}`);
       rmSync(tmp, { recursive: true, force: true });
@@ -222,6 +253,8 @@ const check = (): void => {
     for (const rel of before.keys()) if (!after.has(rel)) removed.push(`packages/engine/out/${rel}`);
     // out/ — the on-demand files: regen must not write them at all (Q319.6).
     const onDemandWritten = ON_DEMAND_OUT.filter((f, i) => onDemandStamp(f) !== onDemandBefore[i]).map((f) => `packages/engine/out/${f}`);
+    // out/ — the uncommitted exports: regen must still write every one (#3698 R3). Read before the restore below.
+    const uncommittedMissing = UNCOMMITTED_OUT.filter((f) => !existsSync(join(outDir, f))).map((f) => `packages/engine/out/${f}`);
 
     // schema/ — only the named emitted files; the hand-authored contracts alongside them are not ours.
     for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) {
@@ -260,8 +293,11 @@ const check = (): void => {
     }
 
     const checked = after.size + SCHEMA_ARTIFACTS.length + MAINTAINER_ARTIFACTS.length + ENGINE_ARTIFACTS.length + REPORT_ARTIFACTS.length + REFERENCE_ARTIFACTS.length;
-    if (!drifted.length && !added.length && !removed.length && !onDemandWritten.length && !onDemandTracked.length) {
+    if (!drifted.length && !added.length && !removed.length && !onDemandWritten.length && !onDemandTracked.length && !uncommittedMissing.length && !uncommittedTracked.length) {
       console.log(`\n✓ in sync — ${checked} committed artifacts byte-match what the engine emits.`);
+      // #3698 R4: CI's coverage step reads this count instead of running `--check` a second time. Written only
+      // in sync, so a drifted or failed run leaves no file and the coverage step fails on reading nothing.
+      if (process.env.REGEN_CHECK_REPORT) writeFileSync(process.env.REGEN_CHECK_REPORT, `${checked} committed artifacts\n`);
       return;
     }
     console.error('\n✗ committed artifacts have DRIFTED from what the engine emits:');
@@ -270,9 +306,12 @@ const check = (): void => {
     for (const f of removed) console.error(`    stale    ${f}  (committed; engine no longer emits it)`);
     for (const f of onDemandWritten) console.error(`    on-demand ${f}  (regen wrote it; it is built on demand and never committed — ON_DEMAND_OUT, Q319.6)`);
     for (const f of onDemandTracked) console.error(`    on-demand ${f}  (git tracks it; it is built on demand and never committed — ON_DEMAND_OUT, Q319.6)`);
+    for (const f of uncommittedMissing) console.error(`    unwritten ${f}  (regen no longer emits it; it is generated and never committed — UNCOMMITTED_OUT, #3698 R3)`);
+    for (const f of uncommittedTracked) console.error(`    uncommitted ${f}  (git tracks it; it is generated and never committed — UNCOMMITTED_OUT, #3698 R3)`);
     if (drifted.length || added.length || removed.length) console.error('\n  Fix: npx tsx packages/engine/regen.ts   then commit the result.');
     if (onDemandWritten.length) console.error('\n  Fix: take the step that writes it out of STEPS; an on-demand file is built by its own command, never by regen.');
-    if (onDemandTracked.length) console.error('\n  Fix: git rm --cached <file>, and keep its line in .gitignore.');
+    if (onDemandTracked.length || uncommittedTracked.length) console.error('\n  Fix: git rm --cached <file>, and keep its line in .gitignore.');
+    if (uncommittedMissing.length) console.error('\n  Fix: emit-component-docs.ts must still write it, or take it out of UNCOMMITTED_OUT and every reader.');
     process.exit(1);
   } finally {
     rmSync(tmp, { recursive: true, force: true });

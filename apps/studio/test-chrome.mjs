@@ -7726,6 +7726,10 @@ if (runs('3115')) {
             const g = document.querySelector(s);
             if (!g) return null;
             if (tight) {
+              // #3553 Q-UI2 A: a group too wide for one row is stacked (`data-stack`), one option to a row, and a stack's
+              // max-content is its widest option. The row's own max-content is read with the stack cleared; at that width
+              // the row fits, so the page keeps it a row.
+              delete g.dataset.stack;
               if (px === null) { g.style.width = 'max-content'; px = g.getBoundingClientRect().width; }
               g.style.width = `${px}px`;
             }
@@ -19231,7 +19235,7 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
       `${where}: Q3306.5 A: To add's one Also adds line names the sets the chosen ones need, out of their family too, while the badge counts the chosen ones (${JSON.stringify(u.also)})`);
     ok(u.ticks === 0 && JSON.stringify(u.removes) === JSON.stringify(S_ORDER.map(([, n]) => `Remove ${n} from To add`)) && u.removeAll === 'Remove all',
       `${where}: Q3129.7 A, Q3129.8 A: a queued set has no tick, only Remove, named "Remove {set} from To add", and the subtitle's line has Remove all (${JSON.stringify({ ticks: u.ticks, removes: u.removes.length, removeAll: u.removeAll })})`);
-    ok(u.line === '7 sets chosen on Components. Each is added with its usage panel while Documentation has panels on.' && u.dueLine === '3 sets to update in place. Ticked by default.',
+    ok(u.line === '7 sets chosen on Components. Each is added with its usage panel while Docs has panels on.' && u.dueLine === '3 sets to update in place. Ticked by default.',
       `${where}: the groups' lines, DRAFT (${JSON.stringify([u.line, u.dueLine])})`);
     ok(JSON.stringify(u.due) === JSON.stringify([['button', 'Button', 'true'], ['text-field', 'Text field', 'true'], ['tag', 'Tag', 'true']]),
       `${where}: P5: Due names its sets as Components does, ticked (${JSON.stringify(u.due)})`);
@@ -19455,7 +19459,7 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380], ['dar
     const cl = await page.evaluate(() => ({ summary: document.querySelector('[data-p3="clean-panels-summary"]')?.textContent ?? null,
       keep: document.querySelector('[data-p3="clean-panels"] .p3-sub')?.textContent ?? null, rm: document.querySelector('[data-p3="clean-panels-confirm"]')?.textContent ?? null,
       group: !!document.querySelector('[data-p3="update-group-panels"]') }));
-    ok(canon(count) === canon({ type: 'panels-clean', confirm: false }) && cl.summary === '32 usage panels, drawn while Documentation had panels on.'
+    ok(canon(count) === canon({ type: 'panels-clean', confirm: false }) && cl.summary === '32 usage panels, drawn while Docs had panels on.'
       && cl.keep === 'Panels edited by hand stay. Turning panels on again draws them back.' && cl.rm === 'Remove 30 panels',
       `${where}: Q3137.7 A: with panels off, Clean up counts the drawn panels as it opens, names them, and offers "Remove 30 panels" (DRAFT) (${JSON.stringify({ count, ...cl })})`);
     const mc = await measure(page, `${where} / Clean up, panels`, 'figma', w);
@@ -19466,7 +19470,7 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380], ['dar
     await postMsg(page, { type: 'panels-clean-result', ok: true, applied: true, drawn: 2, removable: 0, removed: 30, kept: 2 });
     await settle(page);
     const after = await page.evaluate(() => ({ summary: document.querySelector('[data-p3="clean-panels-summary"]')?.textContent ?? null, rm: !!document.querySelector('[data-p3="clean-panels-confirm"]') }));
-    ok(after.summary === '2 usage panels, drawn while Documentation had panels on.' && !after.rm, `${where}: after the removal, the edited panels left are named, with nothing more to remove (${JSON.stringify(after)})`);
+    ok(after.summary === '2 usage panels, drawn while Docs had panels on.' && !after.rm, `${where}: after the removal, the edited panels left are named, with nothing more to remove (${JSON.stringify(after)})`);
     await page.keyboard.press('Escape');
     step = 'panels off: Documentation';
     await hooks.click(page.locator('[data-p3="rail-documentation"]'));
@@ -19874,6 +19878,31 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     const vs = await strip(page);
     ok(vs.tone === 'warn' && vs.what === 'Stopped after Button' && vs.n === '1 of 2 updated' && vs.line === 'The 1 set updated keeps its changes; the other 1 is unchanged. Details in Activity.',
       `${where}: Q3170.6 A: "Stopped after Button", "1 of 2 updated", what it kept (${JSON.stringify(vs)})`);
+    // ── #3711 (Q-UF3 A): every set written, some left to check ──
+    // The owner's run of 2026-11-12 read "Stopped at the update" though it wrote every set. The host's `completed` says
+    // the update went through every set, so the step warns and the run goes on. (mutation: `main.ts` passing `false`
+    // for the update's `warn` → this arm, the strip reading "Stopped at Tag")
+    step = 'an update with sets to check';
+    await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
+    await hooks.need(page, '[data-p3="update-dialog"]', WAIT);
+    await postMsg(page, T_FILE);
+    await postMsg(page, T_CHECK);
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="update-go"]') && !document.querySelector('[data-p3="update-go"]').disabled, null, WAIT).catch(() => {});
+    if ((await page.evaluate(() => document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked'))) === 'true') {
+      await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+      await postMsg(page, T_FILE);
+      await postMsg(page, T_CHECK);
+    }
+    await page.waitForFunction(() => !document.querySelector('[data-p3="update-go"]')?.disabled, null, WAIT).catch(() => {});
+    await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+    await postMsg(page, { type: 'run-progress', run: 'update', phase: 'work', item: 'button', done: 0, total: 2 });
+    await postMsg(page, { type: 'run-progress', run: 'update', phase: 'finish', item: null, done: 2, total: 2 });
+    await postMsg(page, { type: 'component-update-result', ok: false, completed: true, headline: '⚠ Updated 2 sets · 1 to check', summary: 'tag: 1 field still differs from the plan.', lines: ['tag: 1 field still differs from the plan.'],
+      causes: [{ kind: 'warn', subject: 'tag', what: 'not verified', reasons: ['1 field still differs from the plan.'] }] });
+    await settle(page);
+    const vw = await strip(page);
+    ok(vw.kind === 'verdict' && vw.tone === 'warn' && vw.what === '2 sets updated' && vw.line === 'Updated 2 sets · 1 to check. Details in Activity.',
+      `${where}: #3711 Q-UF3 A: an update that wrote every set, 1 to check, ends as a warning, never "Stopped at" (${JSON.stringify(vw)})`);
     // The next action ends the line: Clean up's dry run.
     await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
     await hooks.click(page.locator('[data-p3="update-tab-clean"]'), WAIT);
@@ -20060,7 +20089,7 @@ const READ_3326 = (page) => page.evaluate(() => {
 //   Mutations this fails by name: a step drawing a button → `… no step offers a button`; a note counted → `… a note adds
 //   nothing to the count`; `owned` folding every operation into the run → `… an agent's Build set after the run keeps its
 //   own row`; a never-run step drawn without its dash and words → `… a step the run never reached`.
-const TEMPLATE_NOTE_3326 = 'No usage panels drawn: this file has no _Doc-block component. Turn off Usage panels in Documentation, or run Set up file to add it.';
+const TEMPLATE_NOTE_3326 = 'No usage panels drawn: this file has no _Doc-block component. Turn off Usage panels in Docs, or run Set up file to add it.';
 const READ_RUN_3326 = (page) => page.evaluate(() => {
   const row = document.querySelector('[data-p3="activity-drawer"] [data-p3="activity-op"][data-op="update"]');
   const body = row?.querySelector('[data-p3="op-body"]');
@@ -22157,6 +22186,87 @@ if (runs('3553-export')) {
     } finally { await ctx.close(); }
   }
 } // 3553-export
+// #3553 Q-UI2 (the owner's Q-UI2 A): A SINGLE CHOICE NEVER WRAPS TO AN ORPHAN. Interactive's Outline hover drew 3 + 1 at
+// 1280 ("No hover fill" alone) and 2 + 2 at 1024 and 380; Components' Control shape drew 3 + 1 at the plugin's 380 ("Pill"
+// alone). A, "swap to a select or to a radio list": the list, so each option keeps its button, hook, role and keys. A
+// choice whose options do not fit one row is laid out one option to a row, the column's width (`data-stack`). Held on
+// every drawn segmented choice (`.p3-choice`) and single-choice chip row (`.p3-chips-one`) of Interactive, Shape, Type
+// and Components: its options sit on one row, or one to a row, never anything between. Web at 1280 and 1024, the plugin
+// at 380, both themes. MUTATION (after a `wip:` commit): `stackWhenWrapped(el)` dropped from `choice` and `chipChoice` →
+// `#3553 Q-UI2 … no single choice wraps to an orphan`. A stacked choice also unstacks when its column widens: a page
+// opened at 1024 and widened to 1600 stacks exactly the choices a fresh 1600 page does, and narrowed back stacks them
+// again. MUTATION: `delete el.dataset.stack;` dropped from `fit` → `#3553 Q-UI2 … widened … stacks what a fresh page does`.
+if (runs('3553-q2')) {
+  console.log(`\nA single choice never wraps to an orphan (#3553 Q-UI2)\n${'='.repeat(78)}`);
+  for (const [host, w, h] of [['web', 1280, 900], ['web', 1024, 768], ['figma', 380, 420]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-q2 ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    let step = 'open';
+    try {
+      let stacked = 0, seen = 0;
+      for (const place of ['color-interactive', 'shape', 'type', 'components']) {
+        step = place;
+        await goPlace(page, place);
+        await settle(page);
+        await settle(page);
+        const m = await page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"] :is(.p3-choice, .p3-chips-one)')].filter((g) => g.getClientRects().length > 0).map((g) => {
+          const opts = [...g.children].filter((c) => c.getClientRects().length > 0);
+          const rows = new Set(opts.map((c) => Math.round(c.getBoundingClientRect().top))).size;
+          return { hook: g.dataset.p3 ?? g.getAttribute('aria-label'), n: opts.length, rows, stack: g.dataset.stack === 'true' };
+        }));
+        seen += m.length;
+        stacked += m.filter((g) => g.stack).length;
+        const orphans = m.filter((g) => g.rows !== 1 && g.rows !== g.n);
+        ok(orphans.length === 0, `#3553 Q-UI2 ${where} ${place}: no single choice wraps to an orphan; each is one row or one option to a row (${JSON.stringify(orphans)})`);
+        if (SHOTS && theme === 'light' && place === 'color-interactive') await page.screenshot({ path: join(SHOTS, `s3553-q2-${host}-${w}.png`) });
+      }
+      ok(seen >= 6, `${where}: premise, the sweep read the pages' single choices (${seen}, ${stacked} stacked)`);
+      if (w === 380) ok(stacked > 0, `${where}: premise, at 380 some choice is too wide for one row and is stacked (${stacked})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+  const stackRead = (page) => page.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-p3="levers-pane"] :is(.p3-choice, .p3-chips-one)')]
+    .filter((g) => g.getClientRects().length > 0).map((g, i) => [g.dataset.p3 ?? g.getAttribute('aria-label') ?? String(i), g.dataset.stack === 'true'])));
+  const diff = (a, b) => Object.keys({ ...a, ...b }).filter((k) => a[k] !== b[k]);
+  for (const theme of ['light', 'dark']) {
+    const where = `3553-q2 web ${theme} resize`;
+    const fresh = {};
+    const wide = await open({ host: 'web', theme, w: 1600, h: 900 });
+    let step = 'fresh 1600';
+    try {
+      for (const place of ['color-interactive', 'components']) { step = `fresh 1600 ${place}`; await goPlace(wide.page, place); await settle(wide.page); await settle(wide.page); fresh[place] = await stackRead(wide.page); }
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await wide.ctx.close(); }
+    const { ctx, page, errors } = await open({ host: 'web', theme, w: 1024, h: 768 });
+    try {
+      for (const place of ['color-interactive', 'components']) {
+        step = `1024 ${place}`;
+        await page.setViewportSize({ width: 1024, height: 768 });
+        await goPlace(page, place);
+        await settle(page); await settle(page);
+        const narrow = await stackRead(page);
+        ok(Object.values(narrow).some(Boolean), `${where} ${place}: premise, at 1024 some choice is stacked (${JSON.stringify(narrow)})`);
+        ok(fresh[place] && Object.keys(fresh[place]).length > 0 && diff(narrow, fresh[place]).length > 0, `${where} ${place}: premise, a fresh 1600 page stacks differently from 1024 (${JSON.stringify(fresh[place])})`);
+        step = `widen ${place}`;
+        await page.setViewportSize({ width: 1600, height: 900 });
+        await settle(page); await settle(page);
+        const widened = await stackRead(page);
+        ok(diff(widened, fresh[place] ?? {}).length === 0, `#3553 Q-UI2 ${where} ${place}: widened from 1024 to 1600, it stacks what a fresh page does (differs on ${JSON.stringify(diff(widened, fresh[place] ?? {}))})`);
+        step = `narrow ${place}`;
+        await page.setViewportSize({ width: 1024, height: 768 });
+        await settle(page); await settle(page);
+        const back = await stackRead(page);
+        ok(diff(back, narrow).length === 0, `#3553 Q-UI2 ${where} ${place}: narrowed back to 1024, it stacks what it did before (differs on ${JSON.stringify(diff(back, narrow))})`);
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-q2
 // #3553 Q-UI1 (the owner's Q-UI1 A): ONE MODE CONTROL ON EVERY PAGE AT 1280. The preview header's mode control was the
 // radios on Palettes, Interactive, Type and Layout but a select on Brand ("Style guide"), Surfaces & fills, Shape and Depth
 // & motion, whose longer titles left the radios no room, so moving between tabs swapped the control under the pointer.
