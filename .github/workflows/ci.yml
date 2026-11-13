@@ -14,6 +14,22 @@ on:
   pull_request:
   push:
     branches: [main]
+  # #3698 R3 (owner decision 2026-11-12): THE MERGE QUEUE. Two PRs can each pass against a base that no longer exists
+  # and merge with no git conflict, leaving `main` red or `out/` stale (semantic staleness, the one failure a text merge
+  # cannot see). With a merge queue on `main`, GitHub builds each queued PR on top of `main` plus the PRs ahead of it
+  # and runs this whole workflow there, `regen --check` included, BEFORE the merge; a red run drops the PR from the
+  # queue and `main` never moves. Turning the queue on is a repository setting (branch protection / rulesets on
+  # `main`), which only the owner can change; the steps are in the PR that added this trigger (#3698 R3). Until it is
+  # on, this trigger never fires and changes nothing.
+  #
+  # How the gates read a merge-group run, checked against each ladder when this was added: `GITHUB_EVENT_NAME` is
+  # `merge_group`, `GITHUB_BASE_REF` is empty, and the checkout (`fetch-depth: 0`) is the queue's commit, whose first
+  # parent is `main` (or the group ahead of it). Every git-history gate's ladder then falls to `origin/main`, whose merge
+  # base with HEAD is `main`'s tip, so each compares the queued result with `main`: the PR's diff, plus any group ahead
+  # of it in the queue. `lint-progress-order.ts` treats it as a PR run (only `push` skips its CARRIES AN ENTRY arm), so
+  # the queued PR's fragment is still required.
+  merge_group:
+    types: [checks_requested]
 
 # A force-push to a PR supersedes the previous run; don't burn minutes finishing a stale one. A push
 # run on main is never cancelled (#2617): it is the only run that compares a squash with its parent
