@@ -31,6 +31,7 @@ import { previewSpec, previewTokenRefs, buildPreviewSpec } from './preview';
 import { resolvePreview } from './resolve-preview';
 import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput';
 import { exportComponentDefs } from './component-defs-export';
+import { buildIdentity } from './build-identity';
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, buildFigmaGridStyles, fontStyleName, figName, parseColor, figmaArtifacts, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
 import type { FigmaCollectionFile } from './emit-figma';
 import { MOTION_FIGMA_COVERAGE, springBounce } from './emit-figma-dims';
@@ -30626,7 +30627,26 @@ arm: {
 
   // One version, stamped everywhere it is claimed. Two hardcoded copies is how a server ends up
   // reporting a version its own artifacts disagree with.
-  ok(SERVER_INFO.version === ENGINE_VERSION, 'version: the MCP serverInfo reports the engine version rather than a second hardcoded copy');
+  // #3698 R1: the server reports the BUILD identity, the engine version plus the change notes pending since the last fold.
+  // EXPECTED is built here from git's index (`git ls-files`), not from `build-identity.ts`'s directory read, so the two
+  // count the notes independently; and the format is typed literally. BY-NAME MUTATION: make SERVER_INFO's version the
+  // bare ENGINE_VERSION again, or make `pendingNoteCount` count README.md too → this arm fails.
+  {
+    const ls = spawnSync('git', ['ls-files', '--', 'packages/engine/changes/*.md'], { cwd: resolve(HERE, '..', '..'), encoding: 'utf8' });
+    const notes = ls.status === 0 ? ls.stdout.split('\n').filter((f) => f && !f.endsWith('/README.md')).length : -1;
+    const expected = notes > 0 ? `${ENGINE_VERSION}+pending.${notes}` : ENGINE_VERSION;
+    ok(notes >= 0 && SERVER_INFO.version === expected,
+      `version: the MCP serverInfo reports the build identity (#3698 R1) — expected ${expected} from ${notes} tracked note(s), got ${SERVER_INFO.version}`);
+    ok(buildIdentity(0, '1.2.3') === '1.2.3' && buildIdentity(null, '1.2.3') === '1.2.3' && buildIdentity(7, '1.2.3') === '1.2.3+pending.7',
+      'version: a folded or unknown state is the plain version, and a pending count is semver build metadata (#3698 R1)');
+    // The committed corpus keeps the fold's stamp: the pure tree carries no build identity, whatever is pending.
+    ok(buildTree(brandTheme(MINIMAL_BRAND)).tree.$extensions?.generator?.build === undefined,
+      'version: the pure tree carries no build identity; only a live shell stamps one (#3698 R1)');
+    // A brand export written live carries it (format 1.3); the committed brand-neutral one does not.
+    const liveDoc = exportComponentDefs(componentDefs, { brand: MINIMAL_BRAND, build: '9.9.9+pending.4' });
+    ok((liveDoc as any).build === '9.9.9+pending.4' && (exportComponentDefs(componentDefs) as any).build === undefined,
+      'version: a live defs export carries the build identity, the committed one none (#3698 R1)');
+  }
   const stamped = buildTree(brandTheme(MINIMAL_BRAND)).tree as any;
   ok(stamped.$extensions?.generator?.version === ENGINE_VERSION,
     'version: every emitted tree carries the engine version, so a suspect value can be traced to the code that produced it');
@@ -31083,7 +31103,7 @@ arm: {
   ok(cs.files.size === 2 && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json'),
     `export_theme: include:[componentSpecs] writes exactly the export and its Specs projection (${[...cs.files.keys()].join(', ')})`);
   const csDoc = JSON.parse(cs.files.get('./cs/component-defs.json') ?? '{}');
-  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.2' && Object.keys(csDoc.components ?? {}).length >= 40,
+  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.3' && Object.keys(csDoc.components ?? {}).length >= 40,
     `export_theme: the component-defs export is the brand's (${csDoc.brand?.id}), in its format, with every component (${Object.keys(csDoc.components ?? {}).length})`);
 
   // A bad brand must fail BEFORE anything is written — a partial export is worse than none.

@@ -35,7 +35,7 @@ const repoRoot = resolve(here, '..', '..');
 const STEPS: Array<{ label: string; args: string[] }> = [
   { label: 'emit-dtcg      (nb · prism3 · aurora · harbor)', args: ['packages/engine/emit-dtcg.ts'] },
   { label: 'nb-regression  (regression report)', args: ['packages/engine/nb-regression.ts'] },
-  { label: 'cli            (wendys + fidelity)', args: ['packages/engine/cli.ts', 'packages/engine/examples/wendys.design.md', '--out', 'packages/engine/out', '--fidelity'] },
+  { label: 'cli            (wendys + fidelity)', args: ['packages/engine/cli.ts', 'packages/engine/examples/wendys.design.md', '--out', 'packages/engine/out', '--fidelity', '--committed'] },
   { label: 'emit-figma     (out/figma/**)', args: ['packages/engine/emit-figma.ts'] },
   { label: 'emit-levers    (lever-manifest)', args: ['packages/engine/emit-levers.ts'] },
   { label: 'emit-preview   (preview-spec)', args: ['packages/engine/emit-preview.ts'] },

@@ -1,0 +1,103 @@
+name: fold
+
+# #3698 R1 (owner decision 2026-11-12): THE FOLD, RUN BY A BOT. `fold.ts` is the one writer of `ENGINE_VERSION`, its
+# changelog, the progress log and the `out/` stamps (#1807), and until this it ran only when a person typed it. The
+# review behind #3698 found 303 change notes and about 500 fragments pending, so `ENGINE_VERSION` no longer said which
+# code produced an artifact. This workflow runs the fold CONTRIBUTING §2 describes ("How to fold") and opens the fold PR.
+# It merges nothing: the fold PR goes through `gates` like any other, and its CI is the semantic-conflict net.
+#
+# WHEN IT RUNS. By hand (Actions → fold → Run workflow) until the owner picks a cadence. OWNER DECISION, on the PR that
+# added this: the `schedule:` below is the one line to add. Recommended: weekly, e.g. `- cron: '17 6 * * 1'`.
+#
+# THE TOKEN. A pull request opened with the default GITHUB_TOKEN starts no workflow runs (GitHub's rule against
+# recursive runs), so a fold PR opened with it would never get its `gates` check and could not merge. The job pushes
+# and opens the PR with the `FOLD_TOKEN` secret (a fine-grained token, or a GitHub App token, with contents and pull
+# requests write on this repository), and fails by name when it is unset rather than opening a PR no gate will run on.
+#
+# WHAT IT REFUSES, each one loudly and having written nothing:
+#   · FOLD_TOKEN unset (above).
+#   · A fold PR already open: CONTRIBUTING §2 keeps one fold open at a time, so the next run waits for it.
+#   · Anything `fold.ts` refuses (a malformed note, a dirty tree, HEAD off origin/main): its own message, its exit code.
+# With nothing pending, `fold.ts` prints "nothing to fold" and the job ends green with no PR.
+
+on:
+  workflow_dispatch:
+  # schedule:                     # OWNER DECISION: the cadence. See the header.
+  #   - cron: '17 6 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fold
+  cancel-in-progress: false
+
+jobs:
+  fold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: The fold token is set
+        env:
+          FOLD_TOKEN: ${{ secrets.FOLD_TOKEN }}
+        run: |
+          if [ -z "$FOLD_TOKEN" ]; then
+            echo "::error::FOLD_TOKEN is not set. A PR opened with the default workflow token starts no CI, so the fold PR could never pass gates. Add the secret (see this workflow's header)."
+            exit 1
+          fi
+
+      # Full history: `fold.ts` reads merge order from HEAD's first-parent history and refuses a HEAD off origin/main.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.FOLD_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install workspace deps
+        run: npm ci
+
+      - name: No fold PR is already open
+        env:
+          GH_TOKEN: ${{ secrets.FOLD_TOKEN }}
+        run: |
+          open=$(gh pr list --state open --limit 500 --json headRefName --jq '[.[] | select(.headRefName | startswith("fold/"))] | length')
+          if [ "$open" != "0" ]; then
+            echo "::error::A fold PR is already open (CONTRIBUTING §2: one fold open at a time). Merge or close it, then run this again."
+            exit 1
+          fi
+
+      - name: Plan the fold
+        id: plan
+        run: |
+          set -o pipefail
+          npx --yes tsx@4 fold.ts --dry-run | tee "$RUNNER_TEMP/fold-plan.txt"
+          if grep -q 'nothing to fold' "$RUNNER_TEMP/fold-plan.txt"; then echo "pending=false" >> "$GITHUB_OUTPUT"; else echo "pending=true" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Fold, commit, push and open the PR
+        if: steps.plan.outputs.pending == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.FOLD_TOKEN }}
+        run: |
+          set -euo pipefail
+          branch="fold/$(date -u +%F)-${GITHUB_RUN_ID}"
+          git switch -c "$branch"
+          npx --yes tsx@4 fold.ts
+          version=$(sed -n "s/^export const ENGINE_VERSION = '\([^']*\)'.*/\1/p" packages/engine/version.ts)
+          git config user.name 'prism3-fold[bot]'
+          git config user.email 'prism3-fold-bot@users.noreply.github.com'
+          git add -A
+          git commit -q -m "Fold: ENGINE_VERSION ${version}"
+          git push -u origin "$branch"
+          {
+            echo "A fold, opened by \`.github/workflows/fold.yml\` (#3698 R1). Review it as CONTRIBUTING §2 (\"How to fold\") says; its CI is the semantic-conflict net."
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/fold-plan.txt"
+            echo '```'
+          } > "$RUNNER_TEMP/fold-body.md"
+          gh pr create --base main --head "$branch" --title "Fold: ENGINE_VERSION ${version}" --body-file "$RUNNER_TEMP/fold-body.md"

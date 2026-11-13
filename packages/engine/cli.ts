@@ -41,10 +41,15 @@ import { emitTheme, validateBrandInput } from './emit-dtcg';
 import type { BrandInput } from './theme';
 import { componentDefsFileNames, exportComponentDefs, toSpecsComponents } from './component-defs-export';
 import { componentDefs } from './components/index';
+import { BUILD_IDENTITY } from './build-identity';
+
+// #3698 R1: the build identity a live run stamps beside the engine version (`build-identity.ts`). `--committed` drops it:
+// regen passes that flag for the one committed artifact it writes through this CLI (wendys), whose stamp is the fold's.
+let build: string | undefined = BUILD_IDENTITY;
 
 /** `--component-specs` (#3425): the brand's component-defs export and its Specs projection, beside its tokens. */
 const writeComponentSpecs = (input: BrandInput, resolvedOut: string) => {
-  const doc = exportComponentDefs(componentDefs, { brand: input });
+  const doc = exportComponentDefs(componentDefs, { brand: input, build });
   const names = componentDefsFileNames(doc.brand!.id);
   writeFileSync(resolve(resolvedOut, names.defs), JSON.stringify(doc, null, 2) + '\n');
   writeFileSync(resolve(resolvedOut, names.specs), JSON.stringify(toSpecsComponents(doc), null, 2) + '\n');
@@ -68,7 +73,7 @@ const validateOrExit = (input: unknown, designPath: string) => {
 
 // Shared emit + gate + report. Returns nothing; exits non-zero on a failed gate.
 const emitAndGate = (theme: Theme, resolvedOut: string, designPath: string, source: string) => {
-  const { stats } = emitTheme(theme, resolvedOut);
+  const { stats } = emitTheme(theme, resolvedOut, { build });
   console.log(`\n[${theme.id}] ${theme.root}.* / ${theme.colorFormat}  ←  ${designPath} (${source})`);
   for (const n of theme.notes) console.log(`   · ${n}`);
   console.log(`  palettes: ${theme.palettes.map((p) => p.palette).join(', ')} (danger ← ${theme.roleToPalette.danger})`);
@@ -103,8 +108,9 @@ const main = () => {
     }
     else if (a === '--fidelity') fidelity = true;
     else if (a === '--component-specs') componentSpecs = true;
+    else if (a === '--committed') build = undefined;
     else if (a === '--help' || a === '-h') {
-      console.log('Usage: tsx cli.ts <design.md> [--out <dir>] [--fidelity] [--component-specs]\n\n  <design.md>   a brand brief with YAML frontmatter — engine-native (examples/*.design.md)\n                OR a standard brand-skills / google-labs design.md (flat colors + x-prism3)\n  --out <dir>   output directory for <id>.tokens.json + <id>.ai.json (default: engine/out)\n  --fidelity    (standard dialect) also write <id>-fidelity-report.md — the observed-vs-generated diff\n  --component-specs  also write <id>.component-defs.json + <id>.component-defs.specs.json — every component\n                definition with this brand\'s component settings resolved, and the same as a Specs components set');
+      console.log('Usage: tsx cli.ts <design.md> [--out <dir>] [--fidelity] [--component-specs] [--committed]\n\n  <design.md>   a brand brief with YAML frontmatter — engine-native (examples/*.design.md)\n                OR a standard brand-skills / google-labs design.md (flat colors + x-prism3)\n  --out <dir>   output directory for <id>.tokens.json + <id>.ai.json (default: engine/out)\n  --fidelity    (standard dialect) also write <id>-fidelity-report.md — the observed-vs-generated diff\n  --component-specs  also write <id>.component-defs.json + <id>.component-defs.specs.json — every component\n                definition with this brand\'s component settings resolved, and the same as a Specs components set\n  --committed   stamp the engine version only, never the build identity: for an artifact the repo commits (regen)');
       process.exit(0);
     }
     else if (a.startsWith('-')) fail(`unknown flag: ${a}`);

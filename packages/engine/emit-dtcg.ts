@@ -44,9 +44,12 @@ const outDir = resolve(here, 'out');
 
 // Persist a theme's DTCG tree + AI-metadata sidecar to `outDir`; return the built
 // tree/modes/stats so the caller can print a summary and gate on the contracts.
-export const emitTheme = (theme: Theme, outDir: string): { tree: any; modes: ModeResult[]; stats: Stats } => {
+export const emitTheme = (theme: Theme, outDir: string, opts: { build?: string } = {}): { tree: any; modes: ModeResult[]; stats: Stats } => {
   mkdirSync(outDir, { recursive: true });
   const built = buildTree(theme);
+  // #3698 R1: a live build (the CLI on a brief) stamps its build identity beside the engine version, before anything
+  // below reads the tree. The committed corpus passes none, so its stamps stay the fold's (`build-identity.ts`).
+  if (opts.build && opts.build !== built.tree.$extensions.generator.version) built.tree.$extensions.generator.build = opts.build;
   writeFileSync(resolve(outDir, `${theme.id}.tokens.json`), JSON.stringify(built.tree, null, 2) + '\n');
   // AI-readable metadata sidecar (agent surface for the semantic layer).
   writeFileSync(resolve(outDir, `${theme.id}.ai.json`), JSON.stringify(buildAiMetadata(theme, built.tree), null, 2) + '\n');
