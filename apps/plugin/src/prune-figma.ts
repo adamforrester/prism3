@@ -613,7 +613,7 @@ export const applyPrunePlan = async (plan: PrunePlan, api: PruneApi, counts: Pru
       if (!s.gone && want.has(s.name)) {
         found.add(s.name);
         s.gone = true;
-        s.obj.remove(); counts.styles++;
+        if (tryRemove(`${grp.kind}-style:${s.name}`, () => s.obj.remove())) counts.styles++;
       }
     }
     for (const n of grp.names) if (!found.has(n)) misses.push(`${grp.kind}-style:${n}`);
