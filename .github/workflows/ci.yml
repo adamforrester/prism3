@@ -851,6 +851,12 @@ jobs:
       - name: Every codeOnly entry has a registered class and a disposition (#3441)
         run: npx --yes tsx@4 packages/engine/lint-code-only-classes.ts
 
+      # #3698 finding 2 — a bare localeCompare ordered emitted lists by the host's locale, so a Czech machine
+      # emitted 8 artifacts in a different order. Every comparison under packages/engine/ goes through
+      # localeFreeCompare; a locale-dependent call, an ICU collator or a locale-aware case fold fails by file and line.
+      - name: No engine comparison depends on the host locale (#3698)
+        run: npx --yes tsx@4 packages/engine/lint-locale-order.ts
+
       # #1123 — the mutation battery for the CLAUDE.md-freshness SessionStart report (#1110), the one
       # `tools/` harness wired into CI. It is NAMED FOR THE DETECTOR, never for this tree, because
       # docs/34 shape 17 is explicit that a stale checkout is internally consistent — nothing running
