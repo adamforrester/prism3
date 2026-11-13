@@ -11,7 +11,9 @@ lever with a range. It now sweeps every slider at both ends of its manifest rang
 its boundaries: the empty list, plus `LIST_BOUNDARIES`' samples either side of a stated count bound. Each
 setting meets the schema first (`validateBrandInput`), and a schema error is a refusal, matched by message
 like any other. The breakpoint samples are literals in the gate, and the gate asserts that the schema's
-`minItems` sits between them, so the gate and the schema state the floor independently (docs/34).
+`minItems` sits between them, so the gate and the schema state the floor independently (docs/34). Each swept
+kind must also build at least one setting (`REQUIRED_KINDS`, a literal apart from `SWEPT_CONTROLS`), so moving
+sliders into `NOT_SWEPT` fails by name instead of passing over nothing.
 
 **What it found.** `typography.links: []` validates, drops six guaranteed `*-default-link` paths, and leaves
 Link binding 112 text styles the brand does not emit, on all three sweep brands. Filed as #3707 with the
