@@ -5974,7 +5974,7 @@
         {
           "class": "semantics",
           "disposition": "REFUSED",
-          "description": "dismissal — the dismiss button renders only when `dismissible` and `onDismiss` are both set. Its accessible name says what it dismisses (\"Dismiss error message\"), not a bare \"Close\". The dismissal is stored against an id and a version, so a dismissed notice does not return on reload. A banner about a condition that still blocks the user is not dismissible, or comes back only while the condition holds."
+          "description": "dismissal — the close button renders only when `dismissible` and `onDismiss` are both set. Its accessible name says what it dismisses (\"Dismiss error message\"), not a bare \"Close\". The dismissal is stored against an id and a version, so a dismissed notice does not return on reload. A banner about a condition that still blocks the user is not dismissible, or comes back only while the condition holds."
         },
         {
           "class": "keyboard-and-focus",
@@ -5984,7 +5984,7 @@
         {
           "class": "hit-target",
           "disposition": "UNSUPPORTED",
-          "description": "the dismiss target — the small flush FlushIconButton is a 20px glyph; its hit area extends to at least 44×44px in code, as FlushIconButton's does. The banner's padding (at least 12px at compact) and its gap to the content leave that room, and the action sits below the first line, so the dismiss's 24px target circle touches no other target (2.5.8)."
+          "description": "the close target — the small flush FlushIconButton is a 20px glyph; its hit area extends to at least 44×44px in code, as FlushIconButton's does. The banner's padding (at least 12px at compact) and its gap to the content leave that room, and the action sits below the first line, so the dismiss's 24px target circle touches no other target (2.5.8)."
         },
         {
           "class": "responsive-layout",
@@ -5999,7 +5999,7 @@
         {
           "class": "right-to-left",
           "disposition": "UNSUPPORTED",
-          "description": "RTL — logical properties throughout: the glyph and the dismiss button swap edges. No glyph mirrors (the four tone glyphs and the close glyph are symmetric)."
+          "description": "RTL — logical properties throughout: the glyph and the close button swap edges. No glyph mirrors (the four tone glyphs and the close glyph are symmetric)."
         },
         {
           "class": "localization",
@@ -6057,6 +6057,7 @@
           "Whether the nested buttons' Rest, Hover and Pressed prototype reactions fire inside a nested instance (the open nesting item on #2466)."
         ],
         "evolution": [
+          "#3554 Q-CC26 A (owner decision 2026-11-11): the close button's part and Figma property are `close`, as on Toast and Dialog, renamed in place through `COMPONENT_RENAMES`; the code prop stays `dismissible`. Accessible names stay per component: Banner names the message it dismisses (\"Dismiss error message\"), because several banners can share a page, while a Toast is one at a time (\"Dismiss\") and a Dialog closes (\"Close\").",
           "#3225 (owner decisions 2026-11-01: Q-BN2.1–.3 A, Q-BN2.4 B, Q-BN3.1–.4 A, Q-BN4.1–.3 A), from the reference brand's rebuild: a body text property beside the slot, which stays for rich content behind rich body (an Update carries edited bodies across); a neutral tone, last on the axis, background.secondary with border.tertiary and no glyph (8 to 10 members); an inline link after the body's last word, in a wrapping, baseline-aligned row, never with the action.",
           "#2924 (owner Q693 A, Q707 A): a brand-wide Banner style, Tinted (the default) or Outlined, which moves the four fill bindings and nothing else. Bold, a solid tone fill, is held on #3038.",
           "Q386 (#2808): no component requires the Neutral button families, so the dismiss nests FlushIconButton.Neutral with the close glyph fixed and no swap, as Dialog's close does (Q385), and the action nests the primary Button, preferring Button.Neutral only when the file has it.",
