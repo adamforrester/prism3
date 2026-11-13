@@ -3675,7 +3675,7 @@
                 ]
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "members": 3,
               "where": {
                 "selection": [
@@ -7950,7 +7950,7 @@
                 ]
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "members": 3,
               "where": {
                 "selection": [
@@ -8163,7 +8163,7 @@
                 ]
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "members": 3,
               "where": {
                 "selection": [
@@ -8467,7 +8467,7 @@
                 ]
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "members": 6,
               "where": {
                 "selection": [
@@ -19772,7 +19772,7 @@
                 ]
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "members": 5,
               "where": {
                 "selection": [
@@ -20503,7 +20503,7 @@
                 ]
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "members": 5,
               "where": {
                 "selection": [
@@ -21175,7 +21175,7 @@
                 ]
               }
             },
-            "dismissGlyph": {
+            "closeGlyph": {
               "members": 5,
               "where": {
                 "selection": [

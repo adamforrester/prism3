@@ -13,8 +13,9 @@
  * (it never rebuilds). The caller calls `rebuild()`, which re-resolves and tells the `brand` topic.
  */
 import { TRAITS } from '@prism3/engine/vocabulary';
-import { ALL_MODES, brandTheme, type BrandInput } from '@prism3/engine/theme';
+import { ALL_MODES, brandTheme } from '@prism3/engine/theme';
 import { brandState, syncIdentity } from './store';
+import { commitAtomic, modeRemovalEffects, removeMode, renameMode, replaceBrand } from './name-refs';
 
 // ── identity ────────────────────────────────────────────────────────────────────────────────────
 /** A namespace the engine accepts as a token root: lowercase, starting with a letter (the legacy field's
@@ -103,25 +104,9 @@ export const modesOn = (): readonly string[] => (brandState.modes ?? ALL_MODES) 
 /** Q3: high contrast dark follows dark, so it is off, and cannot be turned on, while dark is off. */
 export const hcDarkLocked = (): boolean => !modesOn().includes('dark');
 
-/** What turning `mode` off drops from the brand: its role overrides, per-mode settings, anchors and surfaces
- *  (concept v6's `modeDrops`), in its words. */
-export const modeDrops = (mode: string): string[] => {
-  const out: string[] = [];
-  for (const r of Object.keys((brandState.overrides as Record<string, object> | undefined)?.[mode] ?? {})) out.push(`Role override: ${r}`);
-  const walk = (o: Record<string, unknown>, p: string): void => {
-    for (const [k, v] of Object.entries(o)) {
-      if (v && typeof v === 'object' && !Array.isArray(v)) walk(v as Record<string, unknown>, `${p}${k}.`);
-      else out.push(`Setting: ${p}${k} = ${String(v)}`);
-    }
-  };
-  walk(((brandState.modeLevers as Record<string, Record<string, unknown>> | undefined)?.[mode]) ?? {}, '');
-  for (const [c, v] of Object.entries((brandState.modeAnchors as Record<string, Record<string, unknown>> | undefined)?.[mode] ?? {})) out.push(`Anchor: ${c} at ${String(v)}`);
-  for (const [k, v] of Object.entries((brandState.surfaces as Record<string, Record<string, unknown>> | undefined)?.[mode] ?? {})) {
-    const x = v as { palette?: string; step?: number } | string;
-    out.push(`Surface: ${k} = ${typeof x === 'object' && x ? `${x.palette} ${x.step}` : String(x)}`);
-  }
-  return out;
-};
+/** What turning `mode` off drops from the brand: its role overrides, per-mode settings, anchors, surfaces and outline
+ *  hover fill (concept v6's `modeDrops`), in its words. Read from the table every mode writer reads (`name-refs.ts`). */
+export const modeDrops = (mode: string): string[] => modeRemovalEffects(brandState, mode);
 
 /** Turning `mode` off, planned: the modes that go (dark takes high contrast dark with it, Q3) and what each
  *  drops. `confirm` says whether it needs a confirm first (concept v6: when it takes another mode with it or
@@ -131,25 +116,6 @@ export const planModeOff = (mode: string): { off: string[]; drops: string[]; con
   const off = [mode, ...(mode === 'dark' && on.includes('hc-dark') ? ['hc-dark'] : [])];
   const drops = off.flatMap((x) => modeDrops(x).map((d) => (x === mode ? d : `${MODE_NAME[x] ?? x}: ${d}`)));
   return { off, drops, confirm: off.length > 1 || drops.length > 0 };
-};
-
-/** Drop a mode's per-mode data from `input` (the working brand unless given), and any container that empties. */
-const dropModeData = (mode: string, input: BrandInput = brandState): void => {
-  const b = input as unknown as Record<string, Record<string, unknown> | undefined>;
-  for (const k of ['overrides', 'modeLevers', 'modeAnchors', 'surfaces']) {
-    const o = b[k];
-    if (!o || typeof o !== 'object' || !(mode in o)) continue;
-    delete o[mode];
-    if (!Object.keys(o).length) delete b[k];
-  }
-};
-
-/** Replace the working brand's fields with `next`'s, in place (the store's binding cannot be reassigned
- *  from here, and every reader holds that one object). */
-const replaceBrand = (next: BrandInput): void => {
-  const b = brandState as unknown as Record<string, unknown>;
-  for (const k of Object.keys(b)) delete b[k];
-  Object.assign(b, next);
 };
 
 /** The custom modes based on `mode`. Turning that mode off is refused by the engine while any is (a custom
@@ -172,7 +138,7 @@ export const setModeOn = (mode: Exclude<BuiltIn, 'light'>): void => {
 export const setModeOff = (mode: Exclude<BuiltIn, 'light'>): string | null => {
   const next = structuredClone(brandState);
   const cur = new Set(modesOn());
-  for (const x of planModeOff(mode).off) { cur.delete(x); dropModeData(x, next); }
+  for (const x of planModeOff(mode).off) { cur.delete(x); removeMode(next, x); }
   next.modes = BUILTIN_ORDER.filter((m) => cur.has(m)) as typeof next.modes;
   try { brandTheme(structuredClone(next)); } catch (e) { return (e as Error).message; }
   replaceBrand(next);
@@ -195,29 +161,30 @@ export const addCustomMode = (): string => {
   return name;
 };
 
-/** Remove custom mode `i` and its per-mode data. */
-export const removeCustomMode = (i: number): void => {
+/** Remove custom mode `i` and its per-mode data, atomically (#3697 M1): refused, it returns the engine's message and
+ *  leaves the brand as it was. Null when the mode is gone. */
+export const removeCustomMode = (i: number): string | null => {
   const c = customModes()[i];
-  if (!c) return;
-  dropModeData(c.name);
-  const next = customModes().filter((_, j) => j !== i);
-  if (next.length) brandState.customModes = next; else delete brandState.customModes;
+  if (!c) return null;
+  return commitAtomic((b) => {
+    removeMode(b, c.name);
+    const left = (b.customModes ?? []).filter((_, j) => j !== i);
+    if (left.length) b.customModes = left; else delete b.customModes;
+  });
 };
 
 /** Rename custom mode `i`. Refused (false, nothing written) for a name that is not a mode name, is a
- *  built-in's, or is another custom mode's. Its per-mode data moves with it. */
+ *  built-in's, or is another custom mode's, and when the engine refuses the result (atomic, #3697 M1). Its per-mode
+ *  data moves with it. */
 export const renameCustomMode = (i: number, next: string): boolean => {
   const c = customModes()[i];
   const t = next.trim();
   if (!c || t === c.name || !MODE_NAME_RE.test(t)) return false;
   if ((BUILTIN_ORDER as readonly string[]).includes(t) || customModes().some((x, j) => j !== i && x.name === t)) return false;
-  const b = brandState as unknown as Record<string, Record<string, unknown> | undefined>;
-  for (const k of ['overrides', 'modeLevers', 'modeAnchors', 'surfaces']) {
-    const o = b[k];
-    if (o && c.name in o) { o[t] = o[c.name]; delete o[c.name]; }
-  }
-  brandState.customModes = customModes().map((x, j) => (j === i ? { ...x, name: t } : x));
-  return true;
+  return commitAtomic((b) => {
+    renameMode(b, c.name, t);
+    b.customModes = (b.customModes ?? []).map((x, j) => (j === i ? { ...x, name: t } : x));
+  }) === null;
 };
 
 /** Base custom mode `i` on light or dark. */

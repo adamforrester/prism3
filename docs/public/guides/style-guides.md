@@ -3,7 +3,7 @@
 <!-- DRAFT for owner review (#2637, lane 4; corrected to Documentation and Update file for #3264). -->
 
 Style guides are tables, one for each group of tokens in the file, drawn from the file's own variables, text styles, effect styles, gradient styles and grid styles. A rerun updates each table in place. <!-- src: apps/studio/src/shell/style-guides.ts:75#46a11854 --> <!-- src: apps/studio/src/shell/style-guides.ts:79#3d2941b6 -->
-They are in the Figma plugin only. You choose what to draw in the **Docs** area, and **Update file** draws it. <!-- src: apps/studio/src/state/update-file.ts:387-391 --> <!-- src: apps/studio/src/shell/pages.ts:517 -->
+They are in the Figma plugin only. You choose what to draw in the **Docs** area, and **Update file** draws it. <!-- src: apps/studio/src/state/update-file.ts:404-408 --> <!-- src: apps/studio/src/shell/pages.ts:517 -->
 
 Because the tables read the file rather than the studio, they show what the file holds right now, including anything you changed by hand. <!-- src: apps/plugin/src/style-guide.ts:1-40#46e5df6d -->
 
@@ -23,7 +23,7 @@ Write the theme first if you want the color tables to show contrast. The contras
 ## Draw the tables
 
 1. Choose **Update file** in the top bar.
-2. Tick **Style guides**: "Drawn with the settings in Docs. A rerun updates each table in place." It is ticked by default only on a file that isn't set up yet. <!-- src: apps/studio/src/state/update-file.ts:387-390 -->
+2. Tick **Style guides**: "Drawn with the settings in Docs. A rerun updates each table in place." It is ticked by default only on a file that isn't set up yet. <!-- src: apps/studio/src/state/update-file.ts:404-407 -->
 3. Choose **Update file**.
 
 The status strip says "Style guides drawn" when the run ends, and the Activity drawer lists each table. If the run went wrong, the drawer's **Update again** opens Update file again. <!-- src: apps/studio/src/state/status-strip.ts:143-144 --> <!-- src: apps/studio/src/shell/activity.ts:248 -->
@@ -61,4 +61,4 @@ A rerun finds each table it drew before and updates it in place, reporting token
 A table whose group is gone is deleted only if the plugin drew it and nobody has changed it since. A table someone edited, moved or copied is left in place and reported. <!-- src: apps/plugin/src/style-guide.ts:32-33#bc3b7afd -->
 A run filtered by table title never deletes another table. <!-- src: tools/figma-mcp/README.md:205-206#f9dbf31e -->
 
-Tables for groups Prism3 no longer draws are offered for removal in Update file's **Clean up** tab. <!-- src: apps/studio/src/state/update-file.ts:312 --> See [Update a Figma file](update-a-file-safely.md#remove-what-the-brand-no-longer-uses).
+Tables for groups Prism3 no longer draws are offered for removal in Update file's **Clean up** tab. <!-- src: apps/studio/src/state/update-file.ts:327 --> See [Update a Figma file](update-a-file-safely.md#remove-what-the-brand-no-longer-uses).

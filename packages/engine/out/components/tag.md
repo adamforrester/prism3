@@ -26,7 +26,7 @@ Shown on the default member: type `select`, selection `unselected`, size `medium
 5. **Label** — The tag's text, at the same weight whether or not the tag is selected, so the tag keeps its width when selected.
 6. **Check glyph** (optional) — The selected indicator, a check mark after the label. It exists only on a selected select tag and is on by default; the check icon switch hides it, leaving the tint and the 2px outline.
 7. **Dismiss** — The remove slot of a dismissible tag: a square as tall as the tag, at its trailing end, holding the × glyph.
-8. **Dismiss glyph** — The × of a dismissible tag, a plain glyph centered in the remove slot, in the tag's icon ink.
+8. **Close glyph** — The × of a dismissible tag, a plain glyph centered in the remove slot, in the tag's icon ink.
 9. **Focus ring** — The shared focus ring, around the whole tag while it has keyboard focus.
 
 ## Styles
@@ -138,7 +138,7 @@ Generated from the plan that builds the design-file component: 45 members. Value
 | `container/focusRing` | instance | state=focus-visible |
 | `container/content/labelCheck/checkGlyph` | instance | selection=selected |
 | `container/dismiss` | frame | type=dismissible |
-| `container/dismiss/dismissGlyph` | instance | type=dismissible |
+| `container/dismiss/closeGlyph` | instance | type=dismissible |
 
 Code-only states, with no design-file member: `read-only`.
 
@@ -187,7 +187,7 @@ Keyed by `size`, `type`.
 | `container/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/content/labelCheck` | `space.0` / `space.0` / `space.0` / `space.050` | `space.075` | — | — | — | — |
 | `container/dismiss` | — | — | `size.md.height` | `size.md.height` | — | — |
-| `container/dismiss/dismissGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/dismiss/closeGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
 **size=small, type=dismissible**
 
@@ -198,7 +198,7 @@ Keyed by `size`, `type`.
 | `container/content/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/content/labelCheck` | `space.0` / `space.0` / `space.0` / `space.050` | `space.050` | — | — | — | — |
 | `container/dismiss` | — | — | `size.sm.height` | `size.sm.height` | — | — |
-| `container/dismiss/dismissGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/dismiss/closeGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 
 **size=large, type=dismissible**
 
@@ -209,7 +209,7 @@ Keyed by `size`, `type`.
 | `container/content/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/content/labelCheck` | `space.0` / `space.0` / `space.0` / `space.050` | `space.100` | — | — | — | — |
 | `container/dismiss` | — | — | `size.lg.height` | `size.lg.height` | — | — |
-| `container/dismiss/dismissGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/dismiss/closeGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 
 ### Type
 
@@ -317,7 +317,7 @@ Keyed by `type`, `selection`, `state`.
 | `container` | — | `color.interactive.neutral.border.rest` | — | — |
 | `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
 | `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.rest` | — |
-| `container/dismiss/dismissGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `container/dismiss/closeGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
 
 **type=dismissible, selection=unselected, state=hover**
 
@@ -326,7 +326,7 @@ Keyed by `type`, `selection`, `state`.
 | `container` | `color.interactive.neutral.overlay.hover` | `color.interactive.neutral.border.hover` | — | — |
 | `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.hover` |
 | `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.hover` | — |
-| `container/dismiss/dismissGlyph` | — | — | — | `color.interactive.neutral.icon.hover` |
+| `container/dismiss/closeGlyph` | — | — | — | `color.interactive.neutral.icon.hover` |
 
 **type=dismissible, selection=unselected, state=pressed**
 
@@ -335,7 +335,7 @@ Keyed by `type`, `selection`, `state`.
 | `container` | `color.interactive.neutral.overlay.pressed` | `color.interactive.neutral.border.pressed` | — | — |
 | `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.pressed` |
 | `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.pressed` | — |
-| `container/dismiss/dismissGlyph` | — | — | — | `color.interactive.neutral.icon.pressed` |
+| `container/dismiss/closeGlyph` | — | — | — | `color.interactive.neutral.icon.pressed` |
 
 **type=dismissible, selection=unselected, state=focus-visible**
 
@@ -344,7 +344,7 @@ Keyed by `type`, `selection`, `state`.
 | `container` | — | `color.interactive.neutral.border.rest` | — | — |
 | `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
 | `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.rest` | — |
-| `container/dismiss/dismissGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `container/dismiss/closeGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
 
 **type=dismissible, selection=unselected, state=disabled**
 
@@ -353,14 +353,14 @@ Keyed by `type`, `selection`, `state`.
 | `container` | — | `color.disabled.border` | — | — |
 | `container/content/leadingVisual` | — | — | — | `color.disabled.icon` |
 | `container/content/labelCheck/label` | — | — | `color.disabled.text` | — |
-| `container/dismiss/dismissGlyph` | — | — | — | `color.disabled.icon` |
+| `container/dismiss/closeGlyph` | — | — | — | `color.disabled.icon` |
 
 ### Nesting and properties
 
 - `container/content/leadingVisual` is a swap slot, property `↳ swap leading icon`, shown by `leading icon`
 - `container/focusRing` nests `focus-ring` at `surface=default`
 - `container/content/labelCheck/checkGlyph` nests `icon/check`
-- `container/dismiss/dismissGlyph` nests `icon/close`
+- `container/dismiss/closeGlyph` nests `icon/close`
 
 | Property | Type | Default |
 | --- | --- | --- |
