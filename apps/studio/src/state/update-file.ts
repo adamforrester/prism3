@@ -453,7 +453,7 @@ export const blockedWhy = (line: string, nameOf: (id: string) => string = (id) =
  *  leads with what still blocks. DRAFT. */
 export const blockedLine = (reasons: readonly string[] | undefined, theme = false, nameOf?: (id: string) => string): string => {
   if (!reasons?.length) return 'Can’t update yet — the check gave no reason.';
-  const left = reasons;
+  const left = theme ? reasons.filter((r) => !THEME_CLEARS.test(r)) : reasons;
   const shown = left.length ? left : reasons;
   const { why, next } = blockedWhy(shown[0], nameOf);
   return [`Can’t update yet — ${why}`, next, shown.length > 1 ? `${s_(shown.length - 1, 'more reason', 'more reasons')}.` : ''].filter(Boolean).join(' ');
