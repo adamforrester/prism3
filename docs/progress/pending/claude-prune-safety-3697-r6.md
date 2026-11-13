@@ -22,7 +22,8 @@ removal on its own, and reports running counts.
 ### For whoever re-verifies
 
 - `test-prune-main.ts` drives the real `main.ts` over `file-shim.ts`: Apply Theme, three planted stale variables,
-  then an unapplied input, a missing hash, a wrong hash, and a confirm whose second removal throws. Every expected
+  then an unapplied input, a missing hash, a wrong hash, a confirm whose second removal throws, and a confirm that
+  throws after its removals (a stale canvas label's node read), which must report their running count. Every expected
   line is a literal; the version-first order is read from one log of host calls.
 - The refusal lines, the version title, the "could not be removed" line and the guide sentence are the owner's
   approved wording (D3709.1, as drafted; `PRUNE_COPY`, `versionOf({ run: 'prune' })`).
