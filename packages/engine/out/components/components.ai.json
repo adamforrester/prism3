@@ -3746,7 +3746,7 @@
           "3.3.2 Labels or Instructions (every field has a visible, programmatic label)",
           "1.4.3 Contrast (both emphasis inks, text.primary and text.secondary, are gated at 4.5:1; the disabled ink is contrast-exempt and held at 3:1)"
         ],
-        "aria": "Prefer a native <label for=id>; use aria-label / aria-labelledby only when a visible label genuinely cannot be shown (a search field with a hidden label — and it still exists in the DOM). The required marker is visual; the field carries required / aria-required so the state is not marker-only."
+        "aria": "Prefer a native <label for=id>; use aria-label / aria-labelledby only when a visible label genuinely cannot be shown (a search field with a hidden label — and it still exists in the DOM). The required marker is visual; the field carries required / aria-required, or for a slider, \"required\" in the thumb's accessible name, so the state is not marker-only."
       },
       "content": {
         "labelPattern": "Noun or noun phrase, sentence case, concise, ≤3 words, no trailing colon. Not an instruction — that belongs in helper text."
