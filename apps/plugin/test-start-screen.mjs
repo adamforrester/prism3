@@ -141,6 +141,20 @@ const readStart = (page) => page.evaluate(() => {
 const waitStart = (page, want) =>
   page.waitForFunction((w) => !!document.querySelector('[data-p3="start-screen"]:not([data-leaving="true"] *)') === w, want, { timeout: 4000 })
     .then(() => true, () => false);
+/** #3717: the start window at an END STATE, not a frame of its entrance or its exit, so §8 measures what stays on screen.
+ *  `waitStart` answers "is it open" as a designer reads it, and a leaving window reads as closed from its first frame, so
+ *  `waitStart(page, false)` returns while the window is still drawn. And §8's `settle` waits only for animations still
+ *  running: once the exit's last frame is past, the page has no animation left, but the window is not removed until
+ *  `leave`'s `finished` promises resolve on a later frame (`shell/dom.ts`). Under load that frame comes late, and the
+ *  sweep measured the window there, attached, at opacity 0. So: open is the window attached, not leaving, its scrim at
+ *  opacity 1 with nothing on it running; closed is the window detached, which is `leave`'s own end. Waits, not a timer. */
+const settleStart = (page, open) =>
+  page.waitForFunction((o) => {
+    const scrim = document.querySelector('[data-p3="start-screen-scrim"]');
+    if (!o) return !scrim && !document.querySelector('[data-p3="start-screen"]');
+    return !!scrim && !scrim.closest('[data-leaving="true"]') && !!scrim.querySelector('[data-p3="start-screen"]')
+      && getComputedStyle(scrim).opacity === '1' && scrim.getAnimations({ subtree: true }).every((a) => a.playState !== 'running');
+  }, open, { timeout: 5000 }).then(() => true, () => false);
 
 const NB_BRAND = { id: 'restored-brand', root: 'rb', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true } };
 
@@ -978,6 +992,18 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
     ok(stuck.length === 0, `${where}: every finite animation settles within ${SETTLE_CAP_MS}ms before measuring${
       stuck.length ? ` — still running: ${stuck.slice(0, 3).join(' | ')}` : ''}`);
   };
+  /** #3717: the guard for every measure. The start window it measures is at an end state: absent, or open at opacity 1
+   *  and not leaving. Read off the page, apart from `settleStart`, which each step calls before it measures. Without
+   *  that wait the legibility arms below still fail, but on a fading window's text, so this names the cause. Its
+   *  mutation, and the case that holds the exit's end back so the mutation fails every run, follow the sweep (#3717). */
+  const startLook = async (page, where) => {
+    const s = await page.evaluate(() => {
+      const scrim = document.querySelector('[data-p3="start-screen-scrim"]');
+      return scrim ? { leaving: !!scrim.closest('[data-leaving="true"]'), op: getComputedStyle(scrim).opacity } : null;
+    });
+    ok(!s || (!s.leaving && s.op === '1'), `#3717 ${where}: the start window is measured at an end state, absent or open at opacity 1${
+      s && (s.leaving || s.op !== '1') ? ` — it was still drawn${s.leaving ? ', leaving' : ''}, at opacity ${s.op}` : ''}`);
+  };
 
   let unparsedTotal = 0;
   let textTotal = 0, fieldTotal = 0, worst = { ratio: Infinity, where: '' };
@@ -1006,6 +1032,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
   ];
   const measure = async (page, where) => {
     await settle(page, where);
+    await startLook(page, where);
     const m = await page.evaluate(LEGIBILITY);
     // Every color READ — an unparsed one fails naming the node, never a silent skip (review of #1777).
     const uniq = [...new Map(m.unparsed.map((u) => [`${u.cls}|${u.prop}|${u.value}`, u])).values()];
@@ -1091,6 +1118,20 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
     for (const want of BRAND_CONTROLS) ok(seen.has(want), `${where}: the "${want}" control is mounted and was measured`);
   };
 
+  /** From the start window just left, to Documentation › Style guides (#2909 IA v2 phase 1, Q667 A, Q2909.23 A): the old
+   *  Build style guides page, now the rail's Documentation area in its settings-only mode, opened from the rail as a
+   *  designer opens it and given a small file, so its tree and every option group draw. #3717: the start window it left
+   *  is removed first, so the page is measured without it (`settleStart`). */
+  const openStyleGuides = async (page, tag) => {
+    ok(await settleStart(page, false), `#3717 ${tag} / Documentation › Style guides: the start window is removed before the page is measured`);
+    await hooks.need(page, '[data-p3="frame"]');   // the app view (Color › Palettes draws the two panes from S2)
+    await hooks.click(page.locator('[data-p3="rail-documentation"]'));
+    await hooks.need(page, '[data-p3="style-guides"]');
+    await page.evaluate((c) => window.postMessage({ pluginMessage: { type: 'style-guide-catalog', catalog: c } }, '*'), SG_CATALOG);
+    await hooks.need(page, '[data-p3="sg-collection"]');
+    await page.evaluate(() => document.fonts.ready);
+  };
+
   if (DEFAULT && MIN) {
     for (const scheme of ['light', 'dark']) {
       for (const theme of ['light', 'dark']) {
@@ -1100,6 +1141,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         const { context, page, errors } = await openThemed(DEFAULT, scheme, theme);
         await post(page, { type: 'restore-input-empty' });
         await waitStart(page, true);
+        ok(await settleStart(page, true), `#3717 ${tag} / start screen: the start window reaches its open end state before it is measured`);
         await measure(page, `${tag} / start screen`);
         {
           // X4 A's canary: beside Import, disabled while the paste box is empty, a copy that is NOT disabled but carries
@@ -1115,15 +1157,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         }
         await hooks.click(page.locator('[data-p3="start-example"]').first());
         await waitStart(page, false);
-        await hooks.need(page, '[data-p3="frame"]');   // the app view (Color › Palettes draws the two panes from S2)
-        // Documentation › Style guides (#2909 IA v2 phase 1, Q667 A, Q2909.23 A): the old Build style guides page, now the
-        // rail's Documentation area in its settings-only mode, opened from the rail as a designer opens it and given a
-        // small file, so its tree and every option group draw.
-        await hooks.click(page.locator('[data-p3="rail-documentation"]'));
-        await hooks.need(page, '[data-p3="style-guides"]');
-        await page.evaluate((c) => window.postMessage({ pluginMessage: { type: 'style-guide-catalog', catalog: c } }, '*'), SG_CATALOG);
-        await hooks.need(page, '[data-p3="sg-collection"]');
-        await page.evaluate(() => document.fonts.ready);
+        await openStyleGuides(page, tag);
         pagesSeen.add('style-guides');
         await measure(page, `${tag} / Documentation › Style guides`);
         // Back to the Theme area, whose tab row the sweep walks (#2909: a full-width page draws no tab row).
@@ -1158,13 +1192,55 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         const small = await openThemed(MIN, scheme, theme);
         await post(small.page, { type: 'restore-input-empty' });
         await waitStart(small.page, true);
+        ok(await settleStart(small.page, true), `#3717 ${tag} / start screen @ ${MIN.width}×${MIN.height}: the start window reaches its open end state before it is measured`);
         await measure(small.page, `${tag} / start screen @ ${MIN.width}×${MIN.height}`);
         await hooks.click(small.page.locator('[data-p3="start-example"]').first());
         await waitStart(small.page, false);
+        ok(await settleStart(small.page, false), `#3717 ${tag} / editor @ ${MIN.width}×${MIN.height}: the start window is removed before the editor is measured`);
         await measure(small.page, `${tag} / editor @ ${MIN.width}×${MIN.height}`);
         await small.context.close();
       }
     }
+  }
+  // #3717: the start window measured mid-exit. The sweep's Style guides step opens the page as the window leaves, and the
+  // exit's transitions end before the page is measured. `leave` removes the window only once their `finished` promises
+  // resolve, on the frame after the end, so in the gap the page has no animation left for `settle` to wait on and the
+  // window is still attached at opacity 0. A loaded machine opens that gap some of the time (the issue's 1 run in 5, 4
+  // runs in 10). Here it is held open on every run: from the click on, every `finished` promise reaches the page 2 s late,
+  // as it does when the frame after the end comes late, so the window stays drawn at the end of its exit for 2 s.
+  // EXPECTED: the window is still there after `waitStart` reads it closed (the first check, so a change that closes the
+  // gap is said, not passed), and the page is measured without it, since `openStyleGuides` waits for it to be removed.
+  // ACTUAL: the drawn page, through the sweep's own `measure`.
+  // MUTATION (after a `wip:` commit): `openStyleGuides`'s `settleStart` call removed → `#3717 light scheme / Figma light /
+  // forced late exit / Documentation › Style guides: the start window is measured at an end state, absent or open at
+  // opacity 1 — it was still drawn, leaving, at opacity 0`, with the two legibility arms of the issue on the same page.
+  if (DEFAULT) {
+    const tag = 'light scheme / Figma light / forced late exit';
+    const { context, page, errors } = await openThemed(DEFAULT, 'light', 'light');
+    try {
+      await post(page, { type: 'restore-input-empty' });
+      await waitStart(page, true);
+      ok(await settleStart(page, true), `#3717 ${tag}: the start window reaches its open end state`);
+      await page.evaluate(() => {
+        const d = Object.getOwnPropertyDescriptor(Animation.prototype, 'finished');
+        Object.defineProperty(Animation.prototype, 'finished', {
+          configurable: true,
+          get() { return d.get.call(this).then((v) => new Promise((r) => setTimeout(() => r(v), 2000))); },
+        });
+      });
+      await hooks.click(page.locator('[data-p3="start-example"]').first());
+      await waitStart(page, false);
+      await page.waitForFunction(() => !document.querySelector('[data-p3="start-screen-scrim"]')?.getAnimations({ subtree: true }).length, null, { timeout: 2000 }).catch(() => {});
+      const held = await page.evaluate(() => {
+        const scrim = document.querySelector('[data-p3="start-screen-scrim"]');
+        return scrim ? { leaving: scrim.dataset.leaving === 'true', op: getComputedStyle(scrim).opacity, running: scrim.getAnimations({ subtree: true }).length } : null;
+      });
+      ok(!!held && held.leaving && held.op === '0' && held.running === 0,
+        `#3717 ${tag}: the exit has ended and the window is still drawn, leaving, with nothing running for \`settle\` to wait on — ${JSON.stringify(held)}`);
+      await openStyleGuides(page, tag);
+      await measure(page, `${tag} / Documentation › Style guides`);
+      ok(errors.length === 0, `#3717 ${tag}: no console errors (${errors.slice(0, 1).join('') || 'none'})`);
+    } finally { await context.close(); }
   }
   // REPRESENTED, not counted: the build controls only this bundle has must be among those measured. Since S8.2 they are
   // the Components TAB's (its Build button and set choices); the plugin's one page outside the tabs, Build style guides,

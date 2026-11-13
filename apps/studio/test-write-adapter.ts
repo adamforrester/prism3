@@ -163,6 +163,8 @@ drops('agent-log', wire({ type: 'agent-log', id: 'a', line: 'x' }));
 // #1957: a second write of a running operation, declined by the main thread.
 accepts('refused', { type: 'refused', code: 'busy', cmd: 'apply-theme', agent: false, message: 'Update file is already running. Try again when it finishes.' },
   { kind: 'refused', code: 'busy', cmd: 'apply-theme', agent: false, message: 'Update file is already running. Try again when it finishes.' });
+accepts('refused, naming the write that holds the file (#3697 R7)', { type: 'refused', code: 'busy', cmd: 'build-components', agent: true, message: 'm', held: 'apply-theme' },
+  { kind: 'refused', code: 'busy', cmd: 'build-components', agent: true, message: 'm', held: 'apply-theme' });
 drops('refused with another code', wire({ type: 'refused', code: 'nope', cmd: 'apply-theme', agent: false, message: 'm' }));
 drops('refused with no message', wire({ type: 'refused', code: 'busy', cmd: 'apply-theme', agent: false }));
 drops('refused with no caller', wire({ type: 'refused', code: 'busy', cmd: 'apply-theme', message: 'm' }));
