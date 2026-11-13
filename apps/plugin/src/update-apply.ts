@@ -1034,12 +1034,17 @@ export const applyUpdate = async (
     // #2831: the confirm names what it broke for library consumers, as the check listed it.
     if (p.breaking && !o.refused && !o.stopped) o.breaking = p.breaking;
     const entry = slotMigrationOf(t.def, opts.ledger);
-    if (mig && entry && !o.stopped && !o.refused) {
-      o.carried = await fillSlots(p.set, entry, mig.live, mig.migration, opts.breathe);
+    // #3697 H1: a set that STOPPED still fills: the capture is in memory only, and the members the update reached have
+    // already traded their rows for the slot, so a fill skipped here is content lost. Only an instance whose member
+    // holds the slot is filled (`reachedOnly`); the rest keep their rows for the next run to read.
+    if (mig && entry && !o.refused) {
+      o.carried = await fillSlots(p.set, entry, mig.live, mig.migration, opts.breathe, !!o.stopped);
       o.content.push(...o.carried.misses);
     }
     const tentry = slotTextMigrationOf(t.def, opts.ledger);
-    if (tmig && tentry && !o.stopped && !o.refused) {
+    // #3697 H1, the slot-text half: a stopped set fills too. Its properties are the set's, so an instance either has them
+    // all or none; one with none is a named miss (`fillSlotText`), and carrying it is #3761.
+    if (tmig && tentry && !o.refused) {
       // The slot's layer may be renamed in this same update (its `part` entry), so the fill finds it by its new name.
       o.carriedText = await fillSlotText(p.set, tentry, partRenames(t.def, opts.ledger).get(tentry.slot) ?? tentry.slot, tmig.live, tmig.migration, opts.breathe);
       o.content.push(...o.carriedText.misses);

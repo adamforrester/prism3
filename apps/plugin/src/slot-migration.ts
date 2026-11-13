@@ -268,8 +268,14 @@ export type FillOutcome = { instances: number; items: number; misses: string[]; 
 /**
  * Fill each captured instance's slot, after the set was updated. `live` is the capture's own node references, read
  * just before the set's update. Each instance is read back after its fill; a difference is a miss naming it.
+ *
+ * `reachedOnly` (#3697 H1): the set's update STOPPED part-way. The capture lives only in memory, so it is filled now
+ * or never: an instance whose member the update reached already holds the slot and has lost its rows, and the next
+ * run finds no rows on it to read. So every instance whose slot is there is filled, as on a finished set. An instance
+ * whose member the update never reached still has its rows and no slot: it is left as it is, with no miss, and the
+ * next run reads it and fills it.
  */
-export const fillSlots = async (setName: string, entry: SlotEntry, live: Map<string, { inst: MigNode; rows: { layer: MigNode; main: MigNode }[] }>, captured: SlotMigration, breathe?: () => Promise<void>): Promise<FillOutcome> => {
+export const fillSlots = async (setName: string, entry: SlotEntry, live: Map<string, { inst: MigNode; rows: { layer: MigNode; main: MigNode }[] }>, captured: SlotMigration, breathe?: () => Promise<void>, reachedOnly = false): Promise<FillOutcome> => {
   const out: FillOutcome = { instances: 0, items: 0, misses: [], limits: [] };
   let k = 0;
   for (const c of captured.instances) {
@@ -279,6 +285,7 @@ export const fillSlots = async (setName: string, entry: SlotEntry, live: Map<str
     const where = `${setName} instance "${c.name}"`;
     if (!l) { out.misses.push(`${where}: no longer in the file`); continue; }
     const slot = find(l.inst, (x) => x.type === 'SLOT' && x.name === entry.slot);
+    if (!slot && reachedOnly) continue;
     if (!slot) { out.misses.push(`${where}: has no "${entry.slot}" slot after the update`); continue; }
     if (entry.within) {
       // ONTO THE KEPT DEFAULTS (#2661): each changed value, by property name before Figma's `#id`, onto the slot's item at
