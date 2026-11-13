@@ -433,7 +433,7 @@ export const blockedWhy = (line: string, nameOf: (id: string) => string = (id) =
   if ((m = line.match(/^(text|effect) styles? not in this file: (.+)$/)))
     return { why: `it needs ${listCount(m[2]) === 1 ? `a ${m[1]} style` : `${m[1]} styles`} this file doesn’t have: ${m[2]}.`, next: 'Tick Theme to write them.' };
   if ((m = line.match(/^components? the plan swaps to (?:is|are) not in this file: (.+)$/)))
-    return { why: `it swaps to ${setNames(m[1], nameOf)}, which this file doesn’t have.`, next: `Add ${setNames(m[1], nameOf)} on Components first.` };
+    return { why: `it swaps to ${setNames(m[1], nameOf)}, which this file doesn’t have.`, next: `Tick ${setNames(m[1], nameOf)} on Components first.` };
   if ((m = line.match(/^fonts: (.+) will not load/)))
     return { why: `these fonts won’t load: ${m[1]}.`, next: 'Install or turn them on in Figma, then open this again.' };
   if (/^an axis the plan removed would collapse members/.test(line))
