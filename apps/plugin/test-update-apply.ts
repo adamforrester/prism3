@@ -277,7 +277,7 @@ import { EXECUTOR_REVISION } from './src/executor-revision';
 import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY, UPDATING_KEY } from './src/member-baseline';
 import { figmaInstances, fixHostMethods, makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
-import { adoptMembers, breakingLine, breakingOf, breakingSection, breakingSummary, captureBaselines, checkedSetOf, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type Breaking, type UpdateHost, type UpdateTarget } from './src/update-plan';
+import { adoptMembers, breakingClause, breakingLine, breakingOf, breakingSection, breakingSummary, captureBaselines, checkedSetOf, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type Breaking, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
 import { applyUpdate, applyVerdict as applyVerdictOf, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
@@ -5980,7 +5980,7 @@ section('published — on a set in a team library, what breaks consumer files is
     for (const k of ['swapTarget', 'propertyRef', 'descendantFills']) delete lv[k];
     return q;
   });
-  const HEAD = /^Breaks library consumers: /;
+  const HEAD = /^Files that use this library: /;
   const SWAP = '↳ swap leading icon';
 
   // NOTHING CHANGES FOR AN UNPUBLISHED SET.
@@ -5994,8 +5994,8 @@ section('published — on a set in a team library, what breaks consumer files is
     ok(p.drops.length > 0 && p.replacements.length > 0 && p.properties.remove.length > 0, `premise: the plan drops, replaces and removes a property (${p.drops.length}, ${p.replacements.length}, ${p.properties.remove.length})`);
     const v = previewVerdict(pre);
     const a = applyVerdict(res);
-    ok(p.publish === undefined && p.breaking === undefined && !v.lines.some((l) => HEAD.test(l)) && !/library consumers/.test(v.headline)
-      && !a.lines.some((l) => HEAD.test(l)) && !/library consumers/.test(a.headline) && res.outcomes[0]?.breaking === undefined,
+    ok(p.publish === undefined && p.breaking === undefined && !v.lines.some((l) => HEAD.test(l)) && !/use this library/.test(v.headline)
+      && !a.lines.some((l) => HEAD.test(l)) && !/use this library/.test(a.headline) && res.outcomes[0]?.breaking === undefined,
       `published/unpublished no-op: no publish status, no breaking list, no section and no headline clause in the check or the confirm (${v.headline} | ${a.headline})`);
   }
 
@@ -6016,15 +6016,22 @@ section('published — on a set in a team library, what breaks consumer files is
     ok(b.some((x) => x.kind === 'property' && x.name === SWAP && x.change === 'removed'), `published/property removed: the swap property's removal is listed (${JSON.stringify(b.filter((x) => x.kind === 'property'))})`);
     const v = previewVerdict(pre);
     const head = v.lines.find((l) => HEAD.test(l)) ?? '';
-    ok(head === `Breaks library consumers: ${b.length} changes in 1 published set, passed on at the next library publish.`
-      && v.lines.includes(`${TAG} · property ${SWAP} · removed — consumer overrides of it are dropped.`)
-      && v.lines.includes(`${TAG} · ${dropped[0]} · dropped — consumer instances of it point at a deprecated member.`),
-      `published/section: the check's own section heads the breaking changes and names them (${head})`);
-    ok(v.headline.endsWith(` · ${b.length} changes break library consumers`), `published/headline: the check's headline counts them (${v.headline})`);
+    // #3711 (Q-UF1 A): "breaks" only for a property removed or retyped and a layer replaced or removed; a retired member
+    // affects those files without breaking them. The test's own split of the list, never `breaksConsumers`.
+    const broken = b.filter((x) => x.kind === 'property' || x.kind === 'replace' || x.kind === 'layer').length;
+    ok(broken > 0 && broken < b.length, `premise: some of the ${b.length} changes break consumer files and some do not (${broken})`);
+    ok(head === `Files that use this library: ${b.length} changes in 1 published set, ${broken} of them breaking, passed on at the next library publish.`
+      && v.lines.includes(`${TAG} · property ${SWAP} · removed — breaks files that use this library: overrides of it are dropped.`)
+      && v.lines.includes(`${TAG} · ${dropped[0]} · retired — its instances in files that use this library keep working and show as deprecated.`),
+      `published/section: the check's own section heads the changes and names them (${head})`);
+    ok(v.headline.endsWith(` · ${b.length} changes affect files that use this library, ${broken} break them`), `published/headline: the check's headline counts them (${v.headline})`);
     const a = applyVerdict(res);
-    ok(res.outcomes[0]?.breaking?.length === b.length && a.lines.includes(`Breaks library consumers: ${b.length} changes made in 1 published set, passed on at the next library publish.`)
-      && a.lines.includes(`${TAG} · ${dropped[0]} · dropped — consumer instances of it point at a deprecated member.`) && a.headline.endsWith(` · ${b.length} changes break library consumers`),
+    ok(res.outcomes[0]?.breaking?.length === b.length && a.lines.includes(`Files that use this library: ${b.length} changes made in 1 published set, ${broken} of them breaking, passed on at the next library publish.`)
+      && a.lines.includes(`${TAG} · ${dropped[0]} · retired — its instances in files that use this library keep working and show as deprecated.`) && a.headline.endsWith(` · ${b.length} changes affect files that use this library, ${broken} break them`),
       `published/confirm: the confirm names what it broke (${a.headline} | ${a.lines.find((l) => HEAD.test(l))})`);
+    // #3711 (Q-UF1 A): the publish description counts the changes that break those files, never a retired member.
+    ok(typeof res.publish === 'string' && res.publish.endsWith(`\n${broken} breaking changes for library consumers.`),
+      `uf1/publish: the publish description counts only the ${broken} breaking changes of ${b.length} (${JSON.stringify(res.publish?.split('\n').pop())})`);
   }
 
   // CHANGED is published too; a retyped property and a rename to a private name are breaking; between private names not.
@@ -6063,13 +6070,13 @@ section('published — on a set in a team library, what breaks consumer files is
     const few = [{ kind: 'drop' as const, member: 'size=a' }, { kind: 'drop' as const, member: 'size=b' }];
     const capped = breakingSection([{ set: TAG, breaking: many }, { set: 'other', breaking: few }], false);
     const wantCap = [
-      'Breaks library consumers: 13 changes in 2 published sets, passed on at the next library publish.',
-      ...many.slice(0, 8).map((d) => `${TAG} · ${d.member} · dropped — consumer instances of it point at a deprecated member.`),
-      `${TAG}: 3 more breaking changes not listed.`,
-      ...few.map((d) => `other · ${d.member} · dropped — consumer instances of it point at a deprecated member.`),
+      'Files that use this library: 13 changes in 2 published sets, passed on at the next library publish.',
+      ...many.slice(0, 8).map((d) => `${TAG} · ${d.member} · retired — its instances in files that use this library keep working and show as deprecated.`),
+      `${TAG}: 3 more changes not listed.`,
+      ...few.map((d) => `other · ${d.member} · retired — its instances in files that use this library keep working and show as deprecated.`),
     ];
     ok(JSON.stringify(capped) === JSON.stringify(wantCap),
-      `published/cap: each set lists at most 8 breaking changes, then "N more breaking changes not listed." (${capped.length} lines: ${JSON.stringify(capped.slice(9))})`);
+      `published/cap: each set lists at most 8 changes, then "N more changes not listed." (${capped.length} lines: ${JSON.stringify(capped.slice(9))})`);
   }
 
   // A LAYER REMOVED AND RE-ADDED (#2864): Tag built while its check layer was `check`, updated to plans naming it
@@ -6093,11 +6100,11 @@ section('published — on a set in a team library, what breaks consumer files is
     const one: Extract<Breaking, { kind: 'layer' }> = lay[0] ?? { kind: 'layer', path: '(none listed)', members: 0 };
     ok(lay.length === 1 && lay[0].path === CHECK && lay[0].members === 15 && JSON.stringify(lay[0].added) === JSON.stringify(['checkGlyph']),
       `published/layer removed: the removed layer is listed once, on its 15 members, beside the layer added in its place (${JSON.stringify(lay)})`);
-    ok(breakingLine(TAG, one) === `${TAG} · ${CHECK} · removed from 15 members — consumer overrides on it are lost. If checkGlyph is this layer renamed, declare the rename and the update renames it in place.`,
+    ok(breakingLine(TAG, one) === `${TAG} · ${CHECK} · removed from 15 members — breaks files that use this library: overrides on it are lost. If checkGlyph is this layer renamed, declare the rename and the update renames it in place.`,
       `published/layer line: the line names the layer, what is lost and the in-place fix (${breakingLine(TAG, one)})`);
     ok(previewVerdict({ sets: [p], missing: [], refused: [] }).lines.includes(breakingLine(TAG, one)), 'published/layer section: the check\'s section carries the line');
     // The checklist's set (`checkedSetOf`, what `main.ts` posts): the published set carries its line, the unpublished none.
-    const LINE = 'Breaks library consumers: 1 layer removed: consumer overrides on it are lost; a declared rename keeps a renamed layer in place.';
+    const LINE = '1 change affects files that use this library: 1 layer removed, which breaks those files: overrides on it are lost. A declared rename keeps a renamed layer in place.';
     ok(checkedSetOf(p, TAG).breaks === LINE && !('breaks' in checkedSetOf(qp, TAG)),
       `published/checklist set: the checked set posted for the checklist carries the published set's line, and the unpublished set's none (${checkedSetOf(p, TAG).breaks} | ${checkedSetOf(qp, TAG).breaks})`);
     const shipped = (await previewUpdate(w.host, [{ def: TAG, plans: planned }])).sets[0];
@@ -6140,8 +6147,26 @@ section('published — on a set in a team library, what breaks consumer files is
       { kind: 'replace', member: 'size=a', path: 'content/x', reason: 'FRAME → TEXT' }, { kind: 'replace', member: 'size=b', path: 'content/x', reason: 'FRAME → TEXT' },
       { kind: 'layer', path: 'content/check', members: 15, added: ['checkGlyph'] },
     ];
-    ok(breakingSummary(all) === 'Breaks library consumers: renamed to a name Figma does not publish, so the set leaves the library; 2 members dropped: kept and marked deprecated, so consumer instances still resolve; 1 property removed or retyped: consumer overrides of it are dropped; 1 layer replaced, not updated in place: consumer overrides on it are lost; 1 layer removed: consumer overrides on it are lost; a declared rename keeps a renamed layer in place.',
-      `published/checklist line: every case is named in the set's one line (${breakingSummary(all)})`);
+    ok(breakingSummary(all, 'Tag') === '7 changes affect files that use this library: Tag is renamed to a name Figma does not publish, so it leaves the library. 2 Tag members retired. Their instances keep working and show as deprecated. 1 property removed or retyped, which breaks those files: overrides of it are dropped. 1 layer replaced, not updated in place, which breaks those files: overrides on it are lost. 1 layer removed, which breaks those files: overrides on it are lost. A declared rename keeps a renamed layer in place.',
+      `published/checklist line: every case is named in the set's one line (${breakingSummary(all, 'Tag')})`);
+    // #3711 (Q-UF1 A): the owner's run, two Wallet button members retired and nothing else: neither the line nor the
+    // headline clause says "breaks". Literals. Mutation: a drop counted as breaking → `uf1/retired only`.
+    const retired: Breaking[] = [{ kind: 'drop', member: 'variant=a' }, { kind: 'drop', member: 'variant=b' }];
+    ok(breakingSummary(retired, 'Wallet button') === '2 changes affect files that use this library: 2 Wallet button members retired. Their instances keep working and show as deprecated.'
+      && breakingClause([{ breaking: retired }]) === ' · 2 changes affect files that use this library'
+      && JSON.stringify(breakingSection([{ set: 'Wallet button', breaking: retired }], true)) === JSON.stringify([
+        'Files that use this library: 2 changes made in 1 published set, passed on at the next library publish.',
+        'Wallet button · variant=a · retired — its instances in files that use this library keep working and show as deprecated.',
+        'Wallet button · variant=b · retired — its instances in files that use this library keep working and show as deprecated.']),
+      `uf1/retired only: retired members are named by their effect, never as breaking (${breakingSummary(retired, 'Wallet button')} | ${breakingClause([{ breaking: retired }])})`);
+    const one1: Breaking[] = [{ kind: 'drop', member: 'variant=a' }];
+    ok(breakingSummary(one1, 'Wallet button') === '1 change affects files that use this library: 1 Wallet button member retired. Its instances keep working and show as deprecated.'
+      && breakingClause([{ breaking: one1 }]) === ' · 1 change affects files that use this library', `uf1/retired one: the count agrees with 1 (${breakingSummary(one1, 'Wallet button')})`);
+    const prop: Breaking[] = [{ kind: 'property', name: 'label', change: 'removed' }];
+    ok(breakingClause([{ breaking: prop }]) === ' · 1 change affects files that use this library and breaks them'
+      && breakingClause([{ breaking: [...prop, ...prop] }]) === ' · 2 changes affect files that use this library and break them'
+      && breakingClause([{ breaking: [...retired, ...prop] }]) === ' · 3 changes affect files that use this library, 1 breaks them',
+      `uf1/clause breaks: the clause says "breaks" for the changes that do (${breakingClause([{ breaking: [...retired, ...prop] }])})`);
     ok(breakingSummary(undefined) === '' && breakingSummary([]) === '', 'published/checklist quiet: a set with nothing breaking has no line');
   }
 

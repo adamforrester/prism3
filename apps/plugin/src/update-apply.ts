@@ -61,7 +61,7 @@ import { readTag, furnitureDueCount, type FurnitureDue } from './canvas-furnitur
 import { docPanelReaches, readPanelTag, type PanelApi, type PNode } from './doc-panel';
 import { rereadAfter, withRoot } from './run-read';
 import { isLiveSpecPanel, readSpecTag } from './spec-tag';
-import { REACTIONS, nestedFirst, breakingClause, nestedMemberFaults, nestFaultLine, breakingSection, furnitureParts, withSetSlots, hostPorts, locateSets, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, renamedComponent, runHost, setUpToDate, slotMigrationFor, slotTextMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
+import { REACTIONS, nestedFirst, breakingClause, breaksConsumers, nestedMemberFaults, nestFaultLine, breakingSection, furnitureParts, withSetSlots, hostPorts, locateSets, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, renamedComponent, runHost, setUpToDate, slotMigrationFor, slotTextMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
 import { slotMigrationOf, slotTextMigrationOf } from '@prism3/engine/component-renames';
 import { fillSlotText, type SlotTextOutcome, type TextMigNode } from './slot-text-migration';
@@ -853,7 +853,7 @@ const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdateP
   const changed = res.outcomes.filter((o) => !o.refused && (o.updated.length || o.added || o.renamed || o.deprecated.length)).map((o) => o.set);
   res.publish = publishDescription({
     title: res.version, sets: changed, from: res.about?.from ?? (preview.about?.state === 'stale' ? preview.about.from.engine : null),
-    consumerBreaks: res.outcomes.reduce((k, o) => k + (o.breaking?.length ?? 0), 0),
+    consumerBreaks: res.outcomes.reduce((k, o) => k + (o.breaking?.filter(breaksConsumers).length ?? 0), 0),   // #3711 (Q-UF1 A): a retired member is not breaking
   });
 };
 
