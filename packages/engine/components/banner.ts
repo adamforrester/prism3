@@ -26,7 +26,7 @@
  *
  * The tone glyph (four `presentWhen` vector parts, FieldMessage's shape and FieldMessage's glyph per status, so a
  * danger banner and an errored field show the same mark), a content column (title, the body as a native slot, the
- * action), and a dismiss button (FlushIconButton.Neutral, flush, small, always the `close` glyph with no swap: Q386 on
+ * action), and a close button (FlushIconButton.Neutral, flush, small, always the `close` glyph with no swap: Q386 on
  * #2808; flush per owner QA 2026-10-19, as Dialog's close). The action is ONE nested text Button, small, off by default
  * (owner QA Q533.1: no second action, no outline button, no Button group; the owner's research found no banner with
  * two actions). It is made from Button.Neutral when the file has it (`prefersWhenBuilt`, never a requirement: Q386 on
@@ -81,8 +81,8 @@ export const banner: ComponentDef = {
     { name: 'icon', type: 'node | false', required: false, description: 'Replaces the tone glyph, or false to hide it in a dense layout. The glyph is hidden from assistive technology either way.' },
     { name: 'actions', type: 'node, never with link', required: false, description: 'One text Button that resolves the message (Button.Neutral when the file has it), under the body. Name it by what it does ("Retry", "Update billing"). A banner carries one action at most, so a banner with actions takes no link.' },
     { name: 'link', type: '{ label: string; href: string }, never with actions', required: false, description: 'A link at the end of the body sentence, for a one-line message whose action goes somewhere ("Faster checkout by becoming a member. Join"). It renders as an inline Link, underlined, appended to the body paragraph, and wraps under the text when the line has no room. A banner carries one action at most, so a banner with a link takes no actions. Name the outcome where it fits ("Become a member").' },
-    { name: 'dismissible', type: 'boolean', default: false, required: false, description: 'Whether the banner shows a dismiss button. Set it together with onDismiss. Leave a banner about a condition that still blocks the user not dismissible.' },
-    { name: 'onDismiss', type: 'function', required: false, description: 'Called when the dismiss button is pressed. Remove the banner, store the dismissal so it does not return on reload, and move focus to a sensible place.' },
+    { name: 'dismissible', type: 'boolean', default: false, required: false, description: 'Whether the banner shows a close button. Set it together with onDismiss. Leave a banner about a condition that still blocks the user not dismissible.' },
+    { name: 'onDismiss', type: 'function', required: false, description: 'Called when the close button is pressed. Remove the banner, store the dismissal so it does not return on reload, and move focus to a sensible place.' },
     { name: 'announce', type: "enum: 'auto' | 'none'", values: ['auto', 'none'], default: 'auto', required: false, description: 'Whether a banner inserted after the page loads is announced: auto announces it through the page\'s live region, assertively for danger and politely otherwise. A banner present when the page loads is never announced; it is read in order.' },
   ],
 
@@ -161,7 +161,7 @@ export const banner: ComponentDef = {
         // The paint and geometry owner, in the schema's sense; the banner takes no focus (FieldMessage's reading).
         role: 'target',
         paintSlots: ['fill', 'border'],
-        // The glyph, the content and the dismiss button, top-aligned so the glyph and the dismiss button stay beside the
+        // The glyph, the content and the close button, top-aligned so the glyph and the close button stay beside the
         // first line when the text wraps.
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         // Built at 480 contained (the proposal's §9) and 960 full-bleed (Q533.4, built on its recommended answer), so the page-top
@@ -173,7 +173,7 @@ export const banner: ComponentDef = {
         gap: 'gap',
         radius: 'edge.{edge}.radius',
         strokeEdges: { top: 'border-width', right: 'edge.{edge}.edge-side', bottom: 'border-width', left: 'edge.{edge}.edge-side' },
-        children: ['infoGlyph', 'successGlyph', 'warningGlyph', 'dangerGlyph', 'content', 'dismiss'],
+        children: ['infoGlyph', 'successGlyph', 'warningGlyph', 'dangerGlyph', 'content', 'close'],
         note: 'The banner: the tone\'s tinted surface (the page color when the brand\'s Banner style is Outlined) with a 1px edge in the tone\'s border color, drawn inside so it adds no size. Contained: rounded, edged all round. Full-bleed: a square bar, edged top and bottom only.',
       },
       // FieldMessage's glyph per status (its header measures the artwork): the exclamation in a triangle for the most
@@ -189,7 +189,7 @@ export const banner: ComponentDef = {
         grow: true,
         gap: 'content-gap',
         children: ['titleBox', 'bodyRow', 'richBody', 'actions'],
-        note: 'The title, the body and the action, stacked. It fills the row between the glyph and the dismiss button.',
+        note: 'The title, the body and the action, stacked. It fills the row between the glyph and the close button.',
       },
       titleBox: {
         kind: 'box',
@@ -268,16 +268,16 @@ export const banner: ComponentDef = {
         // when the file has it (Q386). Q533.1: one text action, never two.
         note: 'The one action, a small text button; a banner holds one action at most.',
       },
-      dismiss: {
+      close: {
         kind: 'nest',
         nests: 'flush-icon-button-neutral',
         optional: true,
         nesting: { kind: 'nest-fixed', variant: { shape: 'flush', size: 'small', surface: 'default', state: 'rest' } },
         overrides: { swaps: { icon: 'close' } },
-        // Maintainer detail, out of the reader caption (#3610): The dismiss button: a FlushIconButton.Neutral, flush,
+        // Maintainer detail, out of the reader caption (#3610): The close button: a FlushIconButton.Neutral, flush,
         // small (the bare glyph, no edge or fill, as Dialog's close; owner QA 2026-10-19), always the close glyph,
         // with no swap (Q386). Off by default.
-        note: 'The dismiss button, a bare close icon with no edge or fill, as on a dialog; off by default.',
+        note: 'The close button, a bare close icon with no edge or fill, as on a dialog; off by default.',
       },
     },
     codeOnly: [
@@ -297,7 +297,7 @@ export const banner: ComponentDef = {
         class: 'semantics',
         disposition: 'refused',
         description:
-          'dismissal — the dismiss button renders only when `dismissible` and `onDismiss` are both set. Its accessible name says what it dismisses ("Dismiss error message"), not a bare "Close". The dismissal is stored against an id and a version, so a dismissed notice does not return on reload. A banner about a condition that still blocks the user is not dismissible, or comes back only while the condition holds.',
+          'dismissal — the close button renders only when `dismissible` and `onDismiss` are both set. Its accessible name says what it dismisses ("Dismiss error message"), not a bare "Close". The dismissal is stored against an id and a version, so a dismissed notice does not return on reload. A banner about a condition that still blocks the user is not dismissible, or comes back only while the condition holds.',
       },
       {
         class: 'keyboard-and-focus',
@@ -309,7 +309,7 @@ export const banner: ComponentDef = {
         class: 'hit-target',
         disposition: 'unsupported',
         description:
-          'the dismiss target — the small flush FlushIconButton is a 20px glyph; its hit area extends to at least 44×44px in code, as FlushIconButton\'s does. The banner\'s padding (at least 12px at compact) and its gap to the content leave that room, and the action sits below the first line, so the dismiss\'s 24px target circle touches no other target (2.5.8).',
+          'the close target — the small flush FlushIconButton is a 20px glyph; its hit area extends to at least 44×44px in code, as FlushIconButton\'s does. The banner\'s padding (at least 12px at compact) and its gap to the content leave that room, and the action sits below the first line, so the dismiss\'s 24px target circle touches no other target (2.5.8).',
       },
       {
         class: 'responsive-layout',
@@ -327,7 +327,7 @@ export const banner: ComponentDef = {
         class: 'right-to-left',
         disposition: 'unsupported',
         description:
-          'RTL — logical properties throughout: the glyph and the dismiss button swap edges. No glyph mirrors (the four tone glyphs and the close glyph are symmetric).',
+          'RTL — logical properties throughout: the glyph and the close button swap edges. No glyph mirrors (the four tone glyphs and the close glyph are symmetric).',
       },
       {
         class: 'localization',
@@ -401,7 +401,7 @@ export const banner: ComponentDef = {
       icon: { part: ['infoGlyph', 'successGlyph', 'warningGlyph', 'dangerGlyph'], default: true },
       actions: { part: 'actions', default: false },
       link: { part: 'link', default: false },
-      dismissible: { part: 'dismiss', default: false, figmaName: 'dismiss' },
+      dismissible: { part: 'close', default: false, figmaName: 'close' },
     },
   },
 
@@ -415,12 +415,12 @@ export const banner: ComponentDef = {
       '1.4.11 Non-text Contrast (the edge clears 3:1 against the page and the glyph 3:1 against the fill, measured in every mode of the example brands)',
       '2.4.3 Focus Order (the action or the link is in the tab order, and a dismiss moves focus to a surviving element)',
       '2.4.4 Link Purpose (In Context) (the inline link sits in the sentence that gives it its purpose)',
-      '2.5.8 Target Size (Minimum) (the dismiss button is a 20px glyph; it passes by spacing, its 24px circle clear of every other target, and targets 44×44px through a code-side hit area)',
+      '2.5.8 Target Size (Minimum) (the close button is a 20px glyph; it passes by spacing, its 24px circle clear of every other target, and targets 44×44px through a code-side hit area)',
       '2.2.1 Timing Adjustable (the reason errors go in a banner, which stays, rather than a toast, which goes away)',
     ],
-    keyboard: 'The action or the inline link, then the dismiss button, are ordinary Tab stops in reading order. The banner itself takes no focus.',
+    keyboard: 'The action or the inline link, then the close button, are ordinary Tab stops in reading order. The banner itself takes no focus.',
     focus: 'No focus of its own. After a dismiss, focus moves to the control that caused the banner or to the page heading, never to the page body.',
-    aria: 'The glyph is aria-hidden. The inline link is a real link inside the body paragraph, read as part of the sentence. A banner present at load: a section with aria-labelledby pointing at the title, and no role="alert". An inserted banner: announced through a live region that already exists, role="alert" for danger and role="status" otherwise. The dismiss button\'s accessible name names what it dismisses ("Dismiss error message"), and is translated.',
+    aria: 'The glyph is aria-hidden. The inline link is a real link inside the body paragraph, read as part of the sentence. A banner present at load: a section with aria-labelledby pointing at the title, and no role="alert". An inserted banner: announced through a live region that already exists, role="alert" for danger and role="status" otherwise. The close button\'s accessible name names what it dismisses ("Dismiss error message"), and is translated.',
   },
 
   content: {
@@ -488,6 +488,7 @@ export const banner: ComponentDef = {
       'Whether the nested buttons\' Rest, Hover and Pressed prototype reactions fire inside a nested instance (the open nesting item on #2466).',
     ],
     evolution: [
+      '#3554 Q-CC26 A (owner decision 2026-11-11): the close button\'s part and Figma property are `close`, as on Toast and Dialog, renamed in place through `COMPONENT_RENAMES`; the code prop stays `dismissible`. Accessible names stay per component: Banner names the message it dismisses ("Dismiss error message"), because several banners can share a page, while a Toast is one at a time ("Dismiss") and a Dialog closes ("Close").',
       '#3225 (owner decisions 2026-11-01: Q-BN2.1–.3 A, Q-BN2.4 B, Q-BN3.1–.4 A, Q-BN4.1–.3 A), from the reference brand\'s rebuild: a body text property beside the slot, which stays for rich content behind rich body (an Update carries edited bodies across); a neutral tone, last on the axis, background.secondary with border.tertiary and no glyph (8 to 10 members); an inline link after the body\'s last word, in a wrapping, baseline-aligned row, never with the action.',
       '#2924 (owner Q693 A, Q707 A): a brand-wide Banner style, Tinted (the default) or Outlined, which moves the four fill bindings and nothing else. Bold, a solid tone fill, is held on #3038.',
       'Q386 (#2808): no component requires the Neutral button families, so the dismiss nests FlushIconButton.Neutral with the close glyph fixed and no swap, as Dialog\'s close does (Q385), and the action nests the primary Button, preferring Button.Neutral only when the file has it.',

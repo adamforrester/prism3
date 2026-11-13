@@ -50,6 +50,7 @@ import { themePlans } from './src/apply-theme';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import type { BrandInput } from '@prism3/engine/theme';
 import { catalogOf, CATALOG_SWAP_TARGET } from '../studio/src/state/component-catalog';
+import { displayNameOf } from '../studio/src/state/component-groups';
 import { checkScopeOf, defaultTicks, type LiveDue, dueSetsOf, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, stepsOf, updateDefsOf, UPDATE_COPY, type FileSets } from '../studio/src/state/update-file';
 import { leafForDef } from './src/file-taxonomy';
 import type { ComponentDef } from '@prism3/engine/component-schema';
@@ -152,8 +153,13 @@ ok(defs.length === 2 && steps.join(',') === 'theme,update',
 // "Updated after Theme". Two worlds: a nested component the file lacks (a non-Theme line among the file's lacks), and
 // a plan member the dry run refuses (a blocker found before the file's lacks are read).
 // #3713: the row names the check's own first reason, in plain words, never "the agent's update check says why".
-const ROW_NEST = 'Can’t update yet — it needs Icon, which this file doesn’t have. Add Icon on Components first. 1 more reason.';
-const ROW_DRY = /^Can’t update yet — the plan names a member that is not a coordinate(?::.+)?\. \d+ more reasons?\.$/;
+// With Theme ticked the indicator variables no longer count (Theme writes them), so nothing follows the nest; with
+// Theme not ticked they are counted. Sets are named as Components names them (`displayNameOf`, as the shell passes).
+const ROW_NEST = 'Can’t update yet — it needs Icon, which this file doesn’t have. Add Icon on Components first.';
+const ROW_NEST_NO_THEME = 'Can’t update yet — it needs Icon, which this file doesn’t have. Add Icon on Components first. 1 more reason.';
+const nameOf = (id: string): string => displayNameOf(catalog, id);
+// Its other reasons are all variables Theme writes, so with Theme ticked none is counted.
+const ROW_DRY = /^Can’t update yet — the plan names a member that is not a coordinate(?::[^.]+)?\.$/;
 const ROW_AFTER_THEME = 'Updated after Theme — Theme writes the variables and styles it binds first';
 {
   const lacking = { ...host, root: { ...host.root, findAllWithCriteria: (c: { types: string[] }) => host.root.findAllWithCriteria(c).filter((n) => String((n as { name?: unknown }).name) !== 'icon/close') } } as unknown as ApplyHost;
@@ -161,8 +167,10 @@ const ROW_AFTER_THEME = 'Updated after Theme — Theme writes the variables and 
   const c = checkedSetOf(p, 'tag');
   ok(p.blockers.some((b) => b.startsWith('Not in this file: icon/close.')) && p.blockers.some((b) => b.includes('the plan binds') && b.includes('not in this file')),
     `theme only/premise nest: tag lacks icon/close and the indicator variables (${JSON.stringify(p.blockers)})`);
-  ok(c.blocked && c.themeBlocked === undefined && UPDATE_COPY.checked(c, true) === ROW_NEST && UPDATE_COPY.checked(c, true) !== ROW_AFTER_THEME,
-    `theme only/nest: a set that also lacks a nested component is not theme-blocked, and its row does not read "Updated after Theme" (${JSON.stringify([c.themeBlocked ?? null, UPDATE_COPY.checked(c, true)])})`);
+  ok(c.blocked && c.themeBlocked === undefined && UPDATE_COPY.checked(c, true, nameOf) === ROW_NEST && UPDATE_COPY.checked(c, true, nameOf) !== ROW_AFTER_THEME,
+    `theme only/nest: a set that also lacks a nested component is not theme-blocked, and its row does not read "Updated after Theme" (${JSON.stringify([c.themeBlocked ?? null, UPDATE_COPY.checked(c, true, nameOf)])})`);
+  ok(UPDATE_COPY.checked(c, false, nameOf) === ROW_NEST_NO_THEME,
+    `theme only/nest, Theme not ticked: the variables Theme writes are counted as one more reason (${UPDATE_COPY.checked(c, false, nameOf)})`);
 }
 {
   const plans = plansNow.get('tag')!;
@@ -171,8 +179,8 @@ const ROW_AFTER_THEME = 'Updated after Theme — Theme writes the variables and 
   const c = checkedSetOf(p, 'tag');
   ok(p.blockers[0]?.startsWith('the plan names a member that is not a coordinate: ') && p.blockers.slice(1).length > 0 && p.blockers.slice(1).every((b) => b.includes('the plan binds') && b.includes('not in this file')),
     `theme only/premise dry run: the dry run refuses a member first, and the file lacks only the indicator variables (${JSON.stringify(p.blockers)})`);
-  ok(c.blocked && c.themeBlocked === undefined && ROW_DRY.test(UPDATE_COPY.checked(c, true)) && UPDATE_COPY.checked(c, true) !== ROW_AFTER_THEME,
-    `theme only/dry run: a set the dry run already refuses is not theme-blocked, and its row does not read "Updated after Theme" (${JSON.stringify([c.themeBlocked ?? null, UPDATE_COPY.checked(c, true)])})`);
+  ok(c.blocked && c.themeBlocked === undefined && ROW_DRY.test(UPDATE_COPY.checked(c, true, nameOf)) && UPDATE_COPY.checked(c, true, nameOf) !== ROW_AFTER_THEME,
+    `theme only/dry run: a set the dry run already refuses is not theme-blocked, and its row does not read "Updated after Theme" (${JSON.stringify([c.themeBlocked ?? null, UPDATE_COPY.checked(c, true, nameOf)])})`);
 }
 
 // THE THEME STEP: the brand's variables are written, the indicator ones with them.

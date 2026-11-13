@@ -382,7 +382,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
         box.dataset.id = id;
         const row = h('div', 'p3-upd-setrow');
         const shown = lineOf(id);
-        const line = hook(h('p', 'p3-sub p3-upd-setline', shown ? UPDATE_COPY.checked(shown, t.theme) : prog?.next === id ? UPDATE_COPY.checkingSet : ''), 'update-set-check');
+        const line = hook(h('p', 'p3-sub p3-upd-setline', shown ? UPDATE_COPY.checked(shown, t.theme, nameOf) : prog?.next === id ? UPDATE_COPY.checkingSet : ''), 'update-set-check');
         line.dataset.state = shown ? 'checked' : prog?.next === id ? 'checking' : chk === 'pending' ? 'waiting' : 'none';
         if (shown && pendingLines.has(id)) armEnter(`update-line=${id}`);
         if (entering(`update-line=${id}`)) line.dataset.land = 'true';
@@ -424,7 +424,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
         const text = h('span', 'p3-check-text p3-upd-checktext');
         text.append(h('span', 'p3-upd-setname', nameOf(id)));
         if (d?.state === 'due') text.append(hook(h('span', 'p3-sg-tag', UPDATE_COPY.dueWhy(d)), 'update-set-due'));
-        row.append(text, hook(h('p', 'p3-sub p3-upd-setline', blockedReason(checkOf(id)?.reasons)), 'update-blocked-why'));
+        row.append(text, hook(h('p', 'p3-sub p3-upd-setline', blockedReason(checkOf(id)?.reasons, t.theme, nameOf)), 'update-blocked-why'));
         list.append(row);
       }
       grp.append(list);
@@ -500,7 +500,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
         row.append(head);
         if (d?.state === 'kept') row.append(hook(h('p', 'p3-sub p3-upd-setline', UPDATE_COPY.keptLine(d.held)), 'update-kept-held'));
         const shownK = (t.kept.get(id) ?? 'keep') !== 'keep' ? lineOf(id) : undefined;
-        if (shownK) row.append(hook(h('p', 'p3-sub p3-upd-setline', UPDATE_COPY.checked(shownK, t.theme)), 'update-set-check'));
+        if (shownK) row.append(hook(h('p', 'p3-sub p3-upd-setline', UPDATE_COPY.checked(shownK, t.theme, nameOf)), 'update-set-check'));
         list.append(row);
       }
       grp.append(list);

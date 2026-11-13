@@ -12349,7 +12349,7 @@
             "success.icon"
           ],
           "parts": {
-            "checkCircleGlyph": {
+            "successGlyph": {
               "members": 1,
               "where": {
                 "intent": [
@@ -20547,7 +20547,7 @@
             "glyph-size"
           ],
           "parts": {
-            "checkCircleGlyph": {
+            "successGlyph": {
               "members": 1,
               "where": {
                 "intent": [
