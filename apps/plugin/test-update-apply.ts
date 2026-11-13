@@ -277,7 +277,7 @@ import { EXECUTOR_REVISION } from './src/executor-revision';
 import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY, UPDATING_KEY } from './src/member-baseline';
 import { figmaInstances, fixHostMethods, makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
-import { adoptMembers, breakingClause, breakingLine, breakingOf, breakingSection, breakingSummary, captureBaselines, checkedSetOf, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type Breaking, type UpdateHost, type UpdateTarget } from './src/update-plan';
+import { adoptMembers, breakingClause, breakingLine, breakingOf, consumerLines, breakingSection, breakingSummary, captureBaselines, checkedSetOf, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type Breaking, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
 import { applyUpdate, applyVerdict as applyVerdictOf, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
@@ -6153,6 +6153,14 @@ section('published — on a set in a team library, what breaks consumer files is
     ];
     ok(JSON.stringify(capped) === JSON.stringify(wantCap),
       `published/cap: each set lists at most 8 changes, then "N more changes not listed." (${capped.length} lines: ${JSON.stringify(capped.slice(9))})`);
+    // #3711 (Q-UF2 A): the callout's lines for a set are the section's for it, the same cap. Literal.
+    ok(JSON.stringify(consumerLines(TAG, many)) === JSON.stringify(wantCap.slice(1, 10)), `uf2/cap: a set's callout lines are capped at 8, then the count of the rest (${JSON.stringify(consumerLines(TAG, many).slice(7))})`);
+    // #3711 (Q-UF2 A), review of #3751: what the checklist posts for a set past the cap. The button's count is every change
+    // (11), the callout's lines the capped 8 plus the count of the rest. Literal. Mutations: `count` read off the capped
+    // lines (9), or the lines left uncapped (11) → `uf2/checked set past the cap`.
+    const past = checkedSetOf({ ...p, breaking: many }, TAG).changes;
+    ok(JSON.stringify(past) === JSON.stringify({ count: 11, lines: wantCap.slice(1, 10) }),
+      `uf2/checked set past the cap: the button counts all 11 changes, the callout lists 8 and counts the other 3 (${JSON.stringify(past && { count: past.count, lines: past.lines.length })})`);
   }
 
   // A LAYER REMOVED AND RE-ADDED (#2864): Tag built while its check layer was `check`, updated to plans naming it
@@ -6183,6 +6191,11 @@ section('published — on a set in a team library, what breaks consumer files is
     const LINE = '1 change affects files that use this library: 1 layer removed, which breaks those files: overrides on it are lost. A declared rename keeps a renamed layer in place.';
     ok(checkedSetOf(p, TAG).breaks === LINE && !('breaks' in checkedSetOf(qp, TAG)),
       `published/checklist set: the checked set posted for the checklist carries the published set's line, and the unpublished set's none (${checkedSetOf(p, TAG).breaks} | ${checkedSetOf(qp, TAG).breaks})`);
+    // #3711 (Q-UF2 A): the checked set also carries each change named and the count, for the callout before the run; the
+    // unpublished set carries none. Literal. Mutation: `changes` dropped from `checkedSetOf` → `uf2/checked set`.
+    ok(JSON.stringify(checkedSetOf(p, TAG).changes) === JSON.stringify({ count: 1, lines: [`${TAG} · ${CHECK} · removed from 15 members — breaks files that use this library: overrides on it are lost. If checkGlyph is this layer renamed, declare the rename and the update renames it in place.`] })
+      && !('changes' in checkedSetOf(qp, TAG)),
+      `uf2/checked set: the published set's changes are named and counted for the callout, the unpublished set's absent (${JSON.stringify(checkedSetOf(p, TAG).changes)})`);
     const shipped = (await previewUpdate(w.host, [{ def: TAG, plans: planned }])).sets[0];
     ok(shipped.publish === 'CURRENT' && layerOf(shipped.breaking).length === 0, `published/layer declared: with the shipped part entry the layer is renamed in place and nothing is listed (${JSON.stringify(shipped.breaking ?? null)})`);
     // #3748 review: the apply's publish description counts the removed layer as breaking (Q-UF1 A). The 1 is a literal.
