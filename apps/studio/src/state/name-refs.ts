@@ -306,7 +306,7 @@ export const COLUMN_REFS: readonly NameRef[] = [
     // removal it stays, the engine refuses the brand, and the atomic commit refuses the removal.
     field: 'glassRoles.<name>.role', kind: 'column',
     rename: (b, p, n) => {
-      const heads = [[`interactive.${p}.`, `interactive.${n}.`], [`inverse.interactive.${p}.`, `inverse.interactive.${n}.`]];
+      const heads = [[`interactive.${p}.`, `interactive.${n}.`]];
       for (const g of Object.values(b.glassRoles ?? {})) {
         const head = typeof g.role === 'string' ? heads.find(([from]) => g.role!.startsWith(from)) : undefined;
         if (head) g.role = head[1] + g.role!.slice(head[0].length);
