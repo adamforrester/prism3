@@ -143,7 +143,7 @@ export type SlotTextOutcome = { instances: number; moved: number; rich: number; 
  * `slotNow` is the slot's layer name after the update (its part may be renamed in the same update). Each instance is
  * read back after its write; a difference is a miss naming it.
  */
-export const fillSlotText = async (setName: string, entry: SlotTextEntry, slotNow: string, live: Map<string, TextMigNode>, captured: SlotTextMigration, breathe?: () => Promise<void>, reachedOnly = false): Promise<SlotTextOutcome> => {
+export const fillSlotText = async (setName: string, entry: SlotTextEntry, slotNow: string, live: Map<string, TextMigNode>, captured: SlotTextMigration, breathe?: () => Promise<void>): Promise<SlotTextOutcome> => {
   const out: SlotTextOutcome = { instances: 0, moved: 0, rich: 0, emptied: 0, misses: [] };
   let k = 0;
   for (const c of captured.instances) {
@@ -154,9 +154,10 @@ export const fillSlotText = async (setName: string, entry: SlotTextEntry, slotNo
     if (!inst) { out.misses.push(`${where}: no longer in the file`); continue; }
     const keys = Object.keys(inst.componentProperties ?? {});
     const keyOf = (bare: string): string | undefined => keys.find((x) => x.split('#')[0] === bare);
-    // #3697 H1: on a set that stopped part-way, an instance whose member the update never reached has none of the new
-    // properties yet. Its text is still in its slot, so it is left for the next run to read, with no miss.
-    if (reachedOnly && ![entry.property, entry.show, entry.hide].some((b) => keyOf(b))) continue;
+    // #3697 H1: a set that stopped part-way is filled too, with no instance skipped. The properties are the SET's, added
+    // after the member pass, so a stop after them reaches every instance and a stop inside the pass reaches none. In
+    // the second case the slot is already renamed in every member, so the next run cannot read the text again: each
+    // instance is a miss naming it, never silent. Carrying it across that stop is #3761.
     const want: Record<string, Val> = {};
     const need = (bare: string, v: Val): void => { const key = keyOf(bare); if (key) want[key] = v; else out.misses.push(`${where}: has no "${bare}" property after the update`); };
     if (c.case.kind === 'move') need(entry.property, c.case.characters);

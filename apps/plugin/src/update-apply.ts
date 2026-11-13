@@ -1033,9 +1033,11 @@ export const applyUpdate = async (
       o.content.push(...o.carried.misses);
     }
     const tentry = slotTextMigrationOf(t.def, opts.ledger);
+    // #3697 H1, the slot-text half: a stopped set fills too. Its properties are the set's, so an instance either has them
+    // all or none; one with none is a named miss (`fillSlotText`), and carrying it is #3761.
     if (tmig && tentry && !o.refused) {
       // The slot's layer may be renamed in this same update (its `part` entry), so the fill finds it by its new name.
-      o.carriedText = await fillSlotText(p.set, tentry, partRenames(t.def, opts.ledger).get(tentry.slot) ?? tentry.slot, tmig.live, tmig.migration, opts.breathe, !!o.stopped);
+      o.carriedText = await fillSlotText(p.set, tentry, partRenames(t.def, opts.ledger).get(tentry.slot) ?? tentry.slot, tmig.live, tmig.migration, opts.breathe);
       o.content.push(...o.carriedText.misses);
     }
     res.outcomes.push(o);

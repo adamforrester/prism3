@@ -28,6 +28,8 @@
  *   untouched/… an instance left at its defaults carries its three default rows as three items.
  *   stopped/…   #3697 H1 — a set that stops at member N fills the instances of the members it reached, and leaves the
  *               rest with their rows for the next run.
+ *   stopped/text/… #3697 H1, the #3225 half: a Banner set that stops after its properties exist fills every edited
+ *               body; one that stops inside its member pass names each body it could not carry (carrying it: #3761).
  *   dialog/…    #2661 — the footer's two fixed Buttons move into a nested Button.Group's slot, which holds the same two by
  *               default: a designer's changed labels land on those defaults in order, an unchanged instance is left
  *               out, and a swapped or hidden button is named. Driven on a hand-built model of the placed instances
@@ -44,12 +46,14 @@
  *   · the within fill removes the slot's defaults and remakes them → `dialog/defaults kept`.
  *   · a stopped set skips the fill again (`!o.stopped` back on `fillSlots`, #3697 H1) → `stopped/earlier kept`;
  *   · the stopped fill reports every unreached instance (`reachedOnly` dropped) → `stopped/no false miss`.
+ *   · a stopped Banner set skips the text fill again (`!o.stopped` back on `fillSlotText`) → `stopped/text after the pass filled`;
+ *   · the text fill skips an instance with none of the new properties → `stopped/text inside the pass named`.
  */
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import type { ComponentDef, PartDef } from '@prism3/engine/component-schema';
 import { componentDefs } from '@prism3/engine/components/index';
-import { applyComponentPlan } from './src/write-components';
+import { applyComponentPlan, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { makeShim, type Node, type Page } from './component-shim';
 import { previewUpdate, previewVerdict, type UpdateTarget } from './src/update-plan';
@@ -58,6 +62,7 @@ import { captureSlotMigration, fillSlots, migrationLines, type MigNode } from '.
 import { slotMigrationFor } from './src/update-plan';
 import { COMPONENT_RENAMES, slotMigrationOf } from '@prism3/engine/component-renames';
 import { UPDATING_KEY } from './src/member-baseline';
+import { materializeForBrand } from './src/brand-def';
 
 let failed = 0, executed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -235,7 +240,9 @@ const slotOf = (inst: Placed, name = 'items'): Model | undefined => {
 const planComps = (n: { swapTarget?: string; nestTarget?: string; children?: unknown[] }): string[] => [
   ...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []), ...((n.children ?? []) as (typeof n)[]).flatMap(planComps),
 ];
-const world = async (oldDef: ComponentDef, newPlans: AnatomyPlan[]) => {
+/** `extra.comps`: library components the plans reach only through an override (Banner's close glyph). `extra.harness`:
+ *  a build miss the shim owns, not the set (a nested instance's override it does not declare), named by the caller. */
+const world = async (oldDef: ComponentDef, newPlans: AnatomyPlan[], extra: { comps?: string[]; harness?: (m: string) => boolean } = {}) => {
   const oldPlans = figmaAnatomySet(oldDef, { swapTarget: SWAP_TARGET });
   const all = [...oldPlans, ...newPlans];
   const page: Page = { children: [] };
@@ -243,11 +250,12 @@ const world = async (oldDef: ComponentDef, newPlans: AnatomyPlan[]) => {
     vars: [...new Set([...all.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0'])],
     styles: [...new Set(all.flatMap((p) => planTextStyles(p.root)))],
     effects: [...new Set(all.flatMap((p) => planEffectStyles(p.root)))],
-    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...all.flatMap((p) => planComps(p.root))])],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...(extra.comps ?? []), ...all.flatMap((p) => planComps(p.root))])],
     page, liveRoot: true, identities: true, scaleConstrained: true,
   }) as any;
   const built = await applyComponentPlan(oldPlans, api);
-  if (built.misses.length) throw new Error(`premise: the legacy set built with ${built.misses.length} miss(es): ${built.misses[0]}`);
+  const misses = built.misses.filter((m) => !extra.harness?.(m));
+  if (misses.length) throw new Error(`premise: the legacy set built with ${misses.length} miss(es): ${misses[0]}`);
   const host = { ...api, root: { ...api.root, findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)) } } as unknown as ApplyHost;
   const set = () => page.children.find((n) => n.type === 'COMPONENT_SET') as Node;
   const placed: Placed[] = [];
@@ -364,6 +372,92 @@ section('stopped — a set that stops at member N still fills the instances of t
   const caps = again.sets[0].slotMigration?.instances.map((c) => c.name) ?? [];
   ok(!caps.includes(first.name) && caps.includes(stoppedAt.name),
     `stopped/rerun: the next dry run reads the untouched instance's rows, and has nothing left to read on the filled one (${JSON.stringify(caps)})`);
+}
+
+// ---- stopped, slot text (#3225) ------------------------------------------------------------------------------------
+
+section('stopped/text — a Banner set that stops part-way still fills each body whose properties exist, and names the rest (#3697 H1)');
+{
+  // The slot-text half of H1. The new properties (`body text`, `rich body`, `body`) are the SET's, added after the member
+  // pass, and the `body` slot is renamed `richBody` in every member BEFORE that pass. So a stop either comes after the
+  // properties exist, and every captured instance is filled (one skipped is content lost: the capture is in memory
+  // only), or comes inside the pass, and none can be: each is then a named miss, never silent. Carrying the second
+  // case's text is #3761. Mutations: the stopped set not filled (`!o.stopped` back on the text fill) →
+  // `stopped/text after the pass filled`; an instance with no property skipped silently → `stopped/text inside the pass named`.
+  const banner = materializeForBrand(defOf('banner'), null);
+  const P = banner.anatomy!.parts;
+  // The base's banner (#3225), as `test-roundtrip.ts` types it: the body a native slot holding one text, `placeholder`.
+  const { bodyRow: _r, bodyText: _t, link: _l, richBody: _s, ...keep } = P;
+  const OLD_COPY = 'Body text. Say what happened and what to do next.';
+  const old: ComponentDef = {
+    ...banner,
+    props: banner.props.filter((x) => x.name !== 'link'),
+    anatomy: { ...banner.anatomy!, parts: {
+      ...keep,
+      content: { ...P.content, children: ['titleBox', 'body', 'actions'] },
+      body: { kind: 'box', role: 'presentation', contentSlot: true, layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } }, crossAxisFill: true, children: ['placeholder'] },
+      placeholder: { kind: 'text', type: 'body-type', paintSlot: 'body', wrap: true, characters: OLD_COPY },
+    } as Record<string, PartDef> },
+    composition: { ...banner.composition!, composesWith: ['button', 'flush-icon-button-neutral'] },
+    figmaProperties: { ...banner.figmaProperties!, texts: { title: banner.figmaProperties!.texts!.title }, booleans: { title: { part: 'titleBox', default: true }, icon: banner.figmaProperties!.booleans!.icon, actions: { part: 'actions', default: false }, dismissible: { part: 'close', default: false, figmaName: 'close' } } as never },
+  };
+  // The shim declares no property on the base's nested Button and FlushIconButton, so their overrides report themselves.
+  const harness = (m: string): boolean => /^(close|action)\.nestOverrides -> (swap icon|label) \(no (INSTANCE_SWAP|TEXT) property/.test(m);
+  /** One run: every member holds one placed instance whose body text was edited, and the host throws on the third write
+   *  of `key` (the in-progress mark: inside the pass; the stamp: after the properties). */
+  const run = async (key: string) => {
+    const target: UpdateTarget = { def: 'banner', plans: figmaAnatomySet(banner, { swapTarget: SWAP_TARGET }) };
+    const w = await world(old, target.plans, { comps: ['icon/close'], harness });
+    const members = w.set().children as Node[];
+    const defs = () => (w.set().componentPropertyDefinitions ?? {}) as Record<string, { type: string; defaultValue: unknown }>;
+    const findSlot = (n: Node): Node | undefined => (n.type === 'SLOT' ? n : ((n.children as Node[] | undefined) ?? []).map(findSlot).find(Boolean));
+    // A placed instance: its slot a live view of its member's (renamed with it), holding the instance's own text; its
+    // properties the set's definitions, as on a real host, each holding the instance's value or the default.
+    const placed = members.map((m, i) => {
+      const own: Model[] = [];
+      const t = { id: `BT:${i}`, name: 'placeholder', type: 'TEXT', characters: `Edited ${i + 1}`, children: [], parent: null } as unknown as Model;
+      t.remove = () => { own.splice(own.indexOf(t), 1); };
+      own.push(t);
+      const vals: Record<string, Val> = {};
+      const inst = { id: `BI:${i}`, name: `Banner ${i + 1}`, type: 'INSTANCE', parent: DESIGNS } as unknown as Model & { _vals: Record<string, Val>; _own: Model[] };
+      Object.defineProperties(inst, {
+        children: { get: () => { const sl = findSlot(m); return sl ? [{ type: 'SLOT', name: String(sl.name), children: own }] : []; } },
+        componentProperties: { get: () => Object.fromEntries(Object.entries(defs()).filter(([, d]) => d.type !== 'VARIANT' && d.type !== 'SLOT').map(([k, d]) => [k, { type: d.type, value: k in vals ? vals[k] : d.defaultValue }])) },
+      });
+      inst.setProperties = (p: Record<string, Val>) => { for (const [k, v] of Object.entries(p)) { if (!defs()[k] || defs()[k].type === 'SLOT') throw new Error(`no property ${k}`); vals[k] = v; } };
+      inst.getMainComponentAsync = async () => m;
+      inst._vals = vals; inst._own = own;
+      (m as Record<string, unknown>).getInstancesAsync = async () => [inst];
+      return inst;
+    });
+    let hits = 0;
+    for (const m of members) {
+      const real = m.setSharedPluginData as (ns: string, k: string, v: string) => void;
+      m.setSharedPluginData = (ns: string, k: string, v: string) => {
+        if (k === key && v && ++hits === 3) throw new Error('in setSharedPluginData: the host stopped');
+        real.call(m, ns, k, v);
+      };
+    }
+    const pre = await previewUpdate(w.host, [target]);
+    const res = await applyUpdate(w.host, w.api as any, [target], previewHashOf(pre));
+    const bodyText = (inst: (typeof placed)[number]): Val | undefined => Object.entries(inst._vals).find(([k]) => k.split('#')[0] === 'body text')?.[1];
+    return { pre, o: res.outcomes[0], placed, bodyText, hasProp: Object.keys(defs()).some((k) => k.split('#')[0] === 'body text') };
+  };
+
+  // After the pass: the stop lands on the third member's stamp, which is written after the set's properties.
+  const after = await run(STAMP_KEY);
+  ok(after.pre.sets[0].slotTextMigration?.instances.length === after.placed.length && !!after.o?.stopped && after.hasProp,
+    `premise: the dry run captured every edited body, and the set stopped after its properties were added (${after.pre.sets[0].slotTextMigration?.instances.length} captured of ${after.placed.length}; ${after.o?.stopped}; body text ${after.hasProp ? 'present' : 'absent'})`);
+  const wrong = after.placed.filter((p, i) => after.bodyText(p) !== `Edited ${i + 1}` || p._own.length !== 0).map((p) => p.name);
+  ok(wrong.length === 0 && after.o?.carriedText?.moved === after.placed.length && after.o.carriedText.misses.length === 0,
+    `stopped/text after the pass filled: every instance's edited text is in "body text" and its old slot copy cleared (${JSON.stringify(after.o?.carriedText)}; wrong: ${wrong.join(', ') || 'none'})`);
+
+  // Inside the pass: the stop lands on the third member's in-progress mark, before the set has any of the new properties.
+  const inside = await run(UPDATING_KEY);
+  ok(!!inside.o?.stopped && !inside.hasProp, `premise: the set stopped inside its member pass, before "body text" was added (${inside.o?.stopped})`);
+  const named = inside.placed.filter((p) => (inside.o?.content ?? []).some((l) => l.startsWith(`banner instance "${p.name}": has no "body text" property`))).length;
+  ok(named === inside.placed.length && inside.o?.carriedText?.moved === 0,
+    `stopped/text inside the pass named: each instance whose body could not be carried is a miss naming it, not skipped silently (${named} of ${inside.placed.length} named; ${JSON.stringify(inside.o?.carriedText?.misses.slice(0, 2))})`);
 }
 
 // ---- tabs ----------------------------------------------------------------------------------------------------
