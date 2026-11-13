@@ -9,7 +9,8 @@
  * line what could still carry one or a key — a Figma file URL, a long hex or token-shaped run (a key, a token, a
  * hash), and, while the brand is not included, the brand's own words (its `id`, `name` and `root`, which every token
  * name carries as its first segment, and every other string its author wrote, typeface families included: #3523,
- * #3561, #3697 H4). Built from these fields alone, never from a dump of the session.
+ * #3561, #3697 H4). A thrown write's or prune's line keeps only the error's class, not the host's message the drawer
+ * shows (`reduceFailure`, #3697 H4). Built from these fields alone, never from a dump of the session.
  *
  * Every string is a DRAFT placeholder (#2069: the placement and copy are the owner's call), in `REPORT_COPY`.
  */
@@ -131,10 +132,20 @@ export const scrub = (text: string, words: readonly BrandWord[] = []): string =>
   return t;
 };
 
+/** A failure line the plugin posts when a write or a prune throws: `write failed: <Class>: <host message>`
+ *  (`failureDetail` in `plugin/src/apply-summary.ts`). The class is one word, then `:`, `.` (a build note follows) or the end. */
+const FAILED = /^((?:write|prune) failed): (?:([A-Za-z][A-Za-z0-9]*)(?=[:.]|$))?[\s\S]*$/;
+
+/** A failure line as the report carries it: the error's class alone (`write failed: TypeError`), never the host's
+ *  message (#3697 H4, D3703.1 B). The Activity drawer shows the message, so the designer keeps Figma's reason, but the
+ *  message can carry anything the file holds (a page, a layer, a style), and `scrub` takes out only the words it knows.
+ *  A line with no class at its head reads `Error`. Any other line is unchanged. */
+export const reduceFailure = (line: string): string => line.replace(FAILED, (_, head: string, cls?: string) => `${head}: ${cls ?? 'Error'}`);
+
 /** The bundle, as Markdown, ready to paste into an issue. */
 export const buildReport = (r: ReportInput): string => {
   const words = r.includeBrand ? [] : brandWords(r.brand);
-  const s = (x: string): string => scrub(x, words);
+  const s = (x: string): string => scrub(reduceFailure(x), words);
   const out: string[] = [
     REPORT_COPY.bodyAsk, '', REPORT_COPY.bodyWhat, '', '', REPORT_COPY.bodyDiag,
     `- ${REPORT_COPY.fieldBuild}: ${s(r.stamp)}`,

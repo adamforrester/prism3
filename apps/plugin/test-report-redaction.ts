@@ -14,14 +14,16 @@
  * built from those literals. The check reads the report for each literal — never `brandWords`' own list, which is the
  * subject. A premise arm proves each scenario's raw lines DO carry the strings it checks, so a pass is not a run that
  * printed nothing. The host messages are literals too (`HOST_SECRET`), and name nothing in the brand input, so only
- * the error-class change can take them out, not the word list.
+ * the report's failure rule (`reduceFailure`) can take them out, not the word list. D3703.1 B: the Activity drawer keeps
+ * the host's message, so each thrown arm also holds the posted line, typed whole, to carry it.
  *
  * Mutations that fail here by name:
  *   · typefaces left out of `brandWords` (`report.ts`) → `#3697 H4 a missing licensed typeface: no brand string survives
  *     … LEAKED Calibre Office`;
- *   · `write failed:` carrying `(e as Error).message` again (`main.ts`) → `#3697 H4 a thrown write: the host's message is
- *     not in the report`;
- *   · `prune failed:` carrying the message again → `#3697 H4 a thrown prune: the host's message is not in the report`.
+ *   · `reduceFailure` dropped from `buildReport` (`report.ts`) → `#3697 H4 a thrown write: the host's message is not in
+ *     the report` and `#3697 H4 a thrown prune: the host's message is not in the report`;
+ *   · `write failed:` carrying the class alone again (`main.ts`) → `#3697 H4 D3703.1 B a thrown write: the drawer line
+ *     keeps the host's message`; the same at `prune failed:` → `#3697 H4 D3703.1 B a thrown prune: …`.
  */
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import { brandTheme, type BrandInput } from '@prism3/engine/theme';
@@ -136,10 +138,13 @@ console.log('Report a problem over the plugin\'s own lines (#3697 H4)\n');
   figmaShim.getLocalTextStylesAsync = real;
   const raw = rawText(posted);
   ok(posted.length === 1 && /write failed/.test(raw), `#3697 H4 premise: a thrown write posts its failure (${JSON.stringify(posted[0]?.summary)})`);
+  // D3703.1 B: the Activity drawer shows the verdict's lines as posted, so the designer keeps Figma's reason. Typed whole.
+  ok(posted[0]?.lines?.[0] === 'write failed: TypeError: in get_name: node "Checkout Hero / Q3 launch" on page "Unannounced"',
+    `#3697 H4 D3703.1 B a thrown write: the drawer line keeps the host's message (${JSON.stringify(posted[0]?.lines?.[0])})`);
   const text = report('Apply Theme', posted);
   ok(!text.includes('Checkout Hero') && !text.includes('Unannounced') && !text.includes('get_name'),
     `#3697 H4 a thrown write: the host's message is not in the report (${JSON.stringify(posted[0]?.summary)})`);
-  ok(/write failed: TypeError/.test(text), '#3697 H4 a thrown write: the report says the error\'s class');
+  ok(text.includes('  - write failed: TypeError\n'), '#3697 H4 a thrown write: the report says the error\'s class');
 }
 
 /* ── 3. Prune that throws ───────────────────────────────────────────────────────────────────────────────────────── */
@@ -150,10 +155,12 @@ console.log('Report a problem over the plugin\'s own lines (#3697 H4)\n');
   figmaShim.getLocalTextStylesAsync = real;
   const raw = rawText(posted);
   ok(posted.length === 1 && /prune failed/.test(raw), `#3697 H4 premise: a thrown prune posts its failure (${JSON.stringify(posted[0]?.summary)})`);
+  ok(posted[0]?.summary === 'prune failed: Error: in get_name: node "Checkout Hero / Q3 launch" on page "Unannounced"',
+    `#3697 H4 D3703.1 B a thrown prune: the drawer line keeps the host's message (${JSON.stringify(posted[0]?.summary)})`);
   const text = report('Prune', posted);
   ok(!text.includes('Checkout Hero') && !text.includes('Unannounced') && !text.includes('get_name'),
     `#3697 H4 a thrown prune: the host's message is not in the report (${JSON.stringify(posted[0]?.summary)})`);
-  ok(/prune failed: Error/.test(text), '#3697 H4 a thrown prune: the report says the error\'s class');
+  ok(text.includes('  - prune failed: Error\n') || text.endsWith('  - prune failed: Error'), '#3697 H4 a thrown prune: the report says the error\'s class');
 }
 
 console.log = log;

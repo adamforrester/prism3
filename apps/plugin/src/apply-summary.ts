@@ -37,17 +37,24 @@ export const applyHeadline = (misses: number, skippedFonts: number): string => {
   return '✓ applied';
 };
 
-/** A thrown write is the one case with no counts: nothing partial is claimed. The error's class is the whole
- *  of what the detail says (`errorClass`) — the pill only says which of the three states this is. */
+/** A thrown write is the one case with no counts: nothing partial is claimed. The error is the whole of what is
+ *  known, and it goes in the detail (`failureDetail`) — the pill only says which of the three states this is. */
 export const APPLY_FAILED_HEADLINE = '✗ write failed';
 
-/** What a result line says about a thrown error: its class (`TypeError`, `Error`), never its message (#3697 H4). A
- *  host message can carry anything the file holds — a typeface, a style or layer name — and a result line goes into
- *  Report a problem, which takes out only the words it knows. A throw that is not an `Error`, or whose name is not one
- *  word, reads `Error`. */
+/** A thrown error's class (`TypeError`, `Error`), one word (#3697 H4). A throw that is not an `Error`, or whose name is
+ *  not one word, reads `Error`. Where only the class may go (agent data, `write-text-styles.ts`), it goes alone. */
 export const errorClass = (e: unknown): string => {
   const n = e instanceof Error || (e && typeof e === 'object') ? (e as { name?: unknown }).name : undefined;
   return typeof n === 'string' && /^[A-Za-z][A-Za-z0-9]*$/.test(n) ? n : 'Error';
+};
+
+/** What a failure line says after `write failed: ` or `prune failed: `: the error's class, then the host's message
+ *  (`TypeError: in set_value: …`). The Activity drawer shows it whole, so the designer keeps Figma's reason (#3697 H4,
+ *  D3703.1 B). A host message can carry anything the file holds — a page, a layer, a style — so Report a problem keeps
+ *  only the class (`reduceFailure` in `studio/src/state/report.ts`), and the class leads so the report can find it. */
+export const failureDetail = (e: unknown): string => {
+  const m = e instanceof Error ? e.message : String(e);
+  return m ? `${errorClass(e)}: ${m}` : errorClass(e);
 };
 
 /** The pre-flight refused the apply (#506): the file already holds same-named content Prism3 did not

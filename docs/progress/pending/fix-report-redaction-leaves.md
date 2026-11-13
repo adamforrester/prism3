@@ -1,4 +1,4 @@
-## (2026-11-12) — Report a problem: every brand-input string is redacted, typefaces included, and host errors carry their class (#3697 H4)
+## (2026-11-12) — Report a problem: every brand-input string is redacted, typefaces included, and a thrown write's report line keeps only its error class (#3697 H4)
 
 The code review of 2026-11-12 (#3697 H4) found two ways a brand reached a report with the brand box unticked. The
 plugin prints `⚠ 3 typefaces unavailable (<face>, …)` exactly when a brand's licensed typeface is not installed, and
@@ -17,18 +17,27 @@ the scrub took out only the `id`, `name`, `root` and the named path segments of 
   found that the plugin joins a face as `Calibre Office|Regular`, and `|` was not on #3525's list of boundaries, so the
   family leaked even once it was a brand word. A list of the separators met so far was the defect, so it became the
   complement of letters and digits.
-- **Three host-error sites carry the error's class, not its message** (`errorClass` in `apply-summary.ts`): Apply
-  Theme's `write failed: TypeError`, Prune's `prune failed: Error`, and a skipped text style's reason in
-  `write-text-styles.ts` (agent data only).
+- **The Activity drawer keeps Figma's message; only the report reduces it to the error's class** (owner decision
+  D3703.1 B). A thrown Apply Theme or Prune posts `write failed: <Class>: <host message>` (`failureDetail` in
+  `apply-summary.ts`), so the designer still reads Figma's reason in the drawer, now led by the error's class
+  (`write failed: TypeError: …`). The class leads so the report can find it: `buildReport` passes every line through
+  `reduceFailure` (`report.ts`), which cuts a `write failed:` or `prune failed:` line to `write failed: TypeError`, brand
+  box ticked or not, because the message can carry anything the file holds. A skipped text style's reason in
+  `write-text-styles.ts` reaches agent data only, never the drawer, so it keeps the class alone
+  (`font unavailable: Inter Bold (TypeError)`). The apply-a-theme guide's "The detail holds Figma's message" stays
+  true (D3703.2). The engine's closed values and reserved palettes stay out of redaction (D3703.3).
 
 ### The gate
 `apps/plugin/test-report-redaction.ts` (in plugin `test`) runs the plugin's real Apply Theme and Prune over the file
 shim for a fixture brand whose licensed body face is not installed, and puts each posted verdict through `buildReport`
 as the Activity drawer hands it over. It asserts that none of the fixture's authored strings, written as literals in
-the test, survives, and that a host message naming a page and a layer (in no brand field, so only the class rule can
-remove it) does not either. Mutations that fail by name: typefaces dropped from `brandWords` → `#3697 H4 a missing
-licensed typeface: … LEAKED Calibre Office` (and `test-report.ts`'s typeface arm); `write failed:` carrying the
-message → `#3697 H4 a thrown write: the host's message is not in the report`. `test-report.ts` also holds every
+the test, survives, and that a host message naming a page and a layer (in no brand field, so only the report's failure
+rule can remove it) does not either. Mutations that fail by name: typefaces dropped from `brandWords` → `#3697 H4 a missing
+licensed typeface: … LEAKED Calibre Office` (and `test-report.ts`'s typeface arm); `reduceFailure` dropped from
+`buildReport` → `#3697 H4 a thrown write: the host's message is not in the report` (and its prune twin, and
+`test-report.ts`'s `#3697 H4 D3703.1 B …` arms). Each thrown
+arm also holds the posted drawer line, typed whole, to the host's message: the line carrying the class alone fails
+`#3697 H4 D3703.1 B a thrown write: the drawer line keeps the host's message`. `test-report.ts` also holds every
 `ENGINE_VOCABULARY` entry to the values `theme-schema.json` closes. A missing entry only over-redacts, but an extra
 one could let an authored word through.
 

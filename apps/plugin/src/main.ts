@@ -18,7 +18,7 @@
  * Compiled under `tsconfig.main.json` (plugin-typings, `lib` WITHOUT `dom`), so any accidental
  * `document`/`window` reference is a COMPILE error — the two-context split is enforced by types.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, errorClass, conflictHeadline, componentHeadline, staleNote, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, failureDetail, conflictHeadline, componentHeadline, staleNote, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { appendBuildNote, buildNote, parseBuildId } from '../../studio/src/build-identity';
 import { isIssueUrl } from '../../studio/src/state/report';
@@ -559,8 +559,8 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
     });
     postVerdict({ type: 'apply-result', ok: misses === 0, headline: applyHeadline(misses, ts.skipped.length), summary, lines }, sink);
   } catch (e) {
-    // #3697 H4: the class, not the host's message (`errorClass`).
-    const failure = `write failed: ${errorClass(e)}`;
+    // #3697 H4 (D3703.1 B): the class, then the host's message; Report a problem keeps only the class.
+    const failure = `write failed: ${failureDetail(e)}`;
     postVerdict({ type: 'apply-result', ok: false, headline: APPLY_FAILED_HEADLINE, summary: failure, lines: [failure] }, sink);
   }
 };
@@ -712,7 +712,7 @@ const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Pro
     sink.post({ type: 'prune-result', ok: res.misses.length === 0, applied: true, count: removed + furnRemoved, summary });
   } catch (e) {
     // A thrown prune reports rather than crashing the UI — same posture as `applyTheme`'s catch.
-    sink.post({ type: 'prune-result', ok: false, applied: confirm, count: 0, summary: `prune failed: ${errorClass(e)}` });   // #3697 H4: the class, not the message
+    sink.post({ type: 'prune-result', ok: false, applied: confirm, count: 0, summary: `prune failed: ${failureDetail(e)}` });   // #3697 H4: as `applyTheme`'s
   }
 };
 

@@ -39,7 +39,7 @@ The variables the plugin writes match the ones the engine emits for the same bra
 | `✓ applied` | Everything was written. <!-- src: apps/plugin/src/apply-summary.ts:37 --> |
 | `✓ applied, N skipped` | The variables were written, but N text styles were not, because Figma could not load their font. The detail names them. <!-- src: apps/plugin/src/apply-summary.ts:36 --> |
 | `⚠ N misses` | The theme named a variable this file does not have, so something did not bind. <!-- src: apps/plugin/src/apply-summary.ts:30 --> |
-| `✗ N conflicts` | Nothing was written. See below. <!-- src: apps/plugin/src/apply-summary.ts:56-57 --> |
+| `✗ N conflicts` | Nothing was written. See below. <!-- src: apps/plugin/src/apply-summary.ts:63-64 --> |
 | `✗ write failed` | Figma refused a write partway through. The detail holds Figma's message. <!-- src: apps/plugin/src/apply-summary.ts:42 --> |
 
 *[Screenshot placeholder: the Activity drawer after a clean theme write.]*
