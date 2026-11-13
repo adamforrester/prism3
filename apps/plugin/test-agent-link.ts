@@ -1731,6 +1731,19 @@ section('session — a mailbox command that changes the file needs this session\
   const wrong = await send('apply-theme', { input: brand }, undefined, other);
   await tick();
   ok(((await read(wrong.id)) as AgentResult).error?.code === 'no-session' && !calls.includes('applyTheme'), 'session/wrong: another code is refused the same way');
+  // #3728 review S2: a code that differs everywhere is refused by any compare that reads one character. Pin the whole
+  // compare: the real code with only its LAST character changed, and an empty `session` (which a prefix match would admit).
+  const last = code!.slice(-1);
+  const nearly = code!.slice(0, -1) + (last === '2' ? '3' : '2');
+  const near = await send('apply-theme', { input: brand }, undefined, nearly);
+  await tick();
+  ok(((await read(near.id)) as AgentResult).error?.code === 'no-session' && !calls.includes('applyTheme'),
+    `session/wrong: the real code with only its last character changed is refused (${nearly})`);
+  const emptyEnv = { ...envelope('apply-theme', { input: brand }), session: '' };
+  await agent(sendSnippet(emptyEnv));
+  await tick();
+  ok(((await read(emptyEnv.id)) as AgentResult).error?.code === 'no-session' && !calls.includes('applyTheme'),
+    'session/wrong: an empty session is refused, not read as a prefix of the code');
   const preview = await sendBare('prune', { input: brand, confirm: false });
   await tick();
   ok(((await read(preview.id)) as AgentResult).error?.code !== 'no-session' && calls.includes('prune'), 'session/previews: a prune preview needs no code and reaches its handler');

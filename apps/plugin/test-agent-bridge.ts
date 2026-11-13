@@ -1422,6 +1422,28 @@ section('server-proof — the relay hears only a server that proves the secret')
     'server-proof/paired: a paired proving the pending code over this connection\'s nonce is kept, and the hello follows');
   q.fromMain({ type: 'agent-link-state', state: state(false) });
 
+  // #3728 review S1′: the other half S1 named, a paired on a FRESH socket after a drop. The socket that sent the pair
+  // closes for a reason other than a refusal (1006: `lost()`, which does not clear `codeSent`). The next socket has not
+  // sent the code, so a paired before its challenge is ignored, not proof-checked and dropped.
+  told.length = 0;
+  const d = relayOf();
+  d.fromMain({ type: 'agent-bridge-token', token: null });
+  d.fromMain({ type: 'agent-link-state', state: state() });
+  d.pair('abcd-efgh');
+  const d1 = socks[socks.length - 1];
+  say(d1, { type: 'challenge', v: 1, nonce: '56'.repeat(32) });
+  const dpair = d1.sent.find((m) => m.type === 'pair') ?? {};
+  d1.closed = true;
+  d1.onclose?.({ code: 1006 });
+  runLater();
+  const d2 = socks[socks.length - 1];
+  say(d2, { type: 'paired', token: 'e'.repeat(64), proof: 'ab'.repeat(32) });
+  ok(dpair.type === 'pair' && d2 !== d1 && !posted('agent-bridge-paired').length && !d2.closed && !d2.sent.length,
+    `server-proof/unsolicited-paired: after a dropped socket sent the code, a paired on the next socket before its challenge is ignored: no token, the socket stays open (${d2.closed ? 'closed' : 'open'})`);
+  say(d2, { type: 'challenge', v: 1, nonce: '78'.repeat(32) });
+  ok(d2.sent.some((m) => m.type === 'pair'), 'server-proof/unsolicited-paired: and that socket\'s challenge still gets the pending code\'s pair');
+  d.fromMain({ type: 'agent-link-state', state: state(false) });
+
   // Once welcomed, a paired is ignored even while a code went out on this socket: a token held and a code typed, the pair
   // sent, then the welcome. A later paired that proves the code must not swap the token the welcome just proved.
   told.length = 0;
