@@ -10,14 +10,16 @@
  */
 import { glyph, h, hook } from './dom';
 
-/** A one-click fix the strip offers beside its line (owner Q189 A, #2146). */
-export type StripAction = { readonly label: string; readonly run: () => void };
+/** A one-click fix the strip offers beside its line (owner Q189 A, #2146). `hook` names its button; `error-fix` when
+ *  absent. #3697 Q-R9.1 A: the overwrite confirm for the file's brand sits in the strip's place, as Replace brand and
+ *  Cancel, so the strip draws up to two, under the confirm's own hooks. */
+export type StripAction = { readonly label: string; readonly run: () => void; readonly hook?: string };
 
 export type ErrorStrip = {
   /** The strip, mounted where `main.ts` declares the `error` surface. Hook `error-bar`, as before. */
   readonly node: HTMLElement;
-  /** Show `text`, or hide the strip on null. `action`, when given, draws a button beside the line. */
-  readonly show: (text: string | null, action?: StripAction | null) => void;
+  /** Show `text`, or hide the strip on null. `action`, when given, draws a button beside the line; a pair draws two. */
+  readonly show: (text: string | null, action?: StripAction | readonly [StripAction, StripAction] | null) => void;
 };
 
 export const errorStrip = (): ErrorStrip => {
@@ -25,10 +27,13 @@ export const errorStrip = (): ErrorStrip => {
   node.setAttribute('role', 'alert');
   const line = h('span', 'p3-errstrip-text');
   // In the strip only while there is an action: a button kept hidden would still be a control the chrome measures.
-  const fix = hook(h('button', 'p3-btn'), 'error-fix');
-  fix.type = 'button';
-  let run: (() => void) | null = null;
-  fix.onclick = () => run?.();
+  const button = (): { el: HTMLButtonElement; run: (() => void) | null } => {
+    const b = { el: h('button', 'p3-btn') as HTMLButtonElement, run: null as (() => void) | null };
+    b.el.type = 'button';
+    b.el.onclick = () => b.run?.();
+    return b;
+  };
+  const buttons = [button(), button()];
   node.append(glyph('warn'), line);
   node.hidden = true;
   return {
@@ -39,11 +44,17 @@ export const errorStrip = (): ErrorStrip => {
       node.hidden = text === null;
       const next = text ?? '';
       if (line.textContent !== next) line.textContent = next;
-      const act = text === null ? null : action;
-      run = act?.run ?? null;
-      if (act && fix.textContent !== act.label) fix.textContent = act.label;
-      if (act && !fix.isConnected) node.append(fix);
-      else if (!act && fix.isConnected) fix.remove();
+      const acts: readonly StripAction[] = text === null || action === null ? [] : 'label' in action ? [action] : action;
+      buttons.forEach((b, i) => {
+        const act = acts[i];
+        b.run = act?.run ?? null;
+        if (act) {
+          const role = act.hook ?? 'error-fix';
+          if (b.el.dataset.p3 !== role) hook(b.el, role);
+          if (b.el.textContent !== act.label) b.el.textContent = act.label;
+          if (!b.el.isConnected) node.append(b.el);
+        } else if (b.el.isConnected) b.el.remove();
+      });
     },
   };
 };
