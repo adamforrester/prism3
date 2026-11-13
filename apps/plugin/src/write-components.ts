@@ -2309,7 +2309,7 @@ const writeComponentSet = async (
           // brand's typography.
           if (st.fontName) {
             try { await api.loadFontAsync(st.fontName); }
-            catch (err) { misses.push(`${n.name}.font -> ${st.fontName.family} ${st.fontName.style} (${refusalOf(err)})`); }
+            catch (err) { misses.push(`${n.name}.font -> ${st.fontName.family} ${st.fontName.style} (${(err as Error).message})`); }
           }
           // A PROPERTY write (#982): refused, it is a miss and the member keeps building. `appliedStyle` stays
           // unset, so the #1567 re-apply below does not try the style a second time.
@@ -2359,7 +2359,7 @@ const writeComponentSet = async (
         const fn = node.fontName;
         if (fn && typeof fn === 'object') {
           try { await api.loadFontAsync(fn); }
-          catch (err) { misses.push(`${n.name}.font -> ${fn.family} ${fn.style} (${refusalOf(err)})`); }
+          catch (err) { misses.push(`${n.name}.font -> ${fn.family} ${fn.style} (${(err as Error).message})`); }
         }
         try { node.characters = n.characters; }
         catch (err) { misses.push(`${n.name}.characters -> ${JSON.stringify(n.characters)} (${(err as Error).message})`); }

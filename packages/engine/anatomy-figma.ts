@@ -5032,7 +5032,7 @@ const build=async(n)=>{
       // Figma requires a font to be loaded before any text write. Loading here rather than once at the
       // top because the plan is what knows which styles it uses, and a hard-coded \`Inter Regular\`
       // would be a guess about a brand's typography.
-      try{await figma.loadFontAsync(st.fontName);}catch(err){misses.push(n.name+'.font -> '+st.fontName.family+' '+st.fontName.style+' ('+(err&&err.message!=null?String(err.message):String(err))+')');}
+      try{await figma.loadFontAsync(st.fontName);}catch(err){misses.push(n.name+'.font -> '+st.fontName.family+' '+st.fontName.style+' ('+err.message+')');}
       await node.setTextStyleIdAsync(st.id);
       sty=st;
     }
