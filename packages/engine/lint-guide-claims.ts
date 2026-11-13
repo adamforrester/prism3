@@ -71,6 +71,16 @@
  *   COMMANDS (#3555 G11)  The agent-link guide's "What an agent can do" table has a row for every command in
  *             `AGENT_COMMANDS`, read as text from `apps/plugin/src/agent-protocol.ts`. CITE checks the rows that exist;
  *             this checks the ones that are missing (`panels-clean` shipped with none).
+ *   AREA (#3669, owner Q203 A)  A guide, or a string the app draws, names a rail area as the rail draws it. Q-UI9 A
+ *             renamed the Documentation area "Docs" on the rail, and running prose kept sending readers to
+ *             "Documentation": LABEL holds only **bold** spans, and a fingerprint holds a block, not the word in it. The
+ *             ORACLE is `RAIL_AREAS` as written in `apps/studio/src/shell/pages.ts`, read as text: each area's drawn `name`,
+ *             and its `id` spelled as a word ("Documentation" for `documentation`). The id is internal and outlives a
+ *             rename, so where it differs from the name it is the name the rail no longer draws, and that word,
+ *             capitalized and whole, fails in a guide's prose (comments, code spans and link targets removed) and in
+ *             any string literal of the three source trees. LIMIT: it knows a retired name only through the id, so a
+ *             rename that also renames the id leaves the old word unguarded; and a lowercase "documentation" (the
+ *             common noun) is not an area name and is not read.
  *   SCOPE     Represented, not counted (`docs/34` shape 13): every guide `index.md` lists is read, every guide carries
  *             at least one citation, and each of the three source trees yielded string literals. A moved guides
  *             folder or source tree fails here instead of passing with nothing read (`docs/34` shape 9).
@@ -634,8 +644,31 @@ const rows = new Set([...linkGuide.matchAll(/^\| `([a-z-]+)` \|/gm)].map((m) => 
 if (commands.length < 10) fail('COMMANDS', `read ${commands.length} commands from AGENT_COMMANDS in apps/plugin/src/agent-protocol.ts, so this arm checked almost nothing`);
 for (const c of commands) if (!rows.has(c)) fail('COMMANDS', `docs/public/guides/agent-link.md: "What an agent can do" has no row for \`${c}\`, which AGENT_COMMANDS lists`);
 
+// AREA (#3669, owner Q203 A) — an area is named as the rail draws it. The ORACLE is `RAIL_AREAS` as written in the
+// studio source, read as text; the SUBJECTS are the guides' prose and the source trees' string literals.
+const pagesSrc = readFileSync(join(ROOT, 'apps/studio/src/shell/pages.ts'), 'utf8');
+const railLit = /export const RAIL_AREAS = \[([\s\S]*?)\] as const;/.exec(pagesSrc);
+const areas = railLit ? [...railLit[1].matchAll(/\{\s*id:\s*'([a-z-]+)',\s*label:\s*'([^']+)',\s*name:\s*'([^']+)'/g)].map((m) => ({ id: m[1], name: m[3] })) : [];
+const asWord = (id: string): string => id.split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
+const retired = areas.filter((a) => asWord(a.id) !== a.name).map((a) => ({ ...a, word: asWord(a.id), re: new RegExp(`\\b${asWord(a.id)}\\b`) }));
+if (areas.length < 4) fail('AREA', `read ${areas.length} areas from RAIL_AREAS in apps/studio/src/shell/pages.ts, so this arm checked almost nothing`);
+if (!retired.length) fail('AREA', 'every rail area is drawn under its id as a word, so no retired area name is known and this arm checked nothing');
+let areaMentions = 0;
+for (const g of guideFiles) {
+  let fence = false;
+  readFileSync(join(guideDir, g), 'utf8').split('\n').forEach((raw, k) => {
+    if (raw.startsWith('```')) fence = !fence;
+    if (fence) return;
+    const prose = raw.replace(/<!--[\s\S]*?-->/g, ' ').replace(/`[^`]*`/g, ' ').replace(/\]\([^)]*\)/g, '] ');
+    for (const a of areas) if (new RegExp(`\\b${a.name}\\b`).test(prose)) areaMentions++;
+    for (const a of retired) if (a.re.test(prose)) fail('AREA', `${GUIDES}/${g}:${k + 1}: "${a.word}" names the ${a.id} area, which the rail draws as "${a.name}". Write "${a.name}".`);
+  });
+}
+for (const l of lits) for (const a of retired) if (l.chunks.some((c) => a.re.test(c))) fail('AREA', `${l.file}:${l.line}: a string says "${a.word}", the ${a.id} area, which the rail draws as "${a.name}". Write "${a.name}".`);
+if (!areaMentions) fail('AREA', 'no guide names a rail area as the rail draws it, so the guides were not read for this arm');
+
 if (fails.length) {
   console.error(`❌ ${TAG}: ${fails.length} failure${fails.length === 1 ? '' : 's'}\n${fails.map((f) => `  ✗ ${f}`).join('\n')}`);
   process.exit(1);
 }
-console.log(`✅ ${TAG}: ${guideFiles.length} guides; ${labels} bold labels, each a string in the app source (${SOURCE_TREES.map((t) => `${t} ${perTree.get(t)}`).join(', ')} literals); ${stats.cites} citations resolve, ${stats.cites - stats.unanchored} of them still holding what their claim quotes (${stats.unanchored} quote nothing and are held by their fingerprint; ${stats.fingerprinted} fingerprints match; ${stats.ordered} bold lists in the order their cited lines hold them; ${FIXTURES.length - 1} planted gaps named and the control clean); ${counts.length} component-set counts equal componentDefs (${defs}); ${commands.length} agent-link commands, each a row in the agent-link guide.`);
+console.log(`✅ ${TAG}: ${guideFiles.length} guides; ${labels} bold labels, each a string in the app source (${SOURCE_TREES.map((t) => `${t} ${perTree.get(t)}`).join(', ')} literals); ${stats.cites} citations resolve, ${stats.cites - stats.unanchored} of them still holding what their claim quotes (${stats.unanchored} quote nothing and are held by their fingerprint; ${stats.fingerprinted} fingerprints match; ${stats.ordered} bold lists in the order their cited lines hold them; ${FIXTURES.length - 1} planted gaps named and the control clean); ${counts.length} component-set counts equal componentDefs (${defs}); ${commands.length} agent-link commands, each a row in the agent-link guide; ${areas.length} rail areas, named as the rail draws them in ${areaMentions} guide line(s) and no retired name (${retired.map((a) => `"${a.word}"`).join(', ')}) in a guide or an app string.`);

@@ -24,7 +24,7 @@ MCP (Model Context Protocol) is the standard way an AI agent connects to a tool 
 2. Turn on the **Agent** switch in the top bar, beside Update file. <!-- src: apps/plugin/src/agent-link-ui.ts:230-233 -->
 3. Tell the agent the link is on. It sends a status request first, to confirm the plugin answers.
 
-To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:230 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:2466#13449644 -->
+To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:230 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:2469#13449644 -->
 
 The Activity drawer's bar shows the link's state in a word: "Listening · bridge" or "Listening · mailbox" while it waits, "Listening · mailbox only" in Prism3 Studio Offline, and "Error" or "Not listening" when something is wrong. Point at the word to read the full status. <!-- src: apps/plugin/src/agent-link-ui.ts:124-127 -->
 
@@ -38,23 +38,23 @@ The Activity drawer's bar shows the link's state in a word: "Listening · bridge
 | `apply-theme` | Writes the theme, as Update file's Theme item does, with the brand settings the agent supplies. See [Write the theme to a Figma file](apply-a-theme.md). <!-- src: apps/plugin/src/agent-protocol.ts:56-57 --> |
 | `build-components` | Builds one component set. See [Build components](build-components.md). <!-- src: apps/plugin/src/agent-protocol.ts:58-59 --> |
 | `file-setup` | Sets up the file. See [Set up a file](file-setup.md). <!-- src: apps/plugin/src/agent-protocol.ts:60-61 --> |
-| `style-guide` | Draws the style guides, with the same options as Documentation. See [Build style guides](style-guides.md). <!-- src: apps/plugin/src/agent-protocol.ts:62-63 --> |
+| `style-guide` | Draws the style guides, with the same options as Docs. See [Build style guides](style-guides.md). <!-- src: apps/plugin/src/agent-protocol.ts:62-63 --> |
 | `prune` | Clean up: a preview, or with a confirm, the delete. See [Remove what the brand no longer uses](update-a-file-safely.md#remove-what-the-brand-no-longer-uses). <!-- src: apps/plugin/src/agent-protocol.ts:64-65 --> |
 | `readback` | Reads the file's color variables back and checks they were written correctly: each mode distinct, every alias resolving, the brand's modes present and scopes set. It also lists every component page. Writes nothing. It does not check contrast. <!-- src: apps/plugin/src/agent-protocol.ts:66-67 --> |
 | `update-components` | Updates sets in place: a check first, then a confirm that carries the check's fingerprint. See [Update sets in place](update-a-file-safely.md#update-sets-in-place). <!-- src: apps/plugin/src/agent-protocol.ts:68-72 --> |
 | `capture-baseline` | Records how each variant looks now, so a later update can tell your edits apart. Plugin data only. <!-- src: apps/plugin/src/agent-protocol.ts:73-74 --> |
 | `adopt-members` | Claims variants Prism3 did not build, so updates can reach them. Plugin data only. <!-- src: apps/plugin/src/agent-protocol.ts:75-77 --> |
-| `draw-specs` | Draws the spec panel beside each family's usage panel, as **Draw specs** in Documentation's Specs tab does. <!-- src: apps/studio/src/shell/documentation.ts:72 --> <!-- src: apps/plugin/src/agent-protocol.ts:78-80 --> |
+| `draw-specs` | Draws the spec panel beside each family's usage panel, as **Draw specs** in the Specs tab in Docs does. <!-- src: apps/studio/src/shell/documentation.ts:72 --> <!-- src: apps/plugin/src/agent-protocol.ts:78-80 --> |
 | `inspect` | Reads the layers you name and the layers inside them: type, name, page, size, whether locked, the main component and its key for an instance, its properties, the variables it uses and its text style. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:81-82 --> |
 | `component-keys` | Lists the file's component sets and components with their keys, so another file can place them. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:83-84 --> |
 | `audit-frames` | Checks frames for what a rebuild should have replaced: old components, text with no style, colors bound to no variable, hand-drawn rules and unnamed frames. The agent supplies the old names. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:85-86 --> |
 | `snapshot` | Renders one layer as an image, as this session shows it. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:87-88 --> |
 | `activity` | Lists what Activity shows for this session, newest first: each run's result, its details, every set built with problems and why, and the plugin build that ran it. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:89-90 --> |
-| `panels-clean` | The usage panels Clean up offers while Documentation has panels off: a count, or with a confirm, the delete. A panel edited by hand is never removed. <!-- src: apps/plugin/src/agent-protocol.ts:91-93 --> |
+| `panels-clean` | The usage panels Clean up offers while Docs has panels off: a count, or with a confirm, the delete. A panel edited by hand is never removed. <!-- src: apps/plugin/src/agent-protocol.ts:91-93 --> |
 | `set-override` | Points color roles at palette steps, or clears their overrides, in Light, Dark or a custom mode: a preview first, then a confirm that carries the preview's fingerprint and writes the theme. It refuses the whole list if any pair would drop below its minimum, and each change shows in Activity under Color override. Nothing else in Theme can be changed this way. <!-- src: apps/plugin/src/agent-protocol.ts:96-98 --> |
 | `context` | Says what the open file is: its brand and modes, its variable collections, the sets Prism3 built and which are due, and what is read-only: pages whose name contains FINAL, locked layers and `Original · …` copies. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:94-95 --> |
 
-Every write an agent asks for passes the same checks as Update file, and is refused for the same reasons. <!-- src: apps/plugin/src/run-guard.ts:1-14#b6f8158f -->
+Every write an agent asks for passes the same checks as Update file, and is refused for the same reasons. <!-- src: apps/plugin/src/run-guard.ts:1-20#802b70d3 -->
 
 ## Safety
 

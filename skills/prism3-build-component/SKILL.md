@@ -772,8 +772,8 @@ the host keeps a hugging height, but only the shapes measured on a real file are
 `lint-component-docs` needs no entry: it reads the registry, so after `packages/engine/regen.ts` a
 new def must appear in `components.ai.json`, in its own `<id>.md` page and in the maintainer record, or
 the gate fails by name. Its `DEF_FLOOR` is a floor to raise as the catalog grows. The new page is one
-more committed artifact, so the count `packages/engine/regen.ts --check` expects moves too:
-`EXPECTED_ARTIFACTS` in `verify.ts` and the same number in the CI workflow, together.
+more committed artifact. The count `packages/engine/regen.ts --check` reports grows with it, and
+`ARTIFACT_FLOOR` in `verify.ts` is a floor, so it needs no edit.
 
 Three baselines move with a new or changed projection and are rewritten only by an explicit
 `--accept`: `lint-component-surface` (member count and plan digest per def), `lint-paint` (the

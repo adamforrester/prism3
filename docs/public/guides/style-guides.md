@@ -9,7 +9,7 @@ Because the tables read the file rather than the studio, they show what the file
 
 ## Before you draw
 
-The tables need the pages and the cell components that [setup](file-setup.md) adds. On a file that isn't set up, Documentation says "This file isn't set up yet. The first Update file sets it up, then draws these tables." <!-- src: apps/studio/src/shell/style-guides.ts:76 -->
+The tables need the pages and the cell components that [setup](file-setup.md) adds. On a file that isn't set up, Docs says "This file isn't set up yet. The first Update file sets it up, then draws these tables." <!-- src: apps/studio/src/shell/style-guides.ts:76 -->
 
 Write the theme first if you want the color tables to show contrast. The contrast column reads the brand saved in the file; without one, it reads "—". <!-- src: apps/plugin/src/style-guide.ts:27-29#f7e88ee8 -->
 
@@ -18,17 +18,17 @@ Write the theme first if you want the color tables to show contrast. The contras
 1. Open **Docs** in the rail, then the **Style guides** tab. <!-- src: apps/studio/src/shell/pages.ts:517 --> <!-- src: apps/studio/src/shell/pages.ts:532-537 -->
 2. Under **What to draw**, choose a **Collection** (or **Every collection**) and the **Kinds** to include, then tick the groups you want. One button works on the list in view: it reads **Select all**, or **Deselect all** once anything in view is ticked. <!-- src: apps/studio/src/shell/style-guides.ts:318-363 -->
 3. To draw only some tables, open **Draw by table title** and enter one title per line. Empty draws every table. <!-- src: apps/studio/src/shell/style-guides.ts:382-399 -->
-4. Set the **Options**. <!-- src: apps/studio/src/shell/style-guides.ts:585 --> Documentation keeps your choices in the file. <!-- src: apps/studio/src/shell/documentation.ts:1-10#c1d00ceb -->
+4. Set the **Options**. <!-- src: apps/studio/src/shell/style-guides.ts:585 --> Docs keeps your choices in the file. <!-- src: apps/studio/src/shell/documentation.ts:1-10#c1d00ceb -->
 
 ## Draw the tables
 
 1. Choose **Update file** in the top bar.
-2. Tick **Style guides**: "Drawn with the settings in Documentation. A rerun updates each table in place." It is ticked by default only on a file that isn't set up yet. <!-- src: apps/studio/src/state/update-file.ts:387-390 -->
+2. Tick **Style guides**: "Drawn with the settings in Docs. A rerun updates each table in place." It is ticked by default only on a file that isn't set up yet. <!-- src: apps/studio/src/state/update-file.ts:387-390 -->
 3. Choose **Update file**.
 
 The status strip says "Style guides drawn" when the run ends, and the Activity drawer lists each table. If the run went wrong, the drawer's **Update again** opens Update file again. <!-- src: apps/studio/src/state/status-strip.ts:143-144 --> <!-- src: apps/studio/src/shell/activity.ts:248 -->
 
-*[Screenshot placeholder: Documentation's Style guides tab, with groups ticked and the options column.]*
+*[Screenshot placeholder: the Style guides tab in Docs, with groups ticked and the options column.]*
 
 ## Options
 
