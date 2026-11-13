@@ -24,7 +24,7 @@ Shown on the default member: tone `info`, edge `contained`.
 3. **Success glyph** (optional) — The success glyph, a check in a circle, hidden from assistive technology: the text carries the meaning, and the shape tells the tones apart without color.
 4. **Warning glyph** (optional) — The warning glyph, an exclamation in a circle, hidden from assistive technology: the text carries the meaning, and the shape tells the tones apart without color.
 5. **Danger glyph** (optional) — The danger glyph, an exclamation in a triangle, hidden from assistive technology: the text carries the meaning, and the shape tells the tones apart without color.
-6. **Content** — The title, the body and the action, stacked. It fills the row between the glyph and the dismiss button.
+6. **Content** — The title, the body and the action, stacked. It fills the row between the glyph and the close button.
 7. **Title box** (optional) — The title's row, padded down so its first line centers on the glyph.
 8. **Title** — The title: a short heading that names the issue. It wraps rather than truncating.
 9. **Body row** (optional) — The body sentence, and the link after its last word. When the line has no room for the link, it moves under the text.
@@ -33,7 +33,7 @@ Shown on the default member: tone `info`, edge `contained`.
 12. **Rich body** (optional) — The rich body: an empty slot for content a sentence cannot hold, such as a short list. Off by default; turn the body off when it is on.
 13. **Actions** (optional) — The action's row under the body, so the space above it hides with it. Off by default.
 14. **Action** — The one action, a small text button; a banner holds one action at most.
-15. **Dismiss** (optional) — The dismiss button, a bare close icon with no edge or fill, as on a dialog; off by default.
+15. **Close** (optional) — The close button, a bare close icon with no edge or fill, as on a dialog; off by default.
 
 ## Styles
 
@@ -67,11 +67,11 @@ Use a Banner for an important message the user should see and may need to act on
 
 ## Accessibility
 
-- **Keyboard:** The action or the inline link, then the dismiss button, are ordinary Tab stops in reading order. The banner itself takes no focus.
+- **Keyboard:** The action or the inline link, then the close button, are ordinary Tab stops in reading order. The banner itself takes no focus.
 - **Focus:** No focus of its own. After a dismiss, focus moves to the control that caused the banner or to the page heading, never to the page body.
 - **Screen readers:** A banner present when the page loads is a region (\<section aria-labelledby> pointing at the title) and has no live role. A banner inserted after an action is announced through the page's live region: role="alert" for danger, role="status" for the other tones.
 
-  The glyph is aria-hidden. The inline link is a real link inside the body paragraph, read as part of the sentence. A banner present at load: a section with aria-labelledby pointing at the title, and no role="alert". An inserted banner: announced through a live region that already exists, role="alert" for danger and role="status" otherwise. The dismiss button's accessible name names what it dismisses ("Dismiss error message"), and is translated.
+  The glyph is aria-hidden. The inline link is a real link inside the body paragraph, read as part of the sentence. A banner present at load: a section with aria-labelledby pointing at the title, and no role="alert". An inserted banner: announced through a live region that already exists, role="alert" for danger and role="status" otherwise. The close button's accessible name names what it dismisses ("Dismiss error message"), and is translated.
 
 ### WCAG
 
@@ -82,7 +82,7 @@ Use a Banner for an important message the user should see and may need to act on
 - 1.4.11 Non-text Contrast (the edge clears 3:1 against the page and the glyph 3:1 against the fill, measured in every mode of the example brands)
 - 2.4.3 Focus Order (the action or the link is in the tab order, and a dismiss moves focus to a surviving element)
 - 2.4.4 Link Purpose (In Context) (the inline link sits in the sentence that gives it its purpose)
-- 2.5.8 Target Size (Minimum) (the dismiss button is a 20px glyph; it passes by spacing, its 24px circle clear of every other target, and targets 44×44px through a code-side hit area)
+- 2.5.8 Target Size (Minimum) (the close button is a 20px glyph; it passes by spacing, its 24px circle clear of every other target, and targets 44×44px through a code-side hit area)
 - 2.2.1 Timing Adjustable (the reason errors go in a banner, which stays, rather than a toast, which goes away)
 
 ### Motion
@@ -121,8 +121,8 @@ Titles are short, specific and in sentence case, with no period. The body states
 | `icon` | node \| false | — | no | Replaces the tone glyph, or false to hide it in a dense layout. The glyph is hidden from assistive technology either way. |
 | `actions` | node, never with link | — | no | One text Button that resolves the message (Button.Neutral when the file has it), under the body. Name it by what it does ("Retry", "Update billing"). A banner carries one action at most, so a banner with actions takes no link. |
 | `link` | { label: string; href: string }, never with actions | — | no | A link at the end of the body sentence, for a one-line message whose action goes somewhere ("Faster checkout by becoming a member. Join"). It renders as an inline Link, underlined, appended to the body paragraph, and wraps under the text when the line has no room. A banner carries one action at most, so a banner with a link takes no actions. Name the outcome where it fits ("Become a member"). |
-| `dismissible` | boolean | `false` | no | Whether the banner shows a dismiss button. Set it together with onDismiss. Leave a banner about a condition that still blocks the user not dismissible. |
-| `onDismiss` | function | — | no | Called when the dismiss button is pressed. Remove the banner, store the dismissal so it does not return on reload, and move focus to a sensible place. |
+| `dismissible` | boolean | `false` | no | Whether the banner shows a close button. Set it together with onDismiss. Leave a banner about a condition that still blocks the user not dismissible. |
+| `onDismiss` | function | — | no | Called when the close button is pressed. Remove the banner, store the dismissal so it does not return on reload, and move focus to a sensible place. |
 | `announce` | enum: 'auto' \| 'none' | `auto` | no | Whether a banner inserted after the page loads is announced: auto announces it through the page's live region, assertively for danger and politely otherwise. A banner present when the page loads is never announced; it is read in order. |
 
 ## Specs
@@ -144,7 +144,7 @@ Generated from the plan that builds the design-file component: 10 members. Value
 | `container/content/richBody` | slot | every member |
 | `container/content/actions` | frame | every member |
 | `container/content/actions/action` | instance | every member |
-| `container/dismiss` | instance | every member |
+| `container/close` | instance | every member |
 | `container/successGlyph` | instance | tone=success |
 | `container/warningGlyph` | instance | tone=warning |
 | `container/dangerGlyph` | instance | tone=danger |
@@ -380,7 +380,7 @@ Keyed by `tone`, `edge`.
 - `container/content/bodyRow/link` nests `link` at `style=inline, weight=default, size=medium, surface=default, selection=unselected, state=rest`
 - `container/content/richBody` is a slot
 - `container/content/actions/action` nests `button` at `appearance=text, size=small, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false`
-- `container/dismiss` nests `flush-icon-button-neutral` at `shape=flush, size=small, surface=default, state=rest`
+- `container/close` nests `flush-icon-button-neutral` at `shape=flush, size=small, surface=default, state=rest`
 - `container/successGlyph` nests `icon/check-circle`
 - `container/warningGlyph` nests `icon/error-circle`
 - `container/dangerGlyph` nests `icon/warning-triangle`
@@ -395,7 +395,7 @@ Keyed by `tone`, `edge`.
 | `link` | boolean | `false` |
 | `rich body` | boolean | `false` |
 | `actions` | boolean | `false` |
-| `dismiss` | boolean | `false` |
+| `close` | boolean | `false` |
 | `richBody` | slot | — |
 
 ---
