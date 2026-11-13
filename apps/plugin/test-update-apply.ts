@@ -2763,6 +2763,31 @@ section('order — a component this run adds counts as present for the set that 
     `premise: provider-logo is blocked by the nest the file lacks (${JSON.stringify(pl3?.blockers)})`);
   ok(wb3?.blockers.length === 1 && wb3.blockers[0].startsWith('Not in this file: ') && buttons.every((b) => wb3.blockers[0].includes(b)),
     `run adds/blocked provider: a blocked provider-logo credits none of its 11 marks, so wallet-button is still blocked, naming each (${JSON.stringify(wb3?.blockers)})`);
+  // A PROVIDER ONLY THEME BLOCKS (#3770, the owner's template-file run of 2026-11-13): provider-logo binds a variable the
+  // file lacks and Theme writes, so Update file runs it after Theme (#3421) and it adds its 11 marks then. Wallet button,
+  // which nests those marks, read "needs Provider logo, which this file doesn't have" and was left out of the run, in a
+  // file that holds Provider logo. It now reads blocked only until Theme, like its provider; its blockers are still the
+  // file's as it is now, so the hash and the reasons with Theme unticked do not move. Mutation: the after-Theme credit
+  // removed (`addedAfterTheme` never filled) → `run adds/after theme` fails.
+  const w4 = await runAdds();
+  const THEME_VAR = 'provider-logo-test/theme-writes-this';
+  const themed = providerAll.map((p, i) => (i === 0 ? { ...p, root: { ...p.root, bound: { ...p.root.bound, paddingLeft: THEME_VAR } } as PlanNode } : p));
+  const afterTheme: UpdateTarget[] = [{ def: 'wallet-button', plans: walletNow }, { def: 'provider-logo', plans: themed, single: true }];
+  const pre4 = await previewUpdate(w4.host, afterTheme);
+  const pl4 = pre4.sets.find((p) => p.set === 'provider-logo');
+  const wb4 = pre4.sets.find((p) => p.set === 'wallet-button');
+  ok(JSON.stringify(pl4?.blockers) === `["1 variable the plan binds is not in this file (${THEME_VAR})"]` && pl4?.themeBlocked === true,
+    `premise: provider-logo is blocked only by a variable Theme writes (${JSON.stringify([pl4?.blockers, pl4?.themeBlocked])})`);
+  ok(wb4?.themeBlocked === true && wb4.blockers.length === 1 && wb4.blockers[0].startsWith('Not in this file: ') && buttons.every((b) => wb4.blockers[0].includes(b)),
+    `run adds/after theme: wallet-button reads blocked only until Theme, as its provider does, its blockers still naming the 11 marks (${JSON.stringify([wb4?.blockers, wb4?.themeBlocked])})`);
+  // A lack nothing in the run supplies still blocks outright: the after-Theme credit covers only what that provider adds.
+  // Mutation: the set read blocked until Theme whenever there is an after-Theme credit (`after.theme === after.lines.length`
+  // dropped) → this arm fails.
+  const w5 = await runAdds();
+  const short5: UpdateTarget[] = [{ def: 'wallet-button', plans: walletNow }, { def: 'provider-logo', plans: themed.filter((p) => p.coord.name !== 'button/paypal-gold'), single: true }];
+  const wb5 = (await previewUpdate(w5.host, short5)).sets.find((p) => p.set === 'wallet-button');
+  ok(wb5?.themeBlocked === undefined && wb5.blockers.length === 1 && buttons.every((b) => wb5.blockers[0].includes(b)),
+    `run adds/after theme, unsupplied: with a mark the run never adds, wallet-button is blocked outright, not until Theme (${JSON.stringify([wb5?.blockers, wb5?.themeBlocked])})`);
 }
 
 /* ── replace ─────────────────────────────────────────────────────────────────────────────────────────── */
