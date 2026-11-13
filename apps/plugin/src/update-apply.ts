@@ -1125,10 +1125,13 @@ const coverDid = (c: CoverOutcome | undefined): boolean => !!c && c.did !== 'non
 /** A set the apply entered and wrote nothing to (see `idle` in `applyVerdict`). */
 const isIdle = (o: SetOutcome): boolean => !o.refused && !o.stopped && o.skipped.length > 0 && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length && !o.moved && !o.setMoved;
 
-export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; summary: string; lines: string[]; causes: Cause[] } => {
+/** #3711 (Q-UF3 A): `completed` is true when the run went through every set it was given: none stopped, none refused or
+ *  left not updated, and no stop asked for. A run that wrote every set and left some to check is `completed` and not
+ *  `ok`: Update file's run goes on past it as a warning, as a To add step with problems does (#3308). */
+export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean; headline: string; summary: string; lines: string[]; causes: Cause[] } => {
   if (r.refusedAll) {
     const lines = [`Nothing was updated: ${r.refusedAll}.`];
-    return { ok: false, headline: '✗ update refused', summary: lines.join('\n'), lines, causes: [runCause('✗ update refused', r.refusedAll)] };
+    return { ok: false, completed: false, headline: '✗ update refused', summary: lines.join('\n'), lines, causes: [runCause('✗ update refused', r.refusedAll)] };
   }
   const stopped = r.outcomes.find((o) => o.stopped);
   // A miss from the build's own pass is a set not verified, as an identity or content difference is (#2477): the set
@@ -1228,10 +1231,15 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   if (r.about) lines.push(aboutLine(r.about));
   if (r.version) lines.push(`Saved a version first: "${r.version}".`);
   else if (r.aboutOnly && (r.about?.drawn || coverDid(r.cover))) lines.push(coverPageOnlyLine({ about: !!r.about?.drawn, cover: coverDid(r.cover) }, true));
+  const completed = !stopped && !r.halted && !refused;
+  // #3711 (Q-UF3 A, DRAFT wording): every set written, some left to check. The count is the sets the run wrote,
+  // those to check among them; each one's lines above name what differs.
+  const written = r.outcomes.filter((o) => !o.refused && !o.stopped && !isIdle(o)).length;
   const headline = stopped ? `✗ update stopped at ${stopped.set}`
     : r.halted ? haltedHeadline(r.halted)
-    : failed.length ? `⚠ ${n(failed.length, 'set')} not verified`
-      : refused ? `✗ ${n(refused, 'set')} not updated`
+    // A set not updated stops the run, so it heads the verdict over any set to check beside it.
+    : refused ? `✗ ${n(refused, 'set')} not updated`
+      : failed.length ? `⚠ Updated ${n(written, 'set')} · ${failed.length} to check`
         : updated ? `✓ updated ${updated} in place`
           : added ? `✓ added ${added}`
             : deprecated ? `✓ ${deprecated} marked deprecated`
@@ -1259,8 +1267,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   // DRAFT wording for the owner: the line that introduces the partial result.
   if (r.failed) {
     const all = [`The update failed: ${r.failed}. What is listed below was done before it.`, ...lines];
-    return { ok: false, headline: '✗ update failed', summary: all.join('\n'), lines: all, causes: mergeCauses([runCause('✗ update failed', r.failed), ...causes]) };
+    return { ok: false, completed: false, headline: '✗ update failed', summary: all.join('\n'), lines: all, causes: mergeCauses([runCause('✗ update failed', r.failed), ...causes]) };
   }
   const ok = !stopped && !r.halted && !failed.length && !refused;
-  return { ok, headline: `${headline}${held ? ` · ${n(held, 'set')} kept edits over changes` : ''}${breakingClause(r.outcomes)}`, summary: lines.join('\n'), lines, causes: ok ? [] : mergeCauses(causes) };
+  return { ok, completed, headline: `${headline}${held ? ` · ${n(held, 'set')} kept edits over changes` : ''}${breakingClause(r.outcomes)}`, summary: lines.join('\n'), lines, causes: ok ? [] : mergeCauses(causes) };
 };
