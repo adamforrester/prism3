@@ -156,7 +156,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
-import { ENGINE_ARTIFACTS, ON_DEMAND_OUT, REPORT_ARTIFACTS, REPORTS_DIR, SCHEMA_ARTIFACTS, renderOnDemand } from './regen';
+import { ENGINE_ARTIFACTS, ON_DEMAND_OUT, UNCOMMITTED_OUT, renderUncommitted, REPORT_ARTIFACTS, REPORTS_DIR, SCHEMA_ARTIFACTS, renderOnDemand } from './regen';
 import { servedToolsList, servedStrings, servedBridgeInstructions } from './mcp-served';
 
 // ---- the RULE, imported (#1117) --------------------------------------------------------------
@@ -188,6 +188,13 @@ const onDemand = new Map<string, string>();
   const r = renderOnDemand();
   if ('error' in r) blind.push(`packages/engine/out/${ON_DEMAND_OUT.join(', ')} — the on-demand page did not render (${r.error})`);
   else r.files.forEach((abs, i) => onDemand.set(abs, `packages/engine/out/${ON_DEMAND_OUT[i]} (rendered on demand)`));
+}
+// The same for the exports regen writes and git does not track (#3698 R3): shipped prose, so still scanned, from a
+// fresh render rather than whatever `out/` holds. They share the on-demand map, so findings name their `out/` path.
+{
+  const r = renderUncommitted();
+  if ('error' in r) blind.push(`packages/engine/out/${UNCOMMITTED_OUT.join(', ')} — the uncommitted exports did not render (${r.error})`);
+  else r.files.forEach((abs, i) => onDemand.set(abs, `packages/engine/out/${UNCOMMITTED_OUT[i]} (rendered, not committed)`));
 }
 const shown = (abs: string): string => onDemand.get(abs) ?? relative(repo, abs);
 
@@ -241,7 +248,7 @@ const walkRequired = (dir: string, why: string): string[] => {
 // under this gate automatically instead of quietly widening the blind spot.
 const gated: string[] = [
   ...walkRequired(join(repo, 'packages/engine/out'), 'no emitted artifacts found — run `npx tsx packages/engine/regen.ts`')
-    .filter((f) => !ON_DEMAND_OUT.includes(relative(join(repo, 'packages/engine/out'), f))),
+    .filter((f) => !ON_DEMAND_OUT.includes(relative(join(repo, 'packages/engine/out'), f)) && !UNCOMMITTED_OUT.includes(relative(join(repo, 'packages/engine/out'), f))),
   // The on-demand preview page (Q319.6), rendered fresh above rather than read from `out/`.
   ...onDemand.keys(),
   ...SCHEMA_ARTIFACTS.map((f) => join(repo, 'packages/engine/schema', f)),
@@ -336,6 +343,21 @@ const gated: string[] = [
   // walk leaves both to their own lists rather than reading them twice.
   ...walk(join(repo, 'docs/public')).filter((f) => !f.startsWith(`${join(repo, REPORTS_DIR)}/`) && !(f.startsWith(`${repo}/docs/public/guides/`) && f.endsWith('.md'))),
 ];
+
+// ---- `--files`: the scanned set, printed (#1117) ----------------------------------------------
+// The scope crossing noted in the header claims "no design-record docs/ file is in this gate's scope". A grep over
+// this source cannot check that claim — it matches the comment making it. This prints the set the
+// gate actually walks, so the claim is decided by the gate rather than by prose about it:
+//
+//   npx tsx packages/engine/lint-us-english.ts --files | grep '^docs/' | grep -vc '^docs/public/'    # must be 0
+//
+// Exits before any scanning, so it is cheap and cannot be confused with a verdict. It also exits before the surface
+// and self checks (#3698 R4), so it lists the walked set in a tree with no build, as `test-docs-only.sh`'s
+// `scope/…` cases read it in CI's engine job: an unbuilt bundle lists no file, and every bundle is under `apps/`.
+if (process.argv.includes('--files')) {
+  for (const f of gated) console.log(shown(f));
+  process.exit(0);
+}
 
 // ---- SELF-CHECK: does the scanner still detect what it claims to? ----
 // Without this, deleting a scan makes the gate go QUIET rather than fail — which is exactly how
@@ -487,19 +509,6 @@ if (selfFails.length) {
   console.error(`\n❌ the gate's detection is broken — it cannot see what it claims to:\n`);
   for (const f of selfFails) console.error(`    ${f}`);
   process.exit(1);
-}
-
-// ---- `--files`: the scanned set, printed (#1117) ----------------------------------------------
-// The scope crossing noted in the header claims "no design-record docs/ file is in this gate's scope". A grep over
-// this source cannot check that claim — it matches the comment making it. This prints the set the
-// gate actually walks, so the claim is decided by the gate rather than by prose about it:
-//
-//   npx tsx packages/engine/lint-us-english.ts --files | grep '^docs/' | grep -vc '^docs/public/'    # must be 0
-//
-// Exits before any scanning, so it is cheap and cannot be confused with a verdict.
-if (process.argv.includes('--files')) {
-  for (const f of gated) console.log(shown(f));
-  process.exit(0);
 }
 
 const gatedHits = gated.flatMap(scan);
