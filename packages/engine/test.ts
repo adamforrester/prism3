@@ -107,6 +107,7 @@ const planIconComps = (n: { nestTarget?: string; children?: readonly unknown[] }
 
 import { Session as InspectorSession } from 'node:inspector/promises';
 import { componentSpec, specMaterialize } from './component-specs';
+import { localeFreeCompare } from './locale-free-order';
 
 // ---- #1268 EVERY ASSERTION SITE RAN — a section going quiet is a failure, not a smaller pass ----------
 //
@@ -4894,9 +4895,10 @@ arm: {
   // `motion` joined in #2394 as FLOAT milliseconds and left with #2412: TIMING + EASING, so it is
   // `buildMotionVarPlan`'s, not a FLOAT axis. Asserted absent here so it cannot be written twice.
   // `blur` joined in #2869: the glass radius, a FLOAT the `glass` Effect Style binds.
-  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'blur', 'layout'];
+  // `text-spacing` joined in #2423: the line-height and letter-spacing multipliers, bound to nothing.
+  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'blur', 'text-spacing', 'layout'];
   ok(EXPECTED.every((n) => names.includes(n)) && names.length === EXPECTED.length,
-    `float-plan: eleven collections present, motion not among them (${names.join(', ')})`);
+    `float-plan: twelve collections present, motion not among them (${names.join(', ')})`);
 
   // Single-mode dims axes vs per-breakpoint layout.
   ok(auroraFloat.find((c) => c.name === 'core')!.modes.join(',') === 'Default',
@@ -10015,14 +10017,25 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(bpMsg('bpDec', [0.5, 768]) === 'The first breakpoint must be 0px. This brand starts at 0.5px.',
     `[#2132] the message carries the value as entered, not rounded (got "${bpMsg('bpDec', [0.5, 768])}")`);
   // #2137 — an EMPTY breakpoints list is refused (owner decision 2026-10-05, Q22 a). It built a brand with no
-  // layout at all. EXPECTED is the owner-approved sentence, typed here literally. A single breakpoint at 0 is
-  // the smallest list that builds. BY-NAME MUTATION: delete the empty-list refusal in `buildLayout` → the
-  // refused arm fails (and nothing else names it: the #2132 check reads `floors[0]`, undefined here, so it
-  // throws #2132's message instead, which this arm's exact match rejects).
-  ok(bpMsg('bpEmpty', []) === 'The brand needs at least one breakpoint, starting at 0px.',
-    `[#2137] an empty breakpoints list is refused with the approved wording (got "${bpMsg('bpEmpty', [])}")`);
-  ok(bpMsg('bpOne', [0]) === '' && lyBrand('bpOneB', { breakpoints: [0] }).layout.breakpoints.length === 1,
-    `[#2137] a single breakpoint at 0px builds, with one breakpoint (got "${bpMsg('bpOne', [0])}")`);
+  // layout at all. #3698 R2 (owner decision 2026-11-12) raised the floor to two, so the empty list now takes
+  // R2's sentence, and a single breakpoint, which built and dropped four guaranteed contract paths
+  // (`breakpoint.md`, `grid.md.*`), is refused too. EXPECTED is the sentence typed here literally, with the count
+  // as entered. Two is the smallest list that builds. BY-NAME MUTATION: restore `floors.length === 0` in
+  // `buildLayout` → the bpOne arm fails (one floor builds again); delete the refusal → both refused arms fail
+  // (the empty list throws #2132's first-breakpoint message instead, which the exact match rejects).
+  ok(bpMsg('bpEmpty', []) === 'The brand needs at least two breakpoints, starting at 0px. This brand has 0.',
+    `[#2137, #3698 R2] an empty breakpoints list is refused (got "${bpMsg('bpEmpty', [])}")`);
+  ok(bpMsg('bpOne', [0]) === 'The brand needs at least two breakpoints, starting at 0px. This brand has 1.',
+    `[#3698 R2] a single breakpoint at 0px is refused, with the count as entered (got "${bpMsg('bpOne', [0])}")`);
+  ok(bpMsg('bpTwo', [0, 768]) === '' && lyBrand('bpTwoB', { breakpoints: [0, 768] }).layout.breakpoints.length === 2,
+    `[#3698 R2] two breakpoints, the first at 0px, build with two breakpoints (got "${bpMsg('bpTwo', [0, 768])}")`);
+  // The schema states the same floor, so `validateBrandInput` (the CLI, `validate_brand`, `theme_brand`) refuses
+  // one floor before the build path runs, and accepts two. BY-NAME MUTATION: drop `minItems` from the schema →
+  // this arm fails.
+  ok(validateBrandInput({ id: 'bpS1', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, layout: { breakpoints: [0] } })
+      .some((e) => /layout\.breakpoints.*1 item\(s\) < minItems 2/.test(e))
+    && validateBrandInput({ id: 'bpS2', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, layout: { breakpoints: [0, 768] } }).length === 0,
+    '[#3698 R2] the schema refuses one breakpoint (minItems 2) and accepts two');
   // #2198 — more than seven breakpoints are refused (owner decision 2026-10-06, Q43 A). `bpNames` names seven
   // (xs to 3xl), and an eighth took the placeholder `bp7`. EXPECTED is the sentence typed here literally, with
   // the count as entered. Seven is the largest list that builds, and it carries real names. BY-NAME MUTATION:
@@ -13924,6 +13937,60 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       return !(gv?.alias?.name && /\/core\/palette\/(?:white|black)-alpha\/\d+$/.test(gv.alias.name) && gv.value.a > 0.5 && gv.value.a < 1);
     });
     ok(colorModes.length >= 1 && unbound.length === 0, `glass ${b}: color/glass/surface aliases a translucent alpha primitive in every color mode (${colorModes.length})${unbound.length ? ` — NOT IN: ${unbound.join(', ')}` : ''}`);
+  }
+}
+
+// TEXT SPACING (#2423, owner Q175 A; collection name 2026-11-12) — the line-height and letter-spacing ladders and their
+// roles as one `text-spacing` FLOAT collection, each variable named by its DTCG path. Two independent sides:
+//   · LITERALS — the owner's collection name and name shape, the empty scope list (Figma binds line height and letter
+//     spacing as pixels, and these are multipliers), the publishing split (steps hidden, roles published), and a few
+//     values written out for every brand (1.05, -0.04, -0.015: letter spacing is the multiplier, Q175 A, not percent).
+//   · THE ENGINE'S DTCG (`out/<brand>.tokens.json`, which no Figma emitter writes) — every leaf of the four groups has
+//     exactly one variable at its path, holding its number, and a role aliases the step its DTCG alias names.
+{
+  const GROUPS = ['line-height', 'line-height-role', 'letter-spacing', 'letter-spacing-role'];
+  const VALUES: Record<string, number> = { 'line-height/105': 1.05, 'line-height/150': 1.5, 'letter-spacing/neg-40': -0.04, 'letter-spacing/neg-15': -0.015, 'letter-spacing/0': 0, 'letter-spacing/50': 0.05 };
+  const ROLE_ALIASES: Record<string, string> = { 'line-height-role/tight': 'line-height/105', 'letter-spacing-role/tightest': 'letter-spacing/neg-40' };
+  const tsBrands = readdirSync(resolve(HERE, './out/figma')).sort();
+  ok(['aurora', 'nb', 'prism3', 'wendys'].every((b) => tsBrands.includes(b)), `text-spacing: every canonical Figma brand is read (${tsBrands.join(', ')})`);
+  for (const b of tsBrands) {
+    const dir = resolve(HERE, './out/figma', b);
+    const files = readdirSync(dir).filter((x) => /^text-spacing(\.|$)/.test(x));
+    ok(files.length === 1 && files[0] === 'text-spacing.json', `text-spacing ${b}: one file, text-spacing.json, one Default mode (${files.join(', ') || 'none'})`);
+    if (files[0] !== 'text-spacing.json') continue;
+    const file = JSON.parse(readFileSync(resolve(dir, 'text-spacing.json'), 'utf8'));
+    const vars = file.variables as any[];
+    const tree = JSON.parse(readFileSync(resolve(HERE, `./out/${b}.tokens.json`), 'utf8'));
+    const root = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+    const fontGroup = tree[root].core.font;
+    ok(file.$collection === 'text-spacing' && file.$mode === 'Default', `text-spacing ${b}: $collection 'text-spacing', $mode 'Default' (got ${file.$collection}, ${file.$mode})`);
+    const byName = new Map(vars.map((v) => [v.name, v]));
+    const want: string[] = [];
+    const off: string[] = [];
+    for (const g of GROUPS) {
+      const leaves = Object.entries(fontGroup[g] ?? {}).filter(([k]) => !k.startsWith('$')) as Array<[string, any]>;
+      if (leaves.length < 5) off.push(`${g}: only ${leaves.length} DTCG leaves`);
+      for (const [k, leaf] of leaves) {
+        const name = `${root}/core/font/${g}/${k}`;
+        want.push(name);
+        const v = byName.get(name);
+        if (!v) { off.push(`${name}: missing`); continue; }
+        const role = g.endsWith('-role');
+        const ref = /^\{(.+)\}$/.exec(String(leaf.$value));
+        const target = ref ? ref[1].split('.').reduce((n: any, k2: string) => n?.[k2], tree) : leaf;
+        if (v.resolvedType !== 'FLOAT') off.push(`${name}: ${v.resolvedType}`);
+        if (JSON.stringify(v.scopes) !== '[]') off.push(`${name}: scopes ${JSON.stringify(v.scopes)}`);
+        if (v.value !== target?.$value) off.push(`${name}: value ${v.value}, DTCG ${target?.$value}`);
+        if (role !== !!v.alias) off.push(`${name}: alias ${JSON.stringify(v.alias)} on a ${role ? 'role (must alias its step)' : 'step (must be a literal)'}`);
+        if (ref && v.alias?.name !== ref[1].replace(/\./g, '/')) off.push(`${name}: aliases ${v.alias?.name}, DTCG ${ref[1]}`);
+        if (role ? v.hiddenFromPublishing !== undefined : v.hiddenFromPublishing !== true) off.push(`${name}: hiddenFromPublishing ${v.hiddenFromPublishing} on a ${role ? 'role (published)' : 'step (hidden)'}`);
+      }
+    }
+    const extra = vars.filter((v) => !want.includes(v.name)).map((v) => v.name);
+    for (const [tail, n] of Object.entries(VALUES)) if (byName.get(`${root}/core/font/${tail}`)?.value !== n) off.push(`${tail}: ${byName.get(`${root}/core/font/${tail}`)?.value}, want ${n}`);
+    for (const [role, step] of Object.entries(ROLE_ALIASES)) if (byName.get(`${root}/core/font/${role}`)?.alias?.name !== `${root}/core/font/${step}`) off.push(`${role}: does not alias ${step}`);
+    ok(off.length === 0 && extra.length === 0 && vars.length === want.length,
+      `text-spacing ${b}: ${vars.length} variables, one per DTCG line-height / letter-spacing step and role, named by path, FLOAT with no scopes, the DTCG's multiplier, roles aliasing their steps, steps hidden and roles published${off.length || extra.length ? ` — ${[...off, ...extra.map((x) => `extra ${x}`)].slice(0, 6).join('; ')}` : ''}`);
   }
 }
 
@@ -28136,8 +28203,8 @@ arm: {
         const check = (label: string, plans: AnatomyPlan[], keys: [string, string], want: Record<string, string>) => {
           const got = [...cellMap(plans).entries()]
             .map(([n, cell]) => [`${at(n, keys[0])}/${at(n, keys[1])}`, cell] as const)
-            .sort(([a], [b]) => a.localeCompare(b));
-          const wantSorted = Object.entries(want).sort(([a], [b]) => a.localeCompare(b));
+            .sort(([a], [b]) => localeFreeCompare(a, b));
+          const wantSorted = Object.entries(want).sort(([a], [b]) => localeFreeCompare(a, b));
           ok(JSON.stringify(got) === JSON.stringify(wantSorted),
             `#656 ${label} — got ${JSON.stringify(got)} vs hand-written ${JSON.stringify(wantSorted)}`);
         };

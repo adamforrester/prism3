@@ -227,11 +227,16 @@ await new Promise((r) => setTimeout(r, 3000));
   const vp = (await server.callJson('validate_brand', { ...B, typography: { responsive: { fluid: true, minViewport: 1280, maxViewport: 375 } } })).payload;
   ok(vp.valid === false && vp.errors.length === 1 && vp.errors[0] === 'The minimum viewport (1280px) must be smaller than the maximum viewport (375px).',
     `#2146 validate_brand reports the viewport-range refusal (#2068), not just the schema (got ${JSON.stringify(vp)})`);
-  // #2137, owed by #2157 and #2158 (whichever merged second): the empty breakpoints list, refused in
-  // `brandTheme`. The exact approved sentence, typed here literally.
+  // #2137, owed by #2157 and #2158 (whichever merged second): the empty breakpoints list. Since #3698 R2 the
+  // schema carries `minItems: 2`, so the schema refuses it (and one floor) before `brandTheme` runs, in the
+  // validator's own words. EXPECTED typed here literally. BY-NAME MUTATION: drop `minItems` from the schema →
+  // both arms fail (the empty list falls through to `brandTheme`'s sentence, and one floor validates).
   const empty = (await server.callJson('validate_brand', { ...B, layout: { breakpoints: [] } })).payload;
-  ok(empty.valid === false && empty.errors.length === 1 && empty.errors[0] === 'The brand needs at least one breakpoint, starting at 0px.',
-    `#2137 validate_brand reports the empty-breakpoints refusal (got ${JSON.stringify(empty)})`);
+  ok(empty.valid === false && empty.errors.length === 1 && empty.errors[0] === 'layout.breakpoints: 0 item(s) < minItems 2',
+    `#2137 / #3698 R2 validate_brand refuses an empty breakpoints list (got ${JSON.stringify(empty)})`);
+  const one = (await server.callJson('validate_brand', { ...B, layout: { breakpoints: [0] } })).payload;
+  ok(one.valid === false && one.errors.length === 1 && one.errors[0] === 'layout.breakpoints: 1 item(s) < minItems 2',
+    `#3698 R2 validate_brand refuses a single breakpoint (got ${JSON.stringify(one)})`);
   // #2159: refusals that fire only in `buildTree`, once the modes resolve, after `brandTheme` has accepted the
   // brand. `validate_brand` runs the same build path `theme_brand` does, so they are reported in the engine's
   // own words. EXPECTED is each message typed here literally. BY-NAME MUTATION: drop `buildTree(…)` from the
