@@ -160,7 +160,6 @@ export const createBridgeRelay = (deps: RelayDeps) => {
     let sock: WsLike;
     try { sock = deps.open(url); } catch { retry = deps.schedule(connect, nextDelay()); return; }
     ws = sock;
-    codeSent = false;
     let nonce = '';
     // #3697 R8: this connection's own nonce, which the server's welcome or paired must prove a secret over.
     const clientNonce = deps.nonce ? deps.nonce() : randomNonce();
