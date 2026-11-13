@@ -34,3 +34,14 @@ real browser-job inputs:
 - `packages/engine/examples/*.design.md` are bundled by the studio.
 
 So `docs/public/`, `packages/` and `skills/` are not docs here. This is flagged as an owner decision on the PR.
+
+**Review fixes (the verdict at 4adedf12).**
+- The root `README.md` is not docs: `lint-us-english` scans it and runs only in `surfaces`, so a README-only PR
+  could ship an en-GB spelling past a green `gates`. `test-docs-only.sh` gains `scope/lint-us-english` and
+  `scope/lint-voice`: each gate's own `--files` list, classified, must hold no docs file. So a docs-only PR never
+  skips a prose gate on what it touched, and a surface either gate adds later is checked too. Mutation: the
+  `README.md` line dropped from `docs-only.sh` fails `classify/root-readme` and `scope/lint-us-english`.
+- `lint-doc-gates.ts` gains `pinGaps`, so the `package.json` comment's claim now holds. It fails on a tsx range,
+  a `.node-version` that is not an exact x.y.z, a setup-node step that does not read `.node-version` or names
+  its own version, and a `tsx@` spec on a CI step. Each was mutated and fails by name.
+- A new `aggregate/docs-only-absent` case covers `changes` succeeding with no `docs_only` output and a skipped browser job: `gates` fails.

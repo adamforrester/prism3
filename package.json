@@ -12,7 +12,7 @@
     "verify": "npx tsx verify.ts",
     "tokens-html": "npx tsx packages/engine/visualize.ts"
   },
-  "// devDependencies": "tsx is pinned EXACTLY (#3698 R4), so every `npx tsx` in CI, verify.ts and the workspace scripts runs one parser, and a new tsx reaches the repo only as a reviewed lockfile change. Before this, CI named `tsx@4` and floated within the major, and the workspace scripts' bare `npx tsx` fetched whatever was latest. Node is pinned the same way, in `.node-version`. `lint-doc-gates.ts` fails a range here or a `tsx@` spec on a CI step.",
+  "// devDependencies": "tsx is pinned EXACTLY (#3698 R4), so every `npx tsx` in CI, verify.ts and the workspace scripts runs one parser, and a new tsx reaches the repo only as a reviewed lockfile change. Before this, CI named `tsx@4` and floated within the major, and the workspace scripts' bare `npx tsx` fetched whatever was latest. Node is pinned the same way, in `.node-version`. `lint-doc-gates.ts` (`pinGaps`) fails a range here, a `.node-version` that is not an exact x.y.z, a setup-node step in ci.yml that does not read it or names its own version, and a `tsx@` spec on a CI step.",
   "devDependencies": {
     "tsx": "4.23.15"
   }

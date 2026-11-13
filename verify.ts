@@ -1279,8 +1279,8 @@ export const GATES: Gate[] = [
     cmd: ['bash', '.github/scripts/test-install-chromium.sh'],
   },
   {
-    // #3698 R4 — the test for the docs-only exemption: the classifier and the aggregator's half, by literal cases.
-    // No git, no network, no `after`.
+    // #3698 R4 — the test for the docs-only exemption: the classifier and the aggregator's half, by literal cases,
+    // and no file a prose gate scans (its `--files`) classed as docs. No git, no network, no `after`.
     id: 'docs-only-exemption',
     ciStep: 'The docs-only exemption decides by path and is recorded by name',
     cmd: ['bash', '.github/scripts/test-docs-only.sh'],

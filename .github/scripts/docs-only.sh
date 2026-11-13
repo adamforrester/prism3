@@ -12,8 +12,12 @@
 # WHICH FILES COUNT AS DOCS. `is_docs_file` below is the one statement of it. A file is docs when it is
 #   - under `docs/`, except `docs/public/`, which the studio serves at /docs and the browser suites and the prose gates
 #     in `surfaces` read; or
-#   - a `.md` file outside `apps/`, `packages/`, `skills/` and `docs/public/`. `packages/` holds bundle inputs written
-#     in markdown (the studio bundles `packages/engine/examples/*.design.md`), and `skills/` ships.
+#   - a `.md` file outside `apps/`, `packages/`, `skills/` and `docs/public/`, other than the root `README.md`.
+#     `packages/` holds bundle inputs written in markdown (the studio bundles `packages/engine/examples/*.design.md`),
+#     `skills/` ships, and the root `README.md` is a subject of `lint-us-english`, which runs in `surfaces` (the
+#     verdict on #3735, blocking 1).
+# No file a prose gate scans may count as docs, or a docs-only PR would skip the gate that reads what it changed.
+# The test holds that against each prose gate's own `--files` list, not against this list (docs/34).
 # Everything else is not docs, and ONE non-docs file means no exemption. That set is narrower than "docs/** or *.md
 # outside apps/", for the two reasons above; the PR that added it asks the owner to confirm it.
 #
@@ -30,6 +34,7 @@ is_docs_file() {
     docs/public/*) return 1 ;;
     docs/*) return 0 ;;
     apps/*|packages/*|skills/*) return 1 ;;
+    README.md) return 1 ;;
     *.md) return 0 ;;
     *) return 1 ;;
   esac

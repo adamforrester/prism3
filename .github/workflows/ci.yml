@@ -909,7 +909,8 @@ jobs:
         run: bash .github/scripts/test-install-chromium.sh
 
       # #3698 R4 — the test for the docs-only exemption: the classifier (`docs-only.sh`) and the aggregator's half
-      # (`all-gates.sh`), by literal cases, including a docs change that also touches an app file (never exempt).
+      # (`all-gates.sh`), by literal cases, including a docs change that also touches an app file (never exempt), and
+      # its `scope/…` cases: no file a prose gate scans (`lint-us-english`/`lint-voice --files`) counts as docs.
       # Here, in the job that always runs, because the jobs it can exempt cannot be where it is checked.
       - name: The docs-only exemption decides by path and is recorded by name
         run: bash .github/scripts/test-docs-only.sh

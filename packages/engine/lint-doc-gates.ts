@@ -522,6 +522,36 @@ export const exemptionGaps = (tree: YamlValue, script: string): string[] => {
   return problems;
 };
 
+/** #3698 R4 — THE EXACT PINS. Node and tsx are pinned exactly, so every CI job runs one Node and one parser, and a new one
+ *  arrives only as a reviewed change. Four things hold that, each read from its own file and checked here: root
+ *  `package.json`'s `devDependencies.tsx` is an exact `x.y.z` (no range); `.node-version` is an exact `x.y.z`; every
+ *  `actions/setup-node` step in `ci.yml` reads `node-version-file: .node-version` and names no `node-version:` of its
+ *  own; and no `ci.yml` step's `run:` names a `tsx@` spec, which would fetch a tsx beside the lockfile's. Empty when
+ *  sound. */
+export const NODE_VERSION_FILE = '.node-version';
+const EXACT = /^\d+\.\d+\.\d+$/;
+export const pinGaps = (tree: YamlValue, pkgJson: string, nodeVersion: string): string[] => {
+  type Step = { uses?: YamlValue; run?: YamlValue; with?: YamlValue };
+  const jobs = (tree as { jobs?: Record<string, { steps?: Step[] }> }).jobs ?? {};
+  const problems: string[] = [];
+  let tsx: unknown;
+  try { tsx = (JSON.parse(pkgJson) as { devDependencies?: Record<string, unknown> }).devDependencies?.tsx; } catch { return ['root `package.json` does not parse, so its tsx pin cannot be read']; }
+  if (typeof tsx !== 'string' || !EXACT.test(tsx)) problems.push(`root \`package.json\` pins tsx as ${JSON.stringify(tsx)}, not an exact x.y.z`);
+  if (!EXACT.test(nodeVersion.trim())) problems.push(`\`${NODE_VERSION_FILE}\` holds ${JSON.stringify(nodeVersion.trim())}, not an exact x.y.z`);
+  let setups = 0;
+  for (const [k, j] of Object.entries(jobs)) for (const st of j.steps ?? []) {
+    if (typeof st.uses === 'string' && st.uses.startsWith('actions/setup-node')) {
+      setups++;
+      const w = (st.with && typeof st.with === 'object' ? st.with : {}) as Record<string, YamlValue>;
+      if (w['node-version-file'] !== NODE_VERSION_FILE) problems.push(`\`${k}\`'s setup-node step does not read \`node-version-file: ${NODE_VERSION_FILE}\``);
+      if ('node-version' in w) problems.push(`\`${k}\`'s setup-node step names its own \`node-version:\``);
+    }
+    if (typeof st.run === 'string' && /\btsx@/.test(st.run)) problems.push(`a \`${k}\` step runs a \`tsx@\` spec (${st.run.trim().split('\n')[0]}), which fetches a tsx beside the pinned one`);
+  }
+  if (!setups) problems.push('no `actions/setup-node` step found in ci.yml, so the Node pin reaches no job');
+  return problems;
+};
+
 /** ARM 9 (#3044): the steps that must carry a `timeout-minutes`, by job and `- name:`, typed here. The chrome suite's
  *  step: its healthy shard runs peak at 651 s (120 runs on main and PRs, measured 2026-11-02), and `ci.yml` gives it 30
  *  minutes, 2.8x that, the margin `verify.ts` point 5 gives its own limits. */
@@ -1223,6 +1253,28 @@ if (!/unclosed double-quoted/.test(refusal(SAMPLE_YAML.replace('"Sample gate: ha
   if (!gaps(W.replace(`bash ${DOCS_ONLY_SCRIPT}`, 'true')).some((p) => p.includes('does not run'))) selfFails.push('the exemption check misses a `changes` job that does not run the classifier');
 }
 
+// 6d. THE EXACT PINS (#3698 R4), driven through the shipped `pinGaps` over hand-made files.
+{
+  const W = `jobs:
+  a:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ${NODE_VERSION_FILE}
+      - run: npx tsx verify.ts
+`;
+  const PKG = '{"devDependencies":{"tsx":"4.23.15"}}';
+  const gaps = (yaml = W, pkg = PKG, node = '22.23.4\n'): string[] => pinGaps(parseYamlSubset(yaml), pkg, node);
+  if (gaps().length) selfFails.push(`the pin check flags sound pins: ${gaps().join('; ')}`);
+  if (!gaps(W, '{"devDependencies":{"tsx":"^4.23.15"}}').some((p) => p.includes('pins tsx as "^4.23.15"'))) selfFails.push('the pin check misses a tsx range in package.json');
+  if (!gaps(W, '{}').some((p) => p.includes('pins tsx as undefined'))) selfFails.push('the pin check misses a missing tsx pin');
+  if (!gaps(W, PKG, '22\n').some((p) => p.includes('not an exact x.y.z'))) selfFails.push('the pin check misses a floating .node-version');
+  if (!gaps(W.replace('npx tsx verify.ts', 'npx --yes tsx@4 verify.ts')).some((p) => p.includes('`tsx@` spec'))) selfFails.push('the pin check misses a `tsx@` spec on a CI step');
+  if (!gaps(W.replace(`node-version-file: ${NODE_VERSION_FILE}`, 'node-version: 22')).some((p) => p.includes('does not read'))) selfFails.push('the pin check misses a setup-node step that does not read .node-version');
+  if (!gaps(W.replace(`node-version-file: ${NODE_VERSION_FILE}`, `node-version-file: ${NODE_VERSION_FILE}\n          node-version: 22`)).some((p) => p.includes('names its own'))) selfFails.push('the pin check misses a setup-node step that also names node-version');
+}
+
 // 6b. ARM 9 — a step with its limit is clean; the limit dropped, zero, or the step renamed is named.
 {
   const T = `
@@ -1337,6 +1389,16 @@ const realSteps = parseSteps(readFileSync(CI_PATH, 'utf8'));
     for (const p of problems) console.error(`    ${p}`);
     console.error(`\n  ci.yml's jobs carrying \`${EXEMPTION_IF}\` and EXEMPT_JOBS in ${AGGREGATOR_SCRIPT} must name the same`);
     console.error('  jobs, each a browser job that needs `changes`. Fix whichever file went short.');
+    process.exit(1);
+  }
+}
+// THE EXACT PINS (#3698 R4), on the real files: package.json's tsx, .node-version, and every setup-node step and run in ci.yml.
+{
+  const problems = pinGaps(ciTree, readFileSync(resolve(repo, 'package.json'), 'utf8'), readFileSync(resolve(repo, NODE_VERSION_FILE), 'utf8'));
+  console.log('    exact pins: tsx in package.json, .node-version, and every setup-node step and run in ci.yml');
+  if (problems.length) {
+    console.error('\n❌ the Node and tsx pins (#3698 R4) are not exact:\n');
+    for (const p of problems) console.error(`    ${p}`);
     process.exit(1);
   }
 }

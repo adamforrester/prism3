@@ -1337,11 +1337,14 @@ job as `EXEMPT` and records `DOCS-ONLY EXEMPTION (#3698 R4)` in the run summary 
 Any other skip still fails `gates`.
 
 - **What counts as docs:** a file under `docs/` other than `docs/public/`, or a `.md` file outside
-  `apps/`, `packages/`, `skills/` and `docs/public/`. One other file means no exemption.
+  `apps/`, `packages/`, `skills/` and `docs/public/` other than the root `README.md`. One other file
+  means no exemption. The root `README.md` is excluded because `lint-us-english` (in `surfaces`) scans it.
   `docs/public/` is excluded because the studio serves it, and the browser suites and the prose gates in
   `surfaces` read it. `packages/` is excluded because it holds markdown the studio bundles
   (`examples/*.design.md`), and `skills/` because it ships. The classifier's header is the one statement
-  of the rule.
+  of the rule. **No file a prose gate scans counts as docs**, so a PR that touches one still runs the prose
+  gates: the test reads each prose gate's own `--files` list and fails by name (`scope/<gate>`) on any file
+  the classifier calls docs.
 - **Only a pull request qualifies.** A push to `main` runs every job. Every doubt resolves to running
   everything: an empty diff, a failed diff, or a missing SHA.
 - **The test** is `bash .github/scripts/test-docs-only.sh` (below). `lint-doc-gates.ts` holds the jobs that
@@ -1722,7 +1725,8 @@ sh tools/claude-md-freshness/mutations.sh  # the mutation battery for the CLAUDE
                                           # fetch-depth: 0. Confirmed from a depth-1 clone before wiring
 bash .github/scripts/test-docs-only.sh   # the docs-only exemption (#3698 R4): the classifier and
                                           # the aggregator's half, by literal cases. A docs change that
-                                          # also touches an app file is never exempt. No git, no network
+                                          # also touches an app file is never exempt, and no file a prose
+                                          # gate scans (its --files) counts as docs. No git, no network
 bash .github/scripts/test-install-chromium.sh # the test for install-chromium.sh, which all four
                                           # browser jobs run (#2981). A stand-in install and dpkg
                                           # lock in $TMPDIR: no browser, no network. Its stall/…

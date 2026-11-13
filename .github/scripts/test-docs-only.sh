@@ -11,6 +11,10 @@
 #                The load-bearing one is classify/docs+app: a docs change that ALSO touches an app file is not exempt.
 #   event/…      a push, a merge-queue run and an unset event are never exempt, whatever the files.
 #   aggregate/…  NEEDS → all-gates.sh's exit, and the EXEMPT record when the exemption applies.
+#   scope/…      each prose gate (`lint-us-english`, `lint-voice`) lists what it scans (`--files`), and the classifier
+#                must call EVERY one of those files not docs: a PR that touches a prose gate's subject is never exempt,
+#                so the prose gates still run on it. The list is the gate's own, never the classifier's (docs/34), so a
+#                surface either side adds is checked without editing this file. Needs `npx tsx` (CI's engine job).
 # Mutations, each failing here by name (measured when this was added):
 #   - `is_docs_file`'s `apps/*|packages/*|skills/*) return 1` line deleted → classify/docs+app-md, classify/docs+design-md,
 #     classify/skills.
@@ -19,6 +23,10 @@
 #   - all-gates.sh's exemption made unconditional (its `docs_only == "true"` tests made `true`) → aggregate/no-exemption-skip,
 #     aggregate/changes-failed.
 #   - `engine` added to all-gates.sh's EXEMPT_JOBS → aggregate/engine-never-exempt.
+#   - `is_docs_file`'s `README.md) return 1` line deleted (the verdict on #3735, blocking 1) → classify/root-readme,
+#     scope/lint-us-english.
+#   - all-gates.sh's `docs_only == "true"` loosened to `!= "false"` (an absent output read as an exemption) →
+#     aggregate/docs-only-absent.
 set -u
 
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -37,8 +45,10 @@ nl=$'\n'
 
 classify pull_request "docs/34-gate-independence.md${nl}docs/progress/pending/x.md"
 check 'classify/docs' "$([ "$verdict" = true ]; echo $?)"
-classify pull_request "README.md${nl}CONTRIBUTING.md${nl}tools/x/README.md${nl}.github/ISSUE_TEMPLATE/bug.md"
+classify pull_request "CONTRIBUTING.md${nl}tools/x/README.md${nl}.github/ISSUE_TEMPLATE/bug.md"
 check 'classify/root-and-tool-md' "$([ "$verdict" = true ]; echo $?)"
+classify pull_request "README.md"
+check 'classify/root-readme' "$([ "$verdict" = false ]; echo $?)"
 classify pull_request "docs/progress/pending/x.md${nl}apps/studio/src/main.ts"
 check 'classify/docs+app' "$([ "$verdict" = false ]; echo $?)"
 classify pull_request "docs/progress/pending/x.md${nl}apps/plugin/README.md"
@@ -57,6 +67,18 @@ check 'classify/empty' "$([ "$verdict" = false ]; echo $?)"
 for e in push merge_group ""; do
   classify "$e" "docs/x.md"
   check "event/${e:-unset}" "$([ "$verdict" = false ]; echo $?)"
+done
+
+# A docs-only PR must still run the prose gates on what it touches: no file a prose gate scans may classify as docs.
+# Each gate's `--files` exits before scanning and prints repo-relative paths; a floor guards an empty list (a gate that
+# listed nothing would pass this vacuously).
+ROOT=$(cd "$HERE/../.." && pwd)
+for gate in lint-us-english lint-voice; do
+  list=$(cd "$ROOT" && npx tsx "packages/engine/$gate.ts" --files 2>/dev/null)
+  n=$(grep -c . <<<"$list")
+  docs=$(EVENT=pull_request FILES="$list" bash "$CLASSIFIER" 2>/dev/null | sed -n 's/^  docs      //p')
+  [ -z "$docs" ] || echo "       $gate scans file(s) the classifier calls docs: $(tr '\n' ' ' <<<"$docs")"
+  check "scope/$gate" "$([ "$n" -ge 100 ] && [ -z "$docs" ]; echo $?)"
 done
 
 run() { out=$(NEEDS="$1" bash "$AGGREGATOR" 2>&1); code=$?; }
@@ -78,6 +100,8 @@ run "{\"changes\":$docs,\"engine\":$skip,$browser}"
 check 'aggregate/engine-never-exempt' "$([ "$code" -eq 1 ] && grep -q 'engine (skipped)' <<<"$out"; echo $?)"
 run "{\"changes\":$docs,\"engine\":$ok,\"studio\":{\"result\":\"failure\",\"outputs\":{}},\"chrome\":$skip}"
 check 'aggregate/exempt-job-failed' "$([ "$code" -eq 1 ] && grep -q 'studio (failure)' <<<"$out"; echo $?)"
+run "{\"changes\":$ok,\"engine\":$ok,$browser}"
+check 'aggregate/docs-only-absent' "$([ "$code" -eq 1 ] && grep -q 'studio (skipped)' <<<"$out"; echo $?)"
 run "{\"changes\":$code_,\"engine\":$ok,\"studio\":$ok,\"chrome\":$ok}"
 check 'aggregate/no-skip-no-record' "$([ "$code" -eq 0 ] && ! grep -q 'EXEMPT' <<<"$out"; echo $?)"
 
