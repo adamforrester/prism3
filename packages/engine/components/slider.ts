@@ -74,7 +74,7 @@ export const sliderThumb: ComponentDef = {
     'The handle a Slider moves along its track: a disc in neutral ink that sits on the track with no gap. A light halo grows around it at hover and wider while pressed, and it shows the focus ring while it has keyboard focus. It comes in the Slider\'s three sizes. It lives inside a Slider, which places one thumb for a single value and two for a range, and is never placed on its own.',
 
   props: [
-    { name: 'aria-label', type: 'string', required: false, description: 'The thumb\'s accessible name. Set by the Slider: the label for a single value, "Minimum {label}" and "Maximum {label}" for a range.' },
+    { name: 'aria-label', type: 'string', required: false, description: 'The thumb\'s accessible name. Set by the Slider: the label for a single value, "Minimum {label}" and "Maximum {label}" for a range, with ", required" added when the slider is required.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The disc\'s diameter: 18, 24 or 30px at the default density, from control.size.*.thumb. Set by the Slider.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'The disabled look. Set by the Slider when the whole control is disabled.' },
   ],
