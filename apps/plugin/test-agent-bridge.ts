@@ -64,6 +64,8 @@
  * from the pair, or its shape test (`CLIENT_NONCE_RE`) → `server-proof/no-nonce`.
  * #3728 review S1′: `codeSent = false` dropped from `connect()` → `server-proof/unsolicited-paired` (a paired on the
  * socket after one that sent the code closed with 1006, before its challenge).
+ * #3728 review S3: `sameProof` cut to its first character → `server-proof/near-miss` (a welcome and a paired whose
+ * proof differs from the real one only in its last hex digit).
  *
  * #2497: the server runs with a short `--grace-ms`, so a dropped plugin's command fails in seconds here. `resend/e2e`
  * drops the real relay's socket while a command runs in the real main.ts, keeps it down until the result is
