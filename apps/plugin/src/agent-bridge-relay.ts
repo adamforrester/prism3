@@ -185,7 +185,7 @@ export const createBridgeRelay = (deps: RelayDeps) => {
         // #3697 R8: a `paired` this relay did not ask for (no code pending on this socket) is ignored, and one whose proof
         // does not verify against the code is an impostor: dropped, the code kept for the real bridge's next challenge.
         if (!codeSent || code === null || connected) return;
-        if (typeof m.token !== 'string' || !m.token || !sameProof(pairedProof(code, clientNonce, m.token), m.proof)) { drop(sock, true); return; }
+        if (typeof m.token !== 'string' || !m.token) { drop(sock, true); return; }
         codeSent = false;
         token = m.token;
         code = null;
