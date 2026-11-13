@@ -303,46 +303,6 @@ export const engineWhy = (m: MovedView): string => {
   return `Engine update: ${items.slice(0, 3).join(', ')}${items.length > 3 ? `, ${items.length - 3} more` : ''}`;
 };
 
-/** #3713: a set name as the check writes it (`icon`, `icon/close`), as a person reads it: its set, sentence case. */
-const setWord = (name: string): string => { const t = name.split('/')[0].replace(/[-_]+/g, ' ').trim(); return t.charAt(0).toUpperCase() + t.slice(1); };
-const listWords = (names: readonly string[]): string => [...new Set(names.map(setWord))].join(', ');
-const s_ = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
-/** #3713: one of the check's blocker lines (`update-plan.ts`, `fileBlockers` and `setRefusal`) in plain words, as the
- *  clause after "Can’t update yet —", with the step that clears it where Studio or Figma offers one. A line of a shape not known here is shown as written, less
- *  its issue references. DRAFT (OWNER DECISION: copy). The shapes are matched by their words, so a reworded blocker
- *  falls through to its own text, never to a wrong reason. */
-export const blockedWhy = (line: string): { readonly why: string; readonly next: string | null } => {
-  let m: RegExpMatchArray | null;
-  if ((m = line.match(/^Not in this file: (.+)\. Build (.+) first, then run the update again$/)))
-    return { why: `it needs ${listWords(m[2].split(', '))}, which this file doesn’t have.`, next: `Add ${listWords(m[2].split(', '))} on Components first.` };
-  if ((m = line.match(/^(\d+) variables? the plan binds (?:is|are) not in this file/)))
-    return { why: `it needs ${s_(Number(m[1]), 'variable', 'variables')} this file doesn’t have.`, next: 'Tick Theme to write them.' };
-  if ((m = line.match(/^(text|effect) styles? not in this file: (.+)$/)))
-    return { why: `it needs ${m[1]} styles this file doesn’t have: ${m[2]}.`, next: 'Tick Theme to write them.' };
-  if ((m = line.match(/^components? the plan swaps to (?:is|are) not in this file: (.+)$/)))
-    return { why: `it swaps to ${listWords(m[1].split(', '))}, which this file doesn’t have.`, next: `Add ${listWords(m[1].split(', '))} on Components first.` };
-  if ((m = line.match(/^fonts: (.+) will not load/)))
-    return { why: `these fonts won’t load: ${m[1]}.`, next: 'Install or turn them on in Figma, then open this again.' };
-  if (/^an axis the plan removed would collapse members/.test(line))
-    return { why: 'a property it drops would merge variants into one.', next: null };
-  if ((m = line.match(/^the axes change, and (\d+) members? not built by Prism3/)))
-    return { why: `its properties change, and ${s_(Number(m[1]), 'variant', 'variants')} not built by Prism3 would be left behind.`, next: 'The agent’s Adopt can claim them first.' };
-  if ((m = line.match(/^renaming (.+) would give it the name of another member \((.+)\)$/)))
-    return { why: `renaming ${m[1]} would clash with ${m[2]}.`, next: 'Rename or remove one of them in Figma.' };
-  if ((m = line.match(/^(\d+) members share the coordinate (\S+)/)))
-    return { why: `${m[1]} variants share one name, ${m[2]}.`, next: 'Rename or remove the extra one in Figma.' };
-  if (/^the members disagree on the axis list/.test(line))
-    return { why: 'its variants don’t all have the same properties.', next: 'Fix the variant names in Figma.' };
-  const t = line.replace(/\s*\(#\d+\)/g, '').trim().replace(/:$/, '');
-  return { why: `${t}${/[.!?]$/.test(t) ? '' : '.'}`, next: null };
-};
-/** #3713: a blocked set's line: its first reason in plain words, the step that clears it, and how many more. DRAFT. */
-export const blockedLine = (reasons: readonly string[] | undefined): string => {
-  if (!reasons?.length) return 'Can’t update yet — the check gave no reason.';
-  const { why, next } = blockedWhy(reasons[0]);
-  return [`Can’t update yet — ${why}`, next, reasons.length > 1 ? `${s_(reasons.length - 1, 'more reason', 'more reasons')}.` : ''].filter(Boolean).join(' ');
-};
-
 /** The checklist's words, DRAFT placeholders until the owner words them (Q2909.10 A). */
 export const UPDATE_COPY = {
   button: 'Update file',
@@ -443,6 +403,46 @@ export const UPDATE_COPY = {
   cleanRetired: (n: number): string => `${n} style-guide table${n === 1 ? '' : 's'} the generator no longer draws.`,
   removeTables: (n: number): string => `Remove ${n} table${n === 1 ? '' : 's'}`,
 } as const;
+
+/** #3713: a set name as the check writes it (`icon`, `icon/close`), as a person reads it: its set, sentence case. */
+const setWord = (name: string): string => { const t = name.split('/')[0].replace(/[-_]+/g, ' ').trim(); return t.charAt(0).toUpperCase() + t.slice(1); };
+const listWords = (names: readonly string[]): string => [...new Set(names.map(setWord))].join(', ');
+const s_ = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
+/** #3713: one of the check's blocker lines (`update-plan.ts`, `fileBlockers` and `setRefusal`) in plain words, as the
+ *  clause after "Can’t update yet —", with the step that clears it where Studio or Figma offers one. A line of a shape not known here is shown as written, less
+ *  its issue references. DRAFT (OWNER DECISION: copy). The shapes are matched by their words, so a reworded blocker
+ *  falls through to its own text, never to a wrong reason. */
+export const blockedWhy = (line: string): { readonly why: string; readonly next: string | null } => {
+  let m: RegExpMatchArray | null;
+  if ((m = line.match(/^Not in this file: (.+)\. Build (.+) first, then run the update again$/)))
+    return { why: `it needs ${listWords(m[2].split(', '))}, which this file doesn’t have.`, next: `Add ${listWords(m[2].split(', '))} on Components first.` };
+  if ((m = line.match(/^(\d+) variables? the plan binds (?:is|are) not in this file/)))
+    return { why: `it needs ${s_(Number(m[1]), 'variable', 'variables')} this file doesn’t have.`, next: 'Tick Theme to write them.' };
+  if ((m = line.match(/^(text|effect) styles? not in this file: (.+)$/)))
+    return { why: `it needs ${m[1]} styles this file doesn’t have: ${m[2]}.`, next: 'Tick Theme to write them.' };
+  if ((m = line.match(/^components? the plan swaps to (?:is|are) not in this file: (.+)$/)))
+    return { why: `it swaps to ${listWords(m[1].split(', '))}, which this file doesn’t have.`, next: `Add ${listWords(m[1].split(', '))} on Components first.` };
+  if ((m = line.match(/^fonts: (.+) will not load/)))
+    return { why: `these fonts won’t load: ${m[1]}.`, next: 'Install or turn them on in Figma, then open this again.' };
+  if (/^an axis the plan removed would collapse members/.test(line))
+    return { why: 'a property it drops would merge variants into one.', next: null };
+  if ((m = line.match(/^the axes change, and (\d+) members? not built by Prism3/)))
+    return { why: `its properties change, and ${s_(Number(m[1]), 'variant', 'variants')} not built by Prism3 would be left behind.`, next: 'The agent’s Adopt can claim them first.' };
+  if ((m = line.match(/^renaming (.+) would give it the name of another member \((.+)\)$/)))
+    return { why: `renaming ${m[1]} would clash with ${m[2]}.`, next: 'Rename or remove one of them in Figma.' };
+  if ((m = line.match(/^(\d+) members share the coordinate (\S+)/)))
+    return { why: `${m[1]} variants share one name, ${m[2]}.`, next: 'Rename or remove the extra one in Figma.' };
+  if (/^the members disagree on the axis list/.test(line))
+    return { why: 'its variants don’t all have the same properties.', next: 'Fix the variant names in Figma.' };
+  const t = line.replace(/\s*\(#\d+\)/g, '').trim().replace(/:$/, '');
+  return { why: `${t}${/[.!?]$/.test(t) ? '' : '.'}`, next: null };
+};
+/** #3713: a blocked set's line: its first reason in plain words, the step that clears it, and how many more. DRAFT. */
+export const blockedLine = (reasons: readonly string[] | undefined): string => {
+  if (!reasons?.length) return 'Can’t update yet — the check gave no reason.';
+  const { why, next } = blockedWhy(reasons[0]);
+  return [`Can’t update yet — ${why}`, next, reasons.length > 1 ? `${s_(reasons.length - 1, 'more reason', 'more reasons')}.` : ''].filter(Boolean).join(' ');
+};
 
 /** Each step's name in the checklist and in the run line. */
 export const STEP_TITLE: Readonly<Record<StepKey, string>> = { setup: UPDATE_COPY.setup, theme: UPDATE_COPY.theme, update: UPDATE_COPY.updateStep, sets: UPDATE_COPY.toAdd, guides: UPDATE_COPY.guides, cover: UPDATE_COPY.coverStep };
