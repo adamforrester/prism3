@@ -824,7 +824,8 @@ const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview
  * THE ABOUT FRAME AND THE PUBLISH DESCRIPTION (#2858), once a run has written: `res.version` is set by whichever path
  * saved the named version first, the apply's or `settle`'s re-spacing. The frame is redrawn last, so its date is the
  * run's; a run that stopped in a set leaves it, and the next run finishes the sets and draws it. A host write refused
- * here is named, never thrown: the sets are already written. The description's first sentence is that version's title.
+ * here is named, never thrown: the sets are already written. The description's first sentence is "Prism3 updated <sets>.",
+ * naming the sets the run changed; only a run that changed no set falls back to the version's title (#2914).
  */
 const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdatePreview, res: ApplyResult, today: string | undefined): Promise<void> => {
   if (!res.version && !res.aboutOnly) return;

@@ -289,8 +289,8 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
     'component-update-result: fills componentUpdate, marks it latest, settles the agent run, and leaves the build\'s slot and set record alone');
   ok(same(v.topics, ['host', 'host:components']) && v.effect === null, 'component-update-result: invalidates host and host:components (the Build control the run held busy)');
   // #2858: an Update's publish description reaches the slot the Activity drawer reads.
-  const pub = step(run, { kind: 'component-update-result', ok: true, headline: '✓ updated 1 in place', summary: 's', lines: null, publish: 'Before Prism3 updated tag.' });
-  ok(pub.next.componentUpdate !== null && pub.next.componentUpdate !== 'pending' && pub.next.componentUpdate.publish === 'Before Prism3 updated tag.', 'component-update-result: the publish description is kept on the verdict');
+  const pub = step(run, { kind: 'component-update-result', ok: true, headline: '✓ updated 1 in place', summary: 's', lines: null, publish: 'Prism3 updated tag.' });
+  ok(pub.next.componentUpdate !== null && pub.next.componentUpdate !== 'pending' && pub.next.componentUpdate.publish === 'Prism3 updated tag.', 'component-update-result: the publish description is kept on the verdict');
   const rebuilt = step({ ...v.next, componentState: 'pending' }, { kind: 'component-result', ok: true, completed: true, headline: 'H', summary: 'S' });
   ok(rebuilt.next.componentLatest === 'build' && same(rebuilt.next.componentUpdate, v.next.componentUpdate),
     'component-result after a check: the build is latest again, and the check\'s verdict is kept');
