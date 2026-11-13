@@ -956,6 +956,26 @@ console.log('\n#3697 R6 — each removal tried, running counts, the confirm guar
   ok(PRUNE_COPY.stopped(counts, threw) === 'Prune stopped — host lost the collection. Removed 2 stale items before it stopped: 2 variables.',
     `R6/stopped: the verdict for a stopped prune says what was removed (${PRUNE_COPY.stopped(counts, threw)})`);
 
+  // #3709 N1: the same per-removal `try` for every kind the executor removes, not only variables. One mode,
+  // one stranded collection and one style each throw; the sibling of each still goes, and each throw is named.
+  const c81 = new RColl('C:81', 'color', [{ modeId: 'm0', name: 'light' }, { modeId: 'm1', name: 'old-a' }, { modeId: 'm2', name: 'old-b' }]);
+  c81.removeMode = (id: string) => { if (id === 'm1') throw new Error('mode refused'); RColl.prototype.removeMode.call(c81, id); };
+  const c82 = new RColl('C:82', 'stale-a');
+  c82.remove = () => { throw new Error('collection refused'); };
+  const c83 = new RColl('C:83', 'stale-b');
+  const p1 = new RStyle('old/x'); const p2 = new RStyle('old/y');
+  p1.remove = () => { throw new Error('style refused'); };
+  const sh3 = new PruneShim([c81, c82, c83], [], { text: [], effect: [], paint: [p1, p2], grid: [] });
+  const r3 = await applyPrunePlan({
+    variables: [], collections: ['stale-a', 'stale-b'],
+    modes: [{ collection: 'color', modes: [{ modeId: 'm1', name: 'old-a' }, { modeId: 'm2', name: 'old-b' }] }],
+    styles: [{ kind: 'paint', names: ['old/x', 'old/y'] }],
+  }, sh3 as any as PruneApi);
+  ok(r3.modes === 1 && r3.collections === 1 && r3.styles === 1 && r3.misses.length === 0
+    && JSON.stringify(r3.failed) === JSON.stringify(['mode:color/old-a (mode refused)', 'collection:stale-a (collection refused)', 'paint-style:old/x (style refused)'])
+    && c81.modes.map((m) => m.name).join(',') === 'light,old-a' && !sh3.liveCollNames().has('stale-b') && [...sh3.liveStyleNames('paint')].join(',') === 'old/x',
+    `R6/each kind tried: a throw at one mode, one collection and one style leaves its sibling removed (modes ${r3.modes}, collections ${r3.collections}, styles ${r3.styles}, failed ${JSON.stringify(r3.failed)})`);
+
   // The confirm guard: input held, then the hash, both literal.
   const plan = { variables: [{ collection: 'color', names: ['nbds/color/a'] }], collections: [], modes: [], styles: [] };
   const h = prunePreviewHashOf(plan, []);
