@@ -1685,7 +1685,7 @@ const passTarget = async (id: string, tick: () => Promise<void>): Promise<Update
 let handPass = 0;
 const handEditsPass = async (): Promise<void> => {
   const mine = ++handPass;
-  const stale = (): boolean => mine !== handPass || (['build-components', 'apply-theme', 'file-setup', 'style-guide'] as const).some((c) => guard.busy(c));
+  const stale = (): boolean => mine !== handPass || (['build-components', 'apply-theme', 'file-setup', 'style-guide'] as const).some((c) => guard.holding(c));
   try {
     const read = await readPresent();
     const present = read.ids;
@@ -2226,19 +2226,21 @@ const styleGuideCleanup = async (ids: string[], sink: ActionSink): Promise<void>
 };
 
 /**
- * ONE RUN OF A WRITE AT A TIME, PER OPERATION (#1957; `run-guard.ts`). Each writing entry of the table
- * below goes through `guarded`, so the panel's buttons and the agent link meet the same guard. A second
- * write of a running operation is not run: its caller's sink is sent `refused`, and nothing else is.
+ * ONE WRITE AT A TIME, FILE-WIDE (#3697 R7; `run-guard.ts`). Each writing entry of the table below goes through
+ * `guarded`, so the panel's buttons and the agent link meet the same guard. Any write asked for while another holds the
+ * file is not run: its caller's sink is sent `refused`, naming both, and nothing else is.
  * The agent link asks first, through `refuse` below, so a declined command is never bracketed as running.
  */
 const guard = createRunGuard();
-const refusal = (cmd: WriteCmd, agent: boolean): MainToUi => ({ type: 'refused', code: 'busy', cmd, agent, message: busyMessage(cmd) });
+/** `cmd` is the write asked for; `held`, the one holding the file (#3697 R7: they can differ). */
+const refusal = (cmd: WriteCmd, agent: boolean, held: WriteCmd): MainToUi => ({ type: 'refused', code: 'busy', cmd, agent, message: busyMessage(cmd), held });
 const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<void>, confirm?: (...a: A) => boolean) =>
   (...a: A): Promise<void> => {
     if (!writes(cmd, confirm ? confirm(...a) : undefined)) return fn(...a);
     // Every action's sink is its last argument.
     const sink = a[a.length - 1] as ActionSink;
-    if (guard.busy(cmd)) { sink.post(refusal(cmd, sink !== uiSink)); return Promise.resolve(); }
+    const holder = guard.held();
+    if (holder) { sink.post(refusal(cmd, sink !== uiSink, holder)); return Promise.resolve(); }
     // #3081: a write may add or remove sets, so the live recount reads the file again after it (`presentCache`). It is
     // cleared as the write starts too: the write's verdict posts before the write's promise settles.
     presentCache = null; panelCache = null; presentRead = null; presentGen++; dropViews();
@@ -2374,13 +2376,14 @@ const dispatch = createDispatcher({
   // The Activity drawer's agent rows (UI redesign S11): when a command starts, and when it has ended.
   onStart: (id, cmd, apply) => { agentCmd = cmd; postToUi({ type: 'agent-started', id, cmd, ...(apply ? { apply: true as const } : {}) }); },
   onFinish: (id, cmd) => { agentCmd = null; postToUi({ type: 'agent-finished', id, cmd }); },
-  // #1957: an agent's write of an operation that is already running is declined before it starts.
+  // #1957, #3697 R7: an agent's write is declined before it starts while any write holds the file.
   refuse: (c) => {
-    const held = guardFor(c.cmd);
-    if (!held || !writes(held, c.cmd === 'prune' ? c.args.confirm : c.cmd === 'panels-clean' ? c.args.confirm === true : undefined) || !guard.busy(held)) return null;
+    const asked = guardFor(c.cmd);
+    const holder = guard.held();
+    if (!asked || !holder || !writes(asked, c.cmd === 'prune' ? c.args.confirm : c.cmd === 'panels-clean' ? c.args.confirm === true : undefined)) return null;
     // #3394: a `set-override` preview reads and writes nothing, so it is never declined.
     if (c.cmd === 'set-override' && !c.args.confirm) return null;
-    return { message: busyMessage(held), post: refusal(held, true) };
+    return { message: busyMessage(asked), post: refusal(asked, true, holder) };
   },
   // The panel's pills show an agent's result as they would a button's. An agent's prune PREVIEW goes as a
   // pill only: opened as the confirm dialog, the owner's Confirm would prune against the panel's knobs,
@@ -2540,7 +2543,7 @@ onUiMessage((msg: UiToMain) => {
       return;
     case 'update-stop':
       // #3170 Q3170.4 A: read by the panel's running update at its next set boundary; nothing running, nothing to stop.
-      if (guard.busy('build-components')) updateStopAsked = true;
+      if (guard.holding('build-components')) updateStopAsked = true;
       return;
     case 'draw-specs':
       // #2830 Q2830.3 A: Documentation › Specs, the panel's Draw specs, for the sets on the current page. The agent's
@@ -2590,8 +2593,8 @@ onUiMessage((msg: UiToMain) => {
       void styleGuideCatalog();
       return;
     case 'style-guide-cleanup':
-      // Q412 A — the confirmed cleanup. A write under the style guide's own guard: never while a run is drawing.
-      if (guard.busy('style-guide')) { uiSink.post(refusal('style-guide', false)); return; }
+      // Q412 A — the confirmed cleanup. A write under the file-wide hold (#3697 R7): never while any write runs.
+      { const holder = guard.held(); if (holder) { uiSink.post(refusal('style-guide', false, holder)); return; } }
       void guard.run('style-guide', () => styleGuideCleanup(Array.isArray(msg.ids) ? msg.ids.filter((x): x is string => typeof x === 'string') : [], uiSink));
       return;
     case 'panels-clean':
@@ -2600,7 +2603,7 @@ onUiMessage((msg: UiToMain) => {
       return;
     case 'style-guide-cancel':
       // S11.2 (P7) — read by the running style guide after its current table; nothing running, nothing to stop.
-      if (guard.busy('style-guide')) styleGuideStop = true;
+      if (guard.holding('style-guide')) styleGuideStop = true;
       return;
     case 'agent-link':
       // The owner's switch — the only way the link turns on. See `agent-link.ts`.

@@ -1121,6 +1121,10 @@
       ],
       "flags": [
         {
+          "flag": "--artifact-floor",
+          "source": "verify.ts#argv"
+        },
+        {
           "flag": "--list",
           "source": "verify.ts#argv"
         },
