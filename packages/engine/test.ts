@@ -31,6 +31,7 @@ import { previewSpec, previewTokenRefs, buildPreviewSpec } from './preview';
 import { resolvePreview } from './resolve-preview';
 import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput';
 import { exportComponentDefs } from './component-defs-export';
+import { buildIdentity } from './build-identity';
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, buildFigmaGridStyles, fontStyleName, figName, parseColor, figmaArtifacts, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
 import type { FigmaCollectionFile } from './emit-figma';
 import { MOTION_FIGMA_COVERAGE, springBounce } from './emit-figma-dims';
@@ -20617,6 +20618,72 @@ arm: {
     ok(validateComponentDef(counter).errors.length === 0, `#2427 variantWhen: the Counter's own mapping validates clean (${validateComponentDef(counter).errors.join(' | ') || 'none'})`);
   }
 
+  // ---- #3554 Q-FL1 A, built as Q-FL1.1 A: THE COUNTER'S NESTED GLYPHS ON ITS DISABLED FILL (`PartDef.hostInk`) ----
+  // The owner's decisions, typed here as literals and never read off the def (docs/34): on a disabled OUTLINE Counter the
+  // nested FlushIconButton's minus and plus glyphs draw in `color.disabled.on-fill`, the value's ink on that fill; a
+  // disabled GHOST Counter draws no fill, so its glyphs keep the flush button's own ink and the host pushes nothing; no
+  // other member pushes anything. ACTUAL is each projected member's nest node. The contrast arm reads the GROUND off the
+  // plan (the control's own fill at that member), asserts it is the disabled fill, and computes WCAG contrast HERE from
+  // the resolved hexes in every corpus brand and mode against the 1.4.11 floor, 3:1, never reading the tier's own ratio.
+  // Mutations, each failing a named line: drop `hostInk` from the stepper (counter/host-ink), rebind
+  // `disabled.icon.on-fill` to `color.disabled.icon` (counter/host-ink, and the contrast arm), add a plain `disabled.icon`
+  // (counter/host-ink: ghost pushes).
+  {
+    const plans = figmaAnatomySet(counter, { swapTarget: 'FPO-default-icon' });
+    const off: string[] = [];
+    const pairs: { at: string; ink: string; ground: string | undefined }[] = [];
+    for (const p of plans) {
+      const ap = String(p.coord.appearance), st = String(p.coord.state);
+      const control = p.root.children.find((c) => c.name === 'control');
+      for (const side of ['decrement', 'increment']) {
+        const n = control?.children.find((c) => c.name === side);
+        const want = ap === 'outline' && st === 'disabled' ? 'color/disabled/on-fill' : undefined;
+        if (n?.type !== 'NESTED_INSTANCE' || n.descendantFills !== want) off.push(`${planComponentName(p)}/${side}: ${n?.type} ${String(n?.descendantFills)}, want ${String(want)}`);
+        if (n?.descendantFills) pairs.push({ at: `${planComponentName(p)}/${side}`, ink: n.descendantFills, ground: control?.paints?.fills });
+      }
+    }
+    ok(off.length === 0 && pairs.length === 6,
+      `#3554 counter/host-ink: on a disabled outline Counter both nested glyphs draw in color/disabled/on-fill (Q-FL1 A), pushed as descendantFills on the nested instance (Q-FL1.1 A); ghost and every enabled member push nothing (${pairs.length} pushed of 6${off.length ? ` — ${off.slice(0, 3).join('; ')}` : ''})`);
+    ok(pairs.every((x) => x.ground === 'color/disabled/fill'),
+      `#3554 counter/host-ink ground: every pushed glyph sits on the control's color/disabled/fill (${pairs.filter((x) => x.ground !== 'color/disabled/fill').map((x) => `${x.at} on ${String(x.ground)}`).join('; ') || 'ok'})`);
+    const roleOf = (v: string) => v.replace(/^color\//, '').replace(/\//g, '.');
+    const low: string[] = [];
+    let measured = 0, expected = 0;
+    for (const { id, theme: th } of corpus()) {
+      const modes = resolveAllModes(th);
+      expected += modes.length * new Set(pairs.map((x) => `${x.ink}|${x.ground}`)).size;
+      for (const M of modes) for (const pair of new Set(pairs.map((x) => `${x.ink}|${x.ground}`))) {
+        const [inkVar, groundVar] = pair.split('|');
+        const roles = M.roles as Record<string, { hex: string; alpha?: number } | undefined>;
+        const ink = roles[roleOf(inkVar)], g = roles[roleOf(groundVar)], page = roles['background.primary'];
+        if (!ink || !g || !page) { low.push(`${id.split(' ')[0]}/${M.mode}: ${inkVar} on ${groundVar} resolves no role`); continue; }
+        const r = contrast(hexToRgb(ink.hex), composite(hexToRgb(page.hex), hexToRgb(g.hex), g.alpha ?? 1));
+        measured++;
+        if (!(r >= 3)) low.push(`${id.split(' ')[0]}/${M.mode}: ${roleOf(inkVar)} on ${roleOf(groundVar)} ${r.toFixed(2)}:1`);
+      }
+    }
+    ok(measured > 0 && measured === expected && low.length === 0,
+      `#3554 counter/host-ink contrast: the pushed glyph ink clears 3:1 (SC 1.4.11) against color.disabled.fill in every corpus brand and mode (${measured} of ${expected} measured${low.length ? ` — ${low.slice(0, 4).join('; ')}` : ''})`);
+
+    // The schema field: the Counter validates clean, and each refusal fires by name on a case built for it.
+    const withStep = (patch: Record<string, unknown>, tokens?: Record<string, string>) => ({
+      ...counter,
+      ...(tokens ? { tokens } : {}),
+      anatomy: { ...counter.anatomy!, parts: { ...counter.anatomy!.parts, decrement: { ...counter.anatomy!.parts.decrement!, ...patch } } },
+    }) as unknown as ComponentDef;
+    const noIcon = Object.fromEntries(Object.entries(counter.tokens).filter(([k]) => !/(^|\.)icon(\.|$)/.test(k)));
+    const HOST_INK_CASES: Array<{ why: string; def: ComponentDef; want: RegExp }> = [
+      { why: 'a part that builds no instance', def: { ...counter, anatomy: { ...counter.anatomy!, parts: { ...counter.anatomy!.parts, entry: { ...counter.anatomy!.parts.entry!, hostInk: 'icon' } } } } as unknown as ComponentDef, want: /'entry' declares 'hostInk' but is kind 'box'/ },
+      { why: 'a slot other than icon', def: withStep({ hostInk: 'label' }), want: /declares hostInk 'label' — only 'icon'/ },
+      { why: 'hostInk beside fixedPaint', def: withStep({ fixedPaint: true }), want: /declares both 'hostInk' and 'fixedPaint'/ },
+      { why: 'a host that keys no icon ink', def: withStep({}, noIcon), want: /declares hostInk 'icon' but the def binds no 'icon' paint key/ },
+    ];
+    for (const c of HOST_INK_CASES) {
+      const errs = validateComponentDef(c.def).errors;
+      ok(errs.some((e) => c.want.test(e)), `#3554 hostInk refuses ${c.why} (errors: ${errs.join(' | ') || 'none'})`);
+    }
+  }
+
   // ---- #2725: THE TEXT-BEARING CONTROLS STEP THEIR GLYPH DOWN ONE RUNG — owner decision Q337 A (2026-10-15) ----
   // Segmented control, Tab and Tag follow Button (#1350): small 16, medium 20, large 24 (`icon.size.xs` / `sm` / `md`).
   // Icon button keeps its 1:1 rung (20 / 24 / 32); Flush icon button its own (20 / 20 / 24, asserted above). EXPECTED is
@@ -30754,7 +30821,57 @@ arm: {
 
   // One version, stamped everywhere it is claimed. Two hardcoded copies is how a server ends up
   // reporting a version its own artifacts disagree with.
-  ok(SERVER_INFO.version === ENGINE_VERSION, 'version: the MCP serverInfo reports the engine version rather than a second hardcoded copy');
+  // #3698 R1: the server reports the BUILD identity, the engine version plus the change notes pending since the last fold.
+  // EXPECTED is built here from git's index (`git ls-files`), not from `build-identity.ts`'s directory read, so the two
+  // count the notes independently; and the format is typed literally. BY-NAME MUTATION: make SERVER_INFO's version the
+  // bare ENGINE_VERSION again, or make `pendingNoteCount` count README.md too → this arm fails.
+  {
+    const ls = spawnSync('git', ['ls-files', '--', 'packages/engine/changes/*.md'], { cwd: resolve(HERE, '..', '..'), encoding: 'utf8' });
+    const notes = ls.status === 0 ? ls.stdout.split('\n').filter((f) => f && !f.endsWith('/README.md')).length : -1;
+    const expected = notes > 0 ? `${ENGINE_VERSION}+pending.${notes}` : ENGINE_VERSION;
+    ok(notes >= 0 && SERVER_INFO.version === expected,
+      `version: the MCP serverInfo reports the build identity (#3698 R1) — expected ${expected} from ${notes} tracked note(s), got ${SERVER_INFO.version}`);
+    ok(buildIdentity(0, '1.2.3') === '1.2.3' && buildIdentity(null, '1.2.3') === '1.2.3' && buildIdentity(7, '1.2.3') === '1.2.3+pending.7',
+      'version: a folded or unknown state is the plain version, and a pending count is semver build metadata (#3698 R1)');
+    // The committed corpus keeps the fold's stamp: the pure tree carries no build identity, whatever is pending.
+    ok(buildTree(brandTheme(MINIMAL_BRAND)).tree.$extensions?.generator?.build === undefined,
+      'version: the pure tree carries no build identity; only a live shell stamps one (#3698 R1)');
+    // A brand export written live carries it (format 1.3); the committed brand-neutral one does not.
+    const liveDoc = exportComponentDefs(componentDefs, { brand: MINIMAL_BRAND, build: '9.9.9+pending.4' });
+    ok((liveDoc as any).build === '9.9.9+pending.4' && (exportComponentDefs(componentDefs) as any).build === undefined,
+      'version: a live defs export carries the build identity, the committed one none (#3698 R1)');
+
+    // THE LIVE SURFACES, driven end to end (review of #3749). EXPECTED is still git's count above, so a shell that stops
+    // stamping fails here whatever `build-identity.ts` says. On a folded tree (no notes) every surface must carry NO
+    // build, which these arms also hold. BY-NAME MUTATIONS: empty `stampBuild` in mcp.ts → the theme_brand and
+    // export_theme tokens arms fail; drop `build: BUILD_IDENTITY` from export_theme → its defs arm fails; drop `build`
+    // from either call in cli.ts → the CLI arm fails. score_consumption returns no tree, so it has no stamp to assert.
+    const want = notes > 0 ? expected : undefined;
+    const themed = JSON.parse(callTool('theme_brand', { brand: MINIMAL_BRAND, include: ['tokens'] }).content[0].text);
+    ok(themed.tokens?.$extensions?.generator?.version === ENGINE_VERSION && themed.tokens.$extensions.generator.build === want,
+      `version: theme_brand's token tree carries the build identity (#3698 R1) — expected ${want}, got ${themed.tokens?.$extensions?.generator?.build}`);
+    const files = new Map<string, string>();
+    const io = { mkdir: () => {}, writeFile: (q: string, c: string) => { files.set(q, c); } };
+    const ex = callTool('export_theme', { brand: MINIMAL_BRAND, outDir: './bid', include: ['tokens', 'componentSpecs'] }, undefined, io);
+    const exTree = JSON.parse(files.get('./bid/tokens.json') ?? '{}');
+    const exDefs = JSON.parse(files.get('./bid/component-defs.json') ?? '{}');
+    ok(!ex.isError && exTree.$extensions?.generator?.version === ENGINE_VERSION && exTree.$extensions.generator.build === want,
+      `version: export_theme's tokens.json carries the build identity (#3698 R1) — expected ${want}, got ${exTree.$extensions?.generator?.build}`);
+    ok(exDefs.engineVersion === ENGINE_VERSION && exDefs.build === want,
+      `version: export_theme's component-defs.json carries the build identity (#3698 R1) — expected ${want}, got ${exDefs.build}`);
+    // The CLI, as a user runs it: a brief in, the tree and the defs export out.
+    const cliOut = mkdtempSync(join(tmpdir(), 'prism3-cli-build-'));
+    try {
+      const r = spawnSync('npx', ['tsx', resolve(HERE, 'cli.ts'), resolve(HERE, 'examples', 'harbor.design.md'), '--out', cliOut, '--component-specs'], { cwd: HERE, encoding: 'utf8' });
+      // `<id>.tokens.json` is the whole tree; the base and overlay projections beside it carry no generator block.
+      const defFile = readdirSync(cliOut).find((n) => n.endsWith('.component-defs.json'));
+      const tokFile = defFile && readdirSync(cliOut).find((n) => n === defFile.replace('.component-defs.json', '.tokens.json'));
+      const cliTree = tokFile ? JSON.parse(readFileSync(join(cliOut, tokFile), 'utf8')) : {};
+      const cliDefs = defFile ? JSON.parse(readFileSync(join(cliOut, defFile), 'utf8')) : {};
+      ok(r.status === 0 && !!tokFile && !!defFile && cliTree.$extensions?.generator?.build === want && cliDefs.build === want,
+        `version: cli.ts stamps the build identity on the tree and the defs export it writes (#3698 R1) — expected ${want}, got tree ${cliTree.$extensions?.generator?.build} / defs ${cliDefs.build} (exit ${r.status}${r.status ? `: ${r.stderr.slice(-300)}` : ''})`);
+    } finally { rmSync(cliOut, { recursive: true, force: true }); }
+  }
   const stamped = buildTree(brandTheme(MINIMAL_BRAND)).tree as any;
   ok(stamped.$extensions?.generator?.version === ENGINE_VERSION,
     'version: every emitted tree carries the engine version, so a suspect value can be traced to the code that produced it');
@@ -31211,7 +31328,7 @@ arm: {
   ok(cs.files.size === 2 && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json'),
     `export_theme: include:[componentSpecs] writes exactly the export and its Specs projection (${[...cs.files.keys()].join(', ')})`);
   const csDoc = JSON.parse(cs.files.get('./cs/component-defs.json') ?? '{}');
-  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.2' && Object.keys(csDoc.components ?? {}).length >= 40,
+  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.3' && Object.keys(csDoc.components ?? {}).length >= 40,
     `export_theme: the component-defs export is the brand's (${csDoc.brand?.id}), in its format, with every component (${Object.keys(csDoc.components ?? {}).length})`);
 
   // A bad brand must fail BEFORE anything is written — a partial export is worse than none.

@@ -74,7 +74,7 @@ The panel shows each result an agent's request produced, in Activity, as if you 
 
 ## Other ways an agent works with Prism3
 
-- Without Figma: the Prism3 engine has its own MCP server, which can generate and check a brand's tokens and write them to disk. It does not touch Figma files. <!-- src: packages/engine/mcp.ts:239-375#915cdea4 --> <!-- src: packages/engine/README.md:114#782d7cd2 -->
+- Without Figma: the Prism3 engine has its own MCP server, which can generate and check a brand's tokens and write them to disk. It does not touch Figma files. <!-- src: packages/engine/mcp.ts:242-378#915cdea4 --> <!-- src: packages/engine/README.md:114#782d7cd2 -->
 - With the plugin closed: a set of scripts runs the plugin's own steps through Figma's MCP connection, for test files. This route is for maintainers and is documented in the repository's `tools/figma-mcp` folder. <!-- src: tools/figma-mcp/README.md:1-27 -->
 
 See the [feature reference](features.md) for what each route can do.

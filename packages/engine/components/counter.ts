@@ -45,8 +45,8 @@
  * Outline: the field's fill and edge (`color.field.fill`, `color.field.border.rest`, `radius.sm`), insets 12 / 12 /
  * 16, so a 20px glyph sits 12px in and its 44×44 code-side hit area reaches the edge exactly at medium (12 + 20 +
  * 12). Ghost: no box paint and no inset; the round buttons are the ends of the row. The disabled outline keeps Text
- * field's disabled fill and edge (`color.disabled.fill`, `color.disabled.border`; Q-CC10 A, #3554), with the value in
- * the on-fill ink: the cross-cutting disabled branch applies a fill and an edge only where the member has them at
+ * field's disabled fill and edge (`color.disabled.fill`, `color.disabled.border`; Q-CC10 A, #3554), with the value and
+ * the nested minus and plus glyphs in the on-fill ink (the glyphs through `hostInk`, Q-FL1.1 A): the cross-cutting disabled branch applies a fill and an edge only where the member has them at
  * rest, so a disabled ghost Counter draws none (the Oct 9 proposal's item 3c.3, answered by the paint grammar).
  *
  * `state`: rest, focus-visible, disabled. Hover and pressed belong to each button, which carries its own reactions
@@ -70,6 +70,11 @@ const stepper = {
       state: { disabled: { state: 'disabled' } },
     },
   },
+  // Q-FL1 A, built as Q-FL1.1 A (#3554): the nested glyph takes the Counter's own `icon` ink where the Counter keys one.
+  // It keys only `disabled.icon.on-fill`, which the disabled branch asks for where the disabled fill lands: on a
+  // disabled outline Counter both glyphs draw in `color.disabled.on-fill`, the value's ink on that fill. Ghost draws no
+  // fill and keys no `disabled.icon`, so its glyphs keep the flush button's own `color.disabled.icon`.
+  hostInk: 'icon' as const,
 };
 
 export const counter: ComponentDef = {
@@ -165,6 +170,10 @@ export const counter: ComponentDef = {
     'disabled.border': 'color.disabled.border',
     'disabled.label': 'color.disabled.text',
     'disabled.label.on-fill': 'color.disabled.on-fill',
+    // The minus and plus glyphs on that fill (Q-FL1 A, Q-FL1.1 A, #3554): pushed into each nested FlushIconButton
+    // (`hostInk` on the stepper nest), in the value's on-fill ink and gated against `color.disabled.fill`. No plain
+    // `disabled.icon` here: on ghost the nested button's own disabled glyph ink stands.
+    'disabled.icon.on-fill': 'color.disabled.on-fill',
   },
 
   anatomy: {

@@ -922,11 +922,34 @@ export type PartDef = {
    *  otherwise takes its host's icon ink on every vector inside it (`descendantFills`), which is what lets a
    *  glyph follow its button's state; on a provider logo it is the retint the provider forbids. With this flag the
    *  part carries no `descendantFills` and no paint binding, and the plan says so (`FigmaNodePlan.fixedPaint`),
-   *  so a gate can hold the outcome independently of the projector's branch. A `nest` takes no host ink today;
-   *  the flag there is the same promise, kept if that ever changes.
+   *  so a gate can hold the outcome independently of the projector's branch. A `nest` takes no host ink unless it
+   *  declares `hostInk`; the flag there is the same promise, and the two are refused together.
    *
    *  Refused on any other kind and beside `paintSlot` (a part cannot both keep its own paint and name an ink). */
   fixedPaint?: true;
+  /** HOST-TO-NEST PAINT (owner decisions Q-FL1 A and Q-FL1.1 A, #3554): the slot of the HOST's paint that this nested
+   *  instance's glyph takes. A nest otherwise keeps the paint its own component draws, which is right everywhere but
+   *  where the host lays a ground under it that the nested component cannot know about: the disabled outline Counter
+   *  paints `color.disabled.fill`, and the nested FlushIconButton (no fill of its own) still inks its glyph for the
+   *  page, `color.disabled.icon`. A flush button has no member whose glyph takes the on-fill ink, so no `variantWhen`
+   *  can reach one.
+   *
+   *  So the host answers the slot itself. At each coordinate the projector resolves the named slot through the HOST's
+   *  paint keys, the same lookup a glyph part of the host would get, the cross-cutting disabled branch included: where
+   *  the host's disabled fill lands, the on-fill form (`disabled.icon.on-fill`) is asked for first. Where the slot
+   *  resolves, the ink is written as `descendantFills` on the `NESTED_INSTANCE`, and both executors paint it on every
+   *  VECTOR inside the instance (a per-instance override, as on a swapped icon, #2380). Where it resolves nothing, the
+   *  plan carries nothing and the nested component keeps its own ink, so a host binds only the coordinates it needs
+   *  to change: the Counter binds `disabled.icon.on-fill` and no `disabled.icon`, so its ghost members, which draw no
+   *  fill, push nothing.
+   *
+   *  ITS COST, STATED: in Figma the ink is an override on the instance. A designer who sets one nested button back
+   *  to `rest` on a disabled Counter keeps the on-fill ink on it until the host is updated.
+   *
+   *  `icon` only, the one slot a nested glyph has. On a `nest` part that is `nest-fixed` or `nest-exposed` only,
+   *  refused beside `fixedPaint` (a part cannot both keep its content's paint and push the host's), and refused on a
+   *  def that binds no key for the slot (a host ink no coordinate can resolve). */
+  hostInk?: 'icon';
   /** READS THE DEF'S LITERAL RECORD (#2343 PR 5, `ComponentDef.literal`). `surface` on a `box`: its fills are the
    *  entry's `fill` with the entry's `wash` for the member's state laid over it, and its stroke is `edge`, drawn
    *  inside. `label` on a `text` part: its fill is `ink`, its copy `text` (no TEXT property claims it) and its font
@@ -5692,6 +5715,19 @@ const anatomyErrors = (def: ComponentDef): string[] => {
         e.push(`anatomy part '${n}' declares 'aspectLock' but binds no 'height' — the lock derives the width from the height, so the height must be bound`);
       if (p.size !== undefined || p.width !== undefined)
         e.push(`anatomy part '${n}' declares 'aspectLock' and binds '${p.size !== undefined ? 'size' : 'width'}' — a locked node keeps only the last of two dimension bindings, so a locked part binds its height alone`);
+    }
+    // HOST-TO-NEST PAINT (Q-FL1.1 A, #3554): see `PartDef.hostInk`.
+    if (p.hostInk !== undefined) {
+      const builds = p.kind === 'nest' && (p.nesting?.kind === 'nest-fixed' || p.nesting?.kind === 'nest-exposed');
+      if (!builds)
+        e.push(`anatomy part '${n}' declares 'hostInk' but is kind '${p.kind}'${p.nesting ? ` with nesting '${p.nesting.kind}'` : ''} — only a 'nest' part that is 'nest-fixed' or 'nest-exposed' builds an instance the host can push its ink into (#3554)`);
+      if (p.hostInk !== 'icon')
+        e.push(`anatomy part '${n}' declares hostInk '${String(p.hostInk)}' — only 'icon' is a slot a nested glyph has (#3554)`);
+      if (p.fixedPaint)
+        e.push(`anatomy part '${n}' declares both 'hostInk' and 'fixedPaint' — a part cannot keep its content's own paint and push the host's into it (#3554)`);
+      const slotKey = new RegExp(`(^|\\.)${p.hostInk}(\\.|$)`);
+      if (!Object.keys(def.tokens ?? {}).some((k) => slotKey.test(k)))
+        e.push(`anatomy part '${n}' declares hostInk '${String(p.hostInk)}' but the def binds no '${String(p.hostInk)}' paint key — no coordinate could resolve the ink it pushes (#3554)`);
     }
     if (p.fixedPaint !== undefined) {
       if (p.kind !== 'slot' && p.kind !== 'overlay' && p.kind !== 'nest')

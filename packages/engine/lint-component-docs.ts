@@ -105,6 +105,7 @@ import { componentDefs } from './components/index';
 import { validate } from './json-schema-lite';
 import { codeOnlyText, DISPOSITION_NAMES } from './code-only-register';
 import { exportComponentDefs } from './component-defs-export';
+import { buildIdentity } from './build-identity';
 import type { BrandInput } from './theme';
 import { CONTRACT_VERSION, ENGINE_VERSION } from './version';
 import { renderUncommitted, UNCOMMITTED_OUT } from './regen';
@@ -815,6 +816,13 @@ for (const [label, input] of brandCases) {
   for (const e of validate(DEFS_SCHEMA, bx)) note(`DEFS SCHEMA (${label}): ${e}`);
   if (bx.brand?.id !== input.id) note(`DEFS BRAND (${label}): brand.id ${bx.brand?.id} is not the input's ${input.id}`);
   if (Object.keys(bx.components).length !== ids.length) note(`DEFS BRAND (${label}): ${Object.keys(bx.components).length} components, not the registry's ${ids.length}`);
+}
+// #3698 R1 (format 1.3): a LIVE brand export carries `build`, which the cases above never do (they pass none). One case
+// built with a build value, so a schema that drops or mistypes the field fails here by name, not only in a user's hands.
+{
+  const live = exportComponentDefs(componentDefs, { brand: brandCases[0][1], build: buildIdentity(3) });
+  if (live.build !== `${ENGINE_VERSION}+pending.3`) note(`DEFS BUILD: a live export built with build ${buildIdentity(3)} carries ${JSON.stringify(live.build)}`);
+  for (const e of validate(DEFS_SCHEMA, live)) note(`DEFS SCHEMA (live build): ${e}`);
 }
 const off = exportComponentDefs(componentDefs, { brand: brandCases[brandCases.length - 1][1] });
 for (const [k, v] of Object.entries(OFF)) if ((off.brand?.settings as Record<string, unknown> | undefined)?.[k] !== v) note(`DEFS SETTINGS: a brand that sets ${k}: ${v} exports ${k}: ${JSON.stringify((off.brand?.settings as Record<string, unknown> | undefined)?.[k])}`);
