@@ -4501,6 +4501,10 @@
           "name": "validationMessage"
         },
         {
+          "name": "required",
+          "default": false
+        },
+        {
           "name": "disabled",
           "default": false
         },
@@ -8446,6 +8450,10 @@
       },
       {
         "id": "select",
+        "default": false
+      },
+      {
+        "id": "slider",
         "default": false
       },
       {
