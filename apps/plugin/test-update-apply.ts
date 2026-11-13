@@ -2761,8 +2761,11 @@ section('order — a component this run adds counts as present for the set that 
   const wb3 = pre3.sets.find((p) => p.set === 'wallet-button');
   ok(!!pl3 && pl3.blockers.some((b) => b.includes(LACKED)),
     `premise: provider-logo is blocked by the nest the file lacks (${JSON.stringify(pl3?.blockers)})`);
-  ok(wb3?.blockers.length === 1 && wb3.blockers[0].startsWith('Not in this file: ') && buttons.every((b) => wb3.blockers[0].includes(b)),
-    `run adds/blocked provider: a blocked provider-logo credits none of its 11 marks, so wallet-button is still blocked, naming each (${JSON.stringify(wb3?.blockers)})`);
+  // #3772 review should-fix: a HARD-blocked provider must not credit `addedAfterTheme` either, or wallet-button reads
+  // "updates after Theme" and is ticked while its provider adds nothing. Mutation: `else if (preview.themeBlocked)` → `else`
+  // in update-plan.ts → this arm fails on `themeBlocked`.
+  ok(wb3?.blockers.length === 1 && wb3.blockers[0].startsWith('Not in this file: ') && buttons.every((b) => wb3.blockers[0].includes(b)) && wb3.themeBlocked === undefined,
+    `run adds/blocked provider: a blocked provider-logo credits none of its 11 marks, now or after Theme, so wallet-button is still blocked, naming each, and not theme-blocked (${JSON.stringify([wb3?.blockers, wb3?.themeBlocked])})`);
   // A PROVIDER ONLY THEME BLOCKS (#3770, the owner's template-file run of 2026-11-13): provider-logo binds a variable the
   // file lacks and Theme writes, so Update file runs it after Theme (#3421) and it adds its 11 marks then. Wallet button,
   // which nests those marks, read "needs Provider logo, which this file doesn't have" and was left out of the run, in a

@@ -41,3 +41,5 @@ wallet-button is blocked outright.
 - `addedAfterTheme` never filled: `run adds/after theme` fails.
 - `themeBlocked` set whenever an after-Theme credit exists (the `after.theme === after.lines.length` test dropped):
   `run adds/after theme, unsupplied` fails.
+- A hard-blocked provider credits `addedAfterTheme` too (`else if (preview.themeBlocked)` → `else`, the review's
+  should-fix): `run adds/blocked provider` fails, now that it also asserts wallet-button is not theme-blocked.
