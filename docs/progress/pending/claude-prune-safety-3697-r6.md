@@ -23,7 +23,8 @@ removal on its own, and reports running counts.
 
 - `test-prune-main.ts` drives the real `main.ts` over `file-shim.ts`: Apply Theme, three planted stale variables,
   then an unapplied input, a missing hash, a wrong hash, a confirm whose second removal throws, and a confirm that
-  throws after its removals (a stale canvas label's node read), which must report their running count. Every expected
+  throws after its removals (a stale canvas label's node read), which must report their running count, and a confirm
+  whose version save fails, which must remove nothing (#3709 S2). Every expected
   line is a literal; the version-first order is read from one log of host calls.
 - `test-prune.ts`'s `R6/each kind tried` throws at one mode, one stranded collection and one style removal, and
   checks each sibling still goes and each throw is named in `failed` (#3709 N1).
