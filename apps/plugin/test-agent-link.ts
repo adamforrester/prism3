@@ -802,7 +802,7 @@ section('busy — a second write of an operation, while one is running, is refus
   ok(rbc.ok === false && rbc.error?.code === 'busy' && rbc.error?.message === BUSY && !calls.includes('buildComponents')
     && abc.length === 1 && isRefusal(abc[0], true, 'build-components') && !posted.some((m) => m.type === 'agent-started' && m.id === bc.id),
     `busy/one hold: an agent's build-components arriving mid Apply Theme is refused as busy before it starts, and the panel is told the holder (${rbc.error?.code}: ${rbc.error?.message}; ${JSON.stringify(abc[0])})`);
-  const pc = await send('prune', { input: brand, confirm: true });
+  const pc = await send('prune', { input: brand, confirm: true, previewHash: 'abcdef01' });
   await tick();
   const rpc = (await read(pc.id)) as AgentResult;
   ok(rpc.ok === false && rpc.error?.code === 'busy' && !calls.includes('prune'),
