@@ -50,7 +50,7 @@ import { at, buildTree, pxOf } from './tree';
 import { CONTRACT_VERSION, ENGINE_VERSION } from './version';
 import { localeFreeCompare } from './locale-free-order';
 
-export const COMPONENT_DEFS_FORMAT = 'prism3-component-defs/1.2';
+export const COMPONENT_DEFS_FORMAT = 'prism3-component-defs/1.3';
 /** The Specs schema version the projection is written against, and checked against (`packages/tokens/check-specs.mjs`). */
 export const SPECS_SCHEMA_VERSION = '0.39.0';
 
@@ -134,6 +134,9 @@ export type ComponentDefsExport = {
   format: typeof COMPONENT_DEFS_FORMAT;
   generated: true;
   engineVersion: string;
+  /** #3698 R1 (format 1.3): the build identity, `<engineVersion>+pending.<n>`, on an export written live (the MCP, the
+   *  CLI) between folds. Absent from the committed brand-neutral export and from a folded build. */
+  build?: string;
   contractVersion: string;
   note: string;
   /** `null` in the brand-neutral export. */
@@ -158,7 +161,7 @@ const NOTE_BRAND =
   'resolves, and each `spec` is built with them, so its token names are the ones this brand binds. A spacing or ' +
   'size token carries its px in the brand\'s default mode. Generated, never edited: change the definition or the brand.';
 
-export const exportComponentDefs = (defs: readonly ComponentDef[], opts: { brand?: BrandInput } = {}): ComponentDefsExport => {
+export const exportComponentDefs = (defs: readonly ComponentDef[], opts: { brand?: BrandInput; build?: string } = {}): ComponentDefsExport => {
   const input = opts.brand ?? null;
   let brand: ComponentDefsExport['brand'] = null;
   let materialize: (def: ComponentDef) => ComponentDef = specMaterialize;
@@ -181,6 +184,8 @@ export const exportComponentDefs = (defs: readonly ComponentDef[], opts: { brand
     format: COMPONENT_DEFS_FORMAT,
     generated: true,
     engineVersion: ENGINE_VERSION,
+    // #3698 R1: only when the caller has one and it says more than the version (see `build-identity.ts`).
+    ...(opts.build && opts.build !== ENGINE_VERSION ? { build: opts.build } : {}),
     contractVersion: CONTRACT_VERSION,
     note: input ? NOTE_BRAND : NOTE_NEUTRAL,
     brand,

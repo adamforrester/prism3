@@ -7,7 +7,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 - Web studio: the studio in a browser. <!-- src: apps/studio/build-site.mjs:1-8#7ef7bf24 -->
 - Figma plugin: the same studio inside Figma <!-- src: apps/plugin/src/ui/entry.ts:10-38#6258203d -->, plus **Update file**, which writes to the file. <!-- src: apps/studio/src/state/update-file.ts:323 -->
 - Agent, through the agent link: an AI agent driving the open plugin. See [Use the agent link](agent-link.md). <!-- src: apps/plugin/src/agent-protocol.ts:42#6bb39596 -->
-- Agent, through the Prism3 MCP server: an AI agent using the engine directly, with no Figma file. <!-- src: packages/engine/mcp.ts:239-375#915cdea4 -->
+- Agent, through the Prism3 MCP server: an AI agent using the engine directly, with no Figma file. <!-- src: packages/engine/mcp.ts:242-378#915cdea4 -->
 
 ✓ means the surface can do it. – means it can't.
 
@@ -22,7 +22,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 | Import a `design.md` brief | ✓ | ✓ | – | ✓ `theme_from_brief` |
 | Export a `design.md` brief | ✓ <!-- src: apps/studio/src/main.ts:1332 --> | ✓ | – | – |
 
-<!-- src: apps/studio/src/shell/start.ts:168-219#9e39b78a --> <!-- src: packages/engine/mcp.ts:245-391#d810bcff -->
+<!-- src: apps/studio/src/shell/start.ts:168-219#9e39b78a --> <!-- src: packages/engine/mcp.ts:248-394#d810bcff -->
 
 ## Figma file
 
@@ -47,7 +47,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 | Write the Figma variable files to a folder | – | – | – | ✓ `export_theme` |
 | Score how generated UI used the tokens | – | – | – | ✓ `score_consumption` |
 
-<!-- src: packages/engine/mcp.ts:345-379#c8235700 --> <!-- src: packages/engine/mcp.ts:293-328#a6aa6b2c -->
+<!-- src: packages/engine/mcp.ts:348-382#c8235700 --> <!-- src: packages/engine/mcp.ts:296-331#a6aa6b2c -->
 
 TokenPress, a separate Figma plugin, exports any Figma file's variables and styles as DTCG token files. See [Export tokens](export-tokens.md#export-any-figma-file-with-tokenpress). <!-- src: apps/tokenpress/README.md:3#68cda092 -->
 
