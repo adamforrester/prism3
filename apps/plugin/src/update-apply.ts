@@ -1058,7 +1058,7 @@ export const applyUpdate = async (
   await settle(host, targets, preview, res, opts);
   await finishAbout(host, api, preview, res, opts.today);
   } catch (err) {
-    throw err;
+    res.failed = (err as Error)?.message ?? String(err);
   }
   return res;
 };
