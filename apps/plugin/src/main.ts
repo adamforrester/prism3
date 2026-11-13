@@ -2383,7 +2383,7 @@ const dispatch = createDispatcher({
     if (!asked || !holder || !writes(asked, c.cmd === 'prune' ? c.args.confirm : c.cmd === 'panels-clean' ? c.args.confirm === true : undefined)) return null;
     // #3394: a `set-override` preview reads and writes nothing, so it is never declined.
     if (c.cmd === 'set-override' && !c.args.confirm) return null;
-    return { message: busyMessage(asked), post: refusal(asked, true, holder) };
+    return { message: busyMessage(holder), post: refusal(asked, true, holder) };
   },
   // The panel's pills show an agent's result as they would a button's. An agent's prune PREVIEW goes as a
   // pill only: opened as the confirm dialog, the owner's Confirm would prune against the panel's knobs,
