@@ -8,8 +8,10 @@
  *
  * INDEPENDENCE (docs/34). Nothing here imports the engine. The schema is the npm package, pinned exact in this
  * package's `package.json` and by integrity in the lockfile; the validator is stock Ajv (draft-07, the dialect the
- * schema declares). The engine writes `out/components/component-defs.specs.json` from `component-defs.json`;
- * `regen --check` holds both to the engine, and this file holds the first to the published schema and to the second,
+ * schema declares). The engine writes `out/components/component-defs.specs.json` from `component-defs.json`. Neither
+ * is committed since #3698 R3, so this file GENERATES both first, into a temp dir, by running the engine's own emitter
+ * as a process (`emit-component-docs.ts --uncommitted --out`), the step regen runs. It still imports nothing from the
+ * engine. This file holds the first to the published schema and to the second,
  * reading both as plain JSON with its own walk. A projection that drops a component, a prop, a part or a token, or
  * invents one, fails here by name, whatever the projector's code says.
  *
@@ -30,7 +32,9 @@
  *                  mapping table, and a projector that drifts from the table fails here by name. A coordinate is
  *                  also one variant: two variants with the same configuration fail here.
  */
-import { readFileSync, readdirSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,7 +42,15 @@ import Ajv from 'ajv';
 
 const require = createRequire(import.meta.url);
 const here = dirname(fileURLToPath(import.meta.url));
-const OUT = resolve(here, '..', 'engine', 'out', 'components');
+// #3698 R3: generated first, never read from `out/` (CI's checkout holds no copy, and a local one may be stale).
+const genDir = mkdtempSync(resolve(tmpdir(), 'prism3-specs-'));
+process.on('exit', () => rmSync(genDir, { recursive: true, force: true }));
+const gen = spawnSync('npx', ['tsx', resolve(here, '..', 'engine', 'emit-component-docs.ts'), '--uncommitted', '--out', genDir], { cwd: resolve(here, '..', '..'), encoding: 'utf8' });
+if (gen.status !== 0) {
+  console.error(`✗ [GENERATE] emit-component-docs.ts --uncommitted exited ${gen.status}: ${(gen.stderr || gen.stdout || '').trim().split('\n').slice(-3).join(' / ')}`);
+  process.exit(1);
+}
+const OUT = resolve(genDir, 'components');
 const failures = [];
 const fail = (label, msg) => failures.push(`${label} ${msg}`);
 const pass = (label, msg) => console.log(`  ✓ ${label} ${msg}`);

@@ -122,6 +122,11 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       // THE NAMED VERSION (#2828), after the pre-flight passed and before the first write, so a refused apply saves none.
       // The rename pass below is a write too. A host that refuses throws here and nothing is written.
       await beforeWrite?.();
+      // THE IN-PROGRESS MARK (#3697 M3): the print of what was written is cleared before the first write and stamped again
+      // after the last. A run that throws part-way, or a plugin closed mid-run, leaves new variables under the old stored
+      // brand; with the old print beside it, the recount (`themeDue`) read the file as matching that brand. With no print,
+      // the file reads as due until a whole run stamps it (`theme-emission.ts`: a file with no print reads as differing).
+      stampEmission(host.root, '');
       // ONE rename pass across all four variable executors (#1013). Built here rather than inside each
       // one because the static validation must happen once, before any write, and because a designer
       // reads a single list of what moved — not four. Since #1035 constructing it also RENAMES THE

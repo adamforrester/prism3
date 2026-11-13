@@ -61,4 +61,4 @@ export const writeDocSettings = (root: DataRoot, next: unknown): DocSettings => 
 };
 
 /** The cover's outcome when the switch is off: nothing drawn, and the reason. DRAFT wording (#2909 Q2909.10 A). */
-export const COVER_OFF = 'not drawn, the cover is off in Documentation';
+export const COVER_OFF = 'not drawn, the cover is off in Docs';
