@@ -3944,9 +3944,32 @@
         },
         "counter": {
           "keys": [
+            "disabled.icon.on-fill",
             "disabled.label.on-fill"
           ],
           "parts": {
+            "decrement": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            },
+            "increment": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            },
             "value": {
               "members": 3,
               "where": {

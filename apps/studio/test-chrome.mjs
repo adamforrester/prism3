@@ -18455,8 +18455,17 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
         await page.evaluate(() => { window.__ia2.length = 0; });
         await hooks.click(page.locator('[data-p3="update-check-theme"]'));
         await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
-        // While it checks, the checklist says so, and focus stays inside the modal (the Theme box it was on is gone).
-        const checking = await page.evaluate(() => !!document.querySelector('[data-p3="update-checking"]') && !!document.querySelector('[data-p3="update-dialog"]')?.contains(document.activeElement));
+        // #3713 (4 of 4): while it reads the file again, the checklist keeps its content: no "Checking the file…", the Theme
+        // box drawn as toggled and keeping focus, both Due rows, "Reading this file…" in the foot, Update file waiting.
+        // MUTATION: `rereading` always false (the dialog blanks as before) → `#3713 in place`, by name.
+        const checking = await page.evaluate(() => ({
+          blank: !!document.querySelector('[data-p3="update-checking"]'),
+          box: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,
+          focus: document.activeElement?.getAttribute('data-p3') ?? null,
+          rows: [...document.querySelectorAll('[data-p3="update-due-set"]')].map((b) => b.dataset.id),
+          foot: document.querySelector('[data-p3="update-check-count"]')?.textContent ?? null,
+          go: document.querySelector('[data-p3="update-go"]')?.disabled ?? null,
+        }));
         await postMsg(page, FILE);
         await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
         const got = await page.evaluate(() => window.__ia2.slice());
@@ -18470,9 +18479,45 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
         const tg = await toggleTheme();
         const fs = tg.got.filter((m) => m.type === 'file-sets-request');
         const uc = tg.got.filter((m) => m.type === 'update-check-request');
-        ok(tg.box === String(on) && tg.checking && fs.length === 1 && fs.every(want(brand)) && uc.length === 1 && JSON.stringify(uc[0].defs) === JSON.stringify(['button', 'select']) && uc.every(want(brand)),
+        ok(!tg.checking.blank && tg.checking.box === String(on) && tg.checking.focus === 'update-check-theme' && JSON.stringify(tg.checking.rows) === '["button","select"]' && tg.checking.foot === 'Reading this file…' && tg.checking.go === true,
+          `${where}: #3713 in place: Theme ${words}: the checklist reads the file again in place, the foot saying so, never blanking (${JSON.stringify(tg.checking)})`);
+        ok(tg.box === String(on) && fs.length === 1 && fs.every(want(brand)) && uc.length === 1 && JSON.stringify(uc[0].defs) === JSON.stringify(['button', 'select']) && uc.every(want(brand)),
           `${where}: #3023 Q701 B: Theme ${words}: the checklist checks the file again, then the due sets, against that brand (${JSON.stringify({ box: tg.box, checking: tg.checking, fileSets: fs.map((m) => 'input' in m ? wireDiff(m.input, PANEL_BRAND) : 'none'), check: uc.map((m) => [m.defs, 'input' in m ? wireDiff(m.input, PANEL_BRAND) : 'none']) })})`);
       }
+      // #3713 (2 of 4): a set the check's answer blocks leaves Due for "Can't update yet", with its due reason and its
+      // own reason in plain words, and no tick; Due's line counts only the set that can run, and Update file still runs
+      // it. Theme is unticked here, so a set only Theme blocks is blocked too. Literals, DRAFT copy. MUTATION:
+      // `blockedDueOf` returning [] (the blocked set left in Due, ticked) → this arm, by name.
+      step = 'a blocked set';
+      const blockedSet = { ...sets[1], blocked: true, upToDate: false, reasons: ['Not in this file: icon/close. Build icon first, then run the update again'] };
+      await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets: [sets[0], blockedSet] });
+      await page.waitForFunction(() => !!document.querySelector('[data-p3="update-blocked-row"]'), null, { timeout: 5000 }).catch(() => {});
+      const bl = await page.evaluate(() => ({
+        due: [...document.querySelectorAll('[data-p3="update-due-set"]')].map((b) => b.dataset.id),
+        dueLine: document.querySelector('[data-p3="update-due-line"]')?.textContent ?? null,
+        title: document.querySelector('[data-p3="update-group-blocked"] .p3-upd-subtitle')?.textContent ?? null,
+        rows: [...document.querySelectorAll('[data-p3="update-blocked-row"]')].map((r) => [r.dataset.id, r.querySelector('[data-p3="update-set-due"]')?.textContent ?? null, r.querySelector('[data-p3="update-blocked-why"]')?.textContent ?? null]),
+        boxes: document.querySelectorAll('[data-p3="update-group-blocked"] [role="checkbox"], [data-p3="update-group-blocked"] input').length,
+        go: document.querySelector('[data-p3="update-go"]')?.disabled ?? null,
+      }));
+      ok(JSON.stringify(bl.due) === '["button"]' && bl.dueLine === '1 set to update in place. Ticked by default.' && bl.title === 'Can’t update yet'
+        && JSON.stringify(bl.rows) === JSON.stringify([['select', 'Engine update: focus ring size', 'It needs Icon, which this file doesn’t have. Tick Icon on Components first.']]) && bl.boxes === 0 && bl.go === false,
+        `${where}: #3713 blocked apart: a blocked set is listed under Can't update yet with its reason and no tick, and Due counts only the set that can run (${JSON.stringify(bl)})`);
+      // #3713 (3 of 4): with every Due set blocked and nothing else ticked, Update file is disabled and says why beside
+      // it, naming the sets, as its description; with a set to run (above) it says nothing. Literals, DRAFT copy.
+      // MUTATION: the why line never drawn (`goWhyOf` returning null) → this arm, by name.
+      const whyOn = await page.evaluate(() => document.querySelector('[data-p3="update-go-why"]')?.textContent ?? null);
+      await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets: [{ ...sets[0], blocked: true, upToDate: false, reasons: ['fonts: Inter Bold will not load, so text could not be written'] }, blockedSet] });
+      await page.waitForFunction(() => document.querySelectorAll('[data-p3="update-blocked-row"]').length === 2, null, { timeout: 5000 }).catch(() => {});
+      const nw = await page.evaluate(() => {
+        const go = document.querySelector('[data-p3="update-go"]'), why = document.querySelector('[data-p3="update-go-why"]'), cancel = document.querySelector('[data-p3="update-cancel"]');
+        return { go: go?.disabled ?? null, why: why?.textContent ?? null, described: !!why && go?.getAttribute('aria-describedby') === why.id,
+          inFoot: !!why?.closest('.p3-bardlg-foot'), beforeCancel: !!why && !!cancel && !!(why.compareDocumentPosition(cancel) & Node.DOCUMENT_POSITION_FOLLOWING), due: document.querySelectorAll('[data-p3="update-due-set"]').length };
+      });
+      ok(whyOn === null && nw.go === true && nw.why === 'Nothing to write: Button and Select can’t be updated yet.' && nw.described && nw.inFoot && nw.beforeCancel && nw.due === 0,
+        `${where}: #3713 disabled says why: with every Due set blocked, Update file is disabled and the foot names why beside it (${JSON.stringify({ whyOn, ...nw })})`);
+      await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+      await page.waitForFunction(() => !document.querySelector('[data-p3="update-blocked-row"]') && document.querySelectorAll('[data-p3="update-due-set"]').length === 2, null, { timeout: 5000 }).catch(() => {});
       // #3083 (Q3083.3 A): the select's pick is the one the update posts, and the repaint the pick causes keeps focus
       // on the select. MUTATION: `sel.onchange` writes 'keep' whatever is picked → this arm and the update-sets one below.
       step = 'the hand-edits pick';

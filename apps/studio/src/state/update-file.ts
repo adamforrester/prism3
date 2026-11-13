@@ -199,6 +199,11 @@ export const brandFor = <B>(theme: boolean, panel: B): B | undefined => (theme ?
 /** Whether the scoped check's reading of a set lets the run update it: not blocked; or (#3421) blocked only by variables
  *  or styles the brand's Theme writes, in a run whose Theme step goes first. */
 const runnable = (c: CheckedSetView, theme: boolean): boolean => !c.blocked || (theme && !!c.themeBlocked);
+/** #3713 (2 of 4): the Due sets the check's answer reads as blocked for this run, in the order given: listed apart under
+ *  Can't update yet, with no tick, since the run would leave them anyway. A set only Theme blocks is not among them while
+ *  Theme is ticked (#3421). Empty before the answer: until then every Due set is listed, ticked. */
+export const blockedDueOf = (ids: readonly string[], check: { readonly sets: readonly CheckedSetView[] } | null, theme: boolean): string[] =>
+  check ? ids.filter((id) => { const c = check.sets.find((x) => x.def === id); return !!c && !runnable(c, theme); }) : [];
 /** What the scoped check says of the ticked sets the update would act on: the ones it read and did not block, and
  *  (#3421) with Theme ticked, the ones only Theme's variables and styles block. The run checks those again after Theme. */
 export const updatableOf = (t: Ticks, check: { readonly sets: readonly CheckedSetView[] }): string[] =>
@@ -303,6 +308,16 @@ export const engineWhy = (m: MovedView): string => {
   return `Engine update: ${items.slice(0, 3).join(', ')}${items.length > 3 ? `, ${items.length - 3} more` : ''}`;
 };
 
+/** #3713 (3 of 4): names as a list: "A", "A and B", "A, B and C", then "A, B and 2 more". */
+const andList = (names: readonly string[]): string =>
+  names.length <= 3 ? names.join(', ').replace(/, ([^,]*)$/, ' and $1') : `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`;
+/** #3713 (3 of 4): why Update file is disabled, said beside it; null while it is enabled, and while the check is out
+ *  (its progress in the foot says that already). The file's brand not restored (`off`) says so; else there are no steps
+ *  to run, because each set ticked is one the check blocks (`blocked`, by name), or nothing is ticked. It never names a
+ *  write it does not make: the button stays disabled. DRAFT (OWNER DECISION: copy). */
+export const goWhyOf = (o: { readonly off: string | null; readonly waiting: boolean; readonly steps: number; readonly blocked: readonly string[] }): string | null =>
+  o.off ? o.off : o.waiting || o.steps > 0 ? null : UPDATE_COPY.nothing(o.blocked);
+
 /** The checklist's words, DRAFT placeholders until the owner words them (Q2909.10 A). */
 export const UPDATE_COPY = {
   button: 'Update file',
@@ -335,6 +350,8 @@ export const UPDATE_COPY = {
   addAll: (n: number): string => `Add all ${n}`,
   due: 'Due',
   dueSub: (n: number): string => `${plural(n)} to update in place. Ticked by default.`,
+  /** #3713 (2 of 4, DRAFT): the group a blocked Due set is listed in, apart from Due and with no tick. */
+  blocked: 'Can’t update yet',
   updateStep: 'Update sets in place',
   /** A due set's one-line reason (#3082 Q811 A): a setting it follows, or what an engine update moved in its drawing. */
   dueWhy: (d: Extract<SetDueView, { state: 'due' }>): string => (d.reason === 'engine' ? (d.moved ? engineWhy(d.moved) : UPDATE_COPY.engineUnprinted)
@@ -389,6 +406,8 @@ export const UPDATE_COPY = {
   coverStep: 'Cover and About this library',
   guidesSub: 'Drawn with the settings in Docs. A rerun updates each table in place.',
   go: 'Update file',
+  /** #3713 (3 of 4, DRAFT): beside a disabled Update file, `goWhyOf`. */
+  nothing: (blocked: readonly string[]): string => (blocked.length ? `Nothing to write: ${andList(blocked)} can’t be updated yet.` : 'Nothing to write: nothing above is ticked.'),
   goFresh: 'Set up and update',
   cancel: 'Cancel',
   close: 'Close',
@@ -450,16 +469,22 @@ export const blockedWhy = (line: string, nameOf: (id: string) => string = (id) =
   // DRAFT (D3721.1 b: the decision is the owner's, these words are not yet): Report a problem is the control's own name.
   return { why: 'the check gave a reason Studio doesn’t recognize.', next: 'Report it with Report a problem.' };
 };
-/** #3713: a blocked set's line: its first reason in plain words, the step that clears it, and how many more. With Theme
- *  ticked (`theme`), the reasons Theme's run clears are skipped, so the row never asks for a step already taken and
+/** #3713: a blocked set's first reason in plain words, the step that clears it, and how many more; `lead` opens it. With
+ *  Theme ticked (`theme`), the reasons Theme's run clears are skipped, so the row never asks for a step already taken and
  *  leads with what still blocks. DRAFT. */
-export const blockedLine = (reasons: readonly string[] | undefined, theme = false, nameOf?: (id: string) => string): string => {
-  if (!reasons?.length) return 'Can’t update yet — the check gave no reason.';
+const reasonText = (reasons: readonly string[] | undefined, theme: boolean, nameOf: ((id: string) => string) | undefined, lead: (why: string) => string): string => {
+  if (!reasons?.length) return lead('the check gave no reason.');
   const left = theme ? reasons.filter((r) => !THEME_CLEARS.test(r)) : reasons;
   const shown = left.length ? left : reasons;
   const { why, next } = blockedWhy(shown[0], nameOf);
-  return [`Can’t update yet — ${why}`, next, shown.length > 1 ? `${s_(shown.length - 1, 'more reason', 'more reasons')}.` : ''].filter(Boolean).join(' ');
+  return [lead(why), next, shown.length > 1 ? `${s_(shown.length - 1, 'more reason', 'more reasons')}.` : ''].filter(Boolean).join(' ');
 };
+/** #3713: a blocked set's line where it stands among the checked sets: "Can't update yet — …". DRAFT. */
+export const blockedLine = (reasons: readonly string[] | undefined, theme = false, nameOf?: (id: string) => string): string =>
+  reasonText(reasons, theme, nameOf, (why) => `Can’t update yet — ${why}`);
+/** #3713 (2 of 4): its line under Can't update yet, whose title already says so: the reason as a sentence. DRAFT. */
+export const blockedReason = (reasons: readonly string[] | undefined, theme = false, nameOf?: (id: string) => string): string =>
+  reasonText(reasons, theme, nameOf, (why) => `${why.charAt(0).toUpperCase()}${why.slice(1)}`);
 
 /** Each step's name in the checklist and in the run line. */
 export const STEP_TITLE: Readonly<Record<StepKey, string>> = { setup: UPDATE_COPY.setup, theme: UPDATE_COPY.theme, update: UPDATE_COPY.updateStep, sets: UPDATE_COPY.toAdd, guides: UPDATE_COPY.guides, cover: UPDATE_COPY.coverStep };
