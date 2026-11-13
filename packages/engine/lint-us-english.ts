@@ -344,6 +344,21 @@ const gated: string[] = [
   ...walk(join(repo, 'docs/public')).filter((f) => !f.startsWith(`${join(repo, REPORTS_DIR)}/`) && !(f.startsWith(`${repo}/docs/public/guides/`) && f.endsWith('.md'))),
 ];
 
+// ---- `--files`: the scanned set, printed (#1117) ----------------------------------------------
+// The scope crossing noted in the header claims "no design-record docs/ file is in this gate's scope". A grep over
+// this source cannot check that claim — it matches the comment making it. This prints the set the
+// gate actually walks, so the claim is decided by the gate rather than by prose about it:
+//
+//   npx tsx packages/engine/lint-us-english.ts --files | grep '^docs/' | grep -vc '^docs/public/'    # must be 0
+//
+// Exits before any scanning, so it is cheap and cannot be confused with a verdict. It also exits before the surface
+// and self checks (#3698 R4), so it lists the walked set in a tree with no build, as `test-docs-only.sh`'s
+// `scope/…` cases read it in CI's engine job: an unbuilt bundle lists no file, and every bundle is under `apps/`.
+if (process.argv.includes('--files')) {
+  for (const f of gated) console.log(shown(f));
+  process.exit(0);
+}
+
 // ---- SELF-CHECK: does the scanner still detect what it claims to? ----
 // Without this, deleting a scan makes the gate go QUIET rather than fail — which is exactly how
 // `greyscale` survived here (#313). A gate whose detection silently narrows reports success forever,
@@ -494,19 +509,6 @@ if (selfFails.length) {
   console.error(`\n❌ the gate's detection is broken — it cannot see what it claims to:\n`);
   for (const f of selfFails) console.error(`    ${f}`);
   process.exit(1);
-}
-
-// ---- `--files`: the scanned set, printed (#1117) ----------------------------------------------
-// The scope crossing noted in the header claims "no design-record docs/ file is in this gate's scope". A grep over
-// this source cannot check that claim — it matches the comment making it. This prints the set the
-// gate actually walks, so the claim is decided by the gate rather than by prose about it:
-//
-//   npx tsx packages/engine/lint-us-english.ts --files | grep '^docs/' | grep -vc '^docs/public/'    # must be 0
-//
-// Exits before any scanning, so it is cheap and cannot be confused with a verdict.
-if (process.argv.includes('--files')) {
-  for (const f of gated) console.log(shown(f));
-  process.exit(0);
 }
 
 const gatedHits = gated.flatMap(scan);

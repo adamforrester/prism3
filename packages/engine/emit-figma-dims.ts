@@ -24,6 +24,7 @@ import { buildTree, at } from './tree';
 import {
   figmaDimensionDescription, figmaSpaceDescription, figmaRadiusDescription, figmaSizeDescription, figmaIconSizeDescription,
   figmaControlDescription, figmaLabelLineBoxDescription, figmaBodyLineBoxDescription, figmaCaptionLineBoxDescription, figmaBorderWidthDescription, figmaFocusDescription, figmaOpacityDescription, figmaBlurDescription,
+  figmaTextSpacingPrimitiveDescription, figmaTextSpacingRoleDescription,
   figmaDurationPrimitiveDescription, figmaDurationDescription, figmaStaggerDescription,
   figmaCurveDescription, figmaEasingRoleDescription, figmaSpringDescription,
   figmaBreakpointDescription, figmaContainerDescription, figmaGridVarDescription,
@@ -106,6 +107,9 @@ export type FigmaDimsCollections = {
   opacity: FigmaCollectionFile;
   /** `blur/glass` (#2869) — the glass background-blur radius the `glass` Effect Style binds. EFFECT_FLOAT. */
   blur: FigmaCollectionFile;
+  /** `text-spacing` (#2423, Q175 A): the line-height and letter-spacing multipliers, named by their DTCG paths
+   *  (`<root>/core/font/line-height/105`, `…/letter-spacing-role/tight`). Bound to nothing, so no scopes. */
+  textSpacing: FigmaCollectionFile;
 };
 
 // ---------------------------------------------------------------------------
@@ -131,6 +135,8 @@ export type FigmaDimsCollections = {
 //                  variable primitive; the literal stays code-side.
 //   opacity      → dimensionless 0–1 (0/5/10/…/100 as percent keys). Scope: OPACITY.
 //   blur         → `glass` (#2869), the background-blur radius the `glass` Effect Style binds. Scope: EFFECT_FLOAT.
+//   text-spacing → the line-height and letter-spacing multipliers (#2423, owner Q175 A), named by their DTCG
+//                  paths. No scopes: see `TEXT_SPACING_SCOPES`.
 // ---------------------------------------------------------------------------
 
 // Scopes by Figma convention. `dimension` primitives carry none (#2602 — `PRIMITIVE_SCOPES`, so no local
@@ -142,6 +148,13 @@ const BORDER_WIDTH_SCOPES = ['STROKE_FLOAT'];
 const FOCUS_SCOPES = ['STROKE_FLOAT'];
 const OPACITY_SCOPES = ['OPACITY'];
 const BLUR_SCOPES = ['EFFECT_FLOAT'];
+/** `text-spacing` (#2423) carries NO scopes, on purpose, though Figma's VariableScope has LINE_HEIGHT and
+ *  LETTER_SPACING. A FLOAT bound to a text node's `lineHeight` or `letterSpacing` is read as PIXELS, and these
+ *  values are multipliers of the font size (1.05, -0.04): offered in those pickers, a bind would render 1.05px
+ *  line height. The text styles keep their baked PERCENT (`lint-lineheight-bake.ts`, which also holds these
+ *  variables to an empty scope list). Empty scopes keep them out of every local picker (#2602); the style guide
+ *  and the export read them through the API, which scopes do not limit. */
+const TEXT_SPACING_SCOPES: string[] = [];
 const SIZE_HEIGHT_SCOPES = ['WIDTH_HEIGHT'];
 const SIZE_PADDING_SCOPES = ['GAP'];
 
@@ -426,6 +439,48 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     alias: null,
   }));
 
+  // Text spacing (#2423, owner Q175 A + the collection name of 2026-11-12) — the line-height and letter-spacing
+  // ladders and their roles, in one collection named `text-spacing`. Each variable keeps its DTCG path as its
+  // name (the motion precedent, #2394), so the export lands on the same paths with no rename. The steps are
+  // primitives (hidden from publishing, like `core/font/*`); the roles alias them and are published. Values are
+  // the DTCG's own multipliers: letter spacing has been a number since #2434. One `Default` mode: no brand's
+  // mode levers move either ladder.
+  const font = brand.core.font;
+  const numOf = (v: unknown): number => {
+    const m = /^\{(.+)\}$/.exec(String(v));
+    return m ? numOf(at(tree, m[1])?.$value) : Number(v);
+  };
+  const byValue = (group: Record<string, any>): string[] => Object.keys(group).sort((a, b) => numOf(group[a].$value) - numOf(group[b].$value));
+  const textSpacingVars: FigmaVar[] = [];
+  for (const [family, kind] of [['line-height', 'line height'], ['letter-spacing', 'letter spacing']] as const) {
+    const steps = font[family] as Record<string, any>;
+    const roles = font[`${family}-role`] as Record<string, any>;
+    for (const key of byValue(steps)) {
+      const n = numOf(steps[key].$value);
+      textSpacingVars.push({
+        name: coreDim(`font/${family}/${key}`),
+        resolvedType: 'FLOAT' as const,
+        scopes: TEXT_SPACING_SCOPES,
+        description: figmaTextSpacingPrimitiveDescription(kind, n),
+        value: n,
+        alias: null,
+        hiddenFromPublishing: true,
+      });
+    }
+    for (const role of Object.keys(roles)) {
+      const leaf = roles[role];
+      const n = numOf(leaf.$value);
+      textSpacingVars.push({
+        name: coreDim(`font/${family}-role/${role}`),
+        resolvedType: 'FLOAT' as const,
+        scopes: TEXT_SPACING_SCOPES,
+        description: figmaTextSpacingRoleDescription(kind, role, n),
+        value: n,
+        alias: /^\{.+\}$/.test(String(leaf.$value)) ? { type: 'VARIABLE_ALIAS', name: aliasFigName(leaf.$value) } : null,
+      });
+    }
+  }
+
   const c = (name: string, variables: FigmaVar[]): FigmaCollectionFile => ({ $collection: name, $mode: 'Default', variables });
   return {
     dimension: c(CORE_COLLECTION, dimVars),
@@ -438,6 +493,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     focus: c('focus', focusVars),
     opacity: c('opacity', opacityVars),
     blur: c('blur', blurVars),
+    textSpacing: c('text-spacing', textSpacingVars),
   };
 };
 
