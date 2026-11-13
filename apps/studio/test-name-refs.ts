@@ -15,6 +15,16 @@
  * asserted is the engine's answer (the brand resolves, as the store's rebuild asks it), the writer's (the edit was
  * taken, or refused byte for byte where #3391 holds a reference), and a scan of the brand for the old name, which knows
  * nothing of which field held it.
+ *
+ * NESTED TYPES. The classification walks `BrandInput`'s top-level keys, then by hand the named object types its naming
+ * fields hold (`NESTED` below: the surface mode, the glass role, the outline hover pick, the gradient and its stop), so
+ * a naming sub-field added to one of them fails by name too (the #3710 review found `glassRoles.<name>.role` naming a
+ * column one level down). The walk goes no deeper than that list: a type outside it (`ModeLevers`, `TypographyInput`)
+ * is classified only as a whole, by its `BrandInput` key.
+ *
+ * THE CONFIRM. A seed that writes a palette reference the removal changes (not one keyed by the column, which the
+ * column's own line covers) carries `confirms`: the count of lines, typed here, that the removal confirm must add
+ * against the unseeded fixture's. A row whose line goes missing or merges fails by name.
  */
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -54,7 +64,7 @@ const keysOf = (name: string): string[] => {
 
 type Brand = BrandInput & Record<string, unknown>;
 /** A field that names something: how to seed it, and whether a removal of `acc` is HELD (#3391: refused, not cascaded). */
-type Seed = { seed: (b: Brand) => void; heldOnRemove?: boolean };
+type Seed = { seed: (b: Brand) => void; heldOnRemove?: boolean; heldOnColumnRemove?: boolean; confirms?: number };
 /** Every `BrandInput` field, by hand. A string is why the field names no palette, column or mode. */
 const FIELDS: Record<string, Seed | Seed[] | string> = {
   id: 'the export slug', name: 'the display name', root: 'the token namespace',
@@ -62,10 +72,10 @@ const FIELDS: Record<string, Seed | Seed[] | string> = {
   customModes: { seed: () => {} },      // the fixture's `promo`
   brandColors: { seed: () => {} },      // the fixture's `acc`
   primary: 'a color', neutral: 'a color', status: 'keyed by status role, valued by color',
-  actionPalette: { seed: (b) => { b.actionPalette = 'acc'; delete b.interactivePalettes; } },
-  linkPalette: { seed: (b) => { b.linkPalette = 'acc'; } },
-  roleColors: { seed: (b) => { b.roleColors = { success: 'acc' }; } },
-  surfaces: { seed: (b) => {
+  actionPalette: { confirms: 1, seed: (b) => { b.actionPalette = 'acc'; delete b.interactivePalettes; } },
+  linkPalette: { confirms: 1, seed: (b) => { b.linkPalette = 'acc'; } },
+  roleColors: { confirms: 1, seed: (b) => { b.roleColors = { success: 'acc' }; } },
+  surfaces: { confirms: 4, seed: (b) => {
     b.surfaces = {
       light: { inverseBase: { palette: 'acc', step: 900 }, inverseSecondary: { palette: 'acc', step: 800 }, inverseTertiary: { palette: 'acc', step: 700 } },
       dark: { inverseBase: { palette: 'acc', step: 800 } },
@@ -86,7 +96,7 @@ const FIELDS: Record<string, Seed | Seed[] | string> = {
   modeAnchors: { seed: (b) => { b.modeAnchors = { dark: { acc: 400 }, promo: { acc: 500 } } as BrandInput['modeAnchors']; } },
   modeLevers: { seed: (b) => { b.modeLevers = { dark: { tempo: 'relaxed' }, promo: { tempo: 'snappy' } } as BrandInput['modeLevers']; } },
   disabledStrategy: 'an enum', disabledMin: 'a number', iconContrast: 'an enum', outlineInteraction: 'an enum',
-  outlineHoverFill: { seed: (b) => {
+  outlineHoverFill: { confirms: 3, seed: (b) => {   // light's mode-wide pick, light's and dark's primary set; the acc sets are the column's
     b.outlineInteraction = 'opaque-fill';
     b.outlineHoverFill = {
       light: { hover: 'acc.100', pressed: 'acc.200', sets: { acc: { hover: 'neutral.100' }, primary: { hover: 'acc.100', pressed: 'neutral.200' } } },
@@ -95,9 +105,14 @@ const FIELDS: Record<string, Seed | Seed[] | string> = {
     } as BrandInput['outlineHoverFill'];
   } },
   outlineWash: 'numbers', neutralEmphasis: 'an enum', raisedSurface: 'an enum', scrimStrength: 'an enum', secondaryTextGround: 'an enum',
-  glassRoles: { heldOnRemove: true, seed: (b) => { b.glassRoles = { card: { palette: 'acc.100', alpha: 60 } }; } },
+  glassRoles: [
+    { heldOnRemove: true, seed: (b) => { b.glassRoles = { card: { palette: 'acc.100', alpha: 60 } }; } },
+    // A semantic role path under the color's column (#3710 review): it names the column, so it follows a rename and
+    // holds both removals, the color's and the column's.
+    { heldOnRemove: true, heldOnColumnRemove: true, seed: (b) => { b.glassRoles = { card: { role: 'interactive.acc.fill.rest', alpha: 60 } }; } },
+  ],
   radioDot: 'an enum', strictInteractiveContrast: 'a flag',
-  accentPalette: { seed: (b) => { b.accentPalette = 'acc'; delete b.interactivePalettes; b.modeAnchors = { dark: { accent: 400 } } as BrandInput['modeAnchors']; } },
+  accentPalette: { confirms: 1, seed: (b) => { b.accentPalette = 'acc'; delete b.interactivePalettes; b.modeAnchors = { dark: { accent: 400 } } as BrandInput['modeAnchors']; } },
   interactivePalettes: [
     { seed: () => {} },   // the fixture's unnamed `acc` column
     { seed: (b) => {      // a column with its own name, drawn from the color
@@ -110,7 +125,7 @@ const FIELDS: Record<string, Seed | Seed[] | string> = {
   ],
   actionAnchorStep: 'a number', destructiveAnchorStep: 'a number', linkStateRungs: 'numbers', motionPersonality: 'a motion setting',
   typography: 'type settings (font names, not palettes)', shadow: 'numbers', layout: 'numbers keyed by breakpoint',
-  gradients: { seed: (b) => { b.gradients = [{ name: 'hero', stops: [{ palette: 'acc', step: 500, position: 0 }, { palette: 'primary', step: 500, position: 1 }] }]; } },
+  gradients: { confirms: 1, seed: (b) => { b.gradients = [{ name: 'hero', stops: [{ palette: 'acc', step: 500, position: 0 }, { palette: 'primary', step: 500, position: 1 }] }]; } },
   density: 'an enum', radiusScale: 'a number', baseMd: 'a number', controlShape: 'an enum', fieldStyle: 'an enum', searchFieldStyle: 'an enum',
   tagStyle: 'an enum', dialogTitleSize: 'an enum', bannerStyle: 'an enum', currentIndicator: 'an enum', radiusHairline: 'a flag',
   buttonIcons: 'an enum', buttonContentSize: 'an enum', buttonMinWidthMultiplier: 'a number', buttonLabelWeight: 'an enum', buttonTextHover: 'an enum',
@@ -118,6 +133,14 @@ const FIELDS: Record<string, Seed | Seed[] | string> = {
 /** `surfaces.<mode>`'s keys, by hand: the inverse band and tiers may be `{ palette, step }`; the page tiers are neutral steps. */
 const SURFACE_NAMING = ['inverseBase', 'inverseSecondary', 'inverseTertiary'];
 const SURFACE_PLAIN = ['base', 'floorStep', 'secondary', 'tertiary'];
+/** The named object types a naming field holds, each key by hand: the seed that writes it naming `acc`, or why it names
+ *  nothing. `SurfaceMode` is the lists above. */
+const NESTED: Record<string, Record<string, string>> = {
+  GlassRoleInput: { role: 'seeded: glassRoles #2 (a column)', palette: 'seeded: glassRoles #1 (a palette step)', alpha: 'a number' },
+  OutlineHoverPick: { hover: 'seeded: outlineHoverFill (a palette step)', pressed: 'seeded: outlineHoverFill (a palette step)' },
+  GradientInput: { name: 'the gradient\'s own name', kind: 'an enum', angle: 'a number', center: 'numbers', shape: 'an enum', interpolation: 'an enum', samples: 'a number', stops: 'the stops, below' },
+  GradientStopInput: { palette: 'seeded: gradients', step: 'a number', position: 'a number' },
+};
 
 console.log('\n0. Every BrandInput field is classified by hand, read from the type');
 const typeKeys = keysOf('BrandInput');
@@ -126,6 +149,12 @@ for (const k of typeKeys) ok(k in FIELDS, `BrandInput.${k} is classified: it nam
 for (const k of Object.keys(FIELDS)) ok(typeKeys.includes(k), `the classification's ${k} is still a BrandInput field`);
 const surfaceKeys = keysOf('SurfaceMode');
 for (const k of surfaceKeys) ok(SURFACE_NAMING.includes(k) || SURFACE_PLAIN.includes(k), `surfaces.<mode>.${k} is classified`);
+for (const [type, by] of Object.entries(NESTED)) {
+  const keys = keysOf(type);
+  ok(keys.length > 0, `the ${type} type is read from packages/engine/theme.ts (${keys.length} fields)`);
+  for (const k of keys) ok(k in by, `${type}.${k} is classified: it names a palette, column or mode and is seeded, or it says why not`);
+  for (const k of Object.keys(by)) ok(keys.includes(k), `the classification's ${type}.${k} is still a field`);
+}
 
 // ── the fixture, the scan and the engine's answer ───────────────────────────────────────────────
 const fixture = (): Brand => {
@@ -154,6 +183,7 @@ const survivors = (token: string, where: 'keys' | 'all'): string[] => {
 };
 
 const scenarios = Object.entries(FIELDS).flatMap(([field, c]) => (typeof c === 'string' ? [] : (Array.isArray(c) ? c : [c]).map((s, n) => ({ field: `${field}${Array.isArray(c) ? ` #${n + 1}` : ''}`, ...s }))));
+const fixtureEffects = (): string[] => { load(fixture()); return P.removalEffects('acc'); };
 const seeded = (s: { seed: (b: Brand) => void }): boolean => {
   const b = fixture();
   s.seed(b);
@@ -185,15 +215,27 @@ for (const s of scenarios) {
     const left = [...survivors('acc', 'all'), ...survivors('cta', 'all'), ...survivors('accent', 'keys')];
     ok(!left.length, `${s.field}: after the removal nothing names acc or its column (${left.join(', ') || 'none'})`);
   }
+  if (s.confirms !== undefined) {
+    const base = new Set(fixtureEffects());
+    seeded(s);
+    const added = [...new Set(P.removalEffects('acc'))].filter((e) => e.trim() && !base.has(e));
+    ok(added.length === s.confirms, `${s.field}: the removal confirm adds ${s.confirms} line(s) to the fixture's (${JSON.stringify(added)})`);
+  }
 
   // Remove the color's column, where it has one. The color stays, so only a key may not name the column.
   seeded(s);
   const ci = (store.brandState.interactivePalettes ?? []).findIndex((e) => e.palette === 'acc');
   if (ci >= 0) {
     const col = store.brandState.interactivePalettes![ci].name ?? 'acc';
-    ok(I.removeAccent(ci) === null, `${s.field}: removing the ${col} column is taken`);
-    ok(resolves() === null, `${s.field}: after the column's removal the brand resolves (${resolves() ?? 'yes'})`);
-    ok(!survivors(col, 'keys').length, `${s.field}: after the column's removal no key names ${col} (${survivors(col, 'keys').join(', ') || 'none'})`);
+    const was = JSON.stringify(store.brandState);
+    const whyCol = I.removeAccent(ci);
+    if (s.heldOnColumnRemove) {
+      ok(whyCol !== null && JSON.stringify(store.brandState) === was, `${s.field}: removing the ${col} column is refused whole while it is held, the brand byte for byte (${whyCol ?? 'it was taken'})`);
+    } else {
+      ok(whyCol === null, `${s.field}: removing the ${col} column is taken (${whyCol ?? 'yes'})`);
+      ok(resolves() === null, `${s.field}: after the column's removal the brand resolves (${resolves() ?? 'yes'})`);
+      ok(!survivors(col, 'keys').length, `${s.field}: after the column's removal no key names ${col} (${survivors(col, 'keys').join(', ') || 'none'})`);
+    }
   }
 
   // Rename and remove the custom mode, and turn Dark off.

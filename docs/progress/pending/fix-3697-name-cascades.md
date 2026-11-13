@@ -43,3 +43,19 @@ resolves the brand, and that a scan of the brand finds no segment still naming t
 which field held the name. The table is never read. Mutation: dropping the
 `outlineHoverFill.<mode>.sets.<column>` row (committed as `wip:` on the branch, then reverted) fails 10 assertions by
 name, starting with `outlineHoverFill: renaming acc to acx is taken`.
+
+### After the first review (#3710)
+
+- **`glassRoles.<name>.role` names a column, and is on the table now.** A glass role may take its color from a role
+  path (`interactive.<column>.fill.rest`). It follows a column's rename. On a removal of the color or its button set it
+  is held, as a glass drawn from a palette is: the removal is refused, and the confirm names the glass. Before, the
+  rename was refused silently and the confirm promised a removal the commit then refused. The palette removal confirm
+  now also reads the column rows of every column that goes with the color.
+- **A refused button-set removal says so.** The set's card shows the same refused mark the other levers do. Before, a
+  refused removal changed nothing visible.
+- **The gate.** Seeds now carry a hand-typed count of the confirm lines a removal adds against the unseeded fixture's,
+  so a missing or merged line (an inverse surface, an outline hover fill, the legacy accent column) fails by name. The
+  classification also walks the named nested types the naming fields hold (`GlassRoleInput`, `OutlineHoverPick`,
+  `GradientInput`, `GradientStopInput`, beside `SurfaceMode`). `test-chrome.mjs` section 19 drives the refused mark.
+- **New confirm line, the owner's copy:** "The <name> glass is drawn from its button set — the color can't be removed
+  until the glass is re-picked."

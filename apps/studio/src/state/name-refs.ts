@@ -216,6 +216,9 @@ export const PALETTE_REFS: readonly NameRef[] = [
 // one), so it is a leftover, and a rename drops it first: kept, it would bring back a value the user removed and drop
 // the one they just set (#3549, #3613). Only a map this edit emptied is pruned: one already empty stays.
 
+/** The column a semantic role path names (`interactive.<col>.…`, `inverse.interactive.<col>.…`), given the column. */
+const roleNamesColumn = (role: unknown, col: string): boolean => typeof role === 'string' && isColumnKey(role, col);
+
 export const COLUMN_REFS: readonly NameRef[] = [
   {
     field: 'modeAnchors.<mode>.<column>', kind: 'column',
@@ -297,6 +300,22 @@ export const COLUMN_REFS: readonly NameRef[] = [
     },
     effects: () => [],
   },
+  {
+    // HELD, as a glass drawn from a removed palette is (#3710 review): a glass role may take its color from a semantic
+    // role path (`validGlassRoles`), and one under `interactive.<column>.` names the column. It follows a rename; on a
+    // removal it stays, the engine refuses the brand, and the atomic commit refuses the removal.
+    field: 'glassRoles.<name>.role', kind: 'column',
+    rename: (b, p, n) => {
+      const heads = [[`interactive.${p}.`, `interactive.${n}.`], [`inverse.interactive.${p}.`, `inverse.interactive.${n}.`]];
+      for (const g of Object.values(b.glassRoles ?? {})) {
+        const head = typeof g.role === 'string' ? heads.find(([from]) => g.role!.startsWith(from)) : undefined;
+        if (head) g.role = head[1] + g.role!.slice(head[0].length);
+      }
+    },
+    remove: () => {},
+    effects: (b, x) => Object.entries(b.glassRoles ?? {}).filter(([, g]) => roleNamesColumn(g.role, x))
+      .map(([n]) => `The ${n} glass is drawn from its button set — the color can't be removed until the glass is re-picked.`),
+  },
 ];
 
 // ── mode rows ───────────────────────────────────────────────────────────────────────────────────
@@ -346,8 +365,12 @@ export const removePalette = (b: BrandInput, gone: string): void => {
   for (const c of columnsGoneWith(b, gone)) removeColumn(b, c);
   for (const r of PALETTE_REFS) r.remove(b, gone);
 };
-/** What removing palette `name` changes, for the confirm, in the table's order. */
-export const paletteRemovalEffects = (b: BrandInput, name: string): string[] => PALETTE_REFS.flatMap((r) => r.effects(b, name));
+/** What removing palette `name` changes, for the confirm, in the table's order: the palette rows, then the column rows
+ *  of every column that goes with it (the cascade `removePalette` runs). */
+export const paletteRemovalEffects = (b: BrandInput, name: string): string[] => [
+  ...PALETTE_REFS.flatMap((r) => r.effects(b, name)),
+  ...columnsGoneWith(b, name).flatMap((c) => COLUMN_REFS.flatMap((r) => r.effects(b, c))),
+];
 /** Interactive column `col` removed: every column row drops its keys. */
 export const removeColumn = (b: BrandInput, col: string): void => { for (const r of COLUMN_REFS) r.remove(b, col); };
 export const renameMode = (b: BrandInput, prev: string, next: string): void => { for (const r of MODE_REFS) r.rename(b, prev, next); };
