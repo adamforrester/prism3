@@ -151,7 +151,7 @@ console.log('Report a problem over the plugin\'s own lines (#3697 H4)\n');
 {
   const real = figmaShim.getLocalTextStylesAsync;
   figmaShim.getLocalTextStylesAsync = async () => { throw new Error(HOST_SECRET); };
-  const posted = (await run((sink) => (main.ACTIONS.prune as (...a: unknown[]) => Promise<void>)(BRAND, true, sink))).filter((m) => m.type === 'prune-result');
+  const posted = (await run((sink) => (main.ACTIONS.prune as (...a: unknown[]) => Promise<void>)(BRAND, true, undefined, sink))).filter((m) => m.type === 'prune-result');
   figmaShim.getLocalTextStylesAsync = real;
   const raw = rawText(posted);
   ok(posted.length === 1 && /prune failed/.test(raw), `#3697 H4 premise: a thrown prune posts its failure (${JSON.stringify(posted[0]?.summary)})`);

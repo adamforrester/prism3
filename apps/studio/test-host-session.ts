@@ -167,9 +167,9 @@ for (const c of verdictCases) {
 // ---- prune-result: the four branches ---------------------------------------------------------------------
 {
   const busy: HostSession = { ...init, pruneBusy: 'preview', pruneVerdict: { ok: true, applied: false, count: 1, summary: 'old' } };
-  const preview = step(busy, { kind: 'prune-result', ok: true, applied: false, count: 3, summary: '3 stale' });
-  ok(preview.next.pruneBusy === false && same(preview.next.prunePreview, { count: 3, summary: '3 stale' }) && preview.next.pruneVerdict === null,
-    'prune-result: a preview with something stale opens the confirm (prunePreview) and clears the verdict');
+  const preview = step(busy, { kind: 'prune-result', ok: true, applied: false, count: 3, summary: '3 stale', previewHash: 'abcdef01' });
+  ok(preview.next.pruneBusy === false && same(preview.next.prunePreview, { count: 3, summary: '3 stale', previewHash: 'abcdef01' }) && preview.next.pruneVerdict === null,
+    'prune-result: a preview with something stale opens the confirm (prunePreview, with the hash its Delete echoes, #3697 R6) and clears the verdict');
   ok(same(preview.topics, ['host']), 'prune-result: invalidates host (the bar)');
   const none = step(busy, { kind: 'prune-result', ok: true, applied: false, count: 0, summary: 'nothing stale' });
   ok(none.next.prunePreview === null && same(none.next.pruneVerdict, { ok: true, applied: false, count: 0, summary: 'nothing stale' }),
@@ -177,7 +177,7 @@ for (const c of verdictCases) {
   const agent = step(busy, { kind: 'prune-result', ok: true, applied: false, count: 2, summary: '2 stale', pillOnly: true });
   ok(agent.next.prunePreview === null && same(agent.next.pruneVerdict, { ok: true, applied: false, count: 2, summary: 'Agent preview: 2 stale' }),
     'prune-result: an agent preview (pillOnly) is a pill, never the dialog');
-  const done = step({ ...busy, pruneBusy: 'delete', prunePreview: { count: 3, summary: '3 stale' } },
+  const done = step({ ...busy, pruneBusy: 'delete', prunePreview: { count: 3, summary: '3 stale', previewHash: 'h' } },
     { kind: 'prune-result', ok: true, applied: true, count: 3, summary: 'removed 3' });
   ok(done.next.pruneBusy === false && done.next.prunePreview === null && same(done.next.pruneVerdict, { ok: true, applied: true, count: 3, summary: 'removed 3' }),
     'prune-result: an applied delete is the verdict and closes the dialog');

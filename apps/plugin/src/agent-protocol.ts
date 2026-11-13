@@ -61,8 +61,9 @@ export type AgentArgs = {
   'file-setup': Record<string, never>;
   /** The color style-guide tables (#259) — every field optional, as the panel's Customize options. */
   'style-guide': StyleGuideOptions;
-  /** `confirm: false` previews, `confirm: true` deletes — the UI's two-step prune, in one field. */
-  prune: { input: BrandInput; confirm: boolean };
+  /** `confirm: false` previews, and its result carries a `previewHash`. `confirm: true` deletes, and must echo that
+   *  `previewHash` (#3697 R6); the file must hold `input` as its brand, and a named version is saved first. */
+  prune: { input: BrandInput; confirm: false } | { input: BrandInput; confirm: true; previewHash: string };
   /** The boot read-back (`seed-info`) plus a census of every component page. Read-only. */
   readback: Record<string, never>;
   /** #2265: the in-place update. `confirm: false` (or absent) checks and writes nothing, and its result carries a
@@ -279,7 +280,11 @@ export const parseCommand = (raw: unknown): ParsedCommand => {
     case 'prune':
       if (!isObject(args.input)) return fail('bad-args', 'prune needs args.input: a BrandInput object');
       if (typeof args.confirm !== 'boolean') return fail('bad-args', 'prune needs args.confirm: false to preview, true to delete');
-      return { ok: true, command: { ...base, cmd: 'prune', args: { input: args.input as unknown as BrandInput, confirm: args.confirm } } };
+      if (!args.confirm) return { ok: true, command: { ...base, cmd: 'prune', args: { input: args.input as unknown as BrandInput, confirm: false } } };
+      if (typeof args.previewHash !== 'string' || !args.previewHash) {
+        return fail('bad-args', 'prune with confirm: true needs args.previewHash: the previewHash its preview returned');
+      }
+      return { ok: true, command: { ...base, cmd: 'prune', args: { input: args.input as unknown as BrandInput, confirm: true, previewHash: args.previewHash } } };
     case 'build-components':
       if (args.def !== undefined && (typeof args.def !== 'string' || !args.def)) {
         return fail('bad-args', 'build-components takes args.def: a component def id, or no def for Button');

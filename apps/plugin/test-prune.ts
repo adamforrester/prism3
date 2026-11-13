@@ -36,7 +36,7 @@ import { applyFloatPlan } from './src/write-figma';
 import { applyGridStylePlan } from './src/write-grid-styles';
 import {
   computePrunePlan, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary, STYLE_KINDS,
-  isEngineDescription,
+  isEngineDescription, emptyPruneResult, prunePreviewHashOf, pruneConfirmRefusal, PRUNE_COPY,
 } from './src/prune-figma';
 import type { PruneInput, PruneApi, StyleKind, StyleNames, FileStyles } from './src/prune-figma';
 import type { BrandInput, Theme } from '@prism3/engine/theme';
@@ -450,7 +450,7 @@ ok(noRoot.modes.length > 0 && noRoot.styles.length > 0,
     `read-after-remove: a confirmed prune of 5 styles across 4 kinds, 3 variables and 1 collection completes without touching a removed object${thrown ? ` (threw "${thrown}")` : ''}`);
   ok(rafRes?.styles === 5 && rafRes?.variables === 3 && rafRes?.collections === 1 && rafRes?.modes === 0,
     `read-after-remove: the counts are 5 styles, 3 variables, 1 collection, 0 modes (got ${rafRes ? `${rafRes.styles}/${rafRes.variables}/${rafRes.collections}/${rafRes.modes}` : 'no result'})`);
-  ok(rafRes?.misses.length === 0, `read-after-remove: no misses (${rafRes ? rafRes.misses.join(', ') || 'none' : 'no result'})`);
+  ok(rafRes?.misses.length === 0 && rafRes?.failed.length === 0, `read-after-remove: no misses and no failed removals (${rafRes ? [...rafRes.misses, ...rafRes.failed].join(', ') || 'none' : 'no result'})`);
   ok([...rafShim.liveVarNames()].sort().join(',') === 'nbds/color/keep',
     `read-after-remove: only the kept variable is live, the stale collection's went with it (${[...rafShim.liveVarNames()].sort().join(',')})`);
   ok([...rafShim.liveCollNames()].join(',') === 'color', `read-after-remove: only the owned collection is live (${[...rafShim.liveCollNames()].join(',')})`);
@@ -922,6 +922,73 @@ ok(prunePlanCount(rescan) === 0,
     `planned-modes record: pruning xs/lg drops them from layout's record (${layout.getSharedPluginData('prism3', 'modes:planned')})`);
   ok(unstamped.getSharedPluginData('prism3', 'modes:planned') === '',
     `planned-modes record: a collection with no record gets none written by a prune ("${unstamped.getSharedPluginData('prism3', 'modes:planned')}")`);
+}
+
+// =============================================================================================
+// #3697 R6 (H2) — EACH REMOVAL TRIED ON ITS OWN, AND THE COUNTS RUN IN PLACE. `test-prune-main.ts` drives the same
+// through `main.ts`; this arm pins the executor and the pure guard.
+// =============================================================================================
+console.log('\n#3697 R6 — each removal tried, running counts, the confirm guard');
+{
+  // A throw at removal 2 of 4: removals 1, 3 and 4 still run, and the one that threw is in `failed`, not a miss.
+  const vs = [1, 2, 3, 4].map((i) => new RVar(`V:6${i}`, `nbds/color/old-${i}`, 'C:61'));
+  const realRemove = vs[1].remove.bind(vs[1]);
+  vs[1].remove = () => { throw new Error('host refused'); };
+  const sh = new PruneShim([new RColl('C:61', 'color')], vs, { text: [], effect: [], paint: [], grid: [] });
+  const r = await applyPrunePlan({ variables: [{ collection: 'color', names: vs.map((v) => v.name) }], collections: [], modes: [], styles: [] }, sh as any as PruneApi);
+  ok(r.variables === 3 && r.failed.length === 1 && /^var:color\/nbds\/color\/old-2 \(host refused\)$/.test(r.failed[0]) && r.misses.length === 0
+    && [...sh.liveVarNames()].join(',') === 'nbds/color/old-2',
+    `R6/throw at removal 2: the other three are removed and the one that threw is reported (${r.variables} removed, failed ${JSON.stringify(r.failed)}, live ${[...sh.liveVarNames()].join(',')})`);
+  ok(pruneAppliedSummary(r) === `Removed 3 stale items: 3 variables. ${PRUNE_COPY.failed(1)}`, `R6/summary: the verdict counts the removals and names the failure (${pruneAppliedSummary(r)})`);
+  vs[1].remove = realRemove;
+
+  // A throw OUTSIDE a removal, after two variables went: the caller's `counts` still holds them.
+  const ws = [1, 2].map((i) => new RVar(`V:7${i}`, `nbds/color/gone-${i}`, 'C:71'));
+  const c71 = new RColl('C:71', 'color', [{ modeId: 'm0', name: 'light' }, { modeId: 'm1', name: 'old' }]);
+  // The mode arm's first read of the live mode list throws, after the variable arm has removed both.
+  Object.defineProperty(c71, 'modes', { get: () => { throw new Error('host lost the collection'); } });
+  const sh2 = new PruneShim([c71], ws, { text: [], effect: [], paint: [], grid: [] });
+  const counts = emptyPruneResult();
+  const threw = await applyPrunePlan({ variables: [{ collection: 'color', names: ws.map((w) => w.name) }], collections: [], modes: [{ collection: 'color', modes: [{ modeId: 'm1', name: 'old' }] }], styles: [] }, sh2 as any as PruneApi, counts)
+    .then(() => '', (e: Error) => e.message);
+  ok(threw === 'host lost the collection' && counts.variables === 2 && sh2.liveVarNames().size === 0,
+    `R6/running counts: a throw after two removals leaves the caller holding 2, not 0 (threw ${JSON.stringify(threw)}, counts ${counts.variables})`);
+  ok(PRUNE_COPY.stopped(counts, threw) === 'Prune stopped — host lost the collection. Removed 2 stale items before it stopped: 2 variables.',
+    `R6/stopped: the verdict for a stopped prune says what was removed (${PRUNE_COPY.stopped(counts, threw)})`);
+
+  // #3709 N1: the same per-removal `try` for every kind the executor removes, not only variables. One mode,
+  // one stranded collection and one style each throw; the sibling of each still goes, and each throw is named.
+  const c81 = new RColl('C:81', 'color', [{ modeId: 'm0', name: 'light' }, { modeId: 'm1', name: 'old-a' }, { modeId: 'm2', name: 'old-b' }]);
+  c81.removeMode = (id: string) => { if (id === 'm1') throw new Error('mode refused'); RColl.prototype.removeMode.call(c81, id); };
+  const c82 = new RColl('C:82', 'stale-a');
+  c82.remove = () => { throw new Error('collection refused'); };
+  const c83 = new RColl('C:83', 'stale-b');
+  const p1 = new RStyle('old/x'); const p2 = new RStyle('old/y');
+  p1.remove = () => { throw new Error('style refused'); };
+  const sh3 = new PruneShim([c81, c82, c83], [], { text: [], effect: [], paint: [p1, p2], grid: [] });
+  // Fail soft: a throw that escapes the executor is this arm's failure, reported by name, not a crash.
+  const counts3 = emptyPruneResult();
+  const escaped = await applyPrunePlan({
+    variables: [], collections: ['stale-a', 'stale-b'],
+    modes: [{ collection: 'color', modes: [{ modeId: 'm1', name: 'old-a' }, { modeId: 'm2', name: 'old-b' }] }],
+    styles: [{ kind: 'paint', names: ['old/x', 'old/y'] }],
+  }, sh3 as any as PruneApi, counts3).then(() => '', (e: Error) => e.message);
+  const r3 = counts3;
+  ok(escaped === '' && r3.modes === 1 && r3.collections === 1 && r3.styles === 1 && r3.misses.length === 0
+    && JSON.stringify(r3.failed) === JSON.stringify(['mode:color/old-a (mode refused)', 'collection:stale-a (collection refused)', 'paint-style:old/x (style refused)'])
+    && c81.modes.map((m) => m.name).join(',') === 'light,old-a' && !sh3.liveCollNames().has('stale-b') && [...sh3.liveStyleNames('paint')].join(',') === 'old/x',
+    `R6/each kind tried: a throw at one mode, one collection and one style leaves its sibling removed (escaped ${JSON.stringify(escaped)}, modes ${r3.modes}, collections ${r3.collections}, styles ${r3.styles}, failed ${JSON.stringify(r3.failed)})`);
+
+  // The confirm guard: input held, then the hash, both literal.
+  const plan = { variables: [{ collection: 'color', names: ['nbds/color/a'] }], collections: [], modes: [], styles: [] };
+  const h = prunePreviewHashOf(plan, []);
+  ok(pruneConfirmRefusal({ holdsInput: true, previewHash: h, currentHash: h }) === null, 'R6/guard: the file holds the input and the hash matches → go ahead');
+  ok(pruneConfirmRefusal({ holdsInput: false, previewHash: h, currentHash: h }) === "Nothing removed — the file doesn't hold this brand yet. Apply the theme first, then check again.",
+    'R6/guard: an input the file does not hold is refused, even with the right hash');
+  ok(pruneConfirmRefusal({ holdsInput: true, previewHash: '', currentHash: h }) === 'Nothing removed — the file changed after the check. Check again.', 'R6/guard: a missing hash is refused');
+  ok(pruneConfirmRefusal({ holdsInput: true, previewHash: h, currentHash: prunePreviewHashOf({ ...plan, collections: ['x'] }, []) }) === 'Nothing removed — the file changed after the check. Check again.',
+    'R6/guard: a plan that moved after the preview is refused');
+  ok(prunePreviewHashOf(plan, ['1:2']) !== h, 'R6/hash: a stale canvas label is in the hash');
 }
 
 console.log(`\nplugin OPT-IN PRUNE: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);

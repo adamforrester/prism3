@@ -183,7 +183,8 @@ export interface HostSession {
    *  button; `prunePreview` holds a ready preview whose confirm dialog is open; `pruneVerdict` is the pill
    *  text after a preview finds nothing stale or after a delete completes. */
   readonly pruneBusy: false | 'preview' | 'delete';
-  readonly prunePreview: { count: number; summary: string } | null;
+  /** `previewHash`: the hash the Delete echoes (#3697 R6). */
+  readonly prunePreview: { count: number; summary: string; previewHash: string } | null;
   readonly pruneVerdict: { ok: boolean; applied: boolean; count: number; summary: string } | null;
   /** WHICH result's full detail is expanded, at most one. Collapsed by default: the headline answers the
    *  question ninety-nine times out of a hundred, and the detail is counts across five or six axes.
@@ -469,7 +470,7 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       if (m.applied) return { ...s, pruneBusy: false, pruneVerdict: { ok: m.ok, applied: true, count: m.count, summary: m.summary }, prunePreview: null };
       // An agent's preview: a pill, never the dialog, whose Confirm would prune against this panel's knobs.
       if (m.count > 0 && m.pillOnly) return { ...s, pruneBusy: false, prunePreview: null, pruneVerdict: { ok: m.ok, applied: false, count: m.count, summary: `Agent preview: ${m.summary}` } };
-      if (m.count > 0) return { ...s, pruneBusy: false, prunePreview: { count: m.count, summary: m.summary }, pruneVerdict: null };
+      if (m.count > 0) return { ...s, pruneBusy: false, prunePreview: { count: m.count, summary: m.summary, previewHash: m.previewHash ?? '' }, pruneVerdict: null };
       return { ...s, pruneBusy: false, prunePreview: null, pruneVerdict: { ok: m.ok, applied: false, count: 0, summary: m.summary } };
     case 'doc-settings':
       return { ...s, docSettings: { panels: m.panels, cover: m.cover, styleGuide: m.styleGuide, error: m.error } };
