@@ -410,7 +410,7 @@ export const UPDATE_COPY = {
 const setNames = (list: string, nameOf: (id: string) => string): string => {
   const parts = list.split(', ');
   const more = parts[parts.length - 1].match(/^and (\d+) more$/);
-  const names = [...new Set((more ? parts.slice(0, -1) : parts).map((x) => x.split("/")[0]))].join(', ');
+  const names = [...new Set((more ? parts.slice(0, -1) : parts).map((x) => nameOf(x.split('/')[0])))].join(', ');
   return more ? `${names}, and ${more[1]} more` : names;
 };
 /** How many items a plugin list names, counting its `and N more`. */
