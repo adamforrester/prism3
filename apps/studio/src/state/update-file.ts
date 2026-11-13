@@ -315,7 +315,7 @@ export const UPDATE_COPY = {
   leadFresh: 'This file isn’t set up for Prism3 yet. This first update sets it up.',
   lead: 'Tick what to write. Untick what should wait.',
   setup: 'Set up file',
-  setupSub: 'The pages, the templates and the style-guide cells. The cover too, while Documentation has it on.',
+  setupSub: 'The pages, the templates and the style-guide cells. The cover too, while Docs has it on.',
   /** #3467 (Q3 A): Set up file's line on a set-up file that lacks something setup owns. DRAFT for the owner's sign-off. */
   setupMissing: (names: readonly string[]) => `Builds what this file lacks: ${names.join(', ')}.`,
   theme: 'Theme',
@@ -326,7 +326,7 @@ export const UPDATE_COPY = {
    *  R6 (the owner, 2026-10-28): both sit under one section, Components, at Theme's level, as its two subtitles. */
   components: 'Components',
   toAdd: 'To add',
-  toAddSub: (n: number): string => `${plural(n)} chosen on Components. Each is added with its usage panel while Documentation has panels on.`,
+  toAddSub: (n: number): string => `${plural(n)} chosen on Components. Each is added with its usage panel while Docs has panels on.`,
   removeSet: (name: string): string => `Remove ${name} from To add`,
   /** #3306 Q3306.5 A: the line under To add's rows naming the sets they nest that the file lacks. DRAFT, the proposal's words. */
   alsoAdds: (names: readonly string[]): string => `Also adds: ${names.join(', ')}.`,
@@ -351,7 +351,7 @@ export const UPDATE_COPY = {
   checkError: 'Couldn’t check the sets. Close this and try again.',
   /** #3421 (DRAFT, Q3421.1): a set only Theme's variables and styles block, with Theme ticked. */
   afterTheme: 'Updated after Theme — Theme writes the variables and styles it binds first',
-  checked: (c: CheckedSetView, theme = false): string => c.blocked ? (theme && c.themeBlocked ? UPDATE_COPY.afterTheme : 'Can’t be updated in place yet; the agent’s update check says why')
+  checked: (c: CheckedSetView, theme = false, nameOf?: (id: string) => string): string => c.blocked ? (theme && c.themeBlocked ? UPDATE_COPY.afterTheme : blockedLine(c.reasons, theme, nameOf))
     : c.upToDate ? 'No member changes' : [`${c.update} of ${c.members} members change`, c.add ? `${c.add} added` : '', c.drop ? `${c.drop} kept and marked deprecated` : '', c.handEdited ? `${c.handEdited} edited by hand` : ''].filter(Boolean).join(' · '),
   handEdits: 'Hand edits',
   /** #3421 (owner decision Q39 A; DRAFT, Q3421.3–.6): what each hand-edit choice does, said under the choice; the Kept
@@ -381,13 +381,13 @@ export const UPDATE_COPY = {
   panelsAll: 'No set in this file has its usage panel yet. Each is drawn beside its set, and sets move apart to make room. No member changes.',
   panelsSome: (n: number): string => `${n} set${n === 1 ? ' in this file has' : 's in this file have'} no usage panel. Each is drawn beside its set, and sets move apart to make room. No member changes.`,
   panelsShow: (n: number): string => `Show the ${n} sets`,
-  cleanPanels: (n: number): string => `${n} usage panel${n === 1 ? '' : 's'}, drawn while Documentation had panels on.`,
+  cleanPanels: (n: number): string => `${n} usage panel${n === 1 ? '' : 's'}, drawn while Docs had panels on.`,
   cleanPanelsKeep: 'Panels edited by hand stay. Turning panels on again draws them back.',
   removePanels: (n: number): string => `Remove ${n} panel${n === 1 ? '' : 's'}`,
   guides: 'Style guides',
   /** #3308 (Q3308.4 A): the last step of a run that sets the file up and writes its theme. DRAFT. */
   coverStep: 'Cover and About this library',
-  guidesSub: 'Drawn with the settings in Documentation. A rerun updates each table in place.',
+  guidesSub: 'Drawn with the settings in Docs. A rerun updates each table in place.',
   go: 'Update file',
   goFresh: 'Set up and update',
   cancel: 'Cancel',
@@ -403,6 +403,61 @@ export const UPDATE_COPY = {
   cleanRetired: (n: number): string => `${n} style-guide table${n === 1 ? '' : 's'} the generator no longer draws.`,
   removeTables: (n: number): string => `Remove ${n} table${n === 1 ? '' : 's'}`,
 } as const;
+
+/** #3713: the sets a blocker line names (`icon/close`, `icon`), as Components names them: each set's id (the part before
+ *  `/`) through `nameOf`, which the shell gives as `displayNameOf` over its catalog (owner decision Q392), once each. A
+ *  trailing `and N more` from the plugin's cut list is kept as it reads. */
+const setNames = (list: string, nameOf: (id: string) => string): string => {
+  const parts = list.split(', ');
+  const more = parts[parts.length - 1].match(/^and (\d+) more$/);
+  const names = [...new Set((more ? parts.slice(0, -1) : parts).map((x) => nameOf(x.split('/')[0])))].join(', ');
+  return more ? `${names}, and ${more[1]} more` : names;
+};
+/** How many items a plugin list names, counting its `and N more`. */
+const listCount = (list: string): number => { const parts = list.split(', '); const more = parts[parts.length - 1].match(/^and (\d+) more$/); return more ? parts.length - 1 + Number(more[1]) : parts.length; };
+const s_ = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
+/** #3713: the blocker lines Theme's run clears (the variables and the text and effect styles it writes), matched by the
+ *  same words `blockedWhy` reads them by. With Theme ticked they no longer block, so the row skips them. */
+const THEME_CLEARS = /^(?:\d+ variables? the plan binds (?:is|are) not in this file|(?:text|effect) styles? not in this file: )/;
+/** #3713: one of the check's blocker lines (`update-plan.ts`, `fileBlockers` and `setRefusal`) in plain words, as the
+ *  clause after "Can’t update yet —", with the step that clears it where Studio or Figma offers one. A line of a shape not known here is shown as written, less
+ *  its issue references. DRAFT (OWNER DECISION: copy). The shapes are matched by their words, so a reworded blocker
+ *  falls through to its own text, never to a wrong reason. */
+export const blockedWhy = (line: string, nameOf: (id: string) => string = (id) => id): { readonly why: string; readonly next: string | null } => {
+  let m: RegExpMatchArray | null;
+  if ((m = line.match(/^Not in this file: (.+)\. Build (.+) first, then run the update again$/)))
+    return { why: `it needs ${setNames(m[2], nameOf)}, which this file doesn’t have.`, next: `Add ${setNames(m[2], nameOf)} on Components first.` };
+  if ((m = line.match(/^(\d+) variables? the plan binds (?:is|are) not in this file/)))
+    return { why: `it needs ${s_(Number(m[1]), 'variable', 'variables')} this file doesn’t have.`, next: 'Tick Theme to write them.' };
+  if ((m = line.match(/^(text|effect) styles? not in this file: (.+)$/)))
+    return { why: `it needs ${listCount(m[2]) === 1 ? `a ${m[1]} style` : `${m[1]} styles`} this file doesn’t have: ${m[2]}.`, next: 'Tick Theme to write them.' };
+  if ((m = line.match(/^components? the plan swaps to (?:is|are) not in this file: (.+)$/)))
+    return { why: `it swaps to ${setNames(m[1], nameOf)}, which this file doesn’t have.`, next: `Add ${setNames(m[1], nameOf)} on Components first.` };
+  if ((m = line.match(/^fonts: (.+) will not load/)))
+    return { why: `these fonts won’t load: ${m[1]}.`, next: 'Install or turn them on in Figma, then open this again.' };
+  if (/^an axis the plan removed would collapse members/.test(line))
+    return { why: 'a property it drops would merge variants into one.', next: null };
+  if ((m = line.match(/^the axes change, and (\d+) members? not built by Prism3/)))
+    return { why: `its properties change, and ${s_(Number(m[1]), 'variant', 'variants')} not built by Prism3 would be left behind.`, next: 'The agent’s Adopt can claim them first.' };
+  if ((m = line.match(/^renaming (.+) would give it the name of another member \((.+)\)$/)))
+    return { why: `renaming ${m[1]} would clash with ${m[2]}.`, next: 'Rename or remove one of them in Figma.' };
+  if ((m = line.match(/^(\d+) members share the coordinate (\S+)/)))
+    return { why: `${m[1]} variants share one name, ${m[2]}.`, next: 'Rename or remove the extra one in Figma.' };
+  if (/^the members disagree on the axis list/.test(line))
+    return { why: 'its variants don’t all have the same properties.', next: 'Fix the variant names in Figma.' };
+  const t = line.replace(/\s*\(#\d+\)/g, '').trim().replace(/:$/, '').replace(/'/g, '’');
+  return { why: `${t}${/[.!?]$/.test(t) ? '' : '.'}`, next: null };
+};
+/** #3713: a blocked set's line: its first reason in plain words, the step that clears it, and how many more. With Theme
+ *  ticked (`theme`), the reasons Theme's run clears are skipped, so the row never asks for a step already taken and
+ *  leads with what still blocks. DRAFT. */
+export const blockedLine = (reasons: readonly string[] | undefined, theme = false, nameOf?: (id: string) => string): string => {
+  if (!reasons?.length) return 'Can’t update yet — the check gave no reason.';
+  const left = theme ? reasons.filter((r) => !THEME_CLEARS.test(r)) : reasons;
+  const shown = left.length ? left : reasons;
+  const { why, next } = blockedWhy(shown[0], nameOf);
+  return [`Can’t update yet — ${why}`, next, shown.length > 1 ? `${s_(shown.length - 1, 'more reason', 'more reasons')}.` : ''].filter(Boolean).join(' ');
+};
 
 /** Each step's name in the checklist and in the run line. */
 export const STEP_TITLE: Readonly<Record<StepKey, string>> = { setup: UPDATE_COPY.setup, theme: UPDATE_COPY.theme, update: UPDATE_COPY.updateStep, sets: UPDATE_COPY.toAdd, guides: UPDATE_COPY.guides, cover: UPDATE_COPY.coverStep };

@@ -56,8 +56,8 @@ accepts('component-update-result', { type: 'component-update-result', ok: true, 
 accepts('component-update-result without a headline', { type: 'component-update-result', ok: false, summary: 's' },
   { kind: 'component-update-result', ok: false, headline: '✗ check failed', summary: 's', lines: null, publish: null, causes: null });
 // #2858: an Update's publish description is carried; anything but a non-empty string is dropped.
-accepts('component-update-result with a publish description', { type: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['a'], publish: 'Before Prism3 updated tag. Engine 0.237.0.' },
-  { kind: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['a'], publish: 'Before Prism3 updated tag. Engine 0.237.0.', causes: null });
+accepts('component-update-result with a publish description', { type: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['a'], publish: 'Prism3 updated tag. Engine 0.237.0.' },
+  { kind: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['a'], publish: 'Prism3 updated tag. Engine 0.237.0.', causes: null });
 accepts('component-update-result with a malformed publish description', { type: 'component-update-result', ok: true, headline: 'h', summary: 's', publish: 42 },
   { kind: 'component-update-result', ok: true, headline: 'h', summary: 's', lines: null, publish: null, causes: null });
 accepts('component-result that stopped before the set', { type: 'component-result', ok: false, completed: false, headline: '✗ unknown def', summary: 's' },
@@ -227,6 +227,12 @@ accepts('style-guide-result with a malformed stopped leaves it off', { type: 'st
     { kind: 'update-check', previewHash: 'H', missing: [], sets: [base], error: null });
   // #3302: the check's progress: its counts, the set being checked now, and the one just checked; a count of the wrong
   // type, or more done than in all, drops the reading, and a set that does not read as one is left off it.
+  // #3713: a blocked set carries its reasons; a set not blocked carries none, and a reason of the wrong type is left off.
+  const blk = { ...base, blocked: true };
+  accepts('update-check with a blocked set\'s reasons', { type: 'update-check', previewHash: 'H', missing: [], refused: [], sets: [{ ...blk, reasons: ['the axes change', 7] }] },
+    { kind: 'update-check', previewHash: 'H', missing: [], sets: [{ ...blk, reasons: ['the axes change'] }], error: null });
+  accepts('update-check with reasons on a set not blocked leaves them off', { type: 'update-check', previewHash: 'H', missing: [], refused: [], sets: [{ ...base, reasons: ['x'] }] },
+    { kind: 'update-check', previewHash: 'H', missing: [], sets: [base], error: null });
   accepts('update-check-progress with the set just checked', { type: 'update-check-progress', done: 1, total: 2, next: 'select', set: base },
     { kind: 'update-check-progress', done: 1, total: 2, next: 'select', set: base });
   accepts('update-check-progress before any set, with a malformed set left off', { type: 'update-check-progress', done: 0, total: 2, next: 'button', set: { def: 'x' } },

@@ -145,9 +145,10 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     'pagination-item': [87, 30, 45],
     // #2669: the Slider, 3 sizes × 2 types × (rest → hover, rest → pressed, hover → pressed); its Thumb, 3 sizes of the same.
     'slider': [30, 12, 18], '_slider-thumb': [15, 6, 9],
-    // #2428 (owner decision Q344): Code input's cell, 4 sizes × 7 states. No pressed look: While pressing goes to the
-    // active cell (focus-visible). 4 sizes × (rest → hover, rest → active, hover → active).
-    'code-input-cell': [28, 8, 12],
+    // #2428 (owner decision Q344): Code input's cell, 4 sizes × 2 statuses × 6 states (error is its status axis since
+    // Q-CC1 A, #3554). No pressed look: While pressing goes to the active cell (focus-visible). 4 sizes × 2 statuses ×
+    // (rest → hover, rest → active, hover → active), each within its status.
+    'code-input-cell': [48, 16, 24],
     // #2343 PR 5: SignInButton, 8 provider × style pairs (Q831 A) × 3 sizes × (rest → hover, rest → pressed, hover → pressed) (Q-S6 A).
     'sign-in-button': [96, 48, 72],
   };
@@ -165,12 +166,14 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
   ok(JSON.stringify(btn.get(B('rest'))) === JSON.stringify([{ trigger: 'ON_HOVER', to: B('hover') }, { trigger: 'ON_PRESS', to: B('pressed') }]), `map/rest: a filled medium Button at rest changes to Hover while hovering and Pressed while pressing (${JSON.stringify(btn.get(B('rest')))})`);
   ok(JSON.stringify(btn.get(B('hover'))) === JSON.stringify([{ trigger: 'ON_PRESS', to: B('pressed') }]), `map/hover: at hover, to Pressed while pressing only (${JSON.stringify(btn.get(B('hover')))})`);
   // Q344 on the code cell, literal: Rest → Hover while hovering and → the active cell while pressing; Hover → the active
-  // cell while pressing; nothing anywhere else.
+  // cell while pressing; nothing anywhere else. In each status alike (Q-CC1 A): a reaction never crosses the status.
   const cell = rxOf(componentDefs.find((d) => d.id === 'code-input-cell')!);
-  const C = (state: string): string => `size=medium, state=${state}`;
-  ok(JSON.stringify(cell.get(C('rest'))) === JSON.stringify([{ trigger: 'ON_HOVER', to: C('hover') }, { trigger: 'ON_PRESS', to: C('focus-visible') }]), `map/code cell rest: While hovering to Hover, While pressing to the active cell (${JSON.stringify(cell.get(C('rest')))})`);
-  ok(JSON.stringify(cell.get(C('hover'))) === JSON.stringify([{ trigger: 'ON_PRESS', to: C('focus-visible') }]), `map/code cell hover: While pressing to the active cell only (${JSON.stringify(cell.get(C('hover')))})`);
-  ok(['filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'error'].every((st) => JSON.stringify(cell.get(C(st))) === '[]'), 'map/code cell others: no reaction on Filled, the active states, Disabled or Error');
+  for (const status of ['default', 'error']) {
+    const C = (state: string): string => `status=${status}, size=medium, state=${state}`;
+    ok(JSON.stringify(cell.get(C('rest'))) === JSON.stringify([{ trigger: 'ON_HOVER', to: C('hover') }, { trigger: 'ON_PRESS', to: C('focus-visible') }]), `map/code cell rest (${status}): While hovering to Hover, While pressing to the active cell (${JSON.stringify(cell.get(C('rest')))})`);
+    ok(JSON.stringify(cell.get(C('hover'))) === JSON.stringify([{ trigger: 'ON_PRESS', to: C('focus-visible') }]), `map/code cell hover (${status}): While pressing to the active cell only (${JSON.stringify(cell.get(C('hover')))})`);
+    ok(['filled', 'focus-visible', 'focus-visible-filled', 'disabled'].every((st) => JSON.stringify(cell.get(C(st))) === '[]'), `map/code cell others (${status}): no reaction on Filled, the active states or Disabled`);
+  }
 }
 
 /* ── excluded ───────────────────────────────────────────────────────────────────────────────────────────── */

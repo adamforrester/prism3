@@ -5056,7 +5056,8 @@
         "unverified": [],
         "evolution": [
           "2026-10-16 (#2666): built from the approved wireframe, every numbered call A. Sizes medium-first by the later owner rule Q359 B, which supersedes the proposal's small-first order.",
-          "2026-10-16 (Q382 A, after QA): the separator is its own part, `_breadcrumb-separator`, chevron or slash, chosen once on Breadcrumbs through a `separator` axis the item carries."
+          "2026-10-16 (Q382 A, after QA): the separator is its own part, `_breadcrumb-separator`, chevron or slash, chosen once on Breadcrumbs through a `separator` axis the item carries.",
+          "2026-11-11 (#3554 Q-CC17 A): the current page's text part is `label`, the main-text name, renamed in place through `COMPONENT_RENAMES`."
         ],
         "projection": []
       },
@@ -5539,7 +5540,7 @@
         {
           "class": "implementation",
           "disposition": "REFUSED",
-          "description": "A headless usePagination — returning the item list (page, ellipsis, previous, next, with selected and disabled) — is the brief's shape for the window. code delivery pending: behavior layer (#2454) decides whether it ships beside the component."
+          "description": "A headless usePagination — returning the item list (page, ellipsis, previous, next, with current and disabled) — is the brief's shape for the window. code delivery pending: behavior layer (#2454) decides whether it ships beside the component."
         }
       ],
       "notes": {
@@ -5973,7 +5974,7 @@
         {
           "class": "semantics",
           "disposition": "REFUSED",
-          "description": "dismissal — the dismiss button renders only when `dismissible` and `onDismiss` are both set. Its accessible name says what it dismisses (\"Dismiss error message\"), not a bare \"Close\". The dismissal is stored against an id and a version, so a dismissed notice does not return on reload. A banner about a condition that still blocks the user is not dismissible, or comes back only while the condition holds."
+          "description": "dismissal — the close button renders only when `dismissible` and `onDismiss` are both set. Its accessible name says what it dismisses (\"Dismiss error message\"), not a bare \"Close\". The dismissal is stored against an id and a version, so a dismissed notice does not return on reload. A banner about a condition that still blocks the user is not dismissible, or comes back only while the condition holds."
         },
         {
           "class": "keyboard-and-focus",
@@ -5983,7 +5984,7 @@
         {
           "class": "hit-target",
           "disposition": "UNSUPPORTED",
-          "description": "the dismiss target — the small flush FlushIconButton is a 20px glyph; its hit area extends to at least 44×44px in code, as FlushIconButton's does. The banner's padding (at least 12px at compact) and its gap to the content leave that room, and the action sits below the first line, so the dismiss's 24px target circle touches no other target (2.5.8)."
+          "description": "the close target — the small flush FlushIconButton is a 20px glyph; its hit area extends to at least 44×44px in code, as FlushIconButton's does. The banner's padding (at least 12px at compact) and its gap to the content leave that room, and the action sits below the first line, so the dismiss's 24px target circle touches no other target (2.5.8)."
         },
         {
           "class": "responsive-layout",
@@ -5998,7 +5999,7 @@
         {
           "class": "right-to-left",
           "disposition": "UNSUPPORTED",
-          "description": "RTL — logical properties throughout: the glyph and the dismiss button swap edges. No glyph mirrors (the four tone glyphs and the close glyph are symmetric)."
+          "description": "RTL — logical properties throughout: the glyph and the close button swap edges. No glyph mirrors (the four tone glyphs and the close glyph are symmetric)."
         },
         {
           "class": "localization",
@@ -6056,6 +6057,7 @@
           "Whether the nested buttons' Rest, Hover and Pressed prototype reactions fire inside a nested instance (the open nesting item on #2466)."
         ],
         "evolution": [
+          "#3554 Q-CC26 A (owner decision 2026-11-11): the close button's part and Figma property are `close`, as on Toast and Dialog, renamed in place through `COMPONENT_RENAMES`; the code prop stays `dismissible`. Accessible names stay per component: Banner names the message it dismisses (\"Dismiss error message\"), because several banners can share a page, while a Toast is one at a time (\"Dismiss\") and a Dialog closes (\"Close\").",
           "#3225 (owner decisions 2026-11-01: Q-BN2.1–.3 A, Q-BN2.4 B, Q-BN3.1–.4 A, Q-BN4.1–.3 A), from the reference brand's rebuild: a body text property beside the slot, which stays for rich content behind rich body (an Update carries edited bodies across); a neutral tone, last on the axis, background.secondary with border.tertiary and no glyph (8 to 10 members); an inline link after the body's last word, in a wrapping, baseline-aligned row, never with the action.",
           "#2924 (owner Q693 A, Q707 A): a brand-wide Banner style, Tinted (the default) or Outlined, which moves the four fill bindings and nothing else. Bold, a solid tone fill, is held on #3038.",
           "Q386 (#2808): no component requires the Neutral button families, so the dismiss nests FlushIconButton.Neutral with the close glyph fixed and no swap, as Dialog's close does (Q385), and the action nests the primary Button, preferring Button.Neutral only when the file has it.",
@@ -6388,13 +6390,13 @@
           "The character weight: no guaranteed type role is above 18px, so the medium, large and x-large characters take the title steps in the brand's bold title weight (strong on most brands), and the small one Text field's body step in the default weight. A brand's own title ladder sets the exact size."
         ],
         "unverified": [
-          "An empty cell in error: the approved states draw error with a character only. A field in error with a short code shows its empty cells at rest in Figma; code draws the danger border on every cell.",
           "The character's centering in Figma: the styled character centers its line box, so a brand font whose descender is deeper than the room above its figures sets the figure slightly high. Code trims to the cap height and centers the figure itself."
         ],
         "evolution": [
           "2026-10-15 (#2428): owner decision Q329 A, the cell as a part in the code input's native items slot, its character edited on the cell; Q330 A, the four sizes.",
           "2026-10-17 (#2789): the character is trimmed to its cap height and baseline, so the cell centers the figure (owner QA 2026-10-16: the digit sat too high at medium and large; option A of the owner question on #2789).",
-          "2026-10-22 (#2789): owner QA Q534, the character carries its size's text style in Figma, so it follows the brand's type. Figma keeps vertical trim inside the style, so the Figma character is no longer trimmed; code still trims."
+          "2026-10-22 (#2789): owner QA Q534, the character carries its size's text style in Figma, so it follows the brand's type. Figma keeps vertical trim inside the style, so the Figma character is no longer trimmed; code still trims.",
+          "2026-11-11 (#3554): owner decision Q-CC1 A, error leaves the state axis for the fields' `status` axis (Q354), and `isInvalid` becomes `validation`. A cell in error now draws at every state but disabled, so an empty or active cell in error can be drawn; the old error member moves to status=error, filled."
         ],
         "projection": []
       },
@@ -6491,7 +6493,7 @@
         {
           "class": "static-placeholder",
           "disposition": "LOWERED",
-          "description": "the field's status and state in Figma — a placed field's cells are the designer's (owner decision Q329 A): switching the field to error or disabled changes its label and message, not its cells, and the designer sets each cell. Each member's default cells show that member's state, as a fresh insert's starting point. In code the input drives every cell."
+          "description": "the field's status and state in Figma — a placed field's cells are the designer's (owner decision Q329 A): switching the field to error or disabled changes its label and message, not its cells, and the designer sets each cell. Each member's default cells show that member's state and status, as a fresh insert's starting point. In code the input drives every cell."
         },
         {
           "class": "responsive-layout",
@@ -6522,7 +6524,7 @@
       "notes": {
         "contested": [
           "The label size: one FieldLabel size at every cell size, because FieldLabel has no x-large. Text field's label follows its size one step down.",
-          "The default cells per member: each member's six cells show its state (filled, active, disabled). Status has no mechanism to reach a nested coordinate, so an error member's default cells are not in error."
+          "The default cells per member: each member's six cells show its state (filled, active, disabled) and, since the cell took the status axis (Q-CC1 A, #3554), its status, so an error member's default cells are in error. A placed field's cells are still the designer's (Q329)."
         ],
         "unverified": [
           "The nested cells' characters are set by an override inside a native slot, as List's item numbers are. Writing them through the plugin is unmeasured on a real host until the first Build."

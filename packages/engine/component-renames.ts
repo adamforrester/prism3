@@ -93,6 +93,8 @@ export const COMPONENT_RENAMES: readonly ComponentRename[] = [
   { def: 'tab', kind: 'def', to: 'tab-item', issue: 2759 },
   { def: 'checkbox-control', kind: 'move', axis: 'state', from: 'error', to: { state: 'rest', status: 'error' }, issue: 2751 },
   { def: 'switch-control', kind: 'move', axis: 'state', from: 'error', to: { state: 'rest', status: 'error' }, issue: 2751 },
+  // Q-CC1 A (#3554): the code input cell's error state was a character in the danger border, so it lands on `filled`.
+  { def: 'code-input-cell', kind: 'move', axis: 'state', from: 'error', to: { state: 'filled', status: 'error' }, issue: 3554 },
   // The repeating rows moved into a native `items` slot (#2649, owner decision Q307 A). `from` is the layer that held
   // the rows; `rows` are its row layers in order, the first of them always shown (no boolean of its own).
   { def: 'checkbox-group', kind: 'slot', slot: 'items', from: 'container', rows: ['row1', 'row2', 'row3', 'row4', 'row5', 'row6', 'row7', 'row8'], booleans: ['Option 2', 'Option 3', 'Option 4', 'Option 5', 'Option 6', 'Option 7', 'Option 8'], issue: 2649 },
@@ -168,9 +170,19 @@ export const COMPONENT_RENAMES: readonly ComponentRename[] = [
   { def: 'code-input', kind: 'value', axis: 'size', from: 'xlarge', to: 'x-large', issue: 3554 },
   { def: 'code-input-cell', kind: 'value', axis: 'size', from: 'xlarge', to: 'x-large', issue: 3554 },
   { def: 'slider', kind: 'property-rename', from: 'helper', to: 'message', issue: 3554 },
+  // #3554 (owner decisions 2026-11-11). Q-CC26 A: Banner's close button is `close`, part and boolean, as on Toast and
+  // Dialog; a placed banner keeps whether it shows and every override on it. Q-CC27 A: a glyph picked by an axis is named
+  // by the axis value, so Toast's success glyph is `successGlyph`, as Banner's and FieldMessage's are.
+  { def: 'banner', kind: 'part', from: 'dismiss', to: 'close', issue: 3554 },
+  { def: 'banner', kind: 'property-rename', from: 'dismiss', to: 'close', issue: 3554 },
+  { def: 'toast', kind: 'part', from: 'checkCircleGlyph', to: 'successGlyph', issue: 3554 },
   // #3554 (owner decision Q-CC19 A) — List.Item's TEXT property takes its layer's name, `label` (the layer was renamed
   // under #2759 above). Renamed in place, so every placed item keeps the text a designer typed into it.
-  { def: 'list-item', kind: 'property-rename', from: 'text', to: 'label', issue: 3554 },  // #3647 (owner decision Q192 A) — Tag's × glyph is named by its shape, a fixed `close`, like the `close` control on Banner,
+  { def: 'list-item', kind: 'property-rename', from: 'text', to: 'label', issue: 3554 },
+  // #3554 Q-CC17 A (owner decision 2026-11-11): Breadcrumbs.Item's current-page text is the main-text `label` (Q350), so
+  // the layer is renamed in place and a placed current page keeps the text a designer typed into it.
+  { def: 'breadcrumb-item', kind: 'part', from: 'current', to: 'label', issue: 3554 },
+  // #3647 (owner decision Q192 A) — Tag's × glyph is named by its shape, a fixed `close`, like the `close` control on Banner,
   // Toast and Dialog. Renamed in place, so every placed tag keeps the overrides a designer made on the glyph.
   { def: 'tag', kind: 'part', from: 'dismissGlyph', to: 'closeGlyph', issue: 3647 },
 ];
