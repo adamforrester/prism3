@@ -95,8 +95,9 @@ const ADDED: Record<string, number> = {
   // `fontFamily` / `fontWeight` by its path, as a font-scoped one is by its scope.
   'tests/unit/font-type-by-name.test.ts': 7,
   // prism3 #2423 — an unscoped `font/line-height/*` or `font/letter-spacing/*` variable (and its `-role` alias) is
-  // the unitless multiplier it holds, a `number`, not a px dimension by the bare-number or `neg-` rules.
-  'tests/unit/font-spacing-multiplier.test.ts': 5,
+  // the unitless multiplier it holds, a `number`, not a px dimension by the bare-number or `neg-` rules. Any
+  // scope, ALL_SCOPES included, keeps the old px typing.
+  'tests/unit/font-spacing-multiplier.test.ts': 6,
   // prism3 #3085 — the text-style reader keeps the underline's thickness and offset (PERCENT as %, PIXELS as
   // px or rem, AUTO left out), and the CSS export writes them.
   'tests/unit/text-decoration-metrics.test.ts': 7,

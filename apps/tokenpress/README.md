@@ -150,7 +150,7 @@ Individual tokens may include `$extensions.figma` metadata when "Include Figma E
 - **FLOAT** → `dimension` (DTCG object form `{ value, unit }` by default; string form `"16px"` via SD preset) or `number` (unitless — grid columns, opacity)
 - **STRING** → `fontFamily` or `string`
 - Font variables with no font scope (unscoped, or on Figma's default All scopes) are typed by path: a `font/family/…` variable is `fontFamily`, and a `font/weight/…` or `font/weight-role/…` variable is `fontWeight`. A variable scoped to a font property is typed by that scope
-- Line-height and letter-spacing variables with neither of those scopes are typed by path as unitless multipliers: a `font/line-height/…` or `font/letter-spacing/…` variable, and its `-role` alias, is a `number` (`1.05`, `-0.04`). A variable scoped to line height or letter spacing is typed by that scope
+- Unscoped line-height and letter-spacing variables (no scopes at all) are typed by path as unitless multipliers: a `font/line-height/…` or `font/letter-spacing/…` variable, and its `-role` alias, is a `number` (`1.05`, `-0.04`). One with any scope, Figma's default All scopes included, is typed as before, so a `font/line-height/24` holding 24 px stays a `dimension`
 - **BOOLEAN** → `number` (0/1)
 
 ### Default DTCG-Spec Output (1.7.0+)

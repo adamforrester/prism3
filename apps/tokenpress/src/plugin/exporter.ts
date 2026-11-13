@@ -797,11 +797,13 @@ export class TokenExporter {
           return 'fontWeight';
         }
 
-        // Name-based line-height / letter-spacing MULTIPLIER detection, for a variable with no
-        // LINE_HEIGHT or LETTER_SPACING scope (prism3 #2423: `font/line-height/105` holds 1.05 and
-        // `font/letter-spacing/neg-40` holds -0.04, unscoped because Figma would bind them as pixels).
-        // Before the breakpoint and `neg-` rules, which read them as px dimensions.
-        if (variableName && this.typeDetector.isFontSpacingMultiplierVariable(variableName)) {
+        // Name-based line-height / letter-spacing MULTIPLIER detection, for an UNSCOPED variable only
+        // (prism3 #2423: `font/line-height/105` holds 1.05 and `font/letter-spacing/neg-40` holds -0.04,
+        // unscoped because Figma would bind them as pixels). Not on Figma's default ALL_SCOPES or any
+        // other scope: many files keep px line heights at `font/line-height/24` and never change the
+        // default, and a `number` 24 would read as 24x the font size. Before the breakpoint and `neg-`
+        // rules, which read the unscoped multipliers as px dimensions.
+        if (scopes.length === 0 && variableName && this.typeDetector.isFontSpacingMultiplierVariable(variableName)) {
           return 'number';
         }
 

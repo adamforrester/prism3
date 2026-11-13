@@ -7,6 +7,9 @@
  * no picker may offer them. Typed by the older rules, `line-height/105` read as a bare-number breakpoint and
  * `letter-spacing/neg-40` as a negative dimension, so both came back in px. Driven through the real exporter,
  * so the type, the value and the alias are checked together.
+ *
+ * Only an UNSCOPED variable is read as a multiplier. On Figma's default ALL_SCOPES, or any other scope, the
+ * same path often holds pixels in a third-party file (`font/line-height/24` = 24 px), so it keeps its old type.
  */
 
 import { describe, test, expect } from '../../test-harness';
@@ -41,11 +44,14 @@ const vars = [
   mkVar('v1', 'ds/core/font/line-height/105', 1.05),
   mkVar('v2', 'ds/core/font/line-height-role/tight', { type: 'VARIABLE_ALIAS', id: 'v1' }),
   mkVar('v3', 'ds/core/font/letter-spacing/neg-40', -0.04),
-  mkVar('v4', 'ds/core/font/letter-spacing/10', 0.01, ['ALL_SCOPES']),
+  mkVar('v4', 'ds/core/font/letter-spacing/10', 0.01),
   mkVar('v5', 'ds/core/font/letter-spacing-role/tightest', { type: 'VARIABLE_ALIAS', id: 'v3' }),
   mkVar('v6', 'ds/odd/font/line-height/24', 24, ['LINE_HEIGHT']),
   mkVar('v7', 'ds/odd/font/letter-spacing/2', 2, ['LETTER_SPACING']),
   mkVar('v8', 'ds/layout/breakpoint/768', 768),
+  mkVar('v9', 'ds/px/font/line-height/24', 24, ['ALL_SCOPES']),
+  mkVar('v10', 'ds/px/font/letter-spacing/neg-1', -1, ['ALL_SCOPES']),
+  mkVar('v11', 'ds/px/font/line-height/200', 200, ['TEXT_CONTENT']),
 ];
 
 describe('line-height and letter-spacing multipliers are typed by path', () => {
@@ -72,6 +78,13 @@ describe('line-height and letter-spacing multipliers are typed by path', () => {
     const file = build(vars);
     expect(file.ds.odd.font['line-height']['24'].$type).toBe('dimension');
     expect(file.ds.odd.font['letter-spacing']['2'].$type).toBe('dimension');
+  });
+
+  test('any scope, Figma\'s default ALL_SCOPES included, keeps the old px typing: the path alone is not a multiplier', () => {
+    const file = build(vars);
+    expect(file.ds.px.font['line-height']['24'].$type).toBe('dimension');
+    expect(file.ds.px.font['letter-spacing']['neg-1'].$type).toBe('dimension');
+    expect(file.ds.px.font['line-height']['200'].$type).toBe('dimension');
   });
 
   test('a path with no font segment keeps its old type', () => {

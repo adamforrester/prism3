@@ -166,8 +166,10 @@ export class TokenTypeDetector {
   /**
    * Determines if a variable is a font line-height or letter-spacing MULTIPLIER, by its path. Matches a
    * `font` segment followed by `line-height` / `letter-spacing` or a `line-height-…` / `letter-spacing-…`
-   * compound (`font/line-height/105`, `font/letter-spacing-role/tight`). Lets an unscoped one type as a
-   * unitless `number` instead of the bare-number breakpoint or `neg-` dimension rules (prism3 #2423).
+   * compound (`font/line-height/105`, `font/letter-spacing-role/tight`). The exporter applies it only to an
+   * UNSCOPED variable (`scopes: []`), typing it as a unitless `number` instead of the bare-number breakpoint
+   * or `neg-` dimension rules (prism3 #2423). The path alone does not say multiplier: on Figma's default
+   * ALL_SCOPES the same name often holds pixels.
    *
    * @param variableName Name of the variable to check
    * @returns True if the path names a line-height or letter-spacing multiplier
