@@ -24520,6 +24520,19 @@ arm: {
         ok(refused.length === 1 && refused[0] === want,
           `paste executor font reason: a host that rejects the load with a string has it reported (${JSON.stringify(refused)})`);
       }
+      // THE STYLE-FONT REFUSAL'S REASON (#3731 review S1): the text-style load is the path every style-bound label takes,
+      // so a file missing the brand's typeface hits it. Code input's digit carries a text style, whose font the stub names
+      // `Inter Semi Bold`; refused with a plain string, that string is reported, the whole line typed here. Mutation: the
+      // payload `build`'s text-style catch back to `err.message` fails this arm by name.
+      {
+        const cellDef = componentDefs.find((x) => x.id === 'code-input-cell')!;
+        const plan = figmaAnatomyPlan(cellDef, 'medium', { state: 'filled' } as never);
+        const run = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: [], page: { children: [] }, unavailableFonts: ['Inter Semi Bold'], fontRefusal: 'string' });
+        const refused = run.misses.filter((m) => m.includes('.font -> '));
+        const want = 'digit.font -> Inter Semi Bold (Cannot load font "Inter Semi Bold": it is not available.)';
+        ok(refused.length === 1 && refused[0] === want,
+          `paste executor style font reason: a host that rejects a text style's font with a string has it reported (${JSON.stringify(refused)})`);
+      }
       // THE LITERAL READ-BACK SPEAKS: a host that drops the container's literal fill is reported by value. Mutation: the
       // payload's `__litHeld` read-back guard → `false` fails this arm by name.
       {

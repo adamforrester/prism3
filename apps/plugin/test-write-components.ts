@@ -1830,6 +1830,18 @@ ok(unavailThrew === '', `#680 a brand whose typeface is not installed no longer 
 ok(unavailMisses.some((m) => m.indexOf('.font ->') >= 0) && unavailMisses.some((m) => m.indexOf('.textStyle ->') >= 0 && m.indexOf('REFUSED') >= 0),
   `#680 ...the font load AND the refused style apply are both reported (${unavailMisses.length} misses)`);
 
+// THE STYLE-FONT REFUSAL'S REASON, WHATEVER THE HOST REJECTS WITH (#3731 review S1). The text-style path loads every
+// style-bound label in every component, so it is the one a file missing the brand's own typeface hits. A host that
+// rejects the style's font with a plain string has that string reported, the whole line typed here. Mutation: the
+// executor's text-style font catch back to `(err as Error).message` fails this arm by name.
+{
+  const r = await run(grid, { ...full(), page: { children: [] }, styleFont: missingFont, unavailableFonts: [missingFont], fontRefusal: 'string' });
+  const refused = r.misses.filter((m) => m.includes('.font -> Clash Display Semi Bold ('));
+  const off = refused.filter((m) => !/^[^ ]+\.font -> Clash Display Semi Bold \(Cannot load font "Clash Display Semi Bold": it is not available\.\)$/.test(m));
+  ok(refused.length > 0 && off.length === 0,
+    `#3731 style font reason: a host that rejects a text style's font with a string has it reported (${refused.length} reported; off: ${off[0] ?? 'none'})`);
+}
+
 // =============================================================================================
 // #682 — THE DEPRECATED PROPORTION LOCK, MIGRATED TO `unlockAspectRatio()`
 // =============================================================================================
@@ -2106,6 +2118,17 @@ catch (e) { mixedThrew = (e as Error).message; }
 ok(mixedThrew === '', `#1599 a mixed-font node does not crash the build — the floor skips figma.mixed rather than loading it${mixedThrew ? ` — ${mixedThrew.slice(0, 90)}` : ''}`);
 ok(mixedThrew === '' && !mixedRun.misses.some((m) => /\.font ->/.test(m)),
   `#1599 ...and nothing was handed to loadFontAsync — no font miss on the mixed arm (${mixedThrew ? 'threw' : mixedRun.misses.filter((m) => /\.font ->/.test(m)).join('; ') || 'none'})`);
+
+// THE FLOOR'S REFUSAL REASON (#3731 review S1). With no style resolved, the #1599 floor loads the node's own current font
+// (`createText`'s Inter Regular); refused with a plain string, that string is reported, the whole line typed here.
+// Mutation: the floor's catch back to `(err as Error).message` fails this arm by name.
+{
+  const r = await run(labelPlans, { ...fullFor(labelPlans), styles: [], unavailableFonts: [{ family: 'Inter', style: 'Regular' }], fontRefusal: 'string', page: { children: [] } });
+  const refused = r.misses.filter((m) => m.includes('.font -> Inter Regular ('));
+  const off = refused.filter((m) => !/^[^ ]+\.font -> Inter Regular \(Cannot load font "Inter Regular": it is not available\.\)$/.test(m));
+  ok(refused.length > 0 && off.length === 0,
+    `#3731 floor font reason: a host that rejects the node's own font with a string has it reported (${refused.length} reported; off: ${off[0] ?? 'none'})`);
+}
 
 // =============================================================================================
 // #1337 — A REFUSED COMPONENT-PROPERTY REFERENCE IS RECOVERED, NOT DROPPED
