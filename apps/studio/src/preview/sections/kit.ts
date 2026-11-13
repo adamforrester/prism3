@@ -266,7 +266,7 @@ export const sgContext = (o: {
   const paint = (m: string, k: string): string => { const r = role(m, k); return r ? (r.alpha != null ? rgba(r.hex, r.alpha) : r.hex) : 'transparent'; };
   const stepOf = (r: SgRole): string => (r.path.startsWith(ns) ? r.path.slice(ns.length) : r.path);
   const fails = (m: string, k: string): boolean => { const r = role(m, k); return !!(r && r.min > 0 && r.ratio < r.min); };
-  const tipOf = (m: string, k: string): string => { const r = role(m, k); if (!r) return `${k} — unset`; const c = r.min > 0 ? ` · ${r.ratio.toFixed(2)}:1 (min ${r.min})` : ''; return `${stepOf(r)} · ${r.hex}${c}`; };
+  const tipOf = (m: string, k: string): string => { const r = role(m, k); if (!r) return `${k} — unset`; const c = r.min > 0 ? ` · ${fmtRatio(r.ratio)} (min ${r.min})` : ''; return `${stepOf(r)} · ${r.hex}${c}`; };
   /** What a role is measured against, as a hex: another role in the same mode, or a palette step. */
   const againstHex = (m: string, r: SgRole | undefined): string | null => {
     if (!r?.against || r.against === 'self') return null;

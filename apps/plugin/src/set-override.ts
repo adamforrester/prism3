@@ -27,7 +27,7 @@ import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
 import { resolveAllModes, withIconTwins, GROUND_INPUT } from '@prism3/engine/modes';
 import type { ModeResult, PrimitiveRef } from '@prism3/engine/modes';
-import { contrast, hexToRgb } from '@prism3/engine/color';
+import { contrast, formatRatio, hexToRgb } from '@prism3/engine/color';
 import { canon } from './persist-figma';
 
 /** The most changes one call takes. A migration like #3336 is 13. */
@@ -73,6 +73,12 @@ export type OverridePlan = {
   readonly stillBelow: readonly OverridePair[];
   readonly contrast: { readonly before: { readonly total: number; readonly fail: number }; readonly after: { readonly total: number; readonly fail: number } };
   readonly refusals: readonly OverrideRefusal[];
+  /**
+   * One Activity line per change, printed from the unrounded ratios (#3697 L3): the `ratio` fields above are rounded
+   * to two places for `data`, and a rounded ratio printed through the floored formatter reads 4.496 as 4.50:1.
+   * Not part of `data` (`overrideData` names its fields).
+   */
+  readonly activity: readonly string[];
 };
 
 /* ── the copy (Q3394.5 A) ─────────────────────────────────────────────────────────────────────────────────── */
@@ -80,7 +86,8 @@ export type OverridePlan = {
 const MODE_LABEL: Readonly<Record<string, string>> = { light: 'Light', dark: 'Dark', 'hc-light': 'High contrast light', 'hc-dark': 'High contrast dark', wireframe: 'Wireframe' };
 /** A mode as the copy names it: `Light`, `Dark`, a custom mode by its own name with a capital. */
 export const modeLabel = (mode: string): string => MODE_LABEL[mode] ?? (mode ? mode[0].toUpperCase() + mode.slice(1) : mode);
-const fmtRatio = (r: number): string => `${r.toFixed(2)}:1`;
+// The engine's one formatter (#3697 L3): floored, so a ratio below its minimum never reads as the minimum.
+const fmtRatio = formatRatio;
 const fmtMin = (m: number): string => `${m}:1`;
 const ref = (r: PrimitiveRef | null): string => (r ? `${r.palette} ${r.step}` : 'none');
 const plural = (n: number, one: string, many: string): string => (n === 1 ? one : many);
@@ -238,28 +245,33 @@ export const planOverride = (stored: BrandInput, changes: readonly OverrideChang
     const a = all1.find((m) => m.mode === c.mode)?.roles[c.role]?.against;
     return `${c.mode}|${c.role}|${a}`;
   }));
-  const newMisses: OverridePair[] = [], stillBelow: OverridePair[] = [], moved: OverrideMove[] = [];
+  // `newMisses` keeps the raw pairs until the refusal lines are printed (#3697 L3); `data` reads them rounded.
+  const misses: OverridePair[] = [], stillBelow: OverridePair[] = [], moved: OverrideMove[] = [];
   for (const [key, p] of p1) {
     const was = p0.get(key);
-    if (below(p.ratio, p.min)) (was && below(was.ratio, was.min) ? stillBelow : newMisses).push(shown(p));
+    if (below(p.ratio, p.min)) { if (was && below(was.ratio, was.min)) stillBelow.push(shown(p)); else misses.push(p); }
     if (was && !own.has(key) && Math.abs(was.ratio - p.ratio) >= 0.005) moved.push({ ...shown(p), before: round(was.ratio) });
   }
-  for (const miss of newMisses) {
+  for (const miss of misses) {
     const i = kept.find((k) => changes[k].mode === miss.mode && changes[k].role === miss.role);
     const c = i === undefined ? undefined : changes[i];
     const to = c && !isClear(c) ? { palette: c.palette, step: c.step } : null;
     // A clamped change already says why; its pair is not refused twice.
     if (i !== undefined && refusals.some((r) => r.index === i && r.reason === 'clamped')) continue;
     refusals.push({ index: i ?? null, mode: miss.mode, role: miss.role, reason: 'below-minimum', line: OVERRIDE_COPY.belowMinimum(miss.mode, miss.role, to, miss.ratio, miss.min, miss.against),
-      ratio: miss.ratio, min: miss.min, against: miss.against });
+      ratio: round(miss.ratio), min: miss.min, against: miss.against });
   }
   refusals.sort((a, b) => (a.index ?? Infinity) - (b.index ?? Infinity));
+  const planned = changes.map((c, index) => ({ index, mode: c.mode, role: c.role,
+    before: modes0.has(c.mode) ? sideOf(all0, ns, c.mode, c.role, storedOv[c.mode]?.[c.role]) : null,
+    after: kept.includes(index) ? sideOf(all1, ns, c.mode, c.role, nextOv[c.mode]?.[c.role]) : null }));
+  // The role's own ratio, unrounded, read where `sideOf` reads it.
+  const rawOf = (all: readonly ModeResult[], mode: string, role: string): number => all.find((m) => m.mode === mode)?.roles[role]?.ratio ?? 0;
+  const activity = planned.map((c) => OVERRIDE_COPY.activity(c.mode, c.role, named(c.before), named(c.after),
+    c.before ? rawOf(all0, c.mode, c.role) : 0, c.after ? rawOf(all1, c.mode, c.role) : 0));
   return {
-    ok: refusals.length === 0, previewHash, input: next,
-    changes: changes.map((c, index) => ({ index, mode: c.mode, role: c.role,
-      before: modes0.has(c.mode) ? sideOf(all0, ns, c.mode, c.role, storedOv[c.mode]?.[c.role]) : null,
-      after: kept.includes(index) ? sideOf(all1, ns, c.mode, c.role, nextOv[c.mode]?.[c.role]) : null })),
-    moved, newMisses, stillBelow, contrast: { before: totals(p0), after: totals(p1) }, refusals,
+    ok: refusals.length === 0, previewHash, input: next, changes: planned,
+    moved, newMisses: misses.map(shown), stillBelow, contrast: { before: totals(p0), after: totals(p1) }, refusals, activity,
   };
 };
 
@@ -279,7 +291,7 @@ export const overrideVerdict = (plan: OverridePlan, applied: boolean): { ok: boo
     const contrastOnly = plan.refusals.every((r) => r.reason === 'below-minimum');
     return { ok: false, headline: contrastOnly ? OVERRIDE_COPY.headlineBelow(n) : OVERRIDE_COPY.headlineRefused(n), lines: plan.refusals.map((r) => r.line) };
   }
-  const lines = plan.changes.map((c) => OVERRIDE_COPY.activity(c.mode, c.role, named(c.before), named(c.after), c.before?.ratio ?? 0, c.after?.ratio ?? 0));
+  const lines = [...plan.activity];
   const n = plan.changes.length;
   const { total, fail } = plan.contrast.after;
   return { ok: true, headline: applied ? OVERRIDE_COPY.headlineSaved(n, total - fail, total) : OVERRIDE_COPY.headlinePreview(n), lines };

@@ -1467,6 +1467,8 @@ section('set-override — color overrides: a preview that writes nothing, refusa
   // luminance, sRGB, in Python) of the palette hexes, never read off `resolveAllModes`: neutral 600 #5c5c61 on white
   // 6.65, neutral 400 #8e8e92 3.26, neutral 300 #a7a7aa 2.40, accent 600 #006188 6.85; on the link floor neutral 050
   // #e9e9ea, neutral 500 #75767a 3.74 and neutral 550 #68686d 4.57, so a 4.5:1 link clamps to 550.
+  // Those are the `data` ratios, rounded to two places; a line prints the floored form (#3697 L3): 6.6487 reads 6.64:1,
+  // 2.3997 reads 2.39:1.
   const stored = { ...(brand as Record<string, unknown>), overrides: { light: { 'interactive.primary.border.rest': { palette: 'neutral', step: '600' } } } } as unknown as BrandInput;
   const BRAND_KEY = k('prism3', 'brandInput');
   const putBrand = (b: BrandInput | null): void => { if (b) store.set(BRAND_KEY, serializeBrandInput(b)); else store.delete(BRAND_KEY); };
@@ -1519,7 +1521,7 @@ section('set-override — color overrides: a preview that writes nothing, refusa
     `set-override/preview-writes-nothing: ok, 0 brand writes (${prismWrites}), no Theme write (${calls.join(', ')})`);
   ok(verdictOf(pv)?.type === 'override-result' && verdictOf(pv)?.preview === true && verdictOf(pv)?.applied === false
     && verdictOf(pv)?.headline === 'Preview — 1 change; no pair moves below its minimum.'
-    && verdictOf(pv)?.summary === 'Light · interactive.primary.border.rest: neutral 600 → neutral 400 (6.65:1 → 3.26:1)',
+    && verdictOf(pv)?.summary === 'Light · interactive.primary.border.rest: neutral 600 → neutral 400 (6.64:1 → 3.26:1)',
     `set-override/preview-verdict: "${verdictOf(pv)?.headline}" / "${verdictOf(pv)?.summary}"`);
   ok(JSON.stringify(pvd.changes?.[0]?.before) === JSON.stringify({ override: { palette: 'neutral', step: '600' }, resolved: { palette: 'neutral', step: '600' }, hex: '#5c5c61', ratio: 6.65, min: 3, against: 'background.primary' })
     && JSON.stringify(pvd.changes?.[0]?.after) === JSON.stringify({ override: { palette: 'neutral', step: '400' }, resolved: { palette: 'neutral', step: '400' }, hex: '#8e8e92', ratio: 3.26, min: 3, against: 'background.primary' }),
@@ -1534,7 +1536,7 @@ section('set-override — color overrides: a preview that writes nothing, refusa
   const lo = await run({ changes: [{ ...one, step: '300' }], confirm: false });
   const lr = dataOf(lo).refusals?.[0];
   ok(lo.ok === false && verdictOf(lo)?.headline === 'Not saved — 1 change puts a pair below its minimum.'
-    && verdictOf(lo)?.summary === 'Light · interactive.primary.border.rest → neutral 300: 2.40:1 against background.primary — below the 3:1 minimum.'
+    && verdictOf(lo)?.summary === 'Light · interactive.primary.border.rest → neutral 300: 2.39:1 against background.primary — below the 3:1 minimum.'
     && lr?.reason === 'below-minimum' && lr?.ratio === 2.4 && lr?.min === 3 && lr?.against === 'background.primary' && prismWrites === 0,
     `set-override/refuses-below-minimum: "${verdictOf(lo)?.summary}" (${JSON.stringify(lr)})`);
   // A confirmed write of the same list is refused the same way, before any Theme write.
@@ -1646,7 +1648,7 @@ section('set-override — color overrides: a preview that writes nothing, refusa
   ok(JSON.stringify(restore?.input?.overrides) === JSON.stringify({ light: LIGHT }), 'set-override/restore: the panel is sent the brand the file now holds');
   ok(!posted.some((m) => m.type === 'apply-result'), 'set-override/one-verdict: the Theme write\'s own verdict is not posted; the run has one, override-result');
   const runRow = (await activityRuns()).find((x: any) => x.op === 'override' && x.verdict?.ok === true);
-  ok(runRow?.by === 'agent' && runRow?.cmd === 'set-override' && JSON.stringify(runRow?.lines) === JSON.stringify(['Light · interactive.primary.border.rest: neutral 600 → neutral 400 (6.65:1 → 3.26:1)']),
+  ok(runRow?.by === 'agent' && runRow?.cmd === 'set-override' && JSON.stringify(runRow?.lines) === JSON.stringify(['Light · interactive.primary.border.rest: neutral 600 → neutral 400 (6.64:1 → 3.26:1)']),
     `set-override/activity: one run, the agent's, its line before → after (${JSON.stringify(runRow?.lines)})`);
   ok(OP_TITLE.override === 'Color override', `set-override/row: the drawer names the row "Color override" (${OP_TITLE.override})`);
 

@@ -16,7 +16,7 @@
  * KEYBOARD: arrow keys move along the grid (Up and Down by a row), Home and End go to the first and last
  * step, Enter or Space chooses, Escape closes. A choice does not move the picker's focus.
  */
-import { contrast, hexToRgb } from '@prism3/engine/color';
+import { contrast, formatRatio, hexToRgb } from '@prism3/engine/color';
 import { glyph, h, hook } from '../shell/dom';
 
 export type PickerStep = { readonly key: string; readonly hex: string };
@@ -52,8 +52,9 @@ export const STEP_BLOCKED = ', not available';
 export const worstRatio = (hex: string, against: NonNullable<StepPickerOpts['against']>): number =>
   Math.min(...[against.hex, ...(against.also ?? [])].map((g) => contrast(hexToRgb(hex), hexToRgb(g))));
 
-/** A ratio as the chrome prints one: two decimals, floored, so a pick never reads above what it measures. */
-export const fmtRatio = (r: number): string => `${(Math.floor(r * 100) / 100).toFixed(2)}:1`;
+/** A ratio as the chrome prints one: the engine's one formatter (`formatRatio`, #3697 L3), two decimals, floored, so a
+ *  pick never reads above what it measures. */
+export const fmtRatio = formatRatio;
 
 /** The picker. `el` is the group; `focusCurrent` puts focus on the current step (or the first). */
 export const stepPicker = (o: StepPickerOpts): { el: HTMLElement; focusCurrent: () => void } => {
