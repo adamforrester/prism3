@@ -21439,6 +21439,36 @@ arm: {
         && !/aria-required (is|are) set/.test(aria) && aria.split('aria-required').length === 2,
         `Q-FL2.1 slider's required prop carries "required" in each thumb's accessible name and sets no aria-required, in its prop description and accessibility.aria (got ${r ? `${r.type} ${String(r.default)}: ${r.description}` : 'none'} / aria: ${aria})`);
     }
+    // D3699.1 B / D3699.2 (#3699 follow-up): the two descriptions of a thumb's name carry the ", required" rule, and
+    // it applies to custom thumbLabels too (the clause follows "when not set", not inside it). Literals: the owner's
+    // approved clause, so a description that drops it, or rewords it, fails here.
+    {
+      const clause = ', with ", required" added when the slider is required';
+      const thumbName = componentDefs.find((d) => d.id === '_slider-thumb')?.props.find((p) => p.name === 'aria-label')?.description ?? '';
+      ok(thumbName === 'The thumb\'s accessible name. Set by the Slider: the label for a single value, "Minimum {label}" and "Maximum {label}" for a range, with ", required" added when the slider is required.' && thumbName.includes(clause),
+        `D3699.1 _slider-thumb's aria-label description carries the ", required" rule (got ${thumbName})`);
+      const thumbLabels = componentDefs.find((d) => d.id === 'slider')?.props.find((p) => p.name === 'thumbLabels')?.description ?? '';
+      ok(thumbLabels === 'For a range, the two thumb names, "Minimum {label}" and "Maximum {label}" when not set, with ", required" added when the slider is required.' && thumbLabels.includes(clause),
+        `D3699.2 slider's thumbLabels description carries the ", required" rule, set or not (got ${thumbLabels})`);
+    }
+    // D3699.3 (#3699 follow-up): FieldLabel says the required state is never marker-only. For a slider that is not
+    // aria-required (Q-FL2.1 A) but "required" in the thumb's accessible name, so each place FieldLabel says it names
+    // the slider case, and the old field-only wording is gone.
+    {
+      const fl = componentDefs.find((d) => d.id === 'field-label');
+      const sliderCase = 'or for a slider, "required" in the thumb\'s accessible name';
+      const places: [string, string][] = [
+        ['required prop', fl?.props.find((p) => p.name === 'required')?.description ?? ''],
+        ['accessibility.aria', fl?.accessibility.aria ?? ''],
+        ['guidance', (fl?.docs?.do ?? []).find((s) => s.includes('back the marker')) ?? ''],
+      ];
+      for (const [where, text] of places) {
+        ok(text.includes(sliderCase)
+          && !text.includes('the field also carries required / aria-required, so the state is not marker-only')
+          && !text.includes('back the marker with aria-required'),
+          `D3699.3 field-label's ${where} names the slider case, "required" in the thumb's accessible name (got ${text})`);
+      }
+    }
     // Since #2266 the three field hosts are sized, and the label's SIZE follows the host's (pinned per member in
     // the #2266 block); what stays the label's own default is its emphasis.
     const hostCoords = [select, textField, textarea].map((d) => {
