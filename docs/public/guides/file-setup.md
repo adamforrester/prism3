@@ -3,7 +3,7 @@
 <!-- DRAFT for owner review (#2637, lane 4; corrected to the Update file checklist for #3264). -->
 
 Setting up a file gives it the page structure Prism3 builds into, plus the helper components the other steps draw with. <!-- src: apps/plugin/src/main.ts:1948-2018#34bf74fb -->
-It is the first item of the **Update file** checklist, **Set up file**, listed while the file isn't set up yet, or lacks something setup builds: "The pages, the templates and the style-guide cells. The cover too, while Documentation has it on." <!-- src: apps/studio/src/state/update-file.ts:317-318 -->
+It is the first item of the **Update file** checklist, **Set up file**, listed while the file isn't set up yet, or lacks something setup builds: "The pages, the templates and the style-guide cells. The cover too, while Docs has it on." <!-- src: apps/studio/src/state/update-file.ts:317-318 -->
 
 ## Set up a new file
 
@@ -28,7 +28,7 @@ The dividers are Figma's own `---` divider pages. <!-- src: apps/plugin/test-upd
 
 Component pages are not created here. Each component page, such as `↳ Buttons` or `↳ Checkbox`, appears the first time a set for it is added, so a file never holds empty component pages. <!-- src: apps/plugin/src/file-taxonomy.ts:99-105 --> `↳ Icons & assets`, under Foundations, appears the same way. <!-- src: apps/plugin/src/file-taxonomy.ts:87 --> Pages under Components and Subcomponents sit in alphabetical order. <!-- src: apps/plugin/src/file-taxonomy.ts:94#9c677188 --> <!-- src: apps/plugin/src/file-taxonomy.ts:182#9c677188 -->
 
-When the cover is on in Documentation, setup also draws the library cover on the `Cover` page, with the brand's name and the Prism3 version. <!-- src: apps/studio/src/shell/documentation.ts:67-69 -->
+When the cover is on in Docs, setup also draws the library cover on the `Cover` page, with the brand's name and the Prism3 version. <!-- src: apps/studio/src/shell/documentation.ts:67-69 -->
 A file with no brand yet gets its cover once the theme is written. <!-- src: apps/plugin/src/cover-frame.ts:553#963de7ae -->
 
 *[Screenshot placeholder: the Figma page list after setup.]*
@@ -55,4 +55,4 @@ The Activity drawer reports `✓ file set up` and lists the pages it created, or
 | `✓ file set up`, with `⚠ no File Components page — assets not built` in the detail | The pages were set up, but the helper components were not. <!-- src: apps/plugin/src/main.ts:2001 --> |
 | `✗ setup failed` | Figma refused a write. The detail starts `file setup failed:` and gives Figma's message. <!-- src: apps/plugin/src/main.ts:2016 --> |
 
-While setup runs, a second request for it is refused: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:41-45 -->
+While any write runs, setup is refused, and while setup runs, every other write is: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:49-52 -->
