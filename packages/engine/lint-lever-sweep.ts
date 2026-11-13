@@ -128,8 +128,9 @@ const BRANDS: { id: BrandId; input: BrandInput; contractCorpus: boolean }[] = [
 const ALL_BRANDS: BrandId[] = BRANDS.map((b) => b.id);
 
 // ── SCOPE: every lever is swept or classified out, by control kind ──────────────────────────────────
-const SWEPT_CONTROLS: LeverControl[] = ['toggle', 'enum', 'slider', 'list'];
-const NOT_SWEPT: Record<Exclude<LeverControl, 'toggle' | 'enum' | 'slider' | 'list'>, string> = {
+const SWEPT_CONTROLS: LeverControl[] = ['toggle', 'enum', 'list'];
+const NOT_SWEPT: Record<Exclude<LeverControl, 'toggle' | 'enum' | 'list'>, string> = {
+  slider: 'wip mutation',
   color: 'an OKLCH/hex value: a continuous space, and it moves values, not names',
   object: 'open-ended structured input. `typography.weights` removes paths, and the contract corpus covers it (`minimal-weights`, #1632)',
   'palette-ref': "values depend on the brand's own declared palettes, so there is no brand-independent option set",
