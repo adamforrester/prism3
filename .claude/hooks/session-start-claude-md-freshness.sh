@@ -12,7 +12,8 @@
 # "update `EXPECTED_ARTIFACTS` here AND the same number in `ci.yml`", `ci.yml` says "update this
 # check" — so a numeral in `CLAUDE.md` was a third site that no remedy reached. It drifted silently and
 # then stated a stale count with confidence. Named rather than counted, that sentence is true at every
-# ref; this hook covers the rest of the file.
+# ref; this hook covers the rest of the file. (Since #3698 R3 the count is a floor, `ARTIFACT_FLOOR`, authored in
+# `verify.ts` alone and read by `ci.yml`; the history above is why it is still not restated in `CLAUDE.md`.)
 #
 # ── THE NEGATIVE RESULT, WHICH DISQUALIFIES THE OBVIOUS IMPLEMENTATION ─────────────────────────────
 #
