@@ -4776,7 +4776,7 @@ const PAYLOAD_LITERAL_READBACK = `  if(n.literalPaints){if(n.literalPaints.fills
   if(n.literalTint){const vecs=node.findAll?node.findAll(x=>x.type==='VECTOR'):[];if(vecs.some(v=>!__litHeld(v.fills,[n.literalTint])))misses.push(n.name+'.literalTint -> DISCARDED (literal '+n.literalTint+' set, not retained)');}`;
 const PAYLOAD_LITERAL_FONT = `  if(n.literalFont){
     const f=n.literalFont;let face=null;
-    for(const want of [{family:f.family,style:f.style},f.fallback]){try{await figma.loadFontAsync(want);face=want;break;}catch(err){misses.push(n.name+'.font -> '+want.family+' '+want.style+' ('+err.message+')');}}
+    for(const want of [{family:f.family,style:f.style},f.fallback]){try{await figma.loadFontAsync(want);face=want;break;}catch(err){misses.push(n.name+'.font -> '+want.family+' '+want.style+' ('+(err&&err.message!=null?String(err.message):String(err))+')');}}
     if(face){
       try{node.fontName={family:face.family,style:face.style};node.fontSize=f.size;node.lineHeight={unit:'PIXELS',value:f.lineHeight};}catch(err){misses.push(n.name+'.literalFont -> '+face.family+' '+face.style+' '+f.size+'/'+f.lineHeight+' ('+err.message+')');}
       const fn=node.fontName,lh=node.lineHeight;
@@ -5040,7 +5040,7 @@ const build=async(n)=>{
       // Figma requires a font to be loaded before any text write. Loading here rather than once at the
       // top because the plan is what knows which styles it uses, and a hard-coded \`Inter Regular\`
       // would be a guess about a brand's typography.
-      try{await figma.loadFontAsync(st.fontName);}catch(err){misses.push(n.name+'.font -> '+st.fontName.family+' '+st.fontName.style+' ('+err.message+')');}
+      try{await figma.loadFontAsync(st.fontName);}catch(err){misses.push(n.name+'.font -> '+st.fontName.family+' '+st.fontName.style+' ('+(err&&err.message!=null?String(err.message):String(err))+')');}
       await node.setTextStyleIdAsync(st.id);
       sty=st;
     }

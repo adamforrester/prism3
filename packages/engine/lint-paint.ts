@@ -290,6 +290,7 @@ import type { ComponentDef } from './component-schema';
 import { corpus } from './token-contract';
 import { resolveAllModes } from './modes';
 import { contrast, hexToRgb } from './color';
+import { localeFreeCompare } from './locale-free-order';
 
 const repo = join(import.meta.dirname, '../..');
 const CENSUS_PATH = join(repo, 'packages/engine/schema/paint-census.json');
@@ -1140,7 +1141,7 @@ const redundantEdges = (): { fails: string[]; notes: string[]; checked: number; 
   const fails: string[] = [];
   const notes: string[] = [];
   let checked = 0;
-  for (const p of [...pairs.values()].sort((a, b) => `${a.def}${a.node}${a.fill}`.localeCompare(`${b.def}${b.node}${b.fill}`))) {
+  for (const p of [...pairs.values()].sort((a, b) => localeFreeCompare(`${a.def}${a.node}${a.fill}`, `${b.def}${b.node}${b.fill}`))) {
     const at = `${p.def}${p.node}`;
     const f = roleOf(p.fill);
     const b = roleOf(p.border);
@@ -1222,7 +1223,7 @@ const strokeScopes = (): { fails: string[]; checked: number; sources: number } =
   }
 
   const fails: string[] = [];
-  for (const e of [...strokes.values()].sort((a, b) => `${a.def}${a.node}${a.v}`.localeCompare(`${b.def}${b.node}${b.v}`))) {
+  for (const e of [...strokes.values()].sort((a, b) => localeFreeCompare(`${a.def}${a.node}${a.v}`, `${b.def}${b.node}${b.v}`))) {
     const missing = scopes.filter((s) => !s.byName.has(e.v)).map((s) => s.source);
     if (missing.length) {
       fails.push(`edge binds ink: ${e.def}${e.node} strokes '${e.v}', which is not in the emitted color collection (${missing.join(', ')}) — a stroke must bind a variable the token tier emits`);

@@ -41,11 +41,17 @@
  *     (mutations: the guard's `busy` check removed from `guarded` → busy/panel and busy/agent-first fail;
  *     the dispatcher's `refuse` removed → busy/agent fails; the `delete` moved out of the `finally` →
  *     busy/release fails, each by name)
- *   · busy/keying: while an apply runs, a different operation still runs (mutation: one hold shared by
- *     every operation → busy/keying fails). busy/preview: a prune preview, from the panel or an agent, is not
+ *   · busy/one hold (#3697 R7): while the panel's apply runs, the panel's file setup and style-guide cleanup and an
+ *     agent's build and prune delete are refused as busy, each naming Theme as the holder, and the apply's verdict is the
+ *     baseline's (mutation: a hold per operation, as before R7 → every `busy/one hold` arm fails by name; the style-guide cleanup's check alone put back on its own operation →
+ *     `busy/one hold: the panel's style-guide cleanup arriving mid Apply Theme is refused, …`). busy/preview: a prune preview, from the panel or an agent, is not
  *     refused while a delete runs, and a second delete is (mutations: `writes` true for a preview, or the
  *     panel's prune confirm read as always true → busy/preview's preview arms fail; the delete unguarded →
  *     its control arm fails).
+ *   · busy/words (#3718 D3718.1 B): a refusal names the write that holds the file, as literals: "Theme is already running. …"
+ *     behind Theme, "Style guides is already running. …" behind Style guides, and Theme for a file setup or an agent's build
+ *     asked for behind Theme (mutations: `refusal` worded by the asked `cmd` → the file-setup/build arm fails; the agent's
+ *     `refuse` worded by the asked write → the same arm fails; the old fixed "Update file" line → every arm fails, each by name).
  *   · busy/sink: a `refused` that reaches the agent's sink fails the command with its code (mutation: the
  *     dispatcher's refusal check removed → busy/sink fails). busy/titles: `run-guard.ts`'s TITLE equals the
  *     drawer's OP_TITLE (mutation: one title changed in either file → busy/titles fails) (#1995)
@@ -557,11 +563,11 @@ section('one-run — a style guide asked for from one entry point while the othe
   r0.findAllWithCriteria = () => [{ name: '_style-guide-swatches', type: 'COMPONENT_SET', children: [] }, { name: '_style-guide-text-cells', type: 'COMPONENT_SET', children: [] }];
   type Verdict = { type?: string; ok?: boolean; headline?: string; summary?: string };
   const results_ = (): Verdict[] => posted.filter((m) => m.type === 'style-guide-result');
-  // Main's run guard (#1957, `run-guard.ts`) is the one guard: its refusal and its words, for this operation.
-  const SG_BUSY = 'Update file is already running. Try again when it finishes.';
+  // Main's run guard (#1957, `run-guard.ts`) is the one guard: its refusal and its words, which name the holder (#3718 D3718.1 B).
+  const SG_BUSY = 'Style guides is already running. Try again when it finishes.';
   const sgRefusals = (agentFlag: boolean) => posted.filter((m) => m.type === 'refused' && m.agent === agentFlag);
   const isSgRefusal = (m: any, agentFlag: boolean) =>
-    JSON.stringify(m) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'style-guide', agent: agentFlag, message: SG_BUSY });
+    JSON.stringify(m) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'style-guide', agent: agentFlag, message: SG_BUSY, held: 'style-guide' });
 
   // THE PANEL FIRST: a click starts a run, which holds at its yield; the agent link then asks for one.
   posted.length = 0;
@@ -574,6 +580,8 @@ section('one-run — a style guide asked for from one entry point while the othe
   ok(heldPanel > 0 && r1.ok === false && r1.error?.code === 'busy' && r1.error?.message === SG_BUSY && ar.length === 1 && isSgRefusal(ar[0], true),
     `one-run/agent: a style guide asked for over the link while the panel's run is mid-yield is refused with busy (${r1.error?.code}: ${r1.error?.message})`);
   ok(results_().length === 0 && !posted.some((m) => m.type === 'agent-started' && m.id === a1), 'one-run/agent: the refusal is no verdict over the panel\'s run, and the agent\'s run never started');
+  ok(r1.error?.message === 'Style guides is already running. Try again when it finishes.' && ar[0]?.message === 'Style guides is already running. Try again when it finishes.',
+    `busy/words: a refusal behind Style guides reads "Style guides is already running. Try again when it finishes." (${r1.error?.message}; ${ar[0]?.message})`);
   await release();
   const p1 = results_();
   ok(p1.length === 1, `one-run: the panel's run then finishes and reports once (${p1.map((m) => m.headline).join(', ')})`);
@@ -712,7 +720,8 @@ section('brackets/throw — a handler that throws still tells the panel the run 
 /* ── busy ───────────────────────────────────────────────────────────────────────────────────────────── */
 section('busy — a second write of an operation, while one is running, is refused with busy (#1957)');
 {
-  const BUSY = 'Update file is already running. Try again when it finishes.';
+  // The words name the write holding the file (#3718 D3718.1 B): Theme, in every arm of this section.
+  const BUSY = 'Theme is already running. Try again when it finishes.';
   /** Hold the host's text-style read, so a write that reaches it waits there until `release()`. */
   const hold = (): (() => Promise<void>) => {
     let open!: () => void;
@@ -724,8 +733,8 @@ section('busy — a second write of an operation, while one is running, is refus
   const savedHost = { getLocalTextStylesAsync: host.getLocalTextStylesAsync, loadFontAsync: host.loadFontAsync };
   Object.assign(host, { getLocalTextStylesAsync: held, loadFontAsync: async () => undefined });
   const refusals = (agentFlag: boolean) => posted.filter((m) => m.type === 'refused' && m.agent === agentFlag);
-  const isRefusal = (m: any, agentFlag: boolean) =>
-    JSON.stringify(m) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'apply-theme', agent: agentFlag, message: BUSY });
+  const isRefusal = (m: any, agentFlag: boolean, cmd = 'apply-theme', held = 'apply-theme') =>
+    JSON.stringify(m) === JSON.stringify({ type: 'refused', code: 'busy', cmd, agent: agentFlag, message: BUSY, held });
   // The baseline: a lone panel apply, nothing else running.
   posted.length = 0;
   await toUi({ type: 'apply-theme', input: brand });
@@ -740,6 +749,8 @@ section('busy — a second write of an operation, while one is running, is refus
   await toUi({ type: 'apply-theme', input: brand });
   const pr = refusals(false);
   ok(pr.length === 1 && isRefusal(pr[0], false), `busy/panel: the second apply is refused with busy and the owner's words (${pr[0]?.message})`);
+  ok(pr[0]?.message === 'Theme is already running. Try again when it finishes.',
+    `busy/words: a refusal behind Theme reads "Theme is already running. Try again when it finishes." (${pr[0]?.message})`);
   await release();
   const pv = posted.filter((m) => m.type === 'apply-result');
   ok(pv.length === 1 && JSON.stringify(pv[0]) === baseline, `busy/panel: the first write is unaffected: one verdict, the baseline's (${pv.length})`);
@@ -781,16 +792,44 @@ section('busy — a second write of an operation, while one is running, is refus
   // A write that throws releases too: the hold is dropped in a `finally`.
   const g2 = createRunGuard();
   await g2.run('apply-theme', async () => { throw new Error('test: the write threw'); }).catch(() => undefined);
-  ok(!g2.busy('apply-theme'), 'busy/release: a write that threw releases the operation');
+  ok(!g2.busy(), 'busy/release: a write that threw releases the file');
 
-  // KEYING (#1995): the hold is per operation. While an apply is held, a file setup still runs.
+  // ONE HOLD (#3697 R7, owner decision; was per operation, #1995). While the panel's Apply Theme is mid-write, every
+  // other write is refused, the panel's and an agent's, and the refusal names both the write asked for and Theme.
   posted.length = 0;
   release = hold();
   await toUi({ type: 'apply-theme', input: brand });
   await toUi({ type: 'file-setup' });
-  ok(!posted.some((m) => m.type === 'refused') && posted.some((m) => m.type === 'file-setup-result') && !posted.some((m) => m.type === 'apply-result'),
-    'busy/keying: while an apply is running, a file setup still runs and is not refused');
+  const fs1 = refusals(false);
+  ok(fs1.length === 1 && isRefusal(fs1[0], false, 'file-setup') && !posted.some((m) => m.type === 'file-setup-result'),
+    `busy/one hold: while an apply is running, the panel's file setup is refused, naming Theme as the holder (${JSON.stringify(fs1[0])})`);
+  calls.length = 0;
+  const bc = await send('build-components', { def: 'button' });
+  await tick();
+  const rbc = (await read(bc.id)) as AgentResult;
+  const abc = refusals(true);
+  ok(rbc.ok === false && rbc.error?.code === 'busy' && rbc.error?.message === BUSY && !calls.includes('buildComponents')
+    && abc.length === 1 && isRefusal(abc[0], true, 'build-components') && !posted.some((m) => m.type === 'agent-started' && m.id === bc.id),
+    `busy/one hold: an agent's build-components arriving mid Apply Theme is refused as busy before it starts, and the panel is told the holder (${rbc.error?.code}: ${rbc.error?.message}; ${JSON.stringify(abc[0])})`);
+  ok(fs1[0]?.message === 'Theme is already running. Try again when it finishes.' && abc[0]?.message === 'Theme is already running. Try again when it finishes.'
+    && rbc.error?.message === 'Theme is already running. Try again when it finishes.',
+    `busy/words: a file setup and an agent's build refused behind Theme name Theme, not the write asked for (${fs1[0]?.message}; ${abc[0]?.message}; ${rbc.error?.message})`);
+  const pc = await send('prune', { input: brand, confirm: true });
+  await tick();
+  const rpc = (await read(pc.id)) as AgentResult;
+  ok(rpc.ok === false && rpc.error?.code === 'busy' && !calls.includes('prune'),
+    `busy/one hold: an agent's prune delete arriving mid Apply Theme is refused as busy (${rpc.error?.code})`);
+  posted.length = 0;
+  await toUi({ type: 'style-guide-cleanup', ids: [] });
+  const sgc = refusals(false);
+  ok(sgc.length === 1 && isRefusal(sgc[0], false, 'style-guide') && !posted.some((m) => m.type === 'style-guide-cleanup-result'),
+    `busy/one hold: the panel's style-guide cleanup arriving mid Apply Theme is refused, naming Theme as the holder, and never runs (${JSON.stringify(sgc[0])})`);
   await release();
+  const ov = posted.filter((m) => m.type === 'apply-result');
+  ok(ov.length === 1 && JSON.stringify(ov[0]) === baseline, 'busy/one hold: the running apply is unaffected: one verdict, the baseline\'s');
+  posted.length = 0;
+  await toUi({ type: 'file-setup' });
+  ok(!posted.some((m) => m.type === 'refused') && posted.some((m) => m.type === 'file-setup-result'), 'busy/one hold: once the apply ends, the file setup runs');
 
   // PREVIEW (#1995): a prune preview writes nothing, so it is never refused, even while a prune delete runs.
   // The prune reads the file's collections, so that read holds the delete here.
@@ -803,7 +842,7 @@ section('busy — a second write of an operation, while one is running, is refus
   ok(!posted.some((m) => m.type === 'prune-result'), 'busy/preview: the prune delete is held mid-run');
   await toUi({ type: 'prune', input: brand, confirm: true });
   ok(posted.filter((m) => m.type === 'refused').length === 1 &&
-    JSON.stringify(posted.find((m) => m.type === 'refused')) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'prune', agent: false, message: 'Update file is already running. Try again when it finishes.' }),
+    JSON.stringify(posted.find((m) => m.type === 'refused')) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'prune', agent: false, message: 'Prune stale is already running. Try again when it finishes.', held: 'prune' }),
     'busy/preview: a second prune delete is refused (the control for the preview arms)');
   posted.length = 0;
   await toUi({ type: 'prune', input: brand, confirm: false });
@@ -1615,8 +1654,8 @@ section('set-override — color overrides: a preview that writes nothing, refusa
   putBrand(stored);
   await toUi({ type: 'due-request', input: stored, seq: 7 });
 
-  // busy: a confirmed write waits on no running Theme write; a preview is never refused.
-  const BUSY = 'Update file is already running. Try again when it finishes.';
+  // busy: a confirmed write waits on no running Theme write; a preview is never refused. The words name Theme (#3718).
+  const BUSY = 'Theme is already running. Try again when it finishes.';
   let open!: () => void;
   gate = new Promise<void>((r) => { open = r; });
   const savedTs = host.getLocalTextStylesAsync;

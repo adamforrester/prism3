@@ -1,15 +1,21 @@
 /**
- * ONE RUN OF A WRITE AT A TIME, PER OPERATION (#1957, owner decision 2026-10-02).
+ * ONE WRITE AT A TIME, FILE-WIDE (#3697 R7, owner decision 2026-11-12; was one run per operation, #1957).
  *
  * MAIN THREAD. The panel's busy controls (owner decision #4 on #1956) stop the designer re-firing a write
  * the panel can see running, but the main thread is where both callers meet: the panel's buttons and the
- * agent link reach the same `ACTIONS` entries, and an agent's command can arrive while the panel's write
- * of the same operation is still going, or the other way round. So the main thread refuses a second
- * write of an operation while one is running, whoever started either. Different operations are not
- * serialized here: that is not what was asked, and the agent link already runs its own commands one at
- * a time (`agent-dispatch.ts`).
+ * agent link reach the same `ACTIONS` entries, and an agent's command can arrive while a panel write is still
+ * going, or the other way round. So the main thread holds ONE write at a time for the whole file, whoever
+ * started it, and refuses any other write while it runs.
  *
- * A prune PREVIEW reads and writes nothing, so it is never refused and never holds the prune; only the
+ * THE RECORDED DECISION THIS REPLACES. #1957 held each operation on its own and left different operations
+ * unserialized ("that is not what was asked"). #3697's review (M2) showed what that let through: Apply Theme
+ * yields between its seven stages, so an agent's `build-components` or prune confirm arriving mid-apply ran
+ * against a half-written variable layer. The owner chose R7: Apply Theme, prune, build, update, setup, style
+ * guides and the agent's writes all share this one hold. A refusal still names the operation that was asked
+ * for (`cmd`), so the panel clears that operation's own pending state, and now also the one that holds the
+ * file (`held`), which can differ.
+ *
+ * A prune PREVIEW reads and writes nothing, so it is never refused and never holds the file; only the
  * delete (`confirm: true`) does. The read-back writes nothing and is not guarded.
  */
 
@@ -24,7 +30,8 @@ export const TITLE: Readonly<Record<WriteCmd, string>> = {
 
 export const isWriteCmd = (cmd: string): cmd is WriteCmd => Object.prototype.hasOwnProperty.call(TITLE, cmd);
 
-/** The operation a command holds while it runs, or `null` for one that holds none. Every write holds its own.
+/** The operation a command runs as while it holds the file, or `null` for one that holds none. It names the run in a
+ *  refusal and in the Activity row; since #3697 R7 every one of them takes the same file-wide hold.
  *  The in-place update's two commands (#2265) hold the BUILD: a dry run read while a build writes the same
  *  set would describe a set half built, and a baseline capture writes the members a build writes. While
  *  either runs, a build is refused with the build's own words, which name the build rather than the check;
@@ -39,28 +46,34 @@ export const guardFor = (cmd: string): WriteCmd | null =>
 /** Whether this call of `cmd` writes: every call does, except a prune preview. */
 export const writes = (cmd: WriteCmd, confirm?: boolean): boolean => cmd !== 'prune' || confirm === true;
 
-/** The refusal's words. Since IA v2 every panel write goes through Update file, so the refusal names it rather than
- *  the operation (#3264 decision 2, DRAFT wording). `cmd` stays in the signature: the refusal's `cmd` field still
- *  names the held operation, for the Activity row it belongs to. */
-export const busyMessage = (_cmd: WriteCmd): string => 'Update file is already running. Try again when it finishes.';
+/** The refusal's words: they name the write that holds the file, by its title (#3718 D3718.1 B, owner decision
+ *  2026-11-12; was "Update file" whatever held it, #3264 decision 2). Called with the refusal's `held`, never its `cmd`:
+ *  since #3697 R7 the two can differ, and the `cmd` field alone names the operation asked for, for its Activity row. */
+export const busyMessage = (held: WriteCmd): string => `${TITLE[held]} is already running. Try again when it finishes.`;
 
 export const createRunGuard = () => {
-  /** Each held operation, by the hold that holds it, so a run's own end never releases a later run's hold. */
-  const running = new Map<WriteCmd, object>();
+  /** The one write holding the file, with the hold object of its run, so a run's own end never releases a later run's
+   *  hold. One slot, not one per operation: that is the whole of #3697 R7. */
+  let running: { cmd: WriteCmd; hold: object } | null = null;
   return {
-    busy: (cmd: WriteCmd): boolean => running.has(cmd),
-    /** Run `fn` holding `cmd`, released however it ends. The caller checks `busy` first, with no await
+    /** Whether ANY write holds the file: the check every write makes before it starts. */
+    busy: (): boolean => running !== null,
+    /** The write holding the file, or `null`: what a refusal names, and what a Stop asks about. */
+    held: (): WriteCmd | null => running?.cmd ?? null,
+    /** Whether `cmd` is the write holding the file — for a Stop or a stale read that belongs to one operation. */
+    holding: (cmd: WriteCmd): boolean => running?.cmd === cmd,
+    /** Run `fn` holding the file as `cmd`, released however it ends. The caller checks `busy` first, with no await
      *  between, so the check and the hold are one step on the main thread. */
     async run(cmd: WriteCmd, fn: () => Promise<void>): Promise<void> {
       const hold = {};
-      running.set(cmd, hold);
-      try { await fn(); } finally { if (running.get(cmd) === hold) running.delete(cmd); }
+      running = { cmd, hold };
+      try { await fn(); } finally { if (running?.hold === hold) running = null; }
     },
-    /** #3128: release `cmd` before its run returns, once the run has written its last and posted its verdict. Called
-     *  only by the run that holds it. A build's settle probe (#908) runs after its verdict and writes nothing, and the
-     *  panel posts its next set the moment that verdict lands: held through the probe, the next set was refused and
+    /** #3128: release the file before `cmd`'s run returns, once the run has written its last and posted its verdict.
+     *  Called only by the run that holds it. A build's settle probe (#908) runs after its verdict and writes nothing, and
+     *  the panel posts its next set the moment that verdict lands: held through the probe, the next set was refused and
      *  the panel waited on a verdict that had already been sent. */
-    release(cmd: WriteCmd): void { running.delete(cmd); },
+    release(cmd: WriteCmd): void { if (running?.cmd === cmd) running = null; },
   };
 };
 export type RunGuard = ReturnType<typeof createRunGuard>;

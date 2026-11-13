@@ -187,6 +187,9 @@ export type ApplyResult = {
   /** `null` when the confirm was refused before anything was read for writing. */
   outcomes: SetOutcome[];
   refusedAll?: string;
+  /** #3697 L1: the run threw after it began writing, with this message. `outcomes` and the rest hold what was done
+   *  before the throw, so the caller records the sets that finished. */
+  failed?: string;
   version?: string;
   missing: string[];
   refused: { def: string; reason: string }[];
@@ -971,6 +974,10 @@ export const applyUpdate = async (
     res.refusedAll = `the named version could not be saved (${(err as Error)?.message ?? String(err)}), so nothing was written`;
     return res;
   }
+  // #3697 L1: A THROW FROM HERE ON KEEPS WHAT WAS DONE. A throw outside a set's own write (a slot fill, a re-read, the
+  // re-spacing) used to leave this function with nothing, so the caller wrote no ledger for the sets already updated and
+  // the verdict was one "update failed" line. Now the run's result so far is returned, with `failed` saying why it ended.
+  try {
   // First, before the sets: moving a page rewrites nothing on it, and a stop in a set below leaves the order done.
   if (reorder) {
     const root = host.root;
@@ -1021,6 +1028,8 @@ export const applyUpdate = async (
     // #3225: a slot whose plain text moves out to a TEXT property, read the same way, before the set changes.
     const tmig = p.slotTextMigration ? await slotTextMigrationFor(t, fresh as unknown as TextMigNode, opts.ledger, opts.breathe) : null;
     const o = await applySet(host, api, t, p, fresh, { description: opts.descriptionOf?.(t.def), yieldTo: opts.yieldTo, chunk: opts.chunk, handEdits: choiceFor(opts.choices, p.set), noBaseline: noRecordFor(opts.choices, p.set), ledger: opts.ledger });
+    // Kept as soon as the set's write returns (#3697 L1), so a throw in its fill below still reports what was written.
+    res.outcomes.push(o);
     if (p.furniture && !o.refused && !o.stopped) o.furniture = p.furniture;
     // #2831: the confirm names what it broke for library consumers, as the check listed it.
     if (p.breaking && !o.refused && !o.stopped) o.breaking = p.breaking;
@@ -1035,7 +1044,6 @@ export const applyUpdate = async (
       o.carriedText = await fillSlotText(p.set, tentry, partRenames(t.def, opts.ledger).get(tentry.slot) ?? tentry.slot, tmig.live, tmig.migration, opts.breathe);
       o.content.push(...o.carriedText.misses);
     }
-    res.outcomes.push(o);
     // #3177: the members this set gained are on its page (a single-component def's, on its components' pages); the
     // run's next lookup reads them anew.
     await reread(t.single ? kidsOf(fresh) : [fresh]);
@@ -1049,6 +1057,9 @@ export const applyUpdate = async (
   if (!res.outcomes.some((o) => o.stopped) && !res.halted) await respaceLive(host, targets, preview, res, opts);
   await settle(host, targets, preview, res, opts);
   await finishAbout(host, api, preview, res, opts.today);
+  } catch (err) {
+    res.failed = (err as Error)?.message ?? String(err);
+  }
   return res;
 };
 
@@ -1114,10 +1125,13 @@ const coverDid = (c: CoverOutcome | undefined): boolean => !!c && c.did !== 'non
 /** A set the apply entered and wrote nothing to (see `idle` in `applyVerdict`). */
 const isIdle = (o: SetOutcome): boolean => !o.refused && !o.stopped && o.skipped.length > 0 && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length && !o.moved && !o.setMoved;
 
-export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; summary: string; lines: string[]; causes: Cause[] } => {
+/** #3711 (Q-UF3 A): `completed` is true when the run went through every set it was given: none stopped, none refused or
+ *  left not updated, and no stop asked for. A run that wrote every set and left some to check is `completed` and not
+ *  `ok`: Update file's run goes on past it as a warning, as a To add step with problems does (#3308). */
+export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean; headline: string; summary: string; lines: string[]; causes: Cause[] } => {
   if (r.refusedAll) {
     const lines = [`Nothing was updated: ${r.refusedAll}.`];
-    return { ok: false, headline: '✗ update refused', summary: lines.join('\n'), lines, causes: [runCause('✗ update refused', r.refusedAll)] };
+    return { ok: false, completed: false, headline: '✗ update refused', summary: lines.join('\n'), lines, causes: [runCause('✗ update refused', r.refusedAll)] };
   }
   const stopped = r.outcomes.find((o) => o.stopped);
   // A miss from the build's own pass is a set not verified, as an identity or content difference is (#2477): the set
@@ -1217,10 +1231,15 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   if (r.about) lines.push(aboutLine(r.about));
   if (r.version) lines.push(`Saved a version first: "${r.version}".`);
   else if (r.aboutOnly && (r.about?.drawn || coverDid(r.cover))) lines.push(coverPageOnlyLine({ about: !!r.about?.drawn, cover: coverDid(r.cover) }, true));
+  const completed = !stopped && !r.halted && !refused;
+  // #3711 (Q-UF3 A, DRAFT wording): every set written, some left to check. The count is the sets the run wrote,
+  // those to check among them; each one's lines above name what differs.
+  const written = r.outcomes.filter((o) => !o.refused && !o.stopped && !isIdle(o)).length;
   const headline = stopped ? `✗ update stopped at ${stopped.set}`
     : r.halted ? haltedHeadline(r.halted)
-    : failed.length ? `⚠ ${n(failed.length, 'set')} not verified`
-      : refused ? `✗ ${n(refused, 'set')} not updated`
+    // A set not updated stops the run, so it heads the verdict over any set to check beside it.
+    : refused ? `✗ ${n(refused, 'set')} not updated`
+      : failed.length ? `⚠ Updated ${n(written, 'set')} · ${failed.length} to check`
         : updated ? `✓ updated ${updated} in place`
           : added ? `✓ added ${added}`
             : deprecated ? `✓ ${deprecated} marked deprecated`
@@ -1244,6 +1263,12 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
                           : coverDid(r.cover) ? `✓ ${COVER_NAME} ${r.cover!.did === 'drawn' ? 'drawn' : 'updated'}` : r.outcomes.some((o) => o.asPreviewed && !o.asPreviewed.upToDate) ? '✓ No changes found' : '✓ already up to date';
   // #3421: Keep is a choice, so the run goes on; the headline says how many sets hold changes back, never a bare ✓.
   const held = r.outcomes.filter((o) => o.held).length;
+  // #3697 L1: a run that threw says so first, in the headline the caller's own catch uses, over what it did before the throw.
+  // DRAFT wording for the owner: the line that introduces the partial result.
+  if (r.failed) {
+    const all = [`The update failed: ${r.failed}. What is listed below was done before it.`, ...lines];
+    return { ok: false, completed: false, headline: '✗ update failed', summary: all.join('\n'), lines: all, causes: mergeCauses([runCause('✗ update failed', r.failed), ...causes]) };
+  }
   const ok = !stopped && !r.halted && !failed.length && !refused;
-  return { ok, headline: `${headline}${held ? ` · ${n(held, 'set')} kept edits over changes` : ''}${breakingClause(r.outcomes)}`, summary: lines.join('\n'), lines, causes: ok ? [] : mergeCauses(causes) };
+  return { ok, completed, headline: `${headline}${held ? ` · ${n(held, 'set')} kept edits over changes` : ''}${breakingClause(r.outcomes)}`, summary: lines.join('\n'), lines, causes: ok ? [] : mergeCauses(causes) };
 };

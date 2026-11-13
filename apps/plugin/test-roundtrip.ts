@@ -615,10 +615,8 @@ ok((EXERCISED.slotSettings ?? 0) > 0 && (EXERCISED.slotPreferred ?? 0) > 0,
 {
   // KNOWN GAPS, each a filed issue, each by def AND field. An entry that no longer fires fails below, so the ledger
   // empties as the issues close rather than outliving them.
-  const KNOWN: { def: string; field: string; issue: string }[] = [
-    // A snapshot has no `findAll`, and stops at an instance, so the mark's vectors are out of its reach.
-    { def: 'sign-in-button', field: 'literalTint', issue: '#3393' },
-  ];
+  // Empty since #3393: the snapshot now carries an instance's vectors, so SignInButton's mark tint reads as live.
+  const KNOWN: { def: string; field: string; issue: string }[] = [];
   const fired = new Set<string>();
   const known = (def: string, d: Divergence): boolean => {
     const k = KNOWN.find((x) => x.def === def && x.field === d.field);

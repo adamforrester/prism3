@@ -2232,7 +2232,7 @@ const main = async (): Promise<void> => {
     // second run is asked for through the same guard.
     const guard = createRunGuard();
     const request = <T>(fn: () => Promise<T>): Promise<{ ran: true; value: T } | { ran: false; message: string }> => {
-      if (guard.busy('style-guide')) return Promise.resolve({ ran: false, message: busyMessage('style-guide') });
+      if (guard.busy()) return Promise.resolve({ ran: false, message: busyMessage('style-guide') });
       let value!: T;
       return guard.run('style-guide', async () => { value = await fn(); }).then(() => ({ ran: true as const, value }));
     };
@@ -2245,7 +2245,7 @@ const main = async (): Promise<void> => {
     };
     const first = await request(() => draw(f15.api, contract, {}, { yieldTo }));
     const second = await hold.second;
-    ok(first.ran && second?.ran === false && second.message === 'Update file is already running. Try again when it finishes.',
+    ok(first.ran && second?.ran === false && second.message === 'Style guides is already running. Try again when it finishes.',
       `15: a run asked for while another is mid-yield is refused, in the guard's words (${JSON.stringify(second && (second.ran ? 'ran' : second.message))})`);
     const wraps = [...tablesOn(f15.prim), ...tablesOn(f15.sem)];
     const keys = new Set(wraps.map((w) => w.pluginData['prism3-style-guide']));
