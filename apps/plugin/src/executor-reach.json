@@ -33,6 +33,7 @@
     "53": [],
     "54": ["link"],
     "55": [],
-    "56": ["_slider-thumb", "accordion", "badge", "banner", "breadcrumb-item", "button", "button-destructive", "button-neutral", "card-number-field", "checkbox-control", "checkbox-row", "code-input-cell", "counter", "dialog", "divider", "field-label", "field-message", "flush-icon-button", "flush-icon-button-destructive", "flush-icon-button-neutral", "focus-ring", "icon", "icon-button", "icon-button-destructive", "icon-button-neutral", "image-placeholder", "link", "list-item", "pagination", "pagination-item", "password-field", "progress", "provider-logo", "radio-control", "radio-row", "search-field", "segmented-control", "segmented-control-segment", "select", "slider", "spinner", "switch-control", "switch-row", "tab-item", "tabs", "tag", "text-field", "textarea", "toast", "veil"]
+    "56": ["_slider-thumb", "accordion", "badge", "banner", "breadcrumb-item", "button", "button-destructive", "button-neutral", "card-number-field", "checkbox-control", "checkbox-row", "code-input-cell", "counter", "dialog", "divider", "field-label", "field-message", "flush-icon-button", "flush-icon-button-destructive", "flush-icon-button-neutral", "focus-ring", "icon", "icon-button", "icon-button-destructive", "icon-button-neutral", "image-placeholder", "link", "list-item", "pagination", "pagination-item", "password-field", "progress", "provider-logo", "radio-control", "radio-row", "search-field", "segmented-control", "segmented-control-segment", "select", "slider", "spinner", "switch-control", "switch-row", "tab-item", "tabs", "tag", "text-field", "textarea", "toast", "veil"],
+    "57": []
   }
 }

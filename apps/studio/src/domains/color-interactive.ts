@@ -138,7 +138,11 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   /** True once Add button set is clicked: the color select, the add and Cancel show in its place (QA-I4). */
   let adding = false;
 
-  const edit = pageEdit((k) => { lastEdited = k; });   // the shared edit (#2487 B5)
+  /** A button set whose removal the engine refused before it reached the brand (a glass still drawn from the set, #3697
+   *  M1): the brand is untouched, so `lastError` stays clear, and the card says it was refused, as the brand color's and
+   *  the custom mode's removals do. Cleared by the next edit. */
+  let refusedHere: string | null = null;
+  const edit = pageEdit((k) => { lastEdited = k; refusedHere = null; });   // the shared edit (#2487 B5)
 
   /** Which mode the rows edit; nothing in a derived mode, whose panel the frame holds read-only under its one line
    *  (Q59; N-3 A, #1984). */
@@ -494,11 +498,24 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
         rm.type = 'button';
         rm.append(h('span', 'p3-btn-label', BUTTON_SET_COPY.remove));
         rm.setAttribute('aria-label', BUTTON_SET_COPY.removeLabel(name));
-        rm.onclick = () => edit('interactivePalettes', () => removeAccent(i));
+        rm.onclick = () => {
+          // Atomic (#3697 M1): a removal the engine refuses leaves the brand as it was, and the card says so.
+          if (removeAccent(i) === null) { edit('interactivePalettes', () => {}); return; }
+          lastEdited = 'interactivePalettes';
+          refusedHere = `column:${col}`;
+          render();
+        };
         line1.append(rm);
       }
-      head.append(line1);
+      // The refused mark sits inside the head, under the line with Remove button set, so the card's own children keep
+      // the owner's QA-I6 order (the neutral emphasis right under the head).
+      const refmark = hook(h('p', 'p3-refmark'), 'column-refused');
+      refmark.setAttribute('role', 'note');
+      refmark.append(glyph('x'), h('span', undefined, 'Refused. The preview keeps the last valid theme.'));
+      refmark.hidden = true;
+      head.append(line1, refmark);
       card.append(head);
+      out.push({ el: card, said: '', key: `column:${col}`, refmark });
       // The Primary Action Palette opens the Primary card, as the neutral emphasis opens Neutral's (the owner's QA-I6).
       if (col === 'primary') { const ap = actionPalette(); card.append(ap.el); out.push(ap); }
       if (col === 'neutral') { const ne = enumLever('neutralEmphasis'); card.append(ne.el); out.push(ne); }
@@ -699,6 +716,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     parts.push(nr);
     root.replaceChildren(...parts);
     markRefused(items, lastEdited);   // the shared mark (#2487 B5)
+    for (const it of items) if (refusedHere && it.key === refusedHere && it.refmark) { it.refmark.hidden = false; it.el.dataset.refused = 'true'; }
     filter();
     if (focusKey) {
       again(focusStep ? (same) => same.find((n) => n.dataset.step === focusStep) : undefined)?.focus({ preventScroll: true });

@@ -42,7 +42,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | switch-control | offGlyph | `close` | icon set | drawn | selection: off |
 |  | onGlyph | `check` | icon set | drawn | selection: on |
 | tag | checkGlyph | `check` | icon set | drawn | selection: selected |
-|  | dismissGlyph | `close` | icon set | drawn | type: dismissible |
+|  | closeGlyph | `close` | icon set | drawn | type: dismissible |
 | textarea | gripGlyph | `resize-grip` | icon set | drawn | always |
 | toast | successGlyph | `check-circle` | icon set | drawn | intent: success |
 

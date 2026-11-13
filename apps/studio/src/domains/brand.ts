@@ -79,6 +79,14 @@ export const mountBrandLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     render();
   };
 
+  /** Remove a custom mode, atomically (`removeCustomMode`, #3697 M1): taken whole, or refused with the brand left as it was. */
+  const removeMode = (i: number): void => {
+    if (removeCustomMode(i) === null) { edit('customModes', () => {}); return; }
+    lastEdited = 'customModes';
+    refusedHere = 'customModes';
+    render();
+  };
+
   // ── Identity: name and namespace side by side, the notes under both ─────────────────────────────
   const identity = (): Built => {
     const nameB = leverBlock('name', { label: 'Brand name', forId: 'p3-brand-name' });
@@ -208,7 +216,7 @@ export const mountBrandLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       rm.append(h('span', 'p3-btn-label', `Remove ${c.name}`));
       rm.onclick = () => {
         if (modeDrops(c.name).length) { confirm = { kind: 'cmremove', i }; render(); return; }
-        edit('customModes', () => removeCustomMode(i));
+        removeMode(i);
       };
       row.append(nm.el, based, base.el, rm);
       cl.append(row);
@@ -288,7 +296,7 @@ export const mountBrandLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       title: `Remove ${c.name}: drops ${plural(drops.length, 'setting')}`,
       body: [ul],
       action: `Remove ${c.name}`,
-      onConfirm: () => { confirm = null; edit('customModes', () => removeCustomMode(i)); },
+      onConfirm: () => { confirm = null; removeMode(i); },
       onCancel: () => { confirm = null; render(); },
       back: () => focusHook('custom-mode-add'),
     });

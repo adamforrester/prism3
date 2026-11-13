@@ -81,7 +81,15 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
       title: `Remove ${name}?`,
       body: [ul],
       action: `Remove ${name}`,
-      onConfirm: () => { confirmRemove = null; edit('brandColors', () => removeBrandColor(i)); },
+      onConfirm: () => {
+        confirmRemove = null;
+        // Atomic (#3697 M1): a removal the engine refuses (a role or a glass still drawn from the color) leaves the
+        // brand as it was, and the lever says it was refused.
+        if (removeBrandColor(i) === null) { edit('brandColors', () => {}, name); return; }
+        lastEdited = 'brandColors';
+        refusedHere = 'brandColors';
+        render();
+      },
       onCancel: () => { confirmRemove = null; render(); },
       back: () => removeBtn(name) ?? root.querySelector<HTMLElement>('[data-p3="brand-color-add"]'),
     });
@@ -91,8 +99,12 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
   const paletteOf = (key: string, name?: string): string | null =>
     key === 'primary' ? 'primary' : key.startsWith('neutral.') ? 'neutral' : key.startsWith('status.') ? key.slice('status.'.length)
       : key === 'brandColors' ? name ?? null : null;
+  /** A lever whose last edit the engine refused before it reached the brand (a removal while a role still draws from
+   *  the color, #3697 M1): the brand is untouched, and the lever says it was refused. */
+  let refusedHere: string | null = null;
   const edit = (key: string, write: () => void, name?: string): void => {
     lastEdited = key;
+    refusedHere = null;
     write();
     noteEdit(paletteOf(key, name));   // Q4 trial: the edit, and only an edit, reveals its palette
     rebuild();
@@ -340,7 +352,7 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
   const sync = (): void => {
     for (const d of drawn) {
       d.sync();
-      d.block.setRefused(!!lastError && !!lastEdited && d.keys.includes(lastEdited));
+      d.block.setRefused((!!lastError && !!lastEdited && d.keys.includes(lastEdited)) || (!!refusedHere && d.keys.includes(refusedHere)));
     }
   };
 
