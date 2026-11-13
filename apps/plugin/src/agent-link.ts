@@ -31,20 +31,10 @@
  * with a `stale` failure instead of being run. Turning the link on must never replay a queue somebody
  * wrote an hour ago; the agent sends after the owner says the link is on (the runbook's first step).
  *
- * THE SESSION CODE (#3697 R8, the owner's A; what needs it and why: `needsSession` in `agent-protocol.ts`). Switching the
- * link on draws a code (`XXXX-XXXX`, the pairing code's alphabet) that lives in this controller's memory only and is gone
- * when the link goes off. It is never written to the file: the `link` record, `status` and every result leave it out, so
- * whoever can write the inbox cannot read it there. The panel shows it (`onSession`), and a command that changes or removes
- * what is in the file runs only when its envelope's `session` is that code; otherwise it is answered `no-session` and
- * not run. Up to `SESSION_TRIES` wrong codes are answered; past that the code is spent and none is accepted until the
- * link is switched on again, so the inbox cannot be used to guess it.
- *
  * The retention rule keeps `claimed` from growing without bound WITHOUT ever forgetting an id the inbox
  * still holds: an id leaves `claimed` only once the agent has dropped it from `inbox`.
  */
-import { AGENT_PROTOCOL_VERSION, MAILBOX, commandId, failedResult, needsSession, resultKey, partKey, chunkUtf8, utf8Bytes } from './agent-protocol';
-import { CODE_ALPHABET, CODE_LENGTH, formatCode, normalizeCode } from './bridge-auth';
-import { RUN_CODE } from './dev-commands';
+import { AGENT_PROTOCOL_VERSION, MAILBOX, commandId, failedResult, resultKey, partKey, chunkUtf8, utf8Bytes } from './agent-protocol';
 import type { AgentLinkState, AgentResult, ChunkManifest } from './agent-protocol';
 import type { SharedDataPort } from './persist-figma';
 
@@ -59,16 +49,7 @@ export type AgentLinkDeps = {
   cancel(handle: unknown): void;
   /** Called whenever the published state changes (the panel's control re-renders from it). */
   onState?(s: AgentLinkState): void;
-  /** #3697 R8: told the session code (`XXXX-XXXX`) when the link goes on, and null when it goes off or the code is spent. */
-  onSession?(code: string | null): void;
-  /** #3697 R8: a random integer below `n`. `Math.random` when absent (the main thread has no `crypto`); tests inject one. */
-  randomInt?(n: number): number;
 };
-
-/** #3697 R8: wrong session codes answered before the code is spent for the rest of the session. */
-export const SESSION_TRIES = 5;
-/** #3697 R8: the refusal's message, for the agent. */
-export const NO_SESSION_MESSAGE = 'this command changes what is in the file, so through the file mailbox it needs this session\'s code as `session`. The person at the plugin can read it in the agent link\'s status; ask them for it and send the command again';
 
 const readJson = (root: SharedDataPort, key: string): { ok: true; value: unknown } | { ok: false; error: string } => {
   const raw = root.getSharedPluginData(MAILBOX.ns, key);
@@ -131,11 +112,6 @@ export const createAgentLink = (deps: AgentLinkDeps) => {
   };
   let timer: unknown = null;
   let busy = false;
-  /** The session code, canonical (no separator); null while off or once spent. */
-  let session: string | null = null;
-  let wrongSessions = 0;
-  const rand = deps.randomInt ?? ((n: number) => Math.floor(Math.random() * n));
-  const setSession = (code: string | null): void => { session = code; wrongSessions = 0; deps.onSession?.(code === null ? null : formatCode(code)); };
 
   const publish = (patch: Partial<AgentLinkState>, write = true): void => {
     state = { ...state, ...patch };
@@ -198,19 +174,6 @@ export const createAgentLink = (deps: AgentLinkDeps) => {
       if (next === undefined) return null;
       const id = commandId(next) as string;
       claim(q.entries, q.claimed, [id]);
-      // A dev build's `run-code` too (#2530): folded away with `dev-commands.ts` in a release, like the dispatcher's branch.
-      if (needsSession(next) || (PRISM3_DEV && (next as { cmd?: unknown }).cmd === RUN_CODE)) {
-        const sent = (next as { session?: unknown }).session;
-        const right = session !== null && typeof sent === 'string' && normalizeCode(sent) === session;
-        if (!right) {
-          if (session !== null && typeof sent === 'string' && ++wrongSessions >= SESSION_TRIES) { session = null; deps.onSession?.(null); }
-          const cmd = typeof (next as { cmd?: unknown }).cmd === 'string' ? (next as { cmd: string }).cmd : '';
-          const r = failedResult({ id, cmd, transport: 'mailbox', engineVersion: deps.engineVersion, at: now().toISOString() }, { code: 'no-session', message: NO_SESSION_MESSAGE });
-          storeResult(root, r);
-          publish({ lastCommand: { id, cmd, ok: false, finishedAt: r.finishedAt, headline: headlineOf(r) } });
-          return r;
-        }
-      }
       const r = await deps.dispatch(next, 'mailbox');
       // The dispatcher answers a bad envelope with the id it could read; the mailbox only takes entries
       // with a usable id, so the stored key and the envelope's id always agree.
@@ -233,8 +196,7 @@ export const createAgentLink = (deps: AgentLinkDeps) => {
   const setOn = (on: boolean): void => {
     if (on === state.on) { deps.onState?.(state); return; }
     if (timer !== null) { deps.cancel(timer); timer = null; }
-    if (!on) { setSession(null); publish({ on: false, since: null, transports: { mailbox: false, bridge: false } }); return; }
-    setSession(Array.from({ length: CODE_LENGTH }, () => CODE_ALPHABET[rand(CODE_ALPHABET.length)]).join(''));
+    if (!on) { publish({ on: false, since: null, transports: { mailbox: false, bridge: false } }); return; }
     publish({ on: true, since: now().toISOString(), transports: { mailbox: true, bridge: state.transports.bridge } });
     retireStale();
     timer = deps.schedule(loop, MAILBOX.pollMs);
@@ -259,8 +221,6 @@ export const createAgentLink = (deps: AgentLinkDeps) => {
     poll,
     /** The current published state (for `status`). */
     state: (): AgentLinkState => state,
-    /** #3697 R8: the session code as shown (`XXXX-XXXX`), or null. For the panel only; never written to the file. */
-    session: (): string | null => (session === null ? null : formatCode(session)),
   };
 };
 export type AgentLink = ReturnType<typeof createAgentLink>;

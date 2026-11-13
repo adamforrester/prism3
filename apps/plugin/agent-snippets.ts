@@ -22,10 +22,9 @@ const J = JSON.stringify;
 export const newCommandId = (now = new Date(), rand = Math.random): string =>
   `a${now.getTime().toString(36)}-${Math.floor(rand() * 36 ** 4).toString(36).padStart(4, '0')}`;
 
-/** The command envelope for `cmd` with `args`. `session` (#3697 R8): the link session's code the person read from the
- *  panel, which a command that changes or removes what is in the file needs (`needsSession`, `src/agent-protocol.ts`). */
-export const envelope = (cmd: string, args: unknown, id = newCommandId(), now = new Date(), session?: string): AgentCommand =>
-  ({ v: AGENT_PROTOCOL_VERSION, id, cmd, args: args ?? {}, issuedAt: now.toISOString(), ...(session ? { session } : {}) });
+/** The command envelope for `cmd` with `args`. */
+export const envelope = (cmd: string, args: unknown, id = newCommandId(), now = new Date()): AgentCommand =>
+  ({ v: AGENT_PROTOCOL_VERSION, id, cmd, args: args ?? {}, issuedAt: now.toISOString() });
 
 /** Shared prelude: the namespace, the root, and a JSON reader that never throws. */
 const PRELUDE =

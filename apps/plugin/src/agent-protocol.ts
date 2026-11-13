@@ -159,31 +159,8 @@ const parseChoices = (raw: unknown): UpdateChoiceArgs | undefined | string => {
   return r as UpdateChoiceArgs;
 };
 
-/** A command as it arrives — unvalidated. `parseCommand` turns it into a `ValidCommand` or a reason. `session` (#3697 R8)
- *  is read by the mailbox alone, and only for a command `needsSession` names. */
-export type AgentCommand = { v: number; id: string; cmd: string; args?: unknown; issuedAt: string; session?: string };
-
-/**
- * THE MAILBOX'S SESSION CODE (#3697 R8, the owner's A). The mailbox is shared plugin data, which any editor of the file and
- * any plugin can write, so a command found there proves nothing about who sent it. A command that changes or removes what
- * is already in the file must therefore carry this link session's code as `session`: drawn when the person switches the
- * link on, held in the plugin's memory only (never in the file, where whoever writes the inbox could read it), forgotten
- * when the link goes off, and shown to the person in the panel, who gives it to their agent. Bridge commands need none:
- * the bridge's connection is paired and proves itself (`bridge-auth.ts`).
- *
- * What needs it, decided from the raw envelope so a malformed one is refused for the code before its shape is read:
- * `apply-theme` (it rewrites the variables) and the confirm of every two-step write — `prune`, `update-components`, `panels-clean`, `set-override`. Their previews, every read, and the
- * commands that add what is missing (`build-components`, `file-setup`, `style-guide`, `draw-specs`, `capture-baseline`,
- * `adopt-members`) do not. A dev build's `run-code` needs it too; `agent-link.ts` adds it behind `PRISM3_DEV`, since its
- * name must not reach a release bundle (`lint-release-bundle.ts`) and this file is context-neutral.
- */
-export const SESSION_COMMANDS = ['apply-theme'] as const;
-export const SESSION_CONFIRMS = ['prune', 'update-components', 'panels-clean', 'set-override'] as const;
-export const needsSession = (raw: unknown): boolean => {
-  if (!isObject(raw) || typeof raw.cmd !== 'string') return false;
-  if ((SESSION_COMMANDS as readonly string[]).includes(raw.cmd)) return true;
-  return (SESSION_CONFIRMS as readonly string[]).includes(raw.cmd) && isObject(raw.args) && raw.args.confirm === true;
-};
+/** A command as it arrives — unvalidated. `parseCommand` turns it into a `ValidCommand` or a reason. */
+export type AgentCommand = { v: number; id: string; cmd: string; args?: unknown; issuedAt: string };
 
 /** A command `parseCommand` accepted: a known `cmd`, the current version, and args of that cmd's shape. */
 export type ValidCommand = { [C in AgentCmd]: { v: number; id: string; cmd: C; args: AgentArgs[C]; issuedAt: string } }[AgentCmd];
@@ -204,10 +181,7 @@ export type AgentErrorCode =
   /** A bridge command reached the plugin after the owner switched the link off. */
   | 'link-off'
   /** A run of the same write was already going, the panel's or an agent's, so this one was not run (#1957). */
-  | 'busy'
-  /** #3697 R8: a command that changes or removes what is in the file came through the mailbox without this link
-   *  session's code (`session`), or with another, so it was not run. */
-  | 'no-session';
+  | 'busy';
 export type AgentError = { code: AgentErrorCode; message: string };
 
 /** One `component-progress` reading, as the UI's pill receives it, with when it arrived. A `style-guide-progress`

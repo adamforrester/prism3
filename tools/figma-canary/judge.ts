@@ -61,7 +61,7 @@ export const RUN_FORMAT = 'prism3-figma-canary-run/1';
 /** THE PROTOCOL, AS LITERALS (see INDEPENDENCE above). */
 export const PROTOCOL_V = 1;
 export const TRANSPORTS = ['mailbox', 'bridge'];
-export const ERROR_CODES = ['bad-envelope', 'bad-version', 'unknown-command', 'bad-args', 'stale', 'handler-threw', 'busy', 'link-off', 'no-session'];
+export const ERROR_CODES = ['bad-envelope', 'bad-version', 'unknown-command', 'bad-args', 'stale', 'handler-threw', 'busy', 'link-off'];
 
 /** Text that means something threw, wherever it turns up in a verdict, a refusal, a blocker or a log line. */
 export const EXCEPTION = [

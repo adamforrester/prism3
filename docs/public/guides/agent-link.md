@@ -11,8 +11,8 @@ It is off every time the plugin opens, and only you can turn it on. <!-- src: ap
 
 An agent working through Figma's own MCP connection can read and write a file's data, but it can't press the plugin's buttons. The agent link gives it two ways in: <!-- src: apps/plugin/src/agent-link.ts:9-21#e9f3139b -->
 
-- The file's plugin data, as a mailbox. The agent writes a request there, and the plugin, while the link is on, checks for requests about once a second, runs one, and writes the result back beside it. <!-- src: apps/plugin/src/agent-protocol.ts:461#faf40979 --> <!-- src: apps/plugin/src/agent-link.ts:9-21#e9f3139b -->
-- The desktop bridge, a small program on your computer that the agent talks to. While the link is on, the plugin holds a connection to it at `ws://localhost:17331`, on your computer only. The first time, the plugin asks you to pair: **Pair with the desktop bridge**, with a **Pairing code** from the bridge or your agent. A code works once, for 10 minutes. <!-- src: apps/plugin/src/agent-link-ui.ts:140-148 --> <!-- src: apps/plugin/src/agent-bridge-relay.ts:56-60 -->
+- The file's plugin data, as a mailbox. The agent writes a request there, and the plugin, while the link is on, checks for requests about once a second, runs one, and writes the result back beside it. <!-- src: apps/plugin/src/agent-protocol.ts:435#faf40979 --> <!-- src: apps/plugin/src/agent-link.ts:9-21#e9f3139b -->
+- The desktop bridge, a small program on your computer that the agent talks to. While the link is on, the plugin holds a connection to it at `ws://localhost:17331`, on your computer only. The first time, the plugin asks you to pair: **Pair with the desktop bridge**, with a **Pairing code** from the bridge or your agent. A code works once, for 10 minutes. <!-- src: apps/plugin/src/agent-link-ui.ts:134-142 --> <!-- src: apps/plugin/src/agent-bridge-relay.ts:56-60 -->
 
 "Prism3 Studio" carries both. "Prism3 Studio Offline" makes no network calls, so it has the mailbox only. <!-- src: apps/plugin/manifest.json:2-19 --> <!-- src: apps/plugin/manifest-offline.json:2-6 -->
 
@@ -21,13 +21,12 @@ MCP (Model Context Protocol) is the standard way an AI agent connects to a tool 
 ## Turn it on
 
 1. Open the file and run the Prism3 plugin.
-2. Turn on the **Agent** switch in the top bar, beside Update file. <!-- src: apps/plugin/src/agent-link-ui.ts:238-241 -->
+2. Turn on the **Agent** switch in the top bar, beside Update file. <!-- src: apps/plugin/src/agent-link-ui.ts:230-233 -->
 3. Tell the agent the link is on. It sends a status request first, to confirm the plugin answers.
-4. If the agent works through the file's plugin data and will write the theme or confirm a change, give it the session code. Point at the agent word in the Activity drawer's bar to read it. <!-- src: apps/plugin/src/agent-link-ui.ts:115#b5415a2e --> <!-- src: apps/plugin/src/agent-protocol.ts:180-186#ec7b2d45 -->
 
-To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:238 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:2471#13449644 -->
+To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:230 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:2469#13449644 -->
 
-The Activity drawer's bar shows the link's state in a word: "Listening · bridge" or "Listening · mailbox" while it waits, "Listening · mailbox only" in Prism3 Studio Offline, and "Error" or "Not listening" when something is wrong. Point at the word to read the full status. <!-- src: apps/plugin/src/agent-link-ui.ts:130-133 -->
+The Activity drawer's bar shows the link's state in a word: "Listening · bridge" or "Listening · mailbox" while it waits, "Listening · mailbox only" in Prism3 Studio Offline, and "Error" or "Not listening" when something is wrong. Point at the word to read the full status. <!-- src: apps/plugin/src/agent-link-ui.ts:124-127 -->
 
 *[Screenshot placeholder: the top bar with the Agent switch on, and the Activity drawer's agent word.]*
 
@@ -60,13 +59,13 @@ Every write an agent asks for passes the same checks as Update file, and is refu
 ## Safety
 
 - **Off by default, never saved.** The link starts off at every launch and is not remembered between sessions. <!-- src: apps/plugin/src/agent-link.ts:5-8#e3a1fc8c -->
-- **Only you can turn it on.** An agent can't switch it on: only the panel's **Agent** switch sends that request. <!-- src: apps/plugin/src/agent-link-ui.ts:238 --> The main thread turns the link on only when the panel asks. <!-- src: apps/plugin/src/messages.ts:121-123#3ecd6409 -->
-- **While it is off, the plugin ignores the agent entirely.** A request waiting in the file does nothing, and the plugin holds no connection to the bridge. <!-- src: apps/plugin/src/agent-link.ts:6-8#efefb571 --> <!-- src: apps/plugin/src/agent-link-ui.ts:347-348#76ccd888 -->
-- **Old requests are not replayed.** A request already waiting when you turn the link on is answered "stale" and not run; the agent has to send it again. <!-- src: apps/plugin/src/agent-link.ts:170-182 -->
+- **Only you can turn it on.** An agent can't switch it on: only the panel's **Agent** switch sends that request. <!-- src: apps/plugin/src/agent-link-ui.ts:230 --> The main thread turns the link on only when the panel asks. <!-- src: apps/plugin/src/messages.ts:121-123#3ecd6409 -->
+- **While it is off, the plugin ignores the agent entirely.** A request waiting in the file does nothing, and the plugin holds no connection to the bridge. <!-- src: apps/plugin/src/agent-link.ts:6-8#efefb571 --> <!-- src: apps/plugin/src/agent-link-ui.ts:339-340#76ccd888 -->
+- **Old requests are not replayed.** A request already waiting when you turn the link on is answered "stale" and not run; the agent has to send it again. <!-- src: apps/plugin/src/agent-link.ts:146-158 -->
 - **One request at a time.** The plugin runs requests in the order sent, never two at once, and never while the same write is running from Update file. <!-- src: apps/plugin/src/agent-link.ts:14-18#10971a60 -->
 - **No code from the agent.** In the released plugin, a request names one of the actions above and nothing in it is run as code. A development build, used by maintainers, adds one more request, `run-code`; the release build leaves it out. <!-- src: apps/plugin/src/agent-protocol.ts:46-49 --> <!-- src: apps/plugin/src/agent-dispatch.ts:281 -->
-- **Changes through the file need the session code.** Anyone who can edit the file can leave a request in its plugin data. So a request that way to write the theme, or to confirm a clean-up, an update or a color override, runs only if it carries the session code the status shows. The code is new each time you turn the link on, and after 5 wrong codes none is accepted until you turn the link off and on again. Requests through the desktop bridge don't need it. <!-- src: apps/plugin/src/agent-protocol.ts:180-186#ec7b2d45 --> <!-- src: apps/plugin/src/agent-link.ts:33-40#299a5229 -->
 - **The bridge proves itself.** Before the plugin takes a request from the desktop bridge, the bridge has to prove it holds your pairing. Another program listening on that port can't send one. <!-- src: apps/plugin/src/agent-bridge-relay.ts:29-34#a87764f6 -->
+- **One risk remains.** While a pairing code is waiting and the bridge isn't running, another program on that port could work out the code from the plugin's pairing request and pair in the bridge's place. <!-- src: apps/plugin/src/agent-bridge-relay.ts:179#bd0c3b51 -->
 - **Deletes and updates need a confirm.** A clean-up or a component update runs as a preview first, and the agent has to send a separate confirm. Ask it to show you the preview before it confirms. <!-- src: apps/plugin/src/agent-protocol.ts:61-69#122bd083 -->
 - **It writes to the open file.** Whatever the agent asks for lands in the file the plugin is open in. Try a new workflow on a copy first. <!-- src: tools/figma-mcp/README.md:132-134#6f9a7cff -->
 

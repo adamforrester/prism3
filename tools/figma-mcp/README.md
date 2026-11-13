@@ -133,21 +133,12 @@ launch. While it is off the plugin ignores the mailbox entirely, and a command y
 switched on is answered `stale` rather than run. The same scratch-file rule as above applies: the
 commands write to that file.
 
-**The session code (#3697 R8, the owner's A).** The mailbox is the file's shared plugin data, which any
-editor or plugin can write, so a command that changes or removes what is in the file must carry this link
-session's code: `apply-theme`, a dev build's `run-code`, and every `confirm: true` (`prune`, `update-components`,
-`panels-clean`, `set-override`). Previews, reads and the builds need none. Ask the owner for the code: the
-plugin shows it in the agent link's status (point at the agent word in the Activity drawer's bar), never in
-the file, and draws a new one each time the link is switched on. Pass it as `--session <code>`; without it,
-or with a wrong one, the command is answered `no-session` and not run. After 5 wrong codes none is
-accepted until the owner switches the link off and on again.
-
 Each step below prints one short script. Pass it to `use_figma` whole, as in §2.
 
 ```bash
 npx tsx tools/figma-mcp/agent-link.ts link                              # is anyone listening?
 npx tsx tools/figma-mcp/agent-link.ts send status                       # prints the script; the id goes to stderr
-npx tsx tools/figma-mcp/agent-link.ts send apply-theme --brand aurora --session K7QM-2HXP   # the owner's code
+npx tsx tools/figma-mcp/agent-link.ts send apply-theme --brand aurora
 npx tsx tools/figma-mcp/agent-link.ts send build-components '{"def":"button"}'
 npx tsx tools/figma-mcp/agent-link.ts send file-setup
 npx tsx tools/figma-mcp/agent-link.ts send style-guide '{"collections":["color"]}'
@@ -175,7 +166,7 @@ The loop:
    is running. The plugin polls about once a second and runs one command at a time, in send order, so
    send the next command after the previous one has a result.
 4. Check `ok`. On `ok: false`, `error` says why the command was not run (`unknown-command`,
-   `bad-version`, `bad-args`, `stale`, `handler-threw`, `no-session`); otherwise `result.verdict` is the panel's
+   `bad-version`, `bad-args`, `stale`, `handler-threw`); otherwise `result.verdict` is the panel's
    own verdict and `result.data` holds the detail.
 
 On a fresh file, send `file-setup` again after `apply-theme`: setup draws the Cover only from the brand the file
