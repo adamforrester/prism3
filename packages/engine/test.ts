@@ -7391,9 +7391,9 @@ arm: {
   const tagParts = tagDef.anatomy!.parts;
   const nests = Object.entries(tagParts).filter(([, p]) => p.kind === 'nest').map(([n]) => n);
   ok(nests.length === 0 && JSON.stringify(tagDef.composition.composesWith) === '["focus-ring"]'
-    && tagParts.dismissGlyph?.kind === 'vector' && tagParts.dismissGlyph?.glyph === 'close'
-    && JSON.stringify(tagParts.dismiss?.children) === '["dismissGlyph"]',
-    `tag: the × is a plain close glyph in the dismiss slot, and nothing nests IconButton.Neutral (nests [${nests.join(', ')}], composesWith ${JSON.stringify(tagDef.composition.composesWith)}, × ${tagParts.dismissGlyph?.kind}/${tagParts.dismissGlyph?.glyph})`);
+    && tagParts.closeGlyph?.kind === 'vector' && tagParts.closeGlyph?.glyph === 'close'
+    && JSON.stringify(tagParts.dismiss?.children) === '["closeGlyph"]',
+    `tag: the × is a plain close glyph in the dismiss slot, and nothing nests IconButton.Neutral (nests [${nests.join(', ')}], composesWith ${JSON.stringify(tagDef.composition.composesWith)}, × ${tagParts.closeGlyph?.kind}/${tagParts.closeGlyph?.glyph})`);
   // THE × SLOT IS MARKED AS A TARGET INSIDE THE TAG (#1741), which `lint-hit-target.ts` reads; and the marker is
   // validated: on the role target, or on a part with no bound side, it is refused by name.
   const withPart = (name: string, patch: Record<string, unknown>) => ({ ...tagDef, anatomy: { ...tagDef.anatomy!, parts: { ...tagParts, [name]: { ...tagParts[name], ...patch } } } }) as ComponentDef;
@@ -7483,8 +7483,8 @@ arm: {
   ok(tagSet.length === 45 && dismissSelected.length === 0 && countOf('select', 'unselected') === 15 && countOf('select', 'selected') === 15 && countOf('dismissible', 'unselected') === 15,
     `tag projects to Figma: exactly 45 members — select unselected and selected, dismissible unselected only — and none at type=dismissible, selection=selected (got ${tagSet.length}: select/unselected ${countOf('select', 'unselected')}, select/selected ${countOf('select', 'selected')}, dismissible/unselected ${countOf('dismissible', 'unselected')}${dismissSelected.length ? `; excluded members present: ${dismissSelected.map((m) => m.name).join(' | ')}` : ''})`);
   // SELECT HAS NO × IN ANY MEMBER, and every dismissible member has it (owner decisions B and C).
-  const selectWithX = tagMembers.filter((m) => m.type === 'select' && (m.parts.includes('dismiss') || m.parts.includes('dismissGlyph')));
-  const dismissWithoutX = tagMembers.filter((m) => m.type === 'dismissible' && !(m.parts.includes('dismiss') && m.parts.includes('dismissGlyph')));
+  const selectWithX = tagMembers.filter((m) => m.type === 'select' && (m.parts.includes('dismiss') || m.parts.includes('closeGlyph')));
+  const dismissWithoutX = tagMembers.filter((m) => m.type === 'dismissible' && !(m.parts.includes('dismiss') && m.parts.includes('closeGlyph')));
   ok(selectWithX.length === 0 && dismissWithoutX.length === 0,
     `tag: no select member carries the × slot, and every dismissible member does${selectWithX.length ? ` — select with ×: ${selectWithX.map((m) => m.name).join(' | ')}` : ''}${dismissWithoutX.length ? ` — dismissible without ×: ${dismissWithoutX.map((m) => m.name).join(' | ')}` : ''}`);
   // THE × IS TRAILING (owner decision C): on every dismissible member the × slot is the LAST flow cell of the pill,
@@ -17179,7 +17179,9 @@ arm: {
       // Re-pinned by #3346 (owner Q1 revised A): the selected outline moved from `interactive.primary.border.*` to the
       // selection mark `interactive.primary.indicator.*` on 12 members. Measured when re-pinned: the new plans with those
       // 12 refs swapped back hash to the pre-#2945 literal (85641a65e850…), so nothing else in the pill moved.
-      ok(pillHash === '48c09571c7cabd5cfa52439754c15e5c9b4afb438dc462a6d658c5ed5d4b3ad4',
+      // Re-pinned by #3647 (owner Q192 A): the × glyph layer is renamed `dismissGlyph` → `closeGlyph`. Measured when
+      // re-pinned: the new plans with `closeGlyph` swapped back hash to the #3346 literal (48c09571c7ca…), so only the name moved.
+      ok(pillHash === '84f9b7a09d286df0bfe9e3de362696d3a6e288bc8fc574ba8833bce054d6ce26',
         `tag pill unchanged (#2945): the 45 pill members, materialized at the null brand, are byte-identical to main before the underline hug, its code-tier prose and #3346's selection mark aside (sha256 ${pillHash.slice(0, 12)}…)`);
       // #2946 review: after the hug the rung heights (28 / 36 / 44 / 56px) and "1.5 times its height" hold under Pill only, so
       // every shipped Tag string (everything but the maintainer-only `notes`) that states one names the style it is true of.
@@ -17325,7 +17327,7 @@ arm: {
           const inset = r.counterAxisAlignItems === 'MAX' ? pxVar(content?.bound?.paddingBottom) : NaN;
           const labelBottom = inset + (lcH - lineBox) / 2;
           // The × slot hugs too (#2945): its glyph plus its own block paddings, unless it binds a height.
-          const slotGlyph = slot ? find(slot, 'dismissGlyph') : undefined;
+          const slotGlyph = slot ? find(slot, 'closeGlyph') : undefined;
           const slotH = !slot ? 0 : slot.bound?.height ? pxVar(slot.bound.height) : pxVar(slotGlyph?.bound?.height) + pxVar(slot.bound?.paddingTop) + pxVar(slot.bound?.paddingBottom);
           const frameH = Math.max(pxVar(r.bound?.minHeight), pxVar(r.bound?.height), lcH + pxVar(content?.bound?.paddingTop) + pxVar(content?.bound?.paddingBottom), slotH);
           const checkBottom = check ? inset + (lcH - pxVar(check.bound?.height)) / 2 : undefined;
@@ -20628,7 +20630,7 @@ arm: {
     const GLYPH_CASES: Array<{ id: string; parts: string[]; want: Record<string, [string, number]> }> = [
       { id: 'segmented-control-segment', parts: ['leadingVisual'], want: STEP_DOWN },
       { id: 'tab-item', parts: ['leadingVisual'], want: STEP_DOWN },
-      { id: 'tag', parts: ['leadingVisual', 'checkGlyph', 'dismissGlyph'], want: STEP_DOWN },
+      { id: 'tag', parts: ['leadingVisual', 'checkGlyph', 'closeGlyph'], want: STEP_DOWN },
       { id: 'icon-button', parts: ['icon'], want: ONE_TO_ONE },
       { id: 'icon-button-destructive', parts: ['icon'], want: ONE_TO_ONE },
       { id: 'icon-button-neutral', parts: ['icon'], want: ONE_TO_ONE },
@@ -26055,7 +26057,7 @@ arm: {
         const slotDefs = Object.entries(((set?.componentPropertyDefinitions ?? {}) as Record<string, { type: string }>)).filter(([, d]) => d.type === 'SLOT');
         ok(run.misses.length === 0 && cells.length === 15 && cells.every((n) => n.type === 'SLOT') && slotDefs.length === 1
           && cells.every((n) => (n.componentPropertyReferences as Record<string, string> | null)?.slotContentId === slotDefs[0][0])
-          && cells.every((n) => ((n.children as Record<string, unknown>[]) ?? []).map((c) => String(c.name)).join() === 'dismissGlyph'),
+          && cells.every((n) => ((n.children as Record<string, unknown>[]) ?? []).map((c) => String(c.name)).join() === 'closeGlyph'),
           `#2417 paste: the paste executor builds each dismiss cell as a native SLOT holding its glyph, and the set holds one SLOT property they all reference (${cells.length} cells, ${[...new Set(cells.map((n) => n.type))].join('/')}; ${slotDefs.map(([k]) => k).join(', ') || 'no SLOT property'}${run.misses.length ? `; misses ${JSON.stringify(run.misses.slice(0, 2))}` : ''})`);
         // A SLOT'S TEXT IS LITERAL (#2417): Figma refuses a component-property reference on a slot sublayer (measured), so
         // a text part inside a slot carries its own `characters`, and a TEXT property claiming one is refused, as is
@@ -26079,7 +26081,7 @@ arm: {
         const refused = (d: ComponentDef, re: RegExp): string => { const all = errs(d); return all.some((m) => re.test(m)) ? '' : `none matched; got ${JSON.stringify(all.slice(0, 2))}`; };
         const onBox = refused(patched({ dismiss: { ...tagParts.dismiss, characters: 'x' } }), /declares 'characters' — only a 'text' part/);
         ok(onBox === '', `#2417 validator: copy on a box is refused, only a text part holds it ${onBox}`);
-        const onGlyph = refused(patched({ dismissGlyph: { ...tagParts.dismissGlyph, contentSlot: true } }), /only a 'box' can be a native slot/);
+        const onGlyph = refused(patched({ closeGlyph: { ...tagParts.closeGlyph, contentSlot: true } }), /only a 'box' can be a native slot/);
         ok(onGlyph === '', `#2417 validator: a native slot on a non-box part is refused ${onGlyph}`);
         const { layout: _layout, ...noLayout } = tagParts.dismiss;
         const bare0 = refused(patched({ dismiss: { ...noLayout, contentSlot: true } }), /binds no 'layout'/);
