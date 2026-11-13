@@ -599,7 +599,7 @@ export const applyPrunePlan = async (plan: PrunePlan, api: PruneApi, counts: Pru
   // Stranded collections — the whole collection, its variables with it.
   const strand = new Set(plan.collections);
   for (const c of liveColls) {
-    if (strand.has(c.name)) { c.obj.remove(); counts.collections++; }
+    if (strand.has(c.name) && tryRemove(`collection:${c.name}`, () => c.obj.remove())) counts.collections++;
   }
   const presentCollections = new Set(liveColls.map((c) => c.name));
   for (const name of plan.collections) if (!presentCollections.has(name)) misses.push(`collection:${name}`);
