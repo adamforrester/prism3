@@ -460,6 +460,8 @@ section('stopped/text — a Banner set that stops part-way still fills each body
   const named = inside.placed.filter((p) => (inside.o?.content ?? []).some((l) => l.startsWith(`banner instance "${p.name}": has no "body text" property`))).length;
   ok(named === inside.placed.length && inside.o?.carriedText?.moved === 0,
     `stopped/text inside the pass named: each instance whose body could not be carried is a miss naming it, not skipped silently (${named} of ${inside.placed.length} named; ${JSON.stringify(inside.o?.carriedText?.misses.slice(0, 2))})`);
+}
+
 // ---- failed --------------------------------------------------------------------------------------------------------
 
 section('failed — a throw outside the set\'s write returns what was done, not nothing (#3697 L1)');
