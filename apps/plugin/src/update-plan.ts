@@ -1651,7 +1651,7 @@ const fileBlockers = async (host: UpdateHost, plans: readonly AnatomyPlan[], set
   if (noEffect.length) out.push(`effect style${noEffect.length === 1 ? '' : 's'} not in this file: ${firstFew(noEffect)}`);
   // Nests are named above, with what to build first; a swap target is named here.
   const noSwap = planTargets(plans).filter((n) => !have.has(n) && !absent.includes(n));
-  if (noSwap.length) out.push(`component${noSwap.length === 1 ? '' : 's'} the plan swaps to ${noSwap.length === 1 ? 'is' : 'are'} not in this file: ${firstFew(noSwap)}`);
+  if (noSwap.length) out.push(`component${noSwap.length === 1 ? '' : 's'} the plan swaps to ${noSwap.length === 1 ? 'is' : 'are'} not in this file: ${firstFewSets(noSwap)}`);
   if (!host.loadFontAsync) return { lines: out, theme };
   const fonts = new Map<string, { family: string; style: string }>();
   for (const s of wantStyles) { const f = byName.get(s)?.fontName; if (f) fonts.set(`${f.family}|${f.style}`, f); }
