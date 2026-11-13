@@ -41,7 +41,7 @@
  * setting changes …`; the reduce keeping an older answer (`m.seq < s.liveDue.seq` dropped) → `Q810 A recount: an
  * answer overtaken by a newer request never shows`.
  */
-import { UPDATE_COPY, blockedDueOf, blockedLine, blockedReason, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, setupOfferedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
+import { UPDATE_COPY, goWhyOf, blockedDueOf, blockedLine, blockedReason, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, setupOfferedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
 import type { Catalog } from './src/state/component-catalog';
 import { initialHostSession, reduce } from './src/state/host-session';
 
@@ -366,6 +366,15 @@ ok(reduce(s2, fd(3, false)).liveDue?.theme === false, 'Q810 A recount (control):
     && blockedReason(undefined) === 'The check gave no reason.' && UPDATE_COPY.blocked === 'Can’t update yet',
     `#3713 apart copy: the group is "Can't update yet", and each row's reason is a sentence (got "${blockedReason(ck.sets[1].reasons)}")`);
 }
+
+// #3713 (3 of 4): WHY UPDATE FILE IS DISABLED. Literals (docs/34). MUTATION: `goWhyOf` returning null → every arm.
+ok(goWhyOf({ off: null, waiting: false, steps: 0, blocked: ['Icon'] }) === 'Nothing to write: Icon can’t be updated yet.', '#3713 why: one blocked set, nothing else to write');
+ok(goWhyOf({ off: null, waiting: false, steps: 0, blocked: ['Icon', 'Tag'] }) === 'Nothing to write: Icon and Tag can’t be updated yet.'
+  && goWhyOf({ off: null, waiting: false, steps: 0, blocked: ['A', 'B', 'C'] }) === 'Nothing to write: A, B and C can’t be updated yet.'
+  && goWhyOf({ off: null, waiting: false, steps: 0, blocked: ['A', 'B', 'C', 'D'] }) === 'Nothing to write: A, B and 2 more can’t be updated yet.', '#3713 why: the blocked sets, named as a list');
+ok(goWhyOf({ off: null, waiting: false, steps: 0, blocked: [] }) === 'Nothing to write: nothing above is ticked.', '#3713 why: nothing ticked');
+ok(goWhyOf({ off: 'The brand did not restore.', waiting: false, steps: 2, blocked: [] }) === 'The brand did not restore.', '#3713 why: a file whose brand did not restore says so');
+ok(goWhyOf({ off: null, waiting: false, steps: 1, blocked: ['Icon'] }) === null && goWhyOf({ off: null, waiting: true, steps: 0, blocked: [] }) === null, '#3713 why: nothing is said while it can run, or while the check is out');
 
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);

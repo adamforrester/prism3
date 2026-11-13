@@ -18459,6 +18459,19 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       ok(JSON.stringify(bl.due) === '["button"]' && bl.dueLine === '1 set to update in place. Ticked by default.' && bl.title === 'Can’t update yet'
         && JSON.stringify(bl.rows) === JSON.stringify([['select', 'Engine update: focus ring size', 'It needs Icon, which this file doesn’t have. Add Icon on Components first.']]) && bl.boxes === 0 && bl.go === false,
         `${where}: #3713 blocked apart: a blocked set is listed under Can't update yet with its reason and no tick, and Due counts only the set that can run (${JSON.stringify(bl)})`);
+      // #3713 (3 of 4): with every Due set blocked and nothing else ticked, Update file is disabled and says why beside
+      // it, naming the sets, as its description; with a set to run (above) it says nothing. Literals, DRAFT copy.
+      // MUTATION: the why line never drawn (`goWhyOf` returning null) → this arm, by name.
+      const whyOn = await page.evaluate(() => document.querySelector('[data-p3="update-go-why"]')?.textContent ?? null);
+      await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets: [{ ...sets[0], blocked: true, upToDate: false, reasons: ['fonts: Inter Bold will not load, so text could not be written'] }, blockedSet] });
+      await page.waitForFunction(() => document.querySelectorAll('[data-p3="update-blocked-row"]').length === 2, null, { timeout: 5000 }).catch(() => {});
+      const nw = await page.evaluate(() => {
+        const go = document.querySelector('[data-p3="update-go"]'), why = document.querySelector('[data-p3="update-go-why"]'), cancel = document.querySelector('[data-p3="update-cancel"]');
+        return { go: go?.disabled ?? null, why: why?.textContent ?? null, described: !!why && go?.getAttribute('aria-describedby') === why.id,
+          inFoot: !!why?.closest('.p3-bardlg-foot'), beforeCancel: !!why && !!cancel && !!(why.compareDocumentPosition(cancel) & Node.DOCUMENT_POSITION_FOLLOWING), due: document.querySelectorAll('[data-p3="update-due-set"]').length };
+      });
+      ok(whyOn === null && nw.go === true && nw.why === 'Nothing to write: Button and Select can’t be updated yet.' && nw.described && nw.inFoot && nw.beforeCancel && nw.due === 0,
+        `${where}: #3713 disabled says why: with every Due set blocked, Update file is disabled and the foot names why beside it (${JSON.stringify({ whyOn, ...nw })})`);
       await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
       await page.waitForFunction(() => !document.querySelector('[data-p3="update-blocked-row"]') && document.querySelectorAll('[data-p3="update-due-set"]').length === 2, null, { timeout: 5000 }).catch(() => {});
       // #3083 (Q3083.3 A): the select's pick is the one the update posts, and the repaint the pick causes keeps focus
