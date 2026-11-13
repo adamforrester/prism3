@@ -499,5 +499,5 @@ export const STEP_TITLE: Readonly<Record<StepKey, string>> = { setup: UPDATE_COP
  *  the count, so the click is the acknowledgement. Empty when no set the update runs has any. */
 export const libraryChangesOf = (defs: readonly string[], check: { readonly sets: readonly CheckedSetView[] } | null): { readonly count: number; readonly lines: readonly string[] } => {
   const hit = defs.flatMap((id) => check?.sets.find((c) => c.def === id)?.changes ?? []);
-  return { count: hit.reduce((k, c) => k + c.count, 0), lines: hit.flatMap((c) => c.lines) };
+  return { count: hit.reduce((k, c) => k + c.lines.length, 0), lines: hit.flatMap((c) => c.lines) };
 };
