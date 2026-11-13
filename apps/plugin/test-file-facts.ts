@@ -34,6 +34,10 @@
  *   · `btn` or `cta` dropped from `BUTTON_WORD` → `button words/a frame named "btn" is button-like; …` (or "cta").
  *   · the usage-row sort dropped (comparator `0`, walk order kept) → `order/paints: most-used first, a tie by color`;
  *   · the components sort dropped → `order/components: most-used first, a tie by name`.
+ *   · the format id moved off 0.x in the scanner and the schema together (`prism3-file-facts/1.0`) →
+ *     `vars/format is the unstable 0.x id prism3-file-facts/0.1` (and `styles`, `raw`, …), D3685.1 C;
+ *   · the schema's "Unstable" sentence dropped → `unstable/the schema description says 0.x is unstable`
+ *     (or `unstable/the format field says 0.x is unstable`).
  */
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -55,6 +59,11 @@ const eq = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.strin
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SCHEMA = JSON.parse(readFileSync(resolve(here, '../../packages/engine/schema/file-facts.schema.json'), 'utf8'));
+
+section('unstable');
+// D3685.1 C: the schema tells a reader the 0.x shape is not a promise, in its own description and on `format`.
+ok(/Unstable while `format` reads 0\.x/.test(SCHEMA.description), 'unstable/the schema description says 0.x is unstable', SCHEMA.description);
+ok(/Unstable while it reads 0\.x/.test(SCHEMA.properties.format.description), 'unstable/the format field says 0.x is unstable', SCHEMA.properties.format.description);
 
 type Library = { collections?: any[]; variables?: any[]; styles?: any[] };
 /** The host slice the adapter reads, over the two shims plus a hand-written library. */
@@ -97,6 +106,8 @@ const scan = async (label: string, file: FileShim, nodes: NodeShim, lib?: Librar
   const errors = validate(SCHEMA, report);
   ok(errors.length === 0, `${label}/the report matches schema/file-facts.schema.json`, errors.slice(0, 5));
   ok(report.format === FILE_FACTS_FORMAT && SCHEMA.$id === FILE_FACTS_FORMAT, `${label}/format equals the schema's $id`);
+  // D3685.1 C: the id is held as a literal, so a scanner and schema that move together off 0.x still fail here.
+  ok(report.format === 'prism3-file-facts/0.1', `${label}/format is the unstable 0.x id prism3-file-facts/0.1`, report.format);
   ok(JSON.stringify(report) === JSON.stringify(again), `${label}/two scans of one file are byte-identical`);
   ok(nodes.writes.length === 0, `${label}/the scan wrote nothing to a layer`, nodes.writes);
   const after = { vars: file.vars.length, colls: file.collections.length, styles: Object.values(file.styles).flat().length };
