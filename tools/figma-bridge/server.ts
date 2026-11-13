@@ -460,7 +460,7 @@ export const createBridge = (opts: { pairing: Pairing; now?: () => Date; log?: (
     let m: { type?: string; state?: AgentLinkState; held?: unknown; result?: AgentResult; id?: string; progress?: AgentProgress; line?: string; proof?: unknown; yield?: unknown; clientNonce?: unknown };
     try { m = JSON.parse(text); } catch { m = {}; }
     if (!conn.authed) {
-      const clientNonce = typeof m.clientNonce === 'string' && CLIENT_NONCE_RE.test(m.clientNonce) ? m.clientNonce : null;
+      const clientNonce = typeof m.clientNonce === 'string' ? m.clientNonce : null;
       if (m.type === 'pair') {
         const proof = clientNonce === null ? null : pairing.pairOk(conn.nonce!, m.proof, clientNonce);
         if (proof === null) { record(null, 'bridge', 'a wrong pairing code: refused'); conn.close(CLOSE.wrongCode, 'wrong pairing code'); return; }
