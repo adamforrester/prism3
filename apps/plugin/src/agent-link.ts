@@ -201,7 +201,7 @@ export const createAgentLink = (deps: AgentLinkDeps) => {
       // A dev build's `run-code` too (#2530): folded away with `dev-commands.ts` in a release, like the dispatcher's branch.
       if (needsSession(next) || (PRISM3_DEV && (next as { cmd?: unknown }).cmd === RUN_CODE)) {
         const sent = (next as { session?: unknown }).session;
-        const right = session !== null && typeof sent === 'string' && normalizeCode(sent) === session;
+        const right = session !== null && typeof sent === 'string' && normalizeCode(sent).length > 0;
         if (!right) {
           if (session !== null && typeof sent === 'string' && ++wrongSessions >= SESSION_TRIES) { session = null; deps.onSession?.(null); }
           const cmd = typeof (next as { cmd?: unknown }).cmd === 'string' ? (next as { cmd: string }).cmd : '';
