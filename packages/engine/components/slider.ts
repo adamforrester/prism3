@@ -74,7 +74,7 @@ export const sliderThumb: ComponentDef = {
     'The handle a Slider moves along its track: a disc in neutral ink that sits on the track with no gap. A light halo grows around it at hover and wider while pressed, and it shows the focus ring while it has keyboard focus. It comes in the Slider\'s three sizes. It lives inside a Slider, which places one thumb for a single value and two for a range, and is never placed on its own.',
 
   props: [
-    { name: 'aria-label', type: 'string', required: false, description: 'The thumb\'s accessible name. Set by the Slider: the label for a single value, "Minimum {label}" and "Maximum {label}" for a range.' },
+    { name: 'aria-label', type: 'string', required: false, description: 'The thumb\'s accessible name. Set by the Slider: the label for a single value, "Minimum {label}" and "Maximum {label}" for a range, with ", required" added when the slider is required.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The disc\'s diameter: 18, 24 or 30px at the default density, from control.size.*.thumb. Set by the Slider.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'The disabled look. Set by the Slider when the whole control is disabled.' },
   ],
@@ -328,7 +328,7 @@ export const slider: ComponentDef = {
     { name: 'largeStep', type: 'number', required: false, description: 'The amount Page Up and Page Down move. Ten steps when not set.' },
     { name: 'minStepsBetweenThumbs', type: 'number', default: 0, required: false, description: 'For a range, how many steps the two thumbs must stay apart. A thumb stops there and never crosses the other.' },
     { name: 'formatOptions', type: 'Intl.NumberFormatOptions', required: false, description: 'How the value reads: a currency, a percent, a unit. Drives the visible value text and each thumb\'s aria-valuetext from one formatter, so what is seen and what is heard match.' },
-    { name: 'thumbLabels', type: '[string, string]', required: false, description: 'For a range, the two thumb names. "Minimum {label}" and "Maximum {label}" when not set.' },
+    { name: 'thumbLabels', type: '[string, string]', required: false, description: 'For a range, the two thumb names, "Minimum {label}" and "Maximum {label}" when not set, with ", required" added when the slider is required.' },
     { name: 'type', type: "enum: 'single' | 'range'", values: ['single', 'range'], default: 'single', required: false, description: 'Read from value: a number is single, a pair is range. Not set on its own; listed so the two looks have a name.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The thumb and the track: an 18px thumb on a 2px track, 24 on 4, or 30 on 6. The label, the value text and the 44px hit area stay the same at every size.' },
     { name: 'showValue', type: 'boolean', default: true, required: false, description: 'Shows the value text above the track. Turn it off only when the paired inputs show the value instead.' },

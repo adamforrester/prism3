@@ -2234,7 +2234,7 @@ const styleGuideCleanup = async (ids: string[], sink: ActionSink): Promise<void>
  */
 const guard = createRunGuard();
 /** `cmd` is the write asked for; `held`, the one holding the file (#3697 R7: they can differ). */
-const refusal = (cmd: WriteCmd, agent: boolean, held: WriteCmd): MainToUi => ({ type: 'refused', code: 'busy', cmd, agent, message: busyMessage(cmd), held });
+const refusal = (cmd: WriteCmd, agent: boolean, held: WriteCmd): MainToUi => ({ type: 'refused', code: 'busy', cmd, agent, message: busyMessage(held), held });
 const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<void>, confirm?: (...a: A) => boolean) =>
   (...a: A): Promise<void> => {
     if (!writes(cmd, confirm ? confirm(...a) : undefined)) return fn(...a);
@@ -2384,7 +2384,7 @@ const dispatch = createDispatcher({
     if (!asked || !holder || !writes(asked, c.cmd === 'prune' ? c.args.confirm : c.cmd === 'panels-clean' ? c.args.confirm === true : undefined)) return null;
     // #3394: a `set-override` preview reads and writes nothing, so it is never declined.
     if (c.cmd === 'set-override' && !c.args.confirm) return null;
-    return { message: busyMessage(asked), post: refusal(asked, true, holder) };
+    return { message: busyMessage(holder), post: refusal(asked, true, holder) };
   },
   // The panel's pills show an agent's result as they would a button's. An agent's prune PREVIEW goes as a
   // pill only: opened as the confirm dialog, the owner's Confirm would prune against the panel's knobs,
