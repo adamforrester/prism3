@@ -468,7 +468,7 @@ export const createBridge = (opts: { pairing: Pairing; now?: () => Date; log?: (
         conn.send({ type: 'paired', token: pairing.token, proof });
         return;
       }
-      if (m.type === 'hello' && clientNonce !== null && pairing.helloOk(conn.nonce!, m.proof)) {
+      if (m.type === 'hello' && pairing.helloOk(conn.nonce!, m.proof)) {
         pairing.settle();
         if (conn.authTimer) { clearTimeout(conn.authTimer); conn.authTimer = undefined; }
         if (m.yield === true && plugin && plugin !== conn) {
