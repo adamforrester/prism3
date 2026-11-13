@@ -1334,10 +1334,38 @@ npx tsx packages/engine/lint-locale-order.ts        # no comparison under packag
                                                     # through localeFreeCompare (locale-free-order.ts).
 ```
 
-CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,
-unconditionally** — there is no "I only touched the engine" exemption, so don't skip them
-locally just because your diff looks engine-only. (Two PRs shipped with a gate silently
-broken because their Gates table stopped before reaching it — see `00-progress.md`.)
+CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR but one
+kind** — there is no "I only touched the engine" exemption, so don't skip them locally just because
+your diff looks engine-only. (Two PRs shipped with a gate silently broken because their Gates table
+stopped before reaching it — see `00-progress.md`.)
+
+**The one exemption: a docs-only pull request skips the browser jobs (#3698 R4, owner decision
+2026-11-12).** When every file a PR changes is docs, CI skips `studio`, `plugin`, `chrome`,
+`chrome-shards` and `surfaces`. The `engine` job, with every engine and doc gate, still runs. It is a
+**named** exemption, never a bare skip: the `changes` job decides it (`.github/scripts/docs-only.sh`),
+and `gates` passes a skipped browser job only when `changes` succeeded and said so. It then prints the
+job as `EXEMPT` and records `DOCS-ONLY EXEMPTION (#3698 R4)` in the run summary (`all-gates.sh`).
+Any other skip still fails `gates`.
+
+- **What counts as docs:** a file under `docs/` other than `docs/public/`, or a `.md` file outside
+  `apps/`, `packages/`, `skills/` and `docs/public/` other than the root `README.md`. One other file
+  means no exemption. The root `README.md` is excluded because `lint-us-english` (in `surfaces`) scans it.
+  `docs/public/` is excluded because the studio serves it, and the browser suites and the prose gates in
+  `surfaces` read it. `packages/` is excluded because it holds markdown the studio bundles
+  (`examples/*.design.md`), and `skills/` because it ships. The classifier's header is the one statement
+  of the rule. **No file a prose gate scans counts as docs**, so a PR that touches one still runs the prose
+  gates: the test reads each prose gate's own `--files` list and fails by name (`scope/<gate>`) on any file
+  the classifier calls docs.
+- **Only a pull request qualifies.** A push to `main` runs every job. Every doubt resolves to running
+  everything: an empty diff, a failed diff, or a missing SHA.
+- **The test** is `bash .github/scripts/test-docs-only.sh` (below). `lint-doc-gates.ts` holds the jobs that
+  carry the exemption's `if:` to `EXEMPT_JOBS` in `all-gates.sh`, in both directions, each a browser job.
+- **Locally nothing changes:** `npm run verify` runs every gate whatever you changed.
+
+**Node and tsx are pinned exactly (#3698 R4).** Node is the version in `.node-version`, which every CI
+job reads. `tsx` is an exact root devDependency, so `npm ci` installs the one version the lockfile
+names, and every `npx tsx` (CI, `verify.ts`, the workspace scripts) runs it. Moving either is a
+reviewed change to `.node-version`, or to `package.json` and the lockfile.
 
 ```bash
 npm run typecheck    -w @prism3/studio      # tsc --noEmit — esbuild does NOT typecheck
@@ -1706,6 +1734,10 @@ sh tools/claude-md-freshness/mutations.sh  # the mutation battery for the CLAUDE
                                           # network, no git history), so it runs under CI's depth-1
                                           # checkout — unlike the git-HISTORY gates that need
                                           # fetch-depth: 0. Confirmed from a depth-1 clone before wiring
+bash .github/scripts/test-docs-only.sh   # the docs-only exemption (#3698 R4): the classifier and
+                                          # the aggregator's half, by literal cases. A docs change that
+                                          # also touches an app file is never exempt, and no file a prose
+                                          # gate scans (its --files) counts as docs. No git, no network
 bash .github/scripts/test-install-chromium.sh # the test for install-chromium.sh, which all four
                                           # browser jobs run (#2981). A stand-in install and dpkg
                                           # lock in $TMPDIR: no browser, no network. Its stall/…
