@@ -41,7 +41,7 @@
  * setting changes …`; the reduce keeping an older answer (`m.seq < s.liveDue.seq` dropped) → `Q810 A recount: an
  * answer overtaken by a newer request never shows`.
  */
-import { UPDATE_COPY, blockedLine, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, setupOfferedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
+import { UPDATE_COPY, blockedLine, libraryChangesOf, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, setupOfferedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
 import type { Catalog } from './src/state/component-catalog';
 import { initialHostSession, reduce } from './src/state/host-session';
 
@@ -349,6 +349,26 @@ ok(reduce(s2, fd(3, false)).liveDue?.theme === false, 'Q810 A recount (control):
     '#3713 theme ticked (control): with Theme not ticked, the variables still lead and the swap target is counted');
   ok(UPDATE_COPY.checked({ def: 'tag', hash: 'h', members: 4, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: true, upToDate: false, themeBlocked: true, reasons: ['1 variable the plan binds is not in this file (a)'] }, true) === 'Updated after Theme — Theme writes the variables and styles it binds first',
     '#3713 (#3421 kept): a set only Theme blocks, with Theme ticked, still reads Updated after Theme');
+}
+
+
+// #3711 (Q-UF2 A): THE CALLOUT BEFORE THE RUN. The changes the update step passes on to files that use the library, from
+// the sets it runs, each named, and the count the button carries. A set the update does not run adds nothing. Literals.
+// (mutations: `libraryChangesOf` reading every checked set, not the run's → `uf2/only the run's sets`; the button's count
+// dropped → `uf2/button`)
+{
+  const set = (def: string, changes?: { count: number; lines: string[] }) => ({ def, hash: def, members: 4, update: 1, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: false, ...(changes ? { changes } : {}) });
+  const check = { sets: [set('wallet-button', { count: 2, lines: ['Wallet button · variant=a · retired', 'Wallet button · variant=b · retired'] }), set('tag', { count: 1, lines: ['Tag · property label · removed'] }), set('badge')] };
+  ok(same(libraryChangesOf(['wallet-button', 'badge'], check), { count: 2, lines: ['Wallet button · variant=a · retired', 'Wallet button · variant=b · retired'] }),
+    `uf2/only the run's sets: the callout names the changes of the sets the update runs, and counts them (${JSON.stringify(libraryChangesOf(['wallet-button', 'badge'], check))})`);
+  ok(same(libraryChangesOf(['wallet-button', 'tag'], check), { count: 3, lines: ['Wallet button · variant=a · retired', 'Wallet button · variant=b · retired', 'Tag · property label · removed'] }),
+    'uf2/two sets: each set the update runs adds its changes, in run order');
+  ok(same(libraryChangesOf(['badge'], check), { count: 0, lines: [] }) && same(libraryChangesOf(['wallet-button'], null), { count: 0, lines: [] }),
+    'uf2/none: no callout while no set the update runs has changes, or before the check answers');
+  ok(UPDATE_COPY.goLibrary(2) === 'Update, including 2 library changes' && UPDATE_COPY.goLibrary(1) === 'Update, including 1 library change',
+    `uf2/button: the button carries the count (${UPDATE_COPY.goLibrary(2)} | ${UPDATE_COPY.goLibrary(1)})`);
+  ok(UPDATE_COPY.library === 'Files that use this library' && UPDATE_COPY.librarySub(2) === '2 changes in this update reach them at the next library publish:'
+    && UPDATE_COPY.librarySub(1) === '1 change in this update reaches them at the next library publish:', `uf2/callout words: the title and the count line (${UPDATE_COPY.librarySub(1)})`);
 }
 
 console.log(`\n${executed - failed}/${executed} passed`);

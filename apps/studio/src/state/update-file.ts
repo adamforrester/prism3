@@ -223,6 +223,13 @@ export const updateDefsOf = (t: Ticks, check: { readonly sets: readonly CheckedS
   [...new Set([...updatableOf(t, check), ...(t.panels ? panelSets.filter((id) => check.sets.some((c) => c.def === id && !c.blocked)) : []),
     // #3421 (Q39 A): a Kept edits set given Overwrite or Accept as baseline, as the check read it.
     ...keptRunOf(t, kept).filter((id) => check.sets.some((c) => c.def === id && runnable(c, t.theme)))])];
+/** #3711 (Q-UF2 A): the changes the update step would pass on to files that use the library, from the sets it runs
+ *  (`updateDefsOf`), each named, and how many in all. The callout above the button lists the lines; the button carries
+ *  the count, so the click is the acknowledgement. Empty when no set the update runs has any. */
+export const libraryChangesOf = (defs: readonly string[], check: { readonly sets: readonly CheckedSetView[] } | null): { readonly count: number; readonly lines: readonly string[] } => {
+  const hit = defs.flatMap((id) => check?.sets.find((c) => c.def === id)?.changes ?? []);
+  return { count: hit.reduce((k, c) => k + c.count, 0), lines: hit.flatMap((c) => c.lines) };
+};
 /** #3137 Q3137.5 A: up to this many names show inline in the Usage panels group; past it, under a closed disclosure. */
 export const PANELS_INLINE = 6;
 /** #3137: the sets the scoped check reads as the checklist opens: the Due sets and, while ticked, the panel sets. */
@@ -390,6 +397,11 @@ export const UPDATE_COPY = {
   guidesSub: 'Drawn with the settings in Docs. A rerun updates each table in place.',
   go: 'Update file',
   goFresh: 'Set up and update',
+  /** #3711 (Q-UF2 A), DRAFT: the button while the update passes changes on to files that use the library, and the
+   *  callout above it that names each one. */
+  goLibrary: (n: number): string => `Update, including ${n} library change${n === 1 ? '' : 's'}`,
+  library: 'Files that use this library',
+  librarySub: (n: number): string => `${n} change${n === 1 ? '' : 's'} in this update ${n === 1 ? 'reaches' : 'reach'} them at the next library publish:`,
   cancel: 'Cancel',
   close: 'Close',
   stop: 'Stop after this step',
