@@ -1349,6 +1349,18 @@ const agrees = async (w: World, targets: UpdateTarget[], ledger?: Parameters<typ
       return w.plans;
     }, says: /fonts: Inter Semi Bold will not load/ },
   ];
+  // #3713 (D3721.6 b): a swap-target list is cut by SET. Five targets over four sets the file lacks (two in zz-a): the line
+  // keeps every target of the first three sets, grouped by set in the order the plans first name them, and counts the
+  // fourth set, so Studio's "…, and 1 more" names one more set. Cut by target, it read "…, and 2 more".
+  {
+    const five = ['zz-a/1', 'zz-a/2', 'zz-b/1', 'zz-c/1', 'zz-d/1'];
+    const w = await world('button', plansOf('button'));
+    const plans = w.plans.map((p, i) => swapTo([p], five[i % five.length]!)[0]!);
+    const r = await agrees(w, [{ def: 'button', plans }]);
+    const line = r.pre.sets[0]?.blockers.find((b) => b.startsWith('component')) ?? '';
+    ok(plans.length >= five.length && line === 'components the plan swaps to are not in this file: zz-a/2, zz-a/1, zz-b/1, zz-c/1, and 1 more',
+      `agree/file swap targets over four sets: the list keeps the first three sets' targets and counts one more set (${plans.length} plans; ${line || r.pre.sets[0]?.blockers.join('; ') || 'none'})`);
+  }
   for (const c of cases) {
     const w = await world(c.def, plansOf(c.def), c.name === 'font' ? { looseHost: 'patches loadFontAsync so one font will not load' } : {});
     const r = await agrees(w, [{ def: c.def, plans: c.mk(w) }]);
