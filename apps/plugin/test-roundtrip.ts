@@ -3029,8 +3029,13 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 // `PartDef.hostInk` pushes the Counter's `icon` ink into each nested FlushIconButton as `descendantFills`, a field the
 // round-trip diff classifies as unread (the vectors are another component's insides). The spec readback above claims the
 // part's `icon` color through the instance's own `findAll`; this arm says it by name. The Counter is built the way the
-// plugin builds it, its nested sets first into the same file, so every VECTOR read here is one the real executor reached
-// inside a real nested instance (FlushIconButton → its swapped icon → the glyph). EXPECTED is typed from the decision:
+// plugin builds it, its nested sets first into the same file, and the paint is the real executor's `descendantFills` write.
+// WHAT THE ORACLE IS (docs/34, #3732 review S1): the shim's `createInstance` gives every instance ONE stand-in VECTOR
+// (`inst.findAll = () => [vec]`, no children), so both this arm and the spec readback read that stand-in. What they prove
+// is that the executor writes the pushed ink, bound to the right variable, onto whatever VECTORs the nested instance's
+// `findAll` returns, and writes nothing on ghost. The FlushIconButton → swapped `icon/minus`/`icon/plus` → glyph chain is
+// NOT modelled, so whether the real file reaches a paintable VECTOR there is still an open real-file check (it needs those
+// icon components built first; otherwise the Search-field "no VECTOR inside this node to paint" miss). EXPECTED is typed from the decision:
 // on a disabled OUTLINE member every vector inside both buttons is `color/disabled/on-fill`; on a disabled GHOST member
 // the host pushes nothing, so the instance's vectors carry no fill of the host's and the flush button's own disabled ink
 // (`color/disabled/icon`, from its main) stands. The shim does not copy a main's paint onto an instance's vectors, so

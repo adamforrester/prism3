@@ -27,9 +27,11 @@ the ink lands on the swapped glyph. `lint-executor-revision.ts` passes with `EXE
   token-tier `against` names the fill its nearest painted ancestor carries, in every brand and mode.
 - `test:roundtrip`: the spec readback already claims each part's `icon` color and reads it off the VECTORs inside the
   host instance; the Counter's decrement and increment are now claimed at outline/disabled, and a named arm reads the
-  pushed ink back off the built shim.
+  pushed ink back off the built shim. Both read the shim's one stand-in VECTOR per instance: they prove the executor
+  writes the pushed ink onto the nested instance's VECTORs, not that the swap → glyph chain reaches one (not modelled).
 
 **Mutation, failing by name.** See the PR body.
 
-**What this does not settle.** In Figma the ink is a per-instance override: a designer who sets one nested button back
+**What this does not settle.** Whether the real file's nested FlushIconButton reaches a paintable VECTOR: that needs
+`icon/minus` and `icon/plus` built as icon components first, and is an open real-file check. In Figma the ink is a per-instance override: a designer who sets one nested button back
 to `rest` on a disabled Counter keeps the on-fill ink until the host is updated (the cost Q-FL1.1 A accepted).
