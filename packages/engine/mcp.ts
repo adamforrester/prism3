@@ -54,10 +54,13 @@ import { parseDesignMd } from './design-md';
 import { ENGINE_VERSION } from './version';
 import { exportComponentDefs, toSpecsComponents } from './component-defs-export';
 import { componentDefs } from './components/index';
+import { BUILD_IDENTITY } from './build-identity';
 
 // Reads the shared constant rather than restating it: a hardcoded duplicate is exactly how a
 // server ends up reporting a version the artifacts it emits do not agree with.
-export const SERVER_INFO = { name: 'prism3-engine', version: ENGINE_VERSION };
+// #3698 R1: the BUILD identity, `<ENGINE_VERSION>+pending.<n>` between folds and the plain version at one, so two servers
+// on one ENGINE_VERSION with different code report differently. The trees and exports it writes carry the same value.
+export const SERVER_INFO = { name: 'prism3-engine', version: BUILD_IDENTITY };
 
 /** Protocol revisions this server speaks, newest first.
  *
@@ -435,8 +438,13 @@ const structured = (obj: unknown): ToolResult =>
  *  schema failure above already uses (#2162). Before, `buildTree` sat outside every `try`, so a refusal that
  *  fires only when the modes resolve (an override naming an unknown palette or step) escaped `tools/call` as a
  *  -32603 protocol error, which a client may not hand back to the model. Call it on schema-valid input only. */
+/** #3698 R1: a tree this server hands out carries its build identity beside the engine version, when that says more. */
+const stampBuild = (built: ReturnType<typeof buildTree>): ReturnType<typeof buildTree> => {
+  if (BUILD_IDENTITY !== ENGINE_VERSION) built.tree.$extensions.generator.build = BUILD_IDENTITY;
+  return built;
+};
 const buildBrand = (brand: unknown): { theme: Theme; built: ReturnType<typeof buildTree> } | ToolResult => {
-  try { const theme = brandTheme(brand as BrandInput); return { theme, built: buildTree(theme) }; }
+  try { const theme = brandTheme(brand as BrandInput); return { theme, built: stampBuild(buildTree(theme)) }; }
   catch (e) { return text({ error: 'BrandInput refused by the engine', errors: [(e as Error).message] }, true); }
 };
 const refused = (r: ReturnType<typeof buildBrand>): r is ToolResult => 'content' in r;
@@ -568,7 +576,7 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     if (want.includes('figma')) for (const a of figmaArtifacts(theme).artifacts) files.push({ path: `figma/${a.path}`, content: a.content });
     // #3425 — the component-defs export, from the same function `regen` writes the brand-neutral one with.
     if (want.includes('componentSpecs')) {
-      const doc = exportComponentDefs(componentDefs, { brand: brand as BrandInput });
+      const doc = exportComponentDefs(componentDefs, { brand: brand as BrandInput, build: BUILD_IDENTITY });
       files.push({ path: 'component-defs.json', content: JSON.stringify(doc, null, 2) + '\n' });
       files.push({ path: 'component-defs.specs.json', content: JSON.stringify(toSpecsComponents(doc), null, 2) + '\n' });
     }
