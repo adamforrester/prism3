@@ -32,12 +32,12 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 | [Set up file](file-setup.md): pages and helper components | – | ✓ Update file › Set up file | ✓ `file-setup` | – |
 | [Add component sets](build-components.md) | – (lists the sets) <!-- src: apps/studio/src/preview/sections/component-sets.ts:29#37b05aef --> | ✓ Components, then Update file › To add | ✓ `build-components` | – |
 | [Update sets in place](update-a-file-safely.md#update-sets-in-place) | – | ✓ Update file › Due | ✓ `update-components` | – |
-| [Draw style guides](style-guides.md) | – | ✓ Documentation, then Update file › Style guides <!-- src: apps/studio/src/shell/pages.ts:532-537#aed5e5ff --> | ✓ `style-guide` | – |
+| [Draw style guides](style-guides.md) | – | ✓ Docs, then Update file › Style guides <!-- src: apps/studio/src/shell/pages.ts:532-537#aed5e5ff --> | ✓ `style-guide` | – |
 | [Remove what the brand no longer uses](update-a-file-safely.md#remove-what-the-brand-no-longer-uses), with a preview | – | ✓ Update file › Clean up | ✓ `prune` | – |
-| Draw spec panels | – | ✓ Documentation › Specs <!-- src: apps/studio/src/shell/pages.ts:532-537#aed5e5ff --> | ✓ `draw-specs` | – |
+| Draw spec panels | – | ✓ Docs › Specs <!-- src: apps/studio/src/shell/pages.ts:532-537#aed5e5ff --> | ✓ `draw-specs` | – |
 | Read the file back | – | ✓ when the plugin opens | ✓ `readback`, `status` | – |
 
-<!-- src: apps/studio/src/state/update-file.ts:311-338#9e9d6173 --> <!-- src: apps/plugin/src/agent-protocol.ts:42 -->
+<!-- src: apps/studio/src/state/update-file.ts:311-338#ac1d6048 --> <!-- src: apps/plugin/src/agent-protocol.ts:42 -->
 
 ## Tokens
 
