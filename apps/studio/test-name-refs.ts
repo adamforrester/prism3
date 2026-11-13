@@ -267,5 +267,26 @@ console.log('\nM1: a refused removal leaves the brand, the last-good input and s
   store.setPersist(null);
 }
 
+console.log('\nM1: a brand the engine already refused is not the change\'s refusal — the change is taken');
+{
+  // Break the brand for a reason no name door touches: an override naming a palette that was never declared. A lever
+  // edit outside the atomic commit can leave the working brand like this; the name doors must still work to repair it.
+  const preRefused = (): string | null => {
+    load(fixture());
+    store.brandState.overrides = { ...store.brandState.overrides, light: { 'background.primary': { palette: 'ghost', step: '500' } } };
+    store.rebuild();
+    return store.lastError;
+  };
+  const before = preRefused();
+  ok(before !== null, `the pre-refused brand is refused before the change (${before})`);
+  ok(P.renameBrandColor(0, 'acx'), 'a pre-refused brand takes the rename of acc to acx');
+  ok(store.brandState.brandColors?.[0]?.name === 'acx' && !survivors('acc', 'all').length,
+    `after the rename the brand names acx and nothing names acc (${survivors('acc', 'all').join(', ')})`);
+  preRefused();
+  const why = P.removeBrandColor(0);
+  ok(why === null && !(store.brandState.brandColors ?? []).some((c) => c.name === 'acc'),
+    `a pre-refused brand takes the removal of acc (${why ?? 'taken'})`);
+}
+
 console.log(`\n${executed - failed}/${executed} name cascade assertions passed.`);
 if (failed) process.exit(1);
