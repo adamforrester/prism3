@@ -168,6 +168,8 @@ drops('agent-log', wire({ type: 'agent-log', id: 'a', line: 'x' }));
 // #1957: a second write of a running operation, declined by the main thread.
 accepts('refused', { type: 'refused', code: 'busy', cmd: 'apply-theme', agent: false, message: 'Update file is already running. Try again when it finishes.' },
   { kind: 'refused', code: 'busy', cmd: 'apply-theme', agent: false, message: 'Update file is already running. Try again when it finishes.' });
+accepts('refused, naming the write that holds the file (#3697 R7)', { type: 'refused', code: 'busy', cmd: 'build-components', agent: true, message: 'm', held: 'apply-theme' },
+  { kind: 'refused', code: 'busy', cmd: 'build-components', agent: true, message: 'm', held: 'apply-theme' });
 drops('refused with another code', wire({ type: 'refused', code: 'nope', cmd: 'apply-theme', agent: false, message: 'm' }));
 drops('refused with no message', wire({ type: 'refused', code: 'busy', cmd: 'apply-theme', agent: false }));
 drops('refused with no caller', wire({ type: 'refused', code: 'busy', cmd: 'apply-theme', message: 'm' }));
@@ -232,6 +234,12 @@ accepts('style-guide-result with a malformed stopped leaves it off', { type: 'st
     { kind: 'update-check', previewHash: 'H', missing: [], sets: [base], error: null });
   // #3302: the check's progress: its counts, the set being checked now, and the one just checked; a count of the wrong
   // type, or more done than in all, drops the reading, and a set that does not read as one is left off it.
+  // #3713: a blocked set carries its reasons; a set not blocked carries none, and a reason of the wrong type is left off.
+  const blk = { ...base, blocked: true };
+  accepts('update-check with a blocked set\'s reasons', { type: 'update-check', previewHash: 'H', missing: [], refused: [], sets: [{ ...blk, reasons: ['the axes change', 7] }] },
+    { kind: 'update-check', previewHash: 'H', missing: [], sets: [{ ...blk, reasons: ['the axes change'] }], error: null });
+  accepts('update-check with reasons on a set not blocked leaves them off', { type: 'update-check', previewHash: 'H', missing: [], refused: [], sets: [{ ...base, reasons: ['x'] }] },
+    { kind: 'update-check', previewHash: 'H', missing: [], sets: [base], error: null });
   accepts('update-check-progress with the set just checked', { type: 'update-check-progress', done: 1, total: 2, next: 'select', set: base },
     { kind: 'update-check-progress', done: 1, total: 2, next: 'select', set: base });
   accepts('update-check-progress before any set, with a malformed set left off', { type: 'update-check-progress', done: 0, total: 2, next: 'button', set: { def: 'x' } },

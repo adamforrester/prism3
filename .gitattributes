@@ -1,0 +1,3 @@
+# #3698 R3 (owner decision 2026-11-12): the engine's emitted tree is generated. GitHub collapses its diffs in review and
+# leaves it out of the language stats. Review reads `regen --check`, not these diffs. The committed files stay committed.
+packages/engine/out/** linguist-generated=true

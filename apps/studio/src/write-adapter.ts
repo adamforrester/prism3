@@ -81,7 +81,8 @@ export type HostMessage =
   | { kind: 'agent-finished'; id: string }
   // #1957: a write the main thread declined because a run of the same operation was already going. Not a
   // verdict, so it is its own kind: `cmd` is the operation's agent-command name, `agent` whose request it was.
-  | { kind: 'refused'; code: 'busy'; cmd: string; agent: boolean; message: string }
+  /** `held`: the write holding the file (#3697 R7), absent from a host older than the one file-wide hold. */
+  | { kind: 'refused'; code: 'busy'; cmd: string; agent: boolean; message: string; held?: string }
   // `present` is the #722 addition: the summary string alone could not distinguish "no Prism3
   // theme in this file" from "a theme is here", and #721's three outcomes need that told apart
   // from `ok`. Deriving it by parsing `summary` would make the UI depend on the host's prose.
@@ -138,6 +139,8 @@ export type CheckedSetView = {
   readonly handEdited: number; readonly noBaseline: number; readonly blocked: boolean; readonly upToDate: boolean;
   /** #3421 — blocked only by variables or styles the brand's Theme writes: a run with Theme updates it after Theme. */
   readonly themeBlocked?: true;
+  /** #3713 — a blocked set's reasons, as the check's dry run wrote them. Absent when the set is not blocked. */
+  readonly reasons?: readonly string[];
   /** #2831 — on a published set, what the update breaks for library consumers, as one line. Absent otherwise. */
   readonly breaks?: string;
 };
@@ -409,7 +412,8 @@ const checkedSet = (x: unknown): CheckedSetView[] => {
   const n = (['members', 'update', 'add', 'drop', 'handEdited', 'noBaseline'] as const).map((k) => count(c[k]));
   if (n.some((v) => v === null)) return [];
   const [members, update, add, drop, handEdited, noBaseline] = n as number[];
-  return [{ def: c.def, hash: c.hash, members, update, add, drop, handEdited, noBaseline, blocked: c.blocked, upToDate: c.upToDate, ...(c.blocked && c.themeBlocked === true ? { themeBlocked: true as const } : {}), ...(str(c.breaks) ? { breaks: c.breaks } : {}) }];
+  return [{ def: c.def, hash: c.hash, members, update, add, drop, handEdited, noBaseline, blocked: c.blocked, upToDate: c.upToDate, ...(c.blocked && c.themeBlocked === true ? { themeBlocked: true as const } : {}),
+    ...(c.blocked && Array.isArray(c.reasons) && c.reasons.some(str) ? { reasons: (c.reasons as unknown[]).filter(str) } : {}), ...(str(c.breaks) ? { breaks: c.breaks } : {}) }];
 };
 const KINDS: readonly StyleGuideKind[] = ['color', 'dimension', 'font', 'text', 'effect', 'gradient', 'grid'];
 /** The style guide's catalog (S11.2), checked entry by entry: an entry with a field of the wrong type is dropped, and
@@ -640,7 +644,7 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   'agent-finished': (m) => (isId(m.id) ? { kind: 'agent-finished', id: m.id } : null),
   // #1957. Dropped unless every field is usable: a refusal with no operation has no row to land in.
   'refused': (m) => (m.code === 'busy' && typeof m.cmd === 'string' && typeof m.agent === 'boolean' && typeof m.message === 'string' && m.message
-    ? { kind: 'refused', code: 'busy', cmd: m.cmd, agent: m.agent, message: m.message } : null),
+    ? { kind: 'refused', code: 'busy', cmd: m.cmd, agent: m.agent, message: m.message, ...(typeof m.held === 'string' && m.held ? { held: m.held } : {}) } : null),
 };
 
 /** Validate one inbound `MessageEvent.data` and return the UI's `HostMessage`, or `null` to drop it. Pure,

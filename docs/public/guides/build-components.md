@@ -59,7 +59,7 @@ A set that can't be built for this brand is listed with the reason: "Can't be bu
 Adding a set never replaces one the file already holds. The plugin finds the set by name and adds only what is missing. <!-- src: apps/plugin/src/apply-summary.ts:54-58#68cb2d2d -->
 A set already in the file is brought up to date in place instead, under **Due**, with your hand edits kept unless you choose otherwise. See [Update sets in place](update-a-file-safely.md#update-sets-in-place). <!-- src: apps/studio/src/state/update-file.ts:336 -->
 
-Only one build runs at a time, from the panel or an agent: a second request reads "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:41-45 -->
+Only one write runs at a time, from the panel or an agent: a build asked for while another write runs reads "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:49-52 -->
 
 ## Where each set goes
 

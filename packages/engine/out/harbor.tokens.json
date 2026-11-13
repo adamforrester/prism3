@@ -8785,7 +8785,7 @@
                     "color": "{hds.color.interactive.primary.fill.rest}",
                     "opacity": "{hds.opacity.30}"
                   },
-                  "contrast": 7.33,
+                  "contrast": 7.3,
                   "against": "background.primary",
                   "contrastModel": "ink-on-composite",
                   "legibleFor": "interactive.primary.text.pressed",
@@ -8796,7 +8796,7 @@
                         "color": "{hds.color.interactive.primary.fill.rest}",
                         "opacity": "{hds.opacity.30}"
                       },
-                      "contrast": 6.72,
+                      "contrast": 6.7,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "interactive.primary.text.pressed"
@@ -8807,7 +8807,7 @@
                         "color": "{hds.color.interactive.primary.fill.rest}",
                         "opacity": "{hds.opacity.30}"
                       },
-                      "contrast": 9.17,
+                      "contrast": 9.14,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "interactive.primary.text.pressed"
@@ -8818,7 +8818,7 @@
                         "color": "{hds.color.interactive.primary.fill.rest}",
                         "opacity": "{hds.opacity.30}"
                       },
-                      "contrast": 8.13,
+                      "contrast": 8.1,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "interactive.primary.text.pressed"

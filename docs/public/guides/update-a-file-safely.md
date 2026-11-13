@@ -52,7 +52,7 @@ If the update writes every set and some still differ from the plan, the run goes
 - **Check first, write second.** The theme step reads everything it will touch before its first write, and writes nothing if anything conflicts, unless you choose Skip or Rename for each conflict. <!-- src: apps/plugin/src/apply-theme.ts:80-121#6a30db6f --> <!-- src: apps/plugin/src/preflight.ts:157-216#328537d5 -->
 - **Prism3 changes only what Prism3 made.** Each collection, style and component Prism3 creates carries a mark saying so, and later runs read that mark before changing anything. <!-- src: apps/plugin/src/provenance.ts:1-57#dce1a9a1 --> <!-- src: apps/plugin/src/preflight.ts:21#f83b8069 -->
 - **Nothing is deleted unless you ask.** The **Update** tab never deletes. Removing what the brand no longer uses is the **Clean up** tab, and it shows what it will delete before it deletes. <!-- src: apps/studio/src/state/update-file.ts:311-312 -->
-- **One write at a time.** While a write runs, a second request for the same write is refused, whether the panel or an agent asked. <!-- src: apps/plugin/src/run-guard.ts:1-14#b6f8158f -->
+- **One write at a time.** While any write runs, every other write is refused, whether the panel or an agent asked. <!-- src: apps/plugin/src/run-guard.ts:1-20#802b70d3 -->
 
 ## Update sets in place
 
@@ -124,7 +124,7 @@ Removing a mode removes its values from every variable in the collection, so mov
 | You see | Why | What to do |
 |---|---|---|
 | `✗ N conflicts`, "Nothing was written." | The file holds a same-named collection or style that Prism3 did not create, or a variable of another type. <!-- src: apps/plugin/src/preflight.ts:237 --> | Rename or remove the named items, then run Update file again. |
-| "is already running. Try again when it finishes." | The same write is already running, from the panel or an agent. <!-- src: apps/plugin/src/run-guard.ts:41-45 --> | Wait for it to finish. |
+| "is already running. Try again when it finishes." | Another write is already running, from the panel or an agent. <!-- src: apps/plugin/src/run-guard.ts:49-52 --> | Wait for it to finish. |
 | "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." | The brand saved in this file didn't open. The dialog's **Update file** button, Clean up's delete and every other write stay off. <!-- src: apps/studio/src/main.ts:1833 --> | Load the brand again, for example from its `design.md`. |
 | `✗ update refused`, "the file changed since the check" | Something in the file moved between the check and the update. <!-- src: apps/plugin/src/update-apply.ts:895 --> | Open Update file again and read the new check. |
 | "the named version could not be saved" | Figma refused to save the safety version, so the update wrote nothing. <!-- src: apps/plugin/src/update-apply.ts:971 --> | Try again. Nothing in the file changed. |
