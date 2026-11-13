@@ -707,7 +707,7 @@ const prune = async (input: BrandInput, confirm: boolean, previewHash: string | 
     const refusal = pruneConfirmRefusal({ holdsInput: holdsInput(figma.root, input), previewHash: previewHash ?? '', currentHash: hash });
     if (refusal) { sink.post({ type: 'prune-result', ok: false, applied: false, count: 0, summary: refusal }); return; }
     try { await saveVersion(figma, { run: 'prune' }); }
-    catch (e) { sink.post({ type: 'prune-result', ok: false, applied: false, count: 0, summary: PRUNE_COPY.noVersion(failureDetail(e)) }); }
+    catch (e) { sink.post({ type: 'prune-result', ok: false, applied: false, count: 0, summary: PRUNE_COPY.noVersion(failureDetail(e)) }); return; }
     removing = true;
 
     const pruneApi: PruneApi = {
