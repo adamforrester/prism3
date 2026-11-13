@@ -585,7 +585,7 @@ export const applyPrunePlan = async (plan: PrunePlan, api: PruneApi, counts: Pru
     const removed: string[] = [];
     for (const m of grp.modes) {
       if (!coll.modes.some((x) => x.modeId === m.modeId)) { misses.push(`mode:${grp.collection}/${m.name}`); continue; }
-      coll.removeMode(m.modeId);
+      if (!tryRemove(`mode:${grp.collection}/${m.name}`, () => coll.removeMode(m.modeId))) continue;
       removed.push(m.name);
       counts.modes++;
     }
