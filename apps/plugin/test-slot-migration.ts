@@ -30,6 +30,7 @@
  *               rest with their rows for the next run.
  *   stopped/text/… #3697 H1, the #3225 half: a Banner set that stops after its properties exist fills every edited
  *               body; one that stops inside its member pass names each body it could not carry (carrying it: #3761).
+ *   failed/…    #3697 L1 — a throw after the set's write (its fill) returns the set's outcome and why the run ended.
  *   dialog/…    #2661 — the footer's two fixed Buttons move into a nested Button.Group's slot, which holds the same two by
  *               default: a designer's changed labels land on those defaults in order, an unchanged instance is left
  *               out, and a swapped or hidden button is named. Driven on a hand-built model of the placed instances
@@ -48,6 +49,7 @@
  *   · the stopped fill reports every unreached instance (`reachedOnly` dropped) → `stopped/no false miss`.
  *   · a stopped Banner set skips the text fill again (`!o.stopped` back on `fillSlotText`) → `stopped/text after the pass filled`;
  *   · the text fill skips an instance with none of the new properties → `stopped/text inside the pass named`.
+ *   · applyUpdate's catch around its writes rethrows (#3697 L1) → `failed/returned`, `failed/partial`.
  */
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
@@ -458,6 +460,36 @@ section('stopped/text — a Banner set that stops part-way still fills each body
   const named = inside.placed.filter((p) => (inside.o?.content ?? []).some((l) => l.startsWith(`banner instance "${p.name}": has no "body text" property`))).length;
   ok(named === inside.placed.length && inside.o?.carriedText?.moved === 0,
     `stopped/text inside the pass named: each instance whose body could not be carried is a miss naming it, not skipped silently (${named} of ${inside.placed.length} named; ${JSON.stringify(inside.o?.carriedText?.misses.slice(0, 2))})`);
+// ---- failed --------------------------------------------------------------------------------------------------------
+
+section('failed — a throw outside the set\'s write returns what was done, not nothing (#3697 L1)');
+{
+  // The set's write finishes; then the slot fill throws (an instance whose layers can no longer be read), outside the
+  // build's pass and outside the fill's own catches. `applyUpdate` used to throw, so the caller wrote no ledger for the
+  // set and the verdict was one "update failed" line. Mutation: the catch around the writes dropped → `failed/returned`.
+  const target: UpdateTarget = { def: 'checkbox-group', plans: figmaAnatomySet(defOf('checkbox-group'), { swapTarget: SWAP_TARGET }) };
+  const w = await world(LEGACY['checkbox-group'](), target.plans);
+  const medium = memberNamed(w.set(), 'status=default, size=medium');
+  const inst = w.put(place('Broken', medium, w.set(), {}, { row1: { props: { 'Label#1:0': 'Email' } } }), medium);
+  const pre = await previewUpdate(w.host, [target]);
+  // Armed once the dry run has read it: from then on, reading the instance's layers throws.
+  const real = Object.getOwnPropertyDescriptor(inst, 'children')!.get!;
+  let armed = false;
+  for (const m of w.set().children as Node[]) {
+    const set = m.setSharedPluginData as (ns: string, k: string, v: string) => void;
+    m.setSharedPluginData = (ns: string, k: string, v: string) => { if (k === UPDATING_KEY && v) armed = true; set.call(m, ns, k, v); };
+  }
+  Object.defineProperty(inst, 'children', { configurable: true, get: () => { if (armed && !w.set().children.some((m) => (m.getSharedPluginData as (a: string, b: string) => string)('prism3', UPDATING_KEY))) throw new Error('the instance could not be read'); return real.call(inst); } });
+  let res: Awaited<ReturnType<typeof applyUpdate>> | null = null, threw = '';
+  try { res = await applyUpdate(w.host, w.api as any, [target], previewHashOf(pre)); } catch (e) { threw = (e as Error).message; }
+  ok(!!res && !threw, `failed/returned: the run returns its result rather than throwing (${threw || 'returned'})`);
+  ok(res?.failed === 'the instance could not be read', `failed/why: the result says why the run ended (${res?.failed})`);
+  const o = res?.outcomes[0];
+  ok(!!o && o.set === 'checkbox-group' && o.updated.length > 0 && !o.stopped,
+    `failed/partial: the set written before the throw is in the result, with its members updated (${o?.updated.length ?? 0})`);
+  const v = res ? applyVerdict(res) : null;
+  ok(!!v && !v.ok && v.headline === '✗ update failed' && v.lines[0].startsWith('The update failed: the instance could not be read.') && v.lines.length > 1,
+    `failed/verdict: the verdict fails, says why first, and keeps the lines for what was done (${v?.headline}; ${JSON.stringify(v?.lines.slice(0, 2))})`);
 }
 
 // ---- tabs ----------------------------------------------------------------------------------------------------
