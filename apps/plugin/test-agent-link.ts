@@ -101,13 +101,14 @@
  *     refuse/<case>. (mutations: `readOne` assigning `n.name = n.name` → `no-write/inspect`; `locked` dropped from its
  *     entry → `envelope/inspect`, each by name)
  *   · session/<arm> (#3697 R8, the owner's A): through the mailbox, a command that changes or removes what is in the file
- *     runs only with this link session's code. session/refused (none), session/wrong (another), session/spent (past
+ *     runs only with this link session's code. session/refused (none), session/wrong (another, the real one with its last character changed, and
+ *     an empty one), session/spent (past
  *     SESSION_TRIES wrong ones, the right one too) are answered `no-session` and reach no handler; session/right runs;
  *     session/previews (a preview or a read needs none); session/not-in-file (the code is in no mailbox key and no
  *     result); session/panel (the panel is told it); session/new (switching on again draws a new one); session/which
  *     (`needsSession` against a literal list). (mutations: the check in `poll` removed → session/refused, session/wrong
  *     and session/spent fail by name; the code written into the link record → session/not-in-file; the compare accepting any
- *     code → session/wrong; the five-try spend removed → session/spent; the dev run-code clause removed → session/refused;
+ *     code, or reading only its first 4 characters, or matching it as a prefix (#3728 review S2) → session/wrong; the five-try spend removed → session/spent; the dev run-code clause removed → session/refused;
  *     switch-off no longer forgetting the code → session/new; apply-theme or the confirms out of needsSession → session/which)
  *   · switch-off: with the link off again, nothing new is run
  *   · state: the panel receives the link state and the last command's headline
