@@ -129,6 +129,10 @@ export type ShimOpts = {
    *  call, which is a different failure from a font that exists but has not been loaded this run; both
    *  are modelled, and the executor's `catch` around the load was unreachable until now. */
   unavailableFonts?: FontName[];
+  /** How `loadFontAsync` refuses an `unavailableFonts` face. Default an `Error`. `'string'` rejects with a plain string,
+   *  no `.message`: the owner's Update file run on 2026-11-12 printed every refused Google Sans load as
+   *  `label.font -> Google Sans Medium (undefined)`, so the host's rejection is not an `Error`. */
+  fontRefusal?: 'error' | 'string';
   /** The font every text style names. Overridable so a case can put a font the run cannot load behind
    *  a style the plan does resolve. */
   styleFont?: FontName;
@@ -1669,7 +1673,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // call, which throws and surfaces a `.font ->` miss the mixed arm asserts is absent.
       if (!fn || typeof fn !== 'object' || typeof (fn as FontName).family !== 'string' || typeof (fn as FontName).style !== 'string')
         throw new Error('in loadFontAsync: The provided font is not a valid FontName.');
-      if (unavailable.has(fontKey(fn))) throw new Error(`Cannot load font "${fn.family} ${fn.style}": it is not available.`);
+      if (unavailable.has(fontKey(fn))) {
+        const why = `Cannot load font "${fn.family} ${fn.style}": it is not available.`;
+        if (opts.fontRefusal === 'string') throw why;
+        throw new Error(why);
+      }
       loadedFonts.add(fontKey(fn));
     },
     // Zero-cost unless a run asks for the burn (`opts.burn.setup`). This is the last of the pre-build-loop

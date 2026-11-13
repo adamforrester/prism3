@@ -16,6 +16,7 @@ import { brandTheme, isReservedPalette } from '@prism3/engine/theme';
 import { ACHROMATIC_C, hex, oklchToRgb, hexToRgb, rgbToOklch, storedOklch } from '@prism3/engine/color';
 import { autoPlaceStep } from '@prism3/engine/ramp';
 import { brandState, lastGoodInput, theme } from './store';
+import { commitAtomic, paletteRemovalEffects, removePalette, renamePalette } from './name-refs';
 import { resolvedModes } from './verdict';
 
 export const STATUS_ROLES = ['success', 'warning', 'danger', 'info'] as const;
@@ -57,137 +58,20 @@ export const rolesByPalette = (): Record<string, string[]> => {
 // ── primary, brand colors ───────────────────────────────────────────────────────────────────────
 export const setPrimary = (h: string): void => { brandState.primary = oklchOf(h); };
 
-/** Brand-color reference integrity (docs/24 #53): when an accent is renamed, every field that names its
- *  palette follows, or the alias graph dangles. */
-export const cascadeRename = (prev: string, next: string): void => {
-  if (brandState.actionPalette === prev) brandState.actionPalette = next;
-  if (brandState.linkPalette === prev) brandState.linkPalette = next;
-  const rc = brandState.roleColors as Record<string, string> | undefined;
-  if (rc) for (const r of Object.keys(rc)) if (rc[r] === prev) rc[r] = next;
-  // A column with no explicit `name` is named by its palette (`name ?? palette`), so the rename renames the column too,
-  // and every key that names the column by it follows (#3448): its per-mode anchor (`modeAnchors[mode][col]`) and its
-  // role overrides (`interactive.<col>.…`, `inverse.interactive.<col>.…`). Left on the old name the engine ignores them,
-  // and the column's anchor and overrides go back to Auto without a word. The old name wins: a key already on the new
-  // name belongs to no live column (`renameBrandColor` refuses every rename that would make it one), so it is a leftover, and
-  // it is dropped first (a removed column's keys stay behind, #3549). Kept, it would bring back a value the user
-  // removed and drop the one they just set. When another column carries the explicit `name` equal to the old name, the
-  // keys on it name that column too, and nothing says which column they belong to, so none of them moves (#3545 fifth
-  // review): a palette renamed onto a column's name, given a column, then renamed back must not take that column's keys.
-  const cols = brandState.interactivePalettes ?? [];
-  const renamesColumn = cols.some((e) => e.name === undefined && e.palette === prev) && !cols.some((e) => e.name === prev);
-  brandState.interactivePalettes?.forEach((e) => { if (e.palette === prev) e.palette = next; });
-  if (renamesColumn) {
-    // A mode map left empty (its only key was a dropped leftover, and the old name had no anchor there) is pruned, as
-    // `setAnchor` prunes, and so is an emptied `modeAnchors` (#3613). Only a map this drop emptied: one already empty stays.
-    const ma = brandState.modeAnchors;
-    let pruned = false;
-    for (const mode of Object.keys(ma ?? {})) {
-      const m = ma![mode];
-      if (!m) continue;
-      const stale = next in m;
-      delete m[next];
-      if (prev in m) { m[next] = m[prev]; delete m[prev]; }
-      if (stale && !Object.keys(m).length) { delete ma![mode]; pruned = true; }
-    }
-    if (pruned && !Object.keys(ma!).length) brandState.modeAnchors = undefined;
-    const heads = [[`interactive.${prev}.`, `interactive.${next}.`], [`inverse.interactive.${prev}.`, `inverse.interactive.${next}.`]];
-    for (const m of Object.values(brandState.overrides ?? {})) {
-      if (!m) continue;
-      for (const key of Object.keys(m)) if (heads.some(([, to]) => key.startsWith(to))) delete m[key];
-      for (const key of Object.keys(m)) {
-        const head = heads.find(([from]) => key.startsWith(from));
-        if (!head) continue;
-        const to = head[1] + key.slice(head[0].length);
-        (m as Record<string, unknown>)[to] = m[key];
-        delete m[key];
-      }
-    }
-  }
-  if (Array.isArray(brandState.gradients)) brandState.gradients.forEach((g) => g.stops.forEach((s) => { if (s.palette === prev) s.palette = next; }));
-  // An override that names the palette follows too (#3405), in every mode, custom modes included: left on the old
-  // name it dangles, and the engine refuses the brand ("unknown palette"). Its step is kept: the ramp is the same one.
-  for (const m of Object.values(brandState.overrides ?? {})) {
-    for (const ref of Object.values(m ?? {})) if ((ref as { palette?: string } | undefined)?.palette === prev) (ref as { palette: string }).palette = next;
-  }
-};
-/** Whether removing palette `name` drops the keys of the interactive column it names (#3549): it has an unnamed
- *  column, and no column carries `name` as its explicit name. */
-const dropsColumnKeys = (name: string): boolean => {
-  const cols = brandState.interactivePalettes ?? [];
-  return cols.some((e) => e.name === undefined && e.palette === name) && !cols.some((e) => e.name === name);
-};
-/** Whether override key `key` names column `col` (`interactive.<col>.…` or `inverse.interactive.<col>.…`). */
-const isColumnKey = (key: string, col: string): boolean =>
-  key.startsWith(`interactive.${col}.`) || key.startsWith(`inverse.interactive.${col}.`);
-/** …and when one is removed, every field that named it falls back (actions to primary, links to their
- *  default, a borrow to Auto, a column away, a gradient stop to primary, since a gradient needs its stops). */
-export const cascadeRemove = (removed: string): void => {
-  if (brandState.actionPalette === removed) brandState.actionPalette = 'primary';
-  if (brandState.linkPalette === removed) brandState.linkPalette = undefined;
-  const rc = brandState.roleColors as Record<string, string> | undefined;
-  if (rc) { for (const r of Object.keys(rc)) if (rc[r] === removed) delete rc[r]; if (!Object.keys(rc).length) brandState.roleColors = undefined; }
-  // The removed palette's unnamed column was named by it, so the keys that named the column go with it (#3549): its
-  // per-mode anchor and its `interactive.<removed>.…` / `inverse.interactive.<removed>.…` overrides, in every mode.
-  // Left behind, the engine ignores them until a column takes the name again (a rename, or a new color of that name),
-  // and then they come back without a word. Same rule as `cascadeRename`: when another column carries `removed` as its
-  // explicit name, the keys name that column too, so none of them is dropped.
-  if (dropsColumnKeys(removed)) {
-    for (const field of ['modeAnchors', 'overrides'] as const) {
-      const byMode = brandState[field] as Record<string, Record<string, unknown> | undefined> | undefined;
-      if (!byMode) continue;
-      let dropped = false;
-      for (const mode of Object.keys(byMode)) {
-        const m = byMode[mode];
-        if (!m) continue;
-        const keys = Object.keys(m).filter((key) => field === 'modeAnchors' ? key === removed : isColumnKey(key, removed));
-        for (const key of keys) delete m[key];
-        // Pruned as `setAnchor` and `setRoleOverride` prune, but only what this drop emptied: an empty map the brand
-        // already held is not this removal's to change.
-        if (keys.length) { dropped = true; if (!Object.keys(m).length) delete byMode[mode]; }
-      }
-      if (dropped && !Object.keys(byMode).length) brandState[field] = undefined;
-    }
-  }
-  if (brandState.interactivePalettes) {
-    brandState.interactivePalettes = brandState.interactivePalettes.filter((e) => e.palette !== removed);
-    if (!brandState.interactivePalettes.length) brandState.interactivePalettes = undefined;
-  }
-  if (Array.isArray(brandState.gradients)) brandState.gradients.forEach((g) => g.stops.forEach((s) => { if (s.palette === removed) s.palette = 'primary'; }));
-};
+/** Brand-color reference integrity (docs/24 #53): when a brand color is renamed, every field that names its palette
+ *  follows, or the alias graph dangles. The fields are the rows of one table (`name-refs.ts`, #3697 H3), which the
+ *  removal and its confirm read too. */
+export const cascadeRename = (prev: string, next: string): void => renamePalette(brandState, prev, next);
+/** …and when one is removed, every field that named it falls back (actions to primary, links to their default, a
+ *  borrow to Auto, a column away with its keys, a gradient stop to primary, an inverse band or an outline hover pick
+ *  to Auto). An override or a glass that names it is held (#3391): see `name-refs.ts`. */
+export const cascadeRemove = (removed: string): void => removePalette(brandState, removed);
 
-/** What removing palette `name` also changes, one line each, in the order `cascadeRemove` applies it: the
- *  confirm lists these before the removal (owner, 2026-10-01). Read from the working brand, so the list is
- *  what Confirm will do. An empty list means nothing else names the palette. */
-export const removalEffects = (name: string): string[] => {
-  const out: string[] = [];
-  if (brandState.actionPalette === name) out.push('Actions go back to primary.');
-  if (brandState.linkPalette === name) out.push('Links go back to their default color.');
-  const rc = brandState.roleColors as Record<string, string> | undefined;
-  for (const r of Object.keys(rc ?? {})) {
-    if (rc![r] !== name) continue;
-    out.push((STATUS_ROLES as readonly string[]).includes(r) ? `The ${r} color goes back to Auto.` : `The ${r} role goes back to its default palette.`);
-  }
-  if (brandState.interactivePalettes?.some((e) => e.palette === name)) out.push(`Its interactive color column is removed.`);
-  if (Array.isArray(brandState.gradients)) {
-    for (const g of brandState.gradients) {
-      const n = g.stops.filter((st) => st.palette === name).length;
-      if (n) out.push(`In the ${g.name} gradient, ${n === 1 ? '1 stop switches' : `${n} stops switch`} to primary.`);
-    }
-  }
-  // An override that names the palette is NOT cascaded (#3391): it dangles, and the engine refuses the brand
-  // ("unknown palette"). Listed here, by role, so the removal is never a surprise. Last: it is not a step of the cascade.
-  // An override keyed by the removed column is not held: `cascadeRemove` drops it with the column (#3549).
-  const dropsKeys = dropsColumnKeys(name);
-  const held = [...new Set(Object.values(brandState.overrides ?? {}).flatMap((m) =>
-    Object.entries(m ?? {}).filter(([role, ref]) => (ref as { palette?: string } | undefined)?.palette === name && !(dropsKeys && isColumnKey(role, name)))
-      .map(([role]) => role)))];
-  if (held.length) {
-    out.push(held.length === 1
-      ? `1 role is still overridden to it: ${held[0]} — the brand won't build until it's re-picked.`
-      : `${held.length} roles are still overridden to it: ${held.join(', ')} — the brand won't build until each is re-picked.`);
-  }
-  return out;
-};
+/** What removing palette `name` also changes, one line each, in the table's order: the confirm lists these before the
+ *  removal (owner, 2026-10-01). Read from the working brand, so the list is what Confirm will do. An empty list means
+ *  nothing else names the palette. A held reference (an override or a glass drawn from it, #3391) is listed last in
+ *  its row: while one is held, the removal is refused (`removeBrandColor` is atomic, #3697 M1). */
+export const removalEffects = (name: string): string[] => paletteRemovalEffects(brandState, name);
 
 /** Add a brand color, `accent<n>` at the first free number. Materialized on the EDIT, never on a render
  *  (#1033): a render that created `brandColors: []` made an untouched brand read as edited. */
@@ -220,16 +104,16 @@ export const renameBrandColor = (i: number, raw: string): boolean => {
   const taken = new Set([...list.filter((_, j) => j !== i).map((b) => b.name), ...columnNames]);
   if (taken.has(next) || isReservedPalette(next)) return false;
   const prev = bc.name;
-  bc.name = next;
-  cascadeRename(prev, next);
-  return true;
+  // Atomic (#3697 M1): a rename the engine refuses changes nothing, and the field puts the old name back.
+  return commitAtomic((b) => { b.brandColors![i].name = next; renamePalette(b, prev, next); }) === null;
 };
-export const removeBrandColor = (i: number): void => {
-  const list = brandState.brandColors ?? [];
-  const gone = list[i]?.name;
-  if (gone === undefined) return;
-  list.splice(i, 1);
-  cascadeRemove(gone);
+/** Remove brand color `i` and run the cascade, atomically (#3697 M1): a removal the engine refuses (a role or a glass
+ *  still drawn from the color, held by #3391) returns the engine's message and leaves the brand as it was, byte for
+ *  byte, so the brand, the last-good input and storage never part. Null when the color is gone. */
+export const removeBrandColor = (i: number): string | null => {
+  const gone = brandState.brandColors?.[i]?.name;
+  if (gone === undefined) return null;
+  return commitAtomic((b) => { b.brandColors!.splice(i, 1); removePalette(b, gone); });
 };
 export const setBrandColor = (i: number, h: string): void => {
   const bc = brandState.brandColors?.[i];

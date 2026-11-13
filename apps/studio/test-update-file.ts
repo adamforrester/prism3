@@ -41,7 +41,7 @@
  * setting changes …`; the reduce keeping an older answer (`m.seq < s.liveDue.seq` dropped) → `Q810 A recount: an
  * answer overtaken by a newer request never shows`.
  */
-import { UPDATE_COPY, blockedLine, libraryChangesOf, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, setupOfferedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
+import { UPDATE_COPY, goWhyOf, blockedDueOf, blockedLine, blockedReason, keptChoicesOf, libraryChangesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, setupOfferedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
 import type { Catalog } from './src/state/component-catalog';
 import { initialHostSession, reduce } from './src/state/host-session';
 
@@ -391,6 +391,31 @@ ok(reduce(s2, fd(3, false)).liveDue?.theme === false, 'Q810 A recount (control):
   ok(same(tdefs, ['wallet-button', 'tag']) && same(libraryChangesOf(tdefs, tcheck), { count: 2, lines: ['Wallet button · variant=a · retired', 'Wallet button · variant=b · retired'] }),
     `uf2/theme-blocked: a set only Theme blocks runs with Theme ticked, and adds nothing to the callout or the count until the owner decides (${JSON.stringify(tdefs)})`);
 }
+
+// #3713 (2 of 4): THE DUE SETS THE ANSWER BLOCKS ARE LISTED APART. Literals (docs/34). MUTATION: `blockedDueOf` returning
+// every Due set, or none → `#3713 apart`.
+{
+  const ck = { sets: [
+    { def: 'button', hash: 'a', members: 4, update: 2, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: false },
+    { def: 'icon', hash: 'b', members: 9, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: true, upToDate: false, reasons: ['2 members share the coordinate size=medium (1:2, 1:3) — the set is refused rather than one picked'] },
+    { def: 'tag', hash: 'c', members: 4, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: true, upToDate: false, themeBlocked: true as const, reasons: ['1 variable the plan binds is not in this file (a)'] },
+  ] };
+  ok(same(blockedDueOf(['button', 'icon', 'tag', 'select'], ck, false), ['icon', 'tag']), '#3713 apart: without Theme, the sets the answer blocks are listed apart, a set it did not read is not');
+  ok(same(blockedDueOf(['button', 'icon', 'tag'], ck, true), ['icon']), '#3713 apart: with Theme ticked, a set only Theme blocks stays in Due (#3421)');
+  ok(same(blockedDueOf(['button', 'icon'], null, false), []), '#3713 apart: before the answer, no set is listed apart');
+  ok(blockedReason(ck.sets[1].reasons) === '2 variants share one name, size=medium. Rename or remove the extra one in Figma.'
+    && blockedReason(undefined) === 'The check gave no reason.' && UPDATE_COPY.blocked === 'Can’t update yet',
+    `#3713 apart copy: the group is "Can't update yet", and each row's reason is a sentence (got "${blockedReason(ck.sets[1].reasons)}")`);
+}
+
+// #3713 (3 of 4): WHY UPDATE FILE IS DISABLED. Literals (docs/34). MUTATION: `goWhyOf` returning null → every arm.
+ok(goWhyOf({ off: null, waiting: false, steps: 0, blocked: ['Icon'] }) === 'Nothing to write: Icon can’t be updated yet.', '#3713 why: one blocked set, nothing else to write');
+ok(goWhyOf({ off: null, waiting: false, steps: 0, blocked: ['Icon', 'Tag'] }) === 'Nothing to write: Icon and Tag can’t be updated yet.'
+  && goWhyOf({ off: null, waiting: false, steps: 0, blocked: ['A', 'B', 'C'] }) === 'Nothing to write: A, B and C can’t be updated yet.'
+  && goWhyOf({ off: null, waiting: false, steps: 0, blocked: ['A', 'B', 'C', 'D'] }) === 'Nothing to write: A, B and 2 more can’t be updated yet.', '#3713 why: the blocked sets, named as a list');
+ok(goWhyOf({ off: null, waiting: false, steps: 0, blocked: [] }) === 'Nothing to write: nothing above is ticked.', '#3713 why: nothing ticked');
+ok(goWhyOf({ off: 'The brand did not restore.', waiting: false, steps: 2, blocked: [] }) === 'The brand did not restore.', '#3713 why: a file whose brand did not restore says so');
+ok(goWhyOf({ off: null, waiting: false, steps: 1, blocked: ['Icon'] }) === null && goWhyOf({ off: null, waiting: true, steps: 0, blocked: [] }) === null, '#3713 why: nothing is said while it can run, or while the check is out');
 
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);
