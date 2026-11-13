@@ -154,6 +154,10 @@ export const fillSlotText = async (setName: string, entry: SlotTextEntry, slotNo
     if (!inst) { out.misses.push(`${where}: no longer in the file`); continue; }
     const keys = Object.keys(inst.componentProperties ?? {});
     const keyOf = (bare: string): string | undefined => keys.find((x) => x.split('#')[0] === bare);
+    // #3697 H1: a set that stopped part-way is filled too, with no instance skipped. The properties are the SET's, added
+    // after the member pass, so a stop after them reaches every instance and a stop inside the pass reaches none. In
+    // the second case the slot is already renamed in every member, so the next run cannot read the text again: each
+    // instance is a miss naming it, never silent. Carrying it across that stop is #3761.
     const want: Record<string, Val> = {};
     const need = (bare: string, v: Val): void => { const key = keyOf(bare); if (key) want[key] = v; else out.misses.push(`${where}: has no "${bare}" property after the update`); };
     if (c.case.kind === 'move') need(entry.property, c.case.characters);
