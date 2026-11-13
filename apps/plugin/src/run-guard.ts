@@ -49,7 +49,7 @@ export const writes = (cmd: WriteCmd, confirm?: boolean): boolean => cmd !== 'pr
 /** The refusal's words: they name the write that holds the file, by its title (#3718 D3718.1 B, owner decision
  *  2026-11-12; was "Update file" whatever held it, #3264 decision 2). Called with the refusal's `held`, never its `cmd`:
  *  since #3697 R7 the two can differ, and the `cmd` field alone names the operation asked for, for its Activity row. */
-export const busyMessage = (held: WriteCmd): string => 'Update file is already running. Try again when it finishes.';
+export const busyMessage = (held: WriteCmd): string => `${TITLE[held]} is already running. Try again when it finishes.`;
 
 export const createRunGuard = () => {
   /** The one write holding the file, with the hold object of its run, so a run's own end never releases a later run's
