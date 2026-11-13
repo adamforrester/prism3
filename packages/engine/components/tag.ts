@@ -386,10 +386,10 @@ export const tag: ComponentDef = {
         innerTarget: true,
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         presentWhen: { type: ['dismissible'] },
-        children: ['dismissGlyph'],
+        children: ['closeGlyph'],
         note: 'The remove slot of a dismissible tag: a square as tall as the tag, at its trailing end, holding the × glyph.',
       },
-      dismissGlyph: {
+      closeGlyph: {
         kind: 'vector',
         glyph: 'close',
         size: 'size.{size}.icon',

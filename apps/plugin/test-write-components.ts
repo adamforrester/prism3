@@ -1830,6 +1830,18 @@ ok(unavailThrew === '', `#680 a brand whose typeface is not installed no longer 
 ok(unavailMisses.some((m) => m.indexOf('.font ->') >= 0) && unavailMisses.some((m) => m.indexOf('.textStyle ->') >= 0 && m.indexOf('REFUSED') >= 0),
   `#680 ...the font load AND the refused style apply are both reported (${unavailMisses.length} misses)`);
 
+// THE STYLE-FONT REFUSAL'S REASON, WHATEVER THE HOST REJECTS WITH (#3731 review S1). The text-style path loads every
+// style-bound label in every component, so it is the one a file missing the brand's own typeface hits. A host that
+// rejects the style's font with a plain string has that string reported, the whole line typed here. Mutation: the
+// executor's text-style font catch back to `(err as Error).message` fails this arm by name.
+{
+  const r = await run(grid, { ...full(), page: { children: [] }, styleFont: missingFont, unavailableFonts: [missingFont], fontRefusal: 'string' });
+  const refused = r.misses.filter((m) => m.includes('.font -> Clash Display Semi Bold ('));
+  const off = refused.filter((m) => !/^[^ ]+\.font -> Clash Display Semi Bold \(Cannot load font "Clash Display Semi Bold": it is not available\.\)$/.test(m));
+  ok(refused.length > 0 && off.length === 0,
+    `#3731 style font reason: a host that rejects a text style's font with a string has it reported (${refused.length} reported; off: ${off[0] ?? 'none'})`);
+}
+
 // =============================================================================================
 // #682 — THE DEPRECATED PROPORTION LOCK, MIGRATED TO `unlockAspectRatio()`
 // =============================================================================================
@@ -2106,6 +2118,17 @@ catch (e) { mixedThrew = (e as Error).message; }
 ok(mixedThrew === '', `#1599 a mixed-font node does not crash the build — the floor skips figma.mixed rather than loading it${mixedThrew ? ` — ${mixedThrew.slice(0, 90)}` : ''}`);
 ok(mixedThrew === '' && !mixedRun.misses.some((m) => /\.font ->/.test(m)),
   `#1599 ...and nothing was handed to loadFontAsync — no font miss on the mixed arm (${mixedThrew ? 'threw' : mixedRun.misses.filter((m) => /\.font ->/.test(m)).join('; ') || 'none'})`);
+
+// THE FLOOR'S REFUSAL REASON (#3731 review S1). With no style resolved, the #1599 floor loads the node's own current font
+// (`createText`'s Inter Regular); refused with a plain string, that string is reported, the whole line typed here.
+// Mutation: the floor's catch back to `(err as Error).message` fails this arm by name.
+{
+  const r = await run(labelPlans, { ...fullFor(labelPlans), styles: [], unavailableFonts: [{ family: 'Inter', style: 'Regular' }], fontRefusal: 'string', page: { children: [] } });
+  const refused = r.misses.filter((m) => m.includes('.font -> Inter Regular ('));
+  const off = refused.filter((m) => !/^[^ ]+\.font -> Inter Regular \(Cannot load font "Inter Regular": it is not available\.\)$/.test(m));
+  ok(refused.length > 0 && off.length === 0,
+    `#3731 floor font reason: a host that rejects the node's own font with a string has it reported (${refused.length} reported; off: ${off[0] ?? 'none'})`);
+}
 
 // =============================================================================================
 // #1337 — A REFUSED COMPONENT-PROPERTY REFERENCE IS RECOVERED, NOT DROPPED
@@ -2606,7 +2629,7 @@ ok(fmRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 1,
     { def: 'switch-control', part: 'onGlyph', icon: 'icon/check', size: 'control/size/{size}/thumb' },
     { def: 'switch-control', part: 'offGlyph', icon: 'icon/close', size: 'control/size/{size}/thumb' },
     { def: 'tag', part: 'checkGlyph', icon: 'icon/check', size: 'icon/size/{size-1}' },
-    { def: 'tag', part: 'dismissGlyph', icon: 'icon/close', size: 'icon/size/{size-1}' },
+    { def: 'tag', part: 'closeGlyph', icon: 'icon/close', size: 'icon/size/{size-1}' },
     { def: 'select', part: 'chevronGlyph', icon: 'icon/chevron-down', size: 'icon/size/sm' },
     { def: 'textarea', part: 'gripGlyph', icon: 'icon/resize-grip', size: 'icon/size/xs' },
     { def: 'image-placeholder', part: 'markerGlyph', icon: 'icon/image', px: 180 },
@@ -5992,6 +6015,20 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const other = fb.misses.filter((x) => !x.startsWith('label.font -> Google Sans Medium ('));
     ok(fb.members.length === 96 && google.length === 36 && offFace.length === 0 && refused.length === google.length && other.length === 0,
       `sign-in build/font fallback: with Google Sans refused, all 96 members build, every Google label (${google.length}) lands in Roboto Medium 14/20, and the refused face is reported once per Google label as 'label.font -> Google Sans Medium (…)' (${refused.length} reported; off: ${offFace[0] ?? 'none'}; other misses: ${other[0] ?? 'none'})`);
+  }
+
+  // THE REFUSAL'S REASON, WHATEVER THE HOST REJECTS WITH (the owner's Update file run, 2026-11-12). Figma's refusal of a
+  // face it does not have carried no `.message`, and every Google label read `label.font -> Google Sans Medium
+  // (undefined)`: the fallback landed, and the reason was lost. A host that rejects with a plain string must have that
+  // string reported, typed here. Mutation: the executor's literal-font catch back to `(err as Error).message` fails this
+  // arm by name.
+  {
+    const fb = await buildSignIn({ unavailableFonts: [{ family: 'Google Sans', style: 'Medium' }], fontRefusal: 'string' });
+    const refused = fb.misses.filter((x) => x.startsWith('label.font -> Google Sans Medium ('));
+    const want = 'label.font -> Google Sans Medium (Cannot load font "Google Sans Medium": it is not available.)';
+    const off = refused.filter((x) => x !== want);
+    ok(fb.members.length === 96 && refused.length === 36 && off.length === 0,
+      `sign-in build/font reason: a host that rejects the load with a string has it reported, on all 36 Google labels (${refused.length} reported; off: ${off[0] ?? 'none'})`);
   }
 
   // THE LITERAL READ-BACK SPEAKS: a host that takes the container's literal fill and keeps nothing must surface as

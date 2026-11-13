@@ -3022,6 +3022,56 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     `#2928 CodeInput: in all ${fields.length} members the field hugs the widest of its label, cells and message, and no cell runs past it (${fieldOff.length} off${fieldOff.length ? `: ${fieldOff.slice(0, 3).join(' | ')}` : ''})`);
 }
 
+// ── #3554 Q-FL1 A / Q-FL1.1 A — THE COUNTER'S HOST INK, READ BACK OFF THE NESTED BUTTONS' VECTORS ──────────────────────
+//
+// `PartDef.hostInk` pushes the Counter's `icon` ink into each nested FlushIconButton as `descendantFills`, a field the
+// round-trip diff classifies as unread (the vectors are another component's insides). The spec readback above claims the
+// part's `icon` color through the instance's own `findAll`; this arm says it by name. The Counter is built the way the
+// plugin builds it, its nested sets first into the same file, and the paint is the real executor's `descendantFills` write.
+// WHAT THE ORACLE IS (docs/34, #3732 review S1): the shim's `createInstance` gives every instance ONE stand-in VECTOR
+// (`inst.findAll = () => [vec]`, no children), so both this arm and the spec readback read that stand-in. What they prove
+// is that the executor writes the pushed ink, bound to the right variable, onto whatever VECTORs the nested instance's
+// `findAll` returns, and writes nothing on ghost. The FlushIconButton → swapped `icon/minus`/`icon/plus` → glyph chain is
+// NOT modelled, so whether the real file reaches a paintable VECTOR there is still an open real-file check (it needs those
+// icon components built first; otherwise the Search-field "no VECTOR inside this node to paint" miss). EXPECTED is typed from the decision:
+// on a disabled OUTLINE member every vector inside both buttons is `color/disabled/on-fill`; on a disabled GHOST member
+// the host pushes nothing, so the instance's vectors carry no fill of the host's and the flush button's own disabled ink
+// (`color/disabled/icon`, from its main) stands. The shim does not copy a main's paint onto an instance's vectors, so
+// "nothing written" reads as unbound here; the real file shows the main's ink. Mutation: drop the
+// `descendantFills` write in `write-components.ts`, or `hostInk` from the stepper, and this fails by name.
+{
+  const def = componentDefs.find((d) => d.id === 'counter')!;
+  const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+  const page: Page = { children: [] };
+  const shim = makeShim({ ...fullFor([...plans, ...ALL_PLANS()]), comps: [SWAP_TARGET], liveRoot: true, page });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  await prebuildDependencies(def, { defs: componentDefs, project: (d) => figmaAnatomySet(d, { swapTarget: SWAP_TARGET }), host: shim as any, build: (d) => applyComponentPlan(figmaAnatomySet(d, { swapTarget: SWAP_TARGET }), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents }) });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  const res = await applyComponentPlan(plans, shim as any, {});
+  const vars = await (shim as unknown as { variables: { getLocalVariablesAsync: () => Promise<{ id: string; name: string }[]> } }).variables.getLocalVariablesAsync();
+  const nameOf = new Map(vars.map((v) => [v.id, v.name.replace(/^zzclient\//, '')] as const));
+  const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === 'counter');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a walk over host nodes
+  const walk = (n: any): any[] => [n, ...((n?.children ?? []) as any[]).flatMap(walk)];
+  const off: string[] = [];
+  let outline = 0, ghost = 0, vectors = 0;
+  for (const m of (set?.children ?? []) as Node[]) {
+    const name = String(m.name);
+    if (!/state=disabled/.test(name)) continue;
+    const want = /appearance=outline/.test(name) ? 'color/disabled/on-fill' : 'unbound';
+    if (/appearance=outline/.test(name)) outline++; else ghost++;
+    for (const side of ['decrement', 'increment']) {
+      const inst = walk(m).find((n) => n.name === side);
+      const vecs = (inst?.findAll ? inst.findAll((x: Node) => x.type === 'VECTOR') : []) as { fills?: { boundVariables?: { color?: { id?: unknown } } }[] }[];
+      vectors += vecs.length;
+      const got = vecs.map((v) => { const id = v.fills?.[0]?.boundVariables?.color?.id; return typeof id === 'string' ? nameOf.get(id) ?? `unknown ${id}` : 'unbound'; });
+      if (String(inst?.type) !== 'INSTANCE' || !got.length || got.some((g) => g !== want)) off.push(`${name} ${side}: ${String(inst?.type)} with ${got.length} vector(s) [${[...new Set(got)].join(', ')}], want ${want}`);
+    }
+  }
+  ok(res.misses.length === 0 && outline === 3 && ghost === 3 && vectors >= 12 && off.length === 0,
+    `#3554 counter host ink as built: on every disabled outline member the vectors inside both nested buttons read color/disabled/on-fill, and on every disabled ghost member the host writes no fill, leaving the flush button's own color/disabled/icon (${outline} outline, ${ghost} ghost, ${vectors} vectors, ${res.misses.length} misses${off.length || res.misses.length ? `; OFF: ${[...off, ...res.misses].slice(0, 3).join(' | ')}` : ''})`);
+}
+
 // ── THE VERTICAL LABELED DIVIDER, AS LAID OUT (#3143, owner Q3143.1–.7 all A) ────────────────────────────────────
 //
 // The diff above compares the host to the plan that built it, so a plan that turned the labeled column back into a

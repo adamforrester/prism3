@@ -1782,6 +1782,14 @@ export const partialWriteOf = (e: unknown): PartialWriteFacts | null => {
  * around the write instead of one per host call, and a trail that is created outside the code that fills
  * it, so the marking reads a record the failing code cannot have skipped writing.
  */
+/** WHY A FONT LOAD WAS REFUSED, whatever the host rejects with. Figma's refusal of a face it does not have carries no
+ *  `.message` (the owner's Update file run, 2026-11-12: every refused Google Sans load read `(undefined)`), so a reason
+ *  that is not an `Error`'s is reported as itself. Lockstep with the paste executor's twin (`anatomy-figma.ts`). */
+const refusalOf = (err: unknown): string => {
+  const m = (err as { message?: unknown } | null | undefined)?.message;
+  return m !== undefined && m !== null ? String(m) : String(err);
+};
+
 export const applyComponentPlan = async (
   plans: AnatomyPlan[],
   api: ComponentsApi,
@@ -2301,7 +2309,7 @@ const writeComponentSet = async (
           // brand's typography.
           if (st.fontName) {
             try { await api.loadFontAsync(st.fontName); }
-            catch (err) { misses.push(`${n.name}.font -> ${st.fontName.family} ${st.fontName.style} (${(err as Error).message})`); }
+            catch (err) { misses.push(`${n.name}.font -> ${st.fontName.family} ${st.fontName.style} (${refusalOf(err)})`); }
           }
           // A PROPERTY write (#982): refused, it is a miss and the member keeps building. `appliedStyle` stays
           // unset, so the #1567 re-apply below does not try the style a second time.
@@ -2317,7 +2325,7 @@ const writeComponentSet = async (
         let face: { family: string; style: string } | undefined;
         for (const want of [{ family: f.family, style: f.style }, f.fallback]) {
           try { await api.loadFontAsync(want); face = want; break; }
-          catch (err) { misses.push(`${n.name}.font -> ${want.family} ${want.style} (${(err as Error).message})`); }
+          catch (err) { misses.push(`${n.name}.font -> ${want.family} ${want.style} (${refusalOf(err)})`); }
         }
         if (face) {
           try {
@@ -2351,7 +2359,7 @@ const writeComponentSet = async (
         const fn = node.fontName;
         if (fn && typeof fn === 'object') {
           try { await api.loadFontAsync(fn); }
-          catch (err) { misses.push(`${n.name}.font -> ${fn.family} ${fn.style} (${(err as Error).message})`); }
+          catch (err) { misses.push(`${n.name}.font -> ${fn.family} ${fn.style} (${refusalOf(err)})`); }
         }
         try { node.characters = n.characters; }
         catch (err) { misses.push(`${n.name}.characters -> ${JSON.stringify(n.characters)} (${(err as Error).message})`); }

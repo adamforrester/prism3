@@ -79,7 +79,7 @@ console.log('fresh build');
   const slots = members.flatMap((m) => all(m).filter((n) => n.name === 'dismiss'));
   ok(slots.length === withSlot.length && slots.every((n) => n.type === 'SLOT'),
     `slots/fresh is a SLOT: each member's dismiss cell is Figma's own SLOT node (${slots.length} cells, types ${[...new Set(slots.map((n) => n.type))].join(', ')})`);
-  ok(slots.every((n) => ((n.children as Node[]) ?? []).map((c) => String(c.name)).join() === 'dismissGlyph,hint'),
+  ok(slots.every((n) => ((n.children as Node[]) ?? []).map((c) => String(c.name)).join() === 'closeGlyph,hint'),
     `slots/default content: each slot holds its default content, the dismiss glyph and a placeholder text (${[...new Set(slots.map((n) => ((n.children as Node[]) ?? []).map((c) => String(c.name)).join()))].join(' / ')})`);
   const hints = slots.map((n) => ((n.children as Node[]) ?? []).find((c) => c.name === 'hint'));
   ok(hints.every((t) => t?.type === 'TEXT' && t.characters === 'Drop content here' && !(t.componentPropertyReferences as Record<string, string> | null)?.characters),
