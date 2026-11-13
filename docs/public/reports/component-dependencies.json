@@ -94,7 +94,7 @@
     {
       "from": "banner",
       "to": "flush-icon-button-neutral",
-      "part": "dismiss",
+      "part": "close",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
