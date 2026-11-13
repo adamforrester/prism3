@@ -50,7 +50,7 @@
 import { subscribe } from '../state/store';
 import type { Catalog } from '../state/component-catalog';
 import { displayNameOf, groupsOf, GROUPS_COPY, sentenceCase } from '../state/component-groups';
-import { alsoAddsOf, awaitingRead, badgeParts, blockedDueOf, blockedReason, goWhyOf, checkScopeOf, defaultTicks, dueSetsOf, themeDueOf, themeMatchesOf, newSetsOf, panelSetsOf, keptChoicesOf, keptSetsOf, queuedOf, recheckFirst, runOrderOf, setupOfferedOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
+import { alsoAddsOf, awaitingRead, badgeParts, blockedDueOf, blockedReason, goWhyOf, checkScopeOf, defaultTicks, dueSetsOf, themeDueOf, themeMatchesOf, newSetsOf, panelSetsOf, keptChoicesOf, keptSetsOf, libraryChangesOf, queuedOf, recheckFirst, runOrderOf, setupOfferedOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
 import type { CheckedSetView } from '../write-adapter';
 import type { UpdateProgress } from '../state/host-session';
 import { armEnter, entering, focusables, glyph, h, hook, leave, pendingLabel, setBusy, trapTab } from './dom';
@@ -516,10 +516,13 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     const steps = stepsOf({ ...t2, update: new Set(updatable) }, f, queue);
     const asks = t2.update.size > 0 || (t2.panels && panelSets.length > 0) || keptSets.some((id) => (t2.kept.get(id) ?? 'keep') !== 'keep');
     const waiting = asks && !answered;
+    // #3711 (Q-UF2 A): the changes this update passes on to files that use the library, named above the button, which
+    // carries their count, so the click is the acknowledgement.
+    const lib = libraryChangesOf(updatable, answered);
     const go = hook(h('button', 'p3-btn p3-btn-primary'), 'update-go');
     go.type = 'button';
     go.dataset.key = 'go';
-    go.textContent = fresh ? UPDATE_COPY.goFresh : UPDATE_COPY.go;
+    go.textContent = fresh ? UPDATE_COPY.goFresh : lib.count ? UPDATE_COPY.goLibrary(lib.count) : UPDATE_COPY.go;
     go.disabled = steps.length === 0 || !!r.off || waiting || rereading;
     if (r.off) go.title = r.off;
     go.onclick = () => {
@@ -575,6 +578,13 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       foot.unshift(wrap);
       // #3421 (Q39 A): what the choice does, in the body's last line, so Keep never reads as resolving anything.
       body.push(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.handHint[t2.handEdits]), 'update-hand-hint'));
+    }
+    // #3711 (Q-UF2 A): the callout is the body's last item, directly above the button.
+    if (lib.count) {
+      const call = hook(h('div', 'p3-upd-item'), 'update-library');
+      call.append(hook(h('b', 'p3-upd-title', UPDATE_COPY.library), 'update-library-title'), hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.librarySub(lib.count)), 'update-library-sub'));
+      for (const line of lib.lines) call.append(hook(h('p', 'p3-sub p3-upd-setline', line), 'update-library-line'));
+      body.push(call);
     }
     return { body, foot };
   };

@@ -45,7 +45,7 @@ Choose **Update file** again during a run to follow it: "Step 2 of 4 · Theme", 
 
 If a step fails, the dialog opens next time with "The last update stopped at" and the step and its reason. <!-- src: apps/studio/src/state/update-file.ts:418 -->
 
-If the update writes every set and some still differ from the plan, the run goes on to its next step and ends as a warning: it counts the sets written and those still "to check". Activity names what differs in each set to check. A set that stopped or was not updated still ends the run. <!-- src: apps/plugin/src/update-apply.ts:1242 -->
+If the update writes every set and some still differ from the plan, the run goes on to its next step and ends as a warning: it counts the sets written and those still "to check". Activity names what differs in each set to check. A set that stopped or was not updated still ends the run. <!-- src: apps/plugin/src/update-apply.ts:1247 -->
 
 ## The rules every write follows
 
@@ -67,9 +67,11 @@ When a ticked set carries hand edits, a **Hand edits** choice appears beside the
 - **Overwrite**: the update writes Prism3's values over your edits.
 - **Accept as baseline**: your edits become the values later updates compare against.
 
+If the update passes changes on to files that use this library, a callout above the button, **Files that use this library**, names each one, and the button carries their count. <!-- src: apps/studio/src/state/update-file.ts:426-428 -->
+
 Before its first write, the update saves a named version in the file's version history: "Saves a version first. If Figma refuses the save, nothing is written." <!-- src: apps/studio/src/state/update-file.ts:390 -->
 
-The update writes exactly what the check read. If the file changed in between, it writes nothing and says so in Activity, under `✗ update refused`: "Nothing was updated: the file changed since the check." <!-- src: apps/plugin/src/update-apply.ts:1132-1134 -->
+The update writes exactly what the check read. If the file changed in between, it writes nothing and says so in Activity, under `✗ update refused`: "Nothing was updated: the file changed since the check." <!-- src: apps/plugin/src/update-apply.ts:1137-1139 -->
 Open **Update file** again to check afresh. <!-- src: apps/studio/src/state/update-file.ts:323 -->
 
 ### What an update keeps
@@ -93,7 +95,7 @@ When a brand drops a mode, a ramp step or a text style, the old one stays in the
 
 1. Choose **Update file**, then the **Clean up** tab. It checks the file as it opens and reads "Checking for stale items…". Nothing is deleted yet. <!-- src: apps/studio/src/state/update-file.ts:420 -->
 2. The tab states what it found, including the modes by name. When there is nothing, it says "Nothing stale in this file." <!-- src: apps/studio/src/state/update-file.ts:421 -->
-3. Choose **Delete *N* items** to delete them, or **Close** to stop. <!-- src: apps/studio/src/shell/update-file.ts:591-595 -->
+3. Choose **Delete *N* items** to delete them, or **Close** to stop. <!-- src: apps/studio/src/shell/update-file.ts:601-605 -->
 
 *[Screenshot placeholder: the Clean up tab with its summary and Delete button.]*
 
@@ -125,7 +127,7 @@ Removing a mode removes its values from every variable in the collection, so mov
 |---|---|---|
 | `✗ N conflicts`, "Nothing was written." | The file holds a same-named collection or style that Prism3 did not create, or a variable of another type. <!-- src: apps/plugin/src/preflight.ts:237 --> | Rename or remove the named items, then run Update file again. |
 | "is already running. Try again when it finishes." | Another write is already running, from the panel or an agent. <!-- src: apps/plugin/src/run-guard.ts:49-52 --> | Wait for it to finish. |
-| "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." | The brand saved in this file didn't open. The dialog's **Update file** button, Clean up's delete and every other write stay off. <!-- src: apps/studio/src/main.ts:1833 --> | Load the brand again, for example from its `design.md`. |
+| "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." | The brand saved in this file didn't open. The dialog's **Update file** button, Clean up's delete and every other write stay off. <!-- src: apps/studio/src/main.ts:1895 --> | Load the brand again, for example from its `design.md`. |
 | `✗ update refused`, "the file changed since the check" | Something in the file moved between the check and the update. <!-- src: apps/plugin/src/update-apply.ts:898 --> | Open Update file again and read the new check. |
 | "the named version could not be saved" | Figma refused to save the safety version, so the update wrote nothing. <!-- src: apps/plugin/src/update-apply.ts:974 --> | Try again. Nothing in the file changed. |
 | `nothing built — set '…' on this page varies by different axes and was left as it is` | A set with that name already exists on the page, built with different options. <!-- src: apps/plugin/src/main.ts:1039 --> | Rename or move the existing set. |

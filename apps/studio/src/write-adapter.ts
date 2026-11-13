@@ -143,6 +143,8 @@ export type CheckedSetView = {
   readonly reasons?: readonly string[];
   /** #2831 — on a published set, what the update breaks for library consumers, as one line. Absent otherwise. */
   readonly breaks?: string;
+  /** #3711 (Q-UF2 A) — those changes, each named, and how many in all, for the callout before the run. Absent otherwise. */
+  readonly changes?: { readonly count: number; readonly lines: readonly string[] };
 };
 
 /** What the library home states about the library a file uses (#2879), as the host found it on the current page. */
@@ -413,7 +415,14 @@ const checkedSet = (x: unknown): CheckedSetView[] => {
   if (n.some((v) => v === null)) return [];
   const [members, update, add, drop, handEdited, noBaseline] = n as number[];
   return [{ def: c.def, hash: c.hash, members, update, add, drop, handEdited, noBaseline, blocked: c.blocked, upToDate: c.upToDate, ...(c.blocked && c.themeBlocked === true ? { themeBlocked: true as const } : {}),
-    ...(c.blocked && Array.isArray(c.reasons) && c.reasons.some(str) ? { reasons: (c.reasons as unknown[]).filter(str) } : {}), ...(str(c.breaks) ? { breaks: c.breaks } : {}) }];
+    ...(c.blocked && Array.isArray(c.reasons) && c.reasons.some(str) ? { reasons: (c.reasons as unknown[]).filter(str) } : {}), ...(str(c.breaks) ? { breaks: c.breaks } : {}),
+    ...changesOf(c.changes) }];
+};
+/** #3711 (Q-UF2 A): a set's changes for files that use the library: a count above 0 and every line a string, or none. */
+const changesOf = (x: unknown): { changes?: CheckedSetView['changes'] } => {
+  const c = x as Record<string, unknown> | null;
+  const k = c && typeof c === 'object' ? count(c.count) : null;
+  return k && Array.isArray(c!.lines) && c!.lines.length && c!.lines.every(str) ? { changes: { count: k, lines: [...c!.lines as string[]] } } : {};
 };
 const KINDS: readonly StyleGuideKind[] = ['color', 'dimension', 'font', 'text', 'effect', 'gradient', 'grid'];
 /** The style guide's catalog (S11.2), checked entry by entry: an entry with a field of the wrong type is dropped, and

@@ -18377,7 +18377,8 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       ok(askedSets.length >= 1 && askedSets.every((m) => canon(m.input) === canon(PANEL_BRAND)) && asked.every((m) => canon(m.input) === canon(PANEL_BRAND)),
         `${where}: Q699 A: the checklist's due read and its check each send the brand the panel holds (${askedSets.length} file-sets-request; ${[...askedSets, ...asked].map((m) => wireDiff(m.input, PANEL_BRAND)).join(', ')})`);
       const sets = [
-        { def: 'button', hash: 'hb', members: 648, update: 12, add: 0, drop: 0, handEdited: 2, noBaseline: 0, blocked: false, upToDate: false, breaks: '1 change affects files that use this library: 1 layer removed, which breaks those files: overrides on it are lost.' },
+        { def: 'button', hash: 'hb', members: 648, update: 12, add: 0, drop: 0, handEdited: 2, noBaseline: 0, blocked: false, upToDate: false, breaks: '1 change affects files that use this library: 1 layer removed, which breaks those files: overrides on it are lost.',
+          changes: { count: 1, lines: ['Button · content/check · removed from 12 members — breaks files that use this library: overrides on it are lost.'] } },
         { def: 'select', hash: 'hs', members: 30, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: true },
       ];
       // #3302 (the owner's Q3302.1–.3 A, 2026-11-02; the strings approved as written): the check's progress in the
@@ -18439,6 +18440,19 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       ok(ck.lines[0] === '12 of 648 members change · 2 edited by hand' && ck.lines[1] === 'No member changes', `${where}: Q2909.8 A: each due set says what the check found (${JSON.stringify(ck.lines)})`);
       ok(JSON.stringify(ck.breaks) === JSON.stringify([['button', '1 change affects files that use this library: 1 layer removed, which breaks those files: overrides on it are lost.']]), `${where}: #2831: a published set's consumer-breaking line sits under its row, and only under it (${JSON.stringify(ck.breaks)})`);
       ok(ck.hand?.value === 'keep', `${where}: Q2909.8 A: the update keeps hand edits by default (${JSON.stringify(ck.hand)})`);
+      // #3711 (Q-UF2 A): the change the update passes on to files that use the library is named in a callout, the body's
+      // last item, directly above the button, and the button carries the count. Literals (DRAFT copy). (mutation: the
+      // callout or the button's count dropped → this arm)
+      const lib = await page.evaluate(() => {
+        const call = document.querySelector('[data-p3="update-library"]'), body = document.querySelector('[data-p3="update-body"]');
+        return { title: call?.querySelector('[data-p3="update-library-title"]')?.textContent ?? null, sub: call?.querySelector('[data-p3="update-library-sub"]')?.textContent ?? null,
+          lines: [...(call?.querySelectorAll('[data-p3="update-library-line"]') ?? [])].map((n) => n.textContent),
+          last: !!call && !!body && body.lastElementChild === call, go: document.querySelector('[data-p3="update-go"]')?.textContent ?? null };
+      });
+      ok(lib.title === 'Files that use this library' && lib.sub === '1 change in this update reaches them at the next library publish:'
+        && JSON.stringify(lib.lines) === JSON.stringify(['Button · content/check · removed from 12 members — breaks files that use this library: overrides on it are lost.'])
+        && lib.last && lib.go === 'Update, including 1 library change',
+        `${where}: #3711 Q-UF2 A: a callout above the button names the library change, and the button carries the count (${JSON.stringify(lib)})`);
       // #3083 (the owner's Q3083.3 A and Q3083.4 A, 2026-10-28): the hand-edits choice is a compact select, "Hand edits",
       // in the foot just before Cancel and Update file, 32px tall, never in the body; its words are the short forms
       // (DRAFT). Literals, the owner's. MUTATION: the select pushed to the body (`sets.append`) → this arm.

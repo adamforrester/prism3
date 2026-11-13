@@ -233,6 +233,166 @@ console.log('\n3. variables in the file but no stored brand: start screen, and t
   await page.close();
 }
 
+// ── §3b — #3697 R9: the file's brand arriving after the designer acted ─────────────────────────
+// The boot read is asynchronous and the UI is live before it lands. The owner's A: an early restore loads as before; a
+// late one (the designer has chosen or edited a brand) loads nothing, and the strip offers the file's brand instead;
+// taking the offer loads it. EXPECTED is written here: the restored brand's id, `restored-brand`, and the offer's words
+// as literals (a placeholder copy until the owner approves it; a change there changes this test on purpose).
+console.log('\n3b. a late restore-input after the designer acted is offered, not applied (#3697 R9)');
+{
+  const OFFER = 'This file holds a saved brand. Your choice came first, so it stays on screen.';
+  const ACTION = "Load the file's brand";
+  const CONFIRM = /^Replace the current brand with this file’s brand\? Your edits to .+ are not saved anywhere else\.$/;
+  const strip = (page) => page.evaluate(() => {
+    const bar = document.querySelector('[data-p3="error-bar"]');
+    return { shown: !!bar && !bar.hidden, text: bar?.querySelector('.p3-errstrip-text')?.textContent ?? '', action: document.querySelector('[data-p3="error-fix"]')?.textContent ?? null };
+  });
+  // Early: nothing done yet, so the file's brand loads and nothing is offered.
+  {
+    const { page, errors } = await openPanel();
+    await post(page, { type: 'restore-input', input: NB_BRAND });
+    await waitStart(page, false);
+    await page.waitForTimeout(150);
+    const s = await readStart(page);
+    const bar = await strip(page);
+    ok((s.brandSel ?? '').includes('restored-brand') && bar.action === null,
+      `#3697 R9 early-restore: a restore before the designer acts loads the file's brand and offers nothing — brand "${s.brandSel}", action ${JSON.stringify(bar.action)}`);
+    ok(errors.length === 0, `no console errors (${errors.slice(0, 1).join('') || 'none'})`);
+    await page.close();
+  }
+  // Late: the designer picks an example first, then the file's brand arrives.
+  {
+    const { page, errors } = await openPanel();
+    await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
+    const pick = page.locator('[data-p3="brand-menu-example"]').first();
+    const picked = ((await pick.textContent()) ?? '').trim();
+    await hooks.click(pick);
+    await page.waitForTimeout(150);
+    const chosen = (await readStart(page)).brandSel ?? '';
+    await post(page, { type: 'restore-input', input: NB_BRAND });
+    await page.waitForTimeout(150);
+    const s = await readStart(page);
+    const bar = await strip(page);
+    ok(!(s.brandSel ?? '').includes('restored-brand') && s.brandSel === chosen && chosen !== '',
+      `#3697 R9 late-restore: a restore after the designer chose ${JSON.stringify(picked)} does not replace it — brand "${s.brandSel}", chosen "${chosen}"`);
+    ok(bar.shown && bar.text === OFFER && bar.action === ACTION,
+      `#3697 R9 late-offer: and the strip offers the file's brand — ${JSON.stringify(bar)}`);
+    await hooks.click(page.locator('[data-p3="error-fix"]'));
+    await page.waitForTimeout(150);
+    const after = await readStart(page);
+    const barAfter = await strip(page);
+    ok((after.brandSel ?? '').includes('restored-brand') && barAfter.action === null && !barAfter.shown,
+      `#3697 R9 take-offer: choosing the offer loads the file's brand and the offer goes — brand "${after.brandSel}", ${JSON.stringify(barAfter)}`);
+    ok(errors.length === 0, `no console errors (${errors.slice(0, 1).join('') || 'none'})`);
+    await page.close();
+  }
+  // Edit only (#3740 review S2): the designer chooses nothing and nudges a lever on the boot brand. An edit does not
+  // reassign provenance, so only `userActed()`'s `isDirty` half sees it. Mutation: drop that half and this fails by name.
+  {
+    const { page, errors } = await openPanel();
+    const before = (await readStart(page)).brandSel ?? '';
+    await hooks.click(page.locator('[data-p3="tab-shape"]'));
+    const range = page.locator('[data-p3="shape-levers"] input[type="range"]:not([disabled])').first();
+    const v0 = await range.inputValue();
+    await range.focus();
+    for (let i = 0; i < 5; i++) await range.press('ArrowRight');
+    await page.waitForTimeout(150);
+    const v1 = await range.inputValue();
+    await post(page, { type: 'restore-input', input: NB_BRAND });
+    await page.waitForTimeout(150);
+    const s = await readStart(page);
+    const bar = await strip(page);
+    ok(v1 !== v0 && !(s.brandSel ?? '').includes('restored-brand') && s.brandSel === before && bar.shown && bar.text === OFFER && bar.action === ACTION,
+      `#3697 R9 edit-only: a restore after the designer only edited a lever does not replace the edit, and the strip offers the file's brand — lever ${v0} → ${v1}, brand "${s.brandSel}" (was "${before}"), ${JSON.stringify(bar)}`);
+    ok(errors.length === 0, `no console errors (${errors.slice(0, 1).join('') || 'none'})`);
+    await page.close();
+  }
+  // Edits, then the offer taken (#3740 review S1, owner Q-R9.1 A): the click goes through the same guard as every other
+  // replacement (`stageLoad` → `needsOverwriteConfirm`, #1033), so with unsaved edits the usual replace confirm shows in
+  // the strip's place, and a Cancel keeps the edits and puts the offer back; Replace brand then loads the file's brand.
+  // EXPECTED is the confirm's own sentence, written here. Mutation: `takeHeldRestore` calling `loadBrand` directly (the
+  // bypass the review reproduced) fails `#3697 R9 confirm-edits` by name.
+  {
+    const { page, errors } = await openPanel();
+    await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
+    await hooks.click(page.locator('[data-p3="brand-menu-example"]').first());
+    await page.waitForTimeout(150);
+    const chosen = (await readStart(page)).brandSel ?? '';
+    await hooks.click(page.locator('[data-p3="tab-shape"]'));
+    const range = page.locator('[data-p3="shape-levers"] input[type="range"]:not([disabled])').first();
+    const v0 = await range.inputValue();
+    await range.focus();
+    for (let i = 0; i < 5; i++) await range.press('ArrowRight');
+    await page.waitForTimeout(150);
+    const v1 = await range.inputValue();
+    await post(page, { type: 'restore-input', input: NB_BRAND });
+    await page.waitForTimeout(150);
+    const held = await strip(page);
+    await hooks.click(page.locator('[data-p3="error-fix"]'));
+    await page.waitForTimeout(150);
+    const asked = await strip(page);
+    const buttons = await page.evaluate(() => ['overwrite-replace', 'overwrite-cancel'].map((k) => document.querySelector(`[data-p3="error-bar"] [data-p3="${k}"]`)?.textContent ?? null));
+    const mid = await readStart(page);
+    ok(held.action === ACTION && asked.shown && CONFIRM.test(asked.text) && buttons[0] === 'Replace brand' && buttons[1] === 'Cancel' && mid.brandSel === chosen,
+      `#3697 R9 confirm-edits: taking the offer over unsaved edits asks first, in the strip, and replaces nothing yet — ${JSON.stringify(asked)}, buttons ${JSON.stringify(buttons)}, brand "${mid.brandSel}" (chosen "${chosen}")`);
+    await hooks.click(page.locator('[data-p3="error-bar"] [data-p3="overwrite-cancel"]'));
+    await page.waitForTimeout(150);
+    const kept = await readStart(page);
+    const v2 = await range.inputValue();
+    const back = await strip(page);
+    ok(v1 !== v0 && v2 === v1 && kept.brandSel === chosen && chosen !== '' && back.text === OFFER && back.action === ACTION,
+      `#3697 R9 confirm-cancel: Cancel keeps the edits and the designer's brand, and the offer stays — lever ${v0} → ${v1}, now ${v2}, brand "${kept.brandSel}" (chosen "${chosen}"), ${JSON.stringify(back)}`);
+    await hooks.click(page.locator('[data-p3="error-fix"]'));
+    await page.waitForTimeout(150);
+    await hooks.click(page.locator('[data-p3="error-bar"] [data-p3="overwrite-replace"]'));
+    await page.waitForTimeout(150);
+    const after = await readStart(page);
+    const gone = await strip(page);
+    ok((after.brandSel ?? '').includes('restored-brand') && !gone.shown && gone.action === null,
+      `#3697 R9 confirm-replace: Replace brand loads the file's brand and the strip clears — brand "${after.brandSel}", ${JSON.stringify(gone)}`);
+    ok(errors.length === 0, `no console errors (${errors.slice(0, 1).join('') || 'none'})`);
+    await page.close();
+  }
+  // A Theme write that lands drops the offer (#3740 review N1): the file then holds the panel's brand. The brand on screen
+  // stays the designer's. Mutation: drop the `apply-result` clear in `handleHostMessage` and this fails by name.
+  {
+    const { page, errors } = await openPanel();
+    await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
+    await hooks.click(page.locator('[data-p3="brand-menu-example"]').first());
+    await page.waitForTimeout(150);
+    const chosen = (await readStart(page)).brandSel ?? '';
+    await post(page, { type: 'restore-input', input: NB_BRAND });
+    await page.waitForTimeout(150);
+    const held = await strip(page);
+    await post(page, { type: 'apply-result', ok: true, headline: '✓ 42 roles written', summary: '42 roles written' });
+    await page.waitForTimeout(150);
+    const s = await readStart(page);
+    const bar = await strip(page);
+    ok(held.action === ACTION && bar.action === null && !bar.shown && s.brandSel === chosen && chosen !== '',
+      `#3697 R9 apply-clears: a Theme write that lands drops the held offer and keeps the designer's brand — held ${JSON.stringify(held.action)}, after ${JSON.stringify(bar)}, brand "${s.brandSel}" (chosen "${chosen}")`);
+    ok(errors.length === 0, `no console errors (${errors.slice(0, 1).join('') || 'none'})`);
+    await page.close();
+  }
+  // Only the boot read is held: a LATER restore (#3394's override sync, sent after a Theme write the plugin ran for the
+  // panel) still loads, even though the designer has acted since. Mutation: drop `!bootRestoreSeen` and this fails by name.
+  {
+    const { page, errors } = await openPanel();
+    await post(page, { type: 'restore-input-empty' });
+    await waitStart(page, true);
+    await hooks.click(page.locator('[data-p3="start-example"]').first());
+    await waitStart(page, false);
+    await page.waitForTimeout(150);
+    await post(page, { type: 'restore-input', input: NB_BRAND });
+    await page.waitForTimeout(150);
+    const s = await readStart(page);
+    const bar = await strip(page);
+    ok((s.brandSel ?? '').includes('restored-brand') && bar.action === null,
+      `#3697 R9 later-restore: a restore after the boot read was answered still loads, though the designer acted — brand "${s.brandSel}", action ${JSON.stringify(bar.action)}`);
+    ok(errors.length === 0, `no console errors (${errors.slice(0, 1).join('') || 'none'})`);
+    await page.close();
+  }
+}
+
 // ── §4 — "+ New brand" returns to the start moment ─────────────────────────────────────────────
 console.log('\n4. "+ New brand" surfaces the start screen (it used to load a neutral default in place)');
 {
