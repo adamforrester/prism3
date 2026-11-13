@@ -29306,7 +29306,7 @@ arm: {
       'text-field:style', 'text-field:pending', 'text-field:empty', 'password-field:style', 'password-field:pending', 'password-field:empty',
       'search-field:style', 'search-field:pending', 'search-field:empty',
       'card-number-field:style', 'card-number-field:pending', 'card-number-field:empty',
-      'textarea:style', 'textarea:pending', 'textarea:empty', 'select:style', 'select:pending', 'select:empty', 'code-input:pending',
+      'textarea:style', 'textarea:pending', 'textarea:empty', 'select:style', 'select:pending', 'select:empty', 'code-input:pending', 'code-input-cell:style',
       'checkbox-row:read-only', 'radio-row:read-only', 'switch-row:read-only', 'switch-row:pending',
       'sign-in-button:pending', 'sign-in-button:disabled',
     ];
@@ -41057,6 +41057,22 @@ arm: {
     && sp('autoComplete')?.type === 'string (WHATWG token)' && sp('autoComplete')?.required === false
     && (select.accessibility?.wcag ?? []).some((w) => w.startsWith('1.3.5')),
     `Q-CC4 select: declares defaultValue (string) and autoComplete (string (WHATWG token)), so its 1.3.5 claim has a prop behind it (got ${sp('defaultValue')?.type}, ${sp('autoComplete')?.type})`);
+}
+
+// Q193 A (#3554): CodeInput.Cell takes the same one-value `style` code axis Select took under Q-CC3 A, because the Field
+// style setting reaches the cell (`FIELD_FRAME_PARTS`). Figma still projects size × status × state = 4 × 2 × 6 = 48, and
+// the cell's one `style` codeOnly entry is the `not-projected` admission: the old `brand-setting` entry is folded into
+// it, not kept beside it. Literals typed here, not read off Select.
+{
+  const cell = componentDefs.find((d) => d.id === 'code-input-cell')!;
+  const cellPlans = figmaAnatomySet(cell, {});
+  const styleLines = (cell.anatomy?.codeOnly ?? []).filter((c) => c.description.startsWith('style'));
+  ok(JSON.stringify(cell.variants) === JSON.stringify({ size: ['medium', 'small', 'large', 'x-large'], style: ['outline'], status: ['default', 'error'] })
+    && cell.axisKinds?.style === 'authoring'
+    && JSON.stringify(cell.figmaProperties?.variantAxes) === JSON.stringify(['size', 'status']) && cellPlans.length === 48
+    && styleLines.length === 1 && styleLines[0].class === 'not-projected' && styleLines[0].description.startsWith('style — not projected: ')
+    && /Field style setting/.test(styleLines[0].description),
+    `Q193 code-input-cell: style is a code axis of one, outline, admitted by ONE not-projected style line naming the Field style setting, and Figma still projects 48 (got ${JSON.stringify(cell.variants)}, ${cellPlans.length} members, style lines ${JSON.stringify(styleLines.map((c) => c.class))})`);
 }
 
 // ------------------------------------------------------------------- #2888: the Search field

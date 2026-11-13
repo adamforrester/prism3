@@ -1503,6 +1503,9 @@
           "large",
           "x-large"
         ],
+        "style": [
+          "outline"
+        ],
         "status": [
           "default",
           "error"
@@ -6332,6 +6335,7 @@
         ],
         "components": [
           "card-number-field",
+          "code-input-cell",
           "password-field",
           "search-field",
           "select",
@@ -9944,6 +9948,14 @@
     },
     {
       "kind": "variant axes",
+      "subject": "variant family: CodeInput",
+      "components": [
+        "code-input-cell"
+      ],
+      "detail": "code-input-cell's variant axes differ from the family's common set"
+    },
+    {
+      "kind": "variant axes",
       "subject": "variant family: Slider",
       "components": [
         "_slider-thumb"
@@ -10312,6 +10324,7 @@
       "components": [
         "badge",
         "card-number-field",
+        "code-input-cell",
         "link",
         "pagination",
         "pagination-item",
@@ -10323,7 +10336,7 @@
         "textarea",
         "wallet-button"
       ],
-      "detail": "the style axis takes 6 value sets — [outline] in card-number-field, password-field, search-field, select, text-field, textarea; [border, underline] in pagination, pagination-item; [any, black, blue, gold, purple, silver, white, white-outline] in wallet-button; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [contained, inline] in badge; [inline, standalone] in link"
+      "detail": "the style axis takes 6 value sets — [outline] in card-number-field, code-input-cell, password-field, search-field, select, text-field, textarea; [border, underline] in pagination, pagination-item; [any, black, blue, gold, purple, silver, white, white-outline] in wallet-button; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [contained, inline] in badge; [inline, standalone] in link"
     },
     {
       "kind": "axis values",
@@ -10903,7 +10916,7 @@
       "components": [
         "code-input-cell"
       ],
-      "detail": "code-input-cell has the variant axis status and no prop of that name"
+      "detail": "code-input-cell has the variant axes style and status and no props of those names"
     },
     {
       "kind": "axis without prop",

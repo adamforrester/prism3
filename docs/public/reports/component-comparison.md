@@ -10,7 +10,7 @@ Peers come from three groupings, each derived from the definitions:
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [component-comparison.json](component-comparison.json). All reports: [index](index.md).
 
-## Findings (122)
+## Findings (123)
 
 ### axis values
 
@@ -22,7 +22,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **axis shape** — the shape axis takes 3 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral; [circular, linear] in progress
 - **axis size** — the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell
 - **axis status** — the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, code-input, code-input-cell, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in card-number-field, field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress
-- **axis style** — the style axis takes 6 value sets — [outline] in card-number-field, password-field, search-field, select, text-field, textarea; [border, underline] in pagination, pagination-item; [any, black, blue, gold, purple, silver, white, white-outline] in wallet-button; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [contained, inline] in badge; [inline, standalone] in link
+- **axis style** — the style axis takes 6 value sets — [outline] in card-number-field, code-input-cell, password-field, search-field, select, text-field, textarea; [border, underline] in pagination, pagination-item; [any, black, blue, gold, purple, silver, white, white-outline] in wallet-button; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [contained, inline] in badge; [inline, standalone] in link
 - **axis tone** — the tone axis takes 2 value sets — [danger, info, neutral, success, warning] in badge, banner; [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon
 - **axis type** — the type axis takes 8 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item; [range, single] in slider
 - **axis weight** — the weight axis takes 2 value sets — [bold, regular] in field-label; [default, emphasis] in link
@@ -39,7 +39,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **checkbox-group** — checkbox-group has the variant axis status and no prop of that name
 - **checkbox-row** — checkbox-row has the variant axis status and no prop of that name
 - **code-input** — code-input has the variant axis status and no prop of that name
-- **code-input-cell** — code-input-cell has the variant axis status and no prop of that name
+- **code-input-cell** — code-input-cell has the variant axes style and status and no props of those names
 - **divider** — divider has the variant axis labeled and no prop of that name
 - **link** — link has the variant axis selection and no prop of that name
 - **page-nav-item** — page-nav-item has the variant axis selection and no prop of that name
@@ -156,6 +156,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### variant axes
 
+- **variant family: CodeInput** — code-input-cell's variant axes differ from the family's common set
 - **variant family: Slider** — _slider-thumb's variant axes differ from the family's common set
 
 ## Peer groups
@@ -305,7 +306,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | status | default, error | checkbox-control, checkbox-group, checkbox-row, code-input, code-input-cell, radio-control, radio-group, radio-row, switch-control, switch-row |
 |  | default, error, success, warning | card-number-field, field-message, password-field, search-field, select, text-field, textarea |
 |  | active, complete, error | progress |
-| style | outline | card-number-field, password-field, search-field, select, text-field, textarea |
+| style | outline | card-number-field, code-input-cell, password-field, search-field, select, text-field, textarea |
 |  | border, underline | pagination, pagination-item |
 |  | any, black, blue, gold, purple, silver, white, white-outline | wallet-button |
 |  | black, blue, dark, light, neutral, outline, white | sign-in-button |
