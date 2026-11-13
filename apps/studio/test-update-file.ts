@@ -425,5 +425,11 @@ ok(goWhyOf({ off: null, waiting: false, steps: 0, blocked: [] }) === 'Nothing to
 ok(goWhyOf({ off: 'The brand did not restore.', waiting: false, steps: 2, blocked: [] }) === 'The brand did not restore.', '#3713 why: a file whose brand did not restore says so');
 ok(goWhyOf({ off: null, waiting: false, steps: 1, blocked: ['Icon'] }) === null && goWhyOf({ off: null, waiting: true, steps: 0, blocked: [] }) === null, '#3713 why: nothing is said while it can run, or while the check is out');
 
+// #3712 (Q-UD2, direction C): Components' status chip, what its card holds, each part only when it counts. Literals
+// (DRAFT copy, docs/34). MUTATION: a part drawn at 0 → `#3712 chip: only what counts`.
+ok(UPDATE_COPY.compsChip({ add: 0, due: 0, blocked: 1, kept: 5, panels: 0 }) === '1 can’t update yet · 5 with kept edits', '#3712 chip: the owner’s 2026-11-12 run');
+ok(UPDATE_COPY.compsChip({ add: 7, due: 3, blocked: 0, kept: 0, panels: 1 }) === '7 to add · 3 due · 1 usage panel', '#3712 chip: only what counts, in run order');
+ok(UPDATE_COPY.compsChip({ add: 0, due: 0, blocked: 0, kept: 0, panels: 0 }) === '', '#3712 chip: nothing to say, no chip');
+
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);

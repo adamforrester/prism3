@@ -2046,10 +2046,7 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-tabs { flex: none; padding: 0 var(--p3-space-300); margin: 0; border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-upd-body { flex: 1 1 auto; min-height: 0; padding: var(--p3-space-150) var(--p3-space-300); gap: var(--p3-space-100); overflow: auto; }
 .p3-upd-body p { margin: 0; }
-.p3-upd-item { display: grid; gap: var(--p3-space-050); padding: var(--p3-space-100) 0; border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
-.p3-upd-item:last-child { border-bottom: 0; }
 .p3-upd-sub { padding-left: var(--p3-space-400); }
-.p3-upd-title { padding-left: var(--p3-space-100); }
 .p3-upd-sets { display: grid; gap: var(--p3-space-025); padding-left: var(--p3-space-300); }
 .p3-upd-setname { flex: 1 1 auto; min-width: 0; }
 /* #3133: a due row's name and tag, on one line where they fit (the tag at the line's end, the gap the row had) and on two
@@ -2063,7 +2060,7 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-subtitle { padding-left: var(--p3-space-400); color: var(--p3-text); font-weight: var(--p3-fw-emphasis); }
 /* At the narrow tier the items' titles are their boxes' labels, 12px (the tier's controls): Components' title and its
    subtitles take the same size, so the section reads at Theme's level there too. */
-.p3-frame[data-w="narrow"] :is(.p3-upd-title, .p3-upd-subtitle) { font-size: var(--p3-fs-12); }
+.p3-frame[data-w="narrow"] .p3-upd-title { font-size: var(--p3-fs-12); }
 .p3-upd-grouphead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--p3-space-100); }
 .p3-upd-grouphead > .p3-upd-removeall { min-height: var(--p3-ctl-h-xs); }
 .p3-upd-addrow { display: flex; align-items: center; gap: var(--p3-space-100); min-height: var(--p3-ctl-h-xs); padding-left: var(--p3-space-100); }
@@ -2091,14 +2088,76 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-handsel > .p3-sub { white-space: nowrap; }
 .p3-upd-handsel > .p3-selwrap { flex: none; }
 .p3-frame[data-w="narrow"] .p3-upd-handsel { flex-basis: 100%; }
-/* #3302 (the owner's Q3302.1 A, 2026-11-02): the check's progress at the foot's start, the chrome's own bar at the strip's
-   width and the count beside it in the secondary ink; Cancel and Update file stay at the end. At 380 the buttons wrap
-   under it as the row runs out. The bar moves only as a set is checked (#3150). */
-.p3-upd-progress { display: flex; align-items: center; gap: var(--p3-space-100); margin-right: auto; min-width: 0; }
+/* #3302 (the owner's Q3302.1 A, 2026-11-02): the check's progress, the chrome's own bar at the strip's width and the
+   count beside it in the secondary ink. Since #3712 (Q-UD2) it is a message row above the buttons, as every message
+   is. The bar moves only as a set is checked (#3150). */
+.p3-upd-progress { display: flex; align-items: center; gap: var(--p3-space-100); min-width: 0; }
 .p3-upd-prog { flex: none; width: calc(2 * var(--p3-ctl-h)); }
 .p3-upd-progtext { white-space: nowrap; }
-.p3-upd-handrow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); padding-left: var(--p3-space-300); }
-.p3-upd-saves { padding-left: var(--p3-space-300); }
+.p3-upd-handrow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); }
+/* ── #3712 (the owner's Q-UD2, 2026-11-13: direction C, folded step cards) ──────────────────────────────────────────
+   The Update tab's body is the levers gray (`.p3-levers`), each step a white card on it (`.p3-lsec`'s surface, hairline
+   and radius): its head row is the box and title, a status chip and, where it holds groups, a chevron that folds it.
+   Inside an open card each group is an inset on the fill gray (`.p3-tip`) with Palettes' small-capital title
+   (`.p3-card-title`), its rows split by hairlines. One indent for every line that explains a box: the box's label's
+   left edge (the check's hairline, its box and its gap), so a line starts where the text it explains starts (audit S3). */
+.p3-upd-deck { background: var(--p3-levers-bg); gap: var(--p3-space-100); }
+.p3-upd-deck > .p3-upd-lead, .p3-upd-deck > .p3-upd-sub { padding: 0; color: var(--p3-text-2); }
+.p3-upd-card { display: grid; gap: var(--p3-space-050); padding: var(--p3-space-100) var(--p3-space-150) var(--p3-space-150) var(--p3-space-200);
+  border: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-xl); background: var(--p3-bg-page); }
+.p3-upd-card[data-open="false"] { padding-bottom: var(--p3-space-100); }
+.p3-upd-card > * { min-width: 0; }
+.p3-upd-cardhead { display: flex; align-items: center; gap: var(--p3-space-100); min-height: var(--p3-ctl-h-sm); }
+.p3-upd-cardhead > .p3-btn.p3-check { width: auto; flex: 0 1 auto; margin-left: calc(-1 * var(--p3-space-100)); }
+.p3-upd-cardhead > .p3-sg-tag { flex: 0 1 auto; margin-left: auto; min-width: 0; }
+.p3-upd-cardhead > .p3-upd-cardtitle { flex: none; }
+.p3-upd-cardhead > .p3-upd-cardtitle + .p3-upd-fold { margin-left: auto; }
+.p3-upd-cardtitle { font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snugger); color: var(--p3-text); }
+.p3-upd-card[data-on="false"] .p3-upd-cardtitle { color: var(--p3-text-2); }
+.p3-btn.p3-btn-icon.p3-upd-fold { flex: none; min-width: var(--p3-ctl-h-xs); min-height: var(--p3-ctl-h-xs); }
+.p3-upd-fold[aria-expanded="true"] > .p3-ico { transform: rotate(90deg); }
+.p3-upd-card > .p3-upd-sub { padding-left: calc(var(--p3-bw-hairline) + var(--p3-space-200) + var(--p3-space-150)); }
+.p3-upd-card > .p3-upd-saves { padding-top: var(--p3-space-050); }
+.p3-upd-card > .p3-upd-summary, .p3-upd-card > .p3-upd-line { padding: var(--p3-space-050) 0; }
+.p3-upd-inset { gap: var(--p3-space-075); padding: var(--p3-space-150); padding-top: var(--p3-space-150); margin-top: var(--p3-space-050); border-radius: var(--p3-radius-lg); background: var(--p3-fill-1); }
+.p3-upd-inset .p3-upd-subtitle { padding: 0; color: var(--p3-text); }
+.p3-upd-inset .p3-upd-sub { padding: 0; }
+.p3-upd-inset .p3-upd-grouphead { min-height: var(--p3-ctl-h-xs); }
+.p3-upd-inset .p3-upd-sets { gap: 0; padding: 0; }
+.p3-upd-inset .p3-upd-sets > :is(.p3-upd-setrow, .p3-upd-addrow) { padding: var(--p3-space-075) 0; }
+.p3-upd-inset .p3-upd-sets > :not(.p3-upd-breaks) + :not(.p3-upd-breaks) { border-top: var(--p3-bw-hairline) solid var(--p3-line-2); }
+.p3-upd-inset .p3-upd-sets > .p3-upd-breaks { padding-bottom: var(--p3-space-075); }
+.p3-upd-inset .p3-upd-setline { padding-left: calc(var(--p3-bw-hairline) + var(--p3-space-200) + var(--p3-space-150)); }
+.p3-upd-inset .p3-upd-check { margin-left: calc(-1 * var(--p3-space-100)); width: calc(100% + var(--p3-space-100)); }
+.p3-upd-inset .p3-upd-checktext > .p3-sg-tag, .p3-upd-inset .p3-upd-krow .p3-sg-tag { background: var(--p3-bg-page); }
+.p3-upd-inset :is(.p3-upd-addall, .p3-upd-disclose) { margin-left: 0; }
+.p3-upd-locked > .p3-upd-setname { display: inline-flex; align-items: center; gap: var(--p3-space-075); }
+.p3-upd-locked > .p3-upd-setname > .p3-ico { flex: none; color: var(--p3-icon-2); }
+.p3-upd-locked + .p3-upd-setline, .p3-upd-krow .p3-upd-setline { padding-left: 0; }
+.p3-upd-krow { display: flex; align-items: center; gap: var(--p3-space-150); }
+.p3-upd-kname { display: grid; gap: var(--p3-space-025); flex: 1 1 auto; min-width: 0; }
+.p3-upd-kname > .p3-upd-setname { font-weight: var(--p3-fw-emphasis); }
+.p3-upd-kname > .p3-upd-will { color: var(--p3-text); }
+.p3-upd-krow > .p3-selwrap { flex: none; width: calc(var(--p3-l-col) * 2.5); }
+.p3-upd-krow .p3-select { min-height: var(--p3-ctl-h-xs); font-size: var(--p3-fs-12); padding-left: var(--p3-space-150); }
+.p3-upd-warn { align-items: flex-start; }
+.p3-upd-warn > .p3-ico, .p3-upd-libcall > .p3-ico { flex: none; }
+.p3-frame[data-w="narrow"] .p3-upd-card { padding-left: var(--p3-space-150); padding-right: var(--p3-space-100); }
+.p3-frame[data-w="narrow"] .p3-upd-krow { flex-wrap: wrap; }
+.p3-frame[data-w="narrow"] .p3-upd-krow > .p3-selwrap { width: 100%; }
+/* The foot (the owner's Q-UD2 change): one treatment in every state. Each message (the check's progress, why the action
+   is off, the library changes) is a full-width row above the buttons; the buttons keep one row and never stack, at 380
+   or at 640. The hand-edits choice (#3083) sits before them on their row, and at 380 on a row of its own above them. */
+.p3-bardlg-foot.p3-upd-foot { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+.p3-upd-msg { display: flex; min-width: 0; }
+.p3-upd-msg > * { flex: 1 1 auto; min-width: 0; }
+.p3-upd-msg > .p3-sub { margin: 0; }
+.p3-upd-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--p3-space-100); }
+.p3-upd-btns { display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: var(--p3-space-100); margin-left: auto; min-width: 0; }
+.p3-upd-btns > .p3-btn { flex: 0 1 auto; min-width: 0; }
+.p3-upd-libcall { align-items: flex-start; }
+.p3-upd-libcall > .p3-sg-warn-text { display: grid; gap: var(--p3-space-050); }
+.p3-upd-libcall .p3-sub { margin: 0; color: var(--p3-text); }
 /* #2909 Q2909.8 A: a set's statuses on Components' list, after its meta. */
 .p3-cp-status { display: inline-flex; flex-wrap: wrap; gap: var(--p3-space-025); flex: none; margin-left: var(--p3-space-050); }
 

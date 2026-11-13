@@ -3591,7 +3591,10 @@ for (const host of ['web', 'figma']) {
         // #3422 Q44 A: Theme opens ticked only when the badge's recount says the file differs from the brand. None has
         // answered yet, so Theme opens unticked, as the badge counts no Theme. Q44.2 A: nothing was compared, so no tag.
         // MUTATION: `defaultTicks` ticking Theme always → this arm, by name; the tag shown unmeasured → this arm, by name.
-        const themeTag = () => page.evaluate(() => document.querySelector('[data-p3="update-check-theme"] [data-p3="update-theme-current"]')?.textContent ?? null);
+        // #3712 (Q-UD2): the tag is the Theme card's status chip, on its head row beside the box, and the box's description.
+        const themeTag = () => page.evaluate(() => { const b = document.querySelector('[data-p3="update-check-theme"]');
+          const t = document.getElementById(b?.getAttribute('aria-describedby') ?? '');
+          return t?.getAttribute('data-p3') === 'update-theme-current' && t.parentElement === b.parentElement ? t.textContent : null; });
         const u44 = { items: await items(), tag: await themeTag() };
         ok(JSON.stringify(u44) === JSON.stringify({ items: [['update-check-theme', 'false'], ['update-check-guides', 'false']], tag: null }),
           `Q44 A Update file ${where}: on a set-up file no recount has measured, Theme opens unticked with no tag, beside Style guides, unticked — read ${JSON.stringify(u44)}`);
@@ -18440,14 +18443,14 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       ok(ck.lines[0] === '12 of 648 members change · 2 edited by hand' && ck.lines[1] === 'No member changes', `${where}: Q2909.8 A: each due set says what the check found (${JSON.stringify(ck.lines)})`);
       ok(JSON.stringify(ck.breaks) === JSON.stringify([['button', '1 change affects files that use this library: 1 layer removed, which breaks those files: overrides on it are lost.']]), `${where}: #2831: a published set's consumer-breaking line sits under its row, and only under it (${JSON.stringify(ck.breaks)})`);
       ok(ck.hand?.value === 'keep', `${where}: Q2909.8 A: the update keeps hand edits by default (${JSON.stringify(ck.hand)})`);
-      // #3711 (Q-UF2 A): the change the update passes on to files that use the library is named in a callout, the body's
-      // last item, directly above the button, and the button carries the count. Literals (DRAFT copy). (mutation: the
-      // callout or the button's count dropped → this arm)
+      // #3711 (Q-UF2 A): the change the update passes on to files that use the library is named in a callout directly
+      // above the button, and the button carries the count. Since #3712 (Q-UD2) the callout is the foot's last message
+      // row, the buttons' row next. Literals (DRAFT copy). (mutation: the callout or the button's count dropped → this arm)
       const lib = await page.evaluate(() => {
-        const call = document.querySelector('[data-p3="update-library"]'), body = document.querySelector('[data-p3="update-body"]');
+        const call = document.querySelector('[data-p3="update-library"]');
         return { title: call?.querySelector('[data-p3="update-library-title"]')?.textContent ?? null, sub: call?.querySelector('[data-p3="update-library-sub"]')?.textContent ?? null,
           lines: [...(call?.querySelectorAll('[data-p3="update-library-line"]') ?? [])].map((n) => n.textContent),
-          last: !!call && !!body && body.lastElementChild === call, go: document.querySelector('[data-p3="update-go"]')?.textContent ?? null };
+          last: call?.parentElement?.getAttribute('data-p3') === 'update-foot-msg' && call.parentElement.nextElementSibling?.getAttribute('data-p3') === 'update-foot-actions', go: document.querySelector('[data-p3="update-go"]')?.textContent ?? null };
       });
       ok(lib.title === 'Files that use this library' && lib.sub === '1 change in this update reaches them at the next library publish:'
         && JSON.stringify(lib.lines) === JSON.stringify(['Button · content/check · removed from 12 members — breaks files that use this library: overrides on it are lost.'])
@@ -18511,12 +18514,14 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
         dueLine: document.querySelector('[data-p3="update-due-line"]')?.textContent ?? null,
         title: document.querySelector('[data-p3="update-group-blocked"] .p3-upd-subtitle')?.textContent ?? null,
         rows: [...document.querySelectorAll('[data-p3="update-blocked-row"]')].map((r) => [r.dataset.id, r.querySelector('[data-p3="update-set-due"]')?.textContent ?? null, r.querySelector('[data-p3="update-blocked-why"]')?.textContent ?? null]),
+        // #3712 (Q-UD2): each blocked row carries a lock where a due row has its box.
+        locks: [...document.querySelectorAll('[data-p3="update-blocked-row"]')].map((r) => r.querySelector('svg[data-glyph="lock"]') ? 'lock' : null),
         boxes: document.querySelectorAll('[data-p3="update-group-blocked"] [role="checkbox"], [data-p3="update-group-blocked"] input').length,
         go: document.querySelector('[data-p3="update-go"]')?.disabled ?? null,
       }));
       ok(JSON.stringify(bl.due) === '["button"]' && bl.dueLine === '1 set to update in place. Ticked by default.' && bl.title === 'Can’t update yet'
-        && JSON.stringify(bl.rows) === JSON.stringify([['select', 'Engine update: focus ring size', 'It needs Icon, which this file doesn’t have. Tick Icon on Components first.']]) && bl.boxes === 0 && bl.go === false,
-        `${where}: #3713 blocked apart: a blocked set is listed under Can't update yet with its reason and no tick, and Due counts only the set that can run (${JSON.stringify(bl)})`);
+        && JSON.stringify(bl.rows) === JSON.stringify([['select', 'Engine update: focus ring size', 'It needs Icon, which this file doesn’t have. Tick Icon on Components first.']]) && bl.boxes === 0 && bl.go === false && JSON.stringify(bl.locks) === '["lock"]',
+        `${where}: #3713 blocked apart, #3712 Q-UD2 lock: a blocked set is listed under Can't update yet with its reason and no tick, and Due counts only the set that can run (${JSON.stringify(bl)})`);
       // #3713 (3 of 4): with every Due set blocked and nothing else ticked, Update file is disabled and says why beside
       // it, naming the sets, as its description; with a set to run (above) it says nothing. Literals, DRAFT copy.
       // MUTATION: the why line never drawn (`goWhyOf` returning null) → this arm, by name.
@@ -18882,6 +18887,102 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
           }
         }
         await page.keyboard.press('Escape');
+      }
+      // #3712 (the owner's Q-UD2 change to the foot, 2026-11-13): the foot looks the same in every state. Each message
+      // (the check's progress, why the action is off, the library changes) is a full-width row ABOVE the buttons, and the
+      // buttons share one row, never stacked, at 640 and at 380. Read in every state the dialog's foot can be in: the
+      // read ("Reading this file…"), the check's progress, the answer with a library change and the hand-edits choice,
+      // the answer with nothing to say, every set blocked (the disabled reason), and Clean up. Each state names the
+      // messages it must show, typed here, so a message drawn anywhere but its own row fails by name. And the corrected
+      // indent (audit S3): a line under a box starts where the box's label text starts, on a card and in an inset.
+      // MUTATION (a `wip:` commit): the check's progress put inline on the buttons' row (`handRow = wrap` for it in
+      // `update-file.ts`, not a message) → `#3712 Q-UD2 foot: reading at 640` and the rest of its states, by name.
+      const footRule = () => page.evaluate(() => {
+        const foot = document.querySelector('[data-p3="update-dialog"] .p3-bardlg-foot');
+        if (!foot) return null;
+        const r = (n) => n.getBoundingClientRect();
+        const cs = getComputedStyle(foot);
+        const inner = r(foot).width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth);
+        const kids = [...foot.children];
+        const msgs = kids.filter((k) => k.getAttribute('data-p3') === 'update-foot-msg');
+        const acts = kids.filter((k) => k.getAttribute('data-p3') === 'update-foot-actions');
+        const btns = [...(acts[0]?.querySelectorAll('[data-p3="update-foot-buttons"] > button') ?? [])];
+        const top = Math.min(...btns.map((b) => r(b).top));
+        return {
+          shown: msgs.map((m) => m.firstElementChild?.getAttribute('data-p3') ?? null),
+          strays: kids.length - msgs.length - acts.length, actsLast: acts.length === 1 && kids[kids.length - 1] === acts[0],
+          fullWidth: msgs.every((m) => Math.abs(r(m).width - inner) <= 1),
+          above: msgs.every((m) => r(m).bottom <= top + 0.5),
+          buttons: btns.map((b) => b.getAttribute('data-p3')), oneRow: btns.length > 0 && btns.every((b) => Math.abs(r(b).top - top) <= 1),
+          inside: btns.every((b) => r(b).right <= r(foot).right + 0.5 && r(b).left >= r(foot).left - 0.5),
+          loose: foot.querySelectorAll('button').length - btns.length,
+        };
+      });
+      const indentOf = () => page.evaluate(() => {
+        // Where the text itself starts (its first line box), not the element's edge, which a padding indents from.
+        const left = (n) => { if (!n) return null; const g = document.createRange(); g.selectNodeContents(n); const x = g.getClientRects()[0]; return x ? Math.round(x.left) : null; };
+        const card = document.querySelector('[data-p3="update-item-theme"]');
+        const due = document.querySelector('[data-p3="update-due-set"]');
+        return { card: [left(card?.querySelector('.p3-upd-cardtitle')), left(card?.querySelector('.p3-upd-cardline'))],
+          due: [left(due?.querySelector('.p3-upd-setname')), left(due?.closest('.p3-upd-setrow')?.querySelector('[data-p3="update-set-check"]'))] };
+      });
+      for (const [vw, vh] of [[640, 900], [380, 900]]) {
+        const at = `IA2 ${host} ${theme} ${vw}`;
+        await page.setViewportSize({ width: vw, height: vh });
+        await page.waitForFunction((n) => (document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow') === n, vw < 560, { timeout: 5000 }).catch(() => {});
+        step = `the foot at ${vw}`;
+        const read = async (state, want) => {
+          const f = await footRule();
+          ok(!!f && JSON.stringify(f.shown) === JSON.stringify(want) && f.strays === 0 && f.actsLast && f.fullWidth && f.above && f.oneRow && f.inside && f.loose === 0,
+            `${at}: #3712 Q-UD2 foot: ${state} at ${vw}: each message (${want.join(', ') || 'none'}) is a full-width row above the buttons, and the buttons share one row (${JSON.stringify(f)})`);
+        };
+        await page.evaluate(() => { window.__ia2.length = 0; });
+        await hooks.click(page.locator('[data-p3="update-file"]'));
+        await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+        await postMsg(page, FILE);
+        await page.waitForFunction(() => document.querySelector('[data-p3="update-check-count"]')?.textContent === 'Reading this file…', null, { timeout: 5000 }).catch(() => {});
+        await read('reading', ['update-check-progress']);
+        await postMsg(page, { type: 'update-check-progress', done: 1, total: 2, next: 'select', set: sets[0] });
+        await page.waitForFunction(() => document.querySelector('[data-p3="update-check-count"]')?.textContent === 'Checked 1 of 2 sets', null, { timeout: 5000 }).catch(() => {});
+        await read('checking', ['update-check-progress']);
+        await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+        await page.waitForFunction(() => !!document.querySelector('[data-p3="update-library"]'), null, { timeout: 5000 }).catch(() => {});
+        await read('a library change', ['update-library']);
+        const ind = await indentOf();
+        ok(ind.card[0] !== null && ind.card[0] === ind.card[1] && ind.due[0] !== null && ind.due[0] === ind.due[1],
+          `${at}: #3712 indent at ${vw}: a card's line starts where its title does, and a due set's line where its name does (${JSON.stringify(ind)})`);
+        const { changes: _c, ...plain } = sets[0];
+        await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets: [plain, sets[1]] });
+        await page.waitForFunction(() => !document.querySelector('[data-p3="update-library"]'), null, { timeout: 5000 }).catch(() => {});
+        await read('nothing to say', []);
+        // #3712 (Q-UD2, direction C): Components opens by itself while it lists anything, and its chevron folds it to its
+        // head row: the title, the chip that says what is folded ("2 due", DRAFT), and the chevron, its groups gone; a
+        // second click opens it again. Literals typed here. MUTATION: the fold never folds (`if (!open)` line dropped in
+        // `update-file.ts`) → `#3712 Q-UD2 fold`, by name.
+        if (vw === 640) {
+          const foldOf = () => page.evaluate(() => { const c = document.querySelector('[data-p3="update-item-components"]');
+            return { open: document.querySelector('[data-p3="update-components-fold"]')?.getAttribute('aria-expanded') ?? null, chip: c?.querySelector('[data-p3="update-components-chip"]')?.textContent ?? null,
+              head: [...(c?.querySelector('.p3-upd-cardhead')?.children ?? [])].map((n) => n.getAttribute('data-p3')), groups: c?.querySelectorAll('[data-p3^="update-group-"]').length ?? null }; });
+          const opened = await foldOf();
+          await hooks.click(page.locator('[data-p3="update-components-fold"]'));
+          await page.waitForFunction(() => document.querySelector('[data-p3="update-components-fold"]')?.getAttribute('aria-expanded') === 'false', null, { timeout: 5000 }).catch(() => {});
+          const folded = await foldOf();
+          await hooks.click(page.locator('[data-p3="update-components-fold"]'));
+          await page.waitForFunction(() => document.querySelector('[data-p3="update-components-fold"]')?.getAttribute('aria-expanded') === 'true', null, { timeout: 5000 }).catch(() => {});
+          const again = await foldOf();
+          ok(opened.open === 'true' && opened.groups === 1 && opened.chip === '2 due'
+            && JSON.stringify(folded) === JSON.stringify({ open: 'false', chip: '2 due', head: ['update-components-title', 'update-components-chip', 'update-components-fold'], groups: 0 })
+            && JSON.stringify(again) === JSON.stringify(opened),
+            `${at}: #3712 Q-UD2 fold: Components opens by itself while it lists anything, folds to its head row (title, chip, chevron) and opens again (${JSON.stringify({ opened, folded, again })})`);
+        }
+        await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets: sets.map((x) => ({ ...x, blocked: true, upToDate: false, reasons: ['fonts: Inter Bold will not load, so text could not be written'] })) });
+        await page.waitForFunction(() => !!document.querySelector('[data-p3="update-go-why"]'), null, { timeout: 5000 }).catch(() => {});
+        await read('every set blocked', ['update-go-why']);
+        await hooks.click(page.locator('[data-p3="update-tab-clean"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="update-tab-clean"]')?.getAttribute('aria-selected') === 'true', null, { timeout: 5000 }).catch(() => {});
+        await read('Clean up', []);
+        await page.keyboard.press('Escape');
+        await settle(page);
       }
       await page.setViewportSize({ width: 1280, height: 900 });
     }
