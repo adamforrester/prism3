@@ -61,6 +61,34 @@ changelog or a pending note, and a fold fails unless its version is exactly the 
 note it deleted appears under it. The semantic-conflict net is the fold PR's own CI, the first run of
 every gate over `main` plus the whole batch. How to fold: `CONTRIBUTING.md` §2.
 
+### Decided (2026-11-12, #3698 R1): the fold runs from a bot, and live output carries a build identity
+
+The rule above accepted that `main` runs new behavior under the previous number between folds. The cost
+grew with the gap: #3698 counted 303 pending notes under one `ENGINE_VERSION`. The owner's answer has two
+parts.
+
+- **The fold runs from a bot.** `.github/workflows/fold.yml` runs `fold.ts` and opens the fold PR, which
+  then passes review and `gates` like any other. It runs by hand until a cadence is chosen; the PR that
+  added it carries that question.
+- **Live output carries a build identity:** `<ENGINE_VERSION>+pending.<n>`, where `n` is the number of
+  change notes pending, and the plain version when none are (`packages/engine/build-identity.ts`). It is
+  semver build metadata, so a reader comparing versions ignores it, and `generator.version` keeps meaning
+  the release. It appears in three places:
+  - the MCP server's `serverInfo.version`;
+  - `$extensions.generator.build` in a token tree the MCP or the CLI writes for a brand;
+  - `build` in a brand's component-defs export written the same way. This is new in format
+    `prism3-component-defs/1.3`, a minor format bump, because a field was added.
+
+> **The committed corpus carries no build identity.** Each PR that adds a change note would otherwise
+> rewrite every committed tree's stamp. That is the shared line #1807 took away, and
+> `lint-emission-version.ts` fails a PR that edits an `out/` stamp. A committed file is identified by its
+> commit. `cli.ts --committed`, which regen passes, writes the plain version.
+
+**Classification.**
+- An additive `$extensions` field and an added optional export field: **minor** for the engine.
+- The format moves `1.2 → 1.3`.
+- The guaranteed name surface does not move, so `CONTRACT_VERSION` does not either.
+
 ### Decided (2026-09-02, #1252): the ENGINE surface is everything a consumer can observe — emitted trees AND the projected component surface; `out/` movement is one trigger, not the definition
 
 It had gone unstated and two merged PRs answered it opposite ways on the same shape.

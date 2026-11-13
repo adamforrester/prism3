@@ -6198,6 +6198,12 @@ section('published — on a set in a team library, what breaks consumer files is
       `uf2/checked set: the published set's changes are named and counted for the callout, the unpublished set's absent (${JSON.stringify(checkedSetOf(p, TAG).changes)})`);
     const shipped = (await previewUpdate(w.host, [{ def: TAG, plans: planned }])).sets[0];
     ok(shipped.publish === 'CURRENT' && layerOf(shipped.breaking).length === 0, `published/layer declared: with the shipped part entry the layer is renamed in place and nothing is listed (${JSON.stringify(shipped.breaking ?? null)})`);
+    // #3748 review: the apply's publish description counts the removed layer as breaking (Q-UF1 A). The 1 is a literal.
+    // Mutation: `breaksConsumers` without `layer` → `uf1/publish layer`.
+    const targets = [{ def: TAG, plans: planned }];
+    const res = await applyUpdate(w.host, w.api as any, targets, previewHashOf(await previewUpdate(w.host, targets, undefined, [])), { ledger: [] });
+    ok(typeof res.publish === 'string' && res.publish.endsWith('\n1 breaking change for library consumers.'),
+      `uf1/publish layer: the publish description counts the removed layer as 1 breaking change (${JSON.stringify(res.publish?.split('\n').pop())})`);
   }
   // A LAYER ADDED BY HAND is not in the plan either, but the update skips its member whole (§5), so nothing is removed.
   {
@@ -6225,6 +6231,14 @@ section('published — on a set in a team library, what breaks consumer files is
     const p = (await previewUpdate(w.host, [{ def: PRIV, plans: planned }], undefined, ledger)).sets[0];
     ok(JSON.stringify(p?.breaking) === JSON.stringify([{ kind: 'private', from: TAG, to: PRIV }]),
       `published/private shim: on a published set the ledger's rename to ${PRIV} is listed as breaking, and nothing else (${JSON.stringify(p?.breaking ?? null)})`);
+    // #3748 review: the apply's publish description does not count the rename as a breaking change for library consumers
+    // (Q-UF1 A as built; the classification is held for the owner). Mutation: `breaksConsumers` with `private` →
+    // `uf1/publish private`.
+    const targets = [{ def: PRIV, plans: planned }];
+    const res = await applyUpdate(w.host, w.api as any, targets, previewHashOf(await previewUpdate(w.host, targets, undefined, ledger)), { ledger });
+    const tail = res.publish?.split('\n').pop() ?? '';
+    ok(typeof res.publish === 'string' && !/^\d+ breaking changes? for library consumers\.$/.test(tail),
+      `uf1/publish private: the publish description does not count the private rename as a breaking change (${JSON.stringify(tail)})`);
   }
 
   // THE CHECKLIST LINE (#2831): one line per published set, each case named with what breaks and what the update does.
@@ -6256,6 +6270,24 @@ section('published — on a set in a team library, what breaks consumer files is
       && breakingClause([{ breaking: [...prop, ...prop] }]) === ' · 2 changes affect files that use this library and break them'
       && breakingClause([{ breaking: [...retired, ...prop] }]) === ' · 3 changes affect files that use this library, 1 breaks them',
       `uf1/clause breaks: the clause says "breaks" for the changes that do (${breakingClause([{ breaking: [...retired, ...prop] }])})`);
+    // #3748 review: each kind the published fixture lacks is pinned on its own, so `breaksConsumers` is held for every
+    // kind (docs/34: a scope asserts each promised kind is represented). A layer removed breaks those files; a set
+    // renamed to a private name leaves the library without breaking them (held for the owner). Literals.
+    // Mutations: `breaksConsumers` without `layer` → `uf1/layer counted`; with `private` → `uf1/private not counted`.
+    const layerGone: Breaking[] = [{ kind: 'layer', path: 'content/check', members: 15 }];
+    ok(breakingClause([{ breaking: layerGone }]) === ' · 1 change affects files that use this library and breaks them'
+      && JSON.stringify(breakingSection([{ set: 'Tag', breaking: layerGone }], false)) === JSON.stringify([
+        'Files that use this library: 1 change in 1 published set, 1 of them breaking, passed on at the next library publish.',
+        'Tag · content/check · removed from 15 members — breaks files that use this library: overrides on it are lost.'])
+      && breakingSection([{ set: 'Tag', breaking: layerGone }], true)[0] === 'Files that use this library: 1 change made in 1 published set, 1 of them breaking, passed on at the next library publish.',
+      `uf1/layer counted: a removed layer is counted as breaking in the clause and the section head (${breakingClause([{ breaking: layerGone }])} | ${breakingSection([{ set: 'Tag', breaking: layerGone }], false)[0]})`);
+    const privRename: Breaking[] = [{ kind: 'private', from: 'Tag', to: '_Tag' }];
+    ok(breakingClause([{ breaking: privRename }]) === ' · 1 change affects files that use this library'
+      && JSON.stringify(breakingSection([{ set: 'Tag', breaking: privRename }], false)) === JSON.stringify([
+        'Files that use this library: 1 change in 1 published set, passed on at the next library publish.',
+        'Tag · renamed Tag → _Tag — a name starting with _ or . is not published, so the set leaves the library.'])
+      && breakingSection([{ set: 'Tag', breaking: privRename }], true)[0] === 'Files that use this library: 1 change made in 1 published set, passed on at the next library publish.',
+      `uf1/private not counted: a set renamed to a private name is not counted as breaking in the clause or the section head (${breakingClause([{ breaking: privRename }])} | ${breakingSection([{ set: 'Tag', breaking: privRename }], false)[0]})`);
     ok(breakingSummary(undefined) === '' && breakingSummary([]) === '', 'published/checklist quiet: a set with nothing breaking has no line');
   }
 
