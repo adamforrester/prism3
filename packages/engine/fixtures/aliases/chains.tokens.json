@@ -95,6 +95,10 @@
           1
         ]
       }
+    },
+    "self": {
+      "$type": "color",
+      "$value": "{fx.self}"
     }
   }
 }
