@@ -478,7 +478,7 @@ export const createBridge = (opts: { pairing: Pairing; now?: () => Date; log?: (
         }
         conn.authed = true;
         attach(conn);
-        conn.send({ type: 'welcome', proof: pairing.welcomeProof(clientNonce) });
+        conn.send({ type: 'welcome' });
       } else {
         record(null, 'bridge', 'a connection without the pairing token: refused');
         conn.close(CLOSE.notPaired, 'not paired');
