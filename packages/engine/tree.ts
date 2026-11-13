@@ -408,7 +408,7 @@ const EASING_NOTE: Record<string, string> = {
 type Stats = {
   colorLeaves: number; dimLeaves: number; spaceTokens: number; radiusTokens: number; sizeSteps: number;
   fontSizes: number; fontWeights: number; typeComposites: number;
-  aliases: number; resolved: number; modeChecks: number; modePass: number; broken: { path: string; ref: string }[];
+  aliases: number; resolved: number; modeChecks: number; modePass: number; broken: AliasFault[];
 };
 
 /** #3555 Q-MD2 A: every token name a `$description` mentions is written as code, `background.secondary`, so a reader (the
@@ -427,6 +427,121 @@ const quoteDescriptionPaths = (node: any): void => {
     else if (k === 'modes' && v && typeof v === 'object') for (const m of Object.values<any>(v)) { if (m && typeof m.description === 'string') m.description = quotePaths(m.description); quoteDescriptionPaths(m); }
     else quoteDescriptionPaths(v);
   }
+};
+
+/**
+ * The most hops an alias chain may take from the aliasing leaf to a literal (#3698 finding 7b). `deref` stops at this
+ * many and reports the leaf missing, and `pxOf` / `numOf` turn missing into `0`, so a chain one hop longer would emit
+ * cleanly and then read as zero everywhere it is consumed. The validator refuses it instead. The corpus's deepest chain
+ * was 2 hops when this was set.
+ */
+export const ALIAS_MAX_HOPS = 10;
+
+/** Why an alias is refused: its target does not exist, its chain returns to a leaf it already passed, or its chain is
+ *  longer than {@link ALIAS_MAX_HOPS}. */
+export type AliasFault = { path: string; ref: string; reason: 'dangling' | 'cycle' | 'too-deep'; mode?: string; chain?: string[] };
+
+/**
+ * THE ALIAS VALIDATOR, over a built (or any) DTCG tree. Every `{ref}` the tree carries is collected (the leaf's
+ * `$value`, composite sub-values and array entries, each per-mode value, the fluid-typography ends), then:
+ *   · DANGLING  the ref names no token.
+ *   · CYCLE     following the chain (in the alias's own mode where a link has one, else the link's `$value`) reaches
+ *               a token already on it, the aliasing leaf included, so a self-alias is a cycle of one.
+ *   · TOO-DEEP  the chain takes more than {@link ALIAS_MAX_HOPS} hops to reach a literal.
+ * A chain that dangles part-way is not reported here: the dangling link is an alias of its own and is reported as one.
+ * Pure: no `node:` import, so the surfaces can run it.
+ */
+export const aliasFaults = (tree: any): { aliases: { path: string; ref: string; mode?: string }[]; faults: AliasFault[] } => {
+  const resolvePath = (path: string): boolean => {
+    let node: any = tree;
+    for (const seg of path.split('.')) { node = node?.[seg]; if (node === undefined) return false; }
+    return node && node.$type !== undefined;
+  };
+  const aliases: { path: string; ref: string; mode?: string }[] = [];
+  const walk = (node: any, path: string[]) => {
+    if (node && typeof node === 'object') {
+      if (node.$type !== undefined) {
+        const v = node.$value;
+        if (typeof v === 'string') {
+          const m = v.match(/^\{(.+)\}$/);
+          if (m) aliases.push({ path: path.join('.'), ref: m[1] });
+        } else if (v && typeof v === 'object' && !Array.isArray(v)) {
+          // composite token (e.g. transition): validate aliases in sub-values
+          for (const sv of Object.values(v)) if (typeof sv === 'string') {
+            const m = sv.match(/^\{(.+)\}$/);
+            if (m) aliases.push({ path: path.join('.'), ref: m[1] });
+          }
+        } else if (Array.isArray(v)) {
+          // composite-array token (gradient stops): validate aliases in each entry's
+          // sub-values (shadow layer arrays carry raw colours → no brace matches).
+          for (const item of v) if (item && typeof item === 'object') for (const sv of Object.values(item)) if (typeof sv === 'string') {
+            const m = sv.match(/^\{(.+)\}$/);
+            if (m) aliases.push({ path: path.join('.'), ref: m[1] });
+          }
+        }
+        // Per-mode value overrides: each $extensions.prism3.modes.<m> carries this mode's value —
+        // either a `$value` (the colour role layer: a string alias) or, for a COMPOSITE, the raw
+        // sub-value shape itself (shadow's modes.<m> is a layer ARRAY; a per-mode transition would be
+        // an object).
+        //
+        // Composite sub-values are walked here too (#301). They carry no aliases today, so this
+        // changes no count and no artifact — but the branch used to read ONLY a string `$value`,
+        // which meant an alias placed in a per-mode array was invisible to the gate while the
+        // light-mode half of the very same leaf was validated by the array branch above. A future
+        // composite tiering would have shipped dangling per-mode refs with the gate reporting clean:
+        // the #281 failure shape exactly. Found while running the #301 spike.
+        const pushRef = (v: unknown, mode?: string): void => {
+          if (typeof v !== 'string') return;
+          const m = v.match(/^\{(.+)\}$/);
+          if (m) aliases.push({ path: path.join('.'), ref: m[1], ...(mode ? { mode } : {}) });
+        };
+        const modeOv = node.$extensions?.prism3?.modes;
+        if (modeOv && typeof modeOv === 'object' && !Array.isArray(modeOv)) {
+          for (const [mode, mv] of Object.entries(modeOv)) {
+            const pushModeRef = (x: unknown): void => pushRef(x, mode);
+            if (Array.isArray(mv)) { for (const item of mv) if (item && typeof item === 'object') Object.values(item).forEach(pushModeRef); continue; }
+            const sv = (mv as any)?.$value;
+            pushModeRef(sv);
+            if (Array.isArray(sv)) { for (const item of sv) if (item && typeof item === 'object') Object.values(item).forEach(pushModeRef); }
+            else if (sv && typeof sv === 'object') Object.values(sv).forEach(pushModeRef);
+          }
+        }
+        // Fluid-typography refs (M-11): a fluid composite carries its mobile/desktop size
+        // aliases in $extensions.prism3.responsive.{min,max}.ref — validate them too, else a
+        // ladder edit ships a dangling {root.font.size.NN} while the alias gate reports clean.
+        const resp = node.$extensions?.prism3?.responsive;
+        if (resp?.fluid) for (const end of [resp.min, resp.max]) {
+          const sv = end?.ref;
+          if (typeof sv === 'string') { const m = sv.match(/^\{(.+)\}$/); if (m) aliases.push({ path: path.join('.'), ref: m[1] }); }
+        }
+        return;
+      }
+      for (const [k, v] of Object.entries(node)) if (!k.startsWith('$')) walk(v, [...path, k]);
+    }
+  };
+  for (const [k, v] of Object.entries(tree ?? {})) if (!k.startsWith('$')) walk(v, [k]);
+  const nodeAt = (path: string): any => path.split('.').reduce((n: any, s) => n?.[s], tree);
+  const refOf = (node: any, mode?: string): string | undefined => {
+    const v = (mode ? node?.$extensions?.prism3?.modes?.[mode]?.$value : undefined) ?? node?.$value;
+    const m = typeof v === 'string' ? /^\{(.+)\}$/.exec(v) : null;
+    return m ? m[1] : undefined;
+  };
+  const faults: AliasFault[] = [];
+  for (const a of aliases) {
+    if (!resolvePath(a.ref)) { faults.push({ ...a, reason: 'dangling' }); continue; }
+    if (a.ref === a.path) { faults.push({ ...a, reason: 'cycle', chain: [a.path, a.ref] }); continue; }
+    const chain = [a.path, a.ref];
+    let hops = 1;
+    let next = refOf(nodeAt(a.ref), a.mode);
+    while (next !== undefined) {
+      if (chain.includes(next)) { faults.push({ ...a, reason: 'cycle', chain: [...chain, next] }); break; }
+      chain.push(next);
+      if (++hops > ALIAS_MAX_HOPS) { faults.push({ ...a, reason: 'too-deep', chain }); break; }
+      if (!resolvePath(next)) break;
+      next = refOf(nodeAt(next), a.mode);
+    }
+  }
+  return { aliases, faults };
 };
 
 export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats: Stats } => {
@@ -1280,75 +1395,8 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     },
   };
 
-  // ---- validate aliases + count ----
-  const resolvePath = (path: string): boolean => {
-    let node: any = tree;
-    for (const seg of path.split('.')) { node = node?.[seg]; if (node === undefined) return false; }
-    return node && node.$type !== undefined;
-  };
-  const aliases: { path: string; ref: string }[] = [];
-  const walk = (node: any, path: string[]) => {
-    if (node && typeof node === 'object') {
-      if (node.$type !== undefined) {
-        const v = node.$value;
-        if (typeof v === 'string') {
-          const m = v.match(/^\{(.+)\}$/);
-          if (m) aliases.push({ path: path.join('.'), ref: m[1] });
-        } else if (v && typeof v === 'object' && !Array.isArray(v)) {
-          // composite token (e.g. transition): validate aliases in sub-values
-          for (const sv of Object.values(v)) if (typeof sv === 'string') {
-            const m = sv.match(/^\{(.+)\}$/);
-            if (m) aliases.push({ path: path.join('.'), ref: m[1] });
-          }
-        } else if (Array.isArray(v)) {
-          // composite-array token (gradient stops): validate aliases in each entry's
-          // sub-values (shadow layer arrays carry raw colours → no brace matches).
-          for (const item of v) if (item && typeof item === 'object') for (const sv of Object.values(item)) if (typeof sv === 'string') {
-            const m = sv.match(/^\{(.+)\}$/);
-            if (m) aliases.push({ path: path.join('.'), ref: m[1] });
-          }
-        }
-        // Per-mode value overrides: each $extensions.prism3.modes.<m> carries this mode's value —
-        // either a `$value` (the colour role layer: a string alias) or, for a COMPOSITE, the raw
-        // sub-value shape itself (shadow's modes.<m> is a layer ARRAY; a per-mode transition would be
-        // an object).
-        //
-        // Composite sub-values are walked here too (#301). They carry no aliases today, so this
-        // changes no count and no artifact — but the branch used to read ONLY a string `$value`,
-        // which meant an alias placed in a per-mode array was invisible to the gate while the
-        // light-mode half of the very same leaf was validated by the array branch above. A future
-        // composite tiering would have shipped dangling per-mode refs with the gate reporting clean:
-        // the #281 failure shape exactly. Found while running the #301 spike.
-        const pushRef = (v: unknown): void => {
-          if (typeof v !== 'string') return;
-          const m = v.match(/^\{(.+)\}$/);
-          if (m) aliases.push({ path: path.join('.'), ref: m[1] });
-        };
-        const modeOv = node.$extensions?.prism3?.modes;
-        if (modeOv && typeof modeOv === 'object' && !Array.isArray(modeOv)) {
-          for (const mv of Object.values(modeOv)) {
-            if (Array.isArray(mv)) { for (const item of mv) if (item && typeof item === 'object') Object.values(item).forEach(pushRef); continue; }
-            const sv = (mv as any)?.$value;
-            pushRef(sv);
-            if (Array.isArray(sv)) { for (const item of sv) if (item && typeof item === 'object') Object.values(item).forEach(pushRef); }
-            else if (sv && typeof sv === 'object') Object.values(sv).forEach(pushRef);
-          }
-        }
-        // Fluid-typography refs (M-11): a fluid composite carries its mobile/desktop size
-        // aliases in $extensions.prism3.responsive.{min,max}.ref — validate them too, else a
-        // ladder edit ships a dangling {root.font.size.NN} while the alias gate reports clean.
-        const resp = node.$extensions?.prism3?.responsive;
-        if (resp?.fluid) for (const end of [resp.min, resp.max]) {
-          const sv = end?.ref;
-          if (typeof sv === 'string') { const m = sv.match(/^\{(.+)\}$/); if (m) aliases.push({ path: path.join('.'), ref: m[1] }); }
-        }
-        return;
-      }
-      for (const [k, v] of Object.entries(node)) if (!k.startsWith('$')) walk(v, [...path, k]);
-    }
-  };
-  walk(brand, [root]);
-  const broken = aliases.filter((a) => !resolvePath(a.ref));
+  // ---- validate aliases + count ---- (`aliasFaults`, #3698 finding 7b: dangling refs, cycles, chains past the readers' cap)
+  const { aliases, faults: broken } = aliasFaults({ [root]: brand });
 
   let modeChecks = 0, modePass = 0;
   for (const mr of modes) for (const r of Object.values(mr.roles)) if (r.min > 0) { modeChecks++; if (r.ratio >= r.min) modePass++; }
@@ -1383,7 +1431,7 @@ export const at = (tree: TreeNode, path: string): TreeNode => path.split('.').re
 export const deref = (tree: TreeNode, node: TreeNode): TreeNode => {
   let cur = node, guard = 0;
   while (cur && typeof cur.$value === 'string' && /^\{.+\}$/.test(cur.$value)) {
-    if (guard++ >= 10) return undefined; // cycle / runaway chain — report missing, not a mid-chain alias node (L-05)
+    if (guard++ >= ALIAS_MAX_HOPS) return undefined; // cycle / runaway chain — report missing, not a mid-chain alias node (L-05); `aliasFaults` refuses both at emit (#3698)
     cur = at(tree, cur.$value.slice(1, -1));
   }
   return cur;
