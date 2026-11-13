@@ -199,7 +199,7 @@ export const createAgentLink = (deps: AgentLinkDeps) => {
       const id = commandId(next) as string;
       claim(q.entries, q.claimed, [id]);
       // A dev build's `run-code` too (#2530): folded away with `dev-commands.ts` in a release, like the dispatcher's branch.
-      if (needsSession(next)) {
+      if (needsSession(next) || (PRISM3_DEV && (next as { cmd?: unknown }).cmd === RUN_CODE)) {
         const sent = (next as { session?: unknown }).session;
         const right = session !== null && typeof sent === 'string' && normalizeCode(sent) === session;
         if (!right) {
