@@ -504,8 +504,10 @@ export const foldWorkflowGaps = (text: string): string[] => {
   if (!/\bfold\.ts\s*$/m.test(code)) problems.push('it never runs `fold.ts` itself');
   if (/GITHUB_TOKEN|github\.token/.test(code)) problems.push('it names GITHUB_TOKEN/github.token; a PR opened with the default token starts no CI, so use secrets.FOLD_TOKEN only');
   if ((code.match(/secrets\.FOLD_TOKEN/g) ?? []).length < 3) problems.push('it does not use secrets.FOLD_TOKEN for the token check, the checkout and the PR');
-  if (!/if \[ -z "\$FOLD_TOKEN" \]; then[\s\S]*?exit 1/.test(code)) problems.push('it does not fail by name when FOLD_TOKEN is unset');
-  if (!/startswith\("fold\/"\)[\s\S]*?exit 1/.test(code)) problems.push('it does not refuse while a fold/ PR is already open');
+  // Each refusal must exit 1 inside ITS OWN step: the match stops at the next `- name:`/`- uses:`, so a refusal turned to
+  // `exit 0` cannot borrow a later step's `exit 1` (review of #3749).
+  if (!/if \[ -z "\$FOLD_TOKEN" \]; then(?:(?!\n\s*- (?:name|uses):)[\s\S])*?\bexit 1\b/.test(code)) problems.push('it does not fail by name when FOLD_TOKEN is unset');
+  if (!/startswith\("fold\/"\)(?:(?!\n\s*- (?:name|uses):)[\s\S])*?\bexit 1\b/.test(code)) problems.push('it does not refuse while a fold/ PR is already open');
   if (/gh pr merge|--auto\b|enable-auto-merge/.test(code)) problems.push('it merges or enables auto-merge; the fold PR must pass review and gates like any other');
   if (!/^\s*workflow_dispatch:/m.test(code)) problems.push('it cannot be run by hand (no workflow_dispatch)');
   return problems;
@@ -1348,6 +1350,11 @@ jobs:
   if (!gaps(real.replace(/GH_TOKEN: \$\{\{ secrets\.FOLD_TOKEN \}\}/g, 'GH_TOKEN: ${{ github.token }}')).some((p) => p.includes('GITHUB_TOKEN/github.token'))) selfFails.push('the fold-bot check misses the default token');
   if (!gaps(real.replace('if [ -z "$FOLD_TOKEN" ]; then', 'if false; then')).some((p) => p.includes('unset'))) selfFails.push('the fold-bot check misses a missing token check');
   if (!gaps(real.replace('startswith("fold/")', 'startswith("x/")')).some((p) => p.includes('already open'))) selfFails.push('the fold-bot check misses a dropped open-fold refusal');
+  // A refusal that exits 0 must not borrow the next step's `exit 1` (review of #3749, mutation C).
+  const tokenExit0 = real.replace(/(if \[ -z "\$FOLD_TOKEN" \]; then[^]*?)exit 1/, '$1exit 0');
+  if (tokenExit0 === real || !gaps(tokenExit0).some((p) => p.includes('unset'))) selfFails.push('the fold-bot check misses a token check that exits 0');
+  const openExit0 = real.replace(/(startswith\("fold\/"\)[^]*?)exit 1/, '$1exit 0');
+  if (openExit0 === real || !gaps(openExit0).some((p) => p.includes('already open'))) selfFails.push('the fold-bot check misses an open-fold refusal that exits 0');
   if (!gaps(`${real}\n          gh pr merge --squash\n`).some((p) => p.includes('merges'))) selfFails.push('the fold-bot check misses a bot that merges');
 }
 

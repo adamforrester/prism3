@@ -23,8 +23,12 @@ so `ENGINE_VERSION` had stopped saying which code produced an artifact.
 **The boundary, and why.** The committed corpus carries no build identity. Stamping the pending count into
 committed trees would make every note-adding PR rewrite every tree's stamp. Two such PRs would leave `main` stale,
 and `lint-emission-version.ts` already forbids editing `out/` stamps (#1807). regen passes `cli.ts --committed` for
-wendys, the one committed tree written through the CLI. The only committed byte that moved is the defs export's
-`format` string. This boundary is flagged on the PR for the owner to confirm.
+wendys, the one committed tree written through the CLI. No committed `out/` byte moved: the defs export, whose
+`format` string moved, is not committed (`UNCOMMITTED_OUT`). What moved in committed files is the public guides'
+`mcp.ts` line citations and `commands.json`, which gains `--committed`. This boundary is flagged on the PR for the
+owner to confirm.
 
 **Tested.** `test.ts` builds the expected server version from `git ls-files` (an independent count of the notes),
-types the format literally, and checks that the pure tree and the committed export carry no `build`.
+types the format literally, and checks that the pure tree and the committed export carry no `build`. It also drives
+each live surface against that count: `theme_brand`'s tree, `export_theme`'s `tokens.json` and `component-defs.json`,
+and `cli.ts` on a brief. `lint-component-docs.ts` validates one export built with a `build` against the schema.

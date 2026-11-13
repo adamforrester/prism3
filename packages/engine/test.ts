@@ -30712,6 +30712,36 @@ arm: {
     const liveDoc = exportComponentDefs(componentDefs, { brand: MINIMAL_BRAND, build: '9.9.9+pending.4' });
     ok((liveDoc as any).build === '9.9.9+pending.4' && (exportComponentDefs(componentDefs) as any).build === undefined,
       'version: a live defs export carries the build identity, the committed one none (#3698 R1)');
+
+    // THE LIVE SURFACES, driven end to end (review of #3749). EXPECTED is still git's count above, so a shell that stops
+    // stamping fails here whatever `build-identity.ts` says. On a folded tree (no notes) every surface must carry NO
+    // build, which these arms also hold. BY-NAME MUTATIONS: empty `stampBuild` in mcp.ts → the theme_brand and
+    // export_theme tokens arms fail; drop `build: BUILD_IDENTITY` from export_theme → its defs arm fails; drop `build`
+    // from either call in cli.ts → the CLI arm fails. score_consumption returns no tree, so it has no stamp to assert.
+    const want = notes > 0 ? expected : undefined;
+    const themed = JSON.parse(callTool('theme_brand', { brand: MINIMAL_BRAND, include: ['tokens'] }).content[0].text);
+    ok(themed.tokens?.$extensions?.generator?.version === ENGINE_VERSION && themed.tokens.$extensions.generator.build === want,
+      `version: theme_brand's token tree carries the build identity (#3698 R1) — expected ${want}, got ${themed.tokens?.$extensions?.generator?.build}`);
+    const files = new Map<string, string>();
+    const io = { mkdir: () => {}, writeFile: (q: string, c: string) => { files.set(q, c); } };
+    const ex = callTool('export_theme', { brand: MINIMAL_BRAND, outDir: './bid', include: ['tokens', 'componentSpecs'] }, undefined, io);
+    const exTree = JSON.parse(files.get('./bid/tokens.json') ?? '{}');
+    const exDefs = JSON.parse(files.get('./bid/component-defs.json') ?? '{}');
+    ok(!ex.isError && exTree.$extensions?.generator?.version === ENGINE_VERSION && exTree.$extensions.generator.build === want,
+      `version: export_theme's tokens.json carries the build identity (#3698 R1) — expected ${want}, got ${exTree.$extensions?.generator?.build}`);
+    ok(exDefs.engineVersion === ENGINE_VERSION && exDefs.build === want,
+      `version: export_theme's component-defs.json carries the build identity (#3698 R1) — expected ${want}, got ${exDefs.build}`);
+    // The CLI, as a user runs it: a brief in, the tree and the defs export out.
+    const cliOut = mkdtempSync(join(tmpdir(), 'prism3-cli-build-'));
+    try {
+      const r = spawnSync('npx', ['tsx', resolve(HERE, 'cli.ts'), resolve(HERE, 'examples', 'harbor.design.md'), '--out', cliOut, '--component-specs'], { cwd: HERE, encoding: 'utf8' });
+      const tokFile = readdirSync(cliOut).find((n) => n.endsWith('.tokens.json') && !n.includes('.base.'));
+      const defFile = readdirSync(cliOut).find((n) => n.endsWith('.component-defs.json'));
+      const cliTree = tokFile ? JSON.parse(readFileSync(join(cliOut, tokFile), 'utf8')) : {};
+      const cliDefs = defFile ? JSON.parse(readFileSync(join(cliOut, defFile), 'utf8')) : {};
+      ok(r.status === 0 && !!tokFile && !!defFile && cliTree.$extensions?.generator?.build === want && cliDefs.build === want,
+        `version: cli.ts stamps the build identity on the tree and the defs export it writes (#3698 R1) — expected ${want}, got tree ${cliTree.$extensions?.generator?.build} / defs ${cliDefs.build} (exit ${r.status}${r.status ? `: ${r.stderr.slice(-300)}` : ''})`);
+    } finally { rmSync(cliOut, { recursive: true, force: true }); }
   }
   const stamped = buildTree(brandTheme(MINIMAL_BRAND)).tree as any;
   ok(stamped.$extensions?.generator?.version === ENGINE_VERSION,
