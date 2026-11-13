@@ -234,6 +234,15 @@ accepts('style-guide-result with a malformed stopped leaves it off', { type: 'st
     { kind: 'update-check', previewHash: 'H', missing: [], sets: [{ ...base, breaks: '2 changes affect files that use this library: 2 Button members retired. Their instances keep working and show as deprecated.' }, base], error: null });
   accepts('update-check with a malformed breaks line leaves it off', { type: 'update-check', previewHash: 'H', missing: [], refused: [], sets: [{ ...base, breaks: 7 }] },
     { kind: 'update-check', previewHash: 'H', missing: [], sets: [base], error: null });
+  // #3711 (Q-UF2 A): a set's changes for the callout cross as a count above 0 and every line a string; anything else is
+  // left off, the set kept.
+  const CH = { count: 2, lines: ['Button · variant=a · retired — its instances in files that use this library keep working and show as deprecated.', 'Button · variant=b · retired — its instances in files that use this library keep working and show as deprecated.'] };
+  accepts('update-check with a published set\'s changes', { type: 'update-check', previewHash: 'H', missing: [], refused: [], sets: [{ ...base, changes: CH }] },
+    { kind: 'update-check', previewHash: 'H', missing: [], sets: [{ ...base, changes: CH }], error: null });
+  for (const [label, bad] of [['a zero count', { ...CH, count: 0 }], ['a count not a number', { ...CH, count: '2' }], ['no lines', { ...CH, lines: [] }], ['a line not a string', { ...CH, lines: ['a', 3] }], ['no object', 'x']] as const) {
+    accepts(`update-check whose changes hold ${label} leaves them off`, { type: 'update-check', previewHash: 'H', missing: [], refused: [], sets: [{ ...base, changes: bad }] },
+      { kind: 'update-check', previewHash: 'H', missing: [], sets: [base], error: null });
+  }
   // #3302: the check's progress: its counts, the set being checked now, and the one just checked; a count of the wrong
   // type, or more done than in all, drops the reading, and a set that does not read as one is left off it.
   // #3713: a blocked set carries its reasons; a set not blocked carries none, and a reason of the wrong type is left off.

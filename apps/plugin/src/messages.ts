@@ -218,6 +218,9 @@ export type CheckedSet = {
   /** #2831 — on a published set, what this update breaks for library consumers, as one line (`breakingSummary`).
    *  Absent for a set that is not published, or where nothing breaks. */
   breaks?: string;
+  /** #3711 (Q-UF2 A) — the same changes, each named (`consumerLines`, capped as the check's section is), and how many
+   *  in all, for the callout above Update file's button. Absent where `breaks` is. */
+  changes?: { count: number; lines: string[] };
 };
 
 /** A style-guide specimen (#259) — the `type` axis of `_style-guide-swatches` a table row instances. */
