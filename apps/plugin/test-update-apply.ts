@@ -6106,6 +6106,12 @@ section('published — on a set in a team library, what breaks consumer files is
       `published/cap: each set lists at most 8 changes, then "N more changes not listed." (${capped.length} lines: ${JSON.stringify(capped.slice(9))})`);
     // #3711 (Q-UF2 A): the callout's lines for a set are the section's for it, the same cap. Literal.
     ok(JSON.stringify(consumerLines(TAG, many)) === JSON.stringify(wantCap.slice(1, 10)), `uf2/cap: a set's callout lines are capped at 8, then the count of the rest (${JSON.stringify(consumerLines(TAG, many).slice(7))})`);
+    // #3711 (Q-UF2 A), review of #3751: what the checklist posts for a set past the cap. The button's count is every change
+    // (11), the callout's lines the capped 8 plus the count of the rest. Literal. Mutations: `count` read off the capped
+    // lines (9), or the lines left uncapped (11) → `uf2/checked set past the cap`.
+    const past = checkedSetOf({ ...p, breaking: many }, TAG).changes;
+    ok(JSON.stringify(past) === JSON.stringify({ count: 11, lines: wantCap.slice(1, 10) }),
+      `uf2/checked set past the cap: the button counts all 11 changes, the callout lists 8 and counts the other 3 (${JSON.stringify(past && { count: past.count, lines: past.lines.length })})`);
   }
 
   // A LAYER REMOVED AND RE-ADDED (#2864): Tag built while its check layer was `check`, updated to plans naming it

@@ -378,6 +378,17 @@ ok(reduce(s2, fd(3, false)).liveDue?.theme === false, 'Q810 A recount (control):
     `uf2/button: the button carries the count (${UPDATE_COPY.goLibrary(2)} | ${UPDATE_COPY.goLibrary(1)})`);
   ok(UPDATE_COPY.library === 'Files that use this library' && UPDATE_COPY.librarySub(2) === '2 changes in this update reach them at the next library publish:'
     && UPDATE_COPY.librarySub(1) === '1 change in this update reaches them at the next library publish:', `uf2/callout words: the title and the count line (${UPDATE_COPY.librarySub(1)})`);
+  // Review of #3751, should-fix 2, pinned AS BUILT pending the owner's call: a set the check read as blocked only by
+  // Theme's variables and styles (#3421) carries no `changes`, because the host lists nothing as breaking on a blocked
+  // set (`breakingOf`). With Theme ticked it is in the run, yet adds nothing to the callout or the button. The run checks
+  // it again after Theme and applies it whatever it then passes on. Literal. If the owner picks a different behavior,
+  // this arm is the one that changes.
+  const tb = { ...set('tag'), blocked: true, themeBlocked: true as const, reasons: ['1 variable the plan binds is not in this file (a)'] };
+  const tcheck = { sets: [set('wallet-button', { count: 2, lines: ['Wallet button · variant=a · retired', 'Wallet button · variant=b · retired'] }), tb] };
+  const tticks = { setup: false, theme: true, guides: false, panels: false, update: new Set(['wallet-button', 'tag']), handEdits: 'keep' as const, kept: new Map() };
+  const tdefs = updateDefsOf(tticks, tcheck, []);
+  ok(same(tdefs, ['wallet-button', 'tag']) && same(libraryChangesOf(tdefs, tcheck), { count: 2, lines: ['Wallet button · variant=a · retired', 'Wallet button · variant=b · retired'] }),
+    `uf2/theme-blocked: a set only Theme blocks runs with Theme ticked, and adds nothing to the callout or the count until the owner decides (${JSON.stringify(tdefs)})`);
 }
 
 console.log(`\n${executed - failed}/${executed} passed`);
