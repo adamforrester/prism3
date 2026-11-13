@@ -58,7 +58,10 @@
  * the welcome), `server-proof/impostor-paired` (a code pending, the
  * wrong proof). MUTATIONS, each failing by name: the relay's welcome check removed → `server-proof/impostor`; its paired
  * checks removed → `server-proof/unsolicited-paired` and `server-proof/impostor-paired`; the server's welcome sent with
- * no proof → `server-proof/welcome` and `pair/relay`.
+ * no proof → `server-proof/welcome` and `pair/relay`. #3728 review S1, one clause at a time: `!codeSent` dropped from the
+ * paired guard → `server-proof/unsolicited-paired` (the paired before this socket's code); `connected` dropped →
+ * `server-proof/unsolicited-paired` (the paired after the welcome); the server's clientNonce check dropped from the hello,
+ * from the pair, or its shape test (`CLIENT_NONCE_RE`) → `server-proof/no-nonce`.
  *
  * #2497: the server runs with a short `--grace-ms`, so a dropped plugin's command fails in seconds here. `resend/e2e`
  * drops the real relay's socket while a command runs in the real main.ts, keeps it down until the result is

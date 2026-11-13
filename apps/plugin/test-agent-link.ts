@@ -106,7 +106,9 @@
  *     session/previews (a preview or a read needs none); session/not-in-file (the code is in no mailbox key and no
  *     result); session/panel (the panel is told it); session/new (switching on again draws a new one); session/which
  *     (`needsSession` against a literal list). (mutations: the check in `poll` removed → session/refused, session/wrong
- *     and session/spent fail by name; the code written into the link record → session/not-in-file)
+ *     and session/spent fail by name; the code written into the link record → session/not-in-file; the compare accepting any
+ *     code → session/wrong; the five-try spend removed → session/spent; the dev run-code clause removed → session/refused;
+ *     switch-off no longer forgetting the code → session/new; apply-theme or the confirms out of needsSession → session/which)
  *   · switch-off: with the link off again, nothing new is run
  *   · state: the panel receives the link state and the last command's headline
  *   · snippets: every agent-side script is short
