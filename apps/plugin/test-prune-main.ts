@@ -18,7 +18,8 @@
  *   · `pruneConfirmRefusal` ignoring `holdsInput` → `main/unapplied input refused`;
  *   · `pruneConfirmRefusal` ignoring the hash → `main/missing hash refused`, `main/wrong hash refused`;
  *   · `applyPrunePlan`'s per-removal try dropped (a bare `remove()`) → `main/throw at removal 2`;
- *   · `main.ts` calling `applyPrunePlan` without its running `counts` → `main/throw after removals` (#3709 S1).
+ *   · `main.ts` calling `applyPrunePlan` without its running `counts` → `main/throw after removals` (#3709 S1);
+ *   · the `return;` after `PRUNE_COPY.noVersion(…)` dropped (a failed save still removes) → `main/no version, nothing removed` (#3709 S2).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -51,6 +52,9 @@ file.faces = [...faces.values()];
 /** Tagged canvas furniture `findAllWithCriteria` returns: empty until the throw-after-removals arm plants one. */
 let furniture: unknown[] = [];
 
+/** The #3709 S2 arm: the host's version save throws. */
+let saveThrows = false;
+
 /** One ordered log of what changes the file: `version:<title>` and `remove:<name>`. */
 const events: string[] = [];
 const posted: any[] = [];
@@ -67,7 +71,10 @@ Object.assign(file, {
   on: () => undefined,
   getNodeByIdAsync: async () => null,
   loadAllPagesAsync: async () => undefined,
-  saveVersionHistoryAsync: async (title: string) => { events.push(`version:${title}`); return { id: 'v' }; },
+  saveVersionHistoryAsync: async (title: string) => {
+    if (saveThrows) throw new Error('version history unavailable');
+    events.push(`version:${title}`); return { id: 'v' };
+  },
 });
 
 const g = globalThis as Record<string, unknown>;
@@ -163,6 +170,28 @@ const r5 = await send({ type: 'prune', input, confirm: true, previewHash: String
 ok(r5?.applied === true && r5.ok === false && r5.count === 3 && liveAll().length === 0
   && /^Prune stopped — .*node read failed.*\. Removed 3 stale items before it stopped: 3 variables\.$/.test(String(r5.summary)),
   `main/throw after removals: a throw after three removals reports the three, not 0 (count ${r5?.count}, left ${JSON.stringify(liveAll())}, ${JSON.stringify(r5?.summary)})`);
+
+// #3709 S2 — the third guard's other half: a version save that FAILS removes nothing. Two fresh stale variables, the
+// furniture cleared, the right hash, and a host whose `saveVersionHistoryAsync` throws.
+readThrows = false;
+furniture = [];
+const STALE3 = [6, 7].map((i) => `${rootName}/color/zz-stale-${i}`);
+for (const v of STALE3.map((n) => file.createVariable(n, coll, 'COLOR'))) {
+  const real = v.remove.bind(v);
+  v.remove = () => { events.push(`remove:${v.name}`); real(); };
+}
+const live3 = (): string[] => file.vars.filter((v: any) => !v.removed).map((v: any) => String(v.name)).filter((n) => STALE3.includes(n));
+const preview3 = await send({ type: 'prune', input, confirm: false }, ['prune-result']);
+ok(preview3?.applied === false && preview3.count === 2 && live3().length === 2,
+  `main/no version premise: the preview offers the two fresh stale variables (count ${preview3?.count}, ${live3().length} live)`);
+events.length = 0;
+saveThrows = true;
+const r6 = await send({ type: 'prune', input, confirm: true, previewHash: String(preview3?.previewHash ?? '') }, ['prune-result']);
+saveThrows = false;
+ok(r6?.ok === false && r6.applied === false && r6.count === 0
+  && String(r6.summary).startsWith('Nothing removed — the named version could not be saved')
+  && live3().length === 2 && !events.some((e) => e.startsWith('remove:')),
+  `main/no version, nothing removed: a failed version save removes nothing (count ${r6?.count}, ${live3().length} left, ${JSON.stringify(r6?.summary)}, ${JSON.stringify(events)})`);
 
 console.log = log;
 if (failed) { console.error(`\n${failed} check(s) failed`); process.exit(1); }
