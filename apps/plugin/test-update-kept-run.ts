@@ -155,11 +155,12 @@ ok(defs.length === 2 && steps.join(',') === 'theme,update',
 // #3713: the row names the check's own first reason, in plain words, never "the agent's update check says why".
 // With Theme ticked the indicator variables no longer count (Theme writes them), so nothing follows the nest; with
 // Theme not ticked they are counted. Sets are named as Components names them (`displayNameOf`, as the shell passes).
-const ROW_NEST = 'Can’t update yet — it needs Icon, which this file doesn’t have. Add Icon on Components first.';
-const ROW_NEST_NO_THEME = 'Can’t update yet — it needs Icon, which this file doesn’t have. Add Icon on Components first. 1 more reason.';
+const ROW_NEST = 'Can’t update yet — it needs Icon, which this file doesn’t have. Tick Icon on Components first.';
+const ROW_NEST_NO_THEME = 'Can’t update yet — it needs Icon, which this file doesn’t have. Tick Icon on Components first. 1 more reason.';
 const nameOf = (id: string): string => displayNameOf(catalog, id);
-// Its other reasons are all variables Theme writes, so with Theme ticked none is counted.
-const ROW_DRY = /^Can’t update yet — the plan names a member that is not a coordinate(?::[^.]+)?\.$/;
+// Its other reasons are all variables Theme writes, so with Theme ticked none is counted. Its first is a shape Studio's
+// copy does not know, so it reads the one fixed line (#3721, D3721.1 b).
+const ROW_DRY = 'Can’t update yet — the check gave a reason Studio doesn’t recognize. Report it with Report a problem.';
 const ROW_AFTER_THEME = 'Updated after Theme — Theme writes the variables and styles it binds first';
 {
   const lacking = { ...host, root: { ...host.root, findAllWithCriteria: (c: { types: string[] }) => host.root.findAllWithCriteria(c).filter((n) => String((n as { name?: unknown }).name) !== 'icon/close') } } as unknown as ApplyHost;
@@ -179,7 +180,7 @@ const ROW_AFTER_THEME = 'Updated after Theme — Theme writes the variables and 
   const c = checkedSetOf(p, 'tag');
   ok(p.blockers[0]?.startsWith('the plan names a member that is not a coordinate: ') && p.blockers.slice(1).length > 0 && p.blockers.slice(1).every((b) => b.includes('the plan binds') && b.includes('not in this file')),
     `theme only/premise dry run: the dry run refuses a member first, and the file lacks only the indicator variables (${JSON.stringify(p.blockers)})`);
-  ok(c.blocked && c.themeBlocked === undefined && ROW_DRY.test(UPDATE_COPY.checked(c, true, nameOf)) && UPDATE_COPY.checked(c, true, nameOf) !== ROW_AFTER_THEME,
+  ok(c.blocked && c.themeBlocked === undefined && UPDATE_COPY.checked(c, true, nameOf) === ROW_DRY && UPDATE_COPY.checked(c, true, nameOf) !== ROW_AFTER_THEME,
     `theme only/dry run: a set the dry run already refuses is not theme-blocked, and its row does not read "Updated after Theme" (${JSON.stringify([c.themeBlocked ?? null, UPDATE_COPY.checked(c, true, nameOf)])})`);
 }
 
