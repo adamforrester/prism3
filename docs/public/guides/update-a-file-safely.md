@@ -65,6 +65,8 @@ When a ticked set carries hand edits, a **Hand edits** choice appears beside the
 - **Overwrite**: the update writes Prism3's values over your edits.
 - **Accept as baseline**: your edits become the values later updates compare against.
 
+If the update passes changes on to files that use this library, a callout above the button, **Files that use this library**, names each one, and the button carries their count. <!-- src: apps/studio/src/state/update-file.ts:407-409 -->
+
 Before its first write, the update saves a named version in the file's version history: "Saves a version first. If Figma refuses the save, nothing is written." <!-- src: apps/studio/src/state/update-file.ts:373 -->
 
 The update writes exactly what the check read. If the file changed in between, it writes nothing and says so in Activity, under `✗ update refused`: "Nothing was updated: the file changed since the check." <!-- src: apps/plugin/src/update-apply.ts:1117-1119 -->
@@ -91,7 +93,7 @@ When a brand drops a mode, a ramp step or a text style, the old one stays in the
 
 1. Choose **Update file**, then the **Clean up** tab. It checks the file as it opens and reads "Checking for stale items…". Nothing is deleted yet. <!-- src: apps/studio/src/state/update-file.ts:401 -->
 2. The tab states what it found, including the modes by name. When there is nothing, it says "Nothing stale in this file." <!-- src: apps/studio/src/state/update-file.ts:402 -->
-3. Choose **Delete *N* items** to delete them, or **Close** to stop. <!-- src: apps/studio/src/shell/update-file.ts:551-555 -->
+3. Choose **Delete *N* items** to delete them, or **Close** to stop. <!-- src: apps/studio/src/shell/update-file.ts:561-565 -->
 
 *[Screenshot placeholder: the Clean up tab with its summary and Delete button.]*
 
