@@ -255,7 +255,8 @@
  *   · OWNER COPY (2026-10-02, APPROVED, literal): the lever sections are the preview's, Interactive, Disabled,
  *     Links, Icons, with their descriptions, each lever in its section (Q51); the button-set strings (Q53); no
  *     "column", "band" or "muted" in the page's copy (Q53, Q57, Q58); a button set added and removed previewing
- *     Dark persists the same JSON as from Light (Q54); in HC light, HC dark and wireframe every control in a lever
+ *     Dark persists the same JSON as from Light (Q54); a set a glass still draws from is refused whole on Remove, and
+ *     its card says so (#3697 M1, the #3710 review); in HC light, HC dark and wireframe every control in a lever
  *     section is disabled, enumerated from the DOM with a floor, under the derived line (Q59).
  *   Owner-copy mutations: "Promote to a column" back → `Q53: the add row reads "Add button set" …`; a section
  *   titled "Actions" → `Q51: Interactive's lever sections are the preview's …`; Add hidden in Dark → `Q54:
@@ -7227,6 +7228,38 @@ if (runs('19')) {
     ok(darkRm, `Q54: previewing Dark, the added set offers Remove button set, enabled (${darkRm})`);
     const darkRemoved = await removeSet();
     ok(darkRemoved === lightRemoved && darkRemoved === before, `Q54: removed previewing Dark, the brand is the one removed from Light, and the one before the add (${darkRemoved})`);
+
+    // #3697 M1 (the #3710 review): a button set a glass role still draws from is HELD, so its removal is refused whole,
+    // the brand left as it was, and the card says so, as the brand color's and the custom mode's removals do. Seeded
+    // through storage (the Glass page offers no set's role) and restored the same way.
+    {
+      const blob0 = await page.evaluate(() => localStorage.getItem('prism3:brandInput'));
+      await addSet();
+      await page.evaluate(() => {
+        const o = JSON.parse(localStorage.getItem('prism3:brandInput'));
+        o.input.glassRoles = { card: { role: 'interactive.accent.fill.rest', alpha: 60 } };
+        localStorage.setItem('prism3:brandInput', JSON.stringify(o));
+      });
+      await page.reload({ waitUntil: 'networkidle' });
+      await hooks.need(page, '[data-p3="frame"]');
+      await goPlace(page, 'color-interactive');
+      const MARK = '[data-p3="interactive-column"][data-column="accent"] [data-p3="column-refused"]';
+      const held = JSON.stringify(await persisted(page));
+      const quiet = await page.evaluate((q) => document.querySelector(q)?.hidden ?? null, MARK);
+      await hooks.click(page.locator('[data-p3="interactive-column"][data-column="accent"] [data-p3="column-remove"]'));
+      await page.waitForFunction((q) => document.querySelector(q)?.hidden === false, MARK, { timeout: 5000 }).catch(() => {});
+      const said = await page.evaluate((q) => {
+        const m = document.querySelector(q);
+        return { shown: !!m && !m.hidden && m.getClientRects().length > 0, text: m?.textContent?.trim() ?? null, card: m?.closest('[data-p3="interactive-column"]')?.dataset.refused ?? null };
+      }, MARK);
+      const kept = JSON.stringify(await persisted(page));
+      ok(quiet === true && said.shown && said.card === 'true' && said.text === 'Refused. The preview keeps the last valid theme.' && kept === held,
+        `#3697 M1: removing a button set a glass still draws from is refused whole, and the card says so (quiet before: ${quiet}, ${JSON.stringify(said)}, brand kept: ${kept === held})`);
+      await page.evaluate((v) => localStorage.setItem('prism3:brandInput', v), blob0);
+      await page.reload({ waitUntil: 'networkidle' });
+      await hooks.need(page, '[data-p3="frame"]');
+      await goPlace(page, 'color-interactive');
+    }
     await chooseAnyMode(page, 'light');
 
     // Q59: in each derived mode every lever on the page is disabled, brand-wide ones included, under the derived
