@@ -700,6 +700,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | radio-group | false | — |
 |  | search-field | false | — |
 |  | select | false | — |
+|  | slider | false | — |
 |  | text-field | false | — |
 |  | textarea | false | — |
 | selected | segmented-control-segment | false | — |

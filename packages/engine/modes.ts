@@ -1276,7 +1276,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const extreme = polarity === 'dark' ? WHITE : BLACK;
     const base = polarity === 'dark' ? 'black' : 'white';
     for (const [rung, floor] of VEIL_RUNGS) {
-      const step = VEIL_STEPS.find((s) => contrast(extreme, composite(extreme, wash, s / 100)) >= floor);
+      // At the alpha that ships (#3698 finding 7a), as the overlay and wash paths do: the hex dialect writes 26/255
+      // for 10%, so a step chosen at the nominal alpha could clear a floor the emitted wash does not.
+      const step = VEIL_STEPS.find((s) => contrast(extreme, composite(extreme, wash, emittedAlpha(s / 100, theme.colorFormat))) >= floor);
       if (step === undefined)
         throw new Error(`veil.${polarity}.${rung}: no emitted alpha step clears ${floor}:1 over the worst-case pixel`);
       put(`veil.${polarity}.${rung}`,
@@ -2896,8 +2898,11 @@ const settleSolidTint = (theme: Theme, results: ModeResult[], only?: { color: st
         const ink = m.roles[inkKeyOf(st)];
         return { m, fill: hexRgb(m.roles[fillKey]), ground: hexRgb(m.roles[groundKey]), ink: ink ? hexRgb(ink) : undefined, min: ink?.min ?? 0 };
       });
-      const legible = (st: string, s: number) => cells(st).every((c) => !c.ink || contrast(c.ink, composite(c.ground, c.fill, s / 100)) >= c.min);
-      const visible = (st: string, s: number) => cells(st).every((c) => deltaE2000(composite(c.ground, c.fill, s / 100), c.ground) >= TINT_VISIBLE_DE);
+      // Every composite here is at the alpha that ships (#3698 finding 7a), so the step the guards pick and the ratio
+      // published below measure the same wash.
+      const shipped = (s: number) => emittedAlpha(s / 100, theme.colorFormat);
+      const legible = (st: string, s: number) => cells(st).every((c) => !c.ink || contrast(c.ink, composite(c.ground, c.fill, shipped(s))) >= c.min);
+      const visible = (st: string, s: number) => cells(st).every((c) => deltaE2000(composite(c.ground, c.fill, shipped(s)), c.ground) >= TINT_VISIBLE_DE);
 
       // hover: the text guard steps down; failing nothing, the visibility guard steps up under the text cap.
       let h = steps.indexOf(nominalOf('hover'));
@@ -2922,7 +2927,8 @@ const settleSolidTint = (theme: Theme, results: ModeResult[], only?: { color: st
             // The SELECTED fill has two users since 2026-09-29 (an outline/text control, and a control the user
             // selects in place, Tag's select type), so its sentence names both rather than one.
             description: `${color} interactive subtle fill${prefix ? ' on a dark / inverse surface' : ''} — ${st} (the ${color} fill at opacity.${step}${why}; translucent, ${st === 'selected' ? 'the selected background of a selectable control or an outline/text control' : `the outline/text control's ${st} background`})`,
-            ratio: c.ink ? contrast(c.ink, composite(c.ground, c.fill, step / 100)) : 0,
+            // Measured at the alpha that ships (#3698 finding 7a), as the overlay paths above do (`emittedAlpha`).
+            ratio: c.ink ? contrast(c.ink, composite(c.ground, c.fill, shipped(step))) : 0,
             // A WASH (#963): `against` is the ground it composites over, `legibleFor` the ink that must survive
             // on the result — which is what `min` bounds. `hex` is the OPAQUE fill; `alpha` is the step.
             against: groundKey, legibleFor: inkKey, model: 'ink-on-composite',
