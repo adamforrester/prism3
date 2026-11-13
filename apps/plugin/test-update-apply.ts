@@ -989,7 +989,7 @@ section('keep, reported — a kept hand edit on a bound size is a hand edit kept
   ok(pre.sets[0].handEdits.length === 0, `premise: the dry run lists no hand edit (${JSON.stringify(pre.sets[0].handEdits)})`);
   const v = applyVerdict(res);
   const want = `bound ${PLAIN}/dot.width -> DISCARDED (set control/size/md/dot, not retained on the live node)`;
-  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines.some((l) => l.includes('not written as planned') && l.includes(want))
+  ok(!v.ok && v.headline === '⚠ Updated 1 set · 1 to check' && v.lines.some((l) => l.includes('not written as planned') && l.includes(want))
     && res.outcomes[0].misses.includes(want) && !res.outcomes[0].keptBound && !v.lines[0].includes('hand edit'),
     `kept report/real discard: a binding the host dropped on a node no one edited is still a part not written (${JSON.stringify(v)})`);
 }
@@ -1026,7 +1026,7 @@ section('keep, reported — a kept hand edit on a bound size is a hand edit kept
   const kept = JSON.stringify((o.keptBound ?? []).map((b) => [b.member, b.part, b.field]).sort());
   ok(o.misses.includes(want) && !o.misses.some((x) => x.includes(`${EDITED}/dot`))
     && kept === JSON.stringify([[EDITED, 'dot', 'height'], [EDITED, 'dot', 'width']])
-    && !v.ok && v.headline === '⚠ 1 set not verified · 1 set kept edits over changes' && v.lines.some((l) => l.includes('not written as planned') && l.includes(want)),
+    && !v.ok && v.headline === '⚠ Updated 1 set · 1 to check · 1 set kept edits over changes' && v.lines.some((l) => l.includes('not written as planned') && l.includes(want)),
     `kept report/two members: ${EDITED}'s kept dot does not hide the binding the host dropped on ${OTHER}'s dot (${JSON.stringify({ misses: o.misses, keptBound: o.keptBound, v })})`);
 }
 
@@ -2154,7 +2154,7 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   ok(post.counts.current === 45 && post.counts.current + (post.counts.update ?? 0) + (post.counts.noBaseline ?? 0) === 46 && !post.handEdits.some((h) => h.member.endsWith(String(hit.name).split('/').pop()!)),
     `recordfail/out of date: the next dry run reads it out of date, never current, the other 45 current (${JSON.stringify(post.counts)})`);
   const glyph = String(hit.name).split('/').pop();
-  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 45 updated in place.'
+  ok(!v.ok && v.headline === '⚠ Updated 1 set · 1 to check' && v.lines[0] === 'icon: 45 updated in place.'
     && v.lines.includes(`icon: 1 member not finished — name=${glyph} (its as-built record could not be written). It still reads as out of date; run the update again to finish it.`),
     `recordfail/verdict: the verdict is not a ✓, counts 45 updated and names the icon not finished (${JSON.stringify(v)})`);
 }
@@ -2177,7 +2177,7 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   ok(pdOf(hit, STAMP_KEY) === stampWas && post.counts.current === 44 && post.counts.update === 1 && named.length === 1,
     `recordfail/set member: a set member whose record could not be written keeps its stamp, reads out of date and is named (stamp ${pdOf(hit, STAMP_KEY) === stampWas ? 'kept' : 'moved'}; ${JSON.stringify(post.counts)}; ${JSON.stringify(named)})`);
   const v = applyVerdict(res);
-  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === `${TAG}: 44 updated in place.`
+  ok(!v.ok && v.headline === '⚠ Updated 1 set · 1 to check' && v.lines[0] === `${TAG}: 44 updated in place.`
     && v.lines.includes(`${TAG}: 1 member not finished — ${String(hit.name)} (its as-built record could not be written). It still reads as out of date; run the update again to finish it.`),
     `recordfail/set verdict: the set member's verdict is not a ✓, counts 44 updated and names it not finished (${JSON.stringify(v)})`);
 }
@@ -2206,7 +2206,7 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const o = res.outcomes[0];
   const v = applyVerdict(res);
   ok(o?.skipped.some((x) => x.member === 'name=check') && o.misses.some((x) => x.startsWith('name=check-circle.asBuilt -> NOT RECORDED'))
-    && !v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 44 updated in place, 1 left as it is.'
+    && !v.ok && v.headline === '⚠ Updated 1 set · 1 to check' && v.lines[0] === 'icon: 44 updated in place, 1 left as it is.'
     && v.lines.includes('icon: 1 member not finished — name=check-circle (its as-built record could not be written). It still reads as out of date; run the update again to finish it.'),
     `recordfail/prefix: a skip on name=check leaves the refused record on name=check-circle in the misses and the verdict (skipped ${JSON.stringify(o?.skipped)}; misses ${JSON.stringify(o?.misses)}; ${JSON.stringify(v)})`);
 }
@@ -2235,9 +2235,36 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const o = { def: 'x', set: 'x', updated: ['a=1', 'a=2'], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: 'keep' as const, identity: [], content: [],
     misses: ['label.characters -> DISCARDED (set "Go", reads "")', 'a=3.asBuilt -> NOT RECORDED (the component is not in the file to read)'] };
   const v = applyVerdict({ outcomes: [o], refused: [], missing: [] } as any);
-  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'x: 2 updated in place.'
+  ok(!v.ok && v.headline === '⚠ Updated 1 set · 1 to check' && v.lines[0] === 'x: 2 updated in place.'
     && v.lines[1] === 'x: 2 parts not written as planned — label.characters -> DISCARDED (set "Go", reads ""); a=3.asBuilt -> NOT RECORDED (the component is not in the file to read).',
     `misses/other: any other miss leaves the set not verified, quoted, the updated count as it was (${JSON.stringify(v)})`);
+}
+{
+  // #3711 (Q-UF3 A): UNVERIFIED SETS WARN, THEY DON'T STOP. A run that wrote every set and left some to check is
+  // `completed` and not `ok`, its headline the sets written and how many to check (DRAFT wording). A set that stopped or
+  // was refused, or a stop the person asked for, is not `completed`, so Update file's run still ends there. Outcomes
+  // written out by hand; the expected headlines are typed here. Mutations: `completed` read as `!stopped` alone →
+  // `uf3/refused stops`; the warn headline counting only the sets to check → `uf3/warn`; the warn headline taking
+  // precedence over a refused set → `uf3/refused stops`.
+  const base = { updated: ['a=1'], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: 'keep' as const, identity: [], content: [], misses: [] };
+  const clean = (k: number) => Array.from({ length: k }, (_, i) => ({ ...base, def: `s${i}`, set: `s${i}` }));
+  const toCheck = [{ ...base, def: 'p', set: 'p', content: ['a=1.fills: 2 paint(s) (the plan says none)'] }, { ...base, def: 'q', set: 'q', misses: ['label.characters -> DISCARDED (set "Go", reads "")'] }];
+  const warn = applyVerdict({ outcomes: [...clean(45), ...toCheck], refused: [], missing: [] } as any);
+  ok(!warn.ok && warn.completed === true && warn.headline === '⚠ Updated 47 sets · 2 to check'
+    && warn.lines.includes('p: 1 field still differs from the plan — a=1.fills: 2 paint(s) (the plan says none).')
+    && warn.lines.includes('q: 1 part not written as planned — label.characters -> DISCARDED (set "Go", reads "").'),
+    `uf3/warn: every set written, 2 to check, is completed, not ok, and says so (${warn.headline}; completed ${warn.completed})`);
+  const one = applyVerdict({ outcomes: [toCheck[0]], refused: [], missing: [] } as any);
+  ok(one.completed === true && one.headline === '⚠ Updated 1 set · 1 to check', `uf3/one: the count agrees with 1 (${one.headline})`);
+  const refusedToo = applyVerdict({ outcomes: [...clean(2), toCheck[0], { ...base, def: 'r', set: 'r', updated: [], refused: 'the set moved since the check' }], refused: [], missing: [] } as any);
+  ok(!refusedToo.ok && refusedToo.completed === false && refusedToo.headline === '✗ 1 set not updated',
+    `uf3/refused stops: a refused set beside one to check is not completed, and the headline names the set not updated (${refusedToo.headline}; completed ${refusedToo.completed})`);
+  const stopped = applyVerdict({ outcomes: [...clean(1), { ...base, def: 't', set: 't', stopped: 'the host threw' }], refused: [], missing: [] } as any);
+  ok(!stopped.ok && stopped.completed === false && stopped.headline === '✗ update stopped at t', `uf3/stopped stops: a set that stopped is not completed (${stopped.headline})`);
+  const halted = applyVerdict({ outcomes: [toCheck[0]], refused: [], missing: [], halted: { after: 'p', done: 1, total: 2, left: ['tag'], leftDefs: ['tag'] } } as any);
+  ok(!halted.ok && halted.completed === false, `uf3/halted stops: a stop the person asked for is not completed (${halted.headline})`);
+  const fine = applyVerdict({ outcomes: clean(3), refused: [], missing: [] } as any);
+  ok(fine.ok && fine.completed === true && fine.headline === '✓ updated 3 in place', `uf3/clean: a clean run is ok and completed (${fine.headline})`);
 }
 {
   // A COUNT'S VERB AGREES WITH IT (#3243): "1 field still differs", "2 fields still differ"; "1 left as it is", "2 left
