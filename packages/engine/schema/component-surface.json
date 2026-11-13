@@ -677,7 +677,7 @@
     },
     "toast": {
       "members": 2,
-      "sha256": "6c722abf8fde5ddbed9d6e44bf2d52ec93a8bf31cbdc6b93358957007b328d3c",
+      "sha256": "2e306975b8d818ee401fdace25c76ed5d9b1059b1a13c42e007b5fb5b91cb7d0",
       "properties": [
         "action:BOOLEAN",
         "close:BOOLEAN",
@@ -787,12 +787,12 @@
     },
     "banner": {
       "members": 10,
-      "sha256": "338b4131710b459489885a753196826ea090d673e7fa0e6d0c8c1426052b2687",
+      "sha256": "98b213e4a4b838c344273c80ccfd8db7525c0e15c93024e6dba36e76679543a8",
       "properties": [
         "actions:BOOLEAN",
         "body text:TEXT",
         "body:BOOLEAN",
-        "dismiss:BOOLEAN",
+        "close:BOOLEAN",
         "icon:BOOLEAN",
         "link:BOOLEAN",
         "rich body:BOOLEAN",

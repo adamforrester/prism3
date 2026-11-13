@@ -440,6 +440,23 @@ export const slider = (key: string, role: string, label: string, onInput: (v: nu
   };
 };
 
+/** #3553 Q-UI2 A: a single choice whose options do not fit one row becomes a list, one option to a row, rather than
+ *  wrap and leave an orphan ("No hover fill" alone under three, "Pill" alone under three). Measured, not a breakpoint:
+ *  after each resize, in the next frame (so a ResizeObserver never sizes what it observes inside its own callback), the
+ *  row is laid out unstacked and stacked only if its options' tops differ. The buttons, their hooks, roles and keys are
+ *  the same in both forms; only `data-stack` and the CSS move. */
+const stackWhenWrapped = (el: HTMLElement): void => {
+  let queued = false;
+  const fit = (): void => {
+    queued = false;
+    if (!el.isConnected) return;
+    delete el.dataset.stack;
+    const tops = new Set([...el.children].filter((c) => c.getClientRects().length > 0).map((c) => Math.round(c.getBoundingClientRect().top)));
+    if (tops.size > 1) el.dataset.stack = 'true';
+  };
+  new ResizeObserver(() => { if (!queued) { queued = true; requestAnimationFrame(fit); } }).observe(el);
+};
+
 /** A choice of two to four, as concept v6's chips: a radio group of segment buttons, arrow keys between. */
 export const choice = <V extends string>(label: string, role: string, options: readonly { v: V; l: string }[], onPick: (v: V) => void): {
   el: HTMLElement; set: (v: V) => void;
@@ -472,6 +489,7 @@ export const choice = <V extends string>(label: string, role: string, options: r
     to.focus();
     to.click();
   });
+  stackWhenWrapped(el);
   return {
     el,
     set: (v) => { for (const b of btns) { const on = b.dataset.value === v; if (b.getAttribute('aria-checked') !== String(on)) { b.setAttribute('aria-checked', String(on)); b.tabIndex = on ? 0 : -1; } } },
@@ -605,7 +623,8 @@ export const toggleChip = (role: string, word: string, onToggle: (on: boolean) =
 export const chipChoice = <V extends string>(label: string, role: string, options: readonly { v: V; l: string }[], onPick: (v: V) => void): {
   el: HTMLElement; set: (v: V) => void;
 } => {
-  const el = hook(h('div', 'p3-chips'), role);
+  // `p3-chips-one`: a single choice, which stacks rather than wrap (#3553 Q-UI2 A); Personality's many-word chips wrap.
+  const el = hook(h('div', 'p3-chips p3-chips-one'), role);
   el.setAttribute('role', 'group');
   el.setAttribute('aria-label', label);
   const btns = options.map((o) => {
@@ -617,6 +636,7 @@ export const chipChoice = <V extends string>(label: string, role: string, option
     return b;
   });
   el.append(...btns);
+  stackWhenWrapped(el);
   return {
     el,
     set: (v) => { for (const b of btns) { const on = String(b.dataset.value === v); if (b.getAttribute('aria-pressed') !== on) b.setAttribute('aria-pressed', on); } },

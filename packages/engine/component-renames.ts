@@ -170,6 +170,12 @@ export const COMPONENT_RENAMES: readonly ComponentRename[] = [
   { def: 'code-input', kind: 'value', axis: 'size', from: 'xlarge', to: 'x-large', issue: 3554 },
   { def: 'code-input-cell', kind: 'value', axis: 'size', from: 'xlarge', to: 'x-large', issue: 3554 },
   { def: 'slider', kind: 'property-rename', from: 'helper', to: 'message', issue: 3554 },
+  // #3554 (owner decisions 2026-11-11). Q-CC26 A: Banner's close button is `close`, part and boolean, as on Toast and
+  // Dialog; a placed banner keeps whether it shows and every override on it. Q-CC27 A: a glyph picked by an axis is named
+  // by the axis value, so Toast's success glyph is `successGlyph`, as Banner's and FieldMessage's are.
+  { def: 'banner', kind: 'part', from: 'dismiss', to: 'close', issue: 3554 },
+  { def: 'banner', kind: 'property-rename', from: 'dismiss', to: 'close', issue: 3554 },
+  { def: 'toast', kind: 'part', from: 'checkCircleGlyph', to: 'successGlyph', issue: 3554 },
   // #3554 (owner decision Q-CC19 A) — List.Item's TEXT property takes its layer's name, `label` (the layer was renamed
   // under #2759 above). Renamed in place, so every placed item keeps the text a designer typed into it.
   { def: 'list-item', kind: 'property-rename', from: 'text', to: 'label', issue: 3554 },
