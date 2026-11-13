@@ -19923,6 +19923,31 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     const vs = await strip(page);
     ok(vs.tone === 'warn' && vs.what === 'Stopped after Button' && vs.n === '1 of 2 updated' && vs.line === 'The 1 set updated keeps its changes; the other 1 is unchanged. Details in Activity.',
       `${where}: Q3170.6 A: "Stopped after Button", "1 of 2 updated", what it kept (${JSON.stringify(vs)})`);
+    // ── #3711 (Q-UF3 A): every set written, some left to check ──
+    // The owner's run of 2026-11-12 read "Stopped at the update" though it wrote every set. The host's `completed` says
+    // the update went through every set, so the step warns and the run goes on. (mutation: `main.ts` passing `false`
+    // for the update's `warn` → this arm, the strip reading "Stopped at Tag")
+    step = 'an update with sets to check';
+    await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
+    await hooks.need(page, '[data-p3="update-dialog"]', WAIT);
+    await postMsg(page, T_FILE);
+    await postMsg(page, T_CHECK);
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="update-go"]') && !document.querySelector('[data-p3="update-go"]').disabled, null, WAIT).catch(() => {});
+    if ((await page.evaluate(() => document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked'))) === 'true') {
+      await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+      await postMsg(page, T_FILE);
+      await postMsg(page, T_CHECK);
+    }
+    await page.waitForFunction(() => !document.querySelector('[data-p3="update-go"]')?.disabled, null, WAIT).catch(() => {});
+    await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+    await postMsg(page, { type: 'run-progress', run: 'update', phase: 'work', item: 'button', done: 0, total: 2 });
+    await postMsg(page, { type: 'run-progress', run: 'update', phase: 'finish', item: null, done: 2, total: 2 });
+    await postMsg(page, { type: 'component-update-result', ok: false, completed: true, headline: '⚠ Updated 2 sets · 1 to check', summary: 'tag: 1 field still differs from the plan.', lines: ['tag: 1 field still differs from the plan.'],
+      causes: [{ kind: 'warn', subject: 'tag', what: 'not verified', reasons: ['1 field still differs from the plan.'] }] });
+    await settle(page);
+    const vw = await strip(page);
+    ok(vw.kind === 'verdict' && vw.tone === 'warn' && vw.what === '2 sets updated' && vw.line === 'Updated 2 sets · 1 to check. Details in Activity.',
+      `${where}: #3711 Q-UF3 A: an update that wrote every set, 1 to check, ends as a warning, never "Stopped at" (${JSON.stringify(vw)})`);
     // The next action ends the line: Clean up's dry run.
     await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
     await hooks.click(page.locator('[data-p3="update-tab-clean"]'), WAIT);

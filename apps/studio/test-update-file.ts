@@ -140,6 +140,15 @@ ok(startUpdate([], []).done, 'run: a run with no steps is done at once');
   w = stepDone(w, false, '⚠ Built 9 sets · 5 with problems', true);
   ok(!w.done && stepOf(w) === 'guides' && w.results[2].warn === true && w.results[2].ok === false,
     `run/warn goes on: a sets step that built every set, some with problems, moves the run to the style guides (${JSON.stringify({ done: w.done, next: stepOf(w), last: w.results[2] })})`);
+  // #3711 (Q-UF3 A): the owner's run of 2026-11-12. The update wrote all 47 sets, 2 left to check: not ok, but it did all
+  // it was asked, so the run goes on to the style guides, where it read "Stopped at the update". (mutation: `main.ts`
+  // passing `false` for the update's `warn` again is held by test:chrome; here `stepDone` ignoring `warn` → `run/update warn goes on`)
+  const u = stepDone(startUpdate(['theme', 'update', 'guides'], []), true, '✓ applied');
+  const uw = stepDone(u, false, '⚠ Updated 47 sets · 2 to check', true);
+  ok(!uw.done && stepOf(uw) === 'guides' && uw.results[1].warn === true && uw.results[1].headline === '⚠ Updated 47 sets · 2 to check',
+    `run/update warn goes on: an update that wrote every set, 2 to check, moves the run to the style guides (${JSON.stringify({ done: uw.done, next: stepOf(uw), last: uw.results[1] })})`);
+  const ux = stepDone(u, false, '✗ update stopped at tag', false);
+  ok(ux.done && stepOf(ux) === null, 'run/update stop ends: an update with a set stopped still ends the run');
   const ok2 = stepDone(startUpdate(['theme', 'guides'], []), true, '✓ applied', true);
   ok(ok2.results[0].warn === undefined && !ok2.done, 'run/warn: a clean step is never marked warn');
 }
