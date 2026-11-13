@@ -45,7 +45,7 @@ Choose **Update file** again during a run to follow it: "Step 2 of 4 · Theme", 
 
 If a step fails, the dialog opens next time with "The last update stopped at" and the step and its reason. <!-- src: apps/studio/src/state/update-file.ts:399 -->
 
-If the update writes every set and some still differ from the plan, the run goes on to its next step and ends as a warning: it counts the sets written and those still "to check". Activity names what differs in each set to check. A set that stopped or was not updated still ends the run. <!-- src: apps/plugin/src/update-apply.ts:1231 -->
+If the update writes every set and some still differ from the plan, the run goes on to its next step and ends as a warning: it counts the sets written and those still "to check". Activity names what differs in each set to check. A set that stopped or was not updated still ends the run. <!-- src: apps/plugin/src/update-apply.ts:1242 -->
 
 ## The rules every write follows
 
@@ -69,7 +69,7 @@ When a ticked set carries hand edits, a **Hand edits** choice appears beside the
 
 Before its first write, the update saves a named version in the file's version history: "Saves a version first. If Figma refuses the save, nothing is written." <!-- src: apps/studio/src/state/update-file.ts:373 -->
 
-The update writes exactly what the check read. If the file changed in between, it writes nothing and says so in Activity, under `✗ update refused`: "Nothing was updated: the file changed since the check." <!-- src: apps/plugin/src/update-apply.ts:1121-1123 -->
+The update writes exactly what the check read. If the file changed in between, it writes nothing and says so in Activity, under `✗ update refused`: "Nothing was updated: the file changed since the check." <!-- src: apps/plugin/src/update-apply.ts:1132-1134 -->
 Open **Update file** again to check afresh. <!-- src: apps/studio/src/state/update-file.ts:308 -->
 
 ### What an update keeps
@@ -105,13 +105,13 @@ What Clean up can delete: <!-- src: apps/plugin/src/prune-figma.ts:18-32#6e2fac9
 - Text, effect, paint and grid styles the brand no longer emits, when they sit in a style group the brand still uses. A style in a group of your own stays.
 - Canvas labels beside a component set that is no longer in the file.
 
-The delete works out the list again from a fresh read of the file before it deletes anything. <!-- src: apps/plugin/src/main.ts:582-583#88108fd2 -->
+The delete works out the list again from a fresh read of the file before it deletes anything. <!-- src: apps/plugin/src/main.ts:583-584#88108fd2 -->
 
 After a style-guide run that found tables Prism3 no longer draws, **Clean up** lists them too: "2 style-guide tables the generator no longer draws." Choose **Remove *N* tables** to delete them. <!-- src: apps/studio/src/state/update-file.ts:403-404 -->
 
 ### When a mode is renamed
 
-Prism3 never renames a mode in a file, and that includes a custom mode renamed in **Custom mode name**. <!-- src: apps/studio/src/domains/brand.ts:200 -->
+Prism3 never renames a mode in a file, and that includes a custom mode renamed in **Custom mode name**. <!-- src: apps/studio/src/domains/brand.ts:208 -->
 The renamed mode arrives as a new mode beside the old one. The old mode keeps the values it last had, and frames set to it still show them. <!-- src: apps/plugin/src/write-figma.ts:371-386#ffc2b3a2 -->
 Removing a mode removes its values from every variable in the collection, so move the frames first: <!-- src: apps/plugin/src/prune-figma.ts:45-53#979f9c19 -->
 
@@ -126,6 +126,6 @@ Removing a mode removes its values from every variable in the collection, so mov
 | `✗ N conflicts`, "Nothing was written." | The file holds a same-named collection or style that Prism3 did not create, or a variable of another type. <!-- src: apps/plugin/src/preflight.ts:237 --> | Rename or remove the named items, then run Update file again. |
 | "is already running. Try again when it finishes." | Another write is already running, from the panel or an agent. <!-- src: apps/plugin/src/run-guard.ts:49-52 --> | Wait for it to finish. |
 | "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." | The brand saved in this file didn't open. The dialog's **Update file** button, Clean up's delete and every other write stay off. <!-- src: apps/studio/src/main.ts:1833 --> | Load the brand again, for example from its `design.md`. |
-| `✗ update refused`, "the file changed since the check" | Something in the file moved between the check and the update. <!-- src: apps/plugin/src/update-apply.ts:895 --> | Open Update file again and read the new check. |
-| "the named version could not be saved" | Figma refused to save the safety version, so the update wrote nothing. <!-- src: apps/plugin/src/update-apply.ts:971 --> | Try again. Nothing in the file changed. |
-| `nothing built — set '…' on this page varies by different axes and was left as it is` | A set with that name already exists on the page, built with different options. <!-- src: apps/plugin/src/main.ts:1038 --> | Rename or move the existing set. |
+| `✗ update refused`, "the file changed since the check" | Something in the file moved between the check and the update. <!-- src: apps/plugin/src/update-apply.ts:898 --> | Open Update file again and read the new check. |
+| "the named version could not be saved" | Figma refused to save the safety version, so the update wrote nothing. <!-- src: apps/plugin/src/update-apply.ts:974 --> | Try again. Nothing in the file changed. |
+| `nothing built — set '…' on this page varies by different axes and was left as it is` | A set with that name already exists on the page, built with different options. <!-- src: apps/plugin/src/main.ts:1039 --> | Rename or move the existing set. |

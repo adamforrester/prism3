@@ -15,7 +15,7 @@ import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, 
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, densitySpace, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { codeOnlyText } from './code-only-register';
-import { at, deref, pxOf, buildTree, familyOf } from './tree';
+import { at, deref, pxOf, buildTree, familyOf, aliasFaults, type AliasFault } from './tree';
 import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, type Theme } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes, overrideGroundRgb, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS, pureExtremeInk } from './modes';
@@ -7391,9 +7391,9 @@ arm: {
   const tagParts = tagDef.anatomy!.parts;
   const nests = Object.entries(tagParts).filter(([, p]) => p.kind === 'nest').map(([n]) => n);
   ok(nests.length === 0 && JSON.stringify(tagDef.composition.composesWith) === '["focus-ring"]'
-    && tagParts.dismissGlyph?.kind === 'vector' && tagParts.dismissGlyph?.glyph === 'close'
-    && JSON.stringify(tagParts.dismiss?.children) === '["dismissGlyph"]',
-    `tag: the × is a plain close glyph in the dismiss slot, and nothing nests IconButton.Neutral (nests [${nests.join(', ')}], composesWith ${JSON.stringify(tagDef.composition.composesWith)}, × ${tagParts.dismissGlyph?.kind}/${tagParts.dismissGlyph?.glyph})`);
+    && tagParts.closeGlyph?.kind === 'vector' && tagParts.closeGlyph?.glyph === 'close'
+    && JSON.stringify(tagParts.dismiss?.children) === '["closeGlyph"]',
+    `tag: the × is a plain close glyph in the dismiss slot, and nothing nests IconButton.Neutral (nests [${nests.join(', ')}], composesWith ${JSON.stringify(tagDef.composition.composesWith)}, × ${tagParts.closeGlyph?.kind}/${tagParts.closeGlyph?.glyph})`);
   // THE × SLOT IS MARKED AS A TARGET INSIDE THE TAG (#1741), which `lint-hit-target.ts` reads; and the marker is
   // validated: on the role target, or on a part with no bound side, it is refused by name.
   const withPart = (name: string, patch: Record<string, unknown>) => ({ ...tagDef, anatomy: { ...tagDef.anatomy!, parts: { ...tagParts, [name]: { ...tagParts[name], ...patch } } } }) as ComponentDef;
@@ -7483,8 +7483,8 @@ arm: {
   ok(tagSet.length === 45 && dismissSelected.length === 0 && countOf('select', 'unselected') === 15 && countOf('select', 'selected') === 15 && countOf('dismissible', 'unselected') === 15,
     `tag projects to Figma: exactly 45 members — select unselected and selected, dismissible unselected only — and none at type=dismissible, selection=selected (got ${tagSet.length}: select/unselected ${countOf('select', 'unselected')}, select/selected ${countOf('select', 'selected')}, dismissible/unselected ${countOf('dismissible', 'unselected')}${dismissSelected.length ? `; excluded members present: ${dismissSelected.map((m) => m.name).join(' | ')}` : ''})`);
   // SELECT HAS NO × IN ANY MEMBER, and every dismissible member has it (owner decisions B and C).
-  const selectWithX = tagMembers.filter((m) => m.type === 'select' && (m.parts.includes('dismiss') || m.parts.includes('dismissGlyph')));
-  const dismissWithoutX = tagMembers.filter((m) => m.type === 'dismissible' && !(m.parts.includes('dismiss') && m.parts.includes('dismissGlyph')));
+  const selectWithX = tagMembers.filter((m) => m.type === 'select' && (m.parts.includes('dismiss') || m.parts.includes('closeGlyph')));
+  const dismissWithoutX = tagMembers.filter((m) => m.type === 'dismissible' && !(m.parts.includes('dismiss') && m.parts.includes('closeGlyph')));
   ok(selectWithX.length === 0 && dismissWithoutX.length === 0,
     `tag: no select member carries the × slot, and every dismissible member does${selectWithX.length ? ` — select with ×: ${selectWithX.map((m) => m.name).join(' | ')}` : ''}${dismissWithoutX.length ? ` — dismissible without ×: ${dismissWithoutX.map((m) => m.name).join(' | ')}` : ''}`);
   // THE × IS TRAILING (owner decision C): on every dismissible member the × slot is the LAST flow cell of the pill,
@@ -17179,7 +17179,9 @@ arm: {
       // Re-pinned by #3346 (owner Q1 revised A): the selected outline moved from `interactive.primary.border.*` to the
       // selection mark `interactive.primary.indicator.*` on 12 members. Measured when re-pinned: the new plans with those
       // 12 refs swapped back hash to the pre-#2945 literal (85641a65e850…), so nothing else in the pill moved.
-      ok(pillHash === '48c09571c7cabd5cfa52439754c15e5c9b4afb438dc462a6d658c5ed5d4b3ad4',
+      // Re-pinned by #3647 (owner Q192 A): the × glyph layer is renamed `dismissGlyph` → `closeGlyph`. Measured when
+      // re-pinned: the new plans with `closeGlyph` swapped back hash to the #3346 literal (48c09571c7ca…), so only the name moved.
+      ok(pillHash === '84f9b7a09d286df0bfe9e3de362696d3a6e288bc8fc574ba8833bce054d6ce26',
         `tag pill unchanged (#2945): the 45 pill members, materialized at the null brand, are byte-identical to main before the underline hug, its code-tier prose and #3346's selection mark aside (sha256 ${pillHash.slice(0, 12)}…)`);
       // #2946 review: after the hug the rung heights (28 / 36 / 44 / 56px) and "1.5 times its height" hold under Pill only, so
       // every shipped Tag string (everything but the maintainer-only `notes`) that states one names the style it is true of.
@@ -17325,7 +17327,7 @@ arm: {
           const inset = r.counterAxisAlignItems === 'MAX' ? pxVar(content?.bound?.paddingBottom) : NaN;
           const labelBottom = inset + (lcH - lineBox) / 2;
           // The × slot hugs too (#2945): its glyph plus its own block paddings, unless it binds a height.
-          const slotGlyph = slot ? find(slot, 'dismissGlyph') : undefined;
+          const slotGlyph = slot ? find(slot, 'closeGlyph') : undefined;
           const slotH = !slot ? 0 : slot.bound?.height ? pxVar(slot.bound.height) : pxVar(slotGlyph?.bound?.height) + pxVar(slot.bound?.paddingTop) + pxVar(slot.bound?.paddingBottom);
           const frameH = Math.max(pxVar(r.bound?.minHeight), pxVar(r.bound?.height), lcH + pxVar(content?.bound?.paddingTop) + pxVar(content?.bound?.paddingBottom), slotH);
           const checkBottom = check ? inset + (lcH - pxVar(check.bound?.height)) / 2 : undefined;
@@ -20628,7 +20630,7 @@ arm: {
     const GLYPH_CASES: Array<{ id: string; parts: string[]; want: Record<string, [string, number]> }> = [
       { id: 'segmented-control-segment', parts: ['leadingVisual'], want: STEP_DOWN },
       { id: 'tab-item', parts: ['leadingVisual'], want: STEP_DOWN },
-      { id: 'tag', parts: ['leadingVisual', 'checkGlyph', 'dismissGlyph'], want: STEP_DOWN },
+      { id: 'tag', parts: ['leadingVisual', 'checkGlyph', 'closeGlyph'], want: STEP_DOWN },
       { id: 'icon-button', parts: ['icon'], want: ONE_TO_ONE },
       { id: 'icon-button-destructive', parts: ['icon'], want: ONE_TO_ONE },
       { id: 'icon-button-neutral', parts: ['icon'], want: ONE_TO_ONE },
@@ -21504,6 +21506,36 @@ arm: {
         && aria.includes(nameClause) && aria.includes(noAriaRequired)
         && !/aria-required (is|are) set/.test(aria) && aria.split('aria-required').length === 2,
         `Q-FL2.1 slider's required prop carries "required" in each thumb's accessible name and sets no aria-required, in its prop description and accessibility.aria (got ${r ? `${r.type} ${String(r.default)}: ${r.description}` : 'none'} / aria: ${aria})`);
+    }
+    // D3699.1 B / D3699.2 (#3699 follow-up): the two descriptions of a thumb's name carry the ", required" rule, and
+    // it applies to custom thumbLabels too (the clause follows "when not set", not inside it). Literals: the owner's
+    // approved clause, so a description that drops it, or rewords it, fails here.
+    {
+      const clause = ', with ", required" added when the slider is required';
+      const thumbName = componentDefs.find((d) => d.id === '_slider-thumb')?.props.find((p) => p.name === 'aria-label')?.description ?? '';
+      ok(thumbName === 'The thumb\'s accessible name. Set by the Slider: the label for a single value, "Minimum {label}" and "Maximum {label}" for a range, with ", required" added when the slider is required.' && thumbName.includes(clause),
+        `D3699.1 _slider-thumb's aria-label description carries the ", required" rule (got ${thumbName})`);
+      const thumbLabels = componentDefs.find((d) => d.id === 'slider')?.props.find((p) => p.name === 'thumbLabels')?.description ?? '';
+      ok(thumbLabels === 'For a range, the two thumb names, "Minimum {label}" and "Maximum {label}" when not set, with ", required" added when the slider is required.' && thumbLabels.includes(clause),
+        `D3699.2 slider's thumbLabels description carries the ", required" rule, set or not (got ${thumbLabels})`);
+    }
+    // D3699.3 (#3699 follow-up): FieldLabel says the required state is never marker-only. For a slider that is not
+    // aria-required (Q-FL2.1 A) but "required" in the thumb's accessible name, so each place FieldLabel says it names
+    // the slider case, and the old field-only wording is gone.
+    {
+      const fl = componentDefs.find((d) => d.id === 'field-label');
+      const sliderCase = 'or for a slider, "required" in the thumb\'s accessible name';
+      const places: [string, string][] = [
+        ['required prop', fl?.props.find((p) => p.name === 'required')?.description ?? ''],
+        ['accessibility.aria', fl?.accessibility.aria ?? ''],
+        ['guidance', (fl?.docs?.do ?? []).find((s) => s.includes('back the marker')) ?? ''],
+      ];
+      for (const [where, text] of places) {
+        ok(text.includes(sliderCase)
+          && !text.includes('the field also carries required / aria-required, so the state is not marker-only')
+          && !text.includes('back the marker with aria-required'),
+          `D3699.3 field-label's ${where} names the slider case, "required" in the thumb's accessible name (got ${text})`);
+      }
     }
     // Since #2266 the three field hosts are sized, and the label's SIZE follows the host's (pinned per member in
     // the #2266 block); what stays the label's own default is its emphasis.
@@ -26025,7 +26057,7 @@ arm: {
         const slotDefs = Object.entries(((set?.componentPropertyDefinitions ?? {}) as Record<string, { type: string }>)).filter(([, d]) => d.type === 'SLOT');
         ok(run.misses.length === 0 && cells.length === 15 && cells.every((n) => n.type === 'SLOT') && slotDefs.length === 1
           && cells.every((n) => (n.componentPropertyReferences as Record<string, string> | null)?.slotContentId === slotDefs[0][0])
-          && cells.every((n) => ((n.children as Record<string, unknown>[]) ?? []).map((c) => String(c.name)).join() === 'dismissGlyph'),
+          && cells.every((n) => ((n.children as Record<string, unknown>[]) ?? []).map((c) => String(c.name)).join() === 'closeGlyph'),
           `#2417 paste: the paste executor builds each dismiss cell as a native SLOT holding its glyph, and the set holds one SLOT property they all reference (${cells.length} cells, ${[...new Set(cells.map((n) => n.type))].join('/')}; ${slotDefs.map(([k]) => k).join(', ') || 'no SLOT property'}${run.misses.length ? `; misses ${JSON.stringify(run.misses.slice(0, 2))}` : ''})`);
         // A SLOT'S TEXT IS LITERAL (#2417): Figma refuses a component-property reference on a slot sublayer (measured), so
         // a text part inside a slot carries its own `characters`, and a TEXT property claiming one is refused, as is
@@ -26049,7 +26081,7 @@ arm: {
         const refused = (d: ComponentDef, re: RegExp): string => { const all = errs(d); return all.some((m) => re.test(m)) ? '' : `none matched; got ${JSON.stringify(all.slice(0, 2))}`; };
         const onBox = refused(patched({ dismiss: { ...tagParts.dismiss, characters: 'x' } }), /declares 'characters' — only a 'text' part/);
         ok(onBox === '', `#2417 validator: copy on a box is refused, only a text part holds it ${onBox}`);
-        const onGlyph = refused(patched({ dismissGlyph: { ...tagParts.dismissGlyph, contentSlot: true } }), /only a 'box' can be a native slot/);
+        const onGlyph = refused(patched({ closeGlyph: { ...tagParts.closeGlyph, contentSlot: true } }), /only a 'box' can be a native slot/);
         ok(onGlyph === '', `#2417 validator: a native slot on a non-box part is refused ${onGlyph}`);
         const { layout: _layout, ...noLayout } = tagParts.dismiss;
         const bare0 = refused(patched({ dismiss: { ...noLayout, contentSlot: true } }), /binds no 'layout'/);
@@ -41606,6 +41638,65 @@ arm: {
     }
   }
   ok(checked >= 9 && bad.length === 0, `#3555 C10: every derived minWidth rule with a numeric ratio states the arithmetic that gives its px (${checked} rows across ${EXAMPLE_IDS.length} brands)${bad.length ? ` — ${bad.slice(0, 4).join('; ')}` : ''}`);
+}
+
+// #3698 finding 7b — THE ALIAS VALIDATOR REFUSES A CYCLE AND A CHAIN THE READERS CANNOT FOLLOW. The gate checked one
+// hop: a ref that named a token passed, whatever that token pointed at. `deref` gives up after 10 hops and `pxOf` /
+// `numOf` read that as `0`, so a cycle, or a chain of 11, emitted clean and was consumed as zero. `aliasFaults` (tree.ts)
+// now follows each chain. The CLEAN case is a committed fixture (`fixtures/aliases/chains.tokens.json`: a 10-hop chain,
+// a per-mode chain, a composite sub-value) that must report nothing. Each FAULT is planted here in a copy of it and
+// must be reported by path and reason. The cap is typed here as 10, never read from `ALIAS_MAX_HOPS`, and tied to the
+// reader by driving `deref` over the same chains. Every committed tree is then walked too.
+{
+  const FIX = 'fixtures/aliases/chains.tokens.json';
+  const clean = JSON.parse(readFileSync(resolve(HERE, FIX), 'utf8'));
+  const copy = (): any => JSON.parse(JSON.stringify(clean));
+  const show = (fs: AliasFault[]): string => fs.map((f) => `${f.reason} ${f.path}${f.mode ? ` [${f.mode}]` : ''}${f.chain ? ` (${f.chain.join(' → ')})` : ''}`).join('; ') || 'none';
+  const c = aliasFaults(clean);
+  ok(c.faults.length === 0 && c.aliases.length >= 16,
+    `#3698 7b: the clean fixture ${FIX} reports no alias fault (${c.aliases.length} aliases, floor 16; faults: ${show(c.faults)})`);
+  ok(deref(clean, at(clean, 'fx.cap.n0'))?.$value === '#336699',
+    `#3698 7b: deref follows the fixture's 10-hop chain to its literal, so the validator's cap is no tighter than the reader's`);
+
+  const has = (fs: AliasFault[], path: string, reason: AliasFault['reason'], mode?: string): boolean =>
+    fs.some((f) => f.path === path && f.reason === reason && f.mode === mode);
+  const planted: [string, (t: any) => void, string, AliasFault['reason'], string?][] = [
+    ['a self-alias', (t) => { t.fx.self = { $type: 'color', $value: '{fx.self}' }; }, 'fx.self', 'cycle'],
+    ['a two-token loop', (t) => { t.fx.p = { $type: 'color', $value: '{fx.q}' }; t.fx.q = { $type: 'color', $value: '{fx.p}' }; }, 'fx.p', 'cycle'],
+    ['a loop reached through a clean leaf', (t) => { t.fx.cap.n9.$value = '{fx.cap.n5}'; }, 'fx.cap.n0', 'cycle'],
+    ['a loop in one mode only', (t) => { t.fx.mode.other.$extensions.prism3.modes.dark.$value = '{fx.mode.leaf}'; }, 'fx.mode.leaf', 'cycle', 'dark'],
+    ['an 11-hop chain', (t) => { t.fx.cap.n10 = { $type: 'color', $value: '{fx.lit}' }; t.fx.cap.n9.$value = '{fx.cap.n10}'; }, 'fx.cap.n0', 'too-deep'],
+    ['a dangling ref', (t) => { t.fx.one.$value = '{fx.nowhere}'; }, 'fx.one', 'dangling'],
+  ];
+  for (const [what, plant, path, reason, mode] of planted) {
+    const t = copy();
+    plant(t);
+    const f = aliasFaults(t).faults;
+    ok(has(f, path, reason, mode), `#3698 7b: ${what} is reported as ${reason} at ${path}${mode ? ` [${mode}]` : ''} (got: ${show(f)})`);
+  }
+  {
+    const t = copy();
+    t.fx.cap.n10 = { $type: 'color', $value: '{fx.lit}' }; t.fx.cap.n9.$value = '{fx.cap.n10}';
+    ok(deref(t, at(t, 'fx.cap.n0')) === undefined,
+      `#3698 7b: deref gives up on the same 11-hop chain the validator refuses, so nothing the validator passes reads as 0`);
+  }
+
+  const ids = readdirSync(resolve(HERE, './out')).filter((f) => /^[^.]+\.tokens\.json$/.test(f)).sort();
+  const bad: string[] = [];
+  let total = 0, deepest = 0;
+  for (const f of ids) {
+    const tree = JSON.parse(readFileSync(resolve(HERE, './out', f), 'utf8'));
+    const r = aliasFaults(tree);
+    total += r.aliases.length;
+    if (r.faults.length) bad.push(`${f}: ${show(r.faults.slice(0, 3))}`);
+    for (const a of r.aliases) {
+      let hops = 0, node = at(tree, a.ref);
+      for (; hops < 20 && typeof node?.$value === 'string' && /^\{.+\}$/.test(node.$value); hops++) node = at(tree, node.$value.slice(1, -1));
+      deepest = Math.max(deepest, hops + 1);
+    }
+  }
+  ok(ids.length >= 4 && total >= 7000 && bad.length === 0,
+    `#3698 7b: every committed tree's aliases resolve with no cycle and within 10 hops (${ids.length} trees, ${total} aliases, floors 4 and 7000; deepest base chain ${deepest} hops)${bad.length ? ` — ${bad.join(' | ')}` : ''}`);
 }
 
 // #3698 finding 7a — A TINT'S PUBLISHED CONTRAST IS MEASURED AT THE ALPHA THAT SHIPS. `settleSolidTint` composited the

@@ -1620,6 +1620,14 @@ const absentNests = (have: ReadonlySet<string>, plans: readonly AnatomyPlan[]): 
 /** #3713: a list a blocker line names, cut at three, with how many more it leaves out, so the line never names fewer
  *  than are missing without saying so. */
 const firstFew = (xs: readonly string[]): string => `${xs.slice(0, 3).join(', ')}${xs.length > 3 ? `, and ${xs.length - 3} more` : ''}`;
+/** #3713 (D3721.6 b): a swap-target list (`icon/close`), cut by SET, not by target: every target of the first three sets
+ *  (the part before `/`), grouped by set, then how many more sets. Studio names one set per entry (`setNames`), so the
+ *  count has to be sets for "Icon, Button, and 1 more" to mean one more set, never one more Icon target. */
+const firstFewSets = (xs: readonly string[]): string => {
+  const setOf = (x: string): string => x.split('/')[0];
+  const sets = [...new Set(xs.map(setOf))];
+  return `${sets.slice(0, 3).flatMap((s) => xs.filter((x) => setOf(x) === s)).join(', ')}${sets.length > 3 ? `, and ${sets.length - 3} more` : ''}`;
+};
 const fileBlockers = async (host: UpdateHost, plans: readonly AnatomyPlan[], set: LiveSet, have: ReadonlySet<string>): Promise<{ lines: string[]; theme: number }> => {
   const out: string[] = [];
   // #3421: how many of `out` are a variable or a text or effect style the plans name: what Apply Theme writes.
@@ -1643,7 +1651,7 @@ const fileBlockers = async (host: UpdateHost, plans: readonly AnatomyPlan[], set
   if (noEffect.length) out.push(`effect style${noEffect.length === 1 ? '' : 's'} not in this file: ${firstFew(noEffect)}`);
   // Nests are named above, with what to build first; a swap target is named here.
   const noSwap = planTargets(plans).filter((n) => !have.has(n) && !absent.includes(n));
-  if (noSwap.length) out.push(`component${noSwap.length === 1 ? '' : 's'} the plan swaps to ${noSwap.length === 1 ? 'is' : 'are'} not in this file: ${firstFew(noSwap)}`);
+  if (noSwap.length) out.push(`component${noSwap.length === 1 ? '' : 's'} the plan swaps to ${noSwap.length === 1 ? 'is' : 'are'} not in this file: ${firstFewSets(noSwap)}`);
   if (!host.loadFontAsync) return { lines: out, theme };
   const fonts = new Map<string, { family: string; style: string }>();
   for (const s of wantStyles) { const f = byName.get(s)?.fontName; if (f) fonts.set(`${f.family}|${f.style}`, f); }

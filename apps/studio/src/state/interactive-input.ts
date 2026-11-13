@@ -22,6 +22,7 @@ import { resolveAllModes } from '@prism3/engine/modes';
 import type { Theme } from '@prism3/engine/theme';
 import { brandState, setPath, theme } from './store';
 import { setRoleOverride, stepsOf } from './fills-input';
+import { commitAtomic, removeColumn } from './name-refs';
 
 /** The last dot-segment of a token path: the palette step key (`…primary.650` → `650`). */
 export const stepKeyOf = (path: string | undefined): string => (path ? path.split('.').pop()! : '');
@@ -150,10 +151,20 @@ export const addAccent = (palette: string): void => {
   const arr = brandState.interactivePalettes ?? (brandState.interactivePalettes = []);
   arr.push({ palette });
 };
-/** Remove accent column `i`; an emptied list is pruned. */
-export const removeAccent = (i: number): void => {
-  brandState.interactivePalettes!.splice(i, 1);
-  if (!brandState.interactivePalettes!.length) brandState.interactivePalettes = undefined;
+/** Remove accent column `i`, and every key that named the column (#3697 H3: its anchors, its role overrides, its outline
+ *  hover fill, from the table every name writer reads, `name-refs.ts`), unless a column that stays carries the same
+ *  name. An emptied list is pruned. Atomic (#3697 M1): refused, it returns the engine's message and changes nothing. */
+export const removeAccent = (i: number): string | null => {
+  const cols = brandState.interactivePalettes ?? [];
+  const e = cols[i];
+  if (!e) return null;
+  const col = e.name ?? e.palette;
+  const shared = cols.some((x, j) => j !== i && (x.name ?? x.palette) === col);
+  return commitAtomic((b) => {
+    b.interactivePalettes!.splice(i, 1);
+    if (!b.interactivePalettes!.length) b.interactivePalettes = undefined;
+    if (!shared) removeColumn(b, col);
+  });
 };
 
 // ── the row registry (the Roles hook, like `FILL_ROWS` / `TEXT_ROWS`) ────────────────────────────────
