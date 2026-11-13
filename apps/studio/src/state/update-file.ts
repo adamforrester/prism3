@@ -421,6 +421,11 @@ export const UPDATE_COPY = {
   cleanNone: 'Nothing stale in this file.',
   cleanRetired: (n: number): string => `${n} style-guide table${n === 1 ? '' : 's'} the generator no longer draws.`,
   removeTables: (n: number): string => `Remove ${n} table${n === 1 ? '' : 's'}`,
+  /** #3711 (Q-UF2 A), DRAFT: the button while the update passes changes on to files that use the library, and the
+   *  callout above it that names each one. */
+  goLibrary: (n: number): string => `Update, including ${n} library change${n === 1 ? '' : 's'}`,
+  library: 'Files that use this library',
+  librarySub: (n: number): string => `${n} change${n === 1 ? '' : 's'} in this update ${n === 1 ? 'reaches' : 'reach'} them at the next library publish:`,
 } as const;
 
 /** #3713: the sets a blocker line names (`icon/close`, `icon`), as Components names them: each set's id (the part before
@@ -488,3 +493,11 @@ export const blockedReason = (reasons: readonly string[] | undefined, theme = fa
 
 /** Each step's name in the checklist and in the run line. */
 export const STEP_TITLE: Readonly<Record<StepKey, string>> = { setup: UPDATE_COPY.setup, theme: UPDATE_COPY.theme, update: UPDATE_COPY.updateStep, sets: UPDATE_COPY.toAdd, guides: UPDATE_COPY.guides, cover: UPDATE_COPY.coverStep };
+
+/** #3711 (Q-UF2 A): the changes the update step would pass on to files that use the library, from the sets it runs
+ *  (`updateDefsOf`), each named, and how many in all. The callout above the button lists the lines; the button carries
+ *  the count, so the click is the acknowledgement. Empty when no set the update runs has any. */
+export const libraryChangesOf = (defs: readonly string[], check: { readonly sets: readonly CheckedSetView[] } | null): { readonly count: number; readonly lines: readonly string[] } => {
+  const hit = defs.flatMap((id) => check?.sets.find((c) => c.def === id)?.changes ?? []);
+  return { count: hit.reduce((k, c) => k + c.count, 0), lines: hit.flatMap((c) => c.lines) };
+};

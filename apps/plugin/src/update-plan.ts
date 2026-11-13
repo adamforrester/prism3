@@ -1767,6 +1767,8 @@ export const checkedSetOf = (p: SetPreview, def: string): CheckedSet => ({
   // #3713: the reasons themselves, so the dialog names them rather than pointing elsewhere.
   ...(p.blockers.length ? { reasons: [...p.blockers] } : {}),
   ...(p.breaking?.length ? { breaks: breakingSummary(p.breaking, p.set) } : {}),
+  // #3711 (Q-UF2 A): each of those changes named, for the callout above Update file's button, and how many in all.
+  ...(p.breaking?.length ? { changes: { count: p.breaking.length, lines: consumerLines(p.set, p.breaking) } } : {}),
 });
 
 /** How many named differences each set's lines carry, so a set that differs everywhere stays a few lines long. */
@@ -1904,12 +1906,16 @@ export const breakingSection = (sets: readonly { set: string; breaking?: Breakin
   const broken = hit.reduce((k, x) => k + x.breaking!.filter(breaksConsumers).length, 0);
   return [
     `Files that use this library: ${n(total, 'change')} ${made ? 'made ' : ''}in ${n(hit.length, 'published set')}${broken ? `, ${broken} of them breaking` : ''}, passed on at the next library publish.`,
-    ...hit.flatMap((x) => [
-      ...x.breaking!.slice(0, DIFFERENCE_LINES).map((b) => breakingLine(x.set, b)),
-      ...(x.breaking!.length > DIFFERENCE_LINES ? [`${x.set}: ${x.breaking!.length - DIFFERENCE_LINES} more changes not listed.`] : []),
-    ]),
+    ...hit.flatMap((x) => consumerLines(x.set, x.breaking!)),
   ];
 };
+/** One set's changes that affect files using the library, each named (`breakingLine`), capped as its differences are,
+ *  then one line counting the rest. The section's lines for the set, and the lines Update file's callout names before
+ *  the run (#3711 Q-UF2 A). */
+export const consumerLines = (set: string, breaking: readonly Breaking[]): string[] => [
+  ...breaking.slice(0, DIFFERENCE_LINES).map((b) => breakingLine(set, b)),
+  ...(breaking.length > DIFFERENCE_LINES ? [`${set}: ${breaking.length - DIFFERENCE_LINES} more changes not listed.`] : []),
+];
 /** The headline's clause for changes that affect files using the library (#2831), or empty. DRAFT wording for the
  *  owner (#3711 Q-UF1 A): "breaks" only when some of them do. */
 export const breakingClause = (sets: readonly { breaking?: Breaking[] }[]): string => {
