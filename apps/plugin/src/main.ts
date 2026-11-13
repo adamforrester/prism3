@@ -2594,7 +2594,7 @@ onUiMessage((msg: UiToMain) => {
       return;
     case 'style-guide-cleanup':
       // Q412 A — the confirmed cleanup. A write under the file-wide hold (#3697 R7): never while any write runs.
-      { const holder = guard.held(); if (guard.holding('style-guide') && holder) { uiSink.post(refusal('style-guide', false, holder)); return; } }
+      { const holder = guard.held(); if (holder) { uiSink.post(refusal('style-guide', false, holder)); return; } }
       void guard.run('style-guide', () => styleGuideCleanup(Array.isArray(msg.ids) ? msg.ids.filter((x): x is string => typeof x === 'string') : [], uiSink));
       return;
     case 'panels-clean':
