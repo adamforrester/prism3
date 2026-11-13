@@ -1,0 +1,166 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  :root {
+    --panel: #ffffff; --stage: #e9e9e9; --ink: #0d0d0e; --ink2: #67696b; --edge: #b3b4b5; --rule: #dbdbdc;
+    --label: #9747FF; --label-inv: #E0C7FF;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f4f4f5; font-family: Inter, "Helvetica Neue", Arial, sans-serif; color: var(--ink); }
+  .sheet { width: 1240px; padding: 28px; }
+  h1 { font-size: 20px; margin: 0 0 4px; letter-spacing: -0.02em; }
+  .sub { font-size: 13px; color: var(--ink2); margin: 0 0 18px; max-width: 1100px; line-height: 1.45; }
+  .row { display: flex; gap: 20px; align-items: flex-start; }
+  .panel { background: var(--panel); border: 1px solid var(--edge); padding: 20px; flex: 0 0 auto; }
+  .panel h2 { font-size: 14px; margin: 0 0 10px; }
+  .stage { position: relative; background: var(--stage); padding: 52px 28px 52px 76px; display: flex; flex-direction: column; align-items: center; gap: 28px; }
+  .cap { font-size: 11px; color: var(--ink2); margin-top: 8px; line-height: 1.5; }
+  .cap b { color: var(--ink); font-weight: 600; }
+  svg.ov { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+  /* Counter (ghost, medium) */
+  .counter { display: flex; align-items: center; gap: 4px; }
+  .rb { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--edge); display: grid; place-items: center; font-size: 22px; color: var(--ink); background: transparent; }
+  .val { width: 32px; text-align: center; font-size: 16px; }
+  /* Accordion (expanded, 320) */
+  .acc { width: 320px; }
+  .acc .hd { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 0; }
+  .chev { width: 20px; height: 20px; display: grid; place-items: center; }
+  .acc .title { font-size: 16px; font-weight: 600; }
+  .acc .content { padding: 4px 0 16px 28px; font-size: 14px; color: var(--ink); line-height: 1.45; }
+  .acc .div { height: 1px; background: var(--rule); }
+  /* Badges */
+  .badges { display: flex; gap: 22px; align-items: center; }
+  .b-status { font-size: 12px; font-weight: 500; padding: 3px 8px; border-radius: 4px; background: #e9e9e9; border: 1px solid #b3b4b5; }
+  .b-count { font-size: 12px; font-weight: 600; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: #37383a; color: #fff; display: grid; place-items: center; }
+  .b-inline { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  .b-inline .dot { width: 8px; height: 8px; border-radius: 50%; background: #67696b; }
+  .legend { font-size: 11px; line-height: 1.6; margin-top: 8px; color: var(--ink); }
+  .legend span { display: inline-block; min-width: 16px; font-weight: 600; }
+  table.cr { border-collapse: collapse; font-size: 11px; margin-top: 10px; }
+  table.cr td, table.cr th { border: 1px solid #dbdbdc; padding: 3px 6px; text-align: left; }
+  table.cr th { background: #f7f7f7; font-weight: 600; }
+  .ok { color: #1f7a3a; font-weight: 600; } .no { color: #bd3838; font-weight: 600; }
+</style></head>
+<body>
+<div class="sheet">
+  <h1 id="title"></h1>
+  <p class="sub" id="sub"></p>
+  <div class="row">
+    <div class="panel"><h2>Counter: Anatomy</h2>
+      <div class="stage" id="s-counter">
+        <div class="counter" data-part="1" data-kind="box">
+          <div class="rb" data-part="2">−</div><div class="val" data-part="3">1</div><div class="rb" data-part="4">+</div>
+        </div>
+      </div>
+      <div class="legend"><span>1</span>Counter <span>2</span>Decrement <span>3</span>Value <span>4</span>Increment</div>
+    </div>
+    <div class="panel"><h2>Accordion: Anatomy</h2>
+      <div class="stage" id="s-acc">
+        <div class="acc" data-part="1" data-kind="box">
+          <div class="hd" data-part="2" data-kind="box">
+            <div class="chev" data-part="3"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 9l4-4 4 4" fill="none" stroke="#0d0d0e" stroke-width="1.6"/></svg></div>
+            <div class="title" data-part="4">Section title</div>
+          </div>
+          <div class="content" data-part="5">Panel content: text, or components dropped into the slot.</div>
+          <div class="div" data-part="6"></div>
+        </div>
+      </div>
+      <div class="legend"><span>1</span>Accordion <span>2</span>Header <span>3</span>Indicator <span>4</span>Title <span>5</span>Content <span>6</span>Divider</div>
+    </div>
+    <div class="panel"><h2>Badge: Anatomy</h2>
+      <div class="stage" id="s-badge">
+        <div class="badges">
+          <div class="b-status" data-part="1" data-kind="box"><span data-part="2">Label</span></div>
+          <div class="b-count" data-part="3">8</div>
+          <div class="b-inline"><span class="dot" data-part="4"></span><span>Active</span></div>
+        </div>
+      </div>
+      <div class="legend"><span>1</span>Surface <span>2</span>Label <span>3</span>Count <span>4</span>Status dot</div>
+    </div>
+  </div>
+  <table class="cr" id="cr"></table>
+</div>
+<script>
+const OPT = new URLSearchParams(location.search).get('opt') || 'current';
+const SPEC = {
+  current: { title: 'Current: dark-gray leaders and brackets, Badge markers',
+    sub: 'What the panels draw today. Lines are color/text/secondary (#67696B). Each marker is the brand\'s own Badge (count, bold, neutral). A container part gets a bracket on its left, and every other part a leader from the top or bottom gutter.',
+    line: '#67696b', marker: { fill: '#37383a', ink: '#ffffff', ring: null }, brackets: true, halo: false, tip: false },
+  A: { title: 'Option A: _Label ink, brackets kept',
+    sub: 'The same geometry as today, recolored to _Label\'s furniture ink (#9747FF): lines, brackets and markers. The markers stop being Badge instances and become a furniture disc, so they never look like the component they mark (on Badge\'s own panel, today\'s markers are Badges).',
+    line: '#9747FF', marker: { fill: '#9747FF', ink: '#ffffff', ring: null }, brackets: true, halo: false, tip: false },
+  B: { title: 'Option B: _Label ink, direct leaders, no brackets',
+    sub: 'Every part, containers included, gets one straight leader in #9747FF that ends in a 4px dot on the part\'s edge, never over its content. A container\'s leader comes in from the left gutter to its left edge, so nothing wraps the component. The markers are white discs with a #9747FF ring and numeral.',
+    line: '#9747FF', marker: { fill: '#ffffff', ink: '#9747FF', ring: '#9747FF' }, brackets: false, halo: false, tip: true },
+  C: { title: 'Option C: direct leaders with a white halo (recommended)',
+    sub: 'Option B\'s geometry, with each leader and its end dot drawn over a 3px white halo, so the line separates from any component color: dark, gray, or the label purple itself. The markers are filled #9747FF discs with a white ring and white numerals.',
+    line: '#9747FF', marker: { fill: '#9747FF', ink: '#ffffff', ring: '#ffffff' }, brackets: false, halo: true, tip: true },
+}[OPT];
+document.getElementById('title').textContent = SPEC.title;
+document.getElementById('sub').textContent = SPEC.sub;
+
+const NS = 'http://www.w3.org/2000/svg';
+const el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+const R = 10, GAP = 8, TIER = 26;
+for (const stage of document.querySelectorAll('.stage')) {
+  const sr = stage.getBoundingClientRect();
+  const svg = el('svg', { class: 'ov', width: sr.width, height: sr.height });
+  stage.appendChild(svg);
+  const parts = [...stage.querySelectorAll('[data-part]')].map((n) => { const r = n.getBoundingClientRect(); return { n: +n.dataset.part, box: n.dataset.kind === 'box', x: r.left - sr.left, y: r.top - sr.top, w: r.width, h: r.height }; });
+  const lines = [], marks = [];
+  const line = (x1, y1, x2, y2) => lines.push([x1, y1, x2, y2]);
+  let leftTier = 0; const used = { top: [], bottom: [] };
+  // Containers first (outermost first).
+  for (const p of parts.filter((q) => q.box).sort((a, b) => b.w * b.h - a.w * a.h)) {
+    if (SPEC.brackets) {
+      const bx = p.x - GAP - leftTier * TIER;
+      line(bx, p.y, bx, p.y + p.h); line(bx, p.y, bx + 6, p.y); line(bx, p.y + p.h, bx + 6, p.y + p.h);
+      marks.push([p.n, bx - R - 4, p.y + p.h / 2]);
+    } else {
+      // The outermost container's leader lands near its bottom-left corner, each inner one at its own middle.
+      const ty = leftTier === 0 ? p.y + p.h - 8 : p.y + p.h / 2; const mx = p.x - GAP - leftTier * TIER - R - 14;
+      line(mx + R, ty, p.x, ty);
+      marks.push([p.n, mx, ty, [p.x, ty]]);
+    }
+    leftTier++;
+  }
+  for (const p of parts.filter((q) => !q.box)) {
+    const cx = p.x + p.w / 2, cy = p.y + p.h / 2;
+    const contY = parts.filter((q) => q.box).reduce((a, q) => ({ top: Math.min(a.top, q.y), bot: Math.max(a.bot, q.y + q.h) }), { top: p.y, bot: p.y + p.h });
+    const side = cy <= sr.height / 2 ? 'top' : 'bottom';
+    let tier = 0; while (used[side].some(([a, b, t]) => t === tier && cx - R - 4 < b && a < cx + R + 4)) tier++;
+    used[side].push([cx - R, cx + R, tier]);
+    const my = side === 'top' ? Math.min(contY.top, p.y) - GAP - R - tier * TIER : Math.max(contY.bot, p.y + p.h) + GAP + R + tier * TIER;
+    // The leader stops at the part's edge, never over its content: a glyph or a word stays readable.
+    const ey = side === 'top' ? p.y : p.y + p.h;
+    line(cx, side === 'top' ? my + R : my - R, cx, ey);
+    marks.push([p.n, cx, my, SPEC.tip ? [cx, ey] : null]);
+  }
+  for (const [x1, y1, x2, y2] of lines) {
+    if (SPEC.halo) svg.appendChild(el('line', { x1, y1, x2, y2, stroke: '#ffffff', 'stroke-width': 4, 'stroke-linecap': 'round' }));
+  }
+  for (const [x1, y1, x2, y2] of lines) svg.appendChild(el('line', { x1, y1, x2, y2, stroke: SPEC.line, 'stroke-width': 1.25 }));
+  for (const [, , , tip] of marks) if (tip) {
+    if (SPEC.halo) svg.appendChild(el('circle', { cx: tip[0], cy: tip[1], r: 4, fill: '#ffffff' }));
+    svg.appendChild(el('circle', { cx: tip[0], cy: tip[1], r: 2.5, fill: SPEC.line }));
+  }
+  for (const [n, x, y] of marks) {
+    const m = SPEC.marker;
+    if (m.ring) svg.appendChild(el('circle', { cx: x, cy: y, r: R + 1.5, fill: m.ring }));
+    svg.appendChild(el('circle', { cx: x, cy: y, r: R, fill: m.fill, ...(m.ring && m.fill === '#ffffff' ? { stroke: m.ring, 'stroke-width': 1.5 } : {}) }));
+    const t = el('text', { x, y: y + 4, 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 600, fill: m.ink, 'font-family': 'Inter, Helvetica, Arial' });
+    t.textContent = n; svg.appendChild(t);
+  }
+}
+// CONTRAST, computed here (WCAG 2.x relative luminance).
+const lum = (hex) => { const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+const cr = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+const grounds = [['gray stage', '#e9e9e9'], ['white panel / ghost button', '#ffffff'], ['dark count Badge', '#37383a'], ['component ink', '#0d0d0e'], ['subtle Badge edge', '#b3b4b5'], ['secondary text', '#67696b']];
+const fmt = (v, need) => `<span class="${v >= need ? 'ok' : 'no'}">${v.toFixed(2)}:1</span>`;
+let html = `<tr><th>Line (${SPEC.line}) against</th>${grounds.map(([n, h]) => `<th>${n} ${h}</th>`).join('')}</tr>`;
+html += `<tr><td>line, non-text, 3:1 wanted${SPEC.halo ? ' (the halo is white, so the line always has a white edge: ' + fmt(cr(SPEC.line, '#ffffff'), 3) + ')' : ''}</td>${grounds.map(([, h]) => `<td>${fmt(cr(SPEC.line, h), 3)}</td>`).join('')}</tr>`;
+const m = SPEC.marker;
+html += `<tr><td>marker numeral ${m.ink} on ${m.fill}, 4.5:1 wanted</td><td colspan="${grounds.length}">${fmt(cr(m.ink, m.fill), 4.5)}; the marker disc against the gray stage: ${fmt(cr(m.ring && m.fill === '#ffffff' ? m.ring : m.fill, '#e9e9e9'), 3)}</td></tr>`;
+document.getElementById('cr').innerHTML = html;
+</script>
+</body></html>
