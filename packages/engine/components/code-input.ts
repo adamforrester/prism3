@@ -87,10 +87,9 @@ export const codeInputCell: ComponentDef = {
     // (`FIELD_FRAME_PARTS` reaches the cell). The brand may set `underline` (#2695; `applyFieldStyle` rewrites the def
     // before projection); a second value here would be a code coordinate, which Q14 A rules out. The codeOnly `style`
     // entry names both.
-    style: ['outline'],
     status: ['default', 'error'],
   },
-  axisKinds: { size: 'authoring', style: 'authoring', status: 'runtime' },
+  axisKinds: { size: 'authoring', status: 'runtime' },
 
   // Text field's grammar: status-led and state-qualified first, so the danger border wins over the interaction states.
   paintKeys: ['{status}.{slot}.{state}', '{slot}.{state}', '{slot}'],
