@@ -9212,7 +9212,7 @@
                     "color": "{ads.color.interactive.primary.fill.rest}",
                     "opacity": "{ads.opacity.30}"
                   },
-                  "contrast": 9.21,
+                  "contrast": 9.18,
                   "against": "background.primary",
                   "contrastModel": "ink-on-composite",
                   "legibleFor": "interactive.primary.text.pressed",
@@ -9223,7 +9223,7 @@
                         "color": "{ads.color.interactive.primary.fill.rest}",
                         "opacity": "{ads.opacity.30}"
                       },
-                      "contrast": 7.75,
+                      "contrast": 7.73,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "interactive.primary.text.pressed"
@@ -9234,7 +9234,7 @@
                         "color": "{ads.color.interactive.primary.fill.rest}",
                         "opacity": "{ads.opacity.30}"
                       },
-                      "contrast": 9.24,
+                      "contrast": 9.21,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "interactive.primary.text.pressed"
@@ -9245,7 +9245,7 @@
                         "color": "{ads.color.interactive.primary.fill.rest}",
                         "opacity": "{ads.opacity.30}"
                       },
-                      "contrast": 8.18,
+                      "contrast": 8.14,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "interactive.primary.text.pressed"

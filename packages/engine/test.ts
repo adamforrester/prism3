@@ -21420,6 +21420,24 @@ arm: {
       ok(r?.type === 'boolean' && r.default === false && r.default === flDefault('required') && r.description.startsWith('Sets required / aria-required, and turns on the FieldLabel\'s required marker.'),
         `Q-CC8 ${id} declares the field family's required prop, a boolean off by default like the label's marker (got ${r ? `${r.type} ${String(r.default)}` : 'none'})`);
     }
+    // Q-FL2 A (#3554) gives Slider the same prop for the marker it surfaces (Q-CC5 A's nest-exposed label), but
+    // Q-FL2.1 A (#3699) words it apart from the family: ARIA 1.2 does not support aria-required on role="slider", so
+    // "required" rides in each thumb's accessible name and no aria-required is set. The literals are the owner's
+    // wording, so a drift back to the family sentence, or an aria line that names aria-required as set, fails here.
+    {
+      const sliderDef = componentDefs.find((d) => d.id === 'slider');
+      const r = sliderDef?.props.find((p) => p.name === 'required');
+      const aria = sliderDef?.accessibility.aria ?? '';
+      const nameClause = 'adds "required" to each thumb\'s accessible name, such as "Price range, required"';
+      const noAriaRequired = 'sets no aria-required, which the slider role does not support';
+      ok(r?.type === 'boolean' && r.default === false && r.default === flDefault('required')
+        && r.description.includes('Turns on the FieldLabel\'s required marker') && r.description.includes(nameClause)
+        && /Sets no aria-required, which the slider role does not support/.test(r.description)
+        && !/Sets required \/ aria-required/.test(r.description)
+        && aria.includes(nameClause) && aria.includes(noAriaRequired)
+        && !/aria-required (is|are) set/.test(aria) && aria.split('aria-required').length === 2,
+        `Q-FL2.1 slider's required prop carries "required" in each thumb's accessible name and sets no aria-required, in its prop description and accessibility.aria (got ${r ? `${r.type} ${String(r.default)}: ${r.description}` : 'none'} / aria: ${aria})`);
+    }
     // Since #2266 the three field hosts are sized, and the label's SIZE follows the host's (pinned per member in
     // the #2266 block); what stays the label's own default is its emphasis.
     const hostCoords = [select, textField, textarea].map((d) => {
@@ -41580,6 +41598,68 @@ arm: {
   }
   ok(ids.length >= 4 && total >= 7000 && bad.length === 0,
     `#3698 7b: every committed tree's aliases resolve with no cycle and within 10 hops (${ids.length} trees, ${total} aliases, floors 4 and 7000; deepest base chain ${deepest} hops)${bad.length ? ` — ${bad.join(' | ')}` : ''}`);
+}
+
+// #3698 finding 7a — A TINT'S PUBLISHED CONTRAST IS MEASURED AT THE ALPHA THAT SHIPS. `settleSolidTint` composited the
+// subtle fill at the nominal `step / 100` while the overlay paths used `emittedAlpha`, so the hex dialect's 30% (77/255,
+// 0.302) published a ratio up to 0.05 above the one a renderer draws. `lint-ratio-truth` arm A misses it twice over: it
+// allows 0.02, and it skips a role with `min: 0`, which every pressed and selected tint is. So this arm takes every
+// tint in every committed tree, gated or not, in every mode, and recomputes its ratio from the EMISSION alone: the
+// alpha PARSED from the leaf's own `$value` (8-digit hex or `rgba(…)`), the opaque fill from the same string, and the
+// ground and the ink by following their aliases to a literal. The only tolerance is the emitter's two-decimal rounding.
+// Never `emittedAlpha`, never the engine's roles. The committed trees carry one tint each (the overlay brands'
+// `selected` leaf), so the step the guards PICK (hover, pressed) is reached by also building each example brand at
+// `outlineInteraction: 'solid-tint'` and reading that tree the same way: its emission, not its roles.
+{
+  const ids = readdirSync(resolve(HERE, './out')).filter((f) => /^[^.]+\.tokens\.json$/.test(f)).map((f) => f.slice(0, -'.tokens.json'.length)).sort();
+  const trees: [string, any][] = ids.map((id) => [id, JSON.parse(readFileSync(resolve(HERE, `./out/${id}.tokens.json`), 'utf8'))]);
+  for (const id of EXAMPLE_IDS) trees.push([`${id}@solid-tint`, buildTree(brandTheme({ ...(exampleBrands()[id] as BrandInput), outlineInteraction: 'solid-tint' } as BrandInput)).tree]);
+  const parse = (v: string): { rgb: RGB; a: number } | undefined => {
+    let m = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(v);
+    if (m) return { rgb: hexToRgb('#' + m[1]), a: m[2] ? parseInt(m[2], 16) / 255 : 1 };
+    m = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/.exec(v);
+    if (m) return { rgb: { r: +m[1], g: +m[2], b: +m[3] }, a: m[4] !== undefined ? +m[4] : 1 };
+    return undefined;
+  };
+  const bad: string[] = [];
+  let checked = 0;
+  const brands: string[] = [];
+  for (const [id, tree] of trees) {
+    const root = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+    const at = (path: string): any => path.split('.').reduce((o: any, k) => o?.[k], tree);
+    const valueIn = (node: any, mode: string | null): string | undefined =>
+      (mode ? node?.$extensions?.prism3?.modes?.[mode]?.$value : undefined) ?? node?.$value;
+    const literal = (node: any, mode: string | null, depth = 0): string | undefined => {
+      const v = valueIn(node, mode);
+      const ref = typeof v === 'string' ? /^\{(.+)\}$/.exec(v) : null;
+      return ref && depth < 10 ? literal(at(ref[1]), mode, depth + 1) : v;
+    };
+    let tints = 0;
+    const walk = (o: any, path: string[]): void => {
+      if (!o || typeof o !== 'object') return;
+      const x = o.$extensions?.prism3;
+      if ('$value' in o && x?.tint && x.contrastModel === 'ink-on-composite') {
+        const colorBase = path.slice(0, path.lastIndexOf('color') + 1).join('.');
+        for (const mode of [null, ...Object.keys(x.modes ?? {})]) {
+          const mx = mode ? x.modes[mode] : x;
+          const where = `${id} ${path.join('.')}${mode ? ` [${mode}]` : ''}`;
+          const wash = parse(String(valueIn(o, mode)));
+          const ground = parse(String(literal(at(`${colorBase}.${mx.against}`), mode)));
+          const ink = parse(String(literal(at(`${colorBase}.${mx.legibleFor}`), mode)));
+          if (!wash || !ground || !ink || typeof mx.contrast !== 'number') { bad.push(`${where}: unreadable (wash ${!!wash}, ground ${!!ground}, ink ${!!ink}, contrast ${mx.contrast})`); continue; }
+          const truth = contrast(ink.rgb, composite(ground.rgb, wash.rgb, wash.a));
+          checked++; tints++;
+          if (Math.abs(truth - mx.contrast) > 0.005 + 1e-9) bad.push(`${where}: publishes ${mx.contrast}, the emitted wash (alpha ${wash.a.toFixed(4)}) measures ${truth.toFixed(3)}`);
+        }
+      }
+      for (const [k, v] of Object.entries(o)) if (!k.startsWith('$')) walk(v, [...path, k]);
+    };
+    walk(tree[root], [root]);
+    if (tints) brands.push(`${id} ${tints}`);
+  }
+  const swept = brands.filter((b) => b.includes('@solid-tint')).length;
+  ok(checked >= 200 && brands.length - swept >= 4 && swept >= 3 && bad.length === 0,
+    `#3698 7a: every tint's published contrast is the one its emitted wash measures, at the alpha parsed from its own $value (${checked} tint × mode cells: ${brands.join(', ')}; floors 200 cells, 4 committed trees, 3 solid-tint builds)${bad.length ? ` — ${bad.length} off: ${bad.slice(0, 4).join('; ')}` : ''}`);
 }
 
 // ------------------------------------------------------------------- report

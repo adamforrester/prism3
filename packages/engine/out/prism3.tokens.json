@@ -9225,7 +9225,7 @@
                     "color": "{pds3.color.interactive.primary.fill.rest}",
                     "opacity": "{pds3.opacity.30}"
                   },
-                  "contrast": 8.41,
+                  "contrast": 8.38,
                   "against": "background.primary",
                   "contrastModel": "ink-on-composite",
                   "legibleFor": "interactive.primary.text.pressed",
@@ -9236,7 +9236,7 @@
                         "color": "{pds3.color.interactive.primary.fill.rest}",
                         "opacity": "{pds3.opacity.30}"
                       },
-                      "contrast": 6.87,
+                      "contrast": 6.85,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "interactive.primary.text.pressed"
@@ -9247,7 +9247,7 @@
                         "color": "{pds3.color.interactive.primary.fill.rest}",
                         "opacity": "{pds3.opacity.30}"
                       },
-                      "contrast": 8.13,
+                      "contrast": 8.09,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "interactive.primary.text.pressed"
@@ -9258,7 +9258,7 @@
                         "color": "{pds3.color.interactive.primary.fill.rest}",
                         "opacity": "{pds3.opacity.30}"
                       },
-                      "contrast": 8.17,
+                      "contrast": 8.13,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "interactive.primary.text.pressed"

@@ -41,7 +41,7 @@
  * setting changes …`; the reduce keeping an older answer (`m.seq < s.liveDue.seq` dropped) → `Q810 A recount: an
  * answer overtaken by a newer request never shows`.
  */
-import { UPDATE_COPY, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, setupOfferedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
+import { UPDATE_COPY, blockedLine, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, setupOfferedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
 import type { Catalog } from './src/state/component-catalog';
 import { initialHostSession, reduce } from './src/state/host-session';
 
@@ -303,6 +303,52 @@ ok(reduce(s2, fd(3, false)).liveDue?.theme === false, 'Q810 A recount (control):
     '#3421 order: after Theme a theme-blocked set may read otherwise; any other set must read as reviewed');
   ok(UPDATE_COPY.keptLine({ members: 12, changes: ['border → color/x'] }) === '12 members keep out 1 of the plan’s values: border → color/x',
     'Q39 A copy: a Kept edits set\'s line names its members and each change held back');
+}
+
+// #3713: A BLOCKED SET NAMES ITS OWN REASON, in plain words, with the step that clears it where one exists. The blocker
+// lines here are literals copied from `apps/plugin/src/update-plan.ts` (`fileBlockers`, `setRefusal`, `dryRunSet`), not
+// read from it, and the expected lines are literals (docs/34). `apps/plugin/test-update-kept-run.ts` runs a real check's
+// blockers through the same copy. MUTATIONS: the blocked branch back to one fixed line → every arm below; the first
+// reason dropped for the last (`reasons[reasons.length - 1]`) → `#3713 first reason`.
+{
+  // The set names come from the caller's name function (the shell passes `displayNameOf`, owner decision Q392): typed
+  // here as a literal map, never derived from the id, so a line that names a set by its id instead fails.
+  const NAMES: Record<string, string> = { icon: 'Icon', 'provider-logo': 'Provider logo', 'sign-in-button': 'Sign-in button' };
+  const nameOf = (id: string): string => NAMES[id] ?? `?${id}`;
+  const C = (reasons?: string[], themeBlocked = false) => ({ def: 'icon', hash: 'h', members: 4, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: true, upToDate: false, ...(themeBlocked ? { themeBlocked: true as const } : {}), ...(reasons ? { reasons } : {}) });
+  const B = (reasons?: string[]) => UPDATE_COPY.checked(C(reasons), false, nameOf);
+  const BT = (reasons: string[]) => UPDATE_COPY.checked(C(reasons), true, nameOf);
+  const cases: [string, string][] = [
+    ['Not in this file: icon/close, icon/check. Build icon first, then run the update again', 'Can’t update yet — it needs Icon, which this file doesn’t have. Add Icon on Components first.'],
+    ['3 variables the plan binds are not in this file (a, b, c)', 'Can’t update yet — it needs 3 variables this file doesn’t have. Tick Theme to write them.'],
+    ['1 variable the plan binds is not in this file (a)', 'Can’t update yet — it needs 1 variable this file doesn’t have. Tick Theme to write them.'],
+    ['text styles not in this file: body/md, label/sm', 'Can’t update yet — it needs text styles this file doesn’t have: body/md, label/sm. Tick Theme to write them.'],
+    ['text style not in this file: body/md', 'Can’t update yet — it needs a text style this file doesn’t have: body/md. Tick Theme to write them.'],
+    ['effect styles not in this file: a, b, c, and 2 more', 'Can’t update yet — it needs effect styles this file doesn’t have: a, b, c, and 2 more. Tick Theme to write them.'],
+    ['components the plan swaps to are not in this file: sign-in-button/default, icon/a, icon/b, and 1 more', 'Can’t update yet — it swaps to Sign-in button, Icon, and 1 more, which this file doesn’t have. Add Sign-in button, Icon, and 1 more on Components first.'],
+    ['component the plan swaps to is not in this file: provider-logo/default', 'Can’t update yet — it swaps to Provider logo, which this file doesn’t have. Add Provider logo on Components first.'],
+    ['fonts: Inter Bold will not load, so text could not be written', 'Can’t update yet — these fonts won’t load: Inter Bold. Install or turn them on in Figma, then open this again.'],
+    ['an axis the plan removed would collapse members onto one coordinate, and they cannot stay in the set', 'Can’t update yet — a property it drops would merge variants into one.'],
+    ['the axes change, and 12 members not built by Prism3 would be left on the old ones (a; b; c)', 'Can’t update yet — its properties change, and 12 variants not built by Prism3 would be left behind. The agent’s Adopt can claim them first.'],
+    ['renaming size=small would give it the name of another member (size=sm)', 'Can’t update yet — renaming size=small would clash with size=sm. Rename or remove one of them in Figma.'],
+    ['2 members share the coordinate size=medium (1:2, 1:3) — the set is refused rather than one picked', 'Can’t update yet — 2 variants share one name, size=medium. Rename or remove the extra one in Figma.'],
+    ["the members disagree on the axis list ([size] vs [size,tone]), so Figma cannot read the set's properties (#1780)", 'Can’t update yet — its variants don’t all have the same properties. Fix the variant names in Figma.'],
+    ["the set's property definitions could not be read", 'Can’t update yet — the set’s property definitions could not be read.'],
+    ['the plan names a member that is not a coordinate: x (#1234)', 'Can’t update yet — the plan names a member that is not a coordinate: x.'],
+  ];
+  for (const [line, want] of cases) ok(B([line]) === want, `#3713 reason: "${line.slice(0, 40)}…" reads "${want}" (got "${B([line])}")`);
+  ok(B(['3 variables the plan binds are not in this file (a, b, c)', 'text styles not in this file: x', 'fonts: A B will not load, so text could not be written']) === 'Can’t update yet — it needs 3 variables this file doesn’t have. Tick Theme to write them. 2 more reasons.',
+    `#3713 first reason: the line names the first reason and counts the rest (got "${B(['3 variables the plan binds are not in this file (a, b, c)', 'x', 'y'])}")`);
+  ok(B() === 'Can’t update yet — the check gave no reason.' && blockedLine([]) === B(), '#3713 no reason: a blocked set with no reason says so, never points elsewhere');
+  ok(!cases.some(([, w]) => /agent’s update check/.test(w)) && !/agent’s update check/.test(B()), '#3713: no line points at the agent\'s update check');
+  // Theme ticked: the reasons Theme's run clears no longer lead or count, so the row never asks for Theme again and
+  // names what still blocks (the verdict on #3721, should-fix 2). MUTATION: `blockedLine` ignoring `theme` → this arm.
+  ok(BT(['3 variables the plan binds are not in this file (a, b, c)', 'text styles not in this file: x', 'component the plan swaps to is not in this file: provider-logo/default']) === 'Can’t update yet — it swaps to Provider logo, which this file doesn’t have. Add Provider logo on Components first.',
+    `#3713 theme ticked: the row skips what Theme clears and leads with what still blocks (got "${BT(['3 variables the plan binds are not in this file (a, b, c)', 'text styles not in this file: x', 'component the plan swaps to is not in this file: provider-logo/default'])}")`);
+  ok(B(['3 variables the plan binds are not in this file (a, b, c)', 'component the plan swaps to is not in this file: provider-logo/default']) === 'Can’t update yet — it needs 3 variables this file doesn’t have. Tick Theme to write them. 1 more reason.',
+    '#3713 theme ticked (control): with Theme not ticked, the variables still lead and the swap target is counted');
+  ok(UPDATE_COPY.checked({ def: 'tag', hash: 'h', members: 4, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: true, upToDate: false, themeBlocked: true, reasons: ['1 variable the plan binds is not in this file (a)'] }, true) === 'Updated after Theme — Theme writes the variables and styles it binds first',
+    '#3713 (#3421 kept): a set only Theme blocks, with Theme ticked, still reads Updated after Theme');
 }
 
 console.log(`\n${executed - failed}/${executed} passed`);
