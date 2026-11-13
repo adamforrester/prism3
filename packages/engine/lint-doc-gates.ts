@@ -487,6 +487,32 @@ export const aggregatorGaps = (tree: YamlValue): string[] => {
   return problems;
 };
 
+/** #3698 R1 — THE FOLD BOT'S SHAPE (`.github/workflows/fold.yml`). Read as text, not parsed: the file is not `ci.yml`
+ *  and runs no gate. What must hold, each a way the bot would fail quietly or do harm:
+ *   · it runs `fold.ts --dry-run` and then `fold.ts`, the documented sequence (CONTRIBUTING §2);
+ *   · it pushes and opens the PR with `secrets.FOLD_TOKEN`, never `GITHUB_TOKEN`/`github.token`: a PR opened with the
+ *     default token starts no CI, so the fold PR would never get `gates`;
+ *   · it fails by name when that secret is unset, instead of opening such a PR;
+ *   · it refuses while a `fold/` PR is open (one fold at a time);
+ *   · it merges nothing: no `gh pr merge`, no auto-merge.
+ *  Empty when sound. */
+export const FOLD_WORKFLOW = '.github/workflows/fold.yml';
+export const foldWorkflowGaps = (text: string): string[] => {
+  const problems: string[] = [];
+  const code = text.split('\n').filter((l) => !l.trim().startsWith('#')).join('\n');
+  if (!/\bfold\.ts --dry-run\b/.test(code)) problems.push('it never runs `fold.ts --dry-run`, the plan the PR body carries');
+  if (!/\bfold\.ts\s*$/m.test(code)) problems.push('it never runs `fold.ts` itself');
+  if (/GITHUB_TOKEN|github\.token/.test(code)) problems.push('it names GITHUB_TOKEN/github.token; a PR opened with the default token starts no CI, so use secrets.FOLD_TOKEN only');
+  if ((code.match(/secrets\.FOLD_TOKEN/g) ?? []).length < 3) problems.push('it does not use secrets.FOLD_TOKEN for the token check, the checkout and the PR');
+  // Each refusal must exit 1 inside ITS OWN step: the match stops at the next `- name:`/`- uses:`, so a refusal turned to
+  // `exit 0` cannot borrow a later step's `exit 1` (review of #3749).
+  if (!/if \[ -z "\$FOLD_TOKEN" \]; then(?:(?!\n\s*- (?:name|uses):)[\s\S])*?\bexit 1\b/.test(code)) problems.push('it does not fail by name when FOLD_TOKEN is unset');
+  if (!/startswith\("fold\/"\)(?:(?!\n\s*- (?:name|uses):)[\s\S])*?\bexit 1\b/.test(code)) problems.push('it does not refuse while a fold/ PR is already open');
+  if (/gh pr merge|--auto\b|enable-auto-merge/.test(code)) problems.push('it merges or enables auto-merge; the fold PR must pass review and gates like any other');
+  if (!/^\s*workflow_dispatch:/m.test(code)) problems.push('it cannot be run by hand (no workflow_dispatch)');
+  return problems;
+};
+
 /** #3698 R4 — THE DOCS-ONLY EXEMPTION'S SHAPE. Two files state which jobs a docs-only pull request may skip: the jobs
  *  in `ci.yml` that carry `EXEMPTION_IF`, and `EXEMPT_JOBS` in `all-gates.sh`, which lets exactly those through as
  *  EXEMPT. They are authored separately, so they are compared, in both directions. A job carrying the `if:` that the
@@ -1316,6 +1342,22 @@ jobs:
   if (!gaps(ON.replace('[main]', '[dev]')).some((p) => p.includes('push to `main`'))) selfFails.push('the trigger check misses a push trigger that no longer names `main`');
 }
 
+// 6f. THE FOLD BOT (#3698 R1), through the shipped `foldWorkflowGaps` over mutations of the real file.
+{
+  const real = readFileSync(resolve(repo, FOLD_WORKFLOW), 'utf8');
+  const gaps = foldWorkflowGaps;
+  if (gaps(real).length) selfFails.push(`the fold-bot check flags the real workflow: ${gaps(real).join('; ')}`);
+  if (!gaps(real.replace(/GH_TOKEN: \$\{\{ secrets\.FOLD_TOKEN \}\}/g, 'GH_TOKEN: ${{ github.token }}')).some((p) => p.includes('GITHUB_TOKEN/github.token'))) selfFails.push('the fold-bot check misses the default token');
+  if (!gaps(real.replace('if [ -z "$FOLD_TOKEN" ]; then', 'if false; then')).some((p) => p.includes('unset'))) selfFails.push('the fold-bot check misses a missing token check');
+  if (!gaps(real.replace('startswith("fold/")', 'startswith("x/")')).some((p) => p.includes('already open'))) selfFails.push('the fold-bot check misses a dropped open-fold refusal');
+  // A refusal that exits 0 must not borrow the next step's `exit 1` (review of #3749, mutation C).
+  const tokenExit0 = real.replace(/(if \[ -z "\$FOLD_TOKEN" \]; then[^]*?)exit 1/, '$1exit 0');
+  if (tokenExit0 === real || !gaps(tokenExit0).some((p) => p.includes('unset'))) selfFails.push('the fold-bot check misses a token check that exits 0');
+  const openExit0 = real.replace(/(startswith\("fold\/"\)[^]*?)exit 1/, '$1exit 0');
+  if (openExit0 === real || !gaps(openExit0).some((p) => p.includes('already open'))) selfFails.push('the fold-bot check misses an open-fold refusal that exits 0');
+  if (!gaps(`${real}\n          gh pr merge --squash\n`).some((p) => p.includes('merges'))) selfFails.push('the fold-bot check misses a bot that merges');
+}
+
 // 6b. ARM 9 — a step with its limit is clean; the limit dropped, zero, or the step renamed is named.
 {
   const T = `
@@ -1418,6 +1460,16 @@ const realSteps = parseSteps(readFileSync(CI_PATH, 'utf8'));
     for (const p of problems) console.error(`    ${p}`);
     console.error(`\n  The merge rule reads ONE check, \`${AGGREGATOR_JOB}\`. A job it does not wait on, or waits on without`);
     console.error('  `if: always()`, can go red while that check reads green. Fix the `gates` job in ci.yml.');
+    process.exit(1);
+  }
+}
+// THE FOLD BOT (#3698 R1), on the real file.
+{
+  const problems = foldWorkflowGaps(readFileSync(resolve(repo, FOLD_WORKFLOW), 'utf8'));
+  console.log(`    fold bot: ${FOLD_WORKFLOW} checked for its token, its refusals and the fold sequence`);
+  if (problems.length) {
+    console.error(`\n❌ ${FOLD_WORKFLOW} is out of shape (#3698 R1):\n`);
+    for (const p of problems) console.error(`    ${p}`);
     process.exit(1);
   }
 }

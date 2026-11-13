@@ -910,6 +910,10 @@
       ],
       "flags": [
         {
+          "flag": "--committed",
+          "source": "packages/engine/cli.ts#argv"
+        },
+        {
           "flag": "--component-specs",
           "source": "packages/engine/cli.ts#argv"
         },

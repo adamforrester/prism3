@@ -1766,7 +1766,7 @@ export const checkedSetOf = (p: SetPreview, def: string): CheckedSet => ({
   ...(p.themeBlocked ? { themeBlocked: true as const } : {}),
   // #3713: the reasons themselves, so the dialog names them rather than pointing elsewhere.
   ...(p.blockers.length ? { reasons: [...p.blockers] } : {}),
-  ...(p.breaking?.length ? { breaks: breakingSummary(p.breaking) } : {}),
+  ...(p.breaking?.length ? { breaks: breakingSummary(p.breaking, p.set) } : {}),
 });
 
 /** How many named differences each set's lines carry, so a set that differs everywhere stays a few lines long. */
@@ -1855,53 +1855,67 @@ const removedLayers = (p: SetPreview): Breaking[] => {
   });
 };
 
-/** One breaking change, as a line. DRAFT wording for the owner (#2831). */
-export const breakingLine = (set: string, b: Breaking): string =>
-  b.kind === 'drop' ? `${set} · ${b.member} · dropped — consumer instances of it point at a deprecated member.`
-    : b.kind === 'replace' ? `${set} · ${b.member} / ${b.path} · replaced, not updated in place (${b.reason}) — consumer overrides on it are lost.`
-      : b.kind === 'private' ? `${set} · renamed ${b.from} → ${b.to} — a name starting with _ or . is not published, so the set leaves the library.`
-        : b.kind === 'layer' ? `${set} · ${b.path} · removed from ${n(b.members, 'member')} — consumer overrides on it are lost.${b.added ? ` If ${b.added.join(' or ')} is this layer renamed, declare the rename and the update renames it in place.` : ''}`
-          : b.change === 'removed' ? `${set} · property ${b.name} · removed — consumer overrides of it are dropped.`
-            : `${set} · property ${b.name} · ${b.from} → ${b.to} — consumer overrides of it are dropped.`;
+/** #3711 (Q-UF1 A): whether a change breaks files that use the library, the word "breaks" reserved for these: a property
+ *  removed or retyped, a layer replaced or removed. A member retired (kept and marked deprecated) and a set renamed out
+ *  of the library affect those files without breaking them, and are named by what they do. */
+export const breaksConsumers = (b: Breaking): boolean => b.kind === 'property' || b.kind === 'replace' || b.kind === 'layer';
 
-/** #2831 — a published set's breaking changes as one line for Update file's checklist, beside the set: how many of
- *  each, what breaks, and what the update does about it. Empty when nothing breaks. DRAFT wording for the owner. */
-export const breakingSummary = (breaking: readonly Breaking[] | undefined): string => {
+/** One change that affects files using the library, as a line. DRAFT wording for the owner (#2831, #3711 Q-UF1 A). */
+export const breakingLine = (set: string, b: Breaking): string =>
+  b.kind === 'drop' ? `${set} · ${b.member} · retired — its instances in files that use this library keep working and show as deprecated.`
+    : b.kind === 'replace' ? `${set} · ${b.member} / ${b.path} · replaced, not updated in place (${b.reason}) — breaks files that use this library: overrides on it are lost.`
+      : b.kind === 'private' ? `${set} · renamed ${b.from} → ${b.to} — a name starting with _ or . is not published, so the set leaves the library.`
+        : b.kind === 'layer' ? `${set} · ${b.path} · removed from ${n(b.members, 'member')} — breaks files that use this library: overrides on it are lost.${b.added ? ` If ${b.added.join(' or ')} is this layer renamed, declare the rename and the update renames it in place.` : ''}`
+          : b.change === 'removed' ? `${set} · property ${b.name} · removed — breaks files that use this library: overrides of it are dropped.`
+            : `${set} · property ${b.name} · ${b.from} → ${b.to} — breaks files that use this library: overrides of it are dropped.`;
+
+/** How many changes, and how many of them break those files, as the clause after a count (#3711 Q-UF1 A). */
+const affects = (total: number): string => `${n(total, 'change')} ${total === 1 ? 'affects' : 'affect'} files that use this library`;
+const ofThemBreak = (total: number, broken: number): string => (!broken ? '' : broken === total ? (total === 1 ? ' and breaks them' : ' and break them') : `, ${broken} ${broken === 1 ? 'breaks' : 'break'} them`);
+
+/** #2831 — a published set's changes that affect files using the library, as one line for Update file's checklist,
+ *  beside the set: how many, then each kind by its real effect. Empty when there are none. DRAFT wording for the owner
+ *  (#3711 Q-UF1 A); `set` is the set's name, as the line names its retired members. */
+export const breakingSummary = (breaking: readonly Breaking[] | undefined, set = ''): string => {
   if (!breaking?.length) return '';
   const k = (kind: Breaking['kind']): number => breaking.filter((b) => b.kind === kind).length;
   const props = breaking.filter((b): b is Extract<Breaking, { kind: 'property' }> => b.kind === 'property');
   const layers = breaking.filter((b): b is Extract<Breaking, { kind: 'layer' }> => b.kind === 'layer');
   // A replacement is listed per member; the checklist counts the layers.
   const replaced = new Set(breaking.flatMap((b) => (b.kind === 'replace' ? [b.path] : []))).size;
-  const parts = [
-    k('private') ? 'renamed to a name Figma does not publish, so the set leaves the library' : '',
-    k('drop') ? `${n(k('drop'), 'member')} dropped: kept and marked deprecated, so consumer instances still resolve` : '',
-    props.length ? `${n(props.length, 'property', 'properties')} removed or retyped: consumer overrides of ${props.length === 1 ? 'it' : 'them'} are dropped` : '',
-    replaced ? `${n(replaced, 'layer')} replaced, not updated in place: consumer overrides on ${replaced === 1 ? 'it' : 'them'} are lost` : '',
-    layers.length ? `${n(layers.length, 'layer')} removed: consumer overrides on ${layers.length === 1 ? 'it' : 'them'} are lost${layers.some((l) => l.added) ? '; a declared rename keeps a renamed layer in place' : ''}` : '',
+  const name = set ? `${set} ` : '';
+  const sentences = [
+    k('private') ? `${set || 'The set'} is renamed to a name Figma does not publish, so it leaves the library.` : '',
+    k('drop') ? `${k('drop')} ${name}${k('drop') === 1 ? 'member' : 'members'} retired. ${k('drop') === 1 ? 'Its instances keep' : 'Their instances keep'} working and show as deprecated.` : '',
+    props.length ? `${n(props.length, 'property', 'properties')} removed or retyped, which breaks those files: overrides of ${props.length === 1 ? 'it' : 'them'} are dropped.` : '',
+    replaced ? `${n(replaced, 'layer')} replaced, not updated in place, which breaks those files: overrides on ${replaced === 1 ? 'it' : 'them'} are lost.` : '',
+    layers.length ? `${n(layers.length, 'layer')} removed, which breaks those files: overrides on ${layers.length === 1 ? 'it' : 'them'} are lost.${layers.some((l) => l.added) ? ' A declared rename keeps a renamed layer in place.' : ''}` : '',
   ].filter(Boolean);
-  return `Breaks library consumers: ${parts.join('; ')}.`;
+  return `${affects(breaking.length)}: ${sentences.join(' ')}`;
 };
 
-/** THE "BREAKS LIBRARY CONSUMERS" SECTION (#2831), for the dry run (`made` false) and the apply (`made` true): a head
- *  line counting the changes, then each set's changes named, capped as its differences are. Empty when nothing breaks.
- *  DRAFT wording for the owner. */
+/** THE SECTION FOR CHANGES THAT AFFECT FILES USING THE LIBRARY (#2831), for the dry run (`made` false) and the apply
+ *  (`made` true): a head line counting the changes and those that break, then each set's changes named, capped as its
+ *  differences are. Empty when there are none. DRAFT wording for the owner (#3711 Q-UF1 A). */
 export const breakingSection = (sets: readonly { set: string; breaking?: Breaking[] }[], made: boolean): string[] => {
   const hit = sets.filter((x) => x.breaking?.length);
   const total = hit.reduce((k, x) => k + x.breaking!.length, 0);
   if (!total) return [];
+  const broken = hit.reduce((k, x) => k + x.breaking!.filter(breaksConsumers).length, 0);
   return [
-    `Breaks library consumers: ${n(total, 'change')} ${made ? 'made ' : ''}in ${n(hit.length, 'published set')}, passed on at the next library publish.`,
+    `Files that use this library: ${n(total, 'change')} ${made ? 'made ' : ''}in ${n(hit.length, 'published set')}${broken ? `, ${broken} of them breaking` : ''}, passed on at the next library publish.`,
     ...hit.flatMap((x) => [
       ...x.breaking!.slice(0, DIFFERENCE_LINES).map((b) => breakingLine(x.set, b)),
-      ...(x.breaking!.length > DIFFERENCE_LINES ? [`${x.set}: ${x.breaking!.length - DIFFERENCE_LINES} more breaking changes not listed.`] : []),
+      ...(x.breaking!.length > DIFFERENCE_LINES ? [`${x.set}: ${x.breaking!.length - DIFFERENCE_LINES} more changes not listed.`] : []),
     ]),
   ];
 };
-/** The headline's breaking clause (#2831), or empty. DRAFT wording for the owner. */
+/** The headline's clause for changes that affect files using the library (#2831), or empty. DRAFT wording for the
+ *  owner (#3711 Q-UF1 A): "breaks" only when some of them do. */
 export const breakingClause = (sets: readonly { breaking?: Breaking[] }[]): string => {
   const total = sets.reduce((k, x) => k + (x.breaking?.length ?? 0), 0);
-  return total ? ` · ${n(total, 'change')} ${total === 1 ? 'breaks' : 'break'} library consumers` : '';
+  const broken = sets.reduce((k, x) => k + (x.breaking?.filter(breaksConsumers).length ?? 0), 0);
+  return total ? ` · ${affects(total)}${ofThemBreak(total, broken)}` : '';
 };
 
 /** Owner-approved wording (#2568, the Q211/Q246 family; Q264 A): the component pages out of alphabetical order, named

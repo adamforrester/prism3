@@ -230,8 +230,8 @@ accepts('style-guide-result with a malformed stopped leaves it off', { type: 'st
 // #2831: a checked set's consumer-breaking line crosses as given; one that is not a string is left off, the set kept.
 {
   const base = { def: 'button', hash: 'h', members: 4, update: 2, add: 0, drop: 1, handEdited: 0, noBaseline: 0, blocked: false, upToDate: false };
-  accepts('update-check with a published set\'s breaks line', { type: 'update-check', previewHash: 'H', missing: [], refused: [], sets: [{ ...base, breaks: 'Breaks library consumers: x.' }, base] },
-    { kind: 'update-check', previewHash: 'H', missing: [], sets: [{ ...base, breaks: 'Breaks library consumers: x.' }, base], error: null });
+  accepts('update-check with a published set\'s breaks line', { type: 'update-check', previewHash: 'H', missing: [], refused: [], sets: [{ ...base, breaks: '2 changes affect files that use this library: 2 Button members retired. Their instances keep working and show as deprecated.' }, base] },
+    { kind: 'update-check', previewHash: 'H', missing: [], sets: [{ ...base, breaks: '2 changes affect files that use this library: 2 Button members retired. Their instances keep working and show as deprecated.' }, base], error: null });
   accepts('update-check with a malformed breaks line leaves it off', { type: 'update-check', previewHash: 'H', missing: [], refused: [], sets: [{ ...base, breaks: 7 }] },
     { kind: 'update-check', previewHash: 'H', missing: [], sets: [base], error: null });
   // #3302: the check's progress: its counts, the set being checked now, and the one just checked; a count of the wrong
