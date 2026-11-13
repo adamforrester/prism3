@@ -319,22 +319,23 @@ ok(reduce(s2, fd(3, false)).liveDue?.theme === false, 'Q810 A recount (control):
   const B = (reasons?: string[]) => UPDATE_COPY.checked(C(reasons), false, nameOf);
   const BT = (reasons: string[]) => UPDATE_COPY.checked(C(reasons), true, nameOf);
   const cases: [string, string][] = [
-    ['Not in this file: icon/close, icon/check. Build icon first, then run the update again', 'Can’t update yet — it needs Icon, which this file doesn’t have. Add Icon on Components first.'],
+    ['Not in this file: icon/close, icon/check. Build icon first, then run the update again', 'Can’t update yet — it needs Icon, which this file doesn’t have. Tick Icon on Components first.'],
     ['3 variables the plan binds are not in this file (a, b, c)', 'Can’t update yet — it needs 3 variables this file doesn’t have. Tick Theme to write them.'],
     ['1 variable the plan binds is not in this file (a)', 'Can’t update yet — it needs 1 variable this file doesn’t have. Tick Theme to write them.'],
     ['text styles not in this file: body/md, label/sm', 'Can’t update yet — it needs text styles this file doesn’t have: body/md, label/sm. Tick Theme to write them.'],
     ['text style not in this file: body/md', 'Can’t update yet — it needs a text style this file doesn’t have: body/md. Tick Theme to write them.'],
     ['effect styles not in this file: a, b, c, and 2 more', 'Can’t update yet — it needs effect styles this file doesn’t have: a, b, c, and 2 more. Tick Theme to write them.'],
-    ['components the plan swaps to are not in this file: sign-in-button/default, icon/a, icon/b, and 1 more', 'Can’t update yet — it swaps to Sign-in button, Icon, and 1 more, which this file doesn’t have. Add Sign-in button, Icon, and 1 more on Components first.'],
-    ['component the plan swaps to is not in this file: provider-logo/default', 'Can’t update yet — it swaps to Provider logo, which this file doesn’t have. Add Provider logo on Components first.'],
+    ['components the plan swaps to are not in this file: sign-in-button/default, icon/a, icon/b, and 1 more', 'Can’t update yet — it swaps to Sign-in button, Icon, and 1 more, which this file doesn’t have. Tick Sign-in button, Icon, and 1 more on Components first.'],
+    ['component the plan swaps to is not in this file: provider-logo/default', 'Can’t update yet — it swaps to Provider logo, which this file doesn’t have. Tick Provider logo on Components first.'],
     ['fonts: Inter Bold will not load, so text could not be written', 'Can’t update yet — these fonts won’t load: Inter Bold. Install or turn them on in Figma, then open this again.'],
     ['an axis the plan removed would collapse members onto one coordinate, and they cannot stay in the set', 'Can’t update yet — a property it drops would merge variants into one.'],
-    ['the axes change, and 12 members not built by Prism3 would be left on the old ones (a; b; c)', 'Can’t update yet — its properties change, and 12 variants not built by Prism3 would be left behind. The agent’s Adopt can claim them first.'],
+    ['the axes change, and 12 members not built by Prism3 would be left on the old ones (a; b; c)', 'Can’t update yet — its properties change, and 12 variants not built by Prism3 would be left behind. Studio can’t do this yet.'],
     ['renaming size=small would give it the name of another member (size=sm)', 'Can’t update yet — renaming size=small would clash with size=sm. Rename or remove one of them in Figma.'],
     ['2 members share the coordinate size=medium (1:2, 1:3) — the set is refused rather than one picked', 'Can’t update yet — 2 variants share one name, size=medium. Rename or remove the extra one in Figma.'],
     ["the members disagree on the axis list ([size] vs [size,tone]), so Figma cannot read the set's properties (#1780)", 'Can’t update yet — its variants don’t all have the same properties. Fix the variant names in Figma.'],
-    ["the set's property definitions could not be read", 'Can’t update yet — the set’s property definitions could not be read.'],
-    ['the plan names a member that is not a coordinate: x (#1234)', 'Can’t update yet — the plan names a member that is not a coordinate: x.'],
+    // D3721.1 b: a shape not known here gets one fixed line and Report a problem, never the engine's words.
+    ["the set's property definitions could not be read", 'Can’t update yet — the check gave a reason Studio doesn’t recognize. Report it with Report a problem.'],
+    ['the plan names a member that is not a coordinate: x (#1234)', 'Can’t update yet — the check gave a reason Studio doesn’t recognize. Report it with Report a problem.'],
   ];
   for (const [line, want] of cases) ok(B([line]) === want, `#3713 reason: "${line.slice(0, 40)}…" reads "${want}" (got "${B([line])}")`);
   ok(B(['3 variables the plan binds are not in this file (a, b, c)', 'text styles not in this file: x', 'fonts: A B will not load, so text could not be written']) === 'Can’t update yet — it needs 3 variables this file doesn’t have. Tick Theme to write them. 2 more reasons.',
@@ -343,7 +344,7 @@ ok(reduce(s2, fd(3, false)).liveDue?.theme === false, 'Q810 A recount (control):
   ok(!cases.some(([, w]) => /agent’s update check/.test(w)) && !/agent’s update check/.test(B()), '#3713: no line points at the agent\'s update check');
   // Theme ticked: the reasons Theme's run clears no longer lead or count, so the row never asks for Theme again and
   // names what still blocks (the verdict on #3721, should-fix 2). MUTATION: `blockedLine` ignoring `theme` → this arm.
-  ok(BT(['3 variables the plan binds are not in this file (a, b, c)', 'text styles not in this file: x', 'component the plan swaps to is not in this file: provider-logo/default']) === 'Can’t update yet — it swaps to Provider logo, which this file doesn’t have. Add Provider logo on Components first.',
+  ok(BT(['3 variables the plan binds are not in this file (a, b, c)', 'text styles not in this file: x', 'component the plan swaps to is not in this file: provider-logo/default']) === 'Can’t update yet — it swaps to Provider logo, which this file doesn’t have. Tick Provider logo on Components first.',
     `#3713 theme ticked: the row skips what Theme clears and leads with what still blocks (got "${BT(['3 variables the plan binds are not in this file (a, b, c)', 'text styles not in this file: x', 'component the plan swaps to is not in this file: provider-logo/default'])}")`);
   ok(B(['3 variables the plan binds are not in this file (a, b, c)', 'component the plan swaps to is not in this file: provider-logo/default']) === 'Can’t update yet — it needs 3 variables this file doesn’t have. Tick Theme to write them. 1 more reason.',
     '#3713 theme ticked (control): with Theme not ticked, the variables still lead and the swap target is counted');
