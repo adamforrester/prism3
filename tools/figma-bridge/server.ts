@@ -462,7 +462,7 @@ export const createBridge = (opts: { pairing: Pairing; now?: () => Date; log?: (
     if (!conn.authed) {
       const clientNonce = typeof m.clientNonce === 'string' && CLIENT_NONCE_RE.test(m.clientNonce) ? m.clientNonce : null;
       if (m.type === 'pair') {
-        const proof = clientNonce === null ? null : pairing.pairOk(conn.nonce!, m.proof, clientNonce);
+        const proof = pairing.pairOk(conn.nonce!, m.proof, clientNonce as string);
         if (proof === null) { record(null, 'bridge', 'a wrong pairing code: refused'); conn.close(CLOSE.wrongCode, 'wrong pairing code'); return; }
         record(null, 'bridge', 'a plugin paired');
         conn.send({ type: 'paired', token: pairing.token, proof });
