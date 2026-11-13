@@ -16,8 +16,8 @@
  * down, and that is deliberate. The run prints its own total. An authored count is a claim nothing
  * checks: this file's first version said "30" in five places, #799 added a gate an hour later, and all
  * five went stale at once (#786 had recorded the identical failure twice the same week). Arm 3 catches
- * the LIST going short, by name; nothing catches a stale numeral in a sentence. `EXPECTED_ARTIFACTS`
- * below is the one number kept, and it is a claim about the emitted tree that `ci.yml` also asserts.
+ * the LIST going short, by name; nothing catches a stale numeral in a sentence. `ARTIFACT_FLOOR`
+ * below is the one number kept, a floor under the emitted tree, and `ci.yml` reads it from here (#3698 R3).
  *
  * ── THE FIVE THINGS THE RUNNER ITSELF HAS TO GET RIGHT ──────────────────────────────────────────
  *
@@ -598,8 +598,20 @@ export const environmentProblems = async (): Promise<string[]> => {
 
 /** The artifact-count meta-check, taken from the drift gate's ALREADY-CAPTURED output rather than by
  *  running `regen.ts --check` a second time (it is among the slowest gates here). This is what
- *  buffering per gate buys — point 2 paying for itself. Mirrors `ci.yml`'s own step. */
-const EXPECTED_ARTIFACTS = 229;
+ *  buffering per gate buys — point 2 paying for itself. Mirrors `ci.yml`'s own step.
+ *
+ *  #3698 R3 (owner decision 2026-11-12): ONE PLACE, AND A FLOOR. This was an exact count, `EXPECTED_ARTIFACTS`, typed
+ *  here and again in `ci.yml`. Every PR that added an artifact edited both, so two such PRs always collided, and each
+ *  copy's remedy named only the other. Now the count is regen's own (derived), and the one authored number is this
+ *  floor, which `ci.yml` reads from here (`verify.ts --artifact-floor`), never restates.
+ *
+ *  Why a floor and not nothing (docs/34): the count regen reports is derived from regen's own lists, so comparing it
+ *  with itself could not fail. The floor is the independent side. It is typed, not computed, and it catches the
+ *  failure this check exists for: an artifact list going SHORT, an emitter or schema file leaving the compared set,
+ *  which `--check` alone reports as a clean, smaller run. Growth needs no edit, so adding artifacts no longer
+ *  collides. Raise the floor when the set grows, if you like; lower it only on purpose, in the PR that shrinks the set,
+ *  and say why. What a floor cannot see: a shrink and a growth of the same size in one PR. */
+export const ARTIFACT_FLOOR = 226;
 
 /* #775's window closed 2026-08-20 and the smoke suite gates in both CI and this runner, so the
  * date constant and its clock read are GONE rather than left at a passed date. They existed to stop
@@ -710,12 +722,12 @@ export const GATES: Gate[] = [
         return { outcome: 'FAIL', output: "the drift gate's output no longer reports \"N committed artifacts\" — this meta-check has gone blind" };
       }
       const n = Number(m[1]);
-      return n === EXPECTED_ARTIFACTS
-        ? { outcome: 'PASS', output: `${n} committed artifacts — full set covered` }
+      return n >= ARTIFACT_FLOOR
+        ? { outcome: 'PASS', output: `${n} committed artifacts — at or above the floor of ${ARTIFACT_FLOOR}` }
         : {
             outcome: 'FAIL',
-            output: `artifact coverage changed — expected ${EXPECTED_ARTIFACTS}, got ${n}. If the set legitimately ` +
-              `grew or shrank, update EXPECTED_ARTIFACTS here AND the same number in ci.yml, same PR.`,
+            output: `artifact coverage shrank — ${n} committed artifacts, below the floor of ${ARTIFACT_FLOOR}. An artifact ` +
+              `left the compared set. If that is deliberate, lower ARTIFACT_FLOOR in verify.ts (the one place), same PR, and say why.`,
           };
     },
   },
@@ -1258,6 +1270,12 @@ export const GATES: Gate[] = [
     cmd: engine('lint-code-only-classes.ts'),
   },
   {
+    // #3698 finding 2 — reads the engine's tracked source text only; needs no build and no `after`.
+    id: 'lint-locale-order',
+    ciStep: 'No engine comparison depends on the host locale (#3698)',
+    cmd: engine('lint-locale-order.ts'),
+  },
+  {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR
     // rather than about this tree: docs/34 shape 17 is explicit that nothing running inside a checkout
     // can tell whether that checkout is stale — a stale tree is internally consistent. So the subject
@@ -1443,8 +1461,14 @@ if (gateFilePattern.test('packages/engine/lint-voice.mjs') || gateFilePattern.te
 // row that means nothing.
 const driftCoverage = GATES.find((g) => g.id === 'drift-coverage')!.derive!;
 const fakePass = (output: string): Result => ({ gate: GATES[0], outcome: 'PASS', output, ms: 0 });
-if (driftCoverage(new Map([['drift', fakePass(`${EXPECTED_ARTIFACTS} committed artifacts byte-match`)]])).outcome !== 'PASS') {
-  selfFails.push('the artifact-coverage check fails on the expected count (false positive)');
+if (driftCoverage(new Map([['drift', fakePass(`${ARTIFACT_FLOOR} committed artifacts byte-match`)]])).outcome !== 'PASS') {
+  selfFails.push('the artifact-coverage check fails at the floor (false positive)');
+}
+if (driftCoverage(new Map([['drift', fakePass(`${ARTIFACT_FLOOR + 3} committed artifacts byte-match`)]])).outcome !== 'PASS') {
+  selfFails.push('the artifact-coverage check fails on growth above the floor, so adding an artifact would still collide');
+}
+if (driftCoverage(new Map([['drift', fakePass(`${ARTIFACT_FLOOR - 1} committed artifacts byte-match`)]])).outcome !== 'FAIL') {
+  selfFails.push('the artifact-coverage check passes one below the floor — a shrinking set reads clean');
 }
 if (driftCoverage(new Map([['drift', fakePass('7 committed artifacts byte-match')]])).outcome !== 'FAIL') {
   selfFails.push('the artifact-coverage check passes on a changed count — it cannot fail');
@@ -1707,6 +1731,9 @@ const isMain = (() => {
 
 if (isMain) {
   const argv = process.argv.slice(2);
+  // #3698 R3: the one authored artifact number, for `ci.yml`'s coverage step to read rather than restate. Prints it
+  // and exits before anything runs.
+  if (argv.includes('--artifact-floor')) { console.log(String(ARTIFACT_FLOOR)); process.exit(0); }
   const verbose = argv.includes('--verbose');
   // #3216: a sharded gate (the chrome suite) runs its shards side by side unless this asks for the one whole run.
   const unsharded = argv.includes('--unsharded');
