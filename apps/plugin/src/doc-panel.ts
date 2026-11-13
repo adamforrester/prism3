@@ -124,9 +124,11 @@ const SIZE: DocBlockSize = 'sm';
  *  Related as linked lists (#2970). 4: each specimen at its member's own width, the panel widening to fit (#2970 items 1
  *  and 4, #2916). 5: a specimen never under what its def declares, so Dialog's anatomy no longer collapses (#3205).
  *  6: each specimen sized again once its panel is on the page, where the host kept 5's width only until the panel
- *  moved there (#3205 follow-up). The as-built ledger records it per set (`panel`, `main.ts` `ledgerNow`), so a raise
+ *  moved there (#3205 follow-up). 7: each specimen FILLs its stage, its width set by the stage's padding, since Figma drops a
+ *  width written to a layer inside an instance and 4–6's widths never held in a real file (#3205, owner review 2026-11-13).
+ *  The as-built ledger records it per set (`panel`, `main.ts` `ledgerNow`), so a raise
  *  makes a lead set due in Update file's check even when its set is current (#3205, the format-due credit). */
-export const PANEL_FORMAT = 6;
+export const PANEL_FORMAT = 7;
 /** THE TITLES (#2970 item 5, owner decision): the panel's title and each section's, in px, with their letter-spacing
  *  in percent. The tracking is the studio's: its 20px page titles take `ls-tightest` (−4%) and its 16px section titles
  *  `ls-tighter` (−3%), the default theme's values (`theme.ts` `LETTER_SPACINGS`). Written over the block's text style,
@@ -1130,26 +1132,65 @@ export const drawDocPanel = async (
   /** THE SPECIMEN AT ITS MEMBER'S OWN WIDTH (#2970 Q1 A), NEVER UNDER WHAT THE DEF DECLARES (#3205). The swap keeps the
    *  sizing the template's placeholder had, a Badge's hug, so a member built at a width that hugs its content instead
    *  lays its fill-width text out at its narrowest: Banner's text went one letter per line, Checkbox.Row's label
-   *  wrapped, and Dialog's anatomy drew about 60px wide, its title one letter per line (#3205). One rule
-   *  (`exampleFloor`): a def that builds its root at a width (`placementWidth`, `builtSize`, `center`) gets a fixed specimen at
-   *  its member's width, with that width as the specimen's `minWidth` too, whatever sizing the member reports, so
-   *  nothing that sets the instance back to hug can collapse it; a def that declares a literal minimum (`minWidth`)
-   *  gets that floor on a specimen that hugs. Any other member: fixed at its width when it is fixed, hugging when it hugs. */
-  /** Every specimen sized, with its member: sized again once the panel is on the page (`resizeSpecimens`). */
+   *  wrapped, and Dialog's anatomy drew about 60px wide, its title one letter per line (#3205). Which members show at a
+   *  width (`specimenWidth`): a def that builds its root at a width (`placementWidth`, `builtSize`, `center`), whatever
+   *  sizing the member reports, and any member that reads FIXED, each at its member's width. Any other member hugs, and
+   *  takes its main's own floor, as every instance does.
+   *
+   *  NO WIDTH IS WRITTEN TO THE SPECIMEN. It is a layer inside its `_Doc-block` instance, and Figma silently drops a width
+   *  written to one (`resize`, `minWidth`: the live run of 0.205.0, `style-guide-cells.ts`), while it keeps a sizing mode
+   *  and a padding. #3211 and #3318 set FIXED, `resize` and `minWidth`: only the FIXED held, so in the template each
+   *  specimen froze at the width it hugged (Dialog 62px with no floor, Accordion at its 120px floor, its title wrapped and
+   *  "components" broken across lines; owner review, 2026-11-13). So the specimen FILLs its stage, and the stage's
+   *  left and right padding leave exactly the member's width between them, the spare split evenly so it stays centered
+   *  (`fitSpecimens`). The stage FILLs its block, so its width is the panel's, which `panelLayout` already makes wide
+   *  enough; a stage still too narrow widens the panel. */
+  /** Every specimen drawn, with its member: fitted again once the panel is on the page and after the markers' gutters. */
   const sized: { i: PNode; m: PNode }[] = [];
+  /** Each stage's left padding before the spare is split: the stage's own, or the markers' gutter (`drawMarkers`). */
+  const baseLeft = new Map<PNode, number>();
+  const specimenWidth = (m: PNode): number => {
+    const floor = exampleFloor(def, m);
+    return floor.built || m.layoutSizingHorizontal !== 'HUG' ? Math.max(Math.round(Number(m.width ?? 0)), floor.width) : 0;
+  };
   const sizeSpecimen = (i: PNode, m: PNode): void => {
     if (!sized.some((x) => x.i === i)) sized.push({ i, m });
     const sp = find(i, 'specimen');
     if (!sp) return;
-    const floor = exampleFloor(def, m);
+    const want = specimenWidth(m);
     try {
-      if (floor.built || m.layoutSizingHorizontal !== 'HUG') {
-        sp.layoutSizingHorizontal = 'FIXED';
-        sp.resize?.(m.width ?? sp.width ?? 0, sp.height ?? 0);
-        if (m.layoutSizingVertical === 'HUG' || floor.built) sp.layoutSizingVertical = 'HUG';
+      if (want > 0) {
+        sp.layoutSizingHorizontal = 'FILL';
+        if (m.layoutSizingVertical === 'HUG' || exampleFloor(def, m).built) sp.layoutSizingVertical = 'HUG';
       } else sp.layoutSizingHorizontal = 'HUG';
     } catch { out.misses.push(`the specimen of ${def.id} could not take its member's width`); }
-    if (floor.width > 0) { try { sp.minWidth = floor.width; } catch { out.misses.push(`the specimen of ${def.id} could not take its ${floor.width}px floor`); } }
+  };
+  /** Each stage's padding set so its FILLing specimen is its member's width, centered; the panel widened when a stage
+   *  is too narrow for that. A hugging specimen's stage keeps its left gutter and `STAGE_PAD` on the right. */
+  const fitSpecimens = (): void => {
+    const place = (): number => {
+      let short = 0;
+      for (const { i, m } of sized) {
+        const sp = find(i, 'specimen');
+        const stage = sp?.parent as PNode | undefined;
+        if (!sp || !stage) continue;
+        const want = specimenWidth(m);
+        const left = baseLeft.get(stage) ?? Number(stage.paddingLeft ?? STAGE_PAD);
+        if (!baseLeft.has(stage)) baseLeft.set(stage, left);
+        const spare = want > 0 ? Number(stage.width ?? 0) - left - STAGE_PAD - want : 0;
+        short = Math.max(short, -spare);
+        const half = Math.max(0, spare) / 2;
+        try { stage.paddingLeft = left + Math.floor(half); stage.paddingRight = STAGE_PAD + Math.ceil(half); }
+        catch { out.misses.push(`the specimen of ${def.id} could not take its member's width`); }
+      }
+      return short;
+    };
+    for (let k = 0; k < 4; k++) {
+      const short = place();
+      if (short <= 0) return;
+      panel.resize?.(Math.ceil(Number(panel.width ?? 0) + short), panel.height ?? 1);
+      panel.layoutSizingVertical = 'HUG';
+    }
   };
   const showSpecimen = async (i: PNode, m: PNode | undefined, mode?: string, caption?: string): Promise<void> => {
     const key = propKey(i, SPECIMEN);
@@ -1344,13 +1385,20 @@ export const drawDocPanel = async (
       const need = (side: Laid['side'], step: number) => (deepest(side) < 0 ? 0 : MARK_GAP + (deepest(side) + 1) * step + (side === 'left' ? LEADER : 0));
       for (const [k, side, step] of [['paddingTop', 'top', mh + MARK_SEP], ['paddingBottom', 'bottom', mh + MARK_SEP], ['paddingLeft', 'left', mw + 2 * MARK_SEP]] as const) {
         const n = need(side, step);
-        if (n > Number(stage[k] ?? 0)) { try { stage[k] = Math.ceil(n); } catch { out.misses.push(`the specimen's ${side} gutter could not grow`); } }
+        // The left gutter is the stage's base: `fitSpecimens` adds the spare to it.
+        const was = k === 'paddingLeft' ? (baseLeft.get(stage) ?? Number(stage[k] ?? 0)) : Number(stage[k] ?? 0);
+        if (n > was) {
+          if (k === 'paddingLeft') baseLeft.set(stage, Math.ceil(n));
+          try { stage[k] = Math.ceil(n); } catch { out.misses.push(`the specimen's ${side} gutter could not grow`); }
+        }
       }
     }
+    fitSpecimens();
     // A GUTTER WIDER THAN THE RULE ALLOWED (the real Badge wider than `MARK_ROOM`): the panel widens again, before the
     // places are read, so every specimen keeps its own width inside its stage.
     const need = Math.max(0, ...all.map(({ spec, stage }) => (stage ? rect(spec).width + Number(stage.paddingLeft ?? 0) + Number(stage.paddingRight ?? 0) : 0))) + 2 * PANEL_PAD;
     if (need > (panel.width ?? 0)) { panel.resize?.(Math.ceil(need), panel.height ?? 1); panel.layoutSizingVertical = 'HUG'; }
+    fitSpecimens();
     // THE PLACES, from the boxes as now laid out, each relative to the panel.
     const at = rect(panel);
     let marked = 0;
@@ -1431,12 +1479,11 @@ export const drawDocPanel = async (
   parent.appendChild(panel);
   panel.x = at.x;
   panel.y = at.y;
-  // SIZED AGAIN WHERE IT LANDS (#3205 follow-up). In the template, #3211's width and floor did not survive: Dialog's
-  // specimen was FIXED at the 62px it hugs inside a 687px stage. The host drops a nested instance's size overrides
-  // when its tree moves, and the panel moves onto the page only now, after every specimen was sized. So each one is
-  // sized again here, fixed at its member's width with its floor, once nothing above it moves again. That is before the
-  // markers, which are placed from the specimens' final boxes.
+  // FITTED AGAIN WHERE IT LANDS (#3205 follow-up): each specimen's sizing mode set again, and its stage's padding fitted
+  // to the stage's width there, once nothing above it moves again. That is before the markers, which are placed from
+  // the specimens' final boxes.
   for (const { i, m } of sized) sizeSpecimen(i, m);
+  fitSpecimens();
   out.marked = await drawMarkers();
 
   // NOTHING UNDER IT: every other node on the parent, the set and its labels included, but the edited panels this
