@@ -1462,6 +1462,49 @@ section('server-proof — the relay hears only a server that proves the secret')
   ok(wpair.type === 'pair' && w.connected() && !posted('agent-bridge-paired').length && !ws1.closed,
     `server-proof/unsolicited-paired: once welcomed, a paired is ignored even with a code sent on this socket: the token is not replaced (${posted('agent-bridge-paired').length} kept)`);
   w.fromMain({ type: 'agent-link-state', state: state(false) });
+
+  // #3728 review S3: every wrong proof above differs early, so a compare that read one character would refuse it. A proof
+  // that is the real one with only its LAST hex digit changed must be refused too, for the welcome and for the paired; the
+  // real proof on the next socket then connects, so the refusal is the compare's, not the arm's.
+  const lastFlipped = (p: string) => p.slice(0, -1) + (p.endsWith('0') ? '1' : '0');
+  told.length = 0;
+  const n = relayOf();
+  n.fromMain({ type: 'agent-bridge-token', token: TOKEN });
+  n.fromMain({ type: 'agent-link-state', state: state() });
+  const n1 = socks[socks.length - 1];
+  say(n1, { type: 'challenge', v: 1, nonce: '9a'.repeat(32) });
+  const nh1 = n1.sent.find((x) => x.type === 'hello') ?? {};
+  const nearWelcome = lastFlipped(proveWelcome(nh1.clientNonce));
+  say(n1, { type: 'welcome', proof: nearWelcome });
+  ok(nearWelcome !== proveWelcome(nh1.clientNonce) && !n.connected() && n1.closed && !posted('agent-bridge').some((x) => x.connected),
+    'server-proof/near-miss: a welcome whose proof differs from the real one only in its last hex digit is refused and dropped');
+  runLater();
+  const n2 = socks[socks.length - 1];
+  say(n2, { type: 'challenge', v: 1, nonce: '9b'.repeat(32) });
+  const nh2 = n2.sent.find((x) => x.type === 'hello') ?? {};
+  say(n2, { type: 'welcome', proof: proveWelcome(nh2.clientNonce) });
+  ok(n2 !== n1 && n.connected() && !n2.closed, 'server-proof/near-miss: and the real welcome on the next socket connects');
+  n.fromMain({ type: 'agent-link-state', state: state(false) });
+
+  told.length = 0;
+  const m = relayOf();
+  m.fromMain({ type: 'agent-bridge-token', token: null });
+  m.fromMain({ type: 'agent-link-state', state: state() });
+  m.pair('abcd-efgh');
+  const m1 = socks[socks.length - 1];
+  say(m1, { type: 'challenge', v: 1, nonce: '9c'.repeat(32) });
+  const mpair1 = m1.sent.find((x) => x.type === 'pair') ?? {};
+  const nearPaired = lastFlipped(provePaired('ABCD-EFGH', mpair1.clientNonce));
+  say(m1, { type: 'paired', token: TOKEN, proof: nearPaired });
+  ok(mpair1.type === 'pair' && !posted('agent-bridge-paired').length && m1.closed && !m1.sent.some((x) => x.type === 'hello'),
+    'server-proof/near-miss: a paired whose proof differs from the real one only in its last hex digit keeps no token and is dropped');
+  runLater();
+  const m2 = socks[socks.length - 1];
+  say(m2, { type: 'challenge', v: 1, nonce: '9d'.repeat(32) });
+  const mpair2 = m2.sent.find((x) => x.type === 'pair') ?? {};
+  say(m2, { type: 'paired', token: TOKEN, proof: provePaired('ABCD-EFGH', mpair2.clientNonce) });
+  ok(m2 !== m1 && posted('agent-bridge-paired').some((x) => x.token === TOKEN), 'server-proof/near-miss: and the real paired on the next socket is kept');
+  m.fromMain({ type: 'agent-link-state', state: state(false) });
 }
 
 child.stdin.end();
