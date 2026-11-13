@@ -11,7 +11,7 @@
  *     Each must build and clear EVERY mode contract — the real robustness test.
  * Exits non-zero on any failure.
  */
-import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, composite, RGB, storedOklch } from './color';
+import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, composite, RGB, storedOklch, formatRatio } from './color';
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, densitySpace, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { codeOnlyText } from './code-only-register';
@@ -974,6 +974,9 @@ for (const hx of ['#000000', '#333333', '#7f7f7f', '#808080', '#ffffff']) {
 // a design.md import with no neutral swatches (which follows the primary), and no decisions-log note gives that primary a
 // hue. The primaries are named as hex and stored as a pick or an import stores them; the gray checks are structural.
 {
+  // #3697 L3: the one contrast-ratio formatter floors to two places, never rounds. Literals, from the review's case.
+  for (const [r, want] of [[4.496, '4.49:1'], [4.5, '4.50:1'], [4.4999, '4.49:1'], [21, '21.00:1'], [3.0049, '3.00:1'], [1, '1.00:1']] as const)
+    ok(formatRatio(r) === want, `formatRatio(${r}) floors to ${want} (got ${formatRatio(r)})`);
   const grayPrimary = storedOklch(rgbToOklch(hexToRgb('#808080')));
   const sameRgb = (c: RGB) => c.r === c.g && c.g === c.b;
   const neutralGray = (t: any) => t.palettes.find((p: any) => p.palette === 'neutral').steps.every((st: any) => sameRgb(st.rgb));

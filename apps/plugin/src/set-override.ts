@@ -27,7 +27,7 @@ import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
 import { resolveAllModes, withIconTwins, GROUND_INPUT } from '@prism3/engine/modes';
 import type { ModeResult, PrimitiveRef } from '@prism3/engine/modes';
-import { contrast, hexToRgb } from '@prism3/engine/color';
+import { contrast, formatRatio, hexToRgb } from '@prism3/engine/color';
 import { canon } from './persist-figma';
 
 /** The most changes one call takes. A migration like #3336 is 13. */
@@ -80,7 +80,8 @@ export type OverridePlan = {
 const MODE_LABEL: Readonly<Record<string, string>> = { light: 'Light', dark: 'Dark', 'hc-light': 'High contrast light', 'hc-dark': 'High contrast dark', wireframe: 'Wireframe' };
 /** A mode as the copy names it: `Light`, `Dark`, a custom mode by its own name with a capital. */
 export const modeLabel = (mode: string): string => MODE_LABEL[mode] ?? (mode ? mode[0].toUpperCase() + mode.slice(1) : mode);
-const fmtRatio = (r: number): string => `${r.toFixed(2)}:1`;
+// The engine's one formatter (#3697 L3): floored, so a ratio below its minimum never reads as the minimum.
+const fmtRatio = formatRatio;
 const fmtMin = (m: number): string => `${m}:1`;
 const ref = (r: PrimitiveRef | null): string => (r ? `${r.palette} ${r.step}` : 'none');
 const plural = (n: number, one: string, many: string): string => (n === 1 ? one : many);
