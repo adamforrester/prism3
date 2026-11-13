@@ -77,7 +77,7 @@ const emitAndGate = (theme: Theme, resolvedOut: string, designPath: string, sour
   console.log(`  [written] ${resolve(resolvedOut, theme.id + '.ai.json')}`);
   const broken = stats.broken.length > 0;
   const contractsFail = stats.modePass < stats.modeChecks;
-  if (broken) stats.broken.forEach((b) => console.error(`   ❌ unresolved alias: ${b.path} -> {${b.ref}}`));
+  if (broken) stats.broken.forEach((b) => console.error(`   ❌ ${b.reason === 'dangling' ? 'unresolved alias' : b.reason === 'cycle' ? 'alias cycle' : 'alias chain too deep'}: ${b.path} -> {${b.ref}}${b.mode ? ` (${b.mode})` : ''}${b.chain ? ` — ${b.chain.join(' -> ')}` : ''}`));
   if (contractsFail) console.error(`   ❌ ${stats.modeChecks - stats.modePass} mode contrast contract(s) failed`);
   if (broken || contractsFail) process.exit(1);
   console.log(`  ✓ ${theme.id} generated cleanly — all aliases resolve, all contrast contracts hold`);
