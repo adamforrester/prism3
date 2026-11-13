@@ -448,8 +448,7 @@ export const blockedWhy = (line: string, nameOf: (id: string) => string = (id) =
   if (/^the members disagree on the axis list/.test(line))
     return { why: 'its variants don’t all have the same properties.', next: 'Fix the variant names in Figma.' };
   // DRAFT (D3721.1 b: the decision is the owner's, these words are not yet): Report a problem is the control's own name.
-  const t = line.replace(/\s*\(#\d+\)/g, '').trim().replace(/:$/, '').replace(/'/g, '’');
-  return { why: `${t}${/[.!?]$/.test(t) ? '' : '.'}`, next: null };
+  return { why: 'the check gave a reason Studio doesn’t recognize.', next: 'Report it with Report a problem.' };
 };
 /** #3713: a blocked set's line: its first reason in plain words, the step that clears it, and how many more. With Theme
  *  ticked (`theme`), the reasons Theme's run clears are skipped, so the row never asks for a step already taken and
