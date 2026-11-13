@@ -1486,8 +1486,7 @@
         "filled",
         "focus-visible",
         "focus-visible-filled",
-        "disabled",
-        "error"
+        "disabled"
       ],
       "projectedStates": [
         "rest",
@@ -1495,8 +1494,7 @@
         "filled",
         "focus-visible",
         "focus-visible-filled",
-        "disabled",
-        "error"
+        "disabled"
       ],
       "axes": {
         "size": [
@@ -1504,6 +1502,10 @@
           "small",
           "large",
           "x-large"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "props": [
@@ -1525,8 +1527,12 @@
           "default": false
         },
         {
-          "name": "isInvalid",
-          "default": false
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
         },
         {
           "name": "disabled",
@@ -5580,9 +5586,6 @@
       "text-field",
       "textarea"
     ],
-    "error": [
-      "code-input-cell"
-    ],
     "filled": [
       "card-number-field",
       "code-input",
@@ -6282,6 +6285,7 @@
           "checkbox-group",
           "checkbox-row",
           "code-input",
+          "code-input-cell",
           "radio-control",
           "radio-group",
           "radio-row",
@@ -7531,12 +7535,6 @@
       },
       {
         "id": "pagination-item",
-        "default": false
-      }
-    ],
-    "isInvalid": [
-      {
-        "id": "code-input-cell",
         "default": false
       }
     ],
@@ -9663,6 +9661,14 @@
         ]
       },
       {
+        "id": "code-input-cell",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
+        ]
+      },
+      {
         "id": "password-field",
         "default": "default",
         "values": [
@@ -9926,15 +9932,7 @@
         "code-input",
         "code-input-cell"
       ],
-      "detail": "no state set is shared by most of the group — code-input [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled]; code-input-cell [rest, hover, filled, focus-visible, focus-visible-filled, disabled, error]"
-    },
-    {
-      "kind": "variant axes",
-      "subject": "variant family: CodeInput",
-      "components": [
-        "code-input-cell"
-      ],
-      "detail": "code-input-cell's variant axes differ from the family's common set"
+      "detail": "no state set is shared by most of the group — code-input [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled]; code-input-cell [rest, hover, filled, focus-visible, focus-visible-filled, disabled]"
     },
     {
       "kind": "variant axes",
@@ -10284,6 +10282,7 @@
         "checkbox-group",
         "checkbox-row",
         "code-input",
+        "code-input-cell",
         "field-message",
         "password-field",
         "progress",
@@ -10297,7 +10296,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, code-input, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in card-number-field, field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress"
+      "detail": "the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, code-input, code-input-cell, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in card-number-field, field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress"
     },
     {
       "kind": "axis values",
@@ -10889,6 +10888,14 @@
         "code-input"
       ],
       "detail": "code-input has the variant axis status and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "code-input-cell",
+      "components": [
+        "code-input-cell"
+      ],
+      "detail": "code-input-cell has the variant axis status and no prop of that name"
     },
     {
       "kind": "axis without prop",

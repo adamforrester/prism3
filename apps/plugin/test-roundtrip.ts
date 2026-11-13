@@ -2164,9 +2164,10 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       if (walk(m).some((n) => n.name === 'focusRing')) off.push(`${at}: a focusRing node is built`);
     }
   }
-  // 6 fields × 3 sizes × 4 statuses × 2 focus states = 144, the Code cell's 4 sizes × 2 = 8, the Counter's outline 3.
-  ok(focusMembers === 155 && off.length === 0,
-    `#3399 focus edge as built: in all ${focusMembers} of 155 focus members of the 8 field sets, the frame's four side weights read back focus/ring/width (hairline at rest), drawn inside and out of the layout, in the status role, at the rest member's own corner radius, with no focusRing node${off.length ? ` — ${off.length} off: ${off.slice(0, 4).join(' | ')}` : ''}`);
+  // 6 fields × 3 sizes × 4 statuses × 2 focus states = 144, the Code cell's 4 sizes × 2 statuses × 2 = 16 (its status
+  // axis since Q-CC1 A, #3554), the Counter's outline 3.
+  ok(focusMembers === 163 && off.length === 0,
+    `#3399 focus edge as built: in all ${focusMembers} of 163 focus members of the 8 field sets, the frame's four side weights read back focus/ring/width (hairline at rest), drawn inside and out of the layout, in the status role, at the rest member's own corner radius, with no focusRing node${off.length ? ` — ${off.length} off: ${off.slice(0, 4).join(' | ')}` : ''}`);
 }
 
 
@@ -3123,9 +3124,9 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     const shim = makeShim({ ...fullFor(plans), page });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
     const r = await applyComponentPlan(plans, shim as any);
-    // The one miss the harness owns: the shim declares no INSTANCE_SWAP on a nested FlushIconButton, so the dismiss's
+    // The one miss the harness owns: the shim declares no INSTANCE_SWAP on a nested FlushIconButton, so the close button's
     // close-glyph override reports itself (the corpus loop above judges divergences, so it never reads it). Named here.
-    const harness = (m: string): boolean => /^dismiss\.nestOverrides -> swap icon \(no INSTANCE_SWAP property/.test(m);
+    const harness = (m: string): boolean => /^close\.nestOverrides -> swap icon \(no INSTANCE_SWAP property/.test(m);
     return { r: { ...r, misses: r.misses.filter((m) => !harness(m)) }, set: page.children.find((c) => c.type === 'COMPONENT_SET') as Node | undefined };
   };
   const find = (n: Node | undefined, name: string): Node | undefined => (!n ? undefined : n.name === name ? n : ((n.children ?? []) as Node[]).map((c) => find(c, name)).find(Boolean));
@@ -3158,7 +3159,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       placeholder: { kind: 'text', type: 'body-type', paintSlot: 'body', wrap: true, characters: OLD_COPY },
     } },
     composition: { ...banner.composition!, composesWith: ['button', 'flush-icon-button-neutral'] },
-    figmaProperties: { ...banner.figmaProperties!, texts: { title: banner.figmaProperties!.texts!.title }, booleans: { title: { part: 'titleBox', default: true }, icon: banner.figmaProperties!.booleans!.icon, actions: { part: 'actions', default: false }, dismissible: { part: 'dismiss', default: false, figmaName: 'dismiss' } } },
+    figmaProperties: { ...banner.figmaProperties!, texts: { title: banner.figmaProperties!.texts!.title }, booleans: { title: { part: 'titleBox', default: true }, icon: banner.figmaProperties!.booleans!.icon, actions: { part: 'actions', default: false }, dismissible: { part: 'close', default: false, figmaName: 'close' } } },
   };
   const before = await build(old);
   const oldMembers = ((before.set?.children ?? []) as Node[]);

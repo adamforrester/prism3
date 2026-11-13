@@ -31,9 +31,13 @@
  * segmented-control segment, `_tab-item` and `_list-item` (Q353, Q355) meet the same collision in the rename sweep.
  *
  * ── THE CELL ─────────────────────────────────────────────────────────────────────────────────────────────────
- * `size` [medium, small, large, x-large] × seven states = 28 members. The approved cell states are rest, hover,
- * active, filled, active filled, error and disabled; the closed state vocabulary spells active `focus-visible` and
- * active filled `focus-visible-filled`, the names Text field gives the same look (the ring and the caret). Its
+ * `size` [medium, small, large, x-large] × `status` [default, error] × six states = 48 members. The approved cell states
+ * are rest, hover, active, filled, active filled, error and disabled; the closed state vocabulary spells active
+ * `focus-visible` and active filled `focus-visible-filled`, the names Text field gives the same look (the ring and the
+ * caret). Error is the `status` axis, never a state (Q354; Q-CC1 A on #3554): the cell carries the fields' first two
+ * values, so a cell in error still shows rest, hover, filled and active, the active one drawn in the danger border.
+ * `COMPONENT_RENAMES` moves the old `state=error` member, a character in the danger border, onto `status=error,
+ * state=filled`. Its
  * SIZE IS A LITERAL PER SIZE (`builtSize`, Dialog's construction, Q303.5 A): Q330's 48, 64 and 72 sit on no size
  * rung, so no new token is minted and every brand draws the same cell. Paint is Text field's field chrome, key for
  * key where the state exists.
@@ -69,18 +73,22 @@ export const codeInputCell: ComponentDef = {
     { name: 'digit', type: 'string', required: false, description: 'The character this cell shows: one digit, or one letter in a code that allows letters. Empty until the user reaches it.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large' | 'x-large'", values: ['small', 'medium', 'large', 'x-large'], default: 'medium', required: false, description: 'The cell size and its character size. Set by the code input.' },
     { name: 'isActive', type: 'boolean', default: false, required: false, description: 'Whether this is the cell the next character goes into while the input has focus. Set by the code input.' },
-    { name: 'isInvalid', type: 'boolean', default: false, required: false, description: 'Whether the code input is in error. Set by the code input.' },
+    // Q-CC1 A (#3554): the fields' `validation` prop, projected as the `status` axis, replaces `isInvalid`.
+    { name: 'validation', type: "enum: 'default' | 'error'", values: ['default', 'error'], default: 'default', required: false, description: 'The validation status. error draws the danger border on the cell at every state but disabled; default is neutral. Set by the code input.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Whether the code input is disabled. Set by the code input.' },
   ],
 
-  states: ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'error'],
-  // Medium FIRST (owner decisions Q347 and Q359): the set's first member is the code default.
+  states: ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled'],
+  // Medium FIRST (owner decisions Q347 and Q359): the set's first member is the code default. `status` is the code
+  // input's own axis and values (Q-CC1 A on #3554, Q354), so the field follows it into its default cells by name.
   variants: {
     size: ['medium', 'small', 'large', 'x-large'],
+    status: ['default', 'error'],
   },
-  axisKinds: { size: 'authoring' },
+  axisKinds: { size: 'authoring', status: 'runtime' },
 
-  paintKeys: ['{slot}.{state}', '{slot}'],
+  // Text field's grammar: status-led and state-qualified first, so the danger border wins over the interaction states.
+  paintKeys: ['{status}.{slot}.{state}', '{slot}.{state}', '{slot}'],
   typeWeight: { group: 'title', intent: 'bold' },
 
   tokens: {
@@ -91,7 +99,7 @@ export const codeInputCell: ComponentDef = {
     'size.large.radius': 'radius.sm',
     'size.x-large.radius': 'radius.lg',
     // Text field's edge weight per state (#3399): the hairline, and the 2px focus edge on the active cell.
-    ...fieldEdgeWidths(['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'error']),
+    ...fieldEdgeWidths(['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled']),
     'pad': 'space.0',
     'caret-width': 'border-width.hairline',
 
@@ -109,13 +117,18 @@ export const codeInputCell: ComponentDef = {
     'size.x-large.caret-height': 'icon.size.xl',
 
     // ── PAINT — Text field's field chrome. A transparent fill, no hover wash (#2926), the field border stepping
-    // at hover, the focus border at both active states, the danger border in error, the shared disabled skin.
+    // at hover, the focus border at both active states, the danger border at every state of status=error but
+    // disabled, the shared disabled skin.
     'fill': 'color.field.fill',
     'border': 'color.field.border.rest',
     'border.hover': 'color.field.border.hover',
     'border.focus-visible': 'color.border.focus',
     'border.focus-visible-filled': 'color.border.focus',
-    'border.error': 'color.border.danger',
+    'error.border.rest': 'color.border.danger',
+    'error.border.hover': 'color.border.danger',
+    'error.border.filled': 'color.border.danger',
+    'error.border.focus-visible': 'color.border.danger',
+    'error.border.focus-visible-filled': 'color.border.danger',
     'label': 'color.text.primary',
     'caret': 'color.text.primary',
     'disabled.fill': 'color.disabled.fill',
@@ -166,7 +179,7 @@ export const codeInputCell: ComponentDef = {
         // style and a trim written on the layer detaches it (#1567), so the Figma character is NOT trimmed: it is the
         // style's line box, centered on both axes. Code trims the box to the cap height (`text-box`, in `codeOnly`).
         type: 'size.{size}.type',
-        presentWhen: { state: ['filled', 'focus-visible-filled', 'error'] },
+        presentWhen: { state: ['filled', 'focus-visible-filled'] },
         note: 'The character, in its size\'s text style, centered in the cell. Tabular figures in code, so every digit is one width.',
       },
     },
@@ -223,8 +236,8 @@ export const codeInputCell: ComponentDef = {
   },
 
   figmaProperties: {
-    variantAxes: ['size'],
-    stateAxis: { name: 'state', values: ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'error'] },
+    variantAxes: ['size', 'status'],
+    stateAxis: { name: 'state', values: ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled'] },
     gridAxis: 'state',
     // Q344: the cell has no pressed look, so While pressing changes it to the active cell, as a click in code does.
     pressState: 'focus-visible',
@@ -245,8 +258,8 @@ export const codeInputCell: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use inside CodeInput only, one cell per character of the code. In a design, add or remove cells in the code input\'s cell slot and set each cell\'s state to match the field: error cells when the field is in error, disabled cells when it is disabled. In code, the code input sets every cell.',
-    do: ['Set every cell to error when the code input is in error', 'Set every cell to disabled when the code input is disabled'],
+    usage: 'Use inside CodeInput only, one cell per character of the code. In a design, add or remove cells in the code input\'s cell slot and set each cell to match the field: its status to error when the field is in error, its state to disabled when the field is disabled. In code, the code input sets every cell.',
+    do: ['Set every cell\'s status to error when the code input is in error', 'Set every cell to disabled when the code input is disabled'],
     dont: ['Place a cell outside a code input', 'Build a code input from separate inputs, one per cell'],
     contentGuidelines: 'One character per cell.',
   },
@@ -280,19 +293,19 @@ export const codeInputCell: ComponentDef = {
       'The character weight: no guaranteed type role is above 18px, so the medium, large and x-large characters take the title steps in the brand\'s bold title weight (strong on most brands), and the small one Text field\'s body step in the default weight. A brand\'s own title ladder sets the exact size.',
     ],
     unverified: [
-      'An empty cell in error: the approved states draw error with a character only. A field in error with a short code shows its empty cells at rest in Figma; code draws the danger border on every cell.',
       'The character\'s centering in Figma: the styled character centers its line box, so a brand font whose descender is deeper than the room above its figures sets the figure slightly high. Code trims to the cap height and centers the figure itself.',
     ],
     evolution: [
       '2026-10-15 (#2428): owner decision Q329 A, the cell as a part in the code input\'s native items slot, its character edited on the cell; Q330 A, the four sizes.',
       '2026-10-17 (#2789): the character is trimmed to its cap height and baseline, so the cell centers the figure (owner QA 2026-10-16: the digit sat too high at medium and large; option A of the owner question on #2789).',
       '2026-10-22 (#2789): owner QA Q534, the character carries its size\'s text style in Figma, so it follows the brand\'s type. Figma keeps vertical trim inside the style, so the Figma character is no longer trimmed; code still trims.',
+      '2026-11-11 (#3554): owner decision Q-CC1 A, error leaves the state axis for the fields\' `status` axis (Q354), and `isInvalid` becomes `validation`. A cell in error now draws at every state but disabled, so an empty or active cell in error can be drawn; the old error member moves to status=error, filled.',
     ],
   },
 };
 
-// THE DEFAULT CELLS (owner decision Q329 A): six, each following the field's size, its character set by override and
-// its state set from the field's state, so each member opens on a picture of that state. A designer then sets each
+// THE DEFAULT CELLS (owner decision Q329 A): six, each following the field's size and status (Q-CC1 A), its character
+// set by override and its state set from the field's state, so each member opens on a picture of that state. A designer then sets each
 // placed cell themselves; the field's status and state never reach a placed instance's cells (the accepted trade-off).
 const CODE = ['4', '8', '1', '9', '0', '2'];
 const cell = (n: number) => {
@@ -303,8 +316,10 @@ const cell = (n: number) => {
     nests: 'code-input-cell',
     nesting: {
       kind: 'nest-fixed' as const,
-      variant: { size: 'medium', state: 'rest' },
-      follow: ['size'],
+      variant: { size: 'medium', status: 'default', state: 'rest' },
+      // The field's `status` follows into its default cells by name (Q-CC1 A on #3554), as its `size` does, so an
+      // error member opens on error cells. A placed field's cells are still the designer's (Q329).
+      follow: ['size', 'status'],
       variantWhen: {
         state: {
           hover: { state: 'hover' },
@@ -466,7 +481,7 @@ export const codeInput: ComponentDef = {
         class: 'static-placeholder',
         disposition: 'lowered',
         description:
-          'the field\'s status and state in Figma — a placed field\'s cells are the designer\'s (owner decision Q329 A): switching the field to error or disabled changes its label and message, not its cells, and the designer sets each cell. Each member\'s default cells show that member\'s state, as a fresh insert\'s starting point. In code the input drives every cell.',
+          'the field\'s status and state in Figma — a placed field\'s cells are the designer\'s (owner decision Q329 A): switching the field to error or disabled changes its label and message, not its cells, and the designer sets each cell. Each member\'s default cells show that member\'s state and status, as a fresh insert\'s starting point. In code the input drives every cell.',
       },
       {
         class: 'responsive-layout',
@@ -575,7 +590,7 @@ export const codeInput: ComponentDef = {
   notes: {
     contested: [
       'The label size: one FieldLabel size at every cell size, because FieldLabel has no x-large. Text field\'s label follows its size one step down.',
-      'The default cells per member: each member\'s six cells show its state (filled, active, disabled). Status has no mechanism to reach a nested coordinate, so an error member\'s default cells are not in error.',
+      'The default cells per member: each member\'s six cells show its state (filled, active, disabled) and, since the cell took the status axis (Q-CC1 A, #3554), its status, so an error member\'s default cells are in error. A placed field\'s cells are still the designer\'s (Q329).',
     ],
     unverified: [
       'The nested cells\' characters are set by an override inside a native slot, as List\'s item numbers are. Writing them through the plugin is unmeasured on a real host until the first Build.',

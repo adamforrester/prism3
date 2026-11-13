@@ -94,7 +94,7 @@
     {
       "from": "banner",
       "to": "flush-icon-button-neutral",
-      "part": "dismiss",
+      "part": "close",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
@@ -549,10 +549,12 @@
       "relation": "nest-fixed",
       "variant": {
         "size": "medium",
+        "status": "default",
         "state": "rest"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -563,10 +565,12 @@
       "relation": "nest-fixed",
       "variant": {
         "size": "medium",
+        "status": "default",
         "state": "rest"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -577,10 +581,12 @@
       "relation": "nest-fixed",
       "variant": {
         "size": "medium",
+        "status": "default",
         "state": "rest"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -591,10 +597,12 @@
       "relation": "nest-fixed",
       "variant": {
         "size": "medium",
+        "status": "default",
         "state": "rest"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -605,10 +613,12 @@
       "relation": "nest-fixed",
       "variant": {
         "size": "medium",
+        "status": "default",
         "state": "rest"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -619,10 +629,12 @@
       "relation": "nest-fixed",
       "variant": {
         "size": "medium",
+        "status": "default",
         "state": "rest"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {

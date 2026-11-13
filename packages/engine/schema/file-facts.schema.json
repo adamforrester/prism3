@@ -1,0 +1,1412 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "prism3-file-facts/1.0",
+  "$comment": "AUTHORED, NOT GENERATED, and deliberately not a `regen.ts` artifact: a schema regenerated from the scanner would agree with whatever the scanner wrote (`docs/34`). Validated in `apps/plugin/test-file-facts.ts`, which scans every fixture file and checks the report against this schema with `json-schema-lite.ts`. Every object closes `additionalProperties`, so a field the scanner adds, drops or renames fails until this schema and its `$id` move with it. #2075 part 1.",
+  "title": "Prism3 file facts report",
+  "description": "A deterministic scan of one Figma file: its variables, its styles, the values its layers use and how each is applied (bound to a variable, applied through a style, or raw), and the components it places. Evidence only: it proposes nothing. No file name, no file key and no timestamp, so the same file scans to the same report.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "engineVersion",
+    "roleRule",
+    "coverage",
+    "variables",
+    "styles",
+    "usage",
+    "components",
+    "libraries",
+    "bindingSummary"
+  ],
+  "properties": {
+    "format": {
+      "const": "prism3-file-facts/1.0",
+      "description": "The shape this report follows. Equal to this schema's `$id`; minor for a field added, major for one removed or renamed."
+    },
+    "engineVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "The engine version that wrote this report."
+    },
+    "roleRule": {
+      "const": "name-and-type/1",
+      "description": "The revision of the rule that sorts each paint into a role. 1: icon (a vector shape, or a layer or ancestor named as an icon), then text (a fill on a text layer), then border (any stroke), then button-like (a fill on a layer, or a child of a layer, named as a button, btn or cta), then background."
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pages",
+        "layers",
+        "hiddenLayers",
+        "unreadableLayers",
+        "textLayers",
+        "instances"
+      ],
+      "properties": {
+        "pages": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Pages scanned: every page in the file."
+        },
+        "layers": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Visible layers read."
+        },
+        "hiddenLayers": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Hidden layers skipped, each with everything under it."
+        },
+        "unreadableLayers": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Layers skipped because their properties could not be read."
+        },
+        "textLayers": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Visible text layers."
+        },
+        "instances": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Visible instances, nested ones included."
+        }
+      },
+      "description": "What the scan read."
+    },
+    "variables": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "collections",
+        "variables"
+      ],
+      "properties": {
+        "collections": {
+          "type": "array",
+          "description": "Every local collection, and each library collection a binding or alias reaches, sorted by name.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "name",
+              "key",
+              "remote",
+              "modes",
+              "defaultMode",
+              "variables"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The collection's id."
+              },
+              "name": {
+                "type": "string",
+                "description": "The collection's name."
+              },
+              "key": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The collection's key."
+              },
+              "remote": {
+                "type": "boolean",
+                "description": "True for a library collection."
+              },
+              "modes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "modeId",
+                    "name"
+                  ],
+                  "properties": {
+                    "modeId": {
+                      "type": "string",
+                      "description": "The mode's id."
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The mode's name."
+                    }
+                  },
+                  "description": "One mode."
+                },
+                "description": "The collection's modes, in the file's order."
+              },
+              "defaultMode": {
+                "type": "string",
+                "description": "The default mode's name."
+              },
+              "variables": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "How many of the listed variables belong to it."
+              }
+            },
+            "description": "One variable collection."
+          }
+        },
+        "variables": {
+          "type": "array",
+          "description": "Every local variable, and each library variable a binding or alias reaches, sorted by collection then name.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "name",
+              "key",
+              "remote",
+              "collectionId",
+              "collection",
+              "type",
+              "scopes",
+              "description",
+              "hiddenFromPublishing",
+              "values",
+              "boundLayers"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The variable's id."
+              },
+              "name": {
+                "type": "string",
+                "description": "The variable's name."
+              },
+              "key": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The variable's key."
+              },
+              "remote": {
+                "type": "boolean",
+                "description": "True for a library variable."
+              },
+              "collectionId": {
+                "type": "string",
+                "description": "Its collection's id."
+              },
+              "collection": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Its collection's name; null when unknown."
+              },
+              "type": {
+                "type": "string",
+                "description": "COLOR, FLOAT, STRING, BOOLEAN, or another type the file uses."
+              },
+              "scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Where the variable may be applied, sorted."
+              },
+              "description": {
+                "type": "string",
+                "description": "The variable's description, empty when none."
+              },
+              "hiddenFromPublishing": {
+                "type": "boolean",
+                "description": "True when hidden from publishing."
+              },
+              "values": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/modeValue"
+                },
+                "description": "One value per mode of its collection."
+              },
+              "boundLayers": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "How many layers carry an alias to this variable."
+              }
+            },
+            "description": "One variable."
+          }
+        }
+      },
+      "description": "Variable collections and variables."
+    },
+    "styles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "paint",
+        "text",
+        "effect",
+        "grid"
+      ],
+      "properties": {
+        "paint": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "name",
+              "key",
+              "remote",
+              "description",
+              "layers",
+              "paints"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The style's id."
+              },
+              "name": {
+                "type": "string",
+                "description": "The style's name."
+              },
+              "key": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The style's key, for a published or library style."
+              },
+              "remote": {
+                "type": "boolean",
+                "description": "True when the style comes from a library."
+              },
+              "description": {
+                "type": "string",
+                "description": "The style's description, empty when none."
+              },
+              "layers": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "How many layers use this style."
+              },
+              "paints": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/paint"
+                },
+                "description": "The style's paints."
+              }
+            },
+            "description": "One paint style."
+          },
+          "description": "Paint styles, local and library, sorted by name."
+        },
+        "text": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "name",
+              "key",
+              "remote",
+              "description",
+              "layers",
+              "fontFamily",
+              "fontStyle",
+              "fontSize",
+              "lineHeight",
+              "letterSpacing",
+              "boundVariables"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The style's id."
+              },
+              "name": {
+                "type": "string",
+                "description": "The style's name."
+              },
+              "key": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The style's key, for a published or library style."
+              },
+              "remote": {
+                "type": "boolean",
+                "description": "True when the style comes from a library."
+              },
+              "description": {
+                "type": "string",
+                "description": "The style's description, empty when none."
+              },
+              "layers": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "How many layers use this style."
+              },
+              "fontFamily": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The family."
+              },
+              "fontStyle": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The style name, such as Bold."
+              },
+              "fontSize": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "The size."
+              },
+              "lineHeight": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "AUTO, <n>px or <n>%."
+              },
+              "letterSpacing": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "<n>px or <n>%."
+              },
+              "boundVariables": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "The style's properties bound to a variable, sorted."
+              }
+            },
+            "description": "One text style."
+          },
+          "description": "Text styles, local and library, sorted by name."
+        },
+        "effect": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "name",
+              "key",
+              "remote",
+              "description",
+              "layers",
+              "effects"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The style's id."
+              },
+              "name": {
+                "type": "string",
+                "description": "The style's name."
+              },
+              "key": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The style's key, for a published or library style."
+              },
+              "remote": {
+                "type": "boolean",
+                "description": "True when the style comes from a library."
+              },
+              "description": {
+                "type": "string",
+                "description": "The style's description, empty when none."
+              },
+              "layers": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "How many layers use this style."
+              },
+              "effects": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/effect"
+                },
+                "description": "The style's effects."
+              }
+            },
+            "description": "One effect style."
+          },
+          "description": "Effect styles, local and library, sorted by name."
+        },
+        "grid": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "name",
+              "key",
+              "remote",
+              "description",
+              "layers",
+              "grids"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The style's id."
+              },
+              "name": {
+                "type": "string",
+                "description": "The style's name."
+              },
+              "key": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The style's key, for a published or library style."
+              },
+              "remote": {
+                "type": "boolean",
+                "description": "True when the style comes from a library."
+              },
+              "description": {
+                "type": "string",
+                "description": "The style's description, empty when none."
+              },
+              "layers": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "How many layers use this style."
+              },
+              "grids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/grid"
+                },
+                "description": "The style's layout grids."
+              }
+            },
+            "description": "One grid style."
+          },
+          "description": "Grid styles, local and library, sorted by name."
+        }
+      },
+      "description": "Every local style, and each library style a layer uses."
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "paints",
+        "typography",
+        "radii",
+        "spacing"
+      ],
+      "properties": {
+        "paints": {
+          "type": "array",
+          "description": "Fills and strokes, one row per property, role, paint, color and binding, most-used first.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "property",
+              "role",
+              "paint",
+              "color",
+              "binding",
+              "layers",
+              "inInstances"
+            ],
+            "properties": {
+              "property": {
+                "enum": [
+                  "fill",
+                  "stroke"
+                ],
+                "description": "Fill or stroke. A text color is a fill on a text layer."
+              },
+              "role": {
+                "enum": [
+                  "button-like",
+                  "text",
+                  "background",
+                  "border",
+                  "icon"
+                ],
+                "description": "The layer's role, by `roleRule`."
+              },
+              "paint": {
+                "type": "string",
+                "description": "The paint type."
+              },
+              "color": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/hex"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "A solid paint's color; null for any other paint."
+              },
+              "binding": {
+                "$ref": "#/$defs/binding"
+              },
+              "layers": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "How many layers carry this value with this binding. A layer counts once per row."
+              },
+              "inInstances": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Of `layers`, how many sit inside an instance: drawn by a component rather than on the canvas directly."
+              }
+            },
+            "description": "One paint use."
+          }
+        },
+        "typography": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fontFamilies",
+            "fontStyles",
+            "fontWeights",
+            "fontSizes",
+            "lineHeights"
+          ],
+          "properties": {
+            "fontFamilies": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/typeRow"
+              },
+              "description": "Font families on text layers."
+            },
+            "fontStyles": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/typeRow"
+              },
+              "description": "Font style names, such as Regular or Bold."
+            },
+            "fontWeights": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/typeRow"
+              },
+              "description": "Numeric font weights."
+            },
+            "fontSizes": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/typeRow"
+              },
+              "description": "Font sizes."
+            },
+            "lineHeights": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/typeRow"
+              },
+              "description": "Line heights."
+            }
+          },
+          "description": "Text layers' type values, each most-used first."
+        },
+        "radii": {
+          "type": "array",
+          "description": "Corner radii, most-used first. A square corner is left out unless a variable sets it.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "value",
+              "binding",
+              "layers",
+              "inInstances"
+            ],
+            "properties": {
+              "value": {
+                "type": "number",
+                "description": "The radius."
+              },
+              "binding": {
+                "$ref": "#/$defs/binding"
+              },
+              "layers": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "How many layers carry this value with this binding. A layer counts once per row."
+              },
+              "inInstances": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Of `layers`, how many sit inside an instance: drawn by a component rather than on the canvas directly."
+              }
+            },
+            "description": "One radius."
+          }
+        },
+        "spacing": {
+          "type": "array",
+          "description": "Auto-layout gaps and paddings, most-used first.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "property",
+              "value",
+              "binding",
+              "layers",
+              "inInstances"
+            ],
+            "properties": {
+              "property": {
+                "enum": [
+                  "gap",
+                  "wrap-gap",
+                  "padding"
+                ],
+                "description": "The gap between items, the gap between wrapped rows, or a padding side."
+              },
+              "value": {
+                "type": [
+                  "number",
+                  "string"
+                ],
+                "description": "The value, or `auto` for a gap the layout spaces out."
+              },
+              "binding": {
+                "$ref": "#/$defs/binding"
+              },
+              "layers": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "How many layers carry this value with this binding. A layer counts once per row."
+              },
+              "inInstances": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Of `layers`, how many sit inside an instance: drawn by a component rather than on the canvas directly."
+              }
+            },
+            "description": "One spacing value."
+          }
+        }
+      },
+      "description": "The values layers use, and how each is applied."
+    },
+    "components": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "used",
+        "missingMain",
+        "localDefinitions"
+      ],
+      "properties": {
+        "used": {
+          "type": "array",
+          "description": "Components placed as instances, most-used first.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "key",
+              "name",
+              "set",
+              "remote",
+              "pages",
+              "layers",
+              "inInstances"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The main component's id."
+              },
+              "key": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The main component's key."
+              },
+              "name": {
+                "type": "string",
+                "description": "The main component's name: the variant's properties for a variant."
+              },
+              "set": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The component set's name, for a variant."
+              },
+              "remote": {
+                "type": "boolean",
+                "description": "True for a library component."
+              },
+              "pages": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "The pages its instances are on, sorted."
+              },
+              "layers": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "How many layers carry this value with this binding. A layer counts once per row."
+              },
+              "inInstances": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Of `layers`, how many sit inside an instance: drawn by a component rather than on the canvas directly."
+              }
+            },
+            "description": "One component in use."
+          }
+        },
+        "missingMain": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Instances whose main component could not be found."
+        },
+        "localDefinitions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "components",
+            "componentSets"
+          ],
+          "properties": {
+            "components": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Components defined in this file, variants included."
+            },
+            "componentSets": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Component sets defined in this file."
+            }
+          },
+          "description": "What the file defines."
+        }
+      },
+      "description": "Components in use."
+    },
+    "libraries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "variableCollections",
+        "styles",
+        "components"
+      ],
+      "properties": {
+        "variableCollections": {
+          "type": "array",
+          "description": "Library collections reached, sorted by name.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "key",
+              "name",
+              "variables",
+              "boundLayers"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The collection's id."
+              },
+              "key": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The collection's key."
+              },
+              "name": {
+                "type": "string",
+                "description": "The collection's name."
+              },
+              "variables": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "How many of its variables were reached."
+              },
+              "boundLayers": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Layer bindings to its variables."
+              }
+            },
+            "description": "One library collection."
+          }
+        },
+        "styles": {
+          "type": "array",
+          "description": "Library styles, by kind.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "remote",
+              "boundLayers"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "paint",
+                  "text",
+                  "effect",
+                  "grid"
+                ],
+                "description": "The style kind."
+              },
+              "remote": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Library styles of this kind that layers use."
+              },
+              "boundLayers": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Layer uses of them."
+              }
+            },
+            "description": "One style kind."
+          }
+        },
+        "components": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "components",
+            "instances"
+          ],
+          "properties": {
+            "components": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Library components placed."
+            },
+            "instances": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Instances of them."
+            }
+          },
+          "description": "Library components."
+        }
+      },
+      "description": "What the file takes from libraries. The plugin API names a library item's key, not the library it came from."
+    },
+    "bindingSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "paints",
+        "typography",
+        "radii",
+        "spacing"
+      ],
+      "properties": {
+        "paints": {
+          "$ref": "#/$defs/binSummary"
+        },
+        "typography": {
+          "$ref": "#/$defs/binSummary"
+        },
+        "radii": {
+          "$ref": "#/$defs/binSummary"
+        },
+        "spacing": {
+          "$ref": "#/$defs/binSummary"
+        }
+      },
+      "description": "Layer uses by binding, per category."
+    }
+  },
+  "$defs": {
+    "binding": {
+      "description": "How a value is applied: through a variable, through a style, or written directly (raw).",
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "id",
+            "name",
+            "collection",
+            "remote"
+          ],
+          "properties": {
+            "kind": {
+              "const": "variable",
+              "description": "Bound to a variable."
+            },
+            "id": {
+              "type": "string",
+              "description": "The variable's id."
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The variable's name; null when the file cannot reach it."
+            },
+            "collection": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The variable's collection name; null when unknown."
+            },
+            "remote": {
+              "type": "boolean",
+              "description": "True when the variable comes from a library."
+            }
+          },
+          "description": "A variable binding."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "id",
+            "name",
+            "remote"
+          ],
+          "properties": {
+            "kind": {
+              "const": "style",
+              "description": "Applied through a style."
+            },
+            "id": {
+              "type": "string",
+              "description": "The style's id."
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The style's name; null when the file cannot reach it."
+            },
+            "remote": {
+              "type": "boolean",
+              "description": "True when the style comes from a library."
+            }
+          },
+          "description": "A style binding."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "raw",
+              "description": "Hard-coded: no variable and no style."
+            }
+          },
+          "description": "No binding."
+        }
+      ]
+    },
+    "hex": {
+      "type": "string",
+      "pattern": "^#[0-9a-f]{6}([0-9a-f]{2})?$",
+      "description": "A color as #rrggbb, or #rrggbbaa when its alpha is under 1."
+    },
+    "paint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "color",
+        "stops",
+        "variable",
+        "visible"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "The paint type: SOLID, GRADIENT_LINEAR, IMAGE and so on."
+        },
+        "color": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/hex"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A solid paint's color, its opacity folded into the alpha; null for any other paint."
+        },
+        "stops": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "position",
+                  "color"
+                ],
+                "properties": {
+                  "position": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "The stop's position, 0 to 1."
+                  },
+                  "color": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/hex"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "The stop's color."
+                  }
+                },
+                "description": "One gradient stop."
+              }
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A gradient's stops; null for any other paint."
+        },
+        "variable": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The id of the variable the paint's color is bound to, or null."
+        },
+        "visible": {
+          "type": "boolean",
+          "description": "False when the paint is hidden."
+        }
+      },
+      "description": "One paint, reduced to what a reader compares."
+    },
+    "effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "color",
+        "offsetX",
+        "offsetY",
+        "radius",
+        "spread",
+        "visible"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "The effect type: DROP_SHADOW, INNER_SHADOW, LAYER_BLUR or BACKGROUND_BLUR."
+        },
+        "color": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/hex"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A shadow's color."
+        },
+        "offsetX": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "A shadow's horizontal offset."
+        },
+        "offsetY": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "A shadow's vertical offset."
+        },
+        "radius": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "The blur radius."
+        },
+        "spread": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "A shadow's spread."
+        },
+        "visible": {
+          "type": "boolean",
+          "description": "False when the effect is hidden."
+        }
+      },
+      "description": "One effect."
+    },
+    "grid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pattern",
+        "sectionSize",
+        "count",
+        "gutterSize",
+        "offset",
+        "alignment"
+      ],
+      "properties": {
+        "pattern": {
+          "type": "string",
+          "description": "COLUMNS, ROWS or GRID."
+        },
+        "sectionSize": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "The cell or column size."
+        },
+        "count": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "The number of columns or rows."
+        },
+        "gutterSize": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "The gutter."
+        },
+        "offset": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "The offset."
+        },
+        "alignment": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "MIN, MAX, CENTER or STRETCH."
+        }
+      },
+      "description": "One layout grid."
+    },
+    "modeValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "modeId",
+        "value",
+        "alias",
+        "chain",
+        "resolved",
+        "unresolved"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "description": "The mode's name."
+        },
+        "modeId": {
+          "type": "string",
+          "description": "The mode's id."
+        },
+        "value": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "null"
+          ],
+          "description": "The stored value, a color as hex; null when the stored value is an alias."
+        },
+        "alias": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "name"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "The aliased variable's id."
+                },
+                "name": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The aliased variable's name; null when the file cannot reach it."
+                }
+              },
+              "description": "The variable this value aliases."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The variable this mode's value aliases, or null."
+        },
+        "chain": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Every variable the alias chain passes through, by name, ending at the one that holds a value. Empty for a direct value. An alias into another collection resolves in that collection's default mode."
+        },
+        "resolved": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "null"
+          ],
+          "description": "The value at the end of the chain; null when it could not be reached."
+        },
+        "unresolved": {
+          "enum": [
+            "missing-variable",
+            "cycle",
+            "no-value",
+            null
+          ],
+          "description": "Why the chain stopped short, or null when it resolved."
+        }
+      },
+      "description": "One mode's value of a variable."
+    },
+    "typeRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "binding",
+        "layers",
+        "inInstances"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "The family, style name, weight, size, or line height (AUTO, <n>px or <n>%)."
+        },
+        "binding": {
+          "$ref": "#/$defs/binding"
+        },
+        "layers": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "How many layers carry this value with this binding. A layer counts once per row."
+        },
+        "inInstances": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Of `layers`, how many sit inside an instance: drawn by a component rather than on the canvas directly."
+        }
+      },
+      "description": "One typography value, by binding."
+    },
+    "binSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "variable",
+        "style",
+        "raw"
+      ],
+      "properties": {
+        "variable": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Layer uses bound to a variable."
+        },
+        "style": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Layer uses applied through a style."
+        },
+        "raw": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Layer uses with no variable and no style."
+        }
+      },
+      "description": "Layer uses by binding, summed over a category's rows."
+    }
+  }
+}

@@ -160,7 +160,9 @@ type PageRead = {
 };
 
 /** Literals, written for this test before any run (proposal §1: "Detector, fixed before any run"). */
-export const DATE_RE = /\b(date|dates|calendar|birth|birthday|dob)\b|date[-_ ]?of[-_ ]?birth|\bmm\s*\/\s*dd\b|\bdd\s*\/\s*mm\b|\byyyy\b/i;
+// #3566 (owner decision A, 2026-11-12: fixed before the first scored run, which is when the rules freeze): `birthdate`
+// and `birth-date` read as a date, as `REPORT_RE` already read them.
+export const DATE_RE = /\b(date|dates|calendar|birth|birthday|dob)\b|\bbirth[-_ ]?dates?\b|date[-_ ]?of[-_ ]?birth|\bmm\s*\/\s*dd\b|\bdd\s*\/\s*mm\b|\byyyy\b/i;
 // The report names the can't-do in the same words the detector reads as a date (`dob`, `birthday`, `birth date`, review
 // S3), and `calendar` counts unless it is a span of time ("in one calendar day" names no picker).
 export const REPORT_RE = /date[\s-]?(picker|input|field|selector)|date[\s-]of[\s-]birth|\bdob\b|\bbirthday\b|\bbirth[\s-]?date\b|\bcalendar\b(?!\s+(?:day|week|month|quarter|year)s?\b)/i;
@@ -182,13 +184,16 @@ const READ_ONCE = `(() => {
     for (const a of el.attributes) if (a.name.startsWith('data-prop-')) props[a.name.slice(10)] = a.value;
     marks.push({ component: el.getAttribute('data-component'), props, where: where(el) });
   }
+  // #3566: an identifier's words, as a person reads them: 'birth_date', 'birth-date' and 'birthDate' all become
+  // 'birth date'. Without it an underscore is a word character and camelCase is one word, so DATE_RE never saw the date.
+  const words = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[-_]/g, ' ');
   const ident = (el) => {
     const bits = [el.id, el.getAttribute('class'), el.getAttribute('name'), el.getAttribute('placeholder'), el.getAttribute('aria-label'), el.getAttribute('data-component')];
     for (const a of el.attributes || []) if (a.name.startsWith('data-')) bits.push(a.value);
     const lb = el.getAttribute('aria-labelledby');
     if (lb) for (const id of lb.split(/\\s+/)) { const t = document.getElementById(id); if (t) bits.push(t.textContent); }
     if (el.labels) for (const l of el.labels) bits.push(l.textContent);
-    return bits.filter(Boolean).join(' ');
+    return words(bits.filter(Boolean).join(' '));
   };
   const dateNodes = [];
   const CONTROL = 'input, select, textarea, button, table, [role=combobox], [role=grid], [role=textbox], [role=spinbutton], [role=listbox], [role=dialog], [role=button]';
@@ -198,11 +203,11 @@ const READ_ONCE = `(() => {
   for (const el of document.querySelectorAll('body *')) {
     const tag = el.tagName.toLowerCase();
     if (tag === 'input' && DATE_TYPES.includes((el.getAttribute('type') || '').toLowerCase())) { dateNodes.push(where(el) + ' (input type=' + el.getAttribute('type') + ')'); continue; }
-    if (el.hasAttribute('data-component') && DATE_RE.test(el.getAttribute('data-component').replace(/[-_]/g, ' '))) { dateNodes.push(where(el) + ' (a data-component naming a date)'); continue; }
+    if (el.hasAttribute('data-component') && DATE_RE.test(words(el.getAttribute('data-component')))) { dateNodes.push(where(el) + ' (a data-component naming a date)'); continue; }
     if ((el.matches(CONTROL) || (el.hasAttribute('data-component') && interactive(el))) && DATE_RE.test(ident(el))) { dateNodes.push(where(el) + ' (a control that reads as a date)'); continue; }
     if (tag === 'label' && DATE_RE.test(el.textContent || '') && (el.htmlFor || el.querySelector('input, select, textarea'))) { dateNodes.push(where(el) + ' (a label for a date control)'); continue; }
     const attrs = [el.id, el.getAttribute('class')].filter(Boolean).join(' ');
-    if (attrs && DATE_RE.test(attrs.replace(/[-_]/g, ' ')) && interactive(el)) dateNodes.push(where(el) + ' (an element styled as a date)');
+    if (attrs && DATE_RE.test(words(attrs)) && interactive(el)) dateNodes.push(where(el) + ' (an element styled as a date)');
   }
   // Q2 A, tightened (owner, 2026-11-06): two or more selects or numeric inputs grouped under one label, fieldset or
   // role=group are a date entry by structure only when there are exactly three of them (day, month, year) or the
