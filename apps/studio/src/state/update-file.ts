@@ -440,7 +440,7 @@ export const blockedWhy = (line: string, nameOf: (id: string) => string = (id) =
     return { why: 'a property it drops would merge variants into one.', next: null };
   // D3721.4: only the agent's Adopt clears this, and Studio has none; its write path is #3714.
   if ((m = line.match(/^the axes change, and (\d+) members? not built by Prism3/)))
-    return { why: `its properties change, and ${s_(Number(m[1]), 'variant', 'variants')} not built by Prism3 would be left behind.`, next: 'The agent’s Adopt can claim them first.' };
+    return { why: `its properties change, and ${s_(Number(m[1]), 'variant', 'variants')} not built by Prism3 would be left behind.`, next: 'Studio can’t do this yet.' };
   if ((m = line.match(/^renaming (.+) would give it the name of another member \((.+)\)$/)))
     return { why: `renaming ${m[1]} would clash with ${m[2]}.`, next: 'Rename or remove one of them in Figma.' };
   if ((m = line.match(/^(\d+) members share the coordinate (\S+)/)))
