@@ -177,7 +177,7 @@ export type SetPreview = {
   blockers: string[];
   /** #3421 — every blocker is a variable or a text or effect style the plans name that the file lacks: what the brand's
    *  Theme writes. Update file runs Theme first, so it checks such a set again after Theme and updates it in the same run.
-   *  Absent otherwise. */
+   *  Also a set whose other blockers are only components a target blocked this way adds (#3770). Absent otherwise. */
   themeBlocked?: true;
   axes: { from: string[]; to: string[]; renames: { from: string; to: string }[] };
   properties: { add: Prop[]; edit: Prop[]; rename: Prop[]; retype: Prop[]; remove: Prop[] };
@@ -1457,6 +1457,10 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
   // another target adds (a provider logo's new mark) reads it as there once that target's own read has no blocker; the
   // apply updates them in the same order. Credited only from a target the apply will write, never from a blocked one.
   const addedThisRun = new Set<string>();
+  // WHAT THIS RUN ADDS ONCE ITS THEME HAS RUN: the names a target blocked only by Theme's variables and styles leaves in
+  // the file (#3421 runs such a target after Theme). A set whose only other lack is one of these reads blocked only by
+  // Theme too, so the run updates it after its provider, never "this file doesn't have" a set the file holds.
+  const addedAfterTheme = new Set<string>();
   const rank = new Map(targets.map((t, i) => [t, i] as const));
   const ranked = new Map<SetPreview, number>();
   const byTarget = new Map(viewed.map((x) => [x.t, x] as const));
@@ -1485,7 +1489,14 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
     // #3421: every blocker is a variable or a style the brand's Theme writes, so a run whose Theme step goes first can
     // update the set after it (Update file checks it again then). Never in the hash: the blockers already are.
     if (!had && lacks.lines.length && lacks.theme === lacks.lines.length) preview.themeBlocked = true;
+    // A NESTED OR SWAPPED COMPONENT A THEME-BLOCKED TARGET ADDS: the set lacks only what Theme writes, once that target
+    // has run after Theme. Its blockers stay the file's as it is now (the hash, and the reasons with Theme unticked).
+    else if (!had && lacks.lines.length > lacks.theme && addedAfterTheme.size) {
+      const after = await fileBlockers(host, t.plans, v.set, new Set([...have, ...addedThisRun, ...addedAfterTheme]));
+      if (after.theme === after.lines.length) preview.themeBlocked = true;
+    }
     if (!preview.blockers.length) for (const n of providedNames(t, v.name)) addedThisRun.add(n);
+    else if (preview.themeBlocked) for (const n of providedNames(t, v.name)) addedAfterTheme.add(n);
     // THE CANVAS FURNITURE (#2803): what the page lacks of the set's labels and backdrops is a change, so "update again"
     // after Set up file adds a template draws it, and "No changes found" means the furniture is current too.
     if (!t.single && !preview.blockers.length && hasFurniture(t.def)) {

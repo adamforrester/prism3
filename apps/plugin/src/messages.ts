@@ -116,8 +116,10 @@ export type UiToMain =
    *  `prune-result` preview; `confirm: true` recomputes from a fresh read and deletes. The main thread
    *  recomputes on apply rather than trusting the preview's list, so the delete acts on the file's current
    *  orphan set. Carries the live `BrandInput` (like `apply-theme`) because the prune is defined against
-   *  the plan that brand emits — what is stale is exactly what the current plan no longer names. */
-  | { type: 'prune'; input: BrandInput; confirm: boolean }
+   *  the plan that brand emits — what is stale is exactly what the current plan no longer names.
+   *  #3697 R6: a delete echoes the `previewHash` its preview's `prune-result` carried; the main thread refuses one that
+   *  is missing or no longer matches a fresh read, or whose `input` the file does not hold. */
+  | { type: 'prune'; input: BrandInput; confirm: false } | { type: 'prune'; input: BrandInput; confirm: true; previewHash: string }
   /** The owner's AGENT LINK switch (`agent-link.ts`). The ONLY way the link turns on: an agent cannot send
    *  this, because only the panel posts to the main thread. Not persisted — the link is off at every launch. */
   | { type: 'agent-link'; on: boolean }
@@ -473,6 +475,8 @@ export type MainToUi =
    *  for the same reason those two are distinct: one kind per fact — a prune preview must not overwrite a
    *  theme write's verdict, and the prune's own confirm dialog reads `count` to decide whether to open. */
   | { type: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string;
+      /** A preview's hash, which its delete echoes (#3697 R6). */
+      previewHash?: string;
       /** Set on an AGENT's preview (the agent link): show it as a pill, never open the confirm dialog. The
        *  dialog's Confirm would prune against the panel's own knobs, not the input the agent previewed. */
       pillOnly?: boolean }

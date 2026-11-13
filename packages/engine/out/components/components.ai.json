@@ -14059,6 +14059,12 @@
           ],
           "kind": "authoring"
         },
+        "style": {
+          "values": [
+            "outline"
+          ],
+          "kind": "authoring"
+        },
         "status": {
           "values": [
             "default",
@@ -14145,7 +14151,7 @@
           "disposition": "LOWERED"
         },
         {
-          "class": "brand-setting",
+          "class": "not-projected",
           "disposition": "LOWERED"
         },
         {

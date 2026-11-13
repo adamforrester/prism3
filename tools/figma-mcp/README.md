@@ -196,7 +196,9 @@ Rules:
   `result.verdict.summary` with every title the run can draw. A filtered run never deletes or reports another
   table as stale; run without `tables` to have the generator judge those.
 - **`prune` with `confirm: true` deletes.** Send the preview (`confirm: false`) first and report its
-  `result.verdict.summary` to the owner before sending the delete.
+  `result.verdict.summary` to the owner before sending the delete. The delete echoes the preview's
+  `result.data.previewHash` as `args.previewHash`, and is refused when the file has changed since, or does not hold the
+  brand sent (#3697 R6). It saves a named version before the first removal.
 - **The four node reads write nothing** (`inspect`, `component-keys`, `audit-frames`, `snapshot`). They post no
   verdict: `result.verdict` is `null` and the facts are in `result.data`. A layer that cannot be read is listed in
   `unreadable`, and a capped walk says `truncated: true`. `snapshot`'s PNG is this session's render (`local: true`),

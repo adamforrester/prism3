@@ -17,7 +17,7 @@ One cell of a code input: a box that shows one character of the code. It is draw
 
 ## Anatomy
 
-Shown on the default member: size `medium`, status `default`.
+Shown on the default member: size `medium`, style `outline`, status `default`.
 
 1. **Container** — The cell: one box per character, as wide and tall as its size sets. Set to fill, it shares the row with the other cells and stops at 32px wide.
 2. **Content** — Centers the character, or the caret on the active empty cell.
@@ -29,6 +29,7 @@ Shown on the default member: size `medium`, status `default`.
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
 | `size` | `medium`, `small`, `large`, `x-large` | once, when authored | The cell size and its character size. Set by the code input. |
+| `style` | `outline` | once, when authored | — |
 | `status` | `default`, `error` | at runtime | — |
 
 ### States

@@ -53,6 +53,7 @@ console.log('1. the text, by case (the owner table, Q442 A)');
     ['style guide', versionOf({ run: 'style-guide', tables: 42 }), 'Saved before Prism3 drew style guides', `${E} 42 tables.`],
     ['style guide, 1 table', versionOf({ run: 'style-guide', tables: 1 }), 'Saved before Prism3 drew style guides', `${E} 1 table.`],
     ['apply theme', versionOf({ run: 'apply-theme' }), 'Saved before Prism3 applied the theme', `${E} Variables and styles.`],
+    ['prune', versionOf({ run: 'prune' }), 'Saved before Prism3 removed stale items', `${E} Variables, modes, collections and styles the brand no longer emits.`],
   ];
   for (const [label, got, title, description] of cases)
     ok(got.title === title && got.description === description, `text/${label}: ${JSON.stringify(got)}`);
@@ -144,6 +145,7 @@ console.log('\n4. bypass: no second caller, and each command reaches the builder
   ok(has('main.ts', 'saveBeforeBuild(figma as unknown'), 'bypass/build: Build saves through the builder');
   ok(has('main.ts', "run: 'style-guide'") && has('style-guide.ts', 'run.beforeWrite?.('), 'bypass/style guide: Style guide saves through the builder');
   ok(has('main.ts', "run: 'apply-theme'") && has('apply-theme.ts', 'await beforeWrite?.()'), 'bypass/apply theme: Apply theme saves through the builder');
+  ok(has('main.ts', "run: 'prune'"), 'bypass/prune: a confirmed prune saves through the builder (#3697 R6)');
 }
 
 if (failures) { console.error(`\n${failures} version-title check(s) failed`); process.exit(1); }

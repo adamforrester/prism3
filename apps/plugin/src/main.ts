@@ -31,7 +31,7 @@ import { createRunGuard, guardFor, writes, busyMessage } from './run-guard';
 import type { WriteCmd } from './run-guard';
 import { strandedCollections, ownedModeIds } from './write-figma';
 import { classifyFile, libraryFileOf, outcomeOf, probeFile, type FileKindApi } from './file-kind';
-import { computePrunePlan, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary } from './prune-figma';
+import { computePrunePlan, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary, emptyPruneResult, prunePreviewHashOf, pruneConfirmRefusal, PRUNE_COPY } from './prune-figma';
 import type { PruneInput, PruneApi } from './prune-figma';
 import { isRefusal } from '@prism3/engine/rename-map';
 import { rootOf } from '@prism3/engine/figma-names';
@@ -584,9 +584,17 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
  * `confirm: true` DELETES — recomputes from a fresh read (not from the preview's list, so the delete
  * acts on the file's current orphan set) and runs `applyPrunePlan`.
  *
+ * THE CONFIRM'S THREE GUARDS (#3697 R6, H2), in order, before the first removal: the file must hold `input` as its
+ * brand (the plan is built from the input, which need not have been applied, so an unapplied input could name what
+ * the file's sets still bind); the confirm must echo the `previewHash` its preview returned, and a fresh read must
+ * give the same plan; and a named version is saved, or nothing is removed. Each removal is then tried on its own,
+ * and `counts` runs in place, so a throw past the first removal reports what was removed, not 0.
+ *
  * Never flips into `applyTheme`'s path and writes nothing but deletes: a prune only removes.
  */
-const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Promise<void> => {
+const prune = async (input: BrandInput, confirm: boolean, previewHash: string | null, sink: ActionSink): Promise<void> => {
+  const counts = emptyPruneResult();
+  let removing = false;
   try {
     const theme = brandTheme(input);
     // The plans, exactly as `applyTheme` builds them — the plan is what defines "stale". No write.
@@ -688,13 +696,19 @@ const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Pro
       return t ? ` ${t}` : '';
     };
 
-    sink.data({ prunePlan: plan, staleFurniture: staleFurn.map((f) => ({ id: f.node.id, ...f.tag })) });
+    const hash = prunePreviewHashOf(plan, staleFurn.map((f) => f.node.id));
+    sink.data({ prunePlan: plan, staleFurniture: staleFurn.map((f) => ({ id: f.node.id, ...f.tag })), previewHash: hash });
     if (!confirm) {
       const n = prunePlanCount(plan);
       const summary = n === 0 && staleFurn.length ? furniturePruneText(staleFurn.length, false) : prunePreviewSummary(plan) + furnText(false, staleFurn.length);
-      sink.post({ type: 'prune-result', ok: true, applied: false, count: n + staleFurn.length, summary });
+      sink.post({ type: 'prune-result', ok: true, applied: false, count: n + staleFurn.length, summary, previewHash: hash });
       return;
     }
+    const refusal = pruneConfirmRefusal({ holdsInput: holdsInput(figma.root, input), previewHash: previewHash ?? '', currentHash: hash });
+    if (refusal) { sink.post({ type: 'prune-result', ok: false, applied: false, count: 0, summary: refusal }); return; }
+    try { await saveVersion(figma, { run: 'prune' }); }
+    catch (e) { sink.post({ type: 'prune-result', ok: false, applied: false, count: 0, summary: PRUNE_COPY.noVersion(failureDetail(e)) }); return; }
+    removing = true;
 
     const pruneApi: PruneApi = {
       getLocalVariableCollectionsAsync: () => figma.variables.getLocalVariableCollectionsAsync(),
@@ -704,15 +718,19 @@ const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Pro
       getLocalPaintStylesAsync: () => figma.getLocalPaintStylesAsync(),
       getLocalGridStylesAsync: () => figma.getLocalGridStylesAsync(),
     };
-    const res = await applyPrunePlan(plan, pruneApi);
-    const furnRemoved = pruneFurniture(tagged.map((t) => t.node as unknown as XNode), (id) => liveSets.has(id));
+    const res = await applyPrunePlan(plan, pruneApi, counts);
+    const furnRemoved = pruneFurniture(tagged.map((t) => t.node as unknown as XNode), (id) => liveSets.has(id), counts.failed);
     const removed = res.variables + res.collections + res.modes + res.styles;
     sink.data({ pruneApplied: { ...res, furniture: furnRemoved } });
-    const summary = removed === 0 && furnRemoved ? furniturePruneText(furnRemoved, true) : pruneAppliedSummary(res) + furnText(true, furnRemoved);
-    sink.post({ type: 'prune-result', ok: res.misses.length === 0, applied: true, count: removed + furnRemoved, summary });
+    const summary = removed === 0 && furnRemoved && !res.failed.length ? furniturePruneText(furnRemoved, true) : pruneAppliedSummary(res) + furnText(true, furnRemoved);
+    sink.post({ type: 'prune-result', ok: res.misses.length === 0 && res.failed.length === 0, applied: true, count: removed + furnRemoved, summary });
   } catch (e) {
-    // A thrown prune reports rather than crashing the UI — same posture as `applyTheme`'s catch.
-    sink.post({ type: 'prune-result', ok: false, applied: confirm, count: 0, summary: `prune failed: ${failureDetail(e)}` });   // #3697 H4: as `applyTheme`'s
+    // A thrown prune reports rather than crashing the UI — same posture as `applyTheme`'s catch. Once removals began,
+    // with the running counts (#3697 R6): a half-pruned file never reads as 0 removed.
+    const why = failureDetail(e);   // #3697 H4: as `applyTheme`'s
+    if (!removing) { sink.post({ type: 'prune-result', ok: false, applied: false, count: 0, summary: `prune failed: ${why}` }); return; }
+    sink.data({ pruneApplied: counts });
+    sink.post({ type: 'prune-result', ok: false, applied: true, count: counts.variables + counts.collections + counts.modes + counts.styles, summary: PRUNE_COPY.stopped(counts, why) });
   }
 };
 
@@ -2571,7 +2589,7 @@ onUiMessage((msg: UiToMain) => {
       return;
     case 'prune':
       // #1521 — `confirm` decides preview vs delete; both recompute from a fresh read inside `prune`.
-      void ACTIONS.prune(msg.input, msg.confirm, uiSink);
+      void ACTIONS.prune(msg.input, msg.confirm, msg.confirm ? msg.previewHash ?? null : null, uiSink);
       return;
     case 'open-docs':
       // #2637 Q384 — the bar's Docs. A read of nothing and a write to nothing in the file: never guarded.

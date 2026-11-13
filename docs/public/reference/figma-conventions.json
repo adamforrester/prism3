@@ -3394,6 +3394,11 @@
             "type": "TEXT"
           }
         ],
+        "codeOnly": {
+          "axes": [
+            "style"
+          ]
+        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/code-input-cell.md"
       },
       {

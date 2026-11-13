@@ -67,7 +67,8 @@ export type AgentActions = {
   buildComponents(def: string | undefined, sink: ActionSink, options?: { readonly docBlock?: boolean }): Promise<void>;
   fileSetup(sink: ActionSink): Promise<void>;
   styleGuide(options: StyleGuideOptions, sink: ActionSink): Promise<void>;
-  prune(input: BrandInput, confirm: boolean, sink: ActionSink): Promise<void>;
+  /** `previewHash`: `null` for a preview, the preview's hash for a confirm (#3697 R6), as `updateComponents` takes it. */
+  prune(input: BrandInput, confirm: boolean, previewHash: string | null, sink: ActionSink): Promise<void>;
   seedFromFile(sink: ActionSink): Promise<void>;
   /** #2265: the in-place update's dry run (writes nothing) and the one-time baseline capture. */
   /** `previewHash` is `null` for a check and the check's hash for an apply (#2265 PR 2); `choices`, an apply's. */
@@ -189,8 +190,8 @@ export const ROUTES: { [C in Exclude<AgentCmd, DevCmd>]: Route } = {
   'file-setup': (_c, a, sink) => a.fileSetup(sink),
   'style-guide': (c, a, sink) => a.styleGuide((c as Extract<ValidCommand, { cmd: 'style-guide' }>).args, sink),
   prune: (c, a, sink) => {
-    const { input, confirm } = (c as Extract<ValidCommand, { cmd: 'prune' }>).args;
-    return a.prune(input, confirm, sink);
+    const args = (c as Extract<ValidCommand, { cmd: 'prune' }>).args;
+    return a.prune(args.input, args.confirm, args.confirm ? args.previewHash : null, sink);
   },
   'update-components': (c, a, sink) => {
     const args = (c as Extract<ValidCommand, { cmd: 'update-components' }>).args;

@@ -708,7 +708,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'style',
     values: ['outline'],
-    defs: ['text-field', 'textarea', 'password-field', 'search-field', 'card-number-field', 'select'],
+    defs: ['text-field', 'textarea', 'password-field', 'search-field', 'card-number-field', 'select', 'code-input-cell'],
     relation: 'canonical',
     reason:
       'An axis of ONE, declared rather than dropped. Underline is a BRAND choice since #2695 (the Field style '
@@ -716,7 +716,8 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'code coordinate, which Q14 A rules out. The axis keeps filled a place to land without a later API break. '
       + 'The cost of an axis of one is real (`modifiers`, #845) and it is being paid deliberately here. '
       + '`canonical` since Link (#2580) declared a second `style` set against it. Select joined with Q-CC3 A (#3554): '
-      + 'the Field style setting reaches its control, so it carries the same one-value axis.',
+      + 'the Field style setting reaches its control, so it carries the same one-value axis. CodeInput.Cell joined '
+      + 'with Q193 A (#3554), for the same reason: `FIELD_FRAME_PARTS` reaches the cell.',
   },
   {
     axis: 'style',
