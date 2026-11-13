@@ -4896,9 +4896,10 @@ arm: {
   // `motion` joined in #2394 as FLOAT milliseconds and left with #2412: TIMING + EASING, so it is
   // `buildMotionVarPlan`'s, not a FLOAT axis. Asserted absent here so it cannot be written twice.
   // `blur` joined in #2869: the glass radius, a FLOAT the `glass` Effect Style binds.
-  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'blur', 'layout'];
+  // `text-spacing` joined in #2423: the line-height and letter-spacing multipliers, bound to nothing.
+  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'blur', 'text-spacing', 'layout'];
   ok(EXPECTED.every((n) => names.includes(n)) && names.length === EXPECTED.length,
-    `float-plan: eleven collections present, motion not among them (${names.join(', ')})`);
+    `float-plan: twelve collections present, motion not among them (${names.join(', ')})`);
 
   // Single-mode dims axes vs per-breakpoint layout.
   ok(auroraFloat.find((c) => c.name === 'core')!.modes.join(',') === 'Default',
@@ -13937,6 +13938,60 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       return !(gv?.alias?.name && /\/core\/palette\/(?:white|black)-alpha\/\d+$/.test(gv.alias.name) && gv.value.a > 0.5 && gv.value.a < 1);
     });
     ok(colorModes.length >= 1 && unbound.length === 0, `glass ${b}: color/glass/surface aliases a translucent alpha primitive in every color mode (${colorModes.length})${unbound.length ? ` — NOT IN: ${unbound.join(', ')}` : ''}`);
+  }
+}
+
+// TEXT SPACING (#2423, owner Q175 A; collection name 2026-11-12) — the line-height and letter-spacing ladders and their
+// roles as one `text-spacing` FLOAT collection, each variable named by its DTCG path. Two independent sides:
+//   · LITERALS — the owner's collection name and name shape, the empty scope list (Figma binds line height and letter
+//     spacing as pixels, and these are multipliers), the publishing split (steps hidden, roles published), and a few
+//     values written out for every brand (1.05, -0.04, -0.015: letter spacing is the multiplier, Q175 A, not percent).
+//   · THE ENGINE'S DTCG (`out/<brand>.tokens.json`, which no Figma emitter writes) — every leaf of the four groups has
+//     exactly one variable at its path, holding its number, and a role aliases the step its DTCG alias names.
+{
+  const GROUPS = ['line-height', 'line-height-role', 'letter-spacing', 'letter-spacing-role'];
+  const VALUES: Record<string, number> = { 'line-height/105': 1.05, 'line-height/150': 1.5, 'letter-spacing/neg-40': -0.04, 'letter-spacing/neg-15': -0.015, 'letter-spacing/0': 0, 'letter-spacing/50': 0.05 };
+  const ROLE_ALIASES: Record<string, string> = { 'line-height-role/tight': 'line-height/105', 'letter-spacing-role/tightest': 'letter-spacing/neg-40' };
+  const tsBrands = readdirSync(resolve(HERE, './out/figma')).sort();
+  ok(['aurora', 'nb', 'prism3', 'wendys'].every((b) => tsBrands.includes(b)), `text-spacing: every canonical Figma brand is read (${tsBrands.join(', ')})`);
+  for (const b of tsBrands) {
+    const dir = resolve(HERE, './out/figma', b);
+    const files = readdirSync(dir).filter((x) => /^text-spacing(\.|$)/.test(x));
+    ok(files.length === 1 && files[0] === 'text-spacing.json', `text-spacing ${b}: one file, text-spacing.json, one Default mode (${files.join(', ') || 'none'})`);
+    if (files[0] !== 'text-spacing.json') continue;
+    const file = JSON.parse(readFileSync(resolve(dir, 'text-spacing.json'), 'utf8'));
+    const vars = file.variables as any[];
+    const tree = JSON.parse(readFileSync(resolve(HERE, `./out/${b}.tokens.json`), 'utf8'));
+    const root = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+    const fontGroup = tree[root].core.font;
+    ok(file.$collection === 'text-spacing' && file.$mode === 'Default', `text-spacing ${b}: $collection 'text-spacing', $mode 'Default' (got ${file.$collection}, ${file.$mode})`);
+    const byName = new Map(vars.map((v) => [v.name, v]));
+    const want: string[] = [];
+    const off: string[] = [];
+    for (const g of GROUPS) {
+      const leaves = Object.entries(fontGroup[g] ?? {}).filter(([k]) => !k.startsWith('$')) as Array<[string, any]>;
+      if (leaves.length < 5) off.push(`${g}: only ${leaves.length} DTCG leaves`);
+      for (const [k, leaf] of leaves) {
+        const name = `${root}/core/font/${g}/${k}`;
+        want.push(name);
+        const v = byName.get(name);
+        if (!v) { off.push(`${name}: missing`); continue; }
+        const role = g.endsWith('-role');
+        const ref = /^\{(.+)\}$/.exec(String(leaf.$value));
+        const target = ref ? ref[1].split('.').reduce((n: any, k2: string) => n?.[k2], tree) : leaf;
+        if (v.resolvedType !== 'FLOAT') off.push(`${name}: ${v.resolvedType}`);
+        if (JSON.stringify(v.scopes) !== '[]') off.push(`${name}: scopes ${JSON.stringify(v.scopes)}`);
+        if (v.value !== target?.$value) off.push(`${name}: value ${v.value}, DTCG ${target?.$value}`);
+        if (role !== !!v.alias) off.push(`${name}: alias ${JSON.stringify(v.alias)} on a ${role ? 'role (must alias its step)' : 'step (must be a literal)'}`);
+        if (ref && v.alias?.name !== ref[1].replace(/\./g, '/')) off.push(`${name}: aliases ${v.alias?.name}, DTCG ${ref[1]}`);
+        if (role ? v.hiddenFromPublishing !== undefined : v.hiddenFromPublishing !== true) off.push(`${name}: hiddenFromPublishing ${v.hiddenFromPublishing} on a ${role ? 'role (published)' : 'step (hidden)'}`);
+      }
+    }
+    const extra = vars.filter((v) => !want.includes(v.name)).map((v) => v.name);
+    for (const [tail, n] of Object.entries(VALUES)) if (byName.get(`${root}/core/font/${tail}`)?.value !== n) off.push(`${tail}: ${byName.get(`${root}/core/font/${tail}`)?.value}, want ${n}`);
+    for (const [role, step] of Object.entries(ROLE_ALIASES)) if (byName.get(`${root}/core/font/${role}`)?.alias?.name !== `${root}/core/font/${step}`) off.push(`${role}: does not alias ${step}`);
+    ok(off.length === 0 && extra.length === 0 && vars.length === want.length,
+      `text-spacing ${b}: ${vars.length} variables, one per DTCG line-height / letter-spacing step and role, named by path, FLOAT with no scopes, the DTCG's multiplier, roles aliasing their steps, steps hidden and roles published${off.length || extra.length ? ` — ${[...off, ...extra.map((x) => `extra ${x}`)].slice(0, 6).join('; ')}` : ''}`);
   }
 }
 

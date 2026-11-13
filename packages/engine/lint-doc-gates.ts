@@ -293,6 +293,10 @@ const NOT_A_RUNNABLE_GATE = new Set<string>([
   // Q503 A: the `gates` job's one step. It reads the other jobs' results, asserts nothing about the tree,
   // and has no meaning outside CI — `verify.ts` runs every gate itself and reports each one.
   'Every gate job succeeded',
+  // #3698 R4: the `changes` job's one step. It decides whether the browser jobs run, from the event and the diff,
+  // and has no meaning outside CI. Its test is a gate (`test-docs-only.sh`), and `exemptionGaps` holds the jobs it
+  // can exempt.
+  'Decide the docs-only exemption (#3698 R4)',
 ]);
 
 /** `ci.yml` steps arm 3 requires `verify.ts` to carry: everything with a `run:`, minus the named
@@ -504,6 +508,71 @@ export const foldWorkflowGaps = (text: string): string[] => {
   if (!/startswith\("fold\/"\)[\s\S]*?exit 1/.test(code)) problems.push('it does not refuse while a fold/ PR is already open');
   if (/gh pr merge|--auto\b|enable-auto-merge/.test(code)) problems.push('it merges or enables auto-merge; the fold PR must pass review and gates like any other');
   if (!/^\s*workflow_dispatch:/m.test(code)) problems.push('it cannot be run by hand (no workflow_dispatch)');
+  return problems;
+};
+
+/** #3698 R4 — THE DOCS-ONLY EXEMPTION'S SHAPE. Two files state which jobs a docs-only pull request may skip: the jobs
+ *  in `ci.yml` that carry `EXEMPTION_IF`, and `EXEMPT_JOBS` in `all-gates.sh`, which lets exactly those through as
+ *  EXEMPT. They are authored separately, so they are compared, in both directions. A job carrying the `if:` that the
+ *  script does not list goes red as a bare skip (safe, but broken); a listed job without the `if:` is a stale entry.
+ *  Each exempt job must need `changes` and be a BROWSER job: it runs `INSTALL_CHROMIUM`, or needs an exempt job that
+ *  does (`chrome-shards`). So the engine job can never be made skippable by adding the `if:` and a list entry
+ *  together. The `changes` job itself must run `DOCS_ONLY_SCRIPT`. Empty when sound. */
+export const EXEMPTION_IF = "${{ needs.changes.outputs.docs_only != 'true' }}";
+export const DOCS_ONLY_SCRIPT = '.github/scripts/docs-only.sh';
+const INSTALL_CHROMIUM = 'bash .github/scripts/install-chromium.sh';
+export const exemptJobsOf = (script: string): string[] | undefined =>
+  /^EXEMPT_JOBS="([^"]*)"$/m.exec(script)?.[1].split(/\s+/).filter(Boolean);
+export const exemptionGaps = (tree: YamlValue, script: string): string[] => {
+  type Job = { needs?: YamlValue; if?: YamlValue; steps?: { run?: YamlValue }[] };
+  const jobs = (tree as { jobs?: Record<string, Job> }).jobs ?? {};
+  const problems: string[] = [];
+  const listed = exemptJobsOf(script);
+  if (!listed?.length) return [`\`${AGGREGATOR_SCRIPT}\` states no EXEMPT_JOBS="…" line, so the exemption's job list cannot be read`];
+  const needsOf = (j: Job): string[] => (Array.isArray(j.needs) ? j.needs : typeof j.needs === 'string' ? [j.needs] : []).map(String);
+  const carrying = Object.keys(jobs).filter((k) => typeof jobs[k].if === 'string' && (jobs[k].if as string).trim() === EXEMPTION_IF);
+  for (const k of carrying) if (!listed.includes(k)) problems.push(`\`${k}\` carries the docs-only \`if:\` and is not in EXEMPT_JOBS, so a docs-only PR would fail \`gates\` as a bare skip`);
+  for (const k of listed) if (!carrying.includes(k)) problems.push(`EXEMPT_JOBS lists \`${k}\`, which ${jobs[k] ? 'does not carry the docs-only `if:`' : 'is not a job in ci.yml'}`);
+  const installs = (k: string): boolean => (jobs[k]?.steps ?? []).some((st) => typeof st.run === 'string' && st.run.trim() === INSTALL_CHROMIUM);
+  for (const k of carrying) {
+    if (!needsOf(jobs[k]).includes('changes')) problems.push(`\`${k}\` carries the docs-only \`if:\` without needing \`changes\`, so the output it reads is empty`);
+    if (!installs(k) && !needsOf(jobs[k]).some((n) => carrying.includes(n) && installs(n)))
+      problems.push(`\`${k}\` carries the docs-only \`if:\` and is not a browser job (it neither runs \`${INSTALL_CHROMIUM}\` nor needs an exempt job that does)`);
+  }
+  const changes = jobs.changes;
+  if (!changes) problems.push('no `changes` job, so nothing decides the exemption');
+  else if (!(changes.steps ?? []).some((st) => typeof st.run === 'string' && st.run.trim() === `bash ${DOCS_ONLY_SCRIPT}`))
+    problems.push(`the \`changes\` job does not run \`bash ${DOCS_ONLY_SCRIPT}\``);
+  return problems;
+};
+
+/** #3698 R4 — THE EXACT PINS. Node and tsx are pinned exactly, so every CI job runs one Node and one parser, and a new one
+ *  arrives only as a reviewed change. Four things hold that, each read from its own file and checked here: root
+ *  `package.json`'s `devDependencies.tsx` is an exact `x.y.z` (no range); `.node-version` is an exact `x.y.z`; every
+ *  `actions/setup-node` step in `ci.yml` reads `node-version-file: .node-version` and names no `node-version:` of its
+ *  own; and no `ci.yml` step's `run:` names a `tsx@` spec, which would fetch a tsx beside the lockfile's. Empty when
+ *  sound. */
+export const NODE_VERSION_FILE = '.node-version';
+const EXACT = /^\d+\.\d+\.\d+$/;
+export const pinGaps = (tree: YamlValue, pkgJson: string, nodeVersion: string): string[] => {
+  type Step = { uses?: YamlValue; run?: YamlValue; with?: YamlValue };
+  const jobs = (tree as { jobs?: Record<string, { steps?: Step[] }> }).jobs ?? {};
+  const problems: string[] = [];
+  let tsx: unknown;
+  try { tsx = (JSON.parse(pkgJson) as { devDependencies?: Record<string, unknown> }).devDependencies?.tsx; } catch { return ['root `package.json` does not parse, so its tsx pin cannot be read']; }
+  if (typeof tsx !== 'string' || !EXACT.test(tsx)) problems.push(`root \`package.json\` pins tsx as ${JSON.stringify(tsx)}, not an exact x.y.z`);
+  if (!EXACT.test(nodeVersion.trim())) problems.push(`\`${NODE_VERSION_FILE}\` holds ${JSON.stringify(nodeVersion.trim())}, not an exact x.y.z`);
+  let setups = 0;
+  for (const [k, j] of Object.entries(jobs)) for (const st of j.steps ?? []) {
+    if (typeof st.uses === 'string' && st.uses.startsWith('actions/setup-node')) {
+      setups++;
+      const w = (st.with && typeof st.with === 'object' ? st.with : {}) as Record<string, YamlValue>;
+      if (w['node-version-file'] !== NODE_VERSION_FILE) problems.push(`\`${k}\`'s setup-node step does not read \`node-version-file: ${NODE_VERSION_FILE}\``);
+      if ('node-version' in w) problems.push(`\`${k}\`'s setup-node step names its own \`node-version:\``);
+    }
+    if (typeof st.run === 'string' && /\btsx@/.test(st.run)) problems.push(`a \`${k}\` step runs a \`tsx@\` spec (${st.run.trim().split('\n')[0]}), which fetches a tsx beside the pinned one`);
+  }
+  if (!setups) problems.push('no `actions/setup-node` step found in ci.yml, so the Node pin reaches no job');
   return problems;
 };
 
@@ -1190,18 +1259,66 @@ if (!/unclosed double-quoted/.test(refusal(SAMPLE_YAML.replace('"Sample gate: ha
   if (!gaps(AGG.replace('  gates:', '  other:')).some((p) => p.startsWith(`no \`${AGGREGATOR_JOB}\` job`))) selfFails.push('the aggregator check misses a workflow with no `gates` job');
 }
 
-// 6e. THE FOLD BOT (#3698 R1), through the shipped `foldWorkflowGaps` over mutations of the real file.
+// 6c. THE DOCS-ONLY EXEMPTION (#3698 R4), driven through the shipped `exemptionGaps` over a hand-made workflow.
 {
-  const real = readFileSync(resolve(repo, FOLD_WORKFLOW), 'utf8');
-  const gaps = foldWorkflowGaps;
-  if (gaps(real).length) selfFails.push(`the fold-bot check flags the real workflow: ${gaps(real).join('; ')}`);
-  if (!gaps(real.replace(/GH_TOKEN: \$\{\{ secrets\.FOLD_TOKEN \}\}/g, 'GH_TOKEN: ${{ github.token }}')).some((p) => p.includes('GITHUB_TOKEN/github.token'))) selfFails.push('the fold-bot check misses the default token');
-  if (!gaps(real.replace('if [ -z "$FOLD_TOKEN" ]; then', 'if false; then')).some((p) => p.includes('unset'))) selfFails.push('the fold-bot check misses a missing token check');
-  if (!gaps(real.replace('startswith("fold/")', 'startswith("x/")')).some((p) => p.includes('already open'))) selfFails.push('the fold-bot check misses a dropped open-fold refusal');
-  if (!gaps(`${real}\n          gh pr merge --squash\n`).some((p) => p.includes('merges'))) selfFails.push('the fold-bot check misses a bot that merges');
+  const W = `jobs:
+  changes:
+    runs-on: ubuntu-latest
+    steps:
+      - run: bash ${DOCS_ONLY_SCRIPT}
+  engine:
+    runs-on: ubuntu-latest
+    steps:
+      - run: true
+  web:
+    needs: [changes]
+    if: ${EXEMPTION_IF}
+    runs-on: ubuntu-latest
+    steps:
+      - run: bash .github/scripts/install-chromium.sh
+  after:
+    needs: [changes, web]
+    if: ${EXEMPTION_IF}
+    runs-on: ubuntu-latest
+    steps:
+      - run: true
+`;
+  const SCRIPT = 'EXEMPT_JOBS="web after"\n';
+  const gaps = (yaml: string, script = SCRIPT): string[] => exemptionGaps(parseYamlSubset(yaml), script);
+  if (gaps(W).length) selfFails.push(`the exemption check flags a sound workflow: ${gaps(W).join('; ')}`);
+  const engineIf = W.replace('  engine:\n    runs-on', `  engine:\n    needs: [changes]\n    if: ${EXEMPTION_IF}\n    runs-on`);
+  if (!gaps(engineIf, 'EXEMPT_JOBS="web after engine"\n').some((p) => p.includes('`engine` carries the docs-only `if:` and is not a browser job')))
+    selfFails.push('the exemption check misses a non-browser job made exempt in both files');
+  if (!gaps(engineIf).some((p) => p.includes('`engine` carries the docs-only `if:` and is not in EXEMPT_JOBS'))) selfFails.push('the exemption check misses a job with the `if:` that the script does not list');
+  if (!gaps(W, 'EXEMPT_JOBS="web after engine"\n').some((p) => p.includes('EXEMPT_JOBS lists `engine`'))) selfFails.push('the exemption check misses a listed job without the `if:`');
+  if (!gaps(W.replace('    needs: [changes]\n', '')).some((p) => p.includes('without needing `changes`'))) selfFails.push('the exemption check misses an exempt job that does not need `changes`');
+  if (!gaps(W, 'nothing\n').some((p) => p.includes('no EXEMPT_JOBS'))) selfFails.push('the exemption check reads a script with no EXEMPT_JOBS line as sound');
+  if (!gaps(W.replace(`bash ${DOCS_ONLY_SCRIPT}`, 'true')).some((p) => p.includes('does not run'))) selfFails.push('the exemption check misses a `changes` job that does not run the classifier');
 }
 
-// 6d. THE TRIGGERS (#3698 R3), through the shipped `triggerGaps` over hand-made `on:` maps.
+// 6d. THE EXACT PINS (#3698 R4), driven through the shipped `pinGaps` over hand-made files.
+{
+  const W = `jobs:
+  a:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ${NODE_VERSION_FILE}
+      - run: npx tsx verify.ts
+`;
+  const PKG = '{"devDependencies":{"tsx":"4.23.15"}}';
+  const gaps = (yaml = W, pkg = PKG, node = '22.23.4\n'): string[] => pinGaps(parseYamlSubset(yaml), pkg, node);
+  if (gaps().length) selfFails.push(`the pin check flags sound pins: ${gaps().join('; ')}`);
+  if (!gaps(W, '{"devDependencies":{"tsx":"^4.23.15"}}').some((p) => p.includes('pins tsx as "^4.23.15"'))) selfFails.push('the pin check misses a tsx range in package.json');
+  if (!gaps(W, '{}').some((p) => p.includes('pins tsx as undefined'))) selfFails.push('the pin check misses a missing tsx pin');
+  if (!gaps(W, PKG, '22\n').some((p) => p.includes('not an exact x.y.z'))) selfFails.push('the pin check misses a floating .node-version');
+  if (!gaps(W.replace('npx tsx verify.ts', 'npx --yes tsx@4 verify.ts')).some((p) => p.includes('`tsx@` spec'))) selfFails.push('the pin check misses a `tsx@` spec on a CI step');
+  if (!gaps(W.replace(`node-version-file: ${NODE_VERSION_FILE}`, 'node-version: 22')).some((p) => p.includes('does not read'))) selfFails.push('the pin check misses a setup-node step that does not read .node-version');
+  if (!gaps(W.replace(`node-version-file: ${NODE_VERSION_FILE}`, `node-version-file: ${NODE_VERSION_FILE}\n          node-version: 22`)).some((p) => p.includes('names its own'))) selfFails.push('the pin check misses a setup-node step that also names node-version');
+}
+
+// 6e. THE TRIGGERS (#3698 R3), through the shipped `triggerGaps` over hand-made `on:` maps.
 {
   const ON = `on:
   pull_request:
@@ -1221,6 +1338,17 @@ jobs:
   if (!gaps(ON.replace('[checks_requested]', '[other]')).some((p) => p.includes('checks_requested'))) selfFails.push('the trigger check misses a `merge_group` without `checks_requested`');
   if (!gaps(ON.replace('  pull_request:\n', '')).some((p) => p.includes('`pull_request`'))) selfFails.push('the trigger check misses a dropped `pull_request` trigger');
   if (!gaps(ON.replace('[main]', '[dev]')).some((p) => p.includes('push to `main`'))) selfFails.push('the trigger check misses a push trigger that no longer names `main`');
+}
+
+// 6f. THE FOLD BOT (#3698 R1), through the shipped `foldWorkflowGaps` over mutations of the real file.
+{
+  const real = readFileSync(resolve(repo, FOLD_WORKFLOW), 'utf8');
+  const gaps = foldWorkflowGaps;
+  if (gaps(real).length) selfFails.push(`the fold-bot check flags the real workflow: ${gaps(real).join('; ')}`);
+  if (!gaps(real.replace(/GH_TOKEN: \$\{\{ secrets\.FOLD_TOKEN \}\}/g, 'GH_TOKEN: ${{ github.token }}')).some((p) => p.includes('GITHUB_TOKEN/github.token'))) selfFails.push('the fold-bot check misses the default token');
+  if (!gaps(real.replace('if [ -z "$FOLD_TOKEN" ]; then', 'if false; then')).some((p) => p.includes('unset'))) selfFails.push('the fold-bot check misses a missing token check');
+  if (!gaps(real.replace('startswith("fold/")', 'startswith("x/")')).some((p) => p.includes('already open'))) selfFails.push('the fold-bot check misses a dropped open-fold refusal');
+  if (!gaps(`${real}\n          gh pr merge --squash\n`).some((p) => p.includes('merges'))) selfFails.push('the fold-bot check misses a bot that merges');
 }
 
 // 6b. ARM 9 — a step with its limit is clean; the limit dropped, zero, or the step renamed is named.
@@ -1334,6 +1462,28 @@ const realSteps = parseSteps(readFileSync(CI_PATH, 'utf8'));
   console.log(`    fold bot: ${FOLD_WORKFLOW} checked for its token, its refusals and the fold sequence`);
   if (problems.length) {
     console.error(`\n❌ ${FOLD_WORKFLOW} is out of shape (#3698 R1):\n`);
+    for (const p of problems) console.error(`    ${p}`);
+    process.exit(1);
+  }
+}
+// THE DOCS-ONLY EXEMPTION (#3698 R4), on the real files: the jobs that carry the `if:` are the jobs the aggregator lists.
+{
+  const problems = exemptionGaps(ciTree, readFileSync(resolve(repo, AGGREGATOR_SCRIPT), 'utf8'));
+  console.log(`    docs-only exemption: ${exemptJobsOf(readFileSync(resolve(repo, AGGREGATOR_SCRIPT), 'utf8'))?.length ?? 0} exempt job(s) checked against ci.yml's \`if:\`, both directions`);
+  if (problems.length) {
+    console.error('\n❌ the docs-only exemption (#3698 R4) is out of shape:\n');
+    for (const p of problems) console.error(`    ${p}`);
+    console.error(`\n  ci.yml's jobs carrying \`${EXEMPTION_IF}\` and EXEMPT_JOBS in ${AGGREGATOR_SCRIPT} must name the same`);
+    console.error('  jobs, each a browser job that needs `changes`. Fix whichever file went short.');
+    process.exit(1);
+  }
+}
+// THE EXACT PINS (#3698 R4), on the real files: package.json's tsx, .node-version, and every setup-node step and run in ci.yml.
+{
+  const problems = pinGaps(ciTree, readFileSync(resolve(repo, 'package.json'), 'utf8'), readFileSync(resolve(repo, NODE_VERSION_FILE), 'utf8'));
+  console.log('    exact pins: tsx in package.json, .node-version, and every setup-node step and run in ci.yml');
+  if (problems.length) {
+    console.error('\n❌ the Node and tsx pins (#3698 R4) are not exact:\n');
     for (const p of problems) console.error(`    ${p}`);
     process.exit(1);
   }

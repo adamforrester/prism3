@@ -123,6 +123,13 @@ ok(fverdict.ok, 'verifyFloatReadback: contract holds' + (fverdict.ok ? '' : ` �
 ok(fverdict.checks.aliasesResolve && fverdict.details.danglingAliases.length === 0, 'every FLOAT alias resolves — 0 dangling');
 ok(fverdict.checks.dimensionsHidden, 'core-tier dimension primitives hidden from publishing');
 ok(fverdict.checks.collectionsPresent, 'all expected FLOAT collections present in the read-back');
+// The negative arm (#2423, review nit on #3720): the axis list is only a gate if dropping an axis from the snapshot
+// fails it. `text-spacing` is named here by hand, not read from the expected list.
+{
+  const { 'text-spacing': dropped, ...rest } = snap2.float!;
+  ok(!!dropped && !verifyFloatReadback({ ...snap2, float: rest }, nbTheme.modes.includes('wireframe')).checks.collectionsPresent,
+    'a FLOAT read-back missing text-spacing fails collectionsPresent');
+}
 
 // STYLE axes (shadow/gradient lane) — write Effect + Paint Styles into a styles shim, read the names
 // back (via readFigmaVariables' optional styles arg), verify. Aurora ships dark + gradients.
