@@ -177,7 +177,7 @@ export type AgentCommand = { v: number; id: string; cmd: string; args?: unknown;
  * `adopt-members`) do not. A dev build's `run-code` needs it too; `agent-link.ts` adds it behind `PRISM3_DEV`, since its
  * name must not reach a release bundle (`lint-release-bundle.ts`) and this file is context-neutral.
  */
-export const SESSION_COMMANDS = ['apply-theme'] as const;
+export const SESSION_COMMANDS = [] as const;
 export const SESSION_CONFIRMS = ['prune', 'update-components', 'panels-clean', 'set-override'] as const;
 export const needsSession = (raw: unknown): boolean => {
   if (!isObject(raw) || typeof raw.cmd !== 'string') return false;
