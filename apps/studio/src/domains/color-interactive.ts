@@ -507,13 +507,14 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
         };
         line1.append(rm);
       }
-      head.append(line1);
-      card.append(head);
+      // The refused mark sits inside the head, under the line with Remove button set, so the card's own children keep
+      // the owner's QA-I6 order (the neutral emphasis right under the head).
       const refmark = hook(h('p', 'p3-refmark'), 'column-refused');
       refmark.setAttribute('role', 'note');
       refmark.append(glyph('x'), h('span', undefined, 'Refused. The preview keeps the last valid theme.'));
       refmark.hidden = true;
-      card.append(refmark);
+      head.append(line1, refmark);
+      card.append(head);
       out.push({ el: card, said: '', key: `column:${col}`, refmark });
       // The Primary Action Palette opens the Primary card, as the neutral emphasis opens Neutral's (the owner's QA-I6).
       if (col === 'primary') { const ap = actionPalette(); card.append(ap.el); out.push(ap); }

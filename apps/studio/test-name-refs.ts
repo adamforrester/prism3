@@ -110,6 +110,8 @@ const FIELDS: Record<string, Seed | Seed[] | string> = {
     // A semantic role path under the color's column (#3710 review): it names the column, so it follows a rename and
     // holds both removals, the color's and the column's.
     { heldOnRemove: true, heldOnColumnRemove: true, seed: (b) => { b.glassRoles = { card: { role: 'interactive.acc.fill.rest', alpha: 60 } }; } },
+    // The inverse head of the same path names the column too, and the row rewrites both heads.
+    { heldOnRemove: true, heldOnColumnRemove: true, seed: (b) => { b.glassRoles = { card: { role: 'inverse.interactive.acc.fill.rest', alpha: 60 } }; } },
   ],
   radioDot: 'an enum', strictInteractiveContrast: 'a flag',
   accentPalette: { confirms: 1, seed: (b) => { b.accentPalette = 'acc'; delete b.interactivePalettes; b.modeAnchors = { dark: { accent: 400 } } as BrandInput['modeAnchors']; } },
