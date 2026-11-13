@@ -41,7 +41,9 @@ export type HostMessage =
       alsoBuilt?: readonly string[] }
   // #2265 — the in-place update's dry run, or a baseline capture: what an update WOULD change, which is not
   // whether a build landed, so it has its own kind and never overwrites the build's verdict.
-  | { kind: 'component-update-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null; publish: string | null; causes: readonly Cause[] | null }
+  | { kind: 'component-update-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null; publish: string | null; causes: readonly Cause[] | null;
+      /** #3711 (Q-UF3 A): the applied update went through every set, some left to check; false when the host did not say. */
+      completed: boolean }
   // #1558 — the outcome of a `file-setup` scaffold. A FOURTH kind of the `{ok, headline, summary}`
   // shape, distinct for the same one-kind-per-fact reason `component-result` is: "did the page
   // skeleton get laid" is separately true and separately actionable from a theme or component write,
@@ -79,7 +81,8 @@ export type HostMessage =
   | { kind: 'agent-finished'; id: string }
   // #1957: a write the main thread declined because a run of the same operation was already going. Not a
   // verdict, so it is its own kind: `cmd` is the operation's agent-command name, `agent` whose request it was.
-  | { kind: 'refused'; code: 'busy'; cmd: string; agent: boolean; message: string }
+  /** `held`: the write holding the file (#3697 R7), absent from a host older than the one file-wide hold. */
+  | { kind: 'refused'; code: 'busy'; cmd: string; agent: boolean; message: string; held?: string }
   // `present` is the #722 addition: the summary string alone could not distinguish "no Prism3
   // theme in this file" from "a theme is here", and #721's three outcomes need that told apart
   // from `ok`. Deriving it by parsing `summary` would make the UI depend on the host's prose.
@@ -459,7 +462,7 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   // panel on "Building…", #870); it reads as a build that did not finish, the claim that needs no evidence.
   'component-result': (m) => ({ ...verdict('component-result', m, '✓ built', '✗ build failed'), completed: m.completed === true, lines: linesOf(m.lines), causes: causesOf(m.causes), ...(linesOf(m.alsoBuilt) ? { alsoBuilt: linesOf(m.alsoBuilt)! } : {}) }),
   'component-update-result': (m) => ({ ...verdict('component-update-result', m, '✓ checked', '✗ check failed'), lines: linesOf(m.lines),   // #2265
-    publish: typeof m.publish === 'string' && m.publish ? m.publish : null, causes: causesOf(m.causes) }),   // #2858, #3326
+    publish: typeof m.publish === 'string' && m.publish ? m.publish : null, causes: causesOf(m.causes), completed: m.completed === true }),   // #2858, #3326, #3711
   'file-setup-result': (m) => verdict('file-setup-result', m, '✓ file set up', '✗ setup failed'),   // #1558
   // #3394: the plugin always sends a headline; one that arrives without falls back to the summary's first words.
   'override-result': (m) => {
@@ -641,7 +644,7 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   'agent-finished': (m) => (isId(m.id) ? { kind: 'agent-finished', id: m.id } : null),
   // #1957. Dropped unless every field is usable: a refusal with no operation has no row to land in.
   'refused': (m) => (m.code === 'busy' && typeof m.cmd === 'string' && typeof m.agent === 'boolean' && typeof m.message === 'string' && m.message
-    ? { kind: 'refused', code: 'busy', cmd: m.cmd, agent: m.agent, message: m.message } : null),
+    ? { kind: 'refused', code: 'busy', cmd: m.cmd, agent: m.agent, message: m.message, ...(typeof m.held === 'string' && m.held ? { held: m.held } : {}) } : null),
 };
 
 /** Validate one inbound `MessageEvent.data` and return the UI's `HostMessage`, or `null` to drop it. Pure,

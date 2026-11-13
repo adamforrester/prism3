@@ -126,7 +126,7 @@ export const repoRoot = here;
 
 /** The pinned tsx major, matching `ci.yml`'s call sites — a new major must not silently change how
  *  the engine parses. `--yes` so a cold cache does not turn into an interactive prompt. */
-const TSX = ['npx', '--yes', 'tsx@4'];
+const TSX = ['npx', 'tsx'];
 
 const engine = (file: string, ...args: string[]) => [...TSX, `packages/engine/${file}`, ...args];
 const ws = (workspace: string, script: string) => ['npm', 'run', '-w', workspace, script];
@@ -1270,6 +1270,12 @@ export const GATES: Gate[] = [
     cmd: engine('lint-code-only-classes.ts'),
   },
   {
+    // #3698 finding 2 — reads the engine's tracked source text only; needs no build and no `after`.
+    id: 'lint-locale-order',
+    ciStep: 'No engine comparison depends on the host locale (#3698)',
+    cmd: engine('lint-locale-order.ts'),
+  },
+  {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR
     // rather than about this tree: docs/34 shape 17 is explicit that nothing running inside a checkout
     // can tell whether that checkout is stale — a stale tree is internally consistent. So the subject
@@ -1289,6 +1295,13 @@ export const GATES: Gate[] = [
     id: 'install-chromium',
     ciStep: 'The Chromium install script retries cleanly after a stall (#2981)',
     cmd: ['bash', '.github/scripts/test-install-chromium.sh'],
+  },
+  {
+    // #3698 R4 — the test for the docs-only exemption: the classifier and the aggregator's half, by literal cases,
+    // and no file a prose gate scans (its `--files`) classed as docs. No git, no network, no `after`.
+    id: 'docs-only-exemption',
+    ciStep: 'The docs-only exemption decides by path and is recorded by name',
+    cmd: ['bash', '.github/scripts/test-docs-only.sh'],
   },
   {
     id: 'smoke',

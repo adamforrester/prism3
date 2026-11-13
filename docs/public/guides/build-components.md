@@ -25,13 +25,13 @@ On a file that isn't set up yet, the same run sets it up first. See [Set up a fi
 
 ## What a build does
 
-For each set, the plugin: <!-- src: apps/plugin/src/main.ts:880-1003#34f3a25b -->
+For each set, the plugin: <!-- src: apps/plugin/src/main.ts:881-1004#34f3a25b -->
 
 - builds any set the chosen one contains first, such as the icon and focus ring inside a button;
 - creates the set's page if the file does not have it, and switches Figma to that page;
 - builds the set, its properties and its prototype interactions;
 - adds the page header and the labels beside the set;
-- draws the family's usage panel beside its lead, while Docs has usage panels on. <!-- src: apps/plugin/src/main.ts:968-969#03cbfa05 --> A family has one panel, beside its lead set: the Buttons page has one, beside Button, and the other sets on the page have none of their own. An icon, the spinner and a provider logo are single components, with no set and no panel. <!-- src: apps/plugin/src/doc-panel.ts:186-187#b6f87a5f -->
+- draws the family's usage panel beside its lead, while Docs has usage panels on. <!-- src: apps/plugin/src/main.ts:969-970#03cbfa05 --> A family has one panel, beside its lead set: the Buttons page has one, beside Button, and the other sets on the page have none of their own. An icon, the spinner and a provider logo are single components, with no set and no panel. <!-- src: apps/plugin/src/doc-panel.ts:186-187#b6f87a5f -->
 
 A new set's description in Figma is its one-line summary from the engine. A description you wrote on an existing set is kept. <!-- src: apps/plugin/src/write-components.ts:150-151#7bb3ec74 -->
 
@@ -39,7 +39,7 @@ A new set's description in Figma is its one-line summary from the engine. A desc
 
 ## Read the result
 
-The status strip says how the run went, such as "Sets added" or "File updated". <!-- src: apps/studio/src/state/status-strip.ts:143-145 --> Each set's result is in the Activity drawer: <!-- src: apps/plugin/src/apply-summary.ts:82-92#5f523e92 -->
+The status strip says how the run went, such as "Sets added" or "File updated". <!-- src: apps/studio/src/state/status-strip.ts:143-145 --> Each set's result is in the Activity drawer: <!-- src: apps/plugin/src/apply-summary.ts:98-108#5f523e92 -->
 
 | Result | Meaning |
 |---|---|
@@ -56,10 +56,10 @@ A set that can't be built for this brand is listed with the reason: "Can't be bu
 
 ## Adding and updating
 
-Adding a set never replaces one the file already holds. The plugin finds the set by name and adds only what is missing. <!-- src: apps/plugin/src/apply-summary.ts:54-58#68cb2d2d -->
+Adding a set never replaces one the file already holds. The plugin finds the set by name and adds only what is missing. <!-- src: apps/plugin/src/apply-summary.ts:70-74#68cb2d2d -->
 A set already in the file is brought up to date in place instead, under **Due**, with your hand edits kept unless you choose otherwise. See [Update sets in place](update-a-file-safely.md#update-sets-in-place). <!-- src: apps/studio/src/state/update-file.ts:336 -->
 
-Only one build runs at a time, from the panel or an agent: a second request reads "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:41-45 -->
+Only one write runs at a time, from the panel or an agent: a build asked for while another write runs reads "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:49-52 -->
 
 ## Where each set goes
 

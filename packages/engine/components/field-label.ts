@@ -69,7 +69,7 @@ export const fieldLabel: ComponentDef = {
     // [none/required/optional] axis. A Figma boolean-VISIBILITY property (#1331/#1412): ON shows the marker
     // beside the label; OFF — the default since #1699 — hides it. Direct mapping — the prop's default is the
     // marker's BUILT visibility, so no inverted-boolean mechanism is needed (see `figmaProperties`).
-    { name: 'required', type: 'boolean', default: false, required: false, description: 'Whether the field is required. On shows the marker beside the label; off, the default, hides it, and the host\'s own required prop defaults off too. Never the sole signal: the field also carries required / aria-required, so the state is not marker-only.' },
+    { name: 'required', type: 'boolean', default: false, required: false, description: 'Whether the field is required. On shows the marker beside the label; off, the default, hides it, and the host\'s own required prop defaults off too. Never the sole signal: the field also carries required / aria-required, or for a slider, "required" in the thumb\'s accessible name, so the state is not marker-only.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'small', required: false, description: 'Three steps. Scales the type (type.body.xs, sm and md: 12, 14 and 16px), not padding alone, one body step below the input of the same field size. Every field host passes its own size through, so a small field nests the small label. small, the default, is the 12px label.' },
     { name: 'emphasis', type: "enum: 'primary' | 'secondary'", values: ['primary', 'secondary'], default: 'primary', required: false, description: 'The label\'s ink. primary, the default, is the full-strength ink every field host nests: the label leads, and the placeholder below it is the quieter hint. secondary is the de-emphasized ink, for a label that should step back. Semantic roles, never shades (color.text.primary and color.text.secondary), so a brand that changes its text palette carries the label with it.' },
     { name: 'weight', type: "enum: 'regular' | 'bold'", values: ['regular', 'bold'], default: 'regular', required: false, description: 'How heavy the label reads. These are intents, not role names: regular resolves the brand\'s default body weight, bold the heaviest body weight the brand ships — Bold (700) on a brand that ships it, Medium (500) where that is its heaviest body cut. Use it for a label that has to carry a section, not for emphasis inside a form — a form where every label is bold has no emphasis in it.' },
@@ -462,7 +462,7 @@ export const fieldLabel: ComponentDef = {
       '3.3.2 Labels or Instructions (every field has a visible, programmatic label)',
       '1.4.3 Contrast (both emphasis inks, text.primary and text.secondary, are gated at 4.5:1; the disabled ink is contrast-exempt and held at 3:1)',
     ],
-    aria: 'Prefer a native <label for=id>; use aria-label / aria-labelledby only when a visible label genuinely cannot be shown (a search field with a hidden label — and it still exists in the DOM). The required marker is visual; the field carries required / aria-required so the state is not marker-only.',
+    aria: 'Prefer a native <label for=id>; use aria-label / aria-labelledby only when a visible label genuinely cannot be shown (a search field with a hidden label — and it still exists in the DOM). The required marker is visual; the field carries required / aria-required, or for a slider, "required" in the thumb\'s accessible name, so the state is not marker-only.',
   },
 
   content: {
@@ -474,7 +474,7 @@ export const fieldLabel: ComponentDef = {
     do: [
       'Always render a label, even for search (visually-hidden, still in the DOM)',
       'Keep it a short noun phrase in sentence case, no trailing colon',
-      'Set required consistently across a form, and back the marker with aria-required — never the marker alone',
+      'Set required consistently across a form, and back the marker with required / aria-required, or for a slider, "required" in the thumb\'s accessible name — never the marker alone',
     ],
     dont: [
       'Use the placeholder as the label (it vanishes on input — fails SC 3.3.2)',

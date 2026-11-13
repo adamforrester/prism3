@@ -24,7 +24,7 @@ MCP (Model Context Protocol) is the standard way an AI agent connects to a tool 
 2. Turn on the **Agent** switch in the top bar, beside Update file. <!-- src: apps/plugin/src/agent-link-ui.ts:230-233 -->
 3. Tell the agent the link is on. It sends a status request first, to confirm the plugin answers.
 
-To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:230 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:2465#13449644 -->
+To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:230 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:2469#13449644 -->
 
 The Activity drawer's bar shows the link's state in a word: "Listening · bridge" or "Listening · mailbox" while it waits, "Listening · mailbox only" in Prism3 Studio Offline, and "Error" or "Not listening" when something is wrong. Point at the word to read the full status. <!-- src: apps/plugin/src/agent-link-ui.ts:124-127 -->
 
@@ -54,7 +54,7 @@ The Activity drawer's bar shows the link's state in a word: "Listening · bridge
 | `set-override` | Points color roles at palette steps, or clears their overrides, in Light, Dark or a custom mode: a preview first, then a confirm that carries the preview's fingerprint and writes the theme. It refuses the whole list if any pair would drop below its minimum, and each change shows in Activity under Color override. Nothing else in Theme can be changed this way. <!-- src: apps/plugin/src/agent-protocol.ts:96-98 --> |
 | `context` | Says what the open file is: its brand and modes, its variable collections, the sets Prism3 built and which are due, and what is read-only: pages whose name contains FINAL, locked layers and `Original · …` copies. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:94-95 --> |
 
-Every write an agent asks for passes the same checks as Update file, and is refused for the same reasons. <!-- src: apps/plugin/src/run-guard.ts:1-14#b6f8158f -->
+Every write an agent asks for passes the same checks as Update file, and is refused for the same reasons. <!-- src: apps/plugin/src/run-guard.ts:1-20#802b70d3 -->
 
 ## Safety
 
