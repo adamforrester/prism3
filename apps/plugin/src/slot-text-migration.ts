@@ -158,7 +158,6 @@ export const fillSlotText = async (setName: string, entry: SlotTextEntry, slotNo
     // after the member pass, so a stop after them reaches every instance and a stop inside the pass reaches none. In
     // the second case the slot is already renamed in every member, so the next run cannot read the text again: each
     // instance is a miss naming it, never silent. Carrying it across that stop is #3761.
-    if (![entry.property, entry.show, entry.hide].some((b) => keyOf(b))) continue;
     const want: Record<string, Val> = {};
     const need = (bare: string, v: Val): void => { const key = keyOf(bare); if (key) want[key] = v; else out.misses.push(`${where}: has no "${bare}" property after the update`); };
     if (c.case.kind === 'move') need(entry.property, c.case.characters);
