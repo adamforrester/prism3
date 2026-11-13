@@ -9,8 +9,10 @@ Update file's Due row for a blocked set read "Can't be updated in place yet; the
 - Fix the variant names by hand in Figma.
 - The agent's Adopt, for variants not built by Prism3.
 
+With Theme ticked, the reasons Theme's run clears (variables, text and effect styles) are skipped: the row leads with what still blocks and counts only those, so it never asks the person to tick Theme again. Set names come from the shell's `displayNameOf` (owner decision Q392), so a row names a set as Components lists it ("Sign-in button", not a name rebuilt from the id). The plugin's style and swap-target lists, cut at three, now say how many more they leave out.
+
 A shape it doesn't know falls through to the line as written, less its issue references. A reworded blocker therefore shows its own words, never a wrong reason. Every string is a DRAFT for the owner.
 
 **Not fixed here: there is no path in Studio for some reasons.** That gap is filed as #3714. Studio can't adopt, can't rebuild a set the file holds, and drops a set the check refused outright.
 
-**Independence.** `test-update-file.ts` holds 13 literal blocker lines, copied from the plugin, against literal output. `test-update-kept-run.ts` runs a real check's blockers (a missing `icon/close` plus missing variables) through the same copy and expects the literal line. **Mutation:** with `checkedSetOf`'s `reasons` dropped, the plugin test fails `theme only/nest` and `theme only/dry run`. With the blocked branch back to the old fixed line, the Studio test fails every `#3713 reason` arm.
+**Independence.** `test-update-file.ts` holds 16 literal blocker lines, copied from the plugin, against literal output. `test-update-kept-run.ts` runs a real check's blockers (a missing `icon/close` plus missing variables) through the same copy and expects the literal line. **Mutation:** with `checkedSetOf`'s `reasons` dropped, the plugin test fails `theme only/nest` and `theme only/dry run`. With the blocked branch back to the old fixed line, the Studio test fails every `#3713 reason` arm. With `blockedLine` ignoring Theme, `#3713 theme ticked` fails. With set names built from the id rather than the name function, every naming arm fails.
