@@ -1863,7 +1863,7 @@ export const LATE_RESTORE = {
 const takeHeldRestore = (): void => {
   const input = heldRestore;
   if (!input) return;
-  stageLoad(input, { kind: 'file' });
+  loadBrand(input, { kind: 'file' });
   if (!pendingLoad) heldRestoreLoaded();   // no edits to lose: `stageLoad` loaded it (and `loadBrand` clears `pendingLoad`)
   else syncErrorBar();
 };
