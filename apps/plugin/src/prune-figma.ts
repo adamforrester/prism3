@@ -722,19 +722,19 @@ export const pruneAppliedSummary = (r: PruneResult): string => {
 };
 
 /**
- * #3697 R6 (H2): the lines a confirmed prune says when it removes nothing, or stops partway. Every one is a DRAFT for the
- * owner (OWNER DECISION on R6's PR): the decision named the behavior, not the words.
+ * #3697 R6 (H2): the lines a confirmed prune says when it removes nothing, or stops partway. Owner-approved wording
+ * (D3709.1, as drafted, 2026-11-12): the decision named the behavior, and the owner approved these words on R6's PR.
  */
 export const PRUNE_COPY = {
-  /** DRAFT: the confirm's input is not the brand the file holds (`holdsInput`), so the plan may name what the file still uses. */
+  /** The confirm's input is not the brand the file holds (`holdsInput`), so the plan may name what the file still uses. */
   notApplied: "Nothing removed — the file doesn't hold this brand yet. Apply the theme first, then check again.",
-  /** DRAFT: the confirm's `previewHash` is not the plan a fresh read gives now. */
+  /** The confirm's `previewHash` is not the plan a fresh read gives now. */
   moved: 'Nothing removed — the file changed after the check. Check again.',
-  /** DRAFT: the named version could not be saved, so nothing is removed. */
+  /** The named version could not be saved, so nothing is removed. */
   noVersion: (why: string): string => `Nothing removed — the named version could not be saved (${why}).`,
-  /** DRAFT: removals whose own `remove()` threw (`PruneResult.failed`). */
+  /** Removals whose own `remove()` threw (`PruneResult.failed`). */
   failed: (n: number): string => `${n} item${n === 1 ? '' : 's'} could not be removed.`,
-  /** DRAFT: a throw outside a removal, with the counts removed before it. */
+  /** A throw outside a removal, with the counts removed before it. */
   stopped: (r: PruneResult, why: string): string => {
     const total = r.variables + r.collections + r.modes + r.styles;
     return `Prune stopped — ${why}. ` + (total

@@ -39,7 +39,7 @@ The variables the plugin writes match the ones the engine emits for the same bra
 | `✓ applied` | Everything was written. <!-- src: apps/plugin/src/apply-summary.ts:37 --> |
 | `✓ applied, N skipped` | The variables were written, but N text styles were not, because Figma could not load their font. The detail names them. <!-- src: apps/plugin/src/apply-summary.ts:36 --> |
 | `⚠ N misses` | The theme named a variable this file does not have, so something did not bind. <!-- src: apps/plugin/src/apply-summary.ts:30 --> |
-| `✗ N conflicts` | Nothing was written. See below. <!-- src: apps/plugin/src/apply-summary.ts:47-48 --> |
+| `✗ N conflicts` | Nothing was written. See below. <!-- src: apps/plugin/src/apply-summary.ts:63-64 --> |
 | `✗ write failed` | Figma refused a write partway through. The detail holds Figma's message. <!-- src: apps/plugin/src/apply-summary.ts:42 --> |
 
 *[Screenshot placeholder: the Activity drawer after a clean theme write.]*
@@ -63,7 +63,7 @@ One exception: a grid style whose name is taken is skipped for that breakpoint, 
 
 Two more cases stop the theme before it starts:
 
-- Another theme write is running, from an agent: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:41-45 -->
+- Another write is running, from an agent: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:49-52 -->
 - The file's saved brand didn't open. Update file's write stays off, with the reason: "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." <!-- src: apps/studio/src/main.ts:1835 -->
 
 ## Writing it again

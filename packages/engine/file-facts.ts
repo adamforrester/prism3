@@ -55,10 +55,15 @@
  *
  * SCHEMA. `schema/file-facts.schema.json`, authored by hand; `format` equals its `$id`. The plugin suite validates
  * every fixture's report against it, so a field added here without the schema moving fails there.
+ *
+ * UNSTABLE: 0.x (owner decision D3685.1 C). The format id is `prism3-file-facts/0.<n>` until #2075 part 2's findings
+ * are in. Under 0.x any field may be added, renamed or removed, and each such change raises `<n>`; nothing here is a
+ * promise yet. A reader checks the exact id and refuses one it does not know. Leaving 0.x (`/1.0`) is the owner's
+ * call, made when part 2 has shown which fields earn their place.
  */
 import { ENGINE_VERSION } from './version';
 
-export const FILE_FACTS_FORMAT = 'prism3-file-facts/1.0';
+export const FILE_FACTS_FORMAT = 'prism3-file-facts/0.1';
 export const ROLE_RULE = 'name-and-type/1';
 
 /* ── the source: the slice of the plugin API the scan reads ─────────────────────────────────────────────────────────── */

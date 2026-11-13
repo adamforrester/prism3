@@ -388,12 +388,14 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       // Draw specs, declined: it gets no verdict, so the host's words are its result.
       const specs = op === 'components' && !m.agent && s.specsState === 'pending' ? { specsState: { ok: false, headline: '✗ not drawn', summary: m.message } } : {};
       const next = { ...s, ...specs, refused: { op, message: m.message, agent: m.agent, n: (s.refused?.n ?? 0) + 1 } };
-      // The panel's own request, declined behind an agent's run: it posted, set `pending`, and will get no
-      // verdict. A panel request declined behind the panel's own run leaves `pending` to that run's verdict.
-      // An agent's Draw specs holds the build's guard, so it declines the panel's components request too.
-      // #3394: an agent's confirmed set-override writes through Theme's guard, so it declines the panel's Apply too.
-      const holds = s.agentRun?.op === 'specs' ? 'components' : s.agentRun?.op === 'override' ? 'apply' : s.agentRun?.op;
-      if (m.agent || holds !== op) return next;
+      // The panel's own request, declined: it posted, set `pending`, and will get no verdict. Only a panel request
+      // declined behind the panel's own run OF THE SAME operation leaves `pending` to that run's verdict, which fills
+      // the same slot. Since #3697 R7 one write holds the whole file, so a request is also declined behind a
+      // different operation (`held`), the panel's or an agent's, and that run's verdict never fills this slot.
+      // An agent's Draw specs runs as the build, and its confirmed set-override as Theme (#3394).
+      const agentHolds = s.agentRun?.op === 'specs' ? 'components' : s.agentRun?.op === 'override' ? 'apply' : s.agentRun?.op;
+      const heldOp = AGENT_OP[m.held ?? m.cmd];
+      if (m.agent || (heldOp === op && agentHolds !== op)) return next;
       return { ...next, ...unpend(op, s) };
     }
     case 'restore-input-error':

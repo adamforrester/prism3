@@ -24,5 +24,5 @@ removal on its own, and reports running counts.
 - `test-prune-main.ts` drives the real `main.ts` over `file-shim.ts`: Apply Theme, three planted stale variables,
   then an unapplied input, a missing hash, a wrong hash, and a confirm whose second removal throws. Every expected
   line is a literal; the version-first order is read from one log of host calls.
-- The refusal lines, the version title and the "could not be removed" line are DRAFTS for the owner (`PRUNE_COPY`,
-  `versionOf({ run: 'prune' })`).
+- The refusal lines, the version title, the "could not be removed" line and the guide sentence are the owner's
+  approved wording (D3709.1, as drafted; `PRUNE_COPY`, `versionOf({ run: 'prune' })`).

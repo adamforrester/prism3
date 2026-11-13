@@ -38,7 +38,7 @@ const REPO = join(import.meta.dirname, '..', '..');
 const input: BrandInput = brandFromDesignMd(readFileSync(join(REPO, 'packages/engine/examples/aurora.design.md'), 'utf8'));
 const other: BrandInput = { ...input, controlShape: input.controlShape === 'pill' ? 'rounded' : 'pill' };
 
-// The owner's copy, typed here (the DRAFT lines in `prune-figma.ts`'s `PRUNE_COPY`).
+// The owner's copy, typed here (`prune-figma.ts`'s `PRUNE_COPY`, approved as D3709.1).
 const NOT_APPLIED = "Nothing removed — the file doesn't hold this brand yet. Apply the theme first, then check again.";
 const MOVED = 'Nothing removed — the file changed after the check. Check again.';
 

@@ -35,7 +35,7 @@ export const versionOf = (r: VersionRun): { title: string; description: string }
   const engine = `Engine ${ENGINE_VERSION}.`;
   if (r.run === 'style-guide') return { title: `${MARKER} drew style guides`, description: `${engine} ${plural(r.tables, 'table')}.` };
   if (r.run === 'apply-theme') return { title: `${MARKER} applied the theme`, description: `${engine} Variables and styles.` };
-  // DRAFT (OWNER DECISION on #3697 R6's PR): a confirmed prune saves one before its first removal.
+  // Owner-approved wording (D3709.1, 2026-11-12): a confirmed prune saves one before its first removal.
   if (r.run === 'prune') return { title: `${MARKER} removed stale items`, description: `${engine} Variables, modes, collections and styles the brand no longer emits.` };
   // Owner-approved wording (#2989, Q3 A, 2026-10-24): Set up file saves one only when it moves sets to their pages.
   if (r.run === 'setup') return { title: `${MARKER} set up the file`, description: `${engine} Sets moved to their pages: ${r.sets.map((s) => s.set).join(', ')}.` };
