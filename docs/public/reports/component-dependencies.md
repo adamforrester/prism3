@@ -119,7 +119,7 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | accordion | leadingGlyph | nest | _accordion-indicator | nest-fixed | indicator=chevron, expansion=collapsed, size=medium | indicator, expansion, size | — |
 | accordion | trailingGlyph | nest | _accordion-indicator | nest-fixed | indicator=chevron, expansion=collapsed, size=medium | indicator, expansion, size | — |
 | banner | action | nest | button | nest-fixed | appearance=text, size=small, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
-| banner | dismiss | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=small, surface=default, state=rest | — | — |
+| banner | close | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=small, surface=default, state=rest | — | — |
 | banner | link | nest | link | nest-fixed | style=inline, weight=default, size=medium, surface=default, selection=unselected, state=rest | — | — |
 | breadcrumb-item | crumb | nest | link | nest-exposed | style=inline, weight=default, size=medium, surface=default, selection=unselected, state=rest | size | state |
 | breadcrumb-item | overflow | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=small, surface=default, state=rest | — | state |
@@ -150,12 +150,12 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | checkbox-group | row2 | nest | checkbox-row | nest-fixed | size=medium, status=default | size, status | — |
 | checkbox-group | row3 | nest | checkbox-row | nest-fixed | size=medium, status=default | size, status | — |
 | checkbox-row | control | nest | checkbox-control | nest-exposed | selection=unchecked, state=rest, status=default | size, status | selection, state |
-| code-input | cell1 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
-| code-input | cell2 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
-| code-input | cell3 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
-| code-input | cell4 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
-| code-input | cell5 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
-| code-input | cell6 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
+| code-input | cell1 | nest | code-input-cell | nest-fixed | size=medium, status=default, state=rest | size, status | — |
+| code-input | cell2 | nest | code-input-cell | nest-fixed | size=medium, status=default, state=rest | size, status | — |
+| code-input | cell3 | nest | code-input-cell | nest-fixed | size=medium, status=default, state=rest | size, status | — |
+| code-input | cell4 | nest | code-input-cell | nest-fixed | size=medium, status=default, state=rest | size, status | — |
+| code-input | cell5 | nest | code-input-cell | nest-fixed | size=medium, status=default, state=rest | size, status | — |
+| code-input | cell6 | nest | code-input-cell | nest-fixed | size=medium, status=default, state=rest | size, status | — |
 | code-input | label | nest | field-label | nest-exposed | size=medium, emphasis=primary, weight=regular, state=rest | — | emphasis, weight |
 | code-input | message | nest | field-message | nest-fixed | status=default | status | — |
 | counter | decrement | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=medium, surface=default, state=rest | size | state |

@@ -418,6 +418,7 @@ const gated: string[] = [
   // field in it carries a `description` an agent reads to learn `out/components/components.ai.json`.
   join(repo, 'packages/engine/schema/component-docs.schema.json'),
   join(repo, 'packages/engine/schema/component-defs.schema.json'),   // #3425: the component-defs export's authored schema
+  join(repo, 'packages/engine/schema/file-facts.schema.json'),   // #2075: the file facts report's authored schema; every field carries a `description`
   // Shipped skills — prose an agent reads and follows, named by hand for the same reason.
   ...walk(join(repo, 'skills')).filter((f) => f.endsWith('.md')),
   // The designer guides (#2637): published docs a designer reads, served by the studio and readable on GitHub,

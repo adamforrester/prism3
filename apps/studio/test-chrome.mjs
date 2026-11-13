@@ -1166,11 +1166,23 @@ async function settleModes(page) {
     if (still) return;
   }
 }
+/** #3700: the guard for a step that acts on the mode control. Such a step picks a radio or the select by what is on
+ *  screen, so it must look only after the header's fit has run: `settleModes` first, then this, then the look. With
+ *  `data-fit-pending` still set, the step would act on the answer the fit is about to replace (S7 Shape edits went
+ *  from Brand, on the select, to Shape, where the radios fit, and `selectOption` then waited 30 s on a hidden select).
+ *  So it fails here by name, with the mode and the page. Read off the page, independent of the settle it guards.
+ *  Its mutation, and the case that holds the fit back so the mutation fails every run, are section 24's (#3700). */
+async function modeLook(page, mode) {
+  const s = await page.evaluate(() => ({ pending: !!document.querySelector('[data-p3="mode-control"]')?.parentElement?.hasAttribute('data-fit-pending'),
+    place: document.querySelector('[data-p3="frame"]')?.dataset.place ?? null }));
+  ok(!s.pending, `#3700: choosing ${mode} on ${s.place}, the mode control is read only once the preview header's fit has run${s.pending ? ' — data-fit-pending was still set' : ''}`);
+}
 /** Choose a mode in the preview header by whichever control represents it: its radio, or, where the modes do not all
  *  fit, the select of the same modes (both are the mode choice, PREVIEW_HEAD_ALL). #2909: the plugin's preview header is
  *  narrower by the rail and holds Contrast, so at 1280 it can show the select where the web shows radios. */
 async function pickMode(page, mode) {
   await settleModes(page);
+  await modeLook(page, mode);
   if (await page.locator('[data-p3="mode-select"]').isVisible()) await page.locator('[data-p3="mode-select"]').selectOption(mode);
   else await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
   await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true'
@@ -2962,6 +2974,9 @@ for (const theme of ['light', 'dark']) {
   const mp = await measure(page, `${where} / preview header`, 'web', 1280);
   check(mp, `${where} / preview header`, 'web wide', PLACE_FLOOR);
   if (SHOTS) await page.screenshot({ path: join(SHOTS, `s13-studio-${theme}-1280-mode-control.png`) });
+  // #3700: each step on the mode control waits for its fit first (`modeLook`).
+  await settleModes(page);
+  await modeLook(page, 'dark');
   await hooks.click(page.locator('[data-p3="mode-option"][data-mode="dark"]'));
   const a = await modeState(page);
   ok(a.radios.find((r) => r.mode === 'dark')?.checked === 'true', `${where}: choosing Dark in the mode control checks it`);
@@ -2971,11 +2986,15 @@ for (const theme of ['light', 'dark']) {
   // The mode chosen on one page is the mode every page that previews modes draws in: HC light, chosen on Brand, holds on
   // Surfaces & fills. (Palettes always shows Light, PM1 B; section 36. Components shows none, #3129 R4.)
   await goPlace(page, 'brand');
+  await settleModes(page);
+  await modeLook(page, 'hc-light');
   await hooks.click(page.locator('[data-p3="mode-option"][data-mode="hc-light"]'));
   await goPlace(page, 'color-fills');
   const b = await modeState(page);
   ok(b.radios.find((r) => r.mode === 'hc-light')?.checked === 'true', `${where}: HC light, chosen on Brand, is the mode Surfaces & fills shows (${b.radios.filter((r) => r.checked === 'true').map((r) => r.mode)})`);
   // Arrow keys move along the radios and choose as they go.
+  await settleModes(page);
+  await modeLook(page, 'hc-dark');
   await page.locator('[data-p3="mode-option"][data-mode="hc-light"]').focus();
   await page.keyboard.press('ArrowRight');
   const c = await modeState(page);
@@ -4910,7 +4929,9 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   // the mode nor the preview's scroll.
   const before = await toBottom();
   // #2909 Q2909.9 A: at 1280 the web's header may show the select (Contrast beside the rail); a click reaches whichever
-  // the header draws, and a held select takes none, as the held radios do.
+  // the header draws, and a held select takes none, as the held radios do. #3700: read once the fit has run.
+  await settleModes(page);
+  await modeLook(page, 'dark');
   await page.evaluate(() => { const r = document.querySelector('[data-p3="mode-option"][data-mode="dark"]'); if (r?.getClientRects().length) r.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     else document.querySelector('[data-p3="mode-select"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
   const held = await page.evaluate(() => document.querySelector('[data-p3="mode-option"][aria-checked="true"]')?.dataset.mode);
@@ -5149,6 +5170,7 @@ const choosable = (page) => page.evaluate(() => {
  *  has settled (the select shown, or radios with none clipped), a frame apart, for at most 2 s; a control that
  *  never settles is still read and reported as it stands. */
 const settled = async (page) => {
+  await settleModes(page); // #3700: past any fit still owed, then read until settled as before.
   for (const end = Date.now() + 2000; Date.now() < end;) {
     const c = await choosable(page);
     if (c.select || (c.radios > 0 && c.clipped.length === 0)) return c;
@@ -5180,6 +5202,7 @@ for (const { w, h } of WIDTHS) {
       const where = `web light ${w} / brand, ${want.length} modes`;
       ok(c.clipped.length === 0 && JSON.stringify(c.modes) === JSON.stringify(want), `${where}: every mode is choosable in the preview header, none clipped — ${JSON.stringify(c)}`);
       if (c.select) {
+        await modeLook(page, `custom-${n}`);
         await page.locator('[data-p3="mode-select"]').selectOption(`custom-${n}`);
         const now = await choosable(page);
         ok(now.selected === `custom-${n}`, `${where}: choosing custom-${n} in the select previews it (${now.selected})`);
@@ -5884,8 +5907,10 @@ const VISIBLE_WORDS = () => {
 /** Show `mode` in the preview: its radio, or the select when the radios do not all fit. */
 const showMode = async (page, mode) => {
   // The control measures whether its radios fit once it is drawn (#2909: the rail narrows the plugin's preview, so at 380
-  // they can be drawn and then give way to the select): read that after it settles, as `roShowMode` does.
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  // they can be drawn and then give way to the select): read that after it settles, as `roShowMode` does. #3700: by
+  // `settleModes`, not two frames, which can both land before a resize's fit.
+  await settleModes(page);
+  await modeLook(page, mode);
   const radio = page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`);
   if (await radio.count() && await radio.first().isVisible()) await hooks.click(radio.first());
   else await page.locator('[data-p3="mode-select"]').selectOption(mode);
@@ -7122,6 +7147,7 @@ const chooseAnyMode = async (page, mode) => {
   // #3668: look only once the fit has settled. Looking first found the radio drawn, and the fit that ran a frame later
   // hid it for the select, so the click waited for a radio that never came back (section 26, Components to Brand).
   await settleModes(page);
+  await modeLook(page, mode);
   const radio = page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`);
   if (await radio.count() && await radio.isVisible()) await hooks.click(radio);
   else await page.locator('[data-p3="mode-select"]').selectOption(mode);
@@ -7733,6 +7759,10 @@ if (runs('3115')) {
             const g = document.querySelector(s);
             if (!g) return null;
             if (tight) {
+              // #3553 Q-UI2 A: a group too wide for one row is stacked (`data-stack`), one option to a row, and a stack's
+              // max-content is its widest option. The row's own max-content is read with the stack cleared; at that width
+              // the row fits, so the page keeps it a row.
+              delete g.dataset.stack;
               if (px === null) { g.style.width = 'max-content'; px = g.getBoundingClientRect().width; }
               g.style.width = `${px}px`;
             }
@@ -9338,6 +9368,7 @@ const openDepth = async (page) => {
 /** Choose a mode in the preview header: its radio, or, where the modes do not all fit, the select of the same modes. */
 const chooseModeAny = async (page, mode) => {
   await settleModes(page);
+  await modeLook(page, mode);
   if (await page.locator('[data-p3="mode-select"]').isVisible()) await page.locator('[data-p3="mode-select"]').selectOption(mode);
   else await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
   await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true'
@@ -10272,6 +10303,43 @@ for (const host of ['web', 'figma']) {
     ok(errors.length === 0, `shape edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     if (!e?.reported) ok(false, `S7 Shape edits: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+// #3700: a mode chosen while the header's fit is still owed. S7 Shape edits goes from Brand, where five modes put the
+// select in the header at 1280, to Shape, where the radios fit, and chooses the custom mode at once. On CI the choice
+// could land before the fit: it read the select, the fit then hid it, and `selectOption` waited 30 s. Natural speed
+// hits that window only some of the time, so here every frame is slowed 600 ms from Brand on, which holds the fit
+// back (`data-fit-pending` set) when Shape opens, every run. EXPECTED: the window is there (the first check, so a
+// change that closes it is said, not passed), and `chooseAnyMode` still checks the custom mode's radio, since it
+// settles first. ACTUAL: the drawn control.
+// MUTATION (after a `wip:` commit): `chooseAnyMode`'s `settleModes` call removed → `#3700: choosing custom-1 on shape,
+// the mode control is read only once the preview header's fit has run — data-fit-pending was still set` and `#3700 web
+// light 1280, Brand to Shape with the fit owed: the custom mode is chosen by its radio once the fit has run — fit select,
+// checked custom-1`, 3 runs of 3. (At natural speed the same mutation failed S7 Shape edits in 2 runs of 3, once with
+// the issue's `selectOption` timeout: the reason for holding the fit back here.)
+{
+  const where = '#3700 web light 1280, Brand to Shape with the fit owed';
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'brand');
+    await hooks.click(page.locator('[data-p3="custom-mode-add"]'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="custom-1"]'));
+    await settleModes(page);
+    await page.evaluate(() => {
+      const raf = window.requestAnimationFrame.bind(window);
+      window.requestAnimationFrame = (cb) => setTimeout(() => raf(cb), 600);
+      window.cancelAnimationFrame = (id) => clearTimeout(id);
+    });
+    await goPlace(page, 'shape');
+    const owed = await page.evaluate(() => { const w = document.querySelector('[data-p3="mode-control"]')?.parentElement; return { fit: w?.dataset.fit ?? null, pending: !!w?.hasAttribute('data-fit-pending') }; });
+    ok(owed.fit === 'select' && owed.pending, `${where}: Shape opens with Brand's select still shown and its fit still owed — fit ${owed.fit}, data-fit-pending ${owed.pending}`);
+    await chooseAnyMode(page, 'custom-1');
+    const now = await page.evaluate(() => { const w = document.querySelector('[data-p3="mode-control"]')?.parentElement;
+      return { fit: w?.dataset.fit ?? null, checked: document.querySelector('[data-p3="mode-option"][aria-checked="true"]')?.dataset.mode ?? null }; });
+    ok(now.fit === 'radios' && now.checked === 'custom-1', `${where}: the custom mode is chosen by its radio once the fit has run — fit ${now.fit}, checked ${now.checked}`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    if (!e?.reported) ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Q59: in each derived mode every control on Shape is disabled, the advanced one included, under the derived line, and
@@ -15134,7 +15202,9 @@ const roShowMode = async (page, mode) => {
   const narrow = await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
   if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
   // The control measures whether its radios fit once it is drawn (radios, or a select); read that after it settles.
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  // #3700: by `settleModes`, not two frames, which can both land before a resize's fit.
+  await settleModes(page);
+  await modeLook(page, mode);
   const radios = await page.evaluate(() => document.querySelector('[data-p3="mode-control"]')?.parentElement?.dataset.fit === 'radios');
   if (radios) await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`).first());
   else await page.locator('[data-p3="mode-select"]').selectOption(mode);
@@ -19198,7 +19268,7 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
       `${where}: Q3306.5 A: To add's one Also adds line names the sets the chosen ones need, out of their family too, while the badge counts the chosen ones (${JSON.stringify(u.also)})`);
     ok(u.ticks === 0 && JSON.stringify(u.removes) === JSON.stringify(S_ORDER.map(([, n]) => `Remove ${n} from To add`)) && u.removeAll === 'Remove all',
       `${where}: Q3129.7 A, Q3129.8 A: a queued set has no tick, only Remove, named "Remove {set} from To add", and the subtitle's line has Remove all (${JSON.stringify({ ticks: u.ticks, removes: u.removes.length, removeAll: u.removeAll })})`);
-    ok(u.line === '7 sets chosen on Components. Each is added with its usage panel while Documentation has panels on.' && u.dueLine === '3 sets to update in place. Ticked by default.',
+    ok(u.line === '7 sets chosen on Components. Each is added with its usage panel while Docs has panels on.' && u.dueLine === '3 sets to update in place. Ticked by default.',
       `${where}: the groups' lines, DRAFT (${JSON.stringify([u.line, u.dueLine])})`);
     ok(JSON.stringify(u.due) === JSON.stringify([['button', 'Button', 'true'], ['text-field', 'Text field', 'true'], ['tag', 'Tag', 'true']]),
       `${where}: P5: Due names its sets as Components does, ticked (${JSON.stringify(u.due)})`);
@@ -19422,7 +19492,7 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380], ['dar
     const cl = await page.evaluate(() => ({ summary: document.querySelector('[data-p3="clean-panels-summary"]')?.textContent ?? null,
       keep: document.querySelector('[data-p3="clean-panels"] .p3-sub')?.textContent ?? null, rm: document.querySelector('[data-p3="clean-panels-confirm"]')?.textContent ?? null,
       group: !!document.querySelector('[data-p3="update-group-panels"]') }));
-    ok(canon(count) === canon({ type: 'panels-clean', confirm: false }) && cl.summary === '32 usage panels, drawn while Documentation had panels on.'
+    ok(canon(count) === canon({ type: 'panels-clean', confirm: false }) && cl.summary === '32 usage panels, drawn while Docs had panels on.'
       && cl.keep === 'Panels edited by hand stay. Turning panels on again draws them back.' && cl.rm === 'Remove 30 panels',
       `${where}: Q3137.7 A: with panels off, Clean up counts the drawn panels as it opens, names them, and offers "Remove 30 panels" (DRAFT) (${JSON.stringify({ count, ...cl })})`);
     const mc = await measure(page, `${where} / Clean up, panels`, 'figma', w);
@@ -19433,7 +19503,7 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380], ['dar
     await postMsg(page, { type: 'panels-clean-result', ok: true, applied: true, drawn: 2, removable: 0, removed: 30, kept: 2 });
     await settle(page);
     const after = await page.evaluate(() => ({ summary: document.querySelector('[data-p3="clean-panels-summary"]')?.textContent ?? null, rm: !!document.querySelector('[data-p3="clean-panels-confirm"]') }));
-    ok(after.summary === '2 usage panels, drawn while Documentation had panels on.' && !after.rm, `${where}: after the removal, the edited panels left are named, with nothing more to remove (${JSON.stringify(after)})`);
+    ok(after.summary === '2 usage panels, drawn while Docs had panels on.' && !after.rm, `${where}: after the removal, the edited panels left are named, with nothing more to remove (${JSON.stringify(after)})`);
     await page.keyboard.press('Escape');
     step = 'panels off: Documentation';
     await hooks.click(page.locator('[data-p3="rail-documentation"]'));
@@ -20027,7 +20097,7 @@ const READ_3326 = (page) => page.evaluate(() => {
 //   Mutations this fails by name: a step drawing a button → `… no step offers a button`; a note counted → `… a note adds
 //   nothing to the count`; `owned` folding every operation into the run → `… an agent's Build set after the run keeps its
 //   own row`; a never-run step drawn without its dash and words → `… a step the run never reached`.
-const TEMPLATE_NOTE_3326 = 'No usage panels drawn: this file has no _Doc-block component. Turn off Usage panels in Documentation, or run Set up file to add it.';
+const TEMPLATE_NOTE_3326 = 'No usage panels drawn: this file has no _Doc-block component. Turn off Usage panels in Docs, or run Set up file to add it.';
 const READ_RUN_3326 = (page) => page.evaluate(() => {
   const row = document.querySelector('[data-p3="activity-drawer"] [data-p3="activity-op"][data-op="update"]');
   const body = row?.querySelector('[data-p3="op-body"]');
@@ -22124,6 +22194,87 @@ if (runs('3553-export')) {
     } finally { await ctx.close(); }
   }
 } // 3553-export
+// #3553 Q-UI2 (the owner's Q-UI2 A): A SINGLE CHOICE NEVER WRAPS TO AN ORPHAN. Interactive's Outline hover drew 3 + 1 at
+// 1280 ("No hover fill" alone) and 2 + 2 at 1024 and 380; Components' Control shape drew 3 + 1 at the plugin's 380 ("Pill"
+// alone). A, "swap to a select or to a radio list": the list, so each option keeps its button, hook, role and keys. A
+// choice whose options do not fit one row is laid out one option to a row, the column's width (`data-stack`). Held on
+// every drawn segmented choice (`.p3-choice`) and single-choice chip row (`.p3-chips-one`) of Interactive, Shape, Type
+// and Components: its options sit on one row, or one to a row, never anything between. Web at 1280 and 1024, the plugin
+// at 380, both themes. MUTATION (after a `wip:` commit): `stackWhenWrapped(el)` dropped from `choice` and `chipChoice` →
+// `#3553 Q-UI2 … no single choice wraps to an orphan`. A stacked choice also unstacks when its column widens: a page
+// opened at 1024 and widened to 1600 stacks exactly the choices a fresh 1600 page does, and narrowed back stacks them
+// again. MUTATION: `delete el.dataset.stack;` dropped from `fit` → `#3553 Q-UI2 … widened … stacks what a fresh page does`.
+if (runs('3553-q2')) {
+  console.log(`\nA single choice never wraps to an orphan (#3553 Q-UI2)\n${'='.repeat(78)}`);
+  for (const [host, w, h] of [['web', 1280, 900], ['web', 1024, 768], ['figma', 380, 420]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-q2 ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    let step = 'open';
+    try {
+      let stacked = 0, seen = 0;
+      for (const place of ['color-interactive', 'shape', 'type', 'components']) {
+        step = place;
+        await goPlace(page, place);
+        await settle(page);
+        await settle(page);
+        const m = await page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"] :is(.p3-choice, .p3-chips-one)')].filter((g) => g.getClientRects().length > 0).map((g) => {
+          const opts = [...g.children].filter((c) => c.getClientRects().length > 0);
+          const rows = new Set(opts.map((c) => Math.round(c.getBoundingClientRect().top))).size;
+          return { hook: g.dataset.p3 ?? g.getAttribute('aria-label'), n: opts.length, rows, stack: g.dataset.stack === 'true' };
+        }));
+        seen += m.length;
+        stacked += m.filter((g) => g.stack).length;
+        const orphans = m.filter((g) => g.rows !== 1 && g.rows !== g.n);
+        ok(orphans.length === 0, `#3553 Q-UI2 ${where} ${place}: no single choice wraps to an orphan; each is one row or one option to a row (${JSON.stringify(orphans)})`);
+        if (SHOTS && theme === 'light' && place === 'color-interactive') await page.screenshot({ path: join(SHOTS, `s3553-q2-${host}-${w}.png`) });
+      }
+      ok(seen >= 6, `${where}: premise, the sweep read the pages' single choices (${seen}, ${stacked} stacked)`);
+      if (w === 380) ok(stacked > 0, `${where}: premise, at 380 some choice is too wide for one row and is stacked (${stacked})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+  const stackRead = (page) => page.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-p3="levers-pane"] :is(.p3-choice, .p3-chips-one)')]
+    .filter((g) => g.getClientRects().length > 0).map((g, i) => [g.dataset.p3 ?? g.getAttribute('aria-label') ?? String(i), g.dataset.stack === 'true'])));
+  const diff = (a, b) => Object.keys({ ...a, ...b }).filter((k) => a[k] !== b[k]);
+  for (const theme of ['light', 'dark']) {
+    const where = `3553-q2 web ${theme} resize`;
+    const fresh = {};
+    const wide = await open({ host: 'web', theme, w: 1600, h: 900 });
+    let step = 'fresh 1600';
+    try {
+      for (const place of ['color-interactive', 'components']) { step = `fresh 1600 ${place}`; await goPlace(wide.page, place); await settle(wide.page); await settle(wide.page); fresh[place] = await stackRead(wide.page); }
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await wide.ctx.close(); }
+    const { ctx, page, errors } = await open({ host: 'web', theme, w: 1024, h: 768 });
+    try {
+      for (const place of ['color-interactive', 'components']) {
+        step = `1024 ${place}`;
+        await page.setViewportSize({ width: 1024, height: 768 });
+        await goPlace(page, place);
+        await settle(page); await settle(page);
+        const narrow = await stackRead(page);
+        ok(Object.values(narrow).some(Boolean), `${where} ${place}: premise, at 1024 some choice is stacked (${JSON.stringify(narrow)})`);
+        ok(fresh[place] && Object.keys(fresh[place]).length > 0 && diff(narrow, fresh[place]).length > 0, `${where} ${place}: premise, a fresh 1600 page stacks differently from 1024 (${JSON.stringify(fresh[place])})`);
+        step = `widen ${place}`;
+        await page.setViewportSize({ width: 1600, height: 900 });
+        await settle(page); await settle(page);
+        const widened = await stackRead(page);
+        ok(diff(widened, fresh[place] ?? {}).length === 0, `#3553 Q-UI2 ${where} ${place}: widened from 1024 to 1600, it stacks what a fresh page does (differs on ${JSON.stringify(diff(widened, fresh[place] ?? {}))})`);
+        step = `narrow ${place}`;
+        await page.setViewportSize({ width: 1024, height: 768 });
+        await settle(page); await settle(page);
+        const back = await stackRead(page);
+        ok(diff(back, narrow).length === 0, `#3553 Q-UI2 ${where} ${place}: narrowed back to 1024, it stacks what it did before (differs on ${JSON.stringify(diff(back, narrow))})`);
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-q2
 // #3553 Q-UI1 (the owner's Q-UI1 A): ONE MODE CONTROL ON EVERY PAGE AT 1280. The preview header's mode control was the
 // radios on Palettes, Interactive, Type and Layout but a select on Brand ("Style guide"), Surfaces & fills, Shape and Depth
 // & motion, whose longer titles left the radios no room, so moving between tabs swapped the control under the pointer.

@@ -139,7 +139,7 @@ const MUST_COVER = [
   // Progress's own glyphs (#2670), measured by the RING_GLYPH arm.
   'progress.ringGlyph', 'progress.arcGlyph', 'progress.fullRingGlyph', 'progress.dotGlyph',
   'banner.infoGlyph', 'banner.successGlyph', 'banner.warningGlyph', 'banner.dangerGlyph',
-  'toast.checkCircleGlyph',
+  'toast.successGlyph',
   '_breadcrumb-separator.chevronGlyph', '_breadcrumb-separator.slashGlyph', 'breadcrumbs.backGlyph',
   // The provider logos (#2343), measured by the MARK arm against their own artboards.
   'provider-logo.glyph',
@@ -427,7 +427,7 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
     why: 'the danger mark: an exclamation in a TRIANGLE, FieldMessage\'s error glyph, the one enclosure that is not a circle, so the most serious tone is told apart by shape',
   },
   // #2668 (owner call 3 A): the Toast's success glyph, the same circled check FieldMessage draws; neutral draws none.
-  'toast.checkCircleGlyph': {
+  'toast.successGlyph': {
     glyph: 'check-circle',
     at: { intent: ['success'] },
     why: "the success mark, FieldMessage's circled check, so success reads the same in a field and in a toast. `glyph: '{intent}'` cannot express it: the vocabulary has no glyph named `success`, and neutral draws nothing (call 3 A)",
