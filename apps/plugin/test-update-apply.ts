@@ -989,7 +989,7 @@ section('keep, reported — a kept hand edit on a bound size is a hand edit kept
   ok(pre.sets[0].handEdits.length === 0, `premise: the dry run lists no hand edit (${JSON.stringify(pre.sets[0].handEdits)})`);
   const v = applyVerdict(res);
   const want = `bound ${PLAIN}/dot.width -> DISCARDED (set control/size/md/dot, not retained on the live node)`;
-  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines.some((l) => l.includes('not written as planned') && l.includes(want))
+  ok(!v.ok && v.headline === '⚠ Updated 1 set · 1 to check' && v.lines.some((l) => l.includes('not written as planned') && l.includes(want))
     && res.outcomes[0].misses.includes(want) && !res.outcomes[0].keptBound && !v.lines[0].includes('hand edit'),
     `kept report/real discard: a binding the host dropped on a node no one edited is still a part not written (${JSON.stringify(v)})`);
 }
@@ -1026,7 +1026,7 @@ section('keep, reported — a kept hand edit on a bound size is a hand edit kept
   const kept = JSON.stringify((o.keptBound ?? []).map((b) => [b.member, b.part, b.field]).sort());
   ok(o.misses.includes(want) && !o.misses.some((x) => x.includes(`${EDITED}/dot`))
     && kept === JSON.stringify([[EDITED, 'dot', 'height'], [EDITED, 'dot', 'width']])
-    && !v.ok && v.headline === '⚠ 1 set not verified · 1 set kept edits over changes' && v.lines.some((l) => l.includes('not written as planned') && l.includes(want)),
+    && !v.ok && v.headline === '⚠ Updated 1 set · 1 to check · 1 set kept edits over changes' && v.lines.some((l) => l.includes('not written as planned') && l.includes(want)),
     `kept report/two members: ${EDITED}'s kept dot does not hide the binding the host dropped on ${OTHER}'s dot (${JSON.stringify({ misses: o.misses, keptBound: o.keptBound, v })})`);
 }
 
@@ -2154,7 +2154,7 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   ok(post.counts.current === 45 && post.counts.current + (post.counts.update ?? 0) + (post.counts.noBaseline ?? 0) === 46 && !post.handEdits.some((h) => h.member.endsWith(String(hit.name).split('/').pop()!)),
     `recordfail/out of date: the next dry run reads it out of date, never current, the other 45 current (${JSON.stringify(post.counts)})`);
   const glyph = String(hit.name).split('/').pop();
-  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 45 updated in place.'
+  ok(!v.ok && v.headline === '⚠ Updated 1 set · 1 to check' && v.lines[0] === 'icon: 45 updated in place.'
     && v.lines.includes(`icon: 1 member not finished — name=${glyph} (its as-built record could not be written). It still reads as out of date; run the update again to finish it.`),
     `recordfail/verdict: the verdict is not a ✓, counts 45 updated and names the icon not finished (${JSON.stringify(v)})`);
 }
@@ -2177,7 +2177,7 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   ok(pdOf(hit, STAMP_KEY) === stampWas && post.counts.current === 44 && post.counts.update === 1 && named.length === 1,
     `recordfail/set member: a set member whose record could not be written keeps its stamp, reads out of date and is named (stamp ${pdOf(hit, STAMP_KEY) === stampWas ? 'kept' : 'moved'}; ${JSON.stringify(post.counts)}; ${JSON.stringify(named)})`);
   const v = applyVerdict(res);
-  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === `${TAG}: 44 updated in place.`
+  ok(!v.ok && v.headline === '⚠ Updated 1 set · 1 to check' && v.lines[0] === `${TAG}: 44 updated in place.`
     && v.lines.includes(`${TAG}: 1 member not finished — ${String(hit.name)} (its as-built record could not be written). It still reads as out of date; run the update again to finish it.`),
     `recordfail/set verdict: the set member's verdict is not a ✓, counts 44 updated and names it not finished (${JSON.stringify(v)})`);
 }
@@ -2206,7 +2206,7 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const o = res.outcomes[0];
   const v = applyVerdict(res);
   ok(o?.skipped.some((x) => x.member === 'name=check') && o.misses.some((x) => x.startsWith('name=check-circle.asBuilt -> NOT RECORDED'))
-    && !v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 44 updated in place, 1 left as it is.'
+    && !v.ok && v.headline === '⚠ Updated 1 set · 1 to check' && v.lines[0] === 'icon: 44 updated in place, 1 left as it is.'
     && v.lines.includes('icon: 1 member not finished — name=check-circle (its as-built record could not be written). It still reads as out of date; run the update again to finish it.'),
     `recordfail/prefix: a skip on name=check leaves the refused record on name=check-circle in the misses and the verdict (skipped ${JSON.stringify(o?.skipped)}; misses ${JSON.stringify(o?.misses)}; ${JSON.stringify(v)})`);
 }
@@ -2235,9 +2235,36 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const o = { def: 'x', set: 'x', updated: ['a=1', 'a=2'], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: 'keep' as const, identity: [], content: [],
     misses: ['label.characters -> DISCARDED (set "Go", reads "")', 'a=3.asBuilt -> NOT RECORDED (the component is not in the file to read)'] };
   const v = applyVerdict({ outcomes: [o], refused: [], missing: [] } as any);
-  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'x: 2 updated in place.'
+  ok(!v.ok && v.headline === '⚠ Updated 1 set · 1 to check' && v.lines[0] === 'x: 2 updated in place.'
     && v.lines[1] === 'x: 2 parts not written as planned — label.characters -> DISCARDED (set "Go", reads ""); a=3.asBuilt -> NOT RECORDED (the component is not in the file to read).',
     `misses/other: any other miss leaves the set not verified, quoted, the updated count as it was (${JSON.stringify(v)})`);
+}
+{
+  // #3711 (Q-UF3 A): UNVERIFIED SETS WARN, THEY DON'T STOP. A run that wrote every set and left some to check is
+  // `completed` and not `ok`, its headline the sets written and how many to check (DRAFT wording). A set that stopped or
+  // was refused, or a stop the person asked for, is not `completed`, so Update file's run still ends there. Outcomes
+  // written out by hand; the expected headlines are typed here. Mutations: `completed` read as `!stopped` alone →
+  // `uf3/refused stops`; the warn headline counting only the sets to check → `uf3/warn`; the warn headline taking
+  // precedence over a refused set → `uf3/refused stops`.
+  const base = { updated: ['a=1'], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: 'keep' as const, identity: [], content: [], misses: [] };
+  const clean = (k: number) => Array.from({ length: k }, (_, i) => ({ ...base, def: `s${i}`, set: `s${i}` }));
+  const toCheck = [{ ...base, def: 'p', set: 'p', content: ['a=1.fills: 2 paint(s) (the plan says none)'] }, { ...base, def: 'q', set: 'q', misses: ['label.characters -> DISCARDED (set "Go", reads "")'] }];
+  const warn = applyVerdict({ outcomes: [...clean(45), ...toCheck], refused: [], missing: [] } as any);
+  ok(!warn.ok && warn.completed === true && warn.headline === '⚠ Updated 47 sets · 2 to check'
+    && warn.lines.includes('p: 1 field still differs from the plan — a=1.fills: 2 paint(s) (the plan says none).')
+    && warn.lines.includes('q: 1 part not written as planned — label.characters -> DISCARDED (set "Go", reads "").'),
+    `uf3/warn: every set written, 2 to check, is completed, not ok, and says so (${warn.headline}; completed ${warn.completed})`);
+  const one = applyVerdict({ outcomes: [toCheck[0]], refused: [], missing: [] } as any);
+  ok(one.completed === true && one.headline === '⚠ Updated 1 set · 1 to check', `uf3/one: the count agrees with 1 (${one.headline})`);
+  const refusedToo = applyVerdict({ outcomes: [...clean(2), toCheck[0], { ...base, def: 'r', set: 'r', updated: [], refused: 'the set moved since the check' }], refused: [], missing: [] } as any);
+  ok(!refusedToo.ok && refusedToo.completed === false && refusedToo.headline === '✗ 1 set not updated',
+    `uf3/refused stops: a refused set beside one to check is not completed, and the headline names the set not updated (${refusedToo.headline}; completed ${refusedToo.completed})`);
+  const stopped = applyVerdict({ outcomes: [...clean(1), { ...base, def: 't', set: 't', stopped: 'the host threw' }], refused: [], missing: [] } as any);
+  ok(!stopped.ok && stopped.completed === false && stopped.headline === '✗ update stopped at t', `uf3/stopped stops: a set that stopped is not completed (${stopped.headline})`);
+  const halted = applyVerdict({ outcomes: [toCheck[0]], refused: [], missing: [], halted: { after: 'p', done: 1, total: 2, left: ['tag'], leftDefs: ['tag'] } } as any);
+  ok(!halted.ok && halted.completed === false, `uf3/halted stops: a stop the person asked for is not completed (${halted.headline})`);
+  const fine = applyVerdict({ outcomes: clean(3), refused: [], missing: [] } as any);
+  ok(fine.ok && fine.completed === true && fine.headline === '✓ updated 3 in place', `uf3/clean: a clean run is ok and completed (${fine.headline})`);
 }
 {
   // A COUNT'S VERB AGREES WITH IT (#3243): "1 field still differs", "2 fields still differ"; "1 left as it is", "2 left
@@ -6578,6 +6605,38 @@ section('causes — a stopped run names each set it left by its def id');
   ok(JSON.stringify(v.causes) === JSON.stringify([{ kind: 'warn', subject: TAG, what: 'not updated',
     reasons: ['Stopped before the first write, as asked. Nothing was written. Not updated, and still due: Tag set.'] }]),
     `causes/halted: the set the stop left is a cause, its subject the def id and the stop its reason (${JSON.stringify(v.causes)})`);
+}
+
+// #3393, AND THE OWNER'S UPDATE FILE RUN, 2026-11-12: SignInButton's provider glyph, painted white on Apple black and Facebook blue (owner
+// decision Q846 A, the plan's `literalTint`), is checked on the VECTORs inside the nested instance (`anatomy-readback.ts`
+// `literalTint`, through `findAll`). The dry run and the verify read a SNAPSHOT of each member (`snapshotMember`), which
+// stopped at every instance with no way into it, so the check read "no VECTOR inside to read the tint from" on all 24 tinted
+// members: each read "to update" on every dry run, and each failed the verify after the build had painted it. Expected
+// counts are literals typed here: 96 members, 24 tinted. Mutation: `snapshotMember` not attaching the instance's vectors
+// → `glyph tint/dry run` and `glyph tint/verify`.
+section('tint — SignInButton\'s white glyph on a dark fill reads current, and verifies after an update (owner run 2026-11-12)');
+{
+  const id = 'sign-in-button';
+  const plans = plansOf(id);
+  const tinted = plans.filter((p) => JSON.stringify(p.root).includes('"literalTint"')).map(planComponentName);
+  ok(plans.length === 96 && tinted.length === 24, `glyph tint/premise: 96 members, 24 of them tinted (${plans.length}, ${tinted.length})`);
+  // The harness's provider logo is a stand-in with no size, so the mark's aspect lock is the one build miss (the card
+  // mark's limit in `<host> leads`): this arm reads the tint and nothing else of the mark.
+  const allowMisses: string[] = [];
+  const w = await world(id, plans, { extraVars: ['space/999'], allowMisses });
+  const other = allowMisses.filter((x) => !x.startsWith('mark.aspectLock -> '));
+  ok(other.length === 0, `glyph tint/build: the build's only misses are the stand-in's aspect lock, none a tint (${other[0] ?? 'none'})`);
+  const pre = await previewUpdate(w.host, [{ def: id, plans }]);
+  const c = pre.sets[0]?.counts;
+  ok(!!c && c.update === 0 && c.handEdited === 0 && c.current === 96,
+    `glyph tint/dry run: the set as just built reads current, its 24 tinted members too (${JSON.stringify(c)}; ${JSON.stringify(pre.sets[0]?.changes ?? []).slice(0, 300)})`);
+  // Every member changes (the root's gap), so the apply writes all 96 and the verify reads every tinted glyph.
+  const moved = plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root.bound as Record<string, string>).itemSpacing = 'space/999'; return q; });
+  const { res } = await confirm(w, [{ def: id, plans: moved }]);
+  const o = res.outcomes[0];
+  const tint = o.content.filter((x) => x.includes('literalTint'));
+  ok(o.updated.length === 96 && tint.length === 0,
+    `glyph tint/verify: all 96 updated, and no tinted glyph reads as differing from the plan (${o.updated.length} updated; ${tint.length} tint lines${tint.length ? `: ${tint[0]}` : ''})`);
 }
 
 // #3326 PR 1 review S2: THE INVARIANT, over every verdict this suite read. A verdict that is not ok says why: at least one
