@@ -718,7 +718,7 @@ const prune = async (input: BrandInput, confirm: boolean, previewHash: string | 
       getLocalPaintStylesAsync: () => figma.getLocalPaintStylesAsync(),
       getLocalGridStylesAsync: () => figma.getLocalGridStylesAsync(),
     };
-    const res = await applyPrunePlan(plan, pruneApi, counts);
+    const res = await applyPrunePlan(plan, pruneApi);
     const furnRemoved = pruneFurniture(tagged.map((t) => t.node as unknown as XNode), (id) => liveSets.has(id), counts.failed);
     const removed = res.variables + res.collections + res.modes + res.styles;
     sink.data({ pruneApplied: { ...res, furniture: furnRemoved } });
