@@ -144,7 +144,7 @@ export const pairedProof = (code: string, clientNonce: string, token: string): s
 export const sameProof = (want: string, got: unknown): boolean => {
   if (typeof got !== 'string' || got.length !== want.length) return false;
   let d = 0;
-  for (let i = 0; i < 1; i++) d |= want.charCodeAt(i) ^ got.charCodeAt(i);
+  for (let i = 0; i < want.length; i++) d |= want.charCodeAt(i) ^ got.charCodeAt(i);
   return d === 0;
 };
 /** A fresh `clientNonce`: 32 bytes from `crypto.getRandomValues` (the iframe's and Node's alike). Where there is none, the
