@@ -65,7 +65,8 @@ import { COMPONENT_RENAMES, coordKey, currentDefId, formerDefIds, partRenames, r
 // they agree. `write-components.ts` is pure TypeScript against a declared port — it touches no `figma`
 // global at runtime — so importing it into a Node harness costs nothing and needs no shim of its own.
 import { applyComponentPlan } from '../../apps/plugin/src/write-components';
-import { OVERRIDE_COPY } from '../../apps/plugin/src/set-override';
+import { planOverride, overrideVerdict } from '../../apps/plugin/src/set-override';
+import { fmtRatio as stepPickerRatio } from '../../apps/studio/src/ui/step-picker';
 // The second, for the same reason in the other direction (#2412): the CLI's `motion-vars` paste payload is EXECUTED
 // against the plugin suites' file model, so the two paste paths are judged by one model of Figma, not two. The shim
 // is a HOST that imports no executor (`file-shim.ts`'s header), so this brings no plugin code under test here.
@@ -981,9 +982,20 @@ for (const hx of ['#000000', '#333333', '#7f7f7f', '#808080', '#ffffff']) {
     ok(formatRatio(r) === want, `formatRatio(${r}) floors to ${want} (got ${formatRatio(r)})`);
   ok(formatRatio(4.496, { bare: true }) === '4.49', `formatRatio(4.496, bare) floors to 4.49 (got ${formatRatio(4.496, { bare: true })})`);
   // The surfaces print through it (docs/34: the formatter's own literals cannot see a call site that stopped calling it).
-  // One boundary arm on a real surface: the plugin's override line for a 4.496 pair under a 4.5 minimum.
-  const below = OVERRIDE_COPY.belowMinimum('light', 'text-default', null, 4.496, 4.5, 'surface-default');
-  ok(below.includes('4.49:1 against') && !below.includes('4.50:1'), `#3697 L3 set-override's below-minimum line floors a 4.496 pair to 4.49:1 (got "${below}")`);
+  // Boundary arms on the real surfaces, driven end to end, each at a pair whose rounded and floored forms disagree.
+  // The plugin's override, through `planOverride` → `overrideVerdict` on the prism3 example brand: a refusal line
+  // (raw 2.4077…, rounds to 2.41) and an Activity line (raw 5.5099…, rounds to 5.51). The plan's `ratio` fields stay
+  // rounded for `data`; the lines must print the raw ratio, not the rounded one through the floor.
+  const p3Brand = exampleBrands()['prism3'] as BrandInput;
+  const refusedLine = overrideVerdict(planOverride(p3Brand, [{ mode: 'light', role: 'interactive.primary.border.rest', palette: 'neutral', step: '300' }]), false).lines.join(' | ');
+  ok(refusedLine === 'Light · interactive.primary.border.rest → neutral 300: 2.40:1 against background.primary — below the 3:1 minimum.',
+    `#3697 L3 set-override's refusal line, planned, floors a 2.4077 pair to 2.40:1 (got "${refusedLine}")`);
+  const activityLine = overrideVerdict(planOverride(p3Brand, [{ mode: 'light', role: 'text.secondary', palette: 'neutral', step: '600' }]), false).lines.join(' | ');
+  ok(activityLine === 'Light · text.secondary: neutral 550 → neutral 600 (4.54:1 → 5.50:1)',
+    `#3697 L3 set-override's Activity line, planned, floors a 5.5099 pair to 5.50:1 (got "${activityLine}")`);
+  // The studio's step picker: its exported `fmtRatio` feeds every picker and the preview kit, so it is held by value.
+  ok(stepPickerRatio(4.496) === '4.49:1' && stepPickerRatio(4.4999) === '4.49:1',
+    `#3697 L3 step-picker's fmtRatio floors 4.496 and 4.4999 to 4.49:1 (got ${stepPickerRatio(4.496)}, ${stepPickerRatio(4.4999)})`);
   // And a source scan: no hand-rolled `toFixed` on a contrast ratio anywhere under apps/*/src. A ratio printed by hand
   // rounds (4.496 → "4.50" beside a 4.5 floor) or drifts from the engine's form; print through `formatRatio`.
   const APPS = resolve(HERE, '../../apps');
