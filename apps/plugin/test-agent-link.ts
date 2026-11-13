@@ -1749,6 +1749,11 @@ section('session — a mailbox command that changes the file needs this session\
   await toUi({ type: 'agent-link', on: true });
   const next = main.agentLink.session();
   ok(typeof next === 'string' && next !== code, `session/new: switching on again draws a new one (${next})`);
+  // The off path itself forgets a LIVE code (the spent arm above had already cleared it, so it proves nothing about off).
+  await toUi({ type: 'agent-link', on: false });
+  ok(main.agentLink.session() === null && posted.filter((m) => m.type === 'agent-link-session').pop()?.code === null,
+    'session/new: switching off forgets a live code, and the panel stops showing it');
+  await toUi({ type: 'agent-link', on: true });
 }
 
 section('switch-off');

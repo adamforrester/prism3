@@ -54,7 +54,8 @@
  * `server-proof/no-nonce` read the spawned server's answers against proofs derived here with `node:crypto`; the relay
  * arms drive the real relay over a fake socket that speaks for an impostor on the port: `server-proof/impostor` (a
  * welcome with no proof, or proved with another token), `server-proof/replay` (proved over an earlier nonce),
- * `server-proof/unsolicited-paired` (a paired with no code pending), `server-proof/impostor-paired` (a code pending, the
+ * `server-proof/unsolicited-paired` (a paired with no code pending, one before this socket sent its code, and one after
+ * the welcome), `server-proof/impostor-paired` (a code pending, the
  * wrong proof). MUTATIONS, each failing by name: the relay's welcome check removed → `server-proof/impostor`; its paired
  * checks removed → `server-proof/unsolicited-paired` and `server-proof/impostor-paired`; the server's welcome sent with
  * no proof → `server-proof/welcome` and `pair/relay`.
@@ -480,6 +481,12 @@ section('pairing — the secret file, a wrong code, and no eviction by an unpair
     `pair/wrong-code: a wrong code is refused with 4403 and given no token (close ${w.closeCode()})`);
   ok((await call('figma_status')).value?.connected === false, 'pair/wrong-code: a wrong code never becomes the plugin');
   w.sock.destroy();
+  // #3697 R8: a pair with the RIGHT code but no clientNonce is refused like a wrong code, and does not spend the code.
+  const nn = await openClient();
+  nn.sendJson({ type: 'pair', proof: provePair(CODE, await nn.nonce()), clientNonce: undefined });
+  ok(await until(() => nn.closeCode() === 4403) && !nn.texts().some((m) => m.type === 'paired') && (await call('figma_status')).value?.pairingCode === CODE,
+    `server-proof/no-nonce: a pair with the right code but no clientNonce is closed with 4403, given no token, and the code stays live (close ${nn.closeCode()})`);
+  nn.sock.destroy();
 }
 {
   // REPLAY (#3204 review B2 a): a proof is bound to the nonce of the connection it was made on. A hello proof captured on
@@ -506,6 +513,11 @@ section('pairing — the secret file, a wrong code, and no eviction by an unpair
   ok(await until(() => bare.closeCode() === 4401) && !bare.texts().some((m) => m.type === 'welcome'),
     `server-proof/no-nonce: a hello with no clientNonce is closed with 4401 and never welcomed (close ${bare.closeCode()})`);
   bare.sock.destroy();
+  const odd = await openClient();
+  odd.sendJson({ type: 'hello', state: state(), proof: proveHello(await odd.nonce()), clientNonce: 'Z'.repeat(64) });
+  ok(await until(() => odd.closeCode() === 4401) && !odd.texts().some((m) => m.type === 'welcome'),
+    `server-proof/no-nonce: a hello whose clientNonce is not 32 bytes of lower-case hex is closed with 4401 and never welcomed (close ${odd.closeCode()})`);
+  odd.sock.destroy();
   first.sock.destroy();
   ok(await untilAsync(async () => (await call('figma_status')).value?.connected === false), 'pair/replay: closed');
   // The welcome left no code live (Q3204.5 A); with no plugin connected, figma_status asks for a new one.
@@ -1386,8 +1398,15 @@ section('server-proof — the relay hears only a server that proves the secret')
   say(socks[socks.length - 1], { type: 'challenge', v: 1, nonce: 'ee'.repeat(32) });
   q.pair('abcd-efgh');
   const p1 = socks[socks.length - 1];
+  // #3728 review S1: a code is pending, but this socket has not sent it yet (a paired before the challenge). The relay did
+  // not ask this socket for a paired, so it ignores it: no token, no proof check, no drop, and the challenge still gets the pair.
+  say(p1, { type: 'paired', token: 'e'.repeat(64), proof: 'ab'.repeat(32) });
+  ok(!posted('agent-bridge-paired').length && !p1.closed && !p1.sent.length,
+    `server-proof/unsolicited-paired: with a code pending but not yet sent on this socket, a paired is ignored: no token is kept and the socket stays open (${p1.closed ? 'closed' : 'open'})`);
   say(p1, { type: 'challenge', v: 1, nonce: 'ff'.repeat(32) });
   const pair1 = p1.sent.find((m) => m.type === 'pair') ?? {};
+  ok(pair1.type === 'pair' && typeof pair1.clientNonce === 'string',
+    'server-proof/unsolicited-paired: and the challenge that follows still gets the pending code\'s pair');
   say(p1, { type: 'paired', token: 'e'.repeat(64), proof: provePaired('WXYZ-WXYZ', pair1.clientNonce, 'e'.repeat(64)) });
   ok(!posted('agent-bridge-paired').length && p1.closed && !p1.sent.some((m) => m.type === 'hello'),
     'server-proof/impostor-paired: with a code pending, a paired that cannot prove that code keeps no token and is dropped');
@@ -1399,6 +1418,23 @@ section('server-proof — the relay hears only a server that proves the secret')
   ok(posted('agent-bridge-paired').some((m) => m.token === TOKEN) && p2.sent.some((m) => m.type === 'hello'),
     'server-proof/paired: a paired proving the pending code over this connection\'s nonce is kept, and the hello follows');
   q.fromMain({ type: 'agent-link-state', state: state(false) });
+
+  // Once welcomed, a paired is ignored even while a code went out on this socket: a token held and a code typed, the pair
+  // sent, then the welcome. A later paired that proves the code must not swap the token the welcome just proved.
+  told.length = 0;
+  const w = relayOf();
+  w.fromMain({ type: 'agent-bridge-token', token: TOKEN });
+  w.pair('abcd-efgh');
+  w.fromMain({ type: 'agent-link-state', state: state() });
+  const ws1 = socks[socks.length - 1];
+  say(ws1, { type: 'challenge', v: 1, nonce: '34'.repeat(32) });
+  const wpair = ws1.sent.find((m) => m.type === 'pair') ?? {};
+  say(ws1, { type: 'welcome', proof: proveWelcome(wpair.clientNonce) });
+  const other = 'e'.repeat(64);
+  say(ws1, { type: 'paired', token: other, proof: provePaired('ABCD-EFGH', wpair.clientNonce, other) });
+  ok(wpair.type === 'pair' && w.connected() && !posted('agent-bridge-paired').length && !ws1.closed,
+    `server-proof/unsolicited-paired: once welcomed, a paired is ignored even with a code sent on this socket: the token is not replaced (${posted('agent-bridge-paired').length} kept)`);
+  w.fromMain({ type: 'agent-link-state', state: state(false) });
 }
 
 child.stdin.end();
