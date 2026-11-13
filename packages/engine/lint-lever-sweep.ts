@@ -135,6 +135,10 @@ const NOT_SWEPT: Record<Exclude<LeverControl, 'toggle' | 'enum' | 'slider' | 'li
   'palette-ref': "values depend on the brand's own declared palettes, so there is no brand-independent option set",
   text: 'free text',
 };
+// REPRESENTED (docs/34 question 3, "Did it look?"): each kind this gate promises to sweep must build at least one
+// setting, summed over the brands. A literal, typed apart from SWEPT_CONTROLS, so narrowing the sweep takes two
+// edits that must agree: reclassify a kind into NOT_SWEPT and it builds nothing, and this list names it.
+const REQUIRED_KINDS = ['toggle', 'enum', 'slider', 'list'] as const;
 
 // A list lever with a count bound, sampled either side of it (#3698 R2). The samples are literals, typed here,
 // so they state the bound independently of the schema (see the header). `refused` lengths must be refused;
@@ -332,6 +336,7 @@ for (const [key, b] of Object.entries(LIST_BOUNDARIES)) {
 }
 
 const seenRemoval = new Set<string>();   // `${brand}|${lever}=${value}|${path}` observed
+const builtByKind: Record<string, number> = {};
 const seenRefusal = new Set<Refusal>();
 const seenDefect = new Set<string>();   // `${brand}|${lever}=${value}` whose misses matched BINDING_DEFECTS exactly
 const summary: string[] = [];
@@ -367,6 +372,7 @@ for (const brand of BRANDS) {
       continue;
     }
     bSettings++;
+    builtByKind[lever.control] = (builtByKind[lever.control] ?? 0) + 1;
     if (LIST_BOUNDARIES[lever.key]?.refused.some((v) => same(v, value)))
       fail(`${tag}: built, and LIST_BOUNDARIES expects it refused, past the list's bound (#3698 R2)`);
 
@@ -411,6 +417,9 @@ for (const d of BINDING_DEFECTS) for (const b of d.brands) if (!seenDefect.has(`
 for (const r of REFUSALS) if (!seenRefusal.has(r))
   fail(`STALE refusal: ${r.brand} @ ${r.lever}=${JSON.stringify(r.value)} no longer throws ${r.message}. Delete the REFUSALS entry and let the sweep check it`);
 
+for (const k of REQUIRED_KINDS) if (!builtByKind[k])
+  fail(`represented: no ${k} setting was built on any brand. The sweep promises ${k} levers (REQUIRED_KINDS), and a pass that swept none of them looked at nothing (docs/34 question 3)`);
+
 // ── SELF-CHECKS: each detector can fail, on a known-bad input, through the same function the arm uses ──
 {
   const t = brandTheme({ ...MINIMAL_BRAND, outlineInteraction: 'solid-tint' } as BrandInput);
@@ -429,7 +438,8 @@ for (const r of REFUSALS) if (!seenRefusal.has(r))
 }
 
 // ── VERDICT ─────────────────────────────────────────────────────────────────────────────────────────
-console.log(`Lever sweep (#957): ${swept.length} toggle/enum/slider/list lever(s), one at a time, over ${BRANDS.length} brand(s); ` +
+const perKind = REQUIRED_KINDS.map((k) => `${swept.filter((l) => l.control === k).length} ${k} (${builtByKind[k] ?? 0} built)`).join(', ');
+console.log(`Lever sweep (#957): ${swept.length} lever(s), ${perKind}, one at a time, over ${BRANDS.length} brand(s); ` +
   `${guaranteed.length} guaranteed path(s) from the committed contract; ${settings} setting(s) built, ${plansChecked} plan(s) and ` +
   `${refsChecked} component ref(s) checked against each setting's own emission (${projCache.size} distinct materialized def(s) projected).`);
 for (const s of summary) console.log(`    ${s}`);
