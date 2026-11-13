@@ -623,7 +623,7 @@ ok(!!first && /^set '.*refs across \d+ members$/.test(String(first.lines?.[0])) 
 // 5. #2995 (should-fix 2): Documentation's Cover switch, read by Set up file on the main thread (`main.ts` `fileSetup`).
 //    With the file's `prism3:docSettings` at `{"cover":false}` Set up file draws no cover and reports it off; the
 //    expected words are typed here, from #2977. Then the switch on: the cover is attempted, so the arm reads the switch.
-const COVER_OFF_WORDS = 'not drawn, the cover is off in Documentation';
+const COVER_OFF_WORDS = 'not drawn, the cover is off in Docs';
 const coverFrames = () => pages.flatMap((p) => p.children).filter((n) => { try { return !!(n as any).getSharedPluginData?.('prism3', 'cover'); } catch { return false; } });
 // Figma's `createComponent`, as the template builder above was given it: Set up file builds the file's components.
 shim.createComponent = () => shim.createComponentFromNode(shim.createFrame());

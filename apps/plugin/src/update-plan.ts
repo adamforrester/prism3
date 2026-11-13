@@ -1617,6 +1617,9 @@ const absentNests = (have: ReadonlySet<string>, plans: readonly AnatomyPlan[]): 
  * the rest and report each as a miss; an update would leave a published set half-changed, which is worse (§7).
  * A host with no `loadFontAsync` checks no font: the plugin's host is `figma`, which always has it.
  */
+/** #3713: a list a blocker line names, cut at three, with how many more it leaves out, so the line never names fewer
+ *  than are missing without saying so. */
+const firstFew = (xs: readonly string[]): string => `${xs.slice(0, 3).join(', ')}${xs.length > 3 ? `, and ${xs.length - 3} more` : ''}`;
 const fileBlockers = async (host: UpdateHost, plans: readonly AnatomyPlan[], set: LiveSet, have: ReadonlySet<string>): Promise<{ lines: string[]; theme: number }> => {
   const out: string[] = [];
   // #3421: how many of `out` are a variable or a text or effect style the plans name: what Apply Theme writes.
@@ -1633,14 +1636,14 @@ const fileBlockers = async (host: UpdateHost, plans: readonly AnatomyPlan[], set
   const wantStyles = [...new Set(roots.flatMap(planTextStyles))];
   const noStyle = wantStyles.filter((s) => !byName.has(s));
   if (noStyle.length) theme++;
-  if (noStyle.length) out.push(`text style${noStyle.length === 1 ? '' : 's'} not in this file: ${noStyle.slice(0, 3).join(', ')}`);
+  if (noStyle.length) out.push(`text style${noStyle.length === 1 ? '' : 's'} not in this file: ${firstFew(noStyle)}`);
   const effects = new Set((await host.getLocalEffectStylesAsync()).map((s) => s.name));
   const noEffect = [...new Set(roots.flatMap(planEffectStyles))].filter((s) => !effects.has(s));
   if (noEffect.length) theme++;
-  if (noEffect.length) out.push(`effect style${noEffect.length === 1 ? '' : 's'} not in this file: ${noEffect.slice(0, 3).join(', ')}`);
+  if (noEffect.length) out.push(`effect style${noEffect.length === 1 ? '' : 's'} not in this file: ${firstFew(noEffect)}`);
   // Nests are named above, with what to build first; a swap target is named here.
   const noSwap = planTargets(plans).filter((n) => !have.has(n) && !absent.includes(n));
-  if (noSwap.length) out.push(`component${noSwap.length === 1 ? '' : 's'} the plan swaps to ${noSwap.length === 1 ? 'is' : 'are'} not in this file: ${noSwap.slice(0, 3).join(', ')}`);
+  if (noSwap.length) out.push(`component${noSwap.length === 1 ? '' : 's'} the plan swaps to ${noSwap.length === 1 ? 'is' : 'are'} not in this file: ${firstFew(noSwap)}`);
   if (!host.loadFontAsync) return { lines: out, theme };
   const fonts = new Map<string, { family: string; style: string }>();
   for (const s of wantStyles) { const f = byName.get(s)?.fontName; if (f) fonts.set(`${f.family}|${f.style}`, f); }
