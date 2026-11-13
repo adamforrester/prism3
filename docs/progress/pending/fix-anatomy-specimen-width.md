@@ -35,7 +35,10 @@ believed #3211 and #3318 had fixed this.
   - the padding fit removed → 7 arms, among them `owner/accordion` (579 wide);
   - `PANEL_FORMAT` left at 6 → `format due/offered`, `format due/edited kept`, `update/redraw in place`.
 - `PANEL_FORMAT` goes to 7, so Update file offers every usage panel once and redraws it.
-- **Badge is not reproduced.** Its members hug, and the test host lays them out on one line both before and after this
+- **The wrap clause is not calibrated against Figma (#3774).** The review mutated the fit back to the owner's 120px:
+  `owner/accordion` fails on width only, and the host still reads "Section title" on one line there, where the file
+  wrapped it. So width carries the Accordion fix, and the Badge reading below rests on an uncalibrated model.
+- **Badge is not reproduced, and is unverified.** Its members hug, and the test host lays them out on one line both before and after this
   change. If a Badge member reads FIXED in the file, it froze the same way, and this fix covers it. A hugging Badge
   example that still wraps after the next Update has another cause. **Owed:** after an Update in the template, read
   Accordion's and Dialog's examples (320 and 560 wide, FILL, the stage's padding unequal to `STAGE_PAD`) and Badge's

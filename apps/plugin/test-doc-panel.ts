@@ -102,7 +102,11 @@
  *   owner/…         (#3205, the owner's review of 2026-11-13) THE MEASURED RULE (`insideInstance`): Figma drops a width
  *                   written to a layer inside an instance (`resize`, `minWidth`) and keeps its sizing mode and padding,
  *                   so 4–6's FIXED + `resize` + `minWidth` froze each specimen at what it hugged. `owner/accordion`: the
- *                   example 320 wide (typed), its title on one line; `owner/badge`: every label on one line. `collapses`
+ *                   example 320 wide (typed), its title on one line; `owner/badge`: every label on one line. NOT
+ *                   CALIBRATED: the wrap clause (`lines`) reads the host's `runWidth` against the text's own width, which
+ *                   leaves out the header's padding and chevron, so at the owner's 120px it still reads "Section title"
+ *                   on one line (#3771 review). `owner/accordion` fails that state on WIDTH only, and `owner/badge`, which
+ *                   rests on the wrap clause alone, is unverified against Figma until #3774 lands. `collapses`
  *                   adds a text broken inside its longest word, and any width written inside an instance. The
  *                   specimen FILLs its stage and the stage's padding sets its width (`fitSpecimens`). Mutations: the
  *                   FIXED + `resize` + `minWidth` sizing restored → 25 arms, among them `owner/accordion` (120 against
@@ -1217,12 +1221,12 @@ for (const d of leads) {
   const first = a.specs[0];
   const title = first ? wrapped(first).find((t) => String(t.characters).length < 40) : undefined;
   ok(!!first && first.absoluteBoundingBox!.width === 320 && !!title && lines(title) === 1 && collapses(a.panel).length === 0,
-    `owner/accordion: the anatomy example is ${first?.absoluteBoundingBox!.width} wide (320 wanted), its title "${title?.characters}" on ${title ? lines(title) : '?'} line, no word broken`,
+    `owner/accordion: the anatomy example is ${first?.absoluteBoundingBox!.width} wide (320 wanted), its title "${title?.characters}" on ${title ? lines(title) : '?'} line (wrap model not calibrated: width carries this arm), no word broken`,
     collapses(a.panel).slice(0, 3).join('; '));
   const b = await draw('badge');
   const long = b.specs.flatMap((sp) => walk(sp).filter((c) => c.type === 'TEXT' && c.visible !== false && (c.textAutoResize === 'HEIGHT') && lines(c) > 1));
   ok(b.specs.length > 0 && !long.length && collapses(b.panel).length === 0,
-    `owner/badge: ${b.specs.length} examples, every label on one line, no width written inside an instance`,
+    `owner/badge: ${b.specs.length} examples, every label on one line (wrap model not calibrated against Figma: Badge unverified), no width written inside an instance`,
     [...long.map((t) => `"${t.characters}" at ${t.width}px`), ...collapses(b.panel)].slice(0, 3).join('; '));
 }
 

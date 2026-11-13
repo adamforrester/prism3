@@ -31,7 +31,7 @@ For each set, the plugin: <!-- src: apps/plugin/src/main.ts:899-1022#34f3a25b --
 - creates the set's page if the file does not have it, and switches Figma to that page;
 - builds the set, its properties and its prototype interactions;
 - adds the page header and the labels beside the set;
-- draws the family's usage panel beside its lead, while Docs has usage panels on. <!-- src: apps/plugin/src/main.ts:987-988#03cbfa05 --> A family has one panel, beside its lead set: the Buttons page has one, beside Button, and the other sets on the page have none of their own. An icon, the spinner and a provider logo are single components, with no set and no panel. <!-- src: apps/plugin/src/doc-panel.ts:186-187#b6f87a5f -->
+- draws the family's usage panel beside its lead, while Docs has usage panels on. <!-- src: apps/plugin/src/main.ts:987-988#03cbfa05 --> A family has one panel, beside its lead set: the Buttons page has one, beside Button, and the other sets on the page have none of their own. An icon, the spinner and a provider logo are single components, with no set and no panel. <!-- src: apps/plugin/src/doc-panel.ts:188-189#b6f87a5f -->
 
 A new set's description in Figma is its one-line summary from the engine. A description you wrote on an existing set is kept. <!-- src: apps/plugin/src/write-components.ts:150-151#7bb3ec74 -->
 
