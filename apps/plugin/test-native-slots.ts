@@ -18,7 +18,7 @@
  *   · `toSlots` not called after an in-place member build → `slots/gained on update`;
  *   · the miss for a host without `createSlot` dropped → `slots/no host support named`.
  */
-import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, componentDefs, diffAnatomy, type HostNode, type ReadPorts, type ComponentDef } from '@prism3/engine/components';
+import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, componentDefs, diffAnatomy, type HostNode, type ReadPorts, type ComponentDef, type PartOfKind } from '@prism3/engine/components';
 import { applyComponentPlan } from './src/write-components';
 import { makeShim, type Node, type Page } from './component-shim';
 
@@ -32,7 +32,7 @@ const SWAP_TARGET = 'FPO-default-icon';
 const tag = componentDefs.find((d) => d.id === 'tag')!;
 /** Tag with its dismiss cell declared a native slot, and nothing else changed. */
 const slotted: ComponentDef = { ...tag, anatomy: { ...tag.anatomy!, parts: { ...tag.anatomy!.parts,
-  dismiss: { ...tag.anatomy!.parts.dismiss, contentSlot: true, children: [...(tag.anatomy!.parts.dismiss.children ?? []), 'hint'] },
+  dismiss: { ...(tag.anatomy!.parts.dismiss as PartOfKind<'box'>), contentSlot: true, children: [...(tag.anatomy!.parts.dismiss.children ?? []), 'hint'] },
   // A slot's placeholder TEXT is literal copy (Figma refuses a property reference on a slot sublayer, measured).
   hint: { kind: 'text', type: tag.anatomy!.parts.label.type, characters: 'Drop content here' },
 } } };

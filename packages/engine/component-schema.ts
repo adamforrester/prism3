@@ -307,7 +307,11 @@ export type NestingRelation =
   | { kind: 'nest-fixed'; variant: Record<string, string>; follow?: readonly string[]; variantWhen?: NestVariantWhen; variantWhere?: NestVariantWhere }
   | { kind: 'nest-exposed'; variant: Record<string, string>; expose: readonly string[]; follow?: readonly string[]; variantWhen?: NestVariantWhen; variantWhere?: NestVariantWhere };
 
-export type PartDef = {
+/** EVERY FIELD A PART MAY CARRY, as one bag — the field DOCS live here (#3698 R5 item 3). A def never types a part as
+ *  this: `PartDef` below is the union of one type per `kind`, each picking the fields that kind may carry and stating
+ *  every other field `never`. So this bag is where a field is documented, and the per-kind lists are where it is
+ *  admitted; a field added here and admitted by no kind fails the `PartFieldsPlaced` check under the union. */
+export type PartFields = {
   kind: PartKind;
   /** `target` marks the single a11y/interaction target — the node that owns the hit area and the
    *  focus ring. Exactly one part per anatomy may claim it.
@@ -1429,6 +1433,74 @@ export type PartDef = {
   note?: string;
 };
 
+// ---------------------------------------------------------------------------------------
+// PartDef — DISCRIMINATED BY `kind` (#3698 F4, R5 item 3).
+//
+// Until this, PartDef was one bag of optional fields under a `PartKind` string, so `{ kind: 'text', layout: ... }`
+// typechecked and only `anatomyErrors` refused it, at run time. Each kind below admits exactly the fields the
+// validator lets it carry today; every other field is typed `never`, so a def that sets one fails `tsc` naming the
+// field, and a READ of any field on any part still compiles (it is `undefined` on the kinds that do not admit it).
+//
+// THE RULE THE LISTS FOLLOW: a field is admitted on a kind unless `anatomyErrors` refuses it there, directly (`is kind
+// 'X' but declares 'f'`) or through a field it requires (`footShare` needs `foot`, a box field; `slotSettings` needs
+// `contentSlot`). A field the validator never refuses by kind is in `PartBaseKey`, admitted everywhere, even where its
+// doc names one kind: tightening one of those is a schema decision, not this refactor's. The per-kind refusals in
+// `anatomyErrors` stay — a def reaching the engine from JSON is not typechecked. `lint-part-union.ts` proves the
+// union bites.
+
+/** Fields every kind admits: the validator refuses none of them by kind. */
+export type PartBaseKey = 'role' | 'optional' | 'note' | 'radius' | 'type' | 'replaces' | 'overlaysWhenAbsent' | 'when';
+
+/** A kind's part: its `kind`, the base fields, the fields `F` it admits, and every other field `never`. */
+type PartOf<K extends PartKind, F extends Exclude<keyof PartFields, 'kind' | PartBaseKey>> =
+  { kind: K } & Pick<PartFields, PartBaseKey | F> & { [X in Exclude<keyof PartFields, 'kind' | PartBaseKey | F>]?: never };
+
+/** The fields a box admits — the one kind that lays out, paints a surface and becomes a frame. */
+export type BoxKey =
+  | 'innerTarget' | 'children' | 'size' | 'presentWhen' | 'positionWhen' | 'height' | 'crossAxisFill' | 'grow' | 'literal'
+  | 'layout' | 'padding' | 'gap' | 'strokeWidth' | 'strokeEdges' | 'width' | 'paddingTop' | 'firstLine'
+  | 'contentSlot' | 'slotSettings' | 'preferred' | 'preferredWhenBuilt' | 'paintSlots' | 'paintGroup' | 'gradient'
+  | 'clipsContent' | 'scroll' | 'minWidth' | 'placementWidth' | 'placementHeight' | 'directionWhen' | 'sizingWhen'
+  | 'builtSize' | 'elevation' | 'radiusEdges' | 'minHeight' | 'minWidthKey' | 'minWidthRatio' | 'flush' | 'center'
+  | 'aspectRatio' | 'foot' | 'footShare';
+export type TextKey =
+  | 'innerTarget' | 'children' | 'size' | 'presentWhen' | 'positionWhen' | 'literal' | 'paintSlot'
+  | 'verticalAlign' | 'wrap' | 'lines' | 'characters';
+export type SlotKey =
+  | 'innerTarget' | 'children' | 'size' | 'presentWhen' | 'positionWhen' | 'height' | 'aspectLock' | 'fixedPaint' | 'nesting'
+  | 'pin' | 'swapDefault';
+export type OverlayKey = 'innerTarget' | 'children' | 'size' | 'fixedPaint' | 'nests' | 'nesting';
+export type AbsoluteKey = 'presentWhen' | 'inset' | 'nests' | 'nesting' | 'overrides' | 'strokeInset' | 'drawnInside';
+export type NestKey =
+  | 'innerTarget' | 'size' | 'presentWhen' | 'positionWhen' | 'height' | 'crossAxisFill' | 'grow' | 'aspectLock' | 'fixedPaint'
+  | 'literal' | 'nests' | 'nesting' | 'overrides' | 'hostInk' | 'prefersWhenBuilt' | 'nestItemPrefers' | 'nestTexts'
+  | 'nestPaddingBlock';
+export type VectorKey =
+  | 'innerTarget' | 'size' | 'presentWhen' | 'positionWhen' | 'paintSlot' | 'inset'
+  | 'glyph' | 'glyphScale' | 'glyphPx' | 'tileEdge' | 'corner' | 'scaleWithParent' | 'stackCentered';
+
+export interface BoxPart extends PartOf<'box', BoxKey> {}
+export interface TextPart extends PartOf<'text', TextKey> {}
+export interface SlotPart extends PartOf<'slot', SlotKey> {}
+export interface OverlayPart extends PartOf<'overlay', OverlayKey> {}
+export interface AbsolutePart extends PartOf<'absolute', AbsoluteKey> {}
+export interface NestPart extends PartOf<'nest', NestKey> {}
+export interface VectorPart extends PartOf<'vector', VectorKey> {}
+
+export type PartDef = BoxPart | TextPart | SlotPart | OverlayPart | AbsolutePart | NestPart | VectorPart;
+
+/** The part of kind `K`, for a consumer that narrows on `kind`. */
+export type PartOfKind<K extends PartKind> = Extract<PartDef, { kind: K }>;
+
+// Two compile-time checks, types only (nothing here reaches the emitted JS): the union covers every `PartKind`, and
+// every field in `PartFields` is admitted by at least one kind — a field documented and admitted nowhere could be
+// read but never written.
+type AssertTrue<T extends true> = T;
+export type PartKindsCovered = AssertTrue<[PartKind] extends [PartDef['kind']] ? true : false>;
+export type PartFieldsPlaced = AssertTrue<
+  [Exclude<keyof PartFields, 'kind' | PartBaseKey | BoxKey | TextKey | SlotKey | OverlayKey | AbsoluteKey | NestKey | VectorKey>] extends [never] ? true : false
+>;
+
 /** An overlay's `replaces` as an ordered candidate LIST, whatever shape the def wrote it in (#848).
  *
  *  Exported and shared by the validator and both materializers ON PURPOSE. The alternative — each
@@ -1440,7 +1512,7 @@ export type PartDef = {
  *  shadows were silently dropped from every overlay in all four brands. One shape, read once.
  *
  *  Returns `[]` for an absent field so callers can test `.length` and never hold `undefined`. */
-export const replacesCandidates = (p: PartDef): string[] =>
+export const replacesCandidates = (p: Pick<PartFields, 'replaces'>): string[] =>
   p.replaces === undefined ? [] : Array.isArray(p.replaces) ? p.replaces : [p.replaces];
 
 /** Parse a `W:H` aspect-ratio string (e.g. `16:9`) to the numeric proportion `W / H` (#1316). Returns
@@ -4359,7 +4431,10 @@ const literalErrors = (def: ComponentDef): string[] => {
 const anatomyErrors = (def: ComponentDef): string[] => {
   const e: string[] = [];
   const a = def.anatomy!;
-  const parts = a.parts ?? {};
+  // READ AS THE WIDE BAG, not the per-kind union (#3698 R5 item 3): this validator exists to refuse the combinations
+  // the union rules out, for a def that reached the engine without a typecheck (JSON, a plain-JS host). Read through
+  // `PartDef`, each `is kind 'X' but declares 'f'` refusal would narrow to `never` and read as dead code. Type-only.
+  const parts: Readonly<Record<string, PartFields>> = a.parts ?? {};
   const names = Object.keys(parts);
   const sizes = def.variants?.size ?? [];
 
@@ -4474,7 +4549,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // product. Under the `{size}`-only expansion a `size.{size}.{weight}.text` key expanded to three
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
-  const bindingKeys = (p: PartDef): string[] =>
+  const bindingKeys = (p: PartFields): string[] =>
     [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.tileEdge?.radius, p.tileEdge?.strokeWidth, p.strokeEdges?.top, p.strokeEdges?.right, p.strokeEdges?.bottom, p.strokeEdges?.left, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key, p.firstLine?.glyph, p.nestPaddingBlock]
       .filter((k): k is string => typeof k === 'string');
   // A TYPE KEY MAY ALSO NAME `{state}` (#2580): a standalone Link sets its label in the underlined style at hover,
@@ -4485,7 +4560,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // the node and leave it out of the auto-layout size (`strokesIncludedInLayout: false`), so a state-keyed weight
   // moves no box, which is the footprint rule's whole concern. AND A `strokeWidth` KEY (#3399, owner decision Q22 A), for
   // the same reason: a focused field's border becomes the 2px focus edge, drawn inside, so the box keeps its size.
-  const keyAxes = (p: PartDef, key: string): Record<string, readonly string[]> =>
+  const keyAxes = (p: PartFields, key: string): Record<string, readonly string[]> =>
     key === p.type || key === p.strokeWidth || (p.strokeEdges && Object.values(p.strokeEdges).includes(key)) ? { ...(def.variants ?? {}), state: statesOf(def) } : (def.variants ?? {});
   for (const n of names)
     for (const key of bindingKeys(parts[n]))

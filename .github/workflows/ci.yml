@@ -918,6 +918,12 @@ jobs:
       - name: theme.ts stays a barrel over its axis modules (#3698)
         run: npx tsx packages/engine/lint-theme-split.ts
 
+      # #3698 F4, R5 item 3 — PartDef is a union discriminated by `kind`, each kind admitting only the fields the
+      # validator lets it carry. Per kind, a legal part must compile under tsc and each probed illegal field must fail
+      # by name; a kind a shipped def uses with no probe fails by name.
+      - name: PartDef refuses a field its kind does not take (#3698)
+        run: npx tsx packages/engine/lint-part-union.ts
+
       # #1123 — the mutation battery for the CLAUDE.md-freshness SessionStart report (#1110), the one
       # `tools/` harness wired into CI. It is NAMED FOR THE DETECTOR, never for this tree, because
       # docs/34 shape 17 is explicit that a stale checkout is internally consistent — nothing running
