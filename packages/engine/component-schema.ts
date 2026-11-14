@@ -1459,7 +1459,9 @@ type AllPartKey = Exclude<keyof PartFields, 'kind' | PartBaseKey>;
 
 /** The fields a box admits — the one kind that lays out, paints a surface and becomes a frame. */
 export type BoxKey = AllPartKey; // admits every field until its own commit narrows it
-export type TextKey = AllPartKey; // admits every field until its own commit narrows it
+export type TextKey =
+  | 'innerTarget' | 'children' | 'size' | 'presentWhen' | 'positionWhen' | 'literal' | 'paintSlot'
+  | 'verticalAlign' | 'wrap' | 'lines' | 'characters';
 export type SlotKey = AllPartKey; // admits every field until its own commit narrows it
 export type OverlayKey = AllPartKey; // admits every field until its own commit narrows it
 export type AbsoluteKey = AllPartKey; // admits every field until its own commit narrows it
