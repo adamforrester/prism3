@@ -1462,7 +1462,9 @@ export type BoxKey = AllPartKey; // admits every field until its own commit narr
 export type TextKey =
   | 'innerTarget' | 'children' | 'size' | 'presentWhen' | 'positionWhen' | 'literal' | 'paintSlot'
   | 'verticalAlign' | 'wrap' | 'lines' | 'characters';
-export type SlotKey = AllPartKey; // admits every field until its own commit narrows it
+export type SlotKey =
+  | 'innerTarget' | 'children' | 'size' | 'presentWhen' | 'positionWhen' | 'height' | 'aspectLock' | 'fixedPaint' | 'nesting'
+  | 'pin' | 'swapDefault';
 export type OverlayKey = AllPartKey; // admits every field until its own commit narrows it
 export type AbsoluteKey = AllPartKey; // admits every field until its own commit narrows it
 export type NestKey = AllPartKey; // admits every field until its own commit narrows it
