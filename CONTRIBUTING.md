@@ -1339,6 +1339,11 @@ npx tsx packages/engine/lint-engine-facade.ts       # the studio and the plugin 
                                                     # bundled file imports the node-only harness; each
                                                     # entry is named re-exports only, imported by no
                                                     # engine module.
+npx tsx packages/engine/lint-theme-split.ts         # theme.ts is named re-exports from its theme-*.ts
+                                                    # axis modules and nothing else (#3698 F4); no module
+                                                    # imports the barrel or an entry; the modules' value
+                                                    # imports form no cycle; every module is re-exported,
+                                                    # over a floor of 10.
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR but one

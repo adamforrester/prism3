@@ -65,7 +65,7 @@ leaving takes `motion.easing-role.exit`, a change in place takes `motion.easing-
 deliberate hero moment takes `motion.easing-role.emphasized`. An entrance decelerates into place; an
 exit accelerates away, so it reads as gone without being watched.
 *Grounding:* KB `18-motion-foundations`, easing tokens; the role table `EASING_ROLE_DEFAULTS` in
-`packages/engine/theme.ts`.
+`packages/engine/theme-motion.ts`.
 
 **R3. Leaving is faster than arriving.** An exit runs shorter than its entrance. The transitions
 encode it: `motion.transition.exit` sits on `motion.duration.fast` and `motion.transition.enter` on
@@ -109,7 +109,7 @@ durations resolve to zero today (#3484), so code that waits for a transition to 
 case where no transition runs. Springs and curves have no reduced twin yet (#3483), so drop the
 spring and fade instead.
 *Grounding:* KB `18-motion-foundations`, the reduce-motion contract; the engine's derived
-`durationReduced` ramp and `SPIN_REDUCED_MS` in `packages/engine/theme.ts`; WCAG 2.3.3.
+`durationReduced` ramp and `SPIN_REDUCED_MS` in `packages/engine/theme-motion.ts`; WCAG 2.3.3.
 
 **R8. Loops end.** A decorative animation runs a set number of times and stops. A functional loop
 (the spinner, the indeterminate progress bar) runs on `motion.duration.spin` or

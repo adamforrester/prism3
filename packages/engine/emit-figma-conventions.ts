@@ -213,7 +213,7 @@ const variables = () => {
   return {
     rule: `Every variable is named "<root>/<path>", the token's path below the brand root with "/" for ".". Primitives carry the "${CORE_TIER}" tier after the root: "<root>/${CORE_TIER}/<group>/…". Style names carry neither the root nor the tier. The root is the brand's own; an input that declares none gets "${fallbackRoot}".`,
     source: src('packages/engine/emit-figma.ts', 'EVERY VARIABLE NAME NOW CARRIES THE BRAND ROOT'),
-    rootDefault: { root: fallbackRoot, source: src('packages/engine/theme.ts', 'const root = input.root ??') },
+    rootDefault: { root: fallbackRoot, source: src('packages/engine/theme-brand.ts', 'const root = input.root ??') },
     primitiveTier: CORE_TIER,
     modesFrom: { theme: 'the default theme', source: DEFAULT_THEME_SRC },
     collections,
