@@ -139,7 +139,8 @@ const NOT_EN_GB = new Set([
   'surprise', 'surprises', 'surprised', 'surprising', 'wise', 'otherwise', 'likewise', 'clockwise', 'rise', 'rises',
   'arise', 'arises', 'arising', 'promise', 'promises', 'promised', 'promising', 'precise', 'concise',
   'exercise', 'exercises', 'exercised', 'exercising', 'premise', 'premises', 'compromise', 'compromises',
-  'revise', 'revised', 'revises', 'devise', 'devised', 'devises', 'supervise', 'enterprise', 'expertise',
+  // `revising`/`devising` joined in Q181 A (#3574): the `-ing` forms of listed en-US verbs (a change note's `revising Q280.2 A`).
+  'revise', 'revised', 'revises', 'revising', 'devise', 'devised', 'devises', 'devising', 'supervise', 'enterprise', 'expertise',
   'noise', 'raise', 'raises', 'raised', 'advertise', 'advertised', 'advertises', 'praise', 'praised',
   'cruise', 'paradise', 'franchise', 'merchandise', 'poise', 'poised', 'guise', 'disguise', 'excise',
   'incise', 'anise', 'demise', 'chastise', 'baptise',
@@ -202,10 +203,16 @@ const BANNED_WORD = /\b(simply|easy|obviously)\b/gi;
 const JUST = /\bjust\b/gi;
 // `now` (UI redesign S8.2): "Built just now" is the time sense, a moment ago, the same exactly/barely reading as "just
 // below"; it carries no judgment of the reader.
-const JUST_ALLOWED = /^\s+(?:below|above|under|over|beneath|past|outside|inside|shy of|short of|barely|about|enough|right|now)\b/i;
+// `wrote` (Q181 A, #3574): "the theme the run just wrote" in a change note is the same time sense, a moment before.
+const JUST_ALLOWED = /^\s+(?:below|above|under|over|beneath|past|outside|inside|shy of|short of|barely|about|enough|right|now|wrote)\b/i;
 
 // ---- Rule 3: filler — §2's "please note, note that" row.
 const FILLER = /\b(please\s+note|note\s+that)\b/gi;
+// …except where "note" is a NOUN (Q181 A, #3574): "the skill drops its note that the def…", "a part note that cites…".
+// Lower-case `note` only (a capital `Note that` opens a sentence, so it is the filler), right after a determiner and
+// at most one more word on the SAME line (a line break is a sentence or heading boundary, never a noun phrase). A false
+// positive here is fixed by widening this context, never by dropping `note that` from FILLER.
+const NOTE_AS_NOUN = /\b(?:a|an|the|its|this|each|every|one|their|his|her|our|your)[ \t]+(?:[A-Za-z-]+[ \t]+)?$/i;
 
 // ---- Rule 4: apology copy — §2's "Oops, Sorry" row.
 const APOLOGY = /\b(oops|sorry)\b/gi;
@@ -232,7 +239,11 @@ export const voiceHits = (txt: string): RawHit[] => {
     if (JUST_ALLOWED.test(after)) continue; // "just below the floor" — exactly/barely, allowed
     found.push({ rule: 'just', match: m[0], index: idx });
   }
-  for (const m of txt.matchAll(FILLER)) found.push({ rule: 'filler', match: m[0], index: m.index ?? 0 });
+  for (const m of txt.matchAll(FILLER)) {
+    const idx = m.index ?? 0;
+    if (m[0].startsWith('note') && NOTE_AS_NOUN.test(txt.slice(Math.max(0, idx - 40), idx))) continue; // "its note that", a noun
+    found.push({ rule: 'filler', match: m[0], index: idx });
+  }
   for (const m of txt.matchAll(APOLOGY)) found.push({ rule: 'apology', match: m[0], index: m.index ?? 0 });
   for (const m of txt.matchAll(EXCLAIM)) found.push({ rule: 'exclamation', match: '!', index: m.index ?? 0 });
   return found;

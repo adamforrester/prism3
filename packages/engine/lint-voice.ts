@@ -235,6 +235,13 @@
  * Run: `npx tsx packages/engine/lint-voice.ts`  (exit 1 = a gated surface carries banned voice-standard
  * §2 copy, or an RFC 2119 level outside the payload channel, or a bundle or rendered note names a client,
  * or an engine note breaks the decisions-log rules or is claimed by no known producer)
+ *
+ * THE CHANGE NOTES AND THE RELEASE RECORD (Q181 A, #3574). As in lint-us-english.ts: `packages/engine/changes/*.md`
+ * is a REQUIRED surface, read while each note's PR is open, because a fold carries every note verbatim into the
+ * served release pages, where `lint-release-notes.ts` forbids editing it. Those carried notes (the `### <slug>`
+ * subsections of the `.md`'s "In detail" section, each `notes[]` entry's `slug` and `prose` in the `.json`) are then
+ * the dated record, like `CHANGELOG.md`, and `shippedText` blanks them before the scan. The one owner-approved
+ * exception to "never narrow a scan", scoped to that section; RELEASE_SELF_CHECK samples each edge.
  */
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, resolve, relative } from 'node:path';
@@ -330,7 +337,52 @@ const onDemand = new Map<string, string>();
 }
 const shown = (abs: string): string => onDemand.get(abs) ?? relative(repo, abs);
 
-
+// ---- THE RELEASE RECORD (Q181 A, #3574) ----------------------------------------------------------
+// A release page (`docs/public/releases/<version>.md` and `.json`) carries every change note its fold consumed,
+// verbatim, under "In detail". That section is a dated record, read like `CHANGELOG.md`, which no prose gate
+// reads either: `lint-release-notes.ts` requires the notes verbatim, so a hit there could never be fixed where
+// it lands. The prose is gated where it is WRITTEN instead: `packages/engine/changes/*.md` is in scope below,
+// so a note is clean before its PR merges. The exception is the owner's (Q181 A), scoped to that one section:
+//   · `.md`: from the first `### ` line after `## In detail` to the next `## ` line, or the end of the page.
+//     The page's items, its headings and the section's own intro line are still read.
+//   · `.json`: the string values of each `notes[]` entry's `slug` and `prose`, the same text the `.md` section
+//     carries under its `### <slug>` headings, found in the raw text by their exact JSON encoding after `"notes": [`.
+//     Every other field, `items[].text` included, is still read.
+// Blanked in place (each character but a newline becomes a space), so line numbers do not move. Fails CLOSED: a
+// release page with no "In detail" heading, or a note whose encoded prose is not in its file, is blind, not clean.
+// RELEASE_SELF_CHECK below drives `scanText`, the path `scan()` runs, so each boundary fails by name.
+const RELEASE_PAGE = /\/docs\/public\/releases\/\d+\.\d+\.\d+\.(md|json)$/;
+const blankSpan = (t: string, a: number, b: number): string => t.slice(0, a) + t.slice(a, b).replace(/[^\n]/g, ' ') + t.slice(b);
+let releaseCarved = 0;
+const shippedText = (abs: string, raw: string): { text: string } | { error: string } => {
+  const m = RELEASE_PAGE.exec(abs);
+  if (!m) return { text: raw };
+  if (m[1] === 'md') {
+    const head = raw.search(/^## In detail$/m);
+    if (head < 0) return { error: 'a release page with no `## In detail` heading, so the carried notes cannot be told from the page' };
+    const first = raw.slice(head).search(/^### /m);
+    if (first < 0) return { text: raw };   // no notes folded into this version: nothing carried, nothing to blank
+    const start = head + first;
+    const next = raw.slice(start).search(/^## /m);
+    return { text: blankSpan(raw, start, next < 0 ? raw.length : start + next) };
+  }
+  let doc: any;
+  try { doc = JSON.parse(raw); } catch (e) { return { error: `the release record did not parse (${(e as Error).message})` }; }
+  if (!Array.isArray(doc?.notes)) return { error: 'a release record with no `notes` array' };
+  const from = raw.indexOf('"notes": [');
+  if (from < 0) return { error: 'a release record whose `notes` array is not written as `"notes": [`' };
+  let out = raw;
+  for (const n of doc.notes) {
+    for (const key of ['slug', 'prose']) {
+      if (typeof n?.[key] !== 'string') return { error: `a \`notes[]\` entry with no string \`${key}\`` };
+      const enc = `"${key}": ${JSON.stringify(n[key])}`;
+      const at = out.indexOf(enc, from);
+      if (at < 0) return { error: `the ${key} of note \`${n.slug}\` is not in the file as JSON encodes it` };
+      out = blankSpan(out, at + key.length + 4, at + enc.length);
+    }
+  }
+  return { text: out };
+};
 
 const scan = (abs: string): Hit[] => {
   let raw: string;
@@ -339,6 +391,18 @@ const scan = (abs: string): Hit[] => {
     blind.push(`${shown(abs)} — could not be read (${(e as Error).message})`);
     return [];
   }
+  const r = scanText(abs, raw);
+  if ('error' in r) { blind.push(`${shown(abs)} — ${r.error}`); return []; }
+  if (RELEASE_PAGE.test(abs)) releaseCarved++;
+  return r;
+};
+// Everything `scan()` does once the file is read, split out so RELEASE_SELF_CHECK drives this exact path with a
+// sample (a sample has no file to read). An `error` is a surface the gate cannot see; `scan()` makes it blind.
+const scanText = (abs: string, read: string): Hit[] | { error: string } => {
+  // The release record's carried notes (Q181 A), above: blanked before any rule reads the page.
+  const shipped = shippedText(abs, read);
+  if ('error' in shipped) return shipped;
+  const raw = shipped.text;
   // Code comments are exempt (header point 4). The built bundle is the only surface stripped, and it
   // carries BOTH shapes: `/* ... */` spans (a CSS-in-template-literal stylesheet) and 300 whole-line
   // `//` source comments — esbuild does not strip the latter, contrary to what this gate assumed until
@@ -440,6 +504,9 @@ const gated: string[] = [
   // regen's, scanned by name just above, and the guides' `.md` files are the required walk's above that, so the
   // walk leaves both to their own lists rather than reading them twice.
   ...walk(join(repo, 'docs/public')).filter((f) => !f.startsWith(`${join(repo, REPORTS_DIR)}/`) && !(f.startsWith(`${repo}/docs/public/guides/`) && f.endsWith('.md'))),
+  // The pending change notes (Q181 A, #3574), as lint-us-english.ts names them: gated where they are written,
+  // because a fold carries each one verbatim into a release page where it can no longer be edited.
+  ...walkRequired(join(repo, 'packages/engine/changes'), 'the change-notes directory is missing').filter((f) => f.endsWith('.md')),
 ];
 
 // The BUNDLES, named per file (#948's reasoning: a directory predicate stays satisfied by either file
@@ -479,6 +546,13 @@ const SELF_CHECK: { sample: string; expectRule: string | null }[] = [
   { sample: 'Built just now', expectRule: null },                             // the time sense (S8.2), a moment ago
   { sample: 'Please note the derived value.', expectRule: 'filler' },
   { sample: 'Note that this is derived from the ramp.', expectRule: 'filler' },
+  // Q181 A (#3574): "note" as a NOUN after a determiner is not the filler; a sentence or line start still is.
+  { sample: 'the skill drops its note that the def still drops it', expectRule: null },
+  { sample: 'A part note that cites an owner decision', expectRule: null },
+  { sample: 'It moves the ramp. Note that it moves.', expectRule: 'filler' },
+  { sample: 'the ramp\nnote that it moves', expectRule: 'filler' },
+  { sample: 'Read the guide Note that it moves.', expectRule: 'filler' },   // a capital `Note` opens a run-in sentence
+  { sample: 'bound to the theme the run just wrote', expectRule: null },     // the time sense, a moment before (Q181 A)
   { sample: 'Oops, something went wrong.', expectRule: 'apology' },
   { sample: 'Sorry, we could not complete this.', expectRule: 'apology' },
   { sample: 'Applied — 88 variables written!', expectRule: 'exclamation' },
@@ -491,6 +565,28 @@ const selfFails = SELF_CHECK.filter(({ sample, expectRule }) => {
   const hits = voiceHits(sample);
   return expectRule === null ? hits.length > 0 : !hits.some((h) => h.rule === expectRule);
 }).map(({ sample, expectRule }) => `"${sample}" should${expectRule ? ` be flagged as '${expectRule}'` : ' NOT be flagged'}`);
+// …and the RELEASE RECORD's boundaries (Q181 A), sampled through `scanText`, the path `scan()` runs on every file
+// it reads. Each arm is one edge of the exemption, so widening or dropping it fails here by name.
+const REL = `${repo}/docs/public/releases/9.9.9`;
+const REL_MD = (note: string, after = ''): string => `# What changed\n\n- Plain.\n\n## In detail\n\nPlain intro.\n\n### a-slug (minor)\n\n${note}\n${after}`;
+const RELEASE_SELF_CHECK: { name: string; path: string; text: string; want: 'clean' | 'flagged' | 'blind' }[] = [
+  { name: 'a carried note under In detail is the dated record', path: `${REL}.md`, text: REL_MD('It simply the row.'), want: 'clean' },
+  { name: 'the page above In detail is still read', path: `${REL}.md`, text: '- It simply the row.\n\n## In detail\n\n### a-slug (minor)\n\nPlain.\n', want: 'flagged' },
+  { name: "In detail's own intro line is still read", path: `${REL}.md`, text: '- Plain.\n\n## In detail\n\nIt simply the row.\n\n### a-slug (minor)\n\nPlain.\n', want: 'flagged' },
+  { name: 'a section after In detail is still read', path: `${REL}.md`, text: REL_MD('Plain.', '\n## Later\n\nIt simply the row.\n'), want: 'flagged' },
+  { name: 'a page outside docs/public/releases/ is not carved', path: `${repo}/docs/public/guides/x.md`, text: REL_MD('It simply the row.'), want: 'flagged' },
+  { name: 'the release index is not carved', path: `${repo}/docs/public/releases/index.md`, text: REL_MD('It simply the row.'), want: 'flagged' },
+  { name: "a JSON record's notes[].prose is the dated record", path: `${REL}.json`, text: JSON.stringify({ items: [{ text: 'Plain.' }], notes: [{ slug: 'a', level: 'minor', prose: 'A line.\nIt simply the row.' }] }, null, 2), want: 'clean' },
+  { name: "a JSON record's notes[].slug is the dated record, as its .md heading is", path: `${REL}.json`, text: JSON.stringify({ items: [{ text: 'Plain.' }], notes: [{ slug: 'claude-simply', level: 'minor', prose: 'Plain.' }] }, null, 2), want: 'clean' },
+  { name: "a JSON record's items[].text is still read", path: `${REL}.json`, text: JSON.stringify({ items: [{ text: 'It simply the row.' }], notes: [{ slug: 'a', level: 'minor', prose: 'Plain.' }] }, null, 2), want: 'flagged' },
+  { name: 'a release page with no In detail heading is blind, not clean', path: `${REL}.md`, text: '- Plain.\n', want: 'blind' },
+];
+const releaseSelfFails = RELEASE_SELF_CHECK.filter(({ path, text, want }) => {
+  const r = scanText(path, text);
+  const got = 'error' in r ? 'blind' : r.length ? 'flagged' : 'clean';
+  return got !== want;
+}).map((c) => `release record: ${c.name} (expected ${c.want})`);
+selfFails.push(...releaseSelfFails);
 
 // ---- Third self-check: the code-comment exemption (header point 4) actually strips what it claims
 // to, on a real multi-line block-comment shape, while a violation OUTSIDE the comment on the same
@@ -586,6 +682,8 @@ const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   // represented by some other file under the directory while the agent entry point is gone.
   { label: 'the served docs entry point (docs/public/llms.txt)', test: (f) => f === join(repo, 'docs/public/llms.txt') },
   { label: 'the served docs (docs/public/**)', test: (f) => f.startsWith(`${repo}/docs/public/`) && f !== join(repo, 'docs/public/llms.txt') && !f.startsWith(`${join(repo, REPORTS_DIR)}/`) && !f.startsWith(`${repo}/docs/public/guides/`) },
+  // The pending change notes (Q181 A, #3574), added with the surface.
+  { label: 'the pending change notes (packages/engine/changes/*.md)', test: (f) => f.startsWith(`${repo}/packages/engine/changes/`) },
 ];
 const missingSurfaces = REQUIRED_SURFACES.filter((s) => !gated.some(s.test)).map((s) => s.label);
 if (missingSurfaces.length) {
@@ -1110,6 +1208,7 @@ console.log(`Voice lint gate — ${gated.length} shipped files scanned:`);
 for (const s of REQUIRED_SURFACES) console.log(`    ${String(gated.filter(s.test).length).padStart(3)}  ${s.label}`);
 console.log(`    ${String(mcpToolsScanned).padStart(3)}  MCP tools/list, as the server returns it (tools, #1806)`);
 console.log(`    ${String(bridgeNotesScanned).padStart(3)}  the figma-bridge connect note, as initialize returns it (#3300)`);
+console.log(`    ${String(releaseCarved).padStart(3)}  release pages whose carried notes ("In detail") are read as the dated record (Q181 A)`);
 if (gatedHits.length) {
   console.error(`\n❌ ${gatedHits.length} voice-standard §2 violation(s) in SHIPPED text:\n`);
   for (const [f, hs] of byFile) {

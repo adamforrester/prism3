@@ -150,6 +150,17 @@
  * heading and a confusing failure in a file nobody wrote. A second crossing found later belongs in
  * this list with the same three commands, or it is not declared — it is remembered.
  *
+ * ── THE CHANGE NOTES AND THE RELEASE RECORD (Q181 A, #3574) ───────────────────────────────────────
+ *
+ * A fold carries every change note VERBATIM into the served release pages (`docs/public/releases/<version>.md`
+ * and `.json`, "In detail"), and `lint-release-notes.ts` forbids editing them there. So a note with an en-GB
+ * spelling merged green and turned the next fold red on text nobody could fix (#3570). The scan moved upstream:
+ * `packages/engine/changes/*.md` is a REQUIRED surface, read while the note's PR is open. The release pages'
+ * carried notes are then the dated record, like `CHANGELOG.md`, and `shippedText` blanks them before the scan:
+ * the `### <slug>` subsections of the `.md`'s "In detail" section, and each `notes[]` entry's `slug` and `prose`
+ * in the `.json`. That is the one owner-approved exception to "never narrow a scan", scoped to that section;
+ * the rest of each page is read. RELEASE_SELF_CHECK samples each edge, through the path `scan()` runs.
+ *
  * Run: `npx tsx packages/engine/lint-us-english.ts`  (exit 1 = a gated surface regressed)
  */
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
@@ -198,7 +209,52 @@ const onDemand = new Map<string, string>();
 }
 const shown = (abs: string): string => onDemand.get(abs) ?? relative(repo, abs);
 
-
+// ---- THE RELEASE RECORD (Q181 A, #3574) ----------------------------------------------------------
+// A release page (`docs/public/releases/<version>.md` and `.json`) carries every change note its fold consumed,
+// verbatim, under "In detail". That section is a dated record, read like `CHANGELOG.md`, which no prose gate
+// reads either: `lint-release-notes.ts` requires the notes verbatim, so a hit there could never be fixed where
+// it lands. The prose is gated where it is WRITTEN instead: `packages/engine/changes/*.md` is in scope below,
+// so a note is clean before its PR merges. The exception is the owner's (Q181 A), scoped to that one section:
+//   · `.md`: from the first `### ` line after `## In detail` to the next `## ` line, or the end of the page.
+//     The page's items, its headings and the section's own intro line are still read.
+//   · `.json`: the string values of each `notes[]` entry's `slug` and `prose`, the same text the `.md` section
+//     carries under its `### <slug>` headings, found in the raw text by their exact JSON encoding after `"notes": [`.
+//     Every other field, `items[].text` included, is still read.
+// Blanked in place (each character but a newline becomes a space), so line numbers do not move. Fails CLOSED: a
+// release page with no "In detail" heading, or a note whose encoded prose is not in its file, is blind, not clean.
+// RELEASE_SELF_CHECK below drives `scanText`, the path `scan()` runs, so each boundary fails by name.
+const RELEASE_PAGE = /\/docs\/public\/releases\/\d+\.\d+\.\d+\.(md|json)$/;
+const blankSpan = (t: string, a: number, b: number): string => t.slice(0, a) + t.slice(a, b).replace(/[^\n]/g, ' ') + t.slice(b);
+let releaseCarved = 0;
+const shippedText = (abs: string, raw: string): { text: string } | { error: string } => {
+  const m = RELEASE_PAGE.exec(abs);
+  if (!m) return { text: raw };
+  if (m[1] === 'md') {
+    const head = raw.search(/^## In detail$/m);
+    if (head < 0) return { error: 'a release page with no `## In detail` heading, so the carried notes cannot be told from the page' };
+    const first = raw.slice(head).search(/^### /m);
+    if (first < 0) return { text: raw };   // no notes folded into this version: nothing carried, nothing to blank
+    const start = head + first;
+    const next = raw.slice(start).search(/^## /m);
+    return { text: blankSpan(raw, start, next < 0 ? raw.length : start + next) };
+  }
+  let doc: any;
+  try { doc = JSON.parse(raw); } catch (e) { return { error: `the release record did not parse (${(e as Error).message})` }; }
+  if (!Array.isArray(doc?.notes)) return { error: 'a release record with no `notes` array' };
+  const from = raw.indexOf('"notes": [');
+  if (from < 0) return { error: 'a release record whose `notes` array is not written as `"notes": [`' };
+  let out = raw;
+  for (const n of doc.notes) {
+    for (const key of ['slug', 'prose']) {
+      if (typeof n?.[key] !== 'string') return { error: `a \`notes[]\` entry with no string \`${key}\`` };
+      const enc = `"${key}": ${JSON.stringify(n[key])}`;
+      const at = out.indexOf(enc, from);
+      if (at < 0) return { error: `the ${key} of note \`${n.slug}\` is not in the file as JSON encodes it` };
+      out = blankSpan(out, at + key.length + 4, at + enc.length);
+    }
+  }
+  return { text: out };
+};
 
 const scan = (abs: string): Hit[] => {
   let txt: string;
@@ -209,6 +265,17 @@ const scan = (abs: string): Hit[] => {
     blind.push(`${shown(abs)} — could not be read (${(e as Error).message})`);
     return [];
   }
+  const r = scanText(abs, txt);
+  if ('error' in r) { blind.push(`${shown(abs)} — ${r.error}`); return []; }
+  if (RELEASE_PAGE.test(abs)) releaseCarved++;
+  return r;
+};
+// Everything `scan()` does once the file is read, split out so RELEASE_SELF_CHECK drives this exact path with a
+// sample (a sample has no file to read). An `error` is a surface the gate cannot see; `scan()` makes it blind.
+const scanText = (abs: string, raw: string): Hit[] | { error: string } => {
+  const shipped = shippedText(abs, raw);
+  if ('error' in shipped) return shipped;
+  const txt = shipped.text;
   return enGb(txt).map(({ word, index }) => ({
     file: shown(abs),
     line: txt.slice(0, index).split('\n').length,
@@ -342,6 +409,10 @@ const gated: string[] = [
   // regen's, scanned by name just above, and the guides' `.md` files are the required walk's above that, so the
   // walk leaves both to their own lists rather than reading them twice.
   ...walk(join(repo, 'docs/public')).filter((f) => !f.startsWith(`${join(repo, REPORTS_DIR)}/`) && !(f.startsWith(`${repo}/docs/public/guides/`) && f.endsWith('.md'))),
+  // The pending change notes (Q181 A, #3574). A fold carries each one verbatim into a served release page, where
+  // it can no longer be edited, so it is gated where it is written, while its PR is open. REQUIRED: the directory
+  // and its README are committed, so its absence is a scope that shrank. The release record above is carved to match.
+  ...walkRequired(join(repo, 'packages/engine/changes'), 'the change-notes directory is missing').filter((f) => f.endsWith('.md')),
 ];
 
 // ---- `--files`: the scanned set, printed (#1117) ----------------------------------------------
@@ -408,6 +479,8 @@ const SELF_CHECK: { sample: string; expect: boolean }[] = [
   { sample: 'run packages/engine/materialise-to-figma.ts <brand>', expect: false }, // the tracked path
   { sample: 'the plugin will materialise it', expect: true },  // the same word in prose
   { sample: 'see materialise-to-figma.ts', expect: true },     // a bare file name is not the masked path
+  // Q181 A (#3574) — the `-ing` forms of two listed en-US verbs, found when the change notes joined the scope.
+  { sample: 'revising Q280.2 A and devising another', expect: false },
 ];
 // …and each masked file name is still a tracked file, so a rename cannot leave a mask behind that hides nothing.
 const staleNames = EN_GB_FILE_NAMES.filter((f) => !existsSync(join(repo, f)));
@@ -419,6 +492,28 @@ if (staleNames.length) {
 // comment on `enGb`; reimplementing the match inline is what let a real `greyscale` ship clean.
 const selfFails = SELF_CHECK.filter(({ sample, expect }) => enGb(sample).length > 0 !== expect)
   .map((c) => `"${c.sample}" should${c.expect ? '' : ' NOT'} be flagged`);
+// …and the RELEASE RECORD's boundaries (Q181 A), sampled through `scanText`, the path `scan()` runs on every file
+// it reads. Each arm is one edge of the exemption, so widening or dropping it fails here by name.
+const REL = `${repo}/docs/public/releases/9.9.9`;
+const REL_MD = (note: string, after = ''): string => `# What changed\n\n- Plain.\n\n## In detail\n\nPlain intro.\n\n### a-slug (minor)\n\n${note}\n${after}`;
+const RELEASE_SELF_CHECK: { name: string; path: string; text: string; want: 'clean' | 'flagged' | 'blind' }[] = [
+  { name: 'a carried note under In detail is the dated record', path: `${REL}.md`, text: REL_MD('It colour the row.'), want: 'clean' },
+  { name: 'the page above In detail is still read', path: `${REL}.md`, text: '- It colour the row.\n\n## In detail\n\n### a-slug (minor)\n\nPlain.\n', want: 'flagged' },
+  { name: "In detail's own intro line is still read", path: `${REL}.md`, text: '- Plain.\n\n## In detail\n\nIt colour the row.\n\n### a-slug (minor)\n\nPlain.\n', want: 'flagged' },
+  { name: 'a section after In detail is still read', path: `${REL}.md`, text: REL_MD('Plain.', '\n## Later\n\nIt colour the row.\n'), want: 'flagged' },
+  { name: 'a page outside docs/public/releases/ is not carved', path: `${repo}/docs/public/guides/x.md`, text: REL_MD('It colour the row.'), want: 'flagged' },
+  { name: 'the release index is not carved', path: `${repo}/docs/public/releases/index.md`, text: REL_MD('It colour the row.'), want: 'flagged' },
+  { name: "a JSON record's notes[].prose is the dated record", path: `${REL}.json`, text: JSON.stringify({ items: [{ text: 'Plain.' }], notes: [{ slug: 'a', level: 'minor', prose: 'A line.\nIt colour the row.' }] }, null, 2), want: 'clean' },
+  { name: "a JSON record's notes[].slug is the dated record, as its .md heading is", path: `${REL}.json`, text: JSON.stringify({ items: [{ text: 'Plain.' }], notes: [{ slug: 'claude-colour', level: 'minor', prose: 'Plain.' }] }, null, 2), want: 'clean' },
+  { name: "a JSON record's items[].text is still read", path: `${REL}.json`, text: JSON.stringify({ items: [{ text: 'It colour the row.' }], notes: [{ slug: 'a', level: 'minor', prose: 'Plain.' }] }, null, 2), want: 'flagged' },
+  { name: 'a release page with no In detail heading is blind, not clean', path: `${REL}.md`, text: '- Plain.\n', want: 'blind' },
+];
+const releaseSelfFails = RELEASE_SELF_CHECK.filter(({ path, text, want }) => {
+  const r = scanText(path, text);
+  const got = 'error' in r ? 'blind' : r.length ? 'flagged' : 'clean';
+  return got !== want;
+}).map((c) => `release record: ${c.name} (expected ${c.want})`);
+selfFails.push(...releaseSelfFails);
 // ...and a second self-check, on SCOPE rather than detection. The one above proves the scanner can
 // still recognize `colours`; it says nothing about whether the file containing it was ever opened.
 // That is the gap trap 3 came through — every pattern sample passed while `apps/studio/dist` was absent.
@@ -482,6 +577,8 @@ const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   { label: 'the built plugin UI document (apps/plugin/dist/ui.html)', test: (f) => f === join(repo, 'apps/plugin/dist/ui.html') },
   // …and the EIGHTH (#2637), added with the surface: the designer guides, anchored at the repo root like skills.
   { label: 'the designer guides (docs/public/guides/*.md)', test: (f) => f.startsWith(`${repo}/docs/public/guides/`) },
+  // …and the NINTH (Q181 A, #3574), added with the surface.
+  { label: 'the pending change notes (packages/engine/changes/*.md)', test: (f) => f.startsWith(`${repo}/packages/engine/changes/`) },
 ];
 const missingSurfaces = REQUIRED_SURFACES.filter((s) => !gated.some(s.test)).map((s) => s.label);
 if (missingSurfaces.length) {
@@ -585,6 +682,7 @@ console.log(`US-English gate — ${gated.length} shipped files scanned:`);
 for (const s of REQUIRED_SURFACES) console.log(`    ${String(gated.filter(s.test).length).padStart(3)}  ${s.label}`);
 console.log(`    ${String(mcpToolsScanned).padStart(3)}  MCP tools/list, as the server returns it (tools, #1806)`);
 console.log(`    ${String(bridgeNotesScanned).padStart(3)}  the figma-bridge connect note, as initialize returns it (#3300)`);
+console.log(`    ${String(releaseCarved).padStart(3)}  release pages whose carried notes ("In detail") are read as the dated record (Q181 A)`);
 if (gatedHits.length) {
   console.error(`\n❌ ${gatedHits.length} en-GB spelling(s) in SHIPPED text:\n`);
   for (const [f, hs] of byFile) {
