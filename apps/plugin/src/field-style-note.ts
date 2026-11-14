@@ -9,9 +9,8 @@
  * with `null`). Empty when the style did not change. The sentence is the proposal's Q16 draft, approved with option A;
  * the style is named by the manifest's own option label.
  */
-import { leverManifest } from '@prism3/engine/levers';
-import type { BrandInput } from '@prism3/engine/theme';
-import { fieldStyleFor } from '@prism3/engine/anatomy-figma';
+import { leverManifest, type BrandInput } from '@prism3/engine';
+import { fieldStyleFor } from '@prism3/engine/components';
 
 export const fieldStyleNote = (before: BrandInput | null, after: BrandInput): string => {
   const was = before?.fieldStyle ?? 'outline';

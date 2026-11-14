@@ -26,7 +26,7 @@
  * MEASURED ON THE SHIM, NOT ON A REAL HOST: `setProperties` on a placed instance after its set changed. The first run on
  * the master file is that probe, as it was for `slot-migration.ts`.
  */
-import type { ComponentRename } from '@prism3/engine/component-renames';
+import type { ComponentRename } from '@prism3/engine';
 
 type SlotTextEntry = Extract<ComponentRename, { kind: 'slot-text' }>;
 type Val = string | boolean;

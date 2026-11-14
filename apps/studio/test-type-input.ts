@@ -18,8 +18,8 @@
  * takes it" is the engine's own `brandTheme`, and "it resolves to the edit" reads the engine's composites. A
  * cleared edit is held against the brand as it was loaded, serialized, so pruning is checked byte for byte.
  */
-import { brandTheme, type BrandInput } from '@prism3/engine/theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { brandTheme, type BrandInput } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as store from './src/state/store';
 import * as T from './src/state/type-input';
 import { knownWeightsOf } from './src/ui/fonts';

@@ -173,10 +173,7 @@
  *
  * Run: `npx tsx apps/plugin/test-doc-panel.ts`
  */
-import { componentDefs } from '@prism3/engine/components/index';
-import { docSections, MAINTAINER_REGISTER, NAMES_A_TOOL } from '@prism3/engine/component-doc-sections';
-import type { ComponentDef } from '@prism3/engine/component-schema';
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, CANVAS_FURNITURE } from '@prism3/engine/anatomy-figma';
+import { componentDefs, docSections, MAINTAINER_REGISTER, NAMES_A_TOOL, type ComponentDef, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, CANVAS_FURNITURE } from '@prism3/engine/components';
 import { applyComponentPlan } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { fixHostMethods, makeShim, type Node } from './component-shim';

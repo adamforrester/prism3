@@ -23,11 +23,7 @@
  *
  * The copy below is the owner's, as drafted on #3394 (Q3394.5 A), except where a comment marks it DRAFT.
  */
-import { brandTheme } from '@prism3/engine/theme';
-import type { BrandInput } from '@prism3/engine/theme';
-import { resolveAllModes, withIconTwins, GROUND_INPUT } from '@prism3/engine/modes';
-import type { ModeResult, PrimitiveRef } from '@prism3/engine/modes';
-import { contrast, formatRatio, hexToRgb } from '@prism3/engine/color';
+import { brandTheme, type BrandInput, resolveAllModes, withIconTwins, GROUND_INPUT, type ModeResult, type PrimitiveRef, contrast, formatRatio, hexToRgb } from '@prism3/engine';
 import { canon } from './persist-figma';
 
 /** The most changes one call takes. A migration like #3336 is 13. */

@@ -17,10 +17,8 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { brandTheme, type BrandInput } from '@prism3/engine/theme';
-import { resolvePreview } from '@prism3/engine/resolve-preview';
-import { hexToRgb, rgbToOklch } from '@prism3/engine/color';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { brandTheme, type BrandInput, resolvePreview, hexToRgb, rgbToOklch } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as S from './src/state/start-input';
 import * as P from './src/state/palette-input';
 import { editCount, isDirty, provenanceOf } from './src/provenance';

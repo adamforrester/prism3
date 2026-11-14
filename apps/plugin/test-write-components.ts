@@ -54,41 +54,27 @@
  * tells you nothing about which of the two loops did it. The responsiveness itself is verified by running
  * it in Figma, and the chunk size is set from `chunkMs` off that run. See `CHUNK` in `write-components.ts`.
  */
-import { figmaAnatomyPlan, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planSetProperties, planSetLayout, planComponentName, planStamp } from '@prism3/engine/anatomy-figma';
-import { ENGINE_VERSION } from '@prism3/engine/version';
-// Source-text only, for `main.ts`'s wiring — see the `(5)` block below for what that can and cannot see.
-import { readFileSync, readdirSync } from 'node:fs';
-import { button } from '@prism3/engine/components/button';
-import { fieldLabel } from '@prism3/engine/components/field-label';
 // The three selection controls read back for #1011 are resolved through `componentDefs` rather than
-// imported by path — the engine's `exports` map names only `button` and `field-label`, and #804's own
-// reasoning says an id-based lookup is the one the main thread does.
-import { fieldMessage } from '@prism3/engine/components/field-message';
-import { componentDefs } from '@prism3/engine/components/index';
-import type { ComponentDef } from '@prism3/engine/component-schema';
+// imported by name — the engine's components entry names only `button`, `fieldLabel` and `fieldMessage`, and
+// #804's own reasoning says an id-based lookup is the one the main thread does.
+import { figmaAnatomyPlan, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planSetProperties, planSetLayout, planComponentName, planStamp, button, fieldLabel, fieldMessage, componentDefs, type ComponentDef, type AnatomyPlan } from '@prism3/engine/components';
 // #1015 — the token VALUE half of the corner read-back. The shim gives every variable a synthetic value,
 // so a built node can only name the variable it binds; these three resolve that name against real brands.
-// All in the engine's `exports` map, which is why the value assertion can be co-located with the node one
+// All in the engine's public entries, which is why the value assertion can be co-located with the node one
 // instead of stranded in `test.ts` the way #1010's was.
-import { brandTheme } from '@prism3/engine/theme';
-import { buildTree, pxOf } from '@prism3/engine/tree';
-import { nbTheme } from '@prism3/engine/nb-fixture';
-import { exampleBrands } from '@prism3/engine/emit-brandinput';
+import { ENGINE_VERSION, brandTheme, buildTree, pxOf, leverManifest, parseDesignMd, type BrandInput } from '@prism3/engine';
+import { nbTheme, exampleBrands } from '@prism3/engine/harness';
+// #1608 — the brand's COLOR emission, the host-side oracle for the outline-hover arm.
+import { buildFigmaTextStyles, buildFigmaColor, buildWritePlan } from '@prism3/engine/figma';
+// Source-text only, for `main.ts`'s wiring — see the `(5)` block below for what that can and cannot see.
+import { readFileSync, readdirSync } from 'node:fs';
 // #1605 — the brand materialization `main.ts` projects through, plus NB's real input and emitted styles.
 import { materializeForBrand } from './src/brand-def';
-import { leverManifest } from '@prism3/engine/levers';
 import { prebuildDependencies, missingDependencies, DependencyBuildError, SWAP_TARGET as PLUGIN_SWAP_TARGET, labelAfterBuilds } from './src/build-deps';
-import { parseDesignMd } from '@prism3/engine/design-md';
-import { buildFigmaTextStyles } from '@prism3/engine/emit-figma-font';
-// #1608 — the brand's COLOR emission, the host-side oracle for the outline-hover arm.
-import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import { buildWritePlan } from '@prism3/engine/write-plan';
-import type { BrandInput } from '@prism3/engine/theme';
 import { applyComponentPlan, CHUNK, partialWriteOf, buildReportJson, REF_BACKOFF_MS } from './src/write-components';
 import { refsNote } from './src/apply-summary';
 import { partialWriteHeadline, partialWriteNote, componentHeadline, staleNote } from './src/apply-summary';
 import type { ComponentApplyOptions, ComponentProgress, BuildReport } from './src/write-components';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {

@@ -15,7 +15,7 @@
  *  A FACE IT CAN'T SHOW, SAID (#3138, owner decisions Q1, Q3 A). A line whose face can't load here is drawn in a
  *  fallback and says so; a line whose family has no cut at its weight is drawn at the nearest real cut with
  *  `font-synthesis: none`, and says so. The note sits under the line (`type-sample-note`); `ui/fonts.ts` decides. */
-import type { Theme, TypeComposite } from '@prism3/engine/theme';
+import type { Theme, TypeComposite } from '@prism3/engine';
 import { drawFace, faceDraw, type HostFonts } from '../../ui/fonts';
 import { el, hook, palSection, specimen, tokenPillSpan, type SgCtx } from './kit';
 

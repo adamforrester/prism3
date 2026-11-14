@@ -11,7 +11,7 @@
  *
  * Types only from the engine: nothing here reaches a definition at run time.
  */
-import type { BrandInput } from '@prism3/engine/theme';
+import type { BrandInput } from '@prism3/engine';
 
 export type ComponentSpecsExporter = {
   /** The two files' names for a brand slug, before anything is computed (the dialog lists them). */

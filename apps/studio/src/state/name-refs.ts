@@ -16,8 +16,7 @@
  * The gate is `apps/studio/test-name-refs.ts`, which seeds every naming field from the `BrandInput` type's own text,
  * never from this table (docs/34).
  */
-import { brandTheme, type BrandInput } from '@prism3/engine/theme';
-import { resolvePreview } from '@prism3/engine/resolve-preview';
+import { brandTheme, type BrandInput, resolvePreview } from '@prism3/engine';
 import { brandState } from './store';
 
 type Rec = Record<string, unknown>;

@@ -110,7 +110,7 @@
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import type { BrandInput } from '@prism3/engine/theme';
+import type { BrandInput } from '@prism3/engine';
 import { FileShim } from './file-shim';
 import { runApplyTheme, themePlans } from './src/apply-theme';
 import { holdsInput } from './src/persist-figma';

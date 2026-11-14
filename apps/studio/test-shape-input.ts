@@ -20,8 +20,8 @@
  * (`radiusScaleIn` returning Dark's override for a Dark-based custom mode) → `a custom mode based on Dark follows
  * Light on Auto …`; the Light default unset → `setDensity(light, comfortable) writes density: comfortable …`.
  */
-import { brandTheme, type BrandInput } from '@prism3/engine/theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { brandTheme, type BrandInput } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as store from './src/state/store';
 import * as S from './src/state/shape-input';
 

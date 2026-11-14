@@ -36,8 +36,7 @@
  */
 import { makeShim } from './component-shim';
 import type { Node, Page } from './component-shim';
-import { componentDefs } from '@prism3/engine/components/index';
-import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan } from '@prism3/engine/anatomy-figma';
+import { componentDefs, figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, type ComponentDef } from '@prism3/engine/components';
 import { SWAP_TARGET } from './src/build-deps';
 import { materializeForBrand } from './src/brand-def';
 import { applyComponentPlan } from './src/write-components';
@@ -47,13 +46,12 @@ import { dueOf, entryFor, printOf, readLedger, recordSets, type LedgerEntry } fr
 import { NS, persistInput } from './src/persist-figma';
 import { emissionOf, stampEmission, themeDue } from './src/theme-emission';
 import { themePlans } from './src/apply-theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import type { BrandInput } from '@prism3/engine/theme';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
+import type { BrandInput } from '@prism3/engine';
 import { catalogOf, CATALOG_SWAP_TARGET } from '../studio/src/state/component-catalog';
 import { displayNameOf } from '../studio/src/state/component-groups';
 import { checkScopeOf, defaultTicks, type LiveDue, dueSetsOf, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, stepsOf, updateDefsOf, UPDATE_COPY, type FileSets } from '../studio/src/state/update-file';
 import { leafForDef } from './src/file-taxonomy';
-import type { ComponentDef } from '@prism3/engine/component-schema';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {

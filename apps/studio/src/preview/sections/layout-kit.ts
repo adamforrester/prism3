@@ -10,7 +10,7 @@
  *  LABEL FIRST, TOKEN UNDER (the owner's QA-B2): `layoutLabel` draws a name in the ground's ink, its token pill under
  *  it, and its value beside. The ink comes from the ground's own custom properties (`ground()` in `kit.ts`), never
  *  inline, so it follows the previewed mode. Nothing here reads the session. */
-import type { LayoutAxis, Theme } from '@prism3/engine/theme';
+import type { LayoutAxis, Theme } from '@prism3/engine';
 import { el, hook, legibleInkOn, specimen, tokenPillSpan, type SgCtx } from './kit';
 
 export type LayoutCtx = {

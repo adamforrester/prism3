@@ -16,8 +16,7 @@
 import { writeFileSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { componentDefs } from '@prism3/engine/components/index';
-import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
+import { componentDefs, figmaAnatomySet } from '@prism3/engine/components';
 import { catalogOf, CATALOG_SWAP_TARGET, type CatalogEntry } from './src/state/component-catalog';
 // The plugin's page taxonomy, read at generation time only (the web bundle reads the data this writes, #2700).
 import { leafForDef } from '../plugin/src/file-taxonomy';

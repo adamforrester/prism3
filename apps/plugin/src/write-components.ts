@@ -54,10 +54,9 @@
  * assertion instead, because with no caller the port could have drifted out of satisfaction with the
  * whole suite green; the trigger retired it rather than leaving two mechanisms for one guarantee.
  */
-import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, resolveNestMember, applyNestOverrides, applyNestItemPrefers, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities } from '@prism3/engine/anatomy-figma';
-import type { AnatomyPlan, FigmaNodePlan, SwapFound } from '@prism3/engine/anatomy-figma';
-import { ENGINE_VERSION } from '@prism3/engine/version';
-import { tailOf } from '@prism3/engine/figma-names';
+import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, resolveNestMember, applyNestOverrides, applyNestItemPrefers, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities, type AnatomyPlan, type FigmaNodePlan, type SwapFound } from '@prism3/engine/components';
+import { ENGINE_VERSION } from '@prism3/engine';
+import { tailOf } from '@prism3/engine/figma';
 import { NS } from './persist-figma';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { labelColumns, readLabelColumn } from './label-columns';

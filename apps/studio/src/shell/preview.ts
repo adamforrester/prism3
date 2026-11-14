@@ -22,7 +22,7 @@ import { currentMode, rp, setCurrentMode, subscribe, theme } from '../state/stor
 import { FLOOR_POINTER, breadthLine, healthLine, isDerived, modeLine, resolvedModes, verdictLine, verdictOf, type Verdict } from '../state/verdict';
 import { INSPECT, type InspectId } from './pages';
 import { glyph, h, hook, menuButton, tile } from './dom';
-import { ENGINE_VERSION } from '@prism3/engine/version';
+import { ENGINE_VERSION } from '@prism3/engine';
 import { buildChip, buildTitle } from '../build-identity';
 
 /** Short mode names, as the legacy mode strip and concept v6 show them. A custom mode shows its own name. */

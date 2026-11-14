@@ -26,7 +26,7 @@
  *     mode's override (pruned), so no redundant "equals the brand" override lingers.
  * Tempo commits through `applyFull()` at the caller (#800).
  */
-import { EASING_ROLE_DEFAULTS } from '@prism3/engine/theme';
+import { EASING_ROLE_DEFAULTS } from '@prism3/engine';
 import { brandState, theme, getPath, setPath, getModeLever, setModeLever } from './store';
 
 /** The tempo choices, in the order the legacy controls list them. */

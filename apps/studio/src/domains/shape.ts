@@ -32,7 +32,7 @@
 import { brandState, currentMode, getPath, lastError, searchQuery, setPage, setSearchHits, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
 import { brandBaseMd, brandControlShape, densityIn, radiusScaleIn, setBaseMd, setDensity, setRadiusScale } from '../state/shape-input';
-import type { Density } from '@prism3/engine/scale';
+import type { Density } from '@prism3/engine';
 import { DOMAINS, pageOfTab, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';

@@ -28,9 +28,8 @@
  * failed verdict (the refusal counted as needing attention) → `refused: an agent's declined request leaves …`;
  * pin `n` → `refused: a second identical refusal still counts as a change`.
  */
-import type { BrandInput } from '@prism3/engine/theme';
-import { brandTheme } from '@prism3/engine/theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { type BrandInput, brandTheme } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession } from './src/state/host-session';
 import type { HostMessage } from './src/write-adapter';
 

@@ -34,11 +34,9 @@
  * missing entry as reaching nothing (`if (e === undefined) continue;`) → `reach/missing` (#3160);
  * `quietOf` without the revision → `reach/quiet`; `needsPrint` back to `was.rev === is.rev` → `reach/needs-print`.
  */
-import { componentDefs } from '@prism3/engine/components/index';
-import type { BrandInput } from '@prism3/engine/theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import { figmaAnatomySet, type AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import { ENGINE_VERSION } from '@prism3/engine/version';
+import { componentDefs, figmaAnatomySet, type AnatomyPlan } from '@prism3/engine/components';
+import { type BrandInput, ENGINE_VERSION } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { LEDGER_KEY, dueOf, entryFor, needsPrint, printOf, quietOf, readLedger, recordSets } from './src/as-built-ledger';
 import { materializerFor } from './src/brand-def';
 import { EXECUTOR_REACH, reaches, type ReachTable } from './src/executor-reach';

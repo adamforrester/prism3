@@ -20,10 +20,8 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import ts from 'typescript';
-import { ENGINE_VERSION } from '@prism3/engine/version';
-import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
-import type { BrandInput } from '@prism3/engine/theme';
+import { ENGINE_VERSION, type BrandInput } from '@prism3/engine';
+import { figmaAnatomySet, componentDefs } from '@prism3/engine/components';
 import { FileShim } from './file-shim';
 import { makeShim } from './component-shim';
 import { runApplyTheme, themePlans } from './src/apply-theme';

@@ -18,16 +18,14 @@
  * numbers `test-reactions.ts` pins for the plugin), and named reactions for named members, spelled out by hand.
  * Neither path's output is the other's reference.
  */
-import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planSetChunks } from '@prism3/engine/anatomy-figma';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
+import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planSetChunks, type AnatomyPlan, componentDefs } from '@prism3/engine/components';
 import { applyComponentPlan } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { makeShim, fixHostMethods, type Node, type Page } from './component-shim';
 import { runComponentPlace, runComponentChunk, runComponentReactions, pack, unpack, packNames, unpackNames } from './src/mcp-steps';
 import { componentScripts } from './mcp-paste';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import type { BrandInput } from '@prism3/engine/theme';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
+import type { BrandInput } from '@prism3/engine';
 
 let failed = 0, executed = 0;
 const ok = (cond: boolean, label: string): void => {

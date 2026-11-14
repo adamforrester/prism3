@@ -30,7 +30,7 @@
  * `run-code` (#2544), which runs its `code` in the main thread; `lint-release-bundle.ts` keeps it out of `release/`.
  */
 import type { RunCodeArgs } from './dev-commands';
-import type { BrandInput } from '@prism3/engine/theme';
+import type { BrandInput } from '@prism3/engine';
 import type { MainToUi, StyleGuideOptions } from './messages';
 import type { OverrideChange } from './set-override';
 

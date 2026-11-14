@@ -21,7 +21,7 @@
  *
  * HELD FOR THE OWNER, every number here, and the frame's look: the wireframe drew it at 720 × 960.
  */
-import { ENGINE_VERSION, CONTRACT_VERSION } from '@prism3/engine/version';
+import { ENGINE_VERSION, CONTRACT_VERSION } from '@prism3/engine';
 import { TAXONOMY } from './file-taxonomy';
 import { BOLD, REGULAR, SEMIBOLD, autoLayout, fontKey, makeText, solid, type FNode, type FileComponentsApi } from './file-components';
 import { fingerprintOf, type SgNode } from './style-guide';

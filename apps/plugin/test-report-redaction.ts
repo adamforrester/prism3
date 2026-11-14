@@ -25,8 +25,8 @@
  *   · `write failed:` carrying the class alone again (`main.ts`) → `#3697 H4 D3703.1 B a thrown write: the drawer line
  *     keeps the host's message`; the same at `prune failed:` → `#3697 H4 D3703.1 B a thrown prune: …`.
  */
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import { brandTheme, type BrandInput } from '@prism3/engine/theme';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
+import { brandTheme, type BrandInput } from '@prism3/engine';
 import { buildReport, type ReportEntry } from '../studio/src/state/report';
 import { themePlans } from './src/apply-theme';
 import { FileShim } from './file-shim';

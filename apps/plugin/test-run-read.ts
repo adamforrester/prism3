@@ -30,9 +30,7 @@
  * Expected values are literals or the twin's, never read from the module under test.
  * Run: `npx tsx apps/plugin/test-run-read.ts`
  */
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
+import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, componentDefs } from '@prism3/engine/components';
 import { applyComponentPlan, STAMP_KEY } from './src/write-components';
 import { NS } from './src/persist-figma';
 import { SWAP_TARGET } from './src/build-deps';

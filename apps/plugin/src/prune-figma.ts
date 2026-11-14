@@ -88,7 +88,7 @@
  */
 import { orphansOf, strandedCollections, claimModes, plannedModeNames, stampPlannedModes } from './write-figma';
 import type { VarMode } from './write-figma';
-import { rootOf } from '@prism3/engine/figma-names';
+import { rootOf } from '@prism3/engine/figma';
 
 /** The four Figma style surfaces the engine writes, each its own API and its own namespace. `text` is
  *  `figma.getLocalTextStylesAsync`, `effect`/`paint` are `write-styles.ts`'s pair, `grid` is #1480's

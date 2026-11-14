@@ -34,7 +34,7 @@
  *
  * NO DOM AT IMPORT, NO STORE. The context is handed the resolved roles; nothing here reads the session.
  */
-import { contrast, hexToRgb } from '@prism3/engine/color';
+import { contrast, hexToRgb } from '@prism3/engine';
 import { fmtRatio } from '../../ui/step-picker';
 
 export { fmtRatio };

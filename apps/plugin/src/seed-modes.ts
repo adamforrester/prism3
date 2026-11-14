@@ -18,8 +18,8 @@
  *
  * Compiled under `tsconfig.main.json` (reached through `main.ts`) — no `document`.
  */
-import type { DeclaredModesInput, ReadbackVerdict } from '@prism3/engine/read-back';
-import { brandTheme } from '@prism3/engine/theme';
+import type { DeclaredModesInput, ReadbackVerdict } from '@prism3/engine/figma';
+import { brandTheme } from '@prism3/engine';
 import { restoreInput } from './persist-figma';
 import type { SharedDataPort } from './persist-figma';
 

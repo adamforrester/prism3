@@ -21,7 +21,7 @@
  * SEARCH (Q3) filters this panel in place: a lever block that does not match its label, description or
  * key is hidden, and so is a section with none that do. Advanced levers are searched too.
  */
-import { ACHROMATIC_C } from '@prism3/engine/color';
+import { ACHROMATIC_C } from '@prism3/engine';
 import { brandState, lastError, rebuild, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import {
   NO_HUE, STATUS_ROLES, addBrandColor, anchorStepFor, autoStatus, hexOf, hueName, removeBrandColor, renameBrandColor, setBrandColor,

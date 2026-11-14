@@ -15,7 +15,7 @@
  * DRAFT wording, an owner item (#2650).
  */
 import index from '../../../docs/public/releases/index.json';
-import { ENGINE_VERSION } from '@prism3/engine/version';
+import { ENGINE_VERSION } from '@prism3/engine';
 
 type Highlight = { component: string; class: string; text: string };
 type Index = { releases: { version: string; md: string; highlights: Highlight[] }[] };

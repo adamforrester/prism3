@@ -4457,7 +4457,7 @@ console.log(`\nEdits — the levers write, the preview repaints\n${'='.repeat(78
   // hex. Neither the slider code nor the page's meta readout feeds it.
   const NEW_ANCHOR = '#6b5f52';
   const esbuildP = await import('esbuild');
-  const engColor = await esbuildP.build({ entryPoints: [join(REPO, 'packages/engine/color.ts')], bundle: true, platform: 'node', format: 'esm', write: false });
+  const engColor = await esbuildP.build({ stdin: { contents: "export { rgbToOklch, hexToRgb } from '@prism3/engine';", resolveDir: join(HERE, 'src'), loader: 'ts' }, bundle: true, platform: 'node', format: 'esm', write: false });
   const { rgbToOklch: toOk, hexToRgb: toRgb } = await import(`data:text/javascript;base64,${Buffer.from(engColor.outputFiles[0].text).toString('base64')}`);
   const want = toOk(toRgb(NEW_ANCHOR));
   ok(Math.abs(want.h - pinned.hue.value) > 5 && Math.abs(want.c - pinned.chroma.value) > 0.002,
@@ -4487,7 +4487,7 @@ if (runs('13b')) {
 console.log(`\nStatus seed — Custom starts from the role's resolved color\n${'='.repeat(78)}`);
 {
   const esbuild = await import('esbuild');
-  const eng = await esbuild.build({ stdin: { contents: "export { brandTheme } from '@prism3/engine/theme'; export { resolveAllModes } from '@prism3/engine/modes';", resolveDir: join(HERE, 'src'), loader: 'ts' },
+  const eng = await esbuild.build({ stdin: { contents: "export { brandTheme, resolveAllModes } from '@prism3/engine';", resolveDir: join(HERE, 'src'), loader: 'ts' },
     bundle: true, platform: 'node', format: 'esm', write: false, loader: { '.json': 'json' }, logLevel: 'silent' });
   const { brandTheme, resolveAllModes } = await import(`data:text/javascript;base64,${Buffer.from(eng.outputFiles[0].text).toString('base64')}`);
   // What the role resolves to with `src` set, the way the source select writes it: a borrow is `roleColors`,
@@ -4622,16 +4622,14 @@ console.log(`\nThe step picker — on its fixture\n${'='.repeat(78)}`);
   const { chromeCss } = await import('./chrome/esbuild-plugin.mjs');
   // THE ORACLE'S ARITHMETIC: the engine's own contrast function, bundled for Node from its source, applied
   // to the hex values the fixture hands the picker. The component's ratios are compared against it.
-  const engineColor = await esbuild.build({ entryPoints: [join(REPO, 'packages/engine/color.ts')], bundle: true, platform: 'node', format: 'esm', write: false });
+  const engineColor = await esbuild.build({ stdin: { contents: "export { contrast, hexToRgb } from '@prism3/engine';", resolveDir: join(HERE, 'src'), loader: 'ts' }, bundle: true, platform: 'node', format: 'esm', write: false });
   const { contrast, hexToRgb } = await import(`data:text/javascript;base64,${Buffer.from(engineColor.outputFiles[0].text).toString('base64')}`);
   // The fixture: a page that mounts the shipped `src/ui/step-picker.ts` beside an opener and records what it
   // writes. Built here, served by this suite, never shipped.
   const FIXTURE = `
     import { stepPicker } from './ui/step-picker';
     import CSS from 'p3:chrome-css';
-    import { brandTheme } from '@prism3/engine/theme';
-    import { resolveAllModes } from '@prism3/engine/modes';
-    import brands from '@prism3/engine/schema/example-brands.json';
+    import { brandTheme, resolveAllModes, EXAMPLE_BRANDS_JSON as brands } from '@prism3/engine';
     const style = document.createElement('style'); style.textContent = CSS; document.head.append(style);
     document.documentElement.dataset.theme = new URLSearchParams(location.search).get('theme') || 'light';
     const t = brandTheme(brands.prism3);
@@ -4976,7 +4974,7 @@ const checkState = (page, sel) => page.evaluate((x) => { const b = document.quer
  *  visible word must be the word the engine knows, the one it writes (orchestrator review of #1939). */
 const VOCAB = await (async () => {
   const esbuild = await import('esbuild');
-  const out = await esbuild.build({ entryPoints: [join(REPO, 'packages/engine/vocabulary.ts')], bundle: true, platform: 'node', format: 'esm', write: false });
+  const out = await esbuild.build({ stdin: { contents: "export { TRAITS } from '@prism3/engine';", resolveDir: join(HERE, 'src'), loader: 'ts' }, bundle: true, platform: 'node', format: 'esm', write: false });
   return import(`data:text/javascript;base64,${Buffer.from(out.outputFiles[0].text).toString('base64')}`);
 })();
 const ENGINE_WORDS = Object.keys(VOCAB.TRAITS ?? {});
@@ -20993,7 +20991,7 @@ console.log(`\n#3199 — Badge's inline style, laid out by the browser: the dot 
 // box grows past 14px) and `… wrapped`.
 {
   const esbuild = await import('esbuild');
-  const eng = await esbuild.build({ stdin: { contents: "export { figmaAnatomySet, planComponentName } from '@prism3/engine/anatomy-figma'; export { componentDefs } from '@prism3/engine/components/index';", resolveDir: join(HERE, 'src'), loader: 'ts' },
+  const eng = await esbuild.build({ stdin: { contents: "export { figmaAnatomySet, planComponentName, componentDefs } from '@prism3/engine/components';", resolveDir: join(HERE, 'src'), loader: 'ts' },
     bundle: true, platform: 'node', format: 'esm', write: false });
   const { figmaAnatomySet, planComponentName, componentDefs } = await import(`data:text/javascript;base64,${Buffer.from(eng.outputFiles[0].text).toString('base64')}`);
   const badge = componentDefs.find((d) => d.id === 'badge');

@@ -14,8 +14,8 @@
  * the owner's decisions; "gray" is checked on the engine's built ramp as r = g = b at every step, and "untinted" as
  * the engine's resolved shadow hue being null. "No jump" compares the engine's ramp before and after the write.
  */
-import type { BrandInput } from '@prism3/engine/theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import type { BrandInput } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as store from './src/state/store';
 import * as P from './src/state/palette-input';
 

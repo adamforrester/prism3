@@ -56,9 +56,7 @@
  * check has already cleared, and a rename does not change a type); and a host limit on mode COUNT (a plan
  * tier's mode cap) is not knowable from the API before `addMode` hits it.
  */
-import type { WritePlan, FloatCollectionPlan, VarCollectionPlan, StylesPlan, GridStylePlan, TextStylePlan } from '@prism3/engine/write-plan';
-import { renameMap, validateRenameMap, planCollectionRenames, isRefusal, type RenameMap } from '@prism3/engine/rename-map';
-import { CORE_COLLECTION } from '@prism3/engine/emit-figma-color';
+import { type WritePlan, type FloatCollectionPlan, type VarCollectionPlan, type StylesPlan, type GridStylePlan, type TextStylePlan, renameMap, validateRenameMap, planCollectionRenames, isRefusal, type RenameMap, CORE_COLLECTION } from '@prism3/engine/figma';
 import { ownedModeIds, replacesOnRetype, type VarCollection } from './write-figma';
 import { isEngineDescription, type StyleKind } from './prune-figma';
 import { isMarkedOwned, type Markable } from './provenance';

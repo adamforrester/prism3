@@ -40,7 +40,7 @@
  * After a Rename, a component build or an update binds by the usual name, so it finds the item the person kept, not
  * the renamed one. The choice answers this apply alone, which is what Q112 A asks of v1.
  */
-import type { WritePlan, FloatCollectionPlan, VarCollectionPlan, StylesPlan, GridStylePlan, TextStylePlan } from '@prism3/engine/write-plan';
+import type { WritePlan, FloatCollectionPlan, VarCollectionPlan, StylesPlan, GridStylePlan, TextStylePlan } from '@prism3/engine/figma';
 import { COLOR_NAMES, type ColorNames, type Conflict } from './preflight';
 
 export type CollisionChoice = 'skip' | 'rename';

@@ -905,6 +905,13 @@ jobs:
       - name: No engine comparison depends on the host locale (#3698)
         run: npx tsx packages/engine/lint-locale-order.ts
 
+      # #3698 F4, R5 item 3 — the studio and the plugin import the engine only through its four public entries
+      # (`@prism3/engine`, `/components`, `/figma`, `/harness`), so a file move inside the engine edits an entry, not a
+      # surface. A deep or relative engine path fails by file and line; a bundled file importing the node-only harness
+      # entry, an entry that is more than named re-exports, and an engine module importing an entry each fail by name.
+      - name: The surfaces import the engine only through its entries (#3698)
+        run: npx tsx packages/engine/lint-engine-facade.ts
+
       # #1123 — the mutation battery for the CLAUDE.md-freshness SessionStart report (#1110), the one
       # `tools/` harness wired into CI. It is NAMED FOR THE DETECTOR, never for this tree, because
       # docs/34 shape 17 is explicit that a stale checkout is internally consistent — nothing running

@@ -25,10 +25,8 @@
  * `C2: button at comfortable shows the engine's padding and gap px`; the spacing read at comfortable whatever the
  * density → `C2: button at compact shows the engine's padding and gap px`.
  */
-import { componentDefs } from '@prism3/engine/components/index';
-import { figmaAnatomySet, applySpacingDensity } from '@prism3/engine/anatomy-figma';
-import { densitySpacingKeys, type ComponentDef } from '@prism3/engine/component-schema';
-import { sizeRefPx, componentSizes } from '@prism3/engine/scale';
+import { componentDefs, figmaAnatomySet, applySpacingDensity, densitySpacingKeys, type ComponentDef } from '@prism3/engine/components';
+import { sizeRefPx, componentSizes } from '@prism3/engine';
 import { planTargets, defForTarget, SWAP_TARGET } from '../plugin/src/build-deps';
 import { COMPONENT_CATALOG_DATA } from './src/state/component-catalog-data';
 import { catalogOf, buildableSets, unbuildableSets, CATALOG_SWAP_TARGET, type CatalogEntry } from './src/state/component-catalog';

@@ -104,10 +104,8 @@
  *   · state: the panel receives the link state and the last command's headline
  *   · snippets: every agent-side script is short
  */
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import { ENGINE_VERSION } from '@prism3/engine/version';
-import { serializeBrandInput, deserializeBrandInput } from '@prism3/engine/persist-input';
-import type { BrandInput } from '@prism3/engine/theme';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
+import { ENGINE_VERSION, serializeBrandInput, deserializeBrandInput, type BrandInput } from '@prism3/engine';
 import { MAILBOX, AGENT_COMMANDS, READ_COMMANDS, AGENT_PROTOCOL_VERSION, resultKey, utf8Bytes, parseCommand } from './src/agent-protocol';
 import { readFixture, ARGS, EXPECTED, canon, ACTIVITY_NOTES, activityExpected, atRead, AT, contextExpected } from './agent-read-fixture';
 import { ACTIVITY_KEEP } from './src/activity-log';

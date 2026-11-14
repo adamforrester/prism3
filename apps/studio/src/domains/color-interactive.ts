@@ -37,7 +37,7 @@
  * calls `rebuild()`; the panel is redrawn whole, keeping focus on the element that had it. It never names a
  * legacy repaint tier and never imports `main.ts` (`test-shell-imports.ts`).
  */
-import { normalizeDisabledStrategy } from '@prism3/engine/theme';
+import { normalizeDisabledStrategy, contrast, hexToRgb } from '@prism3/engine';
 import { brandState, currentMode, getPath, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import { isDerived, resolvedModes } from '../state/verdict';
 import { rolesIn, stepHex, stepOfPath, stepsOf } from '../state/fills-input';
@@ -54,7 +54,6 @@ import { addRowButton, choice, jumpLabel, leverBlock, leverOf, selectField, stat
 import { scrollToStart } from '../preview/follow-edit';
 import { fmtRatio, stepPicker, worstRatio, type PickerPalette } from '../ui/step-picker';
 import { WASH_HOVER_STEPS, WASH_PRESSED_STEPS, readOutlineHoverFill, readOutlineWash, setOutlineHoverSetStep, setOutlineInteraction, setOutlineWashStep } from '../state/outline-hover-input';
-import { contrast, hexToRgb } from '@prism3/engine/color';
 
 /** #3335 (the proposal's §4, DRAFT for the owner's final read): the per-set card's title, the Primary card's first lever,
  *  the Solid fill group's title, and the Wash opacity lever. */

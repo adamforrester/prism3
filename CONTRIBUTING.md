@@ -1332,6 +1332,13 @@ npx tsx packages/engine/lint-locale-order.ts        # no comparison under packag
                                                     # the host's locale (#3698): no bare localeCompare,
                                                     # ICU collator or locale-aware case fold. Order goes
                                                     # through localeFreeCompare (locale-free-order.ts).
+npx tsx packages/engine/lint-engine-facade.ts       # the studio and the plugin import the engine only
+                                                    # through its four entries (#3698 F4): `@prism3/engine`,
+                                                    # `/components`, `/figma`, `/harness`. A deep or
+                                                    # relative engine path fails by file and line; no
+                                                    # bundled file imports the node-only harness; each
+                                                    # entry is named re-exports only, imported by no
+                                                    # engine module.
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR but one

@@ -45,7 +45,7 @@
  * one. See `declarationDefects()` for which half of the enforcement is load-bearing.
  */
 
-import { buildOverlaySet, stripExtensions } from '@prism3/engine/emit-dtcg-overlay';
+import { buildOverlaySet, stripExtensions } from '@prism3/engine';
 
 // ===========================================================================================
 // Sources — what the tokens came from, which is the gate. NOT the host (#720).

@@ -41,8 +41,7 @@
  * itself: they go on `↳ File Components`, a page only file setup may create, and an update's apply may write only
  * what its dry run showed.
  */
-import { planSetLayout, CANVAS_FURNITURE } from '@prism3/engine/anatomy-figma';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
+import { planSetLayout, CANVAS_FURNITURE, type AnatomyPlan } from '@prism3/engine/components';
 import { isTemplateSet } from './file-components';
 import { LABEL_SET, BACKDROP_COMPONENT, SCRIM_COMPONENT, SCRIM_BACKDROP, BRACKET_PROPERTY, labelVariant, bindBackdrop } from './furniture-templates';
 import type { BackdropVariables } from './furniture-templates';

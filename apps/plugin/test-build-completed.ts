@@ -87,11 +87,10 @@
 import { EXECUTOR_REACH } from './src/executor-reach';
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
+import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, componentDefs } from '@prism3/engine/components';
 import { SWAP_TARGET } from './src/build-deps';
-import { componentDefs } from '@prism3/engine/components/index';
-import type { BrandInput } from '@prism3/engine/theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import type { BrandInput } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { materializeForBrand, materializerFor } from './src/brand-def';
 import { entryFor } from './src/as-built-ledger';
 import { PANEL_FORMAT } from './src/doc-panel';

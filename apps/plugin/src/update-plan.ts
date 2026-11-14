@@ -43,15 +43,12 @@
  * of the set DANGLES, which, like a drawn fault, makes the member "to update" whatever its record says. Its blind spots are this module's (`anatomy-readback.ts` lists them). A member whose stamp
  * moved and that shows no field difference is listed as re-applied rather than left out.
  */
-import { planBoundVars, planComponentName, planEffectStyles, planPaintVars, planSetLayout, planSetProperties, planTextStyles } from '@prism3/engine/anatomy-figma';
-import { tailOf } from '@prism3/engine/figma-names';
+import { planBoundVars, planComponentName, planEffectStyles, planPaintVars, planSetLayout, planSetProperties, planTextStyles, type AnatomyPlan, diffAnatomy, type HostNode, type ReadPorts, type ComponentDef } from '@prism3/engine/components';
+import { tailOf } from '@prism3/engine/figma';
 import { planTargets } from './build-deps';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import { diffAnatomy, type HostNode, type ReadPorts } from '@prism3/engine/anatomy-readback';
-import { COMPONENT_RENAMES, coordKey, coordPairs, formerDefIds, partRenames, renameCoordinate, renameProperty, slotMigrationOf, slotTextMigrationOf, type ComponentRename } from '@prism3/engine/component-renames';
 import { captureSlotMigration, migrationLines, type MigNode, type SlotMigration } from './slot-migration';
 import { captureSlotText, holdsSlotText, slotTextLines, type SlotTextMigration, type TextMigNode } from './slot-text-migration';
-import { ENGINE_VERSION } from '@prism3/engine/version';
+import { ENGINE_VERSION, colorVariablesOutOfOrder, COMPONENT_RENAMES, coordKey, coordPairs, formerDefIds, partRenames, renameCoordinate, renameProperty, slotMigrationOf, slotTextMigrationOf, type ComponentRename } from '@prism3/engine';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { PACE_MS } from './pace';
 import { reaches } from './executor-reach';
@@ -61,7 +58,6 @@ import { labelColumns, readLabelColumn } from './label-columns';
 import { NS } from './persist-figma';
 import { isLiveSpecPanel, readSpecTag } from './spec-tag';
 import { DOC_PANEL_KEY, DOC_PANEL_NS, PANEL_GAP, SPEC_GAP, SPEC_WIDTH, docPanelBlockers, docPanelDue, docPanelReaches, ownerSet, type PanelReach, isLivePanel, panelModes, planDocPanel, readPanelTag, type PanelApi, type PNode } from './doc-panel';
-import type { ComponentDef } from '@prism3/engine/component-schema';
 import type { CheckedSet } from './messages';
 import type { ApplyProgress } from './update-apply';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
@@ -75,7 +71,6 @@ import { whatChangedLines } from './release-summary';
 import { ABOUT_NAME, aboutDue, aboutDueLine, aboutIsWork, type AboutDue } from './about-frame';
 import { readDocSettings } from './doc-settings';
 import { COVER_NAME, coverDue, coverDueLine, coverIsWork, coverPageOnlyLine, type CoverDue } from './cover-frame';
-import { colorVariablesOutOfOrder } from '@prism3/engine/color-order';
 import { isRunRoot, readRun, withRoot, type Criteria } from './run-read';
 
 /** One member of a set as the dry run reads it. */

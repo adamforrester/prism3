@@ -51,10 +51,8 @@
  *   · the text fill skips an instance with none of the new properties → `stopped/text inside the pass named`.
  *   · applyUpdate's catch around its writes rethrows (#3697 L1) → `failed/returned`, `failed/partial`.
  */
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import type { ComponentDef, PartDef } from '@prism3/engine/component-schema';
-import { componentDefs } from '@prism3/engine/components/index';
+import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, type ComponentDef, type PartDef, componentDefs } from '@prism3/engine/components';
+import { COMPONENT_RENAMES, slotMigrationOf } from '@prism3/engine';
 import { applyComponentPlan, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { makeShim, type Node, type Page } from './component-shim';
@@ -62,7 +60,6 @@ import { previewUpdate, previewVerdict, type UpdateTarget } from './src/update-p
 import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost } from './src/update-apply';
 import { captureSlotMigration, fillSlots, migrationLines, type MigNode } from './src/slot-migration';
 import { slotMigrationFor } from './src/update-plan';
-import { COMPONENT_RENAMES, slotMigrationOf } from '@prism3/engine/component-renames';
 import { UPDATING_KEY } from './src/member-baseline';
 import { materializeForBrand } from './src/brand-def';
 

@@ -29,9 +29,8 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { brandTheme, type BrandInput } from '@prism3/engine/theme';
-import { resolvePreview } from '@prism3/engine/resolve-preview';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { brandTheme, type BrandInput, resolvePreview } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as store from './src/state/store';
 import * as P from './src/state/palette-input';
 import * as I from './src/state/interactive-input';

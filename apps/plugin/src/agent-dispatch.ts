@@ -26,14 +26,13 @@
  * `cleanup` is deliberately absent. No UI action removes components (the paste harness's `runCleanupPage`
  * is a harness step, not a handler the panel reaches), and this dispatcher routes only to those.
  */
-import { ENGINE_VERSION } from '@prism3/engine/version';
+import { ENGINE_VERSION, type BrandInput } from '@prism3/engine';
 import { AGENT_PROTOCOL_VERSION, READ_COMMANDS, parseCommand, failedResult } from './agent-protocol';
 import type { CollisionChoices } from './collision-choice';
 import type { ActivityArgs, UpdateChoiceArgs } from './agent-protocol';
 import type { AgentResult, AgentTransport, AgentProgress, ValidCommand, AgentCmd, DevCmd } from './agent-protocol';
 import { RUN_CODE, parseRunCode, runCode } from './dev-commands';
 import type { MainToUi, StyleGuideOptions } from './messages';
-import type { BrandInput } from '@prism3/engine/theme';
 import type { OverrideChange } from './set-override';
 import { allLeaves, leafPageName } from './file-taxonomy';
 import { inspect, componentKeys, auditFrames, snapshot, context, ReadRefusal } from './agent-reads';

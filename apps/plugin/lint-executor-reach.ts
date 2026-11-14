@@ -46,8 +46,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync }
 import { availableParallelism, tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { componentDefs } from '@prism3/engine/components/index';
-import { comparisonBase } from '../../packages/engine/comparison-base';
+import { componentDefs } from '@prism3/engine/components';
+import { comparisonBase } from '@prism3/engine/harness';
 import type { ReachTable } from './src/executor-reach';
 
 const HERE = dirname(fileURLToPath(import.meta.url));

@@ -20,8 +20,7 @@
  * loaded or created. With unsaved edits a choice asks first, in a second window on top of this one (S4):
  * Cancel returns to the start, focus starts on Cancel, and Discard wears Prism3's destructive button (S5).
  */
-import { hex, oklchToRgb } from '@prism3/engine/color';
-import type { BrandInput } from '@prism3/engine/theme';
+import { hex, oklchToRgb, type BrandInput } from '@prism3/engine';
 import type { Origin } from '../provenance';
 import { BRANDS, brandState } from '../state/store';
 import {

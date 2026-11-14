@@ -10,8 +10,7 @@
  * DRAFT COPY for the owner (#2887): the sentence follows the approved Field style notice's pattern; the owner has not
  * yet approved this wording.
  */
-import { leverManifest } from '@prism3/engine/levers';
-import type { BrandInput } from '@prism3/engine/theme';
+import { leverManifest, type BrandInput } from '@prism3/engine';
 
 export const tagStyleNote = (before: BrandInput | null, after: BrandInput): string => {
   const was = before?.tagStyle ?? 'pill';

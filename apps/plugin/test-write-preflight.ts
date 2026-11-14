@@ -33,13 +33,10 @@
  * failure the floor exists for. Writes are recorded through a Proxy `set` trap on every file object plus
  * each mutating method, so a write the list below does not anticipate is still counted.
  */
-import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import {
-  buildWritePlan, buildFloatWritePlan, buildFontVarPlan, buildMotionVarPlan, buildStylesPlan, buildGridStylePlan, buildTextStylePlan,
-} from '@prism3/engine/write-plan';
-import { brandTheme, nbThemeFrom, type BrandInput } from '@prism3/engine/theme';
-import nbMeasured from '@prism3/engine/schema/nb-measured.json';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { buildFigmaColor, buildWritePlan, buildFloatWritePlan, buildFontVarPlan, buildMotionVarPlan, buildStylesPlan, buildGridStylePlan, buildTextStylePlan, rootOf } from '@prism3/engine/figma';
+import { brandTheme, nbThemeFrom, type BrandInput } from '@prism3/engine';
+import { NB_MEASURED_JSON as nbMeasured } from '@prism3/engine/harness';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration } from './src/write-figma';
 import { applyStylesPlan } from './src/write-styles';
 import { applyGridStylePlan, gridSkippedNote } from './src/write-grid-styles';
@@ -49,7 +46,6 @@ import { runApplyTheme } from './src/apply-theme';
 import { conflictKey, choiceNote, renamedOf, type CollisionChoices } from './src/collision-choice';
 import { computePrunePlan, type PruneInput } from './src/prune-figma';
 import { ownedModeIds } from './src/write-figma';
-import { rootOf } from '@prism3/engine/figma-names';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {

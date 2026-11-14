@@ -22,7 +22,7 @@
  * not part of applying a theme (#652). Since #804 that action names which def to build; absent still
  * means Button.
  */
-import type { BrandInput } from '@prism3/engine/theme';
+import type { BrandInput } from '@prism3/engine';
 import type { AgentLinkState, AgentResult, AgentProgress, AgentCmd } from './agent-protocol';
 import type { WriteCmd } from './run-guard';
 import type { LibraryFile } from './file-kind';

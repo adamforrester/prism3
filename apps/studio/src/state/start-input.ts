@@ -14,12 +14,8 @@
  * found in the front matter by name. A JavaScript error out of the engine (a `TypeError` on a missing key) names no
  * line, so it is never guessed at: a wrong line is worse than none.
  */
-import { brandTheme, type BrandInput } from '@prism3/engine/theme';
-import { resolveAllModes } from '@prism3/engine/modes';
+import { brandTheme, type BrandInput, resolveAllModes, hexToRgb, rgbToOklch, storedOklch, parseDesignMd, parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine';
 import { studioMessage } from './floor-refusal';
-import { hexToRgb, rgbToOklch, storedOklch } from '@prism3/engine/color';
-import { parseDesignMd } from '@prism3/engine/design-md';
-import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine/standard-design-md';
 
 // ---- the brands a start path makes ------------------------------------------------------------------
 

@@ -39,7 +39,7 @@
  * what a designer does by hand, and `setProperties` on a fresh instance. Neither has been probed through the plugin
  * API on a real file yet; the first run on the master file is that probe, and a refusal there is a miss by name.
  */
-import type { ComponentRename } from '@prism3/engine/component-renames';
+import type { ComponentRename } from '@prism3/engine';
 
 type SlotEntry = Extract<ComponentRename, { kind: 'slot' }>;
 type Val = string | boolean;

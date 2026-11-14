@@ -73,6 +73,10 @@ Note: `buildTree` (the DTCG generator) lives in the **pure** `tree.ts` (no `node
 Node ≥ 20. No `npm install` needed — the color math is self-contained
 (`color.ts`), so the engine runs without a network.
 
+## Import it from a surface
+
+The studio and the plugin import the engine through four entries, declared in `package.json` `exports`: `@prism3/engine` (the token core), `@prism3/engine/components` (definitions and the Figma projector), `@prism3/engine/figma` (the plugin's writers) and `@prism3/engine/harness` (node-only test helpers). `index.ts` maps them and says what goes where. `lint-engine-facade.ts` fails a deep path such as `@prism3/engine/theme`, or a relative one into this package, from `apps/studio` or `apps/plugin`. When a surface needs a name an entry doesn't export, add it to that entry's file.
+
 ## Connect an agent (MCP)
 
 The engine ships an MCP server, `mcp.ts`. It speaks MCP over stdio, supports protocol versions

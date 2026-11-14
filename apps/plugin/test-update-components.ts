@@ -107,16 +107,11 @@
  * Run: `npx tsx apps/plugin/test-update-components.ts`
  */
 import { WHAT_CHANGED_LINES, whatChangedLines } from './src/release-summary';
-import { ENGINE_VERSION } from '@prism3/engine/version';
+import { ENGINE_VERSION, parseDesignMd, type BrandInput, type ComponentRename } from '@prism3/engine';
 import releaseIndex from '../../docs/public/releases/index.json';
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName } from '@prism3/engine/anatomy-figma';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
-import { parseDesignMd } from '@prism3/engine/design-md';
-import type { BrandInput } from '@prism3/engine/theme';
+import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName, type AnatomyPlan, componentDefs } from '@prism3/engine/components';
 import { readFileSync } from 'node:fs';
 import { materializeForBrand } from './src/brand-def';
-import type { ComponentRename } from '@prism3/engine/component-renames';
 import { applyComponentPlan, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';

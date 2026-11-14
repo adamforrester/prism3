@@ -22,8 +22,8 @@
  * Run: `npx tsx apps/plugin/test-style-renames.ts`
  */
 import { readFileSync } from 'node:fs';
-import { STYLE_RENAMES, type StyleRule } from '@prism3/engine/materialization-renames';
-import type { BrandInput } from '@prism3/engine/theme';
+import { STYLE_RENAMES, type StyleRule } from '@prism3/engine/figma';
+import type { BrandInput } from '@prism3/engine';
 import { runApplyTheme, themePlans } from './src/apply-theme';
 import { pack, runStyles, runText } from './src/mcp-steps';
 import { brandFromDesignMd } from './mcp-paste';

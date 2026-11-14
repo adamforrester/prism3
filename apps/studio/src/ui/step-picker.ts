@@ -16,7 +16,7 @@
  * KEYBOARD: arrow keys move along the grid (Up and Down by a row), Home and End go to the first and last
  * step, Enter or Space chooses, Escape closes. A choice does not move the picker's focus.
  */
-import { contrast, formatRatio, hexToRgb } from '@prism3/engine/color';
+import { contrast, formatRatio, hexToRgb } from '@prism3/engine';
 import { glyph, h, hook } from '../shell/dom';
 
 export type PickerStep = { readonly key: string; readonly hex: string };

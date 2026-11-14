@@ -42,12 +42,11 @@
  *     each set is placed once, by its own script, before its first chunk
  */
 import { readFileSync, readdirSync } from 'node:fs';
-import { figmaAnatomySet, planSetChunks } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
+import { figmaAnatomySet, planSetChunks, componentDefs } from '@prism3/engine/components';
 import { SWAP_TARGET } from './src/build-deps';
 import { materializeForBrand } from './src/brand-def';
-import type { BrandInput } from '@prism3/engine/theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import type { BrandInput } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { runApplyTheme, themePlans } from './src/apply-theme';
 import { pack, unpack, componentFigma } from './src/mcp-steps';
 import { fixHostMethods } from './component-shim';

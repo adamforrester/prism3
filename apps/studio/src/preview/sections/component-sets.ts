@@ -15,7 +15,7 @@
  *  count from the catalog's length.
  *
  *  Classes are the legacy card's (`cset-*`), drawn on the section's ground in the ground's own inks. */
-import { densitySpacingStep, type Density } from '@prism3/engine/scale';
+import { densitySpacingStep, type Density } from '@prism3/engine';
 import type { Catalog, CatalogEntry } from '../../state/component-catalog';
 import type { SetBuild } from '../../state/host-session';
 
