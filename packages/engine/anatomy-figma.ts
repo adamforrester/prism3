@@ -1243,7 +1243,9 @@ const builtSizeAt = (def: ComponentDef, size: string | undefined, slots: PlanSlo
     ...(width !== undefined ? { placementWidth: width } : {}),
     ...(height !== undefined ? { placementHeight: height } : {}),
   };
-  if (height !== undefined && b.grow && parts[b.grow]) parts[b.grow] = { ...parts[b.grow], grow: true };
+  // `builtSize.grow` names a flow child of the column without typing its kind, so the part is widened to take `grow`
+  // (#3698 R5 item 3: type-only, the emitted JS is unchanged).
+  if (height !== undefined && b.grow && parts[b.grow]) parts[b.grow] = { ...parts[b.grow], grow: true } as PartDef;
   return { ...def, anatomy: { ...a, parts } };
 };
 
@@ -2763,7 +2765,7 @@ export const applyFieldStyle = (def: ComponentDef, style: FieldStyle): Component
   const frameName = FIELD_FRAME_PARTS[def.id];
   const a = def.anatomy;
   const frame = frameName ? a?.parts[frameName] : undefined;
-  if (!a || !frame) return def;
+  if (!a || !frame || frame.kind !== 'box') return def;
   const tokens: Record<string, string> = {};
   for (const [k, ref] of Object.entries(def.tokens)) {
     if (k === 'disabled.fill') continue;
@@ -2857,7 +2859,7 @@ export const applyTagStyle = (def: ComponentDef, style: TagStyle): ComponentDef 
   const names = TAG_STYLE_PARTS[def.id];
   const a = def.anatomy;
   const frame = names ? a?.parts[names.frame] : undefined;
-  if (!a || !names || !frame) return def;
+  if (!a || !names || !frame || frame.kind !== 'box') return def;
   const tokens: Record<string, string> = {};
   for (const [k, ref] of Object.entries(def.tokens)) if (!k.split('.').includes('overlay')) tokens[k] = ref;
   if (frame.radius) tokens[frame.radius] = 'radius.none';
@@ -2891,7 +2893,7 @@ export const applyTagStyle = (def: ComponentDef, style: TagStyle): ComponentDef 
   const row = a.parts[names.row];
   if (row?.padding) parts[names.row] = { ...row, padding: { ...row.padding, inlineLabel: 'underline.pad-0', inlineEnd: 'underline.pad-0', blockEnd: TAG_UNDERLINE_INSET } };
   const labelRow = a.parts[names.labelRow];
-  if (labelRow) {
+  if (labelRow?.kind === 'box') {
     const glyph = Object.values(a.parts).find((p) => p.kind === 'vector' && labelRow.children?.some((c) => a.parts[c] === p))?.size;
     if (glyph) parts[names.labelRow] = { ...labelRow, minHeight: glyph };
   }

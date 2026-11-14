@@ -1464,7 +1464,9 @@ export type SlotKey = AllPartKey; // admits every field until its own commit nar
 export type OverlayKey = AllPartKey; // admits every field until its own commit narrows it
 export type AbsoluteKey = AllPartKey; // admits every field until its own commit narrows it
 export type NestKey = AllPartKey; // admits every field until its own commit narrows it
-export type VectorKey = AllPartKey; // admits every field until its own commit narrows it
+export type VectorKey =
+  | 'innerTarget' | 'size' | 'presentWhen' | 'positionWhen' | 'paintSlot' | 'inset'
+  | 'glyph' | 'glyphScale' | 'glyphPx' | 'tileEdge' | 'corner' | 'scaleWithParent' | 'stackCentered';
 
 export interface BoxPart extends PartOf<'box', BoxKey> {}
 export interface TextPart extends PartOf<'text', TextKey> {}
