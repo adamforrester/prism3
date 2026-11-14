@@ -21,7 +21,7 @@
  *   · the miss for a preferred def not in the file dropped → `constraints/missing preferred named`;
  *   · the clear on Update dropped (the `hostHas` arm) → `constraints/cleared on update`.
  */
-import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, componentDefs, diffAnatomy, type HostNode, type ReadPorts, type ComponentDef } from '@prism3/engine/components';
+import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, componentDefs, diffAnatomy, type HostNode, type ReadPorts, type ComponentDef, type PartOfKind } from '@prism3/engine/components';
 import { applyComponentPlan } from './src/write-components';
 import { makeShim, type Node, type Page } from './component-shim';
 
@@ -87,7 +87,7 @@ console.log('the corpus');
 
 const tag = componentDefs.find((d) => d.id === 'tag')!;
 const slotted = (extra: Record<string, unknown> = {}): ComponentDef => ({ ...tag, anatomy: { ...tag.anatomy!, parts: { ...tag.anatomy!.parts,
-  dismiss: { ...tag.anatomy!.parts.dismiss, contentSlot: true, ...extra },
+  dismiss: { ...(tag.anatomy!.parts.dismiss as PartOfKind<'box'>), contentSlot: true, ...extra },
 } } });
 const CONSTRAINED = { slotSettings: { minChildren: 1, maxChildren: 2, allowPreferredValuesOnly: true }, preferred: ['badge'] };
 const planComps = (n: { swapTarget?: string; nestTarget?: string; children: unknown[] }): string[] => [

@@ -8,7 +8,7 @@ export { button } from './components/button';
 export { fieldLabel } from './components/field-label';
 export { fieldMessage } from './components/field-message';
 export { densitySpacingKeys, validateComponentDef } from './component-schema';
-export type { ComponentDef, PartDef } from './component-schema';
+export type { ComponentDef, PartDef, PartOfKind } from './component-schema';
 export {
   BANNER_STYLE_FILL_KEYS, CANVAS_FURNITURE, DEFAULT_BUTTON_LAYOUT, DEFAULT_WEIGHT_AVAILABILITY,
   DIALOG_TITLE_TYPE_KEYS, FIELD_FRAME_PARTS, SWAP_NO_PROPERTY, SWAP_PLACEHOLDER, TAG_STYLE_PARTS, applyBannerStyle,
