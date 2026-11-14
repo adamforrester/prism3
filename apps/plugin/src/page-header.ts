@@ -50,8 +50,8 @@ import { SECTION_HEADER_SET, isTemplateSet } from './file-components';
 import type { PageLike } from './file-setup';
 import { pageMovesDue, stayingOn } from './page-moves';
 import { NS } from './persist-figma';
-import { formerDefIds } from '@prism3/engine/component-renames';
-import { componentDefs } from '@prism3/engine/components/index';
+import { componentDefs } from '@prism3/engine/components';
+import { formerDefIds } from '@prism3/engine';
 
 /** The set `file-components.ts` names. Found by `isTemplateSet`, in any case — the owner's NB files carry
  *  it as `_section-header` — the same match file setup's "already built" check uses. */

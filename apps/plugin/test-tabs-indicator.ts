@@ -17,9 +17,7 @@
  * Mutation: put back the stacked layout (the list's `children` back to items-then-baseline, its 1px `blockEnd` inset
  * back) → `#3344 tabs indicator bottom` and `#3344 tabs paint order` both fail.
  */
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
-import type { ComponentDef } from '@prism3/engine/component-schema';
+import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, componentDefs, type ComponentDef } from '@prism3/engine/components';
 import { applyComponentPlan } from './src/write-components';
 import { makeShim } from './component-shim';
 import type { Node, Page } from './component-shim';

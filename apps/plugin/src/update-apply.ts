@@ -47,9 +47,8 @@
  * the nodes kept as hand edits, and its prototype reactions against the ones the plan gives it (#2466), unless they
  * were kept as a hand edit. Either failing makes the verdict a failure.
  */
-import { diffAnatomy, type HostNode } from '@prism3/engine/anatomy-readback';
-import { planComponentName, planSetProperties, type AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import { partRenames, type ComponentRename } from '@prism3/engine/component-renames';
+import { diffAnatomy, type HostNode, planComponentName, planSetProperties, type AnatomyPlan } from '@prism3/engine/components';
+import { partRenames, type ComponentRename, slotMigrationOf, slotTextMigrationOf } from '@prism3/engine';
 import { applyComponentPlan, emitCoordValue, keptBoundOf, memberStamp, STAMP_KEY, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
 import { NS } from './persist-figma';
 import { UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, snapshotMember, type OwnershipRead, type SnapNode } from './member-baseline';
@@ -63,7 +62,6 @@ import { rereadAfter, withRoot } from './run-read';
 import { isLiveSpecPanel, readSpecTag } from './spec-tag';
 import { REACTIONS, nestedFirst, breakingClause, breaksConsumers, nestedMemberFaults, nestFaultLine, breakingSection, furnitureParts, withSetSlots, hostPorts, locateSets, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, renamedComponent, runHost, setUpToDate, slotMigrationFor, slotTextMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
-import { slotMigrationOf, slotTextMigrationOf } from '@prism3/engine/component-renames';
 import { fillSlotText, type SlotTextOutcome, type TextMigNode } from './slot-text-migration';
 import { saveVersion } from './version-title';
 import type { Held, Ledger, LedgerEntry } from './as-built-ledger';

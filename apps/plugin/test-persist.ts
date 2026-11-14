@@ -15,9 +15,8 @@
  * landing on defaults. Mirrors test-write.ts's `ok(...)` style; exits non-zero on any failure.
  */
 import { persistInput, restoreInput, NS, KEY, type SharedDataPort } from './src/persist-figma';
-import { serializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from '@prism3/engine/persist-input';
-import { exampleBrands } from '@prism3/engine/emit-brandinput';
-import type { BrandInput } from '@prism3/engine/theme';
+import { serializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError, type BrandInput } from '@prism3/engine';
+import { exampleBrands } from '@prism3/engine/harness';
 
 /** Assert `fn` throws an `UnrecognizedPersistedInputError`; returns its message for further checks. */
 const throwsUnrecognized = (fn: () => unknown): string | null => {

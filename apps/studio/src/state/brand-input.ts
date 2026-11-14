@@ -12,8 +12,7 @@
  * A writer here edits `brandState` and calls nothing, except the name, which syncs the identity itself
  * (it never rebuilds). The caller calls `rebuild()`, which re-resolves and tells the `brand` topic.
  */
-import { TRAITS } from '@prism3/engine/vocabulary';
-import { ALL_MODES, brandTheme } from '@prism3/engine/theme';
+import { TRAITS, ALL_MODES, brandTheme } from '@prism3/engine';
 import { brandState, syncIdentity } from './store';
 import { commitAtomic, modeRemovalEffects, removeMode, renameMode, replaceBrand } from './name-refs';
 

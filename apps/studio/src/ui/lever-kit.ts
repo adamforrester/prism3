@@ -13,8 +13,7 @@
  *
  * Classes take the shell's `p3-` scope (`shell/dom.ts`). State is in ARIA attributes, never in a class.
  */
-import { leverManifest } from '@prism3/engine/levers';
-import type { Lever } from '@prism3/engine/levers';
+import { leverManifest, type Lever } from '@prism3/engine';
 import { leverHook } from '../levers/controls';
 import { glyph, h, hook, switchEl } from '../shell/dom';
 import { holdPersist, lastError, rebuild, releasePersist, searchQuery, setSearchHits } from '../state/store';

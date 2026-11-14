@@ -24,7 +24,7 @@
  * DRAFT wording, an owner item, apart from what the approved wireframe already shows.
  */
 import index from '../../../docs/public/releases/index.json';
-import { CONTRACT_VERSION, ENGINE_VERSION } from '@prism3/engine/version';
+import { CONTRACT_VERSION, ENGINE_VERSION } from '@prism3/engine';
 
 export type ReleaseItem = { class: string; area: string; kind: string; component?: string; text: string };
 export type ReleaseEntry = { version: string; from: string; date: string; counts: { breaking: number; new: number; fix: number }; items?: ReleaseItem[] };

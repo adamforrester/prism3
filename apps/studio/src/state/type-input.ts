@@ -28,12 +28,7 @@
  *     before a full repaint reads the set as it was drawn, not as the first click left it. That is the legacy
  *     page's behavior (#831), and the equivalence driver holds it byte for byte.
  */
-import {
-  brandTheme, typefaceSlug, derivedRungFor, shiftRung, REQUIRED_WEIGHT_ROLES, PER_MODE_SIZE_GROUPS,
-  LINE_HEIGHT_KEYS, TRACKING_SHIFT_KEYS, DISPLAY_VARIANTS, TYPE_LINK_DEFAULT, TYPE_LINK_ALWAYS, UNDERLINE_ON_DEFAULT,
-  UNDERLINE_BOUNDS,
-} from '@prism3/engine/theme';
-import type { BrandInput, Theme, TypographyInput, PerModeSizeGroup, FacePin } from '@prism3/engine/theme';
+import { brandTheme, typefaceSlug, derivedRungFor, shiftRung, REQUIRED_WEIGHT_ROLES, PER_MODE_SIZE_GROUPS, LINE_HEIGHT_KEYS, TRACKING_SHIFT_KEYS, DISPLAY_VARIANTS, TYPE_LINK_DEFAULT, TYPE_LINK_ALWAYS, UNDERLINE_ON_DEFAULT, UNDERLINE_BOUNDS, type BrandInput, type Theme, type TypographyInput, type PerModeSizeGroup, type FacePin } from '@prism3/engine';
 import { brandState, theme, getPath, setPath, setModeLever } from './store';
 
 /** The seven text categories, in the order every Type table lists them. `as const` keeps the literal union

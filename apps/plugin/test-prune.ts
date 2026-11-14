@@ -24,14 +24,10 @@
  * Mirrors the sibling shim tests' dependency-free `ok(...)` style; exits non-zero on any failure.
  */
 import { existsSync, readFileSync } from 'node:fs';
-import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import {
-  buildWritePlan, buildFloatWritePlan, buildFontVarPlan, buildTextStylePlan, buildGridStylePlan, buildStylesPlan,
-} from '@prism3/engine/write-plan';
-import { nbThemeFrom, brandTheme } from '@prism3/engine/theme';
-import nbMeasured from '@prism3/engine/schema/nb-measured.json';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import { rootOf } from '@prism3/engine/figma-names';
+import { buildFigmaColor, buildWritePlan, buildFloatWritePlan, buildFontVarPlan, buildTextStylePlan, buildGridStylePlan, buildStylesPlan, rootOf } from '@prism3/engine/figma';
+import { nbThemeFrom, brandTheme, type BrandInput, type Theme } from '@prism3/engine';
+import { NB_MEASURED_JSON as nbMeasured } from '@prism3/engine/harness';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { applyFloatPlan } from './src/write-figma';
 import { applyGridStylePlan } from './src/write-grid-styles';
 import {
@@ -39,7 +35,6 @@ import {
   isEngineDescription, emptyPruneResult, prunePreviewHashOf, pruneConfirmRefusal, PRUNE_COPY,
 } from './src/prune-figma';
 import type { PruneInput, PruneApi, StyleKind, StyleNames, FileStyles } from './src/prune-figma';
-import type { BrandInput, Theme } from '@prism3/engine/theme';
 import { dead, dieOnRemove, removeOnce } from './removal-shim';
 
 let failed = 0;

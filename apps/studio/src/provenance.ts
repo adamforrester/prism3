@@ -28,7 +28,7 @@
  * meaning, which is why the model is worth more than the dialog it eventually gates.
  */
 
-import type { BrandInput } from '@prism3/engine/theme';
+import type { BrandInput } from '@prism3/engine';
 
 // ===========================================================================================
 // Origin — which writer produced the current state, and the baseline it produced

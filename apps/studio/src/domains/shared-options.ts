@@ -11,7 +11,7 @@
  *
  * HOW IT REPAINTS: by store subscription only (`brand` and `mode`), keeping focus on the element that had it.
  */
-import type { ControlShape } from '@prism3/engine/scale';
+import type { ControlShape } from '@prism3/engine';
 import { currentMode, rebuild, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
 import { brandControlShape, setControlShape } from '../state/shape-input';

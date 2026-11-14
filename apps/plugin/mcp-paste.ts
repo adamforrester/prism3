@@ -53,15 +53,9 @@ import { emitCoordValue } from './src/write-components';
 import { materializeForBrand } from './src/brand-def';
 import { missingDependencies, SWAP_TARGET } from './src/build-deps';
 import { leafForDef, leafPageName } from './src/file-taxonomy';
-import { figmaAnatomySet, figmaVarName, planComponentName, planSetChunks, planSetLayout, planToPluginJs } from '@prism3/engine/anatomy-figma';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
-import type { ComponentDef } from '@prism3/engine/component-schema';
-import type { BrandInput } from '@prism3/engine/theme';
-import type { WritePlan, FloatCollectionPlan, StylesPlan, GridStylePlan, TextStylePlan } from '@prism3/engine/write-plan';
-import { ENGINE_VERSION } from '@prism3/engine/version';
-import { parseDesignMd } from '@prism3/engine/design-md';
-import { parseStandardDesignMd, isStandardDesignMd, standardToBrandInput } from '@prism3/engine/standard-design-md';
+import { figmaAnatomySet, figmaVarName, planComponentName, planSetChunks, planSetLayout, planToPluginJs, type AnatomyPlan, componentDefs, type ComponentDef } from '@prism3/engine/components';
+import { type BrandInput, ENGINE_VERSION, parseDesignMd, parseStandardDesignMd, isStandardDesignMd, standardToBrandInput } from '@prism3/engine';
+import type { WritePlan, FloatCollectionPlan, StylesPlan, GridStylePlan, TextStylePlan } from '@prism3/engine/figma';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 

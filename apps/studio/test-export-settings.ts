@@ -28,7 +28,7 @@ import {
   sampleDefects, METADATA_OPTION, exportDtcg, exportFileNames, exportPreview, metadataDefects, groupMetaOf,
   type SettingDef, type SettingsState, type ExportSource,
 } from './src/export-settings';
-import { buildBase, stripExtensions } from '@prism3/engine/emit-dtcg-overlay';
+import { buildBase, stripExtensions } from '@prism3/engine';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 

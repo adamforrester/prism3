@@ -53,11 +53,7 @@
  * HELD FOR THE OWNER: `SPEC_GAP`, the redline geometry, `REDLINE` (the spec magenta, Q from 2026-10-19), the color
  * table (Q2830.8, Q2830.9), and every sentence this file writes (DRAFT wording, Q2830.7).
  */
-import { componentSpec, specMaterialize, type ComponentSpec, type SpecValue } from '@prism3/engine/component-specs';
-import { docSections } from '@prism3/engine/component-doc-sections';
-import type { ComponentDef } from '@prism3/engine/component-schema';
-import { componentDefs } from '@prism3/engine/components/index';
-import { figmaTextStyleName, figmaVarName } from '@prism3/engine/anatomy-figma';
+import { componentSpec, specMaterialize, type ComponentSpec, type SpecValue, docSections, type ComponentDef, componentDefs, figmaTextStyleName, figmaVarName } from '@prism3/engine/components';
 import { fnv } from './style-guide';
 import { readTag } from './canvas-furniture';
 import { CAPTION, DOC_BLOCK_SET, SPECIMEN, docBlockVariant, variantValues, type DocBlockSize, type DocBlockType } from './doc-block';

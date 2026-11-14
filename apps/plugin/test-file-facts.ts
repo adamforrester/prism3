@@ -44,8 +44,8 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { FileShim, NodeShim, type NodeSpec } from './file-shim';
 import { scanOpenFile, type FactsHost } from './src/file-facts-figma';
-import { validate } from '../../packages/engine/json-schema-lite';
-import { FILE_FACTS_FORMAT, scanFileFacts, sourceFromSnapshot, type Binding, type FactsNode, type FileFactsReport } from '../../packages/engine/file-facts';
+import { validate } from '@prism3/engine/harness';
+import { FILE_FACTS_FORMAT, scanFileFacts, sourceFromSnapshot, type Binding, type FactsNode, type FileFactsReport } from '@prism3/engine/figma';
 
 let failed = 0;
 let executed = 0;

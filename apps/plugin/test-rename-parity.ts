@@ -23,9 +23,8 @@
  * MOVED: a path that created the new name and left the old one would produce the right name set and fail
  * here, on the id.
  */
-import { renameMap, COLLECTION_RENAMES } from '@prism3/engine/rename-map';
-import { MATERIALIZATION_RENAMES } from '@prism3/engine/materialization-renames';
-import { passPayloads, variablePlans } from '@prism3/engine/materialise-to-figma';
+import { renameMap, COLLECTION_RENAMES, MATERIALIZATION_RENAMES } from '@prism3/engine/figma';
+import { passPayloads, variablePlans } from '@prism3/engine/harness';
 import { beginMigration, applyWritePlan, applyFloatPlan, applyVarCollectionPlan } from './src/write-figma';
 import { FileShim } from './file-shim';
 

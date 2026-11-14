@@ -11,7 +11,7 @@
  *  Stamps its root with the shared-section marker (`data-sg-section="shape-building-blocks"`, `kit.ts`'s header).
  *  WHAT IT IS HANDED. The section context, the resolved dimensions and the section's copy. Nothing here reads the
  *  session. */
-import type { Theme } from '@prism3/engine/theme';
+import type { Theme } from '@prism3/engine';
 import { el, palSection, subHead, type SgCtx } from './kit';
 import { shapeSample, shapeTable } from './radius';
 

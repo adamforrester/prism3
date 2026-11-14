@@ -18,8 +18,7 @@
  * The UI's own writes (a button setting a slot to `pending`, a pill toggling `openDetail`) also stay in
  * `main.ts`, as whole-object reassignments of the one `HostSession` value.
  */
-import { brandTheme } from '@prism3/engine/theme';
-import type { BrandInput } from '@prism3/engine/theme';
+import { brandTheme, type BrandInput } from '@prism3/engine';
 import type { CheckedSetView, CollisionChoices, CollisionView, HostMessage, SetDueView } from '../write-adapter';
 import type { Cause, StyleGuideCatalog, StyleGuideTableStatus } from '../../../plugin/src/messages';
 import { joinSeed, withRecovered, type SeedOutcome } from '../provenance';

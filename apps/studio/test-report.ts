@@ -45,8 +45,7 @@
  * prune's lines keep the error's class, not the host's message`.
  */
 import { ENGINE_VOCABULARY, brandWords, buildReport, isIssueUrl, issueUrl, scrub, ISSUE_BASE, URL_LIMIT, type ReportInput } from './src/state/report';
-import { brandTheme, type BrandInput } from '@prism3/engine/theme';
-import { buildTree } from '@prism3/engine/tree';
+import { brandTheme, type BrandInput, buildTree } from '@prism3/engine';
 import { readFileSync } from 'node:fs';
 
 let failed = 0;

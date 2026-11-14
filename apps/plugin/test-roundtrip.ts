@@ -34,33 +34,19 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { applyOutlineInteraction, applyButtonLayout, applyCurrentIndicator, DEFAULT_BUTTON_LAYOUT } from '@prism3/engine/anatomy-figma';
-import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
-import { diffAnatomy, unclassifiedFields, fieldCoverage } from '@prism3/engine/anatomy-readback';
-import type { Divergence, HostNode, ReadPorts } from '@prism3/engine/anatomy-readback';
-import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import { buildFigmaTextStyles } from '@prism3/engine/emit-figma-font';
-import { nbTheme } from '@prism3/engine/nb-fixture';
-import { sizeRefPx } from '@prism3/engine/scale';
-import { tailOf } from '@prism3/engine/figma-names';
-import { componentSpec, specMaterialize } from '@prism3/engine/component-specs';
-import type { ComponentSpec } from '@prism3/engine/component-specs';
-import { figmaVarName, figmaTextStyleName } from '@prism3/engine/anatomy-figma';
+import { applyOutlineInteraction, applyButtonLayout, applyCurrentIndicator, DEFAULT_BUTTON_LAYOUT, figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, componentDefs, diffAnatomy, unclassifiedFields, fieldCoverage, type Divergence, type HostNode, type ReadPorts, componentSpec, specMaterialize, type ComponentSpec, figmaVarName, figmaTextStyleName, brandMaterializer, type ComponentDef, validateComponentDef } from '@prism3/engine/components';
+import { buildFigmaColor, buildFigmaTextStyles, tailOf } from '@prism3/engine/figma';
+import { nbTheme } from '@prism3/engine/harness';
+import { sizeRefPx, type BrandInput } from '@prism3/engine';
 import { applyComponentPlan } from './src/write-components';
 import { makeShim, varValue } from './component-shim';
 import { materializeForBrand, materializerFor } from './src/brand-def';
-import { brandMaterializer } from '@prism3/engine/component-defs-export';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import type { BrandInput } from '@prism3/engine/theme';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { planTargets, prebuildDependencies } from './src/build-deps';
 import { reactionMap } from './src/reactions';
 import { readSpecTag } from './src/spec-tag';
 import { snapshotMember } from './src/member-baseline';
 import { withSetSlots } from './src/update-plan';
-import type { ComponentDef } from '@prism3/engine/component-schema';
-import { validateComponentDef } from '@prism3/engine/component-schema';
 import type { Node, Page, ShimOpts } from './component-shim';
 
 const INVENTORY = process.argv.includes('--inventory');
@@ -3163,7 +3149,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 //     instances are opaque, so the placed instances are stand-ins; the members, slots and definitions are the host's.
 {
   const { captureSlotText, fillSlotText } = await import('./src/slot-text-migration');
-  const { slotTextMigrationOf, partRenames } = await import('@prism3/engine/component-renames');
+  const { slotTextMigrationOf, partRenames } = await import('@prism3/engine');
   const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP_TARGET });
   const banner = componentDefs.find((d) => d.id === 'banner')!;
   const build = async (d: ComponentDef) => {

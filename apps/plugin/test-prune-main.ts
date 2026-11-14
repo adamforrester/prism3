@@ -23,7 +23,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { BrandInput } from '@prism3/engine/theme';
+import type { BrandInput } from '@prism3/engine';
 import { FileShim } from './file-shim';
 import { themePlans } from './src/apply-theme';
 import { brandFromDesignMd } from './mcp-paste';

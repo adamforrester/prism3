@@ -37,15 +37,7 @@
  * the minimal slice of `figma.variables` the executor touches, so the whole pass sequence is
  * unit-testable against an in-memory shim (see `apps/plugin/test-write.mjs`) with no real Figma.
  */
-import type { WritePlan, Rgba, FloatCollectionPlan, VarCollectionPlan } from '@prism3/engine/write-plan';
-import {
-  renameMap, openMigration, renameCollections, renameVariables,
-  type RenameMap, type MaterializationStep, type Migration,
-} from '@prism3/engine/rename-map';
-import { MATERIALIZATION_RENAMES } from '@prism3/engine/materialization-renames';
-import { CORE_COLLECTION, UNSCOPED_TYPES } from '@prism3/engine/emit-figma-color';
-import type { FigmaEasing } from '@prism3/engine/emit-figma-color';
-import { coreGroupOf, ownedCoreGroup, rootOf } from '@prism3/engine/figma-names';
+import { type WritePlan, type Rgba, type FloatCollectionPlan, type VarCollectionPlan, renameMap, openMigration, renameCollections, renameVariables, type RenameMap, type MaterializationStep, type Migration, MATERIALIZATION_RENAMES, CORE_COLLECTION, UNSCOPED_TYPES, type FigmaEasing, coreGroupOf, ownedCoreGroup, rootOf } from '@prism3/engine/figma';
 
 /** The minimal `figma.variables` surface the executor needs. Declaring it as a port (rather than
  *  reaching for the global `figma`) is what lets the Node harness drive `applyWritePlan` with a

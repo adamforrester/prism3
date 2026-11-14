@@ -32,7 +32,7 @@ import { ownerSet, prism3Set, type PNode } from './doc-panel';
 import { SET_GAP, STAMP_KEY } from './write-components';
 import { NS } from './persist-figma';
 import { builtByPrism3, readBaseline } from './member-baseline';
-import { formerDefIds } from '@prism3/engine/component-renames';
+import { formerDefIds } from '@prism3/engine';
 
 /** One set to move: by its set name (the def id), from and to full page names. */
 export type PageMove = { set: string; from: string; to: string };

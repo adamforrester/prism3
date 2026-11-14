@@ -38,7 +38,7 @@
  * Compiled under `tsconfig.main.json` — has `figma.*`, NO `document`. Declared as a port so the Node
  * harness drives it with a shim; the real `figma` structurally satisfies it.
  */
-import type { TextStylePlan } from '@prism3/engine/write-plan';
+import type { TextStylePlan } from '@prism3/engine/figma';
 import { resolveFontStyle } from './write-text-styles';
 import type { FontName } from './write-text-styles';
 

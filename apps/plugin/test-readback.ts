@@ -10,19 +10,15 @@
  * Asserts the snapshot round-trips (colour var count + alias targets match the plan) and every
  * contract check passes. Mirrors `test-write.ts`'s shim + dependency-free `ok(...)` style.
  */
-import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import { buildWritePlan } from '@prism3/engine/write-plan';
-import { verifyReadback, verifyFloatReadback, verifyStylesReadback } from '@prism3/engine/read-back';
-import { buildFloatWritePlan, buildStylesPlan } from '@prism3/engine/write-plan';
-import { brandTheme, nbThemeFrom } from '@prism3/engine/theme';
+import { buildFigmaColor, buildWritePlan, verifyReadback, verifyFloatReadback, verifyStylesReadback, buildFloatWritePlan, buildStylesPlan } from '@prism3/engine/figma';
+import { brandTheme, nbThemeFrom, type BrandInput } from '@prism3/engine';
 import { applyWritePlan, applyFloatPlan } from './src/write-figma';
 import { applyStylesPlan } from './src/write-styles';
 import { readFigmaVariables } from './src/read-figma';
 import { persistInput } from './src/persist-figma';
 import { declaredModesOf, seedSummary, SKIP_NO_BRAND, SKIP_UNREADABLE } from './src/seed-modes';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import type { BrandInput } from '@prism3/engine/theme';
-import nbMeasured from '@prism3/engine/schema/nb-measured.json';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
+import { NB_MEASURED_JSON as nbMeasured } from '@prism3/engine/harness';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {

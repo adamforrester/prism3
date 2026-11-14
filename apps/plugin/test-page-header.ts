@@ -43,7 +43,7 @@
  */
 import { ensurePageHeader, pageHeaderCopy, pageHeaderNote, displayName, HEADER_GAP, SECTION_HEADER_SET } from './src/page-header';
 import type { HNode, HeaderPage, PageHeaderApi, HeaderCopy } from './src/page-header';
-import { componentDefs } from '@prism3/engine/components/index';
+import { componentDefs } from '@prism3/engine/components';
 import { placeNewSet, SET_GAP, PAGE_HEADER_NAME, PAGE_HEADER_GAP } from './src/write-components';
 
 let failures = 0;

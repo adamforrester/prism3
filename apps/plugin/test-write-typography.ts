@@ -26,17 +26,15 @@
  *
  * Mirrors the other shim tests' dependency-free `ok(...)` style; exits non-zero on any failure.
  */
-import { buildFontVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
-import { brandTheme } from '@prism3/engine/theme';
-import { exampleBrands } from '@prism3/engine/emit-brandinput';
-import type { BrandInput } from '@prism3/engine/theme';
+import { buildFontVarPlan, buildTextStylePlan } from '@prism3/engine/figma';
+import { brandTheme, type BrandInput } from '@prism3/engine';
+import { exampleBrands, nbTheme } from '@prism3/engine/harness';
 import { applyVarCollectionPlan } from './src/write-figma';
 import { applyTextStylePlan, resolveFontStyle, normStyle } from './src/write-text-styles';
 import type { FontName } from './src/write-text-styles';
 import type { VarCollectionApplyResult as VarApplyResult } from './src/write-figma';
 import { preloadFonts, facesToPreload, loadPreloadCandidates } from './src/preload-fonts';
 import type { FontPreloadApi } from './src/preload-fonts';
-import { nbTheme } from '@prism3/engine/nb-fixture';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {

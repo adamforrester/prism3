@@ -35,13 +35,8 @@
  * before. A persisted brand whose theme fails to build falls back the same way — the build still runs,
  * against the defaults, which is what the `controlShape` read already did on an untrusted input.
  */
-import { applyControlShape, applyFieldStyle, fieldStyleFor, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyCurrentIndicator, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_WEIGHT_AVAILABILITY, DEFAULT_BUTTON_LAYOUT } from '@prism3/engine/anatomy-figma';
-import type { WeightAvailability, ButtonLayout } from '@prism3/engine/anatomy-figma';
-import { componentSizes, sizeRefPx, SPACE_BASE } from '@prism3/engine/scale';
-import type { SizeStep, Density } from '@prism3/engine/scale';
-import type { ComponentDef } from '@prism3/engine/component-schema';
-import { brandTheme, weightAvailability } from '@prism3/engine/theme';
-import type { BrandInput, Theme } from '@prism3/engine/theme';
+import { applyControlShape, applyFieldStyle, fieldStyleFor, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyCurrentIndicator, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_WEIGHT_AVAILABILITY, DEFAULT_BUTTON_LAYOUT, type WeightAvailability, type ButtonLayout, type ComponentDef } from '@prism3/engine/components';
+import { componentSizes, sizeRefPx, SPACE_BASE, type SizeStep, type Density, brandTheme, weightAvailability, type BrandInput, type Theme } from '@prism3/engine';
 
 /** The theme-derived levers, off ONE `brandTheme` call — or the defaults when there is no usable brand. */
 const brandLevers = (input: BrandInput | null): { avail: WeightAvailability; outline: Theme['outlineInteraction']; sizes: SizeStep[]; density: Density } => {

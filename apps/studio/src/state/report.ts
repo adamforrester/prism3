@@ -14,7 +14,7 @@
  *
  * Every string is a DRAFT placeholder (#2069: the placement and copy are the owner's call), in `REPORT_COPY`.
  */
-import { isReservedPalette } from '@prism3/engine/theme';
+import { isReservedPalette } from '@prism3/engine';
 
 /** Where the prefilled issue opens. The one URL the plugin's main thread will open for a report (`isIssueUrl`). */
 export const ISSUE_BASE = 'https://github.com/adamforrester/prism3/issues/new';

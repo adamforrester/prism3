@@ -22,8 +22,8 @@ import {
   isSeedFailure, isUnrecoverable, joinSeed, withRecovered,
   type Origin, type SeedOutcome,
 } from './src/provenance';
-import { exampleBrands } from '@prism3/engine/emit-brandinput';
-import type { BrandInput } from '@prism3/engine/theme';
+import { exampleBrands } from '@prism3/engine/harness';
+import type { BrandInput } from '@prism3/engine';
 
 let failed = 0;
 let executed = 0;

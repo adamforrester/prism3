@@ -57,8 +57,7 @@ import {
   setRungBinding, setRepoint, setShift, nudgeSteps, resolvedRungs, type ItalicStyle, type RungField,
   CAPTION_SIZE_RUNGS, captionSizePin, captionFloorBlocked, setCaptionSize, trackingPinOf, setTrackingPin,
 } from '../state/type-input';
-import { HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, LETTER_SPACING_KEYS, CAPTION_SIZE_FLOOR, UNDERLINE_BOUNDS } from '@prism3/engine/theme';
-import type { FacePin } from '@prism3/engine/theme';
+import { HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, LETTER_SPACING_KEYS, CAPTION_SIZE_FLOOR, UNDERLINE_BOUNDS, type FacePin } from '@prism3/engine';
 import { faceStatus, missingCutsNote, WEIGHT_NAME, type HostFonts } from '../ui/fonts';
 import { valuePicker, type ValuePickerOpts } from '../ui/value-picker';
 import { emToPercentLabel } from '../em-percent';

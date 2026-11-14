@@ -31,8 +31,7 @@
  * `brand-def.ts` precedent). Here the whole loop — resolve, order, build, re-check — is importable, and
  * `test-write-components.ts` drives it against the real executor and the host shim.
  */
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import type { ComponentDef } from '@prism3/engine/component-schema';
+import type { AnatomyPlan, ComponentDef } from '@prism3/engine/components';
 
 /** The one host call this module makes — the executor's own criteria search. */
 export type DepHost = { root: { findAllWithCriteria(criteria: { types: string[] }): readonly { name?: string }[] } };

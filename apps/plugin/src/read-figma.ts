@@ -22,8 +22,7 @@
  * `VariablesApi` port with the write executor, so it's unit-testable against the same in-memory
  * shim (see `apps/plugin/test-readback.ts`).
  */
-import type { ReadbackSnapshot, ReadValue } from '@prism3/engine/read-back';
-import { axisSource, inAxis } from '@prism3/engine/figma-names';
+import { type ReadbackSnapshot, type ReadValue, axisSource, inAxis } from '@prism3/engine/figma';
 import type { VariablesApi, VariableAlias, AliasWithOpacity, ReadVarValue } from './write-figma';
 import { plannedModeNames } from './write-figma';
 

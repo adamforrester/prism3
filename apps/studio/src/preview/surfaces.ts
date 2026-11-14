@@ -33,7 +33,7 @@
  * HOW IT REPAINTS: by store subscription (`brand`, `mode`), never through a legacy tier. Nothing else moves
  * it: no scroll, no focus, no lever (V1).
  */
-import type { ResolvedGradient } from '@prism3/engine/theme';
+import type { ResolvedGradient } from '@prism3/engine';
 import { currentMode, rp, subscribe, theme } from '../state/store';
 import { resolvedModes } from '../state/verdict';
 import { h, hook } from '../shell/dom';

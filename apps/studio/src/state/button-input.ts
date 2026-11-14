@@ -19,8 +19,7 @@
  *     2.25 to 3 writes 2.5, 2.75 and 3 in turn. `setButtonMinWidth` is called once per step by the caller; it does
  *     not debounce, and a caller that wrote on release only would persist fewer states.
  */
-import { DEFAULT_MIN_WIDTH_MULTIPLIER, ICON_SIZES, type ButtonContentSize, type ButtonIcons, type ButtonLabelWeight, type ButtonTextHover } from '@prism3/engine/scale';
-import type { Theme } from '@prism3/engine/theme';
+import { DEFAULT_MIN_WIDTH_MULTIPLIER, ICON_SIZES, type ButtonContentSize, type ButtonIcons, type ButtonLabelWeight, type ButtonTextHover, type Theme } from '@prism3/engine';
 import { brandState, getPath, setPath } from './store';
 
 /** Button icons: `attached` (the default, written when chosen) or `edges`. */

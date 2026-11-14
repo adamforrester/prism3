@@ -19,13 +19,8 @@
  * volatile region (ramps or preview), so knob focus is never lost; a failed brand
  * combination is caught and surfaced with the last-good render preserved.
  */
-import { brandTheme } from '@prism3/engine/theme';
-import type { BrandInput } from '@prism3/engine/theme';
-import { formatRatio, hex, oklchToRgb } from '@prism3/engine/color';
-import { resolveAllModes } from '@prism3/engine/modes';
-import { toDesignMd } from '@prism3/engine/design-md';
+import { brandTheme, type BrandInput, formatRatio, hex, oklchToRgb, resolveAllModes, toDesignMd, buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode, ENGINE_VERSION } from '@prism3/engine';
 import { componentSpecsExporter } from './state/component-specs-export';
-import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
 import { hostCommit, type CheckedSetView, type HostCommit } from './write-adapter';
 import { AGENT_OP, initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type OpKey } from './state/host-session';
 import type { HostFonts } from './ui/fonts';
@@ -36,7 +31,6 @@ import type { StyleGuidesLend } from './shell/style-guides';
 import { kindOf, OP_TITLE, type ActivityLend, type ActivityReading, type OpReading, type UpdateReading } from './shell/activity';
 import type { UpdateFileLend } from './shell/update-file';
 import type { ReportLend } from './shell/report';
-import { ENGINE_VERSION } from '@prism3/engine/version';
 import type { CollisionsLend } from './shell/collisions';
 import { withEarlier } from './state/collisions';
 import type { StatusLend } from './shell/status-strip';

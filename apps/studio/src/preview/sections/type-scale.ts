@@ -12,7 +12,7 @@
  *  WHAT IT IS HANDED. The section context, the resolved typography, the mode, the section's copy and what the host
  *  knows of its fonts. Nothing here reads the session. A sample whose face can't load, or whose family lacks its
  *  weight, is drawn as the type sample draws it (#3138, `ui/fonts.ts` `faceDraw`), its note in the sample's title. */
-import type { Theme, TypeComposite } from '@prism3/engine/theme';
+import type { Theme, TypeComposite } from '@prism3/engine';
 import { TYPE_GROUP_ORDER } from '../../state/type-input';
 import { drawFace, faceDraw, type HostFonts } from '../../ui/fonts';
 import { el, hook, palSection, specimen, tokenPillSpan, type SgCtx } from './kit';

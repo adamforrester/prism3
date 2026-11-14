@@ -13,7 +13,7 @@
  *
  *  Stamps its root with the shared-section marker (`data-sg-section="duration-ramp"`, `kit.ts`'s header).
  *  WHAT IT IS HANDED. The resolved motion axis, the mode in view and the blocks' copy. Nothing here reads the session. */
-import { SPIN_ROLE, LOOP_ROLES, type Theme } from '@prism3/engine/theme';
+import { SPIN_ROLE, LOOP_ROLES, type Theme } from '@prism3/engine';
 import { el, hook, subHead, tokenPillBadged, tokenPillWrapping } from './kit';
 
 export type DurationsCopy = {

@@ -18,11 +18,11 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 | Start from a color, an example or a `design.md` | ✓ | ✓ | – | ✓ from a `design.md` (`theme_from_brief`) |
 | Set levers with a live preview | ✓ | ✓ | – | ✓ list the levers (`list_levers`), no preview |
 | Check contrast in every mode | ✓ Inspect › Contrast <!-- src: apps/studio/src/shell/pages.ts:118-120#9232e735 --> | ✓ Inspect › Contrast | – | ✓ `theme_brand`, `theme_from_brief` |
-| Keep the working brand | ✓ in this browser <!-- src: apps/studio/src/persist-local.ts:40-79#7bd91f4c --> | ✓ in the Figma file, when Update file writes the theme <!-- src: apps/plugin/src/persist-figma.ts:30-35#ba150bb3 --> | – | – |
+| Keep the working brand | ✓ in this browser <!-- src: apps/studio/src/persist-local.ts:39-78#7bd91f4c --> | ✓ in the Figma file, when Update file writes the theme <!-- src: apps/plugin/src/persist-figma.ts:29-34#ba150bb3 --> | – | – |
 | Import a `design.md` brief | ✓ | ✓ | – | ✓ `theme_from_brief` |
-| Export a `design.md` brief | ✓ <!-- src: apps/studio/src/main.ts:1355 --> | ✓ | – | – |
+| Export a `design.md` brief | ✓ <!-- src: apps/studio/src/main.ts:1349 --> | ✓ | – | – |
 
-<!-- src: apps/studio/src/shell/start.ts:168-219#9e39b78a --> <!-- src: packages/engine/mcp.ts:248-394#d810bcff -->
+<!-- src: apps/studio/src/shell/start.ts:167-218#9e39b78a --> <!-- src: packages/engine/mcp.ts:248-394#d810bcff -->
 
 ## Figma file
 
@@ -53,6 +53,6 @@ TokenPress, a separate Figma plugin, exports any Figma file's variables and styl
 
 ## Limits worth knowing
 
-- Writing to Figma needs the plugin open. The MCP server does not touch Figma files. <!-- src: packages/engine/README.md:114#782d7cd2 -->
+- Writing to Figma needs the plugin open. The MCP server does not touch Figma files. <!-- src: packages/engine/README.md:118#782d7cd2 -->
 - The agent link is off at every launch, and only the panel can turn it on. <!-- src: apps/plugin/src/agent-link.ts:5-8#e3a1fc8c -->
 - Exports start from the brand you set, not from the file's variables. To export what a file holds, use TokenPress. <!-- src: apps/studio/src/export-settings.ts:63-70#9d917e16 --> <!-- src: apps/studio/src/export-settings.ts:81#30e8b1e2 -->

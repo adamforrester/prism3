@@ -63,10 +63,7 @@
  * HELD FOR THE OWNER: `PANEL_GAP`, `PANEL_PAD`, `SECTION_GAP`, `MODE_GAP`, the panel's name, and every sentence this
  * file writes (DRAFT wording). `PANEL_WIDTH` and `THEMING_ROW_MAX` are the owner's (#2970 Q1 A, Q2 A).
  */
-import { docSections, partName, type DocSection, type DocSectionId } from '@prism3/engine/component-doc-sections';
-import type { ComponentDef } from '@prism3/engine/component-schema';
-import { componentDefs } from '@prism3/engine/components/index';
-import { CANVAS_FURNITURE } from '@prism3/engine/anatomy-figma';
+import { docSections, partName, type DocSection, type DocSectionId, type ComponentDef, componentDefs, CANVAS_FURNITURE } from '@prism3/engine/components';
 import { leadOf, leafForDef } from './file-taxonomy';
 import { isTemplateSet } from './file-components';
 import { fingerprintOf, fnv, type SgNode } from './style-guide';

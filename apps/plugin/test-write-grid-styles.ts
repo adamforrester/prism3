@@ -21,12 +21,11 @@
  * client's own `sm`, carrying no Prism3 mark and no engine description, is never touched. Every expected
  * name below is typed as a literal, never read off the emitter (docs/34).
  */
-import { buildGridStylePlan } from '@prism3/engine/write-plan';
-import { brandTheme } from '@prism3/engine/theme';
+import { buildGridStylePlan } from '@prism3/engine/figma';
+import { brandTheme, type BrandInput } from '@prism3/engine';
 import { readFileSync } from 'node:fs';
 import { applyGridStylePlan, gridSkippedNote } from './src/write-grid-styles';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import type { BrandInput } from '@prism3/engine/theme';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {

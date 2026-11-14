@@ -24,7 +24,7 @@
  * HOW IT REPAINTS: by store subscription only (`brand` and `mode`), keeping focus on the element that had it, except
  * while the slider is being dragged, which updates in place.
  */
-import type { ButtonContentSize, ButtonIcons, ButtonLabelWeight, ButtonTextHover } from '@prism3/engine/scale';
+import type { ButtonContentSize, ButtonIcons, ButtonLabelWeight, ButtonTextHover } from '@prism3/engine';
 import { brandState, currentMode, getPath, lastError, rebuild, setPage, subscribe, theme } from '../state/store';
 import { isDerived } from '../state/verdict';
 import { contentSizeOf, setButtonContentSize, setButtonIcons, setButtonLabelWeight, setButtonMinWidth, setButtonTextHover, type ContentSizeView } from '../state/button-input';

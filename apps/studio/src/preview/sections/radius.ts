@@ -18,8 +18,7 @@
  *  Stamps its root with the shared-section marker (`data-sg-section="radius"`, `kit.ts`'s header).
  *  WHAT IT IS HANDED. The section context, the resolved dimensions, the brand's modes, the mode, the Control shape,
  *  the manifest's shape labels and the section's copy. Nothing here reads the session. */
-import type { Theme } from '@prism3/engine/theme';
-import type { ControlShape } from '@prism3/engine/scale';
+import type { Theme, ControlShape } from '@prism3/engine';
 import { USED_BY } from '../used-by';
 import { el, hook, palSection, specimen, subHead, tokenPillSpan, type SgCtx } from './kit';
 

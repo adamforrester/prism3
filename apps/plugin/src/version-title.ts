@@ -10,9 +10,8 @@
  * source, so the title and description cannot drift between commands. `test-version-title.ts` scans for a second
  * caller and fails by name.
  */
-import { ENGINE_VERSION } from '@prism3/engine/version';
-import type { ComponentDef } from '@prism3/engine/component-schema';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
+import { ENGINE_VERSION } from '@prism3/engine';
+import type { ComponentDef, AnatomyPlan } from '@prism3/engine/components';
 import { missingDependencies, presentNames, type DepHost } from './build-deps';
 
 /** A set the run touches: `set` is the id the list in the description uses, `name` the display name a one-set title uses. */

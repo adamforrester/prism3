@@ -11,10 +11,7 @@
  * A writer here edits `brandState` and calls nothing. The caller calls `rebuild()`, which re-resolves and
  * tells the `brand` topic, and every surface that reads the brand repaints from its subscription.
  */
-import type { BrandInput } from '@prism3/engine/theme';
-import { brandTheme, isReservedPalette } from '@prism3/engine/theme';
-import { ACHROMATIC_C, hex, oklchToRgb, hexToRgb, rgbToOklch, storedOklch } from '@prism3/engine/color';
-import { autoPlaceStep } from '@prism3/engine/ramp';
+import { type BrandInput, brandTheme, isReservedPalette, ACHROMATIC_C, hex, oklchToRgb, hexToRgb, rgbToOklch, storedOklch, autoPlaceStep } from '@prism3/engine';
 import { brandState, lastGoodInput, theme } from './store';
 import { commitAtomic, paletteRemovalEffects, removePalette, renamePalette } from './name-refs';
 import { resolvedModes } from './verdict';

@@ -12,7 +12,7 @@
  *
  * HOW IT REPAINTS: by store subscription only (`brand` and `mode`), keeping focus on the element that had it.
  */
-import type { CurrentIndicator } from '@prism3/engine/scale';
+import type { CurrentIndicator } from '@prism3/engine';
 import { currentMode, lastError, rebuild, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
 import { brandCurrentIndicator, setCurrentIndicator } from '../state/shape-input';

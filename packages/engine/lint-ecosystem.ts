@@ -318,7 +318,7 @@ const engineExports = (JSON.parse(read('packages/engine/package.json')) as { exp
 const resolveSpec = (from: string, spec: string): string | null => {
   let base: string;
   if (spec.startsWith('.')) base = resolve(repo, dirname(from), spec).slice(repo.length + 1);
-  else if (spec.startsWith('@prism3/engine/')) { const t = engineExports[`./${spec.slice('@prism3/engine/'.length)}`]; if (!t) return null; base = `packages/engine/${t.replace(/^\.\//, '')}`; }
+  else if (spec === '@prism3/engine' || spec.startsWith('@prism3/engine/')) { const t = engineExports[spec === '@prism3/engine' ? '.' : `./${spec.slice('@prism3/engine/'.length)}`]; if (!t) return null; base = `packages/engine/${t.replace(/^\.\//, '')}`; }
   else return null;
   for (const c of [base, `${base}.ts`, `${base}/index.ts`]) if (/\.ts$/.test(c) && exists(c)) return c;
   return null;

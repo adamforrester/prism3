@@ -23,8 +23,7 @@
  *
  * Compiled under `tsconfig.main.json`. The ports are the slices of `figma` the pass touches.
  */
-import { STYLE_RENAMES, planStyleRenames, type StyleRule, type StyleRenameStep } from '@prism3/engine/materialization-renames';
-import type { StylesPlan, TextStylePlan } from '@prism3/engine/write-plan';
+import { STYLE_RENAMES, planStyleRenames, type StyleRule, type StyleRenameStep, type StylesPlan, type TextStylePlan } from '@prism3/engine/figma';
 import { isMarkedOwned, type Markable } from './provenance';
 import { isEngineDescription, type StyleKind } from './prune-figma';
 

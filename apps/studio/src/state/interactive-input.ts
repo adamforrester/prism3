@@ -18,8 +18,7 @@
  * keeps the legacy semantics exactly, including the palette it reads (`theme.linkPalette`). It is the studio's
  * only link write: Surfaces & fills' link row is gone (#1961, owner decision Q28).
  */
-import { resolveAllModes } from '@prism3/engine/modes';
-import type { Theme } from '@prism3/engine/theme';
+import { resolveAllModes, type Theme } from '@prism3/engine';
 import { brandState, setPath, theme } from './store';
 import { setRoleOverride, stepsOf } from './fills-input';
 import { commitAtomic, removeColumn } from './name-refs';

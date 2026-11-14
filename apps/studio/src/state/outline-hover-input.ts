@@ -9,7 +9,7 @@
  *
  * Leaving `opaque-fill` removes the key with it, since the engine refuses `outlineHoverFill` under another method.
  */
-import { OUTLINE_WASH_DEFAULTS, OUTLINE_WASH_STEPS, type OutlineHoverFill, type OutlineWash } from '@prism3/engine/theme';
+import { OUTLINE_WASH_DEFAULTS, OUTLINE_WASH_STEPS, type OutlineHoverFill, type OutlineWash } from '@prism3/engine';
 import { brandState, getPath, setPath } from './store';
 
 export const readOutlineHoverFill = (): OutlineHoverFill => ({ ...(getPath(brandState, 'outlineHoverFill') ?? {}) });

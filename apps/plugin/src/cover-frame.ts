@@ -44,7 +44,7 @@
  * leading, −1 % tracking, wrapping inside a 240 px inset; the subtitle 28 px under it at 36 px; the pair centered on
  * the frame; the version at 28 px and the 200 × 72 logo slot, each 96 px in from its corner.
  */
-import { ENGINE_VERSION } from '@prism3/engine/version';
+import { ENGINE_VERSION } from '@prism3/engine';
 import { REGULAR, SEMIBOLD, fontKey, solid, type FNode, type FileComponentsApi } from './file-components';
 import { fnv } from './style-guide';
 import { ABOUT_NAME, ABOUT_ONLY_CHECK, ABOUT_ONLY_DONE, coverPage as aboutCoverPage } from './about-frame';

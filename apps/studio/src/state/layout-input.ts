@@ -36,7 +36,7 @@
  * breaks it, apart from the merge `editBreakpoint` refuses below. A brand that ARRIVES with more than seven (#2513)
  * is named by `namesFor` rather than throwing, and Remove takes it back down.
  */
-import { brandTheme, type BrandInput } from '@prism3/engine/theme';
+import { brandTheme, type BrandInput } from '@prism3/engine';
 import { BOOT_BRAND, BRANDS, brandState, setPath, theme } from './store';
 
 /** The three per-breakpoint override maps, each keyed by breakpoint name. */

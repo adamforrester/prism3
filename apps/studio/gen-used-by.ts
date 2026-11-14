@@ -25,9 +25,8 @@
 import { writeFileSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { componentDefs } from '@prism3/engine/components/index';
-import { applyControlShape } from '@prism3/engine/anatomy-figma';
-import type { ControlShape } from '@prism3/engine/scale';
+import { componentDefs, applyControlShape } from '@prism3/engine/components';
+import type { ControlShape } from '@prism3/engine';
 
 export const OUT = join(dirname(fileURLToPath(import.meta.url)), 'src', 'preview', 'used-by.ts');
 const SHAPES: readonly ControlShape[] = ['rounded', 'pill', 'boxed', 'hairline'];

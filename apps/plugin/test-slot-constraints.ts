@@ -21,12 +21,7 @@
  *   · the miss for a preferred def not in the file dropped → `constraints/missing preferred named`;
  *   · the clear on Update dropped (the `hostHas` arm) → `constraints/cleared on update`.
  */
-import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
-import { diffAnatomy } from '@prism3/engine/anatomy-readback';
-import type { HostNode, ReadPorts } from '@prism3/engine/anatomy-readback';
-import type { ComponentDef } from '@prism3/engine/component-schema';
+import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, componentDefs, diffAnatomy, type HostNode, type ReadPorts, type ComponentDef } from '@prism3/engine/components';
 import { applyComponentPlan } from './src/write-components';
 import { makeShim, type Node, type Page } from './component-shim';
 

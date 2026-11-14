@@ -13,8 +13,7 @@
  *
  *  Stamps its root with the shared-section marker (`data-sg-section="shadow-tint"`, `kit.ts`'s header).
  *  WHAT IT IS HANDED. The resolved shadow axis, the mode in view and the block's copy. Nothing here reads the session. */
-import { hex } from '@prism3/engine/color';
-import type { Theme } from '@prism3/engine/theme';
+import { hex, type Theme } from '@prism3/engine';
 import { el, hook, subHead } from './kit';
 
 export const shadowTintSection = (shadow: Theme['shadow'], mode: string,

@@ -19,7 +19,7 @@
 import { currentMode, rp, subscribe, theme } from '../state/store';
 import { resolvedModes } from '../state/verdict';
 import { brandControlShape } from '../state/shape-input';
-import { leverManifest } from '@prism3/engine/levers';
+import { leverManifest } from '@prism3/engine';
 import { h, hook } from '../shell/dom';
 import { DOMAINS, type PageData } from '../shell/pages';
 import { modeLabel } from '../shell/preview';

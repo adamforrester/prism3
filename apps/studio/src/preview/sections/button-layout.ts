@@ -24,9 +24,7 @@
  *  Stamps its root with the shared-section marker (`data-sg-section="button-layout"`, `kit.ts`'s header).
  *  WHAT IT IS HANDED. The four Button options as the brand sets them, the resolved theme, the section context (the
  *  mode in view and the brand's roles), the brand's Control shape and the label copy. Nothing here reads the session. */
-import type { Theme } from '@prism3/engine/theme';
-import { buttonMinWidth, ICON_SIZES, sizeRefPx, densitySpacingStep, type ControlShape } from '@prism3/engine/scale';
-import { BUTTON_SPACING } from '@prism3/engine/button-spacing';
+import { type Theme, buttonMinWidth, ICON_SIZES, sizeRefPx, densitySpacingStep, type ControlShape, BUTTON_SPACING } from '@prism3/engine';
 import type { ButtonLayoutView } from '../../state/button-input';
 import { el, specimen, type SgCtx } from './kit';
 import { radiusIn, shapeRef } from './radius';

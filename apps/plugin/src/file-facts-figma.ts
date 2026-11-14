@@ -11,7 +11,7 @@
  * `FactsHost` is the slice of `PluginAPI` this reads, so the global `figma` passes with no cast and a test passes a
  * shim (`file-shim.ts`'s `FileShim` and `NodeShim`).
  */
-import { scanFileFacts, type FactsComponent, type FactsStyle, type FactsNode, type FactsPage, type FactsSource, type FileFactsReport, type TextRun } from '../../../packages/engine/file-facts';
+import { scanFileFacts, type FactsComponent, type FactsStyle, type FactsNode, type FactsPage, type FactsSource, type FileFactsReport, type TextRun } from '@prism3/engine/figma';
 
 type Page = FactsPage & { loadAsync?: () => Promise<void> };
 type MainLike = { id: string; name: string; key?: string; remote?: boolean; parent?: { type: string; name: string; key?: string } | null } | null;

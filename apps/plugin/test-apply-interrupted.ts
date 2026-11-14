@@ -13,8 +13,8 @@
  * the file with `themeDue` as `main.ts` reads them, and the print each brand's plans make, worked out here from the
  * brand alone. Mutation: the clear before the first write dropped → `interrupted/A not matching`.
  */
-import type { BrandInput } from '@prism3/engine/theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import type { BrandInput } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { FileShim } from './file-shim';
 import { APPLY_STAGES, runApplyTheme, themePlans, type ThemePace } from './src/apply-theme';
 import { themeDue, emissionOf, EMISSION_KEY } from './src/theme-emission';

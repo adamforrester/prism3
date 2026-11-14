@@ -18,10 +18,7 @@
  *      a build that defines PRISM3_TEST_HOOKS true (the local `dist/`, never the deployed site, #2098).
  * The font probe's canvas used to be made at import too; it is now made on first use, in `main.ts`.
  */
-import { brandTheme } from '@prism3/engine/theme';
-import type { BrandInput } from '@prism3/engine/theme';
-import { resolvePreview } from '@prism3/engine/resolve-preview';
-import { toDesignMd } from '@prism3/engine/design-md';
+import { brandTheme, type BrandInput, resolvePreview, toDesignMd } from '@prism3/engine';
 import type { Origin } from './provenance';
 import { clearInput, persistInput, restoreInput, type LocalStore } from './persist-local';
 import { glyph, h, hook } from './shell/dom';

@@ -13,8 +13,7 @@
  *  Outline row's hover fill reads, through `outlineStateRoles`) and the role key of the ground the section
  *  is previewed on (the Style guide's surface picker), because the Outline row's ink, edge and wash and the
  *  Inverse row's band all switch on whether that ground is itself the inverse band. */
-import { isInverseRole } from '@prism3/engine/inverse-roles';
-import type { Theme } from '@prism3/engine/theme';
+import { isInverseRole, type Theme } from '@prism3/engine';
 import { outlineStateRoles } from '../../outline-roles';
 import { el, hook, legibleInkOn, palSection, specimen, specimenPair, type SgCtx } from './kit';
 

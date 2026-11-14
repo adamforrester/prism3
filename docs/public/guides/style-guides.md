@@ -5,7 +5,7 @@
 Style guides are tables, one for each group of tokens in the file, drawn from the file's own variables, text styles, effect styles, gradient styles and grid styles. A rerun updates each table in place. <!-- src: apps/studio/src/shell/style-guides.ts:75#46a11854 --> <!-- src: apps/studio/src/shell/style-guides.ts:79#3d2941b6 -->
 They are in the Figma plugin only. You choose what to draw in the **Docs** area, and **Update file** draws it. <!-- src: apps/studio/src/state/update-file.ts:404-408 --> <!-- src: apps/studio/src/shell/pages.ts:517 -->
 
-Because the tables read the file rather than the studio, they show what the file holds right now, including anything you changed by hand. <!-- src: apps/plugin/src/style-guide.ts:1-40#cdae1e6b -->
+Because the tables read the file rather than the studio, they show what the file holds right now, including anything you changed by hand. <!-- src: apps/plugin/src/style-guide.ts:1-40#0c86094b -->
 
 ## Before you draw
 
@@ -51,7 +51,7 @@ Options appear only for the kinds you picked. <!-- src: apps/studio/src/state/st
 
 ## Where the tables go
 
-Primitive collections, such as the palette ramps, go on `↳ Primitive tokens`. Semantic ones, such as color roles, space and radius, go on `↳ Semantic tokens`. Grid styles go on `↳ Grids & layouts`. If the page is missing, the table is skipped and the result says so, and the plugin never creates the page itself. <!-- src: apps/plugin/src/style-guide.ts:136-139 --> <!-- src: apps/plugin/src/file-taxonomy.ts:82-88 -->
+Primitive collections, such as the palette ramps, go on `↳ Primitive tokens`. Semantic ones, such as color roles, space and radius, go on `↳ Semantic tokens`. Grid styles go on `↳ Grids & layouts`. If the page is missing, the table is skipped and the result says so, and the plugin never creates the page itself. <!-- src: apps/plugin/src/style-guide.ts:135-138 --> <!-- src: apps/plugin/src/file-taxonomy.ts:82-88 -->
 
 Each mode gets its own column, side by side, and each swatch stays bound to its variable, so it updates with the file. <!-- src: apps/plugin/src/style-guide.ts:23-25#2befb111 -->
 

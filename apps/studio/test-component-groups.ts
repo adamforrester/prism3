@@ -60,9 +60,7 @@ import { COMPONENT_CATALOG_DATA as catalog } from './src/state/component-catalog
 import type { Catalog, CatalogEntry } from './src/state/component-catalog';
 import { addableOf, alsoBuilds, boxOfSets, costOf, deselectAllOf, displayNameOf, familiesToOpen, groupsOf, heldBy, inFileOf, neededOf, rootsOf, splitsOf, inListOrder, rowMatches, rowOfFocus, selectAllOf, sentenceCase, setFocusKey, tiersOf, toggleSets, GROUPS_COPY, SECTION_BLOCKS } from './src/state/component-groups';
 import { TAXONOMY } from '../plugin/src/file-taxonomy';
-import { FIELD_FRAME_PARTS, TAG_STYLE_PARTS, DIALOG_TITLE_TYPE_KEYS, BANNER_STYLE_FILL_KEYS } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
-import type { ComponentDef } from '@prism3/engine/component-schema';
+import { FIELD_FRAME_PARTS, TAG_STYLE_PARTS, DIALOG_TITLE_TYPE_KEYS, BANNER_STYLE_FILL_KEYS, componentDefs, type ComponentDef } from '@prism3/engine/components';
 import { currentOf, positionOf, record, runVerdict, startRun, stopRun, RUN_COPY } from './src/state/build-queue';
 import { alsoAddsOf, badgeParts, queuedOf, UPDATE_COPY } from './src/state/update-file';
 

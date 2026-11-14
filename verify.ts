@@ -1276,6 +1276,13 @@ export const GATES: Gate[] = [
     cmd: engine('lint-locale-order.ts'),
   },
   {
+    // #3698 F4, R5 item 3 — reads the surfaces' and the engine's tracked source text and the engine's package.json;
+    // needs no build and no `after`.
+    id: 'lint-engine-facade',
+    ciStep: 'The surfaces import the engine only through its entries (#3698)',
+    cmd: engine('lint-engine-facade.ts'),
+  },
+  {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR
     // rather than about this tree: docs/34 shape 17 is explicit that nothing running inside a checkout
     // can tell whether that checkout is stale — a stale tree is internally consistent. So the subject
