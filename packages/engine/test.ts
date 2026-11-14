@@ -32342,9 +32342,10 @@ arm: {
   // says nothing about whether the field EXISTS), and feeding `validateComponentDef` a part carrying
   // `strokeWeight` passes, because the schema has no runtime unknown-key check. This wall is enforced
   // at the TYPE level, by `typecheck-components.ts`, which a runtime suite cannot invoke — so the
-  // independent source available here is `PartDef`'s own field list, parsed out of the declaration.
+  // independent source available here is `PartDef`'s own field list, parsed out of the declaration. Since #3698 R5
+  // item 3 `PartDef` is a union by kind and the field list is the `PartFields` bag it picks from.
   const partDefSrc = readFileSync(resolve(HERE, './component-schema.ts'), 'utf8');
-  const partDefBlock = (() => { const i = partDefSrc.indexOf('export type PartDef = {'); return partDefSrc.slice(i, partDefSrc.indexOf('\n};', i)); })();
+  const partDefBlock = (() => { const i = partDefSrc.indexOf('export type PartFields = {'); return partDefSrc.slice(i, partDefSrc.indexOf('\n};', i)); })();
   const partDefFields = [...partDefBlock.matchAll(/^ {2}(\w+)\??:/gm)].map((m) => m[1]);
   ok(partDefFields.includes('kind') && partDefFields.includes('radius') && partDefFields.length > 10,
     `focus-ring wall 1: PartDef's field list parsed from the declaration (${partDefFields.length} fields) — the parse is asserted before the absence, so a parse that silently found nothing cannot read as a pass`);
