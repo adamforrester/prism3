@@ -1455,10 +1455,14 @@ export type PartBaseKey = 'role' | 'optional' | 'note' | 'radius' | 'type' | 're
 type PartOf<K extends PartKind, F extends Exclude<keyof PartFields, 'kind' | PartBaseKey>> =
   { kind: K } & Pick<PartFields, PartBaseKey | F> & { [X in Exclude<keyof PartFields, 'kind' | PartBaseKey | F>]?: never };
 
-type AllPartKey = Exclude<keyof PartFields, 'kind' | PartBaseKey>;
-
 /** The fields a box admits — the one kind that lays out, paints a surface and becomes a frame. */
-export type BoxKey = AllPartKey; // admits every field until its own commit narrows it
+export type BoxKey =
+  | 'innerTarget' | 'children' | 'size' | 'presentWhen' | 'positionWhen' | 'height' | 'crossAxisFill' | 'grow' | 'literal'
+  | 'layout' | 'padding' | 'gap' | 'strokeWidth' | 'strokeEdges' | 'width' | 'paddingTop' | 'firstLine'
+  | 'contentSlot' | 'slotSettings' | 'preferred' | 'preferredWhenBuilt' | 'paintSlots' | 'paintGroup' | 'gradient'
+  | 'clipsContent' | 'scroll' | 'minWidth' | 'placementWidth' | 'placementHeight' | 'directionWhen' | 'sizingWhen'
+  | 'builtSize' | 'elevation' | 'radiusEdges' | 'minHeight' | 'minWidthKey' | 'minWidthRatio' | 'flush' | 'center'
+  | 'aspectRatio' | 'foot' | 'footShare';
 export type TextKey =
   | 'innerTarget' | 'children' | 'size' | 'presentWhen' | 'positionWhen' | 'literal' | 'paintSlot'
   | 'verticalAlign' | 'wrap' | 'lines' | 'characters';
