@@ -1467,7 +1467,10 @@ export type SlotKey =
   | 'pin' | 'swapDefault';
 export type OverlayKey = 'innerTarget' | 'children' | 'size' | 'fixedPaint' | 'nests' | 'nesting';
 export type AbsoluteKey = 'presentWhen' | 'inset' | 'nests' | 'nesting' | 'overrides' | 'strokeInset' | 'drawnInside';
-export type NestKey = AllPartKey; // admits every field until its own commit narrows it
+export type NestKey =
+  | 'innerTarget' | 'size' | 'presentWhen' | 'positionWhen' | 'height' | 'crossAxisFill' | 'grow' | 'aspectLock' | 'fixedPaint'
+  | 'literal' | 'nests' | 'nesting' | 'overrides' | 'hostInk' | 'prefersWhenBuilt' | 'nestItemPrefers' | 'nestTexts'
+  | 'nestPaddingBlock';
 export type VectorKey =
   | 'innerTarget' | 'size' | 'presentWhen' | 'positionWhen' | 'paintSlot' | 'inset'
   | 'glyph' | 'glyphScale' | 'glyphPx' | 'tileEdge' | 'corner' | 'scaleWithParent' | 'stackCentered';
