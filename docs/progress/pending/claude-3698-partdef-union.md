@@ -18,4 +18,4 @@
 - box refusing `gap` → `LEGAL box part refused`, plus `PartFieldsPlaced` failing.
 - the legal vector probe deleted → `kind 'vector' is used by a shipped def but has no LEGAL probe`.
 
-**Lints made redundant: none.** `lint-nesting`, `lint-paint-placement`, `lint-absolute-inset` and `lint-fill-under-hug` measure what a projection builds (the nest graph, paint on built nodes, ring geometry, fill under a hugging parent), which no field type expresses. What the union duplicates is a slice of `anatomyErrors`' per-kind refusals, which stay for untyped defs. A follow-up issue asks whether any of them should go.
+**Lints made redundant: none.** `lint-nesting`, `lint-paint-placement`, `lint-absolute-inset` and `lint-fill-under-hug` measure what a projection builds (the nest graph, paint on built nodes, ring geometry, fill under a hugging parent), which no field type expresses. What the union duplicates is a slice of `anatomyErrors`' per-kind refusals, which stay for untyped defs. #3778 asks whether any of them should go. Found on the way and filed, not fixed: `builtSize.grow` can name a column child of any kind, though `grow` is a box/nest field (#3779).
