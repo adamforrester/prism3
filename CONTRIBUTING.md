@@ -1344,6 +1344,10 @@ npx tsx packages/engine/lint-theme-split.ts         # theme.ts is named re-expor
                                                     # imports the barrel or an entry; the modules' value
                                                     # imports form no cycle; every module is re-exported,
                                                     # over a floor of 10.
+npx tsx packages/engine/lint-part-union.ts          # PartDef is a union by `kind` (#3698 F4): per kind, a
+                                                    # legal part compiles under tsc and each probed field
+                                                    # the validator refuses there fails by name; every
+                                                    # kind a shipped def uses is probed.
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR but one

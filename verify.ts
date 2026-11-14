@@ -1289,6 +1289,13 @@ export const GATES: Gate[] = [
     cmd: engine('lint-theme-split.ts'),
   },
   {
+    // #3698 F4, R5 item 3 — runs tsc over probe files it writes to $TMPDIR against component-schema.ts, and reads the
+    // component registry; needs no build and no `after`.
+    id: 'lint-part-union',
+    ciStep: 'PartDef refuses a field its kind does not take (#3698)',
+    cmd: engine('lint-part-union.ts'),
+  },
+  {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR
     // rather than about this tree: docs/34 shape 17 is explicit that nothing running inside a checkout
     // can tell whether that checkout is stale — a stale tree is internally consistent. So the subject
