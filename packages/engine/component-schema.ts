@@ -1465,7 +1465,7 @@ export type TextKey =
 export type SlotKey =
   | 'innerTarget' | 'children' | 'size' | 'presentWhen' | 'positionWhen' | 'height' | 'aspectLock' | 'fixedPaint' | 'nesting'
   | 'pin' | 'swapDefault';
-export type OverlayKey = AllPartKey; // admits every field until its own commit narrows it
+export type OverlayKey = 'innerTarget' | 'children' | 'size' | 'fixedPaint' | 'nests' | 'nesting';
 export type AbsoluteKey = AllPartKey; // admits every field until its own commit narrows it
 export type NestKey = AllPartKey; // admits every field until its own commit narrows it
 export type VectorKey =
