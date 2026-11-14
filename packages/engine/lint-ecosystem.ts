@@ -303,7 +303,7 @@ for (const m of PLUMBING) if (!uiSet.has(m)) fail('LANES', `PLUMBING lists '${m}
 type Runs = { module: string; symbol: string; call?: string };
 const TOOL_MODULE: Record<string, Runs> = {
   list_levers: { module: 'packages/engine/levers.ts', symbol: 'leverManifest', call: 'buildLeverManifest' },
-  theme_brand: { module: 'packages/engine/theme.ts', symbol: 'brandTheme' },
+  theme_brand: { module: 'packages/engine/theme-brand.ts', symbol: 'brandTheme' },
   score_consumption: { module: 'packages/engine/eval.ts', symbol: 'scoreConsumption' },
   theme_from_brief: { module: 'packages/engine/design-md.ts', symbol: 'parseDesignMd' },
   export_theme: { module: 'packages/engine/tree.ts', symbol: 'buildTree' },

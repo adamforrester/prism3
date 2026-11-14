@@ -9,7 +9,7 @@
  * (`src/state/name-refs.ts`).
  *
  * INDEPENDENT OF THE TABLE (docs/34). The fields seeded here come from the `BrandInput` type's own text in
- * `packages/engine/theme.ts`, parsed at run time, and each is classified BY HAND below: a seed that writes the field
+ * `packages/engine/theme-*.ts`, parsed at run time, and each is classified BY HAND below: a seed that writes the field
  * naming `acc` (a brand color, and the unnamed column it draws), `promo` (a custom mode) or `dark`, or a reason it names
  * none of them. A field added to `BrandInput` and classified nowhere fails by name. The table is never read. What is
  * asserted is the engine's answer (the brand resolves, as the store's rebuild asks it), the writer's (the edit was
@@ -26,7 +26,7 @@
  * column's own line covers) carries `confirms`: the count of lines, typed here, that the removal confirm must add
  * against the unseeded fixture's. A row whose line goes missing or merges fails by name.
  */
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { brandTheme, type BrandInput, resolvePreview } from '@prism3/engine';
@@ -46,7 +46,9 @@ const ok = (cond: boolean, label: string): void => {
 
 // ── the fields, from the type's own text ────────────────────────────────────────────────────────
 const here = dirname(fileURLToPath(import.meta.url));
-const SRC = readFileSync(join(here, '../../packages/engine/theme.ts'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+// The types live in the `theme-*.ts` axis modules since #3698 R5 split `theme.ts` (now a barrel); read them all.
+const ENGINE = join(here, '../../packages/engine');
+const SRC = readdirSync(ENGINE).filter((f) => /^theme-[a-z]+\.ts$/.test(f)).sort().map((f) => readFileSync(join(ENGINE, f), 'utf8')).join('\n').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 /** The top-level keys of `export type <name> = { … }`, read from the source with comments stripped. */
 const keysOf = (name: string): string[] => {
   const at = SRC.indexOf(`export type ${name} = {`);
@@ -145,14 +147,14 @@ const NESTED: Record<string, Record<string, string>> = {
 
 console.log('\n0. Every BrandInput field is classified by hand, read from the type');
 const typeKeys = keysOf('BrandInput');
-ok(typeKeys.length > 40, `the BrandInput type is read from packages/engine/theme.ts (${typeKeys.length} fields)`);
+ok(typeKeys.length > 40, `the BrandInput type is read from packages/engine/theme-*.ts (${typeKeys.length} fields)`);
 for (const k of typeKeys) ok(k in FIELDS, `BrandInput.${k} is classified: it names a palette, column or mode and is seeded, or it says why not`);
 for (const k of Object.keys(FIELDS)) ok(typeKeys.includes(k), `the classification's ${k} is still a BrandInput field`);
 const surfaceKeys = keysOf('SurfaceMode');
 for (const k of surfaceKeys) ok(SURFACE_NAMING.includes(k) || SURFACE_PLAIN.includes(k), `surfaces.<mode>.${k} is classified`);
 for (const [type, by] of Object.entries(NESTED)) {
   const keys = keysOf(type);
-  ok(keys.length > 0, `the ${type} type is read from packages/engine/theme.ts (${keys.length} fields)`);
+  ok(keys.length > 0, `the ${type} type is read from packages/engine/theme-*.ts (${keys.length} fields)`);
   for (const k of keys) ok(k in by, `${type}.${k} is classified: it names a palette, column or mode and is seeded, or it says why not`);
   for (const k of Object.keys(by)) ok(keys.includes(k), `the classification's ${type}.${k} is still a field`);
 }

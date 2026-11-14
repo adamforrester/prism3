@@ -3047,12 +3047,12 @@ console.log(`\nControls\n${'='.repeat(78)}`);
 const ENGINE_MODES = join(ROOT, '..', '..', 'packages', 'engine', 'modes.ts');
 const modesSrc = await readFile(ENGINE_MODES, 'utf8');
 // #3335 (Q3335.3 A): the wash's steps became a brand input, `outlineWash`, and its neutral default moved to
-// `OUTLINE_WASH_DEFAULTS` in `theme.ts`. No brand this suite sweeps sets the input, so the default is what renders;
+// `OUTLINE_WASH_DEFAULTS` in `theme-types.ts`. No brand this suite sweeps sets the input, so the default is what renders;
 // it is still read from the engine's source, and selected still follows pressed (`modes.ts`, OVERLAY_ALPHA).
-const WASH_THEME_SRC = await readFile(join(ROOT, '..', '..', 'packages', 'engine', 'theme.ts'), 'utf8');
+const WASH_THEME_SRC = await readFile(join(ROOT, '..', '..', 'packages', 'engine', 'theme-types.ts'), 'utf8');
 const OVERLAY_STEPS = (() => {
   const m = /export const OUTLINE_WASH_DEFAULTS\s*=\s*\{\s*neutral:\s*\{\s*hover:\s*(\d+),\s*pressed:\s*(\d+)\s*\}/.exec(WASH_THEME_SRC);
-  if (!m) throw new Error('OUTLINE_WASH_DEFAULTS.neutral not found in packages/engine/theme.ts — this suite\'s oracle reads the wash steps from there');
+  if (!m) throw new Error('OUTLINE_WASH_DEFAULTS.neutral not found in packages/engine/theme-types.ts — this suite\'s oracle reads the wash steps from there');
   if (!/\['selected', wash\.pressed\]/.test(modesSrc)) throw new Error('OVERLAY_ALPHA in packages/engine/modes.ts no longer gives selected the pressed step — the oracle needs restating');
   return { hover: m[1], pressed: m[2], selected: m[2] };
 })();
@@ -3605,7 +3605,7 @@ ok(washPolarities.size === 2,
  * six durations.
  *
  * THE ORACLE, WHICH IS THE WHOLE DESIGN. EXPECTED is derived from the engine's INPUT by this file's
- * own walk — `DURATION_BASE` and `TEMPO_FACTOR`, read out of `packages/engine/theme.ts`, multiplied
+ * own walk — `DURATION_BASE` and `TEMPO_FACTOR`, read out of `packages/engine/theme-motion.ts`, multiplied
  * and rounded here. It is NOT obtained by asking the studio what it resolved. Reading EXPECTED from
  * the renderer's own resolution and ACTUAL from the renderer's output is `docs/34` shape 1 with
  * extra steps: both sides come from the subject, so it would have passed on #800 with the defect
@@ -3642,12 +3642,12 @@ ok(washPolarities.size === 2,
  */
 console.log(`\nDisplayed values vs the resolved theme (#800)\n${'='.repeat(78)}`);
 
-const ENGINE_THEME = join(ROOT, '..', '..', 'packages', 'engine', 'theme.ts');
+const ENGINE_THEME = join(ROOT, '..', '..', 'packages', 'engine', 'theme-motion.ts');
 /** The gate's own read of the engine's authored input. Throws rather than degrading: an oracle that
  *  quietly falls back to a default is an oracle that agrees with anything. */
 const constFromEngine = (src, name) => {
   const m = new RegExp(`const ${name}[^=]*=\\s*\\{([^}]*)\\}`).exec(src);
-  if (!m) throw new Error(`${name} not found in packages/engine/theme.ts — this suite's oracle reads it from there`);
+  if (!m) throw new Error(`${name} not found in packages/engine/theme-motion.ts — this suite's oracle reads it from there`);
   const out = {};
   for (const part of m[1].split(',')) {
     const kv = /^\s*([A-Za-z_][\w]*)\s*:\s*([0-9.]+)\s*$/.exec(part.replace(/\/\/.*$/, ''));
@@ -3659,8 +3659,8 @@ const constFromEngine = (src, name) => {
 const engineSrc = await readFile(ENGINE_THEME, 'utf8');
 const DURATION_BASE = constFromEngine(engineSrc, 'DURATION_BASE');
 const TEMPO_FACTOR = constFromEngine(engineSrc, 'TEMPO_FACTOR');
-ok(Object.keys(DURATION_BASE).length >= 6, `the oracle read ${Object.keys(DURATION_BASE).length} base durations from packages/engine/theme.ts`);
-ok(Object.keys(TEMPO_FACTOR).length >= 3, `the oracle read ${Object.keys(TEMPO_FACTOR).length} tempo factors from packages/engine/theme.ts`);
+ok(Object.keys(DURATION_BASE).length >= 6, `the oracle read ${Object.keys(DURATION_BASE).length} base durations from packages/engine/theme-motion.ts`);
+ok(Object.keys(TEMPO_FACTOR).length >= 3, `the oracle read ${Object.keys(TEMPO_FACTOR).length} tempo factors from packages/engine/theme-motion.ts`);
 // The engine's own rounding rule, restated here — the second of the two duplicated walks.
 const expectedRamp = (tempo) => Object.fromEntries(
   Object.entries(DURATION_BASE).map(([k, v]) => [k, `${Math.round((v * TEMPO_FACTOR[tempo]) / 5) * 5}ms`]));

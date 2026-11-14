@@ -3693,7 +3693,7 @@
     "source": "packages/engine/emit-figma.ts#EVERY VARIABLE NAME NOW CARRIES THE BRAND ROOT",
     "rootDefault": {
       "root": "prism",
-      "source": "packages/engine/theme.ts#const root = input.root ??"
+      "source": "packages/engine/theme-brand.ts#const root = input.root ??"
     },
     "primitiveTier": "core",
     "modesFrom": {

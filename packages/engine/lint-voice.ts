@@ -824,8 +824,8 @@ const PRODUCERS: Producer[] = [
 const NOTES_UNREACHABLE = ['typography: empty display tier (the "below the usual 15–25" clause)'];
 // The push sites, counted in the SOURCE (comments dropped), as a tripwire for a new producer the sweep
 // never reaches: one the sweep reaches is an unclaimed note already. A literal per file, written here.
-// theme.ts: 45 note pushes (#3052 added the grid-link notes' spread) + the one that copies vocabulary.ts's notes in. vocabulary.ts: 2.
-const NOTE_PUSH_SITES: Record<string, number> = { 'packages/engine/theme.ts': 51, 'packages/engine/vocabulary.ts': 2 };
+// theme-brand.ts (`brandTheme`, in theme.ts until #3698 R5 split it per axis): 45 note pushes (#3052 added the grid-link notes' spread) + the one that copies vocabulary.ts's notes in. vocabulary.ts: 2.
+const NOTE_PUSH_SITES: Record<string, number> = { 'packages/engine/theme-brand.ts': 51, 'packages/engine/vocabulary.ts': 2 };
 // The rules a NOTE must also pass, beyond §2 and `normative`. Each is a thing an engine note has carried.
 const ALLCAPS_OK = new Set(['AA', 'AAA', 'WCAG', 'OKLCH', 'HC']);
 const NOTE_RULES: { rule: string; re: RegExp }[] = [
