@@ -95,7 +95,7 @@ When a brand drops a mode, a ramp step or a text style, the old one stays in the
 
 1. Choose **Update file**, then the **Clean up** tab. It checks the file as it opens and reads "Checking for stale items…". Nothing is deleted yet. <!-- src: apps/studio/src/state/update-file.ts:420 -->
 2. The tab states what it found, including the modes by name. When there is nothing, it says "Nothing stale in this file." <!-- src: apps/studio/src/state/update-file.ts:421 -->
-3. Choose **Delete *N* items** to delete them, or **Close** to stop. <!-- src: apps/studio/src/shell/update-file.ts:601-605 -->
+3. Choose **Delete *N* items** to delete them, or **Close** to stop. <!-- src: apps/studio/src/shell/update-file.ts:660-666 -->
 
 *[Screenshot placeholder: the Clean up tab with its summary and Delete button.]*
 

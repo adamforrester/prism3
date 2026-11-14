@@ -426,6 +426,11 @@ export const UPDATE_COPY = {
   goLibrary: (n: number): string => `Update, including ${n} library change${n === 1 ? '' : 's'}`,
   library: 'Files that use this library',
   librarySub: (n: number): string => `${n} change${n === 1 ? '' : 's'} in this update ${n === 1 ? 'reaches' : 'reach'} them at the next library publish:`,
+  /** #3712 (Q-UD2, direction C; DRAFT for the owner's sign-off): Components' status chip, what its card holds, said on its
+   *  head row so a folded card still says it. Each part only when it counts. */
+  compsChip: (n: { readonly add: number; readonly due: number; readonly blocked: number; readonly kept: number; readonly panels: number }): string =>
+    [n.add ? `${n.add} to add` : '', n.due ? `${n.due} due` : '', n.blocked ? `${n.blocked} can’t update yet` : '', n.kept ? `${n.kept} with kept edits` : '',
+      n.panels ? `${n.panels} usage panel${n.panels === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · '),
 } as const;
 
 /** #3713: the sets a blocker line names (`icon/close`, `icon`), as Components names them: each set's id (the part before
