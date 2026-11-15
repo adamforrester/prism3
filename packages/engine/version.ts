@@ -73,7 +73,7 @@
  * The code. Bumps on any behaviour change — including one that only moves values. Its history is
  * `CHANGELOG.md` next door, which only `fold.ts` writes (#1807, Q319.3).
  */
-export const ENGINE_VERSION = '0.237.0';
+export const ENGINE_VERSION = '0.238.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
