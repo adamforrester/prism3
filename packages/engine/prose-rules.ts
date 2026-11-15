@@ -211,11 +211,16 @@ const BANNED_WORD = /\b(simply|easy|obviously)\b/gi;
 // dropping "just" from BANNED_WORD.
 const JUST = /\bjust\b/gi;
 // `now` (UI redesign S8.2): "Built just now" is the time sense, a moment ago, the same exactly/barely reading as "just
-// below"; it carries no judgment of the reader.
-const JUST_ALLOWED = /^\s+(?:below|above|under|over|beneath|past|outside|inside|shy of|short of|barely|about|enough|right|now)\b/i;
+// below"; it carries no judgment of the reader. `wrote` is the same time sense ("the theme the run just wrote", a folded
+// change note carried verbatim into the 0.238.0 release notes).
+const JUST_ALLOWED = /^\s+(?:below|above|under|over|beneath|past|outside|inside|shy of|short of|barely|about|enough|right|now|wrote)\b/i;
 
 // ---- Rule 3: filler — §2's "please note, note that" row.
 const FILLER = /\b(please\s+note|note\s+that)\b/gi;
+// "note" as a NOUN is not the filler: "drops its note that the def …", "a part note that cites …" (both folded change
+// notes, carried verbatim into the 0.238.0 release notes). The allow-set is the word directly before "note"; a false
+// positive here is fixed by widening it, never by dropping "note that" from FILLER.
+const FILLER_NOUN_BEFORE = /\b(?:a|an|the|its|their|this|each|every|part)\s+$/i;
 
 // ---- Rule 4: apology copy — §2's "Oops, Sorry" row.
 const APOLOGY = /\b(oops|sorry)\b/gi;
@@ -242,7 +247,11 @@ export const voiceHits = (txt: string): RawHit[] => {
     if (JUST_ALLOWED.test(after)) continue; // "just below the floor" — exactly/barely, allowed
     found.push({ rule: 'just', match: m[0], index: idx });
   }
-  for (const m of txt.matchAll(FILLER)) found.push({ rule: 'filler', match: m[0], index: m.index ?? 0 });
+  for (const m of txt.matchAll(FILLER)) {
+    const idx = m.index ?? 0;
+    if (/^note/i.test(m[0]) && FILLER_NOUN_BEFORE.test(txt.slice(Math.max(0, idx - 24), idx))) continue; // "its note that" — a noun
+    found.push({ rule: 'filler', match: m[0], index: idx });
+  }
   for (const m of txt.matchAll(APOLOGY)) found.push({ rule: 'apology', match: m[0], index: m.index ?? 0 });
   for (const m of txt.matchAll(EXCLAIM)) found.push({ rule: 'exclamation', match: '!', index: m.index ?? 0 });
   return found;
