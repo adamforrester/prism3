@@ -41267,9 +41267,9 @@ arm: {
     const withLevers = componentDefs.filter((d) => d.levers);
     const bad = withLevers.flatMap((d) => validateComponentDef(d).errors.filter((e) => e.startsWith('levers')).map((e) => `${d.id}: ${e}`));
     ok(withLevers.length >= 18 && bad.length === 0, `#3698 R5 levers: the ${withLevers.length} shipped defs carrying levers validate (${bad.join(' | ') || 'clean'})`);
-    // The reach of each setting, typed: the defs that carry each entry (was the eight tables in anatomy-figma.ts).
+    // The reach of each setting, typed: the defs that carry each entry (was the eight tables in anatomy-figma.ts). Code input's cell joins Control shape in #3765.
     const REACH: Record<string, string[]> = {
-      controlShape: ['card-number-field', 'checkbox-control', 'search-field', 'select', 'text-field', 'textarea'],
+      controlShape: ['card-number-field', 'checkbox-control', 'code-input-cell', 'search-field', 'select', 'text-field', 'textarea'],
       fieldStyle: ['card-number-field', 'code-input-cell', 'password-field', 'search-field', 'select', 'text-field', 'textarea'],
       tagStyle: ['tag'], dialogTitleSize: ['dialog'], bannerStyle: ['banner'], currentIndicator: ['link'],
       outlineInteraction: ['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral'],
