@@ -1303,6 +1303,13 @@ export const GATES: Gate[] = [
     cmd: engine('lint-projector-def-ids.ts'),
   },
   {
+    // #3765 — reads the controlShape lever's description and projects every def through the brand materializer;
+    // needs no build and no `after`.
+    id: 'lint-control-shape-reach',
+    ciStep: 'Control shape reaches what its description says (#3765)',
+    cmd: engine('lint-control-shape-reach.ts'),
+  },
+  {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR
     // rather than about this tree: docs/34 shape 17 is explicit that nothing running inside a checkout
     // can tell whether that checkout is stale — a stale tree is internally consistent. So the subject
