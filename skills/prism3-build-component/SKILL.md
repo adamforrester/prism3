@@ -683,7 +683,8 @@ Each entry names only the parts and keys that setting rewrites, and the validato
 |---|---|---|
 | `controlShape` (Boxed, Hairline) | `{ squares: ['radius.sm'] }`: the corner refs squared beyond the pill-able `radius.md` | the fields, Checkbox |
 | `fieldStyle` | `{ frame: 'control' }`, the box Underline redraws; add `setting: 'searchFieldStyle'` to follow the Search field style | the seven field defs |
-| `tagStyle` | `{ frame, row, labelRow, slot }`, the four parts Underline reaches; also opts the def into "Control label weight" | Tag |
+| `tagStyle` | `{ frame, row, labelRow, slot }`, the four parts Underline reaches | Tag |
+| `buttonLabelWeight` | `{ labels: true }`: "Control label weight" reaches a def outside the button family, rebinding each size's label type | Tag |
 | `dialogTitleSize` | `{ titleType: 'title-type' }`, the key holding the title's `type.label.<rung>.<role>` | Dialog |
 | `bannerStyle` | `{ fills: ['info.fill', …] }`, the per-tone fills Outlined rebinds | Banner |
 | `currentIndicator` | `{ bar: 'bar' }`, the foot bar Partial draws at half the title's width | Link |

@@ -187,7 +187,7 @@ export const tag: ComponentDef = {
   visibleGaps: [{ gap: 'size.{size}.dismissible.gap', visible: 'size.{size}.dismissible.visible-gap', inset: 'size.{size}.dismissible.label-inset' }],
 
   // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
-  levers: { tagStyle: { frame: 'container', row: 'content', labelRow: 'labelCheck', slot: 'dismiss' } },
+  levers: { tagStyle: { frame: 'container', row: 'content', labelRow: 'labelCheck', slot: 'dismiss' }, buttonLabelWeight: { labels: true } },
 
   tokens: {
     // Geometry. `radius.round` (the pill) keeps the tag off Button's `radius.md` rectangle, which an outlined
