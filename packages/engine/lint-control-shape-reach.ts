@@ -228,15 +228,24 @@ export const run = (description: string): { errors: string[]; counts: Record<str
     for (const fs of FIELD_STYLES) for (const s of SHAPES) {
       const got = corners(def, s, fs);
       const base = fs === 'outline' ? own : ownUnder;
+      // One line per part × wrong corner, naming the first member and how many more: a set has hundreds of members.
+      const wrong = new Map<string, { first: string; n: number }>();
       for (const [k, at] of base) {
         const g = got.get(k);
         counts.bindings++;
         let want = at;
         if (fam && !INTRINSIC.has(at)) want = CLAIM[s][fam] === 'own' ? at : CLAIM[s][fam];
         if (g === want) continue;
+        const [member, part] = k.split(' › ');
+        const key = `${part.replace(/\.(topLeft|topRight|bottomLeft|bottomRight|corner)Radius$/, '')} binds ${g ?? 'nothing'}|${want}`;
+        const w = wrong.get(key);
+        if (w) w.n++; else wrong.set(key, { first: member, n: 1 });
+      }
+      for (const [key, { first, n }] of wrong) {
+        const [what, want] = key.split('|');
         const tag = fam ? 'REACH' : HELD[def.id] ? 'HELD' : 'OUTSIDE';
         const why = fam ? `claimed ${want}` : HELD[def.id] ? `held at ${want} on ${HELD[def.id].question}` : `outside (${OUTSIDE_REASON[def.id]}), so it stays ${want}`;
-        errors.push(`${tag}: ${def.id}${fam ? ` (${fam})` : ''} under ${s} × ${fs}: ${k} binds ${g ?? 'nothing'}, ${why}`);
+        errors.push(`${tag}: ${def.id}${fam ? ` (${fam})` : ''} under ${s} × ${fs}: ${what}, ${why} (${n} corner binding${n === 1 ? '' : 's'}, first at ${first})`);
       }
     }
     // "An underline field has no corners": every field, held ones included, binds none under Underline.
