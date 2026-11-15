@@ -1900,8 +1900,11 @@ export type ComponentCategory = (typeof COMPONENT_CATEGORIES)[number];
  * THE BRAND STYLE SETTINGS A DEF TAKES, as data (#3698 R5 refactor 4; the shape is held for an owner decision on the
  * PR, so every key is one rename away). One entry per setting, keyed by the `BrandInput` field it serves:
  *
- *   · `controlShape` — `squares`: the token REFS Boxed and Hairline rebind to their rung (`applyControlShape`), on top
- *     of the pill-able controls' `radius.md`. The fields' `radius.sm` box corner; Checkbox's per-size control radius.
+ *   · `controlShape` — `capsules`: the token REFS every shape but Rounded rebinds to its rung (`applyControlShape`): Pill
+ *     to `radius.capsule`, Boxed to `radius.none`, Hairline to `radius.hairline`. The buttons' `radius.md` corner (Q-CS5 B,
+ *     #3765: all of Control shape's reach lives here, Pill included). `squares`: the refs Boxed and Hairline alone rebind,
+ *     which Pill leaves as they are. The fields' `radius.sm` box corner; Checkbox's per-size control radius. A def names
+ *     either list or both, never one ref in both.
  *   · `fieldStyle` — `frame`: the box part Underline redraws (`applyFieldStyle`). `setting: 'searchFieldStyle'` draws the
  *     def in the Search field style instead of Field style, unless that is Follow (`fieldStyleFor`).
  *   · `tagStyle` — the four parts Underline reaches (`applyTagStyle`): the bordered `frame`, the inset content `row`, the
@@ -1916,7 +1919,7 @@ export type ComponentCategory = (typeof COMPONENT_CATEGORIES)[number];
  *     (`applyOutlineInteraction`); every def without it keeps the wash.
  */
 export type ComponentLevers = {
-  controlShape?: { squares: readonly string[] };
+  controlShape?: { capsules?: readonly string[]; squares?: readonly string[] };
   fieldStyle?: { frame: string; setting?: 'searchFieldStyle' };
   tagStyle?: { frame: string; row: string; labelRow: string; slot: string };
   buttonLabelWeight?: { labels: true };
@@ -4429,7 +4432,7 @@ const visibleGapErrors = (def: ComponentDef): string[] => {
  *  Every materializer is the identity, or throws, on a name that does not resolve, so a wrong name would silently drop
  *  the setting from the def. This refuses it at authoring instead. A def arriving as data meets only this check. */
 const LEVER_KEYS: Record<string, readonly string[]> = {
-  controlShape: ['squares'], fieldStyle: ['frame', 'setting'], tagStyle: ['frame', 'row', 'labelRow', 'slot'], buttonLabelWeight: ['labels'],
+  controlShape: ['capsules', 'squares'], fieldStyle: ['frame', 'setting'], tagStyle: ['frame', 'row', 'labelRow', 'slot'], buttonLabelWeight: ['labels'],
   dialogTitleSize: ['titleType'], bannerStyle: ['fills'], currentIndicator: ['bar'], outlineInteraction: ['opaqueFill'],
 };
 const leverErrors = (def: ComponentDef): string[] => {
@@ -4458,9 +4461,25 @@ const leverErrors = (def: ComponentDef): string[] => {
     // refuse those. `test.ts` holds the binding on the authored
     // registry instead (`componentDefs`, before any materializer): every ref is a value one of the def's tokens binds.
     if (setting === 'controlShape') {
-      const sq = entry.squares;
-      if (!Array.isArray(sq) || sq.length === 0) errors.push('levers.controlShape.squares must be a non-empty list');
-      else for (const r of sq) if (typeof r !== 'string' || !/^[a-z][a-z0-9-]*(\.[a-z0-9-]+)+$/.test(r)) errors.push(`levers.controlShape.squares names '${String(r)}', which is not a token ref`);
+      if (entry.capsules === undefined && entry.squares === undefined) errors.push('levers.controlShape must name capsules, squares or both');
+      for (const field of ['capsules', 'squares'] as const) {
+        const list = entry[field];
+        if (list === undefined) continue;
+        if (!Array.isArray(list) || list.length === 0) errors.push(`levers.controlShape.${field} must be a non-empty list`);
+        else for (const r of list) if (typeof r !== 'string' || !/^[a-z][a-z0-9-]*(\.[a-z0-9-]+)+$/.test(r)) errors.push(`levers.controlShape.${field} names '${String(r)}', which is not a token ref`);
+      }
+      // One ref in both lists would read as "Pill rounds it" and "Pill leaves it", and the materializer could honor one.
+      const caps = Array.isArray(entry.capsules) ? entry.capsules : [];
+      // Each `capsules` ref is the def's own corner, so it must be bound: a def without that corner is refused, and so is a
+      // typo. The one exception is a def Control shape has already materialized, which binds the shape's rung where the
+      // ref was (`applyControlShape`, `CONTROL_SHAPE_RUNG`; restated here because the schema cannot import the
+      // materializer). No authored def that names `capsules` binds one of those rungs, so the exception never covers an
+      // authored typo; `test.ts` holds that on the registry. `squares` keeps #3787's rule below: Underline rebinds the
+      // fields' corner under Rounded too, where no shape rung is bound.
+      const bound = new Set(Object.values(def.tokens ?? {}));
+      const shaped = ['radius.capsule', 'radius.none', 'radius.hairline'].some((r) => bound.has(r));
+      if (!shaped) for (const r of caps) if (typeof r === 'string' && !bound.has(r)) errors.push(`levers.controlShape.capsules names '${r}', which no tokens key binds: the def has no such corner`);
+      if (Array.isArray(entry.squares)) for (const r of entry.squares) if (caps.includes(r)) errors.push(`levers.controlShape names '${String(r)}' in both capsules and squares`);
     }
     if (setting === 'fieldStyle') {
       part(setting, 'frame', entry.frame, true);
