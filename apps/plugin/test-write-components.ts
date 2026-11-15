@@ -2709,6 +2709,22 @@ await refusedProperty('setTextStyleIdAsync', grid, full(), { setTextStyleId: tru
 // No def declares `effectStyle` (#1007), so this site needs the probe plan rather than `grid`.
 const effProbe: AnatomyPlan = { ...labelPlans[0], root: { ...labelPlans[0].root, effectStyle: 'shadow/md' } };
 await refusedProperty('setEffectStyleIdAsync', [effProbe], fullFor([effProbe]), { setEffectStyleId: true }, /\.effectStyle ->/);
+// #3783 — A TEXT STYLE ON A NODE WITH NO SETTER is one REFUSED miss, and the style is NOT recorded as applied. The
+// optional call `setTextStyleIdAsync?.()` did nothing on a frame and the next line set `appliedStyle` anyway, so the
+// re-apply then reported a DISCARDED it had caused. The projector plans a text style on a TEXT node only, so this plan
+// is synthetic: a label plan's style forced onto its root FRAME, which the shim (as Figma) gives no setter.
+// Mutation: drop the executor's `!node.setTextStyleIdAsync` branch → `#3783 plugin` fails.
+{
+  const style = planTextStyles(labelPlans[0].root)[0];
+  const forced: AnatomyPlan = { ...labelPlans[0], root: { ...labelPlans[0].root, textStyle: style } };
+  let err = '';
+  let res: Awaited<ReturnType<typeof run>> | null = null;
+  try { res = await run([forced], { ...fullFor([forced]), page: { children: [] } }); } catch (e) { err = (e as Error).message; }
+  const mine = (res?.misses ?? []).filter((m) => m.startsWith(`${forced.root.name}.textStyle ->`));
+  const want = `${forced.root.name}.textStyle -> ${style} REFUSED (not a text node)`;
+  ok(!!style && forced.root.type !== 'TEXT' && err === '' && mine.length === 1 && mine[0] === want,
+    `#3783 plugin: a text style planned on a ${forced.root.type} with no setter is the one miss '${want}', not a style recorded as applied (${err ? 'THREW: ' + err.slice(0, 60) : mine.join(' | ') || 'no miss'})`);
+}
 
 const refusedStructure = async (label: string, refuse: NonNullable<ShimOpts['refuse']>) => {
   let threw = false;

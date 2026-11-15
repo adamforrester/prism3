@@ -17,7 +17,8 @@
  * with any list, a wrong one included.
  *
  *   Most illegal probes are a per-kind sample. The five documented-kind fields #3698 Q-PU1 A tightened (`radius`,
- *   `replaces`, `overlaysWhenAbsent`, `when`, `children`) are probed on every kind that refuses them.
+ *   `replaces`, `overlaysWhenAbsent`, `when`, `children`), and `type`, which Q-PU2 A made text-only, are probed on
+ *   every kind that refuses them.
  *
  *   · A legal probe with any diagnostic fails: the union refuses a part a def may write.
  *   · An illegal probe fails unless tsc refuses it BY THE FIELD'S NAME (`Types of property '<field>' are
@@ -111,6 +112,8 @@ const PROBES: readonly Probe[] = [
   ...offKind('overlaysWhenAbsent', "overlaysWhenAbsent: 'label',", ['overlay']),
   ...offKind('when', "when: 'loading',", ['overlay', 'absolute']),
   ...offKind('children', "children: ['label'],", ['box', 'absolute', 'nest', 'vector']),
+  // `type` names a text style, which only a TEXT node takes (#3698 Q-PU2 A, #3783): every kind but `text`.
+  ...offKind('type', "type: 'type.label.{size}.default',", ['text']),
 ];
 
 const failures: string[] = [];

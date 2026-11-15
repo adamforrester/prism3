@@ -2062,8 +2062,10 @@ export const figmaAnatomyPlan = (
     const literalFont = p.literal === 'label' ? literal?.font : undefined;
     const literalTint = p.literal === 'mark' ? literal?.markTint : undefined;
     let textStyle: string | undefined;
-    // A literal font REPLACES the type binding at this member: the provider fixes the face.
-    if (p.type && !literalFont) textStyle = figmaTextStyleName(resolveKey(p.type, 'type'));
+    // A literal font REPLACES the type binding at this member: the provider fixes the face. A TEXT part only (#3783):
+    // a text style goes on a TEXT node, and on a FRAME or an instance there is no `setTextStyleIdAsync` to take it.
+    // The schema refuses `type` off a text part (Q-PU2 A); this guard keeps a def that bypassed it from planning one.
+    if (p.kind === 'text' && p.type && !literalFont) textStyle = figmaTextStyleName(resolveKey(p.type, 'type'));
     const literalPaints: { fills?: string[]; strokes?: string } = {};
     if (p.literal === 'surface') {
       const wash = literal?.wash?.[paintCoord.state ?? 'rest'];
@@ -3064,10 +3066,11 @@ export const TEXT_FILL_STATES = ['hover', 'pressed'] as const;
  * at one size is the silent-loss shape, and the caller always has the brand's numbers in hand.
  */
 export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (ref: string) => number | undefined): ComponentDef => {
-  // "Control label weight" reaches the tag family too (#2945, Q591 A); the other button settings do not. Badge and
-  // every other def that binds a label style keep their own.
+  // "Control label weight" reaches a def outside the family that opts in with `levers.buttonLabelWeight` (Tag: #2945,
+  // Q591 A; its own entry since #3786); the other button settings do not. Badge and every other def that binds a label
+  // style keep their own.
   if (!isButtonFamily(def))
-    return layout.labelWeight === 'default' && def.levers?.tagStyle ? { ...def, tokens: withDefaultLabels(def, def.tokens) } : def;
+    return layout.labelWeight === 'default' && def.levers?.buttonLabelWeight ? { ...def, tokens: withDefaultLabels(def, def.tokens) } : def;
   const a = def.anatomy!;
   const root = a.parts[a.root];
   if (!root.layout || !root.height)
@@ -5001,6 +5004,8 @@ const build=async(n)=>{
   if(n.textStyle){
     const st=styleByName.get(n.textStyle);
     if(!st)misses.push(n.name+'.textStyle -> '+n.textStyle);
+    // A node with no text-style setter (a frame, an instance) is a miss, never a throw (#3783). Lockstep with the plugin.
+    else if(!node.setTextStyleIdAsync)misses.push(n.name+'.textStyle -> '+n.textStyle+' REFUSED (not a text node)');
     else{
       // The STYLE'S OWN font, loaded before the style is applied. \`setTextStyleIdAsync\` pulls in a
       // family/style pair (\`Inter Semi Bold\`) that need not be the one \`createText\` starts on, and

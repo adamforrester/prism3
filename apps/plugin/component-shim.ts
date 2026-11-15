@@ -1349,6 +1349,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
           throw new Error(`in set_textAlignVertical: Cannot write to node with unsupported type: ${type}`);
         },
       });
+      // #3783 — AND NO TEXT-STYLE SETTER: in Figma `setTextStyleIdAsync` is a TEXT node's alone. The literal gave every
+      // node one, so the executor's optional call "applied" a style to a frame here and the miss it owed never showed.
+      delete (node as Record<string, unknown>).setTextStyleIdAsync;
     }
     // #2695 — A LITERAL STROKE WEIGHT DETACHES THE WEIGHT BINDINGS, as a literal write after a binding does on the
     // host (#1266, the rule both executors' 1px fallback is gated on). A bound weight lives on the four per-side keys
