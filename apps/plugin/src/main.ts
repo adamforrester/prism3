@@ -1692,7 +1692,7 @@ const passTarget = async (id: string, tick: () => Promise<void>): Promise<Update
 let handPass = 0;
 const handEditsPass = async (): Promise<void> => {
   const mine = ++handPass;
-  const stale = (): boolean => mine !== handPass || (['build-components', 'apply-theme', 'file-setup', 'style-guide'] as const).some((c) => guard.holding(c));
+  const stale = (): boolean => mine !== handPass || guard.busy(); // #3737: ANY write holding the file (one hold since #3697 R7), prune included.
   try {
     const read = await readPresent();
     const present = read.ids;
