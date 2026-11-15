@@ -14,15 +14,15 @@
  *     offers only `theme.dims.space`, and nothing here invents a value.
  *
  * D13: A PER-BREAKPOINT SETTING STAYS WITH ITS BREAKPOINT (fixes #2045). The engine names breakpoints from their
- * COUNT (`bpNames` in `packages/engine/theme.ts`: up to five run sm…2xl, six xs…2xl, seven xs…3xl), and the three
- * override maps are keyed by that name. So adding or removing a breakpoint renamed the others and every setting
- * silently landed on a different width. Here a breakpoint change re-keys each map: each setting follows the
+ * COUNT (`bpNames` in `packages/engine/theme-layout.ts`: up to five run sm…2xl, six xs…2xl, seven xs…3xl), and the
+ * three override maps are keyed by that name. So adding or removing a breakpoint renamed the others and every
+ * setting silently landed on a different width. Here a breakpoint change re-keys each map: each setting follows the
  * breakpoint it was set on to that breakpoint's new name. A breakpoint whose width is edited keeps its settings (it
  * was not removed). A setting on a REMOVED breakpoint (removed by Remove, or merged into another by an edit onto its
- * width) is dropped, and the write reports its old name so the page can say so in one line. An entry keyed by a
- * name no current breakpoint has (only an agent or the old page could write one) is dropped too: it applies to no
- * width now, and left in place it would attach to whichever breakpoint takes that name next, which is exactly the
- * silent move D13 rules out. The engine's naming is unchanged; the names come from the engine itself (`namesFor`).
+ * width) is dropped, and the write reports its old name so the page can say so in one line. An entry keyed by a name
+ * no current breakpoint has (only an agent or the old page could write one) is dropped too: it applies to no width
+ * now, and left in place it would attach to whichever breakpoint takes that name next, which is exactly the silent
+ * move D13 rules out. The engine's naming is unchanged; the names come from the engine itself (`namesFor`).
  *
  * THE FIRST BREAKPOINT IS 0 (#2146, after #2139). The engine refuses a list that starts above 0 ("The first breakpoint
  * must be 0px. …"), so this module refuses to write one: a change whose result would not start at 0 (removing the

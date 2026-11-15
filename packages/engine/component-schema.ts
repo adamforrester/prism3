@@ -4449,6 +4449,11 @@ const leverErrors = (def: ComponentDef): string[] => {
     for (const f of Object.keys(entry)) if (!allowed.includes(f)) errors.push(`levers.${setting}.${f} is not a field of that setting (${allowed.join(' | ')})`);
     // The refs are not required to be bound: a materialized def keeps its `levers`, and an earlier materializer (Underline's
     // `radius.none`) may already have rebound the corner it names. Each must still read as a token ref.
+    // WHY NOT HERE (#3787, measured): Boxed rebinds every shipped def's `squares` refs and Underline the fields', so each
+    // one is unbound on the materialized def, and materialized defs reach this validator (`test.ts` validates the
+    // Underline text field and tag). Nothing on a def tells authored from materialized, so a binding refusal here would
+    // refuse those. `test.ts` holds the binding on the authored
+    // registry instead (`componentDefs`, before any materializer): every ref is a value one of the def's tokens binds.
     if (setting === 'controlShape') {
       const sq = entry.squares;
       if (!Array.isArray(sq) || sq.length === 0) errors.push('levers.controlShape.squares must be a non-empty list');

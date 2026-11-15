@@ -56,7 +56,7 @@ const FIELD_STYLES = ['outline', 'underline'] as const;
  *  reached through the def it nests, so only the def that draws the corner is listed. */
 const FAMILIES: Record<Family, readonly string[]> = {
   buttons: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral'],
-  fields: ['text-field', 'textarea', 'select', 'search-field', 'card-number-field', 'code-input-cell'],
+  fields: ['text-field', 'textarea', 'select', 'search-field', 'card-number-field', 'password-field', 'code-input-cell'],
   checkboxes: ['checkbox-control'],
 };
 
@@ -72,7 +72,6 @@ const UNDERLINE_FIELD_CORNER = 'radius/none';
 
 /** Defs a claimed noun could cover, held on an open question. Each must stay as it is until the question is answered. */
 const HELD: Record<string, { family: Family; question: string }> = {
-  'password-field': { family: 'fields', question: '#3784, fixed on its own branch' },
   'wallet-button': { family: 'buttons', question: 'Q-CS3 on the #3765 PR: do the provider buttons follow Control shape?' },
   'sign-in-button': { family: 'buttons', question: 'Q-CS3 on the #3765 PR: do the provider buttons follow Control shape?' },
   'counter': { family: 'fields', question: 'Q-CS4 on the #3765 PR: is the outline Counter a field for Control shape?' },

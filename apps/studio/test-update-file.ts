@@ -41,7 +41,7 @@
  * setting changes …`; the reduce keeping an older answer (`m.seq < s.liveDue.seq` dropped) → `Q810 A recount: an
  * answer overtaken by a newer request never shows`.
  */
-import { UPDATE_COPY, goWhyOf, blockedDueOf, blockedLine, blockedReason, keptChoicesOf, libraryChangesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, setupOfferedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
+import { UPDATE_COPY, compsOpensOf, goWhyOf, blockedDueOf, blockedLine, blockedReason, keptChoicesOf, libraryChangesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, setupOfferedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
 import type { Catalog } from './src/state/component-catalog';
 import { initialHostSession, reduce } from './src/state/host-session';
 
@@ -430,6 +430,35 @@ ok(goWhyOf({ off: null, waiting: false, steps: 1, blocked: ['Icon'] }) === null 
 ok(UPDATE_COPY.compsChip({ add: 0, due: 0, blocked: 1, kept: 5, panels: 0 }) === '1 can’t update yet · 5 with kept edits', '#3712 chip: the owner’s 2026-11-12 run');
 ok(UPDATE_COPY.compsChip({ add: 7, due: 3, blocked: 0, kept: 0, panels: 1 }) === '7 to add · 3 due · 1 usage panel', '#3712 chip: only what counts, in run order');
 ok(UPDATE_COPY.compsChip({ add: 0, due: 0, blocked: 0, kept: 0, panels: 0 }) === '', '#3712 chip: nothing to say, no chip');
+
+// #3712 (Q-UD2 A, the owner's decision of 2026-11-14: the chip copy approved as written). Each part at 0, 1 and 2, alone,
+// so a part's plural is read on its own: "usage panel" is the one part with a noun, so the one that turns plural; the
+// other four read the same at 1 and at 2. At 0 a part is not drawn (the mock's `counts.filter(Boolean)`). Literals, the
+// owner's (docs/34). MUTATIONS: `n.panels === 1 ? '' : 's'` dropped → `#3712 Q-UD2 chip: panels at 2`; a part drawn
+// at 0 (`n.due ?` → `n.due >= 0 ?`) → `#3712 Q-UD2 chip: due at 0`.
+const CHIP_PARTS = {
+  add: ['', '1 to add', '2 to add'],
+  due: ['', '1 due', '2 due'],
+  blocked: ['', '1 can’t update yet', '2 can’t update yet'],
+  kept: ['', '1 with kept edits', '2 with kept edits'],
+  panels: ['', '1 usage panel', '2 usage panels'],
+} as const;
+const NONE = { add: 0, due: 0, blocked: 0, kept: 0, panels: 0 };
+for (const [part, want] of Object.entries(CHIP_PARTS) as [keyof typeof NONE, readonly string[]][]) {
+  for (const n of [0, 1, 2]) {
+    const got = UPDATE_COPY.compsChip({ ...NONE, [part]: n });
+    ok(got === want[n], `#3712 Q-UD2 chip: ${part} at ${n} reads ${JSON.stringify(want[n])} (${JSON.stringify(got)})`);
+  }
+}
+ok(UPDATE_COPY.compsChip({ add: 2, due: 1, blocked: 2, kept: 1, panels: 2 }) === '2 to add · 1 due · 2 can’t update yet · 1 with kept edits · 2 usage panels',
+  '#3712 Q-UD2 chip: every part at once, in the approved order, joined with " · "');
+
+// #3712 (Q-UD3 A, 2026-11-14): Components opens by itself only while it holds something that needs attention, a blocked
+// or a due set; otherwise it stays folded. MUTATIONS: `n.blocked > 0 ||` dropped → `#3712 Q-UD3 open: blocked`; the
+// rule back to "open while it lists anything" (`=> true`) → `#3712 Q-UD3 open: none`.
+ok(compsOpensOf({ blocked: 1, due: 0 }), '#3712 Q-UD3 open: blocked: a set that can’t update yet opens Components');
+ok(compsOpensOf({ blocked: 0, due: 1 }), '#3712 Q-UD3 open: due: a due set opens Components');
+ok(!compsOpensOf({ blocked: 0, due: 0 }), '#3712 Q-UD3 open: none: nothing blocked or due (To add, Kept edits or Usage panels alone) leaves it folded');
 
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);

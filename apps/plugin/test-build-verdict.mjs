@@ -825,6 +825,14 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   });
   // #3129 Q3129.10 A: the queue is the file's, so one set queued (Button) is what the sets step builds.
   await openUpdate(page, { present: [], setUp: false, queued: ['button'] });
+  // #3712 (Q-UD3 A, 2026-11-14): Components opens by itself only for a blocked or due set, so with To add alone it is
+  // folded, its chip "1 to add" (Q-UD2 A, approved as written); its chevron opens it for the reads below.
+  // MUTATION: `compsOpensOf` back to always-open → `#3712 Q-UD3 A: To add alone`, by name.
+  const foldTo = await page.evaluate(() => ({ open: document.querySelector('[data-p3="update-components-fold"]')?.getAttribute('aria-expanded') ?? null,
+    chip: document.querySelector('[data-p3="update-components-chip"]')?.textContent ?? null }));
+  ok(foldTo.open === 'false' && foldTo.chip === '1 to add', `#3712 Q-UD3 A: To add alone: on a file not set up, Components holding To add alone stays folded, its chip "1 to add" — read ${JSON.stringify(foldTo)}`);
+  await hooks.click(page.locator('[data-p3="update-components-fold"]'));
+  await hooks.need(page, '[data-p3="update-add-row"]');
   const first = await page.evaluate(() => ({
     setup: document.querySelector('[data-p3="update-check-setup"]')?.getAttribute('aria-checked') ?? null,
     theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,

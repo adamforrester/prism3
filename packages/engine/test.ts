@@ -17418,7 +17418,7 @@ arm: {
     }
 
     // (#2361) HAIRLINE IS 1px EVERYWHERE — buttons, fields and the checkbox (owner, 2026-10-08). SUBJECT =
-    // `applyControlShape` (and its `FIELD_CORNER_REFS`); ORACLE = the projected plan's corner bindings, against
+    // `applyControlShape` (and each def's `levers.controlShape.squares`); ORACLE = the projected plan's corner bindings, against
     // var names spelled out here, never read off the map (docs/34). One named assertion per family, so a revert
     // of any one family's rewrite fails that family's line by name.
     {
@@ -17432,7 +17432,7 @@ arm: {
         ok(JSON.stringify(got) === '["radius/hairline"]', `#2361 hairline: button@${size} binds radius/hairline (${got.join(', ') || 'none'})`);
       }
       // Fields: each one by name, and each binds the field rung radius/sm under rounded (the identity).
-      for (const id of ['text-field', 'select', 'textarea', 'search-field']) {
+      for (const id of ['text-field', 'select', 'textarea', 'search-field', 'password-field']) {
         // A field projects one size (no `size` axis), so it may declare none: project it once, at `undefined`.
         const sizes: (string | undefined)[] = def(id).variants?.size ?? [undefined];
         for (const size of sizes) {
@@ -17477,7 +17477,7 @@ arm: {
         const got = corners(applyControlShape(def('button'), 'boxed'), size);
         ok(JSON.stringify(got) === '["radius/none"]', `#2361 boxed: button@${size} binds radius/none (${got.join(', ') || 'none'})`);
       }
-      for (const id of ['text-field', 'select', 'textarea']) {
+      for (const id of ['text-field', 'select', 'textarea', 'password-field']) {
         const sizes: (string | undefined)[] = def(id).variants?.size ?? [undefined];
         for (const size of sizes) {
           const got = corners(applyControlShape(def(id), 'boxed'), size);
@@ -41267,9 +41267,15 @@ arm: {
     const withLevers = componentDefs.filter((d) => d.levers);
     const bad = withLevers.flatMap((d) => validateComponentDef(d).errors.filter((e) => e.startsWith('levers')).map((e) => `${d.id}: ${e}`));
     ok(withLevers.length >= 18 && bad.length === 0, `#3698 R5 levers: the ${withLevers.length} shipped defs carrying levers validate (${bad.join(' | ') || 'clean'})`);
+    // #3787: each `controlShape.squares` ref is BOUND on the authored def, so Boxed and Hairline reach it. The validator
+    // checks only that each reads as a ref, because a materialized def has already rebound them (its header says why);
+    // `componentDefs` is the registry as authored, before any materializer, so here a typo'd ref fails by def and ref.
+    const squaring = componentDefs.filter((d) => d.levers?.controlShape);
+    const unbound = squaring.flatMap((d) => (d.levers!.controlShape!.squares ?? []).filter((r) => !Object.values(d.tokens).includes(r)).map((r) => `${d.id}: ${r}`));
+    ok(squaring.length >= 6 && unbound.length === 0, `#3787 levers: every authored def's controlShape.squares ref is a value one of its tokens binds, so Boxed and Hairline reach it (${squaring.length} defs; unbound: ${unbound.join(' | ') || 'none'})`);
     // The reach of each setting, typed: the defs that carry each entry (was the eight tables in anatomy-figma.ts). Code input's cell joins Control shape in #3765.
     const REACH: Record<string, string[]> = {
-      controlShape: ['card-number-field', 'checkbox-control', 'code-input-cell', 'search-field', 'select', 'text-field', 'textarea'],
+      controlShape: ['card-number-field', 'checkbox-control', 'code-input-cell', 'password-field', 'search-field', 'select', 'text-field', 'textarea'],
       fieldStyle: ['card-number-field', 'code-input-cell', 'password-field', 'search-field', 'select', 'text-field', 'textarea'],
       tagStyle: ['tag'], dialogTitleSize: ['dialog'], bannerStyle: ['banner'], currentIndicator: ['link'],
       outlineInteraction: ['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral'],

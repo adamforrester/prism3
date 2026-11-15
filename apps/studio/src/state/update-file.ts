@@ -506,3 +506,8 @@ export const libraryChangesOf = (defs: readonly string[], check: { readonly sets
   const hit = defs.flatMap((id) => check?.sets.find((c) => c.def === id)?.changes ?? []);
   return { count: hit.reduce((k, c) => k + c.count, 0), lines: hit.flatMap((c) => c.lines) };
 };
+
+/** #3712 (Q-UD3 A, the owner's decision of 2026-11-14): Components' card opens by itself only while it holds something
+ *  that needs attention, a set that can't update yet or a set that is due. Otherwise it stays folded, its chip saying
+ *  what it holds. The person's own fold or open holds for that opening (the shell's `compsOpen`). */
+export const compsOpensOf = (n: { readonly blocked: number; readonly due: number }): boolean => n.blocked > 0 || n.due > 0;

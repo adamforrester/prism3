@@ -2119,6 +2119,9 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-card > .p3-upd-sub { padding-left: calc(var(--p3-bw-hairline) + var(--p3-space-200) + var(--p3-space-150)); }
 .p3-upd-card > .p3-upd-saves { padding-top: var(--p3-space-050); }
 .p3-upd-card > .p3-upd-summary, .p3-upd-card > .p3-upd-line { padding: var(--p3-space-050) 0; }
+/* #3712 (Q-UD4 A): a Clean up card's own action (Remove panels, Remove tables) in a row at its foot, at its end. */
+.p3-upd-cardacts { display: flex; justify-content: flex-end; padding-top: var(--p3-space-050); }
+.p3-upd-cardacts > .p3-btn { flex: 0 1 auto; min-width: 0; }
 .p3-upd-inset { gap: var(--p3-space-075); padding: var(--p3-space-150); padding-top: var(--p3-space-150); margin-top: var(--p3-space-050); border-radius: var(--p3-radius-lg); background: var(--p3-fill-1); }
 .p3-upd-inset .p3-upd-subtitle { padding: 0; color: var(--p3-text); }
 .p3-upd-inset .p3-upd-sub { padding: 0; }
