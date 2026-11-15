@@ -13,7 +13,7 @@
  *   DEEP IMPORT   a tracked source file under `apps/studio/` or `apps/plugin/` imports the engine by any other path:
  *                 a bare specifier under `@prism3/engine/` that is not an entry, a relative specifier that lands
  *                 inside `packages/engine/`, or an esbuild `entryPoints` naming a file there. Static imports,
- *                 re-exports, `import()`, and specifiers quoted inside an esbuild `stdin` string or a fixture
+ *                 re-exports, `import()`, `require()` (#3787), and specifiers quoted inside an esbuild `stdin` string or a fixture
  *                 template all count: each is a path a test or a build resolves. Reported by file and line.
  *   BUNDLED       a file under a bundled source root (`apps/studio/src`, `apps/studio/chrome`, `apps/plugin/src`)
  *                 imports `@prism3/engine/harness`, whose modules read the disk or run git.
@@ -77,6 +77,7 @@ export const deepImports = (file: string, src: string): Hit[] => {
     /\bfrom\s*['"]([^'"\n]+)['"]/g,             // import … from, export … from (also inside a stdin string)
     /\bimport\s*\(\s*['"]([^'"\n]+)['"]\s*\)/g,  // import('…')
     /\bimport\s+['"]([^'"\n]+)['"]/g,            // import '…'
+    /\brequire\s*\(\s*['"]([^'"\n]+)['"]\s*\)/g, // require('…') (#3787)
   ];
   for (const re of specs) for (const m of code.matchAll(re)) {
     const spec = m[1];
@@ -96,7 +97,7 @@ export const deepImports = (file: string, src: string): Hit[] => {
 const entriesUsed = (src: string): Set<string> => {
   const code = stripComments(src);
   const out = new Set<string>();
-  for (const m of code.matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*)['"](@prism3\/engine(?:\/[^'"\n]+)?)['"]/g)) if (m[1] in ENTRIES) out.add(m[1]);
+  for (const m of code.matchAll(/(?:\bfrom\s*|\b(?:import|require)\s*\(\s*)['"](@prism3\/engine(?:\/[^'"\n]+)?)['"]/g)) if (m[1] in ENTRIES) out.add(m[1]);
   return out;
 };
 
@@ -114,9 +115,12 @@ const entriesUsed = (src: string): Set<string> => {
     "const text = readFileSync(join(REPO, 'packages/engine/theme.ts'), 'utf8');",    // reading as text: clean
     "import { componentDefs } from '@prism3/engine/components';",                     // an entry: clean
     "import { local } from './src/theme';",                                           // a surface's own file: clean
+    "const t = require('@prism3/engine/theme');",                                     // 12: deep, CommonJS (#3787)
+    "const c = require(\"../../../packages/engine/color\");",                         // 13: relative into the engine, CommonJS
+    "const e = require('@prism3/engine');",                                           // an entry: clean
   ].join('\n');
   const got = deepImports('apps/plugin/src/planted.ts', planted).map((h) => h.line).join(',');
-  if (got !== '2,3,4,5,7,8') fail('SELF-CHECK', `the detector found deep imports on planted lines [${got}], not [2,3,4,5,7,8] — it would misreport the surfaces`);
+  if (got !== '2,3,4,5,7,8,12,13') fail('SELF-CHECK', `the detector found deep imports on planted lines [${got}], not [2,3,4,5,7,8,12,13] — it would misreport the surfaces`);
 }
 
 // ── DECLARED: each typed entry is in `exports` and is named re-exports only ─────────────────────────────────────────
