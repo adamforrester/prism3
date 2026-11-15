@@ -139,6 +139,7 @@ export const USED_BY = {
         "Select",
         "Badge",
         "Dialog",
+        "PasswordField",
         "SearchField",
         "CardNumberField",
         "Banner"
@@ -157,7 +158,6 @@ export const USED_BY = {
         "ProviderLogo",
         "Badge",
         "SegmentedControl",
-        "PasswordField",
         "Counter",
         "CodeInput"
       ],
@@ -179,6 +179,7 @@ export const USED_BY = {
         "Textarea",
         "Checkbox.Control",
         "Select",
+        "PasswordField",
         "SearchField",
         "CardNumberField"
       ],
@@ -212,7 +213,6 @@ export const USED_BY = {
         "ProviderLogo",
         "Badge",
         "SegmentedControl",
-        "PasswordField",
         "Counter",
         "CodeInput"
       ],
