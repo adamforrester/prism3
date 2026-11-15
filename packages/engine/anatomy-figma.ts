@@ -3064,10 +3064,11 @@ export const TEXT_FILL_STATES = ['hover', 'pressed'] as const;
  * at one size is the silent-loss shape, and the caller always has the brand's numbers in hand.
  */
 export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (ref: string) => number | undefined): ComponentDef => {
-  // "Control label weight" reaches the tag family too (#2945, Q591 A); the other button settings do not. Badge and
-  // every other def that binds a label style keep their own.
+  // "Control label weight" reaches a def outside the family that opts in with `levers.buttonLabelWeight` (Tag: #2945,
+  // Q591 A; its own entry since #3786); the other button settings do not. Badge and every other def that binds a label
+  // style keep their own.
   if (!isButtonFamily(def))
-    return layout.labelWeight === 'default' && def.levers?.tagStyle ? { ...def, tokens: withDefaultLabels(def, def.tokens) } : def;
+    return layout.labelWeight === 'default' && def.levers?.buttonLabelWeight ? { ...def, tokens: withDefaultLabels(def, def.tokens) } : def;
   const a = def.anatomy!;
   const root = a.parts[a.root];
   if (!root.layout || !root.height)

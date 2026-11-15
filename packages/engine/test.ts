@@ -17819,6 +17819,16 @@ arm: {
         !== JSON.stringify(applyButtonLayout(d, DEFAULT_BUTTON_LAYOUT, () => 44))).map((d) => d.id).sort().join(',');
       ok(moved === 'button,button-destructive,button-neutral,tag',
         `#1752 scope (#2945): across all ${componentDefs.length} defs, Default moves exactly button, button-destructive, button-neutral and tag (got ${moved})`);
+      // (#3786, Q-SD2) THE TAG'S REACH IS ITS OWN ENTRY, `levers.buttonLabelWeight`, not `levers.tagStyle`'s presence. ORACLE =
+      // the three label refs spelled out above (TAG_DEFAULT), never read off the def. Each half drops one entry from Tag.
+      const tagLevers = tag.levers!;
+      const atDefault = (d: ComponentDef) => applyButtonLayout(d, { ...DEFAULT_BUTTON_LAYOUT, labelWeight: 'default' }, () => 44);
+      const noTagStyle = atDefault({ ...tag, levers: { buttonLabelWeight: tagLevers.buttonLabelWeight } });
+      ok(TAG_DEFAULT.every(([k, r]) => noTagStyle.tokens[k] === r),
+        `#3786 Control label weight reaches Tag through levers.buttonLabelWeight: with levers.tagStyle dropped, Default still binds type.label.{sm,md,lg}.default (got ${TAG_DEFAULT.map(([k]) => noTagStyle.tokens[k]).join(', ')})`);
+      const noWeight = { ...tag, levers: { tagStyle: tagLevers.tagStyle } };
+      ok(atDefault(noWeight) === noWeight,
+        '#3786 Control label weight: with levers.buttonLabelWeight dropped and levers.tagStyle kept, Default leaves Tag as authored (tagStyle alone opts nothing in)');
       ok(OTHERS.every(([, refs]) => refs.length > 0), '#1752 scope: badge and select each bind at least one type ref (a scope over nothing is not a pass)');
       for (const [def, refs] of OTHERS) for (const content of ['match', 'smaller'] as const) {
         const m = applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, content, labelWeight: 'default' }, () => 44);
@@ -41253,6 +41263,8 @@ arm: {
       ['text-field', { controlShape: { squares: [] } }, 'levers.controlShape.squares must be a non-empty list'],
       ['text-field', { controlShape: { squares: ['radius sm'] } }, "levers.controlShape.squares names 'radius sm', which is not a token ref"],
       ['tag', { tagStyle: { frame: 'container', row: 'content', labelRow: 'labelCheck', slot: 'gone' } }, "levers.tagStyle.slot names 'gone', which is not a declared anatomy part"],
+      ['tag', { buttonLabelWeight: { labels: false as unknown as true } }, 'levers.buttonLabelWeight.labels must be true when set'],
+      ['dialog', { buttonLabelWeight: { labels: true } }, 'levers.buttonLabelWeight needs a size axis'],
       ['dialog', { dialogTitleSize: { titleType: 'no-such-key' } }, "levers.dialogTitleSize.titleType names 'no-such-key', which is not a bound tokens key"],
       ['banner', { bannerStyle: { fills: ['info.fill', 'nope.fill'] } }, "levers.bannerStyle.fills names 'nope.fill', which is not a bound tokens key"],
       ['link', { currentIndicator: { bar: 'label' } }, "levers.currentIndicator.bar names 'label'"],
@@ -41271,7 +41283,7 @@ arm: {
     const REACH: Record<string, string[]> = {
       controlShape: ['card-number-field', 'checkbox-control', 'search-field', 'select', 'text-field', 'textarea'],
       fieldStyle: ['card-number-field', 'code-input-cell', 'password-field', 'search-field', 'select', 'text-field', 'textarea'],
-      tagStyle: ['tag'], dialogTitleSize: ['dialog'], bannerStyle: ['banner'], currentIndicator: ['link'],
+      tagStyle: ['tag'], buttonLabelWeight: ['tag'], dialogTitleSize: ['dialog'], bannerStyle: ['banner'], currentIndicator: ['link'],
       outlineInteraction: ['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral'],
     };
     const reachBad = Object.entries(REACH).filter(([k, want]) => JSON.stringify(componentDefs.filter((d) => (d.levers as Record<string, unknown> | undefined)?.[k]).map((d) => d.id).sort()) !== JSON.stringify(want))

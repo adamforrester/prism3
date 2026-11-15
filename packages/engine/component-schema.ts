@@ -1905,8 +1905,10 @@ export type ComponentCategory = (typeof COMPONENT_CATEGORIES)[number];
  *   · `fieldStyle` — `frame`: the box part Underline redraws (`applyFieldStyle`). `setting: 'searchFieldStyle'` draws the
  *     def in the Search field style instead of Field style, unless that is Follow (`fieldStyleFor`).
  *   · `tagStyle` — the four parts Underline reaches (`applyTagStyle`): the bordered `frame`, the inset content `row`, the
- *     `labelRow` holding the label and the check, and the remove `slot`. Its presence also lets "Control label weight"
- *     reach the def (`applyButtonLayout`, #2945).
+ *     `labelRow` holding the label and the check, and the remove `slot`.
+ *   · `buttonLabelWeight` — `labels: true`: "Control label weight" rebinds the def's per-size label type to the rung's
+ *     `default` role (`applyButtonLayout`, #2945). The button family takes the setting by being the button family; this
+ *     opts in a def outside it (Tag). Until #3786 that reach rode on `tagStyle`'s presence.
  *   · `dialogTitleSize` — `titleType`: the key holding the title's `type.label.<rung>.<role>` (`applyDialogTitleSize`).
  *   · `bannerStyle` — `fills`: the `<tone>.fill` keys Outlined rebinds to the page color (`applyBannerStyle`).
  *   · `currentIndicator` — `bar`: the foot bar Partial draws at a share of the title's width (`applyCurrentIndicator`).
@@ -1917,6 +1919,7 @@ export type ComponentLevers = {
   controlShape?: { squares: readonly string[] };
   fieldStyle?: { frame: string; setting?: 'searchFieldStyle' };
   tagStyle?: { frame: string; row: string; labelRow: string; slot: string };
+  buttonLabelWeight?: { labels: true };
   dialogTitleSize?: { titleType: string };
   bannerStyle?: { fills: readonly string[] };
   currentIndicator?: { bar: string };
@@ -4426,7 +4429,7 @@ const visibleGapErrors = (def: ComponentDef): string[] => {
  *  Every materializer is the identity, or throws, on a name that does not resolve, so a wrong name would silently drop
  *  the setting from the def. This refuses it at authoring instead. A def arriving as data meets only this check. */
 const LEVER_KEYS: Record<string, readonly string[]> = {
-  controlShape: ['squares'], fieldStyle: ['frame', 'setting'], tagStyle: ['frame', 'row', 'labelRow', 'slot'],
+  controlShape: ['squares'], fieldStyle: ['frame', 'setting'], tagStyle: ['frame', 'row', 'labelRow', 'slot'], buttonLabelWeight: ['labels'],
   dialogTitleSize: ['titleType'], bannerStyle: ['fills'], currentIndicator: ['bar'], outlineInteraction: ['opaqueFill'],
 };
 const leverErrors = (def: ComponentDef): string[] => {
@@ -4466,6 +4469,10 @@ const leverErrors = (def: ComponentDef): string[] => {
       part(setting, 'bar', entry.bar, true);
       const bar = typeof entry.bar === 'string' ? parts[entry.bar] : undefined;
       if (bar?.kind === 'box' && bar.foot !== true) errors.push(`levers.currentIndicator.bar names '${entry.bar}', which is not a foot bar (\`foot: true\`)`);
+    }
+    if (setting === 'buttonLabelWeight') {
+      if (entry.labels !== true) errors.push(`levers.buttonLabelWeight.labels must be true when set (got ${JSON.stringify(entry.labels)})`);
+      else if (!(def.variants?.size ?? []).length) errors.push('levers.buttonLabelWeight needs a size axis: the setting rebinds each size\'s label type');
     }
     if (setting === 'outlineInteraction' && entry.opaqueFill !== true) errors.push(`levers.outlineInteraction.opaqueFill must be true when set (got ${JSON.stringify(entry.opaqueFill)})`);
   }
