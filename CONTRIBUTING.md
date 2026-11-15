@@ -1348,6 +1348,10 @@ npx tsx packages/engine/lint-part-union.ts          # PartDef is a union by `kin
                                                     # legal part compiles under tsc and each probed field
                                                     # the validator refuses there fails by name; every
                                                     # kind a shipped def uses is probed.
+npx tsx packages/engine/lint-projector-def-ids.ts   # the Figma projection keys on no def id (#3698 F4):
+                                                    # no def-id lookup and no def-id-keyed table in
+                                                    # anatomy-figma.ts outside a typed allowlist; a
+                                                    # component's style reach is `levers` on its def.
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR but one

@@ -89,6 +89,9 @@ export const dialog: ComponentDef = {
 
   paintKeys: ['{slot}'],
 
+  // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
+  levers: { dialogTitleSize: { titleType: 'title-type' } },
+
   tokens: {
     // ── THE PANEL (the proposal's §7, approved by Q303 "all A"). Its own role over the scrim since #3049 (Q721 A,
     // Q3049.1 C): `foreground.raised` holds the card surface (AI/D-2) unless the brand's `raisedSurface` sets it to the

@@ -213,6 +213,9 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
   // def (supplied by `iconButtonIntentTokens(family)` above) and no longer a coordinate the key carries.
   paintKeys: ['{appearance}.{slot}.{state}', '{appearance}.{slot}'],
 
+  // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
+  levers: { outlineInteraction: { opaqueFill: true } },
+
   tokens: {
     // #1353 — THE PER-SHAPE CORNER RUNG. `shape=square` binds the button's normal rounded rung (`radius.md`,
     // the byte-identical pre-#1353 value); `shape=circular` binds the full-round rung (`radius.round`). The

@@ -237,6 +237,9 @@ export const select: ComponentDef = {
   // (the spacing model, 2026-09-29). `root-gap` stays put: the field stack's spacing is not a density call.
   densitySpacing: ['size.{size}.gap', 'size.{size}.pad-x', 'size.{size}.pad-y'],
 
+  // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
+  levers: { controlShape: { squares: ['radius.sm'] }, fieldStyle: { frame: 'control' } },
+
   tokens: {
     // ── GEOMETRY ─────────────────────────────────────────────────────────────────────────────────
     'radius': 'radius.sm',

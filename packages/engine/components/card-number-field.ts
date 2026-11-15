@@ -60,6 +60,7 @@ if (tileless.length)
 
 export const cardNumberField: ComponentDef = makeTextField({
   id: 'card-number-field',
+  levers: { controlShape: { squares: ['radius.sm'] }, fieldStyle: { frame: 'control' } },
   name: 'CardNumberField',
   aliases: ['card-number-input', 'credit-card-number', 'card-number'],
   summary: 'Card number field: a text field with the card network\'s tile at its trailing edge.',

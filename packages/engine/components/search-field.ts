@@ -30,6 +30,7 @@ import { FOCUS_EDGE_DEFAULT_NOTE, FOCUS_EDGE_STATUS_NOTE, makeTextField } from '
 
 const built: ComponentDef = makeTextField({
   id: 'search-field',
+  levers: { controlShape: { squares: ['radius.sm'] }, fieldStyle: { frame: 'control', setting: 'searchFieldStyle' } },
   name: 'SearchField',
   aliases: ['search-input', 'search-box', 'search'],
   summary: 'Search field: a text field with a search glyph and a clear button, for a query.',

@@ -136,6 +136,9 @@ export const checkboxControl: ComponentDef = {
   // fields avoid the same way, by keeping their two vocabularies at different lengths).
   paintKeys: ['{status}.{selection}.{slot}.{state}', '{selection}.{slot}.{state}', '{selection}.{slot}', '{slot}'],
 
+  // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
+  levers: { controlShape: { squares: ['control.size.sm.radius', 'control.size.md.radius', 'control.size.lg.radius'] } },
+
   tokens: {
     // ── THE UNCHECKED BOX — the form-field substrate's chrome; an empty checkbox is a small empty
     // field. No fill (#1011): an empty checkbox is a BORDER on the page, not a filled square. `pressed`

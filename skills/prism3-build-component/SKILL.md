@@ -673,6 +673,25 @@ The test is the code, nothing else:
 - **Prefer a brand-wide setting over a per-instance prop.** A per-instance prop becomes permanent API in
   every brand's code; a brand-wide value setting costs nothing at the component.
 
+**Which defs a setting reaches is data on the def: `levers`** (`ComponentLevers` in `packages/engine/component-schema.ts`, #3698).
+A new component that a style setting should reach declares it there. Do not edit `packages/engine/anatomy-figma.ts`: the materializer
+(`applyFieldStyle`, `applyTagStyle` and the rest) stays shared code and reads only the def.
+`packages/engine/lint-projector-def-ids.ts` fails a def-id lookup or a def-id-keyed table in the projector.
+Each entry names only the parts and keys that setting rewrites, and the validator refuses a name that does not resolve:
+
+| Setting | Entry on the def | Today on |
+|---|---|---|
+| `controlShape` (Boxed, Hairline) | `{ squares: ['radius.sm'] }`: the corner refs squared beyond the pill-able `radius.md` | the fields, Checkbox |
+| `fieldStyle` | `{ frame: 'control' }`, the box Underline redraws; add `setting: 'searchFieldStyle'` to follow the Search field style | the seven field defs |
+| `tagStyle` | `{ frame, row, labelRow, slot }`, the four parts Underline reaches; also opts the def into "Control label weight" | Tag |
+| `dialogTitleSize` | `{ titleType: 'title-type' }`, the key holding the title's `type.label.<rung>.<role>` | Dialog |
+| `bannerStyle` | `{ fills: ['info.fill', …] }`, the per-tone fills Outlined rebinds | Banner |
+| `currentIndicator` | `{ bar: 'bar' }`, the foot bar Partial draws at half the title's width | Link |
+| `outlineInteraction` | `{ opaqueFill: true }`, the outline/text hover takes the opaque fill under `opaque-fill` | the button families |
+
+Joining a setting changes what the def draws under it, so it is the owner's call, the same as the setting itself.
+A setting whose LOGIC a new component needs to differ is a new materializer change, which is still an engine edit.
+
 When you add a lever, set `kind` on it. `packages/engine/test.ts` fails a lever with no `kind`, by name,
 and pins the structural set as `STRUCTURAL_LEVERS` in `packages/engine/test.ts`, so a new structural lever
 is a second edit there, made after the owner's OK. This table classifies every live lever by the test
@@ -736,7 +755,7 @@ above; `lint-skills` fails if a row is missing or disagrees with the manifest. A
 | `iconContrast` | value |  |
 | `disabledStrategy` | value |  |
 | `disabledMin` | value |  |
-| `outlineInteraction` | value | rebinds the outline and text overlay tokens to another fill family, or drops them under none; no element or state is added. `opaque-fill` rebinds them on Button, Icon button and Flush icon button only (`OPAQUE_FILL_DEFS`); every other def keeps the wash |
+| `outlineInteraction` | value | rebinds the outline and text overlay tokens to another fill family, or drops them under none; no element or state is added. `opaque-fill` rebinds them on Button, Icon button and Flush icon button only (`levers.outlineInteraction` on each def); every other def keeps the wash |
 | `outlineHoverFill` | value | picks the step of the `opaque-fill` hover fill per mode, and per button set (`sets`, #3335); a def binds the outline overlay ref, never `hover-fill` by name |
 | `outlineWash.hover` | value | moves the outline wash's hover opacity step (#3335): the same overlay and subtle-fill names alias another alpha step; no element or state is added |
 | `outlineWash.pressed` | value | moves the outline wash's pressed (and selected) opacity step (#3335), as `outlineWash.hover` does |

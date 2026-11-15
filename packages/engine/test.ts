@@ -58,7 +58,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef, type PartDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, applyDialogTitleSize, DIALOG_TITLE_TYPE_KEYS, applyBannerStyle, BANNER_STYLE_FILL_KEYS, applyCurrentIndicator, fieldStyleFor, SEARCH_FIELD_STYLE_DEFS, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyCurrentIndicator, fieldStyleFor, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 import { COMPONENT_RENAMES, coordKey, currentDefId, formerDefIds, partRenames, renameCoordinate, renameProperty, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, slotTextUnclaimed, slotTextMigrationOf, type ComponentRename, type AxesBaseline } from './component-renames';
 // One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
@@ -17127,6 +17127,8 @@ arm: {
       const moved = componentDefs.filter((d) => applyDialogTitleSize(d, 'large') !== d
         || (d.id !== 'dialog' && (applyDialogTitleSize(d, 'medium') !== d || applyDialogTitleSize(d, 'small') !== d))).map((d) => d.id);
       ok(moved.length === 0, `#2958 identity: Large returns every def unchanged, and Medium and Small every def but Dialog (moved: ${moved.join(', ') || 'none'})`);
+      // The reach is each def's `levers.dialogTitleSize` (#3698 R5); EXPECTED is typed here.
+      const DIALOG_TITLE_TYPE_KEYS = Object.fromEntries(componentDefs.filter((d) => d.levers?.dialogTitleSize).map((d) => [d.id, d.levers!.dialogTitleSize!.titleType]));
       ok(JSON.stringify(DIALOG_TITLE_TYPE_KEYS) === JSON.stringify({ dialog: 'title-type' }) && dialog.tokens['title-type'] === 'type.label.lg.emphasis',
         `#2958 reach (Q2 open, Dialog only): the setting reaches Dialog's title-type alone, authored at type.label.lg.emphasis (${JSON.stringify(DIALOG_TITLE_TYPE_KEYS)}, ${dialog.tokens['title-type']})`);
       const md = applyDialogTitleSize(dialog, 'medium'), sm = applyDialogTitleSize(dialog, 'small');
@@ -17169,6 +17171,8 @@ arm: {
       const EDGE = (t: string): string => (t === 'neutral' ? 'color.border.tertiary' : `color.border.${t}`);
       const moved = componentDefs.filter((d) => applyBannerStyle(d, 'tinted') !== d || (d.id !== 'banner' && applyBannerStyle(d, 'outlined') !== d)).map((d) => d.id);
       ok(moved.length === 0, `#2924 identity: Tinted returns every def unchanged, and Outlined every def but Banner (moved: ${moved.join(', ') || 'none'})`);
+      // The reach is each def's `levers.bannerStyle` (#3698 R5); EXPECTED is typed here.
+      const BANNER_STYLE_FILL_KEYS = Object.fromEntries(componentDefs.filter((d) => d.levers?.bannerStyle).map((d) => [d.id, d.levers!.bannerStyle!.fills]));
       ok(JSON.stringify(BANNER_STYLE_FILL_KEYS) === JSON.stringify({ banner: ['info.fill', 'success.fill', 'warning.fill', 'danger.fill', 'neutral.fill'] })
         && TONES.every((t) => banner.tokens[`${t}.fill`] === TINT(t)),
         `#2924 reach (Q4 A, Banner only): the setting reaches Banner's five fills, authored at the tone's tint (the neutral tone's: the secondary ground, #3225) (${JSON.stringify(BANNER_STYLE_FILL_KEYS)})`);
@@ -41217,6 +41221,9 @@ arm: {
     && validateBrandInput({ ...MINIMAL_BRAND, searchFieldStyle: 'filled' } as any).length > 0,
     '#2888 input: searchFieldStyle accepts follow, outline and underline, and rejects a value the lever does not offer');
 
+  // The defs that take the Search field style carry `levers.fieldStyle.setting` (#3698 R5; a table keyed by id before).
+  const searchDef = searchField, textDef = textField;
+  const SEARCH_FIELD_STYLE_DEFS = componentDefs.filter((d) => d.levers?.fieldStyle?.setting === 'searchFieldStyle').map((d) => d.id);
   // THE RESOLUTION (`fieldStyleFor`): the search field takes its own setting unless it is Follow; every other def takes
   // Field style whatever the search setting. A literal table, (fieldStyle, searchFieldStyle) → (search, text field).
   const TABLE: [string | undefined, string | undefined, string, string][] = [
@@ -41227,12 +41234,50 @@ arm: {
   ];
   const tableBad = TABLE.filter(([fs, ss, wantSearch, wantText]) => {
     const input = { ...(fs ? { fieldStyle: fs } : {}), ...(ss ? { searchFieldStyle: ss } : {}) } as any;
-    return fieldStyleFor('search-field', input) !== wantSearch || fieldStyleFor('text-field', input) !== wantText;
+    return fieldStyleFor(searchDef, input) !== wantSearch || fieldStyleFor(textDef, input) !== wantText;
   }).map(([fs, ss]) => `${fs ?? 'unset'}/${ss ?? 'unset'}`);
-  ok(tableBad.length === 0 && fieldStyleFor('search-field', null) === 'outline' && JSON.stringify(SEARCH_FIELD_STYLE_DEFS) === JSON.stringify(['search-field']),
+  ok(tableBad.length === 0 && fieldStyleFor(searchDef, null) === 'outline' && JSON.stringify(SEARCH_FIELD_STYLE_DEFS) === JSON.stringify(['search-field']),
     `#2888 fieldStyleFor: the search field takes its own setting unless Follow, every other def Field style, and no brand reads as outline (wrong at: ${tableBad.join(', ') || 'none'})`);
-  const otherBad = componentDefs.filter((d) => d.id !== 'search-field' && fieldStyleFor(d.id, { searchFieldStyle: 'underline' }) !== 'outline').map((d) => d.id);
+  const otherBad = componentDefs.filter((d) => d.id !== 'search-field' && fieldStyleFor(d, { searchFieldStyle: 'underline' }) !== 'outline').map((d) => d.id);
   ok(otherBad.length === 0, `#2888 fieldStyleFor: Search field style reaches the search field alone (moved: ${otherBad.join(', ') || 'none'})`);
+
+  // #3698 R5 refactor 4 — `levers`, the brand style settings' reach, is data on the def, and the validator refuses an
+  // entry that names nothing (each materializer is the identity, or throws, on a name that does not resolve). EXPECTED
+  // is typed here: each case patches one shipped def and must raise the error that names that setting's field.
+  {
+    const byId = (id: string) => componentDefs.find((d) => d.id === id)!;
+    const LEVER_CASES: [string, ComponentDef['levers'], string][] = [
+      ['text-field', { fieldStyle: { frame: 'nope' } }, "levers.fieldStyle.frame names 'nope', which is not a declared anatomy part"],
+      ['text-field', { fieldStyle: { frame: 'value' } }, "levers.fieldStyle.frame names 'value', a 'text' part; the setting redraws a box"],
+      ['search-field', { fieldStyle: { frame: 'control', setting: 'tagStyle' as 'searchFieldStyle' } }, "levers.fieldStyle.setting must be 'searchFieldStyle' when set"],
+      ['text-field', { controlShape: { squares: [] } }, 'levers.controlShape.squares must be a non-empty list'],
+      ['text-field', { controlShape: { squares: ['radius sm'] } }, "levers.controlShape.squares names 'radius sm', which is not a token ref"],
+      ['tag', { tagStyle: { frame: 'container', row: 'content', labelRow: 'labelCheck', slot: 'gone' } }, "levers.tagStyle.slot names 'gone', which is not a declared anatomy part"],
+      ['dialog', { dialogTitleSize: { titleType: 'no-such-key' } }, "levers.dialogTitleSize.titleType names 'no-such-key', which is not a bound tokens key"],
+      ['banner', { bannerStyle: { fills: ['info.fill', 'nope.fill'] } }, "levers.bannerStyle.fills names 'nope.fill', which is not a bound tokens key"],
+      ['link', { currentIndicator: { bar: 'label' } }, "levers.currentIndicator.bar names 'label'"],
+      ['button', { outlineInteraction: { opaqueFill: false as unknown as true } }, 'levers.outlineInteraction.opaqueFill must be true when set'],
+      ['button', { outlineInteraction: { opaqueFill: true, extra: 1 } as unknown as { opaqueFill: true } }, 'levers.outlineInteraction.extra is not a field of that setting'],
+      ['button', { fieldStile: {} } as unknown as ComponentDef['levers'], 'levers.fieldStile is not a brand setting a def can take'],
+    ];
+    const missed = LEVER_CASES.filter(([id, levers, want]) => !validateComponentDef({ ...byId(id), levers }).errors.some((e) => e.includes(want)))
+      .map(([id, , want]) => `${id}: ${want}`);
+    ok(missed.length === 0, `#3698 R5 levers: the validator refuses each unresolvable lever entry by name (not refused: ${missed.join(' | ') || 'none'})`);
+    // Every shipped def's own `levers` validates, materialized or not (a materialized def keeps its levers).
+    const withLevers = componentDefs.filter((d) => d.levers);
+    const bad = withLevers.flatMap((d) => validateComponentDef(d).errors.filter((e) => e.startsWith('levers')).map((e) => `${d.id}: ${e}`));
+    ok(withLevers.length >= 18 && bad.length === 0, `#3698 R5 levers: the ${withLevers.length} shipped defs carrying levers validate (${bad.join(' | ') || 'clean'})`);
+    // The reach of each setting, typed: the defs that carry each entry (was the eight tables in anatomy-figma.ts).
+    const REACH: Record<string, string[]> = {
+      controlShape: ['card-number-field', 'checkbox-control', 'search-field', 'select', 'text-field', 'textarea'],
+      fieldStyle: ['card-number-field', 'code-input-cell', 'password-field', 'search-field', 'select', 'text-field', 'textarea'],
+      tagStyle: ['tag'], dialogTitleSize: ['dialog'], bannerStyle: ['banner'], currentIndicator: ['link'],
+      outlineInteraction: ['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral'],
+    };
+    const reachBad = Object.entries(REACH).filter(([k, want]) => JSON.stringify(componentDefs.filter((d) => (d.levers as Record<string, unknown> | undefined)?.[k]).map((d) => d.id).sort()) !== JSON.stringify(want))
+      .map(([k]) => `${k}: ${componentDefs.filter((d) => (d.levers as Record<string, unknown> | undefined)?.[k]).map((d) => d.id).sort().join(', ')}`);
+    ok(reachBad.length === 0, `#3698 R5 levers: each setting reaches exactly the defs it reached as a table (moved: ${reachBad.join(' | ') || 'none'})`);
+  }
 
   // THE UNDERLINE PLAN FOR SEARCH (#2695's drawing, reached through `FIELD_FRAME_PARTS`): every member binds its four
   // control sides apart, the bottom 1px and 2px at focus, and the leading glyph sits at the line's start with no inset.

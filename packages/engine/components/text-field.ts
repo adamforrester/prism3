@@ -117,6 +117,8 @@ export type FieldSpec = Pick<ComponentDef, 'id' | 'name' | 'summary' | 'descript
   leading?: { glyph: string; shown: boolean };
   trailing?: { glyph: string };
   labelSwitch?: true;
+  /** The brand style settings that reach the field (`ComponentDef.levers`). Absent, none does. */
+  levers?: ComponentDef['levers'];
 };
 
 export const makeTextField = (spec: FieldSpec): ComponentDef => {
@@ -209,6 +211,9 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
   // The spacing this spec states at comfortable, which density moves one step along the space ladder
   // (the spacing model, 2026-09-29). `root-gap` stays put: the field stack's spacing is not a density call.
   densitySpacing: ['size.{size}.gap', 'size.{size}.pad-x', 'size.{size}.pad-y'],
+
+  // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
+  ...(spec.levers ? { levers: spec.levers } : {}),
 
   tokens: {
     // ── GEOMETRY (the size-independent keys; the per-size rungs are at the end of this block) ─────────
@@ -711,6 +716,7 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
 
 export const textField: ComponentDef = makeTextField({
   id: 'text-field',
+  levers: { controlShape: { squares: ['radius.sm'] }, fieldStyle: { frame: 'control' } },
   name: 'TextField',
   aliases: ['text-input', 'input', 'textbox', 'formfield'],
   summary: 'Single-line text field: label, input, and helper or validation message.',

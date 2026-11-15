@@ -145,6 +145,9 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
   // is `round.*`, so a flush member resolves no box paint. The glyph ink is stated once per shape, identical.
   paintKeys: ['{shape}.{slot}.{state}', '{shape}.{slot}'],
 
+  // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
+  levers: { outlineInteraction: { opaqueFill: true } },
+
   tokens: {
     // THE GLYPH, both shapes. Q283.13 A: 20 / 20 / 24.
     'size.small.icon': 'icon.size.sm',

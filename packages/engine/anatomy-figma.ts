@@ -2636,7 +2636,7 @@ export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived
  * repointed exactly as before — its default plan is byte-identical.
  *
  * NARROW BY CONSTRUCTION: it rewrites ONLY refs equal to the rounded rung and ONLY for pill-able defs, plus,
- * under `boxed` and `hairline` alone, the field and checkbox corners `FIELD_CORNER_REFS` names by def id (#2361).
+ * under `boxed` and `hairline` alone, the field and checkbox corners a def names in `levers.controlShape.squares` (#2361).
  * `switch`/`radio` carry no `pill-radius` derivation, so `isPillable` is false and they pass through
  * untouched — and even were they pill-able, their `radius.round` ref is not the rounded rung, so the lever
  * cannot reach the one binding that already gives them their intrinsic pill/circle.
@@ -2650,30 +2650,21 @@ export const ROUNDED_RADIUS_RUNG = 'radius.md';
  */
 export const FIELD_CORNER_SHAPES: readonly ControlShape[] = ['boxed', 'hairline'];
 
-/**
- * Each entry is a def id and the corner refs it repoints to the shape's rung (`radius.none` or `radius.hairline`).
- * SELECTED BY ID, NOT BY REF, and that is the point: `radius.sm` is also Badge's `status.radius`, which a field
+/*
+ * A def lists, in `levers.controlShape.squares`, the corner refs it repoints to the shape's rung (`radius.none` or
+ * `radius.hairline`). Selected per def, not by ref alone (#3698 R5 moved the table from here into each def), and that
+ * is the point: `radius.sm` is also Badge's `status.radius`, which a field
  * setting must not reach. The checkbox's refs are its per-rung clamped corner (#1015, `controlRadius`): 0px and
  * 1px are both below that clamp on every edge of 8px or more (`snap2(edge ÷ 8)` ≥ 2 there, and the smallest
  * control rung is 12px), so the clamp still holds and the `control.size.*.radius` tokens are emitted unchanged.
  * `radio-control` and `switch-control` are not listed: their `radius.round` is intrinsic, as under every other
  * shape. Rows and groups nest the control, so they carry no corner of their own to repoint.
  */
-export const FIELD_CORNER_REFS: Readonly<Record<string, readonly string[]>> = {
-  'text-field': ['radius.sm'],
-  select: ['radius.sm'],
-  textarea: ['radius.sm'],
-  // #2888: the Search field's box is TextField's, from the shared field factory.
-  'search-field': ['radius.sm'],
-  // #2343 PR 4: the Card number field's box is TextField's too.
-  'card-number-field': ['radius.sm'],
-  'checkbox-control': ['control.size.sm.radius', 'control.size.md.radius', 'control.size.lg.radius'],
-};
 
 export const applyControlShape = (def: ComponentDef, shape: ControlShape): ComponentDef => {
   const target = CONTROL_SHAPE_RUNG[shape];
   if (target === null) return def;
-  const fieldRefs = FIELD_CORNER_SHAPES.includes(shape) ? FIELD_CORNER_REFS[def.id] : undefined;
+  const fieldRefs = FIELD_CORNER_SHAPES.includes(shape) ? def.levers?.controlShape?.squares : undefined;
   if (!isPillable(def) && !fieldRefs) return def;
   const tokens = Object.fromEntries(
     Object.entries(def.tokens).map(([k, ref]) => [k,
@@ -2690,43 +2681,29 @@ export const applyControlShape = (def: ComponentDef, shape: ControlShape): Compo
 // (Q14 A), and a brand switch reaches an existing file through Update (Q16 A). No token is added (Q15 A): every
 // binding below is a rung or role the engine already emits for every brand.
 
-/**
- * The field family, each def named with the part that draws its frame (the bordered control). Keyed by def id,
- * `FIELD_CORNER_REFS`'s way, and held complete by `test.ts`: every def that binds the field chrome
- * (`color.field.fill`) is listed here, so a new field def cannot miss the lever by being left out.
+/*
+ * The field family: each field def names the part that draws its frame (the bordered control) in
+ * `levers.fieldStyle.frame` (#3698 R5; until then a table keyed by def id here). Held complete by `test.ts`: every def
+ * that binds the field chrome (`color.field.fill`) carries it, so a new field def cannot miss the lever by leaving it out.
  */
-export const FIELD_FRAME_PARTS: Readonly<Record<string, string>> = {
-  'text-field': 'control',
-  'password-field': 'control',
-  select: 'control',
-  textarea: 'control',
-  // #2719 (Q332 A names Code input a field; Q12 A on #2695): each cell is a field box, so each draws its own line.
-  // The row's gaps belong to `code-input`, which binds no field chrome and stays as authored.
-  'code-input-cell': 'container',
-  // #2888: drawn in the Search field style, which may differ from the other fields' (`fieldStyleFor`).
-  'search-field': 'control',
-  // #2343 PR 4: the Card number field's box is TextField's; under underline its tile sits at the line's end.
-  'card-number-field': 'control',
-};
 
 /**
  * THE SEARCH FIELD STYLE (#2888, owner decision Q514 taking Q?1 A). The brand's search field may take an edge of its
  * own: `follow` (the default) draws whatever Field style draws; `outline` or `underline` sets search apart from the
  * other fields. This resolves WHICH style a def is drawn in; `applyFieldStyle` still draws it, unchanged. Every def but
- * the ones listed here takes Field style, so a brand that leaves the lever unset, or sets `follow`, builds every def
+ * the ones whose `levers.fieldStyle.setting` is `searchFieldStyle` takes Field style, so a brand that leaves the lever unset, or sets `follow`, builds every def
  * exactly as before. The defaults live here, once, for every caller (the plugin's `materializeForBrand`, the
  * lever sweep).
  */
-export const SEARCH_FIELD_STYLE_DEFS: readonly string[] = ['search-field'];
-export const fieldStyleFor = (defId: string, input: { fieldStyle?: FieldStyle; searchFieldStyle?: SearchFieldStyle } | null | undefined): FieldStyle => {
+export const fieldStyleFor = (def: Pick<ComponentDef, 'levers'>, input: { fieldStyle?: FieldStyle; searchFieldStyle?: SearchFieldStyle } | null | undefined): FieldStyle => {
   const field = input?.fieldStyle ?? 'outline';
   const search = input?.searchFieldStyle ?? 'follow';
-  return SEARCH_FIELD_STYLE_DEFS.includes(defId) && search !== 'follow' ? search : field;
+  return def.levers?.fieldStyle?.setting === 'searchFieldStyle' && search !== 'follow' ? search : field;
 };
 
 /**
  * Materialize a def for the brand's `fieldStyle` lever (#2695). The IDENTITY under `outline` and for any def not in
- * `FIELD_FRAME_PARTS`: it returns the same object, so every outline plan is byte-identical to before.
+ * `levers.fieldStyle`: it returns the same object, so every outline plan is byte-identical to before.
  *
  * Under `underline`, on the frame part and the keys it names:
  *   · THE LINE (Q2, Q3, Q7): the four sides bind apart (`strokeEdges`). Top, end and start take `border-width.none`;
@@ -2762,10 +2739,10 @@ const UNDERLINE_RING: PartDef = {
 
 export const applyFieldStyle = (def: ComponentDef, style: FieldStyle): ComponentDef => {
   if (style === 'outline') return def;
-  const frameName = FIELD_FRAME_PARTS[def.id];
+  const frameName = def.levers?.fieldStyle?.frame;
   const a = def.anatomy;
   const frame = frameName ? a?.parts[frameName] : undefined;
-  if (!a || !frame || frame.kind !== 'box') return def;
+  if (!a || !frameName || !frame || frame.kind !== 'box') return def;
   const tokens: Record<string, string> = {};
   for (const [k, ref] of Object.entries(def.tokens)) {
     if (k === 'disabled.fill') continue;
@@ -2814,12 +2791,9 @@ export const applyFieldStyle = (def: ComponentDef, style: FieldStyle): Component
 // members, axes, properties and layer names, so a brand switch reaches an existing file through Update and instances
 // stay linked. No token is added: every binding is a rung or role the engine already emits.
 
-/** The tag family, each def named with the four parts the underline reaches: the bordered `frame`, the inset content
- *  `row`, the `labelRow` that holds the label and the check, and the remove `slot`. Keyed by def id, `FIELD_FRAME_PARTS`'s
- *  way. Tag is the only member (the wireframe's finding: Segmented control and Tab do not take this lever). */
-export const TAG_STYLE_PARTS: Readonly<Record<string, { frame: string; row: string; labelRow: string; slot: string }>> = {
-  tag: { frame: 'container', row: 'content', labelRow: 'labelCheck', slot: 'dismiss' },
-};
+/* The tag family: each def names the four parts the underline reaches in `levers.tagStyle` (#3698 R5): the bordered
+ * `frame`, the inset content `row`, the `labelRow` that holds the label and the check, and the remove `slot`. Tag is the
+ * only member (the wireframe's finding: Segmented control and Tab do not take this lever). */
 
 /** The def key holding the underline's block-end inset per size (Q9 A: `space.050 / 075 / 100`; Q10 A: the same at
  *  every density, so it is not in `densitySpacing`). Authored on the def, so the pill and the underline share it. */
@@ -2827,7 +2801,7 @@ export const TAG_UNDERLINE_INSET = 'size.{size}.underline.inset';
 
 /**
  * Materialize a def for the brand's `tagStyle` lever (#2887). The IDENTITY under `pill` and for any def not in
- * `TAG_STYLE_PARTS`: it returns the same object, so every pill plan is byte-identical to before.
+ * `levers.tagStyle`: it returns the same object, so every pill plan is byte-identical to before.
  *
  * Under `underline`:
  *   · THE LINE (Q513.2, Q513.3, Q513.4): the four sides bind apart (`strokeEdges`). Top, end and start take
@@ -2856,7 +2830,7 @@ export const TAG_UNDERLINE_INSET = 'size.{size}.underline.inset';
  */
 export const applyTagStyle = (def: ComponentDef, style: TagStyle): ComponentDef => {
   if (style === 'pill') return def;
-  const names = TAG_STYLE_PARTS[def.id];
+  const names = def.levers?.tagStyle;
   const a = def.anatomy;
   const frame = names ? a?.parts[names.frame] : undefined;
   if (!a || !names || !frame || frame.kind !== 'box') return def;
@@ -2920,21 +2894,21 @@ export const applyTagStyle = (def: ComponentDef, style: TagStyle): ComponentDef 
 // through Update. No token is added: every label rung and its Emphasis role is emitted for every brand. A one-off dialog
 // is still a designer's hand override in Figma (Q588b A); Q588c keeps every other dialog choice a component property.
 
-/** The defs the setting reaches, each with the def key that holds its title's text style. Dialog only: whether Accordion,
- *  which binds the same `type.label.lg.emphasis` title, follows this or gets its own setting is the owner's (#2958 Q2). */
-export const DIALOG_TITLE_TYPE_KEYS: Readonly<Record<string, string>> = { dialog: 'title-type' };
+/* The defs the setting reaches each name the key that holds their title's text style, in `levers.dialogTitleSize`
+ * (#3698 R5). Dialog only: whether Accordion, which binds the same `type.label.lg.emphasis` title, follows this or gets
+ * its own setting is the owner's (#2958 Q2). */
 /** The label rung each setting binds. */
 export const DIALOG_TITLE_RUNG: Readonly<Record<DialogTitleSize, string>> = { large: 'lg', medium: 'md', small: 'sm' };
 
 /**
  * Materialize a def for the brand's `dialogTitleSize` lever (#2958). The IDENTITY under `large` and for any def not in
- * `DIALOG_TITLE_TYPE_KEYS`: it returns the same object, so every Large plan is byte-identical to before. Under `medium`
+ * `levers.dialogTitleSize`: it returns the same object, so every Large plan is byte-identical to before. Under `medium`
  * or `small` the title key binds that label rung, its role kept (`type.label.lg.emphasis` → `type.label.sm.emphasis`).
  * THROWS when the key does not hold a `type.label.<rung>.<role>` ref: rebinding anything else is the silent-loss shape.
  */
 export const applyDialogTitleSize = (def: ComponentDef, size: DialogTitleSize): ComponentDef => {
   if (size === 'large') return def;
-  const key = DIALOG_TITLE_TYPE_KEYS[def.id];
+  const key = def.levers?.dialogTitleSize?.titleType;
   if (!key) return def;
   const segs = def.tokens[key]?.split('.') ?? [];
   if (segs.length !== 4 || segs[0] !== 'type' || segs[1] !== 'label')
@@ -2951,18 +2925,14 @@ export const applyDialogTitleSize = (def: ComponentDef, size: DialogTitleSize): 
 // the glyph and the inks bind what they bound. Bold, a solid tone fill, is held on #3038: it needs the nested action and
 // dismiss re-pointed at the on-color, which no materializer can do.
 
-/** The defs the setting reaches, each with its per-tone fill keys. Banner only (Q4 A on #2924): Toast sits on the inverse
- *  surface with no tint, and FieldMessage has no surface. */
-export const BANNER_STYLE_FILL_KEYS: Readonly<Record<string, readonly string[]>> = {
-  // #3225 (Q-BN3.1 A): the neutral tone's fill moves too, from the secondary ground to the page color.
-  banner: ['info.fill', 'success.fill', 'warning.fill', 'danger.fill', 'neutral.fill'],
-};
+/* The defs the setting reaches each name their per-tone fill keys in `levers.bannerStyle.fills` (#3698 R5). Banner only
+ * (Q4 A on #2924): Toast sits on the inverse surface with no tint, and FieldMessage has no surface. */
 /** What each tone's fill binds at Tinted: the tone's tint, and for the neutral tone (#3225) the secondary ground. */
 const bannerTintOf = (tone: string): string => (tone === 'neutral' ? 'color.background.secondary' : `color.foreground.${tone}-subtle`);
 
 /**
  * Materialize a def for the brand's `bannerStyle` lever (#2924). The IDENTITY under `tinted` and for any def not in
- * `BANNER_STYLE_FILL_KEYS`: it returns the same object, so every Tinted plan is byte-identical to before. Under `outlined`
+ * `levers.bannerStyle`: it returns the same object, so every Tinted plan is byte-identical to before. Under `outlined`
  * each `<tone>.fill` key binds the page color, `color.background.primary`.
  * THROWS when a key does not hold its tone's tint, `color.foreground.<tone>-subtle` (the neutral tone's
  * `color.background.secondary`, #3225): rebinding anything else is the
@@ -2970,7 +2940,7 @@ const bannerTintOf = (tone: string): string => (tone === 'neutral' ? 'color.back
  */
 export const applyBannerStyle = (def: ComponentDef, style: BannerStyle): ComponentDef => {
   if (style === 'tinted') return def;
-  const keys = BANNER_STYLE_FILL_KEYS[def.id];
+  const keys = def.levers?.bannerStyle?.fills;
   if (!keys) return def;
   const tokens = { ...def.tokens };
   for (const key of keys) {
@@ -2982,13 +2952,13 @@ export const applyBannerStyle = (def: ComponentDef, style: BannerStyle): Compone
   return { ...def, tokens };
 };
 
-/** The parts the brand's `currentIndicator` lever reaches (#3345): Link's current-page bar, which every current link
- *  draws, a Page navigation item's included (it nests Link). Held as a literal so a renamed part fails loudly. */
-export const CURRENT_INDICATOR_PARTS: Readonly<Record<string, string>> = { link: 'bar' };
+/* The part the brand's `currentIndicator` lever reaches is named in `levers.currentIndicator.bar` (#3345, #3698 R5):
+ * Link's current-page bar, which every current link draws, a Page navigation item's included (it nests Link). A name
+ * that is not a foot bar throws below, and the validator refuses it first. */
 
 /**
  * Materialize a def for the brand's `currentIndicator` lever (#3345, owner decision 2026-11-03). The IDENTITY under
- * `full` and for any def not in `CURRENT_INDICATOR_PARTS`: it returns the same object, so every Full plan is
+ * `full` and for any def without `levers.currentIndicator`: it returns the same object, so every Full plan is
  * byte-identical to before. Under `partial` Link's foot bar takes `footShare` = `CURRENT_INDICATOR_PARTIAL_SHARE`
  * (0.5), which both executors draw as round(0.5 × the title's width), centered under it. The thickness (the bar's
  * bound height, `border-width.thick`) is untouched: 2px either way. Partial is the engine default (Q10 B, every
@@ -2997,7 +2967,7 @@ export const CURRENT_INDICATOR_PARTS: Readonly<Record<string, string>> = { link:
  */
 export const applyCurrentIndicator = (def: ComponentDef, style: CurrentIndicator): ComponentDef => {
   if (style === 'full') return def;
-  const name = CURRENT_INDICATOR_PARTS[def.id];
+  const name = def.levers?.currentIndicator?.bar;
   const a = def.anatomy;
   if (!name || !a) return def;
   const part = a.parts[name];
@@ -3097,7 +3067,7 @@ export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (
   // "Control label weight" reaches the tag family too (#2945, Q591 A); the other button settings do not. Badge and
   // every other def that binds a label style keep their own.
   if (!isButtonFamily(def))
-    return layout.labelWeight === 'default' && TAG_STYLE_PARTS[def.id] ? { ...def, tokens: withDefaultLabels(def, def.tokens) } : def;
+    return layout.labelWeight === 'default' && def.levers?.tagStyle ? { ...def, tokens: withDefaultLabels(def, def.tokens) } : def;
   const a = def.anatomy!;
   const root = a.parts[a.root];
   if (!root.layout || !root.height)
@@ -3406,7 +3376,7 @@ const OUTLINE_SUBTLE_REF = /^color\.interactive\.([^.]+)\.subtle-fill\.([^.]+)$/
  *   · `solid-tint`      → the ref is repointed to the tinted-wash variable (below). The
  *                         slot precedence (`paintSlots: ['overlay', 'fill', …]`) is unchanged, so the
  *                         tinted wash lands exactly where the neutral wash did.
- *   · `opaque-fill`     → on `OPAQUE_FILL_DEFS` only, the wash ref is repointed to the opaque fill,
+ *   · `opaque-fill`     → on a def with `levers.outlineInteraction.opaqueFill` only, the wash ref is repointed to the opaque fill,
  *                         `interactive.<color>.hover-fill.<state>` (#3071); every other def is IDENTITY, so a
  *                         tag, segment or page keeps the wash, which the method still emits.
  *   · `none`            → the ENTRY IS DROPPED. `paintOf('overlay')` then resolves nothing and the box
@@ -3424,22 +3394,17 @@ const OUTLINE_SUBTLE_REF = /^color\.interactive\.([^.]+)\.subtle-fill\.([^.]+)$/
  * bound paint's opacity whenever Apply Theme rewrites the variable it is bound to, so one re-apply turned every
  * tinted hover into the solid fill (288 paints on the owner's NB file, 2026-09-25).
  */
-/**
- * The defs whose outline/text hover takes the OPAQUE fill under `opaque-fill` (#3071, owner Q3071.3 A, Q3071.4 A):
- * Button (outline, and text under `buttonTextHover: fill`, which copies the outline's slots after this runs), Icon
- * button (outline, ghost) and Flush icon button. Every other def keeps the neutral wash it binds: a fill on an
- * unselected tag, segment or page reads as selected, the state those controls exist to show. Named by id, since
- * which controls follow is the owner's decision, not a property of the ref.
+/*
+ * The defs whose outline/text hover takes the OPAQUE fill under `opaque-fill` (#3071, owner Q3071.3 A, Q3071.4 A) say so
+ * with `levers.outlineInteraction.opaqueFill` (#3698 R5): Button (outline, and text under `buttonTextHover: fill`, which
+ * copies the outline's slots after this runs), Icon button (outline, ghost) and Flush icon button. Every other def keeps
+ * the neutral wash it binds: a fill on an unselected tag, segment or page reads as selected, the state those controls
+ * exist to show. Named per def, since which controls follow is the owner's decision, not a property of the ref.
  */
-export const OPAQUE_FILL_DEFS: readonly string[] = [
-  'button', 'button-destructive', 'button-neutral',
-  'icon-button', 'icon-button-destructive', 'icon-button-neutral',
-  'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
-];
 
 export const applyOutlineInteraction = (def: ComponentDef, method: Theme['outlineInteraction']): ComponentDef => {
   if (method === 'overlay-neutral') return def;
-  if (method === 'opaque-fill' && !OPAQUE_FILL_DEFS.includes(def.id)) return def;
+  if (method === 'opaque-fill' && !def.levers?.outlineInteraction?.opaqueFill) return def;
   const touched = (ref: string) => OUTLINE_OVERLAY_REF.test(ref) || (method === 'none' && OUTLINE_SUBTLE_REF.test(ref));
   if (!Object.values(def.tokens).some(touched)) return def;
   const tokens: Record<string, string> = {};

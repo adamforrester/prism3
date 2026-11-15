@@ -10,7 +10,7 @@
  * the style is named by the manifest's own option label.
  */
 import { leverManifest, type BrandInput } from '@prism3/engine';
-import { fieldStyleFor } from '@prism3/engine/components';
+import { componentDefs, fieldStyleFor } from '@prism3/engine/components';
 
 export const fieldStyleNote = (before: BrandInput | null, after: BrandInput): string => {
   const was = before?.fieldStyle ?? 'outline';
@@ -30,7 +30,9 @@ export const fieldStyleNote = (before: BrandInput | null, after: BrandInput): st
 export const searchFieldStyleNote = (before: BrandInput | null, after: BrandInput): string => {
   const was = before?.searchFieldStyle ?? 'follow';
   const now = after.searchFieldStyle ?? 'follow';
-  if (was === now || fieldStyleFor('search-field', before) === fieldStyleFor('search-field', after)) return '';
+  // The defs that take the Search field style say so in `levers.fieldStyle.setting` (#3698 R5).
+  const search = componentDefs.filter((d) => d.levers?.fieldStyle?.setting === 'searchFieldStyle');
+  if (was === now || search.every((d) => fieldStyleFor(d, before) === fieldStyleFor(d, after))) return '';
   const label = leverManifest.find((l) => l.key === 'searchFieldStyle')?.options?.find((o) => o.value === now)?.label ?? now;
   return `Search field style is now ${label}. Update components to redraw the search field.`;
 };

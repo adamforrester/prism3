@@ -1896,6 +1896,33 @@ export type FigmaProperties = {
 export const COMPONENT_CATEGORIES = ['foundations', 'layout', 'form', 'navigation', 'feedback', 'data', 'overlay'] as const;
 export type ComponentCategory = (typeof COMPONENT_CATEGORIES)[number];
 
+/**
+ * THE BRAND STYLE SETTINGS A DEF TAKES, as data (#3698 R5 refactor 4; the shape is held for an owner decision on the
+ * PR, so every key is one rename away). One entry per setting, keyed by the `BrandInput` field it serves:
+ *
+ *   · `controlShape` — `squares`: the token REFS Boxed and Hairline rebind to their rung (`applyControlShape`), on top
+ *     of the pill-able controls' `radius.md`. The fields' `radius.sm` box corner; Checkbox's per-size control radius.
+ *   · `fieldStyle` — `frame`: the box part Underline redraws (`applyFieldStyle`). `setting: 'searchFieldStyle'` draws the
+ *     def in the Search field style instead of Field style, unless that is Follow (`fieldStyleFor`).
+ *   · `tagStyle` — the four parts Underline reaches (`applyTagStyle`): the bordered `frame`, the inset content `row`, the
+ *     `labelRow` holding the label and the check, and the remove `slot`. Its presence also lets "Control label weight"
+ *     reach the def (`applyButtonLayout`, #2945).
+ *   · `dialogTitleSize` — `titleType`: the key holding the title's `type.label.<rung>.<role>` (`applyDialogTitleSize`).
+ *   · `bannerStyle` — `fills`: the `<tone>.fill` keys Outlined rebinds to the page color (`applyBannerStyle`).
+ *   · `currentIndicator` — `bar`: the foot bar Partial draws at a share of the title's width (`applyCurrentIndicator`).
+ *   · `outlineInteraction` — `opaqueFill: true`: the outline and text hover takes the opaque fill under `opaque-fill`
+ *     (`applyOutlineInteraction`); every def without it keeps the wash.
+ */
+export type ComponentLevers = {
+  controlShape?: { squares: readonly string[] };
+  fieldStyle?: { frame: string; setting?: 'searchFieldStyle' };
+  tagStyle?: { frame: string; row: string; labelRow: string; slot: string };
+  dialogTitleSize?: { titleType: string };
+  bannerStyle?: { fills: readonly string[] };
+  currentIndicator?: { bar: string };
+  outlineInteraction?: { opaqueFill: true };
+};
+
 export type ComponentDef = {
   // ---- identity (§15) + specs-schema Component.id/name ----
   id: string;
@@ -2075,6 +2102,14 @@ export type ComponentDef = {
    *  stack gap the def fixes — stays off the list. Validated: every expanded key is bound, to a step of the
    *  space ladder. */
   densitySpacing?: string[];
+
+  /** WHICH BRAND STYLE SETTINGS REACH THIS DEF, AND WHERE (#3698 R5 refactor 4). Each key is a brand setting whose
+   *  materializer (`apply*` in `anatomy-figma.ts`) rewrites a def before projection. The entry names the parts and
+   *  token keys that setting touches on this def. The setting's LOGIC stays shared engine code, and this field is only
+   *  its reach. Until #3698 the reach was tables keyed by def id inside the projector, so a new styled component had to
+   *  edit the projector. Absent, or a key absent, means that setting leaves the def as authored. See `ComponentLevers`.
+   *  Maintainer data: no emitted shape carries it (`project-def.ts` projects named fields). Validated (`leverErrors`). */
+  levers?: ComponentLevers;
 
   /** A LAYER GAP DERIVED FROM THE GAP THE EYE SEES (owner, 2026-09-29, the dismissible Tag). Each entry names
    *  three `tokens` keys (`{size}` expands as in `densitySpacing`): `visible`, the distance the eye reads, a
@@ -2404,6 +2439,7 @@ export const validateComponentDef = (
   // the spacing that follows density (the spacing model). Optional; when present, every key binds a ladder step.
   if (def.densitySpacing) errors.push(...densitySpacingErrors(def));
   if (def.visibleGaps) errors.push(...visibleGapErrors(def));
+  if (def.levers !== undefined) errors.push(...leverErrors(def));
 
   // anatomy — the structural layer (#327). Optional; when present it must be COMPLETE.
   if (def.anatomy) errors.push(...anatomyErrors(def));
@@ -4386,6 +4422,56 @@ const visibleGapErrors = (def: ComponentDef): string[] => {
 /** `densitySpacing`'s rules: each expanded key is bound, to a step of the space ladder, and no key is named
  *  twice. The ladder is read from `scale.ts` so a step the scale does not hold is refused here, not at the
  *  first projection that tries to move it. */
+/** `levers` (#3698 R5 refactor 4): each entry names parts and keys that exist, of the kind its materializer rewrites.
+ *  Every materializer is the identity, or throws, on a name that does not resolve, so a wrong name would silently drop
+ *  the setting from the def. This refuses it at authoring instead. A def arriving as data meets only this check. */
+const LEVER_KEYS: Record<string, readonly string[]> = {
+  controlShape: ['squares'], fieldStyle: ['frame', 'setting'], tagStyle: ['frame', 'row', 'labelRow', 'slot'],
+  dialogTitleSize: ['titleType'], bannerStyle: ['fills'], currentIndicator: ['bar'], outlineInteraction: ['opaqueFill'],
+};
+const leverErrors = (def: ComponentDef): string[] => {
+  const errors: string[] = [];
+  const lv = def.levers as Record<string, Record<string, unknown> | undefined> | undefined;
+  if (!lv || typeof lv !== 'object' || Array.isArray(lv)) return [`levers must be an object keyed by brand setting (got ${JSON.stringify(lv)})`];
+  const parts = def.anatomy?.parts ?? {};
+  const part = (setting: string, field: string, name: unknown, box: boolean): void => {
+    if (typeof name !== 'string' || !parts[name]) { errors.push(`levers.${setting}.${field} names '${String(name)}', which is not a declared anatomy part`); return; }
+    if (box && parts[name].kind !== 'box') errors.push(`levers.${setting}.${field} names '${name}', a '${parts[name].kind}' part; the setting redraws a box`);
+  };
+  const keys = (setting: string, field: string, list: unknown): void => {
+    if (!Array.isArray(list) || list.length === 0) { errors.push(`levers.${setting}.${field} must be a non-empty list`); return; }
+    for (const k of list) if (def.tokens[k as string] === undefined) errors.push(`levers.${setting}.${field} names '${String(k)}', which is not a bound tokens key`);
+  };
+  for (const [setting, entry] of Object.entries(lv)) {
+    const allowed = LEVER_KEYS[setting];
+    if (!allowed) { errors.push(`levers.${setting} is not a brand setting a def can take (${Object.keys(LEVER_KEYS).join(' | ')})`); continue; }
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) { errors.push(`levers.${setting} must be an object`); continue; }
+    for (const f of Object.keys(entry)) if (!allowed.includes(f)) errors.push(`levers.${setting}.${f} is not a field of that setting (${allowed.join(' | ')})`);
+    // The refs are not required to be bound: a materialized def keeps its `levers`, and an earlier materializer (Underline's
+    // `radius.none`) may already have rebound the corner it names. Each must still read as a token ref.
+    if (setting === 'controlShape') {
+      const sq = entry.squares;
+      if (!Array.isArray(sq) || sq.length === 0) errors.push('levers.controlShape.squares must be a non-empty list');
+      else for (const r of sq) if (typeof r !== 'string' || !/^[a-z][a-z0-9-]*(\.[a-z0-9-]+)+$/.test(r)) errors.push(`levers.controlShape.squares names '${String(r)}', which is not a token ref`);
+    }
+    if (setting === 'fieldStyle') {
+      part(setting, 'frame', entry.frame, true);
+      if (entry.setting !== undefined && entry.setting !== 'searchFieldStyle') errors.push(`levers.fieldStyle.setting must be 'searchFieldStyle' when set (got ${JSON.stringify(entry.setting)})`);
+    }
+    if (setting === 'tagStyle') { part(setting, 'frame', entry.frame, true); for (const f of ['row', 'labelRow', 'slot']) part(setting, f, entry[f], false); }
+    if (setting === 'dialogTitleSize' && (typeof entry.titleType !== 'string' || def.tokens[entry.titleType] === undefined))
+      errors.push(`levers.dialogTitleSize.titleType names '${String(entry.titleType)}', which is not a bound tokens key`);
+    if (setting === 'bannerStyle') keys(setting, 'fills', entry.fills);
+    if (setting === 'currentIndicator') {
+      part(setting, 'bar', entry.bar, true);
+      const bar = typeof entry.bar === 'string' ? parts[entry.bar] : undefined;
+      if (bar?.kind === 'box' && bar.foot !== true) errors.push(`levers.currentIndicator.bar names '${entry.bar}', which is not a foot bar (\`foot: true\`)`);
+    }
+    if (setting === 'outlineInteraction' && entry.opaqueFill !== true) errors.push(`levers.outlineInteraction.opaqueFill must be true when set (got ${JSON.stringify(entry.opaqueFill)})`);
+  }
+  return errors;
+};
+
 const densitySpacingErrors = (def: ComponentDef): string[] => {
   const e: string[] = [];
   const keys = densitySpacingKeys(def);

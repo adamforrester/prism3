@@ -278,6 +278,9 @@ const makeButton = (id: string, name: string, summary: string, description: stri
   // The spacing this spec states at comfortable, which density moves one step along the space ladder.
   densitySpacing: ['size.{size}.padding-x', 'size.{size}.padding-x-visual', 'size.{size}.padding-y', 'size.{size}.gap'],
 
+  // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
+  levers: { outlineInteraction: { opaqueFill: true } },
+
   tokens: {
     // base (variant-independent)
     'radius': 'radius.md',

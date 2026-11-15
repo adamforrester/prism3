@@ -117,7 +117,7 @@ export const brandMaterializer = (input: BrandInput | null): ((def: ComponentDef
   const { settings: s, sizes } = leversOf(input);
   const px = sizeRefPx(sizes);
   return (def) => applyMinWidthRatio(applyButtonLayout(
-    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyCurrentIndicator(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, s.controlShape), fieldStyleFor(def.id, input)), s.tagStyle), s.dialogTitleSize), s.bannerStyle), s.currentIndicator), s.weightAvailability), s.outlineInteraction), s.density),
+    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyCurrentIndicator(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, s.controlShape), fieldStyleFor(def, input)), s.tagStyle), s.dialogTitleSize), s.bannerStyle), s.currentIndicator), s.weightAvailability), s.outlineInteraction), s.density),
     s.button, px), px);
 };
 
