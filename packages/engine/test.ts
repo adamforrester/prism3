@@ -41984,6 +41984,58 @@ console.log(`\nPrism3 engine tests: ${pass} passed, ${fails.length} failed`);
 // 104,698). That is the assertion-site arm at the top of this file, which needs no numeral. The two are
 // complementary: that arm reads V8 coverage and cannot see `ok()` stop counting; this one can.
 const MIN_ASSERTIONS = 1800;
+// #3698 Q-PU1 A — THE DOCUMENTED-KIND FIELDS ARE REFUSED OFF THEIR KINDS, BY NAME. Each field was documented for some
+// kinds and refused on none, so a part of any other kind validated clean carrying it. EXPECTED is authored here, not read
+// from the schema's `KIND_ONLY` table or its key lists: per field, the kinds that take it. Every other kind gets the
+// field set on the first shipped part of that kind, and the validator must name the part, its kind and the field.
+// `children` on absolute, nest and vector was refused before this, each in its own words; the regex reads all three.
+// `type` is not here: it stays open on every kind (the projector reads it there; held for the owner on the PR).
+{
+  const TAKES: Record<string, { kinds: readonly string[]; value: unknown }> = {
+    radius: { kinds: ['box'], value: 'radius' },
+    replaces: { kinds: ['overlay'], value: 'label' },
+    overlaysWhenAbsent: { kinds: ['overlay'], value: 'label' },
+    when: { kinds: ['overlay', 'absolute'], value: 'pressed' },
+    children: { kinds: ['box'], value: ['probeChild'] },
+  };
+  const KINDS = ['box', 'text', 'slot', 'overlay', 'absolute', 'nest', 'vector'];
+  const firstOf = (k: string): [ComponentDef, string] | undefined => {
+    for (const d of componentDefs) for (const [n, p] of Object.entries(d.anatomy?.parts ?? {})) if (p.kind === k) return [d, n];
+    return undefined;
+  };
+  for (const k of KINDS) ok(firstOf(k) !== undefined, `#3698 Q-PU1 kind probes: no shipped def has a '${k}' part to host a probe — the refusals below would be checked on nothing`);
+  for (const [field, { kinds, value }] of Object.entries(TAKES))
+    for (const k of KINDS.filter((x) => !kinds.includes(x))) {
+      const host = firstOf(k);
+      if (!host) continue;
+      const [d, n] = host;
+      const parts = d.anatomy!.parts;
+      const probe = { ...d, anatomy: { ...d.anatomy!, parts: { ...parts, [n]: { ...parts[n], [field]: value } as PartDef } } } as ComponentDef;
+      const errs = validateComponentDef(probe).errors;
+      const named = new RegExp(`declares '?${field}'?\\b`);
+      ok(errs.some((e) => e.includes(`part '${n}'`) && e.includes(`kind '${k}'`) && named.test(e)),
+        `#3698 Q-PU1 '${field}' on a '${k}' part is refused BY NAME — only [${kinds.join(', ')}] take it, and ${d.id}.${n} carrying it got ${errs.length ? errs.slice(0, 2).join(' | ') : 'no error at all'}`);
+    }
+}
+// #3779 — builtSize.grow NAMES A PART THAT GROWS. The build writes `grow: true` onto the named part, and only a box or a
+// nest takes `grow`, so a text child of Dialog's root column is refused by name, and the shipped box (`body`) and a nest
+// child (`headerDivider`) are not.
+{
+  const dlg = componentDefs.find((d) => d.id === 'dialog')!;
+  const parts = dlg.anatomy!.parts;
+  const root = dlg.anatomy!.root;
+  const textName = Object.keys(parts).find((n) => parts[n].kind === 'text')!;
+  const nestChild = (parts[root].children ?? []).find((c) => parts[c]?.kind === 'nest');
+  const growAt = (grow: string, extra: Record<string, PartDef> = {}, kids: string[] = []): string[] => validateComponentDef({
+    ...dlg,
+    anatomy: { ...dlg.anatomy!, parts: { ...parts, ...extra, [root]: { ...parts[root], children: [...(parts[root].children ?? []), ...kids], builtSize: { ...parts[root].builtSize!, grow } } as PartDef } },
+  } as ComponentDef).errors.filter((e) => e.includes('builtSize.grow'));
+  const onText = growAt('probeText', { probeText: { ...parts[textName] } }, ['probeText']);
+  ok(onText.some((e) => e.includes("builtSize.grow 'probeText'") && e.includes("kind 'text'")),
+    `#3779 builtSize.grow naming a 'text' child of the root is refused BY NAME, naming the part and its kind (got ${onText.join(' | ') || 'no builtSize.grow error'})`);
+  ok(nestChild !== undefined && growAt(nestChild).length === 0 && growAt('body').length === 0,
+    `#3779 builtSize.grow on a 'box' (body) and a 'nest' (${nestChild ?? 'none found'}) child is admitted (got ${[...growAt('body'), ...(nestChild ? growAt(nestChild) : [])].join(' | ') || 'none'})`);
+}
 // #1019 — NOTHING CLAIMS THAT THIS PACKAGE'S `version` TRACKS `ENGINE_VERSION`. The field is inert (npm
 // requires it; `@prism3/engine` is consumed by workspace name and nothing reads it), like the `0.0.0` of its
 // sibling workspaces. The note once said it tracked `ENGINE_VERSION`, was true for one release, and then

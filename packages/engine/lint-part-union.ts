@@ -16,6 +16,9 @@
  * that kind, that must fail. Nothing here reads the per-kind key lists — a probe derived from them would agree
  * with any list, a wrong one included.
  *
+ *   Most illegal probes are a per-kind sample. The five documented-kind fields #3698 Q-PU1 A tightened (`radius`,
+ *   `replaces`, `overlaysWhenAbsent`, `when`, `children`) are probed on every kind that refuses them.
+ *
  *   · A legal probe with any diagnostic fails: the union refuses a part a def may write.
  *   · An illegal probe fails unless tsc refuses it BY THE FIELD'S NAME (`Types of property '<field>' are
  *     incompatible`), naming kind and field otherwise: the union admits a field the validator refuses there. The
@@ -53,6 +56,12 @@ type Probe = { kind: string; legal: boolean; field: string; body: string[] };
 
 const legal = (kind: string, body: string[]): Probe => ({ kind, legal: true, field: '', body });
 const illegal = (kind: string, field: string, line: string, base: string[] = []): Probe => ({ kind, legal: false, field, body: [...base, line] });
+/** One illegal probe per kind NOT in `skip` (the kinds that take the field, or are probed for it elsewhere), each on the
+ *  base its kind's other illegal probes use. */
+const KINDS = ['box', 'text', 'slot', 'overlay', 'absolute', 'nest', 'vector'] as const;
+const BASE: Partial<Record<(typeof KINDS)[number], string[]>> = { text: ["type: 't',"], vector: ["glyph: 'check',"] };
+const offKind = (field: string, line: string, skip: readonly string[]): Probe[] =>
+  KINDS.filter((k) => !skip.includes(k)).map((k) => illegal(k, field, line, BASE[k]));
 
 const PROBES: readonly Probe[] = [
   // box — the one kind that lays out, paints a surface and becomes a frame.
@@ -93,6 +102,15 @@ const PROBES: readonly Probe[] = [
   illegal('vector', 'height', "height: 'size.{size}.height',", ["glyph: 'check',"]),
   illegal('vector', 'paintSlots', "paintSlots: ['fill'],", ["glyph: 'check',"]),
   illegal('vector', 'nesting', 'nesting: SWAP,', ["glyph: 'check',"]),
+  // THE DOCUMENTED-KIND FIELDS (#3698, owner decision Q-PU1 A), every kind each one is refused on rather than a sample:
+  // they were admitted on every kind until that decision, so each (field, kind) pair below is one the union used to let
+  // through. Authored here — which kinds take each field — and never read from the key lists. `children` on absolute,
+  // nest and vector is probed above.
+  ...offKind('radius', "radius: 'radius',", ['box']),
+  ...offKind('replaces', "replaces: 'label',", ['overlay']),
+  ...offKind('overlaysWhenAbsent', "overlaysWhenAbsent: 'label',", ['overlay']),
+  ...offKind('when', "when: 'loading',", ['overlay', 'absolute']),
+  ...offKind('children', "children: ['label'],", ['box', 'absolute', 'nest', 'vector']),
 ];
 
 const failures: string[] = [];

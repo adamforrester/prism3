@@ -351,12 +351,16 @@ export type PartFields = {
    *  `role`'s own rule) and on a part binding neither `size` nor both `width` and `height` (a target with an
    *  unbound side cannot be measured against the floor on that side). */
   innerTarget?: true;
-  /** Ordered. Order IS the visual order — a materializer appends children in this sequence. */
+  /** Ordered. Order IS the visual order — a materializer appends children in this sequence.
+   *  `box` only (#3698 Q-PU1 A): only a box becomes a frame that holds children. A TEXT node holds none, a slot or
+   *  overlay builds as an instance, and an absolute, nest or vector has its own refusal. Refused on every other kind. */
   children?: string[];
   layout?: LayoutDef;
   padding?: PaddingDef;
   gap?: string;
   height?: string;
+  /** The binding key for the four corner radii. `box` only (#3698 Q-PU1 A): the projector binds it only in the box
+   *  branch. Refused on every other kind (a vector's corners are `tileEdge.radius`). */
   radius?: string;
   /** The binding key giving the width of the stroke THIS part draws INSIDE its own bounds — #740's
    *  field, opened by #1266 for the one part that is nothing but a stroke.
@@ -765,7 +769,7 @@ export type PartFields = {
    *  (`placementWidth`, a fixed width) or uses `center`, with an `axis` that is not a projected variant axis, with a
    *  `widths` key that is not a value of it or a per-size map whose keys are not exactly the `size` values, with a
    *  `heights` key that is not a `widths` key, with a non-positive number, and with a `grow` that is not a child of
-   *  the root. */
+   *  the root, or that is not a `box` or a `nest` (#3779: the build writes `grow` onto it, a field only those take). */
   /** For a `box` with `layout`: its DIRECTION PER MEMBER (#2661, owner decision Q363.9). At the value of `axis` the
    *  member holds, the box reads as if its `layout.direction` were the one named; at any other coordinate, and in a
    *  structure-only plan, it is the box as authored. Button group's `items` slot is a row inline and at fill and a
@@ -1126,7 +1130,8 @@ export type PartFields = {
    *  does carry). The field is not switch-shaped — it names no component and no axis — but it is
    *  three-position-shaped, and that is a property of the projection target, not of this schema. */
   positionWhen?: Record<string, Record<string, 'start' | 'center' | 'end'>>;
-  /** For `overlay`: the part whose position it takes (width-preserving, per the brief).
+  /** For `overlay`: the part whose position it takes (width-preserving, per the brief). Refused on every other kind
+   *  (#3698 Q-PU1 A).
    *
    *  An ORDERED LIST of candidates as of #848, resolved to the FIRST one present at this coordinate.
    *  A single string is still accepted and means a one-entry list — every existing def reads the same.
@@ -1150,7 +1155,7 @@ export type PartFields = {
    *  writing it first. */
   replaces?: string | string[];
   /** For `overlay`: what to do when NONE of the parts named in `replaces` is present at this
-   *  coordinate.
+   *  coordinate. Refused on every other kind (#3698 Q-PU1 A).
    *
    *  The part named here is overlaid OUT OF FLOW — the overlay takes no cell, and the named part is
    *  rendered at zero opacity so it keeps its space. Absent this field, an overlay whose `replaces`
@@ -1178,7 +1183,8 @@ export type PartFields = {
    *
    *  An `overlay` names ONE state. An `absolute` part may name a LIST (#2318): the focus ring rings the field at
    *  `focus-visible` AND at `focus-visible-filled`, one part at both states rather than two rings. Read it through
-   *  `whenStates`, never as a string. */
+   *  `whenStates`, never as a string. Refused on every other kind (#3698 Q-PU1 A): an in-flow part gates on state
+   *  through `presentWhen`. */
   when?: string | readonly string[];
   /** For `absolute`: the NAME of a component that must already exist in the file, which this part
    *  materializes as an INSTANCE of rather than authoring from nothing.
@@ -1443,13 +1449,16 @@ export type PartFields = {
 //
 // THE RULE THE LISTS FOLLOW: a field is admitted on a kind unless `anatomyErrors` refuses it there, directly (`is kind
 // 'X' but declares 'f'`) or through a field it requires (`footShare` needs `foot`, a box field; `slotSettings` needs
-// `contentSlot`). A field the validator never refuses by kind is in `PartBaseKey`, admitted everywhere, even where its
-// doc names one kind: tightening one of those is a schema decision, not this refactor's. The per-kind refusals in
-// `anatomyErrors` stay — a def reaching the engine from JSON is not typechecked. `lint-part-union.ts` proves the
-// union bites.
+// `contentSlot`). A field the validator never refuses by kind is in `PartBaseKey`, admitted everywhere. #3698 Q-PU1 A
+// tightened the documented-kind ones the projector reads on their own kinds alone: `radius` is a box's, `replaces` and
+// `overlaysWhenAbsent` an overlay's, `when` an overlay's and an absolute's, and `children` a box's (the validator's
+// `KIND_ONLY` table says why, field by field). `type` stays open: `figmaAnatomyPlan` reads it on every kind, an owner
+// decision filed on that PR. The per-kind refusals in `anatomyErrors` stay — a def reaching the engine from JSON is
+// not typechecked. `lint-part-union.ts` proves the union bites.
 
-/** Fields every kind admits: the validator refuses none of them by kind. */
-export type PartBaseKey = 'role' | 'optional' | 'note' | 'radius' | 'type' | 'replaces' | 'overlaysWhenAbsent' | 'when';
+/** Fields every kind admits: the validator refuses none of them by kind. `role`, `optional` and `note` say nothing a
+ *  projection builds from per kind; `type` is read on every kind (#3698 Q-PU1, held for the owner). */
+export type PartBaseKey = 'role' | 'optional' | 'note' | 'type';
 
 /** A kind's part: its `kind`, the base fields, the fields `F` it admits, and every other field `never`. */
 type PartOf<K extends PartKind, F extends Exclude<keyof PartFields, 'kind' | PartBaseKey>> =
@@ -1458,19 +1467,19 @@ type PartOf<K extends PartKind, F extends Exclude<keyof PartFields, 'kind' | Par
 /** The fields a box admits — the one kind that lays out, paints a surface and becomes a frame. */
 export type BoxKey =
   | 'innerTarget' | 'children' | 'size' | 'presentWhen' | 'positionWhen' | 'height' | 'crossAxisFill' | 'grow' | 'literal'
-  | 'layout' | 'padding' | 'gap' | 'strokeWidth' | 'strokeEdges' | 'width' | 'paddingTop' | 'firstLine'
+  | 'radius' | 'layout' | 'padding' | 'gap' | 'strokeWidth' | 'strokeEdges' | 'width' | 'paddingTop' | 'firstLine'
   | 'contentSlot' | 'slotSettings' | 'preferred' | 'preferredWhenBuilt' | 'paintSlots' | 'paintGroup' | 'gradient'
   | 'clipsContent' | 'scroll' | 'minWidth' | 'placementWidth' | 'placementHeight' | 'directionWhen' | 'sizingWhen'
   | 'builtSize' | 'elevation' | 'radiusEdges' | 'minHeight' | 'minWidthKey' | 'minWidthRatio' | 'flush' | 'center'
   | 'aspectRatio' | 'foot' | 'footShare';
 export type TextKey =
-  | 'innerTarget' | 'children' | 'size' | 'presentWhen' | 'positionWhen' | 'literal' | 'paintSlot'
+  | 'innerTarget' | 'size' | 'presentWhen' | 'positionWhen' | 'literal' | 'paintSlot'
   | 'verticalAlign' | 'wrap' | 'lines' | 'characters';
 export type SlotKey =
-  | 'innerTarget' | 'children' | 'size' | 'presentWhen' | 'positionWhen' | 'height' | 'aspectLock' | 'fixedPaint' | 'nesting'
+  | 'innerTarget' | 'size' | 'presentWhen' | 'positionWhen' | 'height' | 'aspectLock' | 'fixedPaint' | 'nesting'
   | 'pin' | 'swapDefault';
-export type OverlayKey = 'innerTarget' | 'children' | 'size' | 'fixedPaint' | 'nests' | 'nesting';
-export type AbsoluteKey = 'presentWhen' | 'inset' | 'nests' | 'nesting' | 'overrides' | 'strokeInset' | 'drawnInside';
+export type OverlayKey = 'innerTarget' | 'size' | 'fixedPaint' | 'nests' | 'nesting' | 'replaces' | 'overlaysWhenAbsent' | 'when';
+export type AbsoluteKey = 'when' | 'presentWhen' | 'inset' | 'nests' | 'nesting' | 'overrides' | 'strokeInset' | 'drawnInside';
 export type NestKey =
   | 'innerTarget' | 'size' | 'presentWhen' | 'positionWhen' | 'height' | 'crossAxisFill' | 'grow' | 'aspectLock' | 'fixedPaint'
   | 'literal' | 'nests' | 'nesting' | 'overrides' | 'hostInk' | 'prefersWhenBuilt' | 'nestItemPrefers' | 'nestTexts'
@@ -4727,6 +4736,29 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     }
   }
 
+  // ---- THE DOCUMENTED-KIND FIELDS (#3698, owner decision Q-PU1 A) ----
+  // Each field below was documented for some kinds and refused on none, so a part of any other kind validated clean
+  // carrying it, and no projection reads it there. The kinds are the projector's: `radius` is bound only in the `box`
+  // branch of `figmaAnatomyPlan`; `replaces` and `overlaysWhenAbsent` only off the active overlay, found by
+  // `kind === 'overlay'`; `when` only by the overlay lookup and the `absolute` presence rule; and `children` builds a
+  // subtree only under a FRAME, which only a `box` becomes — a TEXT node holds no children, and a slot or overlay is
+  // an INSTANCE, which Figma refuses an append into. `absolute`, `nest` and `vector` children keep their own refusals
+  // above and below, so `children` is asked here only of the three kinds that had none. The union under `PartFields`
+  // says the same at the type layer, and `lint-part-union` proves it does.
+  const KIND_ONLY: readonly { field: 'radius' | 'replaces' | 'overlaysWhenAbsent' | 'when' | 'children'; kinds: readonly PartKind[]; asked?: readonly PartKind[]; why: string }[] = [
+    { field: 'radius', kinds: ['box'], why: "the corners are bound only on a box's frame" },
+    { field: 'replaces', kinds: ['overlay'], why: 'only an overlay takes another part\'s cell' },
+    { field: 'overlaysWhenAbsent', kinds: ['overlay'], why: "it is an overlay's fallback when none of its 'replaces' is present" },
+    { field: 'when', kinds: ['overlay', 'absolute'], why: "only those two kinds are gated by state; an in-flow part gates on it through 'presentWhen'" },
+    { field: 'children', kinds: ['box'], asked: ['text', 'slot', 'overlay'], why: 'only a box builds a frame that holds children — a text node holds none, and a slot or overlay is an instance, which takes no appends' },
+  ];
+  for (const n of names) {
+    const p = parts[n];
+    for (const k of KIND_ONLY)
+      if (p[k.field] !== undefined && (k.asked ?? [p.kind]).includes(p.kind) && !k.kinds.includes(p.kind))
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares '${k.field}' — only ${k.kinds.map((x) => `a '${x}'`).join(' or ')} takes it: ${k.why}`);
+  }
+
   // Only a box lays out children; a text/slot/overlay/absolute carrying layout means the tree is
   // mis-shaped and the materializer would emit an auto-layout frame where a leaf belongs.
   for (const n of names) {
@@ -5021,6 +5053,11 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       }
       if (b.grow !== undefined && !(p.children ?? []).includes(b.grow))
         e.push(`anatomy part '${n}' declares builtSize.grow '${b.grow}', which is not a child of the root — only a flow child of the column can take the height the rest does not`);
+      // AND OF A KIND THAT GROWS (#3779): the projector writes `grow: true` onto the named part (`builtSizeAt`), and
+      // `grow` is a field only a 'box' or a 'nest' takes, so naming a text, slot or glyph would build a part carrying
+      // a field its own kind is refused for.
+      else if (b.grow !== undefined && parts[b.grow] && parts[b.grow].kind !== 'box' && parts[b.grow].kind !== 'nest')
+        e.push(`anatomy part '${n}' declares builtSize.grow '${b.grow}', which is kind '${parts[b.grow].kind}' — only a 'box' or a 'nest' takes an in-flow cell that grows along its parent's main axis, and the build writes 'grow' onto the part this names`);
       if (b.heights && Object.keys(b.heights).length && b.grow === undefined)
         e.push(`anatomy part '${n}' declares builtSize heights with no 'grow' part — a member built taller than its content needs one part to take the rest, or the slack sits under the last child`);
     }
