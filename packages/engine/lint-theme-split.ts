@@ -37,7 +37,10 @@ const failures: string[] = [];
 const fail = (tag: string, msg: string) => failures.push(`${tag}: ${msg}`);
 
 const BARREL = 'theme.ts';
-const MODULE = /^theme-[a-z]+\.ts$/;
+/** An axis module: `theme-` and one or more kebab-case segments of lower-case letters and digits (`theme-type`,
+ *  `theme-foo2`, `theme-foo-bar`), the repo's module naming, so no orphan escapes REPRESENTED by its name (#3787). */
+const MODULE = /^theme(?:-[a-z0-9]+)+\.ts$/;
+const MODULE_SPEC = String.raw`theme(?:-[a-z0-9]+)+`;
 /** The axis modules at the split (#3698 R5): types, color, dims, motion, type, shadow, layout, gradient, brand, nb. */
 const MODULE_FLOOR = 10;
 
@@ -48,7 +51,7 @@ const stripComments = (src: string): string =>
 
 /** What the barrel holds beyond named re-exports from `theme-*` modules, as its first line, or null when it is clean. */
 export const barrelStray = (src: string): string | null => {
-  const rest = stripComments(src).replace(/\bexport\s+(?:type\s+)?\{[^}]*\}\s*from\s*'\.\/theme-[a-z]+'\s*;/g, '').trim();
+  const rest = stripComments(src).replace(new RegExp(String.raw`\bexport\s+(?:type\s+)?\{[^}]*\}\s*from\s*'\.\/${MODULE_SPEC}'\s*;`, 'g'), '').trim();
   return rest ? rest.split('\n')[0].slice(0, 100) : null;
 };
 
@@ -96,7 +99,7 @@ export const importsBarrel = (spec: string): boolean => {
 
 // ── SELF-CHECK: each detector finds exactly what is planted ─────────────────────────────────────────────────────────
 {
-  const cleanBarrel = "/** doc */\nexport { a, b } from './theme-types';\nexport type { C } from './theme-motion';\n// note\n";
+  const cleanBarrel = "/** doc */\nexport { a, b } from './theme-types';\nexport type { C } from './theme-motion';\nexport { d } from './theme-foo-bar2';\n// note\n";
   if (barrelStray(cleanBarrel) !== null) fail('SELF-CHECK', `barrelStray reports a clean barrel as holding "${barrelStray(cleanBarrel)}"`);
   for (const planted of ['export const x = 1;', "export * from './theme-types';", "import { a } from './theme-types';", "export { a } from './modes';"]) {
     if (barrelStray(`${cleanBarrel}${planted}\n`) === null) fail('SELF-CHECK', `barrelStray does not see a planted "${planted}" in the barrel`);
@@ -116,6 +119,9 @@ export const importsBarrel = (spec: string): boolean => {
   if (got !== '1v,2t,3t,5v,6v,7v,8t,9v') fail('SELF-CHECK', `importsOf read the planted imports as [${got}], not [1v,2t,3t,5v,6v,7v,8t,9v]`);
   if (!importsBarrel('./theme') || !importsBarrel('./theme.ts') || !importsBarrel('./index-figma') || importsBarrel('./theme-types')) {
     fail('SELF-CHECK', 'importsBarrel misreads which specifiers name the barrel or an entry');
+  }
+  for (const [name, want] of [['theme-type.ts', true], ['theme-foo2.ts', true], ['theme-foo-bar.ts', true], ['theme.ts', false], ['theme-.ts', false], ['theme-Foo.ts', false], ['theme-foo.test.ts', false]] as const) {
+    if (MODULE.test(name) !== want) fail('SELF-CHECK', `MODULE ${want ? 'misses' : 'takes'} ${name}, ${want ? '' : 'not '}an axis module by the repo's naming`);
   }
   const cyc = valueCycles({ a: ['b'], b: ['c'], c: ['a'], d: ['e'], e: [] });
   if (cyc.length !== 1 || cyc[0] !== 'a → b → c → a') fail('SELF-CHECK', `valueCycles found [${cyc.join('; ')}] in a graph with exactly the cycle a → b → c → a`);
