@@ -50,7 +50,7 @@ import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import type { BrandInput } from '@prism3/engine';
 import { catalogOf, CATALOG_SWAP_TARGET } from '../studio/src/state/component-catalog';
 import { displayNameOf } from '../studio/src/state/component-groups';
-import { checkScopeOf, defaultTicks, type LiveDue, dueSetsOf, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, stepsOf, updateDefsOf, UPDATE_COPY, type FileSets } from '../studio/src/state/update-file';
+import { blockedDueOf, checkScopeOf, compsOpensOf, defaultTicks, type LiveDue, dueSetsOf, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, stepsOf, updateDefsOf, UPDATE_COPY, type FileSets } from '../studio/src/state/update-file';
 import { leafForDef } from './src/file-taxonomy';
 
 let failed = 0;
@@ -203,6 +203,23 @@ const f1 = read();
 ok(dueSetsOf(catalog, f1).length === 0, `after/0 due: the check after the run finds no set due (${JSON.stringify(f1.due)})`);
 ok(f1.due.tag?.state === 'current', `after/tag current: the set nobody edited is current (${JSON.stringify(f1.due.tag)})`);
 ok(JSON.stringify(keptSetsOf(catalog, f1)) === '["radio-control"]', `after/kept listed: radio-control, whose kept edits held changes back, is listed under Kept edits (${JSON.stringify(f1.due['radio-control'])})`);
+
+/* ── #3712 (Q-UD2 A, Q-UD3 A): Components' chip and fold, over this run's own readings ──────────────────────────────
+ * The dialog's rule, fed what this file reads: before the run, two due sets (Theme ticked, so only Theme's variables
+ * block them and they stay Due), or with Theme unticked, the same two can't update yet; after the run, one set with kept
+ * edits and nothing due. Components opens by itself in the first two and stays folded in the last. The chip literals
+ * are the owner's (approved as written). MUTATION: `compsOpensOf` back to "open while it lists anything" (`=> true`) →
+ * `#3712 Q-UD3 kept only`, by name. */
+const comps = (f: FileSets, theme: boolean) => {
+  const due = dueSetsOf(catalog, f);
+  const blocked = blockedDueOf(due, { sets: seen }, theme);
+  const n = { add: 0, due: due.length - blocked.length, blocked: blocked.length, kept: keptSetsOf(catalog, f).length, panels: 0 };
+  return { chip: UPDATE_COPY.compsChip(n), open: compsOpensOf(n) };
+};
+const dueC = comps(f0, true), blockedC = comps(f0, false), keptC = comps(f1, true);
+ok(dueC.chip === '2 due' && dueC.open, `#3712 Q-UD3 due: before the run, Theme ticked, Components reads "2 due" and opens by itself (${JSON.stringify(dueC)})`);
+ok(blockedC.chip === '2 can’t update yet' && blockedC.open, `#3712 Q-UD3 blocked: Theme unticked, Components reads "2 can’t update yet" and opens by itself (${JSON.stringify(blockedC)})`);
+ok(keptC.chip === '1 with kept edits' && !keptC.open, `#3712 Q-UD3 kept only: after the run, Components reads "1 with kept edits" and stays folded (${JSON.stringify(keptC)})`);
 
 // What a kept edit holds back, worked out here from the plans alone: each recolored member whose ring today's plan binds
 // to the indicator (before #3402 it bound the border role, so that change is the one the edit holds back).
