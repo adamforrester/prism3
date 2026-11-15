@@ -2062,8 +2062,10 @@ export const figmaAnatomyPlan = (
     const literalFont = p.literal === 'label' ? literal?.font : undefined;
     const literalTint = p.literal === 'mark' ? literal?.markTint : undefined;
     let textStyle: string | undefined;
-    // A literal font REPLACES the type binding at this member: the provider fixes the face.
-    if (p.type && !literalFont) textStyle = figmaTextStyleName(resolveKey(p.type, 'type'));
+    // A literal font REPLACES the type binding at this member: the provider fixes the face. A TEXT part only (#3783):
+    // a text style goes on a TEXT node, and on a FRAME or an instance there is no `setTextStyleIdAsync` to take it.
+    // The schema refuses `type` off a text part (Q-PU2 A); this guard keeps a def that bypassed it from planning one.
+    if (p.kind === 'text' && p.type && !literalFont) textStyle = figmaTextStyleName(resolveKey(p.type, 'type'));
     const literalPaints: { fills?: string[]; strokes?: string } = {};
     if (p.literal === 'surface') {
       const wash = literal?.wash?.[paintCoord.state ?? 'rest'];
@@ -5001,6 +5003,8 @@ const build=async(n)=>{
   if(n.textStyle){
     const st=styleByName.get(n.textStyle);
     if(!st)misses.push(n.name+'.textStyle -> '+n.textStyle);
+    // A node with no text-style setter (a frame, an instance) is a miss, never a throw (#3783). Lockstep with the plugin.
+    else if(!node.setTextStyleIdAsync)misses.push(n.name+'.textStyle -> '+n.textStyle+' REFUSED (not a text node)');
     else{
       // The STYLE'S OWN font, loaded before the style is applied. \`setTextStyleIdAsync\` pulls in a
       // family/style pair (\`Inter Semi Bold\`) that need not be the one \`createText\` starts on, and

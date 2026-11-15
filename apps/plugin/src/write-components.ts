@@ -2301,6 +2301,9 @@ const writeComponentSet = async (
       if (n.textStyle) {
         const st = styleByName.get(n.textStyle);
         if (!st) misses.push(`${n.name}.textStyle -> ${n.textStyle}`);
+        // A node with no text-style setter (a frame, an instance) is a miss, and the style is NOT recorded as applied
+        // (#3783): the optional call below did nothing there and `appliedStyle` was set anyway. Lockstep with the paste.
+        else if (!node.setTextStyleIdAsync) misses.push(`${n.name}.textStyle -> ${n.textStyle} REFUSED (not a text node)`);
         else {
           // The STYLE'S OWN font, loaded before the style is applied: `setTextStyleIdAsync` pulls in a
           // family/style pair that need not be the one `createText` starts on, and Figma requires a font
@@ -2312,7 +2315,7 @@ const writeComponentSet = async (
           }
           // A PROPERTY write (#982): refused, it is a miss and the member keeps building. `appliedStyle` stays
           // unset, so the #1567 re-apply below does not try the style a second time.
-          try { await node.setTextStyleIdAsync?.(st.id); appliedStyle = st; }
+          try { await node.setTextStyleIdAsync(st.id); appliedStyle = st; }
           catch (err) { misses.push(`${n.name}.textStyle -> ${n.textStyle} REFUSED (${(err as Error).message})`); }
         }
       }
