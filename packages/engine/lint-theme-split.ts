@@ -58,12 +58,13 @@ type Imp = { spec: string; line: number; value: boolean };
 export const importsOf = (src: string): Imp[] => {
   const code = stripComments(src);
   const out: Imp[] = [];
-  for (const m of code.matchAll(/\b(import|export)\s+(type\s+)?([^'";]*?)\bfrom\s*'(\.[^'\n]+)'/g)) {
+  // Either quote, so a double-quoted specifier is read too (#3787); `\4`/`\1` close with the quote that opened.
+  for (const m of code.matchAll(/\b(import|export)\s+(type\s+)?([^'";]*?)\bfrom\s*(['"])(\.[^'"\n]+)\4/g)) {
     const braced = /\{([^}]*)\}/.exec(m[3])?.[1];
     const names = braced === undefined ? [m[3].trim()] : braced.split(',').map((x) => x.trim()).filter(Boolean);
-    out.push({ spec: m[4], line: code.slice(0, m.index).split('\n').length, value: !m[2] && names.some((n) => !n.startsWith('type ')) });
+    out.push({ spec: m[5], line: code.slice(0, m.index).split('\n').length, value: !m[2] && names.some((n) => !n.startsWith('type ')) });
   }
-  for (const m of code.matchAll(/\bimport\s*\(\s*'(\.[^'\n]+)'\s*\)/g)) out.push({ spec: m[1], line: code.slice(0, m.index).split('\n').length, value: true });
+  for (const m of code.matchAll(/\bimport\s*\(\s*(['"])(\.[^'"\n]+)\1\s*\)/g)) out.push({ spec: m[2], line: code.slice(0, m.index).split('\n').length, value: true });
   return out;
 };
 
@@ -107,9 +108,12 @@ export const importsBarrel = (spec: string): boolean => {
     "// import { f } from './theme-layout';",           // a comment: not an import
     "export { g } from './theme-gradient';",            // 5: value re-export
     "import { h } from './theme';",                     // 6: value, the barrel
+    'import { i } from "./theme";',                     // 7: value, the barrel, double-quoted (#3787)
+    'import type { J } from "./theme-motion";',         // 8: type-only, double-quoted
+    'const k = await import("./theme-nb");',            // 9: value, dynamic, double-quoted
   ].join('\n'));
-  const got = imps.map((i) => `${i.line}${i.value ? 'v' : 't'}`).join(',');
-  if (got !== '1v,2t,3t,5v,6v') fail('SELF-CHECK', `importsOf read the planted imports as [${got}], not [1v,2t,3t,5v,6v]`);
+  const got = imps.map((i) => `${i.line}${i.value ? 'v' : 't'}`).sort((a, b) => parseInt(a) - parseInt(b)).join(',');
+  if (got !== '1v,2t,3t,5v,6v,7v,8t,9v') fail('SELF-CHECK', `importsOf read the planted imports as [${got}], not [1v,2t,3t,5v,6v,7v,8t,9v]`);
   if (!importsBarrel('./theme') || !importsBarrel('./theme.ts') || !importsBarrel('./index-figma') || importsBarrel('./theme-types')) {
     fail('SELF-CHECK', 'importsBarrel misreads which specifiers name the barrel or an entry');
   }
