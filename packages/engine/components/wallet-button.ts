@@ -45,13 +45,15 @@
  *   - width: a 120px floor, Shop Pay's logo-button minimum and the largest any of the four states (Apple Pay plain:
  *     100). The button fills its column in use. PayPal's script holds its frame at 150 or wider; that is a code-only
  *     note in `codeOnly` (Q3175 A), and the Figma floor stays 120.
- *   - radius: the brand's `radius.md`. Apple Pay, PayPal and Shop Pay allow any radius; Google Pay at most half the
+ *   - radius: the brand's `radius.md`, which Control shape repoints like Button's (Q-CS3 A, #3765, through the
+ *     `pill-radius` derivation): Boxed `radius.none`, Hairline `radius.hairline`, Pill `radius.capsule`. Apple Pay, PayPal
+ *     and Shop Pay allow any radius (PayPal names `sharp` and `pill` shapes); Google Pay at most half the
  *     height. Harbor's `radius.md` is inside that at every density, and the gate measures it there; a soft brand's
  *     can pass it (`baseMd` 12 × `radiusScale` 2 is 24px against a 28px compact small), so the code clamps Google
  *     Pay's radius to half the height, and the gate holds that clamp at the levers' softest corner. The Figma
  *     member draws the brand radius, which Figma caps at half the height when it renders.
  *   - no shape axis: the proposal's §2.3 gave `shape: rectangle | pill`; the build binds `radius.md` only (Q-W5 on
- *     the PR, built as A).
+ *     the PR, built as A). The brand's Control shape picks the corner instead (Q-CS3 A).
  *   - the mark: `provider-logo/logo/<provider>` at `any`, `provider-logo/button/<provider>-<style>` at every other style,
  *     nested whole, height bound and width from its own proportion, keeping its own paint.
  */
@@ -174,6 +176,13 @@ export const walletButton: ComponentDef = {
       }),
       focusRing: focusRingPart('The shared focus ring, around the provider\'s button while it has keyboard focus.'),
     },
+    derived: {
+      // Q-CS3 A (#3765): Control shape reaches this button as it reaches Button. This key opts it in (`isPillable`): Pill
+      // repoints `radius.md` to `radius.capsule`, Boxed to `radius.none`, Hairline to `radius.hairline`. Every provider
+      // allows each: Apple Pay, PayPal (`shape: rect | pill | sharp`, `borderRadius` ≥ 0) and Shop Pay take any radius;
+      // Google Pay takes 0 to half the height, and the code clamps it there (codeOnly, the corner).
+      'pill-radius': 'height ÷ 2 under Pill, clamped for Google Pay to min(radius, height / 2) — a literal radius token would be wrong at more than one height',
+    },
     codeOnly: [
       {
         class: 'platform-owned',
@@ -197,7 +206,7 @@ export const walletButton: ComponentDef = {
         class: 'live-geometry',
         disposition: 'lowered',
         description:
-          'the corner — Google Pay allows a radius of at most half the button\'s height, so the component passes min(radius, height / 2) as its buttonRadius. A soft brand\'s radius can pass half of a small or compact button. Apple Pay, PayPal and Shop Pay take the brand radius as it is.',
+          'the corner — Google Pay allows a radius of at most half the button\'s height, so the component passes min(radius, height / 2) as its buttonRadius, under every Control shape. A soft brand\'s radius can pass half of a small or compact button, and Pill\'s radius.capsule always does, so under Pill Google Pay is a capsule at exactly half its height. Apple Pay, PayPal and Shop Pay take the brand radius as it is, square or capsule.',
       },
       {
         class: 'responsive-layout',

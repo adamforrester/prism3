@@ -228,12 +228,12 @@
     },
     "wallet-button": {
       "members": 68,
-      "sha256": "ce64c6a23d644b3af8a1729f13996d6860f625d52313b52d5048feb11a6f0173",
+      "sha256": "6e43293e4c0e08a5d02f541ce7d83ba0e3b92aa3ff6123e505aaa00d6a2bbf1d",
       "properties": []
     },
     "sign-in-button": {
       "members": 96,
-      "sha256": "15c630daad4c710b661ecb96b119bad74390b22856e794dbf0c88e607e38b824",
+      "sha256": "06d65571f4a8e6bbf85ad00e790b5ec6b80c43cba68f4a3abc7ce225aa928161",
       "properties": []
     },
     "icon-button": {
