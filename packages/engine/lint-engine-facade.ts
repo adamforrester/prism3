@@ -10,11 +10,12 @@
  *   `@prism3/engine`  `@prism3/engine/components`  `@prism3/engine/figma`  `@prism3/engine/harness`
  *
  * WHAT IT ASSERTS, each failure prefixed by the name a mutation must produce:
- *   DEEP IMPORT   a tracked source file under `apps/studio/` or `apps/plugin/` imports the engine by any other path:
- *                 a bare specifier under `@prism3/engine/` that is not an entry, a relative specifier that lands
- *                 inside `packages/engine/`, or an esbuild `entryPoints` naming a file there. Static imports,
- *                 re-exports, `import()`, `require()` (#3787), and specifiers quoted inside an esbuild `stdin` string or a fixture
- *                 template all count: each is a path a test or a build resolves. Reported by file and line.
+ *   DEEP IMPORT   a source file under `apps/studio/` or `apps/plugin/` (tracked, or untracked and not ignored, #3787)
+ *                 imports the engine by any other path: a bare specifier under `@prism3/engine/` that is not an
+ *                 entry, a relative specifier that lands inside `packages/engine/`, or an esbuild `entryPoints` naming
+ *                 a file there. Static imports, re-exports, `import()`, `require()` (#3787), and specifiers quoted
+ *                 inside an esbuild `stdin` string or a fixture template all count: each is a path a test or a build
+ *                 resolves. Reported by file and line.
  *   BUNDLED       a file under a bundled source root (`apps/studio/src`, `apps/studio/chrome`, `apps/plugin/src`)
  *                 imports `@prism3/engine/harness`, whose modules read the disk or run git.
  *   DECLARED      an entry is missing from `exports`, points at a file that does not exist, or that file holds
@@ -135,9 +136,15 @@ for (const [entry, file] of Object.entries(ENTRIES)) {
 }
 
 // ── INWARD: no engine module imports an entry ───────────────────────────────────────────────────────────────────────
-const tracked = (dir: string) => execFileSync('git', ['ls-files', '--', dir], { cwd: repo, encoding: 'utf8' }).split('\n').filter((f) => SOURCE.test(f));
+/** Every source file under `dir` git knows of or would add: tracked, plus untracked and not ignored (#3787), so a new
+ *  deep import fails locally before it is committed. CI's checkout is clean and its build output is ignored, so CI
+ *  scans the same set it always did. */
+const git = (args: string[]) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' }).split('\n');
+const sources = (dir: string) =>
+  [...new Set([...git(['ls-files', '--', dir]), ...git(['ls-files', '--others', '--exclude-standard', '--', dir])])]
+    .filter((f) => SOURCE.test(f) && existsSync(resolve(repo, f))).sort();
 const entryFiles = new Set(Object.values(ENTRIES).map((f) => `packages/engine/${f}`));
-for (const f of tracked('packages/engine')) {
+for (const f of sources('packages/engine')) {
   if (entryFiles.has(f) || f === SELF) continue;   // this file plants entry specifiers for the self-check
   const code = stripComments(readFileSync(resolve(repo, f), 'utf8'));
   for (const m of code.matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*)['"]([^'"\n]+)['"]/g)) {
@@ -147,11 +154,11 @@ for (const f of tracked('packages/engine')) {
   }
 }
 
-// ── DEEP IMPORT and BUNDLED, over every tracked surface source file ─────────────────────────────────────────────────
+// ── DEEP IMPORT and BUNDLED, over every surface source file ────────────────────────────────────────────────────────
 let scanned = 0;
 const using: Record<string, number> = Object.fromEntries(MUST_USE.map((s) => [s, 0]));
 for (const surface of SURFACES) {
-  for (const f of tracked(surface)) {
+  for (const f of sources(surface)) {
     scanned++;
     const src = readFileSync(resolve(repo, f), 'utf8');
     for (const h of deepImports(f, src)) fail('DEEP IMPORT', `${f}:${h.line} imports '${h.spec}', ${h.why} — import it from one of ${Object.keys(ENTRIES).join(', ')} (add the name to the entry's file if it is not there)`);
@@ -163,10 +170,10 @@ for (const surface of SURFACES) {
 }
 
 // ── REPRESENTED ─────────────────────────────────────────────────────────────────────────────────────────────────────
-if (scanned < FILE_FLOOR) fail('REPRESENTED', `scanned ${scanned} tracked source files under ${SURFACES.join(' and ')}, under the floor of ${FILE_FLOOR} — the scope has gone blind`);
+if (scanned < FILE_FLOOR) fail('REPRESENTED', `scanned ${scanned} source files under ${SURFACES.join(' and ')}, under the floor of ${FILE_FLOOR} — the scope has gone blind`);
 for (const [k, n] of Object.entries(using)) if (n === 0) fail('REPRESENTED', `no file under ${k} imports an engine entry — the scan is not reaching it, or the entries moved`);
 
-console.log(`lint-engine-facade — ${scanned} tracked source files under ${SURFACES.join(' and ')}; ${Object.entries(using).map(([k, n]) => `${k} ${n}`).join(', ')} importing an entry`);
+console.log(`lint-engine-facade — ${scanned} source files (tracked and untracked) under ${SURFACES.join(' and ')}; ${Object.entries(using).map(([k, n]) => `${k} ${n}`).join(', ')} importing an entry`);
 if (failures.length) {
   for (const f of failures) console.error(`  ✗ ${f}`);
   console.error(`\n${failures.length} failure(s).`);
