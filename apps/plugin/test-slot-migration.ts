@@ -29,7 +29,12 @@
  *   stopped/…   #3697 H1 — a set that stops at member N fills the instances of the members it reached, and leaves the
  *               rest with their rows for the next run.
  *   stopped/text/… #3697 H1, the #3225 half: a Banner set that stops after its properties exist fills every edited
- *               body; one that stops inside its member pass names each body it could not carry (carrying it: #3761).
+ *               body; one that stops inside its member pass names each body it could not carry, and the next run
+ *               carries it from the capture kept on the set (#3761).
+ *   closed/…    #3762 — a run closed part-way (its member yield never resolves): the next run carries the rows of the
+ *               members it reached, and, for Banner, every edited body, from the capture kept on the set.
+ *   closed after/… #3762 — closed after the set's write but before its fill: the set is not up to date, and the next
+ *               run fills it without writing a member.
  *   failed/…    #3697 L1 — a throw after the set's write (its fill) returns the set's outcome and why the run ended.
  *   dialog/…    #2661 — the footer's two fixed Buttons move into a nested Button.Group's slot, which holds the same two by
  *               default: a designer's changed labels land on those defaults in order, an unchanged instance is left
@@ -50,13 +55,17 @@
  *   · a stopped Banner set skips the text fill again (`!o.stopped` back on `fillSlotText`) → `stopped/text after the pass filled`;
  *   · the text fill skips an instance with none of the new properties → `stopped/text inside the pass named`.
  *   · applyUpdate's catch around its writes rethrows (#3697 L1) → `failed/returned`, `failed/partial`.
+ *   · the capture not kept on the set (`keepCarry` a no-op, #3761/#3762) → `closed/reached carried`,
+ *     `stopped/text inside the pass carried next run`, `closed/text carried next run`;
+ *   · the kept capture never narrowed after a fill (`only` ignored) → `closed/converge`;
+ *   · a kept carry not counted as work (`carryDue` false) → `closed after/due`, `closed after/carried`.
  */
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, type ComponentDef, type PartDef, componentDefs } from '@prism3/engine/components';
 import { COMPONENT_RENAMES, slotMigrationOf } from '@prism3/engine';
 import { applyComponentPlan, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { makeShim, type Node, type Page } from './component-shim';
-import { previewUpdate, previewVerdict, type UpdateTarget } from './src/update-plan';
+import { previewUpdate, previewVerdict, setUpToDate, type UpdateTarget } from './src/update-plan';
 import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost } from './src/update-apply';
 import { captureSlotMigration, fillSlots, migrationLines, type MigNode } from './src/slot-migration';
 import { slotMigrationFor } from './src/update-plan';
@@ -255,7 +264,9 @@ const world = async (oldDef: ComponentDef, newPlans: AnatomyPlan[], extra: { com
   const built = await applyComponentPlan(oldPlans, api);
   const misses = built.misses.filter((m) => !extra.harness?.(m));
   if (misses.length) throw new Error(`premise: the legacy set built with ${misses.length} miss(es): ${misses[0]}`);
-  const host = { ...api, root: { ...api.root, findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)) } } as unknown as ApplyHost;
+  // #3762: the row components are the fixture's own library, which the host finds by id as `figma.getNodeByIdAsync` does.
+  const byId = async (id: string) => [...library.values()].find((m) => m.id === id) ?? (await api.getNodeByIdAsync?.(id)) ?? null;
+  const host = { ...api, getNodeByIdAsync: byId, root: { ...api.root, findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)) } } as unknown as ApplyHost;
   const set = () => page.children.find((n) => n.type === 'COMPONENT_SET') as Node;
   const placed: Placed[] = [];
   // Each member lists the placed instances of it, as `ComponentNode.getInstancesAsync` does.
@@ -373,6 +384,74 @@ section('stopped — a set that stops at member N still fills the instances of t
     `stopped/rerun: the next dry run reads the untouched instance's rows, and has nothing left to read on the filled one (${JSON.stringify(caps)})`);
 }
 
+// ---- closed ---------------------------------------------------------------------------------------------------------
+
+section('closed — a set the plugin is closed in part-way keeps the rows of the members it reached for the next run (#3762)');
+{
+  // #3697 H1's second cause. A close is modelled as the run's member yield never resolving: the run goes no further, so
+  // neither its fill nor anything after the pass ever runs, which is what a closed plugin does. The members before the
+  // close hold the slot and have lost their rows; the next run must still carry their content. Mutation: the capture
+  // not kept on the set (`keepCarry` a no-op) → `closed/reached carried`, `closed/reached state`.
+  const target: UpdateTarget = { def: 'checkbox-group', plans: figmaAnatomySet(defOf('checkbox-group'), { swapTarget: SWAP_TARGET }) };
+  const w = await world(LEGACY['checkbox-group'](), target.plans);
+  const members = w.set().children as Node[];
+  const placed = members.map((m, i) => w.put(place(`Closed ${i + 1}`, m, w.set(), {}, {
+    row1: { props: { 'Label#1:0': `Email ${i + 1}` }, control: 'checked' },
+    row2: { props: { 'Label#1:0': `SMS ${i + 1}` } },
+  }), m));
+  const pre = await previewUpdate(w.host, [target]);
+  let yields = 0;
+  const never = new Promise<void>(() => {});
+  void applyUpdate(w.host, w.api as any, [target], previewHashOf(pre), { chunk: 1, yieldTo: async () => { if (++yields >= 3) await never; } });
+  for (let i = 0; i < 500 && yields < 3; i++) await new Promise((r) => setTimeout(r, 0));
+  const labels = (inst: Placed): unknown[] => (slotOf(inst)?.children ?? []).map((x) => (x.componentProperties as Record<string, { value: Val }>)['Label#1:0']?.value);
+  const reached = placed.filter((p) => !!slotOf(p));
+  ok(yields >= 3 && reached.length > 0 && reached.length < placed.length && reached.every((p) => !p.children.some((c) => c.name === 'row1')),
+    `premise: the run was closed part-way, with ${reached.length} of ${placed.length} instances' members holding the slot and their rows gone (${yields} yields)`);
+  const again = await previewUpdate(w.host, [target]);
+  const res = await applyUpdate(w.host, w.api as any, [target], previewHashOf(again));
+  const o = res.outcomes[0];
+  const wrong = reached.filter((p) => { const i = placed.indexOf(p) + 1; return JSON.stringify(labels(p).slice(0, 2)) !== JSON.stringify([`Email ${i}`, `SMS ${i}`]); }).map((p) => `${p.name}=${JSON.stringify(labels(p))}`);
+  ok(!o?.stopped && wrong.length === 0,
+    `closed/reached carried: the next run fills each reached instance's slot with its own rows' labels (${o?.stopped ?? 'finished'}; wrong: ${wrong.join(', ') || 'none'})`);
+  const states = reached.map((p) => ((slotOf(p)?.children ?? [])[0]?.exposedInstances as Model[] | undefined)?.[0]?.componentProperties as Record<string, { value: Val }> | undefined).map((c) => c?.selection?.value);
+  ok(states.every((v) => v === 'checked'), `closed/reached state: each reached instance's first item keeps its row's checked state (${JSON.stringify(states)})`);
+  const unreached = placed.filter((p) => !reached.includes(p));
+  ok(unreached.every((p) => { const i = placed.indexOf(p) + 1; return JSON.stringify(labels(p).slice(0, 2)) === JSON.stringify([`Email ${i}`, `SMS ${i}`]); }),
+    `closed/rest carried: the instances the first run never reached are carried by the second as usual (${unreached.map((p) => JSON.stringify(labels(p))).join(' ')})`);
+  const third = await previewUpdate(w.host, [target]);
+  const keptNow = (w.set().getSharedPluginData as (ns: string, k: string) => string)('prism3', 'slotCarry');
+  ok(!third.sets[0].slotMigration && keptNow === '',
+    `closed/converge: once filled, the set keeps no capture and the next dry run has nothing left to carry (${JSON.stringify(third.sets[0].slotMigration?.instances.map((c) => c.name))}; kept ${keptNow.length} chars)`);
+}
+
+section('closed after the write — a set closed after its write but before its fill is not up to date, and the next run fills it (#3762)');
+{
+  // The window between the set's write returning and its fill: every member is current, so without the kept capture the
+  // set reads up to date and the next run never reaches it. Modelled from a finished run: the capture its dry run read
+  // is put back on the set as the apply keeps it, and each instance's slot emptied, as the fill never ran. Mutation: the
+  // kept carry not counted as work (`carryDue` false) → `closed after/due`, `closed after/carried`.
+  const target: UpdateTarget = { def: 'checkbox-group', plans: figmaAnatomySet(defOf('checkbox-group'), { swapTarget: SWAP_TARGET }) };
+  const w = await world(LEGACY['checkbox-group'](), target.plans);
+  const members = w.set().children as Node[];
+  const placed = members.map((m, i) => w.put(place(`Late ${i + 1}`, m, w.set(), {}, {
+    row1: { props: { 'Label#1:0': `Email ${i + 1}` }, control: 'checked' },
+  }), m));
+  const pre = await previewUpdate(w.host, [target]);
+  await applyUpdate(w.host, w.api as any, [target], previewHashOf(pre));
+  (w.set().setSharedPluginData as (ns: string, k: string, v: string) => void)('prism3', 'slotCarry', JSON.stringify(pre.sets[0].slotMigration));
+  for (const p of placed) slotOf(p)?.children.splice(0);
+  const due = await previewUpdate(w.host, [target]);
+  ok(!setUpToDate(due.sets[0]) && due.sets[0].slotMigration?.instances.length === placed.length,
+    `closed after/due: the set is not up to date while its kept capture waits, and the dry run lists every instance (${due.sets[0].slotMigration?.instances.length ?? 0} of ${placed.length})`);
+  const res = await applyUpdate(w.host, w.api as any, [target], previewHashOf(due));
+  const labels = placed.map((p) => (slotOf(p)?.children ?? []).map((x) => (x.componentProperties as Record<string, { value: Val }>)['Label#1:0']?.value)[0]);
+  ok(labels.every((l, i) => l === `Email ${i + 1}`) && res.outcomes[0]?.updated.length === 0,
+    `closed after/carried: the next run fills each slot from the kept capture and writes no member (${JSON.stringify(labels)}; ${res.outcomes[0]?.updated.length} updated)`);
+  const settled = await previewUpdate(w.host, [target]);
+  ok(setUpToDate(settled.sets[0]), `closed after/settled: once filled, the set reads up to date (${JSON.stringify(settled.sets[0].counts)})`);
+}
+
 // ---- stopped, slot text (#3225) ------------------------------------------------------------------------------------
 
 section('stopped/text — a Banner set that stops part-way still fills each body whose properties exist, and names the rest (#3697 H1)');
@@ -404,7 +483,7 @@ section('stopped/text — a Banner set that stops part-way still fills each body
   const harness = (m: string): boolean => /^(close|action)\.nestOverrides -> (swap icon|label) \(no (INSTANCE_SWAP|TEXT) property/.test(m);
   /** One run: every member holds one placed instance whose body text was edited, and the host throws on the third write
    *  of `key` (the in-progress mark: inside the pass; the stamp: after the properties). */
-  const run = async (key: string) => {
+  const run = async (key: string, opts: { hangAt?: number } = {}) => {
     const target: UpdateTarget = { def: 'banner', plans: figmaAnatomySet(banner, { swapTarget: SWAP_TARGET }) };
     const w = await world(old, target.plans, { comps: ['icon/close'], harness });
     const members = w.set().children as Node[];
@@ -438,9 +517,18 @@ section('stopped/text — a Banner set that stops part-way still fills each body
       };
     }
     const pre = await previewUpdate(w.host, [target]);
-    const res = await applyUpdate(w.host, w.api as any, [target], previewHashOf(pre));
     const bodyText = (inst: (typeof placed)[number]): Val | undefined => Object.entries(inst._vals).find(([k]) => k.split('#')[0] === 'body text')?.[1];
-    return { pre, o: res.outcomes[0], placed, bodyText, hasProp: Object.keys(defs()).some((k) => k.split('#')[0] === 'body text') };
+    const hasProp = (): boolean => Object.keys(defs()).some((k) => k.split('#')[0] === 'body text');
+    // A close (#3762): the member yield never resolves, so the run goes no further and nothing after the pass runs.
+    if (opts.hangAt) {
+      let yields = 0;
+      const never = new Promise<void>(() => {});
+      void applyUpdate(w.host, w.api as any, [target], previewHashOf(pre), { chunk: 1, yieldTo: async () => { if (++yields >= opts.hangAt!) await never; } });
+      for (let i = 0; i < 500 && yields < opts.hangAt; i++) await new Promise((r) => setTimeout(r, 0));
+      return { pre, o: undefined, placed, bodyText, hasProp: hasProp(), w, target, yields };
+    }
+    const res = await applyUpdate(w.host, w.api as any, [target], previewHashOf(pre));
+    return { pre, o: res.outcomes[0], placed, bodyText, hasProp: hasProp(), w, target, yields: 0 };
   };
 
   // After the pass: the stop lands on the third member's stamp, which is written after the set's properties.
@@ -457,6 +545,25 @@ section('stopped/text — a Banner set that stops part-way still fills each body
   const named = inside.placed.filter((p) => (inside.o?.content ?? []).some((l) => l.startsWith(`banner instance "${p.name}": has no "body text" property`))).length;
   ok(named === inside.placed.length && inside.o?.carriedText?.moved === 0,
     `stopped/text inside the pass named: each instance whose body could not be carried is a miss naming it, not skipped silently (${named} of ${inside.placed.length} named; ${JSON.stringify(inside.o?.carriedText?.misses.slice(0, 2))})`);
+  // #3761: the next run carries those bodies. Every member's slot is already renamed, so only a capture kept on the set
+  // can. Mutation: the capture not kept on the set (`keepCarry` a no-op) → `stopped/text inside the pass carried next run`.
+  const rerun = async (r: Awaited<ReturnType<typeof run>>) => {
+    const again = await previewUpdate(r.w.host, [r.target]);
+    const res = await applyUpdate(r.w.host, r.w.api as any, [r.target], previewHashOf(again));
+    return { again, o: res.outcomes[0], wrong: r.placed.filter((p, i) => r.bodyText(p) !== `Edited ${i + 1}`).map((p) => `${p.name}=${JSON.stringify(r.bodyText(p))}`) };
+  };
+  const next = await rerun(inside);
+  ok(!next.o?.stopped && next.wrong.length === 0 && (next.o?.carriedText?.moved ?? 0) === inside.placed.length,
+    `stopped/text inside the pass carried next run: the next run puts each instance's edited text into "body text" (${next.o?.stopped ?? 'finished'}; ${JSON.stringify(next.o?.carriedText)}; wrong: ${next.wrong.join(', ') || 'none'})`);
+  const settled = await previewUpdate(inside.w.host, [inside.target]);
+  ok(!settled.sets[0].slotTextMigration, `stopped/text converge: once carried, the next dry run has nothing left to carry (${settled.sets[0].slotTextMigration?.instances.length ?? 0})`);
+
+  // #3762, the text half: the plugin closed inside the member pass. Mutation: as above → `closed/text carried next run`.
+  const closed = await run(UPDATING_KEY + ':never', { hangAt: 3 });
+  ok(closed.yields >= 3 && !closed.hasProp, `premise: the run was closed inside its member pass, before "body text" was added (${closed.yields} yields)`);
+  const after2 = await rerun(closed);
+  ok(!after2.o?.stopped && after2.wrong.length === 0,
+    `closed/text carried next run: after a close, the next run puts each instance's edited text into "body text" (${after2.o?.stopped ?? 'finished'}; ${JSON.stringify(after2.o?.carriedText)}; wrong: ${after2.wrong.join(', ') || 'none'})`);
 }
 
 // ---- failed --------------------------------------------------------------------------------------------------------
