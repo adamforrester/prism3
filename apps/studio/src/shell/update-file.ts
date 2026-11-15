@@ -38,7 +38,8 @@
  * CLEAN UP: Prune stale, moved here with its own preview (Q668 A): the preview runs as the tab opens and writes nothing;
  * its Delete is the confirmed prune. It never rides Update. The style guide's retired tables (Q412 A) are offered here
  * too, after a run that found some. While Documentation has panels off, the usage panels drawn while it had them on are
- * offered too (#3137 Q3137.7 A): counted as the tab opens, removed on Remove, the hand-edited ones kept.
+ * offered too (#3137 Q3137.7 A): counted as the tab opens, removed on Remove, the hand-edited ones kept. Each of those
+ * two removals is its own card's button, at the card's foot (#3712 Q-UD4 A), so the dialog's foot holds Close and Delete.
  *
  * DIALOG: modal (`aria-modal`), focus into it as it opens and back to the button as it closes, by any path; Escape and a
  * click on the scrim close it; Tab stays inside (`trapTab`). A repaint keeps focus on the same control (`data-key`) and
@@ -50,7 +51,7 @@
 import { subscribe } from '../state/store';
 import type { Catalog } from '../state/component-catalog';
 import { displayNameOf, groupsOf, GROUPS_COPY, sentenceCase } from '../state/component-groups';
-import { alsoAddsOf, awaitingRead, badgeParts, blockedDueOf, blockedReason, goWhyOf, checkScopeOf, defaultTicks, dueSetsOf, themeDueOf, themeMatchesOf, newSetsOf, panelSetsOf, keptChoicesOf, keptSetsOf, libraryChangesOf, queuedOf, recheckFirst, runOrderOf, setupOfferedOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
+import { alsoAddsOf, awaitingRead, compsOpensOf, badgeParts, blockedDueOf, blockedReason, goWhyOf, checkScopeOf, defaultTicks, dueSetsOf, themeDueOf, themeMatchesOf, newSetsOf, panelSetsOf, keptChoicesOf, keptSetsOf, libraryChangesOf, queuedOf, recheckFirst, runOrderOf, setupOfferedOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
 import type { CheckedSetView } from '../write-adapter';
 import type { UpdateProgress } from '../state/host-session';
 import { armEnter, entering, focusables, glyph, h, hook, leave, pendingLabel, setBusy, trapTab } from './dom';
@@ -159,7 +160,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
    *  with the foot's progress, rather than blanking the dialog to "Checking the file…". Cleared as the overlay opens. */
   let shownFile: FileSets | null = null;
   /** #3712 (Q-UD2, direction C): Components' card as the person last folded or opened it in this opening; null while it
-   *  follows its own rule (open while it lists anything, as the mock's). */
+   *  follows its own rule (Q-UD3 A: open only while it holds a blocked or due set, `compsOpensOf`). */
   let compsOpen: boolean | null = null;
 
   const show = (): void => {
@@ -546,9 +547,9 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     // The section's last line (#3137): a version is saved before the update, Due and the panels alike.
     if (ticked.length || (t.panels && panelSets.length) || keptSets.some((id) => (t.kept.get(id) ?? 'keep') !== 'keep')) comps.append(hook(h('p', 'p3-sub p3-upd-saves', UPDATE_COPY.saves), 'update-saves'));
     if (comps.children.length > 1) {
-      // #3712 (Q-UD2, direction C): Components folds to its head row, its chip saying what is folded. It opens by itself
-      // while it lists anything (the mock's rule), and the person's fold or open holds for the opening.
-      const open = compsOpen ?? true;
+      // #3712 (Q-UD2, direction C): Components folds to its head row, its chip saying what is folded. Q-UD3 A: it opens by
+      // itself only while it holds a blocked or due set, and the person's fold or open holds for the opening.
+      const open = compsOpen ?? compsOpensOf({ blocked: blocked.length, due: updating.length });
       const chip = hook(h('span', 'p3-sg-tag', UPDATE_COPY.compsChip({ add: queue.length, due: updating.length, blocked: blocked.length, kept: keptSets.length, panels: panelSets.length && t.panels ? panelSets.length : 0 })), 'update-components-chip');
       const fold = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon p3-upd-fold'), 'update-components-fold');
       fold.type = 'button';
@@ -660,6 +661,9 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     const foot: HTMLElement[] = [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.close, close)];
     // #3712 (Q-UD2): Clean up's items are cards on the same gray as Update's steps.
     const card = (...nodes: HTMLElement[]): HTMLElement => { const c = h('section', 'p3-upd-card'); c.append(...nodes); return c; };
+    // #3712 (Q-UD4 A): Remove panels and Remove tables are each their card's own action, in a row at the card's foot, so
+    // the dialog's foot keeps two buttons (Close, Delete) on one row at 380.
+    const cardActs = (b: HTMLElement): HTMLElement => { const row = hook(h('div', 'p3-upd-cardacts'), 'clean-card-actions'); row.append(b); return row; };
     if (p.busy) body.push(card(hook(h('p', 'p3-upd-line', UPDATE_COPY.cleanChecking), 'clean-checking')));
     else if (p.preview) {
       body.push(card(hook(h('p', 'p3-upd-summary', p.preview.summary), 'clean-prune-summary')));
@@ -679,7 +683,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
         const rm = btn('p3-btn p3-btn-primary', 'clean-panels-confirm', 'panels', UPDATE_COPY.removePanels(pc.count.removable), () => lend.panelsClean(true));
         rm.disabled = !!pc.busy || !!r.off;
         if (r.off) rm.title = r.off;
-        foot.push(rm);
+        box.append(cardActs(rm));
       }
     }
     if (r.retired.length) {
@@ -691,7 +695,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       const rm = btn('p3-btn p3-btn-primary', 'clean-tables-confirm', 'tables', UPDATE_COPY.removeTables(r.retired.length), () => lend.cleanUp(r.retired.map((t) => t.id)));
       rm.disabled = r.cleanupBusy || !!r.off;
       if (r.off) rm.title = r.off;
-      foot.push(rm);
+      box.append(cardActs(rm));
     }
     return { body, foot: footOf([], foot) };
   };

@@ -3220,6 +3220,14 @@ const stopped = (e) => {
   return [lines[0], waiting, reason === waiting ? null : reason].filter(Boolean).map(cap).join(' · ');
 };
 const settle = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+/** #3712 (Q-UD3 A, 2026-11-14): Update file's Components opens by itself only while it holds a blocked or due set, so a
+ *  case that reads To add alone (a queue, or a fresh file's Add all) opens it with its chevron first. A Components
+ *  already open is left as it is. Its own rule is read by name in section ia2 (`#3712 Q-UD3 auto-open`). */
+const openComps = async (page, opts) => {
+  const fold = page.locator('[data-p3="update-components-fold"]');
+  await hooks.need(page, '[data-p3="update-components-fold"]', opts);
+  if ((await fold.getAttribute('aria-expanded')) === 'false') await hooks.click(fold, opts);
+};
 if (runs('10')) {
 const drawerState = (page) => page.evaluate(() => {
   const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; for (let x = n; x && x.nodeType === 1; x = x.parentElement) if (getComputedStyle(x).display === 'none') return false; return true; };
@@ -3935,6 +3943,7 @@ for (const host of ['web', 'figma']) {
         await openUpdate({ present: [], setUp: true, queued: ['badge', 'tag'] });
         await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
         await postMsg(page, { type: 'file-sets', present: [], setUp: true, queued: ['badge', 'tag'] });
+        await openComps(page, WAIT);
         await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
         await takeWrites(page);
         await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
@@ -3963,6 +3972,7 @@ for (const host of ['web', 'figma']) {
           await openUpdate(lacks);
           await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
           await postMsg(page, { type: 'file-sets', ...lacks });
+          await openComps(page, WAIT);
           await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
           // Owner's call on #3306's review (A): ONE "Also adds" line, so every line under the dialog is read, not the first.
           const dbAlso = await page.evaluate(() => [...document.querySelectorAll('[data-p3="update-dialog"] [data-p3="update-add-also"]')].map((n) => n.textContent));
@@ -3991,6 +4001,7 @@ for (const host of ['web', 'figma']) {
           await openUpdate(abLacks);
           await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
           await postMsg(page, { type: 'file-sets', ...abLacks });
+          await openComps(page, WAIT);
           await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
           await takeWrites(page);
           await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
@@ -4014,6 +4025,7 @@ for (const host of ['web', 'figma']) {
         await openUpdate({ present: [], setUp: false, queued: ['badge', 'tag'] });
         await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
         await postMsg(page, { type: 'file-sets', present: [], setUp: false, queued: ['badge', 'tag'] });
+        await openComps(page, WAIT);
         await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
         await takeWrites(page);
         await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
@@ -4041,6 +4053,7 @@ for (const host of ['web', 'figma']) {
         await openUpdate({ present: [], setUp: false, queued: ['badge', 'tag'] });
         await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
         await postMsg(page, { type: 'file-sets', present: [], setUp: false, queued: ['badge', 'tag'] });
+        await openComps(page, WAIT);
         await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
         await takeWrites(page);
         await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
@@ -4094,6 +4107,7 @@ for (const host of ['web', 'figma']) {
         await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
         // #3028 (#3023 Q701 B): a Theme toggle asks the file again, so answer it before the sets step is drawn.
         await postMsg(page, { type: 'file-sets', present: [], setUp: true, queued: ['badge'] });
+        await openComps(page, WAIT);
         await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
         const spT = await page.evaluate(() => ({ theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,
           sets: document.querySelectorAll('[data-p3="update-add-row"]').length }));
@@ -18953,7 +18967,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
         await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets: [plain, sets[1]] });
         await page.waitForFunction(() => !document.querySelector('[data-p3="update-library"]'), null, { timeout: 5000 }).catch(() => {});
         await read('nothing to say', []);
-        // #3712 (Q-UD2, direction C): Components opens by itself while it lists anything, and its chevron folds it to its
+        // #3712 (Q-UD2, direction C; Q-UD3 A): Components, holding two due sets, opens by itself, and its chevron folds it to its
         // head row: the title, the chip that says what is folded ("2 due", DRAFT), and the chevron, its groups gone; a
         // second click opens it again. Literals typed here. MUTATION: the fold never folds (`if (!open)` line dropped in
         // `update-file.ts`) → `#3712 Q-UD2 fold`, by name.
@@ -18971,7 +18985,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
           ok(opened.open === 'true' && opened.groups === 1 && opened.chip === '2 due'
             && JSON.stringify(folded) === JSON.stringify({ open: 'false', chip: '2 due', head: ['update-components-title', 'update-components-chip', 'update-components-fold'], groups: 0 })
             && JSON.stringify(again) === JSON.stringify(opened),
-            `${at}: #3712 Q-UD2 fold: Components opens by itself while it lists anything, folds to its head row (title, chip, chevron) and opens again (${JSON.stringify({ opened, folded, again })})`);
+            `${at}: #3712 Q-UD2 fold: Components, holding due sets, opens by itself, folds to its head row (title, chip, chevron) and opens again (${JSON.stringify({ opened, folded, again })})`);
         }
         await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets: sets.map((x) => ({ ...x, blocked: true, upToDate: false, reasons: ['fonts: Inter Bold will not load, so text could not be written'] })) });
         await page.waitForFunction(() => !!document.querySelector('[data-p3="update-go-why"]'), null, { timeout: 5000 }).catch(() => {});
@@ -18981,6 +18995,60 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
         await read('Clean up', []);
         await page.keyboard.press('Escape');
         await settle(page);
+      }
+      // #3712 (Q-UD3 A, the owner's decision of 2026-11-14): Components opens by itself only while it holds something that
+      // needs attention, a blocked or a due set; otherwise it stays folded, its chip (Q-UD2 A, approved as written) saying
+      // what it holds. Each world in a fresh opening, as the main thread posts it: due (the two due sets, checked and
+      // runnable), blocked (the same two, every one blocked), none (one set with kept edits, nothing due). Then the
+      // person's own fold holds for the opening: folded while due, it stays folded as the check blocks every set, and the
+      // next opening follows the rule again. Literals typed here. MUTATIONS: `compsOpensOf` back to "open while it lists
+      // anything" (`=> true`, `state/update-file.ts`) → `#3712 Q-UD3 auto-open: none`; `compsOpen ??` dropped in
+      // `shell/update-file.ts` (no hold) → `#3712 Q-UD3 hold`, by name.
+      {
+        const at = `IA2 ${host} ${theme} 640`;
+        step = 'Q-UD3 auto-open';
+        await page.setViewportSize({ width: 640, height: 900 });
+        await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w !== 'narrow', null, { timeout: 5000 }).catch(() => {});
+        const BLOCKED = { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets: sets.map((x) => ({ ...x, blocked: true, upToDate: false, reasons: ['fonts: Inter Bold will not load, so text could not be written'] })) };
+        const ANSWER = { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets };
+        const KEPT = { ...FILE, due: { button: { state: 'current' }, select: { state: 'current' }, tag: { state: 'kept', held: { members: 12, changes: ['border → color/interactive/primary/indicator/rest'] } }, badge: { state: 'current' } } };
+        const compsNow = () => page.evaluate(() => { const c = document.querySelector('[data-p3="update-item-components"]');
+          return { open: c?.querySelector('[data-p3="update-components-fold"]')?.getAttribute('aria-expanded') ?? null, chip: c?.querySelector('[data-p3="update-components-chip"]')?.textContent ?? null,
+            groups: c?.querySelectorAll('[data-p3^="update-group-"]').length ?? null }; });
+        const openWith = async (file, check, chip) => {
+          await page.evaluate(() => { window.__ia2.length = 0; });
+          await hooks.click(page.locator('[data-p3="update-file"]'));
+          await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+          await postMsg(page, file);
+          if (check) {
+            await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+            await postMsg(page, check);
+          }
+          await page.waitForFunction((c) => document.querySelector('[data-p3="update-components-chip"]')?.textContent === c, chip, { timeout: 5000 }).catch(() => {});
+          return compsNow();
+        };
+        const shut = async () => { await page.keyboard.press('Escape'); await settle(page); };
+        const want = { due: { open: 'true', chip: '2 due', groups: 1 }, blocked: { open: 'true', chip: '2 can’t update yet', groups: 2 }, none: { open: 'false', chip: '1 with kept edits', groups: 0 } };
+        const got = {};
+        got.due = await openWith(FILE, ANSWER, want.due.chip); await shut();
+        got.blocked = await openWith(FILE, BLOCKED, want.blocked.chip); await shut();
+        got.none = await openWith(KEPT, null, want.none.chip); await shut();
+        for (const k of ['due', 'blocked', 'none']) {
+          ok(JSON.stringify(got[k]) === JSON.stringify(want[k]),
+            `${at}: #3712 Q-UD3 auto-open: ${k}: Components ${want[k].open === 'true' ? 'opens by itself' : 'stays folded'}, its chip "${want[k].chip}" (${JSON.stringify(got[k])})`);
+        }
+        step = 'Q-UD3 hold';
+        await openWith(FILE, ANSWER, want.due.chip);
+        await hooks.click(page.locator('[data-p3="update-components-fold"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="update-components-fold"]')?.getAttribute('aria-expanded') === 'false', null, { timeout: 5000 }).catch(() => {});
+        await postMsg(page, BLOCKED);
+        await page.waitForFunction(() => document.querySelector('[data-p3="update-components-chip"]')?.textContent === '2 can’t update yet', null, { timeout: 5000 }).catch(() => {});
+        const held = await compsNow();
+        await shut();
+        const next = await openWith(FILE, BLOCKED, want.blocked.chip);
+        await shut();
+        ok(JSON.stringify(held) === JSON.stringify({ open: 'false', chip: '2 can’t update yet', groups: 0 }) && JSON.stringify(next) === JSON.stringify(want.blocked),
+          `${at}: #3712 Q-UD3 hold: the person's fold holds for the opening as the check blocks every set, and the next opening follows the rule again (${JSON.stringify({ held, next })})`);
       }
       await page.setViewportSize({ width: 1280, height: 900 });
     }
@@ -19465,6 +19533,7 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     await hooks.click(page.locator('[data-p3="update-file"]'));
     await page.waitForFunction(() => window.__q.filter((m) => m.type === 'file-sets-request').length >= 2, null, { timeout: 5000 }).catch(() => {});
     await postMsg(page, FRESH_3129);
+    await openComps(page);
     await hooks.need(page, '[data-p3="update-add-all"]');
     const fr = await page.evaluate(() => ({ line: document.querySelector('[data-p3="update-add-line"]')?.textContent ?? null, all: document.querySelector('[data-p3="update-add-all"]')?.textContent ?? null,
       under: !!document.querySelector('[data-p3="update-item-components"] [data-p3="update-group-add"] [data-p3="update-add-all"]'),
@@ -19555,6 +19624,14 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380], ['dar
     const asked = await lastOf('update-check-request');
     ok(JSON.stringify([...(asked?.defs ?? [])].sort()) === JSON.stringify([...P_SETS].sort()), `${where}: Q3137.2 A: the scoped check reads the sets with no panel (${JSON.stringify(asked?.defs)})`);
     await postMsg(page, checkOf(P_SETS));
+    // #3712 (Q-UD3 A): Components holds Usage panels alone here, nothing blocked or due, so it stays folded, its chip
+    // saying what it holds (Q-UD2 A, approved as written); the chevron opens it for the reads below.
+    await hooks.need(page, '[data-p3="update-components-fold"]');
+    const folded8 = await page.evaluate(() => ({ open: document.querySelector('[data-p3="update-components-fold"]')?.getAttribute('aria-expanded') ?? null,
+      chip: document.querySelector('[data-p3="update-components-chip"]')?.textContent ?? null, groups: document.querySelectorAll('[data-p3="update-item-components"] [data-p3^="update-group-"]').length }));
+    ok(JSON.stringify(folded8) === JSON.stringify({ open: 'false', chip: '8 usage panels', groups: 0 }),
+      `${where}: #3712 Q-UD3 A: Components holding Usage panels alone stays folded, its chip "8 usage panels" (${JSON.stringify(folded8)})`);
+    await hooks.click(page.locator('[data-p3="update-components-fold"]'));
     await hooks.need(page, '[data-p3="update-group-panels"]');
     const g = await page.evaluate(() => {
       const comps = document.querySelector('[data-p3="update-item-components"]');
@@ -19662,6 +19739,36 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380], ['dar
     await settle(page);
     const after = await page.evaluate(() => ({ summary: document.querySelector('[data-p3="clean-panels-summary"]')?.textContent ?? null, rm: !!document.querySelector('[data-p3="clean-panels-confirm"]') }));
     ok(after.summary === '2 usage panels, drawn while Docs had panels on.' && !after.rm, `${where}: after the removal, the edited panels left are named, with nothing more to remove (${JSON.stringify(after)})`);
+    // #3712 (Q-UD4 A, the owner's decision of 2026-11-14): Clean up with all three findings at once (stale items, panels
+    // to remove, retired tables), the state that drew four foot buttons whose labels clipped at 380. Remove panels and
+    // Remove tables are each their own card's button, in a row at the card's foot; the dialog's foot holds two (Close,
+    // Delete) on one row, inside the foot, no label clipped. Q-UD2's foot rule holds: no button stacked. Read at 380 and
+    // at 1280. MUTATION: Remove panels pushed back to the foot (`foot.push(rm)` for `box.append(cardActs(rm))`,
+    // `shell/update-file.ts`) → `#3712 Q-UD4 Clean up foot`, by name.
+    step = 'Clean up, panels and tables';
+    await postMsg(page, { type: 'panels-clean-result', ok: true, applied: false, drawn: 32, removable: 30, removed: 0, kept: 0 });
+    await postMsg(page, { type: 'prune-result', ok: true, applied: false, count: 12, summary: '12 stale items: 12 variables.' });
+    await postMsg(page, { type: 'style-guide-result', ok: true, lines: [], retired: [{ id: 't1', name: 'Elevation' }, { id: 't2', name: 'Opacity' }, { id: 't3', name: 'Breakpoints' }] });
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="clean-panels-confirm"]') && !!document.querySelector('[data-p3="clean-tables-confirm"]') && !!document.querySelector('[data-p3="clean-prune-confirm"]'), null, { timeout: 5000 }).catch(() => {});
+    const four = await page.evaluate(() => {
+      const foot = document.querySelector('[data-p3="update-dialog"] .p3-bardlg-foot');
+      const r = (n) => n.getBoundingClientRect();
+      const fb = [...(foot?.querySelectorAll('button') ?? [])];
+      const top = Math.min(...fb.map((b) => r(b).top));
+      const inCard = (card, b) => { const c = document.querySelector(`[data-p3="${card}"]`), x = document.querySelector(`[data-p3="${b}"]`); return !!c && !!x && x.closest('[data-p3="clean-card-actions"]')?.parentElement === c; };
+      const all = [...document.querySelectorAll('[data-p3="update-dialog"] button.p3-btn-primary, [data-p3="update-dialog"] .p3-bardlg-foot button')];
+      return { foot: fb.map((b) => b.getAttribute('data-p3')), oneRow: fb.every((b) => Math.abs(r(b).top - top) <= 1),
+        inside: !!foot && fb.every((b) => r(b).right <= r(foot).right + 0.5 && r(b).left >= r(foot).left - 0.5),
+        panels: inCard('clean-panels', 'clean-panels-confirm'), tables: inCard('clean-tables', 'clean-tables-confirm'),
+        labels: [document.querySelector('[data-p3="clean-panels-confirm"]')?.textContent ?? null, document.querySelector('[data-p3="clean-tables-confirm"]')?.textContent ?? null],
+        clipped: all.filter((b) => b.scrollWidth > b.clientWidth + 0.5).map((b) => b.getAttribute('data-p3')) };
+    });
+    ok(JSON.stringify(four.foot) === JSON.stringify(['update-cancel', 'clean-prune-confirm']) && four.oneRow && four.inside && four.panels && four.tables
+      && JSON.stringify(four.labels) === JSON.stringify(['Remove 30 panels', 'Remove 3 tables']) && four.clipped.length === 0,
+      `${where}: #3712 Q-UD4 Clean up foot: with stale items, panels and tables, the foot holds two buttons (Close, Delete) on one row, and Remove panels and Remove tables are each their card's own button, none clipped (${JSON.stringify(four)})`);
+    // The panels' count put back as the removal left it, which the Documentation step below reads.
+    await postMsg(page, { type: 'panels-clean-result', ok: true, applied: true, drawn: 2, removable: 0, removed: 30, kept: 2 });
+    await settle(page);
     await page.keyboard.press('Escape');
     step = 'panels off: Documentation';
     await hooks.click(page.locator('[data-p3="rail-documentation"]'));
@@ -20314,6 +20421,7 @@ const runUpdate3326 = async (page, sets, narrow) => {
   // #3422: on a set-up file with nothing measured, Theme opens unticked, so untick it only when it is ticked.
   if ((await page.locator('[data-p3="update-check-theme"]').getAttribute('aria-checked')) === 'true') await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
   await postMsg(page, { type: 'file-sets', ...sets });
+  await openComps(page, WAIT);
   await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
   await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
   await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
