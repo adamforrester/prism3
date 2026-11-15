@@ -240,7 +240,14 @@
         "Contrast results"
       ],
       "sources": [
-        "packages/engine/theme.ts",
+        "packages/engine/theme-brand.ts",
+        "packages/engine/theme-color.ts",
+        "packages/engine/theme-type.ts",
+        "packages/engine/theme-dims.ts",
+        "packages/engine/theme-shadow.ts",
+        "packages/engine/theme-motion.ts",
+        "packages/engine/theme-layout.ts",
+        "packages/engine/theme-gradient.ts",
         "packages/engine/tree.ts",
         "packages/engine/modes.ts",
         "packages/engine/emit-dtcg.ts",
