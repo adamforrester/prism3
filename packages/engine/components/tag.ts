@@ -186,6 +186,9 @@ export const tag: ComponentDef = {
   // is what is left once the inset is taken off, never below 0 and never floored itself.
   visibleGaps: [{ gap: 'size.{size}.dismissible.gap', visible: 'size.{size}.dismissible.visible-gap', inset: 'size.{size}.dismissible.label-inset' }],
 
+  // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
+  levers: { tagStyle: { frame: 'container', row: 'content', labelRow: 'labelCheck', slot: 'dismiss' } },
+
   tokens: {
     // Geometry. `radius.round` (the pill) keeps the tag off Button's `radius.md` rectangle, which an outlined
     // neutral tag would otherwise match edge for edge, and off the status badge's `radius.sm`; it is the

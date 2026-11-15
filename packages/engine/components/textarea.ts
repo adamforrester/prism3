@@ -197,6 +197,9 @@ export const textarea: ComponentDef = {
   //     the same `color.border.danger` paints either node. The anatomy below puts the stroke on the
   //     `control` box that wraps the text, which is the container reading; `notes.unverified` keeps
   //     the code-side half.
+  // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
+  levers: { controlShape: { squares: ['radius.sm'] }, fieldStyle: { frame: 'control' } },
+
   tokens: {
     'fill': 'color.field.fill',
     // No hover wash (#2926, text-field's): hover is the border alone, `border.hover` below.

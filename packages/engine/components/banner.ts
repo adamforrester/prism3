@@ -100,6 +100,9 @@ export const banner: ComponentDef = {
 
   paintKeys: ['{tone}.{slot}', '{slot}'],
 
+  // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
+  levers: { bannerStyle: { fills: ['info.fill', 'success.fill', 'warning.fill', 'danger.fill', 'neutral.fill'] } },
+
   tokens: {
     // ── PAINT per tone (Q327: subtle only, a full 1px border in the tone). The border is the BORDER role (Q346).
     // The brand's Banner style (#2924) moves the fills only: `applyBannerStyle` binds `color.background.primary` at Outlined.

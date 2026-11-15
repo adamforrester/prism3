@@ -10,8 +10,8 @@ export { fieldMessage } from './components/field-message';
 export { densitySpacingKeys, validateComponentDef } from './component-schema';
 export type { ComponentDef, PartDef, PartOfKind } from './component-schema';
 export {
-  BANNER_STYLE_FILL_KEYS, CANVAS_FURNITURE, DEFAULT_BUTTON_LAYOUT, DEFAULT_WEIGHT_AVAILABILITY,
-  DIALOG_TITLE_TYPE_KEYS, FIELD_FRAME_PARTS, SWAP_NO_PROPERTY, SWAP_PLACEHOLDER, TAG_STYLE_PARTS, applyBannerStyle,
+  CANVAS_FURNITURE, DEFAULT_BUTTON_LAYOUT, DEFAULT_WEIGHT_AVAILABILITY,
+  SWAP_NO_PROPERTY, SWAP_PLACEHOLDER, applyBannerStyle,
   applyButtonLayout, applyControlShape, applyCurrentIndicator, applyDialogTitleSize, applyFieldStyle,
   applyMinWidthRatio, applyNestItemPrefers, applyNestOverrides, applyOutlineInteraction, applySpacingDensity,
   applyTagStyle, applyWeightIntent, checkAnatomySet, fieldStyleFor, figmaAnatomyMembers, figmaAnatomyPlan,

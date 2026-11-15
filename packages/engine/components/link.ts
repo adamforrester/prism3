@@ -122,6 +122,9 @@ export const link: ComponentDef = {
   paintKeys: ['{slot}.{selection}.{state}', '{slot}.{state}', '{slot}'],
   densitySpacing: ['size.{size}.gap'],
 
+  // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
+  levers: { currentIndicator: { bar: 'bar' } },
+
   tokens: {
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset',

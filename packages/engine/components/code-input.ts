@@ -96,6 +96,9 @@ export const codeInputCell: ComponentDef = {
   paintKeys: ['{status}.{slot}.{state}', '{slot}.{state}', '{slot}'],
   typeWeight: { group: 'title', intent: 'bold' },
 
+  // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
+  levers: { fieldStyle: { frame: 'container' } },
+
   tokens: {
     // ── GEOMETRY ───────────────────────────────────────────────────────────────────────────────────────────
     // The x-large cell's corner (as-built wireframe): a 6px corner on the 68×72 display cell, 2px on the others.
