@@ -41264,7 +41264,7 @@ arm: {
       ['text-field', { controlShape: { squares: ['radius sm'] } }, "levers.controlShape.squares names 'radius sm', which is not a token ref"],
       ['tag', { tagStyle: { frame: 'container', row: 'content', labelRow: 'labelCheck', slot: 'gone' } }, "levers.tagStyle.slot names 'gone', which is not a declared anatomy part"],
       ['tag', { buttonLabelWeight: { labels: false as unknown as true } }, 'levers.buttonLabelWeight.labels must be true when set'],
-      ['dialog', { buttonLabelWeight: { labels: true } }, 'levers.buttonLabelWeight needs a size axis'],
+      ['banner', { buttonLabelWeight: { labels: true } }, 'levers.buttonLabelWeight needs a size axis'],
       ['dialog', { dialogTitleSize: { titleType: 'no-such-key' } }, "levers.dialogTitleSize.titleType names 'no-such-key', which is not a bound tokens key"],
       ['banner', { bannerStyle: { fills: ['info.fill', 'nope.fill'] } }, "levers.bannerStyle.fills names 'nope.fill', which is not a bound tokens key"],
       ['link', { currentIndicator: { bar: 'label' } }, "levers.currentIndicator.bar names 'label'"],
