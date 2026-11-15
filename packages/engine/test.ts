@@ -41267,6 +41267,12 @@ arm: {
     const withLevers = componentDefs.filter((d) => d.levers);
     const bad = withLevers.flatMap((d) => validateComponentDef(d).errors.filter((e) => e.startsWith('levers')).map((e) => `${d.id}: ${e}`));
     ok(withLevers.length >= 18 && bad.length === 0, `#3698 R5 levers: the ${withLevers.length} shipped defs carrying levers validate (${bad.join(' | ') || 'clean'})`);
+    // #3787: each `controlShape.squares` ref is BOUND on the authored def, so Boxed and Hairline reach it. The validator
+    // checks only that each reads as a ref, because a materialized def has already rebound them (its header says why);
+    // `componentDefs` is the registry as authored, before any materializer, so here a typo'd ref fails by def and ref.
+    const squaring = componentDefs.filter((d) => d.levers?.controlShape);
+    const unbound = squaring.flatMap((d) => (d.levers!.controlShape!.squares ?? []).filter((r) => !Object.values(d.tokens).includes(r)).map((r) => `${d.id}: ${r}`));
+    ok(squaring.length >= 6 && unbound.length === 0, `#3787 levers: every authored def's controlShape.squares ref is a value one of its tokens binds, so Boxed and Hairline reach it (${squaring.length} defs; unbound: ${unbound.join(' | ') || 'none'})`);
     // The reach of each setting, typed: the defs that carry each entry (was the eight tables in anatomy-figma.ts).
     const REACH: Record<string, string[]> = {
       controlShape: ['card-number-field', 'checkbox-control', 'password-field', 'search-field', 'select', 'text-field', 'textarea'],
