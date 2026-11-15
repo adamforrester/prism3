@@ -35,6 +35,8 @@
  *               members it reached, and, for Banner, every edited body, from the capture kept on the set.
  *   closed after/… #3762 — closed after the set's write but before its fill: the set is not up to date, and the next
  *               run fills it without writing a member.
+ *   kept/…      #3796 review B1, B2 — a capture too large to keep, or refused by the host, carries in memory and is
+ *               named, and the run goes on; an entry this version can't read is ignored, named and cleared.
  *   failed/…    #3697 L1 — a throw after the set's write (its fill) returns the set's outcome and why the run ended.
  *   dialog/…    #2661 — the footer's two fixed Buttons move into a nested Button.Group's slot, which holds the same two by
  *               default: a designer's changed labels land on those defaults in order, an unchanged instance is left
@@ -59,6 +61,11 @@
  *     `stopped/text inside the pass carried next run`, `closed/text carried next run`;
  *   · the kept capture never narrowed after a fill (`only` ignored) → `closed/converge`;
  *   · a kept carry not counted as work (`carryDue` false) → `closed after/due`, `closed after/carried`.
+ *   · the size bound dropped from `keepCarry` → `kept/too large not written`, `kept/too large named`;
+ *   · the try around `keepCarry`'s write dropped → `kept/refused run completes`, `kept/refused filled`, `kept/refused named`;
+ *   · the kept entry's validation back to `Array.isArray(instances)` → `kept/malformed preview (…)`, `kept/malformed apply (…)`,
+ *     `kept/malformed up to date`, `kept/malformed text read`;
+ *   · the apply's clear of an unreadable entry dropped → `kept/malformed cleared alone`.
  */
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, type ComponentDef, type PartDef, componentDefs } from '@prism3/engine/components';
 import { COMPONENT_RENAMES, slotMigrationOf } from '@prism3/engine';
@@ -69,6 +76,7 @@ import { previewUpdate, previewVerdict, setUpToDate, type UpdateTarget } from '.
 import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost } from './src/update-apply';
 import { captureSlotMigration, fillSlots, migrationLines, type MigNode } from './src/slot-migration';
 import { slotMigrationFor } from './src/update-plan';
+import { CARRY_MAX_BYTES, keepCarry, readCarry } from './src/slot-carry';
 import { UPDATING_KEY } from './src/member-baseline';
 import { materializeForBrand } from './src/brand-def';
 
@@ -331,6 +339,8 @@ section('carry — a Checkbox group instance with five visible rows becomes five
   const again = await previewUpdate(w.host, [target]);
   ok(!again.sets[0].slotMigration && again.sets[0].counts.current === again.sets[0].counts.members,
     `converge/checkbox: the next dry run has nothing to carry and every member reads current (${JSON.stringify(again.sets[0].counts)})`);
+  const rawRows = (w.set().getSharedPluginData as (ns: string, k: string) => string)('prism3', 'slotCarry');
+  ok(rawRows === '', `converge/no kept capture: a finished run leaves no capture on the set (${rawRows.length} chars)`);
   ok(again.sets[0].properties.remove.length === 0,
     `converge/booleans gone: the next dry run has no property left to remove (${again.sets[0].properties.remove.map((p) => p.name).join(', ')})`);
 }
@@ -452,6 +462,32 @@ section('closed after the write — a set closed after its write but before its 
   ok(setUpToDate(settled.sets[0]), `closed after/settled: once filled, the set reads up to date (${JSON.stringify(settled.sets[0].counts)})`);
 }
 
+section('kept/edges — a kept instance gone from the file, and a row component the host can\'t find, are named misses (#3796 review)');
+{
+  // The review's proofs D and E, folded in. Modelled as `closed after`: every instance comes from the kept capture, plus
+  // one whose instance was deleted since, and the host finds no row component by id.
+  const target: UpdateTarget = { def: 'checkbox-group', plans: figmaAnatomySet(defOf('checkbox-group'), { swapTarget: SWAP_TARGET }) };
+  const w = await world(LEGACY['checkbox-group'](), target.plans);
+  const members = w.set().children as Node[];
+  const placed = members.map((m, i) => w.put(place(`Edge ${i + 1}`, m, w.set(), {}, { row1: { props: { 'Label#1:0': `Email ${i + 1}` } } }), m));
+  const pre = await previewUpdate(w.host, [target]);
+  await applyUpdate(w.host, w.api as any, [target], previewHashOf(pre));
+  const cap = pre.sets[0].slotMigration!;
+  const gone = { ...cap.instances[0], id: 'GONE:1', name: 'Gone' };
+  (w.set().setSharedPluginData as (ns: string, k: string, v: string) => void)('prism3', 'slotCarry', JSON.stringify({ ...cap, instances: [...cap.instances, gone] }));
+  for (const p of placed) slotOf(p)?.children.splice(0);
+  const blind = { ...(w.host as object), getNodeByIdAsync: async () => null } as unknown as ApplyHost;
+  let threw = '', res: Awaited<ReturnType<typeof applyUpdate>> | null = null;
+  try { const due = await previewUpdate(blind, [target]); res = await applyUpdate(blind, w.api as any, [target], previewHashOf(due)); } catch (e) { threw = (e as Error).message; }
+  const content = res?.outcomes[0]?.content ?? [];
+  ok(!threw && content.includes('checkbox-group instance "Gone": no longer in the file'),
+    `kept/edges gone: a kept instance no longer in the file is a named miss, not a throw (${threw || JSON.stringify(content.filter((l) => l.includes('Gone')))})`);
+  const notMade = placed.filter((p) => content.includes(`checkbox-group instance "${p.name}": row1 -> NOT MADE (its component can't be instanced here)`)).length;
+  ok(notMade === placed.length, `kept/edges no component: a kept row whose component the host can't find is named NOT MADE (${notMade} of ${placed.length})`);
+  const left = (w.set().getSharedPluginData as (ns: string, k: string) => string)('prism3', 'slotCarry');
+  ok(left === '', `kept/edges removed: once tried, the kept entry is removed, so the misses are not repeated every run (${left.length} chars left)`);
+}
+
 // ---- stopped, slot text (#3225) ------------------------------------------------------------------------------------
 
 section('stopped/text — a Banner set that stops part-way still fills each body whose properties exist, and names the rest (#3697 H1)');
@@ -539,6 +575,9 @@ section('stopped/text — a Banner set that stops part-way still fills each body
   ok(wrong.length === 0 && after.o?.carriedText?.moved === after.placed.length && after.o.carriedText.misses.length === 0,
     `stopped/text after the pass filled: every instance's edited text is in "body text" and its old slot copy cleared (${JSON.stringify(after.o?.carriedText)}; wrong: ${wrong.join(', ') || 'none'})`);
 
+  const rawText = (after.w.set().getSharedPluginData as (ns: string, k: string) => string)('prism3', 'slotTextCarry');
+  ok(rawText === '', `stopped/text after the pass keeps nothing: every body filled, so no capture is left on the set (${rawText.length} chars)`);
+
   // Inside the pass: the stop lands on the third member's in-progress mark, before the set has any of the new properties.
   const inside = await run(UPDATING_KEY);
   ok(!!inside.o?.stopped && !inside.hasProp, `premise: the set stopped inside its member pass, before "body text" was added (${inside.o?.stopped})`);
@@ -564,6 +603,143 @@ section('stopped/text — a Banner set that stops part-way still fills each body
   const after2 = await rerun(closed);
   ok(!after2.o?.stopped && after2.wrong.length === 0,
     `closed/text carried next run: after a close, the next run puts each instance's edited text into "body text" (${after2.o?.stopped ?? 'finished'}; ${JSON.stringify(after2.o?.carriedText)}; wrong: ${after2.wrong.join(', ') || 'none'})`);
+}
+
+// ---- kept: the size bound and a malformed entry (#3796 review B1, B2) -------------------------------------------------
+
+section('kept/bound — a capture too large to keep, or one the host refuses, carries in memory and the run goes on (#3796 review B1)');
+{
+  // Figma refuses a plugin-data entry over 100 kB. The keep is written before the set's write, so an unguarded refusal
+  // stopped that set and every set after it on every run, where main carried in memory. Mutations: the size check
+  // dropped → `kept/too large named`, `kept/too large not written`; the try around the write dropped →
+  // `kept/refused run completes`, `kept/refused filled`, `kept/refused named`.
+  const target: UpdateTarget = { def: 'checkbox-group', plans: figmaAnatomySet(defOf('checkbox-group'), { swapTarget: SWAP_TARGET }) };
+  const labelsOf = (inst: Placed): unknown[] => (slotOf(inst)?.children ?? []).map((x) => (x.componentProperties as Record<string, { value: Val }>)['Label#1:0']?.value);
+  const setUp = async (label: (i: number) => string) => {
+    const w = await world(LEGACY['checkbox-group'](), target.plans);
+    const placed = (w.set().children as Node[]).map((m, i) => w.put(place(`Big ${i + 1}`, m, w.set(), {}, { row1: { props: { 'Label#1:0': label(i) } } }), m));
+    return { w, placed };
+  };
+  const raw = (w: Awaited<ReturnType<typeof world>>): string => (w.set().getSharedPluginData as (ns: string, k: string) => string)('prism3', 'slotCarry');
+
+  // Too large: each instance's label alone is 20 000 characters, so the capture is far over the bound.
+  const big = await setUp((i) => `${i + 1}`.padEnd(20_000, 'x'));
+  const writes: number[] = [];
+  const realSet = big.w.set().setSharedPluginData as (ns: string, k: string, v: string) => void;
+  (big.w.set() as Record<string, unknown>).setSharedPluginData = (ns: string, k: string, v: string) => { if (k === 'slotCarry') writes.push(v.length); realSet.call(big.w.set(), ns, k, v); };
+  const preBig = await previewUpdate(big.w.host, [target]);
+  const resBig = await applyUpdate(big.w.host, big.w.api as any, [target], previewHashOf(preBig));
+  const oBig = resBig.outcomes[0];
+  const wrongBig = big.placed.filter((p, i) => labelsOf(p)[0] !== `${i + 1}`.padEnd(20_000, 'x')).map((p) => p.name);
+  ok(!resBig.failed && !!oBig && !oBig.stopped && wrongBig.length === 0,
+    `kept/too large run completes: the run finishes and fills every instance in memory (${resBig.failed ?? 'finished'}; wrong: ${wrongBig.join(', ') || 'none'})`);
+  ok(!writes.some((n) => n > CARRY_MAX_BYTES) && raw(big.w) === '',
+    `kept/too large not written: no write over the bound reaches the host, and the set keeps no entry (${JSON.stringify(writes)})`);
+  const vBig = applyVerdict(resBig);
+  ok(oBig?.unkept?.length === 1 && oBig.unkept[0].kind === 'rows' && !oBig.unkept[0].refused && oBig.unkept[0].bytes > CARRY_MAX_BYTES
+    && vBig.lines.some((l) => l.startsWith('checkbox-group: its placed instances\' slot content is too large to save on the set (') && l.endsWith('so only this run carries it.')),
+    `kept/too large named: the set's outcome names the capture it carried in memory only (${JSON.stringify(oBig?.unkept)}; ${vBig.lines.filter((l) => l.includes('too large')).join(' | ')})`);
+
+  // Refused: the host throws on any non-empty slotCarry write, as Figma does over its own limit (proof G, scaled).
+  const ref = await setUp((i) => `Email ${i + 1}`);
+  const realRef = ref.w.set().setSharedPluginData as (ns: string, k: string, v: string) => void;
+  (ref.w.set() as Record<string, unknown>).setSharedPluginData = (ns: string, k: string, v: string) => { if (k === 'slotCarry' && v) throw new Error('plugin data too large'); realRef.call(ref.w.set(), ns, k, v); };
+  const preRef = await previewUpdate(ref.w.host, [target]);
+  let resRef: Awaited<ReturnType<typeof applyUpdate>> | null = null, threw = '';
+  try { resRef = await applyUpdate(ref.w.host, ref.w.api as any, [target], previewHashOf(preRef)); } catch (e) { threw = (e as Error).message; }
+  ok(!!resRef && !threw && !resRef.failed && resRef.outcomes.length === 1 && !resRef.outcomes[0].stopped,
+    `kept/refused run completes: a refused keep neither throws nor ends the run (${threw || resRef?.failed || `${resRef?.outcomes.length} outcome(s)`})`);
+  const wrongRef = ref.placed.filter((p, i) => labelsOf(p)[0] !== `Email ${i + 1}`).map((p) => p.name);
+  ok(wrongRef.length === 0, `kept/refused filled: every instance is filled from the in-memory capture (${ref.placed.length - wrongRef.length}/${ref.placed.length})`);
+  const oRef = resRef?.outcomes[0];
+  const vRef = resRef ? applyVerdict(resRef) : null;
+  ok(oRef?.unkept?.[0]?.refused === 'plugin data too large'
+    && !!vRef?.lines.includes('checkbox-group: Figma refused to save its placed instances\' slot content on the set (plugin data too large), so only this run carries it.'),
+    `kept/refused named: the set's outcome names the refusal and that only this run carried it (${JSON.stringify(oRef?.unkept)})`);
+  const settled = await previewUpdate(ref.w.host, [target]);
+  ok(setUpToDate(settled.sets[0]), `kept/refused settles: the next dry run reads the set up to date (${JSON.stringify(settled.sets[0].counts)})`);
+
+  // The write itself, directly: never throws, and a capture over the bound is not written.
+  const calls: string[] = [];
+  const node = { setSharedPluginData: (_ns: string, _k: string, v: string) => { calls.push(v); if (v) throw new Error('refused'); } };
+  const cap = { slot: 'items', instances: [{ id: 'I:1', name: 'x', page: '', member: '', rows: [], hidden: [], lost: [] }] };
+  let u: ReturnType<typeof keepCarry> = null, threwDirect = '';
+  try { u = keepCarry(node, 'rows', cap); } catch (e) { threwDirect = (e as Error).message; }
+  ok(!threwDirect && u?.refused === 'refused' && calls.at(-1) === '', `kept/refused direct: a refused write is caught, reported and the entry cleared (${threwDirect || JSON.stringify(u)}; ${JSON.stringify(calls.map((c) => c.length))})`);
+}
+
+section('kept/malformed — an entry this version can\'t read is ignored, named, and cleared by the set\'s next write (#3796 review B2)');
+{
+  // `keptCarry` checked only that `instances` was an array, so `{"instances":[null]}` threw inside `previewUpdate`, outside
+  // `applyUpdate`'s #3697 L1 catch, and nothing cleared it. Mutation: the validation back to `Array.isArray(instances)` →
+  // `kept/malformed preview` and `kept/malformed apply` for the null, no-rows and wrong-typed cases.
+  const target: UpdateTarget = { def: 'checkbox-group', plans: figmaAnatomySet(defOf('checkbox-group'), { swapTarget: SWAP_TARGET }) };
+  const good = { id: 'I:9', name: 'Old', page: 'Designs', member: 'm', rows: [], hidden: [], lost: [] };
+  const CASES: [string, string][] = [
+    ['unparsable', '{"instances":[{'],
+    ['null instance', '{"slot":"items","instances":[null]}'],
+    ['no rows', JSON.stringify({ slot: 'items', instances: [{ ...good, rows: undefined }] })],
+    ['wrong-typed id', JSON.stringify({ slot: 'items', instances: [{ ...good, id: 9 }] })],
+    ['null row', JSON.stringify({ slot: 'items', instances: [{ ...good, rows: [null] }] })],
+    ['wrong-typed row main', JSON.stringify({ slot: 'items', instances: [{ ...good, rows: [{ row: 'row1', main: { id: 1 }, props: {}, exposed: [] }] }] })],
+  ];
+  for (const [what, bad] of CASES) {
+    const w = await world(LEGACY['checkbox-group'](), target.plans);
+    const members = w.set().children as Node[];
+    const placed = members.map((m, i) => w.put(place(`Mal ${i + 1}`, m, w.set(), {}, { row1: { props: { 'Label#1:0': `Email ${i + 1}` } } }), m));
+    (w.set().setSharedPluginData as (ns: string, k: string, v: string) => void)('prism3', 'slotCarry', bad);
+    let pre: Awaited<ReturnType<typeof previewUpdate>> | null = null, threw = '';
+    try { pre = await previewUpdate(w.host, [target]); } catch (e) { threw = (e as Error).message; }
+    let lines: string[] = [];
+    try { lines = pre ? previewVerdict(pre).lines : []; } catch (e) { threw ||= (e as Error).message; }
+    const named = lines.includes('checkbox-group: slot content saved by an earlier update can\'t be read, so this update ignores it. The set\'s next update clears it.');
+    ok(!!pre && !threw && named && JSON.stringify(pre.sets[0].carryUnreadable) === '["rows"]' && pre.sets[0].slotMigration?.instances.length === placed.length,
+      `kept/malformed preview (${what}): the dry run doesn't throw, names the entry, and reads the instances afresh (${threw || `${pre?.sets[0].slotMigration?.instances.length} read; named ${named}`})`);
+    if (!pre) continue;
+    let res: Awaited<ReturnType<typeof applyUpdate>> | null = null;
+    try { res = await applyUpdate(w.host, w.api as any, [target], previewHashOf(pre)); } catch (e) { threw = (e as Error).message; }
+    const wrong = placed.filter((p, i) => (slotOf(p)?.children ?? []).map((x) => (x.componentProperties as Record<string, { value: Val }>)['Label#1:0']?.value)[0] !== `Email ${i + 1}`).length;
+    const left = (w.set().getSharedPluginData as (ns: string, k: string) => string)('prism3', 'slotCarry');
+    ok(!!res && !threw && !res.failed && wrong === 0 && left === '',
+      `kept/malformed apply (${what}): the apply doesn't throw, carries every instance and clears the entry (${threw || res?.failed || `${wrong} wrong; ${left.length} chars left`})`);
+  }
+
+  // A malformed entry of a kind this set has nothing to carry for (a text entry on a Checkbox group): the set's write
+  // clears it all the same. Mutation: the apply's clear of an unreadable entry dropped → `kept/malformed cleared alone`.
+  {
+    const w = await world(LEGACY['checkbox-group'](), target.plans);
+    const m0 = (w.set().children as Node[])[0];
+    w.put(place('Alone', m0, w.set(), {}, { row1: { props: { 'Label#1:0': 'Email' } } }), m0);
+    (w.set().setSharedPluginData as (ns: string, k: string, v: string) => void)('prism3', 'slotTextCarry', '{"instances":[null]}');
+    const pre = await previewUpdate(w.host, [target]);
+    const res = await applyUpdate(w.host, w.api as any, [target], previewHashOf(pre));
+    const left = (w.set().getSharedPluginData as (ns: string, k: string) => string)('prism3', 'slotTextCarry');
+    ok(JSON.stringify(pre.sets[0].carryUnreadable) === '["text"]' && !res.failed && left === '',
+      `kept/malformed cleared alone: an unreadable entry with nothing of its kind to carry is cleared by the set's write (${JSON.stringify(pre.sets[0].carryUnreadable)}; ${res.failed ?? 'finished'}; ${left.length} chars left)`);
+    // On a set already up to date (proof H): the dry run and the apply read it without a throw, and it stays up to date.
+    (w.set().setSharedPluginData as (ns: string, k: string, v: string) => void)('prism3', 'slotCarry', '{"instances":[null]}');
+    let threw = '', again: Awaited<ReturnType<typeof previewUpdate>> | null = null, res2: Awaited<ReturnType<typeof applyUpdate>> | null = null;
+    try { again = await previewUpdate(w.host, [target]); res2 = await applyUpdate(w.host, w.api as any, [target], previewHashOf(again)); } catch (e) { threw = (e as Error).message; }
+    ok(!threw && !!again && setUpToDate(again.sets[0]) && JSON.stringify(again.sets[0].carryUnreadable) === '["rows"]' && !res2?.failed,
+      `kept/malformed up to date: on an up-to-date set the dry run and the apply don't throw, and the set still reads up to date (${threw || JSON.stringify(again?.sets[0].counts)})`);
+  }
+
+  // The read itself, for both kinds, every field: a wrong type anywhere is unreadable, never a throw.
+  const at = (v: string) => ({ getSharedPluginData: () => v });
+  const t0 = { id: 'T:1', name: 'b', page: '', member: '', case: { kind: 'move', characters: 'Hi' } };
+  const text = (inst: unknown, top: Record<string, unknown> = {}) => JSON.stringify({ slot: 'body', property: 'body text', show: 'rich body', hide: 'body', instances: [inst], ...top });
+  const TEXT: [string, string, boolean][] = [
+    ['valid', text(t0), true],
+    ['null instance', text(null), false],
+    ['unknown case', text({ ...t0, case: { kind: 'other' } }), false],
+    ['characters a number', text({ ...t0, case: { kind: 'move', characters: 3 } }), false],
+    ['rich without layers', text({ ...t0, case: { kind: 'rich' } }), false],
+    ['property missing', text(t0, { property: undefined }), false],
+    ['nested not true', text({ ...t0, nested: 'yes' }), false],
+    ['unparsable', '{', false],
+  ];
+  const wrongText = TEXT.filter(([, v, readable]) => { try { const r = readCarry(at(v), 'text'); return readable ? !r.capture || r.unreadable : !!r.capture || !r.unreadable; } catch { return true; } }).map(([n]) => n);
+  ok(wrongText.length === 0, `kept/malformed text read: every text field is checked, and a bad one reads as unreadable, never a throw (wrong: ${wrongText.join(', ') || 'none'})`);
 }
 
 // ---- failed --------------------------------------------------------------------------------------------------------

@@ -19,5 +19,18 @@ does: nothing after the pass runs. `test-slot-migration.ts` gains `closed/…`, 
 false) each fail by name. A row's component is looked up by id (`getNodeByIdAsync`) when it comes from a kept capture,
 since its layer is gone; one the host cannot find is a named "NOT MADE" miss.
 
+**Bounded and validated (#3796 review B1, B2).** Figma refuses a plugin-data entry over 100 kB, and a capture costs
+about 720 B per placed instance for a three-row Checkbox group and about 145 B for Banner's text, so about 125 placed
+instances of one set reach the 90 kB bound (`CARRY_MAX_BYTES`). `keepCarry` never throws: a capture over the bound, or
+one the host refuses, clears the entry, that set carries in memory only for the run (as before), and its outcome names it
+(`unkept`). A kept entry is checked field by field before use (`readCarry`): one this version can't read is ignored,
+named in the dry run (`carryUnreadable`), and cleared by the set's next write, never a throw in the dry run or the apply.
+Splitting the capture across entries was weighed and not taken: it adds a manifest and a torn state (a close between
+chunk writes) for a case the in-memory fallback covers as well as the plugin ever did. `test-slot-migration.ts` gains
+`kept/…` (83/83), and four mutations fail by name (bound dropped, try dropped, validation weakened, the clear dropped).
+
+**One thing to know.** After a close, the next run's refill of a reached instance replaces anything put into that
+instance's slot by hand between the two runs. That is the recovery working as meant, not a loss of the carried content.
+
 **Not in this PR.** The members a close left read as hand-edited on the next check (filed separately). No executor file
 changes, so `EXECUTOR_REVISION` stays 59 (`lint-executor-revision` confirms).

@@ -63,7 +63,7 @@ import { isLiveSpecPanel, readSpecTag } from './spec-tag';
 import { REACTIONS, nestedFirst, breakingClause, breaksConsumers, nestedMemberFaults, nestFaultLine, breakingSection, furnitureParts, withSetSlots, hostPorts, locateSets, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, renamedComponent, runHost, setUpToDate, carryDue, slotMigrationFor, slotTextMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
 import { fillSlotText, type SlotTextOutcome, type TextMigNode } from './slot-text-migration';
-import { keepCarry } from './slot-carry';
+import { keepCarry, readCarry, unkeptLine, type CarryKind, type CarryUnkept } from './slot-carry';
 import { saveVersion } from './version-title';
 import type { Held, Ledger, LedgerEntry } from './as-built-ledger';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText } from './reactions';
@@ -180,6 +180,9 @@ export type SetOutcome = {
   /** #2831 — what this update broke for library consumers, as its dry run listed it (`breakingOf`). Absent for a set
    *  that is not published, or where nothing broke. */
   breaking?: Breaking[];
+  /** #3796 review B1 — the slot carries this set could not keep on itself (too large, or refused by the host), so this
+   *  run carried them in memory only. Absent when none. */
+  unkept?: CarryUnkept[];
 };
 
 export type ApplyResult = {
@@ -1033,12 +1036,18 @@ export const applyUpdate = async (
     const tmig = p.slotTextMigration ? await slotTextMigrationFor(t, fresh as unknown as TextMigNode, opts.ledger, opts.breathe) : null;
     // #3761, #3762: THE CAPTURE IS KEPT ON THE SET BEFORE THE SET IS WRITTEN, so a close or a stop that keeps the fill
     // from reaching an instance leaves its content for the next run to fill (`slot-carry.ts`). Narrowed after each fill.
+    // #3796 review B1: a keep that is too large or refused never stops the run: that set carries in memory, as before.
     const own = (m: { instances: { id: string; nested?: true }[] }): Set<string> => new Set(m.instances.filter((c) => !c.nested).map((c) => c.id));
-    if (mig) keepCarry(fresh, 'rows', mig.migration, own(mig.migration));
-    if (tmig) keepCarry(fresh, 'text', tmig.migration, own(tmig.migration));
+    const unkept: CarryUnkept[] = [];
+    const note = (u: CarryUnkept | null): void => { if (u && !unkept.some((x) => x.kind === u.kind)) unkept.push(u); };
+    if (mig) note(keepCarry(fresh, 'rows', mig.migration, own(mig.migration)));
+    if (tmig) note(keepCarry(fresh, 'text', tmig.migration, own(tmig.migration)));
+    // #3796 review B2: an entry this version can't read, with nothing of its kind to carry, is cleared by this write.
+    for (const k of ['rows', 'text'] as CarryKind[]) if (!(k === 'rows' ? mig : tmig) && readCarry(fresh, k).unreadable) keepCarry(fresh, k, null);
     const o = carryOnly ? { def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [] } as SetOutcome : await applySet(host, api, t, p, fresh, { description: opts.descriptionOf?.(t.def), yieldTo: opts.yieldTo, chunk: opts.chunk, handEdits: choiceFor(opts.choices, p.set), noBaseline: noRecordFor(opts.choices, p.set), ledger: opts.ledger });
     // Kept as soon as the set's write returns (#3697 L1), so a throw in its fill below still reports what was written.
     res.outcomes.push(o);
+    if (unkept.length) o.unkept = unkept;
     if (p.furniture && !o.refused && !o.stopped) o.furniture = p.furniture;
     // #2831: the confirm names what it broke for library consumers, as the check listed it.
     if (p.breaking && !o.refused && !o.stopped) o.breaking = p.breaking;
@@ -1049,7 +1058,8 @@ export const applyUpdate = async (
     if (mig && entry && !o.refused) {
       o.carried = await fillSlots(p.set, entry, mig.live, mig.migration, opts.breathe, !!o.stopped);
       o.content.push(...o.carried.misses);
-      keepCarry(fresh, 'rows', mig.migration, new Set(o.carried.pending));
+      note(keepCarry(fresh, 'rows', mig.migration, new Set(o.carried.pending)));
+      if (unkept.length) o.unkept = unkept;
     }
     const tentry = slotTextMigrationOf(t.def, opts.ledger);
     // #3697 H1, the slot-text half: a stopped set fills too. Its properties are the set's, so an instance either has them
@@ -1058,7 +1068,8 @@ export const applyUpdate = async (
       // The slot's layer may be renamed in this same update (its `part` entry), so the fill finds it by its new name.
       o.carriedText = await fillSlotText(p.set, tentry, partRenames(t.def, opts.ledger).get(tentry.slot) ?? tentry.slot, tmig.live, tmig.migration, opts.breathe);
       o.content.push(...o.carriedText.misses);
-      keepCarry(fresh, 'text', tmig.migration, new Set(o.carriedText.pending));
+      note(keepCarry(fresh, 'text', tmig.migration, new Set(o.carriedText.pending)));
+      if (unkept.length) o.unkept = unkept;
     }
     // #3177: the members this set gained are on its page (a single-component def's, on its components' pages); the
     // run's next lookup reads them anew.
@@ -1178,6 +1189,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
   const causes: Cause[] = [];
   for (const o of r.outcomes) {
     if (o.refused) { lines.push(`${o.set}: not updated. ${o.refused}.`); causes.push(cause('bad', o.def, CAUSE_WHAT.notUpdated, [`${o.refused}.`])); continue; }
+    // #3796 review B1 (DRAFT wording): a slot carry this run could not keep on the set, so it carried it in memory only.
+    for (const u of o.unkept ?? []) lines.push(unkeptLine(o.set, u));
     if (o.stopped) {
       causes.push(cause('bad', o.def, CAUSE_WHAT.stopped, [o.stopped]));
       lines.push(`${o.set}: stopped (${o.stopped}). ${n(o.updated.length, 'member')} updated; the rest are unchanged and still read as out of date. Run the update again to finish, or undo once to revert it.`);

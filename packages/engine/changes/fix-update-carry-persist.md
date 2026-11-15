@@ -7,4 +7,6 @@ set's shared plugin data; the next run's capture reads them back for every insta
 entry is narrowed after each fill and removed once empty. A Banner set that stops inside its member pass, or any carrying
 set the plugin is closed in, no longer loses the content of the instances it reached: the next run carries it. A set whose
 only work left is a kept carry (closed after its write, before its fill) reads as not up to date, and its fills run with no
-member written. Plugin only; no committed artifact moves.
+member written. Plugin only; no committed artifact moves. The kept capture is bounded (90 kB): one too large, or refused by the host, carries in
+memory for that run as before and is named in the set's outcome, and the run goes on. A kept entry this version can't
+read is ignored, named in the dry run and cleared by the set's next write.
