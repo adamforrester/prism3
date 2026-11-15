@@ -27,7 +27,7 @@ import { FOCUS_EDGE_DEFAULT_NOTE, FOCUS_EDGE_STATUS_NOTE, makeTextField } from '
 
 export const passwordField: ComponentDef = makeTextField({
   id: 'password-field',
-  levers: { fieldStyle: { frame: 'control' } },
+  levers: { controlShape: { squares: ['radius.sm'] }, fieldStyle: { frame: 'control' } },
   name: 'PasswordField',
   aliases: ['password-input', 'password'],
   summary: 'Password field: a text field with a Show button on its label row that reveals the characters.',
