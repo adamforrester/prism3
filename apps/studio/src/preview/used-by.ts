@@ -119,9 +119,6 @@ export const USED_BY = {
       "radius.capsule": [
         "Progress"
       ],
-      "radius.lg": [
-        "CodeInput"
-      ],
       "radius.md": [
         "WalletButton",
         "SignInButton",
@@ -142,7 +139,8 @@ export const USED_BY = {
         "PasswordField",
         "SearchField",
         "CardNumberField",
-        "Banner"
+        "Banner",
+        "CodeInput"
       ],
       "radius.round": [
         "IconButton",
@@ -158,8 +156,7 @@ export const USED_BY = {
         "ProviderLogo",
         "Badge",
         "SegmentedControl",
-        "Counter",
-        "CodeInput"
+        "Counter"
       ],
       "radius.xl": [
         "Toast"
@@ -181,9 +178,7 @@ export const USED_BY = {
         "Select",
         "PasswordField",
         "SearchField",
-        "CardNumberField"
-      ],
-      "radius.lg": [
+        "CardNumberField",
         "CodeInput"
       ],
       "radius.md": [
@@ -213,8 +208,7 @@ export const USED_BY = {
         "ProviderLogo",
         "Badge",
         "SegmentedControl",
-        "Counter",
-        "CodeInput"
+        "Counter"
       ],
       "radius.xl": [
         "Toast"

@@ -930,6 +930,12 @@ jobs:
       - name: The Figma projection keys on no def id (#3698)
         run: npx tsx packages/engine/lint-projector-def-ids.ts
 
+      # #3765 — the controlShape lever's description says it shapes buttons, fields and checkboxes. Against a typed
+      # family table and claim (never `ComponentDef.levers`), fails by name when a claimed def misses its corner, the
+      # lever reaches a def outside the claim, a def binding a corner is unclassified, or the description over-claims.
+      - name: Control shape reaches what its description says (#3765)
+        run: npx tsx packages/engine/lint-control-shape-reach.ts
+
       # #1123 — the mutation battery for the CLAUDE.md-freshness SessionStart report (#1110), the one
       # `tools/` harness wired into CI. It is NAMED FOR THE DETECTOR, never for this tree, because
       # docs/34 shape 17 is explicit that a stale checkout is internally consistent — nothing running

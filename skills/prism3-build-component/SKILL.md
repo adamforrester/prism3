@@ -681,7 +681,7 @@ Each entry names only the parts and keys that setting rewrites, and the validato
 
 | Setting | Entry on the def | Today on |
 |---|---|---|
-| `controlShape` (Boxed, Hairline) | `{ squares: ['radius.sm'] }`: the corner refs squared beyond the pill-able `radius.md` | the fields, Checkbox |
+| `controlShape` (Boxed, Hairline) | `{ squares: ['radius.sm'] }`: the corner refs squared beyond the pill-able `radius.md` | the fields (Code input's cell included), Checkbox |
 | `fieldStyle` | `{ frame: 'control' }`, the box Underline redraws; add `setting: 'searchFieldStyle'` to follow the Search field style | the seven field defs |
 | `tagStyle` | `{ frame, row, labelRow, slot }`, the four parts Underline reaches | Tag |
 | `buttonLabelWeight` | `{ labels: true }`: "Control label weight" reaches a def outside the button family, rebinding each size's label type | Tag |
@@ -783,6 +783,7 @@ so a new def fails by name until you add it — or, for a floor list, stays unco
 | `lint-paint` admissions | a paint key whose ref legitimately does not carry its axis value in `PROVENANCE_EXCEPTIONS`; an axis whose values are not color families in `NON_FAMILY_AXES`; a bound paint key no projected coordinate reaches in `UNREACHED_EXPLAINED`. Each needs a reason and fails as stale when it stops applying. |
 | `packages/engine/test.ts`, field and gap floors | a def whose `densitySpacing` names a gap in `GAP_KEYS`; a def with an error, warning or success status in `SH_DEFS` (or `SH_EXEMPT` with the reason); a def with a read-only member in `RO_PINNED`. A def missing from these fails. |
 | `packages/engine/test.ts` | nothing for the brief: `KB_BRIEF_CATEGORY` is derived from `schema/kb-briefs.json` (refresh it if the brief is new). A def with a `presentWhen` part in `GATED_EXPECTED`, and a def binding a `size.<size>.control`, `dot` or `track` key in `CONTROL_DEFS`: both are exact-equality lists. |
+| `lint-control-shape-reach` | a def that binds a corner: a button, field or checkbox in `FAMILIES` (it then follows Control shape, so give it `levers.controlShape`), a def on an open question in `HELD`, anything else in `OUTSIDE_REASON` with the reason. A def in none fails by name (#3765). |
 | `apps/plugin/src/file-taxonomy.ts` | the def on a page in `TAXONOMY` (§3). |
 
 `lint-naming` needs no entry either: its rules (§6) apply to every registered def, so a new def that

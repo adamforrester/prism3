@@ -1352,6 +1352,11 @@ npx tsx packages/engine/lint-projector-def-ids.ts   # the Figma projection keys 
                                                     # no def-id lookup and no def-id-keyed table in
                                                     # anatomy-figma.ts outside a typed allowlist; a
                                                     # component's style reach is `levers` on its def.
+npx tsx packages/engine/lint-control-shape-reach.ts # Control shape reaches what its description says
+                                                    # (#3765): each button, field and checkbox takes the
+                                                    # claimed corner under every shape and field style,
+                                                    # nothing outside moves, and the description claims
+                                                    # no family or corner the typed claim does not hold.
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR but one
