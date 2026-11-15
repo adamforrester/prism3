@@ -157,6 +157,11 @@ const NOT_EN_GB = new Set([
   // `-yse` over-catches (#1463): the plural NOUNS of `-lysis` are en-US, and `lyse` is en-US biology.
   'analyses', 'paralyses', 'catalyses', 'dialyses', 'hydrolyses', 'electrolyses', 'psychoanalyses',
   'lyse', 'lysed', 'lyses', 'lysing',
+  'revising', // en-US `revise` + `-ing`; the other forms were already here (first shipped in the 0.238.0 release notes)
+  // A JSON `\n` escape runs into the next word, so `\nraises` reads as `nraises` (the 0.238.0 release notes' `.json`,
+  // which carries each folded note verbatim, line breaks included). The word after the escape is still checked alone
+  // wherever it is not glued to an escape, so these hide no en-GB spelling.
+  'nraises', 'notherwise',
 ]);
 // The ONE place either regex is applied. `scan()` (real files) and SELF_CHECK (samples) both drive
 // this, and that sharing is load-bearing — the exact opposite of the DRY trap, because here the two
@@ -174,8 +179,13 @@ const NOT_EN_GB = new Set([
 // (SELF_CHECK in `lint-us-english.ts` samples both). Each entry must stay a tracked file; a rename to en-US
 // spelling makes its entry stale, and `lint-us-english.ts` fails on a stale one.
 export const EN_GB_FILE_NAMES = ['packages/engine/materialise-to-figma.ts'];
+// BRANCH SLUGS spelled en-GB, the same identifier carve-out as a file name: a fold carries each change note into the
+// release notes under its slug, which is the branch name, and the notes cannot be edited (`lint-release-notes.ts`
+// re-derives them from git). Masked as the WHOLE slug, so the word in prose is still caught. Each entry must stay a
+// `slug` in some `docs/public/releases/*.json`; `lint-us-english.ts` fails on a stale one.
+export const EN_GB_SLUGS = ['claude-3186-centring'];
 const maskFileNames = (txt: string): string =>
-  EN_GB_FILE_NAMES.reduce((t, f) => t.split(f).join(' '.repeat(f.length)), txt);
+  [...EN_GB_FILE_NAMES, ...EN_GB_SLUGS].reduce((t, f) => t.split(f).join(' '.repeat(f.length)), txt);
 export const enGb = (raw: string): { word: string; index: number }[] => {
   const txt = maskFileNames(raw);
   const found: { word: string; index: number }[] = [];
