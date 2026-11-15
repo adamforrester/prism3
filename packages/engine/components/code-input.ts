@@ -97,7 +97,9 @@ export const codeInputCell: ComponentDef = {
   typeWeight: { group: 'title', intent: 'bold' },
 
   // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
-  levers: { fieldStyle: { frame: 'container' } },
+  // Control shape (#3765, owner Q-CS1 A): a field, so Boxed and Hairline square its corner at every size, the x-large
+  // cell's `radius.lg` with the rest. Pill keeps its own corner, as every field does.
+  levers: { controlShape: { squares: ['radius.sm', 'radius.lg'] }, fieldStyle: { frame: 'container' } },
 
   tokens: {
     // ── GEOMETRY ───────────────────────────────────────────────────────────────────────────────────────────
