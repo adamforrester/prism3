@@ -66,6 +66,8 @@ export const USED_BY = {
       ],
       "radius.capsule": [
         "Button",
+        "WalletButton",
+        "SignInButton",
         "IconButton",
         "Progress"
       ],
@@ -73,8 +75,6 @@ export const USED_BY = {
         "CodeInput"
       ],
       "radius.md": [
-        "WalletButton",
-        "SignInButton",
         "SegmentedControl",
         "Pagination",
         "Banner"
@@ -120,14 +120,14 @@ export const USED_BY = {
         "Progress"
       ],
       "radius.md": [
-        "WalletButton",
-        "SignInButton",
         "SegmentedControl",
         "Pagination",
         "Banner"
       ],
       "radius.none": [
         "Button",
+        "WalletButton",
+        "SignInButton",
         "IconButton",
         "FlushIconButton",
         "TextField",
@@ -171,6 +171,8 @@ export const USED_BY = {
       ],
       "radius.hairline": [
         "Button",
+        "WalletButton",
+        "SignInButton",
         "IconButton",
         "TextField",
         "Textarea",
@@ -182,8 +184,6 @@ export const USED_BY = {
         "CodeInput"
       ],
       "radius.md": [
-        "WalletButton",
-        "SignInButton",
         "SegmentedControl",
         "Pagination",
         "Banner"

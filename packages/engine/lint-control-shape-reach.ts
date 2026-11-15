@@ -13,7 +13,10 @@
  *              Reported by def, member, part, the corner it binds and the corner claimed.
  *   OUTSIDE    a def classified outside every claimed family moves its corner under some shape: the lever reaches
  *              past what the description says.
- *   HELD       a def held on an open question (`HELD`) moved. Whoever answered the question moves it into its family.
+ *   NOT-CLAIMED  a def a claimed noun could be read to cover, which the owner decided it does not (`NOT_CLAIMED`), moved
+ *              its corner under some shape.
+ *   CLAMP      a Google Pay wallet member's corner passes half its height under some shape × density, and the def's
+ *              code does not clamp it to min(radius, height / 2): the provider's rule, typed here, is broken.
  *   UNCLASSIFIED  a def binds a corner and is in no table here, so nobody has said whether Control shape reaches it.
  *   OVERCLAIM  the description states a claim the typed expectation does not hold: a family it names that is not
  *              claimed, or a shape × family it gives a corner the expectation does not.
@@ -26,7 +29,8 @@
  * INDEPENDENCE (docs/34). Two SUBJECTS: the description string in `leverManifest`, and what the production
  * materializer (`brandMaterializer`, the export's chain) projects for each def under each Control shape × Field style.
  * The REFERENCE is typed here and read from neither: which def is a button, a field or a checkbox (`FAMILIES`), which
- * corner each shape gives each family (`CLAIM`), and the defs deliberately outside (`OUTSIDE_REASON`). Nothing here
+ * corner each shape gives each family (`CLAIM`), the defs a claimed noun does not cover by decision (`NOT_CLAIMED`), the
+ * defs deliberately outside (`OUTSIDE_REASON`), and Google Pay's half-height corner rule. Nothing here
  * reads `ComponentDef.levers`, the table the reach is built from: a gate that read it would agree with any reach.
  *
  * "OWN" means the def's corner under Rounded, the identity: Rounded follows radius softness, so the corner a def binds
@@ -41,6 +45,9 @@ import { figmaAnatomySet, planComponentName, type FigmaNodePlan } from './anatom
 import { brandMaterializer } from './component-defs-export';
 import { leverManifest } from './levers';
 import { MINIMAL_BRAND } from './token-contract';
+import { brandTheme } from './theme';
+import { buildTree } from './tree';
+import { codeOnlyText } from './code-only-register';
 import type { BrandInput } from './theme';
 import type { ComponentDef } from './component-schema';
 
@@ -55,7 +62,8 @@ const FIELD_STYLES = ['outline', 'underline'] as const;
 /** The defs in each claimed family, typed here. A def nested inside another (a row's checkbox, a field's label) is
  *  reached through the def it nests, so only the def that draws the corner is listed. */
 const FAMILIES: Record<Family, readonly string[]> = {
-  buttons: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral'],
+  // The provider buttons are buttons for Control shape (owner Q-CS3 A, #3765): they follow every shape, as Button does.
+  buttons: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'wallet-button', 'sign-in-button'],
   fields: ['text-field', 'textarea', 'select', 'search-field', 'card-number-field', 'password-field', 'code-input-cell'],
   checkboxes: ['checkbox-control'],
 };
@@ -70,12 +78,18 @@ const CLAIM: Record<Shape, Record<Family, Corner>> = {
 /** "An underline field has no corners": under Underline every field binds this, whatever the shape. */
 const UNDERLINE_FIELD_CORNER = 'radius/none';
 
-/** Defs a claimed noun could cover, held on an open question. Each must stay as it is until the question is answered. */
-const HELD: Record<string, { family: Family; question: string }> = {
-  'wallet-button': { family: 'buttons', question: 'Q-CS3 on the #3765 PR: do the provider buttons follow Control shape?' },
-  'sign-in-button': { family: 'buttons', question: 'Q-CS3 on the #3765 PR: do the provider buttons follow Control shape?' },
-  'counter': { family: 'fields', question: 'Q-CS4 on the #3765 PR: is the outline Counter a field for Control shape?' },
+/** Defs a claimed noun could be read to cover, decided NOT to be in that family: each keeps its corner under every shape.
+ *  Distinct from `OUTSIDE_REASON` because the description's noun reaches toward it, so the decision is recorded by noun. */
+const NOT_CLAIMED: Record<string, { family: Family; decision: string }> = {
+  // Q-CS4 B (#3765, 2026-11-15): it draws the field's box but takes no Field style, and its value is not typed.
+  'counter': { family: 'fields', decision: 'owner Q-CS4 B: the outline Counter is not a field for Control shape, so it keeps radius.sm' },
 };
+
+/** Google Pay's corner rule, typed from the provider (its button element: the radius runs from 0 to a maximum set by the
+ *  height, 20 at the default 40): at most half the height. The wallet def's `google-pay` members must hold it under every
+ *  shape, in the design file's bound corner or by the code's clamp. */
+const HALF_HEIGHT_CORNER = { def: 'wallet-button', coord: 'provider', value: 'google-pay', clamp: /Google Pay/, clampRule: /min\(radius, height \/ 2\)/ } as const;
+const DENSITIES = ['compact', 'comfortable', 'spacious'] as const;
 
 /** Defs that bind a corner Control shape must not move, each with why. */
 const OUTSIDE_REASON: Record<string, string> = {
@@ -187,7 +201,7 @@ export const run = (description: string): { errors: string[]; counts: Record<str
     if (!ids.length) errors.push(`REPRESENTED: the ${f} family is empty`);
     for (const id of ids) note(id, `FAMILIES.${f}`);
   }
-  for (const id of Object.keys(HELD)) note(id, 'HELD');
+  for (const id of Object.keys(NOT_CLAIMED)) note(id, 'NOT_CLAIMED');
   for (const id of Object.keys(OUTSIDE_REASON)) note(id, 'OUTSIDE_REASON');
   const offered = leverManifest.find((l) => l.key === 'controlShape')?.options?.map((o) => String(o.value)) ?? [];
   for (const v of offered) if (!(SHAPES as readonly string[]).includes(v)) errors.push(`REPRESENTED: Control shape offers '${v}', which has no claim here`);
@@ -213,7 +227,7 @@ export const run = (description: string): { errors: string[]; counts: Record<str
   for (const [f, c] of read.underline) if (f !== 'fields' || c !== UNDERLINE_FIELD_CORNER) errors.push(`OVERCLAIM: the description gives underline ${f} ${c}`);
 
   // The projection against the typed claim.
-  const counts = { defs: 0, families: 0, held: 0, outside: 0, bindings: 0 };
+  const counts = { defs: 0, families: 0, notClaimed: 0, outside: 0, bindings: 0, clamped: 0 };
   const familyOf = new Map<string, Family>(Object.entries(FAMILIES).flatMap(([f, ids]) => ids.map((id) => [id, f as Family] as const)));
   for (const def of componentDefs) {
     const own = corners(def, 'rounded', 'outline');
@@ -223,7 +237,7 @@ export const run = (description: string): { errors: string[]; counts: Record<str
     counts.defs++;
     if (!classified.has(def.id)) { errors.push(`UNCLASSIFIED: ${def.id} binds a corner (${[...new Set(own.values())].join(', ')}) and no table here says whether Control shape reaches it`); continue; }
     if (fam && !own.size) { errors.push(`REPRESENTED: ${def.id} (${fam}) binds no corner`); continue; }
-    if (fam) counts.families++; else if (HELD[def.id]) counts.held++; else counts.outside++;
+    if (fam) counts.families++; else if (NOT_CLAIMED[def.id]) counts.notClaimed++; else counts.outside++;
     for (const fs of FIELD_STYLES) for (const s of SHAPES) {
       const got = corners(def, s, fs);
       const base = fs === 'outline' ? own : ownUnder;
@@ -242,13 +256,42 @@ export const run = (description: string): { errors: string[]; counts: Record<str
       }
       for (const [key, { first, n }] of wrong) {
         const [what, want] = key.split('|');
-        const tag = fam ? 'REACH' : HELD[def.id] ? 'HELD' : 'OUTSIDE';
-        const why = fam ? `claimed ${want}` : HELD[def.id] ? `held at ${want} on ${HELD[def.id].question}` : `outside (${OUTSIDE_REASON[def.id]}), so it stays ${want}`;
+        const nc = NOT_CLAIMED[def.id];
+        const tag = fam ? 'REACH' : nc ? 'NOT-CLAIMED' : 'OUTSIDE';
+        const why = fam ? `claimed ${want}` : nc ? `not claimed by ${nc.family} (${nc.decision}), so it stays ${want}` : `outside (${OUTSIDE_REASON[def.id]}), so it stays ${want}`;
         errors.push(`${tag}: ${def.id}${fam ? ` (${fam})` : ''} under ${s} × ${fs}: ${what}, ${why} (${n} corner binding${n === 1 ? '' : 's'}, first at ${first})`);
       }
     }
-    // "An underline field has no corners": every field, held ones included, binds none under Underline.
+    // "An underline field has no corners": every field binds none under Underline.
     if (fam === 'fields') for (const [k, v] of ownUnder) if (v !== UNDERLINE_FIELD_CORNER) errors.push(`REACH: ${def.id} (fields) under underline: ${k} binds ${v}, claimed ${UNDERLINE_FIELD_CORNER}`);
+  }
+  // Google Pay's half-height corner, under every shape × density: the bound corner's px is at most half the bound
+  // height's, or the def's code clamps it (min(radius, height / 2)). Figma caps a drawn corner at half the height too,
+  // so the code's clamp is what the customer's button needs.
+  const gp = byId.get(HALF_HEIGHT_CORNER.def);
+  if (!gp) errors.push(`REPRESENTED: the Google Pay clamp names '${HALF_HEIGHT_CORNER.def}', which is not a registered def`);
+  else {
+    const clamped = (codeOnlyText(gp.anatomy?.codeOnly) ?? []).some((c) => HALF_HEIGHT_CORNER.clamp.test(c) && HALF_HEIGHT_CORNER.clampRule.test(c));
+    let members = 0;
+    for (const s of SHAPES) for (const density of DENSITIES) {
+      const input = { ...MINIMAL_BRAND, controlShape: s, density } as BrandInput;
+      const t = buildTree(brandTheme(input)).tree as Record<string, unknown>;
+      const root = t[Object.keys(t)[0]];
+      const px = (v: string | undefined): number => (v ? (v.split('/').reduce((n: any, k) => n?.[k], root) as any)?.$extensions?.prism3?.px ?? NaN : NaN);
+      const over: string[] = [];
+      for (const plan of figmaAnatomySet(brandMaterializer(input)(gp))) {
+        if (String(plan.coord[HALF_HEIGHT_CORNER.coord]) !== HALF_HEIGHT_CORNER.value) continue;
+        members++;
+        const h = px(plan.root.bound?.height as string | undefined);
+        const m = new Map<string, string>();
+        cornersOf(plan.root, '', m);
+        const rs = [...m].filter(([k]) => !k.includes('/')).map(([, v]) => [v, px(v)] as const);
+        if (!Number.isFinite(h) || !rs.length || rs.some(([, r]) => !Number.isFinite(r))) { errors.push(`REPRESENTED: ${planComponentName(plan)} under ${s} × ${density}: its corner or height has no px (${JSON.stringify(rs)}, height ${h})`); continue; }
+        for (const [v, r] of rs) if (r > h / 2) over.push(`${planComponentName(plan)} binds ${v} (${r}px) over half its height (${h / 2}px)`);
+      }
+      if (over.length) { counts.clamped += over.length; if (!clamped) errors.push(`CLAMP: Google Pay under ${s} × ${density}: ${over[0]}${over.length > 1 ? ` and ${over.length - 1} more` : ''}, and ${HALF_HEIGHT_CORNER.def}'s code does not clamp it to min(radius, height / 2)`); }
+    }
+    if (!members) errors.push(`REPRESENTED: ${HALF_HEIGHT_CORNER.def} has no ${HALF_HEIGHT_CORNER.value} member to hold the clamp on`);
   }
   return { errors, counts };
 };
@@ -284,7 +327,7 @@ const main = (): void => {
     for (const e2 of errors) console.error(`  ${e2}`);
     process.exit(1);
   }
-  console.log(`✓ lint-control-shape-reach: the description's ${Object.values(FAMILIES).length} families × ${SHAPES.length} shapes × ${FIELD_STYLES.length} field styles hold on ${counts.families} family defs; ${counts.held} held, ${counts.outside} outside and unmoved; ${counts.bindings} corner bindings compared; the reader's self-check reads its planted prose exactly.`);
+  console.log(`✓ lint-control-shape-reach: the description's ${Object.values(FAMILIES).length} families × ${SHAPES.length} shapes × ${FIELD_STYLES.length} field styles hold on ${counts.families} family defs; ${counts.notClaimed} not claimed and ${counts.outside} outside, all unmoved; ${counts.bindings} corner bindings compared; Google Pay's corner is at most half its height under every shape × density, by the code's clamp at ${counts.clamped} member × brand(s) where the bound corner passes it; the reader's self-check reads its planted prose exactly.`);
 };
 
 main();

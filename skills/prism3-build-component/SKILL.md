@@ -682,6 +682,7 @@ Each entry names only the parts and keys that setting rewrites, and the validato
 | Setting | Entry on the def | Today on |
 |---|---|---|
 | `controlShape` (Boxed, Hairline) | `{ squares: ['radius.sm'] }`: the corner refs squared beyond the pill-able `radius.md` | the fields (Code input's cell included), Checkbox |
+| `controlShape` (all three shapes) | not a `levers` entry: the `pill-radius` key in the anatomy's `derived` block makes a def pill-able, so Pill, Boxed and Hairline repoint its `radius.md` (`isPillable`). Check the provider's corner rules first, and clamp in `codeOnly` where one caps the corner | Button, Icon button, Wallet button (Google Pay clamped to half the height), Sign-in button |
 | `fieldStyle` | `{ frame: 'control' }`, the box Underline redraws; add `setting: 'searchFieldStyle'` to follow the Search field style | the seven field defs |
 | `tagStyle` | `{ frame, row, labelRow, slot }`, the four parts Underline reaches | Tag |
 | `buttonLabelWeight` | `{ labels: true }`: "Control label weight" reaches a def outside the button family, rebinding each size's label type | Tag |
@@ -783,7 +784,7 @@ so a new def fails by name until you add it — or, for a floor list, stays unco
 | `lint-paint` admissions | a paint key whose ref legitimately does not carry its axis value in `PROVENANCE_EXCEPTIONS`; an axis whose values are not color families in `NON_FAMILY_AXES`; a bound paint key no projected coordinate reaches in `UNREACHED_EXPLAINED`. Each needs a reason and fails as stale when it stops applying. |
 | `packages/engine/test.ts`, field and gap floors | a def whose `densitySpacing` names a gap in `GAP_KEYS`; a def with an error, warning or success status in `SH_DEFS` (or `SH_EXEMPT` with the reason); a def with a read-only member in `RO_PINNED`. A def missing from these fails. |
 | `packages/engine/test.ts` | nothing for the brief: `KB_BRIEF_CATEGORY` is derived from `schema/kb-briefs.json` (refresh it if the brief is new). A def with a `presentWhen` part in `GATED_EXPECTED`, and a def binding a `size.<size>.control`, `dot` or `track` key in `CONTROL_DEFS`: both are exact-equality lists. |
-| `lint-control-shape-reach` | a def that binds a corner: a button, field or checkbox in `FAMILIES` (it then follows Control shape, so give it `levers.controlShape`), a def on an open question in `HELD`, anything else in `OUTSIDE_REASON` with the reason. A def in none fails by name (#3765). |
+| `lint-control-shape-reach` | a def that binds a corner: a button, field or checkbox in `FAMILIES` (it then follows Control shape, so give it `levers.controlShape`), a def a claimed noun could be read to cover but the owner ruled out in `NOT_CLAIMED` with the decision (Counter, Q-CS4 B), anything else in `OUTSIDE_REASON` with the reason. Google Pay's wallet corner is held to half the height under every shape (a CLAMP failure names it). A def in none fails by name (#3765). |
 | `apps/plugin/src/file-taxonomy.ts` | the def on a page in `TAXONOMY` (§3). |
 
 `lint-naming` needs no entry either: its rules (§6) apply to every registered def, so a new def that

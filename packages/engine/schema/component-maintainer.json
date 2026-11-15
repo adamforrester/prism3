@@ -683,7 +683,7 @@
         {
           "class": "live-geometry",
           "disposition": "LOWERED",
-          "description": "the corner — Google Pay allows a radius of at most half the button's height, so the component passes min(radius, height / 2) as its buttonRadius. A soft brand's radius can pass half of a small or compact button. Apple Pay, PayPal and Shop Pay take the brand radius as it is."
+          "description": "the corner — Google Pay allows a radius of at most half the button's height, so the component passes min(radius, height / 2) as its buttonRadius, under every Control shape. A soft brand's radius can pass half of a small or compact button, and Pill's radius.capsule always does, so under Pill Google Pay is a capsule at exactly half its height. Apple Pay, PayPal and Shop Pay take the brand radius as it is, square or capsule."
         },
         {
           "class": "responsive-layout",

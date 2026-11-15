@@ -14,7 +14,8 @@
  * them as a `literal` record keyed by provider × style, and the container (`literal: 'surface'`) and the label
  * (`literal: 'label'`) read it. The provider's fill never changes; hover and pressed lay a wash over it (Q-S6 A).
  * Prism3's tokens still drive the height, the padding and gap (Apple and Facebook), the brand's label type (Apple and
- * Facebook, Q-S7 A), the radius (`radius.md`, Q-S12 A), the 140 width floor and the focus ring.
+ * Facebook, Q-S7 A), the radius (`radius.md`, Q-S12 A, which Control shape repoints like Button's, Q-CS3 A), the 140
+ * width floor and the focus ring.
  *
  * ALL EIGHT PAIRS SHIP, 96 MEMBERS (Q831 A, superseding Q-S5 A's wait for artwork). Each style's glyph is in the mark
  * set: `provider/apple` and `provider/facebook` (black since #3134), `provider/google`, and `provider/facebook-blue`,
@@ -228,6 +229,15 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
           note: 'The provider\'s wording, in the provider\'s label color. Google\'s label is set in Google\'s own typeface; Apple\'s and Facebook\'s in the theme\'s label style.',
         },
         focusRing: focusRingPart('The shared focus ring, outside the provider\'s button while it has keyboard focus.'),
+      },
+      derived: {
+        // Q-CS3 A (#3765): Control shape reaches this button as it reaches Button. This key opts it in (`isPillable`):
+        // Pill repoints `radius.md` to `radius.capsule`, Boxed to `radius.none`, Hairline to `radius.hairline`. No provider
+        // forbids any of them (read 2026-11-15): Apple's HIG, "you can change the corner radius to produce a button with
+        // square corners or a capsule-shape button", and for a custom button "a corner radius value that matches the other
+        // buttons in your UI"; Google's branding guidelines offer Rectangular and Pill and leave a custom button's boundary
+        // to Material; Facebook's login guidelines set no corner. So no provider is clamped.
+        'pill-radius': 'height ÷ 2 under Pill — a literal radius token would be wrong at more than one height',
       },
       codeOnly: [
       {
