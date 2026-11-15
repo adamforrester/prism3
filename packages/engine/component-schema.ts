@@ -428,7 +428,8 @@ export type PartFields = {
    *  whose length its parent does not fix, because a parent hugging one child is exactly as long as the
    *  child and every alignment lands in the same place. */
   width?: string;
-  /** For `text` parts: the binding key giving the composite type style. */
+  /** The binding key giving the composite type style. `text` only (#3698 Q-PU2 A): the projector reads it only on a
+   *  text part, and only a TEXT node takes a text style — a frame or an instance has no `setTextStyleIdAsync` (#3783). */
   type?: string;
   /** For `text` parts: WHICH ink slot this part asks the paint grammar for. Defaults to `label`,
    *  which is what every text part in the corpus but one wants (#796).
@@ -1451,14 +1452,13 @@ export type PartFields = {
 // 'X' but declares 'f'`) or through a field it requires (`footShare` needs `foot`, a box field; `slotSettings` needs
 // `contentSlot`). A field the validator never refuses by kind is in `PartBaseKey`, admitted everywhere. #3698 Q-PU1 A
 // tightened the documented-kind ones the projector reads on their own kinds alone: `radius` is a box's, `replaces` and
-// `overlaysWhenAbsent` an overlay's, `when` an overlay's and an absolute's, and `children` a box's (the validator's
-// `KIND_ONLY` table says why, field by field). `type` stays open: `figmaAnatomyPlan` reads it on every kind, an owner
-// decision filed on that PR. The per-kind refusals in `anatomyErrors` stay — a def reaching the engine from JSON is
+// `overlaysWhenAbsent` an overlay's, `when` an overlay's and an absolute's, and `children` a box's; #3698 Q-PU2 A made
+// `type` a text part's (the validator's `KIND_ONLY` table says why, field by field). The per-kind refusals in `anatomyErrors` stay — a def reaching the engine from JSON is
 // not typechecked. `lint-part-union.ts` proves the union bites.
 
 /** Fields every kind admits: the validator refuses none of them by kind. `role`, `optional` and `note` say nothing a
- *  projection builds from per kind; `type` is read on every kind (#3698 Q-PU1, held for the owner). */
-export type PartBaseKey = 'role' | 'optional' | 'note' | 'type';
+ *  projection builds from per kind. */
+export type PartBaseKey = 'role' | 'optional' | 'note';
 
 /** A kind's part: its `kind`, the base fields, the fields `F` it admits, and every other field `never`. */
 type PartOf<K extends PartKind, F extends Exclude<keyof PartFields, 'kind' | PartBaseKey>> =
@@ -1473,7 +1473,7 @@ export type BoxKey =
   | 'builtSize' | 'elevation' | 'radiusEdges' | 'minHeight' | 'minWidthKey' | 'minWidthRatio' | 'flush' | 'center'
   | 'aspectRatio' | 'foot' | 'footShare';
 export type TextKey =
-  | 'innerTarget' | 'size' | 'presentWhen' | 'positionWhen' | 'literal' | 'paintSlot'
+  | 'innerTarget' | 'size' | 'presentWhen' | 'positionWhen' | 'literal' | 'paintSlot' | 'type'
   | 'verticalAlign' | 'wrap' | 'lines' | 'characters';
 export type SlotKey =
   | 'innerTarget' | 'size' | 'presentWhen' | 'positionWhen' | 'height' | 'aspectLock' | 'fixedPaint' | 'nesting'
@@ -4827,21 +4827,24 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     }
   }
 
-  // ---- THE DOCUMENTED-KIND FIELDS (#3698, owner decision Q-PU1 A) ----
+  // ---- THE DOCUMENTED-KIND FIELDS (#3698, owner decisions Q-PU1 A and Q-PU2 A) ----
   // Each field below was documented for some kinds and refused on none, so a part of any other kind validated clean
   // carrying it, and no projection reads it there. The kinds are the projector's: `radius` is bound only in the `box`
   // branch of `figmaAnatomyPlan`; `replaces` and `overlaysWhenAbsent` only off the active overlay, found by
   // `kind === 'overlay'`; `when` only by the overlay lookup and the `absolute` presence rule; and `children` builds a
   // subtree only under a FRAME, which only a `box` becomes — a TEXT node holds no children, and a slot or overlay is
   // an INSTANCE, which Figma refuses an append into. `absolute`, `nest` and `vector` children keep their own refusals
-  // above and below, so `children` is asked here only of the three kinds that had none. The union under `PartFields`
-  // says the same at the type layer, and `lint-part-union` proves it does.
-  const KIND_ONLY: readonly { field: 'radius' | 'replaces' | 'overlaysWhenAbsent' | 'when' | 'children'; kinds: readonly PartKind[]; asked?: readonly PartKind[]; why: string }[] = [
+  // above and below, so `children` is asked here only of the three kinds that had none. `type` names a text style,
+  // which only a TEXT node takes, so only a `text` part carries one (Q-PU2 A; since #3783 `figmaAnatomyPlan` reads it on
+  // no other kind either). The union under `PartFields` says the same at the type layer, and `lint-part-union` proves
+  // it does.
+  const KIND_ONLY: readonly { field: 'radius' | 'replaces' | 'overlaysWhenAbsent' | 'when' | 'children' | 'type'; kinds: readonly PartKind[]; asked?: readonly PartKind[]; why: string }[] = [
     { field: 'radius', kinds: ['box'], why: "the corners are bound only on a box's frame" },
     { field: 'replaces', kinds: ['overlay'], why: 'only an overlay takes another part\'s cell' },
     { field: 'overlaysWhenAbsent', kinds: ['overlay'], why: "it is an overlay's fallback when none of its 'replaces' is present" },
     { field: 'when', kinds: ['overlay', 'absolute'], why: "only those two kinds are gated by state; an in-flow part gates on it through 'presentWhen'" },
     { field: 'children', kinds: ['box'], asked: ['text', 'slot', 'overlay'], why: 'only a box builds a frame that holds children — a text node holds none, and a slot or overlay is an instance, which takes no appends' },
+    { field: 'type', kinds: ['text'], why: 'it names a text style, and only a text node takes one — a frame or an instance has no text style to set' },
   ];
   for (const n of names) {
     const p = parts[n];

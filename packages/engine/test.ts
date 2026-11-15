@@ -23836,6 +23836,9 @@ arm: {
               throw new Error(`in set_textAlignVertical: Cannot write to node with unsupported type: ${type}`);
             },
           });
+          // #3783 — AND NO TEXT-STYLE SETTER, as in Figma: `setTextStyleIdAsync` is a TEXT node's alone. With one on
+          // every node, the paste payload's unguarded call on a frame could never throw here. Mirrors the plugin shim.
+          delete (node as Record<string, unknown>).setTextStyleIdAsync;
         }
         // PER-CORNER RADIUS (#1388), modeled so the host's BOUND radius reads back as a number and the
         // concentric ring's WRITTEN radius is observable — neither existed before, so the ring's hard
@@ -24795,6 +24798,30 @@ arm: {
       const inkLogo = await paste('logo/visa', ink);
       ok(inkSquare.some((m) => m.includes('every host binding a square')) && inkLogo.some((m) => m.includes('a host binding its 27.4x24 box')),
         `#3127 paste ink: a square-kind mark and a logo whose frames are sized to their ink each still miss, named for their own box (${inkSquare[0] ?? 'no square miss'} | ${inkLogo[0] ?? 'no logo miss'})`);
+    }
+
+    // ---- #3783: the paste executor never calls a text-style setter a node does not have ----
+    // A FRAME or an instance has no `setTextStyleIdAsync` in Figma, and since #3783 neither does a non-TEXT node in this
+    // stub. The plan is button's, with a text style forced onto its root FRAME (the projector no longer plans one there,
+    // so the plan is synthetic). The test also checks the frame it built has no setter, so a stub that grew one back
+    // cannot pass it. The payload must report a miss naming the node,
+    // not throw. Mutation: drop the payload's `!node.setTextStyleIdAsync` branch → `#3783 paste` fails (payload THREW).
+    {
+      const btn = componentDefs.find((x) => x.id === 'button')!;
+      const plan = figmaAnatomyPlan(btn, 'medium');
+      const style = planTextStyles(plan.root)[0];
+      const forced: AnatomyPlan = { ...plan, root: { ...plan.root, textStyle: style } };
+      const stub = makeFigmaStub({ vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: [style], comps: [], page: { children: [] } }) as Record<string, any>;
+      const frame = stub.createFrame as () => Record<string, any>;
+      let frameSetter = false;
+      stub.createFrame = () => { const n = frame(); frameSetter ||= typeof n.setTextStyleIdAsync === 'function'; return n; };
+      const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...a: string[]) => (f: unknown) => Promise<PayloadResult>;
+      let misses: string[];
+      try { misses = (await new AsyncFunction('figma', planToPluginJs(forced))(stub)).misses; }
+      catch (e) { misses = [`payload THREW -> ${(e as Error).message}`]; }
+      const want = `${plan.root.name}.textStyle -> ${style} REFUSED (not a text node)`;
+      ok(!!style && plan.root.type !== 'TEXT' && !frameSetter && misses.includes(want) && !misses.some((m) => m.includes('THREW')),
+        `#3783 paste: a text style planned on a ${plan.root.type} with no setter is the miss '${want}', not a throw (misses: ${misses.filter((m) => m.includes('textStyle') || m.includes('THREW')).slice(0, 3).join(' | ') || 'none'})`);
     }
 
     // ---- the reserved-rows floor tolerates the host's SINGLE-PRECISION minHeight (live 2026-09-25) --------
@@ -42015,6 +42042,39 @@ arm: {
     `#3698 7a: every tint's published contrast is the one its emitted wash measures, at the alpha parsed from its own $value (${checked} tint × mode cells: ${brands.join(', ')}; floors 200 cells, 4 committed trees, 3 solid-tint builds)${bad.length ? ` — ${bad.length} off: ${bad.slice(0, 4).join('; ')}` : ''}`);
 }
 
+// #3783 — THE PROJECTOR PLANS A TEXT STYLE ON A TEXT PART ONLY. `figmaAnatomyPlan` read `type` on every kind, so a def
+// that set it on a box, slot, overlay, absolute, nest or vector put a `textStyle` on a FRAME or an instance, and both
+// executors then tried to apply it to a node that takes none. The schema now refuses that def (Q-PU2 A), so these are
+// SYNTHETIC defs, never shipped, projected directly with the validator bypassed: one per non-text kind, `type` copied
+// from the def's own text part onto that part. The hosts and coordinates are authored here; each one's coordinate is
+// one at which the part is present, and that is asserted too, so a probe whose part was never built cannot pass.
+// Mutation: drop the `p.kind === 'text'` guard → every row fails by name.
+{
+  type PN = AnatomyPlan['root'];
+  const walkPlan = (n: PN): PN[] => [n, ...n.children.flatMap(walkPlan)];
+  const HOSTS: readonly { kind: string; def: string; part: string; size?: string; coord: Record<string, unknown> }[] = [
+    { kind: 'box', def: 'button', part: 'container', size: 'medium', coord: {} },
+    { kind: 'slot', def: 'button', part: 'leadingVisual', size: 'medium', coord: { leading: true } },
+    { kind: 'overlay', def: 'button', part: 'spinner', size: 'medium', coord: { state: 'pending' } },
+    { kind: 'absolute', def: 'button', part: 'focusRing', size: 'medium', coord: { state: 'focus-visible' } },
+    { kind: 'nest', def: 'text-field', part: 'label', size: 'medium', coord: {} },
+    { kind: 'vector', def: 'field-message', part: 'errorGlyph', coord: { status: 'error' } },
+  ];
+  for (const h of HOSTS) {
+    const d = componentDefs.find((x) => x.id === h.def)!;
+    const parts = d.anatomy!.parts;
+    const typeKey = Object.values(parts).find((p) => p.kind === 'text')?.type;
+    const probe = { ...d, anatomy: { ...d.anatomy!, parts: { ...parts, [h.part]: { ...parts[h.part], type: typeKey } as PartDef } } } as ComponentDef;
+    let nodes: PN[] = [];
+    let threw = '';
+    try { nodes = walkPlan(figmaAnatomyPlan(probe, h.size, h.coord as never).root); } catch (e) { threw = (e as Error).message; }
+    const host = nodes.find((n) => n.name === h.part);
+    const offText = nodes.filter((n) => n.textStyle !== undefined && n.type !== 'TEXT').map((n) => `${n.name}:${n.type}`);
+    ok(parts[h.part]?.kind === h.kind && !!typeKey && !threw && host !== undefined && host.textStyle === undefined && offText.length === 0,
+      `#3783 a '${h.kind}' part carrying 'type' (${h.def}.${h.part}, synthetic) plans NO text style — only a TEXT node takes one (${threw ? `threw: ${threw}` : !host ? 'the part was not built at this coordinate' : `text style on ${offText.join(', ') || 'none'}`})`);
+  }
+}
+
 // ------------------------------------------------------------------- report
 console.log(`\nPrism3 engine tests: ${pass} passed, ${fails.length} failed`);
 
@@ -42040,7 +42100,7 @@ const MIN_ASSERTIONS = 1800;
 // from the schema's `KIND_ONLY` table or its key lists: per field, the kinds that take it. Every other kind gets the
 // field set on the first shipped part of that kind, and the validator must name the part, its kind and the field.
 // `children` on absolute, nest and vector was refused before this, each in its own words; the regex reads all three.
-// `type` is not here: it stays open on every kind (the projector reads it there; held for the owner on the PR).
+// `type` joined under Q-PU2 A (#3783): a text style goes on a TEXT node only, so every kind but `text` refuses it.
 {
   const TAKES: Record<string, { kinds: readonly string[]; value: unknown }> = {
     radius: { kinds: ['box'], value: 'radius' },
@@ -42048,6 +42108,7 @@ const MIN_ASSERTIONS = 1800;
     overlaysWhenAbsent: { kinds: ['overlay'], value: 'label' },
     when: { kinds: ['overlay', 'absolute'], value: 'pressed' },
     children: { kinds: ['box'], value: ['probeChild'] },
+    type: { kinds: ['text'], value: 'type.label.{size}.default' },
   };
   const KINDS = ['box', 'text', 'slot', 'overlay', 'absolute', 'nest', 'vector'];
   const firstOf = (k: string): [ComponentDef, string] | undefined => {

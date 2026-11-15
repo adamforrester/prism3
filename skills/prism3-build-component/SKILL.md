@@ -254,8 +254,8 @@ Every part declares a `kind` from a closed vocabulary (`packages/engine/componen
 **Some fields belong to certain kinds** (#3698), and both `tsc` and the validator refuse them on any other kind:
 `radius` and `children` go on a `box` only (a glyph's corners are `tileEdge.radius`), `replaces` and
 `overlaysWhenAbsent` on an `overlay` only, and `when` on an `overlay` or an `absolute` (an in-flow part gates on
-state through `presentWhen`). A root's `builtSize.grow` names a `box` or `nest` child (#3779). Write `type` on a
-`text` part only, even though the schema does not refuse it elsewhere yet. `role`, `optional` and `note` go on any kind.
+state through `presentWhen`), and `type` on a `text` part only (a text style goes on a text node, #3783). A root's
+`builtSize.grow` names a `box` or `nest` child (#3779). `role`, `optional` and `note` go on any kind.
 
 **The root part is named for its role, never `root` and never the component's own id.** Pick it
 from the role list in §6's naming table (`container` for most controls, `row` for the Rows, `track`
