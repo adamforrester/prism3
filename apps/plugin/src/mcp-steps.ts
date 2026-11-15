@@ -255,6 +255,12 @@ const writeStep = async (
   const { host, shared, ledger } = hostOf(d.ledger);
   const r = base(d, kind, shared, ledger);
   try {
+    // THE IN-PROGRESS MARK (#3742, the paste's half of #3697 M3): every write step but the last clears the print of what
+    // was written, and `runPersist` stamps it again. The paste runs as separate scripts, any of which can be the last an
+    // agent runs, so a paste that stops part-way leaves no print, and the recount (`themeDue`) reads the file as due
+    // rather than as matching the brand it held before. Every step, not only the first: the steps can be cut and run in
+    // any slicing, and clearing is idempotent. A host that refuses shared plugin data keeps no print to clear.
+    if (kind !== 'persist') { try { stampEmission(host.root, ''); } catch { /* no shared plugin data on this host */ } }
     if (d.fonts) {
       const pf = await preloadFonts(d.fonts as unknown as TextStylePlan, fontPreloadApiOf(host));
       r.fonts = { loaded: pf.loaded, attempted: pf.attempted, unavailable: pf.unavailable };
