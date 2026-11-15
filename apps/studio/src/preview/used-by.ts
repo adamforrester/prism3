@@ -119,9 +119,6 @@ export const USED_BY = {
       "radius.capsule": [
         "Progress"
       ],
-      "radius.lg": [
-        "CodeInput"
-      ],
       "radius.md": [
         "WalletButton",
         "SignInButton",
@@ -141,7 +138,8 @@ export const USED_BY = {
         "Dialog",
         "SearchField",
         "CardNumberField",
-        "Banner"
+        "Banner",
+        "CodeInput"
       ],
       "radius.round": [
         "IconButton",
@@ -158,8 +156,7 @@ export const USED_BY = {
         "Badge",
         "SegmentedControl",
         "PasswordField",
-        "Counter",
-        "CodeInput"
+        "Counter"
       ],
       "radius.xl": [
         "Toast"
@@ -180,9 +177,7 @@ export const USED_BY = {
         "Checkbox.Control",
         "Select",
         "SearchField",
-        "CardNumberField"
-      ],
-      "radius.lg": [
+        "CardNumberField",
         "CodeInput"
       ],
       "radius.md": [
@@ -213,8 +208,7 @@ export const USED_BY = {
         "Badge",
         "SegmentedControl",
         "PasswordField",
-        "Counter",
-        "CodeInput"
+        "Counter"
       ],
       "radius.xl": [
         "Toast"
