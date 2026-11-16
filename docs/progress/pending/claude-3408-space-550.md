@@ -17,9 +17,13 @@ instead of 48, and compact move `space.600` to 44. No def has a density-followin
 next one. So `550` is a step of the scale only (`SPACE_OFF_LADDER_KEYS`), and the ladder is unchanged. Whether it should
 join the ladder is held as an OWNER DECISION on the PR.
 
-**One alias moved, by an existing rule.** New Balance's medium grid margin is 44px. The layout emitter aliases a value
-to a spacing step when one exists, and otherwise to `core.dimension.*`, so it now aliases `space.550` (it was
-`core.dimension.44`). The px is unchanged.
+**One alias moved, by an existing rule.** New Balance's medium grid margin is 44px. By #3052's rule (Q785 A) a grid
+margin or gutter links to a spacing step when one has its value, and otherwise to `core.dimension.*`, so it now links to
+`space.550` (it was `core.dimension.44`, in Figma and DTCG, for both NB fixtures). The px is unchanged. `test.ts` #3052
+G2 pinned the old link, so its pin moves to `space/550`, and G3's floor of three dimension links is dropped: those rows
+were the 44px margins, and no brand's grid value now sits on the dimension grid off the spacing scale, so that branch
+runs on every row but has no witness. Held as an OWNER DECISION on the PR, with the alternative of keeping grid links
+off `space.550`. `docs/45`, the `prism3-theme` skill and the comments that named the old link are updated.
 
 **Measured.** `lint-hit-target.ts` gains an arm: each button size binds `size.<size>.hit-target` as a `space.*` step that
 resolves, on every density's build, to the gate's own literal (24 / 44 / 44, `CODE_FLOOR_PX`, never read from the def or

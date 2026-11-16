@@ -14846,8 +14846,8 @@ arm: {
 
 // (19g) #3052 — GRID MARGIN/GUTTER LINKS (owner decision Q785 A, 2026-10-27). A per-brand gutter/margin
 // links to the FIRST that exists: (1) a `space/*` step with that px; (2) the brand's `core/dimension/*` step;
-// (3) nothing — a plain px, flagged off-scale. The reference brand's md margin is 44: no spacing step, so it
-// links to `core/dimension/44`. The md grid STYLE carries the same px as its offset. Binding the style's
+// (3) nothing — a plain px, flagged off-scale. The reference brand's md margin is 44: it linked to
+// `core/dimension/44` until `space.550` (#3408 Q-HT1 A) made 44 a spacing step, and now links to `space/550`. The md grid STYLE carries the same px as its offset. Binding the style's
 // offset to `grid/margin` was considered and not done: a grid style is a STATIC per-breakpoint copy (its
 // description says so), while a variable bound inside it would resolve in whatever layout mode the frame
 // sits in, so the `md` style would show `sm`'s margin on an `sm` frame. Agreement is gated instead (G1).
@@ -14924,21 +14924,22 @@ arm: {
   ok(g1.length === 0 && g1Seen >= 30,
     `#3052 G1: every brand's grid/margin equals its grid style's offset (and grid/gutter its gutterSize), per mode (${g1Seen} brand×mode rows)${g1.length ? ` — ${g1.slice(0, 4).join('; ')}` : ''}`);
 
-  // G2 — the reference brand's md margin is 44 and links to core/dimension/44 (legacy fixture AND the redesign
-  // seed); its sm margin is unchanged (16 → space/200). Hand-pinned from the owner's decision.
+  // G2 — the reference brand's md margin is 44 (legacy fixture AND the redesign seed); its sm margin is unchanged
+  // (16 → space/200). Hand-pinned from the owner's decision. It linked to core/dimension/44 because no spacing step
+  // had 44; since `space.550` (#3408 Q-HT1 A) one does, so G3's rule links it to space/550 (OWNER DECISION on that PR).
   const g2: string[] = [];
   for (const id of ['nb', 'nb-redesign']) {
     const b = brands.find((x) => x.id === id);
     if (!b) { g2.push(`${id}: not loaded`); continue; }
     const rows = rowsOf(b.theme);
     if (rows.md?.margin.value !== 44) g2.push(`${id} md margin ${rows.md?.margin.value} ≠ 44`);
-    if (rows.md?.margin.alias !== 'nbds/core/dimension/44') g2.push(`${id} md margin → ${rows.md?.margin.alias} (want nbds/core/dimension/44)`);
+    if (rows.md?.margin.alias !== 'nbds/space/550') g2.push(`${id} md margin → ${rows.md?.margin.alias} (want nbds/space/550)`);
     if (rows.sm?.margin.value !== 16 || rows.sm?.margin.alias !== 'nbds/space/200') g2.push(`${id} sm margin ${rows.sm?.margin.value} → ${rows.sm?.margin.alias} (want 16 → nbds/space/200)`);
     const { tree } = buildTree(b.theme);
     const dt = (tree as any).nbds?.grid?.md?.margin?.$value;
-    if (dt !== '{nbds.core.dimension.44}') g2.push(`${id} DTCG grid.md.margin ${JSON.stringify(dt)} (want {nbds.core.dimension.44})`);
+    if (dt !== '{nbds.space.550}') g2.push(`${id} DTCG grid.md.margin ${JSON.stringify(dt)} (want {nbds.space.550})`);
   }
-  ok(g2.length === 0, `#3052 G2: the reference brand's md margin is 44 and links to core/dimension/44; sm stays 16 on space/200${g2.length ? ` — ${g2.join('; ')}` : ''}`);
+  ok(g2.length === 0, `#3052 G2: the reference brand's md margin is 44 and links to space/550 (#3408); sm stays 16 on space/200${g2.length ? ` — ${g2.join('; ')}` : ''}`);
 
   // G3 — a margin/gutter links to core/dimension/* ONLY when no space/* step has its value; to nothing only
   // when neither has it, and then it is flagged off-scale (DTCG `offScale: true` and a decisions note).
@@ -14963,7 +14964,10 @@ arm: {
       if (!theme.notes.some((n) => n.includes(`${mode} ${k} is ${value}px`) && n.includes('off-scale'))) g3.push(`${where}: off-scale but no decisions note names it`);
     }
   }
-  ok(g3.length === 0 && dimLinks >= 3 && rawLinks >= 2,
+  // The dimension-branch floor (was `dimLinks >= 3`) is gone: its three rows were 44px margins, which since `space.550`
+  // (#3408 Q-HT1 A) take the spacing branch, and no brand's grid value now sits on the dimension grid off the spacing
+  // scale. The branch's rule still runs on every row; it is unwitnessed until a brand has such a value (stated on the PR).
+  ok(g3.length === 0 && rawLinks >= 2,
     `#3052 G3: a grid margin/gutter links to core/dimension/* only when no space/* step has its value, and is a flagged plain value only when neither has it (${dimLinks} dimension, ${rawLinks} off-scale rows)${g3.length ? ` — ${g3.slice(0, 4).join('; ')}` : ''}`);
 
   // G4 — every other brand's links are unchanged: the table each one shipped on main before #3052, pinned.
