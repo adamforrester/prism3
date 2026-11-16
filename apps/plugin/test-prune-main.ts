@@ -21,6 +21,7 @@
  *   · `main.ts` calling `applyPrunePlan` without its running `counts` → `main/throw after removals` (#3709 S1);
  *   · the `return;` after `PRUNE_COPY.noVersion(…)` dropped (a failed save still removes) → `main/no version, nothing removed` (#3709 S2);
  *   · the hand-edit pass's `stale()` back to its four named writes (prune left out) → `main/hand pass stale under prune` (#3737).
+ *   · a pass a write made stale not asked for again when the write ends → `main/hand pass after the write` (#3804).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -227,6 +228,15 @@ ok(saving && during.length === 0,
 release();
 for (let i = 0; i < 5000 && !posted.some((m) => m?.type === 'prune-result'); i++) await new Promise((res) => realTimeout(res, 2));
 Object.assign(file, { saveVersionHistoryAsync: realSave });
+// #3804 — A PASS THE WRITE MADE STALE IS ASKED FOR AGAIN WHEN THE WRITE ENDS. The pass above ended silently, so the panel
+// kept every set it hadn't reached at "Checking" until a reload or an Update file run asked again. Nothing asks here: the
+// write's end must run the pass to its end by itself. Mutation: the write's end not asking for the owed pass →
+// `main/hand pass after the write`.
+const ended = posted.findIndex((m) => m?.type === 'prune-result');
+for (let i = 0; i < 5000 && !posted.slice(ended).some((m) => m?.type === 'hand-edits' && m.done === true); i++) await new Promise((res) => realTimeout(res, 2));
+const after = posted.slice(ended).filter((m) => m?.type === 'hand-edits');
+ok(ended >= 0 && after.some((m) => m.done === true),
+  `main/hand pass after the write: once the prune ends, the pass it made stale runs to its end unasked (prune-result at ${ended}; posted after it ${JSON.stringify(after)})`);
 
 console.log = log;
 if (failed) { console.error(`\n${failed} check(s) failed`); process.exit(1); }

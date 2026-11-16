@@ -10,17 +10,27 @@
  * `PartFields`). A union that admitted everything would typecheck every def exactly as the bag did, so a green
  * `typecheck-components.ts` cannot tell the two apart. This gate is the one that can.
  *
- * WHAT IT COMPARES. The SUBJECT is the union as the real `tsc` sees it. The EXPECTATION is the probe table
- * below, authored here and nowhere else (`docs/34`: the paint-placement gate's `allowed()` is the precedent):
- * per kind, one LEGAL part that must compile, and ILLEGAL parts, each setting one field the validator refuses on
- * that kind, that must fail. Nothing here reads the per-kind key lists — a probe derived from them would agree
- * with any list, a wrong one included.
+ * WHAT IT COMPARES. The SUBJECT is the union as the real `tsc` sees it. The EXPECTATION is `ADMITS` below, authored
+ * here and nowhere else (`docs/34`; the paint-placement gate's `allowed()` is the precedent): per FIELD, the kinds that
+ * may carry it. It is written field-major on purpose, the transpose of the schema's kind-major key lists, so it is not a
+ * copy that a paste could keep in step. Nothing here reads `BoxKey`, `TextKey` or the others: a probe derived from them
+ * would agree with any list, a wrong one included (#3781: the old authored sample probed 24 of the forbidden pairs, and
+ * admitting `wrap` on `nest` passed).
  *
- *   Most illegal probes are a per-kind sample. The five documented-kind fields #3698 Q-PU1 A tightened (`radius`,
- *   `replaces`, `overlaysWhenAbsent`, `when`, `children`), and `type`, which Q-PU2 A made text-only, are probed on
- *   every kind that refuses them.
+ *   EVERY PAIR IS PROBED (#3781). For each field F of `PartFields` and each kind K, one probe file sets F alone on a
+ *   K part. Where `ADMITS[F]` names K it must compile; elsewhere tsc must refuse it BY F'S NAME. So a widening of any
+ *   kind's list fails here naming the kind and field, and so does a narrowing. The value is `V.F`, typed
+ *   `Required<PartFields>['F']`: a value valid for the field, so a widened union cannot pass by refusing an ill-typed
+ *   literal instead of the field. The field TYPES come from the bag; only WHO MAY CARRY each field is under test.
  *
- *   · A legal probe with any diagnostic fails: the union refuses a part a def may write.
+ *   THE TABLE IS HELD TO THE SCHEMA BY tsc. One more probe file types `ADMITS`'s keys as exactly the fields of
+ *   `PartFields` (less `kind`) and its kinds as exactly `PartKind`, both as object literals, so a field or kind added to
+ *   the schema and not here fails by name ("Property 'x' is missing"), and so does a stale entry. Measured once when
+ *   the table was written: for every pair it forbids, `validateComponentDef` also refuses that field on a shipped part
+ *   of that kind by name (407 of 407), so the table agrees with the run-time rule as well as with the union.
+ *
+ *   · A legal probe with any diagnostic fails: the union refuses a part a def may write. Seven more legal probes, one
+ *     per kind, set a realistic part with literal values, as before.
  *   · An illegal probe fails unless tsc refuses it BY THE FIELD'S NAME (`Types of property '<field>' are
  *     incompatible`), naming kind and field otherwise: the union admits a field the validator refuses there. The
  *     name is the point — a probe failing for some other reason (a typo in the fixture, an import that broke) is
@@ -50,70 +60,112 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repo = realpathSync(resolve(here, '../..'));
 const SCHEMA = join(here, 'component-schema.ts');
 
-/** A probe's part, as source lines of the object literal's body (after `kind`). For an illegal probe, the LAST
- *  line sets the field the validator refuses on that kind. `LAYOUT`, `SWAP`, `POSITION` and `TRUE` are typed constants every probe file
- *  declares, so a structured value cannot fail on its own literal types instead of on the field. */
+/** A probe's part, as source lines of the object literal's body (after `kind`). For a pair probe, the one line sets the
+ *  field under test. `V` is `Required<PartFields>`, and `LAYOUT`, `SWAP`, `POSITION` and `TRUE` are typed constants every
+ *  probe file declares, so a value cannot fail on its own literal type instead of on the field. */
 type Probe = { kind: string; legal: boolean; field: string; body: string[] };
 
-const legal = (kind: string, body: string[]): Probe => ({ kind, legal: true, field: '', body });
-const illegal = (kind: string, field: string, line: string, base: string[] = []): Probe => ({ kind, legal: false, field, body: [...base, line] });
-/** One illegal probe per kind NOT in `skip` (the kinds that take the field, or are probed for it elsewhere), each on the
- *  base its kind's other illegal probes use. */
 const KINDS = ['box', 'text', 'slot', 'overlay', 'absolute', 'nest', 'vector'] as const;
-const BASE: Partial<Record<(typeof KINDS)[number], string[]>> = { text: ["type: 't',"], vector: ["glyph: 'check',"] };
-const offKind = (field: string, line: string, skip: readonly string[]): Probe[] =>
-  KINDS.filter((k) => !skip.includes(k)).map((k) => illegal(k, field, line, BASE[k]));
+type Kind = (typeof KINDS)[number];
+const ALL: readonly Kind[] = KINDS;
+
+/** WHO MAY CARRY EACH FIELD — the expectation, authored here (#3781). A field is admitted on a kind unless
+ *  `anatomyErrors` refuses it there, directly or through a field it requires. `role`, `optional` and `note` are
+ *  refused on no kind. Edit this in the same PR as the union, from the validator's rule, never from the key lists. */
+const ADMITS: Readonly<Record<string, readonly Kind[]>> = {
+  role: ALL,
+  innerTarget: ['box', 'text', 'slot', 'overlay', 'nest', 'vector'],
+  children: ['box'],
+  layout: ['box'],
+  padding: ['box'],
+  gap: ['box'],
+  height: ['box', 'slot', 'nest'],
+  radius: ['box'],
+  strokeWidth: ['box'],
+  strokeEdges: ['box'],
+  size: ['box', 'text', 'slot', 'overlay', 'nest', 'vector'],
+  width: ['box'],
+  type: ['text'],
+  paintSlot: ['text', 'vector'],
+  verticalAlign: ['text'],
+  wrap: ['text'],
+  lines: ['text'],
+  crossAxisFill: ['box', 'nest'],
+  grow: ['box', 'nest'],
+  paddingTop: ['box'],
+  firstLine: ['box'],
+  contentSlot: ['box'],
+  slotSettings: ['box'],
+  preferred: ['box'],
+  preferredWhenBuilt: ['box'],
+  characters: ['text'],
+  paintSlots: ['box'],
+  paintGroup: ['box'],
+  gradient: ['box'],
+  clipsContent: ['box'],
+  scroll: ['box'],
+  minWidth: ['box'],
+  placementWidth: ['box'],
+  placementHeight: ['box'],
+  directionWhen: ['box'],
+  sizingWhen: ['box'],
+  builtSize: ['box'],
+  elevation: ['box'],
+  radiusEdges: ['box'],
+  pin: ['slot'],
+  minHeight: ['box'],
+  minWidthKey: ['box'],
+  minWidthRatio: ['box'],
+  flush: ['box'],
+  center: ['box'],
+  aspectRatio: ['box'],
+  aspectLock: ['slot', 'nest'],
+  fixedPaint: ['slot', 'overlay', 'nest'],
+  hostInk: ['nest'],
+  literal: ['box', 'text', 'nest'],
+  tileEdge: ['vector'],
+  glyph: ['vector'],
+  swapDefault: ['slot'],
+  glyphScale: ['vector'],
+  glyphPx: ['vector'],
+  optional: ALL,
+  presentWhen: ['box', 'text', 'slot', 'absolute', 'nest', 'vector'],
+  positionWhen: ['box', 'text', 'slot', 'nest', 'vector'],
+  replaces: ['overlay'],
+  overlaysWhenAbsent: ['overlay'],
+  when: ['overlay', 'absolute'],
+  nests: ['overlay', 'absolute', 'nest'],
+  nesting: ['slot', 'overlay', 'absolute', 'nest'],
+  prefersWhenBuilt: ['nest'],
+  nestItemPrefers: ['nest'],
+  overrides: ['absolute', 'nest'],
+  nestTexts: ['nest'],
+  nestPaddingBlock: ['nest'],
+  inset: ['absolute', 'vector'],
+  strokeInset: ['absolute'],
+  drawnInside: ['absolute'],
+  corner: ['vector'],
+  foot: ['box'],
+  footShare: ['box'],
+  scaleWithParent: ['vector'],
+  stackCentered: ['vector'],
+  note: ALL,
+};
+
+const legal = (kind: string, body: string[]): Probe => ({ kind, legal: true, field: '', body });
 
 const PROBES: readonly Probe[] = [
-  // box — the one kind that lays out, paints a surface and becomes a frame.
+  // One realistic part per kind, with literal values (the pair probes below use typed values).
   legal('box', ["role: 'target',", "children: ['label'],", "layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'fixed' } },", "gap: 'size.{size}.gap',", "strokeWidth: 'border-width',", "paintSlots: ['fill', 'border'],", 'clipsContent: true,', "foot: true,", 'footShare: 0.5,']),
-  illegal('box', 'wrap', 'wrap: true,'),
-  illegal('box', 'glyph', "glyph: 'check',"),
-  illegal('box', 'nests', "nests: 'focus-ring',"),
-  illegal('box', 'paintSlot', "paintSlot: 'label',"),
-  // text — copy, a type binding and an ink.
   legal('text', ["type: 'size.{size}.type',", "wrap: 'hug',", "characters: 'Title',", "paintSlot: 'label',", "verticalAlign: 'top',", "literal: 'label',"]),
-  illegal('text', 'layout', 'layout: LAYOUT,', ["type: 't',"]),
-  illegal('text', 'paintSlots', "paintSlots: ['fill'],", ["type: 't',"]),
-  illegal('text', 'glyph', "glyph: 'check',", ["type: 't',"]),
-  illegal('text', 'height', "height: 'size.{size}.height',", ["type: 't',"]),
-  // slot — a swap cell.
   legal('slot', ["size: 'size.{size}.icon',", 'optional: true,', "nesting: { kind: 'swap' },", "swapDefault: 'check',", "pin: { edge: 'end', inset: { md: 12 }, reserve: { md: 32 } },"]),
-  illegal('slot', 'layout', 'layout: LAYOUT,'),
-  illegal('slot', 'inset', "inset: 'ring-offset',"),
-  illegal('slot', 'nests', "nests: 'spinner',"),
-  // overlay — takes another part's cell at one state.
   legal('overlay', ["replaces: ['leadingVisual', 'label'],", "when: 'loading',", "nests: 'spinner',", "nesting: { kind: 'swap' },", "size: 'size.{size}.icon',", 'fixedPaint: true,']),
-  illegal('overlay', 'presentWhen', "presentWhen: { size: ['md'] },"),
-  illegal('overlay', 'glyph', "glyph: 'check',"),
-  illegal('overlay', 'positionWhen', 'positionWhen: POSITION,'),
-  // absolute — an instance outside the flow (a focus ring).
   legal('absolute', ["when: ['focus-visible'],", "nests: 'focus-ring',", "inset: 'ring-offset',", "strokeInset: 'ring-width',", 'drawnInside: true,', "nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },"]),
-  illegal('absolute', 'size', "size: 'size.{size}.icon',"),
-  illegal('absolute', 'innerTarget', 'innerTarget: TRUE,'),
-  illegal('absolute', 'children', "children: ['label'],"),
-  // nest — an in-flow instance of another component.
   legal('nest', ["nests: 'checkbox-control',", "nesting: { kind: 'nest-fixed', variant: { size: 'md' } },", 'grow: true,', 'crossAxisFill: true,', "nestTexts: { label: 'label' },", "overrides: { texts: { label: 'Cancel' } },"]),
-  illegal('nest', 'children', "children: ['label'],"),
-  illegal('nest', 'layout', 'layout: LAYOUT,'),
-  illegal('nest', 'swapDefault', "swapDefault: 'check',"),
-  // vector — a glyph.
   legal('vector', ["glyph: 'check',", "size: 'size.{size}.icon',", "corner: 'bottom-right',", "inset: 'grip-inset',", "paintSlot: 'icon',", 'glyphScale: 0.75,']),
-  illegal('vector', 'children', "children: ['label'],", ["glyph: 'check',"]),
-  illegal('vector', 'height', "height: 'size.{size}.height',", ["glyph: 'check',"]),
-  illegal('vector', 'paintSlots', "paintSlots: ['fill'],", ["glyph: 'check',"]),
-  illegal('vector', 'nesting', 'nesting: SWAP,', ["glyph: 'check',"]),
-  // THE DOCUMENTED-KIND FIELDS (#3698, owner decision Q-PU1 A), every kind each one is refused on rather than a sample:
-  // they were admitted on every kind until that decision, so each (field, kind) pair below is one the union used to let
-  // through. Authored here — which kinds take each field — and never read from the key lists. `children` on absolute,
-  // nest and vector is probed above.
-  ...offKind('radius', "radius: 'radius',", ['box']),
-  ...offKind('replaces', "replaces: 'label',", ['overlay']),
-  ...offKind('overlaysWhenAbsent', "overlaysWhenAbsent: 'label',", ['overlay']),
-  ...offKind('when', "when: 'loading',", ['overlay', 'absolute']),
-  ...offKind('children', "children: ['label'],", ['box', 'absolute', 'nest', 'vector']),
-  // `type` names a text style, which only a TEXT node takes (#3698 Q-PU2 A, #3783): every kind but `text`.
-  ...offKind('type', "type: 'type.label.{size}.default',", ['text']),
+  // EVERY (field, kind) PAIR (#3781): legal where ADMITS names the kind, illegal everywhere else.
+  ...Object.entries(ADMITS).flatMap(([field, kinds]) =>
+    KINDS.map((k): Probe => ({ kind: k, legal: kinds.includes(k), field, body: [`${field}: V.${field},`] }))),
 ];
 
 const failures: string[] = [];
@@ -132,9 +184,10 @@ for (const k of new Set(PROBES.map((p) => p.kind))) if (!usedKinds.has(k)) failu
 const dir = mkdtempSync(join(tmpdir(), 'p3-part-union-'));
 const files: { probe: Probe; file: string }[] = [];
 PROBES.forEach((probe, i) => {
-  const file = `probe-${String(i).padStart(2, '0')}-${probe.kind}-${probe.legal ? 'legal' : probe.field}.ts`;
+  const file = `probe-${String(i).padStart(3, '0')}-${probe.kind}-${probe.field || 'part'}-${probe.legal ? 'legal' : 'illegal'}.ts`;
   const lines = [
-    `import type { LayoutDef, NestingRelation, PartDef } from ${JSON.stringify(SCHEMA)};`,
+    `import type { LayoutDef, NestingRelation, PartDef, PartFields } from ${JSON.stringify(SCHEMA)};`,
+    'declare const V: Required<PartFields>;',
     "const LAYOUT: LayoutDef = { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } };",
     "const SWAP: NestingRelation = { kind: 'swap' };",
     "const POSITION: Record<string, Record<string, 'start' | 'center' | 'end'>> = { selection: { off: 'start', on: 'end' } };",
@@ -148,9 +201,17 @@ PROBES.forEach((probe, i) => {
   writeFileSync(join(dir, file), lines.join('\n'));
   files.push({ probe, file });
 });
+// THE TABLE AGAINST THE SCHEMA: ADMITS's fields are exactly `PartFields`'s (less `kind`), and its kinds exactly `PartKind`.
+const TABLE_FILE = 'table-covers-schema.ts';
+writeFileSync(join(dir, TABLE_FILE), [
+  `import type { PartFields, PartKind } from ${JSON.stringify(SCHEMA)};`,
+  `export const fields: Record<Exclude<keyof PartFields, 'kind'>, true> = { ${Object.keys(ADMITS).map((f) => `${f}: true`).join(', ')} };`,
+  `export const kinds: Record<PartKind, true> = { ${KINDS.map((k) => `${k}: true`).join(', ')} };`,
+  '',
+].join('\n'));
 writeFileSync(join(dir, 'tsconfig.json'), JSON.stringify({
   compilerOptions: { target: 'ES2022', module: 'ESNext', moduleResolution: 'bundler', strict: true, skipLibCheck: true, noEmit: true, types: [], lib: ['ES2022'], allowImportingTsExtensions: true },
-  files: files.map((f) => f.file),
+  files: [...files.map((f) => f.file), TABLE_FILE],
 }));
 
 let tscBin: string;
@@ -172,13 +233,14 @@ for (const raw of out.split('\n')) {
   else if (raw.startsWith(' ') && diags.length) diags[diags.length - 1].text += ` ${raw.trim()}`;
 }
 const known = new Set(files.map((f) => f.file));
-for (const d of diags) if (!known.has(d.file)) failures.push(`tsc reported an error outside the probes — ${d.file}:${d.line} ${d.text.slice(0, 200)}`);
+for (const d of diags.filter((x) => x.file === TABLE_FILE)) failures.push(`ADMITS and the schema disagree — ${d.text.slice(0, 300)} (add or remove the field or kind in ADMITS, from the validator's rule)`);
+for (const d of diags) if (d.file !== TABLE_FILE && !known.has(d.file)) failures.push(`tsc reported an error outside the probes — ${d.file}:${d.line} ${d.text.slice(0, 200)}`);
 
 let bit = 0;
 for (const { probe, file } of files) {
   const mine = diags.filter((d) => d.file === file);
   if (probe.legal) {
-    if (mine.length) failures.push(`LEGAL ${probe.kind} part refused — ${mine.map((d) => `line ${d.line}: ${d.text.slice(0, 240)}`).join('; ')}`);
+    if (mine.length) failures.push(`LEGAL ${probe.kind} part${probe.field ? ` carrying '${probe.field}'` : ''} refused — ${mine.map((d) => `line ${d.line}: ${d.text.slice(0, 240)}`).join('; ')}`);
     continue;
   }
   const named = (d: { text: string }) => d.text.includes(`property '${probe.field}'`);
@@ -196,4 +258,4 @@ if (failures.length) {
   for (const f of failures) console.error(`  ✗ ${f}`);
   process.exit(1);
 }
-console.log(`✅ lint-part-union: ${usedKinds.size} part kinds used by the shipped defs, each probed — ${PROBES.length - illegalCount} legal parts compile, ${bit}/${illegalCount} illegal fields refused by tsc by name.`);
+console.log(`✅ lint-part-union: ${usedKinds.size} part kinds used by the shipped defs, each probed; ADMITS covers all ${Object.keys(ADMITS).length} fields and ${KINDS.length} kinds of the schema — ${PROBES.length - illegalCount} legal parts compile, ${bit}/${illegalCount} forbidden (kind, field) pairs refused by tsc by name.`);
