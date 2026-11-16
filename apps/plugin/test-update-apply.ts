@@ -5059,6 +5059,42 @@ section('reach — a member stamped under an older revision is to update only wh
   }
 }
 
+section('glyph layer — a glyph\'s layer named like a sibling part is never taken for that part (#2795)');
+{
+  // Progress's ring holds the full-ring glyph (`ringGlyph`) and, after it, the arc glyph (`arcGlyph`) as siblings. The
+  // full ring's one SVG layer is renamed here to `arcGlyph`, in the plans only, as #2795 found it authored: the
+  // executor's re-find of a part by name searched depth first and reached that vector before the sibling part, so the
+  // arc's size bindings landed on the ring's vector, and the next update re-imported it under new ids.
+  const plans = plansOf('progress').map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    const walk = (n: { name: string; glyphSvg?: string; children?: unknown[] }): void => {
+      if (n.name === 'ringGlyph' && n.glyphSvg) n.glyphSvg = n.glyphSvg.replace(/\bid="[^"]*"/, 'id="arcGlyph"');
+      for (const c of (n.children ?? []) as typeof n[]) walk(c);
+    };
+    walk(q.root as never);
+    return q;
+  });
+  const rings = (set: Node): Node[] => membersOf(set).flatMap((m) => ((m as { findAll?: (f: (x: Node) => boolean) => Node[] }).findAll?.((x) => x.name === 'ringGlyph') ?? []));
+  // Progress's nested message texts are misses this shim reports on a build too (the corpus allows them the same way).
+  const builtMisses: string[] = [];
+  const w = await world('progress', plans, { allowMisses: builtMisses });
+  const collided = rings(w.set()).filter((r) => ((r.children as Node[]) ?? []).some((v) => v.name === 'arcGlyph'));
+  ok(collided.length > 0, `glyph layer premise: ${collided.length} ring glyph(s) hold a layer named arcGlyph`);
+  // Built: the ring's vector carries no binding of its own; the arc part's size is the arc part's.
+  const boundVec = collided.flatMap((r) => (r.children as Node[]).filter((v) => Object.keys((v.boundVariables ?? {}) as object).length)).length;
+  ok(boundVec === 0, `glyph layer/build: no ring vector carries a binding written for the arcGlyph part (${boundVec} bound)`);
+  for (const m of membersOf(w.set())) {
+    const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, '|0'));
+  }
+  const before = identityOf(w.set());
+  const { res } = await confirm(w, [{ def: 'progress', plans }]);
+  const after = identityOf(w.set());
+  const changed = [...before.members].flatMap(([name, b]) => [...b.kids].filter(([p, id]) => after.members.get(name)?.kids.get(p) !== id).map(([p]) => `${name}/${p}`));
+  const extra = res.outcomes[0]?.misses.filter((x) => !builtMisses.includes(x)) ?? ['no outcome'];
+  ok(!res.failed && extra.length === 0 && changed.length === 0, `glyph layer/in place: re-applied with no miss the build lacks, every node id under every member kept (${changed.length} changed: ${changed.slice(0, 2).join('; ')}; ${extra.slice(0, 1).join('')})`);
+}
+
 section('corpus — every def, re-applied in place by an executor revision bump, keeps every key and reads back as its plan');
 {
   // A newer executor revision makes every member out of date with nothing else moved, so the update configures
