@@ -1071,6 +1071,39 @@ section('add — a member the plan gained is built; the others keep their keys')
   ok(applyVerdict(res).ok, `add/verdict: ${applyVerdict(res).headline}`);
 }
 
+section('add, wash — a member an update adds is verified against its plan, its translucent wash too (#2563)');
+{
+  // The member #2563 names: a Tag hover whose fill binds the 10% overlay wash. Built without it, so the update adds it.
+  // It joins a set that is never combined again, so nothing re-resolves its paints as a fresh build's combine does.
+  const full = plansOf(TAG);
+  const name = 'type=select, selection=unselected, size=medium, state=hover';
+  const wash = (n: Node): { opacity?: number }[] => ((n.fills as { opacity?: number; boundVariables?: { color?: unknown } }[] | undefined) ?? []).filter((p) => p?.boundVariables?.color);
+  {
+    // As the host draws it today (#2774's second assignment): the wash lands at 10%, and the apply reads it so.
+    const w = await world(TAG, full.filter((p) => planComponentName(p) !== name));
+    const { res } = await confirm(w, [{ def: TAG, plans: full }]);
+    const m = membersOf(w.set()).find((x) => String(x.name) === name);
+    ok(res.outcomes[0]?.added === 1 && !!m && wash(m).length > 0 && wash(m).every((p) => (p.opacity ?? 1) < 1) && applyVerdict(res).ok,
+      `add, wash/drawn: the added hover member stores its wash translucent, and the apply succeeds (${m ? JSON.stringify(wash(m).map((p) => p.opacity)) : 'not added'}; ${applyVerdict(res).headline})`);
+  }
+  {
+    // A host that leaves the wash at 100% once the member is in the set, the failure #2563 measured: the apply must say so.
+    const w = await world(TAG, full.filter((p) => planComponentName(p) !== name));
+    const set = w.set();
+    const append = set.appendChild as (c: Node) => void;
+    set.appendChild = (c: Node) => {
+      append.call(set, c);
+      const ps = c.fills as { opacity?: number; boundVariables?: { color?: unknown } }[] | undefined;
+      if (Array.isArray(ps) && ps.some((p) => p?.boundVariables?.color && (p.opacity ?? 1) < 1)) c.fills = ps.map((p) => (p?.boundVariables?.color ? { ...p, opacity: 1 } : p));
+    };
+    const { res } = await confirm(w, [{ def: TAG, plans: full }]);
+    const m = membersOf(w.set()).find((x) => String(x.name) === name);
+    ok(!!m && wash(m).some((p) => (p.opacity ?? 1) === 1), `add, wash premise: the added member's wash is stored at 100% (${m ? JSON.stringify(wash(m).map((p) => p.opacity)) : 'not added'})`);
+    const line = res.outcomes[0]?.content.find((x) => x.startsWith(name) && /fills/.test(x));
+    ok(!applyVerdict(res).ok && !!line, `add, wash/verified: the apply fails and names the added member's fill (${applyVerdict(res).headline}; ${line ?? JSON.stringify(res.outcomes[0]?.content.slice(0, 2))})`);
+  }
+}
+
 /* ── order (#2944) ───────────────────────────────────────────────────────────────────────────────────── */
 section('order — a member whose name lists its segments in another order is updated in place, never added again (#2944)');
 {
