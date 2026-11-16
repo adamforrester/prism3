@@ -2565,7 +2565,13 @@ export const figmaAnatomyPlan = (
  *  quietly omits an axis, and a set with no members is the same defect with the count at zero. */
 const PROJECTABLE_SLOT_AXES = ['leading', 'trailing'];
 
-/** The rung a button's corner binds under `controlShape: pill`. `radius.capsule` is a 999px sentinel —
+/** The `derived` key a def carries to opt IN to `controlShape` (#1163). Its VALUE is inert prose ("height
+ *  ÷ 2 — …"); its PRESENCE is the selector. Today button + icon-button carry it; switch + radio do not, so
+ *  they are outside the pill-able set by construction (asserted in `test.ts`, so the lever can never square
+ *  them off). A future chip/tag/segmented control joins the set by declaring this key — nothing else. */
+export const PILL_RADIUS_DERIVATION = 'pill-radius';
+
+/** The rung a pill-able control binds under `controlShape: pill`. `radius.capsule` is a 999px sentinel —
  *  a single radius Figma clamps to min(w,h)/2 = height ÷ 2 at every size, which is the "pill-radius
  *  derivation" the def documents rather than a per-component literal. It is DISTINCT from `radius.round`
  *  (128px, the rung switch/radio bind intrinsically) on purpose (#1163): 128 stops being a full pill above
@@ -2574,17 +2580,17 @@ const PROJECTABLE_SLOT_AXES = ['leading', 'trailing'];
  *  bound to a radius corner, not a height variable bound across Figma's scope boundary. */
 export const PILL_RADIUS_RUNG = 'radius.capsule';
 
-/** The rung a Control shape corner binds under `controlShape: boxed` (#1371) — a fixed 0px / sharp corner.
+/** The rung a pill-able control binds under `controlShape: boxed` (#1371) — a fixed 0px / sharp corner.
  *  `radius.none` is ALWAYS emitted (it is the ramp's floor, `RADIUS_LADDER`'s `factor: 0`), so `boxed`
  *  carries no rung dependency: unlike `hairline` it is valid for every brand with nothing to provision. */
 export const BOXED_RADIUS_RUNG = 'radius.none';
 
-/** The rung a Control shape corner binds under `controlShape: hairline` (#1371) — the fixed 1px sentinel
+/** The rung a pill-able control binds under `controlShape: hairline` (#1371) — the fixed 1px sentinel
  *  (#1362). Every brand emits `radius.hairline` since #2053 (`radiusScale` pushes it unconditionally), so
  *  this rewrite always resolves, as `boxed`'s `radius.none` always has. */
 export const HAIRLINE_RADIUS_RUNG = 'radius.hairline';
 
-/** The rung each shape repoints a def's `levers.controlShape` refs to. `rounded` is `null`
+/** The rung each shape repoints the ROUNDED rung (`radius.md`) to on a pill-able def. `rounded` is `null`
  *  — the IDENTITY, no rewrite — which is what makes the default plan byte-identical (acceptance #1). */
 export const CONTROL_SHAPE_RUNG: Record<ControlShape, string | null> = {
   rounded: null,
@@ -2593,6 +2599,8 @@ export const CONTROL_SHAPE_RUNG: Record<ControlShape, string | null> = {
   hairline: HAIRLINE_RADIUS_RUNG,
 };
 
+/** True when `def` is a pill-able control — it declares the `pill-radius` derivation. */
+export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived?.[PILL_RADIUS_DERIVATION];
 
 /**
  * Materialize a def for a brand's `controlShape` lever (#1163), BEFORE projection — this is why the choice
@@ -2604,12 +2612,12 @@ export const CONTROL_SHAPE_RUNG: Record<ControlShape, string | null> = {
  * projector a brand input, the caller that knows the brand rewrites the DEF first and hands the projector a
  * def as before. The projector stays a pure function of its def; the brand-specificity lives here.
  *
- * What it does: for a non-`rounded` shape, every `tokens` entry whose ref the def names in
- * `levers.controlShape.capsules` — the buttons' `radius.md` — is repointed to that shape's rung (`CONTROL_SHAPE_RUNG`): `pill` → `radius.capsule`
+ * What it does: for a non-`rounded` shape, a pill-able control's ROUNDED rung — every `tokens` entry whose
+ * ref is `radius.md` — is repointed to that shape's rung (`CONTROL_SHAPE_RUNG`): `pill` → `radius.capsule`
  * (height ÷ 2), `boxed` → `radius.none` (sharp), `hairline` → `radius.hairline` (1px). `varOf` still resolves
  * each binding through `def.tokens` exactly as before — only the ref it finds there has moved — so no binding
- * is bypassed and no per-component token is introduced. Under `rounded` (default) and for any def that names
- * no `levers.controlShape`, this is the IDENTITY: it returns the same object, which is what makes `rounded` reproduce every
+ * is bypassed and no per-component token is introduced. Under `rounded` (default) and for any def that is not
+ * pill-able, this is the IDENTITY: it returns the same object, which is what makes `rounded` reproduce every
  * plan byte-identically (acceptance #1, the no-op-default independence check).
  *
  * EACH SHAPE NAMES A RELATIONSHIP, NOT A RAW RADIUS (#1371). The four values are one selector reaching four
@@ -2629,20 +2637,18 @@ export const CONTROL_SHAPE_RUNG: Record<ControlShape, string | null> = {
  * circular one stays circular, and `button` (which still binds `radius.md` under the key `radius`) is
  * repointed exactly as before — its default plan is byte-identical.
  *
- * NARROW BY CONSTRUCTION: it rewrites ONLY the refs a def names in `levers.controlShape`: `capsules` under every
- * shape but Rounded, and, under `boxed` and `hairline` alone, the field and checkbox corners in `squares` (#2361).
- * ALL OF ITS REACH LIVES THERE (owner Q-CS5 B, #3765). Until then Pill's reach came from a `pill-radius` key in
- * `anatomy.derived`; that prose stays on the button defs because the plan carries `derived` and `planStamp` hashes it
- * (dropping it would read every built button member as stale), but it no longer selects anything.
- * `switch`/`radio` name no `levers.controlShape`, so they pass through untouched, and their `radius.round` is the
- * intrinsic pill/circle no def lists.
+ * NARROW BY CONSTRUCTION: it rewrites ONLY refs equal to the rounded rung and ONLY for pill-able defs, plus,
+ * under `boxed` and `hairline` alone, the field and checkbox corners a def names in `levers.controlShape.squares` (#2361).
+ * `switch`/`radio` carry no `pill-radius` derivation, so `isPillable` is false and they pass through
+ * untouched — and even were they pill-able, their `radius.round` ref is not the rounded rung, so the lever
+ * cannot reach the one binding that already gives them their intrinsic pill/circle.
  */
 export const ROUNDED_RADIUS_RUNG = 'radius.md';
 
 /**
  * `boxed` AND `hairline` REACH FIELDS AND THE CHECKBOX TOO (#2361, owner 2026-10-08: "1px corners everywhere",
- * for consistency first; Q139 added `boxed`, the same way). `rounded` and `pill` still reach only the buttons'
- * `capsules`: a pill field or a pill checkbox would be wrong, and `rounded` is the identity.
+ * for consistency first; Q139 added `boxed`, the same way). `rounded` and `pill` still reach only the pill-able
+ * set: a pill field or a pill checkbox would be wrong, and `rounded` is the identity.
  */
 export const FIELD_CORNER_SHAPES: readonly ControlShape[] = ['boxed', 'hairline'];
 
@@ -2660,12 +2666,12 @@ export const FIELD_CORNER_SHAPES: readonly ControlShape[] = ['boxed', 'hairline'
 export const applyControlShape = (def: ComponentDef, shape: ControlShape): ComponentDef => {
   const target = CONTROL_SHAPE_RUNG[shape];
   if (target === null) return def;
-  const refs = [
-    ...(def.levers?.controlShape?.capsules ?? []),
-    ...(FIELD_CORNER_SHAPES.includes(shape) ? def.levers?.controlShape?.squares ?? [] : []),
-  ];
-  if (!refs.length) return def;
-  const tokens = Object.fromEntries(Object.entries(def.tokens).map(([k, ref]) => [k, refs.includes(ref) ? target : ref]));
+  const fieldRefs = FIELD_CORNER_SHAPES.includes(shape) ? def.levers?.controlShape?.squares : undefined;
+  if (!isPillable(def) && !fieldRefs) return def;
+  const tokens = Object.fromEntries(
+    Object.entries(def.tokens).map(([k, ref]) => [k,
+      (isPillable(def) && ref === ROUNDED_RADIUS_RUNG) || !!fieldRefs?.includes(ref) ? target : ref]),
+  );
   return { ...def, tokens };
 };
 

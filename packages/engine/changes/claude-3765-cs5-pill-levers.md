@@ -1,4 +1,0 @@
----
-engine: patch
----
-All of Control shape's reach now lives in a def's `levers.controlShape` (#3765, owner decision Q-CS5 B). A new `capsules` list names the corner refs every shape but Rounded repoints: Pill to `radius.capsule`, Boxed to `radius.none`, Hairline to `radius.hairline`. Button, Icon button (its square shape), Wallet button and Sign-in button name `capsules: ['radius.md']`. `squares` keeps the refs Boxed and Hairline alone square, and is now optional. A `pill-radius` line in a def's `derived` block no longer makes it pill-able: a def that arrives as data names `capsules` instead. The validator refuses a `capsules` list that is empty, is not a token ref, names a corner the def does not bind, or repeats a `squares` ref. No plan, token or emission changes under any Control shape or Field style; Google Pay's half-height clamp is unchanged. `CONTRACT_VERSION` unchanged: no token name moves.

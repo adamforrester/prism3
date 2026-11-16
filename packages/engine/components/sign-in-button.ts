@@ -192,8 +192,6 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
       'border-width': 'border-width.hairline',
       ...ringTokens(),
     },
-    // Control shape reaches the brand's corner, as it reaches Button's (Q-CS3 A, Q-CS5 B, #3765).
-    levers: { controlShape: { capsules: ['radius.md'] } },
     // The provider's own colors, font and wording (Q-S2 A, Q-S7 A, Q-S8 A), as literals from the rule record above.
     literal: { key: '{provider}.{style}', entries },
 
@@ -233,8 +231,8 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
         focusRing: focusRingPart('The shared focus ring, outside the provider\'s button while it has keyboard focus.'),
       },
       derived: {
-        // Q-CS3 A (#3765): Control shape reaches this button as it reaches Button, through `levers.controlShape.capsules`
-        // (Q-CS5 B); this prose describes it and is kept for the plan stamp. Pill repoints `radius.md` to `radius.capsule`, Boxed to `radius.none`, Hairline to `radius.hairline`. No provider
+        // Q-CS3 A (#3765): Control shape reaches this button as it reaches Button. This key opts it in (`isPillable`):
+        // Pill repoints `radius.md` to `radius.capsule`, Boxed to `radius.none`, Hairline to `radius.hairline`. No provider
         // forbids any of them (read 2026-11-15): Apple's HIG, "you can change the corner radius to produce a button with
         // square corners or a capsule-shape button", and for a custom button "a corner radius value that matches the other
         // buttons in your UI"; Google's branding guidelines offer Rectangular and Pill and leave a custom button's boundary

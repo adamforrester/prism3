@@ -58,7 +58,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef, type PartDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyCurrentIndicator, fieldStyleFor, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyCurrentIndicator, fieldStyleFor, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 import { COMPONENT_RENAMES, coordKey, currentDefId, formerDefIds, partRenames, renameCoordinate, renameProperty, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, slotTextUnclaimed, slotTextMigrationOf, type ComponentRename, type AxesBaseline } from './component-renames';
 // One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
@@ -16790,8 +16790,8 @@ arm: {
   //
   // The mechanism is a def transform applied BEFORE projection (`applyControlShape`), which keeps the plan
   // brand-agnostic (`figmaVarName`'s header). This arm proves the four things the issue asks: the pill-able
-  // SET is exactly the defs that name `levers.controlShape.capsules` (Q-CS5 B, #3765; the presence of a `pill-radius`
-  // key in `anatomy.derived` until then); switch + radio are OUTSIDE it by construction and the lever cannot square them off; `pill` moves the radius binding
+  // SET is exactly the defs that declare the `pill-radius` derivation (button + icon-button); switch + radio
+  // are OUTSIDE it by construction and the lever cannot square them off; `pill` moves the radius binding
   // from `radius.md` to `radius.capsule` BY NAME at every size; and `rounded` is the identity, so the default
   // plan is byte-identical. The oracle is the projected plan (the wire the executor writes), read via
   // `planBoundVars`, not `def.tokens` — the assertion is on what actually reaches Figma.
@@ -16800,24 +16800,15 @@ arm: {
   // for arbitrary-height controls (999px clamps to a pill up to ~1998px, where round's 128 stops at 256),
   // and does so WITHOUT touching the rung switch/radio bind — the intrinsic pills stay on `radius.round`.
   {
-    // THE PILL-ABLE SET, typed (Q-CS5 B, #3765): the defs whose `levers.controlShape.capsules` every shape rebinds.
-    const capsuled = (d: ComponentDef): readonly string[] => d.levers?.controlShape?.capsules ?? [];
-    const PILLABLE = ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'sign-in-button', 'wallet-button'];
-    const pillable = componentDefs.filter((d) => capsuled(d).length).map((d) => d.id).sort();
-    ok(JSON.stringify(pillable) === JSON.stringify(PILLABLE) && componentDefs.filter((d) => capsuled(d).length).every((d) => JSON.stringify(capsuled(d)) === '["radius.md"]'),
-      `controlShape: the pill-able set is the buttons, each naming levers.controlShape.capsules ['radius.md'] (${pillable.join(', ')})`);
-    // The `pill-radius` prose in `derived` no longer selects anything, but the plan carries it into each member's stamp,
-    // so it stays, and stays TRUE: a def carries it exactly when Control shape rounds it, so the prose cannot claim a
-    // reach the def lacks, nor a new pill-able def go undescribed.
-    const described = componentDefs.filter((d) => d.anatomy?.derived?.['pill-radius']).map((d) => d.id).sort();
-    ok(JSON.stringify(described) === JSON.stringify(PILLABLE),
-      `controlShape: the defs whose derived prose describes the pill radius are exactly the pill-able set (described: ${described.join(', ')})`);
-    // THE EXCLUSION, asserted so the lever can never square them off. The intrinsic-pill controls name no
-    // `levers.controlShape`, so `applyControlShape(_, 'pill')` is the identity on them.
+    const pillable = componentDefs.filter(isPillable).map((d) => d.id).sort();
+    ok(pillable.includes('button') && pillable.includes('icon-button'),
+      `controlShape: button + icon-button are the pill-able set — they declare the \`${PILL_RADIUS_DERIVATION}\` derivation (${pillable.join(', ')})`);
+    // THE EXCLUSION, asserted so the lever can never square them off. The intrinsic-pill controls declare
+    // no derivation, so `isPillable` is false and `applyControlShape(_, 'pill')` is the identity on them.
     // Since #1354/#1348 both switch's and radio's intrinsic pill/circle live on their ATOMS
     // (`switch-control`'s track, `radio-control`'s disc, both `radius.round`); the ROWs declare no radius
     // at all. So this half of the check reads the two atoms, not the rows.
-    ok(!switchControl.levers?.controlShape && !radioControl.levers?.controlShape && applyControlShape(switchControl, 'pill') === switchControl && applyControlShape(radioControl, 'pill') === radioControl,
+    ok(!isPillable(switchControl) && !isPillable(radioControl),
       'controlShape: switch-control + radio-control are NOT pill-able — their pill/circle is intrinsic (radius.round), not a brand choice');
     // The pill lever's rung is NOT the intrinsic-pill rung — raising one can never move the other.
     ok(PILL_RADIUS_RUNG === 'radius.capsule' && switchControl.tokens['radius'] === 'radius.round' && radioControl.tokens['radius'] === 'radius.round' && PILL_RADIUS_RUNG !== switchControl.tokens['radius'],
@@ -41298,14 +41289,6 @@ arm: {
       ['search-field', { fieldStyle: { frame: 'control', setting: 'tagStyle' as 'searchFieldStyle' } }, "levers.fieldStyle.setting must be 'searchFieldStyle' when set"],
       ['text-field', { controlShape: { squares: [] } }, 'levers.controlShape.squares must be a non-empty list'],
       ['text-field', { controlShape: { squares: ['radius sm'] } }, "levers.controlShape.squares names 'radius sm', which is not a token ref"],
-      // Q-CS5 B (#3765): Pill's reach, `capsules`, refused when empty, malformed, unbound (a def without that corner, a
-      // typo), listed in `squares` too, or when the entry names neither list.
-      ['button', { controlShape: { capsules: [] } }, 'levers.controlShape.capsules must be a non-empty list'],
-      ['button', { controlShape: { capsules: ['radius md'] } }, "levers.controlShape.capsules names 'radius md', which is not a token ref"],
-      ['button', { controlShape: { capsules: ['radius.mdd'] } }, "levers.controlShape.capsules names 'radius.mdd', which no tokens key binds: the def has no such corner"],
-      ['text-field', { controlShape: { capsules: ['radius.md'] } }, "levers.controlShape.capsules names 'radius.md', which no tokens key binds: the def has no such corner"],
-      ['button', { controlShape: { capsules: ['radius.md'], squares: ['radius.md'] } }, "levers.controlShape names 'radius.md' in both capsules and squares"],
-      ['button', { controlShape: {} }, 'levers.controlShape must name capsules, squares or both'],
       ['tag', { tagStyle: { frame: 'container', row: 'content', labelRow: 'labelCheck', slot: 'gone' } }, "levers.tagStyle.slot names 'gone', which is not a declared anatomy part"],
       ['tag', { buttonLabelWeight: { labels: false as unknown as true } }, 'levers.buttonLabelWeight.labels must be true when set'],
       ['banner', { buttonLabelWeight: { labels: true } }, 'levers.buttonLabelWeight needs a size axis'],
@@ -41326,21 +41309,12 @@ arm: {
     // #3787: each `controlShape.squares` ref is BOUND on the authored def, so Boxed and Hairline reach it. The validator
     // checks only that each reads as a ref, because a materialized def has already rebound them (its header says why);
     // `componentDefs` is the registry as authored, before any materializer, so here a typo'd ref fails by def and ref.
-    const squaring = componentDefs.filter((d) => d.levers?.controlShape?.squares);
+    const squaring = componentDefs.filter((d) => d.levers?.controlShape);
     const unbound = squaring.flatMap((d) => (d.levers!.controlShape!.squares ?? []).filter((r) => !Object.values(d.tokens).includes(r)).map((r) => `${d.id}: ${r}`));
     ok(squaring.length >= 6 && unbound.length === 0, `#3787 levers: every authored def's controlShape.squares ref is a value one of its tokens binds, so Boxed and Hairline reach it (${squaring.length} defs; unbound: ${unbound.join(' | ') || 'none'})`);
-    // Q-CS5 B (#3765): the validator lets a `capsules` ref go unbound only on a def that already binds a Control shape rung
-    // (a materialized one). No authored def naming `capsules` binds one, so the exception never hides an authored typo.
-    const SHAPE_RUNGS = ['radius.capsule', 'radius.none', 'radius.hairline'];
-    const capsuling = componentDefs.filter((d) => d.levers?.controlShape?.capsules);
-    const preShaped = capsuling.filter((d) => Object.values(d.tokens).some((r) => SHAPE_RUNGS.includes(r))).map((d) => d.id);
-    ok(capsuling.length >= 8 && preShaped.length === 0, `Q-CS5 B levers: no authored def naming controlShape.capsules binds a Control shape rung, so the validator's materialized-def exception cannot hide its typo (${capsuling.length} defs; binding one: ${preShaped.join(', ') || 'none'})`);
-    // ...and a materialized one validates: the exception is what lets it.
-    const shapedBad = (['pill', 'boxed', 'hairline'] as const).flatMap((sh) => capsuling.flatMap((d) => validateComponentDef(applyControlShape(d, sh)).errors.filter((e) => e.startsWith('levers')).map((e) => `${d.id} ${sh}: ${e}`)));
-    ok(shapedBad.length === 0, `Q-CS5 B levers: every capsuled def, materialized under each shape, still validates its levers (${shapedBad.join(' | ') || 'clean'})`);
     // The reach of each setting, typed: the defs that carry each entry (was the eight tables in anatomy-figma.ts). Code input's cell joins Control shape in #3765.
     const REACH: Record<string, string[]> = {
-      controlShape: ['button', 'button-destructive', 'button-neutral', 'card-number-field', 'checkbox-control', 'code-input-cell', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'password-field', 'search-field', 'select', 'sign-in-button', 'text-field', 'textarea', 'wallet-button'],
+      controlShape: ['card-number-field', 'checkbox-control', 'code-input-cell', 'password-field', 'search-field', 'select', 'text-field', 'textarea'],
       fieldStyle: ['card-number-field', 'code-input-cell', 'password-field', 'search-field', 'select', 'text-field', 'textarea'],
       tagStyle: ['tag'], buttonLabelWeight: ['tag'], dialogTitleSize: ['dialog'], bannerStyle: ['banner'], currentIndicator: ['link'],
       outlineInteraction: ['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral'],
