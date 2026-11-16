@@ -154,7 +154,7 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.0` / `space.100` / `space.0` / `space.100` | `space.050` | `size.md.height` | — | `size.md.height` | — |
+| `container` | `space.0` / `space.100` / `space.0` / `space.100` | `space.050` | `size.md.height` | — | `size.md.height` | radius `radius.md`; stroke `border-width.hairline` |
 | `container/labelBox/reserve` | — | — | `space.0` | — | — | — |
 | `container/labelBox/balance` | — | — | `border-width.thick` | `space.0` | — | — |
 | `container/labelBox/underline` | — | — | `border-width.thick` | — | — | — |
@@ -167,7 +167,7 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.0` / `space.100` / `space.0` / `space.100` | `space.050` | `size.sm.height` | — | `size.sm.height` | — |
+| `container` | `space.0` / `space.100` / `space.0` / `space.100` | `space.050` | `size.sm.height` | — | `size.sm.height` | radius `radius.md`; stroke `border-width.hairline` |
 | `container/labelBox/reserve` | — | — | `space.0` | — | — | — |
 | `container/labelBox/balance` | — | — | `border-width.thick` | `space.0` | — | — |
 | `container/labelBox/underline` | — | — | `border-width.thick` | — | — | — |
@@ -180,7 +180,7 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.0` / `space.100` / `space.0` / `space.100` | `space.050` | `size.lg.height` | — | `size.lg.height` | — |
+| `container` | `space.0` / `space.100` / `space.0` / `space.100` | `space.050` | `size.lg.height` | — | `size.lg.height` | radius `radius.md`; stroke `border-width.hairline` |
 | `container/labelBox/reserve` | — | — | `space.0` | — | — | — |
 | `container/labelBox/balance` | — | — | `border-width.thick` | `space.0` | — | — |
 | `container/labelBox/underline` | — | — | `border-width.thick` | — | — | — |

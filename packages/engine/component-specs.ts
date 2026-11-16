@@ -50,7 +50,7 @@ import type { AnatomyPlan, FigmaNodePlan } from './anatomy-figma';
 import { componentSizes, sizeRefPx, SPACE_BASE } from './scale';
 import { focusRing as FOCUS_RING } from './components/focus-ring';
 
-export const COMPONENT_SPECS_SCHEMA = 'prism3-component-specs/1.0';
+export const COMPONENT_SPECS_SCHEMA = 'prism3-component-specs/1.1';
 
 /** The swap target the plugin nominates (`apps/plugin/src/main.ts`'s `SWAP_TARGET`). A nomination, not data:
  *  the model never reports it, but projecting without one builds a different plan from the one Apply builds. */

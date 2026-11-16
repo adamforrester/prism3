@@ -1,6 +1,6 @@
 # Token usage
 
-Where each token is bound: by which component, on which part, and at which variants and states. 283 of 821 emitted tokens are bound by at least one component.
+Where each token is bound: by which component, on which part, and at which variants and states. 288 of 821 emitted tokens are bound by at least one component.
 
 Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members. A key marked "not drawn" names the token but no member draws it; another key on the row does.
 
@@ -2707,6 +2707,46 @@ Type: dimension. Bound by 18 component(s).
 |  |  | leadingVisual | size: small (15 of 45) |
 | textarea | `grip-size` | gripGlyph | every member (84 of 84) |
 
+### `motion.duration-reduced.fast`
+
+Type: duration. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| spinner | `motion.enter-reduced` | (not drawn) | — |
+
+### `motion.duration-reduced.spin`
+
+Type: duration. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| spinner | `motion.turn-reduced` | (not drawn) | — |
+
+### `motion.duration.fast`
+
+Type: duration. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| spinner | `motion.enter` | (not drawn) | — |
+
+### `motion.duration.spin`
+
+Type: duration. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| spinner | `motion.turn` | (not drawn) | — |
+
+### `motion.easing-role.enter`
+
+Type: cubicBezier. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| spinner | `motion.enter-easing` | (not drawn) | — |
+
 ### `radius.2xl`
 
 Type: dimension. Bound by 1 component(s).
@@ -4076,9 +4116,11 @@ Declared, not drawn: `color.border.focus`
 
 ### spinner
 
-5 token(s); 4 design-file member(s).
+10 token(s); 4 design-file member(s).
 
-`color.icon.primary`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`
+`color.icon.primary`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `motion.duration-reduced.fast`, `motion.duration-reduced.spin`, `motion.duration.fast`, `motion.duration.spin`, `motion.easing-role.enter`
+
+Declared, not drawn: `motion.duration-reduced.fast`, `motion.duration-reduced.spin`, `motion.duration.fast`, `motion.duration.spin`, `motion.easing-role.enter`
 
 ### switch-control
 
@@ -4150,7 +4192,7 @@ Declared, not drawn: `color.border.focus`
 
 ## Tokens no component binds
 
-258 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
+253 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
 
 ### Semantic
 
@@ -4169,7 +4211,7 @@ Declared, not drawn: `color.border.focus`
 - **control** — `control.size.lg.inset`, `control.size.lg.track`, `control.size.lg.width`
 - **gradient** — `gradient.brand`, `gradient.glow`
 - **grid** — `grid.2xl.columns`, `grid.2xl.gutter`, `grid.2xl.margin`, `grid.lg.columns`, `grid.lg.gutter`, `grid.lg.margin`, `grid.md.columns`, `grid.md.gutter`, `grid.md.margin`, `grid.sm.columns`, `grid.sm.gutter`, `grid.sm.margin`, `grid.xl.columns`, `grid.xl.gutter`, `grid.xl.margin`
-- **motion** — `motion.duration-ms.0`, `motion.duration-ms.100`, `motion.duration-ms.1600`, `motion.duration-ms.200`, `motion.duration-ms.2600`, `motion.duration-ms.300`, `motion.duration-ms.40`, `motion.duration-ms.50`, `motion.duration-ms.500`, `motion.duration-ms.800`, `motion.duration-reduced.fast`, `motion.duration-reduced.instant`, `motion.duration-reduced.moderate`, `motion.duration-reduced.normal`, `motion.duration-reduced.slow`, `motion.duration-reduced.slower`, `motion.duration-reduced.spin`, `motion.duration-reduced.sweep`, `motion.duration.fast`, `motion.duration.instant`, `motion.duration.moderate`, `motion.duration.normal`, `motion.duration.slow`, `motion.duration.slower`, `motion.duration.spin`, `motion.duration.sweep`, `motion.easing-role.default`, `motion.easing-role.emphasized`, `motion.easing-role.enter`, `motion.easing-role.exit`, `motion.easing.accelerate`, `motion.easing.calm`, `motion.easing.decelerate`, `motion.easing.expressive`, `motion.easing.linear`, `motion.easing.standard`, `motion.spring.bouncy`, `motion.spring.gentle`, `motion.spring.snappy`, `motion.stagger`, `motion.transition.default`, `motion.transition.emphasized`, `motion.transition.enter`, `motion.transition.exit`
+- **motion** — `motion.duration-ms.0`, `motion.duration-ms.100`, `motion.duration-ms.1600`, `motion.duration-ms.200`, `motion.duration-ms.2600`, `motion.duration-ms.300`, `motion.duration-ms.40`, `motion.duration-ms.50`, `motion.duration-ms.500`, `motion.duration-ms.800`, `motion.duration-reduced.instant`, `motion.duration-reduced.moderate`, `motion.duration-reduced.normal`, `motion.duration-reduced.slow`, `motion.duration-reduced.slower`, `motion.duration-reduced.sweep`, `motion.duration.instant`, `motion.duration.moderate`, `motion.duration.normal`, `motion.duration.slow`, `motion.duration.slower`, `motion.duration.sweep`, `motion.easing-role.default`, `motion.easing-role.emphasized`, `motion.easing-role.exit`, `motion.easing.accelerate`, `motion.easing.calm`, `motion.easing.decelerate`, `motion.easing.expressive`, `motion.easing.linear`, `motion.easing.standard`, `motion.spring.bouncy`, `motion.spring.gentle`, `motion.spring.snappy`, `motion.stagger`, `motion.transition.default`, `motion.transition.emphasized`, `motion.transition.enter`, `motion.transition.exit`
 - **opacity** — `opacity.0`, `opacity.10`, `opacity.100`, `opacity.20`, `opacity.30`, `opacity.40`, `opacity.5`, `opacity.50`, `opacity.60`, `opacity.70`, `opacity.80`, `opacity.90`
 - **radius** — `radius.3xl`, `radius.hairline`
 - **shadow** — `shadow.2xl`, `shadow.inset`, `shadow.md`, `shadow.sm`, `shadow.xs`
