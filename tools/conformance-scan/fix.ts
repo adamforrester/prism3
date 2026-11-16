@@ -103,6 +103,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CATEGORIES, diff, type Category, type Finding, type Report } from './diff';
+import { localeFreeCompare } from '../../packages/engine/locale-free-order';
 import {
   bindKey,
   parseBindKey,
@@ -367,8 +368,8 @@ export const fix = (report: Report, expected: State, actual: State): FixPlan => 
   // Deterministic order: variables before nodes (the order a file is built in), then by subject, so two
   // runs over the same pair produce the same plan byte for byte and a review diff is readable.
   const rank = (o: FixOp): number => (o.op === 'set-var-value' ? 0 : 1);
-  ops.sort((a, b) => rank(a) - rank(b) || a.subject.localeCompare(b.subject));
-  excluded.sort((a, b) => CATEGORIES.indexOf(a.category) - CATEGORIES.indexOf(b.category) || a.subject.localeCompare(b.subject));
+  ops.sort((a, b) => rank(a) - rank(b) || localeFreeCompare(a.subject, b.subject));
+  excluded.sort((a, b) => CATEGORIES.indexOf(a.category) - CATEGORIES.indexOf(b.category) || localeFreeCompare(a.subject, b.subject));
 
   // THE CONFIG WARNING, and the most consequential line in this file. #1569's finding was that an
   // expectation built at a brand's COMMITTED config reports every lever the operator moved before applying

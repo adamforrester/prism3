@@ -2314,7 +2314,8 @@ s4cArm: for (const brand of BRANDS) {
     'inverse.field.fill', 'inverse.field.border.rest', 'inverse.field.border.hover', 'inverse.field.placeholder'];
   const FIELD_STEPS = { dark: ['150', '250', '350', '450', '550', '650', '750', '850'], light: ['200', '300', '400', '500', '600', '700', '800', '900'] };
   const brandRaw = (page) => page.evaluate(() => { try { return localStorage.getItem('prism3:brandInput'); } catch { return null; } });
-  const sorted = (o) => JSON.stringify(Object.fromEntries(Object.entries(o ?? {}).sort(([a], [b]) => a.localeCompare(b))));
+  // Code-unit order, which no host locale moves (#3701); both sides of the comparison sort the same way.
+  const sorted = (o) => JSON.stringify(Object.fromEntries(Object.entries(o ?? {}).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))));
   let fieldEdits = 0;
   for (const [m, other] of [['dark', 'light'], ['light', 'dark']]) {
     if (!modes.includes(m)) continue;

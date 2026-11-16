@@ -19317,8 +19317,9 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     ok(JSON.stringify([...st.queuedTags].sort()) === JSON.stringify([...S_QUEUED].sort()), `${where}: Q3129.4 A: the queued sets' tag reads To add (${JSON.stringify(st.queuedTags)})`);
     {
       // #3439 Q-IF.1 A: a set or family the file holds whole draws its box checked and disabled, named as in the file.
-      const want = S_IN_FILE.map(([k, n]) => [k, 'true', 'true', `${n} is in this file`]).sort((a, b) => a[0].localeCompare(b[0]));
-      const got = [...st.inFile].sort((a, b) => a[0].localeCompare(b[0]));
+      const want = S_IN_FILE.map(([k, n]) => [k, 'true', 'true', `${n} is in this file`]).sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+      // Code-unit order on both sides, which no host locale moves (#3701).
+      const got = [...st.inFile].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
       ok(JSON.stringify(got) === JSON.stringify(want),
         `${where}: Q-IF.1 A: a set or family the file holds draws its box checked and disabled, named "{name} is in this file" (DRAFT), and nothing else does (${JSON.stringify({ missing: want.filter((x) => !got.some((y) => JSON.stringify(y) === JSON.stringify(x))), extra: got.filter((x) => !want.some((y) => JSON.stringify(y) === JSON.stringify(x))) })})`);
       // #3439 Q-IF.2 A: In file first; a family the file holds part of carries it too (Icons & assets: Icon in, Provider logo not).
