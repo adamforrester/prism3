@@ -439,38 +439,47 @@
   .p3-button:is(:not([data-prop-size]), [data-prop-size="medium"]):is(:not([data-prop-appearance]), [data-prop-appearance="filled"]) > .p3-button__label {
     font: var(--pds3-type-label-md-emphasis);
     text-decoration-line: none;
+    letter-spacing: calc(var(--pds3-core-font-letter-spacing-role-normal) * 1em);
   }
   .p3-button[data-prop-size="small"]:is(:not([data-prop-appearance]), [data-prop-appearance="filled"]) > .p3-button__label {
     font: var(--pds3-type-label-sm-emphasis);
     text-decoration-line: none;
+    letter-spacing: calc(var(--pds3-core-font-letter-spacing-role-normal) * 1em);
   }
   .p3-button[data-prop-size="large"]:is(:not([data-prop-appearance]), [data-prop-appearance="filled"]) > .p3-button__label {
     font: var(--pds3-type-label-lg-emphasis);
     text-decoration-line: none;
+    letter-spacing: calc(var(--pds3-core-font-letter-spacing-role-normal) * 1em);
   }
   .p3-button:is(:not([data-prop-size]), [data-prop-size="medium"])[data-prop-appearance="outline"] > .p3-button__label {
     font: var(--pds3-type-label-md-emphasis);
     text-decoration-line: none;
+    letter-spacing: calc(var(--pds3-core-font-letter-spacing-role-normal) * 1em);
   }
   .p3-button[data-prop-size="small"][data-prop-appearance="outline"] > .p3-button__label {
     font: var(--pds3-type-label-sm-emphasis);
     text-decoration-line: none;
+    letter-spacing: calc(var(--pds3-core-font-letter-spacing-role-normal) * 1em);
   }
   .p3-button[data-prop-size="large"][data-prop-appearance="outline"] > .p3-button__label {
     font: var(--pds3-type-label-lg-emphasis);
     text-decoration-line: none;
+    letter-spacing: calc(var(--pds3-core-font-letter-spacing-role-normal) * 1em);
   }
   .p3-button:is(:not([data-prop-size]), [data-prop-size="medium"])[data-prop-appearance="text"] > .p3-button__label {
     font: var(--pds3-type-label-md-emphasis-link);
     text-decoration-line: underline;
+    letter-spacing: calc(var(--pds3-core-font-letter-spacing-role-normal) * 1em);
   }
   .p3-button[data-prop-size="small"][data-prop-appearance="text"] > .p3-button__label {
     font: var(--pds3-type-label-sm-emphasis-link);
     text-decoration-line: underline;
+    letter-spacing: calc(var(--pds3-core-font-letter-spacing-role-normal) * 1em);
   }
   .p3-button[data-prop-size="large"][data-prop-appearance="text"] > .p3-button__label {
     font: var(--pds3-type-label-lg-emphasis-link);
     text-decoration-line: underline;
+    letter-spacing: calc(var(--pds3-core-font-letter-spacing-role-normal) * 1em);
   }
   .p3-button:is(:not([data-prop-appearance]), [data-prop-appearance="filled"]):is(:not([data-prop-surface]), [data-prop-surface="default"]):is(:not([data-prop-inset]), [data-prop-inset="default"]) {
     background-color: var(--pds3-color-interactive-primary-fill-rest);

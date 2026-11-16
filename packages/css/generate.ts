@@ -176,6 +176,21 @@ for (const row of spec.redlines) {
 }
 
 // ------------------------------------------------------------------------------------------------ label styles
+// Tracking (Q143 A): the `font` shorthand can't carry it (#3507), so it's bound on its own, from the token the label
+// style's own `letterSpacing` aliases. Since CONTRACT_VERSION 15.0.0 that token is a `number`, a fraction of the font
+// size, so the CSS scales it by 1em; a dimension or a literal is refused rather than guessed at.
+const tracking = (style: string, l: any): string => {
+  const ref = l.$value?.letterSpacing;
+  const m = typeof ref === 'string' && ref.match(/^\{([^}]+)\}$/);
+  if (!m) throw new Error(`${style}: letterSpacing ${JSON.stringify(ref)} is not a token reference`);
+  const path = m[1].replace(new RegExp(`^${TOKEN_ROOT}\\.`), '');
+  // A DTCG $type may sit on the leaf or be inherited from a group above it.
+  let n: any = tree[TOKEN_ROOT], type: string | undefined = n?.$type;
+  for (const k of path.split('.')) { n = n?.[k]; if (n?.$type) type = n.$type; }
+  if (n?.$value === undefined) type = undefined;
+  if (type !== 'number') throw new Error(`${style}: letterSpacing ${path} is a ${type ?? 'missing token'}, not a number`);
+  return `calc(${v(path)} * 1em)`;
+};
 for (const row of spec.type) {
   const sel = coordSel(row.where);
   for (const p of row.parts) {
@@ -184,6 +199,7 @@ for (const row of spec.type) {
     add(partSel(sel, p.part), [
       ['font', v(p.textStyle)],
       ['text-decoration-line', l.$value?.textDecoration ?? 'none'],
+      ['letter-spacing', tracking(p.textStyle, l)],
     ]);
   }
 }

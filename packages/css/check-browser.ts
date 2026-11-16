@@ -132,6 +132,13 @@ export const run = async (browser: any, extraCss = ''): Promise<{ failures: stri
     const hit = await page.evaluate((q: string) => { const cs = getComputedStyle(document.querySelector(q)!, '::before'); return [parseFloat(cs.width), parseFloat(cs.height)]; }, `[data-demo="${theme}/default/text/flush/medium/rest"]`);
     const floor = parseFloat(await normalize('length', resolved(mode, 'size.md.min-height')));
     ok(hit[0] >= floor && hit[1] >= floor, `${theme} flush medium hit target is ${hit[0]}×${hit[1]}, under ${floor}×${floor}`);
+    // tracking (Q143 A): the text button's label tracks by its style's letterSpacing, a number × the font size
+    const tr = await page.evaluate((q: string) => { const cs = getComputedStyle(document.querySelector(q)!.querySelector('.p3-button__label')!); return [cs.letterSpacing, cs.fontSize]; }, `[data-demo="${theme}/default/text/default/medium/rest"]`);
+    const ratio = Number(resolved(mode, 'core.font.letter-spacing-role.normal'));
+    // normalized through a probe element: Chromium serializes a computed 0 as `normal`, so at the house brand's 0 this
+    // can't tell bound from unset; check-parity's sentinels can, and hold the binding itself
+    const wantLs = await page.evaluate((v: string) => { const el = document.createElement('span'); el.style.letterSpacing = v; document.body.append(el); const out = getComputedStyle(el).letterSpacing; el.remove(); return out; }, `${ratio * parseFloat(tr[1])}px`);
+    ok(tr[0] === wantLs, `${theme} text medium label letter-spacing is ${tr[0]}, core.font.letter-spacing-role.normal (${ratio}) × ${tr[1]} is ${wantLs}`);
   }
 
   // 2. focus-visible on keyboard, not on mouse
@@ -159,6 +166,9 @@ export const run = async (browser: any, extraCss = ''): Promise<{ failures: stri
 };
 
 const MUTANTS: { name: string; css: string; mustName: RegExp }[] = [
+  { name: 'the label tracking rebound to a wider role',
+    css: '.p3-button__label { letter-spacing: calc(var(--pds3-core-font-letter-spacing-role-wide) * 1em) !important; }',
+    mustName: /text medium label letter-spacing is .*core\.font\.letter-spacing-role\.normal/ },
   { name: 'a rest fill rebound to the hover token',
     css: '.p3-button[data-prop-appearance="filled"][data-prop-surface="default"]:not(:hover) { background-color: var(--pds3-color-interactive-primary-fill-hover) !important; }',
     mustName: /default\/filled\/default\/medium\/rest background-color is .*color\.interactive\.primary\.fill\.rest/ },

@@ -12,6 +12,10 @@
  *   - `min-width`: `min-inline-size: <N>px` where N is a `minWidth` `specs.json` states as derived
  *     (`source: "derived"`, height × multiplier, rounded up to 8px). No token carries the floor; the spec writes the
  *     number, so the CSS writes the same number. A live floor is listed for later in the README.
+ *   - `letter-spacing` (Q143 A): `var(--pds3-core-font-letter-spacing…)` inside `letter-spacing`, only for a token a
+ *     label style `specs.json` names aliases as its own `letterSpacing` (read here from the DTCG, not from the
+ *     generator). The token CSS's `font` shorthand drops tracking (#3507), so the alias target is the only variable
+ *     that carries it, and it lives under `core`.
  *
  * ALSO R1 (invented name), from the same scorer: every `var(--…)` names a leaf of the tree, and every `data-component`
  * and `data-prop-*` mark in the demo is a component, prop and value `components.ai.json` knows.
@@ -42,9 +46,17 @@ const spec = readUncommitted('specs.json').components.button;
 const DERIVED_FLOORS = new Set<number>(spec.redlines.flatMap((r: any) => r.parts.map((p: any) => p.values?.minWidth))
   .filter((m: any) => m && m.source === 'derived' && typeof m.px === 'number').map((m: any) => m.px));
 
+const TREE = json(TOKEN_TREE);
+const ROOT = Object.keys(TREE).filter((k) => !k.startsWith('$'))[0];
+const TRACKING = new Set<string>(spec.type.flatMap((r: any) => r.parts.map((p: any) => {
+  const ref = p.textStyle.split('.').reduce((n: any, k: string) => n?.[k], TREE[ROOT])?.$value?.letterSpacing;
+  return typeof ref === 'string' ? ref.replace(/^\{|\}$/g, '').replace(new RegExp(`^${ROOT}\\.`), '') : undefined;
+})).filter(Boolean));
+
 type Exception = { id: string; matches: (v: Violation) => boolean };
 const EXCEPTIONS: Exception[] = [
   { id: 'min-width', matches: (v) => { const m = v.what.match(/^(\d+)px in min-inline-size$/); return !!m && DERIVED_FLOORS.has(Number(m[1])); } },
+  { id: 'letter-spacing', matches: (v) => { const m = v.what.match(/^primitive (\S+) in letter-spacing$/); return !!m && TRACKING.has(m[1]); } },
 ];
 
 const styleBlocks = (html: string) => [...html.matchAll(/<style>([\s\S]*?)<\/style>/g)].map((m) => m[1]).join('\n');
@@ -73,6 +85,8 @@ const MUTANTS: { name: string; css: string; mustName: RegExp }[] = [
   { name: 'a primitive token', css: plant('color: var(--pds3-core-palette-white)'), mustName: /primitive core\.palette\.white in color/ },
   { name: 'an invented token name', css: plant('color: var(--pds3-color-text-brandish)'), mustName: /token --pds3-color-text-brandish is not in the tree/ },
   { name: 'a min-inline-size px the spec does not state', css: plant('min-inline-size: 105px'), mustName: /105px in min-inline-size/ },
+  { name: 'a letter-spacing primitive no label style aliases', css: plant('letter-spacing: calc(var(--pds3-core-font-letter-spacing-role-wide) * 1em)'), mustName: /primitive core\.font\.letter-spacing-role\.wide in letter-spacing/ },
+  { name: 'a tracking primitive outside letter-spacing', css: plant('word-spacing: calc(var(--pds3-core-font-letter-spacing-role-normal) * 1em)'), mustName: /primitive core\.font\.letter-spacing-role\.normal in word-spacing/ },
 ];
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -83,7 +97,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     console.error(`FAIL raw values: ${real.bad.length} raw value(s) or invented name(s), ${real.stale.length} stale exception(s)`);
     for (const x of real.bad) console.error(`  - ${x.what} (${x.where})`);
     for (const s of real.stale) console.error(`  - ${s}`);
-  } else console.log(`OK raw values (R2) and names (R1): no hex, rgb(), non-zero px, primitive or invented token in button.css or demo.html, and ${real.marks} demo marks are real props and values; ${real.excused} excused as documented (min-width: ${[...DERIVED_FLOORS].join(', ')}px, from specs.json)`);
+  } else console.log(`OK raw values (R2) and names (R1): no hex, rgb(), non-zero px, primitive or invented token in button.css or demo.html, and ${real.marks} demo marks are real props and values; ${real.excused} excused as documented (min-width: ${[...DERIVED_FLOORS].join(', ')}px, from specs.json; letter-spacing: ${[...TRACKING].join(', ')}, the label styles' own letterSpacing)`);
   for (const m of MUTANTS) {
     const r = scan(m.css, DEMO);
     if (r.bad.some((x) => m.mustName.test(x.what))) console.log(`OK self-test: "${m.name}" is reported by name`);
