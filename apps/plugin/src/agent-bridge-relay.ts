@@ -32,18 +32,6 @@
  * verifies against that code. Anything else is an impostor on the port: the socket is dropped as a settled loss, before
  * any command is heard, and the retry finds the real bridge once it is back. The prompt and its words are unchanged.
  *
- * A CODE IS SENT ONCE (#3764, option b of D3728.5). The `pair` proof lets whatever holds the port search the 8-character
- * code space offline. So once the socket that took the `pair` is gone without a verified `paired` (dropped, closed, or
- * answered with a proof that fails), the code is forgotten and the prompt asks for a fresh one; nothing is retried
- * until it is entered. A socket that closes before its challenge never sent the code, and keeps it pending.
- *
- * THE `paired` HAS A DEADLINE (#3764 review). Without one, an impostor could take the `pair`, hold the socket open while it
- * searches the code space, and answer on that same socket once it has the code. So the `paired` must arrive within
- * `pairedMs` of the `pair` (`PAIRED_MS`, 250 ms); past that the socket is dropped and the code forgotten, as on any other
- * failure, and a `paired` that comes later is not heard. The real bridge answers in one turn of its event loop (≤ 2.2 ms
- * measured over 15 cold starts), so the deadline is over 100× that; what it leaves an impostor is a search of 250 ms
- * against 30^8 ≈ 6.6 × 10^11 codes.
- *
  * ONE BRIDGE, TWO FILES (#3297). The server lets a newer PAIRED connection replace the older one, so a reconnect wins over
  * a socket that died without a close. With Prism3's link on in two files on one machine, that made the two instances
  * evict each other on every 2 s retry, and the transport word flipped "bridge" ⇄ "mailbox" in both. Now the server closes
@@ -82,9 +70,6 @@ export type WsLike = {
   onerror: ((ev: unknown) => void) | null;
 };
 const OPEN = 1;
-/** #3764 review: how long the relay waits for the `paired` after it sends a `pair`. The real bridge answers within one turn
- *  of its event loop (≤ 2.2 ms measured, localhost); 250 ms is over 100× that and keeps an offline search short. */
-export const PAIRED_MS = 250;
 
 /** Where pairing stands, for the panel: nothing to ask; a code is needed (none kept yet, or the kept token was refused);
  *  the last code entered was wrong; or a code is on its way. */
@@ -109,8 +94,6 @@ export type RelayDeps = {
   onHeld?(held: boolean): void;
   /** #3697 R8: draws each connection's `clientNonce`; `randomNonce` when absent. Injected only by tests. */
   nonce?(): string;
-  /** #3764 review: how long a sent `pair` waits for its `paired` before the socket is dropped and the code forgotten. */
-  pairedMs?: number;
 };
 
 export const createBridgeRelay = (deps: RelayDeps) => {
@@ -119,7 +102,6 @@ export const createBridgeRelay = (deps: RelayDeps) => {
   const keep = deps.keep ?? 8;
   const holdMs = deps.holdMs ?? 5000;
   const heldMaxMs = deps.heldMaxMs ?? 30000;
-  const pairedMs = deps.pairedMs ?? PAIRED_MS;
   let wanted = false;
   let ws: WsLike | null = null;
   /** The live socket is welcomed: commands are heard. */
@@ -144,14 +126,6 @@ export const createBridgeRelay = (deps: RelayDeps) => {
   const setPairing = (p: BridgePairing): void => { if (p !== pairing) { pairing = p; deps.onPairing?.(p); } };
   /** #3697 R8: a code went out as a proof on the current socket and its `paired` is awaited. */
   let codeSent = false;
-  /** #3764: the socket that took this code's `pair` is gone without a verified `paired`. Whatever held the port has
-   *  seen the code's proof and could search the code space offline, so the code is forgotten and the person asked for a
-   *  fresh one; nothing retries until they enter it. A refusal that already settled the code (wrong code) has cleared it;
-   *  a socket that never sent it (closed before its challenge) leaves it pending; a welcomed socket has nothing to forget. */
-  const forgetSentCode = (): void => {
-    if (codeSent && code !== null && !connected) { code = null; setPairing('needed'); }
-    codeSent = false;
-  };
   /** Waiting for the person to enter a code: nothing connects until they do. */
   const waitingForCode = (): boolean => (pairing === 'needed' || pairing === 'refused' || pairing === 'wrong-code') && code === null;
 
@@ -202,21 +176,14 @@ export const createBridgeRelay = (deps: RelayDeps) => {
       try { m = JSON.parse(ev.data); } catch { return; }
       if (m.type === 'challenge' && typeof m.nonce === 'string') {
         nonce = m.nonce;
-        if (code !== null) {
-          codeSent = true;
-          send({ type: 'pair', proof: pairProof(code, nonce), clientNonce });
-          // #3764 review: the `paired` must come within `pairedMs`, or the socket is dropped and the code forgotten. The
-          // guard, not `cancel`, settles a deadline that is no longer wanted: a `paired` was heard (`codeSent` false), or
-          // this socket is gone (`ws !== sock`), and a later `paired` on it is not heard (`onmessage` checks the same).
-          deps.schedule(() => { if (ws === sock && codeSent && !connected) drop(sock, true); }, pairedMs);
-        }
+        if (code !== null) { codeSent = true; send({ type: 'pair', proof: pairProof(code, nonce), clientNonce }); }
         else if (token !== null) hello();
         else { setPairing('needed'); drop(sock); }
         return;
       }
       if (m.type === 'paired') {
         // #3697 R8: a `paired` this relay did not ask for (no code pending on this socket) is ignored, and one whose proof
-        // does not verify against the code is an impostor: dropped, and the code forgotten (#3764, `forgetSentCode`).
+        // does not verify against the code is an impostor: dropped, the code kept for the real bridge's next challenge.
         if (!codeSent || code === null || connected) return;
         if (typeof m.token !== 'string' || !m.token || !sameProof(pairedProof(code, clientNonce, m.token), m.proof)) { drop(sock, true); return; }
         codeSent = false;
@@ -241,7 +208,6 @@ export const createBridgeRelay = (deps: RelayDeps) => {
     const lost = (settled: boolean) => {
       if (ws !== sock) return;
       ws = null;
-      forgetSentCode();
       setConnected(false, settled);
       if (wanted && retry === null && !waitingForCode()) retry = deps.schedule(connect, nextDelay());
     };
@@ -270,7 +236,7 @@ export const createBridgeRelay = (deps: RelayDeps) => {
    *  was dropped, so the real bridge is tried again on the usual schedule. */
   const drop = (sock: WsLike, retryLater = false): void => {
     ws = null;
-    forgetSentCode();
+    codeSent = false;
     setConnected(false);
     try { sock.close(); } catch { /* already closed */ }
     if (retryLater && wanted && retry === null && !waitingForCode()) retry = deps.schedule(connect, nextDelay());

@@ -199,15 +199,6 @@ const SCOPE = [
 //              it. Only the converse makes the list self-maintaining; the forward arm alone can police
 //              only the surfaces someone remembered to promise.
 //
-// READ THROUGH FOR #3698 §5, which suspected this gate of taking its universe from its subject. Verdict: SOUND.
-// `SCOPE` is regen's list of what it writes, so it decides only WHERE to look; the oracle is independent of it (an
-// ADDED change note in the diff, or `ENGINE_VERSION` moving forward). MEASURED: a committed change to
-// `schema/lever-manifest.json` with no note fails here by name. The one escape is to shrink the universe: drop that
-// file from `SCHEMA_ARTIFACTS` in the same diff, and this gate, `regen --check` and `drift-coverage` (229 is still above
-// ARTIFACT_FLOOR) all pass. Two gates with AUTHORED expectations catch it by name: `lint-payload-manifest.ts` (STALE
-// RULE: the manifest still names the file) and `lint-schema-classification.ts` (UNCLASSIFIED: the directory still
-// holds it). So that guard lives there; keep both in the gate list.
-//
 // A count is deliberately NOT asserted: `SCHEMA_ARTIFACTS` and `ENGINE_ARTIFACTS` are meant to grow,
 // and a pinned total would fail on every legitimate addition while proving nothing about coverage.
 // Representation is the property; totals are not.
