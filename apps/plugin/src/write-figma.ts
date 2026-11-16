@@ -38,6 +38,7 @@
  * unit-testable against an in-memory shim (see `apps/plugin/test-write.mjs`) with no real Figma.
  */
 import { type WritePlan, type Rgba, type FloatCollectionPlan, type VarCollectionPlan, renameMap, openMigration, renameCollections, renameVariables, type RenameMap, type MaterializationStep, type Migration, MATERIALIZATION_RENAMES, CORE_COLLECTION, UNSCOPED_TYPES, type FigmaEasing, coreGroupOf, ownedCoreGroup, rootOf } from '@prism3/engine/figma';
+import { bindingTargets } from './binding-targets';
 
 /** The minimal `figma.variables` surface the executor needs. Declaring it as a port (rather than
  *  reaching for the global `figma`) is what lets the Node harness drive `applyWritePlan` with a
@@ -539,7 +540,8 @@ export type Tick = () => Promise<void>;
  *  give either another name (Rename) or `null` (Skip), and a skipped collection is neither found nor created. Its rows are
  *  empty then (`collision-choice.ts` empties them), so nothing in it is written or bound. */
 export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: Migration, tick?: Tick,
-  names: { core: string | null; color: string | null } = { core: CORE_COLLECTION, color: 'color' }): Promise<ApplyResult> => {
+  names: { core: string | null; color: string | null } = { core: CORE_COLLECTION, color: 'color' },
+  bindIn?: readonly string[]): Promise<ApplyResult> => {
   // ---- pass 1: `core`'s palette slice (one Default mode, literal RGBA, hidden primitives) ----
   // The collection is `core` since #1097 — the label comes from the engine's own emission constant, so a
   // future collection rename does not need an edit here. The palette SLICE of it is derived from the
@@ -589,9 +591,10 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
   const targetByName = new Map<string, Variable>([...pal ? pal.byName : [], ...col ? col.byName : []]);
   // A TINTED WASH's opacity aliases an `opacity/<n>` FLOAT variable in the `opacity` collection, which the
   // FLOAT executor writes — so Apply Theme runs that one first (`apply-theme.ts`), and the target is found
-  // by name across the whole file. Fetched only when the plan carries a wash.
+  // by name in the collections this apply writes (#1904, `bindIn`; `binding-targets.ts`), so a same-named variable in
+  // a foreign or stranded collection cannot take the wash. Fetched only when the plan carries a wash.
   const opacityByName = aliases.some((r) => r.opacityByMode)
-    ? new Map((await vars.getLocalVariablesAsync()).map((v) => [v.name, v] as const))
+    ? await bindingTargets(vars, bindIn)
     : new Map<string, Variable>();
   let bound = 0;
   const misses: string[] = [];

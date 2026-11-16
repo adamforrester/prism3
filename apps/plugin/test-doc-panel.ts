@@ -1956,6 +1956,11 @@ section('template/… — `_Doc-block`');
   const nested = (t: string) => walk(set!.children.find((c) => c.name === `Type=${t}, Size=sm`)!).filter((c) => c.type === 'INSTANCE').map((c) => String(c.main ?? ''));
   ok(nested('Part-marker').includes('badge') && nested('Chips').filter((m) => m === 'tag').length === 16 && nested('Do-Dont').filter((m) => m === 'list-item').length === 8 && nested('Divider').includes('divider'),
     'template/prism3: Badge, Tag, List.Item and Divider instances');
+  // #2944: the build reads the sets it nests and adds nothing to them. Each still holds its one member, by the name
+  // the fixture gave it, and nothing else.
+  const libMembers = libs.map((l) => `${String(l.name)}: ${l.children.map((c) => String(c.name)).join(' | ')}`);
+  ok(JSON.stringify(libMembers) === JSON.stringify(['badge: type=count, emphasis=bold, tone=neutral', 'tag: type=select, selection=unselected, size=small, state=rest', 'list-item: type=unordered, size=small', 'divider: orientation=horizontal, inset=none']),
+    `template/reads only: the Badge, Tag, List.Item and Divider sets each keep their one member (${libMembers.join('; ')})`);
   // The template's own text, not the nested components' (they bind their own).
   const own = (n: N): N[] => [n, ...(n.type === 'INSTANCE' ? [] : n.children.flatMap(own))];
   const ownTexts = own(set!).filter((c) => c.type === 'TEXT');

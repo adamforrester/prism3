@@ -53,6 +53,8 @@
  * `[-_]` only → `R5/class-camel` (1 of 101 each). 101 assertions run.
  * #3584: the skill pattern back to `/skills\/prism3-/` → `contamination/glob-skill`, `contamination/backslash-skill` (2 of 103).
  * 103 assertions run.
+ * #3595: `kindOf`'s bold threshold back to `px >= 18.66` → `R4/bold-below-14pt`; made `px >= 18.67` →
+ * `R4/bold-at-14pt` (1 of 105 each). 105 assertions run.
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -279,6 +281,15 @@ if (o) {
   fails('R4/bad-boundary', await run(edit('solid var(--pds3-color-field-border-rest)', 'solid var(--pds3-color-border-primary)')), 'R4', 4, 'ui 1.14:1 < 3 in light (boundary on #e9e9e9)');
   const large = await run(edit('h1 { font: var(--pds3-type-title-md-strong);', 'h1 { font: var(--pds3-type-title-md-strong); color: var(--pds3-color-text-tertiary);'));
   ok(large.counts.R4 === 0, `R4/large-text: text.tertiary at title size is held to 3:1, not 4.5:1 (${brief(large)})`);
+  // #3595: WCAG's bold large text starts at 14pt, which is 18.667px. 18.66px bold is 13.995pt, so it is body text and is
+  // held to 4.5:1; 14pt bold itself is large. Sizes are literals here, never the scorer's threshold. The raw sizes are R2
+  // findings too, so only R4 is read.
+  const boldAt = (size: string) => edit('h1 { font: var(--pds3-type-title-md-strong);', `h1 { font: 700 ${size}/1.2 sans-serif; color: var(--pds3-color-text-tertiary);`);
+  const below = await run(boldAt('18.66px'));
+  ok(below.counts.R4 >= 1 && below.violations.some((v) => v.rule === 'R4' && v.what.startsWith('text ')),
+    `R4/bold-below-14pt: text.tertiary at 18.66px bold is held to 4.5:1, not 3:1 (${brief(below)})`);
+  const at14 = await run(boldAt('14pt'));
+  ok(at14.counts.R4 === 0, `R4/bold-at-14pt: text.tertiary at 14pt (18.667px) bold is held to 3:1 (${brief(at14)})`);
   const small = await run(edit('<label for="email">Email</label>', '<label for="email" style="color: var(--pds3-color-text-tertiary)">Email</label>'));
   ok(small.counts.R4 >= 1 && small.violations.some((v) => v.rule === 'R4' && v.what.startsWith('text ') && v.where.includes('Email')),
     `R4/small-text: text.tertiary on a label is held to 4.5:1 (${brief(small)})`);

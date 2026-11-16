@@ -28,6 +28,8 @@
  *     styles with no ownership mark) re-applies unchanged, and leaves every style marked.
  *   · PRE-#1581 — no stamps and no marks, the persisted brand on the root: re-applies, and leaves both.
  *   · EDITED DESCRIPTION — a designer rewrote a marked style's description: still Prism3's, still applies.
+ *   · BINDING SCOPE (#1904) — a stranded same-named copy of every variable takes no text-style, gradient-stop, glass
+ *     blur or wash binding on a re-apply: each binds inside a collection the apply writes.
  *
  * The shim's `setValueForMode` enforces the variable's type the way Figma does (it throws), which is the
  * failure the floor exists for. Writes are recorded through a Proxy `set` trap on every file object plus
@@ -143,7 +145,8 @@ class FileShim {
     const s = {
       name, description, effects: [], paints: [], layoutGrids: [], bound: {} as Record<string, string>,
       data: new Map<string, string>(),
-      setBoundVariable(field: string, v: { name: string } | null): void { if (v) this.bound[field] = v.name; },
+      setBoundVariable(field: string, v: { name: string; id?: string } | null): void { if (v) { this.bound[field] = v.name; this.boundIds[field] = v.id ?? ''; } },
+      boundIds: {} as Record<string, string>,   // #1904: which variable, not only which name
       // Shared plugin data, as Figma's BaseStyle has it (#1884's ownership mark lives here).
       getSharedPluginData(ns: string, k: string): string { return this.data.get(`${ns}/${k}`) ?? ''; },
       setSharedPluginData(ns: string, k: string, v: string): void { shim.writes.push(`mark ${kind} style ${this.name}`); this.data.set(`${ns}/${k}`, v); },
@@ -786,6 +789,31 @@ for (const c of ['skip', 'rename'] as const) {
   const rvModes = modesOf(rv);
   ok(rkeys.length === 1 && gr2.ok && rvModes.length > 0 && rvModes.every((x) => isWash(x) && opVarOf(rv, x)?.name === renamedOf(ropName)),
     `#3556 rename opacity variable: ${WASH} stays a wash in every mode, its opacity alias on ${renamedOf(ropName)} (${gr2.ok ? show(rvModes) + ' on ' + JSON.stringify(rvModes.map((x) => opVarOf(rv, x)?.name)) : 'refused'})`);
+}
+
+// ── A BINDING LANDS WHERE THE PRE-FLIGHT LOOKED (#1904) ──
+// A Prism3 file, then a collection no plan writes (a stranded one from an earlier version, stamped) holding a same-named,
+// same-typed copy of EVERY variable, listed after the originals. Re-applied through `runApplyTheme`: every text-style
+// binding, gradient stop, glass blur radius and wash opacity must still name a variable in a collection the apply
+// writes. File-wide by-name lookups, last listed winning, bind each to the stranded copy instead. Same type, so nothing
+// throws and the pre-flight passes: the defect is a silent stale binding, which is why each kind is counted by name.
+{
+  const f = new FileShim();
+  const first = await apply(f);
+  const stranded = f.addCollection('stranded-1904', 'stamp');
+  for (const v of [...f.vars]) f.addVar(v.name, stranded, v.resolvedType);
+  const strandedIds = new Set(f.vars.filter((v) => v.variableCollectionId === stranded.id).map((v) => v.id));
+  const again = await apply(f);
+  const textIds = f.styles.text.flatMap((x) => Object.values(x.boundIds as Record<string, string>));
+  const stopIds = f.styles.paint.flatMap((x) => x.paints.flatMap((p: any) => (p.gradientStops ?? []).map((st: any) => st.boundVariables?.color?.id).filter(Boolean)));
+  const blurIds = f.styles.effect.flatMap((x) => x.effects.map((e: any) => e.boundVariables?.radius?.id).filter(Boolean));
+  const washIds = f.vars.flatMap((v) => Object.values(v.valuesByMode).map((x: any) => x?.opacity?.id).filter(Boolean));
+  const into = (ids: string[]): number => ids.filter((id) => strandedIds.has(id)).length;
+  ok(first.ok && again.ok, `#1904 premise: a Prism3 file with a stranded same-named copy of every variable re-applies (${first.ok}, ${again.ok})`);
+  ok(textIds.length > 0 && into(textIds) === 0, `#1904 text styles: ${into(textIds)} of ${textIds.length} font bindings landed in the stranded collection`);
+  ok(stopIds.length > 0 && into(stopIds) === 0, `#1904 gradient stops: ${into(stopIds)} of ${stopIds.length} stop bindings landed in the stranded collection`);
+  ok(blurIds.length > 0 && into(blurIds) === 0, `#1904 glass blur: ${into(blurIds)} of ${blurIds.length} radius bindings landed in the stranded collection`);
+  ok(washIds.length > 0 && into(washIds) === 0, `#1904 wash opacity: ${into(washIds)} of ${washIds.length} opacity aliases landed in the stranded collection`);
 }
 
 console.log(failed ? `\n✗ ${failed} check(s) failed` : '\n✓ apply pre-flight: all checks passed');

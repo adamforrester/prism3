@@ -55,7 +55,7 @@
  * whole suite green; the trigger retired it rather than leaving two mechanisms for one guarantee.
  */
 import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, resolveNestMember, applyNestOverrides, applyNestItemPrefers, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities, type AnatomyPlan, type FigmaNodePlan, type SwapFound } from '@prism3/engine/components';
-import { ENGINE_VERSION } from '@prism3/engine';
+import { ENGINE_VERSION, coordKey } from '@prism3/engine';
 import { tailOf } from '@prism3/engine/figma';
 import { NS } from './persist-figma';
 import { EXECUTOR_REVISION } from './executor-revision';
@@ -3118,6 +3118,15 @@ const writeComponentSet = async (
   // no set — the existing members are top-level `<id>/<glyph>` components — so this re-keys them from
   // their slash names back to the coordinate, and the whole skip/stale machinery keeps working: a re-run
   // finds each existing icon by name and compares its stamp exactly as it would a set member.
+  // MATCHED BY COORDINATE, NOT BY THE NAME'S SEGMENT ORDER (#2944). Figma rewrites a member's segment order when an axis
+  // is renamed in its UI (`coordKey`), so a member can read `state=rest, size=medium, …` where the plan writes
+  // `size=medium, state=rest, …`. The dry run matches by coordinate and reads it as the member to update; matched here
+  // by its exact name it was missed, and the build branch added a second member on its coordinate (a variant conflict,
+  // stamp and record the same). So an existing member is keyed by the plan cell on its coordinate: a build skips it as
+  // present, and never adds a second. An update renames it to the plan's order first (`update-apply.ts`
+  // `withOrderMoves`), so the in-place lookup below finds it by name.
+  const cellByKey = new Map(cells.map((c) => [coordKey(c.name) ?? c.name, c.name] as const));
+  const asCell = (name: string): string => cellByKey.get(coordKey(name) ?? name) ?? name;
   const have = opts.emitAsComponents
     ? new Map(cells.flatMap((c) => {
         // `compByName` is a document-wide COMPONENT lookup typed as the lighter `CompRef`, but the objects
@@ -3126,7 +3135,7 @@ const writeComponentSet = async (
         const existing = compByName.get(`${component}/${emitCoordValue(c.name)}`) as CompNode | undefined;
         return existing ? [[c.name, existing] as const] : [];
       }))
-    : new Map((set?.children ?? []).flatMap((c) => (c.name ? [[c.name, c] as const] : [])));
+    : new Map((set?.children ?? []).flatMap((c) => (c.name ? [[asCell(c.name), c] as const] : [])));
   const byCell = new Map(cells.map((c) => [c.name, c] as const));
   // WHAT THIS BUILD WOULD WRITE, per member (#827). Derived here rather than carried on the cell for a
   // measured reason: `planSetLayout`'s cells are `JSON.stringify`d wholesale into the paste payload, so a
@@ -3510,7 +3519,7 @@ const writeComponentSet = async (
   // touches an edge. The grid starts at (PAD, PAD) and the set is the grid's extent plus 2×PAD. The paste
   // twin (`anatomy-figma.ts`, both scripts) names the same number, and `test.ts` holds the two in lockstep.
   const PAD = 24;
-  const cellOf = members.map((c) => byCell.get(String(c.name)));
+  const cellOf = members.map((c) => byCell.get(asCell(String(c.name))));
   const colW: number[] = [];
   const rowH: number[] = [];
   members.forEach((c, i) => {
