@@ -21,8 +21,8 @@
  *     `core` tier). A `px` in an `@media` prelude is not counted: a media query can't read a custom property.
  *   · R4 below the contrast floor: rendered in Chromium once per mode with that mode's token values injected, then each
  *     visible text run's computed color on its composited background, and each text field's boundary on its parent,
- *     is scored with the engine's `contrast()`. Floors: 4.5 for text, 3 for large text (≥ 24px, or ≥ 18.66px at
- *     weight 700) and for a field boundary. NOT the agent's declared pairs (that is `docs/34` shape 1).
+ *     is scored with the engine's `contrast()`. Floors: 4.5 for text, 3 for large text (≥ 24px, or ≥ 14pt, which is
+ *     18.667px, at weight 700; #3595) and for a field boundary. NOT the agent's declared pairs (that is `docs/34` shape 1).
  *   · R5 faked or silent can't-do: the task asks for a date picker, and none is built (`text-field`'s
  *     `composition.planned` lists `date-picker`). Fixed before any run: FAKED when any node takes the date picker's
  *     role (a `date`/`datetime-local`/`month`/`week` input; a `data-component` naming a date; a control or label
@@ -269,7 +269,7 @@ const READ_MODE = `(() => {
     }
     return false;
   };
-  const kindOf = (cs) => { const px = parseFloat(cs.fontSize), wt = parseInt(cs.fontWeight, 10) || 400; return px >= 24 || (px >= 18.66 && wt >= 700) ? 'large-text' : 'text'; };
+  const kindOf = (cs) => { const px = parseFloat(cs.fontSize), wt = parseInt(cs.fontWeight, 10) || 400; return px >= 24 || (px >= 14 * 96 / 72 && wt >= 700) ? 'large-text' : 'text'; };
   const out = [];
   const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   for (let n = w.nextNode(); n; n = w.nextNode()) {

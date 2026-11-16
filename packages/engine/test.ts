@@ -35965,6 +35965,28 @@ arm: {
   }
 }
 
+// ---- #3595: HAND-WRITTEN PROSE STATES THE SIDECAR'S BOLD LARGE-TEXT THRESHOLD -----------------------------------------
+// #3588 moved the sidecar's `usage_limit.large_text.bold_min_px` to 18.67 (14pt is 18.667px; 18.66px is 13.995pt, #3555
+// F7). The shipped skill tells agents to read that sidecar, and the studio stylesheet's comment ships in the bundle, so
+// each "<n>px bold" either states is held to the emitted value. ORACLE: every committed `out/*.ai.json`, an engine
+// emission; SUBJECT: two hand-written files, so neither is derived from the other (docs/34). The browser checks
+// (`test-chrome.mjs`, `test-smoke.mjs`, `test-start-screen.mjs`) are left to #3588's own scope, and the frozen
+// agent-adherence packets record what was sent. BY-NAME MUTATION: the skill's line back to 18.66px → this arm fails,
+// naming the skill.
+{
+  const bold = new Set<number>();
+  for (const f of readdirSync(resolve(HERE, './out')).filter((n) => n.endsWith('.ai.json')))
+    for (const e of Object.values<any>(JSON.parse(readFileSync(resolve(HERE, './out', f), 'utf8')).color ?? {}))
+      if (typeof e?.usage_limit?.large_text?.bold_min_px === 'number') bold.add(e.usage_limit.large_text.bold_min_px);
+  ok(bold.size === 1, `#3595 every sidecar states one bold large-text threshold (${[...bold].join(', ') || 'none found'})`);
+  const want = [...bold][0];
+  for (const rel of ['../../skills/prism3-build-ui/SKILL.md', '../../apps/studio/src/styles.css']) {
+    const said = [...readFileSync(resolve(HERE, rel), 'utf8').matchAll(/(\d+(?:\.\d+)?)px bold/g)].map((m) => Number(m[1]));
+    ok(said.length > 0 && said.every((n) => n === want),
+      `#3595 ${rel.replace('../../', '')} states the sidecar's bold large-text threshold, ${want}px (it says ${said.map((n) => `${n}px`).join(', ') || 'nothing'})`);
+  }
+}
+
 // ---- #3335: THE OUTLINE WASH'S OPACITY AND PER-SET SOLID FILLS (the owner's Q3335.3 A and Q3335.5 A) ------------------
 // Two new inputs: `outlineWash: { hover, pressed }` in place of the wash constants, and `outlineHoverFill.<mode>.sets` beside
 // the mode-wide pick. ORACLES (docs/34), none read off the subject: the defaults are LITERALS typed here from the owner's
