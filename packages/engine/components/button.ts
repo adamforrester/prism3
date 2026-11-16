@@ -279,7 +279,9 @@ const makeButton = (id: string, name: string, summary: string, description: stri
   densitySpacing: ['size.{size}.padding-x', 'size.{size}.padding-x-visual', 'size.{size}.padding-y', 'size.{size}.gap'],
 
   // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
-  levers: { outlineInteraction: { opaqueFill: true } },
+  // Q-CS5 B (#3765): Control shape reaches the corner through `capsules`: Pill rounds it fully, Boxed squares it, Hairline
+  // gives it 1px. The `pill-radius` prose in `derived` is description only.
+  levers: { controlShape: { capsules: ['radius.md'] }, outlineInteraction: { opaqueFill: true } },
 
   tokens: {
     // base (variant-independent)

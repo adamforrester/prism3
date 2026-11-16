@@ -49,6 +49,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { adaptBrand, assertAdaptable, type Adapted } from './adapt-figma-emission.ts';
+import { localeFreeCompare } from '../../packages/engine/locale-free-order.ts';
 import { runTokenPress, DEFAULT_DTCG_OPTIONS, type TokenPressOutput } from './run-tokenpress.ts';
 import {
   AXIS_MODEL,
@@ -1265,7 +1266,7 @@ export const analyze = async (brand: string): Promise<BrandReport> => {
       tokenpressRootKeys: [...tpRootKeys].sort(),
       tokenpressRootGroups: [...tpRootTypes]
         .map(([key, types]) => ({ key, types: [...types].sort() }))
-        .sort((a, b) => a.key.localeCompare(b.key)),
+        .sort((a, b) => localeFreeCompare(a.key, b.key)),
       prism3Files: [
         `${brand}.tokens.json (canonical)`,
         `${brand}.base.tokens.json`,

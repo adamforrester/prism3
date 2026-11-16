@@ -505,6 +505,24 @@ export const withOrderMoves = (p: SetPreview, t: UpdateTarget, choice: HandEditC
   return extra.length ? { ...p, moves: [...p.moves, ...extra] } : p;
 };
 
+/** THE SET'S MEMBERS IN PLAN ORDER (#2386). A variant property lists its values in the order the set's members first use
+ *  them, and a fresh build combines its members in plan order. A member an update adds is appended after the members the
+ *  set holds, so a value an axis gains read last in the property's list on an updated file and in its plan place on a
+ *  fresh one. Each planned member is moved, with `insertChild`, which keeps its id, into the slots planned members hold,
+ *  in plan order; a member off the plan (one kept and marked deprecated, or a designer's own) keeps its slot. A set
+ *  already in order is not written. Measured in the shim, which lists values by member order; the host is not measured. */
+const toPlanOrder = (set: LiveSet, plan: readonly string[], coordOf: (name: string) => string): void => {
+  const at = new Map(plan.map((name, i) => [name, i] as const));
+  const kids = kidsOf(set);
+  const rank = (c: LiveNode): number | undefined => at.get(coordOf(String(c.name ?? '')));
+  const planned = kids.filter((c) => rank(c) !== undefined).sort((a, b) => rank(a)! - rank(b)!);
+  let k = 0;
+  const want = kids.map((c) => (rank(c) === undefined ? c : planned[k++]));
+  const move = (set as LiveSet & { insertChild?(i: number, c: unknown): void }).insertChild;
+  if (!move) return;
+  want.forEach((c, i) => { if (kidsOf(set)[i] !== c) move.call(set, i, c); });
+};
+
 const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, preview: SetPreview, live: LiveSet, opts: { description?: string; yieldTo?: (ms?: number) => Promise<void>; chunk?: number; handEdits: HandEditChoice; noBaseline: NoRecordChoice; ledger?: readonly ComponentRename[] }): Promise<SetOutcome> => {
   const p = withOrderMoves(preview, t, opts.handEdits, opts.noBaseline);
   const out: SetOutcome = { def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: opts.handEdits, identity: [], content: [], misses: [] };
@@ -529,6 +547,29 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, pr
     const reads: OwnershipRead[] = kids.map((c) => ({ id: c.id === undefined ? undefined : String(c.id), stamp: c.getSharedPluginData?.(NS, STAMP_KEY) ?? '', recordId: readBaseline(c)?.id }));
     const owned = builtByPrism3(reads);
     kids.forEach((c, i) => { if (owned(reads[i])) c.name = renamedComponent(String(c.name ?? ''), p.setRename!); });
+  }
+
+  // ── EVERY MEMBER THIS UPDATE CONFIGURES, MARKED IN PROGRESS before the set's first write to its content (#3797, #3594).
+  // The executor marks a member as it reaches it (`write-components.ts`), but the writes below (layer renames, property
+  // removals and retypes) change members it has not reached yet. A close or a stop after them left those members
+  // unmarked and differing from their records, so the next check read the update's own writes as hand edits, and Keep
+  // held them for good (#3797). Marked here, they read as to update, with only their kept paths as hand edits, and the
+  // marker comes off only in the executor's finish (record, stamp, then the marker). So after a stop the host also says
+  // which members the pass finished, whatever moved their stamp (#3594). The value is the executor's own: the paths kept.
+  // A write refused here stops the set before anything else is written.
+  {
+    const toCoord = namesFor(t).coordOf;
+    const movedTo = new Map(p.moves.map((m) => [m.from, m.to] as const));
+    try {
+      for (const c of kidsOf(live) as (LiveNode & { setSharedPluginData?(ns: string, k: string, v: string): void })[]) {
+        const coord = toCoord(String(c.name ?? ''));
+        const entry = work.members.get(movedTo.get(coord) ?? coord);
+        if (entry) c.setSharedPluginData?.(NS, UPDATING_KEY, JSON.stringify([...entry.keep]));
+      }
+    } catch (err) {
+      out.stopped = (err as Error)?.message ?? String(err);
+      return out;
+    }
   }
 
   // ── LAYERS RENAMED IN PLACE (#2759), first, in every member this update configures: the dry run read them under
@@ -629,14 +670,9 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, pr
   if (out.deprecated.length) live.setSharedPluginData?.(NS, RETAINED_KEY, JSON.stringify(retained));
 
   // ── THE BUILD'S OWN PASS, IN UPDATE MODE ────────────────────────────────────────────────────────────────────
-  // Each member this update configures, its stamp as the pass finds it, so a pass that stops can count the members it
-  // finished off the host (#3449) rather than off a result it never returned.
+  // A pass that stops counts the members it finished off the host (#3449) rather than off a result it never returned.
   type Stamped = { getSharedPluginData?(ns: string, k: string): string };
   const dataOf = (name: string, key: string): string => (before.get(name)?.ref as Stamped | undefined)?.getSharedPluginData?.(NS, key) ?? '';
-  const stampWas = new Map([...work.members.keys()].map((m) => [m, dataOf(m, STAMP_KEY)] as const));
-  // And whether it was still marked in progress (#3559): a member a stop left between its stamp and its marker's clear
-  // (#3539) carries the planned stamp already, so only the marker coming off says this pass finished it.
-  const markedWas = new Set([...work.members.keys()].filter((m) => !!dataOf(m, UPDATING_KEY)));
   let r: ComponentApplyResult;
   try {
     r = await applyComponentPlan(t.plans, api, {
@@ -653,19 +689,17 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, pr
   } catch (err) {
     out.stopped = (err as Error)?.message ?? String(err);
     // A STOPPED SET COUNTS THE MEMBERS IT FINISHED (#3449). The pass returned nothing, so they are read off the host: a
-    // member is finished when it ends with its planned stamp and no in-progress marker, and the host shows this pass did
-    // it: its stamp changed, or it was marked in progress before the pass and the marker came off (#3559). The second
-    // is a member a stop on the marker's clear left stamped and marked (#3539): the dry run reads it as to update, and
-    // the next run finishes it, so that run counts it. A stop on the marker's clear itself leaves the member marked,
-    // and it is not counted: its update did not complete, and the dry run reads it as to update too.
-    // NOT COUNTED, stated: a member updated for a reason that leaves its stamp as it was (a nested-instance fault, drawn
-    // damage, reactions that differ) and that was not marked before the pass. The host after a stop looks the same
-    // whether the pass finished it or never reached it, so it is left out rather than guessed (#3594).
-    out.updated = [...stampWas].filter(([m, was]) => {
+    // member is finished when it ends with its planned stamp and no in-progress marker. Every member this update
+    // configures was marked before the set's first write (above), and only the executor's finish takes the marker off,
+    // after the stamp, so the marker gone says this pass finished it, whether or not its stamp moved: a member updated
+    // for drawn damage, a nested-instance fault or reactions is counted too (#3594). A stop on the marker's clear itself
+    // leaves the member stamped and marked, and it is not counted: its update did not complete, and the dry run reads
+    // it as to update too (#3497).
+    out.updated = [...work.members.keys()].filter((m) => {
       const pl = plans.get(m);
       const want = pl ? memberStamp(pl) : '';
-      return !!want && dataOf(m, STAMP_KEY) === want && !dataOf(m, UPDATING_KEY) && (was !== want || markedWas.has(m));
-    }).map(([m]) => m);
+      return !!want && dataOf(m, STAMP_KEY) === want && !dataOf(m, UPDATING_KEY);
+    });
     return out;
   }
   out.updated = r.updatedInPlace ?? [];
@@ -691,6 +725,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, pr
   const now = t.single ? (await liveFor(host, t, p.set)) ?? live
     : (host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as LiveSet[]).find((s) => idOf(s) === setId || (setKey && keyOf(s) === setKey)) ?? live;
   if (keyOf(now) !== setKey || idOf(now) !== setId) out.identity.push(`the set: key ${setKey} → ${keyOf(now)}, id ${setId} → ${idOf(now)}`);
+  if (!t.single) toPlanOrder(now, t.plans.map((x) => planComponentName(x)), coordOf);
   const after = new Map(kidsOf(now).map((c) => [coordOf(String(c.name ?? '')), c] as const));
   // EVERY member whose place changed is counted, whether or not the dry run listed it (#2519): a move the dry run
   // could not predict (an update that resizes members re-lays the grid by their new sizes) is never silent.

@@ -46,6 +46,13 @@
  * Importing the artifact LISTS from regen is importing the SUBJECT, not the expected value — the
  * same posture `lint-us-english.ts` takes. The expected value is the manifest, and it is authored.
  *
+ * READ THROUGH FOR #3698 §5, which suspected this gate of taking its universe from its subject. Verdict: SOUND. The
+ * lists decide only WHICH files are looked at; what each file is EXPECTED to be comes from the authored manifest,
+ * which nothing generates. MEASURED: a file added to `SCHEMA_ARTIFACTS` fails as `UNCLASSIFIED` by name; a file
+ * DROPPED from `SCHEMA_ARTIFACTS` (to slip a moved artifact past `lint-emission-version`) fails here as `STALE RULE`,
+ * because the manifest still names it. One gap, filed as #3818: `REPORT_ARTIFACTS` and `REFERENCE_ARTIFACTS`, which
+ * regen also writes, are outside the universe, so a new report passes unclassified.
+ *
  * THE TRAP THIS GATE SIDESTEPS, stated because it is the one a rewrite would fall into. Patterns
  * are expanded over the manifest's AUTHORED `brands` list, never over brands discovered from
  * `out/`. Expanding over discovered brands would make a new brand's six files match automatically —
