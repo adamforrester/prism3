@@ -1344,10 +1344,11 @@ npx tsx packages/engine/lint-theme-split.ts         # theme.ts is named re-expor
                                                     # imports the barrel or an entry; the modules' value
                                                     # imports form no cycle; every module is re-exported,
                                                     # over a floor of 10.
-npx tsx packages/engine/lint-part-union.ts          # PartDef is a union by `kind` (#3698 F4): per kind, a
-                                                    # legal part compiles under tsc and each probed field
-                                                    # the validator refuses there fails by name; every
-                                                    # kind a shipped def uses is probed.
+npx tsx packages/engine/lint-part-union.ts          # PartDef is a union by `kind` (#3698 F4): every
+                                                    # (kind, field) pair, from an authored field-major table
+                                                    # held to the schema by tsc (#3781), compiles where the
+                                                    # validator admits it and fails by name everywhere else;
+                                                    # every kind a shipped def uses is probed.
 npx tsx packages/engine/lint-projector-def-ids.ts   # the Figma projection keys on no def id (#3698 F4):
                                                     # no def-id lookup and no def-id-keyed table in
                                                     # anatomy-figma.ts outside a typed allowlist; a
@@ -1763,6 +1764,9 @@ bash .github/scripts/test-docs-only.sh   # the docs-only exemption (#3698 R4): t
                                           # the aggregator's half, by literal cases. A docs change that
                                           # also touches an app file is never exempt, and no file a prose
                                           # gate scans (its --files) counts as docs. No git, no network
+bash .github/scripts/test-all-gates.sh  # the base cases of all-gates.sh, the `gates` step the merge
+                                          # rule reads (#3736): failure, cancelled, skipped, empty and
+                                          # unset NEEDS each fail by job name. No git, no network
 bash .github/scripts/test-install-chromium.sh # the test for install-chromium.sh, which all four
                                           # browser jobs run (#2981). A stand-in install and dpkg
                                           # lock in $TMPDIR: no browser, no network. Its stall/…

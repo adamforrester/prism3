@@ -24,9 +24,16 @@
  * checks. The emitter list is a floor on what the scan must reach, so a scope that silently lost a directory or a
  * file extension fails as unrepresented rather than passing clean.
  *
+ * BEYOND THE ENGINE: TESTS AND TOOLS (#3701). The same rule holds for every test file at a workspace root
+ * (`apps/<ws>/test-*`) and everything under `tools/`: a test that sorts by locale compares two sides that can each move
+ * by machine, and a tool's report reorders by machine. Tools import `localeFreeCompare` by path, as they import the
+ * rest of the engine; a surface's test may not deep-import the engine (`lint-engine-facade.ts`), so it sorts by code
+ * unit inline. A separate floor and named files hold this scope to what it reached at #3701.
+ *
  * WHAT IT DOES NOT ASSERT. That every sort passes a comparator at all: a bare `.sort()` on strings is already
- * code-unit order and locale-free. And nothing outside `packages/engine/`: the plugin, Studio and `tools/` sort
- * for their own screens and reports (#3698 follow-up).
+ * code-unit order and locale-free. Nor the surfaces' own sources (`apps/<ws>/src`): whether a list a viewer reads, such as
+ * font families or style-guide categories, should follow the viewer's locale is the owner's decision (#3701), and
+ * those sites are unchanged. Nor TokenPress, a guest port that keeps its own patterns (`apps/tokenpress/README.md`).
  *
  * This file is the one place allowed to spell the method, for the probe, and is skipped by name.
  */
@@ -67,6 +74,22 @@ const MUST_SCAN = [
 ];
 // The engine held 194 tracked source files at #3698. A scan that reached a fraction of that is broken.
 const MIN_FILES = 150;
+// #3701: the test and tool sites outside the engine. Typed, never listed from the tree: one file per place the defect
+// was found, so a scope that lost `tools/` or the `.mjs` tests fails as unrepresented.
+const MUST_SCAN_OUTSIDE = [
+  'apps/plugin/test-readback.ts',
+  'apps/plugin/test-agent-link.ts',
+  'apps/studio/test-smoke.mjs',
+  'apps/studio/test-chrome.mjs',
+  'tools/binding-audit/reconcile.ts',
+  'tools/conformance-scan/fix.ts',
+  'tools/exporter-comparison/adapt-figma-emission.ts',
+];
+// 153 tracked test and tool source files at #3701.
+const MIN_FILES_OUTSIDE = 100;
+/** A test at a workspace root, not TokenPress's (a guest port), or any file under `tools/`. */
+const isOutsideSite = (f: string): boolean =>
+  (/^apps\/[^/]+\/test-[^/]+$/.test(f) && !f.startsWith('apps/tokenpress/')) || f.startsWith('tools/');
 
 // ── PROBE: the comparator's order on literals ────────────────────────────────────────────────────────────────
 // Czech collates `ch` as one letter after `h`; English and code-unit order put it after `c`. The fold keeps
@@ -95,18 +118,23 @@ if (renamed.join(',') !== RENAME_ORDER.join(',')) {
 }
 
 // ── SCAN ─────────────────────────────────────────────────────────────────────────────────────────────────────
+const SOURCE = /\.(?:ts|mts|cts|js|mjs|cjs)$/;
 const files = execFileSync('git', ['ls-files', '-z', 'packages/engine'], { cwd: repo, encoding: 'utf8' })
   .split('\0')
-  .filter((f) => /\.(?:ts|mts|cts|js|mjs|cjs)$/.test(f) && f !== SELF);
+  .filter((f) => SOURCE.test(f) && f !== SELF);
+const outside = execFileSync('git', ['ls-files', '-z', 'apps', 'tools'], { cwd: repo, encoding: 'utf8' })
+  .split('\0')
+  .filter((f) => SOURCE.test(f) && isOutsideSite(f));
 
 let hits = 0;
-for (const f of files) {
+for (const f of [...files, ...outside]) {
   const lines = readFileSync(resolve(repo, f), 'utf8').split('\n');
   lines.forEach((line, i) => {
     for (const b of BANNED) {
       if (b.re.test(line)) {
         hits++;
-        failures.push(`LOCALE ORDER: ${f}:${i + 1} — ${b.what}; use localeFreeCompare from locale-free-order.ts\n      ${line.trim().slice(0, 160)}`);
+        const fix = f.startsWith('apps/') ? 'sort by code unit inline (a surface test may not deep-import the engine)' : 'use localeFreeCompare from locale-free-order.ts';
+        failures.push(`LOCALE ORDER: ${f}:${i + 1} — ${b.what}; ${fix}\n      ${line.trim().slice(0, 160)}`);
       }
     }
   });
@@ -115,8 +143,11 @@ for (const f of files) {
 const scanned = new Set(files);
 for (const f of MUST_SCAN) if (!scanned.has(f)) failures.push(`REPRESENTED: ${f} was not scanned`);
 if (files.length < MIN_FILES) failures.push(`REPRESENTED: scanned ${files.length} file(s), fewer than the floor of ${MIN_FILES}`);
+const scannedOutside = new Set(outside);
+for (const f of MUST_SCAN_OUTSIDE) if (!scannedOutside.has(f)) failures.push(`REPRESENTED: ${f} was not scanned (#3701)`);
+if (outside.length < MIN_FILES_OUTSIDE) failures.push(`REPRESENTED: scanned ${outside.length} test and tool file(s), fewer than the floor of ${MIN_FILES_OUTSIDE} (#3701)`);
 
-console.log(`lint-locale-order — ${files.length} tracked source file(s) under packages/engine/, ${MUST_SCAN.length} named emitter(s) reached`);
+console.log(`lint-locale-order — ${files.length} tracked source file(s) under packages/engine/, ${MUST_SCAN.length} named emitter(s) reached; ${outside.length} test and tool file(s) outside it (#3701), ${MUST_SCAN_OUTSIDE.length} named`);
 console.log(`  probe: ${got.join(', ')}`);
 console.log(`  probe under a Czech collation: ${czech.join(', ')}`);
 console.log(`  ${hits} locale-dependent call(s)`);
@@ -125,4 +156,4 @@ if (failures.length) {
   for (const f of failures) console.error(`  ${f}`);
   process.exit(1);
 }
-console.log('✓ clean — no comparison under packages/engine/ depends on the host locale');
+console.log('✓ clean — no comparison under packages/engine/, in a workspace test or under tools/ depends on the host locale');

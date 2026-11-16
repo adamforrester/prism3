@@ -1338,6 +1338,13 @@ export const GATES: Gate[] = [
     cmd: ['bash', '.github/scripts/test-docs-only.sh'],
   },
   {
+    // #3736 — the base cases of the `gates` aggregator (`all-gates.sh`): failure, cancelled, skipped, empty and unset
+    // NEEDS each fail by job name. No git, no network, no `after`.
+    id: 'all-gates-aggregator',
+    ciStep: 'The gates aggregator fails on any result but success (#3736)',
+    cmd: ['bash', '.github/scripts/test-all-gates.sh'],
+  },
+  {
     id: 'smoke',
     ciStep: 'Studio headless smoke suite (#775)',
     cmd: ws('@prism3/studio', 'test:smoke'),

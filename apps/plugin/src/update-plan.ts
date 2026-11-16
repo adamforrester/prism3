@@ -46,8 +46,9 @@
 import { planBoundVars, planComponentName, planEffectStyles, planPaintVars, planSetLayout, planSetProperties, planTextStyles, type AnatomyPlan, diffAnatomy, type HostNode, type ReadPorts, type ComponentDef } from '@prism3/engine/components';
 import { tailOf } from '@prism3/engine/figma';
 import { planTargets } from './build-deps';
-import { captureSlotMigration, migrationLines, type MigNode, type SlotMigration } from './slot-migration';
-import { captureSlotText, holdsSlotText, slotTextLines, type SlotTextMigration, type TextMigNode } from './slot-text-migration';
+import { captureSlotMigration, keptLive, migrationLines, type MigNode, type SlotMigration } from './slot-migration';
+import { carryUnreadable, keptCarry, unreadableLine, withKept, type CarryKind } from './slot-carry';
+import { captureSlotText, holdsSlotText, keptTextLive, slotTextLines, type SlotTextMigration, type TextMigNode } from './slot-text-migration';
 import { ENGINE_VERSION, colorVariablesOutOfOrder, COMPONENT_RENAMES, coordKey, coordPairs, formerDefIds, partRenames, renameCoordinate, renameProperty, slotMigrationOf, slotTextMigrationOf, type ComponentRename } from '@prism3/engine';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { PACE_MS } from './pace';
@@ -169,6 +170,10 @@ export type SetPreview = {
    *  acts on count: one with a layer added or removed by hand is skipped whole, so nothing on it is removed. Absent when
    *  none. Never capped. */
   removedLayers?: { path: string; members: number }[];
+  /** #3025 — each layer the update replaces, per member, as `replacements` lists it, but only on members the update acts
+   *  on: one with a layer added or removed by hand, or one that would need replacing itself, is skipped whole, so nothing
+   *  on it is replaced. The member itself (path `.`) is not here. Absent when none. Never capped: `breakingOf` counts it. */
+  replacedLayers?: { member: string; path: string; reason: string }[];
   blockers: string[];
   /** #3421 — every blocker is a variable or a text or effect style the plans name that the file lacks: what the brand's
    *  Theme writes. Update file runs Theme first, so it checks such a set again after Theme and updates it in the same run.
@@ -223,6 +228,9 @@ export type SetPreview = {
    *  placed instance whose body needs carrying, and what the update does with it (`slot-text-migration.ts`). In the
    *  set's `previewHash`, as `slotMigration` is. Absent otherwise. */
   slotTextMigration?: SlotTextMigration;
+  /** #3796 review B2 — a slot carry kept on the set that this version can't read (`slot-carry.ts`): ignored, named, and
+   *  cleared by the set's next write. Absent when none. */
+  carryUnreadable?: CarryKind[];
 };
 
 /** The field a reaction difference is named under (#2466). DRAFT wording. */
@@ -548,6 +556,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   const rev = String(EXECUTOR_REVISION);
   const states: SetPreview['states'] = [];
   const removedLayers = new Map<string, number>();
+  const replacedLayers: { member: string; path: string; reason: string }[] = [];
   const plannedRx = reactionMap(plans.map((p) => planComponentName(p)), plans[0]?.pressState);
   for (const l of matched) {
     const plan = planned.get(l.target)!;
@@ -626,6 +635,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
         replacements.push({ member: m.name, path: part, reason: part === '.'
           ? `the member itself would need replacing (${d.actual} → ${d.expected}); the update refuses this member`
           : `${d.actual} → ${d.expected}` });
+        if (!structural) replacedLayers.push({ member: m.name, path: part, reason: `${d.actual} → ${d.expected}` });
         touched.add(part);
         continue;
       }
@@ -772,6 +782,8 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   if (positions.length) counts.move = positions.length;
 
   const truncated: Record<string, number> = {};
+  const replacedSelf = new Set(replacements.filter((r) => r.path === '.').map((r) => r.member));
+  const acted = replacedLayers.filter((r) => r.path !== '.' && !replacedSelf.has(r.member));
   const cap = <T>(name: string, list: T[]): T[] => {
     if (list.length <= LIST_CAP) return list;
     truncated[name] = list.length - LIST_CAP;
@@ -800,6 +812,8 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     states,
     ...(positions.length ? { positions: cap('positions', positions) } : {}),
     ...(removedLayers.size ? { removedLayers: [...removedLayers].map(([path, members]) => ({ path, members })) } : {}),
+    // A member that would need replacing itself is refused whole, so none of its layers is replaced either.
+    ...(acted.length ? { replacedLayers: acted } : {}),
     needsChoice,
     ...(adoptClears.length ? { adoptClears } : {}),
     ...(Object.keys(truncated).length ? { truncated } : {}),
@@ -1516,6 +1530,8 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
       // #3225: a slot whose plain text moves out to a TEXT property lists every placed instance it carries.
       const tmig = await slotTextMigrationFor(t, v.set as TextMigNode, ledger, breathe);
       if (tmig) { preview.slotTextMigration = tmig.migration; preview.previewHash = fnv(JSON.stringify([preview.previewHash, tmig.migration])); }
+      const unreadable = carryUnreadable(v.set);
+      if (unreadable.length) preview.carryUnreadable = unreadable;
     }
     out.sets.push(preview);
     ranked.set(preview, rank.get(t)!);
@@ -1574,10 +1590,13 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
  * the def has no slot entry in the ledger or the set already holds its rows in the slot (no member has the old rows).
  * Shared by the dry run and the apply, so both read the instances the one way.
  */
-export const slotMigrationFor = async (t: UpdateTarget, set: MigNode, ledger: readonly ComponentRename[] = COMPONENT_RENAMES, breathe?: () => Promise<void>): Promise<Awaited<ReturnType<typeof captureSlotMigration>> | null> => {
+export const slotMigrationFor = async (t: UpdateTarget, set: MigNode, ledger: readonly ComponentRename[] = COMPONENT_RENAMES, breathe?: () => Promise<void>, lookup?: (id: string) => Promise<MigNode | null>): Promise<Awaited<ReturnType<typeof captureSlotMigration>> | null> => {
   const entry = slotMigrationOf(t.def, ledger);
   const plan = t.plans[0];
   if (!entry || !plan) return null;
+  // #3762: a capture an earlier run kept on the set, for the instances it reached and never filled (the plugin closed).
+  // Those hold the slot now, with no rows to read, so only the kept capture still has their content.
+  const kept = keptCarry(set, 'rows');
   const rootPart = plan.root.name;
   const has = (n: MigNode, name: string): MigNode | undefined => (n.name === name ? n : (n.children ?? []).map((k) => has(k, name)).find(Boolean));
   const froms = typeof entry.from === 'string' ? [entry.from] : [...entry.from];
@@ -1585,11 +1604,16 @@ export const slotMigrationFor = async (t: UpdateTarget, set: MigNode, ledger: re
     const from = f === rootPart ? m : has(m, f);
     return !!from && (from.children ?? []).some((c) => entry.rows.includes(String(c.name)));
   }));
-  if (!oldShape) return null;
+  if (!oldShape && !kept) return null;
   const parts = new Set<string>();
   const walk = (n: AnatomyPlan['root']): void => { parts.add(n.name); n.children.forEach(walk); };
   walk(plan.root);
-  return captureSlotMigration(set, entry, rootPart, parts, breathe);
+  const fresh = oldShape ? await captureSlotMigration(set, entry, rootPart, parts, breathe) : null;
+  const { capture, added } = withKept(fresh?.migration ?? null, kept);
+  if (!capture) return null;
+  const live = new Map(fresh?.live ?? []);
+  for (const [id, l] of await keptLive(set, added, lookup, breathe)) live.set(id, l);
+  return { migration: capture, live };
 };
 
 /**
@@ -1599,8 +1623,16 @@ export const slotMigrationFor = async (t: UpdateTarget, set: MigNode, ledger: re
  */
 export const slotTextMigrationFor = async (t: UpdateTarget, set: TextMigNode, ledger: readonly ComponentRename[] = COMPONENT_RENAMES, breathe?: () => Promise<void>): Promise<Awaited<ReturnType<typeof captureSlotText>> | null> => {
   const entry = slotTextMigrationOf(t.def, ledger);
-  if (!entry || !holdsSlotText(set, entry)) return null;
-  return captureSlotText(set, entry, breathe);
+  if (!entry) return null;
+  // #3761, #3762: a capture an earlier run kept on the set. A stop inside the member pass, or a close, renamed every
+  // member's slot already, so the set no longer holds the old shape and only the kept capture still has the text.
+  const kept = keptCarry(set, 'text');
+  const fresh = holdsSlotText(set, entry) ? await captureSlotText(set, entry, breathe) : null;
+  const { capture, added } = withKept(fresh?.migration ?? null, kept);
+  if (!capture) return null;
+  const live = new Map(fresh?.live ?? []);
+  for (const [id, n] of await keptTextLive(set, added, breathe)) live.set(id, n);
+  return { migration: capture, live };
 };
 
 /** The components the plans nest that no COMPONENT or COMPONENT_SET in the file is named (#2380). */
@@ -1755,7 +1787,11 @@ const propChanges = (p: SetPreview): number => Object.values(p.properties).reduc
  *  (the owner's own icons, #2325), so a set whose only other members are those reads as having no changes, and the
  *  set's line still counts them. Counted as a change, a file holding them could never read up to date. A member to
  *  rename is a change (#2592): it reads current, and the apply renames it, so a set of renames is never up to date. */
-const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.rename && !p.counts.move && !p.setMove && !p.setRename && !furnitureDueCount(p.furniture) && !propChanges(p);
+const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.rename && !p.counts.move && !p.setMove && !p.setRename && !furnitureDueCount(p.furniture) && !propChanges(p) && !carryDue(p);
+/** #3762: placed instances whose slot carry is still to fill, from a capture an earlier run kept on the set. A set with
+ *  only that left (the plugin closed after the set's write, before its fill) is not up to date: its content is carried. */
+export const carryDue = (p: Pick<SetPreview, 'slotMigration' | 'slotTextMigration'>): boolean =>
+  !!p.slotMigration?.instances.some((c) => !c.nested) || !!p.slotTextMigration?.instances.some((c) => !c.nested);
 /** No changes, and every member current. A member not built by Prism3 that sits on a PLANNED coordinate is one Adopt
  *  could claim (`adoptable`, #2283), so a set holding one reads "no changes", never up to date (owner decision Q191
  *  2B). Off the plan (the owner's own icons, #2464), it doesn't stop a set reading up to date. */
@@ -1834,7 +1870,8 @@ export const previewLine = (p: SetPreview): string => {
 
 /** #2831 — what a set's update breaks for library consumers, from what its dry run lists. Empty for a set that is not
  *  published (nothing reaches another file), and for a set the update refuses (it changes nothing). A replacement of
- *  the member itself is left out: the update refuses that member, so it is not replaced. */
+ *  the member itself is left out: the update refuses that member, so it is not replaced. The replacements are read from
+ *  `replacedLayers` (#3025), uncapped and only on members the update acts on, never from the capped `replacements`. */
 export const breakingOf = (p: SetPreview): Breaking[] => {
   if (!isPublished(p.publish) || p.blockers.length) return [];
   const hidden = (name: string): boolean => name.startsWith('_') || name.startsWith('.');
@@ -1844,7 +1881,7 @@ export const breakingOf = (p: SetPreview): Breaking[] => {
     ...p.properties.remove.map((x) => ({ kind: 'property' as const, name: x.name, change: 'removed' as const })),
     ...p.properties.retype.map((x) => ({ kind: 'property' as const, name: x.name, change: 'retyped' as const, from: x.from, to: x.to })),
     ...p.drops.map((member) => ({ kind: 'drop' as const, member })),
-    ...p.replacements.filter((r) => r.path !== '.').map((r) => ({ kind: 'replace' as const, ...r })),
+    ...(p.replacedLayers ?? []).filter((r) => r.path !== '.').map((r) => ({ kind: 'replace' as const, ...r })),
     ...removedLayers(p),
   ];
 };
@@ -1985,7 +2022,9 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
       // #2649: the rows moving into the slot, every placed instance named with what moves and what can't carry over.
       ...(p.slotMigration && !p.blockers.length ? migrationLines(p.set, p.slotMigration) : []),
       // #3225: the slot text moving into its property, every carried instance named.
-      ...(p.slotTextMigration && !p.blockers.length ? slotTextLines(p.set, p.slotTextMigration) : [])]),
+      ...(p.slotTextMigration && !p.blockers.length ? slotTextLines(p.set, p.slotTextMigration) : []),
+      // #3796 review B2: a kept carry this version can't read, named once per set.
+      ...(p.carryUnreadable?.length ? [unreadableLine(p.set)] : [])]),
     // #2831: what the update breaks for library consumers, in its own section.
     ...breakingSection(r.sets, false),
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),

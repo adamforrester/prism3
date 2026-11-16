@@ -157,6 +157,11 @@ const NOT_EN_GB = new Set([
   // `-yse` over-catches (#1463): the plural NOUNS of `-lysis` are en-US, and `lyse` is en-US biology.
   'analyses', 'paralyses', 'catalyses', 'dialyses', 'hydrolyses', 'electrolyses', 'psychoanalyses',
   'lyse', 'lysed', 'lyses', 'lysing',
+  'revising', // en-US `revise` + `-ing`; the other forms were already here (first shipped in the 0.238.0 release notes)
+  // A JSON `\n` escape runs into the next word, so `\nraises` reads as `nraises` (the 0.238.0 release notes' `.json`,
+  // which carries each folded note verbatim, line breaks included). The word after the escape is still checked alone
+  // wherever it is not glued to an escape, so these hide no en-GB spelling.
+  'nraises', 'notherwise',
 ]);
 // The ONE place either regex is applied. `scan()` (real files) and SELF_CHECK (samples) both drive
 // this, and that sharing is load-bearing — the exact opposite of the DRY trap, because here the two
@@ -174,8 +179,13 @@ const NOT_EN_GB = new Set([
 // (SELF_CHECK in `lint-us-english.ts` samples both). Each entry must stay a tracked file; a rename to en-US
 // spelling makes its entry stale, and `lint-us-english.ts` fails on a stale one.
 export const EN_GB_FILE_NAMES = ['packages/engine/materialise-to-figma.ts'];
+// BRANCH SLUGS spelled en-GB, the same identifier carve-out as a file name: a fold carries each change note into the
+// release notes under its slug, which is the branch name, and the notes cannot be edited (`lint-release-notes.ts`
+// re-derives them from git). Masked as the WHOLE slug, so the word in prose is still caught. Each entry must stay a
+// `slug` in some `docs/public/releases/*.json`; `lint-us-english.ts` fails on a stale one.
+export const EN_GB_SLUGS = ['claude-3186-centring'];
 const maskFileNames = (txt: string): string =>
-  EN_GB_FILE_NAMES.reduce((t, f) => t.split(f).join(' '.repeat(f.length)), txt);
+  [...EN_GB_FILE_NAMES, ...EN_GB_SLUGS].reduce((t, f) => t.split(f).join(' '.repeat(f.length)), txt);
 export const enGb = (raw: string): { word: string; index: number }[] => {
   const txt = maskFileNames(raw);
   const found: { word: string; index: number }[] = [];
@@ -201,11 +211,16 @@ const BANNED_WORD = /\b(simply|easy|obviously)\b/gi;
 // dropping "just" from BANNED_WORD.
 const JUST = /\bjust\b/gi;
 // `now` (UI redesign S8.2): "Built just now" is the time sense, a moment ago, the same exactly/barely reading as "just
-// below"; it carries no judgment of the reader.
-const JUST_ALLOWED = /^\s+(?:below|above|under|over|beneath|past|outside|inside|shy of|short of|barely|about|enough|right|now)\b/i;
+// below"; it carries no judgment of the reader. `wrote` is the same time sense ("the theme the run just wrote", a folded
+// change note carried verbatim into the 0.238.0 release notes).
+const JUST_ALLOWED = /^\s+(?:below|above|under|over|beneath|past|outside|inside|shy of|short of|barely|about|enough|right|now|wrote)\b/i;
 
 // ---- Rule 3: filler — §2's "please note, note that" row.
 const FILLER = /\b(please\s+note|note\s+that)\b/gi;
+// "note" as a NOUN is not the filler: "drops its note that the def …", "a part note that cites …" (both folded change
+// notes, carried verbatim into the 0.238.0 release notes). The allow-set is the word directly before "note"; a false
+// positive here is fixed by widening it, never by dropping "note that" from FILLER.
+const FILLER_NOUN_BEFORE = /\b(?:a|an|the|its|their|this|each|every|part)\s+$/i;
 
 // ---- Rule 4: apology copy — §2's "Oops, Sorry" row.
 const APOLOGY = /\b(oops|sorry)\b/gi;
@@ -232,7 +247,11 @@ export const voiceHits = (txt: string): RawHit[] => {
     if (JUST_ALLOWED.test(after)) continue; // "just below the floor" — exactly/barely, allowed
     found.push({ rule: 'just', match: m[0], index: idx });
   }
-  for (const m of txt.matchAll(FILLER)) found.push({ rule: 'filler', match: m[0], index: m.index ?? 0 });
+  for (const m of txt.matchAll(FILLER)) {
+    const idx = m.index ?? 0;
+    if (/^note/i.test(m[0]) && FILLER_NOUN_BEFORE.test(txt.slice(Math.max(0, idx - 24), idx))) continue; // "its note that" — a noun
+    found.push({ rule: 'filler', match: m[0], index: idx });
+  }
   for (const m of txt.matchAll(APOLOGY)) found.push({ rule: 'apology', match: m[0], index: m.index ?? 0 });
   for (const m of txt.matchAll(EXCLAIM)) found.push({ rule: 'exclamation', match: '!', index: m.index ?? 0 });
   return found;

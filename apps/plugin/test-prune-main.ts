@@ -19,7 +19,9 @@
  *   · `pruneConfirmRefusal` ignoring the hash → `main/missing hash refused`, `main/wrong hash refused`;
  *   · `applyPrunePlan`'s per-removal try dropped (a bare `remove()`) → `main/throw at removal 2`;
  *   · `main.ts` calling `applyPrunePlan` without its running `counts` → `main/throw after removals` (#3709 S1);
- *   · the `return;` after `PRUNE_COPY.noVersion(…)` dropped (a failed save still removes) → `main/no version, nothing removed` (#3709 S2).
+ *   · the `return;` after `PRUNE_COPY.noVersion(…)` dropped (a failed save still removes) → `main/no version, nothing removed` (#3709 S2);
+ *   · the hand-edit pass's `stale()` back to its four named writes (prune left out) → `main/hand pass stale under prune` (#3737).
+ *   · a pass a write made stale not asked for again when the write ends → `main/hand pass after the write` (#3804).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -192,6 +194,49 @@ ok(r6?.ok === false && r6.applied === false && r6.count === 0
   && String(r6.summary).startsWith('Nothing removed — the named version could not be saved')
   && live3().length === 2 && !events.some((e) => e.startsWith('remove:')),
   `main/no version, nothing removed: a failed version save removes nothing (count ${r6?.count}, ${live3().length} left, ${JSON.stringify(r6?.summary)}, ${JSON.stringify(events)})`);
+
+// #3737 — THE HAND-EDIT PASS READS NOTHING WHILE A PRUNE HOLDS THE FILE. Since #3718 one hold covers every write, but the
+// pass's staleness check named four writes and left out prune: a pass asked for while a prune's delete runs read on and
+// reported. Here the prune's version save is held open, so the prune holds the file while the pass is asked for.
+// Mutation: `stale()` back to its four named writes → `main/hand pass stale under prune`.
+const STALE4 = [8, 9].map((i) => `${rootName}/color/zz-stale-${i}`);
+for (const v of STALE4.map((n) => file.createVariable(n, coll, 'COLOR'))) {
+  const real = v.remove.bind(v);
+  v.remove = () => { events.push(`remove:${v.name}`); real(); };
+}
+const pass = async (ms: number): Promise<any[]> => {
+  const from = posted.length;
+  (file as unknown as { ui: { onmessage: (m: unknown) => void } }).ui.onmessage({ type: 'hand-edits-request' });
+  const t0 = Date.now();
+  while (Date.now() - t0 < ms && !posted.slice(from).some((m) => m?.type === 'hand-edits' && m.done === true)) await new Promise((res) => realTimeout(res, 2));
+  return posted.slice(from).filter((m) => m?.type === 'hand-edits');
+};
+const control = await pass(10_000);
+ok(control.some((m) => m.done === true), `main/hand pass premise: with nothing holding the file, the pass runs to its end (${JSON.stringify(control)})`);
+const preview4 = await send({ type: 'prune', input, confirm: false }, ['prune-result']);
+let release: () => void = () => undefined;
+const held = new Promise<void>((res) => { release = res; });
+const realSave = (file as unknown as { saveVersionHistoryAsync: (t: string) => Promise<unknown> }).saveVersionHistoryAsync;
+let saving = false;
+Object.assign(file, { saveVersionHistoryAsync: async (t: string) => { saving = true; await held; return realSave(t); } });
+posted.length = 0;
+(file as unknown as { ui: { onmessage: (m: unknown) => void } }).ui.onmessage({ type: 'prune', input, confirm: true, previewHash: String(preview4?.previewHash ?? '') });
+for (let i = 0; i < 2000 && !saving; i++) await new Promise((res) => realTimeout(res, 2));
+const during = await pass(500);
+ok(saving && during.length === 0,
+  `main/hand pass stale under prune: a pass asked for while a prune holds the file reports nothing (prune holding: ${saving}; posted ${JSON.stringify(during)})`);
+release();
+for (let i = 0; i < 5000 && !posted.some((m) => m?.type === 'prune-result'); i++) await new Promise((res) => realTimeout(res, 2));
+Object.assign(file, { saveVersionHistoryAsync: realSave });
+// #3804 — A PASS THE WRITE MADE STALE IS ASKED FOR AGAIN WHEN THE WRITE ENDS. The pass above ended silently, so the panel
+// kept every set it hadn't reached at "Checking" until a reload or an Update file run asked again. Nothing asks here: the
+// write's end must run the pass to its end by itself. Mutation: the write's end not asking for the owed pass →
+// `main/hand pass after the write`.
+const ended = posted.findIndex((m) => m?.type === 'prune-result');
+for (let i = 0; i < 5000 && !posted.slice(ended).some((m) => m?.type === 'hand-edits' && m.done === true); i++) await new Promise((res) => realTimeout(res, 2));
+const after = posted.slice(ended).filter((m) => m?.type === 'hand-edits');
+ok(ended >= 0 && after.some((m) => m.done === true),
+  `main/hand pass after the write: once the prune ends, the pass it made stale runs to its end unasked (prune-result at ${ended}; posted after it ${JSON.stringify(after)})`);
 
 console.log = log;
 if (failed) { console.error(`\n${failed} check(s) failed`); process.exit(1); }

@@ -74,6 +74,7 @@
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { localeFreeCompare } from '../../packages/engine/locale-free-order.ts';
 
 // ---- the Figma-shaped output types, as narrow as the exporter's actual reads -------------------
 
@@ -244,7 +245,7 @@ export const adaptBrand = (brand: string, figmaDir: string): Adapted => {
 
   const knownNames = new Set(nameToCollection.keys());
 
-  for (const [collName, group] of [...varGroups].sort((a, b) => a[0].localeCompare(b[0]))) {
+  for (const [collName, group] of [...varGroups].sort((a, b) => localeFreeCompare(a[0], b[0]))) {
     // A collection's mode axis is the DISTINCT `$mode` values across its files, not one entry per
     // file (#1097). Since the core fan-in, `core.palette.json` / `core.dimension.json` /
     // `core.font.json` all declare `$collection: 'core'` AND `$mode: 'Default'` — one mode, three

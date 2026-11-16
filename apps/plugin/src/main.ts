@@ -1689,10 +1689,10 @@ const passTarget = async (id: string, tick: () => Promise<void>): Promise<Update
     return { def: d.id, plans: checkAnatomySet(m, plans), single: true };
   } catch { return null; }
 };
-let handPass = 0;
+let handPass = 0, handPassOwed = false; // #3804: a pass a write ended is owed, and the write's end (`guarded`) asks for it again.
 const handEditsPass = async (): Promise<void> => {
-  const mine = ++handPass;
-  const stale = (): boolean => mine !== handPass || (['build-components', 'apply-theme', 'file-setup', 'style-guide'] as const).some((c) => guard.holding(c));
+  const mine = ++handPass; handPassOwed = false;
+  const stale = (): boolean => mine !== handPass || (guard.busy() && (handPassOwed = true)); // #3737: ANY write holding the file (one hold since #3697 R7), prune included; it owes the pass (#3804). A newer pass owes nothing.
   try {
     const read = await readPresent();
     const present = read.ids;
@@ -2251,7 +2251,7 @@ const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<vo
     // #3081: a write may add or remove sets, so the live recount reads the file again after it (`presentCache`). It is
     // cleared as the write starts too: the write's verdict posts before the write's promise settles.
     presentCache = null; panelCache = null; presentRead = null; presentGen++; dropViews();
-    return guard.run(cmd, () => fn(...a)).finally(() => { presentCache = null; panelCache = null; presentRead = null; presentGen++; dropViews(); });
+    return guard.run(cmd, () => fn(...a)).finally(() => { presentCache = null; panelCache = null; presentRead = null; presentGen++; dropViews(); if (handPassOwed) void handEditsPass(); }); // #3804: a hand-edit pass this write ended runs again, over the file it left.
   };
 
 /**

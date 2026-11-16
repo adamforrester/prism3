@@ -87,6 +87,9 @@ export type InstanceCapture = {
   nested?: true;
 };
 export type SlotMigration = { slot: string; instances: InstanceCapture[]; /** #2661 — the nested def whose slot keeps its defaults. */ within?: string };
+/** The capture's own node references, per instance: the instance, and each carried row's component (`main`) to make its
+ *  item from. A row read back from a kept capture (#3762) has no layer any more, and its component is looked up by id. */
+export type LiveRows = Map<string, { inst: MigNode; rows: { layer?: MigNode; main?: MigNode | null }[] }>;
 
 /** Fields an override can carry on a row that the fill carries too: the row's own property values and variant. */
 const ROW_CARRIED = new Set(['componentProperties', 'mainComponent', 'visible', 'name']);
@@ -139,9 +142,9 @@ const instancesOf = async (set: MigNode, breathe?: () => Promise<void>): Promise
  * root part name (the member itself); `planParts` are the part names the plan has, so an override on a layer the
  * update removes is named. Instances already holding the slot read no rows and are left out.
  */
-export const captureSlotMigration = async (set: MigNode, entry: SlotEntry, rootPart: string, planParts: ReadonlySet<string>, breathe?: () => Promise<void>): Promise<{ migration: SlotMigration; live: Map<string, { inst: MigNode; rows: { layer: MigNode; main: MigNode }[] }> }> => {
+export const captureSlotMigration = async (set: MigNode, entry: SlotEntry, rootPart: string, planParts: ReadonlySet<string>, breathe?: () => Promise<void>): Promise<{ migration: SlotMigration; live: LiveRows }> => {
   const instances: InstanceCapture[] = [];
-  const live = new Map<string, { inst: MigNode; rows: { layer: MigNode; main: MigNode }[] }>();
+  const live: LiveRows = new Map();
   for (const inst of await instancesOf(set, breathe)) {
     const froms = typeof entry.from === 'string' ? [entry.from] : [...entry.from];
     const from = froms.includes(rootPart) ? inst : find(inst, (x) => x !== inst && froms.includes(String(x.name)));
@@ -221,6 +224,29 @@ export const captureSlotMigration = async (set: MigNode, entry: SlotEntry, rootP
   return { migration: { slot: entry.slot, instances, ...(entry.within ? { within: entry.within } : {}) }, live };
 };
 
+/**
+ * #3762: the node references for instances read back from a capture kept on the set (`slot-carry.ts`), found among
+ * the set's instances by id. Each row's component is looked up by its id (`lookup`, the host's `getNodeByIdAsync`); one
+ * the host cannot find is left `null`, and the fill names that row as not made.
+ */
+export const keptLive = async (set: MigNode, kept: readonly InstanceCapture[], lookup?: (id: string) => Promise<MigNode | null>, breathe?: () => Promise<void>): Promise<LiveRows> => {
+  const out: LiveRows = new Map();
+  const want = new Map(kept.filter((c) => !c.nested).map((c) => [c.id, c] as const));
+  if (!want.size) return out;
+  for (const inst of await instancesOf(set, breathe)) {
+    const c = want.get(String(inst.id));
+    if (!c) continue;
+    const rows: { main: MigNode | null }[] = [];
+    for (const r of c.rows) {
+      let main: MigNode | null = null;
+      try { main = lookup ? await lookup(r.main.id) : null; } catch { main = null; }
+      rows.push({ main });
+    }
+    out.set(c.id, { inst, rows });
+  }
+  return out;
+};
+
 // ---- the words (DRAFT, for the owner: #2649) -------------------------------------------------------------------
 
 const quoted = (r: RowCapture): string => {
@@ -263,7 +289,8 @@ export const migrationLines = (set: string, m: SlotMigration): string[] => {
 
 // ---- the fill -------------------------------------------------------------------------------------------------
 
-export type FillOutcome = { instances: number; items: number; misses: string[]; limits: string[] };
+/** `pending` (#3762): the instances a stopped set's fill left for the next run, whose capture stays kept on the set. */
+export type FillOutcome = { instances: number; items: number; misses: string[]; limits: string[]; pending: string[] };
 
 /**
  * Fill each captured instance's slot, after the set was updated. `live` is the capture's own node references, read
@@ -273,10 +300,10 @@ export type FillOutcome = { instances: number; items: number; misses: string[]; 
  * or never: an instance whose member the update reached already holds the slot and has lost its rows, and the next
  * run finds no rows on it to read. So every instance whose slot is there is filled, as on a finished set. An instance
  * whose member the update never reached still has its rows and no slot: it is left as it is, with no miss, and the
- * next run reads it and fills it.
+ * next run reads it and fills it. It is listed in `pending`, so its capture stays kept on the set (#3762).
  */
-export const fillSlots = async (setName: string, entry: SlotEntry, live: Map<string, { inst: MigNode; rows: { layer: MigNode; main: MigNode }[] }>, captured: SlotMigration, breathe?: () => Promise<void>, reachedOnly = false): Promise<FillOutcome> => {
-  const out: FillOutcome = { instances: 0, items: 0, misses: [], limits: [] };
+export const fillSlots = async (setName: string, entry: SlotEntry, live: LiveRows, captured: SlotMigration, breathe?: () => Promise<void>, reachedOnly = false): Promise<FillOutcome> => {
+  const out: FillOutcome = { instances: 0, items: 0, misses: [], limits: [], pending: [] };
   let k = 0;
   for (const c of captured.instances) {
     if (c.nested) continue;
@@ -285,7 +312,7 @@ export const fillSlots = async (setName: string, entry: SlotEntry, live: Map<str
     const where = `${setName} instance "${c.name}"`;
     if (!l) { out.misses.push(`${where}: no longer in the file`); continue; }
     const slot = find(l.inst, (x) => x.type === 'SLOT' && x.name === entry.slot);
-    if (!slot && reachedOnly) continue;
+    if (!slot && reachedOnly) { out.pending.push(c.id); continue; }
     if (!slot) { out.misses.push(`${where}: has no "${entry.slot}" slot after the update`); continue; }
     if (entry.within) {
       // ONTO THE KEPT DEFAULTS (#2661): each changed value, by property name before Figma's `#id`, onto the slot's item at
