@@ -234,7 +234,7 @@ List every **ink-on-surface color pairing** your component renders, each as
 `{fg, bg, kind}`:
 
 - `kind: "text"` — body copy → needs **4.5:1**
-- `kind: "large-text"` — ≥ 24px or ≥ 18.66px bold → needs **3:1**
+- `kind: "large-text"` — ≥ 24px or ≥ 18.67px bold → needs **3:1**
 - `kind: "ui"` — borders, icons, focus rings, large graphics → needs **3:1**
 
 Resolve `fg` and `bg` **per mode** and confirm the ratio clears the floor **in every mode**.
