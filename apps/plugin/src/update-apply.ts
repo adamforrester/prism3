@@ -505,6 +505,29 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
     kids.forEach((c, i) => { if (owned(reads[i])) c.name = renamedComponent(String(c.name ?? ''), p.setRename!); });
   }
 
+  // ── EVERY MEMBER THIS UPDATE CONFIGURES, MARKED IN PROGRESS before the set's first write to its content (#3797, #3594).
+  // The executor marks a member as it reaches it (`write-components.ts`), but the writes below (layer renames, property
+  // removals and retypes) change members it has not reached yet. A close or a stop after them left those members
+  // unmarked and differing from their records, so the next check read the update's own writes as hand edits, and Keep
+  // held them for good (#3797). Marked here, they read as to update, with only their kept paths as hand edits, and the
+  // marker comes off only in the executor's finish (record, stamp, then the marker). So after a stop the host also says
+  // which members the pass finished, whatever moved their stamp (#3594). The value is the executor's own: the paths kept.
+  // A write refused here stops the set before anything else is written.
+  {
+    const toCoord = namesFor(t).coordOf;
+    const movedTo = new Map(p.moves.map((m) => [m.from, m.to] as const));
+    try {
+      for (const c of kidsOf(live) as (LiveNode & { setSharedPluginData?(ns: string, k: string, v: string): void })[]) {
+        const coord = toCoord(String(c.name ?? ''));
+        const entry = work.members.get(movedTo.get(coord) ?? coord);
+        if (entry) c.setSharedPluginData?.(NS, UPDATING_KEY, JSON.stringify([...entry.keep]));
+      }
+    } catch (err) {
+      out.stopped = (err as Error)?.message ?? String(err);
+      return out;
+    }
+  }
+
   // ── LAYERS RENAMED IN PLACE (#2759), first, in every member this update configures: the dry run read them under
   // their new names, and the build's pass finds them by those names, so each keeps its id and every override on it.
   // The member itself and an instance's contents (its main's) are never renamed. Done before the identity is read,
@@ -602,14 +625,9 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   if (out.deprecated.length) live.setSharedPluginData?.(NS, RETAINED_KEY, JSON.stringify(retained));
 
   // ── THE BUILD'S OWN PASS, IN UPDATE MODE ────────────────────────────────────────────────────────────────────
-  // Each member this update configures, its stamp as the pass finds it, so a pass that stops can count the members it
-  // finished off the host (#3449) rather than off a result it never returned.
+  // A pass that stops counts the members it finished off the host (#3449) rather than off a result it never returned.
   type Stamped = { getSharedPluginData?(ns: string, k: string): string };
   const dataOf = (name: string, key: string): string => (before.get(name)?.ref as Stamped | undefined)?.getSharedPluginData?.(NS, key) ?? '';
-  const stampWas = new Map([...work.members.keys()].map((m) => [m, dataOf(m, STAMP_KEY)] as const));
-  // And whether it was still marked in progress (#3559): a member a stop left between its stamp and its marker's clear
-  // (#3539) carries the planned stamp already, so only the marker coming off says this pass finished it.
-  const markedWas = new Set([...work.members.keys()].filter((m) => !!dataOf(m, UPDATING_KEY)));
   let r: ComponentApplyResult;
   try {
     r = await applyComponentPlan(t.plans, api, {
@@ -626,19 +644,17 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   } catch (err) {
     out.stopped = (err as Error)?.message ?? String(err);
     // A STOPPED SET COUNTS THE MEMBERS IT FINISHED (#3449). The pass returned nothing, so they are read off the host: a
-    // member is finished when it ends with its planned stamp and no in-progress marker, and the host shows this pass did
-    // it: its stamp changed, or it was marked in progress before the pass and the marker came off (#3559). The second
-    // is a member a stop on the marker's clear left stamped and marked (#3539): the dry run reads it as to update, and
-    // the next run finishes it, so that run counts it. A stop on the marker's clear itself leaves the member marked,
-    // and it is not counted: its update did not complete, and the dry run reads it as to update too.
-    // NOT COUNTED, stated: a member updated for a reason that leaves its stamp as it was (a nested-instance fault, drawn
-    // damage, reactions that differ) and that was not marked before the pass. The host after a stop looks the same
-    // whether the pass finished it or never reached it, so it is left out rather than guessed (#3594).
-    out.updated = [...stampWas].filter(([m, was]) => {
+    // member is finished when it ends with its planned stamp and no in-progress marker. Every member this update
+    // configures was marked before the set's first write (above), and only the executor's finish takes the marker off,
+    // after the stamp, so the marker gone says this pass finished it, whether or not its stamp moved: a member updated
+    // for drawn damage, a nested-instance fault or reactions is counted too (#3594). A stop on the marker's clear itself
+    // leaves the member stamped and marked, and it is not counted: its update did not complete, and the dry run reads
+    // it as to update too (#3497).
+    out.updated = [...work.members.keys()].filter((m) => {
       const pl = plans.get(m);
       const want = pl ? memberStamp(pl) : '';
-      return !!want && dataOf(m, STAMP_KEY) === want && !dataOf(m, UPDATING_KEY) && (was !== want || markedWas.has(m));
-    }).map(([m]) => m);
+      return !!want && dataOf(m, STAMP_KEY) === want && !dataOf(m, UPDATING_KEY);
+    });
     return out;
   }
   out.updated = r.updatedInPlace ?? [];

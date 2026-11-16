@@ -29,9 +29,9 @@
  *                  stopped before any stamp, 9 when the 10th stamp write or the 10th marker clear throws (#3449).
  *                  Mutations: the count not read off the host on a stop → `stop/count finished`; the in-progress
  *                  marker ignored → `stop/count marker`; the dry run reading a marked member as current (#3497) →
- *                  `stop/count marker dry run`; the marker read before the pass left out of the count (#3559) →
- *                  `stop/count after marker`; the "this pass did it" clause replaced with
- *                  `true` → `stop/count damage only` (#3594).
+ *                  `stop/count marker dry run`; the count's rule back to "its stamp changed" (#3559, #3594) →
+ *                  `stop/count after marker`, `stop/count damage finished`; the apply's mark of every member before
+ *                  the set's first write dropped (#3797) → `stop/count damage only`.
  *   version/…      a named version is saved once, before the first write; refused, nothing is written.
  *                  Mutation: the version not saved → `version/once`, `version/refused`.
  *   fonts/…        a text style whose typeface will not load refuses the set before anything is written.
@@ -1195,7 +1195,7 @@ section('stop/count — a set stopped after some members finished counts them');
   // its new stamp and still its marker, and the dry run reads 36 to update. Run 2 stops on the 36th stamp write: 35
   // members finished, the marked one among them (its marker came off). Expected, literal: 35, and the dry run after run
   // 2 reads 44 current and 1 to update, the second witness. Mutation: the marker read before the pass left out of the
-  // count (`markedWas` dropped) → `stop/count after marker` (34).
+  // count (the count's rule back to "its stamp changed") → `stop/count after marker` (34).
   const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
   const next = moveGap(w.plans);
   const pd = (m: any, k: string): string => (m.getSharedPluginData as (a: string, b: string) => string)(NS, k);
@@ -1222,11 +1222,11 @@ section('stop/count — a set stopped after some members finished counts them');
     `stop/count after marker: run 2's line counts the 35 members it finished, the one a marker stop left among them (${line.slice(0, 160)})`);
 }
 {
-  // The stated NOT COUNTED case (#3594): a member to update for drawn damage alone, its stamp already the planned one
+  // #3594, the member never reached: a member to update for drawn damage alone, its stamp already the planned one
   // and no marker. The host throws when the pass marks it in progress, the first write of its update, so the pass never
   // reached it, and the host after the stop looks exactly as it did before. It must not be counted. Expected, literal:
-  // 0. Mutation: the "this pass did it" clause (`was !== want || markedWas.has(m)`) replaced with `true` →
-  // `stop/count damage only` (1).
+  // 0. Since #3797 the apply marks every member before the set's first write, and that mark is the first write here, so
+  // the set stops before anything else. Mutation: that mark dropped → `stop/count damage only` (1).
   const w = await world(TAG);
   const hit = membersOf(w.set())[2]; // a member whose root binds its fill
   const pd = (m: any, k: string): string => (m.getSharedPluginData as (a: string, b: string) => string)(NS, k);
@@ -1256,6 +1256,51 @@ section('stop/count — a set stopped after some members finished counts them');
   const line = applyVerdict(res).lines.find((l) => l.startsWith(`${TAG}: stopped (`)) ?? '';
   ok(line.includes('). 0 members updated; ') && (res.outcomes[0]?.updated ?? []).length === 0,
     `stop/count damage only: a member to update for damage alone, which the stopped pass never reached, is not counted (${line.slice(0, 160)}; updated ${JSON.stringify(res.outcomes[0]?.updated ?? [])})`);
+}
+
+{
+  // #3594: the same damage-only shape, but the pass FINISHES one such member before it stops. Two members draw wrong
+  // (stamps current, no marker); the host throws on the second marker clear, the last write of the second member's
+  // finish, so the first is finished and the second is not. Its stamp did not change and it was not marked before the
+  // run, so only the run's own mark coming off says the pass finished it: every member the update configures is marked
+  // in progress before the set's first write (`applySet`). Expected, literal: 1, the member whose marker is off.
+  // Mutation: the stopped count's rule back to "its stamp changed" → `stop/count damage finished`.
+  const w = await world(TAG);
+  const pd = (m: any, k: string): string => (m.getSharedPluginData as (a: string, b: string) => string)(NS, k);
+  const blacken = (n: Node): boolean => {
+    for (const f of ['fills', 'strokes'] as const) {
+      const ps = n[f] as { boundVariables?: { color?: unknown } }[] | undefined;
+      if (Array.isArray(ps) && ps.some((p) => p?.boundVariables?.color)) { n[f] = ps.map((p) => (p?.boundVariables?.color ? { ...p, color: { r: 0, g: 0, b: 0 }, opacity: 1 } : p)); return true; }
+    }
+    return ((n.children as Node[] | undefined) ?? []).some(blacken);
+  };
+  const hits: Node[] = [];
+  for (const m of membersOf(w.set())) {
+    if (hits.length === 2) break;
+    if (!blacken(m)) continue;
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, JSON.stringify({ ...baselineOf(await snapshotMember(m)), id: String(m.id) }));
+    hits.push(m);
+  }
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  const st = pre.sets[0];
+  ok(hits.length === 2 && st.counts.update === 2 && hits.every((h) => !pd(h, UPDATING_KEY) && st.states.some((s) => s.member === String(h.name) && s.state === 'update')),
+    `stop/count damage finished premise: two members read to update for their drawn damage alone, stamps current and no marker (${JSON.stringify(st.counts)})`);
+  const stampBefore = new Map(hits.map((h) => [h, pd(h, STAMP_KEY)] as const));
+  let clears = 0;
+  for (const h of hits) {
+    const real = h.setSharedPluginData as (ns: string, k: string, v: string) => void;
+    h.setSharedPluginData = (ns: string, k: string, v: string) => {
+      if (k === UPDATING_KEY && !v && ++clears === 2) throw new Error('in setSharedPluginData: the host stopped');
+      real.call(h, ns, k, v);
+    };
+  }
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(pre));
+  const done = hits.filter((h) => !pd(h, UPDATING_KEY));
+  ok(!!res.outcomes[0]?.stopped && clears === 2 && done.length === 1 && hits.every((h) => pd(h, STAMP_KEY) === stampBefore.get(h)),
+    `stop/count damage finished premise: the run stopped on the second member's marker clear, one member finished, both stamps unchanged (${res.outcomes[0]?.stopped}; ${done.length} finished)`);
+  const line = applyVerdict(res).lines.find((l) => l.startsWith(`${TAG}: stopped (`)) ?? '';
+  ok(line.includes('). 1 member updated; ') && JSON.stringify(res.outcomes[0]?.updated ?? []) === JSON.stringify(done.map((h) => String(h.name))),
+    `stop/count damage finished: a member updated for damage alone, which the stopped pass finished, is counted (${line.slice(0, 160)}; updated ${JSON.stringify(res.outcomes[0]?.updated ?? [])})`);
 }
 
 /* ── version ─────────────────────────────────────────────────────────────────────────────────────────── */
