@@ -23,7 +23,11 @@ margin or gutter links to a spacing step when one has its value, and otherwise t
 G2 pinned the old link, so its pin moves to `space/550`, and G3's floor of three dimension links is dropped: those rows
 were the 44px margins, and no brand's grid value now sits on the dimension grid off the spacing scale, so that branch
 runs on every row but has no witness. Held as an OWNER DECISION on the PR, with the alternative of keeping grid links
-off `space.550`. `docs/45`, the `prism3-theme` skill and the comments that named the old link are updated.
+off `space.550`. `docs/45`, the `prism3-theme` skill and the comments that named the old link are updated. Three other
+checks used 44 as their off-scale example and now use 36 (on the dimension grid, on no spacing step): the studio's
+chrome #3092 margin-picker case, and `lint-voice.ts`'s decisions-log sweep input, whose "links to core dimension"
+producer had no other witness. The plugin's style-guide test counts 19 space steps (18 unbound specimens, not 17), and
+its #3052 off-scale arm (43b) has no witness in the committed brands, stated where it is asserted.
 
 **Measured.** `lint-hit-target.ts` gains an arm: each button size binds `size.<size>.hit-target` as a `space.*` step that
 resolves, on every density's build, to the gate's own literal (24 / 44 / 44, `CODE_FLOOR_PX`, never read from the def or
