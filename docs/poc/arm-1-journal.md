@@ -209,3 +209,66 @@ Four new CI steps, mirrored in `verify.ts`, CONTRIBUTING §3, CLAUDE.md §4 and 
 failed once, unable to run in the shallow clone, and passed after unshallowing. The SKIPs are suites the diff
 doesn't touch, left to CI: `plugin-test` (cut at the 10-minute chunk limit with no failure printed), and `chrome`
 and `chrome-shards` (not started locally, for the same limit).
+
+---
+
+## Refresh — `main` merged into `poc/arm-1` (a Q55 data point: what breaks when an update arrives)
+
+Started 20:19 UTC on 2026-11-16, from `poc/arm-1` at `bf7d72eb`, merging `main` at `513a95a4`: 205 commits, one
+MAJOR contract bump (CONTRACT_VERSION 14.14.0 → 15.0.0). Merged with a merge commit, never rebased.
+
+### What arrived
+
+Measured on `out/prism3.tokens.json`, before and after:
+
+- **18 tokens changed type:** every `core.font.letter-spacing.*` step and `letter-spacing-role.*` alias went from
+  `dimension` (`"0.01em"`) to `number` (`0.01`, a fraction of the font size). In the token CSS that reads
+  `--pds3-core-font-letter-spacing-10: 0.01`, with no unit.
+- **1 token removed:** `container.fluid`. **2 added:** `type.caption.{md,lg}.line-box`. **1 changed value:**
+  `shadow.inset` gained `inset: true`.
+- **The engine stopped committing three component exports** (#3698 R3): `out/components/specs.json`,
+  `component-defs.json` and `component-defs.specs.json`. They're now generated on demand
+  (`UNCOMMITTED_OUT` in `regen.ts`). The merge deleted them from the tree; a local `regen` still writes them, so a
+  developer's checkout hides the change.
+
+### What broke
+
+- **Not the contract change.** None of the 71 tokens `button.css` reads changed name or value, and the generator
+  reads neither the letter-spacing tokens nor `container.fluid`. `button.css` and `demo.html` regenerated
+  byte-identical.
+- **The file move broke all four `@prism3/css` checks on a clean checkout.** `generate.ts`, `check-parity.ts` and
+  `check-raw-values.ts` read `specs.json` (and the generator `component-defs.json`) from `out/`. Locally, after
+  `regen`, everything passed. With the three files moved away, as CI's checkout has them, the generator crashed on
+  a missing file. CI would have caught it; a local run after `regen` couldn't.
+
+### The fix
+
+`packages/css/emission.ts` runs `emit-component-docs.ts --uncommitted --out <temp>` as a process and the three
+scripts read from there, the pattern `packages/tokens/check-specs.mjs` already uses. Running it as a process,
+not importing the engine, keeps the parity check's EXPECTED an emitted file (docs/34).
+
+Checked with the three files absent from `out/`: `check:generated`, `check:raw-values`, `check:parity` and
+`test:browser` all pass. Two mutations, each after a commit:
+
+| Mutation | Result |
+|---|---|
+| `emission.ts` points at a misspelled emitter | `FAIL emission: emit-component-docs.ts --uncommitted exited 1` |
+| A stale `out/components/specs.json` planted with the primary hover fill swapped to pressed | ignored: `check:generated` and `check:parity` still pass, so `out/` is no longer read |
+
+The letter-spacing type change becomes live in the next PR, when the text button's tracking is bound to the token
+(Q143 A): a unitless number needs `calc(var(--…) * 1em)`, not the bare variable.
+
+### Effort
+
+- **Wall clock:** 20:19 to about 20:35 UTC for the merge, the regen, the four checks, the fix and its mutations.
+  The full gate run is extra.
+- **Conflicts:** one, in `CONTRIBUTING.md` §3. Both sides added lines after the same `check:package` comment;
+  kept both. No conflict in `out/`, `schema/` or `docs/public/`; `regen` changed nothing after the merge.
+- **Hand edits:** `emission.ts` (new, 30 lines), three one-line reads, one README sentence, this entry and the
+  progress entry.
+- **Errors hit:** one, the missing-file crash above. It was found by moving the files away on purpose, because the
+  merge's own diff showed the three files deleted.
+
+**Lesson for Q55.** The breaking change the contract announced didn't break this consumer; an unversioned change to
+which files the engine commits did. A consumer that reads the engine's build output, not just its token
+contract, needs that file list treated as an interface too.
