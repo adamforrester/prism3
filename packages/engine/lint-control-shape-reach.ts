@@ -22,6 +22,9 @@
  *              claimed, or a shape × family it gives a corner the expectation does not.
  *   UNSTATED   the typed expectation holds a claim the description no longer states.
  *   PARSE      a clause of the description names a family but no corner, so it cannot be read as a claim.
+ *   SOURCE     a def still moves its corner under some shape × field style once its `levers.controlShape` is removed: some
+ *              reach comes from elsewhere (an `anatomy.derived` key, a def id, a ref rule), where owner Q-CS5 B puts all of
+ *              Control shape's reach, Pill included, in `ComponentDef.levers`.
  *   REPRESENTED  a family is empty, a typed id is not a registered def, a table names a def twice, or a shape the
  *              lever offers has no claim.
  *   SELF-CHECK the description reader, run on the planted prose typed below, does not read exactly what is planted.
@@ -32,6 +35,8 @@
  * corner each shape gives each family (`CLAIM`), the defs a claimed noun does not cover by decision (`NOT_CLAIMED`), the
  * defs deliberately outside (`OUTSIDE_REASON`), and Google Pay's half-height corner rule. Nothing here
  * reads `ComponentDef.levers`, the table the reach is built from: a gate that read it would agree with any reach.
+ * SOURCE only DELETES it: the probe projects each def with its `levers.controlShape` removed, and the expectation (no
+ * corner moves) is typed here, so it reads nothing out of the table and holds whatever the table says.
  *
  * "OWN" means the def's corner under Rounded, the identity: Rounded follows radius softness, so the corner a def binds
  * at rest is its own. An INTRINSIC corner (`radius/round`, `radius/capsule`, `radius/none`) is a shape the def is, not
@@ -172,6 +177,13 @@ const cornersOf = (n: FigmaNodePlan, path: string, out: Map<string, string>): vo
   for (const c of n.children ?? []) cornersOf(c as FigmaNodePlan, here, out);
 };
 
+/** `def` without its Control shape entry: the SOURCE probe. Every other setting it takes stays. */
+const withoutControlShape = (def: ComponentDef): ComponentDef => {
+  if (!def.levers?.controlShape) return def;
+  const { controlShape: _drop, ...levers } = def.levers;
+  return { ...def, levers };
+};
+
 /** Every corner binding of `def`'s set, keyed `member › part.property`, under one brand. */
 const corners = (def: ComponentDef, shape: Shape, fieldStyle: 'outline' | 'underline'): Map<string, string> => {
   const input = { ...MINIMAL_BRAND, controlShape: shape, fieldStyle } as BrandInput;
@@ -227,7 +239,7 @@ export const run = (description: string): { errors: string[]; counts: Record<str
   for (const [f, c] of read.underline) if (f !== 'fields' || c !== UNDERLINE_FIELD_CORNER) errors.push(`OVERCLAIM: the description gives underline ${f} ${c}`);
 
   // The projection against the typed claim.
-  const counts = { defs: 0, families: 0, notClaimed: 0, outside: 0, bindings: 0, clamped: 0 };
+  const counts = { defs: 0, families: 0, notClaimed: 0, outside: 0, bindings: 0, clamped: 0, sourced: 0 };
   const familyOf = new Map<string, Family>(Object.entries(FAMILIES).flatMap(([f, ids]) => ids.map((id) => [id, f as Family] as const)));
   for (const def of componentDefs) {
     const own = corners(def, 'rounded', 'outline');
@@ -260,6 +272,17 @@ export const run = (description: string): { errors: string[]; counts: Record<str
         const tag = fam ? 'REACH' : nc ? 'NOT-CLAIMED' : 'OUTSIDE';
         const why = fam ? `claimed ${want}` : nc ? `not claimed by ${nc.family} (${nc.decision}), so it stays ${want}` : `outside (${OUTSIDE_REASON[def.id]}), so it stays ${want}`;
         errors.push(`${tag}: ${def.id}${fam ? ` (${fam})` : ''} under ${s} × ${fs}: ${what}, ${why} (${n} corner binding${n === 1 ? '' : 's'}, first at ${first})`);
+      }
+    }
+    // SOURCE (Q-CS5 B): stripped of `levers.controlShape`, the def's corners are its Rounded ones under every shape.
+    const bare = withoutControlShape(def);
+    for (const fs of FIELD_STYLES) {
+      const base = fs === 'outline' ? own : ownUnder;
+      for (const s of SHAPES) {
+        if (s === 'rounded') continue;
+        const moved = [...corners(bare, s, fs)].filter(([k, v]) => base.get(k) !== v);
+        counts.sourced += moved.length ? 0 : 1;
+        if (moved.length) errors.push(`SOURCE: ${def.id} under ${s} × ${fs} without levers.controlShape: ${moved[0][0]} binds ${moved[0][1]}, not its own ${base.get(moved[0][0]) ?? 'nothing'} (${moved.length} corner binding${moved.length === 1 ? '' : 's'}): Control shape reaches it from outside ComponentDef.levers`);
       }
     }
     // "An underline field has no corners": every field binds none under Underline.
@@ -327,7 +350,7 @@ const main = (): void => {
     for (const e2 of errors) console.error(`  ${e2}`);
     process.exit(1);
   }
-  console.log(`✓ lint-control-shape-reach: the description's ${Object.values(FAMILIES).length} families × ${SHAPES.length} shapes × ${FIELD_STYLES.length} field styles hold on ${counts.families} family defs; ${counts.notClaimed} not claimed and ${counts.outside} outside, all unmoved; ${counts.bindings} corner bindings compared; Google Pay's corner is at most half its height under every shape × density, by the code's clamp at ${counts.clamped} member × brand(s) where the bound corner passes it; the reader's self-check reads its planted prose exactly.`);
+  console.log(`✓ lint-control-shape-reach: the description's ${Object.values(FAMILIES).length} families × ${SHAPES.length} shapes × ${FIELD_STYLES.length} field styles hold on ${counts.families} family defs; ${counts.notClaimed} not claimed and ${counts.outside} outside, all unmoved; ${counts.bindings} corner bindings compared; stripped of levers.controlShape, all ${counts.sourced} def × shape × field style probes keep their own corners; Google Pay's corner is at most half its height under every shape × density, by the code's clamp at ${counts.clamped} member × brand(s) where the bound corner passes it; the reader's self-check reads its planted prose exactly.`);
 };
 
 main();
