@@ -53,7 +53,10 @@
  *                  removed`, `/layer line`, `/checklist set`; the same-parent lookup dropped → `/layer removed`,
  *                  `/layer line`; the structural-skip guard dropped → `/layer hand-added`; `breakingSummary`'s layer
  *                  clause dropped → `/checklist line`, `/checklist set`; `checkedSetOf` posting no line →
- *                  `/checklist set`.
+ *                  `/checklist set`. #3025, the replace arm read from `replacedLayers`: the structural-skip guard
+ *                  dropped → `published/replace skipped`; the refused-member filter dropped → `/replace refused
+ *                  member`; `breakingOf` reading the capped `replacements` again → `/replace skipped`, `/replace
+ *                  refused member`, `/replace uncapped`, `/member replaced`.
  *   property/…     a default the plan changed is edited in place, keeping the property's id.
  *   rename/…       a declared value rename and an added axis rename members in place, keeping keys.
  *   skip/…         an unstamped member, one with no record and one with a layer added by hand are untouched.
@@ -6195,7 +6198,7 @@ section('published — on a set in a team library, what breaks consumer files is
     const refused = breakingOf({ ...p, blockers: ['the set is refused'] });
     ok(b.length > 0 && refused.length === 0, `published/blocked: a published set the update refuses lists nothing as breaking (${b.length} → ${refused.length})`);
     // A replacement of the member itself is refused for that member, so it is not a change consumers get.
-    const self = breakingOf({ ...p, replacements: [{ member: 'size=small', path: '.', reason: 'the member itself' }, { member: 'size=small', path: 'content/label', reason: 'a layer' }] })
+    const self = breakingOf({ ...p, replacedLayers: [{ member: 'size=small', path: '.', reason: 'the member itself' }, { member: 'size=small', path: 'content/label', reason: 'a layer' }] })
       .filter((x) => x.kind === 'replace');
     ok(self.length === 1 && self[0].kind === 'replace' && self[0].path === 'content/label',
       `published/member replaced: a replacement of the member itself (path .) is not listed, one of a layer is (${JSON.stringify(self)})`);
@@ -6274,6 +6277,71 @@ section('published — on a set in a team library, what breaks consumer files is
     const p = (await previewUpdate(w.host, [{ def: TAG, plans: w.plans }])).sets[0];
     ok(p.changes.some((c) => c.part === 'designer note' && c.to.startsWith('removed')) && p.handEdits.some((h) => h.path === 'designer note' && h.structural) && p.breaking === undefined,
       `published/layer hand-added: a layer added by hand, whose member the update skips, is not listed as breaking (${JSON.stringify(p.breaking ?? null)})`);
+  }
+  // #3025: A REPLACEMENT COUNTS ONLY ON A MEMBER THE UPDATE ACTS ON, and every one counts. The plan turns the leading
+  // icon into a plain frame, a replacement on every member. One member also has a layer added by hand: the update skips
+  // it whole, so its replacement is not a change consumers get. The 44 is typed here: 45 members, less that one.
+  const toFrame = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    const lv = planChild(planChild(q.root, 'content'), 'leadingVisual') as unknown as Record<string, unknown>;
+    lv.type = 'FRAME';
+    for (const k of ['swapTarget', 'propertyRef', 'descendantFills']) delete lv[k];
+    return q;
+  });
+  {
+    const w = await world(TAG);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const edited = membersOf(w.set())[7];
+    const extra = (w.api.createFrame as () => Node)();
+    extra.name = 'designer note';
+    (edited.appendChild as (c: Node) => void)(extra);
+    const p = (await previewUpdate(w.host, [{ def: TAG, plans: toFrame(w.plans) }])).sets[0];
+    const reps = (p.breaking ?? []).filter((x): x is Extract<Breaking, { kind: 'replace' }> => x.kind === 'replace');
+    ok(p.replacements.some((r) => r.member === String(edited.name)) && p.handEdits.some((h) => h.member === String(edited.name) && h.structural)
+      && reps.length === 44 && !reps.some((r) => r.member === String(edited.name)),
+      `published/replace skipped: a replacement on a member the update skips for a layer added by hand is not listed as breaking (${reps.length} listed; the skipped member ${reps.some((r) => r.member === String(edited.name)) ? 'listed' : 'not listed'})`);
+  }
+  // A member that would need replacing ITSELF is refused whole, so its layers' replacements are not listed either. Its
+  // root read as a text layer, in the view the dry run reads.
+  {
+    const w = await world(TAG);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const view = await readSetView(w.set() as never);
+    const self = view.members[3].name;
+    const odd = { ...view, members: view.members.map((m, i) => (i === 3 ? { ...m, snap: { ...m.snap, type: 'TEXT' } } : m)) };
+    const p = dryRunSet(TAG, toFrame(w.plans), odd as never, await hostPorts(w.host as unknown as UpdateHost));
+    const b = breakingOf(p);
+    const reps = b.filter((x): x is Extract<Breaking, { kind: 'replace' }> => x.kind === 'replace');
+    ok(p.replacements.some((r) => r.member === self && r.path === '.') && p.replacements.some((r) => r.member === self && r.path !== '.')
+      && reps.length === 44 && !reps.some((r) => r.member === self),
+      `published/replace refused member: a member that would need replacing itself has none of its layers listed as breaking (${reps.length} listed; ${self} ${reps.some((r) => r.member === self) ? 'listed' : 'not listed'})`);
+  }
+  // NEVER CAPPED. Text Field has 84 members; every layer under the member root changes type (a frame becomes a text
+  // layer, anything else a frame), a replacement on each, more than `replacements` keeps (500). Every one is listed.
+  // The count is the test's own: every layer it changed, on every member's plan, counted here as it changes them.
+  {
+    const TF = 'text-field';
+    const w = await world(TF);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const flipped: string[] = [];
+    const flip = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p, i) => {
+      const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+      const walk = (n: PlanNode, at: string): void => {
+        for (const c of n.children ?? []) {
+          const path = at ? `${at}/${c.name}` : c.name;
+          walk(c, path);
+          (c as unknown as Record<string, unknown>).type = c.type === 'FRAME' ? 'TEXT' : 'FRAME';
+          flipped.push(`${i}:${path}`);
+        }
+      };
+      walk(q.root, '');
+      return q;
+    });
+    const next = flip(w.plans);
+    const p = (await previewUpdate(w.host, [{ def: TF, plans: next }])).sets[0];
+    const reps = (p.breaking ?? []).filter((x) => x.kind === 'replace');
+    ok(w.plans.length === 84 && flipped.length > 500 && p.replacements.length === 500 && reps.length === flipped.length,
+      `published/replace uncapped: every replacement is listed, past the 500 the dry run's list keeps (${reps.length} listed; ${flipped.length} layers changed over the 84 members; ${p.replacements.length} in the capped list)`);
   }
 
   // A SET RENAMED TO A PRIVATE NAME, through the ledger as an update would meet it: the set is found under its old name
