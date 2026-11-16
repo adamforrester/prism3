@@ -18,5 +18,16 @@ with the fix; each also proves the next pair carries the new code and a `paired`
 `closed`, `error`, `impostor-paired`; its `codeSent` clause dropped → `unsent`; its `connected` clause dropped →
 `welcomed`. Three existing #3728 arms re-enter the code after their drop.
 
+**The `paired` has a deadline (review blocker).** Forgetting on a drop left one path open: an impostor could take the
+`pair`, hold the socket open while it searched the code space, and answer on that same socket. Now the relay waits
+`PAIRED_MS` (250 ms) for the `paired`; past that it drops the socket and forgets the code, and a later `paired` on it is
+not heard. The real bridge answered `pair` in ≤ 2.2 ms over 15 cold starts on localhost, so the deadline is over 100×
+that. In 250 ms one CPU core (≈ 4.7 × 10^5 HMAC-SHA-256 guesses a second, measured with `node:crypto`) covers about
+1 in 5.6 million of the 30^8 ≈ 6.6 × 10^11 codes; a GPU at an assumed 2.5 × 10^9 guesses a second covers about 1 in 1,000.
+Without the deadline that GPU finishes the whole space in about 4.4 minutes. `forget-code/hold-open` pins it, and the
+review's probe now shows every path forgetting the code, the hold-open row included. What stays open: the real bridge
+never saw the code, so a person who types the same code again gives an impostor that cracked it a second, unbounded
+chance; that is the prompt-copy decision below.
+
 **Held for the owner.** The prompt copy when the code is asked for again (today the plain `needed` line, with no reason
 given), and the guide's replacement for "One risk remains", drafted in this PR.

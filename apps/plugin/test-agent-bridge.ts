@@ -74,6 +74,12 @@
  * its `codeSent` clause dropped → `forget-code/unsent`; its `connected` clause dropped → `forget-code/welcomed` (a
  * welcomed socket that drops reconnects without asking for a code). Since both drop paths now clear `codeSent`, the S1′ reset in
  * `connect()` is a second guard, and removing it alone no longer fails a test.
+ * #3764 review: `forget-code/hold-open` (a socket that takes the pair and answers nothing is dropped at the `paired`
+ * deadline, the code forgotten and nothing retried; a valid paired on that socket after the deadline keeps no token; a
+ * paired heard in time is kept and the deadline then leaves its socket open). The deadline's length is this test's own
+ * `DEADLINE_MS`, never imported from the relay. MUTATIONS, each failing by name: the deadline's `deps.schedule` removed →
+ * `forget-code/hold-open` (all three); its `codeSent` guard dropped → `forget-code/hold-open: a paired heard before the
+ * deadline is kept …`; `PAIRED_MS` raised to an hour → `forget-code/hold-open: … dropped at a 250 ms deadline …`.
  *
  * #2497: the server runs with a short `--grace-ms`, so a dropped plugin's command fails in seconds here. `resend/e2e`
  * drops the real relay's socket while a command runs in the real main.ts, keeps it down until the result is
@@ -1357,6 +1363,11 @@ section('server-proof — the relay hears only a server that proves the secret')
   const socks: Fake[] = [];
   const told: any[] = [];
   const later: Array<() => void> = [];
+  // #3764 review: the delay each `later` entry was scheduled with, so a retry (the relay's 2000 ms default) is told apart
+  // from the `paired` deadline. The deadline's length is this test's own number, not imported from the relay.
+  const laterMs: number[] = [];
+  const DEADLINE_MS = 250;
+  const retriesQueued = () => laterMs.filter((ms) => ms !== DEADLINE_MS).length;
   const make = (): WsLike => {
     const f: Fake = { readyState: 1, sent: [], closed: false, send(d: string) { f.sent.push(JSON.parse(d)); }, close() { f.closed = true; },
       onopen: null, onmessage: null, onclose: null, onerror: null };
@@ -1364,8 +1375,8 @@ section('server-proof — the relay hears only a server that proves the secret')
     return f;
   };
   const say = (f: Fake | undefined, m: unknown) => f?.onmessage?.({ data: JSON.stringify(m) });
-  const relayOf = () => createBridgeRelay({ open: make, post: (m) => told.push(m), schedule: (fn) => { later.push(fn); return later.length; }, cancel: () => undefined, holdMs: 0 });
-  const runLater = () => later.splice(0).forEach((fn) => fn());
+  const relayOf = () => createBridgeRelay({ open: make, post: (m) => told.push(m), schedule: (fn, ms) => { later.push(fn); laterMs.push(ms); return later.length; }, cancel: () => undefined, holdMs: 0 });
+  const runLater = () => { laterMs.splice(0); later.splice(0).forEach((fn) => fn()); };
   const posted = (type: string) => told.filter((m) => m.type === type);
 
   const r = relayOf();
@@ -1532,7 +1543,7 @@ section('server-proof — the relay hears only a server that proves the secret')
   ] as const) {
     told.length = 0;
     const pairings: string[] = [];
-    const f = createBridgeRelay({ open: make, post: (x) => told.push(x), schedule: (fn) => { later.push(fn); return later.length; }, cancel: () => undefined, holdMs: 0, onPairing: (p) => pairings.push(p) });
+    const f = createBridgeRelay({ open: make, post: (x) => told.push(x), schedule: (fn, ms) => { later.push(fn); laterMs.push(ms); return later.length; }, cancel: () => undefined, holdMs: 0, onPairing: (p) => pairings.push(p) });
     f.fromMain({ type: 'agent-bridge-token', token: null });
     f.fromMain({ type: 'agent-link-state', state: state() });
     f.pair(OLD.toLowerCase());
@@ -1541,7 +1552,7 @@ section('server-proof — the relay hears only a server that proves the secret')
     const fpair1 = f1.sent.find((x) => x.type === 'pair') ?? {};
     const opened = socks.length;
     end(f1);
-    const retries = later.length;
+    const retries = retriesQueued();
     runLater();
     ok(fpair1.type === 'pair' && f.pairing() === 'needed' && pairings[pairings.length - 1] === 'needed' && retries === 0 && socks.length === opened,
       `forget-code/${arm}: a socket that took the code's pair and ${arm === 'closed' ? 'closed (1006)' : 'errored'} without a paired forgets the code: the prompt asks again and no retry is scheduled (${pairings.join(' → ')}; ${retries} retries, ${socks.length - opened} sockets opened)`);
@@ -1588,11 +1599,45 @@ section('server-proof — the relay hears only a server that proves the secret')
   const welcomed = v.connected();
   v1.closed = true;
   v1.onclose?.({ code: 1006 });
-  const vRetries = later.length;
+  const vRetries = retriesQueued();
   runLater();
   ok(vpair.type === 'pair' && welcomed && v.pairing() === 'none' && vRetries === 1 && socks[socks.length - 1] !== v1,
     `forget-code/welcomed: a welcomed socket that drops asks for no code and reconnects (pairing ${v.pairing()}, ${vRetries} retries)`);
   v.fromMain({ type: 'agent-link-state', state: state(false) });
+
+  // #3764 review: an impostor that takes the `pair` and HOLDS the socket open, answering nothing, could search the code
+  // space and answer later on that same socket. The `paired` has a deadline: past it the socket is dropped, the code is
+  // forgotten, nothing retries, and a later `paired` proving the old code on that socket is not heard.
+  told.length = 0;
+  runLater();
+  const hPairings: string[] = [];
+  const h = createBridgeRelay({ open: make, post: (x) => told.push(x), schedule: (fn, ms) => { later.push(fn); laterMs.push(ms); return later.length; }, cancel: () => undefined, holdMs: 0, onPairing: (p) => hPairings.push(p) });
+  h.fromMain({ type: 'agent-bridge-token', token: null });
+  h.fromMain({ type: 'agent-link-state', state: state() });
+  h.pair(OLD);
+  const o1 = socks[socks.length - 1];
+  say(o1, { type: 'challenge', v: 1, nonce: '4a'.repeat(32) });
+  const opair = o1.sent.find((x) => x.type === 'pair') ?? {};
+  const deadlines = laterMs.filter((ms) => ms === DEADLINE_MS).length;
+  const hOpened = socks.length;
+  runLater(); // the deadline passes with no `paired`
+  const hRetries = retriesQueued();
+  ok(opair.type === 'pair' && deadlines === 1 && o1.closed && h.pairing() === 'needed' && hRetries === 0 && socks.length === hOpened,
+    `forget-code/hold-open: a socket that takes the pair and answers nothing is dropped at a ${DEADLINE_MS} ms deadline, the code forgotten and nothing retried (${deadlines} deadline(s) of ${DEADLINE_MS} ms; closed ${o1.closed}; ${hPairings.join(' → ')}; ${hRetries} retries)`);
+  say(o1, { type: 'paired', token: 'e'.repeat(64), proof: provePaired(OLD, opair.clientNonce, 'e'.repeat(64)) });
+  ok(!posted('agent-bridge-paired').length && !o1.sent.some((x) => x.type === 'hello') && h.pairing() === 'needed',
+    `forget-code/hold-open: a valid paired that comes after the deadline, on the held socket, keeps no token (${posted('agent-bridge-paired').length} kept, pairing ${h.pairing()})`);
+  // The deadline does not cut a pairing that answered in time: the real paired is kept, and the deadline then passes
+  // without dropping the socket.
+  h.pair(NEW);
+  const o2 = socks[socks.length - 1];
+  say(o2, { type: 'challenge', v: 1, nonce: '4b'.repeat(32) });
+  const opair2 = o2.sent.find((x) => x.type === 'pair') ?? {};
+  say(o2, { type: 'paired', token: TOKEN, proof: provePaired(NEW, opair2.clientNonce) });
+  runLater();
+  ok(o2 !== o1 && posted('agent-bridge-paired').some((x) => x.token === TOKEN) && o2.sent.some((x) => x.type === 'hello') && !o2.closed && h.pairing() === 'pairing',
+    `forget-code/hold-open: a paired heard before the deadline is kept, and the deadline then leaves the socket open (closed ${o2.closed}, pairing ${h.pairing()})`);
+  h.fromMain({ type: 'agent-link-state', state: state(false) });
 }
 
 child.stdin.end();
