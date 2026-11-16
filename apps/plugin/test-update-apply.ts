@@ -29,9 +29,9 @@
  *                  stopped before any stamp, 9 when the 10th stamp write or the 10th marker clear throws (#3449).
  *                  Mutations: the count not read off the host on a stop → `stop/count finished`; the in-progress
  *                  marker ignored → `stop/count marker`; the dry run reading a marked member as current (#3497) →
- *                  `stop/count marker dry run`; the marker read before the pass left out of the count (#3559) →
- *                  `stop/count after marker`; the "this pass did it" clause replaced with
- *                  `true` → `stop/count damage only` (#3594).
+ *                  `stop/count marker dry run`; the count's rule back to "its stamp changed" (#3559, #3594) →
+ *                  `stop/count after marker`, `stop/count damage finished`; the apply's mark of every member before
+ *                  the set's first write dropped (#3797) → `stop/count damage only`.
  *   version/…      a named version is saved once, before the first write; refused, nothing is written.
  *                  Mutation: the version not saved → `version/once`, `version/refused`.
  *   fonts/…        a text style whose typeface will not load refuses the set before anything is written.
@@ -53,7 +53,10 @@
  *                  removed`, `/layer line`, `/checklist set`; the same-parent lookup dropped → `/layer removed`,
  *                  `/layer line`; the structural-skip guard dropped → `/layer hand-added`; `breakingSummary`'s layer
  *                  clause dropped → `/checklist line`, `/checklist set`; `checkedSetOf` posting no line →
- *                  `/checklist set`.
+ *                  `/checklist set`. #3025, the replace arm read from `replacedLayers`: the structural-skip guard
+ *                  dropped → `published/replace skipped`; the refused-member filter dropped → `/replace refused
+ *                  member`; `breakingOf` reading the capped `replacements` again → `/replace skipped`, `/replace
+ *                  refused member`, `/replace uncapped`, `/member replaced`.
  *   property/…     a default the plan changed is edited in place, keeping the property's id.
  *   rename/…       a declared value rename and an added axis rename members in place, keeping keys.
  *   skip/…         an unstamped member, one with no record and one with a layer added by hand are untouched.
@@ -1064,6 +1067,39 @@ section('add — a member the plan gained is built; the others keep their keys')
   ok(applyVerdict(res).ok, `add/verdict: ${applyVerdict(res).headline}`);
 }
 
+section('add, wash — a member an update adds is verified against its plan, its translucent wash too (#2563)');
+{
+  // The member #2563 names: a Tag hover whose fill binds the 10% overlay wash. Built without it, so the update adds it.
+  // It joins a set that is never combined again, so nothing re-resolves its paints as a fresh build's combine does.
+  const full = plansOf(TAG);
+  const name = 'type=select, selection=unselected, size=medium, state=hover';
+  const wash = (n: Node): { opacity?: number }[] => ((n.fills as { opacity?: number; boundVariables?: { color?: unknown } }[] | undefined) ?? []).filter((p) => p?.boundVariables?.color);
+  {
+    // As the host draws it today (#2774's second assignment): the wash lands at 10%, and the apply reads it so.
+    const w = await world(TAG, full.filter((p) => planComponentName(p) !== name));
+    const { res } = await confirm(w, [{ def: TAG, plans: full }]);
+    const m = membersOf(w.set()).find((x) => String(x.name) === name);
+    ok(res.outcomes[0]?.added === 1 && !!m && wash(m).length > 0 && wash(m).every((p) => (p.opacity ?? 1) < 1) && applyVerdict(res).ok,
+      `add, wash/drawn: the added hover member stores its wash translucent, and the apply succeeds (${m ? JSON.stringify(wash(m).map((p) => p.opacity)) : 'not added'}; ${applyVerdict(res).headline})`);
+  }
+  {
+    // A host that leaves the wash at 100% once the member is in the set, the failure #2563 measured: the apply must say so.
+    const w = await world(TAG, full.filter((p) => planComponentName(p) !== name));
+    const set = w.set();
+    const append = set.appendChild as (c: Node) => void;
+    set.appendChild = (c: Node) => {
+      append.call(set, c);
+      const ps = c.fills as { opacity?: number; boundVariables?: { color?: unknown } }[] | undefined;
+      if (Array.isArray(ps) && ps.some((p) => p?.boundVariables?.color && (p.opacity ?? 1) < 1)) c.fills = ps.map((p) => (p?.boundVariables?.color ? { ...p, opacity: 1 } : p));
+    };
+    const { res } = await confirm(w, [{ def: TAG, plans: full }]);
+    const m = membersOf(w.set()).find((x) => String(x.name) === name);
+    ok(!!m && wash(m).some((p) => (p.opacity ?? 1) === 1), `add, wash premise: the added member's wash is stored at 100% (${m ? JSON.stringify(wash(m).map((p) => p.opacity)) : 'not added'})`);
+    const line = res.outcomes[0]?.content.find((x) => x.startsWith(name) && /fills/.test(x));
+    ok(!applyVerdict(res).ok && !!line, `add, wash/verified: the apply fails and names the added member's fill (${applyVerdict(res).headline}; ${line ?? JSON.stringify(res.outcomes[0]?.content.slice(0, 2))})`);
+  }
+}
+
 /* ── stop ────────────────────────────────────────────────────────────────────────────────────────────── */
 section('stop — a run that stops part-way finishes when the update runs again');
 {
@@ -1162,7 +1198,7 @@ section('stop/count — a set stopped after some members finished counts them');
   // its new stamp and still its marker, and the dry run reads 36 to update. Run 2 stops on the 36th stamp write: 35
   // members finished, the marked one among them (its marker came off). Expected, literal: 35, and the dry run after run
   // 2 reads 44 current and 1 to update, the second witness. Mutation: the marker read before the pass left out of the
-  // count (`markedWas` dropped) → `stop/count after marker` (34).
+  // count (the count's rule back to "its stamp changed") → `stop/count after marker` (34).
   const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
   const next = moveGap(w.plans);
   const pd = (m: any, k: string): string => (m.getSharedPluginData as (a: string, b: string) => string)(NS, k);
@@ -1189,11 +1225,11 @@ section('stop/count — a set stopped after some members finished counts them');
     `stop/count after marker: run 2's line counts the 35 members it finished, the one a marker stop left among them (${line.slice(0, 160)})`);
 }
 {
-  // The stated NOT COUNTED case (#3594): a member to update for drawn damage alone, its stamp already the planned one
+  // #3594, the member never reached: a member to update for drawn damage alone, its stamp already the planned one
   // and no marker. The host throws when the pass marks it in progress, the first write of its update, so the pass never
   // reached it, and the host after the stop looks exactly as it did before. It must not be counted. Expected, literal:
-  // 0. Mutation: the "this pass did it" clause (`was !== want || markedWas.has(m)`) replaced with `true` →
-  // `stop/count damage only` (1).
+  // 0. Since #3797 the apply marks every member before the set's first write, and that mark is the first write here, so
+  // the set stops before anything else. Mutation: that mark dropped → `stop/count damage only` (1).
   const w = await world(TAG);
   const hit = membersOf(w.set())[2]; // a member whose root binds its fill
   const pd = (m: any, k: string): string => (m.getSharedPluginData as (a: string, b: string) => string)(NS, k);
@@ -1223,6 +1259,51 @@ section('stop/count — a set stopped after some members finished counts them');
   const line = applyVerdict(res).lines.find((l) => l.startsWith(`${TAG}: stopped (`)) ?? '';
   ok(line.includes('). 0 members updated; ') && (res.outcomes[0]?.updated ?? []).length === 0,
     `stop/count damage only: a member to update for damage alone, which the stopped pass never reached, is not counted (${line.slice(0, 160)}; updated ${JSON.stringify(res.outcomes[0]?.updated ?? [])})`);
+}
+
+{
+  // #3594: the same damage-only shape, but the pass FINISHES one such member before it stops. Two members draw wrong
+  // (stamps current, no marker); the host throws on the second marker clear, the last write of the second member's
+  // finish, so the first is finished and the second is not. Its stamp did not change and it was not marked before the
+  // run, so only the run's own mark coming off says the pass finished it: every member the update configures is marked
+  // in progress before the set's first write (`applySet`). Expected, literal: 1, the member whose marker is off.
+  // Mutation: the stopped count's rule back to "its stamp changed" → `stop/count damage finished`.
+  const w = await world(TAG);
+  const pd = (m: any, k: string): string => (m.getSharedPluginData as (a: string, b: string) => string)(NS, k);
+  const blacken = (n: Node): boolean => {
+    for (const f of ['fills', 'strokes'] as const) {
+      const ps = n[f] as { boundVariables?: { color?: unknown } }[] | undefined;
+      if (Array.isArray(ps) && ps.some((p) => p?.boundVariables?.color)) { n[f] = ps.map((p) => (p?.boundVariables?.color ? { ...p, color: { r: 0, g: 0, b: 0 }, opacity: 1 } : p)); return true; }
+    }
+    return ((n.children as Node[] | undefined) ?? []).some(blacken);
+  };
+  const hits: Node[] = [];
+  for (const m of membersOf(w.set())) {
+    if (hits.length === 2) break;
+    if (!blacken(m)) continue;
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, JSON.stringify({ ...baselineOf(await snapshotMember(m)), id: String(m.id) }));
+    hits.push(m);
+  }
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  const st = pre.sets[0];
+  ok(hits.length === 2 && st.counts.update === 2 && hits.every((h) => !pd(h, UPDATING_KEY) && st.states.some((s) => s.member === String(h.name) && s.state === 'update')),
+    `stop/count damage finished premise: two members read to update for their drawn damage alone, stamps current and no marker (${JSON.stringify(st.counts)})`);
+  const stampBefore = new Map(hits.map((h) => [h, pd(h, STAMP_KEY)] as const));
+  let clears = 0;
+  for (const h of hits) {
+    const real = h.setSharedPluginData as (ns: string, k: string, v: string) => void;
+    h.setSharedPluginData = (ns: string, k: string, v: string) => {
+      if (k === UPDATING_KEY && !v && ++clears === 2) throw new Error('in setSharedPluginData: the host stopped');
+      real.call(h, ns, k, v);
+    };
+  }
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(pre));
+  const done = hits.filter((h) => !pd(h, UPDATING_KEY));
+  ok(!!res.outcomes[0]?.stopped && clears === 2 && done.length === 1 && hits.every((h) => pd(h, STAMP_KEY) === stampBefore.get(h)),
+    `stop/count damage finished premise: the run stopped on the second member's marker clear, one member finished, both stamps unchanged (${res.outcomes[0]?.stopped}; ${done.length} finished)`);
+  const line = applyVerdict(res).lines.find((l) => l.startsWith(`${TAG}: stopped (`)) ?? '';
+  ok(line.includes('). 1 member updated; ') && JSON.stringify(res.outcomes[0]?.updated ?? []) === JSON.stringify(done.map((h) => String(h.name))),
+    `stop/count damage finished: a member updated for damage alone, which the stopped pass finished, is counted (${line.slice(0, 160)}; updated ${JSON.stringify(res.outcomes[0]?.updated ?? [])})`);
 }
 
 /* ── version ─────────────────────────────────────────────────────────────────────────────────────────── */
@@ -6195,7 +6276,7 @@ section('published — on a set in a team library, what breaks consumer files is
     const refused = breakingOf({ ...p, blockers: ['the set is refused'] });
     ok(b.length > 0 && refused.length === 0, `published/blocked: a published set the update refuses lists nothing as breaking (${b.length} → ${refused.length})`);
     // A replacement of the member itself is refused for that member, so it is not a change consumers get.
-    const self = breakingOf({ ...p, replacements: [{ member: 'size=small', path: '.', reason: 'the member itself' }, { member: 'size=small', path: 'content/label', reason: 'a layer' }] })
+    const self = breakingOf({ ...p, replacedLayers: [{ member: 'size=small', path: '.', reason: 'the member itself' }, { member: 'size=small', path: 'content/label', reason: 'a layer' }] })
       .filter((x) => x.kind === 'replace');
     ok(self.length === 1 && self[0].kind === 'replace' && self[0].path === 'content/label',
       `published/member replaced: a replacement of the member itself (path .) is not listed, one of a layer is (${JSON.stringify(self)})`);
@@ -6274,6 +6355,71 @@ section('published — on a set in a team library, what breaks consumer files is
     const p = (await previewUpdate(w.host, [{ def: TAG, plans: w.plans }])).sets[0];
     ok(p.changes.some((c) => c.part === 'designer note' && c.to.startsWith('removed')) && p.handEdits.some((h) => h.path === 'designer note' && h.structural) && p.breaking === undefined,
       `published/layer hand-added: a layer added by hand, whose member the update skips, is not listed as breaking (${JSON.stringify(p.breaking ?? null)})`);
+  }
+  // #3025: A REPLACEMENT COUNTS ONLY ON A MEMBER THE UPDATE ACTS ON, and every one counts. The plan turns the leading
+  // icon into a plain frame, a replacement on every member. One member also has a layer added by hand: the update skips
+  // it whole, so its replacement is not a change consumers get. The 44 is typed here: 45 members, less that one.
+  const toFrame = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    const lv = planChild(planChild(q.root, 'content'), 'leadingVisual') as unknown as Record<string, unknown>;
+    lv.type = 'FRAME';
+    for (const k of ['swapTarget', 'propertyRef', 'descendantFills']) delete lv[k];
+    return q;
+  });
+  {
+    const w = await world(TAG);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const edited = membersOf(w.set())[7];
+    const extra = (w.api.createFrame as () => Node)();
+    extra.name = 'designer note';
+    (edited.appendChild as (c: Node) => void)(extra);
+    const p = (await previewUpdate(w.host, [{ def: TAG, plans: toFrame(w.plans) }])).sets[0];
+    const reps = (p.breaking ?? []).filter((x): x is Extract<Breaking, { kind: 'replace' }> => x.kind === 'replace');
+    ok(p.replacements.some((r) => r.member === String(edited.name)) && p.handEdits.some((h) => h.member === String(edited.name) && h.structural)
+      && reps.length === 44 && !reps.some((r) => r.member === String(edited.name)),
+      `published/replace skipped: a replacement on a member the update skips for a layer added by hand is not listed as breaking (${reps.length} listed; the skipped member ${reps.some((r) => r.member === String(edited.name)) ? 'listed' : 'not listed'})`);
+  }
+  // A member that would need replacing ITSELF is refused whole, so its layers' replacements are not listed either. Its
+  // root read as a text layer, in the view the dry run reads.
+  {
+    const w = await world(TAG);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const view = await readSetView(w.set() as never);
+    const self = view.members[3].name;
+    const odd = { ...view, members: view.members.map((m, i) => (i === 3 ? { ...m, snap: { ...m.snap, type: 'TEXT' } } : m)) };
+    const p = dryRunSet(TAG, toFrame(w.plans), odd as never, await hostPorts(w.host as unknown as UpdateHost));
+    const b = breakingOf(p);
+    const reps = b.filter((x): x is Extract<Breaking, { kind: 'replace' }> => x.kind === 'replace');
+    ok(p.replacements.some((r) => r.member === self && r.path === '.') && p.replacements.some((r) => r.member === self && r.path !== '.')
+      && reps.length === 44 && !reps.some((r) => r.member === self),
+      `published/replace refused member: a member that would need replacing itself has none of its layers listed as breaking (${reps.length} listed; ${self} ${reps.some((r) => r.member === self) ? 'listed' : 'not listed'})`);
+  }
+  // NEVER CAPPED. Text Field has 84 members; every layer under the member root changes type (a frame becomes a text
+  // layer, anything else a frame), a replacement on each, more than `replacements` keeps (500). Every one is listed.
+  // The count is the test's own: every layer it changed, on every member's plan, counted here as it changes them.
+  {
+    const TF = 'text-field';
+    const w = await world(TF);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const flipped: string[] = [];
+    const flip = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p, i) => {
+      const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+      const walk = (n: PlanNode, at: string): void => {
+        for (const c of n.children ?? []) {
+          const path = at ? `${at}/${c.name}` : c.name;
+          walk(c, path);
+          (c as unknown as Record<string, unknown>).type = c.type === 'FRAME' ? 'TEXT' : 'FRAME';
+          flipped.push(`${i}:${path}`);
+        }
+      };
+      walk(q.root, '');
+      return q;
+    });
+    const next = flip(w.plans);
+    const p = (await previewUpdate(w.host, [{ def: TF, plans: next }])).sets[0];
+    const reps = (p.breaking ?? []).filter((x) => x.kind === 'replace');
+    ok(w.plans.length === 84 && flipped.length > 500 && p.replacements.length === 500 && reps.length === flipped.length,
+      `published/replace uncapped: every replacement is listed, past the 500 the dry run's list keeps (${reps.length} listed; ${flipped.length} layers changed over the 84 members; ${p.replacements.length} in the capped list)`);
   }
 
   // A SET RENAMED TO A PRIVATE NAME, through the ledger as an update would meet it: the set is found under its old name
