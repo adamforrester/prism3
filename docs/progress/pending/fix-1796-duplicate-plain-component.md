@@ -23,4 +23,4 @@ as #3828.
 **Measured.** `test-write-components.ts` `#1796 …` and `test.ts` `#1796 paste path …`: on main, 3 rings nested and 18
 icons swapped from a duplicated name with no miss (6 checks fail by name); with the fix, none, and the miss named. Mutations
 by name: the plugin's `oneComp` back to `compByName.get` with `twice` off → the three plugin arms; the payload's map back
-to last-wins → the three paste arms. `EXECUTOR_REVISION` 60 → 61, the reach entry empty and measured (0 sets redrawn).
+to last-wins → the three paste arms. `EXECUTOR_REVISION` 61 → 63 (62 is #3816's), the reach entry empty and measured (0 sets redrawn).
