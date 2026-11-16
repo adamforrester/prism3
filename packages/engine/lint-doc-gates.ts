@@ -165,7 +165,7 @@
  * failed is otherwise SKIPPED, and a required check reading `skipped` passes), and runs the script that
  * turns any result but `success` into a failure.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { GATES, SHARD_MAPS, orphanGateFiles, shardMapProblems, trackedGateFiles } from '../../verify.ts';
@@ -512,6 +512,19 @@ export const foldWorkflowGaps = (text: string): string[] => {
   if (!/^\s*workflow_dispatch:/m.test(code)) problems.push('it cannot be run by hand (no workflow_dispatch)');
   return problems;
 };
+
+/** #3736 — THE SCRIPT TESTS. Each `test-*.sh` in `SCRIPT_TEST_DIR` tests a script a CI job runs (`all-gates.sh`,
+ *  `docs-only.sh`, `install-chromium.sh`). Arm 4's orphan check matches a file's basename anywhere in `ci.yml`, comments
+ *  included, so a test that a comment merely mentions passes it: `test-all-gates.sh` ran nowhere for that reason. This
+ *  asks the stronger question: does some step's `run:` start a line with `bash <path>` (or `sh <path>`) for it? The list
+ *  of tests is read from the directory, never authored, so a new test that is not wired fails here by file name.
+ *  Returns the unrun tests' paths; empty when sound. */
+export const SCRIPT_TEST_DIR = '.github/scripts';
+export const unrunScriptTests = (steps: { name: string; run: string }[], tests: string[]): string[] =>
+  tests.filter((t) => !steps.some((st) => st.run.split('\n').some((l) => {
+    const m = /^\s*(?:ba)?sh\s+(\S+)\s*$/.exec(l);
+    return !!m && m[1] === t;
+  })));
 
 /** #3698 R4 — THE DOCS-ONLY EXEMPTION'S SHAPE. Two files state which jobs a docs-only pull request may skip: the jobs
  *  in `ci.yml` that carry `EXEMPTION_IF`, and `EXEMPT_JOBS` in `all-gates.sh`, which lets exactly those through as
@@ -1398,6 +1411,19 @@ jobs:
   if (demoted.length !== 1) selfFails.push('arm 8 accepts a template whose Escape review is no longer its own section');
 }
 
+// 9. THE SCRIPT TESTS (#3736) — a test a step runs is clean; one only named in a comment, or mid-line, is unrun.
+{
+  const T = ['.github/scripts/test-Sample.sh', '.github/scripts/test-Other.sh'];
+  const steps = [
+    { name: 'Sample', run: 'bash .github/scripts/test-Sample.sh' },
+    { name: 'Other', run: 'echo see bash .github/scripts/test-Other.sh\nbash .github/scripts/test-Other.sh --extra' },
+  ];
+  const unrun = unrunScriptTests(steps, T);
+  if (unrun.length !== 1 || unrun[0] !== T[1]) selfFails.push(`the script-test arm does not name a test that only a comment or a mid-line mention reaches (got ${JSON.stringify(unrun)})`);
+  if (unrunScriptTests([...steps, { name: 'Other', run: 'sh .github/scripts/test-Other.sh' }], T).length) selfFails.push('the script-test arm flags a test a step runs by `sh` (false positive)');
+  if (unrunScriptTests([], T).length !== 2) selfFails.push('the script-test arm passes with no steps at all');
+}
+
 if (selfFails.length) {
   console.error("\n❌ the doc/CI gate-sync check's own detection is broken — it cannot see what it claims to:\n");
   for (const f of selfFails) console.error(`    ${f}`);
@@ -1502,6 +1528,25 @@ const realSteps = parseSteps(readFileSync(CI_PATH, 'utf8'));
   if (problems.length) {
     console.error('\n❌ ci.yml does not start on every event the merge rule needs (#3698 R3):\n');
     for (const p of problems) console.error(`    ${p}`);
+    process.exit(1);
+  }
+}
+// THE SCRIPT TESTS (#3736), on the real files: every `test-*.sh` beside the CI scripts is run by a ci.yml step.
+{
+  const tests = readdirSync(resolve(repo, SCRIPT_TEST_DIR)).filter((f) => /^test-.+\.sh$/.test(f)).sort().map((f) => `${SCRIPT_TEST_DIR}/${f}`);
+  // SCOPE FLOOR: an empty directory listing would report every test as run.
+  if (tests.length < 3) {
+    console.error(`\n❌ the script-test arm found only ${tests.length} test-*.sh file(s) in ${SCRIPT_TEST_DIR}, expected at least 3 — the directory moved or the read failed.`);
+    process.exit(1);
+  }
+  const unrun = unrunScriptTests(realSteps, tests);
+  console.log(`    script tests: ${tests.length} test-*.sh file(s) in ${SCRIPT_TEST_DIR} checked for a ci.yml step that runs each`);
+  if (unrun.length) {
+    console.error(`\n❌ ${unrun.length} script test(s) run in no ci.yml step (#3736):\n`);
+    for (const t of unrun) console.error(`    ${t} — no step's \`run:\` starts a line with \`bash ${t}\``);
+    console.error('\n  A test that no step runs gates nothing: a change to the script it tests is checked only by whoever');
+    console.error('  remembers to run it. Add a step that runs it (and its verify.ts row and the three checklist lines,');
+    console.error('  which this gate then demands), or delete it. A mention in a comment does not count.');
     process.exit(1);
   }
 }
