@@ -690,7 +690,7 @@ for (const id of FLUSH_MEMBERS) {
     const got = [...floorBuilds, compactBuild].map((b) => ({ density: b.density, px: resolvePx(b.tree, b.root, ref) }));
     const off = got.filter((g) => g.px !== want);
     rows.push(`${id}/${s} → code-side hit-target floor ${ref} = ${got.map((g) => g.px).join('/')}px (want ${want}) [Q141, Q-HT1 A]${off.length ? '  ✗' : ''}`);
-    if (off.length) failures.push(`${id}/${s}: tokens['${key}'] → ${ref} resolves to ${off.map((g) => `${g.px ?? 'nothing'}px on ${g.density}`).join(', ')}, but the code-side hit-target floor at ${s} is ${want}px (owner Q141, Q-HT1 A).`);
+    if (off.length) failures.push(`${id}/${s}: tokens['${key}'] → ${ref} resolves to ${off.map((g) => `${g.px === undefined ? 'nothing' : `${g.px}px`} on ${g.density}`).join(', ')}, but the code-side hit-target floor at ${s} is ${want}px (owner Q141, Q-HT1 A).`);
   }
 }
 

@@ -146,6 +146,19 @@
       }
     },
     {
+      "name": "nbds/space/550",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "44px — 5.5× the 8px base",
+      "value": 44,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/dimension/44"
+      }
+    },
+    {
       "name": "nbds/space/600",
       "resolvedType": "FLOAT",
       "scopes": [

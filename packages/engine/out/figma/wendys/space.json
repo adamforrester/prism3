@@ -146,6 +146,19 @@
       }
     },
     {
+      "name": "wds/space/550",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "44px — 5.5× the 8px base",
+      "value": 44,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/core/dimension/44"
+      }
+    },
+    {
       "name": "wds/space/600",
       "resolvedType": "FLOAT",
       "scopes": [

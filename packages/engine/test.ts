@@ -15627,7 +15627,7 @@ arm: {
   const dims = buildFigmaDims(nbTheme());
   const EXPECTED_SPACE_ORDER = [
     '0', '025', '050', '075', '100', '150', '200', '250', '300', '400',
-    '500', '600', '700', '800', '900', '1000', '1100', '1200',
+    '500', '550', '600', '700', '800', '900', '1000', '1100', '1200',
   ].map((k) => nbVar(`space/${k}`));
   const gotOrder = dims.space.variables.map((v) => v.name);
   const match = JSON.stringify(gotOrder) === JSON.stringify(EXPECTED_SPACE_ORDER);
