@@ -21,6 +21,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readUncommitted } from './emission';
 import { scoreR1, scoreR2, buildOracle, type Violation } from '../../tools/agent-adherence/score-code';
 import { TOKEN_TREE, TOKEN_BASE, TOKEN_OVERLAYS, COMPONENTS } from '../../tools/agent-adherence/oracle';
 
@@ -37,7 +38,7 @@ const oracle = buildOracle({
   components: json(COMPONENTS),
 });
 
-const spec = json('packages/engine/out/components/specs.json').components.button;
+const spec = readUncommitted('specs.json').components.button;
 const DERIVED_FLOORS = new Set<number>(spec.redlines.flatMap((r: any) => r.parts.map((p: any) => p.values?.minWidth))
   .filter((m: any) => m && m.source === 'derived' && typeof m.px === 'number').map((m: any) => m.px));
 

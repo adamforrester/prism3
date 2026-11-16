@@ -28,10 +28,11 @@ import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readUncommitted } from './emission';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(HERE, '../engine/out');
-const specs = JSON.parse(readFileSync(resolve(OUT, 'components/specs.json'), 'utf8')).components;
+const specs = readUncommitted('specs.json').components;
 const ai = JSON.parse(readFileSync(resolve(OUT, 'components/components.ai.json'), 'utf8')).components;
 const tree = JSON.parse(readFileSync(resolve(OUT, 'prism3.tokens.json'), 'utf8'));
 const README = readFileSync(resolve(HERE, 'README.md'), 'utf8');
