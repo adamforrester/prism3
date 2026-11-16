@@ -9948,15 +9948,15 @@ for (const host of ['web', 'figma']) {
   } finally { await ctx.close(); }
 }
 // #3092: the gutter and margin picker follows the engine's link order (Q785 A, #3052): the spacing steps, then the core
-// dimension steps no spacing step has, in their own group. Picking 44 for md's margin stores 44 and the export links
-// md's margin to core dimension 44. Independence (docs/34): every expected value is typed here; the stored input is read
+// dimension steps no spacing step has, in their own group. Picking 36 for md's margin stores 36 and the export links
+// md's margin to core dimension 36. (It picked 44 until `space.550`, #3408 Q-HT1 A, made 44 a spacing step.) Independence (docs/34): every expected value is typed here; the stored input is read
 // back from the PERSISTED brand and the link from the export's own base file, the bytes Download writes.
 {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
   try {
     /** Typed from #3092 and the prism3 example (namespace pds3, md margin Auto 24 = space.300). */
-    const PICK_PX = '44', WANT_STORED = '{"md":44}', WANT_LABEL = '44px · core.dimension.44';
-    const WANT_FILE = 'prism3.base.tokens.json', WANT_LINK = '{pds3.core.dimension.44}';
+    const PICK_PX = '36', WANT_STORED = '{"md":36}', WANT_LABEL = '36px · core.dimension.36';
+    const WANT_FILE = 'prism3.base.tokens.json', WANT_LINK = '{pds3.core.dimension.36}';
     const WANT_GROUPS = ['Spacing steps', 'Dimension steps'];
     await goPlace(page, 'layout');
     await hooks.click(page.locator('[data-p3="bp-margin-pick"][data-bp="md"]'));
