@@ -74,7 +74,7 @@
  * (`fileDue`) reading the stored brand whatever the panel sends → `q810/rises`; it reading the file's sets again each time
  * (`presentCache` unused) → `q810/cheap`; `guarded` keeping the sets it caches after a write → `q810/after a write`; its
  * Theme item compared without the keys sorted (`holdsInput`) → `q810/theme`; `guarded` keeping the sets a recount
- * cached mid-write once the write ends (its `.finally` clear dropped) → `q810/mid-write` (section 7); its `catch` posting
+ * cached mid-write once the write ends (its `.finally` clear dropped) → `q810/mid-write` (section 7a); its `catch` posting
  * no `error` (a failed read reaching the panel as a live answer with nothing due) → `q810/error`; #3137's panels census
  * (Q3137.3 A): the search dropped from `readPresent` → `q3137/premise`; `fileDue` reading the file again for it → `q3137/cheap`;
  * the switch not read on the recount → `q3137/off`; nor on the full read (`fileSets`) → `q3137/off read`; `fileDue` calling
@@ -936,30 +936,48 @@ const heldResult = (async () => { for (let j = 0; j < 600; j++) { const r = post
 const duringHold = await ask({ type: 'hand-edits-request' }, 'hand-edits', (m) => m.done === true);
 // `ask` waits up to 6 s for `done`; a pass the guard ends posts neither a set nor `done`.
 ok(!duringHold.some((m) => typeof m.def === 'string'), `hand-edits/guard: while a build holds the guard, the pass reports no set before done (${JSON.stringify(duringHold)})`);
-// #3081 Q810 A: a setting changed during a long write. The write's start cleared the cached sets, so whatever fills the
-// cache now (the live recount asked while the build holds the guard, or the hand-edit pass just above) holds a mid-write
-// list. The write ending must clear it, so the recount after it reads the file once more. Page loads are counted on the
-// host, as in 6c.
-let midLoads = 0;
-const loadAll7 = shim.loadAllPagesAsync;
-shim.loadAllPagesAsync = async () => { midLoads++; return loadAll7?.(); };
-const dMid = (await ask({ type: 'due-request', input: brandB, seq: 8 }, 'file-due'))[0];
-const loadsMid = midLoads;
 shim.setCurrentPageAsync = setPage;
 release();
 await heldResult;
 await settled();
-midLoads = 0;
-const dEnd = (await ask({ type: 'due-request', input: brandB, seq: 9 }, 'file-due'))[0];
-ok(dMid?.seq === 8 && dEnd?.seq === 9 && midLoads === 1,
-  `q810/mid-write: a recount asked during a write answers from the sets cached mid-write, and the write ending clears them, so the recount after reads the file again (${loadsMid} page loads during, ${midLoads} after)`);
-shim.loadAllPagesAsync = loadAll7;
 let afterHold: any[] = [];
 for (let i = 0; i < 100 && !afterHold.some((m) => typeof m.def === 'string'); i++) {
   afterHold = await ask({ type: 'hand-edits-request' }, 'hand-edits', (m) => m.done === true);
   if (!afterHold.some((m) => typeof m.def === 'string')) await new Promise((res) => realTimeout(res, 50));
 }
 ok(afterHold.some((m) => m.def === 'badge') && afterHold.some((m) => m.done === true), `hand-edits/guard control: once the build ends, the same request reads the sets, then ends (${afterHold.length} answers)`);
+
+// 7a. #3081 Q810 A: a setting changed during a long write. The write's start cleared the cached sets, so whatever fills
+//     the cache now (the live recount asked while the build holds the guard) holds a mid-write list. The write ending
+//     must clear it, so the recount after it reads the file once more. Page loads are counted on the host, as in 6c.
+//     A hold of its own, with no hand-edit pass asked during it (#3804): a pass the write ended runs again as it ends and
+//     reads the file afresh, which would refill the cache whether or not the write's end cleared it.
+{
+  let release7a: () => void = () => undefined;
+  shim.setCurrentPageAsync = () => new Promise<void>((res) => { release7a = res; });
+  for (let i = 0; i < 1200; i++) {
+    posted.length = 0;
+    (shim.ui as { onmessage: (m: unknown) => void }).onmessage({ type: 'build-components', def: 'badge' });
+    await new Promise((res) => realTimeout(res, 5));
+    if (posted.some((m) => m?.type === 'refused')) { await new Promise((res) => realTimeout(res, 25)); continue; }
+    break;
+  }
+  const held7a = (async () => { for (let j = 0; j < 600; j++) { const r = posted.find((m) => m?.type === 'component-result'); if (r) return r; await new Promise((res) => realTimeout(res, 10)); } return null; })();
+  let midLoads = 0;
+  const loadAll7 = shim.loadAllPagesAsync;
+  shim.loadAllPagesAsync = async () => { midLoads++; return loadAll7?.(); };
+  const dMid = (await ask({ type: 'due-request', input: brandB, seq: 8 }, 'file-due'))[0];
+  const loadsMid = midLoads;
+  shim.setCurrentPageAsync = setPage;
+  release7a();
+  await held7a;
+  await settled();
+  midLoads = 0;
+  const dEnd = (await ask({ type: 'due-request', input: brandB, seq: 9 }, 'file-due'))[0];
+  ok(dMid?.seq === 8 && dEnd?.seq === 9 && midLoads === 1,
+    `q810/mid-write: a recount asked during a write answers from the sets cached mid-write, and the write ending clears them, so the recount after reads the file again (${loadsMid} page loads during, ${midLoads} after)`);
+  shim.loadAllPagesAsync = loadAll7;
+}
 
 // 8. #2830 Q2830.3 A: Documentation › Specs' Draw specs, the panel's `draw-specs`, through `main.ts`'s own switch and the
 //    real `drawSpecs`. It draws for the sets on the CURRENT page only: the file holds Badge and Switch row (sections 1 and
