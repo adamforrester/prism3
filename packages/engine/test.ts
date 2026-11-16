@@ -35987,6 +35987,42 @@ arm: {
   }
 }
 
+// ---- #3072: AN OVERRIDE ON A WASH OR A SUBTLE FILL IS REFUSED, NOT MIS-RATED OR DROPPED --------------------------------
+// The override layer rewrites a role's path and rates `contrast(self, against)`. For a translucent wash that is wrong
+// twice: the tree aliases the new palette step, so the wash emits OPAQUE (its strength lived in `black-alpha.10`), and the
+// published ratio was the opaque step against the page, not its `legibleFor` ink on the composite (#963). A subtle fill is
+// put after the layer (`settleSolidTint`), so an override on one was dropped with no warning. Both are refused by name.
+// ORACLES (docs/34): the role names and the message fragments are literals typed here; nothing is read off the engine's
+// classification. The control arm (an override on `fill.rest`) shows the refusal is not blanket.
+//   (A) A WASH, page and inverse, under the default method — refused, naming the role and "translucent wash".
+//   (B) A SUBTLE FILL — the overlay brand's one selected leaf, and a solid-tint brand's inverse hover — refused, naming
+//       the role and the fill to override instead.
+//   (C) CONTROL — `interactive.primary.fill.rest` is still accepted and applied.
+// BY-NAME MUTATIONS: drop the wash refusal in modes.ts → (A) fails; drop the subtle-fill refusal → (B) fails (the
+// override is dropped again, `accepted`).
+{
+  const input = readExampleBrand('./examples/prism3.design.md');
+  const msgOf = (patch: Record<string, unknown>): string => {
+    try { resolveAllModes(brandTheme({ ...input, ...patch } as BrandInput)); } catch (e) { return (e as Error).message; }
+    return '';
+  };
+  const ov = (role: string, palette: string, step: string) => ({ overrides: { light: { [role]: { palette, step } } } });
+  for (const role of ['interactive.primary.overlay.hover', 'inverse.interactive.neutral.overlay.pressed']) {
+    const msg = msgOf(ov(role, 'primary', '500'));
+    ok(msg.includes(`'${role}' is a translucent wash (#3072)`) && msg.includes('would emit it opaque'),
+      `#3072 (A) an override on the wash ${role} is refused by name (${msg.slice(0, 120) || 'accepted'})`);
+  }
+  const sel = msgOf(ov('interactive.primary.subtle-fill.selected', 'primary', '100'));
+  ok(sel.includes(`'interactive.primary.subtle-fill.selected' is a subtle fill (#3072)`) && sel.includes(`Override 'interactive.primary.fill.rest'`),
+    `#3072 (B) an override on the overlay brand's selected subtle fill is refused, pointing at its fill (${sel.slice(0, 120) || 'accepted'})`);
+  const inv = msgOf({ outlineInteraction: 'solid-tint', ...ov('inverse.interactive.primary.subtle-fill.hover', 'primary', '100') });
+  ok(inv.includes(`'inverse.interactive.primary.subtle-fill.hover' is a subtle fill (#3072)`) && inv.includes(`Override 'inverse.interactive.primary.fill.rest'`),
+    `#3072 (B) an override on a solid-tint brand's inverse subtle fill is refused, pointing at its fill (${inv.slice(0, 120) || 'accepted'})`);
+  let applied = '';
+  try { applied = resolveAllModes(brandTheme({ ...input, ...ov('interactive.primary.fill.rest', 'primary', '700') } as BrandInput)).find((m) => m.mode === 'light')!.roles['interactive.primary.fill.rest'].path; } catch (e) { applied = `threw: ${(e as Error).message.slice(0, 80)}`; }
+  ok(applied.endsWith('.primary.700'), `#3072 (C) control: an override on interactive.primary.fill.rest is still applied (${applied})`);
+}
+
 // ---- #3335: THE OUTLINE WASH'S OPACITY AND PER-SET SOLID FILLS (the owner's Q3335.3 A and Q3335.5 A) ------------------
 // Two new inputs: `outlineWash: { hover, pressed }` in place of the wash constants, and `outlineHoverFill.<mode>.sets` beside
 // the mode-wide pick. ORACLES (docs/34), none read off the subject: the defaults are LITERALS typed here from the owner's

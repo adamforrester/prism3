@@ -34,8 +34,9 @@
  *
  * A CODE IS SENT ONCE (#3764, option b of D3728.5). The `pair` proof lets whatever holds the port search the 8-character
  * code space offline. So once the socket that took the `pair` is gone without a verified `paired` (dropped, closed, or
- * answered with a proof that fails), the code is forgotten and the prompt asks for a fresh one; nothing is retried
- * until it is entered. A socket that closes before its challenge never sent the code, and keeps it pending.
+ * answered with a proof that fails), the code is forgotten and the prompt asks for a fresh one ('needed-again', which
+ * says why under the field: the owner's Q-PC1 B); nothing is retried until it is entered. A socket that closes before its
+ * challenge never sent the code, and keeps it pending.
  *
  * THE `paired` HAS A DEADLINE (#3764 review). Without one, an impostor could take the `pair`, hold the socket open while it
  * searches the code space, and answer on that same socket once it has the code. So the `paired` must arrive within
@@ -87,8 +88,9 @@ const OPEN = 1;
 export const PAIRED_MS = 250;
 
 /** Where pairing stands, for the panel: nothing to ask; a code is needed (none kept yet, or the kept token was refused);
- *  the last code entered was wrong; or a code is on its way. */
-export type BridgePairing = 'none' | 'needed' | 'refused' | 'wrong-code' | 'pairing';
+ *  a code is needed again because a failed attempt forgot the last one (#3764, Q-PC1 B); the last code entered was wrong;
+ *  or a code is on its way. */
+export type BridgePairing = 'none' | 'needed' | 'needed-again' | 'refused' | 'wrong-code' | 'pairing';
 
 export type RelayDeps = {
   open(url: string): WsLike;
@@ -149,11 +151,12 @@ export const createBridgeRelay = (deps: RelayDeps) => {
    *  fresh one; nothing retries until they enter it. A refusal that already settled the code (wrong code) has cleared it;
    *  a socket that never sent it (closed before its challenge) leaves it pending; a welcomed socket has nothing to forget. */
   const forgetSentCode = (): void => {
-    if (codeSent && code !== null && !connected) { code = null; setPairing('needed'); }
+    if (codeSent && code !== null && !connected) { code = null; setPairing('needed-again'); }
     codeSent = false;
   };
   /** Waiting for the person to enter a code: nothing connects until they do. */
-  const waitingForCode = (): boolean => (pairing === 'needed' || pairing === 'refused' || pairing === 'wrong-code') && code === null;
+  const waitingForCode = (): boolean =>
+    (pairing === 'needed' || pairing === 'needed-again' || pairing === 'refused' || pairing === 'wrong-code') && code === null;
 
   const send = (obj: unknown): void => { if (ws && ws.readyState === OPEN) ws.send(JSON.stringify(obj)); };
   const report = (c: boolean): void => {

@@ -128,7 +128,8 @@ export const agentLinkWord = (s: AgentLinkState | null, bridgeBuilt = true): { r
 };
 
 /** #3204 (Q3204.1 A): the pairing prompt's words, by where pairing stands. Approved (Q3204.4 A); `wrongCode`, reworded
- *  for the code's 10-minute window (Q3204.5 A), approved as Q3204.7 A. `line` is the
+ *  for the code's 10-minute window (Q3204.5 A), approved as Q3204.7 A; `neededAgain`, shown only after a failed attempt
+ *  forgot a code (#3764), approved as Q-PC1 B. Like `wrongCode`, it clears when the next code is submitted. `line` is the
  *  prompt's one line; `error` is the line under the field, or null. Nothing is asked while pairing is 'none'. Pure. */
 export const PAIR_WORDS = {
   title: 'Pair with the desktop bridge',
@@ -140,12 +141,14 @@ export const PAIR_WORDS = {
   busy: 'Pairing…',
   later: 'Not now',
   wrongCode: 'The bridge did not accept that code. A code works once, for 10 minutes. Ask your agent for a current one.',
+  neededAgain: 'The connection closed before pairing finished. Ask your agent for a new code.',
   badShape: 'A pairing code is 8 letters and digits, such as 7KQ4-M2XR.',
 } as const;
 export const pairPromptText = (p: BridgePairing): { readonly line: string; readonly error: string | null; readonly busy: boolean } | null => {
   if (p === 'none') return null;
   if (p === 'refused') return { line: PAIR_WORDS.refusedLine, error: null, busy: false };
   if (p === 'wrong-code') return { line: PAIR_WORDS.line, error: PAIR_WORDS.wrongCode, busy: false };
+  if (p === 'needed-again') return { line: PAIR_WORDS.line, error: PAIR_WORDS.neededAgain, busy: false };
   return { line: PAIR_WORDS.line, error: null, busy: p === 'pairing' };
 };
 

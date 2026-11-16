@@ -336,10 +336,12 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
     if (edits.some((e) => e.structural)) {
       // DRAFT wording for the owner (#2413, the issue's option A): a skipped member that also draws wrong says so, in
       // the verify lines' `faultLine` form, so the reader knows it still draws other than its plan.
+      // DRAFT wording for the owner (#2674): one whose reactions dangle says they are left so, in the dry run's words for
+      // such a destination (`reactions.ts`).
       const d = s.damaged ?? [];
-      skipped.push({ member: s.member, reason: d.length
-        ? `a layer was added or removed by hand, and it draws other than its plan (${d.slice(0, 3).join('; ')}${d.length > 3 ? '; …' : ''})`
-        : 'a layer was added or removed by hand' });
+      skipped.push({ member: s.member, reason: 'a layer was added or removed by hand'
+        + (d.length ? `, and it draws other than its plan (${d.slice(0, 3).join('; ')}${d.length > 3 ? '; …' : ''})` : '')
+        + (s.dangling ? `, and its ${REACTIONS} point at a member no longer in the set` : '') });
       continue;
     }
     if (rootReplaced.has(s.member)) { skipped.push({ member: s.member, reason: 'the member itself would need replacing' }); continue; }
