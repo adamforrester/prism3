@@ -165,7 +165,7 @@
  * failed is otherwise SKIPPED, and a required check reading `skipped` passes), and runs the script that
  * turns any result but `success` into a failure.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { GATES, SHARD_MAPS, orphanGateFiles, shardMapProblems, trackedGateFiles } from '../../verify.ts';
@@ -464,6 +464,54 @@ export const runnerArgvDiff = (
 /** The job the merge rule reads (Q503 A), and the script its one step runs. */
 export const AGGREGATOR_JOB = 'gates';
 export const AGGREGATOR_SCRIPT = '.github/scripts/all-gates.sh';
+
+/** #3727 — THE TEST FILES. `apps/plugin` and `apps/studio` list their test files by hand, each script an `&&` chain
+ *  (`test`, `test:verdict`, …). A merge that drops one entry leaves that file unrun with every gate green: nothing read
+ *  the scripts against the files on disk. This does. The EXPECTED side is the directory listing (every `test-*.ts` and
+ *  `test-*.mjs` at the workspace root), never the scripts; the ACTUAL side is the files named by a `npx tsx <file>` or
+ *  `node <file>` entry of a script that `ci.yml` runs for that workspace (`npm run -w <name> <script>` on one line). So a
+ *  file dropped from `test`, or a script CI stopped running, fails by file name.
+ *  A `test-*` file that is a shared HELPER, imported by the suites and never run alone, is named in `TEST_HELPERS` with
+ *  why. A helper must still be imported by a file that runs, and must not itself be run, so the list cannot hide a test.
+ *  Returns one problem per file; empty when sound. */
+export const TEST_WORKSPACES = ['apps/plugin', 'apps/studio'] as const;
+export const TEST_HELPERS: Record<string, Record<string, string>> = {
+  'apps/plugin': {},
+  'apps/studio': {
+    'test-bounded.mjs': 'bounded input for the browser suites (#2550)',
+    'test-bundle-freshness.mjs': 'the browser suites refuse a stale bundle (#2037)',
+    'test-hooks.mjs': 'the `data-p3` hook guard the browser suites and build share (F1)',
+    'test-web-fonts-stub.mjs': 'the Google Fonts stand-in the browser suites route (#3138)',
+  },
+};
+export const isTestFile = (f: string): boolean => /^test-[^/]+\.(?:ts|mjs)$/.test(f);
+/** The files a script body runs: each `npx tsx <file>` or `node <file>` entry of its `&&` chain. */
+export const filesRunBy = (body: string): string[] =>
+  body.split('&&').map((e) => /^\s*(?:npx\s+tsx|node)\s+(\S+\.(?:ts|mjs))\b/.exec(e)?.[1]).filter((f): f is string => !!f);
+/** The scripts `ci.yml` runs for a workspace, by its package name: `npm run -w <name> <script>` at the start of a line. */
+export const ciScriptsFor = (ciText: string, wsName: string): string[] => {
+  const out: string[] = [];
+  const esc = wsName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  for (const m of ciText.matchAll(new RegExp(`^\\s*(?:run:\\s*)?npm run -w ${esc} (\\S+)\\s*$`, 'gm'))) if (!out.includes(m[1])) out.push(m[1]);
+  return out;
+};
+export const unrunTestFiles = (
+  onDisk: string[], scripts: Record<string, string>, ciScripts: string[], helpers: Record<string, string>,
+  importsOf: (f: string) => string,
+): string[] => {
+  const problems: string[] = [];
+  const run = new Set(ciScripts.flatMap((sc) => (scripts[sc] === undefined ? [] : filesRunBy(scripts[sc]))));
+  for (const f of onDisk.filter(isTestFile)) {
+    if (f in helpers) {
+      if (run.has(f)) problems.push(`${f} is listed in TEST_HELPERS but a script CI runs runs it — remove the stale helper entry`);
+      else if (![...run].some((r) => importsOf(r).includes(`./${f}`))) problems.push(`${f} is listed in TEST_HELPERS but no test CI runs imports it, so it is a test that runs nowhere`);
+      continue;
+    }
+    if (!run.has(f)) problems.push(`${f} runs in no script CI runs (${ciScripts.join(', ') || 'none'}) — a test dropped from its script, or a new one never added`);
+  }
+  for (const h of Object.keys(helpers)) if (!onDisk.includes(h)) problems.push(`TEST_HELPERS names ${h}, which is not on disk`);
+  return problems;
+};
 
 /** Q503 A — what is wrong with the aggregator in a parsed workflow: `gates` must exist, need exactly every
  *  other job, run `if: always()`, and run `AGGREGATOR_SCRIPT`. Empty when it is sound. Reads the TREE from
@@ -1385,6 +1433,22 @@ jobs:
   if (retiredMentions([{ label: 'sample §3', lines: ['npm run test -w @prism3/sample'] }], R).length) selfFails.push('arm 6 flags a checklist that names no retired gate (false positive)');
 }
 
+// 7b. THE TEST FILES (#3727) — a file dropped from its script is named; a helper must be imported by a run test.
+{
+  const scripts = { test: 'npx tsx test-a.ts && npx tsx test-b.ts', 'test:x': 'node test-c.mjs', 'test:off': 'npx tsx test-d.ts' };
+  const imports = (f: string): string => (f === 'test-c.mjs' ? "import { h } from './test-helper.mjs';" : '');
+  const disk = ['test-a.ts', 'test-b.ts', 'test-c.mjs', 'test-helper.mjs', 'README.md'];
+  const H = { 'test-helper.mjs': 'shared' };
+  const clean = unrunTestFiles(disk, scripts, ['test', 'test:x'], H, imports);
+  if (clean.length) selfFails.push(`the test-file arm flags a sound workspace: ${clean.join('; ')}`);
+  const dropped = unrunTestFiles(disk, { ...scripts, test: 'npx tsx test-a.ts' }, ['test', 'test:x'], H, imports);
+  if (dropped.length !== 1 || !dropped[0].startsWith('test-b.ts ')) selfFails.push(`the test-file arm does not name a file dropped from its script (got ${JSON.stringify(dropped)})`);
+  if (!unrunTestFiles([...disk, 'test-d.ts'], scripts, ['test', 'test:x'], H, imports).some((p) => p.startsWith('test-d.ts '))) selfFails.push('the test-file arm passes a file whose only script CI does not run');
+  if (!unrunTestFiles(disk, scripts, ['test'], H, imports).some((p) => p.startsWith('test-helper.mjs '))) selfFails.push('the test-file arm passes a helper no running test imports');
+  if (!unrunTestFiles(disk, scripts, ['test', 'test:x'], { ...H, 'test-a.ts': 'x' }, imports).some((p) => p.startsWith('test-a.ts is listed'))) selfFails.push('the test-file arm passes a helper entry for a file a script runs');
+  if (JSON.stringify(ciScriptsFor('      - name: A\n        run: npm run -w @prism3/sample test\n        # npm run -w @prism3/sample test:gone\n', '@prism3/sample')) !== '["test"]') selfFails.push('ciScriptsFor reads a script from a comment, or misses a run line');
+}
+
 // 8. ARM 8 — a place that lost its marker is named, and a place that keeps it is clean.
 {
   const P = [
@@ -1646,6 +1710,31 @@ if (lostPointers.length) {
   console.error('  4 gates against CI\'s 21. Keep the pointers, or move the README into GATE_REGIONS and');
   console.error('  accept the full enumeration.');
   process.exit(1);
+}
+// THE TEST FILES (#3727), on the real files: every test file in each workspace runs in a script ci.yml runs.
+{
+  const problems: string[] = [];
+  let checked = 0;
+  for (const ws of TEST_WORKSPACES) {
+    const dir = resolve(repo, ws);
+    const pkg = JSON.parse(readFileSync(resolve(dir, 'package.json'), 'utf8')) as { name: string; scripts?: Record<string, string> };
+    const onDisk = readdirSync(dir).sort();
+    const tests = onDisk.filter(isTestFile);
+    // SCOPE FLOOR: a listing that found no tests, or a ci.yml that runs no script here, would report every file as run.
+    const ciScripts = ciScriptsFor(ciText, pkg.name);
+    if (tests.length < 5 || !ciScripts.length) problems.push(`${ws}: found ${tests.length} test file(s) and ${ciScripts.length} script(s) ci.yml runs — the arm read nothing`);
+    checked += tests.length;
+    for (const p of unrunTestFiles(onDisk, pkg.scripts ?? {}, ciScripts, TEST_HELPERS[ws] ?? {}, (f) => readFileSync(resolve(dir, f), 'utf8')))
+      problems.push(`${ws}/${p}`);
+  }
+  console.log(`    test files: ${checked} test file(s) in ${TEST_WORKSPACES.join(', ')} checked against the scripts ci.yml runs`);
+  if (problems.length) {
+    console.error(`\n❌ ${problems.length} test file(s) run in no script ci.yml runs (#3727):\n`);
+    for (const p of problems) console.error(`    ${p}`);
+    console.error('\n  Each workspace lists its test files by hand, so a merge that drops one leaves it unrun with every other gate');
+    console.error('  green. Add the file back to its script, or, if it is a helper the suites import, to TEST_HELPERS with why.');
+    process.exit(1);
+  }
 }
 // ARM 7 (#3216), on the real files: each sharded gate in `verify.ts` runs exactly the shards CI's matrix runs.
 const shardProblems = shardMapProblems(GATES, ciText, SHARD_MAPS);
