@@ -100,6 +100,13 @@ export type ColorNames = { core: string | null; color: string | null };
 export const COLOR_NAMES: ColorNames = { core: CORE_COLLECTION, color: 'color' };
 
 /**
+ * THE COLLECTIONS A BINDING MAY REACH (#1904): every variable collection the pre-flight checks, by the name the writer
+ * resolves. The style, text-style and wash bindings index their targets from these only (`binding-targets.ts`), so a
+ * binding lands where the pre-flight looked, never on a same-named variable in a foreign or stranded collection.
+ */
+export const bindingCollectionsOf = (plan: PreflightPlan): string[] => [...new Set(plan.variables.map((g) => g.collection))];
+
+/**
  * Assemble the pre-flight plan from the SAME plan objects the executors are handed, so the names checked
  * are the names written. Collection names mirror the executors': the palette slice lands in `names.core`, the
  * color create rows in `names.color` (`applyWritePlan` takes the same pair, since `plan.color` carries no name). A
