@@ -19,6 +19,7 @@
  *                       classes and disposition names, one for one, in order.
  *   REGISTER            a register id repeats, is not kebab-case, or has no meaning; a disposition name
  *                       is empty or repeats.
+ *   NAMES               `DISPOSITION_NAMES` is not the owner's four names, key for key (`DECIDED_NAMES`).
  *   REPRESENTED         the walk reached too few defs or entries to mean anything (floors below).
  *
  * INDEPENDENCE (docs/34). The SUBJECT is the defs' entries and the projector's payload. The REFERENCE is
@@ -28,6 +29,14 @@
  * from the schema's `admits()` rather than imported, so the class is checked against what the schema
  * reads as an admission, and a change to one is a diff against the other. Each detector is first run on
  * literal fixtures below, so a detector that stopped firing fails by name before the defs are read.
+ *
+ * THE DISPOSITION NAMES ARE RESTATED HERE, NOT IMPORTED (#3698 §5). The emitter (`project-def.ts`, and the component
+ * docs) prints `DISPOSITION_NAMES[e.disposition]`. This gate used to build the payload it expects from that same
+ * constant, so a wrong name regenerated into agreement and only drift could fail it, which `regen --check` already
+ * covers. `DECIDED_NAMES` below is the owner's decision (Q3441.1 A: the outside reference's four names), written as
+ * literals the way the two export schemas write them (#3451). The PAYLOAD arm expects those names, and the NAMES arm
+ * holds the constant to them, so a renamed or misspelled name fails here by name. A rename the owner decides is an
+ * edit here too, in the same PR as the constant and the schemas.
  *
  * WHAT IT DOES NOT ASSERT. Whether a class or a disposition is the RIGHT one for its prose is a reading
  * judgment, made in review. The gate prints the counts per class and per disposition so the set can be
@@ -44,7 +53,15 @@ const here = dirname(fileURLToPath(import.meta.url));
 const failures: string[] = [];
 
 const CLASS_IDS = new Set<string>(CODE_ONLY_CLASSES.map((c) => c.id));
-const DISPOSITION_KEYS = new Set<string>(Object.keys(DISPOSITION_NAMES));
+/** The owner's four disposition names (Q3441.1 A), keyed by what a def writes. Restated, never read from
+ *  `DISPOSITION_NAMES`: see the header. */
+const DECIDED_NAMES: Readonly<Record<string, string>> = {
+  carried: 'CARRIED',
+  lowered: 'LOWERED',
+  refused: 'REFUSED',
+  unsupported: 'UNSUPPORTED',
+};
+const DISPOSITION_KEYS = new Set<string>(Object.keys(DECIDED_NAMES));
 
 // Floors, typed here: the corpus at #3441 had 60 defs and 530 entries. A walk that reached a fraction of
 // that is broken, not clean.
@@ -122,6 +139,9 @@ const deadClasses = (used: ReadonlyMap<string, number>): string[] =>
   const names = Object.values(DISPOSITION_NAMES) as string[];
   if (names.length !== 4) failures.push(`REGISTER: the vocabulary has ${names.length} dispositions; the owner's decision is four-way`);
   if (names.some((n) => !n.trim()) || new Set(names).size !== names.length) failures.push(`REGISTER: a disposition name is empty or repeats (${names.join(', ')})`);
+  const built = DISPOSITION_NAMES as Readonly<Record<string, string>>;
+  for (const k of new Set([...Object.keys(DECIDED_NAMES), ...Object.keys(built)]))
+    if (built[k] !== DECIDED_NAMES[k]) failures.push(`NAMES: disposition '${k}' is ${JSON.stringify(built[k])} in DISPOSITION_NAMES, and the owner's name is ${JSON.stringify(DECIDED_NAMES[k])} (Q3441.1 A) — a rename is the owner's, and edits DECIDED_NAMES and both export schemas in the same PR`);
 }
 
 // ---- the defs ---------------------------------------------------------------------------------------
@@ -151,7 +171,7 @@ if (defsWithEntries < MIN_DEFS || entries < MIN_ENTRIES) failures.push(`REPRESEN
   let checked = 0;
   for (const def of componentDefs) {
     if (!def.anatomy) continue;
-    const want = (def.anatomy.codeOnly as readonly Entry[]).map((e) => `${String(e.class)}/${DISPOSITION_NAMES[e.disposition as keyof typeof DISPOSITION_NAMES] ?? String(e.disposition)}`);
+    const want = (def.anatomy.codeOnly as readonly Entry[]).map((e) => `${String(e.class)}/${DECIDED_NAMES[String(e.disposition)] ?? String(e.disposition)}`);
     const raw = doc.components?.[def.id]?.syncBoundary;
     const got = Array.isArray(raw) ? raw.map((b: { class?: unknown; disposition?: unknown }) => `${String(b?.class)}/${String(b?.disposition)}`) : undefined;
     if (!got) { failures.push(`PAYLOAD: ${def.id} has no syncBoundary list in out/components/components.ai.json`); continue; }
