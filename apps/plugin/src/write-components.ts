@@ -1345,7 +1345,20 @@ const insideNestedInstance = (node: CompNode, stop: CompNode): boolean => {
  * gate measures, one call per lookup exactly as before.
  */
 const findOwnPart = (member: CompNode | undefined, name: string): CompNode | undefined =>
-  (member?.findOne?.((x) => x.name === name && !insideNestedInstance(x, member)) as CompNode | null | undefined) ?? undefined;
+  (member?.findOne?.((x) => x.name === name && !insideNestedInstance(x, member) && !importedGeometry(x, member)) as CompNode | null | undefined) ?? undefined;
+
+/** #2795 — a GLYPH's own layers are never a part. A glyph's frame holds what Figma's SVG importer drew (a VECTOR per
+ *  path, named by the path's `id`; a GROUP per `<g>`), and nothing this executor builds is one of those types: a part is
+ *  a FRAME, a TEXT, an INSTANCE or a SLOT. A depth-first search by name otherwise reaches a glyph's layer named like a
+ *  later sibling part first: Progress's full-ring glyph, its layer named `arc`, sat before the `arc` part, and the arc's
+ *  size bindings were re-written onto the ring's vector, which the next update then re-imported under new ids. The node
+ *  itself and each ancestor below the member are read, so a layer inside an imported group is excluded too. */
+const IMPORTED_GEOMETRY = new Set(['VECTOR', 'GROUP', 'BOOLEAN_OPERATION']);
+const importedGeometry = (node: CompNode, stop: CompNode): boolean => {
+  for (let p: CompNode | null | undefined = node; p && p !== stop; p = p.parent)
+    if (IMPORTED_GEOMETRY.has(String(p.type))) return true;
+  return false;
+};
 
 // ── CLAIM THE DEFAULTS (#865) ──────────────────────────────────────────────────────────────────
 //

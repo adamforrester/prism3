@@ -15,7 +15,7 @@ whose name differs from its plan's only in segment order, so the existing rename
 before the build's pass and every step after reads it under the plan's name. It is not counted as a rename, and the dry
 run is unchanged. A member the update skips keeps its name. And the executor keys existing members, and the layout's
 cells, by coordinate, so a Build on a set already there skips such a member as present instead of adding one, and lays
-it out in its cell. `EXECUTOR_REVISION` 60 names no set: `lint-executor-reach` drew all 62 with both executors over its 10
+it out in its cell. `EXECUTOR_REVISION` 61 names no set: `lint-executor-reach` drew all 62 with both executors over its 10
 arms and found none redrawn.
 
 **Tried and discarded.** Listing the reorder as a rename in the dry run (`renames`) also fixed it, but broke #2265's
