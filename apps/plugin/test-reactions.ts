@@ -21,7 +21,10 @@
  *   orphan/…     a destination the host still resolves, to an orphan with no parent, DANGLES: the member reads "to
  *                update", never hand-edited. Mutation: existence checked, not `parent` → `orphan/dangling`. It does
  *                so too where no record or a hand edit elsewhere would otherwise decide the state. Mutation: the
- *                dangle dropped from the state's first test → `orphan/no record`, `orphan/hand-renamed`.
+ *                dangle dropped from the state's first test → `orphan/no record`, `orphan/hand-edited`. A layer added or
+ *                renamed by hand outranks the dangle (#2674): the member counts as edited by hand, and the apply's skip
+ *                says its reactions are left dangling. Mutations: the dangle read before the structural edit →
+ *                `orphan/hand-renamed`, `orphan/under a layer dry run`; the skip without it → `orphan/under a layer skip`.
  *   hand/…       a reaction removed by hand is a hand edit at its own path, kept by default and still reported;
  *                overwritten on request, then current. Mutation: reactions dropped from the record → `hand/detected`.
  *   converge/…   a set built before reactions existed (no reactions, no reactions in its records, an older executor
@@ -267,12 +270,52 @@ section('orphan — a destination the host still resolves, to a node with no par
     ok(nbRest?.state === 'update', `orphan/no record: with its record cleared, the dangling Rest member reads to update, not without a record (${JSON.stringify(nbRest)})`);
     set(NS, BASELINE_KEY, record);
     const child = (restNode.children as Node[])[0];
-    const was = child.name;
-    child.name = `${was} (renamed)`;
+    // A hand edit on a field (a layer's opacity): the dangle still makes the member "to update".
+    const op = child.opacity;
+    child.opacity = 0.5;
     const he = (await previewUpdate(w.host, targets(w, TAG))).sets[0];
     const heRest = he.states.find((s) => s.member === T('rest'));
-    ok(heRest?.state === 'update' && !he.handEdits.some((h) => h.member === T('rest') && h.path === REACTIONS_PATH), `orphan/hand-renamed: with a layer renamed by hand, the dangling Rest member reads to update, its reactions never a hand edit (${JSON.stringify(heRest)}; ${JSON.stringify(he.handEdits.filter((h) => h.member === T('rest')))})`);
+    ok(heRest?.state === 'update' && he.handEdits.some((h) => h.member === T('rest')) && !he.handEdits.some((h) => h.member === T('rest') && h.path === REACTIONS_PATH), `orphan/hand-edited: with a layer's opacity edited by hand, the dangling Rest member reads to update, its reactions never a hand edit (${JSON.stringify(heRest)}; ${JSON.stringify(he.handEdits.filter((h) => h.member === T('rest')))})`);
+    child.opacity = op;
+    // A layer RENAMED by hand reads as one removed and one added: a structural edit, which the apply skips under every
+    // choice, so the member counts as edited by hand, its dangle on its state (#2674), and its reactions still never a
+    // hand edit. Before #2674 it read "to update", and the apply left it as it was.
+    const was = child.name;
+    child.name = `${was} (renamed)`;
+    const hr = (await previewUpdate(w.host, targets(w, TAG))).sets[0];
+    const hrRest = hr.states.find((s) => s.member === T('rest'));
+    ok(hrRest?.state === 'handEdited' && hrRest.dangling === true && !hr.handEdits.some((h) => h.member === T('rest') && h.path === REACTIONS_PATH), `orphan/hand-renamed: with a layer renamed by hand, the dangling Rest member counts as edited by hand and dangling, its reactions never a hand edit (${JSON.stringify(hrRest)}; ${JSON.stringify(hr.handEdits.filter((h) => h.member === T('rest')))})`);
     child.name = was;
+  } finally { delete (globalThis as any).figma; }
+}
+{
+  // DANGLING, WITH A LAYER ADDED BY HAND (#2674): the apply skips a member with a structural hand edit under every
+  // choice, so the dry run counts it with the members edited by hand, never "to update", as it does drawn damage
+  // (#2413); and the skip says its reactions are left pointing at a member no longer in the set. The member is left
+  // exactly. Mutations: the dangle read before the structural edit → `orphan/under a layer dry run`; the skip reason
+  // without the dangle → `orphan/under a layer skip`.
+  const w = await world(TAG);
+  const hover = member(w, T('hover'));
+  (hover.remove as () => void)();
+  const orphan = { id: hover.id, name: hover.name, removed: false, parent: null };
+  (globalThis as any).figma = { getNodeByIdAsync: async (id: string) => (id === orphan.id ? orphan : membersOf(w).find((m) => String(m.id) === id) ?? null) };
+  try {
+    const rest = member(w, T('rest'));
+    const extra = (w.api.createFrame as () => Node)();
+    extra.name = 'designer note';
+    (rest.appendChild as (c: Node) => void)(extra);
+    const dumpOf = (n: Node): string => JSON.stringify([n.name, n.reactions, [...(n._pluginData as Map<string, string>)], ...(n.findAll as () => Node[])().map((k) => [k.name, k.id])]);
+    const before = dumpOf(rest);
+    const p = (await previewUpdate(w.host, targets(w, TAG))).sets[0];
+    const st = p.states.find((s) => s.member === T('rest'));
+    ok(st?.state === 'handEdited' && st.dangling === true && p.counts.update === 0 && p.counts.handEdited === 1,
+      `orphan/under a layer dry run: the dangling Rest member with a layer added counts as edited by hand, not to update (${JSON.stringify(st)}; ${JSON.stringify(p.counts)})`);
+    for (const choice of ['keep', 'overwrite', 'accept'] as const) {
+      const { res } = await confirm(w, TAG, { handEdits: choice });
+      const why = res.outcomes[0]?.skipped.find((x) => x.member === T('rest'))?.reason ?? '';
+      ok(why === 'a layer was added or removed by hand, and its prototype reactions point at a member no longer in the set' && dumpOf(rest) === before,
+        `orphan/under a layer skip (${choice}): the skip names the layer and the dangling reactions, and the member is left exactly (${why || 'not skipped'}; ${dumpOf(rest) === before ? 'untouched' : 'written'})`);
+    }
   } finally { delete (globalThis as any).figma; }
 }
 
