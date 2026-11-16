@@ -26,8 +26,9 @@
  *                  updated in place, no rename listed or counted, and a build skips it as present: the set keeps 45
  *                  members, one per coordinate. Mutations: `withOrderMoves` adding no move → `member-order/renamed in
  *                  place`, `/keys`, `/settled` (the executor's coordinate match still stops the duplicate); that match
- *                  dropped from `have`, or from the layout's `cellOf` → `member-order/build`. On main every arm fails,
- *                  `/no duplicate` with the issue's 46 members.
+ *                  dropped from `have`, or from the layout's `cellOf` → `member-order/build`; `withOrderMoves` not
+ *                  reading the plan's skip set → `member-order/skipped keeps its name`. On main every arm fails but
+ *                  that last one, `/no duplicate` with the issue's 46 members.
  *   stop/…         a run that stops part-way leaves members that read out of date, and running the update again
  *                  finishes it with every key unchanged. Mutation: the stamp written before the member is
  *                  configured → `stop/out of date`, `stop/finished`.
@@ -1104,6 +1105,25 @@ section('order — a member whose name lists its segments in another order is up
   const coords = membersOf(w.set()).map((m) => String(m.name).split(', ').sort().join(', '));
   ok(r.added === 0 && membersOf(w.set()).length === 45 && new Set(coords).size === 45 && !r.misses.some((x) => /NOT A GENERATED VARIANT/.test(x)),
     `member-order/build: a build adds no member on a coordinate the set holds, and lays the reordered one out as its own (${membersOf(w.set()).length} members, ${r.added} added)`);
+}
+
+{
+  // A member the update skips keeps its name (#3816 review). The `unrecorded/skip` world, every record cleared, with one
+  // member under the reversed order: under `noBaseline: 'skip'` the plan leaves every member, so the order move must
+  // leave it too. Renamed, it was written to by a run that reports it left, under a name no longer in the file.
+  // Mutation: `withOrderMoves` not reading the plan's skip set → `member-order/skipped keeps its name`.
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  for (const m of membersOf(w.set())) (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, '');
+  const odd = membersOf(w.set())[5];
+  const oddName = String(odd.name).split(', ').reverse().join(', ');
+  odd.name = oddName;
+  const next = moveGap(w.plans);
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: next }]);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre), { choices: { noBaseline: 'skip' } });
+  const o = res.outcomes[0];
+  const names = new Set(membersOf(w.set()).map((m) => String(m.name)));
+  ok(o?.skipped.length === 45 && String(odd.name) === oddName && o.skipped.every((x) => names.has(x.member)) && o.renamed === 0,
+    `member-order/skipped keeps its name: under noBaseline: 'skip' the reordered member is left under its own name, and every member left is named as the file names it (${o?.skipped.length} left; ${String(odd.name)}; ${o?.skipped.filter((x) => !names.has(x.member)).length} named off the file)`);
 }
 
 /* ── stop ────────────────────────────────────────────────────────────────────────────────────────────── */

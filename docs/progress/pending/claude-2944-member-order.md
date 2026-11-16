@@ -13,7 +13,9 @@ the session that ran Update.
 **The fix, in two places.** The apply (`withOrderMoves`, `update-apply.ts`) adds a move for each member it may configure
 whose name differs from its plan's only in segment order, so the existing rename block (#1780) renames it in place
 before the build's pass and every step after reads it under the plan's name. It is not counted as a rename, and the dry
-run is unchanged. A member the update skips keeps its name. And the executor keys existing members, and the layout's
+run is unchanged. A member the update does not configure keeps its name: the move reads that set off the apply's own
+`plan` under the run's choices, so a member skipped for no as-built record under `noBaseline: 'skip'` is not renamed
+(#3816 review). And the executor keys existing members, and the layout's
 cells, by coordinate, so a Build on a set already there skips such a member as present instead of adding one, and lays
 it out in its cell. `EXECUTOR_REVISION` 61 names no set: `lint-executor-reach` drew all 62 with both executors over its 10
 arms and found none redrawn.
@@ -28,3 +30,5 @@ file or Update file should also delete one is held for the owner.
 **Measured.** `test-update-apply.ts` `member-order/*`: on main all five arms fail, `/no duplicate` with the issue's 46
 members for 45 coordinates; all pass with the fix. Mutations, each failing by name: `withOrderMoves` adding no move →
 `/renamed in place`, `/keys`, `/settled`; the executor's coordinate match dropped from `have` or from `cellOf` → `/build`.
+`/skipped keeps its name` (the review's probe, kept as an arm) fails on the first head, renaming the member and naming
+it by a name no longer in the file; `withOrderMoves` not reading `plan`'s set fails it by name.

@@ -486,16 +486,19 @@ export const namesMember = (miss: string, member: string, known: readonly string
  * `order/permuted`). The build's pass finds a member by its name, though: missed, it built a second member on the same
  * coordinate. So each member this update may configure takes the plan's segment order first, as a move: the rename block
  * below renames it in place, and every step after reads it under the plan's name. Its values do not change, and it is
- * not counted as a rename. A member the update skips (one not built by Prism3, one only restamped, one with a layer
- * added or removed by hand, one that would need replacing) keeps its name.
+ * not counted as a rename. A member the update does not configure keeps its name: every one `plan` skips (not built by
+ * Prism3, a layer added or removed by hand, one that would need replacing, no as-built record under `noBaseline:
+ * 'skip'`) and every one it only restamps. The set is read off `plan` itself, under the run's own choices, so the two
+ * cannot drift apart (#3816 review: a member skipped for no record was renamed, then reported as left).
  */
-export const withOrderMoves = (p: SetPreview, t: UpdateTarget): SetPreview => {
+export const withOrderMoves = (p: SetPreview, t: UpdateTarget, choice: HandEditChoice, noRecord: NoRecordChoice): SetPreview => {
   if (t.single) return p;
   const byKey = new Map(t.plans.map((x) => { const n = planComponentName(x); return [coordKey(n) ?? n, n] as const; }));
   const moving = new Set(p.moves.map((m) => m.from));
-  const skip = new Set([...p.handEdits.filter((h) => h.structural).map((h) => h.member), ...p.replacements.filter((r) => r.path === '.').map((r) => r.member)]);
+  // A member not moving is configured under its own name, so `plan`'s members map holds it as it is.
+  const configured = plan(p, choice, noRecord).members;
   const extra = p.states.flatMap((s) => {
-    if (s.state === 'unstamped' || s.state === 'revisionUnknown' || moving.has(s.member) || skip.has(s.member)) return [];
+    if (moving.has(s.member) || !configured.has(s.member)) return [];
     const to = byKey.get(coordKey(s.member) ?? '');
     return to && to !== s.member ? [{ from: s.member, to }] : [];
   });
@@ -503,7 +506,7 @@ export const withOrderMoves = (p: SetPreview, t: UpdateTarget): SetPreview => {
 };
 
 const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, preview: SetPreview, live: LiveSet, opts: { description?: string; yieldTo?: (ms?: number) => Promise<void>; chunk?: number; handEdits: HandEditChoice; noBaseline: NoRecordChoice; ledger?: readonly ComponentRename[] }): Promise<SetOutcome> => {
-  const p = withOrderMoves(preview, t);
+  const p = withOrderMoves(preview, t, opts.handEdits, opts.noBaseline);
   const out: SetOutcome = { def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: opts.handEdits, identity: [], content: [], misses: [] };
   const work = plan(p, opts.handEdits, opts.noBaseline);
   out.skipped = work.skipped;
