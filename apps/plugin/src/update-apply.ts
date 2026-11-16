@@ -48,7 +48,7 @@
  * were kept as a hand edit. Either failing makes the verdict a failure.
  */
 import { diffAnatomy, type HostNode, planComponentName, planSetProperties, type AnatomyPlan } from '@prism3/engine/components';
-import { partRenames, type ComponentRename, slotMigrationOf, slotTextMigrationOf } from '@prism3/engine';
+import { coordKey, partRenames, type ComponentRename, slotMigrationOf, slotTextMigrationOf } from '@prism3/engine';
 import { applyComponentPlan, emitCoordValue, keptBoundOf, memberStamp, STAMP_KEY, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
 import { NS } from './persist-figma';
 import { UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, snapshotMember, type OwnershipRead, type SnapNode } from './member-baseline';
@@ -480,7 +480,30 @@ export const namesMember = (miss: string, member: string, known: readonly string
   return false;
 };
 
-const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p: SetPreview, live: LiveSet, opts: { description?: string; yieldTo?: (ms?: number) => Promise<void>; chunk?: number; handEdits: HandEditChoice; noBaseline: NoRecordChoice; ledger?: readonly ComponentRename[] }): Promise<SetOutcome> => {
+/**
+ * #2944: A MEMBER NAMED IN ANOTHER SEGMENT ORDER. Figma rewrites a member's segment order when an axis is renamed in its
+ * UI, and the dry run matches by coordinate, so such a member reads as the one to update and no rename is listed (#2265,
+ * `order/permuted`). The build's pass finds a member by its name, though: missed, it built a second member on the same
+ * coordinate. So each member this update may configure takes the plan's segment order first, as a move: the rename block
+ * below renames it in place, and every step after reads it under the plan's name. Its values do not change, and it is
+ * not counted as a rename. A member the update skips (one not built by Prism3, one only restamped, one with a layer
+ * added or removed by hand, one that would need replacing) keeps its name.
+ */
+export const withOrderMoves = (p: SetPreview, t: UpdateTarget): SetPreview => {
+  if (t.single) return p;
+  const byKey = new Map(t.plans.map((x) => { const n = planComponentName(x); return [coordKey(n) ?? n, n] as const; }));
+  const moving = new Set(p.moves.map((m) => m.from));
+  const skip = new Set([...p.handEdits.filter((h) => h.structural).map((h) => h.member), ...p.replacements.filter((r) => r.path === '.').map((r) => r.member)]);
+  const extra = p.states.flatMap((s) => {
+    if (s.state === 'unstamped' || s.state === 'revisionUnknown' || moving.has(s.member) || skip.has(s.member)) return [];
+    const to = byKey.get(coordKey(s.member) ?? '');
+    return to && to !== s.member ? [{ from: s.member, to }] : [];
+  });
+  return extra.length ? { ...p, moves: [...p.moves, ...extra] } : p;
+};
+
+const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, preview: SetPreview, live: LiveSet, opts: { description?: string; yieldTo?: (ms?: number) => Promise<void>; chunk?: number; handEdits: HandEditChoice; noBaseline: NoRecordChoice; ledger?: readonly ComponentRename[] }): Promise<SetOutcome> => {
+  const p = withOrderMoves(preview, t);
   const out: SetOutcome = { def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: opts.handEdits, identity: [], content: [], misses: [] };
   const work = plan(p, opts.handEdits, opts.noBaseline);
   out.skipped = work.skipped;
@@ -554,7 +577,8 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   const byName = new Map(kidsOf(live).map((c) => [coordOf(String(c.name ?? '')), c] as const));
   for (const m of p.moves) {
     const n = byName.get(m.from) as { name?: string } | undefined;
-    if (n) { n.name = hostOf(m.to); out.renamed++; }
+    // An order-only move (`withOrderMoves`) is not a rename: the member's coordinate is unchanged.
+    if (n) { n.name = hostOf(m.to); if (coordKey(m.from) !== coordKey(m.to)) out.renamed++; }
   }
 
   // ── PROPERTIES: a rename first, in place (#2759), so the property keeps its id and every instance its value; then a

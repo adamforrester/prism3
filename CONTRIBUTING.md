@@ -1763,9 +1763,6 @@ bash .github/scripts/test-docs-only.sh   # the docs-only exemption (#3698 R4): t
                                           # the aggregator's half, by literal cases. A docs change that
                                           # also touches an app file is never exempt, and no file a prose
                                           # gate scans (its --files) counts as docs. No git, no network
-bash .github/scripts/test-all-gates.sh  # the base cases of all-gates.sh, the `gates` step the merge
-                                          # rule reads (#3736): failure, cancelled, skipped, empty and
-                                          # unset NEEDS each fail by job name. No git, no network
 bash .github/scripts/test-install-chromium.sh # the test for install-chromium.sh, which all four
                                           # browser jobs run (#2981). A stand-in install and dpkg
                                           # lock in $TMPDIR: no browser, no network. Its stall/…

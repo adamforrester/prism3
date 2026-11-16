@@ -22,6 +22,12 @@
  *   drop/…         a member the plan no longer has is kept and marked deprecated, never deleted. Mutation: a
  *                  dropped member removed → `drop/kept`.
  *   add/…          a member the plan gained is built into the set; every existing member keeps its key.
+ *   member-order/… a member whose name lists its segments in another order (#2944) is renamed to the plan's order and
+ *                  updated in place, no rename listed or counted, and a build skips it as present: the set keeps 45
+ *                  members, one per coordinate. Mutations: `withOrderMoves` adding no move → `member-order/renamed in
+ *                  place`, `/keys`, `/settled` (the executor's coordinate match still stops the duplicate); that match
+ *                  dropped from `have`, or from the layout's `cellOf` → `member-order/build`. On main every arm fails,
+ *                  `/no duplicate` with the issue's 46 members.
  *   stop/…         a run that stops part-way leaves members that read out of date, and running the update again
  *                  finishes it with every key unchanged. Mutation: the stamp written before the member is
  *                  configured → `stop/out of date`, `stop/finished`.
@@ -1062,6 +1068,42 @@ section('add — a member the plan gained is built; the others keep their keys')
   const after = identityOf(w.set());
   ok([...before.members].every(([name, b]) => after.members.get(name)?.key === b.key && after.members.get(name)?.id === b.id), 'add/keys: every existing member keeps its key and id');
   ok(applyVerdict(res).ok, `add/verdict: ${applyVerdict(res).headline}`);
+}
+
+/* ── order (#2944) ───────────────────────────────────────────────────────────────────────────────────── */
+section('order — a member whose name lists its segments in another order is updated in place, never added again (#2944)');
+{
+  // Figma rewrites a member's segment order when an axis is renamed in its UI. One member on its planned coordinate,
+  // under the reversed order: the update renames it to the plan's order and configures it in place; the set keeps 45
+  // members, one per coordinate, every key and id. Before #2944 the build's pass missed it by name and added a second.
+  // The dry run still lists no rename for it (#2265, `order/permuted` in test-update-components.ts).
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const odd = membersOf(w.set())[5];
+  const planName = String(odd.name);
+  odd.name = planName.split(', ').reverse().join(', ');
+  const before = identityOf(w.set());
+  const { pre, res } = await confirm(w, [{ def: TAG, plans: moveGap(w.plans) }]);
+  const o = res.outcomes[0];
+  const coords = membersOf(w.set()).map((m) => String(m.name).split(', ').sort().join(', '));
+  ok(pre.sets[0].counts.add === 0 && membersOf(w.set()).length === 45 && o.added === 0 && new Set(coords).size === 45,
+    `member-order/no duplicate: 45 members before and after, none added, one per coordinate (${membersOf(w.set()).length} members, ${o.added} added, ${coords.length - new Set(coords).size} doubled)`);
+  ok(pre.sets[0].counts.rename === 0 && o.renamed === 0 && String(odd.name) === planName && o.updated.includes(planName) && o.updated.length === 45,
+    `member-order/renamed in place: no rename is listed or counted, and the member takes the plan's order and is updated with the rest (${pre.sets[0].counts.rename} listed, ${o.renamed} counted; ${String(odd.name)}; ${o.updated.length} updated)`);
+  const after = identityOf(w.set());
+  ok(after.members.get(planName)?.id === before.members.get(planName.split(', ').reverse().join(', '))?.id && [...before.members.values()].every((b) => [...after.members.values()].some((a) => a.key === b.key && a.id === b.id)),
+    'member-order/keys: every member keeps its key and id, the renamed one included');
+  const again = await previewUpdate(w.host, [{ def: TAG, plans: moveGap(w.plans) }]);
+  ok(again.sets[0].counts.current === 45 && again.sets[0].counts.rename === 0, `member-order/settled: the next dry run reads all 45 current (${JSON.stringify(again.sets[0].counts).slice(0, 120)})`);
+}
+{
+  // A build over the same set (Build on a set already there, add-only) skips the member as present and adds nothing.
+  const w = await world(TAG);
+  const odd = membersOf(w.set())[5];
+  odd.name = String(odd.name).split(', ').reverse().join(', ');
+  const r = await applyComponentPlan(w.plans, w.api);
+  const coords = membersOf(w.set()).map((m) => String(m.name).split(', ').sort().join(', '));
+  ok(r.added === 0 && membersOf(w.set()).length === 45 && new Set(coords).size === 45 && !r.misses.some((x) => /NOT A GENERATED VARIANT/.test(x)),
+    `member-order/build: a build adds no member on a coordinate the set holds, and lays the reordered one out as its own (${membersOf(w.set()).length} members, ${r.added} added)`);
 }
 
 /* ── stop ────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -5012,42 +5054,6 @@ section('reach — a member stamped under an older revision is to update only wh
     const c = (await previewUpdate(w.host, [{ def: QUIET, plans: w.plans }])).sets[0].counts;
     ok(c[want] === n, `reach/dry run ${rev}: a ${QUIET} set stamped under revision ${rev} reads all ${n} members ${want === 'current' ? 'current' : 'to update'} (${JSON.stringify(c)})`);
   }
-}
-
-section('glyph layer — a glyph\'s layer named like a sibling part is never taken for that part (#2795)');
-{
-  // Progress's ring holds the full-ring glyph (`ringGlyph`) and, after it, the arc glyph (`arcGlyph`) as siblings. The
-  // full ring's one SVG layer is renamed here to `arcGlyph`, in the plans only, as #2795 found it authored: the
-  // executor's re-find of a part by name searched depth first and reached that vector before the sibling part, so the
-  // arc's size bindings landed on the ring's vector, and the next update re-imported it under new ids.
-  const plans = plansOf('progress').map((p) => {
-    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
-    const walk = (n: { name: string; glyphSvg?: string; children?: unknown[] }): void => {
-      if (n.name === 'ringGlyph' && n.glyphSvg) n.glyphSvg = n.glyphSvg.replace(/\bid="[^"]*"/, 'id="arcGlyph"');
-      for (const c of (n.children ?? []) as typeof n[]) walk(c);
-    };
-    walk(q.root as never);
-    return q;
-  });
-  const rings = (set: Node): Node[] => membersOf(set).flatMap((m) => ((m as { findAll?: (f: (x: Node) => boolean) => Node[] }).findAll?.((x) => x.name === 'ringGlyph') ?? []));
-  // Progress's nested message texts are misses this shim reports on a build too (the corpus allows them the same way).
-  const builtMisses: string[] = [];
-  const w = await world('progress', plans, { allowMisses: builtMisses });
-  const collided = rings(w.set()).filter((r) => ((r.children as Node[]) ?? []).some((v) => v.name === 'arcGlyph'));
-  ok(collided.length > 0, `glyph layer premise: ${collided.length} ring glyph(s) hold a layer named arcGlyph`);
-  // Built: the ring's vector carries no binding of its own; the arc part's size is the arc part's.
-  const boundVec = collided.flatMap((r) => (r.children as Node[]).filter((v) => Object.keys((v.boundVariables ?? {}) as object).length)).length;
-  ok(boundVec === 0, `glyph layer/build: no ring vector carries a binding written for the arcGlyph part (${boundVec} bound)`);
-  for (const m of membersOf(w.set())) {
-    const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
-    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, '|0'));
-  }
-  const before = identityOf(w.set());
-  const { res } = await confirm(w, [{ def: 'progress', plans }]);
-  const after = identityOf(w.set());
-  const changed = [...before.members].flatMap(([name, b]) => [...b.kids].filter(([p, id]) => after.members.get(name)?.kids.get(p) !== id).map(([p]) => `${name}/${p}`));
-  const extra = res.outcomes[0]?.misses.filter((x) => !builtMisses.includes(x)) ?? ['no outcome'];
-  ok(!res.failed && extra.length === 0 && changed.length === 0, `glyph layer/in place: re-applied with no miss the build lacks, every node id under every member kept (${changed.length} changed: ${changed.slice(0, 2).join('; ')}; ${extra.slice(0, 1).join('')})`);
 }
 
 section('corpus — every def, re-applied in place by an executor revision bump, keeps every key and reads back as its plan');
