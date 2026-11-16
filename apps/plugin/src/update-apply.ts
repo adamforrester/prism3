@@ -480,6 +480,24 @@ export const namesMember = (miss: string, member: string, known: readonly string
   return false;
 };
 
+/** THE SET'S MEMBERS IN PLAN ORDER (#2386). A variant property lists its values in the order the set's members first use
+ *  them, and a fresh build combines its members in plan order. A member an update adds is appended after the members the
+ *  set holds, so a value an axis gains read last in the property's list on an updated file and in its plan place on a
+ *  fresh one. Each planned member is moved, with `insertChild`, which keeps its id, into the slots planned members hold,
+ *  in plan order; a member off the plan (one kept and marked deprecated, or a designer's own) keeps its slot. A set
+ *  already in order is not written. Measured in the shim, which lists values by member order; the host is not measured. */
+const toPlanOrder = (set: LiveSet, plan: readonly string[], coordOf: (name: string) => string): void => {
+  const at = new Map(plan.map((name, i) => [name, i] as const));
+  const kids = kidsOf(set);
+  const rank = (c: LiveNode): number | undefined => at.get(coordOf(String(c.name ?? '')));
+  const planned = kids.filter((c) => rank(c) !== undefined).sort((a, b) => rank(a)! - rank(b)!);
+  let k = 0;
+  const want = kids.map((c) => (rank(c) === undefined ? c : planned[k++]));
+  const move = (set as LiveSet & { insertChild?(i: number, c: unknown): void }).insertChild;
+  if (!move) return;
+  want.forEach((c, i) => { if (kidsOf(set)[i] !== c) move.call(set, i, c); });
+};
+
 const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p: SetPreview, live: LiveSet, opts: { description?: string; yieldTo?: (ms?: number) => Promise<void>; chunk?: number; handEdits: HandEditChoice; noBaseline: NoRecordChoice; ledger?: readonly ComponentRename[] }): Promise<SetOutcome> => {
   const out: SetOutcome = { def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: opts.handEdits, identity: [], content: [], misses: [] };
   const work = plan(p, opts.handEdits, opts.noBaseline);
@@ -680,6 +698,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   const now = t.single ? (await liveFor(host, t, p.set)) ?? live
     : (host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as LiveSet[]).find((s) => idOf(s) === setId || (setKey && keyOf(s) === setKey)) ?? live;
   if (keyOf(now) !== setKey || idOf(now) !== setId) out.identity.push(`the set: key ${setKey} → ${keyOf(now)}, id ${setId} → ${idOf(now)}`);
+  if (!t.single) toPlanOrder(now, t.plans.map((x) => planComponentName(x)), coordOf);
   const after = new Map(kidsOf(now).map((c) => [coordOf(String(c.name ?? '')), c] as const));
   // EVERY member whose place changed is counted, whether or not the dry run listed it (#2519): a move the dry run
   // could not predict (an update that resizes members re-lays the grid by their new sizes) is never silent.

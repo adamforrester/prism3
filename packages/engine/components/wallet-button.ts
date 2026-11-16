@@ -144,6 +144,9 @@ export const walletButton: ComponentDef = {
     'border-width': 'border-width.hairline',
     ...ringTokens(),
   },
+  // Control shape reaches the brand's corner, as it reaches Button's (Q-CS3 A, Q-CS5 B, #3765). Google Pay's half-height
+  // clamp is the code's (codeOnly, the corner): the design file draws the bound corner, which Figma caps at half the height.
+  levers: { controlShape: { capsules: ['radius.md'] } },
   // Each style's ground and edge, from its `button/` mark's record (Q3174.3 A); none at `any`.
   literal: { key: '{provider}.{style}', entries: ENTRIES },
 
@@ -177,8 +180,8 @@ export const walletButton: ComponentDef = {
       focusRing: focusRingPart('The shared focus ring, around the provider\'s button while it has keyboard focus.'),
     },
     derived: {
-      // Q-CS3 A (#3765): Control shape reaches this button as it reaches Button. This key opts it in (`isPillable`): Pill
-      // repoints `radius.md` to `radius.capsule`, Boxed to `radius.none`, Hairline to `radius.hairline`. Every provider
+      // Q-CS3 A (#3765): Control shape reaches this button as it reaches Button, through `levers.controlShape.capsules`
+      // (Q-CS5 B); this prose describes it and is kept for the plan stamp. Pill repoints `radius.md` to `radius.capsule`, Boxed to `radius.none`, Hairline to `radius.hairline`. Every provider
       // allows each: Apple Pay, PayPal (`shape: rect | pill | sharp`, `borderRadius` ≥ 0) and Shop Pay take any radius;
       // Google Pay takes 0 to half the height, and the code clamps it there (codeOnly, the corner).
       'pill-radius': 'height ÷ 2 under Pill, clamped for Google Pay to min(radius, height / 2) — a literal radius token would be wrong at more than one height',

@@ -214,7 +214,9 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
   paintKeys: ['{appearance}.{slot}.{state}', '{appearance}.{slot}'],
 
   // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
-  levers: { outlineInteraction: { opaqueFill: true } },
+  // Q-CS5 B (#3765): Control shape reaches the SQUARE shape's corner (`radius.md`) through `capsules`; the circular
+  // shape's `radius.round` is intrinsic and not listed, so it stays a circle under every shape (#1353).
+  levers: { controlShape: { capsules: ['radius.md'] }, outlineInteraction: { opaqueFill: true } },
 
   tokens: {
     // #1353 — THE PER-SHAPE CORNER RUNG. `shape=square` binds the button's normal rounded rung (`radius.md`,
@@ -403,8 +405,8 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
       },
     },
     derived: {
-      // KEPT so `isPillable` stays true and icon-button remains in the `controlShape: pill` brand-lever set
-      // (#1163). The lever repoints the ROUNDED rung — the `shape=square` binding (`radius.md`) — to
+      // Description only since Q-CS5 B (#3765): `levers.controlShape.capsules` decides the reach (#1163 until then). Kept
+      // because the plan carries it into every member's stamp. The lever repoints the ROUNDED rung — the `shape=square` binding (`radius.md`) — to
       // `radius.capsule`, which clamps to height ÷ 2 on this square control and reads as a CIRCLE; the
       // `shape=circular` binding (`radius.round`) is the intrinsic round rung the lever leaves alone, exactly
       // as it leaves switch/radio. So a pill brand rounds the square shape off (unchanged from before #1353)
