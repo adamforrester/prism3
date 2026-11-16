@@ -43,7 +43,7 @@
  *
  * Identity: the set's key, every surviving member's key and id, and every surviving child's id, captured in
  * preflight, compared after the run. A difference is a failure naming the member, apart from the children the
- * dry run said would be replaced. Content: `diffAnatomy` of every updated member against its plan, apart from
+ * dry run said would be replaced. Content: `diffAnatomy` of every updated and every added member against its plan, apart from
  * the nodes kept as hand edits, and its prototype reactions against the ones the plan gives it (#2466), unless they
  * were kept as a hand edit. Either failing makes the verdict a failure.
  */
@@ -709,7 +709,12 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   const ports = withSetSlots(await hostPorts(host), setDefs);
   const varById = await varsById(api as unknown as Parameters<typeof varsById>[0]);
   const plannedRx = reactionMap(t.plans.map((x) => planComponentName(x)), t.plans[0]?.pressState);
-  for (const name of out.updated) {
+  // AND EVERY MEMBER THIS RUN ADDED (#2563), read off the host: a planned member in the set now that was not in it
+  // before. Its paints are written once, by the build, into a set that is never combined again, so nothing re-resolves
+  // them as a fresh build's combine does; a wash the host left at 100% there would otherwise ship unchecked. It keeps
+  // no hand edit, so it is held to its whole plan.
+  const addedNow = [...after.keys()].filter((name) => !before.has(name) && plans.has(name));
+  for (const name of [...out.updated, ...addedNow]) {
     const a = after.get(name);
     const pl = plans.get(name);
     if (!a || !pl) continue;
