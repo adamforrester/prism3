@@ -105,6 +105,8 @@
  *   · snippets: every agent-side script is short
  */
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
+/** Code-unit order, which no host locale moves (#3701). */
+const codeUnitOrder = (x: string, y: string): number => (x < y ? -1 : x > y ? 1 : 0);
 import { ENGINE_VERSION, serializeBrandInput, deserializeBrandInput, type BrandInput } from '@prism3/engine';
 import { MAILBOX, AGENT_COMMANDS, READ_COMMANDS, AGENT_PROTOCOL_VERSION, resultKey, utf8Bytes, parseCommand } from './src/agent-protocol';
 import { readFixture, ARGS, EXPECTED, canon, ACTIVITY_NOTES, activityExpected, atRead, AT, contextExpected } from './agent-read-fixture';
@@ -1428,7 +1430,7 @@ section('reads — inspect, component-keys, audit-frames, snapshot and activity 
     } }));
     const d = (await run('context', {})).r.result?.data as { sets?: { present?: number; due?: unknown }; prism3?: { engine?: { lastBuilt?: unknown } } };
     ok(d?.sets?.present === 2, `context/ledger/present: the two sets the ledger names are counted present (${canon(d?.sets)})`);
-    ok(canon([...((d?.sets?.due ?? []) as { set: string }[])].sort((a, b) => a.set.localeCompare(b.set))) === canon([{ set: 'badge', why: 'engine moved' }, { set: 'button', why: 'definition moved' }]),
+    ok(canon([...((d?.sets?.due ?? []) as { set: string }[])].sort((a, b) => codeUnitOrder(a.set, b.set))) === canon([{ set: 'badge', why: 'engine moved' }, { set: 'button', why: 'definition moved' }]),
       `context/ledger/due: each due set names why — badge's older engine, button's moved definition (${canon(d?.sets?.due)})`);
     ok(d?.prism3?.engine?.lastBuilt === ENGINE_VERSION, `context/ledger/lastBuilt: the newest engine any set was built with (${canon(d?.prism3?.engine)})`);
     if (had === undefined) store.delete(key); else store.set(key, had);

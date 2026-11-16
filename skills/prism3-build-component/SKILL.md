@@ -681,8 +681,8 @@ Each entry names only the parts and keys that setting rewrites, and the validato
 
 | Setting | Entry on the def | Today on |
 |---|---|---|
-| `controlShape` (Boxed, Hairline) | `{ squares: ['radius.sm'] }`: the corner refs squared beyond the pill-able `radius.md` | the fields (Code input's cell included), Checkbox |
-| `controlShape` (all three shapes) | not a `levers` entry: the `pill-radius` key in the anatomy's `derived` block makes a def pill-able, so Pill, Boxed and Hairline repoint its `radius.md` (`isPillable`). Check the provider's corner rules first, and clamp in `codeOnly` where one caps the corner | Button, Icon button, Wallet button (Google Pay clamped to half the height), Sign-in button |
+| `controlShape` (Pill, Boxed, Hairline) | `{ capsules: ['radius.md'] }`: the corner refs every shape but Rounded repoints (Pill to `radius.capsule`). All of Control shape's reach is here; a `pill-radius` line in `derived` is description only. Check the provider's corner rules first, and clamp in `codeOnly` where one caps the corner | Button, Icon button (square shape), Wallet button (Google Pay clamped to half the height), Sign-in button |
+| `controlShape` (Boxed, Hairline) | `{ squares: ['radius.sm'] }`: the corner refs Boxed and Hairline square and Pill leaves alone | the fields (Code input's cell included), Checkbox |
 | `fieldStyle` | `{ frame: 'control' }`, the box Underline redraws; add `setting: 'searchFieldStyle'` to follow the Search field style | the seven field defs |
 | `tagStyle` | `{ frame, row, labelRow, slot }`, the four parts Underline reaches | Tag |
 | `buttonLabelWeight` | `{ labels: true }`: "Control label weight" reaches a def outside the button family, rebinding each size's label type | Tag |
