@@ -170,6 +170,10 @@ export type SetPreview = {
    *  acts on count: one with a layer added or removed by hand is skipped whole, so nothing on it is removed. Absent when
    *  none. Never capped. */
   removedLayers?: { path: string; members: number }[];
+  /** #3025 — each layer the update replaces, per member, as `replacements` lists it, but only on members the update acts
+   *  on: one with a layer added or removed by hand, or one that would need replacing itself, is skipped whole, so nothing
+   *  on it is replaced. The member itself (path `.`) is not here. Absent when none. Never capped: `breakingOf` counts it. */
+  replacedLayers?: { member: string; path: string; reason: string }[];
   blockers: string[];
   /** #3421 — every blocker is a variable or a text or effect style the plans name that the file lacks: what the brand's
    *  Theme writes. Update file runs Theme first, so it checks such a set again after Theme and updates it in the same run.
@@ -552,6 +556,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   const rev = String(EXECUTOR_REVISION);
   const states: SetPreview['states'] = [];
   const removedLayers = new Map<string, number>();
+  const replacedLayers: { member: string; path: string; reason: string }[] = [];
   const plannedRx = reactionMap(plans.map((p) => planComponentName(p)), plans[0]?.pressState);
   for (const l of matched) {
     const plan = planned.get(l.target)!;
@@ -630,6 +635,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
         replacements.push({ member: m.name, path: part, reason: part === '.'
           ? `the member itself would need replacing (${d.actual} → ${d.expected}); the update refuses this member`
           : `${d.actual} → ${d.expected}` });
+        if (!structural) replacedLayers.push({ member: m.name, path: part, reason: `${d.actual} → ${d.expected}` });
         touched.add(part);
         continue;
       }
@@ -776,6 +782,8 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   if (positions.length) counts.move = positions.length;
 
   const truncated: Record<string, number> = {};
+  const replacedSelf = new Set(replacements.filter((r) => r.path === '.').map((r) => r.member));
+  const acted = replacedLayers.filter((r) => r.path !== '.' && !replacedSelf.has(r.member));
   const cap = <T>(name: string, list: T[]): T[] => {
     if (list.length <= LIST_CAP) return list;
     truncated[name] = list.length - LIST_CAP;
@@ -804,6 +812,8 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     states,
     ...(positions.length ? { positions: cap('positions', positions) } : {}),
     ...(removedLayers.size ? { removedLayers: [...removedLayers].map(([path, members]) => ({ path, members })) } : {}),
+    // A member that would need replacing itself is refused whole, so none of its layers is replaced either.
+    ...(acted.length ? { replacedLayers: acted } : {}),
     needsChoice,
     ...(adoptClears.length ? { adoptClears } : {}),
     ...(Object.keys(truncated).length ? { truncated } : {}),
@@ -1860,7 +1870,8 @@ export const previewLine = (p: SetPreview): string => {
 
 /** #2831 — what a set's update breaks for library consumers, from what its dry run lists. Empty for a set that is not
  *  published (nothing reaches another file), and for a set the update refuses (it changes nothing). A replacement of
- *  the member itself is left out: the update refuses that member, so it is not replaced. */
+ *  the member itself is left out: the update refuses that member, so it is not replaced. The replacements are read from
+ *  `replacedLayers` (#3025), uncapped and only on members the update acts on, never from the capped `replacements`. */
 export const breakingOf = (p: SetPreview): Breaking[] => {
   if (!isPublished(p.publish) || p.blockers.length) return [];
   const hidden = (name: string): boolean => name.startsWith('_') || name.startsWith('.');
@@ -1870,7 +1881,7 @@ export const breakingOf = (p: SetPreview): Breaking[] => {
     ...p.properties.remove.map((x) => ({ kind: 'property' as const, name: x.name, change: 'removed' as const })),
     ...p.properties.retype.map((x) => ({ kind: 'property' as const, name: x.name, change: 'retyped' as const, from: x.from, to: x.to })),
     ...p.drops.map((member) => ({ kind: 'drop' as const, member })),
-    ...p.replacements.filter((r) => r.path !== '.').map((r) => ({ kind: 'replace' as const, ...r })),
+    ...(p.replacedLayers ?? []).filter((r) => r.path !== '.').map((r) => ({ kind: 'replace' as const, ...r })),
     ...removedLayers(p),
   ];
 };

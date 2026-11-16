@@ -64,6 +64,9 @@
  *     `stopped/text inside the pass carried next run`, `closed/text carried next run`;
  *   · the kept capture never narrowed after a fill (`only` ignored) → `closed/converge`;
  *   · a kept carry not counted as work (`carryDue` false) → `closed after/due`, `closed after/carried`.
+ *   · the members an update configures not marked in progress before the set's first write (#3797) →
+ *     `closed/no false hand edit`; marked only after the set's own writes, just before the executor's pass (#3809 review) →
+ *     `refused/mid no false hand edit`, `refused/no false hand edit`.
  *   · the size bound dropped from `keepCarry` → `kept/too large not written`, `kept/too large named`;
  *   · the try around `keepCarry`'s write dropped → `kept/refused run completes`, `kept/refused filled`, `kept/refused named`;
  *   · the kept entry's validation back to `Array.isArray(instances)` → `kept/malformed preview (…)`, `kept/malformed apply (…)`,
@@ -365,11 +368,15 @@ section('stopped — a set that stops at member N still fills the instances of t
   const target: UpdateTarget = { def: 'checkbox-group', plans: figmaAnatomySet(defOf('checkbox-group'), { swapTarget: SWAP_TARGET }) };
   const w = await world(LEGACY['checkbox-group'](), target.plans);
   const members = w.set().children as Node[];
+  // #3797: the apply marks every member it configures before the set's first write, so the executor's mark as it reaches
+  // a member is that member's second; the stop is on the third member the executor reaches.
   const marks: Node[] = [];
+  const premarked = new Set<Node>();
   for (const m of members) {
     const real = m.setSharedPluginData as (ns: string, k: string, v: string) => void;
     m.setSharedPluginData = (ns: string, k: string, v: string) => {
-      if (k === UPDATING_KEY && v) { marks.push(m); if (marks.length === 3) throw new Error('in setSharedPluginData: the host stopped'); }
+      if (k === UPDATING_KEY && v && !premarked.has(m)) premarked.add(m);
+      else if (k === UPDATING_KEY && v) { marks.push(m); if (marks.length === 3) throw new Error('in setSharedPluginData: the host stopped'); }
       real.call(m, ns, k, v);
     };
   }
@@ -387,20 +394,23 @@ section('stopped — a set that stops at member N still fills the instances of t
   const o = res.outcomes[0];
   ok(!!o?.stopped && /the host stopped/.test(o.stopped) && marks.length === 3,
     `premise: the set stopped as the update marked its third member (${o?.stopped}; ${marks.length} marks of ${members.length} members)`);
-  const first = placedOn.get(marks[0])!, stoppedAt = placedOn.get(marks[2])!;
-  const labels = (inst: Placed): unknown[] => (slotOf(inst)?.children ?? []).map((x) => (x.componentProperties as Record<string, { value: Val }>)['Label#1:0']?.value);
-  ok(!!slotOf(first) && JSON.stringify(labels(first).slice(0, 2)) === JSON.stringify([`Email ${members.indexOf(marks[0]) + 1}`, `SMS ${members.indexOf(marks[0]) + 1}`]),
-    `stopped/earlier kept: an instance of a member finished before the stop holds its rows' content in the slot (${JSON.stringify(labels(first))})`);
-  const checked = (slotOf(first)?.children ?? []).map((x) => ((x.exposedInstances as Model[] | undefined)?.[0]?.componentProperties as Record<string, { value: Val }> | undefined)?.selection?.value);
-  ok(checked[0] === 'checked', `stopped/earlier state: its first item keeps the row's checked state (${JSON.stringify(checked)})`);
-  ok(!slotOf(stoppedAt) && stoppedAt.children.some((c) => c.name === 'row1'),
-    `stopped/later untouched: an instance of the member the stop hit still has its rows, for the next run to read (${stoppedAt.children.map((c) => c.name).join(',')})`);
-  ok(!!o.carried && !o.carried.misses.some((m) => m.includes('after the update')),
-    `stopped/no false miss: an unreached instance is not reported as missing its slot (${JSON.stringify(o.carried?.misses ?? [])})`);
-  const again = await previewUpdate(w.host, [target]);
-  const caps = again.sets[0].slotMigration?.instances.map((c) => c.name) ?? [];
-  ok(!caps.includes(first.name) && caps.includes(stoppedAt.name),
-    `stopped/rerun: the next dry run reads the untouched instance's rows, and has nothing left to read on the filled one (${JSON.stringify(caps)})`);
+  // A broken premise fails above by name; the rest is skipped rather than thrown, so the arms after it still run.
+  if (marks.length === 3) {
+    const first = placedOn.get(marks[0])!, stoppedAt = placedOn.get(marks[2])!;
+    const labels = (inst: Placed): unknown[] => (slotOf(inst)?.children ?? []).map((x) => (x.componentProperties as Record<string, { value: Val }>)['Label#1:0']?.value);
+    ok(!!slotOf(first) && JSON.stringify(labels(first).slice(0, 2)) === JSON.stringify([`Email ${members.indexOf(marks[0]) + 1}`, `SMS ${members.indexOf(marks[0]) + 1}`]),
+      `stopped/earlier kept: an instance of a member finished before the stop holds its rows' content in the slot (${JSON.stringify(labels(first))})`);
+    const checked = (slotOf(first)?.children ?? []).map((x) => ((x.exposedInstances as Model[] | undefined)?.[0]?.componentProperties as Record<string, { value: Val }> | undefined)?.selection?.value);
+    ok(checked[0] === 'checked', `stopped/earlier state: its first item keeps the row's checked state (${JSON.stringify(checked)})`);
+    ok(!slotOf(stoppedAt) && stoppedAt.children.some((c) => c.name === 'row1'),
+      `stopped/later untouched: an instance of the member the stop hit still has its rows, for the next run to read (${stoppedAt.children.map((c) => c.name).join(',')})`);
+    ok(!!o.carried && !o.carried.misses.some((m) => m.includes('after the update')),
+      `stopped/no false miss: an unreached instance is not reported as missing its slot (${JSON.stringify(o.carried?.misses ?? [])})`);
+    const again = await previewUpdate(w.host, [target]);
+    const caps = again.sets[0].slotMigration?.instances.map((c) => c.name) ?? [];
+    ok(!caps.includes(first.name) && caps.includes(stoppedAt.name),
+      `stopped/rerun: the next dry run reads the untouched instance's rows, and has nothing left to read on the filled one (${JSON.stringify(caps)})`);
+  }
 }
 
 // ---- closed ---------------------------------------------------------------------------------------------------------
@@ -442,6 +452,43 @@ section('closed — a set the plugin is closed in part-way keeps the rows of the
   const keptNow = (w.set().getSharedPluginData as (ns: string, k: string) => string)('prism3', 'slotCarry');
   ok(!third.sets[0].slotMigration && keptNow === '',
     `closed/converge: once filled, the set keeps no capture and the next dry run has nothing left to carry (${JSON.stringify(third.sets[0].slotMigration?.instances.map((c) => c.name))}; kept ${keptNow.length} chars)`);
+  // #3797: the close came after the set's own writes (its old booleans removed), before the pass reached every member.
+  // The members it never reached changed under those writes, and must read as the update's, not as hand edits: every
+  // member it configures is marked in progress before the set's first write (`applySet`). Mutation: that mark dropped →
+  // `closed/no false hand edit`.
+  const c3 = third.sets[0].counts;
+  ok(c3.handEdited === 0 && c3.current === c3.members,
+    `closed/no false hand edit: after the close and a full run, no member reads as edited by hand and every one reads current (${JSON.stringify(c3)})`);
+}
+
+section('refused/set write — a host refusal inside the set\'s own writes leaves no member read as edited by hand (#3797, #3809 review)');
+{
+  // The mark's placement, pinned. The close above lands inside the executor's pass, after every set-level write, so a
+  // mark placed anywhere before the pass passes it. A throw inside the set writes does not: the layer renames and the
+  // property removals before it have already changed every member. Modelled as the set's third `deleteComponentProperty`
+  // refused. Marked before the set's first write, the members read as to update, and the next run finishes them.
+  // Mutation: the mark block moved to just before `applyComponentPlan` → `refused/mid no false hand edit`,
+  // `refused/no false hand edit`.
+  const target: UpdateTarget = { def: 'checkbox-group', plans: figmaAnatomySet(defOf('checkbox-group'), { swapTarget: SWAP_TARGET }) };
+  const w = await world(LEGACY['checkbox-group'](), target.plans);
+  const set = w.set() as unknown as Record<string, unknown>;
+  const realDel = set.deleteComponentProperty as (k: string) => void;
+  let dels = 0;
+  set.deleteComponentProperty = (k: string) => { if (++dels === 3) throw new Error('the host refused'); realDel.call(set, k); };
+  const pre = await previewUpdate(w.host, [target]);
+  let threw = '', stopped = '';
+  try { const r = await applyUpdate(w.host, w.api as any, [target], previewHashOf(pre)); stopped = r.failed ?? r.outcomes[0]?.stopped ?? ''; } catch (e) { threw = (e as Error).message; }
+  set.deleteComponentProperty = realDel;
+  ok(dels >= 3 && /the host refused/.test(threw || stopped),
+    `premise: the host refused the set's third property removal (${dels} removals; ${threw ? `threw ${threw}` : `ended ${stopped || 'no'}`})`);
+  const mid = (await previewUpdate(w.host, [target])).sets[0].counts;
+  ok(mid.handEdited === 0 && mid.update === mid.members,
+    `refused/mid no false hand edit: the next dry run reads every member as to update, none as edited by hand (${JSON.stringify(mid)})`);
+  const again = await previewUpdate(w.host, [target]);
+  const res = await applyUpdate(w.host, w.api as any, [target], previewHashOf(again));
+  const after = (await previewUpdate(w.host, [target])).sets[0].counts;
+  ok(!res.outcomes[0]?.stopped && after.handEdited === 0 && after.current === after.members,
+    `refused/no false hand edit: after a full run, no member reads as edited by hand and every one reads current (${res.outcomes[0]?.stopped ?? 'finished'}; ${JSON.stringify(after)})`);
 }
 
 section('closed after the write — a set closed after its write but before its fill is not up to date, and the next run fills it (#3762)');

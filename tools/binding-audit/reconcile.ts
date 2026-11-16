@@ -84,6 +84,7 @@ import { readFileSync } from 'node:fs';
 import { componentDefs } from '../../packages/engine/components/index';
 import type { ComponentDef } from '../../packages/engine/component-schema';
 import { buildLedger, type BindField, type Ledger } from './ledger';
+import { localeFreeCompare } from '../../packages/engine/locale-free-order';
 
 // ── THE EXPORT FORMAT — small, stable, versioned (README documents the console snippet that emits it) ─
 export const EXPORT_FORMAT = 'prism3-binding-export';
@@ -365,7 +366,7 @@ export const reconcile = (ledger: Ledger, rawExp: BindingExport): ReconcileResul
       const covered = members.filter((m) => coveredMemberKeys.has(JSON.stringify([component, m.member]))).length;
       return { component, expectedMembers: members.length, coveredMembers: covered };
     })
-    .sort((a, b) => a.component.localeCompare(b.component));
+    .sort((a, b) => localeFreeCompare(a.component, b.component));
   const untouched: string[] = [];
   for (const [component, members] of Object.entries(ledger.components))
     for (const m of members)
@@ -412,7 +413,7 @@ export const formatReport = (r: ReconcileResult): string => {
     const order: Verdict[] = ['WRONG-TOKEN', 'UNBOUND', 'EXTRA', 'UNKNOWN-NODE'];
     const rank = (v: Verdict): number => order.indexOf(v);
     const sorted = [...problems].sort(
-      (a, b) => rank(a.verdict) - rank(b.verdict) || a.component.localeCompare(b.component) || a.node.localeCompare(b.node),
+      (a, b) => rank(a.verdict) - rank(b.verdict) || localeFreeCompare(a.component, b.component) || localeFreeCompare(a.node, b.node),
     );
     for (const f of sorted) {
       const where = `${f.component} · ${f.member} · ${f.node}${f.field ? ` [${f.field}]` : ''}`;

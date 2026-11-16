@@ -19,6 +19,8 @@ import { persistInput } from './src/persist-figma';
 import { declaredModesOf, seedSummary, SKIP_NO_BRAND, SKIP_UNREADABLE } from './src/seed-modes';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { NB_MEASURED_JSON as nbMeasured } from '@prism3/engine/harness';
+/** Code-unit order, which no host locale moves (#3701). Both sides of every comparison here sort the same way. */
+const codeUnitOrder = (x: string, y: string): number => (x < y ? -1 : x > y ? 1 : 0);
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -313,7 +315,7 @@ const aliasTargetsOf = (s: Awaited<ReturnType<typeof emitAndRead>>): Binding[] =
       const val = v.valuesByMode[m];
       if (val && typeof val === 'object' && 'alias' in val && typeof val.alias === 'string') out.push({ row: v.name, mode: m, target: val.alias });
     }
-  return out.sort((a, b) => `${a.row}@${a.mode}`.localeCompare(`${b.row}@${b.mode}`));
+  return out.sort((a, b) => codeUnitOrder(`${a.row}@${a.mode}`, `${b.row}@${b.mode}`));
 };
 const nativeAliases = aliasTargetsOf(runNative);
 const foreignAliases = aliasTargetsOf(runForeign);
