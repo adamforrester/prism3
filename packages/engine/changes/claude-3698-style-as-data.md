@@ -1,4 +1,0 @@
----
-engine: minor
----
-A component definition now declares which brand style settings reach it, and where, as data: `levers` (#3698). Control shape's field corners, Field style's frame, the Search field style, Tag style's four parts, Dialog title size's title key, Banner style's tone fills, Current page indicator's bar and Outline hover's opaque fill used to live in tables keyed by def id inside the Figma projection. Each one is now a `levers` entry on the def it reaches. The materializers read only the def. The validator refuses an entry naming a part or key that does not exist, so a new styled component needs no projector edit. `fieldStyleFor` now takes the def instead of its id. No emitted artifact changes, and no component plan changes under any setting. `CONTRACT_VERSION` unchanged: no token name moves.

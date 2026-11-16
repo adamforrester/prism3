@@ -1035,7 +1035,10 @@ export const ownerRuleFindings = (rule: OwnerRule, skillText: (name: string) => 
 // untracked files that are not ignored) and fails on each line that names a retired skill, unless the line also
 // names the skill that replaced it. That line is a redirect ("`new` was named `old` until #N"), which is the one
 // place the old name belongs. The dated history (the progress log, the changelog and their pending entries, the
-// superpowers working notes) keeps the name the skill had on that date, and is not read.
+// superpowers working notes) keeps the name the skill had on that date, and is not read. So does a version's release
+// record (`docs/public/releases/<x.y.z>.md` and `.json`): a fold writes it once, carrying each folded change note
+// verbatim, the same text the changelog holds, and `lint-release-notes.ts` re-derives it from git, so it cannot be
+// edited to the new name. The release index (`index.md`, `index.json`) is not a dated record, and is still read.
 //
 // Independence (docs/34): the old and new names are literals in this register, never read from `skills/`; the
 // subject is the repo's text. The skill directories are checked against the register too: the old one must be
@@ -1048,7 +1051,7 @@ export const ownerRuleFindings = (rule: OwnerRule, skillText: (name: string) => 
 // WHAT IT CANNOT SEE: a nickname. "The consume skill" in a comment is not the skill's name, and passes.
 type RetiredSkill = { old: string; now: string; issue: string };
 const RETIRED_SKILLS: RetiredSkill[] = [{ old: 'prism3-consume', now: 'prism3-build-ui', issue: '#3412' }];
-const HISTORY = [/^docs\/00-progress\.md$/, /^docs\/progress\//, /^packages\/engine\/CHANGELOG\.md$/, /^packages\/engine\/changes\//, /^docs\/superpowers\//];
+const HISTORY = [/^docs\/00-progress\.md$/, /^docs\/progress\//, /^packages\/engine\/CHANGELOG\.md$/, /^packages\/engine\/changes\//, /^docs\/superpowers\//, /^docs\/public\/releases\/\d+\.\d+\.\d+\.(?:md|json)$/];
 const nameRe = (name: string): RegExp => new RegExp(`(?<![A-Za-z0-9_-])${name.replace(/[-]/g, '\\-')}(?![A-Za-z0-9_-])`);
 const pathRe = (name: string): RegExp => new RegExp(`(?<![A-Za-z0-9])${name.replace(/[-]/g, '\\-')}(?![A-Za-z0-9])`);
 export const retiredNameFindings = (files: [string, string][], retired: RetiredSkill[], skills: string[]): Finding[] => {
@@ -1085,6 +1088,8 @@ let retiredSelfRuns = 0, retiredFilesRead = 0;
     ['the new skill missing', retiredNameFindings([], [R], []), 1],
     ['a file named after it', retiredNameFindings([[`docs/${R.old}-eval.md`, 'ok']], [R], live), 1],
     ['a history file named after it', retiredNameFindings([[`docs/progress/archive/${R.old}.md`, 'ok']], [R], live), 0],
+    ['a release record', retiredNameFindings([['docs/public/releases/0.238.0.md', `Read the ${R.old} skill.`]], [R], live), 0],
+    ['the release index', retiredNameFindings([['docs/public/releases/index.md', `Read the ${R.old} skill.`]], [R], live), 1],
   ];
   retiredSelfRuns = checks.length;
   const broken = checks.filter(([, f, n]) => f.length !== n);

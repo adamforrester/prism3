@@ -166,7 +166,7 @@ import { servedToolsList, servedStrings, servedBridgeInstructions } from './mcp-
 // approval on text that then fails against the wrong file, which is #1117's whole complaint. The
 // #387/#511 property is unchanged — `scan()` below and `SELF_CHECK` both drive the imported `enGb`,
 // so neutering a rule fails this gate's self-check rather than only going quiet in production.
-import { enGb, EN_GB_FILE_NAMES } from './prose-rules.ts';
+import { enGb, EN_GB_FILE_NAMES, EN_GB_SLUGS } from './prose-rules.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
@@ -408,11 +408,26 @@ const SELF_CHECK: { sample: string; expect: boolean }[] = [
   { sample: 'run packages/engine/materialise-to-figma.ts <brand>', expect: false }, // the tracked path
   { sample: 'the plugin will materialise it', expect: true },  // the same word in prose
   { sample: 'see materialise-to-figma.ts', expect: true },     // a bare file name is not the masked path
+  // An en-GB BRANCH SLUG, carried into the release notes by a fold, is masked as the whole slug, never as the word.
+  { sample: '### claude-3186-centring (patch)', expect: false }, // the registered slug
+  { sample: 'the centring of the box', expect: true },          // the same word in prose
+  { sample: 'claude-9999-centring', expect: true },              // an unregistered slug is not masked
+  // A JSON `\n` escape glued to an en-US word (NOT_EN_GB), and the en-GB word still caught after one.
+  { sample: 'the change\\nraises the number', expect: false },
+  { sample: 'the change\\nnormalises it', expect: true },
 ];
 // …and each masked file name is still a tracked file, so a rename cannot leave a mask behind that hides nothing.
 const staleNames = EN_GB_FILE_NAMES.filter((f) => !existsSync(join(repo, f)));
 if (staleNames.length) {
   console.error(`\n❌ EN_GB_FILE_NAMES in prose-rules.ts names ${staleNames.length} file(s) that no longer exist: ${staleNames.join(', ')}. Remove them.\n`);
+  process.exit(1);
+}
+// …and each masked slug is still a release-notes `slug`, so a mask cannot outlive the record that needed it.
+const releaseSlugs = new Set(readdirSync(join(repo, 'docs/public/releases')).filter((f) => /^\d+\.\d+\.\d+\.json$/.test(f))
+  .flatMap((f) => [...readFileSync(join(repo, 'docs/public/releases', f), 'utf8').matchAll(/"slug":\s*"([^"]+)"/g)].map((m) => m[1])));
+const staleSlugs = EN_GB_SLUGS.filter((s) => !releaseSlugs.has(s));
+if (staleSlugs.length) {
+  console.error(`\n❌ EN_GB_SLUGS in prose-rules.ts names ${staleSlugs.length} slug(s) no release notes carry: ${staleSlugs.join(', ')}. Remove them.\n`);
   process.exit(1);
 }
 // Drives `enGb` — the same function `scan()` calls — so neutering either regex fails HERE. See the
