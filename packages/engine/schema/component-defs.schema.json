@@ -1168,7 +1168,6 @@
         },
         "motion": {
           "type": "object",
-          "minProperties": 1,
           "description": "The def's motion bindings (#3506): each `tokens` key whose token is a `motion.*` one. Absent on a def with none.",
           "additionalProperties": {
             "$ref": "#/$defs/token"
