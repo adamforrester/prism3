@@ -26737,6 +26737,42 @@ arm: {
       ok(swapRows.every((r) => r.prop === `property ↳ swap leading icon -> swap target ${ICON} (${swapMissAdvice(r.found, ICON)}; ${SWAP_NO_PROPERTY})`),
         `#1288 ...and so is the property-level one, under the canon panel label (#1380) (${swapRows.find((r) => r.prop !== `property ↳ swap leading icon -> swap target ${ICON} (${swapMissAdvice(r.found, ICON)}; ${SWAP_NO_PROPERTY})`)?.prop ?? 'all four match'})`);
 
+      // ---- #1796: TWO PLAIN COMPONENTS under a nest or swap target's exact name, on the PASTE path ----
+      // The payload's half of the plugin arms in `apps/plugin/test-write-components.ts` (`#1796 …`). `compByName` keeps
+      // one entry per name, so the payload used to nest or swap in whichever of two same-named components the search
+      // returned last, and report success. Now each target reads `oneComp`: two of a name are reported by name, through
+      // the shared advice's AMBIGUOUS row, and nothing is made from either. THE ORACLE is the host: the page is walked
+      // for an INSTANCE whose `mainComponent` the stub recorded under the target's name.
+      {
+        const instancesOf = (page: StubPage, name: string): number => {
+          let n = 0;
+          const walk = (x: Record<string, unknown>): void => {
+            if (x.type === 'INSTANCE' && (x as { mainComponent?: { name: string } }).mainComponent?.name === name) n++;
+            for (const c of (x.children as Record<string, unknown>[] | undefined) ?? []) walk(c);
+          };
+          for (const c of page.children) walk(c);
+          return n;
+        };
+        // REACHABILITY: with ONE of each, the grid really does nest the ring and swap in the icon.
+        const onePage: StubPage = { children: [] };
+        await runPayload(planSetToPluginJs(grid), { ...fullSet, page: onePage });
+        ok(instancesOf(onePage, 'focus-ring') > 0 && instancesOf(onePage, ICON) > 0,
+          `#1796 paste path reachable: with one of each, the grid nests focus-ring (${instancesOf(onePage, 'focus-ring')}) and swaps in ${ICON} (${instancesOf(onePage, ICON)})`);
+        const ringPage: StubPage = { children: [] };
+        const ring = await runPayload(planSetToPluginJs(grid), { ...fullSet, comps: [...fullSet.comps, 'focus-ring'], page: ringPage });
+        const ringMiss = [...new Set(ring.misses.filter((m) => m.includes('.nestTarget -> focus-ring')))];
+        ok(ringMiss.length > 0 && ringMiss.every((m) => m.includes('.nestTarget -> focus-ring (found more than one COMPONENT of that name; neither is used')) && instancesOf(ringPage, 'focus-ring') === 0,
+          `#1796 paste path: two plain components named focus-ring are reported by name and no ring is nested from either (${instancesOf(ringPage, 'focus-ring')} built; ${ringMiss[0] ?? JSON.stringify(ring.misses.slice(0, 2))})`);
+        const iconPage: StubPage = { children: [] };
+        const icon = await runPayload(planSetToPluginJs(grid), { ...fullSet, comps: [...fullSet.comps, ICON], page: iconPage });
+        const iconLead = swapMissesOf(icon.misses, 'leadingVisual')[0] ?? '(none)';
+        const iconProp = [...new Set(icon.misses.filter((m) => m.startsWith('property ') && m.indexOf(`swap target ${ICON}`) >= 0))][0] ?? '(none)';
+        ok(iconLead === `leadingVisual.swapTarget -> ${ICON} (${swapMissAdvice('AMBIGUOUS', ICON)}; ${SWAP_PLACEHOLDER})` && iconLead.includes('found more than one COMPONENT of that name; neither is used') && instancesOf(iconPage, ICON) === 0,
+          `#1796 paste path: two plain components named ${ICON} are reported by name at the swap node and neither is swapped in (${instancesOf(iconPage, ICON)} built; ${iconLead})`);
+        ok(iconProp === `property ↳ swap leading icon -> swap target ${ICON} (${swapMissAdvice('AMBIGUOUS', ICON)}; ${SWAP_NO_PROPERTY})`,
+          `#1796 paste path: ...and the swap property is not created from either (${iconProp})`);
+      }
+
       // ---- the BOOLEAN path through the PAYLOAD, not just the plan (#513's stated ceiling) --------
       // #513 said "the `booleans` path is unit-tested through a synthetic def but not yet exercised
       // live", and the coverage above (`boolProps`) is `planSetProperties` only — it proves the plan

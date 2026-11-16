@@ -57,7 +57,7 @@
 // The three selection controls read back for #1011 are resolved through `componentDefs` rather than
 // imported by name — the engine's components entry names only `button`, `fieldLabel` and `fieldMessage`, and
 // #804's own reasoning says an id-based lookup is the one the main thread does.
-import { figmaAnatomyPlan, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planSetProperties, planSetLayout, planComponentName, planStamp, button, fieldLabel, fieldMessage, componentDefs, type ComponentDef, type AnatomyPlan } from '@prism3/engine/components';
+import { figmaAnatomyPlan, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planSetProperties, planSetLayout, planComponentName, planStamp, button, fieldLabel, fieldMessage, componentDefs, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, type ComponentDef, type AnatomyPlan } from '@prism3/engine/components';
 // #1015 — the token VALUE half of the corner read-back. The shim gives every variable a synthetic value,
 // so a built node can only name the variable it binds; these three resolve that name against real brands.
 // All in the engine's public entries, which is why the value assertion can be co-located with the node one
@@ -5061,6 +5061,51 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const goneRows = builtInstances(gone.page).filter((i) => i.set === '__old__checkbox-row');
   ok(goneMiss.length > 0 && goneMiss.every((m) => m.includes('not in this file')) && goneRows.length === 0,
     `#1781 with checkbox-row missing, __old__checkbox-row is not used in its place and the miss names the target (${goneMiss.length} misses, ${goneRows.length} rows from __old__; ${goneMiss[0] ?? 'NO MISS'})`);
+}
+
+// #1796 — TWO PLAIN COMPONENTS UNDER A NEST OR SWAP TARGET'S EXACT NAME
+// =============================================================================================
+// `compByName` keeps one entry per name, so with two plain components under the name a plan nominates, the build
+// nested or swapped in whichever the search returned last and reported success. Now both targets read `oneComp`:
+// two of a name are reported by name, through the shared advice's AMBIGUOUS row, and nothing is made from either —
+// as #1781 refuses two SETS under one name. THE ORACLE is the host: each built INSTANCE's `mainComponent`, recorded
+// by the shim when `createInstance` was called. The paste payload's twin is `test.ts`'s `#1796 paste path` arms.
+{
+  const instancesOf = (page: Page, name: string): number => {
+    let n = 0;
+    const walk = (x: Node): void => {
+      if (x.type === 'INSTANCE' && (x as { mainComponent?: { name: string } }).mainComponent?.name === name) n++;
+      for (const c of (x.children as Node[] | undefined) ?? []) walk(c);
+    };
+    for (const c of page.children) walk(c);
+    return n;
+  };
+  // REACHABILITY: with ONE of each, the grid really does nest the ring and swap in the target.
+  const onePage: Page = { children: [] };
+  await run(grid, { ...full(), page: onePage });
+  ok(instancesOf(onePage, NEST) > 0 && instancesOf(onePage, SWAP) > 0,
+    `#1796 reachable: with one of each, the grid nests ${NEST} (${instancesOf(onePage, NEST)}) and swaps in ${SWAP} (${instancesOf(onePage, SWAP)})`);
+  // The shim really holds two: a COMPONENT search returns the name twice.
+  const twoApi = makeShim({ ...full(), comps: [...full().comps!, NEST, SWAP] }) as unknown as { root: { findAllWithCriteria: (c: { types: string[] }) => { name: string }[] } };
+  const held = twoApi.root.findAllWithCriteria({ types: ['COMPONENT'] }).map((c) => c.name);
+  ok(held.filter((n) => n === NEST).length === 2 && held.filter((n) => n === SWAP).length === 2,
+    `#1796 reachable: a COMPONENT search returns ${NEST} and ${SWAP} twice each`);
+
+  const ringPage: Page = { children: [] };
+  const ring = await run(grid, { ...full(), comps: [...full().comps!, NEST], page: ringPage });
+  const ringMiss = [...new Set(ring.misses.filter((m) => m.includes(`.nestTarget -> ${NEST}`)))];
+  ok(ringMiss.length > 0 && ringMiss.every((m) => m.includes(`.nestTarget -> ${NEST} (found more than one COMPONENT of that name; neither is used`)) && instancesOf(ringPage, NEST) === 0,
+    `#1796 two plain components named ${NEST} are reported by name and no ring is nested from either (${instancesOf(ringPage, NEST)} built; ${ringMiss[0] ?? 'NO MISS'})`);
+  ok(ring.variants === 21, `#1796 ...and the set still builds all 21 members (${ring.variants})`);
+
+  const swapPage: Page = { children: [] };
+  const sw = await run(grid, { ...full(), comps: [...full().comps!, SWAP], page: swapPage });
+  const swNode = [...new Set(sw.misses.filter((m) => m.indexOf(`.swapTarget -> ${SWAP}`) >= 0))];
+  const swProp = [...new Set(sw.misses.filter((m) => m.startsWith('property ') && m.indexOf(`swap target ${SWAP}`) >= 0))];
+  ok(swNode.length > 0 && swNode.every((m) => m.includes(`.swapTarget -> ${SWAP} (${swapMissAdvice('AMBIGUOUS', SWAP)}; ${SWAP_PLACEHOLDER})`) && m.includes('found more than one COMPONENT of that name; neither is used')) && instancesOf(swapPage, SWAP) === 0,
+    `#1796 two plain components named ${SWAP} are reported by name at the swap node and neither is swapped in (${instancesOf(swapPage, SWAP)} built; ${swNode[0] ?? 'NO MISS'})`);
+  ok(swProp.length === 1 && swProp[0].includes(`(${swapMissAdvice('AMBIGUOUS', SWAP)}; ${SWAP_NO_PROPERTY})`),
+    `#1796 ...and the swap property is not created from either (${swProp[0] ?? 'NO MISS'})`);
 }
 
 // ---- #1750: a new set lands beside the page's content, never on top of it ------------------------------

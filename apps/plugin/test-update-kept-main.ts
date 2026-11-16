@@ -92,7 +92,9 @@ const shim = makeShim({
   liveVars,
   styles: [...new Set(all.flatMap((p) => planTextStyles(p.root)))],
   effects: [...new Set(all.flatMap((p) => planEffectStyles(p.root)))],
-  comps: [...new Set([SWAP_TARGET, 'focus-ring', ...all.flatMap((p) => planComps(p.root))])],
+  // No `comps` (#1796): every component the two sets nest or swap to is a live one on the Dependencies page below, which
+  // the search returns. Naming them here too put each in the file twice, and two plain components of one name are now
+  // refused rather than picked between.
   page, pages: () => pages, liveRoot: true, liveComponents: true, identities: true, scaleConstrained: true,
 }) as Record<string, any>;
 const root = shim.root as Record<string, unknown>;
