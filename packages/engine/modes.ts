@@ -2497,6 +2497,19 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // The opaque outline hover fill (#3071) is put after this layer too, from its own setting.
     if (/^(?:inverse\.)?interactive\.[^.]+\.hover-fill\./.test(key))
       throw new Error(`overrides[${mode}]: '${key}' is the opaque outline hover fill (#3071), set by \`outlineHoverFill.${mode}\` on the page; the inverse band takes the default rule. It cannot be overridden on its own.`);
+    // A TRANSLUCENT WASH (#3072). Its strength is the alpha step it aliases (`black-alpha.10`), so a palette step
+    // emits it OPAQUE (the tree aliases the path and the role's `alpha` never reaches the value), and its ratio is an
+    // ink on the composite (#963), which this layer's `contrast(self, against)` does not measure. Refused, as #3071
+    // and #3073 refuse the roles this layer cannot write honestly. Read off the model the role was put with, so a
+    // wash added later is covered the day it is put.
+    const wash = roles[key];
+    if (wash?.model === 'ink-on-composite')
+      throw new Error(`overrides[${mode}]: '${key}' is a translucent wash (#3072): its strength is the alpha step it aliases, so a palette step would emit it opaque, and its contrast is '${wash.legibleFor}' on the composite. It cannot be overridden on its own.`);
+    // A SUBTLE FILL (#3072) is put after every mode resolves (`settleSolidTint`), from its fill at an opacity step, so
+    // an override here never reached the output and was dropped without a word. Refused, pointing at its fill.
+    const tint = /^((?:inverse\.)?interactive\.[^.]+\.)subtle-fill\./.exec(key);
+    if (tint)
+      throw new Error(`overrides[${mode}]: '${key}' is a subtle fill (#3072), the category's fill at an opacity step, set after this layer. It cannot be overridden on its own. Override '${tint[1]}fill.rest' and the tint follows it.`);
   }
   if (ov) {
     for (const [rolePath, ref] of Object.entries(ov)) {
@@ -2874,7 +2887,8 @@ const TINT_VISIBLE_DE = 2.3;
  *
  * READS THE SETTLED ROLES. Fill, ground and ink are read off each mode's final roles, so an override on the
  * fill or the ink (the per-mode override layer runs inside `resolveMode`) is what the tint follows and is
- * measured against. A subtle fill itself has nothing to override: it is not a color, it is a step.
+ * measured against. A subtle fill itself has nothing to override: it is not a color, it is a step, and an
+ * `overrides` entry naming one is refused in `resolveMode` (#3072) rather than dropped here.
  */
 const settleSolidTint = (theme: Theme, results: ModeResult[], only?: { color: string; state: 'selected' }): void => {
   const steps = OPACITY_STEPS.filter((s) => s > 0);

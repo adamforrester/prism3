@@ -81,6 +81,15 @@
  * `forget-code/hold-open` (all three); its `codeSent` guard dropped → `forget-code/hold-open: a paired heard before the
  * deadline is kept …`; `PAIRED_MS` raised to an hour → `forget-code/hold-open: … dropped at a 250 ms deadline …`.
  *
+ * #3764, the owner's Q-PC1 B: `needed-again/shown` (after a failed attempt forgot the code, the prompt carries the
+ * owner-approved line under the field, read against this test's own literal), `needed-again/first` (a first prompt, and
+ * one after the link is switched off and on, carries no error) and `needed-again/cleared` (a new code submitted clears
+ * the line, and a pairing that succeeds leaves no prompt). MUTATIONS, each failing by name: `forgetSentCode` back to
+ * `'needed'` → `needed-again/shown` (and the forget-code arms that read the state); the `'needed-again'` row of
+ * `pairPromptText` removed → `needed-again/shown`; the first prompt's `'needed'` set to `'needed-again'` →
+ * `needed-again/first`; the submit's `'pairing'` left as the prior state → `needed-again/cleared`; `'needed-again'` dropped
+ * from `waitingForCode` → `forget-code/closed`, `/error`, `/impostor-paired`, `/hold-open` (the relay retries a forgotten code).
+ *
  * #2497: the server runs with a short `--grace-ms`, so a dropped plugin's command fails in seconds here. `resend/e2e`
  * drops the real relay's socket while a command runs in the real main.ts, keeps it down until the result is
  * posted, and asserts the result reaches the MCP client exactly once and the command ran once. `resend/running` drops it
@@ -100,6 +109,7 @@ import { ENGINE_VERSION } from '@prism3/engine';
 import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { createBridgeRelay, BRIDGE_PORT, BRIDGE_URL } from './src/agent-bridge-relay';
 import type { WsLike } from './src/agent-bridge-relay';
+import { pairPromptText } from './src/agent-link-ui';
 import { createPairing, createProgressCounter, loadSecret, RESOURCES } from '../../tools/figma-bridge/server';
 import { HANDSHAKE_PROBES, SERVER_INFO as ENGINE_SERVER } from '@prism3/engine/harness';
 import { READ_COMMANDS, AGENT_COMMANDS } from './src/agent-protocol';
@@ -1436,7 +1446,7 @@ section('server-proof — the relay hears only a server that proves the secret')
   ok(!posted('agent-bridge-paired').length && p1.closed && !p1.sent.some((m) => m.type === 'hello'),
     'server-proof/impostor-paired: with a code pending, a paired that cannot prove that code keeps no token and is dropped');
   runLater();
-  ok(socks[socks.length - 1] === p1 && q.pairing() === 'needed',
+  ok(socks[socks.length - 1] === p1 && q.pairing() === 'needed-again',
     `forget-code/impostor-paired: and the code is forgotten: the prompt asks again and nothing reconnects (pairing ${q.pairing()})`);
   q.pair('abcd-efgh');
   const p2 = socks[socks.length - 1];
@@ -1554,7 +1564,7 @@ section('server-proof — the relay hears only a server that proves the secret')
     end(f1);
     const retries = retriesQueued();
     runLater();
-    ok(fpair1.type === 'pair' && f.pairing() === 'needed' && pairings[pairings.length - 1] === 'needed' && retries === 0 && socks.length === opened,
+    ok(fpair1.type === 'pair' && f.pairing() === 'needed-again' && pairings[pairings.length - 1] === 'needed-again' && retries === 0 && socks.length === opened,
       `forget-code/${arm}: a socket that took the code's pair and ${arm === 'closed' ? 'closed (1006)' : 'errored'} without a paired forgets the code: the prompt asks again and no retry is scheduled (${pairings.join(' → ')}; ${retries} retries, ${socks.length - opened} sockets opened)`);
     f.pair(NEW);
     const f2 = socks[socks.length - 1];
@@ -1581,7 +1591,7 @@ section('server-proof — the relay hears only a server that proves the secret')
   say(k2, { type: 'challenge', v: 1, nonce: '3e'.repeat(32) });
   const kpair = k2.sent.find((x) => x.type === 'pair') ?? {};
   say(k2, { type: 'paired', token: TOKEN, proof: provePaired(OLD, kpair.clientNonce) });
-  ok(k2 !== k1 && !k1.sent.some((x) => x.type === 'pair') && k.pairing() !== 'needed' && kpair.proof === provePair(OLD, '3e'.repeat(32)) && posted('agent-bridge-paired').some((x) => x.token === TOKEN),
+  ok(k2 !== k1 && !k1.sent.some((x) => x.type === 'pair') && k.pairing() !== 'needed' && k.pairing() !== 'needed-again' && kpair.proof === provePair(OLD, '3e'.repeat(32)) && posted('agent-bridge-paired').some((x) => x.token === TOKEN),
     `forget-code/unsent: a socket that closed before its challenge never sent the code, so the retry sends it and the real paired is kept (pairing ${k.pairing()})`);
   k.fromMain({ type: 'agent-link-state', state: state(false) });
 
@@ -1622,10 +1632,10 @@ section('server-proof — the relay hears only a server that proves the secret')
   const hOpened = socks.length;
   runLater(); // the deadline passes with no `paired`
   const hRetries = retriesQueued();
-  ok(opair.type === 'pair' && deadlines === 1 && o1.closed && h.pairing() === 'needed' && hRetries === 0 && socks.length === hOpened,
+  ok(opair.type === 'pair' && deadlines === 1 && o1.closed && h.pairing() === 'needed-again' && hRetries === 0 && socks.length === hOpened,
     `forget-code/hold-open: a socket that takes the pair and answers nothing is dropped at a ${DEADLINE_MS} ms deadline, the code forgotten and nothing retried (${deadlines} deadline(s) of ${DEADLINE_MS} ms; closed ${o1.closed}; ${hPairings.join(' → ')}; ${hRetries} retries)`);
   say(o1, { type: 'paired', token: 'e'.repeat(64), proof: provePaired(OLD, opair.clientNonce, 'e'.repeat(64)) });
-  ok(!posted('agent-bridge-paired').length && !o1.sent.some((x) => x.type === 'hello') && h.pairing() === 'needed',
+  ok(!posted('agent-bridge-paired').length && !o1.sent.some((x) => x.type === 'hello') && h.pairing() === 'needed-again',
     `forget-code/hold-open: a valid paired that comes after the deadline, on the held socket, keeps no token (${posted('agent-bridge-paired').length} kept, pairing ${h.pairing()})`);
   // The deadline does not cut a pairing that answered in time: the real paired is kept, and the deadline then passes
   // without dropping the socket.
@@ -1638,6 +1648,63 @@ section('server-proof — the relay hears only a server that proves the secret')
   ok(o2 !== o1 && posted('agent-bridge-paired').some((x) => x.token === TOKEN) && o2.sent.some((x) => x.type === 'hello') && !o2.closed && h.pairing() === 'pairing',
     `forget-code/hold-open: a paired heard before the deadline is kept, and the deadline then leaves the socket open (closed ${o2.closed}, pairing ${h.pairing()})`);
   h.fromMain({ type: 'agent-link-state', state: state(false) });
+
+  // #3764, the owner's Q-PC1 B: when a failed attempt has forgotten a code, the prompt says why under the field
+  // ('needed-again'). A first prompt never does, and a pairing that succeeds clears it. The words are this test's own
+  // literal, the owner-approved copy verbatim, never read from the UI module.
+  const AGAIN = 'The connection closed before pairing finished. Ask your agent for a new code.';
+  told.length = 0;
+  runLater();
+  const aPairings: string[] = [];
+  const a = createBridgeRelay({ open: make, post: (x) => told.push(x), schedule: (fn, ms) => { later.push(fn); laterMs.push(ms); return later.length; }, cancel: () => undefined, holdMs: 0, onPairing: (p) => aPairings.push(p) });
+  a.fromMain({ type: 'agent-bridge-token', token: null });
+  a.fromMain({ type: 'agent-link-state', state: state() });
+  const a0 = socks[socks.length - 1];
+  say(a0, { type: 'challenge', v: 1, nonce: '5a'.repeat(32) });
+  const firstPairing = a.pairing();
+  const first = pairPromptText(firstPairing);
+  a.pair(OLD);
+  const a1 = socks[socks.length - 1];
+  say(a1, { type: 'challenge', v: 1, nonce: '5b'.repeat(32) });
+  a1.closed = true;
+  a1.onclose?.({ code: 1006 });
+  runLater();
+  const again = pairPromptText(a.pairing());
+  ok(a1 !== a0 && a.pairing() === 'needed-again' && again !== null && again.error === AGAIN && !again.busy,
+    `needed-again/shown: after a failed attempt forgot the code, the prompt shows the owner-approved line under the field (${aPairings.join(' → ')}; error ${JSON.stringify(again?.error)})`);
+  // Each check below is read against that shown line, so it cannot pass where the line is never shown at all.
+  ok(firstPairing === 'needed' && first !== null && first.error === null && first.line === again?.line && again?.error === AGAIN,
+    `needed-again/first: a first prompt (no token kept, no code tried) shows the same line with no error under the field, unlike the prompt after a forgotten code (first: ${firstPairing}, error ${JSON.stringify(first?.error)}; after: error ${JSON.stringify(again?.error)})`);
+  a.pair(NEW);
+  const typed = pairPromptText(a.pairing());
+  const a2 = socks[socks.length - 1];
+  say(a2, { type: 'challenge', v: 1, nonce: '5c'.repeat(32) });
+  const apair = a2.sent.find((x) => x.type === 'pair') ?? {};
+  say(a2, { type: 'paired', token: TOKEN, proof: provePaired(NEW, apair.clientNonce) });
+  const ahello = a2.sent.find((x) => x.type === 'hello') ?? {};
+  say(a2, { type: 'welcome', proof: proveWelcome(ahello.clientNonce) });
+  runLater();
+  ok(a2 !== a1 && again?.error === AGAIN && typed !== null && typed.error === null && a.connected() && a.pairing() === 'none' && pairPromptText(a.pairing()) === null,
+    `needed-again/cleared: the line shown after a forgotten code is cleared once a new code is submitted, and the pairing that succeeds leaves no prompt (shown: ${JSON.stringify(again?.error)}; submitted: error ${JSON.stringify(typed?.error)}; then ${a.pairing()}, connected ${a.connected()})`);
+  // The link switched off and on with no token is a fresh first prompt again: the plain line, no error.
+  a.fromMain({ type: 'agent-link-state', state: state(false) });
+  a.fromMain({ type: 'agent-bridge-token', token: null });
+  a.pair(OLD);
+  a.fromMain({ type: 'agent-link-state', state: state() });
+  const a3 = socks[socks.length - 1];
+  say(a3, { type: 'challenge', v: 1, nonce: '5d'.repeat(32) });
+  a3.closed = true;
+  a3.onclose?.({ code: 1006 });
+  const a3Pairing = a.pairing();
+  a.fromMain({ type: 'agent-link-state', state: state(false) });
+  a.fromMain({ type: 'agent-link-state', state: state() });
+  const a4 = socks[socks.length - 1];
+  say(a4, { type: 'challenge', v: 1, nonce: '5e'.repeat(32) });
+  const fresh = pairPromptText(a.pairing());
+  const a3Again = pairPromptText(a3Pairing);
+  ok(a4 !== a3 && a3Pairing === 'needed-again' && a3Again?.error === AGAIN && a.pairing() === 'needed' && fresh !== null && fresh.error === null,
+    `needed-again/first: a failed attempt shows the line, and once the link is switched off and on the prompt is a first prompt again, with no error (before: ${a3Pairing}; after: ${a.pairing()}, error ${JSON.stringify(fresh?.error)})`);
+  a.fromMain({ type: 'agent-link-state', state: state(false) });
 }
 
 child.stdin.end();

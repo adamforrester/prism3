@@ -12,7 +12,7 @@ It is off every time the plugin opens, and only you can turn it on. <!-- src: ap
 An agent working through Figma's own MCP connection can read and write a file's data, but it can't press the plugin's buttons. The agent link gives it two ways in: <!-- src: apps/plugin/src/agent-link.ts:9-21#e9f3139b -->
 
 - The file's plugin data, as a mailbox. The agent writes a request there, and the plugin, while the link is on, checks for requests about once a second, runs one, and writes the result back beside it. <!-- src: apps/plugin/src/agent-protocol.ts:440#faf40979 --> <!-- src: apps/plugin/src/agent-link.ts:9-21#e9f3139b -->
-- The desktop bridge, a small program on your computer that the agent talks to. While the link is on, the plugin holds a connection to it at `ws://localhost:17331`, on your computer only. The first time, the plugin asks you to pair: **Pair with the desktop bridge**, with a **Pairing code** from the bridge or your agent. A code works once, for 10 minutes. <!-- src: apps/plugin/src/agent-link-ui.ts:134-142 --> <!-- src: apps/plugin/src/agent-bridge-relay.ts:68-72 -->
+- The desktop bridge, a small program on your computer that the agent talks to. While the link is on, the plugin holds a connection to it at `ws://localhost:17331`, on your computer only. The first time, the plugin asks you to pair: **Pair with the desktop bridge**, with a **Pairing code** from the bridge or your agent. A code works once, for 10 minutes. <!-- src: apps/plugin/src/agent-link-ui.ts:135-143 --> <!-- src: apps/plugin/src/agent-bridge-relay.ts:69-73 -->
 
 "Prism3 Studio" carries both. "Prism3 Studio Offline" makes no network calls, so it has the mailbox only. <!-- src: apps/plugin/manifest.json:2-19 --> <!-- src: apps/plugin/manifest-offline.json:2-6 -->
 
@@ -24,7 +24,7 @@ MCP (Model Context Protocol) is the standard way an AI agent connects to a tool 
 2. Turn on the **Agent** switch in the top bar, beside Update file. <!-- src: apps/plugin/src/agent-link-ui.ts:230-233 -->
 3. Tell the agent the link is on. It sends a status request first, to confirm the plugin answers.
 
-To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:230 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:2475#13449644 -->
+To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:233 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:2475#13449644 -->
 
 The Activity drawer's bar shows the link's state in a word: "Listening · bridge" or "Listening · mailbox" while it waits, "Listening · mailbox only" in Prism3 Studio Offline, and "Error" or "Not listening" when something is wrong. Point at the word to read the full status. <!-- src: apps/plugin/src/agent-link-ui.ts:124-127 -->
 
@@ -59,13 +59,13 @@ Every write an agent asks for passes the same checks as Update file, and is refu
 ## Safety
 
 - **Off by default, never saved.** The link starts off at every launch and is not remembered between sessions. <!-- src: apps/plugin/src/agent-link.ts:5-8#e3a1fc8c -->
-- **Only you can turn it on.** An agent can't switch it on: only the panel's **Agent** switch sends that request. <!-- src: apps/plugin/src/agent-link-ui.ts:230 --> The main thread turns the link on only when the panel asks. <!-- src: apps/plugin/src/messages.ts:123-125#3ecd6409 -->
-- **While it is off, the plugin ignores the agent entirely.** A request waiting in the file does nothing, and the plugin holds no connection to the bridge. <!-- src: apps/plugin/src/agent-link.ts:6-8#efefb571 --> <!-- src: apps/plugin/src/agent-link-ui.ts:339-340#76ccd888 -->
+- **Only you can turn it on.** An agent can't switch it on: only the panel's **Agent** switch sends that request. <!-- src: apps/plugin/src/agent-link-ui.ts:233 --> The main thread turns the link on only when the panel asks. <!-- src: apps/plugin/src/messages.ts:123-125#3ecd6409 -->
+- **While it is off, the plugin ignores the agent entirely.** A request waiting in the file does nothing, and the plugin holds no connection to the bridge. <!-- src: apps/plugin/src/agent-link.ts:6-8#efefb571 --> <!-- src: apps/plugin/src/agent-link-ui.ts:342-343#76ccd888 -->
 - **Old requests are not replayed.** A request already waiting when you turn the link on is answered "stale" and not run; the agent has to send it again. <!-- src: apps/plugin/src/agent-link.ts:146-158 -->
 - **One request at a time.** The plugin runs requests in the order sent, never two at once, and never while the same write is running from Update file. <!-- src: apps/plugin/src/agent-link.ts:14-18#10971a60 -->
 - **No code from the agent.** In the released plugin, a request names one of the actions above and nothing in it is run as code. A development build, used by maintainers, adds one more request, `run-code`; the release build leaves it out. <!-- src: apps/plugin/src/agent-protocol.ts:46-49 --> <!-- src: apps/plugin/src/agent-dispatch.ts:281 -->
 - **The bridge proves itself.** Before the plugin takes a request from the desktop bridge, the bridge has to prove it holds your pairing. Another program listening on that port can't send one. <!-- src: apps/plugin/src/agent-bridge-relay.ts:29-34#a87764f6 -->
-- **A pairing that fails asks for a new code.** If the bridge doesn't confirm the pairing within a quarter of a second, or the connection closes first, the plugin forgets the code and asks for another. Ask your agent for a new code rather than entering the same one again: another program on that port may have seen it. <!-- src: apps/plugin/src/agent-bridge-relay.ts:151-154#9ce20082 --> <!-- src: apps/plugin/src/agent-bridge-relay.ts:205-212#06d260c3 -->
+- **A pairing that fails asks for a new code.** If the bridge doesn't confirm the pairing within a quarter of a second, or the connection closes first, the plugin forgets the code and asks for another. Ask your agent for a new code rather than entering the same one again: another program on that port may have seen it. <!-- src: apps/plugin/src/agent-bridge-relay.ts:153-156#3bbe1f55 --> <!-- src: apps/plugin/src/agent-bridge-relay.ts:208-215#06d260c3 -->
 - **Deletes and updates need a confirm.** A clean-up or a component update runs as a preview first, and the agent has to send a separate confirm. Ask it to show you the preview before it confirms. <!-- src: apps/plugin/src/agent-protocol.ts:61-70#eb54486c -->
 - **It writes to the open file.** Whatever the agent asks for lands in the file the plugin is open in. Try a new workflow on a copy first. <!-- src: tools/figma-mcp/README.md:132-134#6f9a7cff -->
 
