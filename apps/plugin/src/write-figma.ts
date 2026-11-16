@@ -37,15 +37,7 @@
  * the minimal slice of `figma.variables` the executor touches, so the whole pass sequence is
  * unit-testable against an in-memory shim (see `apps/plugin/test-write.mjs`) with no real Figma.
  */
-import type { WritePlan, Rgba, FloatCollectionPlan, VarCollectionPlan } from '@prism3/engine/write-plan';
-import {
-  renameMap, openMigration, renameCollections, renameVariables,
-  type RenameMap, type MaterializationStep, type Migration,
-} from '@prism3/engine/rename-map';
-import { MATERIALIZATION_RENAMES } from '@prism3/engine/materialization-renames';
-import { CORE_COLLECTION, UNSCOPED_TYPES } from '@prism3/engine/emit-figma-color';
-import type { FigmaEasing } from '@prism3/engine/emit-figma-color';
-import { coreGroupOf, ownedCoreGroup, rootOf } from '@prism3/engine/figma-names';
+import { type WritePlan, type Rgba, type FloatCollectionPlan, type VarCollectionPlan, renameMap, openMigration, renameCollections, renameVariables, type RenameMap, type MaterializationStep, type Migration, MATERIALIZATION_RENAMES, CORE_COLLECTION, UNSCOPED_TYPES, type FigmaEasing, coreGroupOf, ownedCoreGroup, rootOf } from '@prism3/engine/figma';
 
 /** The minimal `figma.variables` surface the executor needs. Declaring it as a port (rather than
  *  reaching for the global `figma`) is what lets the Node harness drive `applyWritePlan` with a
@@ -543,20 +535,24 @@ const upsertCollection = async (
  */
 export type Tick = () => Promise<void>;
 
-export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: Migration, tick?: Tick): Promise<ApplyResult> => {
+/** `names` (#1909): the two collections this executor writes. Each defaults to its usual name; a collision choice can
+ *  give either another name (Rename) or `null` (Skip), and a skipped collection is neither found nor created. Its rows are
+ *  empty then (`collision-choice.ts` empties them), so nothing in it is written or bound. */
+export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: Migration, tick?: Tick,
+  names: { core: string | null; color: string | null } = { core: CORE_COLLECTION, color: 'color' }): Promise<ApplyResult> => {
   // ---- pass 1: `core`'s palette slice (one Default mode, literal RGBA, hidden primitives) ----
   // The collection is `core` since #1097 — the label comes from the engine's own emission constant, so a
   // future collection rename does not need an edit here. The palette SLICE of it is derived from the
   // planned names inside `upsertCollection`.
   const paletteNames = plan.palette.map((r) => r.name);
-  const pal = await upsertCollection(vars, CORE_COLLECTION, paletteNames, mig, tick);
+  const pal = names.core && await upsertCollection(vars, names.core, paletteNames, mig, tick);
   // Snapshot AFTER the migration pass, deliberately: a variable that was MIGRATED now carries a
   // planned name and is no longer drift. `orphans` keeps meaning "what we could not explain";
   // `Migration.outcomes` is "what we moved". Overlapping the two would double-report every rename.
-  const palPreExisting = [...pal.byName.keys()];   // snapshot before creates
-  const palModeId = pal.collection.modes[0].modeId;
+  const palPreExisting = pal ? [...pal.byName.keys()] : [];   // snapshot before creates
   let paletteCreated = 0;
-  for (const row of plan.palette) {
+  if (pal) for (const row of plan.palette) {
+    const palModeId = pal.collection.modes[0].modeId;
     let v = pal.byName.get(row.name);
     if (!v) { v = vars.createVariable(row.name, pal.collection, 'COLOR'); pal.byName.set(row.name, v); paletteCreated++; }
     v.scopes = row.scopes;
@@ -573,12 +569,12 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
   // rather than read off the plan because `plan.color` carries no name — the one collection name in this
   // file that is not `plan.name`, which is why this line had to be edited by both renames.
   const { modes, create, aliases } = plan.color;
-  const col = await upsertCollection(vars, 'color', create.map((r) => r.name), mig, tick);
-  const colPreExisting = [...col.byName.keys()];   // snapshot before creates (and after migration)
+  const col = names.color && await upsertCollection(vars, names.color, create.map((r) => r.name), mig, tick);
+  const colPreExisting = col ? [...col.byName.keys()] : [];   // snapshot before creates (and after migration)
   // Modes by stable identity — claim, then rename only a fresh collection, then add (#1570).
-  const modeIds = reconcileModes(col.collection, modes);
+  const modeIds = col ? reconcileModes(col.collection, modes) : ({} as ReturnType<typeof reconcileModes>);
   let colorCreated = 0;
-  for (const row of create) {
+  if (col) for (const row of create) {
     let v = col.byName.get(row.name);
     if (!v) { v = vars.createVariable(row.name, col.collection, 'COLOR'); col.byName.set(row.name, v); colorCreated++; }
     v.scopes = row.scopes;
@@ -590,7 +586,7 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
   // ---- pass 3: color aliases (bind PER MODE — each mode to its OWN target) ----
   // Alias TARGETS are palette primitives (in `core`), so resolve against BOTH collections' vars, not
   // just the colour collection — mirrors the CLI pass's unscoped global name map.
-  const targetByName = new Map<string, Variable>([...pal.byName, ...col.byName]);
+  const targetByName = new Map<string, Variable>([...pal ? pal.byName : [], ...col ? col.byName : []]);
   // A TINTED WASH's opacity aliases an `opacity/<n>` FLOAT variable in the `opacity` collection, which the
   // FLOAT executor writes — so Apply Theme runs that one first (`apply-theme.ts`), and the target is found
   // by name across the whole file. Fetched only when the plan carries a wash.
@@ -599,7 +595,7 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
     : new Map<string, Variable>();
   let bound = 0;
   const misses: string[] = [];
-  for (const row of aliases) {
+  if (col) for (const row of aliases) {
     const v = col.byName.get(row.name);
     if (!v) { misses.push(`var:${row.name}`); continue; }
     modes.forEach((m, i) => {
@@ -635,9 +631,10 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
     // (#1097): the label a designer reads has to say which slice of `core` was checked, because the other
     // two slices are checked by other executors and "core: 0 orphans" from one of them would read as a
     // statement about all 199 variables in it.
+    // A skipped collection (#1909) was not read, so it has nothing pre-existing and its list is empty.
     orphans: [
-      { name: `${CORE_COLLECTION}/palette`, names: orphansOf(palPreExisting, paletteNames) },
-      { name: 'color', names: orphansOf(colPreExisting, create.map((r) => r.name)) },
+      { name: `${names.core ?? CORE_COLLECTION}/palette`, names: orphansOf(palPreExisting, paletteNames) },
+      { name: names.color ?? 'color', names: orphansOf(colPreExisting, create.map((r) => r.name)) },
     ],
   };
 };

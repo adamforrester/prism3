@@ -25,12 +25,11 @@
  *   - Call 7 A — sizes small and medium (14 / 16px body).
  *   - Call 8 A, 14 A — the overflow item nests FlushIconButton.Neutral, flush, small, showing `more-horizontal-filled`.
  *
- * NO `_` PREFIX, HELD FOR THE OWNER. Owner rule Q349 (2026-10-15) gives a part used only inside its parent the `_`
- * prefix, which makes Figma leave the set out of a published library. But a designer adds steps by inserting this
- * set into the Breadcrumbs `items` slot, which offers it as its preferred item, and a file using the library cannot
- * insert a set the library does not publish: the projection refuses a `_` id in a slot's `preferred` for that reason
- * (`slotPreferredOf` in `anatomy-figma.ts`). So the item keeps a plain id until the owner rules between the prefix
- * and the slot's preferred item (#2783).
+ * NO `_` PREFIX, BY OWNER DECISION Q394 A (on #2783). Owner rule Q349 (2026-10-15) gives a part used only inside its
+ * parent the `_` prefix, which makes Figma leave the set out of a published library. But a designer adds steps by
+ * inserting this set into the Breadcrumbs `items` slot, which offers it as its preferred item, and a file using the
+ * library cannot insert a set the library does not publish: the projection refuses a `_` id in a slot's `preferred`
+ * for that reason (`slotPreferredOf` in `anatomy-figma.ts`). Q394 A ruled that a slot item keeps a plain id.
  *
  * SIZE ORDER (owner decisions Q347 A and Q359 B on #2752, 2026-10-16): Figma's first member equals the code default
  * on every axis, and every size axis leads with `medium`. The proposal listed small first; the later rule wins, so
@@ -97,7 +96,7 @@ export const breadcrumbItem: ComponentDef = {
         // `target` because the schema requires exactly one — NOT an interaction claim: the targets are the nested
         // Link and flush icon button.
         role: 'target',
-        children: ['crumb', 'current', 'overflow', 'separator', 'separatorSlash'],
+        children: ['crumb', 'label', 'overflow', 'separator', 'separatorSlash'],
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'size.{size}.gap',
         note: 'The item: a row that hugs its link, text or button and the separator after it, with no padding and no fill.',
@@ -109,7 +108,7 @@ export const breadcrumbItem: ComponentDef = {
         nesting: { kind: 'nest-exposed', variant: { style: 'inline', weight: 'default', size: 'medium', surface: 'default', selection: 'unselected', state: 'rest' }, expose: ['state'], follow: ['size'] },
         note: 'An ancestor: a Link, inline and default weight, underlined at every state, at the item\'s size. Its state is set on the item.',
       },
-      current: {
+      label: {
         kind: 'text',
         presentWhen: { kind: ['current'] },
         type: 'size.{size}.type',
@@ -196,7 +195,7 @@ export const breadcrumbItem: ComponentDef = {
     // The current page has no separator, so it has no slash member.
     excludeCoordinates: [{ kind: ['current'], separator: ['slash'] }],
     // The current page's own text. An ancestor's text is the nested Link's `label`, set on the exposed Link.
-    texts: { label: { part: 'current', default: 'Current page' } },
+    texts: { label: { part: 'label', default: 'Current page' } },
     booleans: {},
   },
 
@@ -236,7 +235,7 @@ export const breadcrumbItem: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'One step of a Breadcrumbs trail: an ancestor link, the current page, or the overflow button for collapsed steps.',
+    primaryPurpose: 'Show one step of a Breadcrumbs trail: an ancestor link, the current page, or the overflow button for collapsed steps.',
     whenToUse: 'Only as a child of Breadcrumbs. Generate Breadcrumbs, which places each step and sets the separator and size for all of them.',
     avoidWhen: 'You need a trail of links (use Breadcrumbs, which holds the items), a link on its own (use Link) or a back link in history (use Link).',
     commonPartners: ['breadcrumbs'],
@@ -266,6 +265,7 @@ export const breadcrumbItem: ComponentDef = {
     evolution: [
       '2026-10-16 (#2666): built from the approved wireframe, every numbered call A. Sizes medium-first by the later owner rule Q359 B, which supersedes the proposal\'s small-first order.',
       '2026-10-16 (Q382 A, after QA): the separator is its own part, `_breadcrumb-separator`, chevron or slash, chosen once on Breadcrumbs through a `separator` axis the item carries.',
+      '2026-11-11 (#3554 Q-CC17 A): the current page\'s text part is `label`, the main-text name, renamed in place through `COMPONENT_RENAMES`.',
     ],
   },
 };

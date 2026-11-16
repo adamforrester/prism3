@@ -89,14 +89,12 @@
  */
 import { fixHostMethods, makeShim } from './component-shim';
 import type { Node } from './component-shim';
-import { componentDefs } from '@prism3/engine/components/index';
+import { componentDefs, figmaAnatomySet, planComponentName } from '@prism3/engine/components';
 import { materializerFor } from './src/brand-def';
 import { SWAP_TARGET } from './src/build-deps';
-import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { entryFor, LEDGER_KEY, LEDGER_V } from './src/as-built-ledger';
 import { leadsPanel, PANEL_FORMAT } from './src/doc-panel';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import { planComponentName } from '@prism3/engine/anatomy-figma';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { NS, persistInput } from './src/persist-figma';
 import { STAMP_KEY } from './src/write-components';
 import { writeBaseline } from './src/member-baseline';

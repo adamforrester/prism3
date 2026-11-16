@@ -19,16 +19,20 @@ import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration 
 import { applyStylesPlan } from './write-styles';
 import { applyGridStylePlan } from './write-grid-styles';
 import { applyTextStylePlan } from './write-text-styles';
-import { guardApply, preflightPlanOf } from './preflight';
+import { renameStylesForPlan, renameTextStylesForPlan } from './rename-styles';
+import { guardApply, preflightApply, preflightPlanOf, COLOR_NAMES } from './preflight';
+import { conflictKey, resolveCollisions, type CollisionChoices, type ChoiceTally } from './collision-choice';
+
+/** How many times one apply resolves the person's choices before the guarded pre-flight decides (#1909). Each pass needs
+ *  a choice for a collision the last pass made, which only a renamed name already taken does; this bounds it. */
+const RESOLVE_PASSES = 8;
 import { preloadFonts } from './preload-fonts';
 import { persistInput, restoreInput } from './persist-figma';
 import { emissionOf, stampEmission } from './theme-emission';
 import { fontPreloadApiOf, preflightApiOf, textApiOf } from './theme-ports';
 import type { ThemeHost } from './theme-ports';
-import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
-import { brandTheme } from '@prism3/engine/theme';
-import type { BrandInput } from '@prism3/engine/theme';
+import { buildFigmaColor, buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan } from '@prism3/engine/figma';
+import { brandTheme, type BrandInput } from '@prism3/engine';
 
 export type { ThemeHost };
 
@@ -68,10 +72,32 @@ export type ThemePace = { check: () => void; stage: (stage: ApplyStage, done: nu
  * Returns the plans alongside so the caller's report reads the same objects that were written. `beforeWrite` runs once
  * between the two, which is where the plugin saves its named version.
  */
-export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWrite?: () => Promise<void>, pace?: ThemePace) => {
+export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWrite?: () => Promise<void>, pace?: ThemePace, choices?: CollisionChoices) => {
   pace?.check();
   const plans = themePlans(input);
-  const { textPlan, colorPlan, floatPlan, fontPlan, motionPlan, stylesPlan, gridPlan } = plans;
+  // THE COLLISION CHOICE (#1909, Q112 A): with the person's Skip or Rename for every collision, the plans below are the
+  // ones the choice made, and the pre-flight runs again over them. Without a choice for each, they stay as built, so the
+  // pre-flight refuses exactly as before: refusal is the default. The choice is this apply's alone; nothing keeps it.
+  // A choice that makes a new collision (a renamed name someone else holds) is resolved again when the choices answer it
+  // too, up to `RESOLVE_PASSES`; when they do not, the guarded pre-flight below refuses, naming it, and `applied` (the
+  // choices already used) rides the refusal so the panel posts them back beside the new one (the review of #3518).
+  let exec = { color: plans.colorPlan, float: plans.floatPlan, font: plans.fontPlan, motion: plans.motionPlan, styles: plans.stylesPlan, grid: plans.gridPlan, text: plans.textPlan };
+  let names = COLOR_NAMES;
+  let chose = null as ChoiceTally | null;
+  const applied: Record<string, 'skip' | 'rename'> = {};
+  if (choices && Object.keys(choices).length) {
+    for (let pass = 0; pass < RESOLVE_PASSES; pass++) {
+      const found = await preflightApply(preflightPlanOf(exec, names), preflightApiOf(host));
+      if (!found.length) break;
+      const r = resolveCollisions(exec, found, choices, names);
+      if (!r.ok) break;
+      exec = r.plans; names = r.names;
+      const was: ChoiceTally = chose ?? { skipped: 0, renamed: 0 };
+      chose = { skipped: was.skipped + r.tally.skipped, renamed: was.renamed + r.tally.renamed };
+      for (const c of found) applied[conflictKey(c)] = choices[conflictKey(c)];
+    }
+  }
+  const { text: textPlan, color: colorPlan, float: floatPlan, font: fontPlan, motion: motionPlan, styles: stylesPlan, grid: gridPlan } = exec;
   // FONTS FIRST (#680), before ANY variable write. Writing a `font/family/*` variable makes Figma
   // re-resolve every text style bound to it, and re-resolution throws `unloaded font` — which used to
   // abort the whole apply from inside a writer that touches no text. The face needed is the CROSS
@@ -88,12 +114,17 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
   // type — write NOTHING and report every conflict. The rename pre-pass is inside the guarded write
   // because it renames collections, so it is a write too. See `preflight.ts`.
   const guarded = await guardApply(
-    preflightPlanOf({ color: colorPlan, float: floatPlan, font: fontPlan, motion: motionPlan, styles: stylesPlan, grid: gridPlan, text: textPlan }),
+    preflightPlanOf(exec, names),
     preflightApiOf(host),
     async () => {
       // THE NAMED VERSION (#2828), after the pre-flight passed and before the first write, so a refused apply saves none.
       // The rename pass below is a write too. A host that refuses throws here and nothing is written.
       await beforeWrite?.();
+      // THE IN-PROGRESS MARK (#3697 M3): the print of what was written is cleared before the first write and stamped again
+      // after the last. A run that throws part-way, or a plugin closed mid-run, leaves new variables under the old stored
+      // brand; with the old print beside it, the recount (`themeDue`) read the file as matching that brand. With no print,
+      // the file reads as due until a whole run stamps it (`theme-emission.ts`: a file with no print reads as differing).
+      stampEmission(host.root, '');
       // ONE rename pass across all four variable executors (#1013). Built here rather than inside each
       // one because the static validation must happen once, before any write, and because a designer
       // reads a single list of what moved — not four. Since #1035 constructing it also RENAMES THE
@@ -115,10 +146,13 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       // The pointer-tier executor that used to run next went with the tier (#1148) — there is no second
       // collection to alias into, so the cross-call ordering dependency it existed for is gone too.
       await pace?.stage('color', 1);
-      const r = await applyWritePlan(colorPlan, host.variables, mig, pace?.tick);
+      const r = await applyWritePlan(colorPlan, host.variables, mig, pace?.tick, names);
       // STYLE axes (shadow/gradient lane): Effect Styles (shadow/* + shadow-dark/*) + Paint Styles
       // (gradients, baked stops). The global `figma` structurally satisfies the StylesApi port.
       await pace?.stage('styles', 2);
+      // THE STYLE RENAME PASS (#1040): a style the engine renamed takes its new name in place first, so the writer
+      // finds it under that name and the layers using it follow. A no-op while the record is empty.
+      const sr = await renameStylesForPlan(stylesPlan, host);
       const s = await applyStylesPlan(stylesPlan, host, pace?.tick);
       // GRID STYLES (#1480): one reusable Figma Grid Style per breakpoint (`sm`, …; renamed in place from `Grid / sm`, #2467), sourced from
       // the same layout data as the numeric `layout` collection. STATIC — a grid style cannot mode-switch
@@ -133,6 +167,7 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       const tv = await applyVarCollectionPlan(fontPlan, host.variables, mig, pace?.tick);
       // The Text Style port needs figma's style/font surface + figma.variables' getter (`theme-ports.ts`).
       await pace?.stage('text-styles', 5);
+      const tr = await renameTextStylesForPlan(textPlan, textApiOf(host));   // #1040, as for the styles above
       const ts = await applyTextStylePlan(textPlan, textApiOf(host), pace?.tick);
       // MOTION (#2412): TIMING durations + EASING curves, roles and springs, through the same mixed-type
       // executor. Independent of every other axis: nothing aliases into or out of `motion`.
@@ -143,8 +178,8 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       persistInput(host.root, input);
       // #3422 Q44.1 A: and the print of what was written, so the recount can tell an engine update apart (`theme-emission.ts`).
       stampEmission(host.root, emissionOf(plans));
-      return { mig, r, f, s, gs, tv, ts, mv };
+      return { mig, r, f, s, gs, tv, ts, mv, styleRenames: [...sr, ...tr] };
     },
   );
-  return { plans, pf, guarded, before };
+  return { plans, pf, guarded, before, chose, exec, names, applied };
 };

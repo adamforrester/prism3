@@ -36,7 +36,7 @@ import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadli
 import type { PartialWriteFacts } from './src/apply-summary';
 import { fieldStyleNote, searchFieldStyleNote } from './src/field-style-note';
 import { tagStyleNote } from './src/tag-style-note';
-import type { BrandInput } from '@prism3/engine/theme';
+import type { BrandInput } from '@prism3/engine';
 import { readFileSync as readSrc } from 'node:fs';
 
 let failed = 0;

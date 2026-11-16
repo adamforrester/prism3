@@ -85,7 +85,7 @@ export const checkboxControl: ComponentDef = {
   aliases: ['checkbox-box', 'check-control', 'checkbox-atom'],
   category: 'form',
   status: 'draft',
-  summary: 'Checkbox box with check/dash glyph and focus ring. Nested by Checkbox.Row; no label.',
+  summary: 'Checkbox box with check/dash glyph and focus ring. Nested by a checkbox row; no label.',
   description:
     'The atomic checkbox control — the painted square with its check or dash glyph and its focus ring, and nothing else. Nested by the labeled Checkbox.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Carries the three-value selection axis (unchecked / checked / indeterminate) whose mark is a real part gated on the coordinate, the per-rung clamped corner, and the 2px control border.',
 
@@ -135,6 +135,9 @@ export const checkboxControl: ComponentDef = {
   // `{selection}.{slot}.{state}`, so each would read the other's keys with an unsupplied value (the trap the
   // fields avoid the same way, by keeping their two vocabularies at different lengths).
   paintKeys: ['{status}.{selection}.{slot}.{state}', '{selection}.{slot}.{state}', '{selection}.{slot}', '{slot}'],
+
+  // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
+  levers: { controlShape: { squares: ['control.size.sm.radius', 'control.size.md.radius', 'control.size.lg.radius'] } },
 
   tokens: {
     // ── THE UNCHECKED BOX — the form-field substrate's chrome; an empty checkbox is a small empty
@@ -240,7 +243,11 @@ export const checkboxControl: ComponentDef = {
         strokeWidth: 'border-width',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         children: ['checkGlyph', 'dashGlyph', 'focusRing'],
-        note: 'The control square AND the nominal hit-target marker. The real hit target is the whole labeled ROW, which lives on `checkbox-row`; this square is not independently clickable. `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `focus-ring`\'s `ring` part carries.',
+        // Maintainer detail, out of the reader caption (#3610): The control square AND the nominal hit-target marker.
+        // The real hit target is the whole labeled ROW, which lives on `checkbox-row`; this square is not
+        // independently clickable. `role: target` is here only because the schema requires exactly one per anatomy —
+        // the same nominal marker `focus-ring`'s `ring` part carries.
+        note: 'The checkbox square; a person clicks the whole labeled row, not the square alone.',
       },
       // THE CHECK. The FRAME is bound to the control box (`size.{size}.control`), and `glyphScale: 0.8`
       // (#1346) places the `icon/check` instance inside it at 0.8 of the box (#2380), so the ~71% of the grid
@@ -252,7 +259,10 @@ export const checkboxControl: ComponentDef = {
         size: 'size.{size}.control',
         glyphScale: 0.8,
         presentWhen: { selection: ['checked'] },
-        note: 'The check, an instance of the check icon inset to 0.8 of the box (#1346). Its ink is `checked.icon`, applied to the outline inside the instance. Its draw transition is stated in `motion`; the Figma members are static.',
+        // Maintainer detail, out of the reader caption (#3610): The check, an instance of the check icon inset to 0.8
+        // of the box (#1346). Its ink is `checked.icon`, applied to the outline inside the instance. Its draw
+        // transition is stated in `motion`; the Figma members are static.
+        note: 'The check mark, shown when the box is checked.',
       },
       // THE DASH. Same geometry and the same `glyphScale: 0.8` inset (an `icon/minus` instance); only the icon differs, which is
       // the whole of what separates `indeterminate` from `checked` in this def's tokens. Prism 2 sizes
@@ -264,7 +274,10 @@ export const checkboxControl: ComponentDef = {
         size: 'size.{size}.control',
         glyphScale: 0.8,
         presentWhen: { selection: ['indeterminate'] },
-        note: 'The mixed-state dash, an instance of the minus icon inset to 0.8 of the box (#1346), the same as the check. Never the sole signal — `aria-checked="mixed"` carries it to assistive tech, which the host row sets.',
+        // Maintainer detail, out of the reader caption (#3610): The mixed-state dash, an instance of the minus icon
+        // inset to 0.8 of the box (#1346), the same as the check. Never the sole signal — `aria-checked="mixed"`
+        // carries it to assistive tech, which the host row sets.
+        note: 'The dash, shown when the box is partly checked; screen readers announce it as mixed.',
       },
       // The focus ring, verbatim from the pre-split checkbox: on the control, offset 2 (`focus.ring.offset`,
       // not the field\'s flush 0), the offsets summing to site the ring at -(2+2) = -4 (#801).
@@ -278,7 +291,9 @@ export const checkboxControl: ComponentDef = {
         // host coordinate to pass through. A `follow` here would be rejected — it names a host axis and
         // this def declares none.
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
-        note: 'An absolutely-positioned sibling nesting the shared `focus-ring` component, inset from the control so the ring surrounds the square.',
+        // Maintainer detail, out of the reader caption (#3610): An absolutely-positioned sibling nesting the shared
+        // `focus-ring` component, inset from the control so the ring surrounds the square.
+        note: 'The shared focus ring, drawn around the square on keyboard focus.',
       },
     },
     codeOnly: [
@@ -293,7 +308,7 @@ export const checkboxControl: ComponentDef = {
         class: 'motion',
         disposition: 'refused',
         description:
-          'motion — the check-glyph draw animation (brief §8: a stroke-dasharray draw at roughly 100-150ms, morphing dash to check, bypassed under prefers-reduced-motion). The def states it in `motion`; a Figma variant carries no motion, so the two glyph parts are static outlines at every coordinate.',
+          'motion — the check-glyph draw animation (brief §8: a stroke-dasharray draw, morphing dash to check, on motion.duration.fast, bypassed under prefers-reduced-motion). The def states it in `motion`; a Figma variant carries no motion, so the two glyph parts are static outlines at every coordinate.',
       },
       {
         class: 'right-to-left',
@@ -378,9 +393,9 @@ export const checkboxControl: ComponentDef = {
 
   // Brief §8 — the check-draw is this atom's, because the glyph is here.
   motion: {
-    enter: 'On check, the check glyph draws in as a pen stroke (SVG stroke-dashoffset) while the fill crossfades in, about 100-150ms, eased. Indeterminate to checked morphs the dash into the check.',
+    enter: 'On check, the check glyph draws in as a pen stroke (SVG stroke-dashoffset) while the fill crossfades in, on motion.duration.fast with motion.easing-role.default. Indeterminate to checked morphs the dash into the check.',
     exit: 'On uncheck, the same glyph transition runs back and the fill crossfades out.',
-    reduceMotion: 'Under prefers-reduced-motion, the draw and any spatial animation are bypassed and the box flips instantly; a crossfade under 150ms may remain, since opacity does not trigger vestibular symptoms. No layout motion.',
+    reduceMotion: 'Under prefers-reduced-motion, the draw and any spatial animation are bypassed and the box takes its new state at once; the fill\'s color change fades on motion.duration-reduced.fast, since opacity does not trigger vestibular symptoms. No layout motion.',
   },
 
   notes: {

@@ -81,7 +81,7 @@ This is the central architectural answer. The engine is **not** a plugin and **n
 It is a **pure, dependency-free core** that is bundled into whichever surface needs it.
 
 **Evidence it's portable today.** The theming brain — `color.ts`, `ramp.ts`, `scale.ts`,
-`modes.ts`, and the `build*` functions in `theme.ts` — is pure computation with no Node
+`modes.ts`, and the `build*` functions in the `theme-*.ts` modules — is pure computation with no Node
 dependencies. Only two things touch `node:fs`: the **emit layer** (writing DTCG/HTML files)
 and **two NB-regression fixture loaders**. Neither is on the theming path. So making the
 core runnable inside a browser/Figma-plugin sandbox is a **bounded refactor** (split pure

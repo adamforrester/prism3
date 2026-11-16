@@ -13,7 +13,7 @@ working principles apply to humans as much as to agents.
 
 | Read | For |
 |---|---|
-| [`CLAUDE.md`](CLAUDE.md) | Repo conventions + the four working principles. Non-optional — agents load this automatically, so you should know what it told them. |
+| [`CLAUDE.md`](CLAUDE.md) | Repo conventions + the working principles. Non-optional — agents load this automatically, so you should know what it told them. |
 | [`docs/00-progress.md`](docs/00-progress.md) | The durable state log — status, decisions and why, most recent first. **Read the latest entries before starting anything**; the arc moves fast and your question may already be answered. Entries merged since the last fold are still in [`docs/progress/pending/`](docs/progress/pending/), so read that directory first. |
 | The lane doc for your work | `07-e2e-journey` (the pipeline + portable-core architecture), `18`/`22` (plugin), `11` (multi-brand north star), `23`–`26` (dashboard IA + UI conventions). Index in [`docs/`](docs/). |
 
@@ -35,61 +35,29 @@ else broken, open a finding and keep going.
 The PR template's Gates block is the load-bearing part — fill it in with real numbers,
 not ticks.
 
-**A PR writes its own files, never the shared lines (#1807).** Every PR used to write the same
-four places: the top of `docs/00-progress.md`, `ENGINE_VERSION`, the changelog above it (since
-Q319.3, `packages/engine/CHANGELOG.md`), and the
-version stamp in every emitted tree. So every open PR conflicted with every other, and merges ran
-one at a time. Now:
+**A PR writes its own files, never the shared lines (#1807).** The shared lines are the top of
+`docs/00-progress.md`, `ENGINE_VERSION`, its changelog (`packages/engine/CHANGELOG.md`) and the
+version stamp in every emitted tree; when every PR wrote them, every open PR conflicted with every
+other (the progress log's 2026-09-30 entry, "Merge independence"). So:
 
 - **The progress entry** is `docs/progress/pending/<slug>.md`, where the slug is your branch name
-  with `/` turned into `-`. It holds one entry headed `## (YYYY-MM-DD) — <title>`, in the log's
-  usual shape. **Every PR carries one, except a fold** (owner decision, 2026-09-30):
-  `lint-progress-order.ts` fails a PR that adds no fragment, and a heading written straight into
-  the log does not count. Outside a fold, **any** change to the log fails, including an edit to an
-  existing entry; a correction travels as a fragment of its own ("Correction to <date> <title>").
-  A **pure** fold is exempt because it
-  consumes fragments rather than adding one: it deletes pending files, every entry it consumed reached
-  the log, and it touches nothing but the log, the pending directories, `version.ts`, `CHANGELOG.md`, `out/` and the
-  rename stamps it fills (below). A fold PR that also fixes a semantic conflict carries a fragment for
-  the fix.
-- **The engine bump**, when one is owed, is a change note, `packages/engine/changes/<slug>.md`:
-
-  ```
-  ---
-  engine: minor          # patch | minor | major
-  ---
-  The changelog prose; the fold writes it into CHANGELOG.md. Write {{ENGINE_VERSION}} where the number goes.
-  ```
-
-  It declares the class and never picks a number. **The class:** `minor` for any behavior change;
-  `patch` only when no committed artifact and no projected component surface moves (`regen --check`
-  clean before and after, `lint-component-surface.ts` baseline unchanged); `major` is
-  refused while `ENGINE_VERSION` is below 1.0, because going to 1.0 is the owner's decision. The fold
-  takes the highest class in the batch. **Do not edit `ENGINE_VERSION`, its changelog (`packages/engine/CHANGELOG.md`), the version
-  stamps in `out/`, or a note another PR merged.** `lint-emission-version.ts` fails a PR that is not a fold for editing
-  the constant or its changelog, and both version gates accept the note as the bump. Run `regen.ts`
-  as usual; your `out/` diff carries your real changes under the old stamp, and the fold restamps.
-- **A rename rule's `since`** (#1816) is the other version number a PR used to write. A PR that adds an
-  entry to `MATERIALIZATION_RENAMES`, `MATERIALIZATION_DELETIONS` or `COLLECTION_RENAMES` stamps it
-  `since: '{{ENGINE_VERSION}}'`, and writes the same quoted placeholder in `test.ts`'s table for it
-  (`EXPECTED_SINCE` or `EXPECTED_COLLECTION_SINCE`). **The same diff adds a change note**; another PR's
-  pending note does not count, because the fold may consume it before your PR merges. The fold fills
-  both stamps with the version it assigns. **An existing stamp never changes**, in a fold or out of
-  one: a rule whose change needs a new stamp is a new rule, with a new id, the placeholder and a note.
-  A fold only fills placeholders; it adds no stamp of its own. `lint-emission-version.ts`'s RENAME
-  STAMPS arm fails each of these by name. In those three files the quoted placeholder is reserved for
-  stamps, because the fold replaces every one: a test fixture that needs it builds it by concatenation.
+  with `/` turned into `-`. **Every PR carries one, except a pure fold**, and outside a fold any
+  change to the log itself fails (`lint-progress-order.ts`). Format, the fold exemption and how a
+  correction travels: [`docs/progress/pending/README.md`](docs/progress/pending/README.md).
+- **The engine bump**, when one is owed, is a change note, `packages/engine/changes/<slug>.md`, that
+  declares a class and never picks a number. **Do not edit `ENGINE_VERSION`, its changelog
+  (`packages/engine/CHANGELOG.md`), the version stamps in `out/`, or a note another PR merged**
+  (`lint-emission-version.ts`). Format and the class policy:
+  [`packages/engine/changes/README.md`](packages/engine/changes/README.md).
+- **A rename rule's `since`** (#1816) takes the quoted `{{ENGINE_VERSION}}` placeholder and a change
+  note in the same diff, and **an existing stamp never changes**. The full rule:
+  [`packages/engine/changes/README.md`](packages/engine/changes/README.md), "Rename stamps".
 - **`CONTRACT_VERSION` is unchanged by this.** A PR that moves the guaranteed token-name surface still
   bumps it itself and runs `token-contract.ts --accept`. Contract bumps are rare and carry real
   baseline content, so two of them *should* meet.
 
-Both directories carry a `README.md` with the format. The fold, below, is the one writer of the
-shared lines.
-
-**A branch that has not merged `main` since #1807 landed can pass locally and fail in CI.** Locally
-its merge base predates the FOLD MARKER, so `lint-emission-version.ts` prints "not yet in force" for
-the one-writer check. CI tests the merge with the current `main`, where it is in force. Merge `main`
-before trusting a local green.
+Those two READMEs are the one home for the format and the classes. The fold, below, is the one
+writer of the shared lines.
 
 **`npm run verify` on a plain checkout of `main` is red by design.** There, HEAD is its own base, so
 `lint-progress-order.ts` finds no diff to hold an entry in and fails CARRIES AN ENTRY rather than
@@ -148,10 +116,17 @@ Then push and open the PR. What the fold does, in order:
    writes the release notes again over the regenerated tree.
 
 **The fold PR's CI is the semantic-conflict net.** Two PRs can merge cleanly and still leave `main` red:
-both set `EXPECTED_ARTIFACTS` to the same new number, two regens do not add up to the regen of both,
+two regens do not add up to the regen of both,
 or two accepted baselines interact. The fold PR's run is the first run of every gate over `main` plus
 the whole batch, so fix such a break **in the fold PR**, before the version and the log move on.
 `main`'s own push CI also runs on every merge, so a red `main` shows up there first.
+
+**The merge queue closes that gap before the merge (#3698 R3).** `ci.yml` also runs on `merge_group`. With
+GitHub's merge queue turned on for `main` (a repository setting only the owner can change), a PR leaves the queue
+only after the whole workflow, `regen --check` included, has passed on `main` plus that PR plus any PR queued ahead
+of it. Two clean merges that would leave `out/` stale, or two notes that collide, then fail in the queue rather than
+on `main`. Until the setting is on, the trigger never fires and the fold PR stays the net described above.
+`lint-doc-gates.ts` fails if the trigger is dropped.
 
 What to check before you push the fold:
 
@@ -172,33 +147,15 @@ What to check before you push the fold:
   hand-write the fold's output, because `lint-emission-version.ts` and `lint-progress-order.ts` check
   that output against git.
 
-### Converting an open PR from the old convention
+### A PR still on the pre-#1807 convention
 
-A PR opened before #1807 landed converts at its next merge of `main`, and that merge is its last
-conflict on these lines. Move your text into the new files **before** you resolve anything, because
-resolving takes `main`'s side of the lines your text is on.
-
-1. **On your branch, before merging:** copy your progress entry, unchanged, into
-   `docs/progress/pending/<slug>.md`. Copy your changelog prose out of `version.ts` into
-   `packages/engine/changes/<slug>.md` under `engine: minor` (or `patch`, if your change moved no
-   committed artifact). **One file per entry:** a branch that wrote two progress entries or two
-   changelog entries adds `<slug>.md` and `<slug>-2.md` in each directory. Where the entry or the
-   prose cites the number you had claimed, write `{{ENGINE_VERSION}}` instead, but never at the start
-   of a line: `{{ENGINE_VERSION}} — …` becomes a changelog heading once folded, and NOTE SHAPE refuses
-   it. Commit.
-2. `git merge origin/main`, then resolve:
-   - **`docs/00-progress.md`:** keep `main`'s side and drop your old entry from the top. It is in the
-     fragment now.
-   - **`version.ts`:** keep `main`'s `ENGINE_VERSION` line and `main`'s changelog (in
-     `CHANGELOG.md` since Q319.3), and drop your old entry there. Keep any other edit of yours in the file, such as a `CONTRACT_VERSION` bump, its
-     changelog or a `DEPRECATIONS` row. Those are still per-PR.
-   - **Version stamps in `out/` and `components.ai.json`:** take either side. The next step rewrites
-     them.
-   - **`schema/token-contract.json`:** if you re-accepted it only to restamp `engineVersion`, keep
-     `main`'s copy. A real contract change keeps its bump and gets a fresh `--accept` after step 3.
-3. `npx tsx packages/engine/regen.ts`, commit, then `npm run verify`. Your `out/` now carries
-   `main`'s stamp with your real changes, and `lint-emission-version.ts` reports your note as the
-   bump. It fails by name if an edit to `ENGINE_VERSION` or its changelog survived the resolution.
+None was open at the last check (2026-11-11). If one turns up, move its text into the new files
+**before** merging `main`, because resolving takes `main`'s side of the lines it is on: its log entry,
+unchanged, into `docs/progress/pending/<slug>.md`, and its changelog prose into
+`packages/engine/changes/<slug>.md` (`{{ENGINE_VERSION}}` for the number, never at the start of a line).
+Then merge `main`, keep `main`'s side of the log, `ENGINE_VERSION`, the changelog and the `out/` stamps,
+keep any other edit of its own (a `CONTRACT_VERSION` bump, a `DEPRECATIONS` row), run `regen.ts` (and,
+for a real contract bump, a fresh `token-contract.ts --accept`), and verify. The full step list is in this file's history: `git log -S'Converting an open PR' -- CONTRIBUTING.md`.
 
 ---
 
@@ -238,7 +195,7 @@ stated in `verify.ts`'s header:
    a `lint-us-english.ts` that exited 1 got reported as a pass. The runner spawns each gate with
    `shell: false` and reads its status and output from one call, so there is no pipeline for a status
    to get lost in.
-2. **Output is buffered per gate.** Thirty-odd gates interleaving thousands of lines is how a real failure gets
+2. **Output is buffered per gate.** Dozens of gates interleaving thousands of lines is how a real failure gets
    read past. A clean run is a table; a red run is a table plus exactly the failing output. `--verbose`
    prints everything.
 3. **Ordering is declared per gate and checked before anything runs.** Three orderings are
@@ -1328,6 +1285,9 @@ npx tsx packages/engine/lint-guide-claims.ts        # the designer guides still 
                                                     # cites path:a-b#<8 hex>, the SHA-256 of the cited
                                                     # lines, so a shift fails by name. --stamp adds a
                                                     # missing one and never rewrites one.
+                                                    # ORDER (#3519): a list of **bold** labels joined by
+                                                    # commas and "and" holds the order its cited lines
+                                                    # hold them in, so a reorder fails by name.
 npx tsx packages/engine/lint-release-notes.ts       # every release's notes in docs/public/releases/
                                                     # list exactly the changes git shows between its
                                                     # fold and the fold before (#2650), classified by
@@ -1368,12 +1328,70 @@ npx tsx packages/engine/lint-code-only-classes.ts   # every def's codeOnly entry
                                                     # register class no entry uses fails; an admission
                                                     # is classed not-projected; the payload's
                                                     # syncBoundary matches the defs.
+npx tsx packages/engine/lint-locale-order.ts        # no comparison under packages/engine/ depends on
+                                                    # the host's locale (#3698): no bare localeCompare,
+                                                    # ICU collator or locale-aware case fold. Order goes
+                                                    # through localeFreeCompare (locale-free-order.ts).
+npx tsx packages/engine/lint-engine-facade.ts       # the studio and the plugin import the engine only
+                                                    # through its four entries (#3698 F4): `@prism3/engine`,
+                                                    # `/components`, `/figma`, `/harness`. A deep or
+                                                    # relative engine path fails by file and line; no
+                                                    # bundled file imports the node-only harness; each
+                                                    # entry is named re-exports only, imported by no
+                                                    # engine module.
+npx tsx packages/engine/lint-theme-split.ts         # theme.ts is named re-exports from its theme-*.ts
+                                                    # axis modules and nothing else (#3698 F4); no module
+                                                    # imports the barrel or an entry; the modules' value
+                                                    # imports form no cycle; every module is re-exported,
+                                                    # over a floor of 10.
+npx tsx packages/engine/lint-part-union.ts          # PartDef is a union by `kind` (#3698 F4): every
+                                                    # (kind, field) pair, from an authored field-major table
+                                                    # held to the schema by tsc (#3781), compiles where the
+                                                    # validator admits it and fails by name everywhere else;
+                                                    # every kind a shipped def uses is probed.
+npx tsx packages/engine/lint-projector-def-ids.ts   # the Figma projection keys on no def id (#3698 F4):
+                                                    # no def-id lookup and no def-id-keyed table in
+                                                    # anatomy-figma.ts outside a typed allowlist; a
+                                                    # component's style reach is `levers` on its def.
+npx tsx packages/engine/lint-control-shape-reach.ts # Control shape reaches what its description says
+                                                    # (#3765): each button, field and checkbox takes the
+                                                    # claimed corner under every shape and field style,
+                                                    # nothing outside moves, and the description claims
+                                                    # no family or corner the typed claim does not hold.
 ```
 
-CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,
-unconditionally** — there is no "I only touched the engine" exemption, so don't skip them
-locally just because your diff looks engine-only. (Two PRs shipped with a gate silently
-broken because their Gates table stopped before reaching it — see `00-progress.md`.)
+CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR but one
+kind** — there is no "I only touched the engine" exemption, so don't skip them locally just because
+your diff looks engine-only. (Two PRs shipped with a gate silently broken because their Gates table
+stopped before reaching it — see `00-progress.md`.)
+
+**The one exemption: a docs-only pull request skips the browser jobs (#3698 R4, owner decision
+2026-11-12).** When every file a PR changes is docs, CI skips `studio`, `plugin`, `chrome`,
+`chrome-shards` and `surfaces`. The `engine` job, with every engine and doc gate, still runs. It is a
+**named** exemption, never a bare skip: the `changes` job decides it (`.github/scripts/docs-only.sh`),
+and `gates` passes a skipped browser job only when `changes` succeeded and said so. It then prints the
+job as `EXEMPT` and records `DOCS-ONLY EXEMPTION (#3698 R4)` in the run summary (`all-gates.sh`).
+Any other skip still fails `gates`.
+
+- **What counts as docs:** a file under `docs/` other than `docs/public/`, or a `.md` file outside
+  `apps/`, `packages/`, `skills/` and `docs/public/` other than the root `README.md`. One other file
+  means no exemption. The root `README.md` is excluded because `lint-us-english` (in `surfaces`) scans it.
+  `docs/public/` is excluded because the studio serves it, and the browser suites and the prose gates in
+  `surfaces` read it. `packages/` is excluded because it holds markdown the studio bundles
+  (`examples/*.design.md`), and `skills/` because it ships. The classifier's header is the one statement
+  of the rule. **No file a prose gate scans counts as docs**, so a PR that touches one still runs the prose
+  gates: the test reads each prose gate's own `--files` list and fails by name (`scope/<gate>`) on any file
+  the classifier calls docs.
+- **Only a pull request qualifies.** A push to `main` runs every job. Every doubt resolves to running
+  everything: an empty diff, a failed diff, or a missing SHA.
+- **The test** is `bash .github/scripts/test-docs-only.sh` (below). `lint-doc-gates.ts` holds the jobs that
+  carry the exemption's `if:` to `EXEMPT_JOBS` in `all-gates.sh`, in both directions, each a browser job.
+- **Locally nothing changes:** `npm run verify` runs every gate whatever you changed.
+
+**Node and tsx are pinned exactly (#3698 R4).** Node is the version in `.node-version`, which every CI
+job reads. `tsx` is an exact root devDependency, so `npm ci` installs the one version the lockfile
+names, and every `npx tsx` (CI, `verify.ts`, the workspace scripts) runs it. Moving either is a
+reviewed change to `.node-version`, or to `package.json` and the lockfile.
 
 ```bash
 npm run typecheck    -w @prism3/studio      # tsc --noEmit — esbuild does NOT typecheck
@@ -1713,7 +1731,10 @@ npm run check:package -w @prism3/tokens       # #3408 S1, docs/35 §9.3: the SHI
                                           # every guaranteed name in token-contract.json under
                                           # `--pds3-` (Q98 A) in `:root` and each promised
                                           # `[data-theme]` block. The contract, prefix and mode list
-                                          # are the oracle, never read off the build
+                                          # are the oracle, never read off the build. [VALUE]
+                                          # (#3563): each name holds the engine's value for its
+                                          # mode, read from out/prism3.tokens.json, which the
+                                          # build never reads
 npm run check:generated -w @prism3/css      # #3408 S2, Q96 A: button.css and demo.html are what
                                           # packages/css/generate.ts writes from the emission
                                           # (specs.json + component-defs.json); both are committed
@@ -1756,6 +1777,13 @@ sh tools/claude-md-freshness/mutations.sh  # the mutation battery for the CLAUDE
                                           # network, no git history), so it runs under CI's depth-1
                                           # checkout — unlike the git-HISTORY gates that need
                                           # fetch-depth: 0. Confirmed from a depth-1 clone before wiring
+bash .github/scripts/test-docs-only.sh   # the docs-only exemption (#3698 R4): the classifier and
+                                          # the aggregator's half, by literal cases. A docs change that
+                                          # also touches an app file is never exempt, and no file a prose
+                                          # gate scans (its --files) counts as docs. No git, no network
+bash .github/scripts/test-all-gates.sh  # the base cases of all-gates.sh, the `gates` step the merge
+                                          # rule reads (#3736): failure, cancelled, skipped, empty and
+                                          # unset NEEDS each fail by job name. No git, no network
 bash .github/scripts/test-install-chromium.sh # the test for install-chromium.sh, which all four
                                           # browser jobs run (#2981). A stand-in install and dpkg
                                           # lock in $TMPDIR: no browser, no network. Its stall/…
@@ -1771,9 +1799,8 @@ type filter and the FLOAT read-back would have come back empty in production).
 ### Reviewing a PR: CI runs the whole list, the reviewer runs what the change touches (#3216)
 
 Owner decision Q-CI1 A. **The author still runs the whole list before pushing** (`npm run verify`,
-CLAUDE.md §4); nothing here changes that. What changes is the reviewer's share. A PR used to pay for
-three full runs, the author's, the reviewer's and CI's, and the reviewer's was the same gates on the
-same tree as CI's. The reviewer now:
+CLAUDE.md §4); nothing here changes that. What changes is the reviewer's share: a full
+reviewer run repeats CI's gates on the same tree, so the reviewer now:
 
 - **relies on CI for the full gate list**: every check-run green on the exact head SHA, and the `gates`
   check `success`. If CI has not run on that SHA, or anything is red or pending, the reviewer says so and
@@ -1841,6 +1868,11 @@ closes with a `Gaps` section: what was not done, what was not checked, and the r
 remain. When there are none it says `Gaps: none` — the section is never omitted, because a
 verdict with no such line cannot be told apart from one that never asked (#2850).
 
+**Agents may edit `CLAUDE.md` in a PR; the owner reviews the diff before merge** (owner decision
+Q-HY4 A, 2026-11-11, as Q319.1 A said). The one exception is #2921's paragraph (Q503 A): Q529 A made
+that text the owner's to paste, and it covers that paragraph only. An agent edit of `CLAUDE.md` is held
+to every rule the file states, the gate list included (`lint-doc-gates.ts`).
+
 ### Running a lane (#3240)
 
 Owner decision Q-SI1 A: a self-check loop. These four rules apply to every lane, agent or person.
@@ -1884,9 +1916,8 @@ Figma or Style Dictionary APIs. This repo's precedent is to re-verify API surfac
 against current docs before building on them (Context7 or the live docs), because they
 drift.
 
-If you're using the packaged skills, `skills/prism3-theme` (authoring a brand)
-and `skills/prism3-build-ui` (building UI from generated tokens) are the two that
-exist; `.claude/commands/review-pr.md` runs an independent PR review.
+The packaged skills are the five directories under `skills/` (listed in
+[`CLAUDE.md`](CLAUDE.md)'s layer table); `.claude/commands/review-pr.md` runs an independent PR review.
 
 ---
 
@@ -1946,7 +1977,8 @@ natively — they sort together in the picker, and they keep the axes from readi
 | Type | Use |
 |---|---|
 | `type:task` | Scoped build work. |
-| `type:finding` | A defect with evidence. Bug fixes are a *type*, not a lane — a Storybook bug is `lane:code-library` + `type:finding`. |
+| `type:finding` | A defect with evidence, found before it reached anyone. Defects are a *type*, not a lane — a Storybook defect is `lane:code-library` + `type:finding`. |
+| `type:bug` | A defect that **reached the owner or real Figma** (owner decision Q-HY3 A, 2026-11-11). Same evidence bar as `type:finding`; the difference is the escape. The PR that closes one fills the template's **Escape review** (§4, "Running a lane"). |
 | `type:decision` | A fork that needs a call before work proceeds. |
 | `type:research` | A question to investigate. Deliberately a type, not a lane: research often spans lanes (#113 covers web, Figma **and** MCP). |
 
@@ -1964,10 +1996,10 @@ within that set — just the readiness filter. Computed once (2026-07-28) from t
 code-library backlog passes; nobody's maintaining it as issues open and close, so treat it
 as a snapshot to re-derive, not a live feed. Only `priority:now` exists — no
 `priority:next`/`priority:later`; an unused tier is worse than no tier (see `lane:emitter`'s
-fate, above). Add those only once there's something real to put in them.
+fate, under History below). Add those only once there's something real to put in them.
 
-These 15 are the whole set. GitHub's stock labels were removed deliberately: `bug`,
-`documentation`, and `question` collided with `type:finding` / `lane:docs` /
+These 16 are the whole set (15 until Q-HY3 A added `type:bug`). GitHub's stock labels were removed
+deliberately: `bug`, `documentation`, and `question` collided with `type:bug` / `lane:docs` /
 `type:research`, and `duplicate` / `invalid` / `wontfix` are better served by the native
 `state_reason` on close. If you find yourself wanting a new label, check it isn't a
 sub-area that belongs in the title first (see below).

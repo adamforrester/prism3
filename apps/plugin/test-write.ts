@@ -14,13 +14,11 @@
  *
  * Mirrors the engine suite's dependency-free `ok(...)` style; exits non-zero on any failure.
  */
-import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import { buildWritePlan, buildFloatWritePlan } from '@prism3/engine/write-plan';
-import { nbThemeFrom } from '@prism3/engine/theme';
+import { buildFigmaColor, buildWritePlan, buildFloatWritePlan, deriveVariableRenames, isRefusal } from '@prism3/engine/figma';
+import { nbThemeFrom } from '@prism3/engine';
 import { applyWritePlan, applyFloatPlan, orphansOf, strandedCollections, beginMigration } from './src/write-figma';
 import { readFigmaVariables } from './src/read-figma';
-import { deriveVariableRenames, isRefusal } from '@prism3/engine/rename-map';
-import nbMeasured from '@prism3/engine/schema/nb-measured.json';
+import { NB_MEASURED_JSON as nbMeasured } from '@prism3/engine/harness';
 
 /**
  * The brand namespace every emitted variable carries (#1097) and the `core` tier the primitives sit under

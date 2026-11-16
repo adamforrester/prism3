@@ -26,11 +26,8 @@
  * `localStorage` and the plugin writes nothing, and the entry — the one module allowed to know which
  * host it is in — wires that. Unset, a rebuild persists nothing, which is what a Node test wants.
  */
-import { brandTheme } from '@prism3/engine/theme';
-import type { BrandInput, Theme } from '@prism3/engine/theme';
-import { resolvePreview } from '@prism3/engine/resolve-preview';
-import type { ResolvedPreview } from '@prism3/engine/resolve-preview';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { brandTheme, type BrandInput, type Theme, resolvePreview, type ResolvedPreview } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { provenanceOf, noOrigin, type Origin, type Provenance } from '../provenance';
 import type { PageKey } from '../shell/pages';
 import { studioMessage } from './floor-refusal';

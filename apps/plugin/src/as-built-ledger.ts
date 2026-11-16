@@ -46,9 +46,8 @@
  * Pure: the root is passed in, so a Node test drives it on a fake. A missing, unreadable or malformed record reads as
  * empty, never a throw: every set is then `unrecorded`.
  */
-import type { AnatomyPlan, FigmaNodePlan } from '@prism3/engine/anatomy-figma';
-import type { ComponentDef } from '@prism3/engine/component-schema';
-import { ENGINE_VERSION } from '@prism3/engine/version';
+import type { AnatomyPlan, FigmaNodePlan, ComponentDef } from '@prism3/engine/components';
+import { ENGINE_VERSION } from '@prism3/engine';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { reaches } from './executor-reach';
 

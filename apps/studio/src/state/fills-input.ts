@@ -34,9 +34,7 @@
  * writes are surface writes, like the Page's and the band's, never `setRoleOverride`: `setSurfaceTier` (the
  * page's type) and `setInverseTier` (the band's type). Auto clears the input, pruning as an override clears.
  */
-import { brandTheme, type GradientInput, type ScrimStrength } from '@prism3/engine/theme';
-import { leverManifest } from '@prism3/engine/levers';
-import { BUILTIN_MODES, resolveAllModes } from '@prism3/engine/modes';
+import { brandTheme, type GradientInput, type ScrimStrength, leverManifest, BUILTIN_MODES, resolveAllModes } from '@prism3/engine';
 import { brandState, getPath, setPath, theme } from './store';
 import { resolvedModes } from './verdict';
 import { STATUS_ROLES } from './palette-input';
@@ -168,9 +166,6 @@ export const floorAutoLabel = (mode: SurfaceMode): string => {
   const secKey = sec ? `${sec.palette}.${sec.step}` : roles[SURFACE_TOKENS.secondary]?.path?.split('.').pop();
   return floor === secKey ? `Auto · follows ${SURFACE_TOKENS.secondary} (${shown(floor)})` : `Auto · ${shown(floor)}`;
 };
-/** The floor picker's visible Auto label (owner decision FL1 A, #2197): "Auto · ‹step›", the step the Auto floor is
- *  on, named as the picker names steps. `floorAutoLabel`'s full sentence stays the button's accessible name and
- *  tooltip, so the tier it follows is still said. */
 /** The role the Auto floor follows in `mode` (`background.secondary`), or null when Auto is not on that tier's step
  *  (the ladder's ends). The accessible name says it after the visible label (owner, option 1 on #2193). */
 export const floorAutoFollows = (mode: SurfaceMode): string | null => {
@@ -180,6 +175,10 @@ export const floorAutoFollows = (mode: SurfaceMode): string | null => {
   const secKey = sec ? `${sec.palette}.${sec.step}` : roles[SURFACE_TOKENS.secondary]?.path?.split('.').pop();
   return floor && floor === secKey ? SURFACE_TOKENS.secondary : null;
 };
+/** The floor picker's visible Auto label (owner decision FL1 A, #2197): "Auto · ‹step›", the step the Auto floor is
+ *  on, named as the picker names steps. `floorAutoLabel`'s full sentence is the button's tooltip. The accessible name
+ *  is the owner's option 1 on #2193, built in `color-fills.ts`: "Contrast floor, ‹mode›: ‹this label›, follows
+ *  ‹`floorAutoFollows`›. Pick a step", the clause dropped where the floor follows no tier, so the tier is still said. */
 export const floorAutoShortLabel = (mode: SurfaceMode): string => {
   const roles = brandState.surfaces?.[mode]?.floorStep == null ? rolesIn(mode) : autoFloorRoles(mode);
   const floor = roles['foreground.brand']?.against;

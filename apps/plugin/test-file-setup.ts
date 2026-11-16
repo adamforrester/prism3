@@ -28,9 +28,7 @@ import type { PagesApi, PageLike } from './src/file-setup';
 import { TAXONOMY, NEST_PREFIX, assertCoverage, assertPartPages, consumersOf, EXCLUDED_DEFS } from './src/file-taxonomy';
 import { applyComponentPlan } from './src/write-components';
 import type { CompPageTarget, CompNode } from './src/write-components';
-import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
-import { fieldLabel } from '@prism3/engine/components/field-label';
-import { componentDefs } from '@prism3/engine/components/index';
+import { figmaAnatomySet, fieldLabel, componentDefs } from '@prism3/engine/components';
 import { emptiedLine, pageMovesDue, relocateSets } from './src/page-moves';
 import { makeShim } from './component-shim';
 

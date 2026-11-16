@@ -19,10 +19,8 @@
  * `modeLevers[m]` against the brand's own `density` / `radiusScale`), so a custom mode based on Dark does not
  * follow Dark's override. `autoOf` reads the brand value for that reason, whatever the mode's base.
  */
-import type { Density, ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle, RadioDotShare, CurrentIndicator } from '@prism3/engine/scale';
+import { type Density, type ControlShape, type FieldStyle, type SearchFieldStyle, type TagStyle, type DialogTitleSize, type BannerStyle, type RadioDotShare, type CurrentIndicator, type RaisedSurface, leverManifest } from '@prism3/engine';
 import { brandState, getModeLever, getPath, setModeLever, setPath } from './store';
-import type { RaisedSurface } from '@prism3/engine/theme';
-import { leverManifest } from '@prism3/engine/levers';
 
 const defaultOf = (key: string): unknown => leverManifest.find((l) => l.key === key)?.default;
 

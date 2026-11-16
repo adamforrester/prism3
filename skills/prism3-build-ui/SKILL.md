@@ -35,8 +35,8 @@ brand.
 **If no component or token covers the need, do not build a substitute. Leave it out and name it in
 your report.**
 
-A Prism3 component exists only when the component catalog (`components.ai.json`) has an entry with
-its `id`. A name that appears only in another entry's `planned` list (under `composition`) is not
+A Prism3 component exists only when the component catalog
+(`packages/engine/out/components/components.ai.json`) has an entry with its `id`. A name that appears only in another entry's `planned` list (under `composition`) is not
 built yet: it has no spec, no states, no keyboard behavior and no contrast contract. A stand-in
 assembled from other components, a native element or hand-styled markup ships behavior nobody
 designed or verified, and it reads as part of the system when it isn't. A token is the same: when no
@@ -83,8 +83,12 @@ not `focus.ring.size`).
 Use `color.interactive.primary.fill.rest`, not `core.palette.primary.600`. Use `space.400`, not `core.dimension.16`.
 The semantic token aliases the primitive *and* carries the mode behavior and the contract.
 Binding a raw primitive throws all of that away and is the #1 source of drift.
-*Exception:* `opacity.*`, `motion.*`, and `shadow.*` are consumable directly — their
-semantic layer is thin (the `.ai.json` marks them `consume: "Consumable …"`).
+*Exception:* `opacity.*`, `shadow.*`, the easing shapes (`motion.easing.*`) and the springs
+(`motion.spring.*`) are consumable directly — their semantic layer is thin (the `.ai.json` marks
+them `consume: "Consumable …"`). Reach for a shape or a spring only where no motion role fits: the
+motion roles (`motion.duration.*`, `motion.easing-role.*`, `motion.transition.*`) are the semantic
+layer. A duration step (`motion.duration-ms.*`) is not consumable: bind a `motion.duration.*` role,
+or its `motion.duration-reduced.*` twin.
 For how things move (which duration, easing role, spring or transition each change takes, and what
 reduced motion substitutes), read `prism3-motion`.
 
@@ -263,29 +267,43 @@ Get those two right and you match the engine's own compliance contract.
 Web is whole: a stock Style Dictionary 4 or later build reads the base and overlay set and writes CSS,
 SCSS and JavaScript that carry every type usably, apart from gradients on CSS and SCSS. Native is not
 covered yet. A stock build for Swift, Android resource XML or Compose reaches every token, but several
-types come out wrong or uncompilable. `packages/tokens/` pins each as a `[GAP]`. The first five are
-stock Style Dictionary's gaps, not defects in the DTCG; the sixth, #2434, is ours:
+types come out wrong or uncompilable. `packages/tokens/` pins each as a `[GAP]`. Each is stock Style
+Dictionary's gap, not a defect in the DTCG, and each is a documented consumer gap: the options for
+closing them are tracked on #2426.
 
-- **Sizes (#2430).** The stock native transforms multiply every dimension by 16, so `16px` becomes
+- **Sizes.** The stock native transforms multiply every dimension by 16, so `16px` becomes
   `CGFloat(256.00)` or `256.00.dp`. Our literals mix `px` and `rem`, and no stock transform reads the
   unit. Write a transform that does.
-- **Font sizes on Android and Compose (#2613).** They come out in `dp`, not `sp`, so text ignores the
+- **Font sizes on Android and Compose.** They come out in `dp`, not `sp`, so text ignores the
   user's system font scale. Convert them to `sp`.
-- **Durations, font families, stroke styles and cubic beziers (#2431).** They are written as bare text
+- **Durations, font families, stroke styles and cubic beziers.** They are written as bare text
   (`= 80ms`, `= Inter`) that does not compile in Swift or Kotlin. Quote or convert them in your own
   transform.
-- **Composites (#2432).** Typography, shadow, transition and gradient tokens become `[object Object]`.
+- **Composites.** Typography, shadow, transition and gradient tokens become `[object Object]`.
   Read them from the JavaScript or JSON output, or write a format that models each one.
-- **Android numbers (#2433).** `<integer>1.5</integer>` is refused by `aapt2`. Write non-integer
+- **Android numbers.** `<integer>1.5</integer>` is refused by `aapt2`. Write non-integer
   numbers as `<item type="dimen" format="float">`.
-- **Letter spacing and the fluid container (#2434).** `em` and `%` are not DTCG 2025.10 dimension
-  units, and native writes them as absolute values: `-0.04em` becomes `-0.64`. Resolve letter spacing
-  against the font size yourself, and give `container.fluid` no absolute value.
 
 So on native, supply your own size, quoting and composite handling, and take composites from the
 JavaScript or JSON output until that is done. The no-custom-code rule stands: the gate admits no
 custom transforms, and no reference production config with custom transforms ships for now. Do not
 look for one, and do not describe native output as supported or compiled when you hand off work.
+
+## Letter spacing is a multiplier of the font size
+
+`core.font.letter-spacing.*` and `core.font.letter-spacing-role.*` are DTCG `number` tokens (#2434): `-0.04`
+means 0.04 of the font size, tighter. No stock transform turns that into a platform unit, so apply it
+where you set the text's size:
+
+- **CSS:** `letter-spacing: calc(var(--<root>-core-font-letter-spacing-role-tight) * 1em);`. A bare
+  number is not a valid `letter-spacing`.
+- **iOS:** multiply by the font's point size and set the result as `kern` (UIKit) or `tracking`
+  (SwiftUI).
+- **Android:** `android:letterSpacing` already takes em, so set the number as it is.
+- **Compose:** `letterSpacing = (-0.04).em`.
+
+A type style (`type.*`) names its letter spacing by role. Apply it from the same type style as the
+font size, so the two can't drift apart.
 
 ## Checking rebuilt Figma pages for consistency
 

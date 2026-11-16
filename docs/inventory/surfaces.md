@@ -249,7 +249,7 @@ Descriptions are quoted verbatim. No brand name appears in any served string (gr
 | Release | `npm run build:release` (`node build.mjs --release`) | `release/` | `false`, plus `minifySyntax` so dead dev branches are dropped | `release/manifest.json` written from `manifest.json`: `main`/`ui` rewritten, `devAllowedDomains` deleted | apps/plugin/package.json:9; apps/plugin/build.mjs:211,215,244,334-341 |
 | Watch | `npm run watch` | `dist/`; `--release --watch` throws | dev | — | apps/plugin/build.mjs:30,343-356 |
 
-Dev-only code, dropped from release: the desktop bridge relay (UI) and the `run-code` agent command (main). The **file mailbox (transport A) ships in both builds.** `lint-release-bundle.ts` asserts four markers present in `dist/` and absent from `release/`: `localhost:17331`/`17331`, `createBridgeRelay` (ui.html), `run-code`, `(0, eval)` (main.js), and that `release/manifest.json` equals `manifest.json` less `devAllowedDomains` with `allowedDomains: ["none"]` (apps/plugin/lint-release-bundle.ts:53-86,127-140; apps/plugin/src/agent-link-ui.ts:135; apps/plugin/src/agent-dispatch.ts:224,272).
+Dev-only code, dropped from both releases: the `run-code` agent command (main). Network-only code, in the dev build and "Prism3 Studio" (`release/`) but not "Prism3 Studio Offline" (`release-offline/`): the desktop bridge relay (UI) and its pairing-token key (main), behind `PRISM3_NETWORK` since #3147 and #3218. The **file mailbox (transport A) ships in every build.** `lint-release-bundle.ts` asserts the dev-only markers `run-code` and `(0, eval)` (main.js) present in `dist/` and absent from both releases; the network-only markers `localhost:17331`/`17331`, `createBridgeRelay` (ui.html) and `prism3:bridge-token` (main.js) present in `dist/` and `release/` and absent from `release-offline/`; that each release manifest equals `manifest.json` less `devAllowedDomains` (plus `manifest-offline.json` for the offline build); and that `release-offline/manifest.json` has `allowedDomains: ["none"]` (apps/plugin/lint-release-bundle.ts:79-125,185-211; apps/plugin/src/agent-link-ui.ts:339-343; apps/plugin/src/main.ts:127; apps/plugin/src/agent-dispatch.ts:34,271-274).
 
 Build assertions (both builds): 0 `node:` builtins in main.js; exactly one `</script>` in ui.html; build id `<ISO seconds> tree-<8 hex sha256 of tree path>` stamped in both bundles; no absolute filesystem path in either bundle (apps/plugin/build.mjs:113-117,138-157,191-198,274-283,308-316). The UI is `src/ui/entry.ts`, which imports `apps/studio/src/entry.ts` whole and mounts the Agent tile (apps/plugin/build.mjs:229; apps/plugin/src/ui/entry.ts:10-36).
 
@@ -299,8 +299,8 @@ Envelope-level error codes: `bad-envelope`, `bad-version` (`v` ≠ 1), `unknown-
 
 | Transport | Where it runs | Mechanism | Source |
 |---|---|---|---|
-| A, file mailbox (both builds) | main thread | Polls `figma.root` shared plugin data, namespace `prism3agent`, every 1000 ms while on. Keys: `inbox` (agent writes), `claimed`, `result:<id>`, `result:<id>:<n>` (chunked above 90,000 bytes), `results` (keeps 20), `link` (plugin writes). Claims before running. Answers entries already in the inbox at switch-on as `stale` | apps/plugin/src/agent-protocol.ts:312-325; apps/plugin/src/agent-link.ts:1-36,146-203 |
-| B, desktop bridge (dev build only) | UI iframe, because the main thread has no network | WebSocket client to `ws://localhost:17331`, retried every 2000 ms while on, closed when off. Server → plugin `{type:'command', command}`; plugin → server `hello`, `state`, `result`, `progress`, `log`. Forwards only the results of commands it delivered. The server (`tools/figma-bridge/server.ts`) binds 127.0.0.1 (and ::1) and is an MCP server on stdio | apps/plugin/src/agent-bridge-relay.ts:44-119; apps/plugin/src/agent-link-ui.ts:135-142; tools/figma-bridge/server.ts:15-29,233-283 |
+| A, file mailbox (every build) | main thread | Polls `figma.root` shared plugin data, namespace `prism3agent`, every 1000 ms while on. Keys: `inbox` (agent writes), `claimed`, `result:<id>`, `result:<id>:<n>` (chunked above 90,000 bytes), `results` (keeps 20), `link` (plugin writes). Claims before running. Answers entries already in the inbox at switch-on as `stale` | apps/plugin/src/agent-protocol.ts:312-325; apps/plugin/src/agent-link.ts:1-36,146-203 |
+| B, desktop bridge (dev and network builds; not the offline build) | UI iframe, because the main thread has no WebSocket (docs/18 §1) | WebSocket client to `ws://localhost:17331`, retried every 2000 ms while on, closed when off. Server → plugin `{type:'command', command}`; plugin → server `hello`, `state`, `result`, `progress`, `log`. Forwards only the results of commands it delivered. The server (`tools/figma-bridge/server.ts`) binds 127.0.0.1 (and ::1) and is an MCP server on stdio | apps/plugin/src/agent-bridge-relay.ts:44-119; apps/plugin/src/agent-link-ui.ts:336-343; tools/figma-bridge/server.ts:15-29,233-283 |
 
 ### postMessage protocol (`apps/plugin/src/messages.ts`)
 
@@ -365,7 +365,7 @@ Group order/labels: `levers.ts:219-227`. `id`/`root` are host-supplied identity,
 |---|---|---|
 | `frame.ts` (924) | Top bar, tab row + Color sub-row, two panes, menu page, narrow mode; mounts `NEW_PAGES` | `frame.ts:1-21,87-110` |
 | `pages.ts` (420) | IA as data (`DOMAINS`, `VIEWS`, `INSPECT`, `MENU_PAGES`) + shared section copy | `pages.ts:94-99,123,345` |
-| `bar.ts` (508) | Brand switcher + menu (examples, "+ New brand", "↑ Import design.md…"), Export tile + dialog, plugin Apply Theme, prune review | `bar.ts:1-20,157-166,288` |
+| `bar.ts` (508) | Brand switcher + menu (examples, "New brand", "Import design.md…"), Export tile + dialog, plugin Apply Theme, prune review | `bar.ts:1-20,157-166,288` |
 | `preview.ts` (329) | Preview header: mode radio group, Inspect menu (Contrast/Tokens/Decisions log), verdict; build stamp at foot of Inspect menu | `preview.ts:1-16,243-251` |
 | `activity.ts` (696) | Activity drawer: one row per operation (Apply Theme, Build set, Set up file, Style guides, Prune stale, Read-back) | `activity.ts:5-9` |
 | `figma.ts` (109) | Figma menu (plugin only): Prune stale, Set up file, Build sets…, Build style guides… | `figma.ts:1-13`; `apps/studio/src/main.ts:1778-1786` |
@@ -385,8 +385,8 @@ Export is a top-bar tile opening a modal dialog: artifact segmented control → 
 
 | Artifact (label) | id | Format / MIME | File names | Button | Source |
 |---|---|---|---|---|---|
-| Design tokens | `dtcg` | DTCG JSON, `application/json` | default: `<slug>.base.tokens.json` + `<slug>.<mode>.overlay.tokens.json` per mode; with Files=per-group: `<slug>.<layer>.<group>.tokens.json`. Never the single-file `<slug>.tokens.json`. Several files = several browser downloads, not zipped. | "↓ Download tokens" | `export-settings.ts:101-110,392-418,527-533,577-589`; `main.ts:1283-1297,1447` |
-| Brand brief | `design-md` | Markdown (`toDesignMd`), `text/markdown` | `<slug>.design.md` | "↓ Download brief" | `export-settings.ts:111-115`; `main.ts:1278,1447` |
+| Design tokens | `dtcg` | DTCG JSON, `application/json` | default: `<slug>.base.tokens.json` + `<slug>.<mode>.overlay.tokens.json` per mode; with Files=per-group: `<slug>.<layer>.<group>.tokens.json`. Never the single-file `<slug>.tokens.json`. Several files = several browser downloads, not zipped. | "Download tokens" | `export-settings.ts:101-110,392-418,527-533,577-589`; `main.ts:1283-1297,1447` |
+| Brand brief | `design-md` | Markdown (`toDesignMd`), `text/markdown` | `<slug>.design.md` | "Download brief" | `export-settings.ts:111-115`; `main.ts:1278,1447` |
 | (refused-brand rescue) | — | Markdown | `<id or saved-brand>.design.md` | notice on boot when stored brand is refused | `apps/studio/src/entry.ts:137-166` |
 
 DTCG settings (all `sources: ['generated']`), `export-settings.ts:169-231`:

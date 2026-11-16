@@ -30,6 +30,7 @@ import type { VarCollection, Migration, Variable } from './write-figma';
 import { applyStylesPlan } from './write-styles';
 import { applyGridStylePlan } from './write-grid-styles';
 import { applyTextStylePlan } from './write-text-styles';
+import { renameStylesForPlan, renameTextStylesForPlan } from './rename-styles';
 import { preflightApply } from './preflight';
 import type { PreflightPlan } from './preflight';
 import { preloadFonts } from './preload-fonts';
@@ -42,8 +43,8 @@ import { resolveComponentPage } from './file-setup';
 import type { PagesApi } from './file-setup';
 import { fontPreloadApiOf, preflightApiOf, textApiOf } from './theme-ports';
 import type { ThemeHost } from './theme-ports';
-import type { WritePlan, FloatCollectionPlan, VarCollectionPlan, StylesPlan, GridStylePlan, TextStylePlan } from '@prism3/engine/write-plan';
-import type { BrandInput } from '@prism3/engine/theme';
+import type { WritePlan, FloatCollectionPlan, VarCollectionPlan, StylesPlan, GridStylePlan, TextStylePlan } from '@prism3/engine/figma';
+import type { BrandInput } from '@prism3/engine';
 import { facade } from './host-facade';
 import { writeSetReactions } from './reactions';
 import type { ReactionNode } from './reactions';
@@ -254,6 +255,12 @@ const writeStep = async (
   const { host, shared, ledger } = hostOf(d.ledger);
   const r = base(d, kind, shared, ledger);
   try {
+    // THE IN-PROGRESS MARK (#3742, the paste's half of #3697 M3): every write step but the last clears the print of what
+    // was written, and `runPersist` stamps it again. The paste runs as separate scripts, any of which can be the last an
+    // agent runs, so a paste that stops part-way leaves no print, and the recount (`themeDue`) reads the file as due
+    // rather than as matching the brand it held before. Every step, not only the first: the steps can be cut and run in
+    // any slicing, and clearing is idempotent. A host that refuses shared plugin data keeps no print to clear.
+    if (kind !== 'persist') { try { stampEmission(host.root, ''); } catch { /* no shared plugin data on this host */ } }
     if (d.fonts) {
       const pf = await preloadFonts(d.fonts as unknown as TextStylePlan, fontPreloadApiOf(host));
       r.fonts = { loaded: pf.loaded, attempted: pf.attempted, unavailable: pf.unavailable };
@@ -305,7 +312,10 @@ export const runFloat = (raw: unknown) => writeStep(raw, 'float', async (host, d
 
 /** EFFECT + PAINT styles. */
 export const runStyles = (raw: unknown) => writeStep(raw, 'styles', async (host, d, r) => {
+  // #1040: the style rename pass Apply Theme runs before the same writer (`rename-styles.ts`).
+  const renamed = (await renameStylesForPlan(d.plan as StylesPlan, host)).filter((o) => o.applied).length;
   const res = await applyStylesPlan(d.plan as StylesPlan, host);
+  if (renamed) r.renamed = renamed;
   Object.assign(r, { created: res.effects.created + res.paints.created, total: res.effects.total + res.paints.total, bound: res.paints.bound + res.effects.bound, misses: res.misses });
 });
 
@@ -331,7 +341,9 @@ export const runMotion = (raw: unknown) => writeStep(raw, 'motion', async (host,
 
 /** TEXT styles (#237). */
 export const runText = (raw: unknown) => writeStep(raw, 'text', async (host, d, r) => {
+  const renamed = (await renameTextStylesForPlan(d.plan as TextStylePlan, textApiOf(host))).filter((o) => o.applied).length;   // #1040
   const res = await applyTextStylePlan(d.plan as TextStylePlan, textApiOf(host));
+  if (renamed) r.renamed = renamed;
   Object.assign(r, { created: res.created, total: res.total, bound: res.bound, misses: res.misses, skipped: res.skipped, resolvedStyles: res.resolvedStyles, resolvedCuts: res.resolvedCuts, cutRefused: res.cutRefused });
 });
 

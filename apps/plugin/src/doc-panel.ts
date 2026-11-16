@@ -23,14 +23,15 @@
  *     `dark` among them;
  *   - Related components: each list as a bulleted list of component names, each name a link to that component's set
  *     in the file (#2970 item 3); a name with no set in the file, and each Replaces entry, is plain text. A family's
- *     member reads as its family, linked to the lead's set, once per list, and the panel's own family is left out
+ *     member reads as its family, linked to the lead's set, once across the lists (in the first that names it, #3552 Q-UG3 A), and the panel's own family is left out
  *     (#2970 Q5 A).
  *
  * EVERY SPECIMEN AT ITS MEMBER'S OWN WIDTH (#2970 Q1 A). The panel is as wide as its widest stage needs and never
  * narrower than `PANEL_WIDTH` (`panelLayout`), read off the set alone, so the seat, the dry run and the apply agree.
  *
  * A FAMILY AS ONE COMPONENT (#2970 item 4, Q3 A, Q4 A): titled with its taxonomy page's name, the lead's summary as
- * its lede, and "In this family" a bulleted list of its parts, the lead first, each with its own summary and a link.
+ * its lede, and "In this family" a bulleted list of its parts, the lead first, each with a link and, after the lead,
+ * its own summary: the lead's entry is its name alone, since the lede already says it (#3552 Q-UG4 A).
  *
  * CANVAS FURNITURE, KEPT APART FROM ITS LABELS. The panel is a frame on the set's own parent, never inside the set, so
  * the update's hand-edit check and the as-built record stay blind to it, as they are to the labels. It carries its own
@@ -62,10 +63,7 @@
  * HELD FOR THE OWNER: `PANEL_GAP`, `PANEL_PAD`, `SECTION_GAP`, `MODE_GAP`, the panel's name, and every sentence this
  * file writes (DRAFT wording). `PANEL_WIDTH` and `THEMING_ROW_MAX` are the owner's (#2970 Q1 A, Q2 A).
  */
-import { docSections, partName, type DocSection, type DocSectionId } from '@prism3/engine/component-doc-sections';
-import type { ComponentDef } from '@prism3/engine/component-schema';
-import { componentDefs } from '@prism3/engine/components/index';
-import { CANVAS_FURNITURE } from '@prism3/engine/anatomy-figma';
+import { docSections, partName, type DocSection, type DocSectionId, type ComponentDef, componentDefs, CANVAS_FURNITURE } from '@prism3/engine/components';
 import { leadOf, leafForDef } from './file-taxonomy';
 import { isTemplateSet } from './file-components';
 import { fingerprintOf, fnv, type SgNode } from './style-guide';
@@ -74,7 +72,7 @@ import { STAMP_KEY } from './write-components';
 import { builtByPrism3, readBaseline } from './member-baseline';
 import { readTag } from './canvas-furniture';
 import { readSpecTag } from './spec-tag';
-import { CAPTION, CHIP_SLOTS, DOC_BLOCK_SET, DO_ROWS, SPECIMEN, STAGE_PAD, TOP_PADDING, docBlockVariant, variantValues, type DocBlockSize, type DocBlockType } from './doc-block';
+import { CAPTION, CHIP_SLOTS, CODE_STYLE, DOC_BLOCK_SET, DO_ROWS, SPECIMEN, STAGE_PAD, TOP_PADDING, docBlockVariant, variantValues, type DocBlockSize, type DocBlockType } from './doc-block';
 
 export const DOC_PANEL_NS = 'prism3';
 export const DOC_PANEL_KEY = 'docPanel';
@@ -123,9 +121,11 @@ const SIZE: DocBlockSize = 'sm';
  *  Related as linked lists (#2970). 4: each specimen at its member's own width, the panel widening to fit (#2970 items 1
  *  and 4, #2916). 5: a specimen never under what its def declares, so Dialog's anatomy no longer collapses (#3205).
  *  6: each specimen sized again once its panel is on the page, where the host kept 5's width only until the panel
- *  moved there (#3205 follow-up). The as-built ledger records it per set (`panel`, `main.ts` `ledgerNow`), so a raise
+ *  moved there (#3205 follow-up). 7: each specimen FILLs its stage, its width set by the stage's padding, since Figma drops a
+ *  width written to a layer inside an instance and 4–6's widths never held in a real file (#3205, owner review 2026-11-13).
+ *  The as-built ledger records it per set (`panel`, `main.ts` `ledgerNow`), so a raise
  *  makes a lead set due in Update file's check even when its set is current (#3205, the format-due credit). */
-export const PANEL_FORMAT = 6;
+export const PANEL_FORMAT = 7;
 /** THE TITLES (#2970 item 5, owner decision): the panel's title and each section's, in px, with their letter-spacing
  *  in percent. The tracking is the studio's: its 20px page titles take `ls-tightest` (−4%) and its 16px section titles
  *  `ls-tighter` (−3%), the default theme's values (`theme.ts` `LETTER_SPACINGS`). Written over the block's text style,
@@ -196,10 +196,33 @@ export const nameInFamily = (name: string, page: string): string => (name.starts
 
 /** A variant value or axis as text: hyphens to spaces, first letter capitalized. The labels' rule (`sentenceCase`). */
 const sentence = (s: string): string => { const t = s.replace(/-/g, ' '); return t.charAt(0).toUpperCase() + t.slice(1); };
-/** Prose as the panel shows it: code spans as plain text, whitespace folded. */
-export const plain = (s: string): string => s.replace(/`/g, '').replace(/\s+/g, ' ').trim();
-/** The first `n` sentences of `s`, the wireframe's cut: a sentence ends at `.` or `)` before a capital or a quote. */
-export const firstSentences = (s: string, n: number): string => plain(s).split(/(?<=[.)])\s+(?=[A-Z"(])/).slice(0, n).join(' ');
+/** Prose as the panel plans it: whitespace folded, code spans kept in their backticks (#3552 Q-UG2 A). The draw writes
+ *  each line without them and draws each span in the brand's inline code style (`CODE_STYLE`, `codeRuns`), so
+ *  `<button>` reads as code; a file without the style gets the text plain, and the run names the style. */
+export const plain = (s: string): string => s.replace(/\s+/g, ' ').trim();
+/** CODE AS CODE (#3552 Q-UG2 A): a planned line as the panel writes it, its backticks removed, with the range of each code
+ *  span in the written text. A backtick with no partner is dropped and starts no span. */
+export const codeRuns = (s: string): { text: string; runs: [number, number][] } => {
+  const runs: [number, number][] = [];
+  let text = '', last = 0;
+  for (const m of s.matchAll(/`([^`\n]+)`/g)) {
+    text += s.slice(last, m.index).replace(/`/g, '');
+    runs.push([text.length, text.length + m[1].length]);
+    text += m[1];
+    last = m.index! + m[0].length;
+  }
+  return { text: text + s.slice(last).replace(/`/g, ''), runs };
+};
+/** The first `n` sentences of `s`, the wireframe's cut: a sentence ends at `.` or `)` before a capital or a quote. Each
+ *  sentence inside a quoted example still counts toward `n`, but the cut never falls inside an open `"…"` (#3552 N1):
+ *  when the `n`th sentence leaves a quote open, the sentences after it are kept until it closes. */
+export const firstSentences = (s: string, n: number): string => {
+  const pieces = plain(s).split(/(?<=[.)])\s+(?=[A-Z"(])/);
+  const open = (k: number): boolean => (pieces.slice(0, k).join(' ').match(/"/g) ?? []).length % 2 === 1;
+  let k = Math.min(n, pieces.length);
+  while (k < pieces.length && open(k)) k++;
+  return pieces.slice(0, k).join(' ');
+};
 
 /**
  * THE ANATOMY'S NUMBERED ENTRIES (#2916, #2927, #3265), from the def's part tree: pure, so the runs and the bracket rule
@@ -253,12 +276,17 @@ export const anatomyMarks = (def: ComponentDef, listed: readonly string[]): Anat
 /** The number a repeat's part carries (`cell4` → 4), or null for a part that is not numbered. */
 const instanceNo = (id: string): string | null => /\d+$/.exec(id)?.[0] ?? null;
 /** A legend entry's name and caption (#3265, owner decisions Q3265.1 A and Q3265.2 A; the wording DRAFT under Q10). The
- *  name is the def's part key through `partName`, never a layer's name. One instance reads "Cell 4" and keeps its own
- *  note. A run reads "Cells 1–6" (an en dash) and takes its parts' note when they share one, else the nested component's
+ *  name is the def's part key through `partName`, never a layer's name; a part that holds a repeat reads "Cell slot"
+ *  (#3552 Q-UG5 A). One instance reads "Cell 4" and keeps its own note. A run reads "Cells 1–6" (an en dash) and takes its parts' note when they share one, else the nested component's
  *  summary, so the caption is true of every part the entry covers. */
 export const anatomyEntry = (def: ComponentDef, m: AnatomyMark, caption: (id: string) => string): { label: string; caption: string } => {
   const no = instanceNo(m.part);
-  const nests = (def.anatomy?.parts as Record<string, { kind?: string; nests?: string }> | undefined)?.[m.part];
+  const all = (def.anatomy?.parts ?? {}) as Record<string, { kind?: string; nests?: string; children?: readonly string[] }>;
+  const nests = all[m.part];
+  // A SLOT THAT HOLDS A RUN (#3552 Q-UG5 A; the wording DRAFT under Q10) is named for what it holds, "Item slot", so it
+  // does not read like the run below it ("Items" above "Items 1–2"). Generated from the first repeat it holds.
+  const held = m.part === def.anatomy?.root ? undefined : (nests?.children ?? []).find((c) => instanceNo(c) && all[c]?.kind === 'nest');
+  if (held) return { label: `${partName(held.replace(/\d+$/, ''))} slot`, caption: caption(m.part) };
   if (!no || nests?.kind !== 'nest') return { label: partName(m.part), caption: caption(m.part) };
   const name = partName(m.part.replace(/\d+$/, ''));
   if (m.run.length === 1) return { label: `${name} ${no}`, caption: caption(m.part) };
@@ -360,26 +388,32 @@ export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]
         row = true;
         for (const m of s.modes) blocks.push({ type: 'Specimen', mode: m, caption: sentence(m) });
         break;
-      case 'related':
-        // By family (#2970 Q5 A): each member shows as its family, once per list, and the panel's own family is dropped.
+      case 'related': {
+        // By family (#2970 Q5 A): each member shows as its family, and the panel's own family is dropped. EACH ONCE
+        // ACROSS THE LISTS (#3552 Q-UG3 A): a family or component is listed in the first list that names it, in the
+        // model's order, so Dialog's Buttons is Built from and not Often used with as well.
+        const listed = new Set<string>();
         for (const l of s.lists) {
           const items: LinkItem[] = [];
           for (const id of l.ids) {
             const r = familyRef(id, name);
-            if ((fam && r.def === fam.lead) || items.some((x) => x.def === r.def)) continue;
+            if ((fam && r.def === fam.lead) || listed.has(r.def)) continue;
+            listed.add(r.def);
             items.push(r);
           }
           if (items.length) blocks.push({ type: 'Links', label: l.label, items });
         }
         if (s.replaces.length) blocks.push({ type: 'Links', label: 'Replaces', items: s.replaces.map((r) => ({ name: plain(r) })) });
         break;
+      }
     }
     if (!blocks.length) continue;
     sections.push({ id: s.id, title: s.title, blocks, ...(row ? { row } : {}) });
   }
   // THE FAMILY AS ONE COMPONENT (#2970 item 4, Q3 A and Q4 A): titled with its page's name, the lede the lead's summary,
-  // and its parts listed, the lead first and then the page's order.
-  const family = others.length ? [def, ...others].map((d) => ({ name: nameInFamily(name(d.id), fam!.page), def: d.id, note: firstSentences(d.summary, 1) })) : undefined;
+  // and its parts listed, the lead first and then the page's order. THE LEAD BY ITS NAME ONLY (#3552 Q-UG4 A): the lede
+  // is its summary, so its entry does not say that again.
+  const family = others.length ? [def, ...others].map((d) => ({ name: nameInFamily(name(d.id), fam!.page), def: d.id, ...(d === def ? {} : { note: firstSentences(d.summary, 1) }) })) : undefined;
   const body = { def: def.id, title: family ? fam!.page : def.name, lede: plain(def.summary), ...(family ? { family } : {}), sections };
   return { ...body, hash: `${PANEL_FORMAT}:${fnv(JSON.stringify(body), false)}${fnv(JSON.stringify(body), true)}` };
 };
@@ -413,6 +447,7 @@ export interface PNode {
   setRangeHyperlink?(start: number, end: number, link: { type: 'NODE' | 'URL'; value: string } | null): void;
   setRangeListOptions?(start: number, end: number, options: { type: 'ORDERED' | 'UNORDERED' | 'NONE' }): void;
   setRangeTextDecoration?(start: number, end: number, decoration: 'NONE' | 'UNDERLINE' | 'STRIKETHROUGH'): void;
+  setRangeTextStyleIdAsync?(start: number, end: number, styleId: string): Promise<void>;
   visible?: boolean;
   fills?: unknown;
   strokes?: unknown;
@@ -458,6 +493,8 @@ export interface PanelVariable { id: string; name: string; variableCollectionId?
 export interface PanelApi {
   root: { findAllWithCriteria(criteria: { types: ('COMPONENT' | 'COMPONENT_SET' | 'INSTANCE' | 'FRAME')[]; sharedPluginData?: { namespace: string; keys: string[] } }): readonly unknown[] };
   loadFontAsync(font: { family: string; style: string }): Promise<void>;
+  /** The file's text styles: the code style a code span is drawn in (#3552 Q-UG2 A). */
+  getLocalTextStylesAsync?(): Promise<readonly { id: string; name: string; fontName?: { family: string; style: string } }[]>;
   createFrame(): PNode;
   variables?: {
     getLocalVariablesAsync(): Promise<readonly PanelVariable[]>;
@@ -725,6 +762,8 @@ const writtenTexts = (api: Pick<PanelApi, 'root'>, defId: string): Set<string> |
     for (const c of n.children ?? []) walkAll(c);
   };
   walkAll(findDocBlock(api));
+  // As written: a planned line's code spans without their backticks (#3552 Q-UG2 A).
+  for (const t of [...out]) out.add(codeRuns(t).text);
   return out;
 };
 /**
@@ -1032,13 +1071,34 @@ export const drawDocPanel = async (
     return f;
   };
   const fill = (n: PNode): void => { try { n.layoutSizingHorizontal = 'FILL'; } catch { /* outside auto layout */ } };
-  /** Write `text` into a layer, and when `type` is given, its size and letter-spacing over the block's text style. */
+  /** The file's code style and its font loaded, looked up once, at the first code span (#3552 Q-UG2 A); null when the
+   *  file lacks it or its font, a miss named once. */
+  let codeStyle: { id: string } | null | undefined;
+  const codeStyleOf = async (): Promise<{ id: string } | null> => {
+    if (codeStyle !== undefined) return codeStyle;
+    const s = byTail((await api.getLocalTextStylesAsync?.()) ?? [], CODE_STYLE);
+    codeStyle = s ?? null;
+    if (!s) out.misses.push(`the ${CODE_STYLE} text style, so code is drawn as plain text`);
+    else if (s.fontName) {
+      try { await api.loadFontAsync(s.fontName); } catch { out.misses.push(`${s.fontName.family} ${s.fontName.style} unavailable, so code is drawn as plain text`); codeStyle = null; }
+    }
+    return codeStyle;
+  };
+  /** Write `text` into a layer, and when `type` is given, its size and letter-spacing over the block's text style. A code
+   *  span in it is written without its backticks and drawn in the code style (#3552 Q-UG2 A). */
   const write = async (n: PNode | undefined, text: string, what: string, type?: { size: number; tracking: number }): Promise<boolean> => {
     if (!n) { out.misses.push(`${DOC_BLOCK_SET} has no ${what} layer`); return false; }
     const f = n.fontName as { family?: unknown; style?: unknown } | undefined;
     if (!f || typeof f.family !== 'string' || typeof f.style !== 'string') { out.misses.push(`${what}: mixed or unreadable font`); return false; }
     try { await api.loadFontAsync({ family: f.family, style: f.style }); } catch { out.misses.push(`${f.family} ${f.style} unavailable`); return false; }
-    n.characters = text;
+    const shown = codeRuns(text);
+    n.characters = shown.text;
+    if (shown.runs.length) {
+      const code = await codeStyleOf();
+      if (code) for (const [a, b] of shown.runs) {
+        try { await n.setRangeTextStyleIdAsync?.(a, b, code.id); } catch { out.misses.push(`${what}: code not drawn in ${CODE_STYLE}`); }
+      }
+    }
     if (type) {
       try { n.fontSize = type.size; n.letterSpacing = { value: type.tracking, unit: 'PERCENT' }; } catch { out.misses.push(`${what}: size not set`); }
     }
@@ -1069,26 +1129,65 @@ export const drawDocPanel = async (
   /** THE SPECIMEN AT ITS MEMBER'S OWN WIDTH (#2970 Q1 A), NEVER UNDER WHAT THE DEF DECLARES (#3205). The swap keeps the
    *  sizing the template's placeholder had, a Badge's hug, so a member built at a width that hugs its content instead
    *  lays its fill-width text out at its narrowest: Banner's text went one letter per line, Checkbox.Row's label
-   *  wrapped, and Dialog's anatomy drew about 60px wide, its title one letter per line (#3205). One rule
-   *  (`exampleFloor`): a def that builds its root at a width (`placementWidth`, `builtSize`, `center`) gets a fixed specimen at
-   *  its member's width, with that width as the specimen's `minWidth` too, whatever sizing the member reports, so
-   *  nothing that sets the instance back to hug can collapse it; a def that declares a literal minimum (`minWidth`)
-   *  gets that floor on a specimen that hugs. Any other member: fixed at its width when it is fixed, hugging when it hugs. */
-  /** Every specimen sized, with its member: sized again once the panel is on the page (`resizeSpecimens`). */
+   *  wrapped, and Dialog's anatomy drew about 60px wide, its title one letter per line (#3205). Which members show at a
+   *  width (`specimenWidth`): a def that builds its root at a width (`placementWidth`, `builtSize`, `center`), whatever
+   *  sizing the member reports, and any member that reads FIXED, each at its member's width. Any other member hugs, and
+   *  takes its main's own floor, as every instance does.
+   *
+   *  NO WIDTH IS WRITTEN TO THE SPECIMEN. It is a layer inside its `_Doc-block` instance, and Figma silently drops a width
+   *  written to one (`resize`, `minWidth`: the live run of 0.205.0, `style-guide-cells.ts`), while it keeps a sizing mode
+   *  and a padding. #3211 and #3318 set FIXED, `resize` and `minWidth`: only the FIXED held, so in the template each
+   *  specimen froze at the width it hugged (Dialog 62px with no floor, Accordion at its 120px floor, its title wrapped and
+   *  "components" broken across lines; owner review, 2026-11-13). So the specimen FILLs its stage, and the stage's
+   *  left and right padding leave exactly the member's width between them, the spare split evenly so it stays centered
+   *  (`fitSpecimens`). The stage FILLs its block, so its width is the panel's, which `panelLayout` already makes wide
+   *  enough; a stage still too narrow widens the panel. */
+  /** Every specimen drawn, with its member: fitted again once the panel is on the page and after the markers' gutters. */
   const sized: { i: PNode; m: PNode }[] = [];
+  /** Each stage's left padding before the spare is split: the stage's own, or the markers' gutter (`drawMarkers`). */
+  const baseLeft = new Map<PNode, number>();
+  const specimenWidth = (m: PNode): number => {
+    const floor = exampleFloor(def, m);
+    return floor.built || m.layoutSizingHorizontal !== 'HUG' ? Math.max(Math.round(Number(m.width ?? 0)), floor.width) : 0;
+  };
   const sizeSpecimen = (i: PNode, m: PNode): void => {
     if (!sized.some((x) => x.i === i)) sized.push({ i, m });
     const sp = find(i, 'specimen');
     if (!sp) return;
-    const floor = exampleFloor(def, m);
+    const want = specimenWidth(m);
     try {
-      if (floor.built || m.layoutSizingHorizontal !== 'HUG') {
-        sp.layoutSizingHorizontal = 'FIXED';
-        sp.resize?.(m.width ?? sp.width ?? 0, sp.height ?? 0);
-        if (m.layoutSizingVertical === 'HUG' || floor.built) sp.layoutSizingVertical = 'HUG';
+      if (want > 0) {
+        sp.layoutSizingHorizontal = 'FILL';
+        if (m.layoutSizingVertical === 'HUG' || exampleFloor(def, m).built) sp.layoutSizingVertical = 'HUG';
       } else sp.layoutSizingHorizontal = 'HUG';
     } catch { out.misses.push(`the specimen of ${def.id} could not take its member's width`); }
-    if (floor.width > 0) { try { sp.minWidth = floor.width; } catch { out.misses.push(`the specimen of ${def.id} could not take its ${floor.width}px floor`); } }
+  };
+  /** Each stage's padding set so its FILLing specimen is its member's width, centered; the panel widened when a stage
+   *  is too narrow for that. A hugging specimen's stage keeps its left gutter and `STAGE_PAD` on the right. */
+  const fitSpecimens = (): void => {
+    const place = (): number => {
+      let short = 0;
+      for (const { i, m } of sized) {
+        const sp = find(i, 'specimen');
+        const stage = sp?.parent as PNode | undefined;
+        if (!sp || !stage) continue;
+        const want = specimenWidth(m);
+        const left = baseLeft.get(stage) ?? Number(stage.paddingLeft ?? STAGE_PAD);
+        if (!baseLeft.has(stage)) baseLeft.set(stage, left);
+        const spare = want > 0 ? Number(stage.width ?? 0) - left - STAGE_PAD - want : 0;
+        short = Math.max(short, -spare);
+        const half = Math.max(0, spare) / 2;
+        try { stage.paddingLeft = left + Math.floor(half); stage.paddingRight = STAGE_PAD + Math.ceil(half); }
+        catch { out.misses.push(`the specimen of ${def.id} could not take its member's width`); }
+      }
+      return short;
+    };
+    for (let k = 0; k < 4; k++) {
+      const short = place();
+      if (short <= 0) return;
+      panel.resize?.(Math.ceil(Number(panel.width ?? 0) + short), panel.height ?? 1);
+      panel.layoutSizingVertical = 'HUG';
+    }
   };
   const showSpecimen = async (i: PNode, m: PNode | undefined, mode?: string, caption?: string): Promise<void> => {
     const key = propKey(i, SPECIMEN);
@@ -1195,15 +1294,16 @@ export const drawDocPanel = async (
         const t = findText(row, 'text');
         if (!(await write(t, b.items.map(linkLine).join('\n'), 'text')) || !t) break;
         try { t.setRangeListOptions?.(0, String(t.characters).length, { type: 'UNORDERED' }); } catch { out.misses.push(`${b.label}: list bullets not set`); }
-        // Only the name is the link; a note after it is plain.
+        // Only the name is the link; a note after it is plain. Offsets are in the written text, its backticks removed.
         let at = 0;
         for (const x of b.items) {
           const node = x.def ? links[x.def] : undefined;
+          const len = codeRuns(x.name).text.length;
           if (node) {
-            try { t.setRangeHyperlink?.(at, at + x.name.length, { type: 'NODE', value: node }); t.setRangeTextDecoration?.(at, at + x.name.length, 'UNDERLINE'); }
+            try { t.setRangeHyperlink?.(at, at + len, { type: 'NODE', value: node }); t.setRangeTextDecoration?.(at, at + len, 'UNDERLINE'); }
             catch { out.misses.push(`${b.label}: no link to ${x.name}`); }
           }
-          at += linkLine(x).length + 1;
+          at += codeRuns(linkLine(x)).text.length + 1;
         }
         break;
       }
@@ -1282,13 +1382,20 @@ export const drawDocPanel = async (
       const need = (side: Laid['side'], step: number) => (deepest(side) < 0 ? 0 : MARK_GAP + (deepest(side) + 1) * step + (side === 'left' ? LEADER : 0));
       for (const [k, side, step] of [['paddingTop', 'top', mh + MARK_SEP], ['paddingBottom', 'bottom', mh + MARK_SEP], ['paddingLeft', 'left', mw + 2 * MARK_SEP]] as const) {
         const n = need(side, step);
-        if (n > Number(stage[k] ?? 0)) { try { stage[k] = Math.ceil(n); } catch { out.misses.push(`the specimen's ${side} gutter could not grow`); } }
+        // The left gutter is the stage's base: `fitSpecimens` adds the spare to it.
+        const was = k === 'paddingLeft' ? (baseLeft.get(stage) ?? Number(stage[k] ?? 0)) : Number(stage[k] ?? 0);
+        if (n > was) {
+          if (k === 'paddingLeft') baseLeft.set(stage, Math.ceil(n));
+          try { stage[k] = Math.ceil(n); } catch { out.misses.push(`the specimen's ${side} gutter could not grow`); }
+        }
       }
     }
+    fitSpecimens();
     // A GUTTER WIDER THAN THE RULE ALLOWED (the real Badge wider than `MARK_ROOM`): the panel widens again, before the
     // places are read, so every specimen keeps its own width inside its stage.
     const need = Math.max(0, ...all.map(({ spec, stage }) => (stage ? rect(spec).width + Number(stage.paddingLeft ?? 0) + Number(stage.paddingRight ?? 0) : 0))) + 2 * PANEL_PAD;
     if (need > (panel.width ?? 0)) { panel.resize?.(Math.ceil(need), panel.height ?? 1); panel.layoutSizingVertical = 'HUG'; }
+    fitSpecimens();
     // THE PLACES, from the boxes as now laid out, each relative to the panel.
     const at = rect(panel);
     let marked = 0;
@@ -1369,12 +1476,11 @@ export const drawDocPanel = async (
   parent.appendChild(panel);
   panel.x = at.x;
   panel.y = at.y;
-  // SIZED AGAIN WHERE IT LANDS (#3205 follow-up). In the template, #3211's width and floor did not survive: Dialog's
-  // specimen was FIXED at the 62px it hugs inside a 687px stage. The host drops a nested instance's size overrides
-  // when its tree moves, and the panel moves onto the page only now, after every specimen was sized. So each one is
-  // sized again here, fixed at its member's width with its floor, once nothing above it moves again. That is before the
-  // markers, which are placed from the specimens' final boxes.
+  // FITTED AGAIN WHERE IT LANDS (#3205 follow-up): each specimen's sizing mode set again, and its stage's padding fitted
+  // to the stage's width there, once nothing above it moves again. That is before the markers, which are placed from
+  // the specimens' final boxes.
   for (const { i, m } of sized) sizeSpecimen(i, m);
+  fitSpecimens();
   out.marked = await drawMarkers();
 
   // NOTHING UNDER IT: every other node on the parent, the set and its labels included, but the edited panels this

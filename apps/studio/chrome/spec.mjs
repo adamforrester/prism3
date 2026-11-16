@@ -8,7 +8,7 @@
 //
 // Zero dependencies, no network. Nothing here reads a file.
 
-import { TILE_VARS, C, D, T, E } from './tokens.mjs';
+import { TILE_VARS, C, D, T, E, M } from './tokens.mjs';
 
 // The tile's map, plus v6's layering and edge roles. A v6 row may name a different token per theme,
 // because IA-2 and B1 are orderings and thresholds, not one role: the same ladder position lands on a
@@ -36,7 +36,7 @@ export const V6_VARS = [
   // small capitals for card titles. Same token in both themes. #3083 (the owner's Q3083.1 A, 2026-10-28): the view
   // title 20 → 18, in place under its old name, with the section titles' 16 → 14 (`fs-16`, tokens.mjs).
   ['fs-20', 'core.font.size.18', 'core.font.size.18', D, 'view title'],
-  ['ls-wide', 'core.font.letter-spacing-role.wide', 'core.font.letter-spacing-role.wide', D, 'card title tracking'],
+  ['ls-wide', 'core.font.letter-spacing-role.wide', 'core.font.letter-spacing-role.wide', M, 'card title tracking'],
 ];
 export const VARS_FOR = (mode) => [...TILE_VARS, ...V6_VARS.map(([n, l, d, k]) => [n, mode === 'light' ? l : d, k])];
 

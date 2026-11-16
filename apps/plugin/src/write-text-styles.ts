@@ -21,9 +21,10 @@
  * minimal slice of `figma` the executor touches, so it's unit-testable against an in-memory shim (see
  * `apps/plugin/test-write-typography.ts`); the real `figma` structurally satisfies it.
  */
-import type { TextStylePlan } from '@prism3/engine/write-plan';
+import type { TextStylePlan } from '@prism3/engine/figma';
 import type { VariablesApi, Variable } from './write-figma';
 import { markOwned, type Markable } from './provenance';
+import { errorClass } from './apply-summary';
 
 /** A Figma font descriptor. */
 export type FontName = { family: string; style: string };
@@ -202,7 +203,8 @@ export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi
     try {
       await api.loadFontAsync({ family: row.fontFamilyPrimary, style });
     } catch (e) {
-      skipped.push({ name: row.name, reason: `font unavailable: ${row.fontFamilyPrimary} ${style}${(e as Error)?.message ? ` (${(e as Error).message})` : ''}` });
+      // #3697 H4: the error's class, not the host's message, which can name anything the file holds.
+      skipped.push({ name: row.name, reason: `font unavailable: ${row.fontFamilyPrimary} ${style} (${errorClass(e)})` });
       continue;
     }
 
@@ -216,6 +218,9 @@ export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi
     // `materialise-to-figma.ts` paste path would have written it and the plugin would not.
     s.description = row.description;
     s.fontName = { family: row.fontFamilyPrimary, style };   // the RESOLVED style — must match what was loaded
+    // #3557: a size variable the person chose to Skip leaves no binding, so the style takes the literal size that
+    // variable resolved to (`fontSizePx`, set by the collision choice) rather than the host's default 12.
+    if (!row.fontSizeVar && typeof row.fontSizePx === 'number') s.fontSize = row.fontSizePx;
     s.lineHeight = { unit: 'PERCENT', value: row.lineHeightPct };
     s.letterSpacing = { unit: 'PERCENT', value: row.letterSpacingPct };
     s.textCase = row.textCase;

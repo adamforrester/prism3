@@ -15,8 +15,9 @@
  * SUBJECT: the new entries, the ones above the base's revision, as committed. ORACLE: the drawing. Every projected def
  * the new entries do not already name is drawn with the base's executor (`apps/plugin/src` at the base, exported by
  * `git archive` into a temporary directory) and with this tree's, over this tree's plans, in the component shim
- * (`reach-draw.ts`: a fresh build, an in-place update, an update across a lever change and an update over an earlier
- * update's drawing, under two brands). A def whose drawing moved in any arm, or that cannot be drawn on either side,
+ * (`reach-draw.ts`: a fresh build, an in-place update, an update across a lever change, an update over an earlier
+ * update's drawing, and an update over the old 48px grid a single-component block was laid out at before #3142, so a
+ * revision that only moves existing components is measured too (#3280), under two brands). A def whose drawing moved in any arm, or that cannot be drawn on either side,
  * must be named. Nothing here writes the record: a gate that rewrote what it reads would have no memory (docs/34 shape
  * 6), so the entry is the author's, and the fix this gate prints is to add the sets it names.
  *
@@ -45,8 +46,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync }
 import { availableParallelism, tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { componentDefs } from '@prism3/engine/components/index';
-import { comparisonBase } from '../../packages/engine/comparison-base';
+import { componentDefs } from '@prism3/engine/components';
+import { comparisonBase } from '@prism3/engine/harness';
 import type { ReachTable } from './src/executor-reach';
 
 const HERE = dirname(fileURLToPath(import.meta.url));

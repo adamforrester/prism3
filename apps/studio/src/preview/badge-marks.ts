@@ -14,7 +14,7 @@
  * ONE RULE, TWO PREVIEWS. Color › Interactive's preview (#2019, S5.3) wrote it first, inside `preview/interactive.ts`;
  * S4f lifted it here, unchanged line for line, and both previews call `themeBadgeMarks` on a card carrying `p3-marks`.
  */
-import { contrast, hexToRgb } from '@prism3/engine/color';
+import { contrast, hexToRgb } from '@prism3/engine';
 import { h } from '../shell/dom';
 
 /** WCAG 1.4.11's non-text floor, the one a badge mark is held to on its ground. */

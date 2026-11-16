@@ -32,11 +32,8 @@
  * `against === 'self'` clause changes nothing for prism3, whose self-measured roles carry no minimum; the
  * clause stays as concept v6 wrote it.)
  */
-import { brandTheme } from '@prism3/engine/theme';
-import { resolveAllModes } from '@prism3/engine/modes';
-import { resolvePreview } from '@prism3/engine/resolve-preview';
-import examples from '@prism3/engine/schema/example-brands.json';
-import type { BrandInput } from '@prism3/engine/theme';
+import { brandTheme, resolveAllModes, resolvePreview, type BrandInput } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as examples } from '@prism3/engine';
 import { FLOOR_POINTER, breadthLine, healthLine, isDerived, modeLine, verdictLine, verdictOf } from './src/state/verdict';
 
 let failed = 0;

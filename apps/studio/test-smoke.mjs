@@ -2314,7 +2314,8 @@ s4cArm: for (const brand of BRANDS) {
     'inverse.field.fill', 'inverse.field.border.rest', 'inverse.field.border.hover', 'inverse.field.placeholder'];
   const FIELD_STEPS = { dark: ['150', '250', '350', '450', '550', '650', '750', '850'], light: ['200', '300', '400', '500', '600', '700', '800', '900'] };
   const brandRaw = (page) => page.evaluate(() => { try { return localStorage.getItem('prism3:brandInput'); } catch { return null; } });
-  const sorted = (o) => JSON.stringify(Object.fromEntries(Object.entries(o ?? {}).sort(([a], [b]) => a.localeCompare(b))));
+  // Code-unit order, which no host locale moves (#3701); both sides of the comparison sort the same way.
+  const sorted = (o) => JSON.stringify(Object.fromEntries(Object.entries(o ?? {}).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))));
   let fieldEdits = 0;
   for (const [m, other] of [['dark', 'light'], ['light', 'dark']]) {
     if (!modes.includes(m)) continue;
@@ -2688,7 +2689,7 @@ for (const brand of BRANDS) {
 console.log(`\nLayout — the moved page, against each brand's emission\n${'='.repeat(78)}`);
 const SG_LAYOUT = '[data-p3="preview-body"] [data-p3="layout-style-guide"]';
 /** The Layout preview's sections, by title, in order, with the marker each module stamps. Literal (S10). */
-const EXPECT_LAYOUT_SECTIONS = ['Breakpoints', 'Grid', 'Containers'];
+const EXPECT_LAYOUT_SECTIONS = ['Grid', 'Breakpoints', 'Containers'];  // #683 (Q111 A): Grid first.
 const EXPECT_LAYOUT_MARKER = { Breakpoints: 'breakpoints', Grid: 'grid', Containers: 'containers' };
 /** The emitted layout tokens of `brand`: `{ bp: px }`, `{ bp: { columns, gutter, margin } }` (px), and the containers. */
 const emittedLayout = async (brand) => {
@@ -3047,12 +3048,12 @@ console.log(`\nControls\n${'='.repeat(78)}`);
 const ENGINE_MODES = join(ROOT, '..', '..', 'packages', 'engine', 'modes.ts');
 const modesSrc = await readFile(ENGINE_MODES, 'utf8');
 // #3335 (Q3335.3 A): the wash's steps became a brand input, `outlineWash`, and its neutral default moved to
-// `OUTLINE_WASH_DEFAULTS` in `theme.ts`. No brand this suite sweeps sets the input, so the default is what renders;
+// `OUTLINE_WASH_DEFAULTS` in `theme-types.ts`. No brand this suite sweeps sets the input, so the default is what renders;
 // it is still read from the engine's source, and selected still follows pressed (`modes.ts`, OVERLAY_ALPHA).
-const WASH_THEME_SRC = await readFile(join(ROOT, '..', '..', 'packages', 'engine', 'theme.ts'), 'utf8');
+const WASH_THEME_SRC = await readFile(join(ROOT, '..', '..', 'packages', 'engine', 'theme-types.ts'), 'utf8');
 const OVERLAY_STEPS = (() => {
   const m = /export const OUTLINE_WASH_DEFAULTS\s*=\s*\{\s*neutral:\s*\{\s*hover:\s*(\d+),\s*pressed:\s*(\d+)\s*\}/.exec(WASH_THEME_SRC);
-  if (!m) throw new Error('OUTLINE_WASH_DEFAULTS.neutral not found in packages/engine/theme.ts — this suite\'s oracle reads the wash steps from there');
+  if (!m) throw new Error('OUTLINE_WASH_DEFAULTS.neutral not found in packages/engine/theme-types.ts — this suite\'s oracle reads the wash steps from there');
   if (!/\['selected', wash\.pressed\]/.test(modesSrc)) throw new Error('OVERLAY_ALPHA in packages/engine/modes.ts no longer gives selected the pressed step — the oracle needs restating');
   return { hover: m[1], pressed: m[2], selected: m[2] };
 })();
@@ -3605,7 +3606,7 @@ ok(washPolarities.size === 2,
  * six durations.
  *
  * THE ORACLE, WHICH IS THE WHOLE DESIGN. EXPECTED is derived from the engine's INPUT by this file's
- * own walk — `DURATION_BASE` and `TEMPO_FACTOR`, read out of `packages/engine/theme.ts`, multiplied
+ * own walk — `DURATION_BASE` and `TEMPO_FACTOR`, read out of `packages/engine/theme-motion.ts`, multiplied
  * and rounded here. It is NOT obtained by asking the studio what it resolved. Reading EXPECTED from
  * the renderer's own resolution and ACTUAL from the renderer's output is `docs/34` shape 1 with
  * extra steps: both sides come from the subject, so it would have passed on #800 with the defect
@@ -3642,12 +3643,12 @@ ok(washPolarities.size === 2,
  */
 console.log(`\nDisplayed values vs the resolved theme (#800)\n${'='.repeat(78)}`);
 
-const ENGINE_THEME = join(ROOT, '..', '..', 'packages', 'engine', 'theme.ts');
+const ENGINE_THEME = join(ROOT, '..', '..', 'packages', 'engine', 'theme-motion.ts');
 /** The gate's own read of the engine's authored input. Throws rather than degrading: an oracle that
  *  quietly falls back to a default is an oracle that agrees with anything. */
 const constFromEngine = (src, name) => {
   const m = new RegExp(`const ${name}[^=]*=\\s*\\{([^}]*)\\}`).exec(src);
-  if (!m) throw new Error(`${name} not found in packages/engine/theme.ts — this suite's oracle reads it from there`);
+  if (!m) throw new Error(`${name} not found in packages/engine/theme-motion.ts — this suite's oracle reads it from there`);
   const out = {};
   for (const part of m[1].split(',')) {
     const kv = /^\s*([A-Za-z_][\w]*)\s*:\s*([0-9.]+)\s*$/.exec(part.replace(/\/\/.*$/, ''));
@@ -3659,8 +3660,8 @@ const constFromEngine = (src, name) => {
 const engineSrc = await readFile(ENGINE_THEME, 'utf8');
 const DURATION_BASE = constFromEngine(engineSrc, 'DURATION_BASE');
 const TEMPO_FACTOR = constFromEngine(engineSrc, 'TEMPO_FACTOR');
-ok(Object.keys(DURATION_BASE).length >= 6, `the oracle read ${Object.keys(DURATION_BASE).length} base durations from packages/engine/theme.ts`);
-ok(Object.keys(TEMPO_FACTOR).length >= 3, `the oracle read ${Object.keys(TEMPO_FACTOR).length} tempo factors from packages/engine/theme.ts`);
+ok(Object.keys(DURATION_BASE).length >= 6, `the oracle read ${Object.keys(DURATION_BASE).length} base durations from packages/engine/theme-motion.ts`);
+ok(Object.keys(TEMPO_FACTOR).length >= 3, `the oracle read ${Object.keys(TEMPO_FACTOR).length} tempo factors from packages/engine/theme-motion.ts`);
 // The engine's own rounding rule, restated here — the second of the two duplicated walks.
 const expectedRamp = (tempo) => Object.fromEntries(
   Object.entries(DURATION_BASE).map(([k, v]) => [k, `${Math.round((v * TEMPO_FACTOR[tempo]) / 5) * 5}ms`]));
@@ -4745,6 +4746,8 @@ const PILL_PROBE = () => {
     const box = p.getBoundingClientRect();
     const left = box.left + parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft);
     const right = box.right - parseFloat(cs.borderRightWidth) - parseFloat(cs.paddingRight);
+    const top = box.top + parseFloat(cs.borderTopWidth) + parseFloat(cs.paddingTop);
+    const bottom = box.bottom - parseFloat(cs.borderBottomWidth) - parseFloat(cs.paddingBottom);
     const elides = cs.overflow !== 'visible' && cs.textOverflow === 'ellipsis' && cs.whiteSpace === 'nowrap';
     let visible = p.textContent;
     if (elides) {
@@ -4773,8 +4776,10 @@ const PILL_PROBE = () => {
       visible,
       badge: badge?.textContent ?? '',
       // OUTSIDE the pill's content box is the whole point of the badge being a sibling, and it is the
-      // one property the markup cannot show: a marker inside `.tpill` is elided by the same rule.
-      badgeOutside: br ? (br.right <= left + 0.5 || br.left >= right - 0.5) : false,
+      // one property the markup cannot show: a marker inside `.tpill` is elided by the same rule. #3553 M5 A widened it
+      // from "beside" to either direction: where a narrow Style guide card cannot hold the two side by side, the
+      // badge goes above the pill (`.sg-pills .tpill-wrap { flex-wrap: wrap }`), still outside its box.
+      badgeOutside: br ? (br.right <= left + 0.5 || br.left >= right - 0.5 || br.bottom <= top + 0.5 || br.top >= bottom - 0.5) : false,
       badgeWidth: br ? Math.round(br.width) : 0,
       badgeRendered: (badge?.getClientRects().length ?? 0) > 0,
     });

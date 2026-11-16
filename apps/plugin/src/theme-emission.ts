@@ -21,7 +21,7 @@
 import type { ThemePlans } from './apply-theme';
 import type { SharedDataPort } from './persist-figma';
 import { NS, holdsInput } from './persist-figma';
-import type { BrandInput } from '@prism3/engine/theme';
+import type { BrandInput } from '@prism3/engine';
 
 export const EMISSION_KEY = 'themeEmission';
 

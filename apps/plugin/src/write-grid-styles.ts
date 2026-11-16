@@ -45,7 +45,7 @@
  * minimal slice of `figma.*` the executor touches, so it's unit-testable against an in-memory shim
  * (see `apps/plugin/test-write-grid-styles.ts`); the real `figma` object structurally satisfies it.
  */
-import type { GridStylePlan } from '@prism3/engine/write-plan';
+import type { GridStylePlan } from '@prism3/engine/figma';
 import { markOwned, isMarkedOwned, type Markable } from './provenance';
 import { isEngineDescription, LEGACY_GRID_PREFIX } from './prune-figma';
 

@@ -11,7 +11,7 @@
 
 One trigger in a tab list. Selecting a tab shows its panel in place and hides the others; the page and the address do not change. A selected tab carries a 2px underline in the color of its label, and the label is set in the emphasis weight, so the state never rests on color alone. Every tab keeps the width of its bold label, so selecting a tab never moves the tabs beside it. At hover, an unselected tab shows a neutral bar where the selected underline would be. A tab can carry a leading icon and a count.
 
-- **Purpose:** One trigger inside Tabs that shows its panel in place when selected.
+- **Purpose:** Show one panel in place when selected, as one trigger inside Tabs.
 - **Use when:** Only as a child of Tabs. Generate Tabs, which places one tab per panel and sets which one is selected.
 - **Avoid when:** Changing the page or the address (a PageNav.Item inside PageNav), or switching a value within the current view (SegmentedControl).
 
@@ -24,7 +24,7 @@ Shown on the default member: selection `unselected`, size `medium`.
 3. **Leading visual** (optional) — An optional icon before the label.
 4. **Label box** — Holds the label at the width of its selected weight: as wide as the widest of the bold reserve and the label, with the label centered.
 5. **Reserve** — A zero-height frame that clips the bold copy of the label: it takes the bold width and shows nothing.
-6. **Label reserve** — The label again, in the selected weight, never seen: it holds every tab at its bold width (Q226 A).
+6. **Label reserve** — A hidden copy of the label in the selected weight, which holds each tab at its selected width so the tabs don't shift when the selection moves.
 7. **Label** — The tab text, one line: regular when unselected, in the emphasis weight when selected.
 8. **Count** (optional) — An optional count after the label, the shared count badge.
 9. **Indicator** — The 2px bar along the tab's bottom edge. It is always there, so the label sits in the same place in both states. A selected tab paints it in its label's color; an unselected tab paints it in a neutral border color at hover and pressed only, a lighter preview of where the selected bar would go.
@@ -75,7 +75,7 @@ Use inside Tabs only. A tab names one panel of related content; selecting it sho
 
 ### Motion
 
-- **Enter:** None. On selection the underline slides from the previous tab to this one, about 150–200ms.
+- **Enter:** None. On selection the underline slides from the previous tab to this one, on motion.transition.default.
 - **Exit:** None.
 - **Reduced motion:** The underline snaps to the selected tab; the panel swaps with no transition.
 

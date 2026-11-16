@@ -44,13 +44,11 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { brandTheme, type BrandInput } from '@prism3/engine/theme';
-import { GROUND_INPUT, resolveAllModes } from '@prism3/engine/modes';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { brandTheme, type BrandInput, GROUND_INPUT, resolveAllModes, toDesignMd } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as store from './src/state/store';
 import * as F from './src/state/fills-input';
 import { validateDesignMd, importErrorText } from './src/state/start-input';
-import { toDesignMd } from '@prism3/engine/design-md';
 
 let executed = 0, failed = 0;
 const ok = (cond: boolean, label: string): void => {

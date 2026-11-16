@@ -55,7 +55,7 @@ export type DocumentationLend = {
 };
 
 export const DOCS_COPY = {
-  heading: 'Documentation',
+  heading: 'Docs',   // #3553 Q-UI9 A: the rail's word (`RAIL_AREAS`)
   panels: 'Usage panels',
   panelsDesc: 'A panel beside each component set, with its overview, anatomy, usage and accessibility notes. Update file draws one beside each set in this file that has none. A panel edited by hand keeps its edits.',
   panelsOff: 'Off: Update file draws no new panels. Panels already in the file stay.',

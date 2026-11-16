@@ -31,7 +31,7 @@
  *     member's `logo/` mark keeps the icon heights. Apple's and PayPal's SDKs scale the logo with the height; Google's
  *     keeps 22px of padding (its logo is the height minus 22) and draws nothing under 40, and Shop Pay's logo is 22 high
  *     at every height. At 36 and 56 the ratio is a reading of the 44 render, not those two SDKs' drawing (on the PR).
- *   - `plain` only (Q3174.5 A): the worded types stay a code setting, because each provider owns its wording and its
+ *   - `plain` only (Q3174.5 A): the other wordings stay a code setting (`wording`, #3554 Q-CC21 A), because each provider owns its wording and its
  *     translation.
  *   - Apple's HIG says not to replicate its button. Apple publishes its own design template of these buttons for design
  *     files, so a design-file stand-in drawn from Apple's own artwork matches what Apple gives designers; the code
@@ -45,13 +45,15 @@
  *   - width: a 120px floor, Shop Pay's logo-button minimum and the largest any of the four states (Apple Pay plain:
  *     100). The button fills its column in use. PayPal's script holds its frame at 150 or wider; that is a code-only
  *     note in `codeOnly` (Q3175 A), and the Figma floor stays 120.
- *   - radius: the brand's `radius.md`. Apple Pay, PayPal and Shop Pay allow any radius; Google Pay at most half the
+ *   - radius: the brand's `radius.md`, which Control shape repoints like Button's (Q-CS3 A, #3765, through the
+ *     `pill-radius` derivation): Boxed `radius.none`, Hairline `radius.hairline`, Pill `radius.capsule`. Apple Pay, PayPal
+ *     and Shop Pay allow any radius (PayPal names `sharp` and `pill` shapes); Google Pay at most half the
  *     height. Harbor's `radius.md` is inside that at every density, and the gate measures it there; a soft brand's
  *     can pass it (`baseMd` 12 × `radiusScale` 2 is 24px against a 28px compact small), so the code clamps Google
  *     Pay's radius to half the height, and the gate holds that clamp at the levers' softest corner. The Figma
  *     member draws the brand radius, which Figma caps at half the height when it renders.
  *   - no shape axis: the proposal's §2.3 gave `shape: rectangle | pill`; the build binds `radius.md` only (Q-W5 on
- *     the PR, built as A).
+ *     the PR, built as A). The brand's Control shape picks the corner instead (Q-CS3 A).
  *   - the mark: `provider-logo/logo/<provider>` at `any`, `provider-logo/button/<provider>-<style>` at every other style,
  *     nested whole, height bound and width from its own proportion, keeping its own paint.
  */
@@ -120,7 +122,7 @@ export const walletButton: ComponentDef = {
     { name: 'provider', type: "enum: 'apple-pay' | 'google-pay' | 'paypal' | 'shop-pay'", values: [...PROVIDERS], required: true, description: 'Which wallet. Each needs its provider\'s script on the page, which draws the button.' },
     { name: 'style', type: `enum: ${STYLE_VALUES.map((v) => `'${v}'`).join(' | ')}`, values: [...STYLE_VALUES], default: ANY, required: false, description: `The provider\'s color style, from its own list, passed to the provider: Apple Pay ${stylesOf('apple-pay').join(', ')}; Google Pay ${stylesOf('google-pay').join(', ')}; PayPal ${stylesOf('paypal').join(', ')}; Shop Pay ${stylesOf('shop-pay').join(', ')}. Pick it for the ground the button sits on: dark buttons on light grounds, light ones on dark grounds. any passes no style, so the provider draws its default. A style the provider does not offer is refused.` },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The height: 36, 44 or 56px. Google Pay and Shop Pay have no small size and PayPal no large one, because each provider sets a smallest and a largest height.' },
-    { name: 'type', type: 'string', default: 'plain', required: false, description: 'The provider\'s wording, from its own list, passed to the provider: plain shows the logo alone; buy, checkout, donate, order, pay and subscribe add the provider\'s words, translated by the provider. A value the provider does not offer falls back to plain.' },
+    { name: 'wording', type: 'string', default: 'plain', required: false, description: 'The provider\'s wording, from its own list, passed to the provider as its button type: plain shows the logo alone; buy, checkout, donate, order, pay and subscribe add the provider\'s words, translated by the provider. A value the provider does not offer falls back to plain.' },
   ],
 
   states: ['rest', 'focus-visible'],
@@ -142,6 +144,9 @@ export const walletButton: ComponentDef = {
     'border-width': 'border-width.hairline',
     ...ringTokens(),
   },
+  // Control shape reaches the brand's corner, as it reaches Button's (Q-CS3 A, Q-CS5 B, #3765). Google Pay's half-height
+  // clamp is the code's (codeOnly, the corner): the design file draws the bound corner, which Figma caps at half the height.
+  levers: { controlShape: { capsules: ['radius.md'] } },
   // Each style's ground and edge, from its `button/` mark's record (Q3174.3 A); none at `any`.
   literal: { key: '{provider}.{style}', entries: ENTRIES },
 
@@ -174,12 +179,19 @@ export const walletButton: ComponentDef = {
       }),
       focusRing: focusRingPart('The shared focus ring, around the provider\'s button while it has keyboard focus.'),
     },
+    derived: {
+      // Q-CS3 A (#3765): Control shape reaches this button as it reaches Button, through `levers.controlShape.capsules`
+      // (Q-CS5 B); this prose describes it and is kept for the plan stamp. Pill repoints `radius.md` to `radius.capsule`, Boxed to `radius.none`, Hairline to `radius.hairline`. Every provider
+      // allows each: Apple Pay, PayPal (`shape: rect | pill | sharp`, `borderRadius` ≥ 0) and Shop Pay take any radius;
+      // Google Pay takes 0 to half the height, and the code clamps it there (codeOnly, the corner).
+      'pill-radius': 'height ÷ 2 under Pill, clamped for Google Pay to min(radius, height / 2) — a literal radius token would be wrong at more than one height',
+    },
     codeOnly: [
       {
         class: 'platform-owned',
         disposition: 'refused',
         description:
-          'the provider\'s element — the component is a container the provider\'s element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify\'s Shop Pay element. It never draws a button of its own. It passes size as the element\'s height, the brand radius as the element\'s radius option (clamped for Google Pay, below), and type and style through unchanged.',
+          'the provider\'s element — the component is a container the provider\'s element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify\'s Shop Pay element. It never draws a button of its own. It passes size as the element\'s height, the brand radius as the element\'s radius option (clamped for Google Pay, below), and wording (as the provider\'s button type) and style through unchanged.',
       },
       {
         class: 'runtime-behavior',
@@ -197,7 +209,7 @@ export const walletButton: ComponentDef = {
         class: 'live-geometry',
         disposition: 'lowered',
         description:
-          'the corner — Google Pay allows a radius of at most half the button\'s height, so the component passes min(radius, height / 2) as its buttonRadius. A soft brand\'s radius can pass half of a small or compact button. Apple Pay, PayPal and Shop Pay take the brand radius as it is.',
+          'the corner — Google Pay allows a radius of at most half the button\'s height, so the component passes min(radius, height / 2) as its buttonRadius, under every Control shape. A soft brand\'s radius can pass half of a small or compact button, and Pill\'s radius.capsule always does, so under Pill Google Pay is a capsule at exactly half its height. Apple Pay, PayPal and Shop Pay take the brand radius as it is, square or capsule.',
       },
       {
         class: 'responsive-layout',
@@ -314,6 +326,7 @@ export const walletButton: ComponentDef = {
       'The style artwork, grounds and edges were captured from each provider\'s public SDK on 2026-10-30 (the records in marks/provenance.json). An SDK that changes its paint later is not seen until the artwork is captured again.',
     ],
     evolution: [
+      '2026-11-11 (#3554 Q-CC21 A): the wording prop is `wording`, as SignInButton names the same job, not `type`, which is the HTML button type on Button, IconButton and FlushIconButton. It still reaches the provider as its button type.',
       'Proposed on #2343 (2026-10-25, §2) as one of two branded buttons from one factory; the owner chose two components (Q-B4 A), valid provider × style pairs only (Q-B5 A) and the provider\'s own element in code (Q-B8 A). Built in PR 4 on the owner\'s logo marks (PR 3).',
       'Q-W1 (the Figma member) was built as A, a layout stand-in with no fill, while the providers\' artwork was not in. #3174 took B (Q3174.1–6, all A): a style axis in each SDK\'s own names, each style drawn from the provider\'s SDK artwork with its record\'s ground and edge, and the stand-in kept as the any style, so every member built before is still there at style any.',
       'Q-W2 (heights outside a provider\'s range): built as A, no member, and kept by Q3174.4 A: PayPal has no large member, because 55 is its documented ceiling.',

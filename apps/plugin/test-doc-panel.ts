@@ -4,12 +4,17 @@
  *
  *   present/<def>   every def that builds a set: one live panel on the set's page, tagged with the def and the set, and
  *                   its section frames, read off the drawn panel, are exactly the model's sections less the site-only
- *                   one, Theming included because the file has light and dark. Mutations: a section the model omits
+ *                   one, Theming included because the file has light and dark. On a family's lead, "In this family"
+ *                   lists the lead by its name alone (#3552 Q-UG4 A: the lede is its summary) and each other member with
+ *                   its summary. Mutation: the lead's summary back on its line → every `present/<lead> family`. Mutations: a section the model omits
  *                   drawn anyway → `present/focus-ring` (Content guidelines); the modes not passed → every
  *                   `present/<def>` (Theming missing).
  *   no data/…       a def with its Content guidelines and its Accessibility rows emptied draws neither section.
  *   anatomy/…       no held-back part note (maintainer register or a tool's name) is anywhere in a drawn panel's text,
- *                   on every def; each reader-ready caption is. Mutation: the raw note as the caption → `anatomy/held back`.
+ *                   on every def and on a probe def whose note is held back; each reader-ready caption is. Mutation: the
+ *                   raw note as the caption → `anatomy/held back`. Since #3610 every part note on every def is a caption,
+ *                   so `anatomy/uncaptioned` fails, naming the def and the entry, on any legend entry the plan draws with
+ *                   no caption. Mutation: one part's note given an issue number (held back again) → `anatomy/uncaptioned`.
  *   legacy/…        a panel printed the old way, before `printView`, its set rebuilt since (#2968): Tag's panel and the
  *                   Buttons page (the lead's panel and the three members' own) are replaced, one panel per page and no
  *                   "(edited)" one; a line rewritten on an old-print panel (Tag's, or Button.Neutral's) still keeps that
@@ -94,6 +99,22 @@
  *                   the panel is on the page → `collapse/dialog` and every `collapse/<def>` built at a width,
  *                   `collapse/hug read`, `collapse/after reset`, `update/redraw in place`, `width/banner`,
  *                   `width/checkbox-row`.
+ *   owner/…         (#3205, the owner's review of 2026-11-13) THE MEASURED RULE (`insideInstance`): Figma drops a width
+ *                   written to a layer inside an instance (`resize`, `minWidth`) and keeps its sizing mode and padding,
+ *                   so 4–6's FIXED + `resize` + `minWidth` froze each specimen at what it hugged. `owner/accordion`: the
+ *                   example 320 wide (typed), its title on one line; `owner/badge`: every label on one line. NOT
+ *                   CALIBRATED: the wrap clause (`lines`) reads the host's `runWidth` against the text's own width, which
+ *                   leaves out the header's padding and chevron, so at the owner's 120px it still reads "Section title"
+ *                   on one line (#3771 review). `owner/accordion` fails that state on WIDTH only, and `owner/badge`, which
+ *                   rests on the wrap clause alone, is unverified against Figma until #3774 lands. `collapses`
+ *                   adds a text broken inside its longest word, and any width written inside an instance. The
+ *                   specimen FILLs its stage and the stage's padding sets its width (`fitSpecimens`). Mutations: the
+ *                   FIXED + `resize` + `minWidth` sizing restored → 25 arms, among them `owner/accordion` (120 against
+ *                   320), every `collapse/<def>` built at a width, `width/banner`, `format due/redrawn`; the padding fit
+ *                   removed → `owner/accordion` (579), `width/banner`, `width/checkbox-row`, `collapse/hug read`,
+ *                   `format due/redrawn`; `PANEL_FORMAT` left at 6 → `format due/offered`, `update/redraw in place`.
+ *                   `collapse/after reset` is retired: it held the floor a hug reset could not take, and Figma never
+ *                   keeps that floor on a nested layer.
  *   format due/…    (#3205, the 2026-11-02 real-Figma report) Update file's own path, on the strict host
  *                   (`fixHostMethods`): Dialog's set current in the as-built ledger, its entry from before the ledger
  *                   carried a panel format, and its panel at format 5 with its specimens collapsed (HUG, no `minWidth`).
@@ -112,7 +133,26 @@
  *                   `legend/code-input`; a run keeping its first part's note → `legend/tabs`; the merge before #3265
  *                   (by settings, wherever a repeat stands, labelled "Item ×4") → `legend/pagination`, `legend/every def`;
  *                   a run's shared note replaced by the summary → `legend/shared note` (`anatomyEntry` called directly,
- *                   since no run in today's library shares a note).
+ *                   since no run in today's library shares a note). `legend/slot` (#3552 Q-UG5 A): over every def, each part
+ *                   other than the root that holds a numbered nested part reads "<run name> slot", and no label reads like a
+ *                   run after it ("Items" over "Items 1–2"). Mutation: the slot label dropped from `anatomyEntry` →
+ *                   `legend/slot`, `legend/code-input`, `legend/pagination`, `legend/tabs`, `legend/breadcrumbs`.
+ *   quote/…         (#3552 N1) Progress', Card number field's and Code input's Content › Errors lines, typed by hand: each
+ *                   keeps its quoted example whole, its quote closed; and over every lead, no planned string carries an odd
+ *                   count of `"`; and Textarea's and Switch row's, whose quotes close inside the cut, keep exactly their two
+ *                   sentences. Mutations: the open-quote extension dropped from `firstSentences` → `quote/progress`,
+ *                   `quote/card-number-field`, `quote/code-input`, `quote/every lead`; the cut extended past any quote,
+ *                   open or closed → `quote/textarea-count`, `quote/switch-row-count`.
+ *   code/…          (#3552 Q-UG2 A) a backtick span is written without its backticks and drawn in the brand's inline
+ *                   code style (`code/inline/default`, typed here) by range: Button's Do item, typed by hand, reads
+ *                   "buttonIcons" and "attached" in it; a file without the style writes the same text plain and names
+ *                   the style; over every lead, no drawn text carries a backtick; `codeRuns` pairs spans and drops a
+ *                   lone backtick. Mutations: the range call dropped → `code/button`; the backticks written as planned
+ *                   → `code/button`, `code/no style`, `code/every lead`, `panel/do-dont`; the missing style not named →
+ *                   `code/no style`. A code font that won't load leaves the text plain with no code range and names the
+ *                   font; Related's links, past a code-bearing entry (Tag's Badge typed as code here), land on the linked
+ *                   names. Mutations: the font failure no longer clears the style → `code/no font`; the link offsets
+ *                   counted in the planned text → `code/related links`.
  *   markers/…       (#2916) each leader's tip lies inside its part's box, at the part's middle, and each bracket runs
  *                   exactly its part's height with both ticks ending inside it; Breadcrumbs' six entries (the `items`
  *                   slot's among them) on two specimens, pinned by hand in `marks/breadcrumbs`. Mutations: a slot
@@ -120,7 +160,10 @@
  *                   `markers/breadcrumbs numbers` and every `markers/<def>`.
  *   family/related  (#2970 Q5 A) Checkbox's and Buttons' Related lists typed from the approved wireframe; a family named
  *                   twice in one list once. Mutations: the own-family drop removed → `family/related`, `family/related
- *                   buttons`; the de-duplication removed → `family/related once`.
+ *                   buttons`; the de-duplication removed → `family/related once`. `related/…` (#3552 Q-UG3 A): Dialog's and
+ *                   Tag's lists typed from their defs (the symmetric lists of #3555 Q-MD10 A), each family once,
+ *                   in the first list that names it; over every lead, no family or component in two lists. Mutation: the panel's de-duplication reset per list →
+ *                   `related/dialog`, `related/every lead`. (The model's own once-rule is gated by `lint-component-docs.ts`.)
  *   line/…          a file without `_Doc-block`: one usage-panel line for the run (`docBlockLine`), and the warning templates'
  *                   line names nothing (#3467 Q2 A). Mutation: `_Doc-block` back in `WARN_TEMPLATES` → `line/not a warning`.
  *
@@ -130,14 +173,11 @@
  *
  * Run: `npx tsx apps/plugin/test-doc-panel.ts`
  */
-import { componentDefs } from '@prism3/engine/components/index';
-import { docSections, MAINTAINER_REGISTER, NAMES_A_TOOL } from '@prism3/engine/component-doc-sections';
-import type { ComponentDef } from '@prism3/engine/component-schema';
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, CANVAS_FURNITURE } from '@prism3/engine/anatomy-figma';
+import { componentDefs, docSections, MAINTAINER_REGISTER, NAMES_A_TOOL, type ComponentDef, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, CANVAS_FURNITURE } from '@prism3/engine/components';
 import { applyComponentPlan } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { fixHostMethods, makeShim, type Node } from './component-shim';
-import { anatomyEntry, anatomyMarks, clearOrphanPanels, docPanelReach, docPanelReaches, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, printV2, PANEL_FORMAT, type PanelApi, type PNode } from './src/doc-panel';
+import { anatomyEntry, anatomyMarks, clearOrphanPanels, codeRuns, docPanelReach, docPanelReaches, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, printV2, PANEL_FORMAT, type PanelApi, type PNode } from './src/doc-panel';
 import { dueOf, entryFor, readLedger, recordSets, type LedgerEntry } from './src/as-built-ledger';
 import { checkedSetOf } from './src/update-plan';
 import { TAXONOMY } from './src/file-taxonomy';
@@ -235,7 +275,7 @@ const mk = (type: string, name: string, children: N[] = [], extra: Record<string
       }
       return { x: at.x + x, y: at.y + y, width: self.width!, height: self.height! };
     },
-    resize(w: number, h: number) { (n as N)._w = w; (n as N)._h = h; },
+    resize(w: number, h: number) { if (insideInstance(n as N)) { (n as N)._dropped = Number((n as N)._dropped ?? 0) + 1; return; } (n as N)._w = w; (n as N)._h = h; },
     appendChild(c: N) { detach(c); c.parent = n; n.children.push(c); hostReset(c); },
     insertChild(i: number, c: N) { detach(c); c.parent = n; n.children.splice(i, 0, c); hostReset(c); },
     remove() { detach(n); n.removed = true; },
@@ -243,18 +283,43 @@ const mk = (type: string, name: string, children: N[] = [], extra: Record<string
     setSharedPluginData: (ns: string, k: string, v: string) => { data.set(`${ns}/${k}`, v); },
     ...extra,
   } as unknown as N;
+  // THE FLOOR AS AN ACCESSOR, so a write to a layer inside an instance can be dropped as Figma drops it (`insideInstance`).
+  let floor = (n as Record<string, unknown>).minWidth;
+  Object.defineProperty(n, 'minWidth', {
+    configurable: true, enumerable: true, get: () => floor,
+    set: (v: unknown) => { if (!hostWriting && insideInstance(n)) { n._dropped = Number(n._dropped ?? 0) + 1; return; } floor = v; },
+  });
   for (const c of children) n.appendChild!(c);
   if (type === 'TEXT') {
     n.fontName = { family: 'Inter', style: 'Regular' }; n.characters = n.characters ?? name;
     // The range calls Related's lists make (#2970), recorded as the host would hold them; a range past the text throws.
     const range = (s0: number, e0: number, what: string) => { if (s0 < 0 || e0 > String(n.characters).length || s0 >= e0) throw new Error(`in ${what}: range ${s0}–${e0} outside the text`); };
-    n._links = []; n._lists = []; n._decos = [];
+    n._links = []; n._lists = []; n._decos = []; n._codes = [];
+    // A code span drawn in a text style (#3552 Q-UG2 A), recorded by the text it covers.
+    n.setRangeTextStyleIdAsync = async (s0: number, e0: number, id: string) => { range(s0, e0, 'setRangeTextStyleIdAsync'); (n._codes as unknown[]).push({ text: String(n.characters).slice(s0, e0), id }); };
     n.setRangeHyperlink = (s0: number, e0: number, l: unknown) => { range(s0, e0, 'setRangeHyperlink'); (n._links as unknown[]).push({ text: String(n.characters).slice(s0, e0), link: l }); };
     n.setRangeListOptions = (s0: number, e0: number, o: unknown) => { range(s0, e0, 'setRangeListOptions'); (n._lists as unknown[]).push({ s: s0, e: e0, o }); };
     n.setRangeTextDecoration = (s0: number, e0: number, d: unknown) => { range(s0, e0, 'setRangeTextDecoration'); (n._decos as unknown[]).push({ text: String(n.characters).slice(s0, e0), d }); };
   }
   return n;
 };
+/**
+ * A WIDTH WRITTEN TO A LAYER INSIDE AN INSTANCE IS DROPPED (measured, the owner's live run of 0.205.0, 2026-09-29: "Figma
+ * silently drops a width written to a layer inside an instance (`resize`, `resizeWithoutConstraints`, a bound `width`)",
+ * `style-guide-cells.ts`). A sizing MODE (`layoutSizingHorizontal`) and a padding are kept. So in this host `resize` and a
+ * `minWidth` write on any node with an instance above it do nothing, and count as `_dropped`. A usage panel's specimen is
+ * such a layer: it sits inside its `_Doc-block` instance. That is why #3211 and #3318's FIXED + `resize` + `minWidth` kept
+ * only the FIXED in the template, freezing Dialog's specimen at the 62px it hugged with no floor, and Accordion's at its
+ * main's 120px floor (owner review, 2026-11-13). The host's own writes (an instance inheriting its main's floor) go
+ * through `hostWrite`.
+ */
+function insideInstance(n: N): boolean {
+  for (let up = n.parent as N | undefined; up; up = up.parent as N | undefined) if (up.type === 'INSTANCE') return true;
+  return false;
+}
+let hostWriting = false;
+/** A write the host makes itself, never dropped: an instance taking its main's floor, a test resetting one. */
+const hostWrite = (f: () => void): void => { hostWriting = true; try { f(); } finally { hostWriting = false; } };
 /**
  * THE HOST DROPS A NESTED INSTANCE'S SIZE WHEN ITS TREE MOVES (#3205 follow-up, after #3211). In the template after one
  * Update, Dialog's specimen read `layoutSizingHorizontal: FIXED` at 62px inside a 687px stage: the width and floor the
@@ -270,7 +335,7 @@ function hostReset(root: N): void {
     let up = q.parent as N | undefined, nested = false;
     for (; up; up = up.parent as N | undefined) if (up.type === 'INSTANCE') { nested = true; break; }
     if (!nested) continue;
-    if (typeof q._mainMin === 'number') q.minWidth = q._mainMin; else delete q.minWidth;
+    hostWrite(() => { q.minWidth = typeof q._mainMin === 'number' ? q._mainMin : undefined; });
     q.layoutSizingHorizontal = 'HUG';
     q._w = q.width;
     q.layoutSizingHorizontal = 'FIXED';
@@ -281,7 +346,17 @@ function rawWidth(self: N): number {
   if (self.type === 'TEXT' && self.textAutoResize === 'WIDTH_AND_HEIGHT') return runWidth(String(self.characters ?? ''), typeof self.fontSize === 'number' ? self.fontSize : 14);
   const p = self.parent as N | undefined;
   // FILL across a vertical parent: its width less its padding. A `_hug` frame hugs its children, as a specimen does.
-  if (self.layoutSizingHorizontal === 'FILL' && p?._mk && p.layoutMode === 'VERTICAL') return p.width! - Number(p.paddingLeft ?? 0) - Number(p.paddingRight ?? 0);
+  if (self.layoutSizingHorizontal === 'FILL' && p && p.layoutMode === 'VERTICAL') {
+    if (p._mk) return p.width! - Number(p.paddingLeft ?? 0) - Number(p.paddingRight ?? 0);
+    // The component shim's frames too, where Update file's arms draw the panel (#3205, 2026-11-13). Their width hugs
+    // their children, so a parent that FILLs its own vertical parent is read up the chain, never asked for its width.
+    const inner = (q: N): number => {
+      const up = q.parent as N | undefined;
+      const own = q.layoutSizingHorizontal === 'FILL' && up && up.layoutMode === 'VERTICAL' ? inner(up) : Number(q.width ?? 0);
+      return own - Number(q.paddingLeft ?? 0) - Number(q.paddingRight ?? 0);
+    };
+    return inner(p);
+  }
   // A MEMBER'S STRETCHED LAYER (#2970): one that grows along a horizontal parent or stretches across a vertical one
   // takes the room its parent gives it. In a parent that hugs, there is none: it shrinks to its narrowest, a text to
   // one letter, as Banner's did in a specimen that hugged.
@@ -462,7 +537,7 @@ const instanceOf = (sp: N, member: N): void => {
   sp._hug = true;
   sp._w = member.width;
   // An instance inherits its main's floor (#3205): Figma's `minWidth` reaches every instance.
-  if (typeof member.minWidth === 'number') sp.minWidth = member.minWidth; else delete sp.minWidth;
+  hostWrite(() => { sp.minWidth = typeof member.minWidth === 'number' ? member.minWidth : undefined; });
   sp._mainMin = member.minWidth;
   sp.layoutMode = member.layoutMode ?? 'VERTICAL';
   sp.itemSpacing = 4;
@@ -496,7 +571,9 @@ const docBlockSet = (): N => mk('COMPONENT_SET', '_Doc-block', TYPES.flatMap((t)
 const VARS = ['color/background/primary', 'color/border/secondary', 'color/text/primary', 'color/text/secondary', 'color/background/secondary', 'color/border/success', 'color/border/danger'].map((name, i) => ({ id: `V:${i}`, name: `zz/${name}`, variableCollectionId: 'VC:color' }));
 const COLLECTION = { id: 'VC:color', name: 'color', modes: [{ modeId: 'M:light', name: 'light' }, { modeId: 'M:dark', name: 'dark' }, { modeId: 'M:hc-light', name: 'hc-light' }] };
 /** A host over `pages`: the template set (unless `template: false`) and every node on them. */
-const host = (pages: N[], o: { template?: boolean; modes?: boolean } = {}): PanelApi & FurnitureApi => {
+/** The brand's inline code style, as the engine emits it (`code/inline/default`), typed here. */
+const CODE_TEXT_STYLE = { id: 'S:code', name: 'code/inline/default', fontName: { family: 'JetBrains Mono', style: 'Regular' } };
+const host = (pages: N[], o: { template?: boolean; modes?: boolean; codeStyle?: boolean } = {}): PanelApi & FurnitureApi => {
   const blocks = o.template === false ? [] : [docBlockSet()];
   const all = () => [...blocks, ...pages.flatMap((p) => p.children.flatMap(walk))];
   return {
@@ -505,6 +582,7 @@ const host = (pages: N[], o: { template?: boolean; modes?: boolean } = {}): Pane
         all().filter((n) => c.types.includes(String(n.type)) && !n.removed && (!c.sharedPluginData || c.sharedPluginData.keys.some((k) => n.getSharedPluginData!(c.sharedPluginData!.namespace, k)))),
     },
     loadFontAsync: async () => {},
+    getLocalTextStylesAsync: async () => (o.codeStyle === false ? [] : [CODE_TEXT_STYLE]),
     createFrame: () => mk('FRAME', 'Frame'),
     createText: () => mk('TEXT', 'Text'),
     variables: {
@@ -558,7 +636,8 @@ for (const def of withSets) {
     `present/${def.id}: one panel, sections ${got.join(', ')}`, `want [${want.join(', ')}], got ${panels.length} panel(s) [${got.join(', ')}] ${r.skipped.join('; ')}`);
   // THE FAMILY AS ONE COMPONENT (#2970 Q3 A, Q4 A), when the page holds more than one: the title is the page's name, and
   // "In this family" one bulleted line per member, the lead's first, each its name (the page's own prefix dropped) then
-  // its summary's opening, the name linked to its set when the file has one (here only the lead's).
+  // its summary's opening, the name linked to its set when the file has one (here only the lead's). THE LEAD'S LINE IS
+  // ITS NAME ALONE (#3552 Q-UG4 A): its summary is the panel's lede already.
   const fam = familyOf(def.id);
   if (fam.members.length > 1) {
     const field = walk(panels[0]).find((c) => c.name === '_Doc-block' && walk(c).some((t) => t.name === 'label' && t.characters === 'In this family'));
@@ -568,6 +647,7 @@ for (const def of withSets) {
     const bad = order.flatMap((m, k) => {
       const d = componentDefs.find((x) => x.id === m)!;
       const short = d.name.startsWith(`${fam.page}.`) ? d.name.slice(fam.page.length + 1) : d.name;
+      if (k === 0) return lines[0] === short ? [] : [`line 1 "${lines[0] ?? ''}" is not the lead's name alone, "${short}"`];
       return lines[k]?.startsWith(`${short}: ${d.summary.slice(0, 12)}`) ? [] : [`line ${k + 1} "${lines[k] ?? ''}" is not ${short}'s`];
     });
     const title = walk(panels[0]).find((c) => c.type === 'TEXT' && c.fontSize === 18);
@@ -576,7 +656,7 @@ for (const def of withSets) {
     const leadShort = leadName.startsWith(`${fam.page}.`) ? leadName.slice(fam.page.length + 1) : leadName;
     ok(!bad.length && lines.length === order.length && title?.characters === fam.page && panels[0].name === `${fam.page} usage` && tagOf(panels[0]).family === fam.page
       && JSON.stringify(text?._lists) === `[{"s":0,"e":${String(text?.characters).length},"o":{"type":"UNORDERED"}}]` && linked.join() === `${leadShort}>${set.id}`,
-    `present/${def.id} family: "${fam.page}", ${order.length} parts listed, the lead first, each with its summary`, [...bad, `title ${String(title?.characters)}`, `links ${linked.join()}`].slice(0, 3).join('; '));
+    `present/${def.id} family: "${fam.page}", ${order.length} parts listed, the lead first by its name alone, each other with its summary`, [...bad, `title ${String(title?.characters)}`, `links ${linked.join()}`].slice(0, 3).join('; '));
   }
 }
 
@@ -593,7 +673,8 @@ section('panel/do-dont — each Do and Don\'t item\'s text is written into List.
       if (b.type !== 'Do-Dont') continue;
       for (const t of [...b.do, ...b.dont]) {
         items++;
-        if (!shown.includes(t)) unwritten.push(`${def.id}: "${t.slice(0, 40)}"`);
+        // As written: a code span without its backticks (#3552 Q-UG2 A), stripped here, not by the panel's own split.
+        if (!shown.includes(t.replace(/`/g, ''))) unwritten.push(`${def.id}: "${t.slice(0, 40)}"`);
       }
     }
     if (r.misses.some((m) => m.includes('item text'))) unwritten.push(`${def.id}: ${r.misses.join('; ')}`);
@@ -651,8 +732,31 @@ section('anatomy/… — held-back part notes never reach a panel');
       else { shown++; if (!all.includes(first) && !(run && all.includes(lede(run)))) leaks.push(`${def.id}.${id} (missing)`); }
     }
   }
-  ok(heldBack >= 30 && !leaks.some((l) => !l.endsWith('(missing)')), `anatomy/held back: none of ${heldBack} held-back notes is in a panel`, leaks.filter((l) => !l.endsWith('(missing)')).slice(0, 5).join(', '));
+  // Since #3610 the library holds no held-back note, so a probe keeps the hold-back checked: Button with its label's
+  // note in the maintainer register, typed here. Its first sentence must not reach the drawn panel.
+  {
+    const button = componentDefs.find((d) => d.id === 'button')!;
+    const probe = structuredClone(button) as ComponentDef;
+    const held = 'Its own node, so truncation can be set apart from the row (see #848). A second sentence.';
+    (probe.anatomy!.parts as Record<string, { note?: string }>).label.note = held;
+    const p = page('↳ a held-back probe');
+    await drawDocPanel(host([p]), fakeSet(p, button.id), probe, { names });
+    heldBack++;
+    if (texts(panelsOn(p)[0]).join('\n').includes('Its own node, so truncation')) leaks.push('probe button.label');
+  }
+  ok(heldBack >= 1 && !leaks.some((l) => !l.endsWith('(missing)')), `anatomy/held back: none of ${heldBack} held-back notes is in a panel`, leaks.filter((l) => !l.endsWith('(missing)')).slice(0, 5).join(', '));
   ok(shown >= 100 && !leaks.some((l) => l.endsWith('(missing)')), `anatomy/captions: all ${shown} reader-ready captions are`, leaks.filter((l) => l.endsWith('(missing)')).slice(0, 5).join(', '));
+
+  // Every legend entry the plan draws, on every def with an anatomy (family leads on a panel, the rest on their pages),
+  // carries a caption (#3610, owner decision Q-UG1 A). An entry with nothing after its dash is a part whose note is held
+  // back: rewrite the note for a reader, and keep the maintainer half in a code comment beside the part.
+  const bare: string[] = [];
+  let entries = 0;
+  for (const def of componentDefs) {
+    const a = planDocPanel(def, { modes: ['light', 'dark'], names }).sections.find((x) => x.id === 'anatomy');
+    for (const b of a?.blocks ?? []) if (b.type === 'Field') { entries++; if (!b.text.trim()) bare.push(`${def.id}: "${b.label}"`); }
+  }
+  ok(entries >= 300 && bare.length === 0, `anatomy/uncaptioned: all ${entries} legend entries carry a caption`, `${bare.length} without: ${bare.slice(0, 6).join(', ')}`);
 }
 
 /** The numbers the drawn Anatomy lists: each Field label there that starts with one. */
@@ -701,20 +805,21 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
   };
   // Written out by hand from each def's part notes and its nested component's summary, owner decisions Q3265.1 A and
   // Q3265.2 A. Code input: the six cells rest alike on the default member; their notes differ ("Cell n of the default
-  // six."), so the run takes the cell's summary. Its message's note is held back, so it has no caption.
+  // six."), so the run takes the cell's summary.
   want('code-input', [
     '1  Container — The field: label, the row of cells and the message, as wide as the widest of the three.',
     '2  Label — The accessible name, composed.',
-    '3  Items — The cells: a native slot of Cell instances, six by default, four at least and eight at most.',
+    '3  Cell slot — The cells: a native slot of Cell instances, six by default, four at least and eight at most.',
     '4  Cells 1–6 — One cell of a code input: a box holding one character of the code.',
-    '5  Message (optional) — ',
+    '5  Message (optional) — Helper or error text, hidden until the field has something to say; it takes the field\'s status.',
   ], 'the six cells, one run, captioned by the cell\'s summary');
   // Pagination: no item is like its neighbor on the specimen, so each keeps its number and its own note. Item 4 is page 5.
+  // Previous, Next and their labeled buttons carry the captions approved on #3610 (their notes were held back before).
   want('pagination', [
     '1  Container — The navigation landmark: one row of controls.',
     '2  Row — The previous cell, the pages or the "Page 5 of 10" text, and the next cell, 4px apart.',
-    '3  Previous — The previous cell: a Pagination.Item with a left chevron, the same square as the page cells (Q414 A).',
-    '4  Items — The pages: a slot of page cells, 4px apart, showing page 5 of 10 by default: 1, an ellipsis, 4, 5 (current), 6, an ellipsis, 10.',
+    '3  Previous — The previous cell, a left chevron the size of the page cells; on the first page it stays in place and does nothing.',
+    '4  Item slot — The pages: a slot of page cells, 4px apart, showing page 5 of 10 by default: 1, an ellipsis, 4, 5 (current), 6, an ellipsis, 10.',
     '5  Item 1 — The first page, 1.',
     '6  Item 2 — An ellipsis for pages 2 and 3.',
     '7  Item 3 — Page 4, before the current page.',
@@ -723,16 +828,16 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
     '10  Item 6 — An ellipsis for pages 7 to 9.',
     '11  Item 7 — The last page, 10.',
     '12  Status — The position, "Page 5 of 10", between the previous and next buttons.',
-    '13  Next — The next cell: a Pagination.Item with a right chevron (Q414 A).',
+    '13  Next — The next cell, a right chevron; on the last page it stays in place and does nothing.',
     '14  Simple row — The simple row: Previous at the start and Next at the end.',
-    '15  Previous button — Previous: a Pagination.Item, a left chevron and the word "Previous" (Q414 A).',
-    '16  Next button — Next: a Pagination.Item, the word "Next" and a right chevron (Q414 A).',
+    '15  Previous button — Previous: a left chevron and the word "Previous".',
+    '16  Next button — Next: the word "Next" and a right chevron.',
   ], 'Item 1 to Item 7, each with its own note');
   // Tabs: the selected tab alone, then the two unselected ones as a run. Their notes differ ("A second tab.", "A third
   // tab."), so the run takes the tab's summary, never the second tab's note.
   want('tabs', [
     '1  Container — The tab list: the row of tabs above the baseline.',
-    '2  Items — The tabs: a native slot holding Tab instances side by side with no gap, three by default, the first selected.',
+    '2  Tab slot — The tabs: a native slot holding Tab instances side by side with no gap, three by default, the first selected.',
     '3  Tab 1 — The first tab, selected.',
     '4  Tabs 2–3 — One trigger in a tab list.',
     '5  Baseline — The 1px line along the bottom of the tab list.',
@@ -751,7 +856,7 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
   }
   want('breadcrumbs', [
     '1  Container — The navigation: a row that hugs the trail, or the one link up to the parent, with no padding and no fill.',
-    '2  Items — The trail: a native slot holding BreadcrumbItem instances in a row, two ancestors and the current page by default.',
+    '2  Item slot — The trail: a native slot holding BreadcrumbItem instances in a row, two ancestors and the current page by default.',
     '3  Items 1–2 — One step in a breadcrumb trail: a link, the current page, or the collapsed steps.',
     '4  Item 3 — The current page, last and not a link.',
     '5  Back glyph — The parent path: a 16px chevron pointing up the trail, in the link icon color, before the link.',
@@ -783,6 +888,60 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
     }
   }
   ok(bad.length === 0, 'legend/every def: no label glued to its number or carrying ×, and each repeat\'s entries cover its parts once, in order', bad.slice(0, 4).join('; '));
+
+  // A SLOT AND ITS RUN READ APART (#3552 Q-UG5 A), over every def: each part other than the root that holds a numbered
+  // nested part is labeled by what it holds, "<Item> slot", the word read here off its first such child's key; and no
+  // label is the name a later run or instance starts with ("Items" above "Items 1–2", "Items" above "Item 1").
+  const slotBad: string[] = [];
+  let slots = 0;
+  for (const def of componentDefs) {
+    const a = docSections(def).sections.find((x) => x.id === 'anatomy');
+    if (!a || a.id !== 'anatomy') continue;
+    const all = def.anatomy!.parts as Record<string, { kind?: string; children?: string[] }>;
+    const labels = legend(def.id).map((l) => l.replace(/^\d+ {2}/, '').replace(/ — [\s\S]*$/, '').replace(/ \(optional\)$/, ''));
+    for (const pt of a.parts) {
+      const child = pt.id === def.anatomy!.root ? undefined : (all[pt.id]?.children ?? []).find((c) => /\d$/.test(c) && all[c]?.kind === 'nest');
+      if (!child) continue;
+      slots++;
+      const base = child.replace(/\d+$/, '');
+      const word = base.charAt(0).toUpperCase() + base.slice(1).replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
+      if (!labels.includes(`${word} slot`)) slotBad.push(`${def.id}.${pt.id}: no "${word} slot" entry (legend ${labels.join(' / ')})`);
+    }
+    for (const l of labels) if (labels.some((o) => o !== l && new RegExp(`^${l.replace(/s$/, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}s? \\d`).test(o))) slotBad.push(`${def.id}: "${l}" reads like a run after it (legend ${labels.join(' / ')})`);
+  }
+  ok(slots >= 9 && slotBad.length === 0, `legend/slot: all ${slots} slots that hold a run read "<run name> slot", and no label reads like a run`, slotBad.slice(0, 4).join('; '));
+}
+
+/* ── quote: a caption is never cut inside a quoted example (#3552 N1) ─────────────────────────────────────── */
+section('quote/… — a planned line never ends inside an open "…" (#3552 N1)');
+{
+  const errorsLine = (id: string): string | undefined => planDocPanel(componentDefs.find((d) => d.id === id)!, { modes: ['light', 'dark'], names }).sections
+    .find((x) => x.id === 'content')?.blocks.flatMap((b) => (b.type === 'Field' && b.label === 'Errors' ? [b.text] : []))[0];
+  // Typed by hand from each def's `errorPattern`: the quoted example of two sentences stays whole, its quote closed.
+  const want = (id: string, line: string): void => {
+    const got = errorsLine(id);
+    ok(got === line, `quote/${id}: Content › Errors keeps its quoted example whole`, `got "${got}"`);
+  };
+  want('progress', 'Name what failed and the next step: "Upload failed. The connection dropped. Try again." Not a bare "Error".');
+  want('card-number-field', 'What is wrong and how to fix it: "Enter the card number." · "Check the card number. It doesn\'t match a valid card." · "This card type isn\'t accepted. Use Visa, Mastercard or American Express." (the accepted list, from the app).');
+  want('code-input', 'Say which case it is: "Enter all 6 digits", "That code is wrong. Check the latest message and try again", "That code has expired. We sent a new one".');
+  // Typed by hand from each def's `errorPattern`: a quoted example closed inside the cut still counts each of its
+  // sentences toward the two, so the line is the cut it always was and gains no sentence after the quote.
+  const keeps = (id: string, line: string): void => {
+    const got = errorsLine(id);
+    ok(got === line, `quote/${id}-count: Content › Errors keeps its two-sentence cut, a closed quote extends nothing`, `got "${got}"`);
+  };
+  keeps('textarea', 'What is wrong and how to fix it, with the number: "Description must be under 500 characters. Remove 24 to continue." (SC 3.3.3).');
+  keeps('switch-row', 'An outcome failure, not a validation failure: say what did not happen and that it reverted — "Couldn\'t turn on notifications. Try again." Near the control, as a status message rather than a field error.');
+  // Over every lead, every string any planned block carries: an even count of straight quotes.
+  const strings = (v: unknown): string[] => (typeof v === 'string' ? [v] : Array.isArray(v) ? v.flatMap(strings) : v && typeof v === 'object' ? Object.values(v).flatMap(strings) : []);
+  const bad: string[] = [];
+  for (const def of componentDefs) {
+    if (!leadsPanel(def.id)) continue;
+    for (const sec of planDocPanel(def, { modes: ['light', 'dark'], names }).sections)
+      for (const t of strings(sec.blocks)) if ((t.match(/"/g) ?? []).length % 2 === 1) bad.push(`${def.id} › ${sec.id}: ${t}`);
+  }
+  ok(bad.length === 0, 'quote/every lead: no planned line carries an odd count of "', bad.slice(0, 4).join('; '));
 }
 
 /* ── markers: on their parts, by the host's own layout ─────────────────────────────────────────────────── */
@@ -806,6 +965,9 @@ section('markers/… — every listed number on a specimen, on its part, by a le
     // #3265: a label names one instance ("Cell 4") or a run ("Cells 1–6"); each is read back to the def's parts by their
     // part names ("Cell4"), so the oracle knows which parts an entry covers without asking the panel.
     const covers = (label: string): ComponentDef['id'][] => {
+      // #3552 Q-UG5 A: "Item slot" is the part that holds the parts named "Item1", "Item2"….
+      const slot = /^(.+) slot$/.exec(label);
+      if (slot) return parts.filter((pt) => ((def.anatomy?.parts as Record<string, { children?: string[] }>)[pt.id]?.children ?? []).some((c) => new RegExp(`^${slot[1]}\\d+$`).test(parts.find((x) => x.id === c)?.name ?? ''))).map((pt) => pt.id);
       const run = /^(.+)s (\d+)–(\d+)$/.exec(label);
       if (run) return Array.from({ length: Number(run[3]) - Number(run[2]) + 1 }, (_, i) => `${run[1]}${Number(run[2]) + i}`).flatMap((nm) => parts.filter((pt) => pt.name === nm).map((pt) => pt.id));
       const one = /^(.+) (\d+)$/.exec(label);
@@ -1005,8 +1167,14 @@ const collapses = (panel: N): string[] => {
     for (const t of walk(sp).filter((c) => c.type === 'TEXT' && c.visible !== false && c.textAutoResize === 'HEIGHT')) {
       const em = typeof t.fontSize === 'number' ? t.fontSize : 14, line = runWidth(String(t.characters), em);
       if (t.width! < Math.min(line, COLLAPSE_EM * em)) out.push(`example ${k + 1}: "${String(t.characters).slice(0, 20)}" wraps at ${t.width}px, under ${COLLAPSE_EM}em`);
+      // NO WORD BROKEN (owner review 2026-11-13: Accordion's "compone / nts"): a wrapping text at least its longest word.
+      const word = Math.max(0, ...String(t.characters).split(/\s+/).map((x) => runWidth(x, em)));
+      if (t.width! < word) out.push(`example ${k + 1}: "${String(t.characters).slice(0, 20)}" wraps at ${t.width}px, inside its ${word}px longest word`);
     }
   });
+  // NO WIDTH THE HOST DROPS (#3205, owner review 2026-11-13): a `resize` or `minWidth` written to a layer inside an
+  // instance does nothing in Figma, so a draw that writes one is relying on a width the file never shows.
+  for (const q of walk(panel)) if (Number(q._dropped ?? 0) > 0) out.push(`"${q.name}" was given a width inside an instance, which Figma drops`);
   return out;
 };
 for (const d of leads) {
@@ -1034,26 +1202,29 @@ for (const d of leads) {
     `collapse/hug read: Dialog's members read as hugging, its anatomy example is still ${first.absoluteBoundingBox!.width} wide (${DIALOG_WIDTH} wanted)`, bad.slice(0, 3).join('; '));
 }
 {
-  // A LATER RESET TO HUG (#3211 X1): after a panel is drawn, something sets every specimen back to hug, as a host's
-  // reset can. Only the specimen's `minWidth` holds it then, so no lead built at a width (read off the projection's
-  // root, `placementWidth`, never off the subject's `exampleFloor`) may draw an example under that width.
-  const builtAt = (m: N): boolean => typeof (m._plan as { placementWidth?: unknown } | undefined)?.placementWidth === 'number';
-  const hit: string[] = [];
-  let built = 0;
-  for (const d of leads) {
-    const p = page(`↳ c reset ${d.id}`);
-    const set = fakeSet(p, d.id);
-    if (!set.children.some(builtAt)) continue;
-    built++;
-    await drawDocPanel(host([p]), set, d, { names });
+  // THE OWNER'S TWO (review of 2026-11-13, after a rebuild on main): Accordion's anatomy specimen drew about 120px wide,
+  // its title on two lines and its content broken inside a word; Badge's likewise. Typed by hand: Accordion is built at
+  // 320 (its `placementWidth`), and every text on every Badge example is a short label that holds one line.
+  const draw = async (id: string) => {
+    const p = page(`↳ owner ${id}`);
+    const set = fakeSet(p, id);
+    await drawDocPanel(host([p]), set, componentDefs.find((x) => x.id === id)!, { names });
     const panel = panelsOn(p)[0];
-    if (!panel) { hit.push(`${d.id}: no panel drawn`); continue; }
-    for (const sp of walk(panel).filter((c) => c.name === 'specimen')) sp.layoutSizingHorizontal = 'HUG';
-    const bad = collapses(panel);
-    if (bad.length) hit.push(`${d.id}: ${bad[0]}`);
-  }
-  ok(built > 0 && !hit.length,
-    `collapse/after reset: ${built} leads built at a width, every specimen set back to hug after drawing, no example under its width`, hit.slice(0, 4).join('; '));
+    return { panel, specs: panel ? walk(panel).filter((c) => c.name === 'specimen') : [] };
+  };
+  const lines = (t: N): number => { const em = typeof t.fontSize === 'number' ? t.fontSize : 14; return t.width! + 0.5 >= runWidth(String(t.characters), em) ? 1 : 2; };
+  const wrapped = (sp: N) => walk(sp).filter((c) => c.type === 'TEXT' && c.visible !== false && c.textAutoResize === 'HEIGHT');
+  const a = await draw('accordion');
+  const first = a.specs[0];
+  const title = first ? wrapped(first).find((t) => String(t.characters).length < 40) : undefined;
+  ok(!!first && first.absoluteBoundingBox!.width === 320 && !!title && lines(title) === 1 && collapses(a.panel).length === 0,
+    `owner/accordion: the anatomy example is ${first?.absoluteBoundingBox!.width} wide (320 wanted), its title "${title?.characters}" on ${title ? lines(title) : '?'} line (wrap model not calibrated: width carries this arm), no word broken`,
+    collapses(a.panel).slice(0, 3).join('; '));
+  const b = await draw('badge');
+  const long = b.specs.flatMap((sp) => walk(sp).filter((c) => c.type === 'TEXT' && c.visible !== false && (c.textAutoResize === 'HEIGHT') && lines(c) > 1));
+  ok(b.specs.length > 0 && !long.length && collapses(b.panel).length === 0,
+    `owner/badge: ${b.specs.length} examples, every label on one line (wrap model not calibrated against Figma: Badge unverified), no width written inside an instance`,
+    [...long.map((t) => `"${t.characters}" at ${t.width}px`), ...collapses(b.panel)].slice(0, 3).join('; '));
 }
 
 /* ── family: one panel per page, the members' earlier panels replaced ──────────────────────────────────── */
@@ -1064,8 +1235,9 @@ section('family/… — one panel per taxonomy page, beside its lead; the member
   // loses Built from: Checkbox.Control and Often used with: Checkbox.Group; Buttons loses nothing of its own here).
   const related = (id: string) => planDocPanel(componentDefs.find((d) => d.id === id)!, { modes: ['light', 'dark'], names }).sections.find((s) => s.id === 'related')!.blocks
     .flatMap((b) => (b.type === 'Links' && b.label !== 'Replaces' ? [`${b.label}: ${b.items.map((i) => `${i.name}>${i.def}`).join(' / ')}`] : []));
-  const cb = ['Instead, consider: Switch>switch-row / Radio>radio-row', 'Often used with: FieldLabel>field-label / FieldMessage>field-message / FocusRing>focus-ring / Buttons>button'];
-  const bt = ['Built from: FocusRing>focus-ring / Spinner>spinner', 'Instead, consider: Icon button>icon-button / Switch>switch-row', 'Often used with: Icon>icon'];
+  // #3555 Q-MD10 A: `alternativeTo` is symmetric, so Checkbox gains TextField (which names it) and Button gains Tag and Link.
+  const cb = ['Instead, consider: Switch>switch-row / Radio>radio-row / TextField>text-field', 'Often used with: FieldLabel>field-label / FieldMessage>field-message / FocusRing>focus-ring / Buttons>button'];
+  const bt = ['Built from: FocusRing>focus-ring / Spinner>spinner', 'Instead, consider: Icon button>icon-button / Switch>switch-row / Tag>tag / Link>link', 'Often used with: Icon>icon'];
   ok(related('checkbox-row').join('\n') === cb.join('\n'), 'family/related: Checkbox names families, its own parts dropped, Built from gone', related('checkbox-row').join(' | '));
   ok(related('button').join('\n') === bt.join('\n'), 'family/related buttons: Buttons as the wireframe has it', related('button').join(' | '));
   // A list naming one family twice, through two members: one entry.
@@ -1073,6 +1245,19 @@ section('family/… — one panel per taxonomy page, beside its lead; the member
   const doubled = { ...twice, composition: { ...twice.composition, alternativeTo: ['checkbox-row', 'checkbox-group', 'radio-row'] } } as ComponentDef;
   const alt = planDocPanel(doubled, { modes: ['light', 'dark'], names }).sections.find((s) => s.id === 'related')!.blocks.find((b) => b.type === 'Links' && b.label === 'Instead, consider');
   ok(alt?.type === 'Links' && alt.items.map((i) => i.name).join(' / ') === 'Checkbox / Radio', `family/related once: Checkbox.Row and Checkbox.Group in one list read "Checkbox" once (${alt?.type === 'Links' ? alt.items.map((i) => i.name).join(' / ') : 'no list'})`);
+  // EACH ONCE ACROSS THE LISTS (#3552 Q-UG3 A), typed from the defs: Dialog is built from Button.Group and names Button,
+  // Button.Neutral and Button.Destructive as partners, all of the Buttons family, so Buttons is under Built from alone;
+  // Tag names Badge, Checkbox.Group and Radio.Group as alternatives and as partners, so they stay under Instead, consider. Then over every lead: no family or component in two lists.
+  ok(related('dialog').join('\n') === ['Built from: Flush Icon Button>flush-icon-button / Divider>divider / Buttons>button', 'Instead, consider: Accordion>accordion / Toast>toast / Banner>banner',
+    'Often used with: TextField>text-field / Select>select / Checkbox>checkbox-row / Radio>radio-row'].join('\n'), 'related/dialog: Buttons once, under Built from', related('dialog').join(' | '));
+  ok(related('tag').join('\n') === ['Built from: FocusRing>focus-ring', 'Instead, consider: Badge>badge / Buttons>button / Checkbox>checkbox-row / Radio>radio-row', 'Often used with: Icon>icon'].join('\n'),
+    'related/tag: Badge, Checkbox and Radio once, under Instead, consider', related('tag').join(' | '));
+  const twiceIn: string[] = [];
+  for (const d of componentDefs.filter((x) => leadsPanel(x.id))) {
+    const lists = planDocPanel(d, { modes: ['light', 'dark'], names }).sections.find((x) => x.id === 'related')?.blocks.flatMap((b) => (b.type === 'Links' && b.label !== 'Replaces' ? b.items.map((i) => [i.def ?? i.name, b.label]) : [])) ?? [];
+    for (const [id, label] of lists) { const o = lists.find(([x, l]) => x === id && l !== label); if (o && lists.indexOf(o) > lists.findIndex(([x]) => x === id)) twiceIn.push(`${d.id}: ${id} under ${label} and ${o[1]}`); }
+  }
+  ok(twiceIn.length === 0, 'related/every lead: no family or component in two of a panel\'s Related lists', twiceIn.slice(0, 4).join('; '));
   const p = page('↳ Checkbox');
   const control = fakeSet(p, 'checkbox-control', 0, 0, 300, 200);
   const row = fakeSet(p, 'checkbox-row', 1000, 0, 300, 200);
@@ -1523,8 +1708,8 @@ const roomPage = async (name: string, also?: (p: N, a: N) => void) => {
   await drawDocPanel(uh, set, d, { names });
   const old = panelsOn(p)[0];
   const at = { x: Number(old.x), y: Number(old.y) };
-  old.setSharedPluginData!('prism3', 'docPanelPlan', old.getSharedPluginData!('prism3', 'docPanelPlan').replace(/^\d+:/, '5:'));
-  for (const sp of walk(old).filter((c) => c.name === 'specimen')) { sp.layoutSizingHorizontal = 'HUG'; delete sp.minWidth; }
+  old.setSharedPluginData!('prism3', 'docPanelPlan', old.getSharedPluginData!('prism3', 'docPanelPlan').replace(/^\d+:/, '6:'));
+  for (const sp of walk(old).filter((c) => c.name === 'specimen')) { sp.layoutSizingHorizontal = 'HUG'; hostWrite(() => { sp.minWidth = undefined; }); }
   const was = walk(old).find((c) => c.name === 'specimen')!.absoluteBoundingBox!.width;
   const targets: UpdateTarget[] = [{ def: 'dialog', plans: plansOf('dialog'), doc: { def: d, names } }];
   const pre = await previewUpdate(uh, targets);
@@ -1602,7 +1787,7 @@ section('own draw/… — Update redraws a panel nobody touched in place, the co
 section('format due/… — Update file offers and redraws a panel drawn by an older format, its set current (#3205)');
 {
   // The template file after #3318 (2026-11-02): Dialog's set up to date, its ledger entry written before entries carried
-  // a panel format, its panel drawn by format 5 with every specimen collapsed. Update file's own path, on the strict host:
+  // a panel format, its panel drawn by format 6 (2026-11-13) with every specimen collapsed. Update file's own path, on the strict host:
   // the ledger read decides which sets are due, the scoped check reads only those, and the apply acts on what it read.
   const run = async (label: string, edit?: (old: N) => void, block = false) => {
     const p = page(`↳ format due ${label}`);
@@ -1616,9 +1801,10 @@ section('format due/… — Update file offers and redraws a panel drawn by an o
     await drawDocPanel(uh, set, d, { names });
     const old = panelsOn(p)[0];
     const at = { x: Number(old.x), y: Number(old.y) };
-    // Aged to what the template holds: format 5, its specimens hugging with no floor, as #3211's draw left them in Figma.
-    old.setSharedPluginData!('prism3', 'docPanelPlan', old.getSharedPluginData!('prism3', 'docPanelPlan').replace(/^\d+:/, '5:'));
-    for (const sp of walk(old).filter((c) => c.name === 'specimen')) { sp.layoutSizingHorizontal = 'HUG'; delete sp.minWidth; }
+    // Aged to what the template holds: format 6, the last draw that wrote widths Figma drops, its specimens hugging with
+    // no floor, as the owner found them on 2026-11-13.
+    old.setSharedPluginData!('prism3', 'docPanelPlan', old.getSharedPluginData!('prism3', 'docPanelPlan').replace(/^\d+:/, '6:'));
+    for (const sp of walk(old).filter((c) => c.name === 'specimen')) { sp.layoutSizingHorizontal = 'HUG'; hostWrite(() => { sp.minWidth = undefined; }); }
     const was = walk(old).find((c) => c.name === 'specimen')!.absoluteBoundingBox!.width;
     edit?.(old);
     // #3349 review: a panel whose last draw was BLOCKED. A layer sits where the panel goes, so the redraw that tried to
@@ -1661,20 +1847,20 @@ section('format due/… — Update file offers and redraws a panel drawn by an o
   const a = await run('untouched');
   ok(a.was < DIALOG_WIDTH / 2 && JSON.stringify(a.read.dialog) === '{"state":"due","reason":"panel"}'
     && a.checked.length === 1 && a.checked[0].def === 'dialog' && a.checked[0].blocked === false && a.checked[0].upToDate === false && a.due === 1,
-    `format due/offered: Dialog's set current, its panel at format 5 (${a.was}px example): the ledger read lists it due for its panel, and the check offers its panel`,
+    `format due/offered: Dialog's set current, its panel at format 6 (${a.was}px example): the ledger read lists it due for its panel, and the check offers its panel`,
     `read ${JSON.stringify(a.read)}, checked ${JSON.stringify(a.checked)}, panels ${a.due}`);
   ok(a.all.length === 1 && a.live.length === 1 && a.live[0] !== a.old && a.old.removed === true && Number(a.live[0].x) === a.at.x && Number(a.live[0].y) === a.at.y
     && !String(a.live[0].name).endsWith('(edited)') && a.specs.length > 0
-    && a.specs.every((c) => c.layoutSizingHorizontal === 'FIXED' && c.absoluteBoundingBox!.width === 560 && c.minWidth === 560)
+    && a.specs.every((c) => c.layoutSizingHorizontal === 'FILL' && c.absoluteBoundingBox!.width === 560 && !Number(c._dropped ?? 0))
     && a.live[0].getSharedPluginData!('prism3', 'docPanelPlan').startsWith(`${PANEL_FORMAT}:`),
-    `format due/redrawn: one apply redraws it in place, each of its ${a.specs.length} specimens FIXED at 560 with minWidth 560`,
+    `format due/redrawn: one apply redraws it in place, each of its ${a.specs.length} specimens 560 wide, filling its stage, no width written to it`,
     `panels ${a.all.map((n) => n.name).join(' | ')}; specimens ${a.specs.map((c) => `${c.layoutSizingHorizontal} ${c.absoluteBoundingBox!.width} min ${c.minWidth}`).join(', ')}`);
   ok(JSON.stringify(a.after.dialog) === '{"state":"current"}', `format due/recorded: after the apply, the ledger reads the set current (${JSON.stringify(a.after.dialog)})`);
   // A panel edited by hand is offered too, and kept (#3317): the redraw draws a new one beside it, the edit intact.
   const b = await run('edited', (old) => { walk(old).find((c) => c.type === 'TEXT' && String(c.characters).length > 20)!.characters = 'Our dialogs always confirm before deleting.'; });
   ok(JSON.stringify(b.read.dialog) === '{"state":"due","reason":"panel"}' && b.due === 1 && b.all.length === 2 && b.live.length === 1 && b.kept.length === 1 && b.kept[0] === b.old
     && String(b.old.name).endsWith(' (edited)') && texts(b.old).includes('Our dialogs always confirm before deleting.'),
-    `format due/edited kept: a hand-edited panel at format 5 is offered, and the apply keeps it as "${b.old.name}", its edit intact`,
+    `format due/edited kept: a hand-edited panel at format 6 is offered, and the apply keeps it as "${b.old.name}", its edit intact`,
     `read ${JSON.stringify(b.read)}, panels ${b.all.map((n) => n.name).join(' | ')}`);
   // #3349 review, "due forever": a lead set with no recorded format whose last panel draw was blocked, the blocker still
   // there. The ledger read lists it due for its panel, and the check finds no panel to draw (`docPanelDue` is 0 while
@@ -1818,6 +2004,64 @@ section('template/… — `_Doc-block`');
 }
 
 /* ── line: the missing template, once ──────────────────────────────────────────────────────────────────── */
+/* ── code: a backtick span drawn as code (#3552 Q-UG2 A) ──────────────────────────────────────────────────── */
+section('code/… — a code span is written without its backticks and drawn in the brand\'s inline code style (#3552 Q-UG2 A)');
+{
+  // The one panel line with code spans today, typed from Button's def: its first Do item.
+  const want = "Place the icons the way the brand's buttonIcons setting says; attached (Attached to label, the default) keeps them beside the label with the group centered";
+  const drawButton = async (o: { codeStyle?: boolean } = {}) => {
+    const p = page(`↳ code ${o.codeStyle === false ? 'none' : 'style'}`);
+    const r = await drawDocPanel(host([p], o), fakeSet(p, 'button'), componentDefs.find((d) => d.id === 'button')!, { names });
+    const t = walk(panelsOn(p)[0]).find((c) => c.type === 'TEXT' && String(c.characters).startsWith('Place the icons the way'));
+    return { r, t };
+  };
+  const a = await drawButton();
+  ok(a.t?.characters === want && JSON.stringify(a.t?._codes) === JSON.stringify([{ text: 'buttonIcons', id: 'S:code' }, { text: 'attached', id: 'S:code' }]),
+    'code/button: Button\'s Do item reads without backticks, buttonIcons and attached in code/inline/default', `${String(a.t?.characters)} ${JSON.stringify(a.t?._codes)}`);
+  const b = await drawButton({ codeStyle: false });
+  ok(b.t?.characters === want && !(b.t?._codes as unknown[]).length && b.r.misses.some((m) => m.includes('code/inline/default')),
+    'code/no style: a file without the code style writes the same text plain and names the style', `${JSON.stringify(b.t?._codes)} misses ${b.r.misses.join('; ')}`);
+  // The code style's font won't load: the text is written plain, no range points at the unloaded font, the miss names it.
+  {
+    const p = page('↳ code font');
+    const api = host([p]);
+    api.loadFontAsync = async (f) => { if (f.family === CODE_TEXT_STYLE.fontName.family) throw new Error('no font'); };
+    const r = await drawDocPanel(api, fakeSet(p, 'button'), componentDefs.find((d) => d.id === 'button')!, { names });
+    const t = walk(panelsOn(p)[0]).find((c) => c.type === 'TEXT' && String(c.characters).startsWith('Place the icons the way'));
+    ok(t?.characters === want && !(t?._codes as unknown[]).length && r.misses.some((m) => m.includes('JetBrains Mono Regular unavailable')),
+      'code/no font: the code style\'s font won\'t load, so the text is plain, no code range is set, and the miss names the font', `${JSON.stringify(t?._codes)} misses ${r.misses.join('; ')}`);
+  }
+  // Related's links are placed in the written text: a code-bearing entry ahead of a linked one can't shift the link.
+  // Tag's def, with Badge's name typed as code here; Badge and Button have sets in the file.
+  {
+    const p = page('↳ code related');
+    const set = fakeSet(p, 'tag');
+    const badge = fakeSet(p, 'badge', 0, 3000), button = fakeSet(p, 'button', 0, 4000);
+    await drawDocPanel(host([p]), set, componentDefs.find((d) => d.id === 'tag')!, { names: (id) => (id === 'badge' ? '`Badge`' : names(id)) });
+    const texts = walk(panelsOn(p)[0]).filter((c) => c.type === 'TEXT');
+    const list = texts.find((t) => String(t.characters).startsWith('Badge\nButtons'));
+    const links = (list?._links ?? []) as { text: string; link: { value: string } }[];
+    const decos = ((list?._decos ?? []) as { text: string }[]).map((d) => d.text);
+    ok(JSON.stringify(links.map((l) => `${l.text}>${l.link.value}`)) === JSON.stringify([`Badge>${badge.id}`, `Buttons>${button.id}`]) && JSON.stringify(decos) === '["Badge","Buttons"]'
+      && JSON.stringify(list?._codes) === JSON.stringify([{ text: 'Badge', id: 'S:code' }]),
+      'code/related links: past a code-bearing entry, the link and underline land on "Badge" and "Buttons" exactly', `${String(list?.characters).split('\n').join(' / ')} links ${JSON.stringify(links)} decos ${JSON.stringify(decos)}`);
+  }
+  // Over every lead: no drawn text carries a backtick, and every code range is a whole word of its text.
+  const ticks: string[] = [];
+  for (const def of leads) {
+    const p = page(`↳ code ${def.id}`);
+    await drawDocPanel(host([p]), fakeSet(p, def.id), def, { names });
+    for (const t of walk(panelsOn(p)[0]).filter((c) => c.type === 'TEXT')) {
+      if (String(t.characters).includes('`')) ticks.push(`${def.id}: ${String(t.characters).slice(0, 60)}`);
+      for (const c of t._codes as { text: string }[]) if (!c.text.trim() || c.text !== c.text.trim()) ticks.push(`${def.id}: code range "${c.text}"`);
+    }
+  }
+  ok(ticks.length === 0, `code/every lead: no drawn text in ${leads.length} panels carries a backtick, and no code range is empty or padded`, ticks.slice(0, 3).join('; '));
+  // The split, typed: a pair is a span, a backtick with no partner is dropped.
+  const cr = codeRuns('Use `type="number"` or `step` (3`)');
+  ok(cr.text === 'Use type="number" or step (3)' && JSON.stringify(cr.runs) === '[[4,17],[21,25]]', `code/runs: spans by pairs, an unpaired backtick dropped (${JSON.stringify(cr)})`);
+}
+
 section('qa/… — usage panels QA round 1 (#2970): titles, the space above Do and Don\'t, Related as linked lists');
 {
   const p = page('↳ QA r1');
@@ -1847,7 +2091,7 @@ section('qa/… — usage panels QA round 1 (#2970): titles, the space above Do 
   ok(lists.join('\n') === [
     'Built from: FocusRing',
     'Instead, consider: Badge / Buttons / Checkbox / Radio',
-    'Often used with: Badge / Icon / Checkbox / Radio',
+    'Often used with: Icon',
     'Replaces: a removable token list built as a listbox / a clickable div styled as a pill / a bare × glyph with no accessible name',
   ].join('\n'), 'qa/related lists: 4 lists, one line per name, no chips', lists.join(' | '));
   ok(!related.children.some((b) => walk(b).some((c) => /^chip\d/.test(String(c.name)))) && rows.every((x) => JSON.stringify(x.text._lists) === `[{"s":0,"e":${String(x.text.characters).length},"o":{"type":"UNORDERED"}}]`),
@@ -1855,9 +2099,8 @@ section('qa/… — usage panels QA round 1 (#2970): titles, the space above Do 
   const links = rows.flatMap((x) => x.text._links as { text: string; link: { type: string; value: string } }[]);
   ok(JSON.stringify(links) === JSON.stringify([
     { text: 'Badge', link: { type: 'NODE', value: badge.id } }, { text: 'Buttons', link: { type: 'NODE', value: button.id } },
-    { text: 'Badge', link: { type: 'NODE', value: badge.id } },
-  ]), 'qa/related links: Badge ×2, and Buttons to its lead Button\'s set, link by node; FocusRing, Icon, the families with no set here and Replaces stay plain', JSON.stringify(links));
-  ok(JSON.stringify(rows.flatMap((x) => (x.text._decos as { text: string }[]).map((d) => d.text))) === '["Badge","Buttons","Badge"]', 'qa/related underline: exactly the 3 linked names are underlined');
+  ]), 'qa/related links: Badge, and Buttons to its lead Button\'s set, link by node; FocusRing, Icon, the families with no set here and Replaces stay plain', JSON.stringify(links));
+  ok(JSON.stringify(rows.flatMap((x) => (x.text._decos as { text: string }[]).map((d) => d.text))) === '["Badge","Buttons"]', 'qa/related underline: exactly the 2 linked names are underlined');
   // A set built after the draw: the panel is due, so its name is linked on the next update; drawn again, it is not.
   ok(docPanelDue(api, set, planDocPanel(def, { modes: ['light', 'dark'], names })) === 0, 'qa/links current: not due right after the draw');
   const icon = mk('COMPONENT_SET', 'icon', [], { x: 0, y: 5000 }); p.appendChild!(icon);

@@ -34,33 +34,19 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { applyOutlineInteraction, applyButtonLayout, applyCurrentIndicator, DEFAULT_BUTTON_LAYOUT } from '@prism3/engine/anatomy-figma';
-import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
-import { diffAnatomy, unclassifiedFields, fieldCoverage } from '@prism3/engine/anatomy-readback';
-import type { Divergence, HostNode, ReadPorts } from '@prism3/engine/anatomy-readback';
-import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import { buildFigmaTextStyles } from '@prism3/engine/emit-figma-font';
-import { nbTheme } from '@prism3/engine/nb-fixture';
-import { sizeRefPx } from '@prism3/engine/scale';
-import { tailOf } from '@prism3/engine/figma-names';
-import { componentSpec, specMaterialize } from '@prism3/engine/component-specs';
-import type { ComponentSpec } from '@prism3/engine/component-specs';
-import { figmaVarName, figmaTextStyleName } from '@prism3/engine/anatomy-figma';
+import { applyOutlineInteraction, applyButtonLayout, applyCurrentIndicator, DEFAULT_BUTTON_LAYOUT, figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, componentDefs, diffAnatomy, unclassifiedFields, fieldCoverage, type Divergence, type HostNode, type ReadPorts, componentSpec, specMaterialize, type ComponentSpec, figmaVarName, figmaTextStyleName, brandMaterializer, type ComponentDef, validateComponentDef } from '@prism3/engine/components';
+import { buildFigmaColor, buildFigmaTextStyles, tailOf } from '@prism3/engine/figma';
+import { nbTheme } from '@prism3/engine/harness';
+import { sizeRefPx, type BrandInput } from '@prism3/engine';
 import { applyComponentPlan } from './src/write-components';
 import { makeShim, varValue } from './component-shim';
 import { materializeForBrand, materializerFor } from './src/brand-def';
-import { brandMaterializer } from '@prism3/engine/component-defs-export';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import type { BrandInput } from '@prism3/engine/theme';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { planTargets, prebuildDependencies } from './src/build-deps';
 import { reactionMap } from './src/reactions';
 import { readSpecTag } from './src/spec-tag';
 import { snapshotMember } from './src/member-baseline';
 import { withSetSlots } from './src/update-plan';
-import type { ComponentDef } from '@prism3/engine/component-schema';
-import { validateComponentDef } from '@prism3/engine/component-schema';
 import type { Node, Page, ShimOpts } from './component-shim';
 
 const INVENTORY = process.argv.includes('--inventory');
@@ -615,10 +601,8 @@ ok((EXERCISED.slotSettings ?? 0) > 0 && (EXERCISED.slotPreferred ?? 0) > 0,
 {
   // KNOWN GAPS, each a filed issue, each by def AND field. An entry that no longer fires fails below, so the ledger
   // empties as the issues close rather than outliving them.
-  const KNOWN: { def: string; field: string; issue: string }[] = [
-    // A snapshot has no `findAll`, and stops at an instance, so the mark's vectors are out of its reach.
-    { def: 'sign-in-button', field: 'literalTint', issue: '#3393' },
-  ];
+  // Empty since #3393: the snapshot now carries an instance's vectors, so SignInButton's mark tint reads as live.
+  const KNOWN: { def: string; field: string; issue: string }[] = [];
   const fired = new Set<string>();
   const known = (def: string, d: Divergence): boolean => {
     const k = KNOWN.find((x) => x.def === def && x.field === d.field);
@@ -2164,9 +2148,10 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       if (walk(m).some((n) => n.name === 'focusRing')) off.push(`${at}: a focusRing node is built`);
     }
   }
-  // 6 fields × 3 sizes × 4 statuses × 2 focus states = 144, the Code cell's 4 sizes × 2 = 8, the Counter's outline 3.
-  ok(focusMembers === 155 && off.length === 0,
-    `#3399 focus edge as built: in all ${focusMembers} of 155 focus members of the 8 field sets, the frame's four side weights read back focus/ring/width (hairline at rest), drawn inside and out of the layout, in the status role, at the rest member's own corner radius, with no focusRing node${off.length ? ` — ${off.length} off: ${off.slice(0, 4).join(' | ')}` : ''}`);
+  // 6 fields × 3 sizes × 4 statuses × 2 focus states = 144, the Code cell's 4 sizes × 2 statuses × 2 = 16 (its status
+  // axis since Q-CC1 A, #3554), the Counter's outline 3.
+  ok(focusMembers === 163 && off.length === 0,
+    `#3399 focus edge as built: in all ${focusMembers} of 163 focus members of the 8 field sets, the frame's four side weights read back focus/ring/width (hairline at rest), drawn inside and out of the layout, in the status role, at the rest member's own corner radius, with no focusRing node${off.length ? ` — ${off.length} off: ${off.slice(0, 4).join(' | ')}` : ''}`);
 }
 
 
@@ -3023,6 +3008,56 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     `#2928 CodeInput: in all ${fields.length} members the field hugs the widest of its label, cells and message, and no cell runs past it (${fieldOff.length} off${fieldOff.length ? `: ${fieldOff.slice(0, 3).join(' | ')}` : ''})`);
 }
 
+// ── #3554 Q-FL1 A / Q-FL1.1 A — THE COUNTER'S HOST INK, READ BACK OFF THE NESTED BUTTONS' VECTORS ──────────────────────
+//
+// `PartDef.hostInk` pushes the Counter's `icon` ink into each nested FlushIconButton as `descendantFills`, a field the
+// round-trip diff classifies as unread (the vectors are another component's insides). The spec readback above claims the
+// part's `icon` color through the instance's own `findAll`; this arm says it by name. The Counter is built the way the
+// plugin builds it, its nested sets first into the same file, and the paint is the real executor's `descendantFills` write.
+// WHAT THE ORACLE IS (docs/34, #3732 review S1): the shim's `createInstance` gives every instance ONE stand-in VECTOR
+// (`inst.findAll = () => [vec]`, no children), so both this arm and the spec readback read that stand-in. What they prove
+// is that the executor writes the pushed ink, bound to the right variable, onto whatever VECTORs the nested instance's
+// `findAll` returns, and writes nothing on ghost. The FlushIconButton → swapped `icon/minus`/`icon/plus` → glyph chain is
+// NOT modelled, so whether the real file reaches a paintable VECTOR there is still an open real-file check (it needs those
+// icon components built first; otherwise the Search-field "no VECTOR inside this node to paint" miss). EXPECTED is typed from the decision:
+// on a disabled OUTLINE member every vector inside both buttons is `color/disabled/on-fill`; on a disabled GHOST member
+// the host pushes nothing, so the instance's vectors carry no fill of the host's and the flush button's own disabled ink
+// (`color/disabled/icon`, from its main) stands. The shim does not copy a main's paint onto an instance's vectors, so
+// "nothing written" reads as unbound here; the real file shows the main's ink. Mutation: drop the
+// `descendantFills` write in `write-components.ts`, or `hostInk` from the stepper, and this fails by name.
+{
+  const def = componentDefs.find((d) => d.id === 'counter')!;
+  const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+  const page: Page = { children: [] };
+  const shim = makeShim({ ...fullFor([...plans, ...ALL_PLANS()]), comps: [SWAP_TARGET], liveRoot: true, page });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  await prebuildDependencies(def, { defs: componentDefs, project: (d) => figmaAnatomySet(d, { swapTarget: SWAP_TARGET }), host: shim as any, build: (d) => applyComponentPlan(figmaAnatomySet(d, { swapTarget: SWAP_TARGET }), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents }) });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  const res = await applyComponentPlan(plans, shim as any, {});
+  const vars = await (shim as unknown as { variables: { getLocalVariablesAsync: () => Promise<{ id: string; name: string }[]> } }).variables.getLocalVariablesAsync();
+  const nameOf = new Map(vars.map((v) => [v.id, v.name.replace(/^zzclient\//, '')] as const));
+  const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === 'counter');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a walk over host nodes
+  const walk = (n: any): any[] => [n, ...((n?.children ?? []) as any[]).flatMap(walk)];
+  const off: string[] = [];
+  let outline = 0, ghost = 0, vectors = 0;
+  for (const m of (set?.children ?? []) as Node[]) {
+    const name = String(m.name);
+    if (!/state=disabled/.test(name)) continue;
+    const want = /appearance=outline/.test(name) ? 'color/disabled/on-fill' : 'unbound';
+    if (/appearance=outline/.test(name)) outline++; else ghost++;
+    for (const side of ['decrement', 'increment']) {
+      const inst = walk(m).find((n) => n.name === side);
+      const vecs = (inst?.findAll ? inst.findAll((x: Node) => x.type === 'VECTOR') : []) as { fills?: { boundVariables?: { color?: { id?: unknown } } }[] }[];
+      vectors += vecs.length;
+      const got = vecs.map((v) => { const id = v.fills?.[0]?.boundVariables?.color?.id; return typeof id === 'string' ? nameOf.get(id) ?? `unknown ${id}` : 'unbound'; });
+      if (String(inst?.type) !== 'INSTANCE' || !got.length || got.some((g) => g !== want)) off.push(`${name} ${side}: ${String(inst?.type)} with ${got.length} vector(s) [${[...new Set(got)].join(', ')}], want ${want}`);
+    }
+  }
+  ok(res.misses.length === 0 && outline === 3 && ghost === 3 && vectors >= 12 && off.length === 0,
+    `#3554 counter host ink as built: on every disabled outline member the vectors inside both nested buttons read color/disabled/on-fill, and on every disabled ghost member the host writes no fill, leaving the flush button's own color/disabled/icon (${outline} outline, ${ghost} ghost, ${vectors} vectors, ${res.misses.length} misses${off.length || res.misses.length ? `; OFF: ${[...off, ...res.misses].slice(0, 3).join(' | ')}` : ''})`);
+}
+
 // ── THE VERTICAL LABELED DIVIDER, AS LAID OUT (#3143, owner Q3143.1–.7 all A) ────────────────────────────────────
 //
 // The diff above compares the host to the plan that built it, so a plan that turned the labeled column back into a
@@ -3114,7 +3149,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 //     instances are opaque, so the placed instances are stand-ins; the members, slots and definitions are the host's.
 {
   const { captureSlotText, fillSlotText } = await import('./src/slot-text-migration');
-  const { slotTextMigrationOf, partRenames } = await import('@prism3/engine/component-renames');
+  const { slotTextMigrationOf, partRenames } = await import('@prism3/engine');
   const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP_TARGET });
   const banner = componentDefs.find((d) => d.id === 'banner')!;
   const build = async (d: ComponentDef) => {
@@ -3123,9 +3158,9 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     const shim = makeShim({ ...fullFor(plans), page });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
     const r = await applyComponentPlan(plans, shim as any);
-    // The one miss the harness owns: the shim declares no INSTANCE_SWAP on a nested FlushIconButton, so the dismiss's
+    // The one miss the harness owns: the shim declares no INSTANCE_SWAP on a nested FlushIconButton, so the close button's
     // close-glyph override reports itself (the corpus loop above judges divergences, so it never reads it). Named here.
-    const harness = (m: string): boolean => /^dismiss\.nestOverrides -> swap icon \(no INSTANCE_SWAP property/.test(m);
+    const harness = (m: string): boolean => /^close\.nestOverrides -> swap icon \(no INSTANCE_SWAP property/.test(m);
     return { r: { ...r, misses: r.misses.filter((m) => !harness(m)) }, set: page.children.find((c) => c.type === 'COMPONENT_SET') as Node | undefined };
   };
   const find = (n: Node | undefined, name: string): Node | undefined => (!n ? undefined : n.name === name ? n : ((n.children ?? []) as Node[]).map((c) => find(c, name)).find(Boolean));
@@ -3158,7 +3193,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       placeholder: { kind: 'text', type: 'body-type', paintSlot: 'body', wrap: true, characters: OLD_COPY },
     } },
     composition: { ...banner.composition!, composesWith: ['button', 'flush-icon-button-neutral'] },
-    figmaProperties: { ...banner.figmaProperties!, texts: { title: banner.figmaProperties!.texts!.title }, booleans: { title: { part: 'titleBox', default: true }, icon: banner.figmaProperties!.booleans!.icon, actions: { part: 'actions', default: false }, dismissible: { part: 'dismiss', default: false, figmaName: 'dismiss' } } },
+    figmaProperties: { ...banner.figmaProperties!, texts: { title: banner.figmaProperties!.texts!.title }, booleans: { title: { part: 'titleBox', default: true }, icon: banner.figmaProperties!.booleans!.icon, actions: { part: 'actions', default: false }, dismissible: { part: 'close', default: false, figmaName: 'close' } } },
   };
   const before = await build(old);
   const oldMembers = ((before.set?.children ?? []) as Node[]);

@@ -23,9 +23,8 @@
  * MOVED: a path that created the new name and left the old one would produce the right name set and fail
  * here, on the id.
  */
-import { renameMap, COLLECTION_RENAMES } from '@prism3/engine/rename-map';
-import { MATERIALIZATION_RENAMES } from '@prism3/engine/materialization-renames';
-import { passPayloads, variablePlans } from '@prism3/engine/materialise-to-figma';
+import { renameMap, COLLECTION_RENAMES, MATERIALIZATION_RENAMES } from '@prism3/engine/figma';
+import { passPayloads, variablePlans } from '@prism3/engine/harness';
 import { beginMigration, applyWritePlan, applyFloatPlan, applyVarCollectionPlan } from './src/write-figma';
 import { FileShim } from './file-shim';
 
@@ -140,9 +139,15 @@ const main = async () => {
   }
   const pq = judge(paste, pasteIds);
   ok(pq.length === 0, `#1024 paste path: every old name in the fixture is MOVED (same id) to the rename map's literal target, and the collection to '${EXPECTED_COLLECTION.to}' (${pq.length ? pq.join('; ') : `${ROWS.length} variables + 1 collection`})`);
-  const report = results[0] as { migrated?: string[]; refused?: string[]; refusals?: string[] } | undefined;
+  // `migrate` is packed into chunks by bytes (`migrateChunks`), so one rename may be reported by any of them: #2423's
+  // `text-spacing` axis moved the boundary and a row left the first chunk. Read every migrate chunk's report as one.
+  type MigrateReport = { migrated?: string[]; refused?: string[]; refusals?: string[] };
+  const migrateReports = results.slice(0, passPayloads(BRAND, 'migrate').length) as MigrateReport[];
+  const report: MigrateReport | undefined = migrateReports.length && migrateReports.every(Boolean)
+    ? { migrated: migrateReports.flatMap((r) => r.migrated ?? []), refused: migrateReports.flatMap((r) => r.refused ?? []), refusals: migrateReports.flatMap((r) => r.refusals ?? []) }
+    : undefined;
   ok(!!report && report.migrated?.length === ROWS.length + 1 && (report.refused ?? []).length === 0 && (report.refusals ?? []).length === 0,
-    `#1024 paste path: the migrate pass reports what it moved — ${ROWS.length} variables + 1 collection, no refusal (got ${report ? `migrated ${report.migrated?.length}, refused ${report.refused?.length}, refusals ${report.refusals?.length}` : 'no report'})`);
+    `#1024 paste path: the migrate pass reports what it moved, across its ${migrateReports.length} chunk(s) — ${ROWS.length} variables + 1 collection, no refusal (got ${report ? `migrated ${report.migrated?.length}, refused ${report.refused?.length}, refusals ${report.refusals?.length}` : 'no report'})`);
 
   console.log('#1024 — the two paths agree on the rest of the file');
   const namesIn = (f: FileShim, col: string) => {

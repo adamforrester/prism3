@@ -322,7 +322,11 @@ const sweep = (label: string, theme: ReturnType<typeof brandTheme>, ctx?: Overri
       // 1,296 ratios per run that used to be taken on trust.
       let truth: number;
       if (r.model === 'ink-on-composite') {
-        const washed = composite(hexToRgb(groundHex), hexToRgb(r.hex), r.alpha!);
+        // The alpha a renderer applies, not the nominal one (#3555 F4): the hex dialect writes 8-digit hex, so 10% ships
+        // as 26/255; the rgb dialect writes two decimals. Rounded here, not by the engine's `emittedAlpha`, so a ratio the
+        // derivation took at the nominal alpha disagrees with this one instead of sharing its arithmetic.
+        const shipped = theme.colorFormat === 'hex' ? Math.round(r.alpha! * 255) / 255 : Math.round(r.alpha! * 100) / 100;
+        const washed = composite(hexToRgb(groundHex), hexToRgb(r.hex), shipped);
         truth = contrast(hexToRgb(roles[r.legibleFor!].hex), washed);
       } else {
         truth = contrast(hexToRgb(r.hex), hexToRgb(groundHex));

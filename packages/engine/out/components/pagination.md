@@ -13,7 +13,7 @@ Moves between the pages of a long, ordered list or set of results, and shows whi
 
 - **Purpose:** Move between the pages of a long, ordered set of results and show which page is open.
 - **Use when:** Search results, a catalog or a table split into pages, where the user benefits from the count and from jumping to a page; or previous and next through an article.
-- **Avoid when:** A feed with no useful end (a load more Button), a few fixed views (tabs or a segmented control), the slides of a carousel, or rows per page and a "Go to page" field (the table pager, not yet built).
+- **Avoid when:** A feed with no useful end (a load more Button), a few fixed views (Tabs or SegmentedControl), the slides of a carousel, or rows per page and a "Go to page" field (the table pager, not yet built).
 
 ## Anatomy
 
@@ -21,7 +21,7 @@ Shown on the default member: type `numbered`, style `border`, size `medium`.
 
 1. **Container** — The navigation landmark: one row of controls. It hugs its row; a simple pagination is built wider so its two cells sit at opposite ends.
 2. **Row** — The previous cell, the pages or the "Page 5 of 10" text, and the next cell, 4px apart.
-3. **Previous** — The previous cell: a Pagination.Item with a left chevron, the same square as the page cells (Q414 A). On the first page it stays in place and does nothing.
+3. **Previous** — The previous cell, a left chevron the size of the page cells; on the first page it stays in place and does nothing.
 4. **Items** — The pages: a slot of page cells, 4px apart, showing page 5 of 10 by default: 1, an ellipsis, 4, 5 (current), 6, an ellipsis, 10.
 5. **Item1** — The first page, 1.
 6. **Item2** — An ellipsis for pages 2 and 3.
@@ -31,10 +31,10 @@ Shown on the default member: type `numbered`, style `border`, size `medium`.
 10. **Item6** — An ellipsis for pages 7 to 9.
 11. **Item7** — The last page, 10.
 12. **Status** — The position, "Page 5 of 10", between the previous and next buttons.
-13. **Next** — The next cell: a Pagination.Item with a right chevron (Q414 A). On the last page it stays in place and does nothing.
+13. **Next** — The next cell, a right chevron; on the last page it stays in place and does nothing.
 14. **Simple row** — The simple row: Previous at the start and Next at the end.
-15. **Previous button** — Previous: a Pagination.Item, a left chevron and the word "Previous" (Q414 A).
-16. **Next button** — Next: a Pagination.Item, the word "Next" and a right chevron (Q414 A).
+15. **Previous button** — Previous: a left chevron and the word "Previous".
+16. **Next button** — Next: the word "Next" and a right chevron.
 
 ## Styles
 
@@ -42,7 +42,7 @@ Shown on the default member: type `numbered`, style `border`, size `medium`.
 | --- | --- | --- | --- |
 | `type` | `numbered`, `compact`, `simple` | once, when authored | numbered: page numbers between previous and next. compact: "Page 5 of 10" between previous and next. simple: Previous and Next only. A numbered row switches to compact when its container is narrower than the row. |
 | `style` | `border`, `underline` | once, when authored | How the current page is marked in a numbered row: a border around it, or a 2px line under its number. |
-| `size` | `medium`, `small`, `large` | once, when authored | The size of every cell and button, matching the icon button sizes. Medium is 44px on comfortable and spacious density. |
+| `size` | `medium`, `small`, `large` | once, when authored | The size of every cell and button, matching the icon button sizes. Medium clears 44px on comfortable and spacious density. |
 
 ## Usage guidelines
 
@@ -124,7 +124,7 @@ Use Pagination below a long list, a grid of results or a table, to move between 
 | `renderItem` | slot | — | no | Renders a page as your router's link, keeping its address and aria-current. |
 | `type` | enum: 'numbered' \| 'compact' \| 'simple' | `numbered` | no | numbered: page numbers between previous and next. compact: "Page 5 of 10" between previous and next. simple: Previous and Next only. A numbered row switches to compact when its container is narrower than the row. |
 | `style` | enum: 'border' \| 'underline' | `border` | no | How the current page is marked in a numbered row: a border around it, or a 2px line under its number. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The size of every cell and button, matching the icon button sizes. Medium is 44px on comfortable and spacious density. |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The size of every cell and button, matching the icon button sizes. Medium clears 44px on comfortable and spacious density. |
 | `siblingCount` | number | `1` | no | How many pages show on each side of the current page. |
 | `boundaryCount` | number | `1` | no | How many pages show at each end. |
 | `label` | string | `Pagination` | no | The accessible name of the navigation landmark. Give two pagination rows on one page the same name, or a name each ("Pagination, top"). |

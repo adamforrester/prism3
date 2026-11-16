@@ -54,10 +54,9 @@
  * assertion instead, because with no caller the port could have drifted out of satisfaction with the
  * whole suite green; the trigger retired it rather than leaving two mechanisms for one guarantee.
  */
-import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, resolveNestMember, applyNestOverrides, applyNestItemPrefers, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities } from '@prism3/engine/anatomy-figma';
-import type { AnatomyPlan, FigmaNodePlan, SwapFound } from '@prism3/engine/anatomy-figma';
-import { ENGINE_VERSION } from '@prism3/engine/version';
-import { tailOf } from '@prism3/engine/figma-names';
+import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, resolveNestMember, applyNestOverrides, applyNestItemPrefers, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities, type AnatomyPlan, type FigmaNodePlan, type SwapFound } from '@prism3/engine/components';
+import { ENGINE_VERSION } from '@prism3/engine';
+import { tailOf } from '@prism3/engine/figma';
 import { NS } from './persist-figma';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { labelColumns, readLabelColumn } from './label-columns';
@@ -1346,7 +1345,20 @@ const insideNestedInstance = (node: CompNode, stop: CompNode): boolean => {
  * gate measures, one call per lookup exactly as before.
  */
 const findOwnPart = (member: CompNode | undefined, name: string): CompNode | undefined =>
-  (member?.findOne?.((x) => x.name === name && !insideNestedInstance(x, member)) as CompNode | null | undefined) ?? undefined;
+  (member?.findOne?.((x) => x.name === name && !insideNestedInstance(x, member) && !importedGeometry(x, member)) as CompNode | null | undefined) ?? undefined;
+
+/** #2795 — a GLYPH's own layers are never a part. A glyph's frame holds what Figma's SVG importer drew (a VECTOR per
+ *  path, named by the path's `id`; a GROUP per `<g>`), and nothing this executor builds is one of those types: a part is
+ *  a FRAME, a TEXT, an INSTANCE or a SLOT. A depth-first search by name otherwise reaches a glyph's layer named like a
+ *  later sibling part first: Progress's full-ring glyph, its layer named `arc`, sat before the `arc` part, and the arc's
+ *  size bindings were re-written onto the ring's vector, which the next update then re-imported under new ids. The node
+ *  itself and each ancestor below the member are read, so a layer inside an imported group is excluded too. */
+const IMPORTED_GEOMETRY = new Set(['VECTOR', 'GROUP', 'BOOLEAN_OPERATION']);
+const importedGeometry = (node: CompNode, stop: CompNode): boolean => {
+  for (let p: CompNode | null | undefined = node; p && p !== stop; p = p.parent)
+    if (IMPORTED_GEOMETRY.has(String(p.type))) return true;
+  return false;
+};
 
 // ── CLAIM THE DEFAULTS (#865) ──────────────────────────────────────────────────────────────────
 //
@@ -1782,6 +1794,14 @@ export const partialWriteOf = (e: unknown): PartialWriteFacts | null => {
  * around the write instead of one per host call, and a trail that is created outside the code that fills
  * it, so the marking reads a record the failing code cannot have skipped writing.
  */
+/** WHY A FONT LOAD WAS REFUSED, whatever the host rejects with. Figma's refusal of a face it does not have carries no
+ *  `.message` (the owner's Update file run, 2026-11-12: every refused Google Sans load read `(undefined)`), so a reason
+ *  that is not an `Error`'s is reported as itself. Lockstep with the paste executor's twin (`anatomy-figma.ts`). */
+const refusalOf = (err: unknown): string => {
+  const m = (err as { message?: unknown } | null | undefined)?.message;
+  return m !== undefined && m !== null ? String(m) : String(err);
+};
+
 export const applyComponentPlan = async (
   plans: AnatomyPlan[],
   api: ComponentsApi,
@@ -2294,6 +2314,9 @@ const writeComponentSet = async (
       if (n.textStyle) {
         const st = styleByName.get(n.textStyle);
         if (!st) misses.push(`${n.name}.textStyle -> ${n.textStyle}`);
+        // A node with no text-style setter (a frame, an instance) is a miss, and the style is NOT recorded as applied
+        // (#3783): the optional call below did nothing there and `appliedStyle` was set anyway. Lockstep with the paste.
+        else if (!node.setTextStyleIdAsync) misses.push(`${n.name}.textStyle -> ${n.textStyle} REFUSED (not a text node)`);
         else {
           // The STYLE'S OWN font, loaded before the style is applied: `setTextStyleIdAsync` pulls in a
           // family/style pair that need not be the one `createText` starts on, and Figma requires a font
@@ -2301,11 +2324,11 @@ const writeComponentSet = async (
           // brand's typography.
           if (st.fontName) {
             try { await api.loadFontAsync(st.fontName); }
-            catch (err) { misses.push(`${n.name}.font -> ${st.fontName.family} ${st.fontName.style} (${(err as Error).message})`); }
+            catch (err) { misses.push(`${n.name}.font -> ${st.fontName.family} ${st.fontName.style} (${refusalOf(err)})`); }
           }
           // A PROPERTY write (#982): refused, it is a miss and the member keeps building. `appliedStyle` stays
           // unset, so the #1567 re-apply below does not try the style a second time.
-          try { await node.setTextStyleIdAsync?.(st.id); appliedStyle = st; }
+          try { await node.setTextStyleIdAsync(st.id); appliedStyle = st; }
           catch (err) { misses.push(`${n.name}.textStyle -> ${n.textStyle} REFUSED (${(err as Error).message})`); }
         }
       }
@@ -2317,7 +2340,7 @@ const writeComponentSet = async (
         let face: { family: string; style: string } | undefined;
         for (const want of [{ family: f.family, style: f.style }, f.fallback]) {
           try { await api.loadFontAsync(want); face = want; break; }
-          catch (err) { misses.push(`${n.name}.font -> ${want.family} ${want.style} (${(err as Error).message})`); }
+          catch (err) { misses.push(`${n.name}.font -> ${want.family} ${want.style} (${refusalOf(err)})`); }
         }
         if (face) {
           try {
@@ -2351,7 +2374,7 @@ const writeComponentSet = async (
         const fn = node.fontName;
         if (fn && typeof fn === 'object') {
           try { await api.loadFontAsync(fn); }
-          catch (err) { misses.push(`${n.name}.font -> ${fn.family} ${fn.style} (${(err as Error).message})`); }
+          catch (err) { misses.push(`${n.name}.font -> ${fn.family} ${fn.style} (${refusalOf(err)})`); }
         }
         try { node.characters = n.characters; }
         catch (err) { misses.push(`${n.name}.characters -> ${JSON.stringify(n.characters)} (${(err as Error).message})`); }
@@ -3163,6 +3186,11 @@ const writeComponentSet = async (
       if (!entry.accept) for (const p of entry.keep) {
         if (prior?.own?.[p] !== undefined) now.own = { ...(now.own ?? {}), [p]: prior.own[p] };
         else if (now.own?.[p] !== undefined) { const { [p]: _gone, ...rest } = now.own; now.own = Object.keys(rest).length ? rest : undefined; }
+      }
+      // And a node's hash without its bound paints' opacity (#3527), for the same reason: compared in place of the node's.
+      if (!entry.accept) for (const p of entry.keep) {
+        if (prior?.tint?.[p] !== undefined) now.tint = { ...(now.tint ?? {}), [p]: prior.tint[p] };
+        else if (now.tint?.[p] !== undefined) { const { [p]: _gone, ...rest } = now.tint; now.tint = Object.keys(rest).length ? rest : undefined; }
       }
       m.setSharedPluginData?.(NS, BASELINE_KEY, JSON.stringify({ ...now, ...(m.id ? { id: String(m.id) } : {}) }));
     } catch (err) { return `${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`; }

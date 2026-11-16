@@ -15,8 +15,7 @@
  * store makes a new theme object on every successful rebuild, so the bar and Inspect share one count
  * per edit.
  */
-import { BUILTIN_MODES, resolveAllModes } from '@prism3/engine/modes';
-import type { Theme } from '@prism3/engine/theme';
+import { BUILTIN_MODES, resolveAllModes, type Theme } from '@prism3/engine';
 
 export type ModeCount = { readonly mode: string; readonly n: number; readonly f: number };
 export type Verdict = {

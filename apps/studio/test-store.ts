@@ -22,9 +22,8 @@
  * `brandState` instead of `lastGoodInput` → `a refused edit never reaches storage, even through
  * syncIdentity` (#1846).
  */
-import type { BrandInput } from '@prism3/engine/theme';
-import { brandTheme } from '@prism3/engine/theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { type BrandInput, brandTheme } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as store from './src/state/store';
 
 let failed = 0;

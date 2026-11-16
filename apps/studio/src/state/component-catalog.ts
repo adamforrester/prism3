@@ -29,8 +29,7 @@
  *     (`component-catalog-data.ts`, T1); `test-component-catalog.ts` fails while that copy is stale, and
  *     `vercel-ignore-check.mjs` fails by name if a definition module enters the web bundle.
  */
-import type { ComponentDef } from '@prism3/engine/component-schema';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
+import type { ComponentDef, AnatomyPlan } from '@prism3/engine/components';
 import { COMPONENT_CATALOG_DATA } from './component-catalog-data';
 
 /** The swap target a projection is run with: the plugin's own (`build-deps.ts`'s `SWAP_TARGET`), so the swap names a

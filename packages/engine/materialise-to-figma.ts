@@ -217,6 +217,7 @@ const FLOAT_AXES: { stem: string; modes: string[] | null }[] = [
   { stem: 'focus', modes: null },
   { stem: 'opacity', modes: null },
   { stem: 'blur', modes: null },   // #2869 — the glass radius the `glass` Effect Style binds
+  { stem: 'text-spacing', modes: null },   // #2423 — the line-height and letter-spacing multipliers
   { stem: 'layout', modes: ['sm', 'md', 'lg', 'xl', '2xl'] },
   // `motion` left this list with #2412: TIMING + EASING, not FLOAT. It is the `motion-vars` pass.
 ];

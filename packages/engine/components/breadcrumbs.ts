@@ -274,7 +274,7 @@ export const breadcrumbs: ComponentDef = {
 
   composition: {
     composesWith: ['breadcrumb-item', 'link'],
-    alternativeTo: ['link', 'tabs'],
+    alternativeTo: ['link', 'tabs', 'page-nav'],
     replacesPatterns: ['links separated by typed ">" or "/" characters', 'a history trail of visited pages', 'a breadcrumb whose last item links to the page itself'],
     supersededBy: [],
     planned: ['menu'],

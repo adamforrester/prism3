@@ -18,24 +18,39 @@
  */
 import type { UiToMain, MainToUi, OfType, Cause, StyleGuideOptions, StyleGuideCatalog, StyleGuideCatalogCollection, StyleGuideCatalogTable, StyleGuideKind } from '../../plugin/src/messages';
 
+/** One collision a refused apply names (#1909): what it is, its name, what differs, and its key. */
+export type CollisionView = { readonly key: string; readonly kind: string; readonly name: string; readonly detail: string };
+/** The person's choice for each collision, by key (#1909, Q112 A). */
+export type CollisionChoices = Readonly<Record<string, 'skip' | 'rename'>>;
+
 /** A host→UI notification after the adapter has validated it at the boundary. Not a wire type: the
  *  wire carries `messages.ts` `MainToUi` (tagged `type`); the adapter checks each field and hands the UI
  *  this `kind`-tagged shape, with defaults filled in (`headline`, `styles`). See `onHostMessage`. */
 export type HostMessage =
   // `lines` (#2177): the summary's items, one per line in the Activity drawer; `null` from a host that sends none, or a
   // malformed list, and the drawer then shows `summary` as its one line.
-  | { kind: 'apply-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null }
+  // `collisions` (#1909): a refused apply's collisions, each with the key a Skip or Rename is posted back under; `null`
+  // on a clean apply, on an agent's, from a host that sends none, or on a malformed list.
+  // `chosen` (the review of #3518): with `collisions`, the choices that apply already used, posted back with the new ones;
+  // `null` when it used none, without `collisions`, or malformed.
+  | { kind: 'apply-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null; collisions: readonly CollisionView[] | null; chosen: CollisionChoices | null }
   // `causes` (#3326): why the run is not clean, as the writer sent it (`Cause`); `null` from a host that sends none, or a
   // malformed list.
-  | { kind: 'component-result'; ok: boolean; headline: string; summary: string; completed: boolean; lines: readonly string[] | null; causes: readonly Cause[] | null }
+  | { kind: 'component-result'; ok: boolean; headline: string; summary: string; completed: boolean; lines: readonly string[] | null; causes: readonly Cause[] | null;
+      /** #3359: the ids of the sets the build made first; absent when it sent none, or sent them malformed. */
+      alsoBuilt?: readonly string[] }
   // #2265 — the in-place update's dry run, or a baseline capture: what an update WOULD change, which is not
   // whether a build landed, so it has its own kind and never overwrites the build's verdict.
-  | { kind: 'component-update-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null; publish: string | null; causes: readonly Cause[] | null }
+  | { kind: 'component-update-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null; publish: string | null; causes: readonly Cause[] | null;
+      /** #3711 (Q-UF3 A): the applied update went through every set, some left to check; false when the host did not say. */
+      completed: boolean }
   // #1558 — the outcome of a `file-setup` scaffold. A FOURTH kind of the `{ok, headline, summary}`
   // shape, distinct for the same one-kind-per-fact reason `component-result` is: "did the page
   // skeleton get laid" is separately true and separately actionable from a theme or component write,
   // so it needs its own verdict slot and cannot overwrite theirs.
   | { kind: 'file-setup-result'; ok: boolean; headline: string; summary: string }
+  // #3394 — the agent link's color overrides: a preview, or a write, its own row (Q3394.7 A).
+  | { kind: 'override-result'; ok: boolean; preview: boolean; applied: boolean; headline: string; summary: string; lines: readonly string[] | null }
   // #259 — the outcome of a `style-guide` run, its own slot.
   | { kind: 'style-guide-result'; ok: boolean; headline: string; summary: string; stopped?: { done: number; total: number }; lines: readonly string[] | null;
     /** The cleanup offer (Q412 A, #2816): the tables the generator no longer draws that the run left, empty when none. */
@@ -57,7 +72,7 @@ export type HostMessage =
   // #1521 — a prune preview (`applied: false`, `count` = what would be removed) or its outcome
   // (`applied: true`, `count` = what was removed). The UI reads `count` on a preview to decide
   // whether to open its confirm dialog, and `applied` to tell a preview from a verdict.
-  | { kind: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string; pillOnly?: boolean }
+  | { kind: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string; pillOnly?: boolean; previewHash?: string }
   // UI redesign S11: an agent command's start, its build progress, and its end, for the Activity drawer.
   // `cmd` stays a string here; which commands have an operation to show is the host session's call.
   | { kind: 'agent-started'; id: string; cmd: string; confirmed?: true }
@@ -66,7 +81,8 @@ export type HostMessage =
   | { kind: 'agent-finished'; id: string }
   // #1957: a write the main thread declined because a run of the same operation was already going. Not a
   // verdict, so it is its own kind: `cmd` is the operation's agent-command name, `agent` whose request it was.
-  | { kind: 'refused'; code: 'busy'; cmd: string; agent: boolean; message: string }
+  /** `held`: the write holding the file (#3697 R7), absent from a host older than the one file-wide hold. */
+  | { kind: 'refused'; code: 'busy'; cmd: string; agent: boolean; message: string; held?: string }
   // `present` is the #722 addition: the summary string alone could not distinguish "no Prism3
   // theme in this file" from "a theme is here", and #721's three outcomes need that told apart
   // from `ok`. Deriving it by parsing `summary` would make the UI depend on the host's prose.
@@ -123,8 +139,12 @@ export type CheckedSetView = {
   readonly handEdited: number; readonly noBaseline: number; readonly blocked: boolean; readonly upToDate: boolean;
   /** #3421 — blocked only by variables or styles the brand's Theme writes: a run with Theme updates it after Theme. */
   readonly themeBlocked?: true;
+  /** #3713 — a blocked set's reasons, as the check's dry run wrote them. Absent when the set is not blocked. */
+  readonly reasons?: readonly string[];
   /** #2831 — on a published set, what the update breaks for library consumers, as one line. Absent otherwise. */
   readonly breaks?: string;
+  /** #3711 (Q-UF2 A) — those changes, each named, and how many in all, for the callout before the run. Absent otherwise. */
+  readonly changes?: { readonly count: number; readonly lines: readonly string[] };
 };
 
 /** What the library home states about the library a file uses (#2879), as the host found it on the current page. */
@@ -146,7 +166,7 @@ export interface HostCommit {
    *  payload is the `BrandInput` — the main thread rebuilds the write plan + runs the executor,
    *  reusing #108 verbatim. Typed loosely (`unknown`) here to avoid a web→engine type import in
    *  the DOM layer; the plugin bridge + main thread carry the real `BrandInput` type. */
-  postTheme(input: unknown): void;
+  postTheme(input: unknown, collisions?: CollisionChoices): void;
   /** Ask the host to materialise one component set onto the canvas (#483; Figma only, no-op on web,
    *  which has no canvas to build onto).
    *
@@ -171,6 +191,9 @@ export interface HostCommit {
    *  bar's Docs is a link). Carries no address: the main thread holds it (`messages.ts` `open-docs`), so the iframe
    *  cannot point `figma.openExternal` anywhere else. */
   openDocs(): void;
+  /** #2069 (Q116 A): open a prefilled GitHub issue (`state/report.ts`'s `issueUrl`) in the browser. The plugin's main
+   *  thread opens only an issue form on this repo (`isIssueUrl`); the web opens a tab. */
+  openIssue(url: string): void;
   /** Ask the host to draw the style-guide tables (#259; Figma only, no-op on web, which has no canvas). The
    *  options are the panel's Customize fields, every one optional. Its result is `style-guide-result`, its own
    *  kind and slot for the one-kind-per-fact reason above. */
@@ -187,8 +210,9 @@ export interface HostCommit {
    *  Figma only, no-op on web — the web host writes CSS custom properties, which have no stale-item
    *  problem). `confirm: false` asks for a preview (a `prune-result` with `applied: false`); `confirm:
    *  true` performs the delete. `input` is the `BrandInput`, typed `unknown` here for the same reason
-   *  `postTheme` is — to keep this DOM layer free of the engine type import. */
-  postPrune(input: unknown, confirm: boolean): void;
+   *  `postTheme` is — to keep this DOM layer free of the engine type import. A delete echoes `previewHash`, the hash
+   *  its preview's `prune-result` carried (#3697 R6); the host refuses one that does not match the file now. */
+  postPrune(input: unknown, confirm: boolean, previewHash?: string): void;
   /** #2830 Q2830.3 A: Documentation › Specs' Draw specs, the spec panels for the current page (`draw-specs`). Figma
    *  only; inert on the web. */
   postDrawSpecs(): void;
@@ -207,6 +231,9 @@ export interface HostCommit {
   /** #3309: the panel's own summary of a run of several writes (`activity-note`), kept by the main thread for the agent
    *  link's `activity` command. Figma only; inert on the web. */
   noteActivity(op: 'components' | 'update', ok: boolean, headline: string, lines: readonly string[]): void;
+  /** #533 (Q110 A): a run the panel started has ended (`run-ended`), with the Activity drawer's short line; the main
+   *  thread shows it only while the window is the link strip. Figma only; inert on the web. */
+  noteRunEnded(line: string): void;
   /** #2909 Q2909.8 A: start the background hand-edit pass (`hand-edits-request`). Figma only; inert on the web. */
   requestHandEdits(): void;
   /** #2909 Q2909.8 A: the full check, scoped to `defs` (`update-check-request`), against the panel's brand `input`
@@ -285,6 +312,26 @@ const verdict = <K extends VerdictKind>(kind: K, m: Untrusted<OfType<MainToUi, V
  *  rather than shown with a hole, and the drawer falls back to the summary, which says every word. */
 const linesOf = (x: unknown): readonly string[] | null =>
   Array.isArray(x) && x.length > 0 && x.every((l) => typeof l === 'string') ? x as string[] : null;
+
+/** A refused apply's `collisions` (#1909): each entry's four fields strings, or none at all. Like `linesOf`, a list with
+ *  one malformed entry is dropped whole: a row without its key could not be answered, and the refusal stands. */
+const collisionsOf = (x: unknown): readonly CollisionView[] | null => {
+  if (!Array.isArray(x) || x.length === 0) return null;
+  const out: CollisionView[] = [];
+  for (const e of x as unknown[]) {
+    const c = (e ?? {}) as Record<string, unknown>;
+    if (typeof c.key !== 'string' || !c.key || typeof c.kind !== 'string' || typeof c.name !== 'string' || typeof c.detail !== 'string') return null;
+    out.push({ key: c.key, kind: c.kind, name: c.name, detail: c.detail });
+  }
+  return out;
+};
+
+/** A refusal's `chosen` (the review of #3518): an object whose every value is `skip` or `rename`, at least one, else none. */
+const chosenOf = (x: unknown): CollisionChoices | null => {
+  if (!x || typeof x !== 'object' || Array.isArray(x)) return null;
+  const e = Object.entries(x as Record<string, unknown>);
+  return e.length > 0 && e.every(([k, v]) => k !== '' && (v === 'skip' || v === 'rename')) ? Object.fromEntries(e) as CollisionChoices : null;
+};
 
 /** A verdict's `causes` (#3326): each a `Cause` whose every field has its type, or none at all. Like `linesOf`, a list
  *  with one malformed entry is dropped whole: a cause drawn without its subject or reasons would mark the wrong thing. An
@@ -368,7 +415,15 @@ const checkedSet = (x: unknown): CheckedSetView[] => {
   const n = (['members', 'update', 'add', 'drop', 'handEdited', 'noBaseline'] as const).map((k) => count(c[k]));
   if (n.some((v) => v === null)) return [];
   const [members, update, add, drop, handEdited, noBaseline] = n as number[];
-  return [{ def: c.def, hash: c.hash, members, update, add, drop, handEdited, noBaseline, blocked: c.blocked, upToDate: c.upToDate, ...(c.blocked && c.themeBlocked === true ? { themeBlocked: true as const } : {}), ...(str(c.breaks) ? { breaks: c.breaks } : {}) }];
+  return [{ def: c.def, hash: c.hash, members, update, add, drop, handEdited, noBaseline, blocked: c.blocked, upToDate: c.upToDate, ...(c.blocked && c.themeBlocked === true ? { themeBlocked: true as const } : {}),
+    ...(c.blocked && Array.isArray(c.reasons) && c.reasons.some(str) ? { reasons: (c.reasons as unknown[]).filter(str) } : {}), ...(str(c.breaks) ? { breaks: c.breaks } : {}),
+    ...changesOf(c.changes) }];
+};
+/** #3711 (Q-UF2 A): a set's changes for files that use the library: a count above 0 and every line a string, or none. */
+const changesOf = (x: unknown): { changes?: CheckedSetView['changes'] } => {
+  const c = x as Record<string, unknown> | null;
+  const k = c && typeof c === 'object' ? count(c.count) : null;
+  return k && Array.isArray(c!.lines) && c!.lines.length && c!.lines.every(str) ? { changes: { count: k, lines: [...c!.lines as string[]] } } : {};
 };
 const KINDS: readonly StyleGuideKind[] = ['color', 'dimension', 'font', 'text', 'effect', 'gradient', 'grid'];
 /** The style guide's catalog (S11.2), checked entry by entry: an entry with a field of the wrong type is dropped, and
@@ -406,16 +461,24 @@ const catalogOf = (c: unknown): StyleGuideCatalog | null => {
  *  it is dropped here, as any unknown `type` is. Every entry is a function or `null`, never a call, so the
  *  table has no side effects and the web bundle, which never calls `toHostMessage`, drops it whole. */
 const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
-  'apply-result': (m) => ({ ...verdict('apply-result', m, '✓ applied', '✗ apply failed'), lines: linesOf(m.lines) }),
+  'apply-result': (m) => {
+    const collisions = m.ok ? null : collisionsOf(m.collisions);
+    return { ...verdict('apply-result', m, '✓ applied', '✗ apply failed'), lines: linesOf(m.lines), collisions, chosen: collisions ? chosenOf(m.chosen) : null };
+  },
   // The default says "built" without a count, because an older host that sends no headline sends no
   // counts to put in one either.
   // `completed` (S8.2, C1): required of the host (`messages.ts`), and never inferred from `ok`. Only a literal `true`
   // reads as a build that ran to the end. A malformed value is not dropped (a dropped terminal result leaves the
   // panel on "Building…", #870); it reads as a build that did not finish, the claim that needs no evidence.
-  'component-result': (m) => ({ ...verdict('component-result', m, '✓ built', '✗ build failed'), completed: m.completed === true, lines: linesOf(m.lines), causes: causesOf(m.causes) }),
+  'component-result': (m) => ({ ...verdict('component-result', m, '✓ built', '✗ build failed'), completed: m.completed === true, lines: linesOf(m.lines), causes: causesOf(m.causes), ...(linesOf(m.alsoBuilt) ? { alsoBuilt: linesOf(m.alsoBuilt)! } : {}) }),
   'component-update-result': (m) => ({ ...verdict('component-update-result', m, '✓ checked', '✗ check failed'), lines: linesOf(m.lines),   // #2265
-    publish: typeof m.publish === 'string' && m.publish ? m.publish : null, causes: causesOf(m.causes) }),   // #2858, #3326
+    publish: typeof m.publish === 'string' && m.publish ? m.publish : null, causes: causesOf(m.causes), completed: m.completed === true }),   // #2858, #3326, #3711
   'file-setup-result': (m) => verdict('file-setup-result', m, '✓ file set up', '✗ setup failed'),   // #1558
+  // #3394: the plugin always sends a headline; one that arrives without falls back to the summary's first words.
+  'override-result': (m) => {
+    const summary = String(m.summary ?? '');
+    return { kind: 'override-result', ok: !!m.ok, preview: !!m.preview, applied: !!m.applied, headline: typeof m.headline === 'string' && m.headline ? m.headline : summary, summary, lines: linesOf(m.lines) };
+  },
   'style-guide-result': (m) => {   // #259
     // S11.2: a cancelled run says how far it got; a malformed `stopped` is left off rather than guessed.
     const st = m.stopped && typeof m.stopped === 'object' ? tableReading(m.stopped as { done?: unknown; total?: unknown }) : null;
@@ -478,7 +541,8 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
     const count = typeof m.count === 'number' && Number.isFinite(m.count) && m.count >= 0 ? Math.floor(m.count) : null;
     if (count === null) return null;
     // `pillOnly` (the agent link): a preview the panel did not ask for — shown, never opened as a dialog.
-    return { kind: 'prune-result', ok: !!m.ok, applied: !!m.applied, count, summary: String(m.summary ?? ''), ...(m.pillOnly === true ? { pillOnly: true } : {}) };
+    return { kind: 'prune-result', ok: !!m.ok, applied: !!m.applied, count, summary: String(m.summary ?? ''), ...(m.pillOnly === true ? { pillOnly: true } : {}),
+      ...(typeof m.previewHash === 'string' && m.previewHash ? { previewHash: m.previewHash } : {}) };
   },
   // `present` defaults FALSE when a host omits it (an older plugin build against a newer UI):
   // absent → #721's state 3, "not a Prism3 file". That is the safe default because state 3
@@ -591,7 +655,7 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   'agent-finished': (m) => (isId(m.id) ? { kind: 'agent-finished', id: m.id } : null),
   // #1957. Dropped unless every field is usable: a refusal with no operation has no row to land in.
   'refused': (m) => (m.code === 'busy' && typeof m.cmd === 'string' && typeof m.agent === 'boolean' && typeof m.message === 'string' && m.message
-    ? { kind: 'refused', code: 'busy', cmd: m.cmd, agent: m.agent, message: m.message } : null),
+    ? { kind: 'refused', code: 'busy', cmd: m.cmd, agent: m.agent, message: m.message, ...(typeof m.held === 'string' && m.held ? { held: m.held } : {}) } : null),
 };
 
 /** Validate one inbound `MessageEvent.data` and return the UI's `HostMessage`, or `null` to drop it. Pure,
@@ -612,9 +676,11 @@ export const toHostMessage = (data: unknown): HostMessage | null => {
  *  main thread via `parent.postMessage` and listens for the main thread's replies. */
 const figmaCommit = (): HostCommit => ({
   isFigma: true,
-  postTheme(input) {
-    // `input` is `unknown` at this seam (see `postTheme`), so it is cast to the wire's `BrandInput` here.
-    post({ type: 'apply-theme', input: input as ApplyTheme['input'] });
+  postTheme(input, collisions) {
+    // `input` is `unknown` at this seam (see `postTheme`), so it is cast to the wire's `BrandInput` here. The choices
+    // (#1909) ride only when there are some, so a plain Apply posts exactly what it did before.
+    const msg: ApplyTheme = collisions && Object.keys(collisions).length ? { type: 'apply-theme', input: input as ApplyTheme['input'], collisions: { ...collisions } } : { type: 'apply-theme', input: input as ApplyTheme['input'] };
+    post(msg);
   },
   postComponents(def, docBlock) {
     // `def` omitted from the message when the caller omitted it, rather than sent as `undefined`: the
@@ -632,6 +698,9 @@ const figmaCommit = (): HostCommit => ({
   openDocs() {
     post({ type: 'open-docs' });
   },
+  openIssue(url) {
+    post({ type: 'open-issue', url });
+  },
   postStyleGuide(options) {
     const msg: Extract<UiToMain, { type: 'style-guide' }> = options ? { type: 'style-guide', options } : { type: 'style-guide' };   // typed local, as above
     post(msg);
@@ -645,8 +714,8 @@ const figmaCommit = (): HostCommit => ({
   cleanUpStyleGuide(ids) {
     post({ type: 'style-guide-cleanup', ids: [...ids] });
   },
-  postPrune(input, confirm) {
-    post({ type: 'prune', input: input as ApplyTheme['input'], confirm });
+  postPrune(input, confirm, previewHash) {
+    post(confirm ? { type: 'prune', input: input as ApplyTheme['input'], confirm: true, previewHash: previewHash ?? '' } : { type: 'prune', input: input as ApplyTheme['input'], confirm: false });
   },
   requestFileSets(input) {
     post({ type: 'file-sets-request', input: input as ApplyTheme['input'] });
@@ -662,6 +731,9 @@ const figmaCommit = (): HostCommit => ({
   },
   noteActivity(op, ok, headline, lines) {
     post({ type: 'activity-note', op, ok, headline, lines: [...lines] });
+  },
+  noteRunEnded(line) {
+    post({ type: 'run-ended', line });
   },
   requestUpdateCheck(defs, input) {
     post({ type: 'update-check-request', defs: [...defs], input: input as ApplyTheme['input'] });
@@ -702,6 +774,7 @@ const webCommit = (): HostCommit => ({
   postComponents() {/* no canvas on web — the component tier is a Figma-only write */},
   postFileSetup() {/* no canvas on web — file scaffolding is a Figma-only action (#1558) */},
   openDocs() {/* the web bar's Docs is a link to the site's own /docs/ (#2637 Q384) */},
+  openIssue(url) { window.open(url, '_blank', 'noopener'); },
   postStyleGuide() {/* no canvas on web — the style guide is drawn in Figma (#259) */},
   requestStyleGuideCatalog() {/* no file on web (S11.2) */},
   cancelStyleGuide() {/* no style guide runs on web (S11.2) */},
@@ -714,6 +787,7 @@ const webCommit = (): HostCommit => ({
   requestHandEdits() {/* no file on web (#2909) */},
   postAddQueue() {/* no file on web (#3129 Q3129.12 A) */},
   noteActivity() {/* no main thread on web (#3309) */},
+  noteRunEnded() {/* no main thread on web (#533) */},
   requestUpdateCheck() {/* no file on web (#2909) */},
   postUpdateSets() {/* no file on web (#2909) */},
   postUpdateStop() {/* no file on web (#3170) */},

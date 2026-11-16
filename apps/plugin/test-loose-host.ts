@@ -47,7 +47,7 @@ const DESCRIPTORS_PATH = 'apps/plugin/host-descriptors.json';
  *  register; never add one. */
 const SEED = [
   'test-build-completed.ts', 'test-native-slots.ts', 'test-open-large-file.ts', 'test-roundtrip.ts', 'test-run-progress.ts',
-  'test-run-read.ts', 'test-slot-constraints.ts', 'test-update-apply.ts', 'test-update-fresh.ts', 'test-write-components.ts',
+  'test-run-read.ts', 'test-slot-constraints.ts', 'test-update-apply.ts', 'test-write-components.ts',
 ];
 
 let failures = 0;

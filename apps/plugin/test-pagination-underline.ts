@@ -15,9 +15,7 @@
  * style there is no underline at all. Sizes and styles are typed here, not read off the def's axes, so a def that
  * dropped one fails the count.
  */
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
-import type { ComponentDef } from '@prism3/engine/component-schema';
+import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, componentDefs, type ComponentDef } from '@prism3/engine/components';
 import { applyComponentPlan } from './src/write-components';
 import { makeShim } from './component-shim';
 import type { Node, Page } from './component-shim';

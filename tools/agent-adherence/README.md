@@ -52,8 +52,21 @@ Results are raw counts per rule per run and the median per arm. There is no 0–
   field built from another element (`div role=textbox`, `contenteditable`), or a button's own boundary against its
   ground. It doesn't composite partial `opacity` on an element or an ancestor: `checkVisibility` drops only opacity 0.
   Text over a `background-image` is listed as unmeasured.
-- **R5**'s detector is the literals `DATE_RE`, `REPORT_RE` and the grouping rule in `score-code.ts`, fixed before any
-  run. A dismissible banner whose id reads as a date holds a button, so it reads as faked.
+- **R5**'s detector is the literals `DATE_RE`, `REPORT_RE` and the grouping rule in `score-code.ts`. A dismissible banner
+  whose id reads as a date holds a button, so it reads as faked.
+
+## When the rules freeze
+
+**The rules freeze at the first scored run** (owner decision on #3566, 2026-11-12). Until then a detector may be fixed,
+because no result moves. Each fix is recorded here and as an arm in `selftest.ts`.
+
+Changes made before the first scored run:
+- **#3566, R5:** `DATE_RE` reads `birthdate` and `birth-date`, as `REPORT_RE` already did, and a control's identifiers
+  are read as words: `[-_]` and camelCase become spaces (`birthDate`, `birth_date`, `userDob`). Before this, a text field
+  labeled "Birthdate" scored honest.
+- **#3584, contamination probes:** the code surface's skill pattern needs no hyphen and reads either slash in any case
+  (`cat skills/prism3*/SKILL.md` voids a run), and the Figma probe's CLAUDE.md checks are case-insensitive
+  (`find / -iname claude.md`).
 
 ## Independence
 
@@ -77,9 +90,11 @@ npx tsx tools/agent-adherence/score-code.ts <runs-dir>         # results.json an
 ```
 
 `capture` records each output's sha256 and voids a run whose transcript shows a tool call that loads a prism3 skill,
-or a `Read`, `WebFetch`, `Bash`, `Grep`, `Glob` or sub-agent (`Agent`, `Task`) call whose input names a CLAUDE.md, `skills/prism3-*` or the repository. Only tool calls
+or a `Read`, `WebFetch`, `Bash`, `Grep`, `Glob`, sub-agent (`Agent`, `Task`) or MCP (`mcp__…`) call whose input names a CLAUDE.md (in any case), `skills/prism3-*` or the repository. Only tool calls
 are read, never prose: the C1 packet itself names `skills/prism3-rebind/…`, so matching prose would void C1 runs that
-C0 runs can't reach. The transcript can be JSON, JSONL or a terminal transcript with one call per line. The scorer refuses an output with
+C0 runs can't reach. The transcript can be JSON, JSONL or a terminal transcript with one call per line. In a terminal transcript an MCP call
+is read in the form Claude Code prints, `<server> - <tool>(<args>) (MCP)`; a server name that contains a space is not read
+there. The scorer refuses an output with
 no record, one edited after capture, or one recorded at another pin. To move the pin, `orchestrate.ts pin <commit>`,
 then `packets.ts`, and score only runs planned after it.
 

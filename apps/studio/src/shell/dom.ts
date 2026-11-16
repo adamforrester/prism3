@@ -111,6 +111,9 @@ const GLYPHS = {
   dash: 'minus',
   x: 'x',
   plus: 'plus',
+  // #3553 Q-UI8 A: the actions that drew "↑" and "↓" as text (Import, Upload, Brand brief, Download) draw Tabler's.
+  upload: 'upload',
+  download: 'download',
   search: 'search',
   info: 'info-circle',
   warn: 'alert-triangle',
@@ -135,6 +138,8 @@ const GLYPHS = {
   page: 'file-text',
   send: 'upload',
   link: 'link',
+  // #3524 (DRAFT, the owner's call): the web rail's Report a problem, beside Help.
+  report: 'message-report',
 } as const satisfies Record<string, TablerIcon>;
 export type Glyph = keyof typeof GLYPHS;
 

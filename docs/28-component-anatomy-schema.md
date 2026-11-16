@@ -485,9 +485,9 @@ work that owns them: `text-field` binds `border.focus` and `border.readonly` whi
 `focus-visible` and `read-only`, so neither is ever reached and a focused field would paint its **rest**
 border; and `field-message`'s `text` keys cannot be filled by a `{slot}` the projector fills with
 `label`. Both were equally real before, and nothing in the repo could see either. Naming them is what
-declaring the grammar bought — **and deferring them is what hid the other four**, which is §5.1.
+declaring the grammar bought — **and deferring them is what hid the other four**, which is §5.1.1.
 
-### 5.1 The slot vocabulary (#784)
+#### 5.1.1 The slot vocabulary (#784)
 
 **A def spells the paint ORDER and the AXES. It does not get to invent the slot NAMES.** The slot is the
 argument `paintOf` is *called* with, so the vocabulary is the projector's: `PAINT_SLOTS = ['fill',

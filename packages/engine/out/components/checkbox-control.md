@@ -1,6 +1,6 @@
 # Checkbox.Control
 
-> Checkbox box with check/dash glyph and focus ring. Nested by Checkbox.Row; no label.
+> Checkbox box with check/dash glyph and focus ring. Nested by a checkbox row; no label.
 
 - **ID:** `checkbox-control`
 - **Category:** form
@@ -19,10 +19,10 @@ The atomic checkbox control — the painted square with its check or dash glyph 
 
 Shown on the default member: size `medium`, selection `unchecked`, status `default`.
 
-1. **Control**
-2. **Check glyph**
-3. **Dash glyph**
-4. **Focus ring**
+1. **Control** — The checkbox square; a person clicks the whole labeled row, not the square alone.
+2. **Check glyph** — The check mark, shown when the box is checked.
+3. **Dash glyph** — The dash, shown when the box is partly checked; screen readers announce it as mixed.
+4. **Focus ring** — The shared focus ring, drawn around the square on keyboard focus.
 
 ## Styles
 
@@ -71,9 +71,9 @@ Do not place this on its own as a form control. It is the box Checkbox.Row nests
 
 ### Motion
 
-- **Enter:** On check, the check glyph draws in as a pen stroke (SVG stroke-dashoffset) while the fill crossfades in, about 100-150ms, eased. Indeterminate to checked morphs the dash into the check.
+- **Enter:** On check, the check glyph draws in as a pen stroke (SVG stroke-dashoffset) while the fill crossfades in, on motion.duration.fast with motion.easing-role.default. Indeterminate to checked morphs the dash into the check.
 - **Exit:** On uncheck, the same glyph transition runs back and the fill crossfades out.
-- **Reduced motion:** Under prefers-reduced-motion, the draw and any spatial animation are bypassed and the box flips instantly; a crossfade under 150ms may remain, since opacity does not trigger vestibular symptoms. No layout motion.
+- **Reduced motion:** Under prefers-reduced-motion, the draw and any spatial animation are bypassed and the box takes its new state at once; the fill's color change fades on motion.duration-reduced.fast, since opacity does not trigger vestibular symptoms. No layout motion.
 
 ## Content guidelines
 

@@ -878,6 +878,12 @@
           }
         ],
         "properties": [],
+        "codeOnly": {
+          "states": [
+            "pending",
+            "disabled"
+          ]
+        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/sign-in-button.md"
       },
       {
@@ -1100,6 +1106,11 @@
           }
         ],
         "properties": [],
+        "codeOnly": {
+          "states": [
+            "inactive"
+          ]
+        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/flush-icon-button.md"
       },
       {
@@ -1145,6 +1156,11 @@
           }
         ],
         "properties": [],
+        "codeOnly": {
+          "states": [
+            "inactive"
+          ]
+        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/flush-icon-button-destructive.md"
       },
       {
@@ -1190,6 +1206,11 @@
           }
         ],
         "properties": [],
+        "codeOnly": {
+          "states": [
+            "inactive"
+          ]
+        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/flush-icon-button-neutral.md"
       },
       {
@@ -1821,6 +1842,9 @@
           }
         ],
         "codeOnly": {
+          "axes": [
+            "style"
+          ],
           "states": [
             "pending",
             "empty"
@@ -2292,7 +2316,7 @@
         ],
         "properties": [
           {
-            "name": "text",
+            "name": "label",
             "type": "TEXT"
           },
           {
@@ -3210,7 +3234,7 @@
             "type": "BOOLEAN"
           },
           {
-            "name": "dismiss",
+            "name": "close",
             "type": "BOOLEAN"
           }
         ],
@@ -3321,7 +3345,7 @@
             "type": "BOOLEAN"
           },
           {
-            "name": "helper",
+            "name": "message",
             "type": "BOOLEAN"
           }
         ],
@@ -3334,15 +3358,22 @@
         "kind": "component set",
         "page": "↳ Code input",
         "section": "Components",
-        "members": 28,
+        "members": 48,
         "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
+            ]
+          },
           {
             "name": "size",
             "values": [
               "medium",
               "small",
               "large",
-              "xlarge"
+              "x-large"
             ]
           },
           {
@@ -3353,8 +3384,7 @@
               "filled",
               "focus-visible",
               "focus-visible-filled",
-              "disabled",
-              "error"
+              "disabled"
             ]
           }
         ],
@@ -3364,6 +3394,11 @@
             "type": "TEXT"
           }
         ],
+        "codeOnly": {
+          "axes": [
+            "style"
+          ]
+        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/code-input-cell.md"
       },
       {
@@ -3388,7 +3423,7 @@
               "medium",
               "small",
               "large",
-              "xlarge"
+              "x-large"
             ]
           },
           {
@@ -3658,7 +3693,7 @@
     "source": "packages/engine/emit-figma.ts#EVERY VARIABLE NAME NOW CARRIES THE BRAND ROOT",
     "rootDefault": {
       "root": "prism",
-      "source": "packages/engine/theme.ts#const root = input.root ??"
+      "source": "packages/engine/theme-brand.ts#const root = input.root ??"
     },
     "primitiveTier": "core",
     "modesFrom": {
@@ -3732,6 +3767,12 @@
       },
       {
         "name": "blur",
+        "modes": [
+          "Default"
+        ]
+      },
+      {
+        "name": "text-spacing",
         "modes": [
           "Default"
         ]

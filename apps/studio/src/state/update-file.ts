@@ -199,6 +199,11 @@ export const brandFor = <B>(theme: boolean, panel: B): B | undefined => (theme ?
 /** Whether the scoped check's reading of a set lets the run update it: not blocked; or (#3421) blocked only by variables
  *  or styles the brand's Theme writes, in a run whose Theme step goes first. */
 const runnable = (c: CheckedSetView, theme: boolean): boolean => !c.blocked || (theme && !!c.themeBlocked);
+/** #3713 (2 of 4): the Due sets the check's answer reads as blocked for this run, in the order given: listed apart under
+ *  Can't update yet, with no tick, since the run would leave them anyway. A set only Theme blocks is not among them while
+ *  Theme is ticked (#3421). Empty before the answer: until then every Due set is listed, ticked. */
+export const blockedDueOf = (ids: readonly string[], check: { readonly sets: readonly CheckedSetView[] } | null, theme: boolean): string[] =>
+  check ? ids.filter((id) => { const c = check.sets.find((x) => x.def === id); return !!c && !runnable(c, theme); }) : [];
 /** What the scoped check says of the ticked sets the update would act on: the ones it read and did not block, and
  *  (#3421) with Theme ticked, the ones only Theme's variables and styles block. The run checks those again after Theme. */
 export const updatableOf = (t: Ticks, check: { readonly sets: readonly CheckedSetView[] }): string[] =>
@@ -303,6 +308,16 @@ export const engineWhy = (m: MovedView): string => {
   return `Engine update: ${items.slice(0, 3).join(', ')}${items.length > 3 ? `, ${items.length - 3} more` : ''}`;
 };
 
+/** #3713 (3 of 4): names as a list: "A", "A and B", "A, B and C", then "A, B and 2 more". */
+const andList = (names: readonly string[]): string =>
+  names.length <= 3 ? names.join(', ').replace(/, ([^,]*)$/, ' and $1') : `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`;
+/** #3713 (3 of 4): why Update file is disabled, said beside it; null while it is enabled, and while the check is out
+ *  (its progress in the foot says that already). The file's brand not restored (`off`) says so; else there are no steps
+ *  to run, because each set ticked is one the check blocks (`blocked`, by name), or nothing is ticked. It never names a
+ *  write it does not make: the button stays disabled. DRAFT (OWNER DECISION: copy). */
+export const goWhyOf = (o: { readonly off: string | null; readonly waiting: boolean; readonly steps: number; readonly blocked: readonly string[] }): string | null =>
+  o.off ? o.off : o.waiting || o.steps > 0 ? null : UPDATE_COPY.nothing(o.blocked);
+
 /** The checklist's words, DRAFT placeholders until the owner words them (Q2909.10 A). */
 export const UPDATE_COPY = {
   button: 'Update file',
@@ -315,7 +330,7 @@ export const UPDATE_COPY = {
   leadFresh: 'This file isn’t set up for Prism3 yet. This first update sets it up.',
   lead: 'Tick what to write. Untick what should wait.',
   setup: 'Set up file',
-  setupSub: 'The pages, the templates and the style-guide cells. The cover too, while Documentation has it on.',
+  setupSub: 'The pages, the templates and the style-guide cells. The cover too, while Docs has it on.',
   /** #3467 (Q3 A): Set up file's line on a set-up file that lacks something setup owns. DRAFT for the owner's sign-off. */
   setupMissing: (names: readonly string[]) => `Builds what this file lacks: ${names.join(', ')}.`,
   theme: 'Theme',
@@ -326,7 +341,7 @@ export const UPDATE_COPY = {
    *  R6 (the owner, 2026-10-28): both sit under one section, Components, at Theme's level, as its two subtitles. */
   components: 'Components',
   toAdd: 'To add',
-  toAddSub: (n: number): string => `${plural(n)} chosen on Components. Each is added with its usage panel while Documentation has panels on.`,
+  toAddSub: (n: number): string => `${plural(n)} chosen on Components. Each is added with its usage panel while Docs has panels on.`,
   removeSet: (name: string): string => `Remove ${name} from To add`,
   /** #3306 Q3306.5 A: the line under To add's rows naming the sets they nest that the file lacks. DRAFT, the proposal's words. */
   alsoAdds: (names: readonly string[]): string => `Also adds: ${names.join(', ')}.`,
@@ -335,6 +350,8 @@ export const UPDATE_COPY = {
   addAll: (n: number): string => `Add all ${n}`,
   due: 'Due',
   dueSub: (n: number): string => `${plural(n)} to update in place. Ticked by default.`,
+  /** #3713 (2 of 4, DRAFT): the group a blocked Due set is listed in, apart from Due and with no tick. */
+  blocked: 'Can’t update yet',
   updateStep: 'Update sets in place',
   /** A due set's one-line reason (#3082 Q811 A): a setting it follows, or what an engine update moved in its drawing. */
   dueWhy: (d: Extract<SetDueView, { state: 'due' }>): string => (d.reason === 'engine' ? (d.moved ? engineWhy(d.moved) : UPDATE_COPY.engineUnprinted)
@@ -351,7 +368,7 @@ export const UPDATE_COPY = {
   checkError: 'Couldn’t check the sets. Close this and try again.',
   /** #3421 (DRAFT, Q3421.1): a set only Theme's variables and styles block, with Theme ticked. */
   afterTheme: 'Updated after Theme — Theme writes the variables and styles it binds first',
-  checked: (c: CheckedSetView, theme = false): string => c.blocked ? (theme && c.themeBlocked ? UPDATE_COPY.afterTheme : 'Can’t be updated in place yet; the agent’s update check says why')
+  checked: (c: CheckedSetView, theme = false, nameOf?: (id: string) => string): string => c.blocked ? (theme && c.themeBlocked ? UPDATE_COPY.afterTheme : blockedLine(c.reasons, theme, nameOf))
     : c.upToDate ? 'No member changes' : [`${c.update} of ${c.members} members change`, c.add ? `${c.add} added` : '', c.drop ? `${c.drop} kept and marked deprecated` : '', c.handEdited ? `${c.handEdited} edited by hand` : ''].filter(Boolean).join(' · '),
   handEdits: 'Hand edits',
   /** #3421 (owner decision Q39 A; DRAFT, Q3421.3–.6): what each hand-edit choice does, said under the choice; the Kept
@@ -381,14 +398,16 @@ export const UPDATE_COPY = {
   panelsAll: 'No set in this file has its usage panel yet. Each is drawn beside its set, and sets move apart to make room. No member changes.',
   panelsSome: (n: number): string => `${n} set${n === 1 ? ' in this file has' : 's in this file have'} no usage panel. Each is drawn beside its set, and sets move apart to make room. No member changes.`,
   panelsShow: (n: number): string => `Show the ${n} sets`,
-  cleanPanels: (n: number): string => `${n} usage panel${n === 1 ? '' : 's'}, drawn while Documentation had panels on.`,
+  cleanPanels: (n: number): string => `${n} usage panel${n === 1 ? '' : 's'}, drawn while Docs had panels on.`,
   cleanPanelsKeep: 'Panels edited by hand stay. Turning panels on again draws them back.',
   removePanels: (n: number): string => `Remove ${n} panel${n === 1 ? '' : 's'}`,
   guides: 'Style guides',
   /** #3308 (Q3308.4 A): the last step of a run that sets the file up and writes its theme. DRAFT. */
   coverStep: 'Cover and About this library',
-  guidesSub: 'Drawn with the settings in Documentation. A rerun updates each table in place.',
+  guidesSub: 'Drawn with the settings in Docs. A rerun updates each table in place.',
   go: 'Update file',
+  /** #3713 (3 of 4, DRAFT): beside a disabled Update file, `goWhyOf`. */
+  nothing: (blocked: readonly string[]): string => (blocked.length ? `Nothing to write: ${andList(blocked)} can’t be updated yet.` : 'Nothing to write: nothing above is ticked.'),
   goFresh: 'Set up and update',
   cancel: 'Cancel',
   close: 'Close',
@@ -402,7 +421,93 @@ export const UPDATE_COPY = {
   cleanNone: 'Nothing stale in this file.',
   cleanRetired: (n: number): string => `${n} style-guide table${n === 1 ? '' : 's'} the generator no longer draws.`,
   removeTables: (n: number): string => `Remove ${n} table${n === 1 ? '' : 's'}`,
+  /** #3711 (Q-UF2 A), DRAFT: the button while the update passes changes on to files that use the library, and the
+   *  callout above it that names each one. */
+  goLibrary: (n: number): string => `Update, including ${n} library change${n === 1 ? '' : 's'}`,
+  library: 'Files that use this library',
+  librarySub: (n: number): string => `${n} change${n === 1 ? '' : 's'} in this update ${n === 1 ? 'reaches' : 'reach'} them at the next library publish:`,
+  /** #3712 (Q-UD2, direction C; DRAFT for the owner's sign-off): Components' status chip, what its card holds, said on its
+   *  head row so a folded card still says it. Each part only when it counts. */
+  compsChip: (n: { readonly add: number; readonly due: number; readonly blocked: number; readonly kept: number; readonly panels: number }): string =>
+    [n.add ? `${n.add} to add` : '', n.due ? `${n.due} due` : '', n.blocked ? `${n.blocked} can’t update yet` : '', n.kept ? `${n.kept} with kept edits` : '',
+      n.panels ? `${n.panels} usage panel${n.panels === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · '),
 } as const;
+
+/** #3713: the sets a blocker line names (`icon/close`, `icon`), as Components names them: each set's id (the part before
+ *  `/`) through `nameOf`, which the shell gives as `displayNameOf` over its catalog (owner decision Q392), once each. A
+ *  trailing `and N more` from the plugin's cut list is kept as it reads. */
+const setNames = (list: string, nameOf: (id: string) => string): string => {
+  const parts = list.split(', ');
+  const more = parts[parts.length - 1].match(/^and (\d+) more$/);
+  const names = [...new Set((more ? parts.slice(0, -1) : parts).map((x) => nameOf(x.split('/')[0])))].join(', ');
+  return more ? `${names}, and ${more[1]} more` : names;
+};
+/** How many items a plugin list names, counting its `and N more`. */
+const listCount = (list: string): number => { const parts = list.split(', '); const more = parts[parts.length - 1].match(/^and (\d+) more$/); return more ? parts.length - 1 + Number(more[1]) : parts.length; };
+const s_ = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
+/** #3713: the blocker lines Theme's run clears (the variables and the text and effect styles it writes), matched by the
+ *  same words `blockedWhy` reads them by. With Theme ticked they no longer block, so the row skips them. */
+const THEME_CLEARS = /^(?:\d+ variables? the plan binds (?:is|are) not in this file|(?:text|effect) styles? not in this file: )/;
+/** #3713: one of the check's blocker lines (`update-plan.ts`, `fileBlockers` and `setRefusal`) in plain words, as the
+ *  clause after "Can’t update yet —", with the step that clears it where Studio or Figma offers one. The words are the
+ *  owner's (#3721, D3721.1–.6, 2026-11-12), except the unknown-shape line, which is DRAFT. A line of a shape not known
+ *  here gets that one fixed line and Report a problem (`state/report.ts`), never the engine's words (D3721.1 b). The
+ *  shapes are matched by their words, so a reworded blocker falls through to the fixed line, never to a wrong reason. */
+export const blockedWhy = (line: string, nameOf: (id: string) => string = (id) => id): { readonly why: string; readonly next: string | null } => {
+  let m: RegExpMatchArray | null;
+  if ((m = line.match(/^Not in this file: (.+)\. Build (.+) first, then run the update again$/)))
+    return { why: `it needs ${setNames(m[2], nameOf)}, which this file doesn’t have.`, next: `Tick ${setNames(m[2], nameOf)} on Components first.` };
+  if ((m = line.match(/^(\d+) variables? the plan binds (?:is|are) not in this file/)))
+    return { why: `it needs ${s_(Number(m[1]), 'variable', 'variables')} this file doesn’t have.`, next: 'Tick Theme to write them.' };
+  if ((m = line.match(/^(text|effect) styles? not in this file: (.+)$/)))
+    return { why: `it needs ${listCount(m[2]) === 1 ? `a ${m[1]} style` : `${m[1]} styles`} this file doesn’t have: ${m[2]}.`, next: 'Tick Theme to write them.' };
+  if ((m = line.match(/^components? the plan swaps to (?:is|are) not in this file: (.+)$/)))
+    return { why: `it swaps to ${setNames(m[1], nameOf)}, which this file doesn’t have.`, next: `Tick ${setNames(m[1], nameOf)} on Components first.` };
+  if ((m = line.match(/^fonts: (.+) will not load/)))
+    return { why: `these fonts won’t load: ${m[1]}.`, next: 'Install or turn them on in Figma, then open this again.' };
+  if (/^an axis the plan removed would collapse members/.test(line))
+    return { why: 'a property it drops would merge variants into one.', next: null };
+  // D3721.4: only the agent's Adopt clears this, and Studio has none; its write path is #3714.
+  if ((m = line.match(/^the axes change, and (\d+) members? not built by Prism3/)))
+    return { why: `its properties change, and ${s_(Number(m[1]), 'variant', 'variants')} not built by Prism3 would be left behind.`, next: 'Studio can’t do this yet.' };
+  if ((m = line.match(/^renaming (.+) would give it the name of another member \((.+)\)$/)))
+    return { why: `renaming ${m[1]} would clash with ${m[2]}.`, next: 'Rename or remove one of them in Figma.' };
+  if ((m = line.match(/^(\d+) members share the coordinate (\S+)/)))
+    return { why: `${m[1]} variants share one name, ${m[2]}.`, next: 'Rename or remove the extra one in Figma.' };
+  if (/^the members disagree on the axis list/.test(line))
+    return { why: 'its variants don’t all have the same properties.', next: 'Fix the variant names in Figma.' };
+  // DRAFT (D3721.1 b: the decision is the owner's, these words are not yet): Report a problem is the control's own name.
+  return { why: 'the check gave a reason Studio doesn’t recognize.', next: 'Report it with Report a problem.' };
+};
+/** #3713: a blocked set's first reason in plain words, the step that clears it, and how many more; `lead` opens it. With
+ *  Theme ticked (`theme`), the reasons Theme's run clears are skipped, so the row never asks for a step already taken and
+ *  leads with what still blocks. DRAFT. */
+const reasonText = (reasons: readonly string[] | undefined, theme: boolean, nameOf: ((id: string) => string) | undefined, lead: (why: string) => string): string => {
+  if (!reasons?.length) return lead('the check gave no reason.');
+  const left = theme ? reasons.filter((r) => !THEME_CLEARS.test(r)) : reasons;
+  const shown = left.length ? left : reasons;
+  const { why, next } = blockedWhy(shown[0], nameOf);
+  return [lead(why), next, shown.length > 1 ? `${s_(shown.length - 1, 'more reason', 'more reasons')}.` : ''].filter(Boolean).join(' ');
+};
+/** #3713: a blocked set's line where it stands among the checked sets: "Can't update yet — …". DRAFT. */
+export const blockedLine = (reasons: readonly string[] | undefined, theme = false, nameOf?: (id: string) => string): string =>
+  reasonText(reasons, theme, nameOf, (why) => `Can’t update yet — ${why}`);
+/** #3713 (2 of 4): its line under Can't update yet, whose title already says so: the reason as a sentence. DRAFT. */
+export const blockedReason = (reasons: readonly string[] | undefined, theme = false, nameOf?: (id: string) => string): string =>
+  reasonText(reasons, theme, nameOf, (why) => `${why.charAt(0).toUpperCase()}${why.slice(1)}`);
 
 /** Each step's name in the checklist and in the run line. */
 export const STEP_TITLE: Readonly<Record<StepKey, string>> = { setup: UPDATE_COPY.setup, theme: UPDATE_COPY.theme, update: UPDATE_COPY.updateStep, sets: UPDATE_COPY.toAdd, guides: UPDATE_COPY.guides, cover: UPDATE_COPY.coverStep };
+
+/** #3711 (Q-UF2 A): the changes the update step would pass on to files that use the library, from the sets it runs
+ *  (`updateDefsOf`), each named, and how many in all. The callout above the button lists the lines; the button carries
+ *  the count, so the click is the acknowledgement. Empty when no set the update runs has any. */
+export const libraryChangesOf = (defs: readonly string[], check: { readonly sets: readonly CheckedSetView[] } | null): { readonly count: number; readonly lines: readonly string[] } => {
+  const hit = defs.flatMap((id) => check?.sets.find((c) => c.def === id)?.changes ?? []);
+  return { count: hit.reduce((k, c) => k + c.count, 0), lines: hit.flatMap((c) => c.lines) };
+};
+
+/** #3712 (Q-UD3 A, the owner's decision of 2026-11-14): Components' card opens by itself only while it holds something
+ *  that needs attention, a set that can't update yet or a set that is due. Otherwise it stays folded, its chip saying
+ *  what it holds. The person's own fold or open holds for that opening (the shell's `compsOpen`). */
+export const compsOpensOf = (n: { readonly blocked: number; readonly due: number }): boolean => n.blocked > 0 || n.due > 0;

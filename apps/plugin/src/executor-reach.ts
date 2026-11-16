@@ -13,7 +13,8 @@
  *
  * WHAT HOLDS IT HONEST: `apps/plugin/lint-executor-reach.ts`. On a change that raises the revision it draws every
  * projected def with the base's executor and with this tree's, in the component shim, over this tree's plans (a fresh
- * build, an in-place update, and an update across a lever change, under more than one brand), and fails when a def
+ * build, an in-place update, an update across a lever change, and an update over the old 48px grid (#3280), under more
+ * than one brand), and fails when a def
  * whose drawing moved is not in the new revisions' entries. An entry may name more than moved; never fewer. Entries
  * at or below the base's revision may not change: a record a later PR could narrow would be no record.
  *
@@ -31,7 +32,7 @@
  * NOT A BUMP OF ITS OWN. Neither file is reached from `write-components.ts`, so `lint-executor-revision.ts` never asks
  * for a revision when only the record changes.
  */
-import { currentDefId } from '@prism3/engine/component-renames';
+import { currentDefId } from '@prism3/engine';
 import table from './executor-reach.json';
 
 /** A revision's entry: the def ids it redraws, or every set. */

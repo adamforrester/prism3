@@ -37,6 +37,7 @@ import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PROVIDER_LOGO_ARTBOARDS, PROVIDER_LOGO_KINDS, PROVIDER_LOGO_SOURCES } from './provider-logo-set';
+import { localeFreeCompare } from './locale-free-order';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const marksDir = resolve(here, 'marks');
@@ -136,7 +137,7 @@ const shapeErrors: string[] = [];
 // on any other kind is refused here, and `lint-mark-provenance.ts` checks the values' shape independently.
 const BUTTON_KIND = 'button';
 const buttonPaint: Array<[string, { ground: string; edge?: { width: number; color: string } }]> = [];
-for (const [name, source] of Object.entries(PROVIDER_LOGO_SOURCES).sort(([a], [b]) => a.localeCompare(b))) {
+for (const [name, source] of Object.entries(PROVIDER_LOGO_SOURCES).sort(([a], [b]) => localeFreeCompare(a, b))) {
   const r = provenance[`${source}.svg`] ?? {};
   if (name.split('/')[0] !== BUTTON_KIND) {
     if (r.ground !== undefined || r.edge !== undefined) shapeErrors.push(`${source}.svg: its record carries a ground or an edge, and only a ${BUTTON_KIND}/ mark has a button under it`);
@@ -147,7 +148,7 @@ for (const [name, source] of Object.entries(PROVIDER_LOGO_SOURCES).sort(([a], [b
   buttonPaint.push([name, { ground: r.ground, ...(r.edge ? { edge: { width: r.edge.width, color: r.edge.color } } : {}) }]);
 }
 
-for (const [name, source] of Object.entries(PROVIDER_LOGO_SOURCES).sort(([a], [b]) => a.localeCompare(b))) {
+for (const [name, source] of Object.entries(PROVIDER_LOGO_SOURCES).sort(([a], [b]) => localeFreeCompare(a, b))) {
   const where = `${source}.svg`;
   const errs: string[] = [];
   const raw = readFileSync(join(marksDir, `${source}.svg`), 'utf8')

@@ -22,8 +22,8 @@
  *   · `editBreakpoint`'s two-breakpoint refusal removed (the merge allowed) →
  *     `D13: at two breakpoints, an edit onto the other's width is refused and the list is unchanged (two to seven)`.
  */
-import { brandTheme, type BrandInput } from '@prism3/engine/theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { brandTheme, type BrandInput } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as store from './src/state/store';
 import * as L from './src/state/layout-input';
 

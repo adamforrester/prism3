@@ -21,12 +21,12 @@ A control for free-form text expected to wrap across multiple lines — comments
 Shown on the default member: size `medium`, style `outline`, status `default`.
 
 1. **Label** — The accessible name, composed rather than re-declared. Its size follows the field's, one step below the value; its label text, required marker, emphasis and weight surface on the textarea. Starts primary and regular. Fills the field's width; a long name wraps at FieldLabel's max width.
-2. **Caret**
+2. **Caret** — The insertion point in a focused, empty field, right before the placeholder, in the value color.
 3. **Placeholder** — The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. Wraps across the field width and reserves the default rows of its own line height.
 4. **Value** — The entered value, in the value ink. Shown on the filled, focused filled and read-only field. Wraps across the field width and reserves the default rows of its own line height.
-5. **Grip glyph** (optional)
-6. **Message**
-7. **Counter**
+5. **Grip glyph** (optional) — The resize grip in the bottom-right corner, shown by default; it takes no space, so the field keeps its size with it on or off.
+6. **Message** — Helper or validation text, hidden until the field has something to say; it takes the field's status.
+7. **Counter** — The character count at the end of the message row, hidden by default; it shows with or without a message.
 
 ## Styles
 
@@ -83,7 +83,7 @@ Use for free-form text expected to exceed one line — comments, descriptions, m
 
 - **Enter:** none (present on mount)
 - **Exit:** none
-- **Reduced motion:** State transitions follow text-field's ~100–150ms token-driven contract. AUTO-GROW HAS NO HEIGHT TRANSITION: the height changes instantly on each keystroke, because an eased height lags behind the typing and reflows the layout below on every frame; if a transition is used at all it stays at or under 100ms and drops under prefers-reduced-motion. While the user drags the resize handle, strip every transition off the node, or the edge lags behind the cursor.
+- **Reduced motion:** State transitions follow text-field's: motion.duration.fast with motion.easing-role.default. AUTO-GROW HAS NO HEIGHT TRANSITION: the height changes instantly on each keystroke, because an eased height lags behind the typing and reflows the layout below on every frame; if a transition is used at all it stays at or under motion.duration.fast and drops under prefers-reduced-motion. While the user drags the resize handle, strip every transition off the node, or the edge lags behind the cursor.
 
 ## Content guidelines
 

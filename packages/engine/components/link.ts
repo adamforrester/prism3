@@ -122,6 +122,9 @@ export const link: ComponentDef = {
   paintKeys: ['{slot}.{selection}.{state}', '{slot}.{state}', '{slot}'],
   densitySpacing: ['size.{size}.gap'],
 
+  // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
+  levers: { currentIndicator: { bar: 'bar' } },
+
   tokens: {
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset',
@@ -234,7 +237,7 @@ export const link: ComponentDef = {
         class: 'semantics',
         disposition: 'refused',
         description:
-          'The current page — current renders aria-current="page" on the current item in a navigation and on a breadcrumb\'s last item; a visual style alone is not enough. It stays a real <a> with its href, so hover, focus and the focus ring still work. The 2px bar sits at the foot of the line box, inside it (an inset box-shadow or a positioned pseudo-element, not a border that adds height). The bar\'s width is the brand\'s Current page indicator: the title\'s width, or half of it centered (inset-inline: 25%). Hover changes the color only: no underline joins the bar.',
+          'The current page — current renders aria-current="page" on the current item in a navigation; a visual style alone is not enough. It stays a real <a> with its href, so hover, focus and the focus ring still work. The 2px bar sits at the foot of the line box, inside it (an inset box-shadow or a positioned pseudo-element, not a border that adds height). The bar\'s width is the brand\'s Current page indicator: the title\'s width, or half of it centered (inset-inline: 25%). Hover changes the color only: no underline joins the bar.',
       },
       {
         class: 'visual-treatment',
@@ -258,7 +261,7 @@ export const link: ComponentDef = {
         class: 'motion',
         disposition: 'refused',
         description:
-          'The color transition — about 150ms on color and the underline at hover and focus; under prefers-reduced-motion it snaps.',
+          'The color transition — on motion.duration.fast with motion.easing-role.default, on color and the underline at hover and focus; under prefers-reduced-motion it runs on motion.duration-reduced.fast.',
       },
       {
         class: 'right-to-left',
@@ -313,7 +316,7 @@ export const link: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use a button. Keep x-small for dense metadata, such as an order row or a legal line, not running body text. A link inside small print is a text range with that text\'s own link style.',
+    usage: 'Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use Button. Keep x-small for dense metadata, such as an order row or a legal line, not running body text. A link inside small print is a text range with that text\'s own link style.',
     do: [
       'Write link text that names the destination',
       'State the format and size of a file link',
@@ -334,7 +337,7 @@ export const link: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'Text that navigates to a URL, a fragment or a file, rendered as a real <a href>.',
+    primaryPurpose: 'Navigate from text to a URL, a fragment or a file, rendered as a real <a href>.',
     whenToUse: 'The interaction changes the address or the place on the page: a page, an in-page anchor, a document, another site. Standalone for a link on its own line (below a form, in a footer, beside a control); inline for a link that sits in body copy.',
     avoidWhen: 'The interaction acts in place without changing the address: submit, open a dialog, toggle, show a password (use Button, or Button.Neutral for a light look). A navigation that needs a button\'s weight, such as "Continue to checkout", is a Button given an href, which renders an <a>. Switching panels in place is Tabs.',
     commonPartners: ['icon', 'button', 'text-field', 'breadcrumbs', 'page-nav'],
@@ -344,16 +347,16 @@ export const link: ComponentDef = {
 
   composition: {
     composesWith: ['focus-ring'],
-    alternativeTo: ['button'],
+    alternativeTo: ['button', 'breadcrumbs'],
     replacesPatterns: ['a click handler on a div or span styled as a link', 'an <a> with no href, href="#" or javascript:void(0)', 'a[role=button] used for navigation'],
     supersededBy: [],
     planned: ['menu'],
   },
 
   motion: {
-    enter: 'None. At hover and focus the color changes over about 150ms, and a standalone link shows its underline.',
+    enter: 'None. At hover and focus the color changes on motion.duration.fast, and a standalone link shows its underline.',
     exit: 'None.',
-    reduceMotion: 'The color and underline change at once, with no transition.',
+    reduceMotion: 'The color and underline change on motion.duration-reduced.fast.',
   },
 
   notes: {

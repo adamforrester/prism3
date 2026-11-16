@@ -26,7 +26,7 @@
  * MEASURED ON THE SHIM, NOT ON A REAL HOST: `setProperties` on a placed instance after its set changed. The first run on
  * the master file is that probe, as it was for `slot-migration.ts`.
  */
-import type { ComponentRename } from '@prism3/engine/component-renames';
+import type { ComponentRename } from '@prism3/engine';
 
 type SlotTextEntry = Extract<ComponentRename, { kind: 'slot-text' }>;
 type Val = string | boolean;
@@ -116,6 +116,15 @@ export const captureSlotText = async (set: TextMigNode, entry: SlotTextEntry, br
   return { migration: { slot: entry.slot, property: entry.property, show: entry.show, hide: entry.hide, instances }, live };
 };
 
+/** #3761: the instances read back from a capture kept on the set (`slot-carry.ts`), found among the set's by id. */
+export const keptTextLive = async (set: TextMigNode, kept: readonly SlotTextCapture[], breathe?: () => Promise<void>): Promise<Map<string, TextMigNode>> => {
+  const out = new Map<string, TextMigNode>();
+  const want = new Set(kept.filter((c) => !c.nested).map((c) => c.id));
+  if (!want.size) return out;
+  for (const inst of await instancesOf(set, breathe)) if (want.has(String(inst.id))) out.set(String(inst.id), inst);
+  return out;
+};
+
 // ---- the words (DRAFT, for the owner: #3225) -------------------------------------------------------------------
 
 /** One instance's line: what the update does with its body. DRAFT. */
@@ -136,7 +145,9 @@ export const slotTextLines = (set: string, m: SlotTextMigration): string[] => {
 
 // ---- the fill -------------------------------------------------------------------------------------------------
 
-export type SlotTextOutcome = { instances: number; moved: number; rich: number; emptied: number; misses: string[] };
+/** `pending` (#3761): the instances the fill could not write yet, the set's properties not there, whose capture stays
+ *  kept on the set for the next run. */
+export type SlotTextOutcome = { instances: number; moved: number; rich: number; emptied: number; misses: string[]; pending: string[] };
 
 /**
  * Write each captured instance's properties, after the set was updated. `live` is the capture's own node references;
@@ -144,7 +155,7 @@ export type SlotTextOutcome = { instances: number; moved: number; rich: number; 
  * read back after its write; a difference is a miss naming it.
  */
 export const fillSlotText = async (setName: string, entry: SlotTextEntry, slotNow: string, live: Map<string, TextMigNode>, captured: SlotTextMigration, breathe?: () => Promise<void>): Promise<SlotTextOutcome> => {
-  const out: SlotTextOutcome = { instances: 0, moved: 0, rich: 0, emptied: 0, misses: [] };
+  const out: SlotTextOutcome = { instances: 0, moved: 0, rich: 0, emptied: 0, misses: [], pending: [] };
   let k = 0;
   for (const c of captured.instances) {
     if (c.nested) continue;
@@ -154,11 +165,18 @@ export const fillSlotText = async (setName: string, entry: SlotTextEntry, slotNo
     if (!inst) { out.misses.push(`${where}: no longer in the file`); continue; }
     const keys = Object.keys(inst.componentProperties ?? {});
     const keyOf = (bare: string): string | undefined => keys.find((x) => x.split('#')[0] === bare);
+    // #3697 H1: a set that stopped part-way is filled too, with no instance skipped. The properties are the SET's, added
+    // after the member pass, so a stop after them reaches every instance and a stop inside the pass reaches none. In
+    // the second case the slot is already renamed in every member, so the next run cannot read the text again: each
+    // instance is a miss naming it, never silent, and is `pending`, so its capture stays kept on the set and the next
+    // run carries it (#3761).
     const want: Record<string, Val> = {};
-    const need = (bare: string, v: Val): void => { const key = keyOf(bare); if (key) want[key] = v; else out.misses.push(`${where}: has no "${bare}" property after the update`); };
+    let lacking = false;
+    const need = (bare: string, v: Val): void => { const key = keyOf(bare); if (key) want[key] = v; else { lacking = true; out.misses.push(`${where}: has no "${bare}" property after the update`); } };
     if (c.case.kind === 'move') need(entry.property, c.case.characters);
     else if (c.case.kind === 'rich') { need(entry.show, true); need(entry.hide, false); }
     else need(entry.hide, false);
+    if (lacking) out.pending.push(c.id);
     if (!Object.keys(want).length) continue;
     try { inst.setProperties?.(want); } catch (err) { out.misses.push(`${where}: values -> REFUSED (${(err as Error)?.message ?? String(err)})`); continue; }
     // A moved body's old text, if the update left it in the (now hidden) slot, goes: the property holds it now.

@@ -53,7 +53,7 @@ Some `node_modules` is required: the repo is buildless (`tsx`, no install) but a
 worktree has none, so `npx tsx` would re-download and the `apps/studio`/`apps/plugin`
 workspace builds would fail outright. Expect `regen --check` to
 report the committed artifact count in a clean worktree — `verify.ts` holds it as
-`EXPECTED_ARTIFACTS` and `ci.yml` asserts the same number; this file deliberately
+`ARTIFACT_FLOOR` (a floor, #3698 R3) and `ci.yml` reads it from there; this file deliberately
 restates neither. The main checkout sometimes shows one more because of an untracked
 stray in `packages/engine/out/`, which is not drift.
 
@@ -207,7 +207,7 @@ take on those two.
 Read the actual numbers, never a baseline remembered from an earlier run. Three gates are worth
 running on their own when you need to read their output:
 - `npx tsx packages/engine/regen.ts --check` — no committed artifact has drifted (`verify.ts`
-  holds the expected count as `EXPECTED_ARTIFACTS`, and `ci.yml` asserts the same number).
+  holds the floor under the count as `ARTIFACT_FLOOR`, and `ci.yml` reads it from there, #3698 R3).
   **It is the ONLY gate that reads the committed artifacts.** Every other engine gate runs the
   engine live and compares it against itself, so a stale committed artifact passes them all
   (this bit #281 for real).
@@ -226,7 +226,7 @@ before saying CI is green, and say what you relied on. A PR that regresses any g
 until explained.
 
 Beware the cwd trap: the Bash tool's working directory persists between calls, so a
-`cd web` leaves later bare `npx tsx packages/engine/...` calls failing with
+`cd apps/studio` leaves later bare `npx tsx packages/engine/...` calls failing with
 `ERR_MODULE_NOT_FOUND`. Prefer `--workspace` / `-p` flags over `cd`.
 
 ## Prism3 engine invariants (the expert layer — check every one that the diff touches)
@@ -267,7 +267,7 @@ not a follow-up.
 **Since #1807 the entry is a FILE, not an edit to the log.** Look for
 `docs/progress/pending/<slug>.md` in the diff: one entry headed `## (YYYY-MM-DD) — <title>`.
 A PR that writes at the top of `docs/00-progress.md` instead is on the old convention; send it
-to `CONTRIBUTING.md` §2, "Converting an open PR from the old convention".
+to `CONTRIBUTING.md` §2, "A PR still on the pre-#1807 convention".
 `lint-progress-order.ts` fails a PR (other than a fold) that adds no fragment, but it checks
 only that the file exists: whether the entry says what a diff cannot is still yours to judge. When reading recent state, read `pending/` before the top of
 the log: merged entries wait there until the next fold.
@@ -281,11 +281,11 @@ artifact and no projected component surface moves. A
 PR that edits `ENGINE_VERSION` or its changelog (`packages/engine/CHANGELOG.md`) is blocking unless it is a
 fold; `lint-emission-version.ts` fails it by name. `CONTRACT_VERSION` is still bumped per PR.
 
-**Two numbers move in pairs; check both sides and the open PRs.** `EXPECTED_ARTIFACTS` in
-`verify.ts` and the same number in `ci.yml` move together. `EXECUTOR_REVISION`
+**One number moves with the code; check the open PRs.** (`ARTIFACT_FLOOR` in `verify.ts` no longer
+does: it is a floor that growth leaves alone, #3698 R3. A PR that lowers it should say why.) `EXECUTOR_REVISION`
 (`apps/plugin/src/executor-revision.ts`) must rise when the component executor's code moves
-(`apps/plugin/lint-executor-revision.ts`). For both, look at the other open PRs: two PRs that each
-raise a number to the same value collide on merge, and the second needs a merge-time bump. Say so
+(`apps/plugin/lint-executor-revision.ts`). Look at the other open PRs: two PRs that each
+raise it to the same value collide on merge, and the second needs a merge-time bump. Say so
 in the review.
 
 **Only a fold writes `docs/00-progress.md`.** Any other PR that touches the log fails
@@ -415,9 +415,10 @@ Re-derive the load-bearing ones yourself:
   is a rolling window (not a calendar-day reset) and rejected deploys are not queued, so
   an intermittent Vercel failure is routine. Always read the `gates` check-run status
   separately; never conflate the two.
-- The Vercel-deployed bundle reads only `apps/studio/src` + `packages/engine/{*,schema}`.
-  `plugin/**`, `reference/**` and `packages/engine/out/**` are not build inputs, so a change
-  confined to those needs no Vercel-impact check.
+- The Vercel build's inputs are listed in `apps/studio/vercel-ignore.sh` (`PATHS`, minus `EXCLUDED`):
+  `apps/studio/**`, `packages/engine/**`, `docs/public/**`, the root manifests and one plugin file,
+  `apps/plugin/src/causes.ts`. The rest of `apps/plugin/**`, `reference/**` and the excluded engine
+  files are not build inputs, so a change confined to those needs no Vercel-impact check.
 - **Don't push to a branch under review; land a correction as a follow-up PR.** A squash-merge
   rewrites the SHA, so a push racing the merge is dropped silently. Before pushing to any branch
   you have not touched in the last hour, compare trees (`git log origin/main..<branch>`,

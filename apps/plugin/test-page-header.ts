@@ -43,7 +43,7 @@
  */
 import { ensurePageHeader, pageHeaderCopy, pageHeaderNote, displayName, HEADER_GAP, SECTION_HEADER_SET } from './src/page-header';
 import type { HNode, HeaderPage, PageHeaderApi, HeaderCopy } from './src/page-header';
-import { componentDefs } from '@prism3/engine/components/index';
+import { componentDefs } from '@prism3/engine/components';
 import { placeNewSet, SET_GAP, PAGE_HEADER_NAME, PAGE_HEADER_GAP } from './src/write-components';
 
 let failures = 0;
@@ -151,7 +151,7 @@ const headersOn = async (page: { children: readonly HNode[] }): Promise<ShimNode
 const textOf = (n: HNode, name: string): string | undefined => n.findOne?.((x) => x.type === 'TEXT' && x.name === name)?.characters;
 
 // The literal copy — from `packages/engine/components/button.ts` and `checkbox-control.ts`.
-const BUTTON_SUMMARY = 'Triggers an action in place, such as submit, save or confirm. For navigation, use a link.';
+const BUTTON_SUMMARY = 'Triggers an action in place, such as submit, save or confirm. For navigation, use Link.';
 const CHECKBOX_ROW_SUMMARY = 'Labeled checkbox for a staged on/off choice. The whole row is the hit target.';
 const BUTTON_COPY: HeaderCopy = { title: 'Button', description: BUTTON_SUMMARY, primary: 'button' };
 

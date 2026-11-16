@@ -7,7 +7,7 @@
  *  Stamps its root with the shared-section marker (`data-sg-section="building-blocks"`, `kit.ts`'s header).
  *  WHAT IT IS HANDED. The section context, the resolved typography, the mode and the section's copy. Nothing here
  *  reads the session. */
-import { LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, type Theme } from '@prism3/engine/theme';
+import { LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, type Theme } from '@prism3/engine';
 import { emToPercentLabel } from '../../em-percent';
 import { el, hook, palSection, specimen, subHead, type SgCtx } from './kit';
 

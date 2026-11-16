@@ -31,10 +31,13 @@
  *      field" for a percentage line height). So there is no unit in which the existing multiplier could
  *      be bound correctly.
  *
- *   3. THERE IS NO LINE-HEIGHT FIGMA VARIABLE TO BIND TO. `buildFigmaFont` projects the `core`
- *      collection as family (STRING) + size/weight/weight-role (FLOAT) and emits NO `font/line-height/*`
- *      variable at all. Binding would therefore also have to MINT a new variable — see the decision
- *      boundary below.
+ *   3. THE LINE-HEIGHT VARIABLES THAT DO EXIST ARE NOT A BINDING TARGET. Until #2423 no
+ *      `font/line-height/*` Figma variable existed at all. The owner then decided (Q175 A, 2026-11-11;
+ *      collection name 2026-11-12) to emit the line-height and letter-spacing multipliers as FLOAT
+ *      variables in a `text-spacing` collection, so designers and the style guide can see the ladders.
+ *      They hold the multiplier (1.05), so facts 1 and 2 still make a bind wrong, and they carry NO
+ *      scopes: Figma's LINE_HEIGHT and LETTER_SPACING pickers never offer them. A bindable line height
+ *      would still have to be a NEW per-size PIXEL variable — see the decision boundary below.
  *
  * A faithful, bindable line height would have to be a PIXEL value = fontSize × multiplier. That is
  * SIZE-DEPENDENT: a fluid composite renders at a different font size per viewport (its fontSize is
@@ -85,13 +88,14 @@
  *      motivates the design) and its rendered pixels DIVERGE across the modes (px_mobile ≠ px_desktop).
  *      That divergence is why a fixed/bound absolute value could serve at most one mode. The witness
  *      set must be NON-EMPTY (the scope floor), or the invariance claim is untested.
- *   E. NOTHING TO BIND TO — no emitted Figma collection defines a `line-height` VARIABLE, so a binding
- *      would be a dangling reference. Fact (3) above, asserted so that minting such a variable — the
- *      owner decision the boundary reserves — cannot land silently without touching this gate. Its
- *      matcher (`isLineHeightVar`) is itself driven by the self-check in both directions (#1419): it
- *      must fire on a minted line-height name and must not on a near-miss, so E's guarantee rests on a
- *      driven check, not on reasoning (docs/34 — the assertion that guards a future contract move is
- *      itself mutation-proven).
+ *   E. OFFERED TO NO PICKER (#2423) — every emitted line-height or letter-spacing VARIABLE (a step or a
+ *      role, matched by `isTextSpacingVar`) carries an EMPTY scope list, so no Figma picker offers a
+ *      multiplier for a field Figma reads as pixels. Fact (3) above. Until #2423 E asserted that no
+ *      line-height variable existed at all; the owner's Q175 A minted them, unscoped, and E moved with
+ *      that decision rather than being dropped. A floor requires at least one such variable per brand,
+ *      so E cannot pass over an emission that stopped carrying them. Both matchers (`isLineHeightVar`,
+ *      `isTextSpacingVar`) and the scope oracle (`scopeFault`) are driven by the self-check in both
+ *      directions (#1419), so E's guarantee rests on a driven check, not on reasoning (docs/34).
  *
  * ── WHAT IT DOES NOT CLAIM ──────────────────────────────────────────────────────────────────────
  *
@@ -119,6 +123,9 @@
  *       → the SELF-CHECK fails BY NAME: "isLineHeightVar does not match a minted line-height variable
  *         name ('ads/core/font/line-height/150') — assertion E's matcher is DEAD …" (#1419). This is
  *         the arm that keeps E's reserved-contract guarantee resting on a driven check, not reasoning.
+ *   · emit-figma-dims.ts `TEXT_SPACING_SCOPES = []` → `['LINE_HEIGHT']`, then regen
+ *       → assertion E fires: "SCOPED FOR A BIND: '<root>/core/font/line-height/105' in '<b>' carries
+ *         scopes [LINE_HEIGHT] …" for every text-spacing variable in every brand (#2423).
  *
  * Commit (a `wip:` commit is enough) before each mutation: the restore step `git checkout --
  * packages/engine/emit-figma-font.ts packages/engine/lint-lineheight-bake.ts packages/engine/out`
@@ -181,6 +188,15 @@ export const renderedPx = (pct: number, sizeMobile: number, sizeDesktop: number)
  *  not read from any emitter. */
 export const isLineHeightVar = (name: string): boolean => /(^|\/)line-height(\/|$)/.test(name);
 
+/** THE ORACLE for E's reach (#2423): a line-height or letter-spacing variable, step or role — the four DTCG
+ *  groups `line-height`, `line-height-role`, `letter-spacing`, `letter-spacing-role`, each a whole segment. */
+export const isTextSpacingVar = (name: string): boolean => /(^|\/)(line-height|letter-spacing)(-role)?\//.test(name);
+
+/** THE ORACLE for E (#2423). Any scope at all is a fault: LINE_HEIGHT or LETTER_SPACING offers a multiplier
+ *  to a field Figma reads as pixels, and ALL_SCOPES or any other scope offers it somewhere it means nothing. */
+export const scopeFault = (scopes: unknown): string | null =>
+  Array.isArray(scopes) && scopes.length === 0 ? null : `carries scopes ${Array.isArray(scopes) ? `[${scopes.join(', ')}]` : String(scopes)}, not [] — a picker would offer a multiplier to a field Figma reads as pixels`;
+
 // ---- SELF-CHECK: can the oracle still see a violation, and still pass a conforming field? ---------
 const selfFails: string[] = [];
 
@@ -233,6 +249,18 @@ for (const nearMiss of ['ads/core/font/line-height-role/150', 'ads/core/font/lin
   }
 }
 
+// E's reach and scope oracle (#2423), driven in both directions like isLineHeightVar.
+for (const n of ['ads/core/font/line-height/105', 'ads/core/font/line-height-role/tight', 'ads/core/font/letter-spacing/neg-40', 'ads/core/font/letter-spacing-role/wide']) {
+  if (!isTextSpacingVar(n)) selfFails.push(`isTextSpacingVar does not match '${n}' — assertion E would never see that variable's scopes`);
+}
+for (const n of ['ads/core/font/lineheight/150', 'ads/core/baseline-height/150', 'ads/core/font/letter-spacing-roles/x', 'ads/core/font/size/16']) {
+  if (isTextSpacingVar(n)) selfFails.push(`isTextSpacingVar matches the near-miss '${n}' — E would hold the wrong variable to an empty scope list`);
+}
+if (scopeFault([]) !== null) selfFails.push('scopeFault flags an empty scope list — E would fail a conforming variable');
+for (const sc of [['LINE_HEIGHT'], ['LETTER_SPACING'], ['ALL_SCOPES'], undefined]) {
+  if (scopeFault(sc) === null) selfFails.push(`scopeFault accepts ${JSON.stringify(sc)} — a scoped multiplier would pass E`);
+}
+
 if (selfFails.length) {
   console.error("\n❌ the line-height bake gate's own detection is broken — it cannot see what it claims to:\n");
   for (const f of selfFails) console.error(`    ${f}`);
@@ -256,6 +284,7 @@ if (brands.length === 0) {
 let styleChecks = 0;
 let witnesses = 0;
 let lineHeightVarsSeen = 0;
+let textSpacingVarsSeen = 0;
 
 for (const brand of brands) {
   const dir = join(OUT_FIGMA, brand);
@@ -283,14 +312,23 @@ for (const brand of brands) {
   const sizesMobile = modeSizes('mobile');
   const sizesDesktop = modeSizes('desktop');
 
-  // ---- E: no line-height VARIABLE is emitted anywhere in this brand's collections ----------------
-  // Read every collection file, not just the font one, so a line-height variable appearing in ANY
-  // collection is caught. If one ever exists, binding has a target and this gate's whole premise —
-  // and the header's fact (3) — has changed; that is the owner decision the boundary reserves.
+  // ---- E: every line-height / letter-spacing VARIABLE is unscoped (#2423) ------------------------
+  // Read every collection file, not just `text-spacing.json`, so such a variable in ANY collection is
+  // held to the same empty scope list.
+  let brandTextSpacing = 0;
   for (const f of readdirSync(dir).filter((n) => n.endsWith('.json'))) {
-    const doc = JSON.parse(readFileSync(join(dir, f), 'utf8')) as { variables?: Array<{ name?: string }> };
-    for (const v of doc.variables ?? []) if (v.name && isLineHeightVar(v.name)) lineHeightVarsSeen++;
+    const doc = JSON.parse(readFileSync(join(dir, f), 'utf8')) as { variables?: Array<{ name?: string; scopes?: unknown }> };
+    for (const v of doc.variables ?? []) {
+      if (!v.name) continue;
+      if (isLineHeightVar(v.name)) lineHeightVarsSeen++;
+      if (!isTextSpacingVar(v.name)) continue;
+      brandTextSpacing++;
+      const fault = scopeFault(v.scopes);
+      if (fault) failures.push(`SCOPED FOR A BIND: '${v.name}' in '${brand}' (${f}) ${fault}`);
+    }
   }
+  textSpacingVarsSeen += brandTextSpacing;
+  if (brandTextSpacing === 0) failures.push(`${brand}: no line-height or letter-spacing variable emitted — the text-spacing collection (#2423) is missing, so assertion E checked nothing for this brand`);
 
   for (const s of styles) {
     const p = s.properties ?? {};
@@ -337,23 +375,23 @@ for (const b of MUST_COVER) {
 if (brands.length && witnesses === 0) {
   failures.push('INVARIANCE UNWITNESSED: no fluid composite with differing per-mode sizes was found in any brand, so assertion D passed over an empty set. Either fluid composites stopped emitting, or the type-sets join broke.');
 }
-// E, as a floor: the emitted tree must contain NO line-height variable. A non-zero count means the
-// premise moved (see the header's fact (3) and the decision boundary).
-if (lineHeightVarsSeen > 0) {
-  failures.push(`NOTHING-TO-BIND-TO VIOLATED: ${lineHeightVarsSeen} emitted Figma variable(s) name 'line-height'. This gate documents that line height has NO bindable Figma variable — if one now exists, binding has a target and the deliberate-omission rationale (and this gate) must be revisited. That is an owner contract decision (#1356 decision boundary), not a silent change.`);
+// E's floor: the line-height steps are among what E checked, so the line-height matcher is exercised by a
+// real emission, not only by the self-check.
+if (brands.length && lineHeightVarsSeen === 0) {
+  failures.push('E UNEXERCISED: no emitted variable is a line-height step, so the text-spacing collection (#2423) lost its line-height ladder or the matcher went dead.');
 }
 
-console.log(`Line-height bake — ${styleChecks} style(s) over ${brands.length} brand(s): ${brands.join(', ') || 'NONE'}; ${witnesses} mode-invariance witness(es); ${lineHeightVarsSeen} line-height variable(s) emitted (must be 0).`);
+console.log(`Line-height bake — ${styleChecks} style(s) over ${brands.length} brand(s): ${brands.join(', ') || 'NONE'}; ${witnesses} mode-invariance witness(es); ${textSpacingVarsSeen} line-height/letter-spacing variable(s), all unscoped (${lineHeightVarsSeen} line-height steps).`);
 for (const n of notes) console.log(`    ${n}`);
 
 if (failures.length) {
   console.error(`\n❌ ${failures.length} line-height bake failure(s):`);
   for (const f of failures) console.error(`  · ${f}`);
   console.error('\nA text style\'s line height is emitted as an UNBOUND, mode-invariant PERCENT bake — never a variable');
-  console.error('binding (#1356). Figma binds line height only as PIXELS, the role is a unitless multiplier, and no');
-  console.error('line-height Figma variable is emitted to bind to. Making it bindable would mint a new per-size');
-  console.error('PIXEL variable and lose the mode invariance — an owner contract decision, not an engine fix.');
+  console.error('binding (#1356). Figma binds line height only as PIXELS and the role is a unitless multiplier, so the');
+  console.error('text-spacing variables (#2423) carry no scopes and no picker offers them. Making line height bindable');
+  console.error('would mint a new per-size PIXEL variable and lose the mode invariance — an owner contract decision.');
   process.exit(1);
 }
 console.log('  ✓ every text style bakes line height (and letter spacing) as an UNBOUND PERCENT, invariant across');
-console.log(`    the fluid modes, in all ${brands.length} brand(s); no line-height variable exists to bind to.`);
+console.log(`    the fluid modes, in all ${brands.length} brand(s); every line-height and letter-spacing variable is unscoped.`);

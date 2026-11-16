@@ -35,7 +35,7 @@ Shown on the default member: size `medium`, alignment `start`.
 
 ## Usage guidelines
 
-Use tabs to switch between peer sections of related content in one place, one at a time, such as a product's description, specifications and reviews. Don't use tabs to go to another page (use page navigation), to change a setting or filter the current view (use a segmented control or a select), or for content people need to compare side by side.
+Use tabs to switch between peer sections of related content in one place, one at a time, such as a product's description, specifications and reviews. Don't use tabs to go to another page (use PageNav), to change a setting or filter the current view (use SegmentedControl or Select), or for content people need to compare side by side.
 
 ### Do
 
@@ -70,7 +70,7 @@ Use tabs to switch between peer sections of related content in one place, one at
 
 ### Motion
 
-- **Enter:** None. On a change, the underline slides to the new tab and the panel cross-fades, about 150–200ms.
+- **Enter:** None. On a change, the underline slides to the new tab and the panel cross-fades, on motion.transition.default.
 - **Exit:** The outgoing panel fades out under the incoming one. Panels never slide sideways.
 - **Reduced motion:** The underline snaps and the panel swaps with no transition.
 
@@ -83,7 +83,7 @@ One or two words per tab, nouns, sentence case.
 ## Related components
 
 - **Built from:** `tab-item`
-- **Instead, consider:** `select`, `accordion`, `segmented-control`, `page-nav`
+- **Instead, consider:** `select`, `accordion`, `segmented-control`, `page-nav`, `breadcrumbs`, `pagination`
 - **Often used with:** `badge`, `icon`
 - **Replaces:**
   - show and hide divs with no tab semantics

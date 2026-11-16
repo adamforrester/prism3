@@ -32,9 +32,7 @@
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
-import { componentDefs } from '@prism3/engine/components/index';
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import type { ComponentDef } from '@prism3/engine/component-schema';
+import { componentDefs, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, type ComponentDef } from '@prism3/engine/components';
 import { SWAP_TARGET } from './src/build-deps';
 import { materializeForBrand } from './src/brand-def';
 import { applyComponentPlan } from './src/write-components';

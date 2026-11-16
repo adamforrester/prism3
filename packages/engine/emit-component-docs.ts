@@ -239,18 +239,33 @@ const here = dirname(fileURLToPath(import.meta.url));
 export const COMPONENT_DOCS_DIR = resolve(here, 'out', 'components');
 export const COMPONENT_MAINTAINER_FILE = resolve(here, 'schema', 'component-maintainer.json');
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+/** The three whole-catalog exports regen writes and git does not track (#3698 R3, `UNCOMMITTED_OUT` in regen.ts):
+ *  `specs.json`, `component-defs.json` and `component-defs.specs.json`, into `dir`. One writer for both paths below. */
+export const writeUncommittedExports = (dir: string): void => {
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(resolve(dir, 'specs.json'), JSON.stringify(projectComponentSpecs(componentDefs), null, 2) + '\n');
+  // #3425 — the component-defs export (brand-neutral) and its Specs-format projection. Per-brand exports are written
+  // on demand (`cli.ts --component-specs`, MCP `export_theme`, the Studio's Export).
+  const defsExport = exportComponentDefs(componentDefs);
+  const names = componentDefsFileNames(null);
+  writeFileSync(resolve(dir, names.defs), JSON.stringify(defsExport, null, 2) + '\n');
+  writeFileSync(resolve(dir, names.specs), JSON.stringify(toSpecsComponents(defsExport), null, 2) + '\n');
+};
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url) && process.argv.includes('--uncommitted')) {
+  // `--uncommitted --out <dir>`: only the three uncommitted exports, into `<dir>/components/`, for a reader that
+  // generates them first (`renderUncommitted`, `packages/tokens/check-specs.mjs`). Writes nothing under `out/`.
+  const at = process.argv.indexOf('--out');
+  const dir = at > 0 ? process.argv[at + 1] : undefined;
+  if (!dir) { console.error('[emit-component-docs] --uncommitted needs --out <dir>'); process.exit(1); }
+  writeUncommittedExports(resolve(dir, 'components'));
+} else if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   // Cleared first, so a def that leaves the registry leaves no stale page behind for `regen --check` to miss.
   rmSync(COMPONENT_DOCS_DIR, { recursive: true, force: true });
   mkdirSync(COMPONENT_DOCS_DIR, { recursive: true });
   writeFileSync(resolve(COMPONENT_DOCS_DIR, 'components.ai.json'), JSON.stringify(projectComponentDocs(componentDefs), null, 2) + '\n');
-  writeFileSync(resolve(COMPONENT_DOCS_DIR, 'specs.json'), JSON.stringify(projectComponentSpecs(componentDefs), null, 2) + '\n');
-  // #3425 — the component-defs export (brand-neutral) and its Specs-format projection. Per-brand exports are written
-  // on demand (`cli.ts --component-specs`, MCP `export_theme`, the Studio's Export), never committed.
-  const defsExport = exportComponentDefs(componentDefs);
-  const names = componentDefsFileNames(null);
-  writeFileSync(resolve(COMPONENT_DOCS_DIR, names.defs), JSON.stringify(defsExport, null, 2) + '\n');
-  writeFileSync(resolve(COMPONENT_DOCS_DIR, names.specs), JSON.stringify(toSpecsComponents(defsExport), null, 2) + '\n');
+  // #3698 R3: written here as before, and never committed (`UNCOMMITTED_OUT` in regen.ts, `.gitignore`).
+  writeUncommittedExports(COMPONENT_DOCS_DIR);
   for (const def of componentDefs) writeFileSync(resolve(COMPONENT_DOCS_DIR, `${def.id}.md`), renderMarkdown(def));
   writeFileSync(COMPONENT_MAINTAINER_FILE, JSON.stringify(projectComponentMaintainer(componentDefs), null, 2) + '\n');
   console.log(`[emit-component-docs] wrote ${COMPONENT_DOCS_DIR} — components.ai.json, specs.json, component-defs.json, component-defs.specs.json + ${componentDefs.length} pages; and ${COMPONENT_MAINTAINER_FILE}`);

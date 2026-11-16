@@ -22,7 +22,7 @@
  * not part of applying a theme (#652). Since #804 that action names which def to build; absent still
  * means Button.
  */
-import type { BrandInput } from '@prism3/engine/theme';
+import type { BrandInput } from '@prism3/engine';
 import type { AgentLinkState, AgentResult, AgentProgress, AgentCmd } from './agent-protocol';
 import type { WriteCmd } from './run-guard';
 import type { LibraryFile } from './file-kind';
@@ -36,7 +36,10 @@ export type UiToMain =
   | { type: 'ui-ready' }
   /** Materialise this brand into `figma.variables` (#108). Carries the live `BrandInput` from the
    *  shared UI's knobs; the main thread rebuilds the plan + runs the executor. */
-  | { type: 'apply-theme'; input: BrandInput }
+  | { type: 'apply-theme'; input: BrandInput;
+    /** #1909 (Q112 A): the person's Skip or Rename for each collision the last refusal named, keyed as that refusal's
+     *  `collisions` keyed them. Absent, or missing one, and an apply that collides is refused as before. Never stored. */
+    collisions?: Record<string, 'skip' | 'rename'> }
   /** Materialise a COMPONENT SET into this file (#483) — the component tier's own action.
    *
    *  A SEPARATE ACTION FROM `apply-theme`, NOT a flag on it, and that is the decision rather than a
@@ -83,6 +86,10 @@ export type UiToMain =
    *  main thread calls `figma.openExternal` on `DOCS_URL`, the studio's web `/docs/`. Carries no address, so the UI
    *  cannot point it anywhere else. Needs no network permission: `openExternal` hands the address to the browser. */
   | { type: 'open-docs' }
+  /** #2069 (Q116 A): open a prefilled GitHub issue for Report a problem. The main thread opens `url` with
+   *  `figma.openExternal` only when it is the issue form on this repo (`isIssueUrl`); anything else is dropped. The
+   *  bundle rides in the address because the plugin sends nothing over the network itself. */
+  | { type: 'open-issue'; url: string }
   /** Draw the style-guide tables (#259, phase 1: color) — one table per palette on `↳ Primitive tokens` and one
    *  per role family on `↳ Semantic tokens`, from the file's own variables. Its own action for the #652 reason.
    *  Updates tables already drawn in place; never creates a page or moves a cell set. */
@@ -109,8 +116,10 @@ export type UiToMain =
    *  `prune-result` preview; `confirm: true` recomputes from a fresh read and deletes. The main thread
    *  recomputes on apply rather than trusting the preview's list, so the delete acts on the file's current
    *  orphan set. Carries the live `BrandInput` (like `apply-theme`) because the prune is defined against
-   *  the plan that brand emits — what is stale is exactly what the current plan no longer names. */
-  | { type: 'prune'; input: BrandInput; confirm: boolean }
+   *  the plan that brand emits — what is stale is exactly what the current plan no longer names.
+   *  #3697 R6: a delete echoes the `previewHash` its preview's `prune-result` carried; the main thread refuses one that
+   *  is missing or no longer matches a fresh read, or whose `input` the file does not hold. */
+  | { type: 'prune'; input: BrandInput; confirm: false } | { type: 'prune'; input: BrandInput; confirm: true; previewHash: string }
   /** The owner's AGENT LINK switch (`agent-link.ts`). The ONLY way the link turns on: an agent cannot send
    *  this, because only the panel posts to the main thread. Not persisted — the link is off at every launch. */
   | { type: 'agent-link'; on: boolean }
@@ -169,6 +178,9 @@ export type UiToMain =
    *  (`components`) or Update file's run (`update`), as the Activity drawer and the status strip show it. Kept in the
    *  main thread's activity log for the agent link's `activity` command. Writes nothing; never refused. */
   | { type: 'activity-note'; op: 'components' | 'update'; ok: boolean; headline: string; lines: string[] }
+  /** #533 (Q110 A): a run the panel started has ended, and `line` is the Activity drawer's short line for it. The main
+   *  thread shows it through `figma.notify` only while the window is the link strip (`run-notice.ts`). Writes nothing. */
+  | { type: 'run-ended'; line: string }
   /** #2909 Q2909.8 A: the background hand-edit pass, after load. Answered with one `hand-edits` per set the file holds,
    *  then one with `done`. A read; a later request, or a write starting, ends an earlier pass. */
   | { type: 'hand-edits-request' }
@@ -200,9 +212,15 @@ export type CheckedSet = {
   blocked: boolean; upToDate: boolean;
   /** #3421 — blocked only by variables or styles the brand's Theme writes (`SetPreview.themeBlocked`). */
   themeBlocked?: true;
+  /** #3713 — a blocked set's reasons, the dry run's own blocker lines (`SetPreview.blockers`), so Update file can name
+   *  them. Absent when the set is not blocked. */
+  reasons?: string[];
   /** #2831 — on a published set, what this update breaks for library consumers, as one line (`breakingSummary`).
    *  Absent for a set that is not published, or where nothing breaks. */
   breaks?: string;
+  /** #3711 (Q-UF2 A) — the same changes, each named (`consumerLines`, capped as the check's section is), and how many
+   *  in all, for the callout above Update file's button. Absent where `breaks` is. */
+  changes?: { count: number; lines: string[] };
 };
 
 /** A style-guide specimen (#259) — the `type` axis of `_style-guide-swatches` a table row instances. */
@@ -365,7 +383,19 @@ export type MainToUi =
      *  the builder joins them (per axis, per note), without the joining separator. Built from the one list `summary`
      *  is joined from (`fromClauses` in `apply-summary.ts`), so the drawer never re-parses the prose. The agent link's
      *  result leaves it out (`agent-dispatch.ts`), so what an agent reads is unchanged, its keys in their order. */
-    lines: string[] }
+    lines: string[];
+    /** #1909: a refused apply's collisions, one per conflict, so the panel can ask Skip or Rename for each. The panel's
+     *  refusal only; absent on a clean apply and on an agent's result. `key` is what a choice is posted back under. */
+    collisions?: { key: string; kind: string; name: string; detail: string }[];
+    /** #1909, the review of #3518: with `collisions`, the choices this apply already used, when a choice (a Rename onto a
+     *  name someone else holds) made the collisions listed. The panel posts them back with the new choices, so it never
+     *  asks the earlier list again. Absent when the apply used none. */
+    chosen?: Record<string, 'skip' | 'rename'> }
+  /** #3394: the agent link's `set-override`. `preview`: a `confirm: false` call, which writes nothing (`ok` when no change is
+   *  refused). Otherwise a write, `applied` when the Theme write ran and stored the brand. Its own kind and its own Activity
+   *  row, "Color override" (Q3394.7 A), never Theme's `apply-result`. `lines`: one per change, before → after, or one per
+   *  refusal. */
+  | { type: 'override-result'; ok: boolean; preview: boolean; applied: boolean; headline: string; summary: string; lines: string[] }
   /** Result of a `build-components` write (#483) — the same `{ok, headline, summary}` shape as
    *  `apply-result`, and a DISTINCT variant for the same reason `seed-info` is: one kind per fact.
    *
@@ -388,7 +418,10 @@ export type MainToUi =
      *  first, each page header. */
     lines: string[];
     /** #3326: why the build is not clean, as data (`Cause`). Sent by every build verdict; absent from a host older than it. */
-    causes?: Cause[] }
+    causes?: Cause[];
+    /** #3359: the ids of the sets this build made first (#1633, #3308), as the "Also built" line names them, so the
+     *  panel's run does not post a queued one again. Absent where nothing was built first. */
+    alsoBuilt?: string[] }
   /** Result of the in-place update's dry run, or of a baseline capture (#2265) — the `{ok, headline, summary}`
    *  shape, its own kind for the one-kind-per-fact reason: "what would an update change" is not "did my build
    *  land", and must not overwrite the build's verdict on the Components page. Only the agent link sends the
@@ -401,7 +434,11 @@ export type MainToUi =
     causes?: Cause[];
     /** #2858: after an Update that wrote, the library publish description for Figma's Publish library dialog. No
      *  Plugin API call sets it, so the drawer offers it with a Copy button. */
-    publish?: string }
+    publish?: string;
+    /** #3711 (Q-UF3 A): the applied update went through every set it was given, none stopped or refused, and no stop
+     *  was asked for (`applyVerdict`). Not `ok` with it: every set written, some left to check, so Update file's run goes
+     *  on as a warning. Absent from every other verdict of this kind. */
+    completed?: boolean }
   /** Result of a `file-setup` scaffold (#1554) — the same `{ok, headline, summary}` shape as
    *  `apply-result` / `component-result`, a DISTINCT variant for the same one-kind-per-fact reason: "did
    *  the page skeleton get laid" is separately true and separately actionable from a theme or component
@@ -438,16 +475,20 @@ export type MainToUi =
    *  for the same reason those two are distinct: one kind per fact — a prune preview must not overwrite a
    *  theme write's verdict, and the prune's own confirm dialog reads `count` to decide whether to open. */
   | { type: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string;
+      /** A preview's hash, which its delete echoes (#3697 R6). */
+      previewHash?: string;
       /** Set on an AGENT's preview (the agent link): show it as a pill, never open the confirm dialog. The
        *  dialog's Confirm would prune against the panel's own knobs, not the input the agent previewed. */
       pillOnly?: boolean }
-  /** A write the main thread DECLINED because a run of the same operation was already going (#1957,
+  /** A write the main thread DECLINED because another write held the file (#1957; file-wide since #3697 R7,
    *  `run-guard.ts`). Not a verdict: the file is untouched and the running write is unaffected, so this
    *  must not land in the operation's verdict slot or settle its run, and it is its own kind for that
    *  reason. `agent` says whose request was declined: an agent's (the agent also gets `busy` in its own
    *  command result), or the panel's own. The Activity drawer adds it to the row's earlier results as
    *  "Refused" (the owner's call). */
-  | { type: 'refused'; code: 'busy'; cmd: WriteCmd; agent: boolean; message: string }
+  | { type: 'refused'; code: 'busy'; cmd: WriteCmd; agent: boolean; message: string;
+      /** #3697 R7: the write holding the file, which since the one file-wide hold need not be `cmd`. */
+      held: WriteCmd }
   /** A component build is UNDERWAY (#684) — posted at every chunk boundary, many times per build.
    *
    *  THE ONLY NON-TERMINAL MESSAGE ON THIS BRIDGE, and the reason it had to exist: `build-components`

@@ -5,7 +5,7 @@
  *
  *  Stamps its root with the shared-section marker (`data-sg-section="springs"`, `kit.ts`'s header).
  *  WHAT IT IS HANDED. The resolved springs (`theme.motion.spring`) and the block's copy. Nothing here reads the session. */
-import type { Theme } from '@prism3/engine/theme';
+import type { Theme } from '@prism3/engine';
 import { el, hook, subHead, tokenPillWrapping } from './kit';
 
 export const springsSection = (spring: Theme['motion']['spring'], copy: { title: string; desc: string }): HTMLElement => {

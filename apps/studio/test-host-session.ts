@@ -28,9 +28,8 @@
  * failed verdict (the refusal counted as needing attention) → `refused: an agent's declined request leaves …`;
  * pin `n` → `refused: a second identical refusal still counts as a change`.
  */
-import type { BrandInput } from '@prism3/engine/theme';
-import { brandTheme } from '@prism3/engine/theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { type BrandInput, brandTheme } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession } from './src/state/host-session';
 import type { HostMessage } from './src/write-adapter';
 
@@ -68,7 +67,7 @@ ok(typeof (globalThis as { document?: unknown }).document === 'undefined', 'prem
 
 const init = initialHostSession();
 ok(same(plain(init), {
-  seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, componentState: null, componentUpdate: null, componentLatest: null, specsState: null,
+  seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, collisions: null, collisionsChosen: null, componentState: null, componentUpdate: null, componentLatest: null, specsState: null, overrideState: null,
   fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, styleGuideCatalog: null, styleGuideRun: null, styleGuideRetired: [], styleGuideCleanup: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
   pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], hostFontStyleNames: [], agentRun: null, refused: null, docSettings: null, fileSets: null, liveDue: null, panelsClean: { busy: false, count: null, verdict: null }, addQueue: null,
   handEdits: [], handPass: 'idle', updateCheck: null, updateProgress: null,
@@ -167,9 +166,9 @@ for (const c of verdictCases) {
 // ---- prune-result: the four branches ---------------------------------------------------------------------
 {
   const busy: HostSession = { ...init, pruneBusy: 'preview', pruneVerdict: { ok: true, applied: false, count: 1, summary: 'old' } };
-  const preview = step(busy, { kind: 'prune-result', ok: true, applied: false, count: 3, summary: '3 stale' });
-  ok(preview.next.pruneBusy === false && same(preview.next.prunePreview, { count: 3, summary: '3 stale' }) && preview.next.pruneVerdict === null,
-    'prune-result: a preview with something stale opens the confirm (prunePreview) and clears the verdict');
+  const preview = step(busy, { kind: 'prune-result', ok: true, applied: false, count: 3, summary: '3 stale', previewHash: 'abcdef01' });
+  ok(preview.next.pruneBusy === false && same(preview.next.prunePreview, { count: 3, summary: '3 stale', previewHash: 'abcdef01' }) && preview.next.pruneVerdict === null,
+    'prune-result: a preview with something stale opens the confirm (prunePreview, with the hash its Delete echoes, #3697 R6) and clears the verdict');
   ok(same(preview.topics, ['host']), 'prune-result: invalidates host (the bar)');
   const none = step(busy, { kind: 'prune-result', ok: true, applied: false, count: 0, summary: 'nothing stale' });
   ok(none.next.prunePreview === null && same(none.next.pruneVerdict, { ok: true, applied: false, count: 0, summary: 'nothing stale' }),
@@ -177,7 +176,7 @@ for (const c of verdictCases) {
   const agent = step(busy, { kind: 'prune-result', ok: true, applied: false, count: 2, summary: '2 stale', pillOnly: true });
   ok(agent.next.prunePreview === null && same(agent.next.pruneVerdict, { ok: true, applied: false, count: 2, summary: 'Agent preview: 2 stale' }),
     'prune-result: an agent preview (pillOnly) is a pill, never the dialog');
-  const done = step({ ...busy, pruneBusy: 'delete', prunePreview: { count: 3, summary: '3 stale' } },
+  const done = step({ ...busy, pruneBusy: 'delete', prunePreview: { count: 3, summary: '3 stale', previewHash: 'h' } },
     { kind: 'prune-result', ok: true, applied: true, count: 3, summary: 'removed 3' });
   ok(done.next.pruneBusy === false && done.next.prunePreview === null && same(done.next.pruneVerdict, { ok: true, applied: true, count: 3, summary: 'removed 3' }),
     'prune-result: an applied delete is the verdict and closes the dialog');
@@ -289,8 +288,8 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
     'component-update-result: fills componentUpdate, marks it latest, settles the agent run, and leaves the build\'s slot and set record alone');
   ok(same(v.topics, ['host', 'host:components']) && v.effect === null, 'component-update-result: invalidates host and host:components (the Build control the run held busy)');
   // #2858: an Update's publish description reaches the slot the Activity drawer reads.
-  const pub = step(run, { kind: 'component-update-result', ok: true, headline: '✓ updated 1 in place', summary: 's', lines: null, publish: 'Before Prism3 updated tag.' });
-  ok(pub.next.componentUpdate !== null && pub.next.componentUpdate !== 'pending' && pub.next.componentUpdate.publish === 'Before Prism3 updated tag.', 'component-update-result: the publish description is kept on the verdict');
+  const pub = step(run, { kind: 'component-update-result', ok: true, headline: '✓ updated 1 in place', summary: 's', lines: null, publish: 'Prism3 updated tag.' });
+  ok(pub.next.componentUpdate !== null && pub.next.componentUpdate !== 'pending' && pub.next.componentUpdate.publish === 'Prism3 updated tag.', 'component-update-result: the publish description is kept on the verdict');
   const rebuilt = step({ ...v.next, componentState: 'pending' }, { kind: 'component-result', ok: true, completed: true, headline: 'H', summary: 'S' });
   ok(rebuilt.next.componentLatest === 'build' && same(rebuilt.next.componentUpdate, v.next.componentUpdate),
     'component-result after a check: the build is latest again, and the check\'s verdict is kept');
@@ -320,6 +319,27 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
   ok(same(r.next.specsState, { ok: false, headline: '✗ not drawn', summary: 'An agent is building.' }), 'specs: a refusal of the panel\'s Draw specs is its result, in the host\'s words');
   const a = step(drawing, { kind: 'refused', code: 'busy', cmd: 'build-components', agent: true, message: 'The panel is drawing.' });
   ok(a.next.specsState === 'pending', 'specs: an agent\'s refused command leaves the panel\'s Draw specs out');
+}
+
+// ---- the agent link's color overrides (#3394 Q3394.7 A) --------------------------------------------------
+// An agent's `set-override` is the "Color override" operation: its run settles on its `override-result`, which lands in
+// a slot of its own and never in Theme's. (Mutations: `'set-override': 'override'` dropped from AGENT_OP → `override/run`;
+// the reducer's case dropped → `override/verdict`.)
+{
+  const ag = step(init, { kind: 'agent-started', id: 'o1', cmd: 'set-override' });
+  ok(ag.next.agentRun?.op === 'override', `override/run: an agent's set-override runs the Color override operation (op ${ag.next.agentRun?.op})`);
+  const v = step(ag.next, { kind: 'override-result', ok: true, preview: false, applied: true, headline: 'Saved 1 color override — 972 of 972 pairs at or above their minimum.',
+    summary: 'Light · interactive.primary.border.rest: neutral 600 → neutral 400 (6.65:1 → 3.26:1)', lines: ['Light · interactive.primary.border.rest: neutral 600 → neutral 400 (6.65:1 → 3.26:1)'] });
+  ok(v.next.agentRun?.settled === true && v.next.applyState === null && same(v.next.overrideState, { ok: true, headline: 'Saved 1 color override — 972 of 972 pairs at or above their minimum.',
+    summary: 'Light · interactive.primary.border.rest: neutral 600 → neutral 400 (6.65:1 → 3.26:1)', lines: ['Light · interactive.primary.border.rest: neutral 600 → neutral 400 (6.65:1 → 3.26:1)'] }),
+    `override/verdict: the verdict settles the run and is Color override's, not Theme's (${JSON.stringify(v.next.overrideState)}, applyState ${JSON.stringify(v.next.applyState)})`);
+  ok(JSON.stringify(v.topics) === JSON.stringify(['host']), `override/topics: the drawer repaints (${JSON.stringify(v.topics)})`);
+  // A preview writes nothing: it settles the run and leaves the row's last write as it was.
+  const pv = step({ ...ag.next, overrideState: v.next.overrideState }, { kind: 'override-result', ok: true, preview: true, applied: false, headline: 'Preview — 1 change; no pair moves below its minimum.', summary: 'x', lines: ['x'] });
+  ok(pv.next.agentRun?.settled === true && same(pv.next.overrideState, v.next.overrideState), `override/preview: a preview settles the run and leaves the row's verdict (${JSON.stringify(pv.next.overrideState)?.slice(0, 60)})`);
+  // The panel's Apply, declined behind an agent's confirmed write (it holds Theme's guard), is not left pending.
+  const dec = step({ ...ag.next, applyState: 'pending' }, { kind: 'refused', code: 'busy', cmd: 'apply-theme', agent: false, message: 'Update file is already running. Try again when it finishes.' });
+  ok(dec.next.applyState === null, `override/apply-declined: a panel Apply declined behind an agent's set-override is not left pending (${JSON.stringify(dec.next.applyState)})`);
 }
 
 // ---- a declined second write (#1957) ---------------------------------------------------------------------
@@ -352,6 +372,16 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
   const prune = step({ ...step(init, { kind: 'agent-started', id: 'p1', cmd: 'prune' }).next, pruneBusy: 'delete' },
     { kind: 'refused', code: 'busy', cmd: 'prune', agent: false, message: 'Update file is already running. Try again when it finishes.' });
   ok(prune.next.pruneBusy === false, 'refused: a declined delete behind an agent\'s prune clears the panel\'s delete');
+  // #3697 R7: one hold for the whole file. The panel's build, declined behind an agent's APPLY (another operation), gets
+  // no verdict from that run, so its pending is cleared; declined behind the panel's own apply, the same.
+  const otherOp = step({ ...agentRun, componentState: 'pending' }, { kind: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: BUSY, held: 'apply-theme' });
+  ok(otherOp.next.componentState === null && otherOp.next.applyState === agentRun.applyState,
+    'refused (#3697 R7): a panel build declined behind an agent\'s apply clears the build\'s pending, and leaves Theme as it was');
+  const ownOther = step({ ...panelRun, componentState: 'pending' }, { kind: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: BUSY, held: 'apply-theme' });
+  ok(ownOther.next.componentState === null && ownOther.next.applyState === 'pending',
+    'refused (#3697 R7): a panel build declined behind the panel\'s own apply clears the build\'s pending; the apply stays pending');
+  const ownSame = step(panelRun, { kind: 'refused', code: 'busy', cmd: 'apply-theme', agent: false, message: BUSY, held: 'apply-theme' });
+  ok(ownSame.next.applyState === 'pending', 'refused (#3697 R7): declined behind the panel\'s own run of the same write, the pending stays that run\'s');
   const unknown = step(init, { kind: 'refused', code: 'busy', cmd: 'readback', agent: true, message: 'x' });
   ok(unknown.next === init && unknown.topics.length === 0, 'refused: a command with no write operation changes nothing');
 }

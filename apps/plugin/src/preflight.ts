@@ -56,9 +56,7 @@
  * check has already cleared, and a rename does not change a type); and a host limit on mode COUNT (a plan
  * tier's mode cap) is not knowable from the API before `addMode` hits it.
  */
-import type { WritePlan, FloatCollectionPlan, VarCollectionPlan, StylesPlan, GridStylePlan, TextStylePlan } from '@prism3/engine/write-plan';
-import { renameMap, validateRenameMap, planCollectionRenames, isRefusal, type RenameMap } from '@prism3/engine/rename-map';
-import { CORE_COLLECTION } from '@prism3/engine/emit-figma-color';
+import { type WritePlan, type FloatCollectionPlan, type VarCollectionPlan, type StylesPlan, type GridStylePlan, type TextStylePlan, renameMap, validateRenameMap, planCollectionRenames, isRefusal, type RenameMap, CORE_COLLECTION } from '@prism3/engine/figma';
 import { ownedModeIds, replacesOnRetype, type VarCollection } from './write-figma';
 import { isEngineDescription, type StyleKind } from './prune-figma';
 import { isMarkedOwned, type Markable } from './provenance';
@@ -91,12 +89,21 @@ export type Conflict = {
   kind: 'collection' | 'variable' | `${StyleKind} style`;
   name: string;
   detail: string;
+  /** A `variable` conflict only (#1909): the collection the plan writes it into, by its planned name, so a choice
+   *  about it can find its row. A variable name is unique within its collection, not across the file. */
+  collection?: string;
 };
+
+/** The collections the color executor writes, by name (#1909). `null` skips that collection: the executor neither finds
+ *  nor creates it. Every other collection's name is its plan's `name`, so only these two need saying. */
+export type ColorNames = { core: string | null; color: string | null };
+export const COLOR_NAMES: ColorNames = { core: CORE_COLLECTION, color: 'color' };
 
 /**
  * Assemble the pre-flight plan from the SAME plan objects the executors are handed, so the names checked
- * are the names written. Collection names mirror the executors': the palette slice lands in `core`, the
- * color create rows in `color` (hardcoded in `applyWritePlan`, since `plan.color` carries no name).
+ * are the names written. Collection names mirror the executors': the palette slice lands in `names.core`, the
+ * color create rows in `names.color` (`applyWritePlan` takes the same pair, since `plan.color` carries no name). A
+ * collection a collision choice skipped (#1909) is `null` there, and is not checked because it is not written.
  */
 export const preflightPlanOf = (p: {
   color: WritePlan;
@@ -107,10 +114,10 @@ export const preflightPlanOf = (p: {
   styles: StylesPlan;
   grid: GridStylePlan;
   text: TextStylePlan;
-}): PreflightPlan => ({
+}, names: ColorNames = COLOR_NAMES): PreflightPlan => ({
   variables: [
-    { collection: CORE_COLLECTION, rows: p.color.palette.map((r) => ({ name: r.name, type: 'COLOR' as const })) },
-    { collection: 'color', rows: p.color.color.create.map((r) => ({ name: r.name, type: 'COLOR' as const })) },
+    ...(names.core === null ? [] : [{ collection: names.core, rows: p.color.palette.map((r) => ({ name: r.name, type: 'COLOR' as const })) }]),
+    ...(names.color === null ? [] : [{ collection: names.color, rows: p.color.color.create.map((r) => ({ name: r.name, type: 'COLOR' as const })) }]),
     ...p.float.map((c) => ({ collection: c.name, rows: c.create.map((r) => ({ name: r.name, type: 'FLOAT' as const })) })),
     ...[...p.font, ...p.motion].map((c) => ({ collection: c.name, rows: c.rows.map((r) => ({ name: r.name, type: r.resolvedType })) })),
   ],
@@ -179,7 +186,7 @@ export const preflightApply = async (
       const v = byName.get(row.name);
       // The one mismatch Apply resolves (#2412, Q293 A): a stamped `motion` collection's FLOAT, replaced as TIMING.
       if (v && v.resolvedType !== row.type && !replacesOnRetype(group.collection, stamped(col), v.resolvedType, row.type)) {
-        conflicts.push({ kind: 'variable', name: row.name, detail: `is ${v.resolvedType} in "${current}"; Prism3 writes ${row.type}` });
+        conflicts.push({ kind: 'variable', name: row.name, detail: `is ${v.resolvedType} in "${current}"; Prism3 writes ${row.type}`, collection: group.collection });
       }
     }
   }

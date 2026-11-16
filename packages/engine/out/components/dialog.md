@@ -90,7 +90,7 @@ Use a Dialog when the user must make a decision or finish a short task before go
 
 - **Enter:** A centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge; an end panel slides in from the end edge (motion.duration.moderate, motion.easing-role.enter). The backdrop fades in.
 - **Exit:** The reverse, on motion.easing-role.exit.
-- **Reduced motion:** Under prefers-reduced-motion every placement opens and closes at once, with no movement and no fade: motion.duration-reduced.moderate is 0ms.
+- **Reduced motion:** Under prefers-reduced-motion every placement and the backdrop fade only, with no slide and no scale, on motion.duration-reduced.normal to open and to close. A fade is not movement, and it keeps the cue that a layer opened or closed.
 
 ## Content guidelines
 
@@ -102,7 +102,7 @@ Titles are specific and in sentence case. Body text is short and states the cons
 ## Related components
 
 - **Built from:** `flush-icon-button-neutral`, `divider`, `button-group`
-- **Instead, consider:** `accordion`
+- **Instead, consider:** `accordion`, `toast`, `banner`
 - **Often used with:** `button`, `button-neutral`, `button-destructive`, `text-field`, `select`, `checkbox-group`, `radio-group`
 - **Replaces:**
   - a div overlay with a z-index and a hand-written focus trap

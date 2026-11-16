@@ -22,8 +22,7 @@
  * `VariablesApi` port with the write executor, so it's unit-testable against the same in-memory
  * shim (see `apps/plugin/test-readback.ts`).
  */
-import type { ReadbackSnapshot, ReadValue } from '@prism3/engine/read-back';
-import { axisSource, inAxis } from '@prism3/engine/figma-names';
+import { type ReadbackSnapshot, type ReadValue, axisSource, inAxis } from '@prism3/engine/figma';
 import type { VariablesApi, VariableAlias, AliasWithOpacity, ReadVarValue } from './write-figma';
 import { plannedModeNames } from './write-figma';
 
@@ -105,7 +104,7 @@ export const readFigmaVariables = async (vars: VariablesApi, styles?: StylesRead
   // FLOAT axes (#146) — the geometric/dimensional axes. Read each present one into the same per-mode
   // shape as colour (alias → target NAME, literal → the numeric value as an Rgba-less ReadValue). Keyed
   // by axis key so `verifyFloatReadback` can check presence + resolution.
-  const FLOAT_AXES = ['core/dimension', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'blur', 'layout'];
+  const FLOAT_AXES = ['core/dimension', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'blur', 'text-spacing', 'layout'];
   const float: NonNullable<ReadbackSnapshot['float']> = {};
   for (const key of FLOAT_AXES) {
     const coll = collections.find((c) => c.name === axisSource(key).collection);

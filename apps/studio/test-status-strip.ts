@@ -113,6 +113,16 @@ r = withReading(r, { run: 'update', phase: 'work', item: 'checkbox', done: 4, to
   steps: ['setup', 'theme', 'sets', 'guides'], stopped: false, run: startStripRun(T0), now: T0 + 95_000, nameOf });
   ok(J(warned) === J({ tone: 'warn', what: 'File updated', n: '1:35', sub: 'File set up, Theme applied, Sets added, Style guides drawn. Built 9 sets · 5 with problems. Details in Activity.' }),
     `verdict/warn: a run whose sets step had problems ends "File updated" as a warning, naming them (${J(warned)})`);
+  // #3711 (Q-UF3 A): the owner's run of 2026-11-12, once sets to check no longer stop it: the update wrote all 47 sets, 2
+  // left to check, then the style guides ran. A warning, not "Stopped at the update". Literal.
+  {
+    let u: StripRun = startStripRun(T0);
+    u = stepEnded(withReading(u, { run: 'update', phase: 'finish', item: null, done: 47, total: 47 }, T0 + 1), T0 + 2);
+    const v = stripVerdict({ results: [{ step: 'update', ok: false, headline: '⚠ Updated 47 sets · 2 to check', warn: true }, { step: 'guides', ok: true, headline: '✓ drawn' }],
+      steps: ['update', 'guides'], stopped: false, run: u, now: T0 + 95_000, nameOf });
+    ok(J(v) === J({ tone: 'warn', what: 'File updated', n: '1:35', sub: '47 sets updated, Style guides drawn. Updated 47 sets · 2 to check. Details in Activity.' }),
+      `verdict/update warn: a run whose update left sets to check ends "File updated" as a warning (${J(v)})`);
+  }
   // #3308 Q3308.4, the owner's copy decision (2026-11-02): the cover step's verdict reads "Cover page drawn", true with
   // Documentation's cover off too, when the step draws About this library alone.
   const first = stripVerdict({ results: [{ step: 'setup', ok: true, headline: '✓' }, { step: 'theme', ok: true, headline: '✓' }, { step: 'cover', ok: true, headline: '✓' }], steps: ['setup', 'theme', 'cover'], stopped: false, run: startStripRun(T0), now: T0 + 75_000, nameOf });

@@ -18,8 +18,8 @@
  * Arms, by name: mcp · relay/url · instructions/length · instructions/rules · instructions/same · resources/capability ·
  * resources/list · resources/resolve · resources/public-only · served/no-file-keys (#3300) · pair/on-demand · no-plugin · origin/refused · pair/secret-file · pair/expiry · pair/cap · pair/challenge · pair/wrong-code · pair/replay · pair/limit · pair/no-request · pair/no-evict ·
  * handshake · fragmented · ping · run · stream · progress · big-frame · timeout · unmasked · disconnect · reconnect ·
- * resend/hand · pair/relay · pair/not-in-file · pair/refused · e2e/routes · e2e/parity · resend/e2e · resend/running ·
- * e2e/link-off · e2e/switch-off · bridge/<read> · envelope/<read> · no-write/<read> · context/commands · context/engine-mcp · context/read-first (#3300 B) ·
+ * resend/hand · server-proof/<arm> · forget-code/<arm> · pair/relay · pair/not-in-file · pair/refused · e2e/routes · e2e/parity · resend/e2e · resend/running ·
+ * mcp/args (#2639; mutation: the hand-typed args line back → `mcp/args`) · e2e/link-off · e2e/switch-off · bridge/<read> · envelope/<read> · no-write/<read> · context/commands · context/engine-mcp · context/read-first (#3300 B) ·
  * arm/0-starts · arm/1-starts · arm/<n>-context · arm/<n>-resources · arm/no-leak · arm/1-note · record/calls · record/args · arm/bad-value (#3440;
  * mutation: one sentence of the note leaked into arm 0's figma_status description → `arm/no-leak: arm 0's tools/list …`;
  * one appended to the context refusal's message → `arm/no-leak: arm 0's context refusal …`)
@@ -50,6 +50,46 @@
  * Only the stdio agent opens a window (review B3): a `pair` message on the socket issuing a code when none is live
  * (`if (pairing.code() === null) pairing.request();` before `pairOk`) → `pair/no-request`, against the spawned server.
  *
+ * #3697 R8 (the owner's A): the server proves itself back. `server-proof/welcome`, `server-proof/paired` and
+ * `server-proof/no-nonce` read the spawned server's answers against proofs derived here with `node:crypto`; the relay
+ * arms drive the real relay over a fake socket that speaks for an impostor on the port: `server-proof/impostor` (a
+ * welcome with no proof, or proved with another token), `server-proof/replay` (proved over an earlier nonce),
+ * `server-proof/unsolicited-paired` (a paired with no code pending, one before this socket sent its code, and one after
+ * the welcome), `server-proof/impostor-paired` (a code pending, the
+ * wrong proof). MUTATIONS, each failing by name: the relay's welcome check removed → `server-proof/impostor`; its paired
+ * checks removed → `server-proof/unsolicited-paired` and `server-proof/impostor-paired`; the server's welcome sent with
+ * no proof → `server-proof/welcome` and `pair/relay`. #3728 review S1, one clause at a time: `!codeSent` dropped from the
+ * paired guard → `server-proof/unsolicited-paired` (the paired before this socket's code); `connected` dropped →
+ * `server-proof/unsolicited-paired` (the paired after the welcome); the server's clientNonce check dropped from the hello,
+ * from the pair, or its shape test (`CLIENT_NONCE_RE`) → `server-proof/no-nonce`.
+ * #3728 review S1′: `codeSent = false` dropped from `connect()` → `server-proof/unsolicited-paired` (a paired on the
+ * socket after one that sent the code closed with 1006, before its challenge).
+ * #3728 review S3: `sameProof` cut to its first character → `server-proof/near-miss` (a welcome and a paired whose
+ * proof differs from the real one only in its last hex digit).
+ * #3764 (option b of D3728.5): `forget-code/closed`, `forget-code/error` (a socket that took the code's pair and closed
+ * with 1006, or errored, without a paired: the code is forgotten, the prompt asks again, nothing retries, and a later
+ * paired proving the old code is refused), `forget-code/impostor-paired` (the same after a paired whose proof fails) and
+ * `forget-code/unsent` (a socket that closed before its challenge keeps the code). MUTATIONS, each failing by name:
+ * `forgetSentCode` emptied to `codeSent = false` → `forget-code/closed`, `forget-code/error`, `forget-code/impostor-paired`;
+ * its `codeSent` clause dropped → `forget-code/unsent`; its `connected` clause dropped → `forget-code/welcomed` (a
+ * welcomed socket that drops reconnects without asking for a code). Since both drop paths now clear `codeSent`, the S1′ reset in
+ * `connect()` is a second guard, and removing it alone no longer fails a test.
+ * #3764 review: `forget-code/hold-open` (a socket that takes the pair and answers nothing is dropped at the `paired`
+ * deadline, the code forgotten and nothing retried; a valid paired on that socket after the deadline keeps no token; a
+ * paired heard in time is kept and the deadline then leaves its socket open). The deadline's length is this test's own
+ * `DEADLINE_MS`, never imported from the relay. MUTATIONS, each failing by name: the deadline's `deps.schedule` removed →
+ * `forget-code/hold-open` (all three); its `codeSent` guard dropped → `forget-code/hold-open: a paired heard before the
+ * deadline is kept …`; `PAIRED_MS` raised to an hour → `forget-code/hold-open: … dropped at a 250 ms deadline …`.
+ *
+ * #3764, the owner's Q-PC1 B: `needed-again/shown` (after a failed attempt forgot the code, the prompt carries the
+ * owner-approved line under the field, read against this test's own literal), `needed-again/first` (a first prompt, and
+ * one after the link is switched off and on, carries no error) and `needed-again/cleared` (a new code submitted clears
+ * the line, and a pairing that succeeds leaves no prompt). MUTATIONS, each failing by name: `forgetSentCode` back to
+ * `'needed'` → `needed-again/shown` (and the forget-code arms that read the state); the `'needed-again'` row of
+ * `pairPromptText` removed → `needed-again/shown`; the first prompt's `'needed'` set to `'needed-again'` →
+ * `needed-again/first`; the submit's `'pairing'` left as the prior state → `needed-again/cleared`; `'needed-again'` dropped
+ * from `waitingForCode` → `forget-code/closed`, `/error`, `/impostor-paired`, `/hold-open` (the relay retries a forgotten code).
+ *
  * #2497: the server runs with a short `--grace-ms`, so a dropped plugin's command fails in seconds here. `resend/e2e`
  * drops the real relay's socket while a command runs in the real main.ts, keeps it down until the result is
  * posted, and asserts the result reaches the MCP client exactly once and the command ran once. `resend/running` drops it
@@ -65,14 +105,14 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { resolve, dirname, join, normalize, isAbsolute } from 'node:path';
 import { chromium } from 'playwright';
-import { ENGINE_VERSION } from '@prism3/engine/version';
+import { ENGINE_VERSION } from '@prism3/engine';
 import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { createBridgeRelay, BRIDGE_PORT, BRIDGE_URL } from './src/agent-bridge-relay';
 import type { WsLike } from './src/agent-bridge-relay';
+import { pairPromptText } from './src/agent-link-ui';
 import { createPairing, createProgressCounter, loadSecret, RESOURCES } from '../../tools/figma-bridge/server';
-import { HANDSHAKE_PROBES } from '../../packages/engine/mcp-handshake-probes';
-import { SERVER_INFO as ENGINE_SERVER } from '../../packages/engine/mcp';
-import { READ_COMMANDS } from './src/agent-protocol';
+import { HANDSHAKE_PROBES, SERVER_INFO as ENGINE_SERVER } from '@prism3/engine/harness';
+import { READ_COMMANDS, AGENT_COMMANDS } from './src/agent-protocol';
 import { readFixture, ARGS, EXPECTED, canon, ACTIVITY_NOTES, activityExpected, atRead, contextExpected } from './agent-read-fixture';
 import { ACTIVITY_KEEP } from './src/activity-log';
 
@@ -112,6 +152,9 @@ const hmacHex = (key: string | Buffer, msg: string) => createHmac('sha256', key)
 const TOKEN = hmacHex(SECRET, 'prism3-bridge-token-v1');
 const proveHello = (nonce: string, token = TOKEN) => hmacHex(token, `prism3-bridge-hello-v1:${nonce}`);
 const provePair = (code: string, nonce: string) => hmacHex(code.replace(/-/g, ''), `prism3-bridge-pair-v1:${nonce}`);
+/** #3697 R8: the server's answers, derived HERE with `node:crypto` from literals (docs/34 shape 1). */
+const proveWelcome = (clientNonce: string, token = TOKEN) => hmacHex(token, `prism3-bridge-welcome-v1:${clientNonce}`);
+const provePaired = (code: string, clientNonce: string, token = TOKEN) => hmacHex(code.replace(/-/g, ''), `prism3-bridge-paired-v1:${clientNonce}:${token}`);
 const child = spawn('npx', ['tsx', resolve(HERE, '../../tools/figma-bridge/server.ts'), '--port', '0', '--grace-ms', String(GRACE_MS), '--config', CONFIG], { stdio: ['pipe', 'pipe', 'pipe'] });
 let stderr = '';
 child.stderr.on('data', (d) => { stderr += d; });
@@ -223,9 +266,15 @@ const openClient = async (origin: string | null = IFRAME_ORIGIN) => {
   const texts = () => frames.filter((f) => f.op === 0x1).map((f) => JSON.parse(f.payload.toString('utf8')));
   /** The challenge's nonce (#3204), once it has arrived. */
   const nonce = async (): Promise<string> => { await until(() => texts().some((m) => m.type === 'challenge')); return texts().find((m) => m.type === 'challenge')?.nonce ?? ''; };
-  const sendJson = (o: unknown) => sock.write(frame(0x1, Buffer.from(JSON.stringify(o))));
+  /** #3697 R8: this client's own nonce, sent with every pair and hello that does not name one itself. */
+  const clientNonce = randomBytes(32).toString('hex');
+  const sendJson = (o: unknown) => {
+    const m = o as Record<string, unknown>;
+    const body = m && (m.type === 'pair' || m.type === 'hello') && !('clientNonce' in m) ? { ...m, clientNonce } : o;
+    return sock.write(frame(0x1, Buffer.from(JSON.stringify(body))));
+  };
   return {
-    head: head ?? '', expected, frames, sock, texts, nonce, sendJson,
+    head: head ?? '', expected, frames, sock, texts, nonce, sendJson, clientNonce,
     closed: () => closed,
     /** The close code the server sent, or null. */
     closeCode: (): number | null => { const f = frames.find((x) => x.op === 0x8); return f && f.payload.length >= 2 ? f.payload.readUInt16BE(0) : null; },
@@ -252,6 +301,14 @@ section('mcp — the stdio loop');
   }
   const list = await rpc('tools/list');
   ok(JSON.stringify(list.result?.tools?.map((t: { name: string }) => t.name)) === JSON.stringify(['figma_status', 'figma_run', 'figma_logs']), 'tools/list: figma_status, figma_run, figma_logs');
+  // #2639: figma_run's `args` description was hand-typed and named 4 of the commands, so an agent reading only tools/list
+  // sent {} to commands that take arguments. Every command must be named with its args, and the shapes below are written
+  // HERE, by hand, from `AgentArgs` (docs/34 shape 1): a check that re-read `AgentArgs` would pass on the server's own parse.
+  const argsDesc: string = list.result?.tools?.find((t: { name: string }) => t.name === 'figma_run')?.inputSchema?.properties?.args?.description ?? '';
+  const unnamed = AGENT_COMMANDS.filter((c) => !argsDesc.includes(`${c}: `));
+  ok(unnamed.length === 0 && argsDesc.includes('update-components: { def?: string; confirm: false } | { def?: string; confirm: true; previewHash: string; choices?: UpdateChoiceArgs }')
+    && argsDesc.includes('style-guide: StyleGuideOptions') && argsDesc.includes('adopt-members: { def?: string }') && argsDesc.includes('snapshot: { id: string; scale?: number }'),
+    `mcp/args: figma_run's args description names every command with its args (${AGENT_COMMANDS.length - unnamed.length}/${AGENT_COMMANDS.length}${unnamed.length ? `, missing ${unnamed.join(', ')}` : ''})`);
   const bad = await rpc('tools/call', { name: 'figma_paint' });
   ok(bad.error?.code === -32602, 'an unknown tool is a protocol error');
 }
@@ -454,6 +511,12 @@ section('pairing — the secret file, a wrong code, and no eviction by an unpair
     `pair/wrong-code: a wrong code is refused with 4403 and given no token (close ${w.closeCode()})`);
   ok((await call('figma_status')).value?.connected === false, 'pair/wrong-code: a wrong code never becomes the plugin');
   w.sock.destroy();
+  // #3697 R8: a pair with the RIGHT code but no clientNonce is refused like a wrong code, and does not spend the code.
+  const nn = await openClient();
+  nn.sendJson({ type: 'pair', proof: provePair(CODE, await nn.nonce()), clientNonce: undefined });
+  ok(await until(() => nn.closeCode() === 4403) && !nn.texts().some((m) => m.type === 'paired') && (await call('figma_status')).value?.pairingCode === CODE,
+    `server-proof/no-nonce: a pair with the right code but no clientNonce is closed with 4403, given no token, and the code stays live (close ${nn.closeCode()})`);
+  nn.sock.destroy();
 }
 {
   // REPLAY (#3204 review B2 a): a proof is bound to the nonce of the connection it was made on. A hello proof captured on
@@ -470,6 +533,21 @@ section('pairing — the secret file, a wrong code, and no eviction by an unpair
   ok(!first.closed() && first.closeCode() === null && (await call('figma_status')).value?.connected === true,
     'pair/replay: the replayed hello never becomes the plugin: the first connection keeps the slot');
   second.sock.destroy();
+  // #3697 R8: the server proves the token back. The welcome above carries an HMAC of the token over THIS client's nonce,
+  // derived here independently; a hello with no clientNonce is refused like a wrong proof.
+  const welcome = first.texts().find((m) => m.type === 'welcome');
+  ok(typeof welcome?.proof === 'string' && welcome.proof === proveWelcome(first.clientNonce),
+    `server-proof/welcome: the welcome proves the token over the plugin's own nonce (${welcome?.proof ? 'a proof' : 'no proof'})`);
+  const bare = await openClient();
+  bare.sendJson({ type: 'hello', state: state(), proof: proveHello(await bare.nonce()), clientNonce: undefined });
+  ok(await until(() => bare.closeCode() === 4401) && !bare.texts().some((m) => m.type === 'welcome'),
+    `server-proof/no-nonce: a hello with no clientNonce is closed with 4401 and never welcomed (close ${bare.closeCode()})`);
+  bare.sock.destroy();
+  const odd = await openClient();
+  odd.sendJson({ type: 'hello', state: state(), proof: proveHello(await odd.nonce()), clientNonce: 'Z'.repeat(64) });
+  ok(await until(() => odd.closeCode() === 4401) && !odd.texts().some((m) => m.type === 'welcome'),
+    `server-proof/no-nonce: a hello whose clientNonce is not 32 bytes of lower-case hex is closed with 4401 and never welcomed (close ${odd.closeCode()})`);
+  odd.sock.destroy();
   first.sock.destroy();
   ok(await untilAsync(async () => (await call('figma_status')).value?.connected === false), 'pair/replay: closed');
   // The welcome left no code live (Q3204.5 A); with no plugin connected, figma_status asks for a new one.
@@ -525,12 +603,16 @@ section('pairing — the secret file, a wrong code, and no eviction by an unpair
   const MAX_RETIREMENTS = 3;
   const printed = () => [...stderr.matchAll(/pairing code: ([2-9A-Z]{4}-[2-9A-Z]{4})/g)].map((m) => m[1]);
   const wrongBut = (...avoid: string[]) => ['ZZZZ-ZZZZ', 'YYYY-YYYY', 'XXXX-XXXX'].find((w) => !avoid.includes(w))!;
+  /** #3697 R8: whether each paired answer carried the right proof. */
+  const pairedProofs: boolean[] = [];
   /** One `pair` attempt on a fresh connection: whether it was given a token. */
   const tryPair = async (code: string): Promise<boolean> => {
     const g = await openClient();
     g.sendJson({ type: 'pair', proof: provePair(code, await g.nonce()) });
     await until(() => g.closeCode() !== null || g.texts().some((m) => m.type === 'paired'));
     const paired = g.texts().some((m) => m.type === 'paired');
+    const answer = g.texts().find((m) => m.type === 'paired');
+    if (answer) pairedProofs.push(answer.proof === provePaired(code, g.clientNonce) && answer.token === TOKEN);
     g.sock.destroy();
     return paired;
   };
@@ -553,6 +635,8 @@ section('pairing — the secret file, a wrong code, and no eviction by an unpair
 
   // 1. A pair spends the live code, so none is live.
   ok(await tryPair(CODE), 'pair/no-request: the live code pairs, and is spent');
+  ok(pairedProofs.length > 0 && pairedProofs.every(Boolean),
+    `server-proof/paired: each paired answer proves the code just spent over the plugin's nonce and the token (${pairedProofs.filter(Boolean).length}/${pairedProofs.length})`);
   CODE = await probe('after a pair has spent the code', CODE);
 
   // 2. MAX_RETIREMENTS codes retired by wrong guesses close pairing, so none is live.
@@ -592,7 +676,7 @@ const c1 = await openClient();
 {
   ok(/^HTTP\/1\.1 101/.test(c1.head) && c1.head.includes(`Sec-WebSocket-Accept: ${c1.expected}`), 'handshake: 101 with the RFC 6455 accept key');
   // A FRAGMENTED hello: text frame (FIN=0) + continuation (FIN=1). It carries the pairing proof (#3204).
-  const hello = Buffer.from(JSON.stringify({ type: 'hello', state: state(), proof: proveHello(await c1.nonce()) }));
+  const hello = Buffer.from(JSON.stringify({ type: 'hello', state: state(), proof: proveHello(await c1.nonce()), clientNonce: c1.clientNonce }));
   const cut = 17;
   c1.sock.write(frame(0x1, hello.subarray(0, cut), false));
   c1.sock.write(frame(0x0, hello.subarray(cut), true));
@@ -1238,8 +1322,9 @@ section('arms — what arm 0 and arm 1 show a fresh agent (#3440)');
     // `context` is refused at the bridge, as the build's own code for a command it lacks, written here by hand.
     ok(cx.result?.isError === true && cxv?.error?.code === 'unknown-command',
       `arm/${arm}-context: figma_run context is refused at the bridge with unknown-command, with no plugin asked (${JSON.stringify(cxv)})`);
-    ok(!enumCmds.includes('context') && enumCmds.includes('inspect') && !statusCmds.includes('context') && statusCmds.includes('inspect'),
-      `arm/${arm}-context: neither figma_run's command list nor figma_status's names context (${enumCmds.length} listed, ${statusCmds.length} in status)`);
+    const armArgs: string = (tools.result?.tools ?? []).find((t: { name: string }) => t.name === 'figma_run')?.inputSchema?.properties?.args?.description ?? '';
+    ok(!enumCmds.includes('context') && enumCmds.includes('inspect') && !statusCmds.includes('context') && statusCmds.includes('inspect') && !armArgs.includes('context: ') && armArgs.includes('inspect: '),
+      `arm/${arm}-context: neither figma_run's command list, its args description, nor figma_status's names context (${enumCmds.length} listed, ${statusCmds.length} in status)`);
     ok(rl.error?.code === -32601 && rr.error?.code === -32601 && init.result?.capabilities?.resources === undefined && disc.result?.capabilities?.resources === undefined,
       `arm/${arm}-resources: no resources capability, and resources/list and resources/read are methods it does not have (${JSON.stringify(rl.error ?? rl.result)})`);
     if (arm === '0') {
@@ -1277,6 +1362,349 @@ section('arms — what arm 0 and arm 1 show a fresh agent (#3440)');
   await until(() => bad.exitCode !== null, 60000);
   ok(bad.exitCode === 2, `arm/bad-value: PRISM3_BRIDGE_ARM=3 refuses to start (exit ${bad.exitCode})`);
   if (bad.exitCode === null) bad.kill();
+}
+
+/* ── the server proves itself (#3697 R8, the owner's A) ────────────────────────────────────────────────────── */
+section('server-proof — the relay hears only a server that proves the secret');
+{
+  // A fake socket the test speaks for: an impostor on the port, which knows the wire but not the secret. The proofs it
+  // must give are derived HERE (`proveWelcome`, `provePaired`), never from the relay's own hash (docs/34 shape 1).
+  type Fake = WsLike & { sent: any[]; closed: boolean };
+  const socks: Fake[] = [];
+  const told: any[] = [];
+  const later: Array<() => void> = [];
+  // #3764 review: the delay each `later` entry was scheduled with, so a retry (the relay's 2000 ms default) is told apart
+  // from the `paired` deadline. The deadline's length is this test's own number, not imported from the relay.
+  const laterMs: number[] = [];
+  const DEADLINE_MS = 250;
+  const retriesQueued = () => laterMs.filter((ms) => ms !== DEADLINE_MS).length;
+  const make = (): WsLike => {
+    const f: Fake = { readyState: 1, sent: [], closed: false, send(d: string) { f.sent.push(JSON.parse(d)); }, close() { f.closed = true; },
+      onopen: null, onmessage: null, onclose: null, onerror: null };
+    socks.push(f);
+    return f;
+  };
+  const say = (f: Fake | undefined, m: unknown) => f?.onmessage?.({ data: JSON.stringify(m) });
+  const relayOf = () => createBridgeRelay({ open: make, post: (m) => told.push(m), schedule: (fn, ms) => { later.push(fn); laterMs.push(ms); return later.length; }, cancel: () => undefined, holdMs: 0 });
+  const runLater = () => { laterMs.splice(0); later.splice(0).forEach((fn) => fn()); };
+  const posted = (type: string) => told.filter((m) => m.type === type);
+
+  const r = relayOf();
+  r.fromMain({ type: 'agent-bridge-token', token: TOKEN });
+  r.fromMain({ type: 'agent-link-state', state: state() });
+  const s1 = socks[0];
+  say(s1, { type: 'challenge', v: 1, nonce: 'aa'.repeat(32) });
+  const h1 = s1.sent.find((m) => m.type === 'hello');
+  ok(typeof h1?.clientNonce === 'string' && /^[0-9a-f]{64}$/.test(h1.clientNonce), `server-proof/nonce: the hello carries a 32-byte clientNonce (${h1?.clientNonce})`);
+  say(s1, { type: 'welcome' });
+  say(s1, { type: 'command', command: { v: 1, id: 'imp-1', cmd: 'prune', args: { confirm: true }, issuedAt: '2026-11-12T00:00:00Z' } });
+  ok(!r.connected() && s1.closed && !posted('agent-bridge').some((m) => m.connected) && !posted('agent-command').length,
+    `server-proof/impostor: a welcome with no proof is refused: the socket is dropped, the link never reads connected and its command is never posted (${posted('agent-command').length} posted)`);
+  runLater();
+  const s2 = socks[1] ?? make() as Fake;
+  say(s2, { type: 'challenge', v: 1, nonce: 'bb'.repeat(32) });
+  const h2 = s2.sent.find((m) => m.type === 'hello') ?? {};
+  say(s2, { type: 'welcome', proof: proveWelcome(h2.clientNonce, 'f'.repeat(64)) });
+  ok(!r.connected() && s2.closed, 'server-proof/impostor: a welcome proved with another token is refused');
+  runLater();
+  const s3 = socks[2] ?? make() as Fake;
+  say(s3, { type: 'challenge', v: 1, nonce: 'cc'.repeat(32) });
+  const h3 = s3.sent.find((m) => m.type === 'hello') ?? {};
+  say(s3, { type: 'welcome', proof: proveWelcome(h2.clientNonce) });
+  ok(!r.connected() && s3.closed && h3.clientNonce !== h2.clientNonce, 'server-proof/replay: a welcome proved over an earlier connection\'s nonce is refused, and each connection draws its own');
+  runLater();
+  const s4 = socks[3] ?? make() as Fake;
+  say(s4, { type: 'challenge', v: 1, nonce: 'dd'.repeat(32) });
+  const h4 = s4.sent.find((m) => m.type === 'hello') ?? {};
+  say(s4, { type: 'paired', token: 'e'.repeat(64), proof: provePaired('ABCD-EFGH', h4.clientNonce, 'e'.repeat(64)) });
+  ok(!posted('agent-bridge-paired').length && s4.sent.filter((m) => m.type === 'hello').length === 1,
+    `server-proof/unsolicited-paired: a paired with no code pending is ignored: no token is kept and no second hello sent (${posted('agent-bridge-paired').length} kept)`);
+  say(s4, { type: 'welcome', proof: proveWelcome(h4.clientNonce) });
+  ok(r.connected() && !s4.closed && posted('agent-bridge').some((m) => m.connected), 'server-proof/welcome: a welcome proving the token over this connection\'s nonce connects');
+  say(s4, { type: 'paired', token: 'e'.repeat(64), proof: 'x' });
+  ok(!posted('agent-bridge-paired').length && r.connected(), 'server-proof/unsolicited-paired: and once welcomed, a paired is ignored too');
+  r.fromMain({ type: 'agent-link-state', state: state(false) });
+
+  // A code pending: the paired must prove THAT code. A wrong proof is an impostor; the right one is kept.
+  told.length = 0;
+  const q = relayOf();
+  q.fromMain({ type: 'agent-bridge-token', token: null });
+  q.fromMain({ type: 'agent-link-state', state: state() });
+  say(socks[socks.length - 1], { type: 'challenge', v: 1, nonce: 'ee'.repeat(32) });
+  q.pair('abcd-efgh');
+  const p1 = socks[socks.length - 1];
+  // #3728 review S1: a code is pending, but this socket has not sent it yet (a paired before the challenge). The relay did
+  // not ask this socket for a paired, so it ignores it: no token, no proof check, no drop, and the challenge still gets the pair.
+  say(p1, { type: 'paired', token: 'e'.repeat(64), proof: 'ab'.repeat(32) });
+  ok(!posted('agent-bridge-paired').length && !p1.closed && !p1.sent.length,
+    `server-proof/unsolicited-paired: with a code pending but not yet sent on this socket, a paired is ignored: no token is kept and the socket stays open (${p1.closed ? 'closed' : 'open'})`);
+  say(p1, { type: 'challenge', v: 1, nonce: 'ff'.repeat(32) });
+  const pair1 = p1.sent.find((m) => m.type === 'pair') ?? {};
+  ok(pair1.type === 'pair' && typeof pair1.clientNonce === 'string',
+    'server-proof/unsolicited-paired: and the challenge that follows still gets the pending code\'s pair');
+  say(p1, { type: 'paired', token: 'e'.repeat(64), proof: provePaired('WXYZ-WXYZ', pair1.clientNonce, 'e'.repeat(64)) });
+  ok(!posted('agent-bridge-paired').length && p1.closed && !p1.sent.some((m) => m.type === 'hello'),
+    'server-proof/impostor-paired: with a code pending, a paired that cannot prove that code keeps no token and is dropped');
+  runLater();
+  ok(socks[socks.length - 1] === p1 && q.pairing() === 'needed-again',
+    `forget-code/impostor-paired: and the code is forgotten: the prompt asks again and nothing reconnects (pairing ${q.pairing()})`);
+  q.pair('abcd-efgh');
+  const p2 = socks[socks.length - 1];
+  say(p2, { type: 'challenge', v: 1, nonce: '12'.repeat(32) });
+  const pair2 = p2.sent.find((m) => m.type === 'pair') ?? {};
+  say(p2, { type: 'paired', token: TOKEN, proof: provePaired('ABCD-EFGH', pair2.clientNonce) });
+  ok(posted('agent-bridge-paired').some((m) => m.token === TOKEN) && p2.sent.some((m) => m.type === 'hello'),
+    'server-proof/paired: a paired proving the pending code over this connection\'s nonce is kept, and the hello follows');
+  q.fromMain({ type: 'agent-link-state', state: state(false) });
+
+  // #3728 review S1′: the other half S1 named, a paired on a FRESH socket after a drop. The socket that sent the pair
+  // closes for a reason other than a refusal (1006: `lost()`, which does not clear `codeSent`). The next socket has not
+  // sent the code, so a paired before its challenge is ignored, not proof-checked and dropped.
+  told.length = 0;
+  const d = relayOf();
+  d.fromMain({ type: 'agent-bridge-token', token: null });
+  d.fromMain({ type: 'agent-link-state', state: state() });
+  d.pair('abcd-efgh');
+  const d1 = socks[socks.length - 1];
+  say(d1, { type: 'challenge', v: 1, nonce: '56'.repeat(32) });
+  const dpair = d1.sent.find((m) => m.type === 'pair') ?? {};
+  d1.closed = true;
+  d1.onclose?.({ code: 1006 });
+  runLater();
+  // #3764: the dropped socket took the code, so it is forgotten; the person enters it again and a fresh socket opens.
+  d.pair('abcd-efgh');
+  const d2 = socks[socks.length - 1];
+  say(d2, { type: 'paired', token: 'e'.repeat(64), proof: 'ab'.repeat(32) });
+  ok(dpair.type === 'pair' && d2 !== d1 && !posted('agent-bridge-paired').length && !d2.closed && !d2.sent.length,
+    `server-proof/unsolicited-paired: after a dropped socket sent the code, a paired on the next socket before its challenge is ignored: no token, the socket stays open (${d2.closed ? 'closed' : 'open'})`);
+  say(d2, { type: 'challenge', v: 1, nonce: '78'.repeat(32) });
+  ok(d2.sent.some((m) => m.type === 'pair'), 'server-proof/unsolicited-paired: and that socket\'s challenge still gets the pending code\'s pair');
+  d.fromMain({ type: 'agent-link-state', state: state(false) });
+
+  // Once welcomed, a paired is ignored even while a code went out on this socket: a token held and a code typed, the pair
+  // sent, then the welcome. A later paired that proves the code must not swap the token the welcome just proved.
+  told.length = 0;
+  const w = relayOf();
+  w.fromMain({ type: 'agent-bridge-token', token: TOKEN });
+  w.pair('abcd-efgh');
+  w.fromMain({ type: 'agent-link-state', state: state() });
+  const ws1 = socks[socks.length - 1];
+  say(ws1, { type: 'challenge', v: 1, nonce: '34'.repeat(32) });
+  const wpair = ws1.sent.find((m) => m.type === 'pair') ?? {};
+  say(ws1, { type: 'welcome', proof: proveWelcome(wpair.clientNonce) });
+  const other = 'e'.repeat(64);
+  say(ws1, { type: 'paired', token: other, proof: provePaired('ABCD-EFGH', wpair.clientNonce, other) });
+  ok(wpair.type === 'pair' && w.connected() && !posted('agent-bridge-paired').length && !ws1.closed,
+    `server-proof/unsolicited-paired: once welcomed, a paired is ignored even with a code sent on this socket: the token is not replaced (${posted('agent-bridge-paired').length} kept)`);
+  w.fromMain({ type: 'agent-link-state', state: state(false) });
+
+  // #3728 review S3: every wrong proof above differs early, so a compare that read one character would refuse it. A proof
+  // that is the real one with only its LAST hex digit changed must be refused too, for the welcome and for the paired; the
+  // real proof on the next socket then connects, so the refusal is the compare's, not the arm's.
+  const lastFlipped = (p: string) => p.slice(0, -1) + (p.endsWith('0') ? '1' : '0');
+  told.length = 0;
+  const n = relayOf();
+  n.fromMain({ type: 'agent-bridge-token', token: TOKEN });
+  n.fromMain({ type: 'agent-link-state', state: state() });
+  const n1 = socks[socks.length - 1];
+  say(n1, { type: 'challenge', v: 1, nonce: '9a'.repeat(32) });
+  const nh1 = n1.sent.find((x) => x.type === 'hello') ?? {};
+  const nearWelcome = lastFlipped(proveWelcome(nh1.clientNonce));
+  say(n1, { type: 'welcome', proof: nearWelcome });
+  ok(nearWelcome !== proveWelcome(nh1.clientNonce) && !n.connected() && n1.closed && !posted('agent-bridge').some((x) => x.connected),
+    'server-proof/near-miss: a welcome whose proof differs from the real one only in its last hex digit is refused and dropped');
+  runLater();
+  const n2 = socks[socks.length - 1];
+  say(n2, { type: 'challenge', v: 1, nonce: '9b'.repeat(32) });
+  const nh2 = n2.sent.find((x) => x.type === 'hello') ?? {};
+  say(n2, { type: 'welcome', proof: proveWelcome(nh2.clientNonce) });
+  ok(n2 !== n1 && n.connected() && !n2.closed, 'server-proof/near-miss: and the real welcome on the next socket connects');
+  n.fromMain({ type: 'agent-link-state', state: state(false) });
+
+  told.length = 0;
+  const m = relayOf();
+  m.fromMain({ type: 'agent-bridge-token', token: null });
+  m.fromMain({ type: 'agent-link-state', state: state() });
+  m.pair('abcd-efgh');
+  const m1 = socks[socks.length - 1];
+  say(m1, { type: 'challenge', v: 1, nonce: '9c'.repeat(32) });
+  const mpair1 = m1.sent.find((x) => x.type === 'pair') ?? {};
+  const nearPaired = lastFlipped(provePaired('ABCD-EFGH', mpair1.clientNonce));
+  say(m1, { type: 'paired', token: TOKEN, proof: nearPaired });
+  ok(mpair1.type === 'pair' && !posted('agent-bridge-paired').length && m1.closed && !m1.sent.some((x) => x.type === 'hello'),
+    'server-proof/near-miss: a paired whose proof differs from the real one only in its last hex digit keeps no token and is dropped');
+  runLater();
+  m.pair('abcd-efgh');
+  const m2 = socks[socks.length - 1];
+  say(m2, { type: 'challenge', v: 1, nonce: '9d'.repeat(32) });
+  const mpair2 = m2.sent.find((x) => x.type === 'pair') ?? {};
+  say(m2, { type: 'paired', token: TOKEN, proof: provePaired('ABCD-EFGH', mpair2.clientNonce) });
+  ok(m2 !== m1 && posted('agent-bridge-paired').some((x) => x.token === TOKEN), 'server-proof/near-miss: and the real paired on the next socket is kept');
+  m.fromMain({ type: 'agent-link-state', state: state(false) });
+
+  // #3764 (option b of D3728.5): a socket that took the code's `pair` and is gone without a verified `paired` has let
+  // whatever held the port see the code's proof. The code is forgotten: the prompt asks again, nothing reconnects, and a
+  // later `paired` proving the OLD code is refused, so an impostor that searched it out offline cannot use it.
+  const OLD = 'ABCD-EFGH';
+  const NEW = 'JKMN-PQRS';
+  for (const [arm, end] of [
+    ['closed', (f: Fake) => { f.closed = true; f.onclose?.({ code: 1006 }); }],
+    ['error', (f: Fake) => { f.onerror?.({}); }],
+  ] as const) {
+    told.length = 0;
+    const pairings: string[] = [];
+    const f = createBridgeRelay({ open: make, post: (x) => told.push(x), schedule: (fn, ms) => { later.push(fn); laterMs.push(ms); return later.length; }, cancel: () => undefined, holdMs: 0, onPairing: (p) => pairings.push(p) });
+    f.fromMain({ type: 'agent-bridge-token', token: null });
+    f.fromMain({ type: 'agent-link-state', state: state() });
+    f.pair(OLD.toLowerCase());
+    const f1 = socks[socks.length - 1];
+    say(f1, { type: 'challenge', v: 1, nonce: '3c'.repeat(32) });
+    const fpair1 = f1.sent.find((x) => x.type === 'pair') ?? {};
+    const opened = socks.length;
+    end(f1);
+    const retries = retriesQueued();
+    runLater();
+    ok(fpair1.type === 'pair' && f.pairing() === 'needed-again' && pairings[pairings.length - 1] === 'needed-again' && retries === 0 && socks.length === opened,
+      `forget-code/${arm}: a socket that took the code's pair and ${arm === 'closed' ? 'closed (1006)' : 'errored'} without a paired forgets the code: the prompt asks again and no retry is scheduled (${pairings.join(' → ')}; ${retries} retries, ${socks.length - opened} sockets opened)`);
+    f.pair(NEW);
+    const f2 = socks[socks.length - 1];
+    say(f2, { type: 'challenge', v: 1, nonce: '3d'.repeat(32) });
+    const fpair2 = f2.sent.find((x) => x.type === 'pair') ?? {};
+    say(f2, { type: 'paired', token: 'e'.repeat(64), proof: provePaired(OLD, fpair2.clientNonce, 'e'.repeat(64)) });
+    ok(f2 !== f1 && fpair2.type === 'pair' && fpair2.proof === provePair(NEW, '3d'.repeat(32)) && !posted('agent-bridge-paired').length && f2.closed,
+      `forget-code/${arm}: the next pair proves the new code, and a paired proving the forgotten one keeps no token and is dropped (${posted('agent-bridge-paired').length} kept)`);
+    f.fromMain({ type: 'agent-link-state', state: state(false) });
+  }
+
+  // A socket that closes BEFORE its challenge never sent the code: nothing was seen, so the code stays pending and the
+  // retry sends it. Then the real paired is kept.
+  told.length = 0;
+  const k = relayOf();
+  k.fromMain({ type: 'agent-bridge-token', token: null });
+  k.fromMain({ type: 'agent-link-state', state: state() });
+  k.pair(OLD);
+  const k1 = socks[socks.length - 1];
+  k1.closed = true;
+  k1.onclose?.({ code: 1006 });
+  runLater();
+  const k2 = socks[socks.length - 1];
+  say(k2, { type: 'challenge', v: 1, nonce: '3e'.repeat(32) });
+  const kpair = k2.sent.find((x) => x.type === 'pair') ?? {};
+  say(k2, { type: 'paired', token: TOKEN, proof: provePaired(OLD, kpair.clientNonce) });
+  ok(k2 !== k1 && !k1.sent.some((x) => x.type === 'pair') && k.pairing() !== 'needed' && k.pairing() !== 'needed-again' && kpair.proof === provePair(OLD, '3e'.repeat(32)) && posted('agent-bridge-paired').some((x) => x.token === TOKEN),
+    `forget-code/unsent: a socket that closed before its challenge never sent the code, so the retry sends it and the real paired is kept (pairing ${k.pairing()})`);
+  k.fromMain({ type: 'agent-link-state', state: state(false) });
+
+  // A welcomed socket has nothing to forget: a token held and a code typed, the pair sent, then a welcome proving the
+  // token. When that socket later drops, the link reconnects with its token and nothing asks for a code.
+  told.length = 0;
+  const v = relayOf();
+  v.fromMain({ type: 'agent-bridge-token', token: TOKEN });
+  v.pair(OLD);
+  v.fromMain({ type: 'agent-link-state', state: state() });
+  const v1 = socks[socks.length - 1];
+  say(v1, { type: 'challenge', v: 1, nonce: '3f'.repeat(32) });
+  const vpair = v1.sent.find((x) => x.type === 'pair') ?? {};
+  say(v1, { type: 'welcome', proof: proveWelcome(vpair.clientNonce) });
+  const welcomed = v.connected();
+  v1.closed = true;
+  v1.onclose?.({ code: 1006 });
+  const vRetries = retriesQueued();
+  runLater();
+  ok(vpair.type === 'pair' && welcomed && v.pairing() === 'none' && vRetries === 1 && socks[socks.length - 1] !== v1,
+    `forget-code/welcomed: a welcomed socket that drops asks for no code and reconnects (pairing ${v.pairing()}, ${vRetries} retries)`);
+  v.fromMain({ type: 'agent-link-state', state: state(false) });
+
+  // #3764 review: an impostor that takes the `pair` and HOLDS the socket open, answering nothing, could search the code
+  // space and answer later on that same socket. The `paired` has a deadline: past it the socket is dropped, the code is
+  // forgotten, nothing retries, and a later `paired` proving the old code on that socket is not heard.
+  told.length = 0;
+  runLater();
+  const hPairings: string[] = [];
+  const h = createBridgeRelay({ open: make, post: (x) => told.push(x), schedule: (fn, ms) => { later.push(fn); laterMs.push(ms); return later.length; }, cancel: () => undefined, holdMs: 0, onPairing: (p) => hPairings.push(p) });
+  h.fromMain({ type: 'agent-bridge-token', token: null });
+  h.fromMain({ type: 'agent-link-state', state: state() });
+  h.pair(OLD);
+  const o1 = socks[socks.length - 1];
+  say(o1, { type: 'challenge', v: 1, nonce: '4a'.repeat(32) });
+  const opair = o1.sent.find((x) => x.type === 'pair') ?? {};
+  const deadlines = laterMs.filter((ms) => ms === DEADLINE_MS).length;
+  const hOpened = socks.length;
+  runLater(); // the deadline passes with no `paired`
+  const hRetries = retriesQueued();
+  ok(opair.type === 'pair' && deadlines === 1 && o1.closed && h.pairing() === 'needed-again' && hRetries === 0 && socks.length === hOpened,
+    `forget-code/hold-open: a socket that takes the pair and answers nothing is dropped at a ${DEADLINE_MS} ms deadline, the code forgotten and nothing retried (${deadlines} deadline(s) of ${DEADLINE_MS} ms; closed ${o1.closed}; ${hPairings.join(' → ')}; ${hRetries} retries)`);
+  say(o1, { type: 'paired', token: 'e'.repeat(64), proof: provePaired(OLD, opair.clientNonce, 'e'.repeat(64)) });
+  ok(!posted('agent-bridge-paired').length && !o1.sent.some((x) => x.type === 'hello') && h.pairing() === 'needed-again',
+    `forget-code/hold-open: a valid paired that comes after the deadline, on the held socket, keeps no token (${posted('agent-bridge-paired').length} kept, pairing ${h.pairing()})`);
+  // The deadline does not cut a pairing that answered in time: the real paired is kept, and the deadline then passes
+  // without dropping the socket.
+  h.pair(NEW);
+  const o2 = socks[socks.length - 1];
+  say(o2, { type: 'challenge', v: 1, nonce: '4b'.repeat(32) });
+  const opair2 = o2.sent.find((x) => x.type === 'pair') ?? {};
+  say(o2, { type: 'paired', token: TOKEN, proof: provePaired(NEW, opair2.clientNonce) });
+  runLater();
+  ok(o2 !== o1 && posted('agent-bridge-paired').some((x) => x.token === TOKEN) && o2.sent.some((x) => x.type === 'hello') && !o2.closed && h.pairing() === 'pairing',
+    `forget-code/hold-open: a paired heard before the deadline is kept, and the deadline then leaves the socket open (closed ${o2.closed}, pairing ${h.pairing()})`);
+  h.fromMain({ type: 'agent-link-state', state: state(false) });
+
+  // #3764, the owner's Q-PC1 B: when a failed attempt has forgotten a code, the prompt says why under the field
+  // ('needed-again'). A first prompt never does, and a pairing that succeeds clears it. The words are this test's own
+  // literal, the owner-approved copy verbatim, never read from the UI module.
+  const AGAIN = 'The connection closed before pairing finished. Ask your agent for a new code.';
+  told.length = 0;
+  runLater();
+  const aPairings: string[] = [];
+  const a = createBridgeRelay({ open: make, post: (x) => told.push(x), schedule: (fn, ms) => { later.push(fn); laterMs.push(ms); return later.length; }, cancel: () => undefined, holdMs: 0, onPairing: (p) => aPairings.push(p) });
+  a.fromMain({ type: 'agent-bridge-token', token: null });
+  a.fromMain({ type: 'agent-link-state', state: state() });
+  const a0 = socks[socks.length - 1];
+  say(a0, { type: 'challenge', v: 1, nonce: '5a'.repeat(32) });
+  const firstPairing = a.pairing();
+  const first = pairPromptText(firstPairing);
+  a.pair(OLD);
+  const a1 = socks[socks.length - 1];
+  say(a1, { type: 'challenge', v: 1, nonce: '5b'.repeat(32) });
+  a1.closed = true;
+  a1.onclose?.({ code: 1006 });
+  runLater();
+  const again = pairPromptText(a.pairing());
+  ok(a1 !== a0 && a.pairing() === 'needed-again' && again !== null && again.error === AGAIN && !again.busy,
+    `needed-again/shown: after a failed attempt forgot the code, the prompt shows the owner-approved line under the field (${aPairings.join(' → ')}; error ${JSON.stringify(again?.error)})`);
+  // Each check below is read against that shown line, so it cannot pass where the line is never shown at all.
+  ok(firstPairing === 'needed' && first !== null && first.error === null && first.line === again?.line && again?.error === AGAIN,
+    `needed-again/first: a first prompt (no token kept, no code tried) shows the same line with no error under the field, unlike the prompt after a forgotten code (first: ${firstPairing}, error ${JSON.stringify(first?.error)}; after: error ${JSON.stringify(again?.error)})`);
+  a.pair(NEW);
+  const typed = pairPromptText(a.pairing());
+  const a2 = socks[socks.length - 1];
+  say(a2, { type: 'challenge', v: 1, nonce: '5c'.repeat(32) });
+  const apair = a2.sent.find((x) => x.type === 'pair') ?? {};
+  say(a2, { type: 'paired', token: TOKEN, proof: provePaired(NEW, apair.clientNonce) });
+  const ahello = a2.sent.find((x) => x.type === 'hello') ?? {};
+  say(a2, { type: 'welcome', proof: proveWelcome(ahello.clientNonce) });
+  runLater();
+  ok(a2 !== a1 && again?.error === AGAIN && typed !== null && typed.error === null && a.connected() && a.pairing() === 'none' && pairPromptText(a.pairing()) === null,
+    `needed-again/cleared: the line shown after a forgotten code is cleared once a new code is submitted, and the pairing that succeeds leaves no prompt (shown: ${JSON.stringify(again?.error)}; submitted: error ${JSON.stringify(typed?.error)}; then ${a.pairing()}, connected ${a.connected()})`);
+  // The link switched off and on with no token is a fresh first prompt again: the plain line, no error.
+  a.fromMain({ type: 'agent-link-state', state: state(false) });
+  a.fromMain({ type: 'agent-bridge-token', token: null });
+  a.pair(OLD);
+  a.fromMain({ type: 'agent-link-state', state: state() });
+  const a3 = socks[socks.length - 1];
+  say(a3, { type: 'challenge', v: 1, nonce: '5d'.repeat(32) });
+  a3.closed = true;
+  a3.onclose?.({ code: 1006 });
+  const a3Pairing = a.pairing();
+  a.fromMain({ type: 'agent-link-state', state: state(false) });
+  a.fromMain({ type: 'agent-link-state', state: state() });
+  const a4 = socks[socks.length - 1];
+  say(a4, { type: 'challenge', v: 1, nonce: '5e'.repeat(32) });
+  const fresh = pairPromptText(a.pairing());
+  const a3Again = pairPromptText(a3Pairing);
+  ok(a4 !== a3 && a3Pairing === 'needed-again' && a3Again?.error === AGAIN && a.pairing() === 'needed' && fresh !== null && fresh.error === null,
+    `needed-again/first: a failed attempt shows the line, and once the link is switched off and on the prompt is a first prompt again, with no error (before: ${a3Pairing}; after: ${a.pairing()}, error ${JSON.stringify(fresh?.error)})`);
+  a.fromMain({ type: 'agent-link-state', state: state(false) });
 }
 
 child.stdin.end();

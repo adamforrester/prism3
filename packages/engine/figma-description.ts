@@ -30,9 +30,9 @@
 export const BODY_TEXT_FLOOR = 4.5;
 
 /** The large-text limit a sub-body text role carries (owner sign-off, #1623 DT/T-7 · FG/F-16). WCAG 2.2
- *  defines large text as ≥18pt (24px) or ≥14pt bold (18.66px). Shared by the DTCG and Figma registers so
- *  the two state the same rule in the same words. */
-export const LARGE_TEXT_ONLY = 'large text (≥24px, or ≥18.66px bold) or non-essential text only';
+ *  defines large text as ≥18pt (24px) or ≥14pt bold (18.667px, written 18.67px: 18.66px bold is below 14pt, #3555 F7).
+ *  Shared by the DTCG and Figma registers so the two state the same rule in the same words. */
+export const LARGE_TEXT_ONLY = 'large text (≥24px, or ≥18.67px bold) or non-essential text only';
 
 const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 const num = (n: number): string => String(+n.toFixed(2));
@@ -167,7 +167,8 @@ export const figmaColorDescription = (f: ColorFacts): string => {
       const k = seg[1];
       if (k === 'primary') return 'Default border — a decorative divider';
       if (k === 'secondary') return 'Stronger border / divider';
-      if (k === 'tertiary') return 'Strongest border / divider';
+      // #3555 Q-MD15 A: the tertiary border is the first gated one (3:1), so its line states the floor as the others do.
+      if (k === 'tertiary') return claim ? `Strongest border / divider — ${claim}` : 'Strongest border / divider';
       if (k === 'focus') return `Focus ring color — ${claim}`;
       return `${cap(k)} border — ${claim}`;
     }
@@ -185,8 +186,8 @@ export const figmaColorDescription = (f: ColorFacts): string => {
           ? 'Media veil, clear end — transparent black, where a dark gradient veil fades to.'
           : 'Media veil, clear end — transparent white, where a light gradient veil fades to.';
       return tone === 'dark'
-        ? `Media veil — ${pct} black wash over an image to lift light text. Check contrast on your photo.`
-        : `Media veil — ${pct} white wash over an image to lift dark text. Check contrast on your photo.`;
+        ? `Media veil — ${pct} black wash over an image to lift light text. Contrast depends on the photo.`
+        : `Media veil — ${pct} white wash over an image to lift dark text. Contrast depends on the photo.`;
     }
     case 'field': {
       const k = seg.slice(1).join('.');
@@ -250,6 +251,14 @@ export const figmaOpacityDescription = (pct: number): string => `${pct}% opacity
 export const figmaBlurDescription = (key: string, px: number): string =>
   key === 'glass' ? `${px}px background blur — the glass effect style binds it` : `${px}px blur`;
 
+// ── text spacing (#2423) ─────────────────────────────────────────────────────────────────────────
+// A multiplier of the font size, bound to nothing: the line says what the number multiplies, since a bare 1.05
+// in a FLOAT field reads as pixels everywhere else in Figma.
+export const figmaTextSpacingPrimitiveDescription = (kind: 'line height' | 'letter spacing', n: number): string =>
+  `${n} × font size — ${kind} primitive`;
+export const figmaTextSpacingRoleDescription = (kind: 'line height' | 'letter spacing', role: string, n: number): string =>
+  `${n} × font size — ${role} ${kind}`;
+
 // ── motion (#2394) ───────────────────────────────────────────────────────────────────────────────
 // Figma has no time scope, so a duration is a plain number of milliseconds bound to nothing; the line
 // says what the number is for. `byMode` is the per-mode ms where a mode's tempo moves it — one
@@ -312,6 +321,10 @@ export const figmaLabelLineBoxDescription = (rung: string, px: number): string =
 /** `type/body/<rung>/line-box` (#3153, Q852): one line of the body type, carried in the `control` collection. */
 export const figmaBodyLineBoxDescription = (rung: string, px: number): string =>
   `Label line height (body ${rung}, ${px}px) — an option row's control stays on the label's first line.`;
+
+/** `type/caption/<rung>/line-box` (#3475, Q93 B): one line of the caption type, carried in the `control` collection. */
+export const figmaCaptionLineBoxDescription = (rung: string, px: number): string =>
+  `Caption line height (caption ${rung}, ${px}px) — a mark centers on the caption's first line.`;
 
 /** `focus/ring/<key>` (#1623 FG/F-17). */
 export const figmaFocusDescription = (key: string, px: number): string => {

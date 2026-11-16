@@ -11,11 +11,9 @@
  * A writer here edits `brandState` and calls nothing. The caller calls `rebuild()`, which re-resolves and
  * tells the `brand` topic, and every surface that reads the brand repaints from its subscription.
  */
-import type { BrandInput } from '@prism3/engine/theme';
-import { brandTheme } from '@prism3/engine/theme';
-import { ACHROMATIC_C, hex, oklchToRgb, hexToRgb, rgbToOklch, storedOklch } from '@prism3/engine/color';
-import { autoPlaceStep } from '@prism3/engine/ramp';
+import { type BrandInput, brandTheme, isReservedPalette, ACHROMATIC_C, hex, oklchToRgb, hexToRgb, rgbToOklch, storedOklch, autoPlaceStep } from '@prism3/engine';
 import { brandState, lastGoodInput, theme } from './store';
+import { commitAtomic, paletteRemovalEffects, removePalette, renamePalette } from './name-refs';
 import { resolvedModes } from './verdict';
 
 export const STATUS_ROLES = ['success', 'warning', 'danger', 'info'] as const;
@@ -57,65 +55,20 @@ export const rolesByPalette = (): Record<string, string[]> => {
 // ── primary, brand colors ───────────────────────────────────────────────────────────────────────
 export const setPrimary = (h: string): void => { brandState.primary = oklchOf(h); };
 
-/** Brand-color reference integrity (docs/24 #53): when an accent is renamed, every field that names its
- *  palette follows, or the alias graph dangles. */
-export const cascadeRename = (prev: string, next: string): void => {
-  if (brandState.actionPalette === prev) brandState.actionPalette = next;
-  if (brandState.linkPalette === prev) brandState.linkPalette = next;
-  const rc = brandState.roleColors as Record<string, string> | undefined;
-  if (rc) for (const r of Object.keys(rc)) if (rc[r] === prev) rc[r] = next;
-  brandState.interactivePalettes?.forEach((e) => { if (e.palette === prev) e.palette = next; });
-  if (Array.isArray(brandState.gradients)) brandState.gradients.forEach((g) => g.stops.forEach((s) => { if (s.palette === prev) s.palette = next; }));
-  // An override that names the palette follows too (#3405), in every mode, custom modes included: left on the old
-  // name it dangles, and the engine refuses the brand ("unknown palette"). Its step is kept: the ramp is the same one.
-  for (const m of Object.values(brandState.overrides ?? {})) {
-    for (const ref of Object.values(m ?? {})) if ((ref as { palette?: string } | undefined)?.palette === prev) (ref as { palette: string }).palette = next;
-  }
-};
-/** …and when one is removed, every field that named it falls back (actions to primary, links to their
- *  default, a borrow to Auto, a column away, a gradient stop to primary, since a gradient needs its stops). */
-export const cascadeRemove = (removed: string): void => {
-  if (brandState.actionPalette === removed) brandState.actionPalette = 'primary';
-  if (brandState.linkPalette === removed) brandState.linkPalette = undefined;
-  const rc = brandState.roleColors as Record<string, string> | undefined;
-  if (rc) { for (const r of Object.keys(rc)) if (rc[r] === removed) delete rc[r]; if (!Object.keys(rc).length) brandState.roleColors = undefined; }
-  if (brandState.interactivePalettes) {
-    brandState.interactivePalettes = brandState.interactivePalettes.filter((e) => e.palette !== removed);
-    if (!brandState.interactivePalettes.length) brandState.interactivePalettes = undefined;
-  }
-  if (Array.isArray(brandState.gradients)) brandState.gradients.forEach((g) => g.stops.forEach((s) => { if (s.palette === removed) s.palette = 'primary'; }));
-};
+/** Brand-color reference integrity (docs/24 #53): when a brand color is renamed, every field that names its palette
+ *  follows, or the alias graph dangles. The fields are the rows of one table (`name-refs.ts`, #3697 H3), which the
+ *  removal and its confirm read too. */
+export const cascadeRename = (prev: string, next: string): void => renamePalette(brandState, prev, next);
+/** …and when one is removed, every field that named it falls back (actions to primary, links to their default, a
+ *  borrow to Auto, a column away with its keys, a gradient stop to primary, an inverse band or an outline hover pick
+ *  to Auto). An override or a glass that names it is held (#3391): see `name-refs.ts`. */
+export const cascadeRemove = (removed: string): void => removePalette(brandState, removed);
 
-/** What removing palette `name` also changes, one line each, in the order `cascadeRemove` applies it: the
- *  confirm lists these before the removal (owner, 2026-10-01). Read from the working brand, so the list is
- *  what Confirm will do. An empty list means nothing else names the palette. */
-export const removalEffects = (name: string): string[] => {
-  const out: string[] = [];
-  if (brandState.actionPalette === name) out.push('Actions go back to primary.');
-  if (brandState.linkPalette === name) out.push('Links go back to their default color.');
-  const rc = brandState.roleColors as Record<string, string> | undefined;
-  for (const r of Object.keys(rc ?? {})) {
-    if (rc![r] !== name) continue;
-    out.push((STATUS_ROLES as readonly string[]).includes(r) ? `The ${r} color goes back to Auto.` : `The ${r} role goes back to its default palette.`);
-  }
-  if (brandState.interactivePalettes?.some((e) => e.palette === name)) out.push(`Its interactive color column is removed.`);
-  if (Array.isArray(brandState.gradients)) {
-    for (const g of brandState.gradients) {
-      const n = g.stops.filter((st) => st.palette === name).length;
-      if (n) out.push(`In the ${g.name} gradient, ${n === 1 ? '1 stop switches' : `${n} stops switch`} to primary.`);
-    }
-  }
-  // An override that names the palette is NOT cascaded (#3391): it dangles, and the engine refuses the brand
-  // ("unknown palette"). Listed here, by role, so the removal is never a surprise. Last: it is not a step of the cascade.
-  const held = [...new Set(Object.values(brandState.overrides ?? {}).flatMap((m) =>
-    Object.entries(m ?? {}).filter(([, ref]) => (ref as { palette?: string } | undefined)?.palette === name).map(([role]) => role)))];
-  if (held.length) {
-    out.push(held.length === 1
-      ? `1 role is still overridden to it: ${held[0]} — the brand won't build until it's re-picked.`
-      : `${held.length} roles are still overridden to it: ${held.join(', ')} — the brand won't build until each is re-picked.`);
-  }
-  return out;
-};
+/** What removing palette `name` also changes, one line each, in the table's order: the confirm lists these before the
+ *  removal (owner, 2026-10-01). Read from the working brand, so the list is what Confirm will do. An empty list means
+ *  nothing else names the palette. A held reference (an override or a glass drawn from it, #3391) is listed last in
+ *  its row: while one is held, the removal is refused (`removeBrandColor` is atomic, #3697 M1). */
+export const removalEffects = (name: string): string[] => paletteRemovalEffects(brandState, name);
 
 /** Add a brand color, `accent<n>` at the first free number. Materialized on the EDIT, never on a render
  *  (#1033): a render that created `brandColors: []` made an untouched brand read as edited. */
@@ -128,25 +81,36 @@ export const addBrandColor = (): string => {
   return nm;
 };
 /** Rename brand color `i`. Refused (returns false, nothing changes) when the name is empty, unchanged, or
- *  another palette's: a collision would merge two ramps in the alias graph. */
+ *  another palette's: a collision would merge two ramps in the alias graph. "Another palette" includes every palette
+ *  the engine always mints (`isReservedPalette`: primary, neutral, the status palettes, white, black, transparent and
+ *  the alpha ramps, #3562). Taken, such a rename made the engine refuse the brand, and the cascade rewrote every
+ *  reference to the status palette, so renaming back moved them onto the brand color. Also refused when the palette
+ *  has an unnamed interactive column and the name is any column's explicit `name`, on any palette, this one included
+ *  (#3545 re-reviews): the unnamed column would take that name, the engine refuses a duplicate column name, and
+ *  `cascadeRename` would drop the named column's keys as leftovers. A palette with no unnamed column renames no
+ *  column, so nothing collides and nothing is dropped, and that rename is not refused. Every case of this rule is a
+ *  row of one table in `test-interactive-input.ts` §11 (`#3545 rule: …`). */
 export const renameBrandColor = (i: number, raw: string): boolean => {
   const list = brandState.brandColors ?? [];
   const bc = list[i];
   const next = raw.trim();
   if (!bc || !next || next === bc.name) return false;
-  const taken = new Set(['primary', 'neutral', ...list.filter((_, j) => j !== i).map((b) => b.name)]);
-  if (taken.has(next)) return false;
+  const cols = brandState.interactivePalettes ?? [];
+  const ownsUnnamed = cols.some((e) => e.palette === bc.name && e.name === undefined);
+  const columnNames = ownsUnnamed ? cols.map((e) => e.name).filter((n): n is string => n !== undefined) : [];
+  const taken = new Set([...list.filter((_, j) => j !== i).map((b) => b.name), ...columnNames]);
+  if (taken.has(next) || isReservedPalette(next)) return false;
   const prev = bc.name;
-  bc.name = next;
-  cascadeRename(prev, next);
-  return true;
+  // Atomic (#3697 M1): a rename the engine refuses changes nothing, and the field puts the old name back.
+  return commitAtomic((b) => { b.brandColors![i].name = next; renamePalette(b, prev, next); }) === null;
 };
-export const removeBrandColor = (i: number): void => {
-  const list = brandState.brandColors ?? [];
-  const gone = list[i]?.name;
-  if (gone === undefined) return;
-  list.splice(i, 1);
-  cascadeRemove(gone);
+/** Remove brand color `i` and run the cascade, atomically (#3697 M1): a removal the engine refuses (a role or a glass
+ *  still drawn from the color, held by #3391) returns the engine's message and leaves the brand as it was, byte for
+ *  byte, so the brand, the last-good input and storage never part. Null when the color is gone. */
+export const removeBrandColor = (i: number): string | null => {
+  const gone = brandState.brandColors?.[i]?.name;
+  if (gone === undefined) return null;
+  return commitAtomic((b) => { b.brandColors!.splice(i, 1); removePalette(b, gone); });
 };
 export const setBrandColor = (i: number, h: string): void => {
   const bc = brandState.brandColors?.[i];

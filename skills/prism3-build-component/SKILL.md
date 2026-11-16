@@ -251,6 +251,12 @@ Every part declares a `kind` from a closed vocabulary (`packages/engine/componen
 | `nest` | an in-flow instance of another component — takes a cell like a box, content resolved from `nests` |
 | `vector` | a filled outline whose content is geometry — names a `glyph` from the icon vocabulary |
 
+**Some fields belong to certain kinds** (#3698), and both `tsc` and the validator refuse them on any other kind:
+`radius` and `children` go on a `box` only (a glyph's corners are `tileEdge.radius`), `replaces` and
+`overlaysWhenAbsent` on an `overlay` only, and `when` on an `overlay` or an `absolute` (an in-flow part gates on
+state through `presentWhen`), and `type` on a `text` part only (a text style goes on a text node, #3783). A root's
+`builtSize.grow` names a `box` or `nest` child (#3779). `role`, `optional` and `note` go on any kind.
+
 **The root part is named for its role, never `root` and never the component's own id.** Pick it
 from the role list in §6's naming table (`container` for most controls, `row` for the Rows, `track`
 for switch-control, `panel` for dialog, and so on) rather than inventing one. The list is closed: a new
@@ -441,17 +447,22 @@ whose actual value comes from the host, not from the plan.
   the owner let it widen, 2026-09-29). At hover and pressed the tint holds and the outline steps to
   `interactive.primary.indicator.hover` / `.pressed`. See `packages/engine/components/tag.ts`.
 
-  **A selection mark is a shape, so it binds `color.interactive.<c>.indicator.*`, never a text role and never the
-  outline edge** (#3346, owner 2026-11-03). That covers the selected outline above, a selected tab's bar, a checked
-  radio's ring, a switch's thumb and a slider's disc. The indicator matches the label's color, overrides included,
-  and a brand that quiets its outline edges (`border.*`) leaves it alone. No shape binds `interactive.<c>.text.*`, even
-  where the values match.
+  **A selection mark on the page is a shape, so it binds `color.interactive.<c>.indicator.*`, never a text role and
+  never the outline edge** (#3346, owner 2026-11-03; narrowed by Q-CC13 A, 2026-11-11). That covers the selected
+  outline above, a selected tab's bar, a checked radio's ring, a switch's off thumb, a slider's disc and
+  Pagination.Item's current-page underline (Q-CC12 A). The indicator matches the label's color, overrides included,
+  and a brand that quiets its outline edges (`border.*`) leaves it alone. A mark that sits on a fill takes the fill's
+  side instead: a switch's on thumb, on the filled track, binds `interactive.<c>.on-fill`, and a checked radio's dot
+  is fill-colored (`interactive.<c>.fill.selected`). One named exception: Link's current-page bar, which PageNav.Item
+  inherits, binds `color.icon.link.*`, because link roles have no indicator twin and the edge setting does not reach
+  `icon.link.*` (Q-CC12 A). No shape binds `interactive.<c>.text.*`, even where the values match.
 
-  **The one exception to the constant weight: a choice between peers in a row** (Tab, and the Segmented
-  control's segment; owner decision). There the selected label takes the emphasis weight, and an invisible
-  copy of the label in that weight holds the label box at its bold width in both states, so selecting one
-  never moves its neighbors. The copy is a second text part the label's text property drives through
-  `also`, so it always spells the label. Tag and other in-place toggles keep the constant weight.
+  **The one exception to the constant weight: a choice between peers in a row** (Tab, the Segmented control's
+  segment, and Pagination.Item's current page, Q381; owner decisions). There the selected label takes the emphasis
+  weight, and an invisible copy of the label in that weight holds the label box at its bold width in both states,
+  so selecting one never moves its neighbors. The copy is a second text part the label's text property drives
+  through `also`, so it always spells the label. Tag and other in-place toggles keep the constant weight, and so
+  does PageNav.Item (Q8 A, Q-CC14 A): its current page is a Link, which keeps Link's constant weight.
 - **Glyph ink binds an icon role, never a text role (#1471).** A `vector` or an icon `slot` paints from an
   `icon.*` role (`color.icon.primary`, or the interactive `icon.*` twin the engine mints beside `text.*`),
   never a `text.*` role — even where the two resolve to the same value. The label beside the glyph keeps
@@ -468,18 +479,18 @@ Figma, so one job takes one name across every def:
 |---|---|---|
 | Root part | named for its role, from this list: `container`, `row`, `control`, `track`, `message`, `ring`, `glyph`, `frame`, `wash`, `surface`, `panel`. Never the component's own id | Divider's root is `container`, not `divider` |
 | Main text | `label` | Button, Tag and the Rows already use it |
-| Glyph layer (a non-root `vector` part) | `<shape>Glyph` | `checkGlyph`, `chevronGlyph`, `dismissGlyph` |
+| Glyph layer (a non-root `vector` part) | picked by an axis: `<value>Glyph`, the axis value it shows; fixed: `<shape>Glyph` (owner decision Q-CC27 A) | `successGlyph` and `warningGlyph` (Banner, FieldMessage and Toast pick them by tone or intent); `checkGlyph`, `chevronGlyph`, `closeGlyph` |
 | A Row's control cell (the box holding a nested `*-control`) | `controlCell` | Checkbox, Radio and Switch rows |
 
 **The `_` prefix (owner decisions Q349, Q355, Q394).** A component that should not be used outside its
 parent takes the `_` prefix on its id, which Figma reads as a building block and leaves out of a published
 library. Its `ai.whenToUse` opens with one of two wordings: "Only as a child of …" or "Never directly
-…". The prefixed set is `_accordion-indicator`. A native slot's preferred item never takes the prefix
+…". The prefixed set is `_accordion-indicator`, `_breadcrumb-separator` and `_slider-thumb`. A native slot's preferred item never takes the prefix
 (Q394): a designer inserts it from the assets panel, which works only for a published set, so it stays
 unprefixed even where its `ai.whenToUse` says "Only as a child of …". The slot items are `tab-item`,
-`list-item` and `segmented-control-segment`. The checkbox and radio controls (`checkbox-control`,
-`radio-control`) stay unprefixed because they may be used on their own, and so does Radio row: it is a
-whole option, not a part.
+`list-item`, `segmented-control-segment`, `breadcrumb-item`, `pagination-item`, `page-nav-item`,
+`code-input-cell` and `radio-row`. The checkbox and radio controls (`checkbox-control`,
+`radio-control`) stay unprefixed because they may be used on their own.
 
 **Figma property names are lowercase (owner decision Q345).** Every name a designer reads in the
 properties panel is lowercase: each `figmaName` (or the key, when there is none), and each variant axis
@@ -588,7 +599,9 @@ boolean otherwise.** Verify which case a new component is in against the actual 
 
 **Axis value order is a decision, and it is fixed (#2501, owner decision Q213; sizes and slots by #2752,
 Q1 B and Q2 A).** A size axis leads with medium, the code default, and the rest run small to large, so an
-inserted control is medium. Field label, whose code default is small, is the one named exception. A slot
+inserted control is medium. There are two named exceptions: Field label, whose code default is small, leads
+with small, and Spinner keeps the icon ladder from `x-small` up, because it builds one component per size and
+no set member is ever inserted as a default. A slot
 presence axis leads with `false`, so the inserted member's slots are empty, as in code. States run in ladder
 order, for example rest, hover, pressed, pending, focus-visible, disabled (the full ladder is `STATE_LADDER`
 in `packages/engine/test.ts`). Figma's default member is the one at the top left of the set on the canvas,
@@ -660,6 +673,27 @@ The test is the code, nothing else:
 - **Prefer a brand-wide setting over a per-instance prop.** A per-instance prop becomes permanent API in
   every brand's code; a brand-wide value setting costs nothing at the component.
 
+**Which defs a setting reaches is data on the def: `levers`** (`ComponentLevers` in `packages/engine/component-schema.ts`, #3698).
+A new component that a style setting should reach declares it there. Do not edit `packages/engine/anatomy-figma.ts`: the materializer
+(`applyFieldStyle`, `applyTagStyle` and the rest) stays shared code and reads only the def.
+`packages/engine/lint-projector-def-ids.ts` fails a def-id lookup or a def-id-keyed table in the projector.
+Each entry names only the parts and keys that setting rewrites, and the validator refuses a name that does not resolve:
+
+| Setting | Entry on the def | Today on |
+|---|---|---|
+| `controlShape` (Pill, Boxed, Hairline) | `{ capsules: ['radius.md'] }`: the corner refs every shape but Rounded repoints (Pill to `radius.capsule`). All of Control shape's reach is here; a `pill-radius` line in `derived` is description only. Check the provider's corner rules first, and clamp in `codeOnly` where one caps the corner | Button, Icon button (square shape), Wallet button (Google Pay clamped to half the height), Sign-in button |
+| `controlShape` (Boxed, Hairline) | `{ squares: ['radius.sm'] }`: the corner refs Boxed and Hairline square and Pill leaves alone | the fields (Code input's cell included), Checkbox |
+| `fieldStyle` | `{ frame: 'control' }`, the box Underline redraws; add `setting: 'searchFieldStyle'` to follow the Search field style | the seven field defs |
+| `tagStyle` | `{ frame, row, labelRow, slot }`, the four parts Underline reaches | Tag |
+| `buttonLabelWeight` | `{ labels: true }`: "Control label weight" reaches a def outside the button family, rebinding each size's label type | Tag |
+| `dialogTitleSize` | `{ titleType: 'title-type' }`, the key holding the title's `type.label.<rung>.<role>` | Dialog |
+| `bannerStyle` | `{ fills: ['info.fill', …] }`, the per-tone fills Outlined rebinds | Banner |
+| `currentIndicator` | `{ bar: 'bar' }`, the foot bar Partial draws at half the title's width | Link |
+| `outlineInteraction` | `{ opaqueFill: true }`, the outline/text hover takes the opaque fill under `opaque-fill` | the button families |
+
+Joining a setting changes what the def draws under it, so it is the owner's call, the same as the setting itself.
+A setting whose LOGIC a new component needs to differ is a new materializer change, which is still an engine edit.
+
 When you add a lever, set `kind` on it. `packages/engine/test.ts` fails a lever with no `kind`, by name,
 and pins the structural set as `STRUCTURAL_LEVERS` in `packages/engine/test.ts`, so a new structural lever
 is a second edit there, made after the owner's OK. This table classifies every live lever by the test
@@ -723,7 +757,7 @@ above; `lint-skills` fails if a row is missing or disagrees with the manifest. A
 | `iconContrast` | value |  |
 | `disabledStrategy` | value |  |
 | `disabledMin` | value |  |
-| `outlineInteraction` | value | rebinds the outline and text overlay tokens to another fill family, or drops them under none; no element or state is added. `opaque-fill` rebinds them on Button, Icon button and Flush icon button only (`OPAQUE_FILL_DEFS`); every other def keeps the wash |
+| `outlineInteraction` | value | rebinds the outline and text overlay tokens to another fill family, or drops them under none; no element or state is added. `opaque-fill` rebinds them on Button, Icon button and Flush icon button only (`levers.outlineInteraction` on each def); every other def keeps the wash |
 | `outlineHoverFill` | value | picks the step of the `opaque-fill` hover fill per mode, and per button set (`sets`, #3335); a def binds the outline overlay ref, never `hover-fill` by name |
 | `outlineWash.hover` | value | moves the outline wash's hover opacity step (#3335): the same overlay and subtle-fill names alias another alpha step; no element or state is added |
 | `outlineWash.pressed` | value | moves the outline wash's pressed (and selected) opacity step (#3335), as `outlineWash.hover` does |
@@ -750,6 +784,7 @@ so a new def fails by name until you add it — or, for a floor list, stays unco
 | `lint-paint` admissions | a paint key whose ref legitimately does not carry its axis value in `PROVENANCE_EXCEPTIONS`; an axis whose values are not color families in `NON_FAMILY_AXES`; a bound paint key no projected coordinate reaches in `UNREACHED_EXPLAINED`. Each needs a reason and fails as stale when it stops applying. |
 | `packages/engine/test.ts`, field and gap floors | a def whose `densitySpacing` names a gap in `GAP_KEYS`; a def with an error, warning or success status in `SH_DEFS` (or `SH_EXEMPT` with the reason); a def with a read-only member in `RO_PINNED`. A def missing from these fails. |
 | `packages/engine/test.ts` | nothing for the brief: `KB_BRIEF_CATEGORY` is derived from `schema/kb-briefs.json` (refresh it if the brief is new). A def with a `presentWhen` part in `GATED_EXPECTED`, and a def binding a `size.<size>.control`, `dot` or `track` key in `CONTROL_DEFS`: both are exact-equality lists. |
+| `lint-control-shape-reach` | a def that binds a corner: a button, field or checkbox in `FAMILIES` (it then follows Control shape, so give it `levers.controlShape`), a def a claimed noun could be read to cover but the owner ruled out in `NOT_CLAIMED` with the decision (Counter, Q-CS4 B), anything else in `OUTSIDE_REASON` with the reason. Google Pay's wallet corner is held to half the height under every shape (a CLAMP failure names it). A def in none fails by name (#3765). |
 | `apps/plugin/src/file-taxonomy.ts` | the def on a page in `TAXONOMY` (§3). |
 
 `lint-naming` needs no entry either: its rules (§6) apply to every registered def, so a new def that
@@ -765,8 +800,8 @@ the host keeps a hugging height, but only the shapes measured on a real file are
 `lint-component-docs` needs no entry: it reads the registry, so after `packages/engine/regen.ts` a
 new def must appear in `components.ai.json`, in its own `<id>.md` page and in the maintainer record, or
 the gate fails by name. Its `DEF_FLOOR` is a floor to raise as the catalog grows. The new page is one
-more committed artifact, so the count `packages/engine/regen.ts --check` expects moves too:
-`EXPECTED_ARTIFACTS` in `verify.ts` and the same number in the CI workflow, together.
+more committed artifact. The count `packages/engine/regen.ts --check` reports grows with it, and
+`ARTIFACT_FLOOR` in `verify.ts` is a floor, so it needs no edit.
 
 Three baselines move with a new or changed projection and are rewritten only by an explicit
 `--accept`: `lint-component-surface` (member count and plan digest per def), `lint-paint` (the

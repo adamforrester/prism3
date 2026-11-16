@@ -14,7 +14,8 @@
  *     instance of Divider (horizontal, none);
  *   - every fill binds a semantic color variable (`color/text/primary`, `color/text/secondary`,
  *     `color/background/secondary`, `color/border/success`, `color/border/danger`), found by its name's tail as
- *     `bindBackdrop` finds its variable, and every text takes a brand text style (`title/…`, `body/…`, `label/…`).
+ *     `bindBackdrop` finds its variable, and every text takes a brand text style (`title/…`, `body/…`, `label/…`), with
+ *     a code span in it drawn in `code/inline/default` (`CODE_STYLE`, #3552 Q-UG2 A).
  * So the template NEEDS those four sets and an applied theme. Without either, Set up file builds nothing and says
  * what is missing (`DocBlockResult.missing`), and the panel's draw reports the missing template once, the furniture's
  * way (`templatesLine`). A text style the file lacks is a miss by name; the text keeps the default face.
@@ -78,6 +79,10 @@ export const BLOCK_COLORS = {
   doRule: 'color/border/success',
   dontRule: 'color/border/danger',
 } as const;
+/** CODE IN THE BLOCKS' PROSE (#3552 Q-UG2 A): a backtick span in any text a block shows is drawn in the brand's inline
+ *  code style, over the block's own style for that range, so `<button>` and `htmlFor` read as code. The panel applies it
+ *  by range (`doc-panel.ts` `codeRuns`); a file without the style keeps the text in the block's face and names the miss. */
+export const CODE_STYLE = 'code/inline/default';
 const STYLE: Record<'heading' | 'body' | 'label' | 'caption', Record<DocBlockSize, string>> = {
   heading: { sm: 'title/xs/strong', md: 'title/sm/strong', lg: 'title/md/strong' },
   body: { sm: 'body/sm/default', md: 'body/md/default', lg: 'body/lg/default' },

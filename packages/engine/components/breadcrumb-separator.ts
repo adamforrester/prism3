@@ -121,7 +121,7 @@ export const breadcrumbSeparator: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'The mark between two steps of a Breadcrumbs trail, a chevron or a slash.',
+    primaryPurpose: 'Mark the break between two steps of a Breadcrumbs trail with a chevron or a slash.',
     whenToUse: 'Only as a child of BreadcrumbItem. Generate BreadcrumbItem, which shows the separator in the look its Breadcrumbs sets.',
     avoidWhen: 'Always on its own. Use Breadcrumbs; for a plain icon, use an Icon.',
     commonPartners: ['breadcrumb-item', 'breadcrumbs'],
