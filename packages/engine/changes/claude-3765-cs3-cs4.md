@@ -1,4 +1,0 @@
----
-engine: minor
----
-Control shape now reaches the Wallet and Sign-in buttons, as it reaches Button (#3765, owner decision Q-CS3 A). Under Pill their corner binds `radius.capsule`, under Boxed `radius.none` and under Hairline `radius.hairline`; Rounded keeps their own `radius.md`. Google Pay's corner stays at most half its height under every shape: the code passes min(radius, height / 2), so under Pill it is a capsule at exactly half the height. No sign-in provider forbids a square or a capsule corner, so none is clamped. The outline Counter is not a field for Control shape (Q-CS4 B) and keeps `radius.sm` under every shape. No other def's plan changes under any Control shape or Field style, and Rounded plans are unchanged. No token or emission moves except Wallet button's maintainer note on the corner; the Studio's used-by index lists both buttons under each shape's rung. `CONTRACT_VERSION` unchanged: no token name moves.

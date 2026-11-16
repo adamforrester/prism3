@@ -479,6 +479,10 @@ const SELF_CHECK: { sample: string; expectRule: string | null }[] = [
   { sample: 'Built just now', expectRule: null },                             // the time sense (S8.2), a moment ago
   { sample: 'Please note the derived value.', expectRule: 'filler' },
   { sample: 'Note that this is derived from the ramp.', expectRule: 'filler' },
+  { sample: 'The ramp moves; note that the floor holds.', expectRule: 'filler' },  // mid-sentence imperative
+  { sample: 'the skill drops its note that the def still dropped the fade', expectRule: null }, // "note", a noun
+  { sample: 'A part note that cites an owner decision', expectRule: null },          // "note", a noun
+  { sample: 'bound to the theme the run just wrote', expectRule: null },             // the time sense, a moment ago
   { sample: 'Oops, something went wrong.', expectRule: 'apology' },
   { sample: 'Sorry, we could not complete this.', expectRule: 'apology' },
   { sample: 'Applied — 88 variables written!', expectRule: 'exclamation' },
