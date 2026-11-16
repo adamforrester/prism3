@@ -1064,6 +1064,39 @@ section('add — a member the plan gained is built; the others keep their keys')
   ok(applyVerdict(res).ok, `add/verdict: ${applyVerdict(res).headline}`);
 }
 
+section('add, order — members an update adds take their plan place, so the set lists its values as a fresh build does (#2386)');
+{
+  // #2386's own case: the image placeholder as built before #2345 (three ratios), updated to today's seven. The oracle is
+  // a fresh build of the same plan, read off the shim's set (`variantOptions` follows member order, as #2386 measured).
+  const IP = 'image-placeholder';
+  const full = plansOf(IP);
+  const ratios = (set: Node): string => JSON.stringify((set.componentPropertyDefinitions as Record<string, { variantOptions?: string[] }>).ratio?.variantOptions);
+  const fresh = ratios((await world(IP, full)).set());
+  const three = new Set(['ratio=1:1', 'ratio=4:3', 'ratio=16:9']);
+  {
+    const w = await world(IP, full.filter((p) => three.has(planComponentName(p))));
+    const before = identityOf(w.set());
+    const { res } = await confirm(w, [{ def: IP, plans: full }]);
+    const after = identityOf(w.set());
+    const kept = [...before.members].every(([name, b]) => after.members.get(name)?.id === b.id && after.members.get(name)?.key === b.key);
+    ok(res.outcomes[0]?.added === 4 && applyVerdict(res).ok && ratios(w.set()) === fresh && kept,
+      `add, order/values: after adding 4 ratios the set lists them as a fresh build does, every existing member's id and key kept (${ratios(w.set())} vs ${fresh}; ${applyVerdict(res).headline})`);
+    ok(JSON.stringify(membersOf(w.set()).map((m) => String(m.name))) === JSON.stringify(full.map(planComponentName)),
+      `add, order/members: the set's members are in plan order (${membersOf(w.set()).map((m) => String(m.name)).join(', ')})`);
+  }
+  {
+    // 1:1 leaves the plan as the others join: kept and marked deprecated (Q2), it holds the slot it had, and the planned
+    // members fill the rest in plan order.
+    const w = await world(IP, full.filter((p) => three.has(planComponentName(p))));
+    const next = full.filter((p) => planComponentName(p) !== 'ratio=1:1');
+    const { res } = await confirm(w, [{ def: IP, plans: next }]);
+    const names = membersOf(w.set()).map((m) => String(m.name));
+    const want = ['ratio=4:3', 'ratio=1:1', ...next.map(planComponentName).filter((n) => n !== 'ratio=4:3')];
+    ok(res.outcomes[0]?.deprecated.includes('ratio=1:1') && JSON.stringify(names) === JSON.stringify(want),
+      `add, order/kept member: the deprecated 1:1 keeps its slot and the planned members fill the rest in plan order (${names.join(', ')})`);
+  }
+}
+
 /* ── stop ────────────────────────────────────────────────────────────────────────────────────────────── */
 section('stop — a run that stops part-way finishes when the update runs again');
 {
