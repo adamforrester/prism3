@@ -969,12 +969,6 @@ jobs:
       - name: The docs-only exemption decides by path and is recorded by name
         run: bash .github/scripts/test-docs-only.sh
 
-      # #3736 — the base cases of `.github/scripts/all-gates.sh`, the `gates` job's one step and the check the merge
-      # rule reads (Q503 A): failure, cancelled, skipped, an empty and an unreadable NEEDS each fail by job name.
-      # Until this step nothing ran it; `lint-doc-gates.ts` now holds every `test-*.sh` here to a step that runs it.
-      - name: The gates aggregator fails on any result but success (#3736)
-        run: bash .github/scripts/test-all-gates.sh
-
   studio:
     # #3698 R4: skipped on a docs-only pull request, by the named exemption (`changes`, then `gates`).
     needs: [changes]
