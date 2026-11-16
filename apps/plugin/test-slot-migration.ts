@@ -71,7 +71,8 @@
  *   · the try around `keepCarry`'s write dropped → `kept/refused run completes`, `kept/refused filled`, `kept/refused named`;
  *   · the kept entry's validation back to `Array.isArray(instances)` → `kept/malformed preview (…)`, `kept/malformed apply (…)`,
  *     `kept/malformed up to date`, `kept/malformed text read`;
- *   · the apply's clear of an unreadable entry dropped → `kept/malformed cleared alone`.
+ *   · the apply's clear of an unreadable entry dropped → `kept/malformed cleared alone`;
+ *   · the apply's clear of one on a set with no write dropped (#3803) → `kept/malformed up to date cleared`.
  *   · the thrown run's verdict says `completed: true` (#3758) → `failed/not completed`;
  *   · the rows fill's `reachedOnly` passed as `true` on a finished set (#3763 N1) → `finished/missing slot named`;
  *   · the apply's preflight refusal not skipping the set (#3763 R2) → `refused/rows kept`.
@@ -777,6 +778,14 @@ section('kept/malformed — an entry this version can\'t read is ignored, named,
     try { again = await previewUpdate(w.host, [target]); res2 = await applyUpdate(w.host, w.api as any, [target], previewHashOf(again)); } catch (e) { threw = (e as Error).message; }
     ok(!threw && !!again && setUpToDate(again.sets[0]) && JSON.stringify(again.sets[0].carryUnreadable) === '["rows"]' && !res2?.failed,
       `kept/malformed up to date: on an up-to-date set the dry run and the apply don't throw, and the set still reads up to date (${threw || JSON.stringify(again?.sets[0].counts)})`);
+    // #3803: the apply clears it although the set has no other work, so the next check no longer names it, and the set
+    // still reads up to date. Mutation: the apply's clear of an unreadable entry on a set with no write dropped
+    // (`clearUnread` a no-op) → `kept/malformed up to date cleared`.
+    const leftU = (w.set().getSharedPluginData as (ns: string, k: string) => string)('prism3', 'slotCarry');
+    const third = await previewUpdate(w.host, [target]);
+    const namedU = previewVerdict(third).lines.some((l) => l.includes("slot content saved by an earlier update can't be read"));
+    ok(leftU === '' && !third.sets[0].carryUnreadable && !namedU && setUpToDate(third.sets[0]),
+      `kept/malformed up to date cleared: the apply clears the entry on a set with no other work, and the next check reads it up to date and names nothing (${leftU.length} chars left; ${JSON.stringify(third.sets[0].carryUnreadable)}; named ${namedU}; ${previewVerdict(third).headline})`);
   }
 
   // The read itself, for both kinds, every field: a wrong type anywhere is unreadable, never a throw.
