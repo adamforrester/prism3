@@ -32,6 +32,9 @@ later arms rather than throwing when its premise fails, so a mutation doesn't hi
 **Mutations, each failing by name:**
 - the mark dropped → `closed/no false hand edit`, `stop/count damage only`;
 - the count's rule back to "its stamp changed" → `stop/count damage finished`, `stop/count after marker`.
+- the mark moved to just before the executor's pass, after every set-level write (the #3809 review's mutation; the close
+  arm cannot see it) → `refused/mid no false hand edit`, `refused/no false hand edit`. The `refused/set write` arm has
+  the host refuse the set's third property removal: on the mutation all 6 members read as hand-edited, for good.
 
 **A trap for whoever re-verifies this.** A test that throws on "the first `UPDATING_KEY` write" now hits the apply's mark,
 not the executor's. The set then stops before any other write, with nothing counted (`stop/count damage only` relies on it).
