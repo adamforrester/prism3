@@ -31,6 +31,7 @@
  *   · ledger: on a host that refuses shared plugin data, every step says so, the file is otherwise the
  *     plugin's, and the merged ledger is what lets a second run's pre-flight pass (without it, it refuses)
  *   · pre-flight: a foreign same-named collection is reported and nothing is written
+ *   · binding scope (#1904): a stranded same-named copy of every variable takes no binding on a second paste
  *   · cleanup: removes what the run made, keeps a foreign collection and a designer's style, by name
  *   · shim premise: a removed style, variable or collection is dead, and a collection's removal kills its
  *     variables — without it the next arm is vacuous
@@ -282,10 +283,11 @@ await section('slicing', async () => {
   const B = fresh();
   // 30,000 since #1909: the color executor's `names` argument grew its one-item script past 29,500 less the numbering
   // slack, where it had about 100 characters to spare. 30,000 still cuts the aliases into six scripts, so the arm below
-  // keeps its point, and sits about 500 over the largest one-item script.
-  const scripts = number(themeScripts(input, { sliceCeiling: 30_000 })).filter((s) => s.phase === 'preflight' || s.phase === 'theme');
+  // keeps its point, and sits about 500 over the largest one-item script. 31,000 since #1904: the binding-target index
+  // grew the bundle every script carries, and the largest one-item script with it, past 30,000 less the slack.
+  const scripts = number(themeScripts(input, { sliceCeiling: 31_000 })).filter((s) => s.phase === 'preflight' || s.phase === 'theme');
   const floatAliasScripts = scripts.filter((s) => s.label.startsWith('float aliases')).length;
-  ok(floatAliasScripts >= 3, `slicing/${id}: a 30,000-character slice ceiling cuts the float aliases into ${floatAliasScripts} scripts (${scripts.length} in all)`);
+  ok(floatAliasScripts >= 3, `slicing/${id}: a 31,000-character slice ceiling cuts the float aliases into ${floatAliasScripts} scripts (${scripts.length} in all)`);
   const res = await runAll(scripts, B);
   ok(res.every((r) => r.ok), `slicing/${id}: every step of the finely-cut run is ok${res.filter((r) => !r.ok).slice(0, 2).map((r) => ` — ${r.label}: ${r.threw ?? J(r.misses).slice(0, 120)}`).join('')}`);
   for (const [name, pass, why] of arms(snapshot(A), snapshot(B), themePlans(input))) ok(pass, `slicing/${id}: ${name}${why}`);
@@ -323,6 +325,30 @@ await section('pre-flight', async () => {
   const conflicts = pf.flatMap((r) => (r.conflicts as { kind: string; name: string }[]) ?? []);
   ok(conflicts.some((c) => c.kind === 'collection' && c.name === 'color') && pf.some((r) => !r.ok), `pre-flight/${id}: a foreign same-named 'color' collection is reported as a conflict`);
   ok(J(snapshot(B)) === before, `pre-flight/${id}: the pre-flight scripts wrote nothing`);
+});
+
+/* ── binding scope (#1904): a stranded same-named copy of every variable takes no binding ──────────────── */
+// The paste path's half of `test-write-preflight.ts`'s #1904 arm: a pasted file, then a collection no plan writes holding a
+// same-named, same-typed copy of every variable (listed after the originals), then the paste again. Every text-style
+// binding, gradient stop, glass blur radius and wash opacity must still name a variable in a collection the paste writes.
+// Summed over the parity brands so each kind has rows (only the solid-tint brand carries washes).
+await section('binding scope', async () => {
+  const n = { text: [0, 0], stop: [0, 0], blur: [0, 0], wash: [0, 0] };
+  for (const [, input] of PARITY) {
+    const B = fresh();
+    await runAll(writes(input), B);
+    const stranded = B.createVariableCollection('stranded-1904');
+    for (const v of [...B.vars]) B.createVariable(v.name, stranded, v.resolvedType);
+    const ids = new Set(B.vars.filter((v) => v.variableCollectionId === stranded.id).map((v) => v.id));
+    await runAll(writes(input), B);
+    const tally = (k: keyof typeof n, got: (string | undefined)[]): void => { for (const id of got) if (id) { n[k][1]++; if (ids.has(id)) n[k][0]++; } };
+    tally('text', B.styles.text.flatMap((x) => Object.values(x.boundVariables as Record<string, { id: string }>).map((a) => a.id)));
+    tally('stop', B.styles.paint.flatMap((x) => x.paints.flatMap((p: any) => (p.gradientStops ?? []).map((st: any) => st.boundVariables?.color?.id))));
+    tally('blur', B.styles.effect.flatMap((x) => x.effects.map((e: any) => e.boundVariables?.radius?.id)));
+    tally('wash', B.vars.flatMap((v) => Object.values(v.valuesByMode).map((x: any) => x?.opacity?.id)));
+  }
+  for (const [k, what] of [['text', 'font bindings'], ['stop', 'gradient stop bindings'], ['blur', 'glass blur radius bindings'], ['wash', 'wash opacity aliases']] as const)
+    ok(n[k][1] > 0 && n[k][0] === 0, `binding scope (#1904): ${n[k][0]} of ${n[k][1]} pasted ${what} landed in the stranded collection`);
 });
 
 /* ── ledger: a host that refuses shared plugin data ─────────────────────────────────────────────────── */
