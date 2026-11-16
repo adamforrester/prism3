@@ -936,6 +936,23 @@ export const applyUpdate = async (
     }
     ready.push({ t, p, live });
   }
+  // #3803: A KEPT CARRY THIS VERSION CAN'T READ, on a set with no write to clear it. A set the build writes clears it
+  // there (#3796 review B2); a set with nothing else to do kept it, so the dry run named it on every check. It is cleared
+  // here, for every set given that reaches no write and was not refused, after any named version and never on a stop
+  // before the first write. Clearing it alone saves no version: the entry was already ignored, and nothing a designer
+  // sees changes, as an About frame alone saves none (Q498 B).
+  const unread = preview.sets.flatMap((p) => {
+    const r = ready.find((x) => x.p === p);
+    if (r || !p.carryUnreadable?.length || res.outcomes.some((o) => o.set === p.set && o.refused)) return [];
+    const t = targets.find((x) => (x.plans[0]?.component ?? x.def) === p.set);
+    return t ? [{ t, p }] : [];
+  });
+  const clearUnread = async (): Promise<void> => {
+    for (const { t, p } of unread) {
+      const live = await liveFor(host, t, p.set, opts.ledger);
+      if (live) for (const k of p.carryUnreadable ?? []) if (readCarry(live, k).unreadable) keepCarry(live, k, null);
+    }
+  };
   // A set whose only work is its move on the page (#2542) is work too: the version is saved and the move made.
   const moving = preview.sets.filter((p) => p.setMove && !p.blockers.length);
   // THE PAGE ORDER (#2568) is work of its own: a file whose sets are all up to date can still have pages to reorder.
@@ -950,11 +967,12 @@ export const applyUpdate = async (
   // THE BLOCK HEADERS (#3172) are work of their own too, on a host that can search the file and load a font.
   const headering = !!preview.blockHeaders?.length && !!host.root.children && typeof host.loadFontAsync === 'function';
   const about = aboutIsWork(preview.about) || coverIsWork(preview.cover);
-  if (!ready.length && !moving.length && !reorder && !relocate && !retable && !headering && !furnishing.length && !about) { await settle(host, targets, preview, res, opts); await finishAbout(host, api, preview, res, opts.today); return res; }
+  if (!ready.length && !moving.length && !reorder && !relocate && !retable && !headering && !furnishing.length && !about) { await clearUnread(); await settle(host, targets, preview, res, opts); await finishAbout(host, api, preview, res, opts.today); return res; }
   // THE ABOUT FRAME ALONE SAVES NO VERSION (owner decision Q498 B): no set changes, so Q7's way back has nothing to
   // cover. `settle` still saves one before any re-spacing it finds, as for any other second write.
   if (!ready.length && !moving.length && !reorder && !relocate && !retable && !headering && !furnishing.length) {
     res.aboutOnly = true;
+    await clearUnread();
     await settle(host, targets, preview, res, opts);
     if (res.version) delete res.aboutOnly;
     await finishAbout(host, api, preview, res, opts.today);
@@ -983,6 +1001,7 @@ export const applyUpdate = async (
   // re-spacing) used to leave this function with nothing, so the caller wrote no ledger for the sets already updated and
   // the verdict was one "update failed" line. Now the run's result so far is returned, with `failed` saying why it ended.
   try {
+  await clearUnread();
   // First, before the sets: moving a page rewrites nothing on it, and a stop in a set below leaves the order done.
   if (reorder) {
     const root = host.root;
