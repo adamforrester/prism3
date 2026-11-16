@@ -201,7 +201,10 @@ export type SetPreview = {
   states: { member: string; state: Exclude<MemberState, 'current'>; earlierRecord?: true;
     /** #2413 — a member edited by hand with a layer added or removed that also draws wrong: its drawn faults, each as
      *  `faultLine` writes it, so the apply's skip names the damage it leaves. Absent otherwise. */
-    damaged?: string[] }[];
+    damaged?: string[];
+    /** #2674 — the same member, its prototype reactions pointing at a member no longer in the set: the apply skips it,
+     *  so they are left dangling, and its skip says so. Absent otherwise. */
+    dangling?: true }[];
   /** #2188 Q173 — the members an update moves to their place in the grid, by name (`gridMoves`). Absent when none. */
   positions?: string[];
   /** #2542 (owner decision Q245.2 A) — the WHOLE SET moves on its page, to where a fresh build would place it
@@ -595,7 +598,9 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     // the stamp (`finishUpdated`), so a member carrying both stopped before its update completed: the next run finishes
     // it and clears the marker. This is what a stopped set's count holds too (`applySet`, #3449).
     const unfinished = m.updating != null;
-    const state: MemberState = (damaged.length && !structural) || rxv.dangling ? 'update'
+    // A LAYER ADDED BY HAND OUTRANKS DANGLING REACTIONS TOO (#2674), as it does drawn damage (#2413): the apply skips the
+    // member, so it counts as edited by hand, and its state says the reactions are left dangling.
+    const state: MemberState = (damaged.length || rxv.dangling) && !structural ? 'update'
       : !m.baseline ? 'noBaseline'
       : edited ? 'handEdited'
       // #3101: a member stamped under another revision is to update only when a revision since reaches this set.
@@ -605,7 +610,10 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     counts[state]++;
     const earlier = state === 'noBaseline' && !!m.earlierRecord;
     if (earlier) counts.earlierRecord = (counts.earlierRecord ?? 0) + 1;
-    const hurt = state === 'handEdited' && structural && damaged.length ? { damaged: damaged.map((f) => faultLine(m.name, f)) } : {};
+    const hurt = state === 'handEdited' && structural ? {
+      ...(damaged.length ? { damaged: damaged.map((f) => faultLine(m.name, f)) } : {}),
+      ...(rxv.dangling ? { dangling: true as const } : {}),
+    } : {};
     if (state !== 'current') states.push({ member: m.name, state, ...(earlier ? { earlierRecord: true as const } : {}), ...hurt });
     if (state === 'current' || state === 'revisionUnknown') continue;
 
