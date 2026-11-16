@@ -22,6 +22,7 @@
  * (see `apps/plugin/test-write-styles.ts`); the real `figma` object structurally satisfies it.
  */
 import type { StylesPlan, GradientTransform, FigmaEffect } from '@prism3/engine/figma';
+import { bindingTargets } from './binding-targets';
 import { markOwned, type Markable } from './provenance';
 
 /** A colour as Figma stores it on an effect/stop — RGBA floats 0–1 (matches the engine's `FigmaColor`). */
@@ -33,7 +34,7 @@ export type Rgba = { r: number; g: number; b: number; a: number };
 export interface VariableAlias { type: 'VARIABLE_ALIAS'; id: string }
 
 /** The minimal `Variable` surface this executor needs: a name to index by, and an id the alias carries. */
-export interface StyleVariable { id: string; name: string }
+export interface StyleVariable { id: string; name: string; variableCollectionId?: string }
 
 /**
  * A Figma gradient Paint (the subset the executor sets).
@@ -83,6 +84,8 @@ export interface StylesApi {
    *  real `figma` puts it — so the global still satisfies this port structurally, with no adapter. */
   variables: {
     getLocalVariablesAsync(type?: string): Promise<StyleVariable[]>;
+    /** The collections, so the binding index reaches only the ones this apply writes (#1904, `binding-targets.ts`). */
+    getLocalVariableCollectionsAsync(): Promise<readonly { id: string; name: string }[]>;
     createVariableAlias(target: StyleVariable): VariableAlias;
     /** Binds one effect field to a variable (#2869, the `glass` blur radius) and returns the bound COPY. Typed
      *  loosely for the reason the style nodes' arrays are: Figma's `Effect` is a superset of what we write. */
@@ -138,14 +141,15 @@ export const bindGradientStops = <V extends StyleVariable>(
  * Materialise the styles plan into Figma Effect + Paint Styles. Idempotent find-by-name for each:
  * reuse an existing style with the same name (overwrite its props), else create one.
  */
-export const applyStylesPlan = async (plan: StylesPlan, styles: StylesApi, tick?: () => Promise<void>): Promise<StylesApplyResult> => {
+export const applyStylesPlan = async (plan: StylesPlan, styles: StylesApi, tick?: () => Promise<void>, bindIn?: readonly string[]): Promise<StylesApplyResult> => {
   // `tick` (#3208): offered after every style written, for the plugin's Apply Theme to hand the thread back at its cadence
   // (`Tick` in `write-figma.ts`). A caller with none writes in one turn.
   // Unfiltered fetch, for the #146 reason `resolveCollection` documents: a type-filtered call returns
   // only that type, and nothing here guarantees the filter matches. Indexing every local variable by name is
   // what both the FLOAT and Text Style executors already do. Read once: the effect binding (FLOAT) and the
-  // gradient stops (COLOR) both resolve against it.
-  const varByName = new Map((await styles.variables.getLocalVariablesAsync()).map((v) => [v.name, v] as const));
+  // gradient stops (COLOR) both resolve against it. Scoped to the collections this apply writes (#1904, `bindIn`), so a
+  // same-named variable in a foreign or stranded collection cannot take a binding.
+  const varByName = await bindingTargets(styles.variables, bindIn);
   const misses: string[] = [];
 
   // ---- Effect Styles (shadows — both light `shadow/*` and dark `shadow-dark/*` — and `glass`, #2869) ----
