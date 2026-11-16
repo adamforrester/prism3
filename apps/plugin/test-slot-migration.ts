@@ -30,7 +30,10 @@
  *               rest with their rows for the next run.
  *   stopped/text/… #3697 H1, the #3225 half: a Banner set that stops after its properties exist fills every edited
  *               body; one that stops inside its member pass names each body it could not carry (carrying it: #3761).
- *   failed/…    #3697 L1 — a throw after the set's write (its fill) returns the set's outcome and why the run ended.
+ *   failed/…    #3697 L1 — a throw after the set's write (its fill) returns the set's outcome and why the run ended,
+ *               and its verdict is not `completed` (#3758).
+ *   finished/…  #3763 N1 — on a finished set, an instance with no slot after the update is a named miss.
+ *   refused/…   #3763 R2 — a set the update refuses carries nothing and changes no instance.
  *   dialog/…    #2661 — the footer's two fixed Buttons move into a nested Button.Group's slot, which holds the same two by
  *               default: a designer's changed labels land on those defaults in order, an unchanged instance is left
  *               out, and a swapped or hidden button is named. Driven on a hand-built model of the placed instances
@@ -50,6 +53,11 @@
  *   · a stopped Banner set skips the text fill again (`!o.stopped` back on `fillSlotText`) → `stopped/text after the pass filled`;
  *   · the text fill skips an instance with none of the new properties → `stopped/text inside the pass named`.
  *   · applyUpdate's catch around its writes rethrows (#3697 L1) → `failed/returned`, `failed/partial`.
+ *   · the thrown run's verdict says `completed: true` (#3758) → `failed/not completed`;
+ *   · the rows fill's `reachedOnly` passed as `true` on a finished set (#3763 N1) → `finished/missing slot named`;
+ *   · the apply's preflight refusal not skipping the set (#3763 R2) → `refused/rows kept`.
+ *   NOT a mutation any arm can catch: `!o.refused` on the two fills. `applySet` never returns a refused outcome (a set
+ *   is refused before the loop, above), so the guard is unreachable; `refused/…` pins the refusal that does run.
  */
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, type ComponentDef, type PartDef, componentDefs } from '@prism3/engine/components';
 import { COMPONENT_RENAMES, slotMigrationOf } from '@prism3/engine';
@@ -487,8 +495,58 @@ section('failed — a throw outside the set\'s write returns what was done, not 
   ok(!!o && o.set === 'checkbox-group' && o.updated.length > 0 && !o.stopped,
     `failed/partial: the set written before the throw is in the result, with its members updated (${o?.updated.length ?? 0})`);
   const v = res ? applyVerdict(res) : null;
-  ok(!!v && !v.ok && v.headline === '✗ update failed' && v.lines[0].startsWith('The update failed: the instance could not be read.') && v.lines.length > 1,
-    `failed/verdict: the verdict fails, says why first, and keeps the lines for what was done (${v?.headline}; ${JSON.stringify(v?.lines.slice(0, 2))})`);
+  ok(!!v && !v.ok && v.headline === '✗ update failed' && v.lines[0].startsWith('The update failed: the instance could not be read.') && v.lines.slice(1).some((l) => l.startsWith('checkbox-group:')),
+    `failed/verdict: the verdict fails, says why first, and keeps the set's line for what was done (${v?.headline}; ${JSON.stringify(v?.lines.slice(0, 2))})`);
+  // #3758: a run that threw did not go through every set, so Update file's run must stop there, not go on as a warning.
+  ok(v?.completed === false, `failed/not completed: a thrown update's verdict says the run did not complete (completed ${String(v?.completed)})`);
+}
+
+// ---- finished, slot missing (#3763 N1) ------------------------------------------------------------------------------
+
+section('finished/missing slot — on a set that finished, an instance with no slot after the update is a named miss (#3763)');
+{
+  // `reachedOnly` (#3697 H1) silences the miss only on a STOPPED set, where an unreached instance has no slot yet. On a
+  // finished set every member was reached, so an instance still with no slot is content not carried, and is named.
+  // Mutation: the fill's `reachedOnly` passed as `true` on every set → `finished/missing slot named`.
+  const target: UpdateTarget = { def: 'checkbox-group', plans: figmaAnatomySet(defOf('checkbox-group'), { swapTarget: SWAP_TARGET }) };
+  const w = await world(LEGACY['checkbox-group'](), target.plans);
+  const medium = memberNamed(w.set(), 'status=default, size=medium');
+  const fine = w.put(place('Carried', medium, w.set(), {}, { row1: { props: { 'Label#1:0': 'Email' } } }), medium);
+  const hidden = w.put(place('Slotless', medium, w.set(), {}, { row1: { props: { 'Label#1:0': 'SMS' } } }), medium);
+  // This instance never shows a slot: its layers are its member's, with any SLOT left out.
+  const real = Object.getOwnPropertyDescriptor(hidden, 'children')!.get!;
+  Object.defineProperty(hidden, 'children', { configurable: true, get: () => (real.call(hidden) as Model[]).filter((c) => c.type !== 'SLOT') });
+  const pre = await previewUpdate(w.host, [target]);
+  const res = await applyUpdate(w.host, w.api as any, [target], previewHashOf(pre));
+  const o = res.outcomes[0];
+  ok(!o?.stopped && !!slotOf(fine) && !slotOf(hidden),
+    `premise: the set finished, one instance holds its slot and the other shows none (${o?.stopped ?? 'finished'}; ${!!slotOf(fine)}, ${!!slotOf(hidden)})`);
+  ok((o?.content ?? []).includes('checkbox-group instance "Slotless": has no "items" slot after the update'),
+    `finished/missing slot named: the instance with no slot is a miss naming it (${JSON.stringify(o?.carried?.misses)})`);
+}
+
+// ---- refused (#3763 R2) --------------------------------------------------------------------------------------------
+
+section('refused — a set the update refuses carries nothing and changes no instance (#3763)');
+{
+  // A set the dry run blocks is refused before anything is written, and its instances keep their rows: no fill runs.
+  // The host here lists none of the variables the plans bind, so the dry run lists them as blockers and the apply
+  // refuses the set. Mutation: the apply's preflight refusal not skipping the set (its `continue` dropped) →
+  // `refused/rows kept`.
+  const target: UpdateTarget = { def: 'checkbox-group', plans: figmaAnatomySet(defOf('checkbox-group'), { swapTarget: SWAP_TARGET }) };
+  const w = await world(LEGACY['checkbox-group'](), target.plans);
+  const host = { ...w.host, variables: { ...(w.host as any).variables, getLocalVariablesAsync: async () => [] } } as unknown as typeof w.host;
+  const medium = memberNamed(w.set(), 'status=default, size=medium');
+  const inst = w.put(place('Blocked', medium, w.set(), {}, { row1: { props: { 'Label#1:0': 'Email' }, control: 'checked' } }), medium);
+  const pre = await previewUpdate(host, [target]);
+  ok(pre.sets[0]?.blockers.length > 0 && !!pre.sets[0].slotMigration?.instances.length,
+    `premise: the dry run blocks the set and still lists the instance it would carry (${pre.sets[0]?.blockers.length} blockers)`);
+  const res = await applyUpdate(host, w.api as any, [target], previewHashOf(pre));
+  const o = res.outcomes[0];
+  ok(!!o?.refused && !o.carried && !o.carriedText && o.updated.length === 0,
+    `refused/nothing carried: the set is refused and no fill runs (${o?.refused}; carried ${JSON.stringify(o?.carried)}; ${o?.updated.length} updated)`);
+  const label = (inst.children.find((c) => c.name === 'row1')?.componentProperties as Record<string, { value: Val }> | undefined)?.['Label#1:0']?.value;
+  ok(!slotOf(inst) && label === 'Email', `refused/rows kept: the instance keeps its rows and its label, with no slot (${label}; slot ${!!slotOf(inst)})`);
 }
 
 // ---- tabs ----------------------------------------------------------------------------------------------------
