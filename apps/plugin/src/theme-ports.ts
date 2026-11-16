@@ -65,6 +65,7 @@ export const textApiOf = (host: ThemeHost): TextStylesApi => ({
   createTextStyle: host.createTextStyle.bind(host),
   loadFontAsync: host.loadFontAsync.bind(host),
   getLocalVariablesAsync: host.variables.getLocalVariablesAsync.bind(host.variables),
+  getLocalVariableCollectionsAsync: host.variables.getLocalVariableCollectionsAsync.bind(host.variables),   // #1904
   // #499: the real (family, style) pairs, so the executor can correct the engine's per-weight
   // style-name guess against what each family actually spells it.
   listAvailableFontsAsync: host.listAvailableFontsAsync.bind(host),

@@ -25,6 +25,7 @@ import type { TextStylePlan } from '@prism3/engine/figma';
 import type { VariablesApi, Variable } from './write-figma';
 import { markOwned, type Markable } from './provenance';
 import { errorClass } from './apply-summary';
+import { bindingTargets } from './binding-targets';
 
 /** A Figma font descriptor. */
 export type FontName = { family: string; style: string };
@@ -61,6 +62,8 @@ export interface TextStylesApi {
   loadFontAsync(fontName: FontName): Promise<void>;
   /** The variable index for binding — reuses the same `getLocalVariablesAsync` the var executor uses. */
   getLocalVariablesAsync(type?: string): Promise<Variable[]>;
+  /** The collections, so the binding index reaches only the ones this apply writes (#1904, `binding-targets.ts`). */
+  getLocalVariableCollectionsAsync(): Promise<readonly { id: string; name: string }[]>;
   /** The real (family, style) pairs this Figma can load (#499). OPTIONAL: without it the executor uses
    *  the plan's emitted style verbatim, which is exactly the pre-#499 behavior — so the paste path and
    *  any older shim keep working unchanged. */
@@ -159,11 +162,12 @@ export type TextStyleApplyResult = {
  * variable-backed props. Assumes `applyVarCollectionPlan` already wrote `core/font`/`type-sets` (so the
  * bound targets exist); a missing target is recorded in `misses` but doesn't abort.
  */
-export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi, tick?: () => Promise<void>): Promise<TextStyleApplyResult> => {
+export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi, tick?: () => Promise<void>, bindIn?: readonly string[]): Promise<TextStyleApplyResult> => {
   // `tick` (#3208): offered after every style written, as in every Apply Theme executor (`Tick` in `write-figma.ts`).
   const byName = new Map((await api.getLocalTextStylesAsync()).map((s) => [s.name, s] as const));
-  // Unfiltered — the bound targets are STRING (family) + FLOAT (size/weight) vars (the #146 lesson).
-  const varByName = new Map((await api.getLocalVariablesAsync()).map((v) => [v.name, v] as const));
+  // Unfiltered by type — the bound targets are STRING (family) + FLOAT (size/weight) vars (the #146 lesson). Scoped to
+  // the collections this apply writes (#1904, `bindIn`), so a same-named variable elsewhere cannot take the binding.
+  const varByName = await bindingTargets(api, bindIn);
 
   // family → its real style names (#499). Fetched ONCE for the whole plan: Figma returns one entry per
   // (family, style) pair — ~11k for a full library — and every row would otherwise re-ask. A host that
