@@ -22791,7 +22791,9 @@ if (runs('3553-icons')) {
 //     control's context. A HELD (disabled)
 //     selected segment, as the preview's mode control is on Color › Palettes, draws the disabled treatment instead
 //     (`.p3-mode`, #2208 DB1 A): its style is not compared, and it is still held to no underline;
-//   · no selected segment draws an underline (an inset box-shadow offset vertically).
+//   · no selected segment draws an underline (an inset box-shadow offset vertically). A `border-bottom`, a
+//     `text-decoration` or a `::before` / `::after` bar fails the property-by-property comparison instead: the compared
+//     set includes `textDecorationLine` and what each pseudo-element would draw (review of 90e374ba).
 // What counts as a segmented control: `.p3-seg`, the legacy `.seg`, and any `[role="radiogroup"]`, drawn. Not counted,
 // by name: the token list's Primitives / Semantics tier row (`.pvseg.tok-seg`) and Export's artifact switcher
 // (`.p3-export-tabs`, #3553 Q-UI11 A), which are underline TAB rows by decision, not segmented controls.
@@ -22806,7 +22808,11 @@ if (runs('3553-icons')) {
 //     selected segment draws no underline` and `… token-path's selected segment ("Full") draws the shared selected style`;
 //   · the Alias path control put back on `.seg` / `.seg-b` (main.ts), which is main before #3911 → `#3911 … the Alias
 //     path control is a shared segmented control` and `… inspect-token-list's selected segment draws no underline` (the
-//     legacy group carries no hook of its own, so it is named by its card's).
+//     legacy group carries no hook of its own, so it is named by its card's);
+//   · `[data-p3="token-path"] .p3-seg-tab[aria-checked="true"]{text-decoration:underline 2px}` → `… token-path's selected
+//     segment ("Full") draws the shared selected style — differs in textDecorationLine underline (shared none)`;
+//   · a 2px --ink bar on that segment's `::before` (`content:""; position:absolute; bottom:2px; height:2px`) → the same
+//     arm, `— differs in ::before content "" (shared none); ::before position absolute …`.
 if (runs('3911')) {
   console.log(`\nEvery segmented control's selected segment is the shared one (#3911)\n${'='.repeat(78)}`);
   const SEL_PROPS = ['backgroundColor', 'color', 'fontWeight', 'boxShadow', 'outlineStyle', 'textDecorationLine',

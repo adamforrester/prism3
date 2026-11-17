@@ -21,9 +21,11 @@ Q-UI11 A). The mode control is held (disabled) on Color › Palettes and draws t
 (`.p3-mode`, #2208 DB1 A). The arm checks it for no underline but does not compare its style.
 
 **The gate.** `test-chrome.mjs` section 3911 (shard 2). For each drawn segmented control (`.p3-seg`, the legacy `.seg`,
-any `[role="radiogroup"]`), it reads the selected segment's computed fill, ink, weight, box-shadow, outline, borders
-and corners. It compares them, property by property, with a probe `.p3-seg-tab` the test appends to the frame inside
-the control's own `data-theme` and nothing else of its context. It also fails on any inset, vertically offset shadow,
+any `[role="radiogroup"]`), it reads the selected segment's computed fill, ink, weight, box-shadow, outline, text
+decoration, borders and corners, and what its `::before` and `::after` would draw. It compares them, property by
+property, with a probe `.p3-seg-tab` the test appends to the frame inside the control's own `data-theme` and nothing
+else of its context. The probe is a `.p3-choice` with the same `data-label` when the control is one, because that is
+where the shared rules draw the hidden bold-width reservation (#3115); no other class of the control's is copied. It also fails on any inset, vertically offset shadow,
 an underline, and it requires the Alias path control to be measured with each option selected. On main it fails 24
 checks, six per host and theme, every one on the Alias path, and nothing else. After the fix: 340 of 340.
 MUTATIONS, each after a `wip:` commit on both rebuilt bundles:
@@ -33,6 +35,9 @@ MUTATIONS, each after a `wip:` commit on both rebuilt bundles:
   refuses a shadow in `chrome.css` (T5), so that is the sheet such drift would come from.
 - Main's markup, the control on `.seg`, fails `#3911 … the Alias path control is a shared segmented control` and
   `… inspect-token-list's selected segment draws no underline`.
+- `text-decoration: underline 2px` on the selected Alias path segment fails `… draws the shared selected style —
+  differs in textDecorationLine`, and a 2px `--ink` bar on its `::before` fails the same arm, `— differs in ::before
+  content … position … height … backgroundColor`: 8 checks each. Both passed the arm before (review of 90e374ba).
 
 **Q195 retired for this control.** Section 45's Q195 arm required a 2px edge at 3:1 on `.seg-b.on`. That is the
 underline #3911 asks to remove, so the arm is gone, and section 3911 holds the control to the shared style. Whether the
