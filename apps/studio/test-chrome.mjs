@@ -22860,7 +22860,7 @@ if (runs('3911')) {
       const want = probeIn(theme, g.classList.contains('p3-choice'), on.getAttribute('data-label'));
       const got = sig(on);
       // A held segment draws the disabled treatment (the mode check's, #2208 DB1 A), so its style is not compared.
-      const diff = held ? [] : props.filter((p) => got[p] !== want[p]).map((p) => `${p} ${got[p]} (shared ${want[p]})`);
+      const diff = held ? [] : Object.keys(got).filter((p) => got[p] !== want[p]).map((p) => `${p} ${got[p]} (shared ${want[p]})`);
       const underline = got.boxShadow.split(/,(?![^(]*\))/).filter((part) => /inset/.test(part))
         .some((part) => { const n = part.replace(/rgba?\([^)]*\)/, '').match(/-?[\d.]+px/g)?.map(parseFloat) ?? []; return n.length >= 2 && n[0] === 0 && n[1] !== 0; });
       return { name, on: `${on.textContent.trim()}${held ? ', held' : ''}`, shared: g.classList.contains('p3-seg') && on.classList.contains('p3-seg-tab'), diff, underline, boxShadow: got.boxShadow };
