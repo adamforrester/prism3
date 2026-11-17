@@ -18,7 +18,7 @@
  */
 import { Theme, CORE_TIER, BODY_XS_DESCRIPTION } from './theme';
 import { resolveAllModes, ResolvedRole } from './modes';
-import { contrast, hexToRgb } from './color';
+import { contrast, floorRatio, hexToRgb } from './color';
 
 /** One contrast contract. `requirement` is the one place the sidecar carries an RFC 2119 keyword
  *  (#1623 AI/C-1, owner decision: `.ai.json` is the payload channel of `docs/voice-standard.md` §4).
@@ -612,12 +612,34 @@ export type AiMetadataOptions = { tokensFile?: string };
 export const AI_METADATA_SCHEMA = 'prism3-ai-metadata/0.5';
 
 /** The one normative sentence (AI/C-1) — a check a reader can run with `tokens.json` alone: resolve both
- *  roles in each mode, composite a translucent one over its ground, compare with `min`. `lint-voice.ts`
- *  matches this shape with its own pattern (not this function) and refuses any other `MUST`. */
-const contrastRequirement = (role: string, token: string, min: string, compositedOver?: string): string =>
-  compositedOver
-    ? `MUST keep \`${token}\` at ${min} or more on \`${role}\` composited over \`${compositedOver}\`, in every mode.`
-    : `MUST clear ${min} against \`${token}\` in every mode.`;
+ *  roles in each mode, composite a translucent one over its ground, compare with the floor. `lint-voice.ts`
+ *  matches this shape with its own pattern (not this function) and refuses any other `MUST`.
+ *  #1779: the floor is stated PER MODE where the modes differ — a role contracted at 3:1 in light and dark and
+ *  4.5:1 in high contrast says so ("… in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."), naming each
+ *  mode by its `tokens.json` id via `modeList`, so an agent never checks a
+ *  high-contrast pair against the light floor. Where every mode holds one floor it says "in every mode", as
+ *  before. Wording: DRAFT, the owner's call (#1779 OWNER DECISION). */
+/** A contract minimum as the sentence states it — "4.5:1". Not `floorRatio` (`color.ts`, #3759): a min is exact, never measured. */
+const minText = (n: number) => `${n}:1`;
+/** Group `[mode, floor]` pairs by floor, in the order the floors first appear, modes in their own order. */
+const floorGroups = (floors: [string, number][]): { min: number; modes: string[] }[] => {
+  const groups: { min: number; modes: string[] }[] = [];
+  for (const [m, min] of floors) (groups.find((g) => g.min === min) ?? (groups.push({ min, modes: [] }), groups[groups.length - 1])).modes.push(m);
+  return groups;
+};
+const contrastRequirement = (role: string, token: string, floors: [string, number][], compositedOver?: string): string => {
+  const groups = floorGroups(floors.filter(([, min]) => min > 0));
+  const first = groups[0];
+  const rest = groups.slice(1);
+  // "…, and 4.5:1 in hc-light and hc-dark" — the last group takes the "and"; any between take a comma.
+  const tail = (lead: (min: number) => string) => rest.map((g, i) => `${i === rest.length - 1 ? ', and ' : ', '}${lead(g.min)} in ${modeList(g.modes)}`).join('');
+  if (compositedOver) {
+    const head = `MUST keep \`${token}\` at ${minText(first.min)} or more on \`${role}\` composited over \`${compositedOver}\``;
+    return rest.length ? `${head} in ${modeList(first.modes)}${tail((n) => `at ${minText(n)} or more`)}.` : `${head}, in every mode.`;
+  }
+  const head = `MUST clear ${minText(first.min)} against \`${token}\``;
+  return rest.length ? `${head} in ${modeList(first.modes)}${tail(minText)}.` : `${head} in every mode.`;
+};
 
 /** A thin-tier entry (AI/D-1): identity, purpose and resolution, and the per-mode values when a mode
  *  lever moves it. `resolves_to` is the token's own `$value` — an alias, a composite, or a literal. */
@@ -779,26 +801,28 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
       ai.contrast_with = [{
         token,
         min: `${light.min}:1`,
-        ratio: Math.round(light.ratio * 100) / 100,
+        ratio: floorRatio(light.ratio),    // #3759: floored, like every printed ratio
         ...(over ? { composited_over: over } : {}),
-        requirement: contrastRequirement(roleKey, token, `${light.min}:1`, over),
+        requirement: contrastRequirement(roleKey, token, modeNames.map((m) => [m, perMode[m]?.min ?? 0]), over),
       }];
     }
     // A role's SECOND contracted pair (`alsoAgainst`, #1745) — `inverse.foreground.tertiary` under its label
     // `inverse.text.primary` — is stated from both ends, so an agent reading either token learns the bar.
     // Appended after the role's own pair: `contrast_with[0]` stays the pair the role is placed in, which is
     // what the relation checks read. The ratio is measured here from the light values; the engine stores none.
-    const second: { token: string; min: number; partnerHex: string }[] = [];
+    // #1779: its floor is read per mode too, from whichever end carries the `alsoAgainst`.
+    const second: { token: string; min: number; partnerHex: string; floors: [string, number][] }[] = [];
     if (light.alsoAgainst && byRole[light.alsoAgainst.against]?.light)
-      second.push({ token: light.alsoAgainst.against, min: light.alsoAgainst.min, partnerHex: byRole[light.alsoAgainst.against].light.hex });
+      second.push({ token: light.alsoAgainst.against, min: light.alsoAgainst.min, partnerHex: byRole[light.alsoAgainst.against].light.hex,
+        floors: modeNames.map((m) => [m, perMode[m]?.alsoAgainst?.min ?? 0]) });
     for (const [k, pm] of Object.entries(byRole)) {
       const a = pm.light?.alsoAgainst;
-      if (a && a.against === roleKey) second.push({ token: k, min: a.min, partnerHex: pm.light.hex });
+      if (a && a.against === roleKey) second.push({ token: k, min: a.min, partnerHex: pm.light.hex, floors: modeNames.map((m) => [m, pm[m]?.alsoAgainst?.min ?? 0]) });
     }
     for (const c of second) {
       const min = `${c.min}:1`;
-      const ratio = Math.round(contrast(hexToRgb(light.hex), hexToRgb(c.partnerHex)) * 100) / 100;
-      (ai.contrast_with ??= []).push({ token: c.token, min, ratio, requirement: contrastRequirement(roleKey, c.token, min) });
+      const ratio = floorRatio(contrast(hexToRgb(light.hex), hexToRgb(c.partnerHex)));
+      (ai.contrast_with ??= []).push({ token: c.token, min, ratio, requirement: contrastRequirement(roleKey, c.token, c.floors) });
     }
     colorRoles[roleKey] = ai;
   }
@@ -982,7 +1006,7 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
   // colour primitive listing a gradient that consumes it) resolves to a real entry.
   const gradient: Record<string, any> = {};
   for (const g of theme.gradient.gradients) {
-    const r2 = (x: number) => Math.round(x * 100) / 100;    // round only for display/emit
+    const r2 = floorRatio;    // floor only for the sentence (#3759): "drops to 4.49:1", never 4.5:1 beside "below 4.5:1"
     // AI/A-19: say which ink holds, per polarity, rather than quoting only the worse one. The pass/fail
     // test compares the raw value (CR-01); rounding is for the sentence.
     const inks = [{ ink: 'white', worst: g.worstOnWhite }, { ink: 'black', worst: g.worstOnBlack }];

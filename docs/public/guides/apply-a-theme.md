@@ -8,7 +8,7 @@ It is ticked when the dialog opens only if the file's variables differ from the 
 When they already match, it is unticked and reads "Up to date"; tick it to write the brand again. <!-- src: apps/studio/src/state/update-file.ts:339 -->
 It is in the Figma plugin only: the web studio has no file to write to. <!-- src: apps/studio/src/shell/bar.ts:108#1bd757c2 -->
 
-Each run checks the file first and writes only once nothing conflicts, or once you have chosen what happens to each conflict. It never deletes anything. <!-- src: apps/plugin/src/apply-theme.ts:78-119#6a30db6f --> <!-- src: apps/plugin/src/preflight.ts:162-221#328537d5 -->
+Each run checks the file first and writes only once nothing conflicts, or once you have chosen what happens to each conflict. It never deletes anything. <!-- src: apps/plugin/src/apply-theme.ts:78-123#82e91aee --> <!-- src: apps/plugin/src/preflight.ts:162-221#328537d5 -->
 The rest of the checklist, and how a run works, is in [Update a Figma file](update-a-file-safely.md).
 
 ## What gets written
@@ -17,11 +17,11 @@ The rest of the checklist, and how a run works, is in [Update a Figma file](upda
 |---|---|
 | Variable collections | `core`, holding the palette ramps, base dimensions and fonts; `color`, holding every color role; `layout`; `type-sets`; and one collection each for space, size, radius, border width, focus, opacity, motion, icon and control sizes. <!-- src: packages/engine/emit-figma.ts:173-258 --> |
 | Modes | On `color`, one mode per appearance mode the brand ships, such as light, dark and the high-contrast pair. On `layout`, one mode per breakpoint. On `type-sets`, a desktop and a mobile mode. <!-- src: packages/engine/emit-figma.ts:173-258 --> |
-| Text styles | One per text role, bound to the font variables, so changing a variable restyles the text. <!-- src: apps/plugin/src/apply-theme.ts:172-175#a571c20a --> |
-| Effect styles | The shadow ramp. <!-- src: apps/plugin/src/apply-theme.ts:116-186#5235800f --> |
-| Paint styles | Gradients, when the brand turns them on. <!-- src: apps/plugin/src/apply-theme.ts:116-186#5235800f --> |
+| Text styles | One per text role, bound to the font variables, so changing a variable restyles the text. <!-- src: apps/plugin/src/apply-theme.ts:176-179#a571c20a --> |
+| Effect styles | The shadow ramp. <!-- src: apps/plugin/src/apply-theme.ts:120-197#7ecb2856 --> |
+| Paint styles | Gradients, when the brand turns them on. <!-- src: apps/plugin/src/apply-theme.ts:120-197#7ecb2856 --> |
 | Grid styles | One per breakpoint, from the same layout values as the `layout` collection. A grid style can't switch modes, so each breakpoint gets its own. <!-- src: packages/engine/emit-figma-styles.ts:289-302 --> |
-| The brand itself | The settings you applied, saved in the file, so the plugin reopens on this brand next time. <!-- src: apps/plugin/src/apply-theme.ts:179-181#ede61fb0 --> <!-- src: apps/plugin/src/persist-figma.ts:29-34#ba150bb3 --> |
+| The brand itself | The settings you applied, saved in the file, so the plugin reopens on this brand next time. <!-- src: apps/plugin/src/apply-theme.ts:190-192#ede61fb0 --> <!-- src: apps/plugin/src/persist-figma.ts:29-34#ba150bb3 --> |
 
 Every collection and style Prism3 creates carries a small mark that says Prism3 made it. That mark is how later runs tell Prism3's content from yours. <!-- src: apps/plugin/src/provenance.ts:1-57#dce1a9a1 -->
 
@@ -69,6 +69,6 @@ Two more cases stop the theme before it starts:
 ## Writing it again
 
 Run Update file with **Theme** ticked after any change. <!-- src: apps/studio/src/state/update-file.ts:336 -->
-Content Prism3 wrote is updated in place, and a renamed token moves to its new name rather than being written twice. <!-- src: apps/plugin/src/apply-theme.ts:102-111#7e0aa344 -->
+Content Prism3 wrote is updated in place, and a renamed token moves to its new name rather than being written twice. <!-- src: apps/plugin/src/apply-theme.ts:102-115#989ee5d0 -->
 
 A token the brand no longer produces is reported, not deleted. To remove those, use the **Clean up** tab: see [Update a Figma file](update-a-file-safely.md#remove-what-the-brand-no-longer-uses). <!-- src: apps/studio/src/state/update-file.ts:327 -->
