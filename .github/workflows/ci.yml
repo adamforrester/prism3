@@ -281,6 +281,13 @@ jobs:
       - name: "@prism3/css reads tokens, never raw values (#3408 S2)"
         run: npm run -w @prism3/css check:raw-values
 
+      # @prism3/web-components (#3408 S4, Q95 B, Q96 A): p3-button.js is the Lit element GENERATED from
+      # the button def's props (component-defs.json), and custom-elements.json is what
+      # @custom-elements-manifest/analyzer writes from it. Both are committed; this fails when either
+      # is not what its generator writes now.
+      - name: "@prism3/web-components matches what its generator and the analyzer write (#3408 S4)"
+        run: npm run -w @prism3/web-components check:generated
+
       # Shipped SKILLS make factual claims about the engine, and were the last shipped surface with
       # no gate (#492) — out/**, the emitted contracts and apps/studio/dist are all scanned, skills/**
       # was not. Its first run found `prism3-consume` (now `prism3-build-ui`) teaching the pre-rename `action.*` family,
@@ -1151,6 +1158,22 @@ jobs:
       - name: "@prism3/css demo renders the resolved tokens on light and dark (#3408 S2)"
         timeout-minutes: 10
         run: npm run -w @prism3/css test:browser
+
+      # <p3-button> parity (#3408 S4). EXPECTED is components.ai.json and component-defs.json, plus the
+      # check's own copy of the element contract; ACTUAL is custom-elements.json and the element loaded in
+      # Chromium (its properties, defaults, reflected attributes and the inner markup per prop value). Six
+      # mutants (a dropped prop, value, aria-busy, default, an invented prop, a renamed attribute) must
+      # each fail by name.
+      - name: "@prism3/web-components offers exactly the def's props, values and defaults (#3408 S4)"
+        timeout-minutes: 10
+        run: npm run -w @prism3/web-components check:parity
+
+      # <p3-button> with the REAL token CSS and button.css (the script builds @prism3/tokens first): the
+      # element and plain HTML from the @prism3/css contract compute equal styles on light and dark, and
+      # pending and inactive suppress clicks, keys, form submits and links while keeping focus and name.
+      - name: "@prism3/web-components renders @prism3/css's button and its behavior (#3408 S4)"
+        timeout-minutes: 10
+        run: npm run -w @prism3/web-components test:browser
 
   plugin:
     # #3698 R4: skipped on a docs-only pull request, by the named exemption (`changes`, then `gates`).

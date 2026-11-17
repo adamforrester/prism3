@@ -1752,6 +1752,19 @@ npm run test:browser -w @prism3/css         # needs Chromium; builds @prism3/tok
                                           # on light and dark: computed values equal the scorer
                                           # oracle's resolved tokens, focus-visible on keyboard and
                                           # not on mouse, the accessibility tree holds
+npm run check:generated -w @prism3/web-components # #3408 S4, Q95 B: p3-button.js is the Lit
+                                          # element generate.ts writes from the button def's props,
+                                          # and custom-elements.json is what the analyzer writes from
+                                          # it; both are committed
+npm run check:parity -w @prism3/web-components # needs Chromium. components.ai.json +
+                                          # component-defs.json + the check's own contract against
+                                          # custom-elements.json and the live element: props, values,
+                                          # defaults, reflected data-prop-* attributes and the inner
+                                          # markup per value; six mutants must fail by name
+npm run test:browser -w @prism3/web-components # needs Chromium; builds @prism3/tokens first.
+                                          # The element and plain HTML from the @prism3/css contract
+                                          # compute equal styles on light and dark; pending and
+                                          # inactive suppress the action and keep focus and name
 npx tsx packages/engine/lint-us-english.ts # run AFTER the web AND plugin builds — its scope is both
                                           # built bundles: apps/studio/dist/*.js and, since #937,
                                           # apps/plugin/dist (main.js + ui.html), where the component

@@ -15,5 +15,10 @@
   "// devDependencies": "tsx is pinned EXACTLY (#3698 R4), so every `npx tsx` in CI, verify.ts and the workspace scripts runs one parser, and a new tsx reaches the repo only as a reviewed lockfile change. Before this, CI named `tsx@4` and floated within the major, and the workspace scripts' bare `npx tsx` fetched whatever was latest. Node is pinned the same way, in `.node-version`. `lint-doc-gates.ts` (`pinGaps`) fails a range here, a `.node-version` that is not an exact x.y.z, a setup-node step in ci.yml that does not read it or names its own version, and a `tsx@` spec on a CI step.",
   "devDependencies": {
     "tsx": "4.23.15"
+  },
+  "// overrides": "Two transitive packages of @custom-elements-manifest/analyzer (#3408 S4) held to releases at least two weeks old when they were added: the newest of each was days old. Remove an entry once the newer release has aged.",
+  "overrides": {
+    "@tybys/wasm-util": "0.10.4",
+    "@napi-rs/wasm-runtime": "1.2.6"
   }
 }

@@ -408,3 +408,192 @@ already carries `button-destructive` and `button-neutral` rows, so generating th
   the progress entry. `button.css` was regenerated, not hand-edited.
 - **Errors hit:** 2. The first `$type` lookup ignored a group-inherited type, so it was rewritten as a walk. The
   first browser check failed on Chromium's `normal`, as described above.
+
+---
+
+## S4 — `@prism3/web-components`: the button as `<p3-button>`, in Lit 3
+
+Started about 12:50 UTC on 2026-11-17, from `poc/arm-1` at `9280cd53`. Built in parallel with S3 (the text and
+password fields), which has its own branch; this PR touches no `@prism3/css` file. The thin Storybook (S5, Q-POC1 A)
+is a separate PR stacked on this one.
+
+### What was built
+
+`packages/web-components`, the `@prism3/web-components` workspace (`docs/35` §9.1):
+
+- **`generate.ts`, the element generator** (Q96 A). It reads the button def's props from `component-defs.json`
+  (generated fresh through `@prism3/css`'s `emission.ts`, never read from `out/`) and writes `p3-button.js`. Each def
+  prop becomes one Lit reactive property with the def's name, and each one an attribute can carry reflects to
+  `data-prop-<name>`, lowercased. Defaults, value unions and descriptions come from the def. A prop of a type the
+  generator has no rule for, or a non-enum prop with no markup mapping, fails generation by name.
+- **`p3-button.js`, the element** (Q95 B: Lit 3; Q97 A: `p3-`). It renders into its own light DOM the markup the
+  `@prism3/css` README states: a native `<button class="p3-button" data-component="button">` with the four
+  `data-prop-*` style hooks, the label, leading and trailing visual spans, the native `type` and `disabled`, and
+  `aria-label`. `href` renders an `<a>` instead. No shadow root and no style of its own: `button.css` styles it.
+  - **Pending** (per the def): `aria-busy="true"` and `aria-disabled="true"` on the inner button, plus the spinner
+    span (hidden from assistive technology), which the CSS swaps into the first visual cell.
+  - **Click suppression** (the def's `onClick`: "Suppressed while isPending or isInactive"). A capture listener on
+    the host stops a click, Enter or Space while pending or inactive, so no listener or `onClick` runs, no form
+    submits and no link navigates. Focus stays.
+  - **Slots and label in markup.** Light DOM has no `<slot>`, so on first connect the element moves
+    `slot="leadingVisual"` / `slot="trailingVisual"` children into their spans and takes its own text as the label.
+- **`custom-elements.json`** from `@custom-elements-manifest/analyzer` (`--litelement`): 12 attributes and 15
+  public fields, each with the def's type union, default and description.
+- **README**: the prop table (property, attribute, what reaches the inner element) and the behavior.
+
+### Dependencies (all pinned exactly, each release at least two weeks old on 2026-11-17)
+
+| Package | Version | Released | Why |
+|---|---|---|---|
+| `lit` | 3.3.3 | 2026-05-14 | The element runtime (Q95 B). Brings `lit-html` 3.3.3, `lit-element` 4.2.2, `@lit/reactive-element` 2.1.2. |
+| `@custom-elements-manifest/analyzer` | 0.11.0 | 2025-11-04 | Writes `custom-elements.json` (arm 1 architecture item 6). Dev only. |
+| `esbuild` | 0.24.2 | 2024-12 | Bundles the element with Lit for the two browser checks. Already in the tree through `tsx`; declared, not added. Dev only. |
+| `playwright` | `^1.62.1` | — | As `@prism3/css` declares it. Resolves to the preinstalled 1.62.1. |
+
+**Two transitive pins.** The analyzer pulls in 58 packages. Two resolved to releases under two weeks old:
+`@tybys/wasm-util` 0.10.5 (2026-11-16) and `@napi-rs/wasm-runtime` 1.2.7 (2026-11-03). Both are held back with
+root `overrides`, to 0.10.4 (2026-09-13) and 1.2.6 (2026-10-25). The root `package.json` says to remove each entry
+once the newer release has aged. Every other new package in the lockfile was checked by its publish date.
+
+### Decisions
+
+Followed: Q95 B (Lit 3), Q96 A (generated from the emission, with a parity gate), Q97 A (`p3-button`), Q86 A
+(native HTML plus a small script), arm 1 architecture items 1, 2, 6 and 7 (light DOM wrapping a native element;
+`@prism3/css` as the single source of truth; `custom-elements.json`; pending as `aria-busy` plus the spinner).
+
+Taken as technical calls (documented in the README, reversible):
+
+- **Unbuilt ES modules.** `p3-button.js` is plain JavaScript with JSDoc types and imports `lit` by name, like the
+  CSS package needs no build. A page needs a bundler or an import map. Storybook (Vite) is the first consumer.
+- **`aria-label` is the `ariaLabel` property.** The def's name isn't a JS identifier. Declaring it as a Lit property
+  shadows the browser's own ARIA reflection on the host, which is wanted: the name belongs on the inner button.
+- **The spinner renders only while pending**, not hidden at rest as in `@prism3/css`'s demo. The parity and browser
+  checks hold both forms to the same computed styles.
+
+**OWNER DECISIONS** (each built as the recommendation):
+
+1. **OWNER DECISION: the host's attribute names.** Options:
+   - **A. `data-prop-<name>` on the host (built).** The same mark `@prism3/css` styles and the adherence scorer
+     reads, so `<p3-button data-prop-appearance="outline">` declares its API in the scorer's own terms, and the
+     element and CSS forms read alike.
+   - B. Plain attributes (`appearance="outline"`, `full-width`, `is-pending`), the common custom-element style.
+     Shorter, but a second attribute vocabulary for the same props, and the scorer doesn't read them.
+   - C. Both, aliased. Twice the surface to keep in parity.
+
+   **Recommendation: A.** One vocabulary across both delivery forms and the scorer.
+2. **OWNER DECISION: slot names in markup.** Options: **A. the def's names, `slot="leadingVisual"` (built)**, or
+   B. kebab case, `slot="leading-visual"`, matching the part class `p3-button__leading-visual`. **Recommendation:
+   A**, because "props mirror the def exactly".
+3. **OWNER DECISION: the host's box.** `<p3-button>` keeps the default `display: inline`. The browser check measured
+   one consequence: in a flex row, the host is the flex item, not the inner button, so a flush button's
+   `min-inline-size: auto` computes as `0px` where the plain form computes `auto`. (The check compares both forms
+   inside an inline wrapper, so it compares like with like.) Options:
+   - **A. Leave the host inline for the POC (built).** No CSS change; `fullWidth` still fills its container,
+     because an inline box doesn't establish the containing block.
+   - B. `p3-button { display: contents }` in `@prism3/css`. The button becomes the flex or grid item directly, but
+     the CSS package then names the element, and the change lands in `generate.ts` while S3 is editing it.
+   - C. The element sets `display: contents` inline. An author can't override it without `!important`.
+
+   **Recommendation: A now, then B after S3 merges** if the Storybook layouts show a flex or grid case that needs it.
+4. **OWNER DECISION: the busy announcement and the spinner delay.** The def asks for a polite live region that
+   announces the busy state ("Saving…") and a delayed spinner with a minimum show time. Neither is built. The
+   announcement's wording is copy (voice), and the delay is waiting on #3486. Options: **A. defer both to S5 proper,
+   with the accessibility pass (built: deferred)**, or B. announce the label plus a fixed word now. **Recommendation:
+   A.**
+5. **OWNER DECISION: element names beyond `p3-button`.** Q97 A gives the prefix. The rule built is `p3-<def id>`, with
+   the class `P3<PascalCase id>` (`P3Button`), so text-field would be `<p3-text-field>`. The tone siblings follow
+   whatever the Q145 follow-up settles (the S2 follow-ups entry recommends B, `data-component`). Nothing for tone is
+   built here. **Recommendation: `p3-<def id>`.**
+
+### What was checked, and how
+
+Three new CI steps, mirrored in `verify.ts`, CONTRIBUTING §3, CLAUDE.md §4 and the PR template (`lint-doc-gates`
+clean). `packages/web-components/` joined the layout regions in the root README, CLAUDE.md and `docs/09` §3
+(`lint-layout-claims` clean).
+
+- **`check:generated`**: `p3-button.js` equals a fresh generation, and `custom-elements.json` equals a fresh
+  analyzer run over it.
+- **`check:parity`**, the element gate (docs/34). EXPECTED is `components.ai.json` and `component-defs.json`, which
+  must first agree with each other, plus the check's own hand-written `CONTRACT`: each prop's property name,
+  attribute and the inner attributes each value must produce. ACTUAL is read twice: `custom-elements.json` (public
+  fields, attributes, reflection, type unions, defaults) and the element live in Chromium (Lit's
+  `elementProperties`, a fresh element's values, and the inner markup for 24 prop values, set by attribute and by
+  property). Invented and missing props both fail. Six in-memory mutants each fail by name: a dropped prop
+  (`inset`), a dropped value in the manifest (`appearance` `text`), pending without `aria-busy`, a changed default
+  (`size` small), an invented prop (`tone`) and a renamed attribute (`fullWidth`).
+- **`test:browser`**, 107 checks with the real token CSS and `button.css`:
+  - **Both delivery forms.** 18 samples (each appearance × size, inverse, flush, pending with and without visuals,
+    inactive, disabled, visuals), side by side on light and dark. Every part's 18 computed properties are equal
+    between the element and plain HTML written from the `@prism3/css` contract. A filled fill must not be
+    transparent, so an unstyled page can't pass.
+  - **Behavior.** A rest click runs the listener and `onClick` once; Enter and Space activate. Pending and inactive
+    suppress a click, Enter and Space, submit no form, keep focus and keep the name "Save changes". A pending link
+    doesn't navigate. Disabled is native and skipped by Tab. The default type submits nothing; `submit` does.
+  - **Markup.** A text label and a `slot="leadingVisual"` child land in their spans; a pending toggle adds and
+    removes the spinner, `aria-busy` and the reflected attribute; `href` renders a link; `fullWidth` fills a 480px
+    box; Tab paints the focus ring.
+  - Three mutants fail by name: click suppression removed, a shadow root in place of the light DOM, and the default
+    type changed to `submit`.
+- **Hand mutations on disk**, after a `wip:` commit, each restored with `git show HEAD:<path> > <path>`:
+
+  | Mutation | Fails by name |
+  |---|---|
+  | `p3-button.js`: `isInactive`'s attribute renamed `data-prop-inactive` | `check:generated`: `p3-button.js is not what generate.ts writes`; parity: `prop isInactive: isInactive's attribute is data-prop-inactive, the contract says data-prop-isinactive` |
+  | `generate.ts`: inactive no longer sets `aria-disabled`, regenerated | parity: `isInactive=true: inner aria-disabled is null, the contract says "true"`; browser: `light inactive: the element's container differs from plain HTML: background-color …` |
+  | `generate.ts`: the `isInactive` markup row deleted | generate: `button.isInactive: a flag prop with no markup mapping in generate.ts` |
+
+### Surprises and learnings
+
+- **The parity gate passed on its first real run**, and the browser check's only real-run failures were in the
+  instrument (below). The S2 contract was specific enough to write an element against without guessing.
+- **The host's box shows up in computed values.** `min-inline-size: auto` serializes as `auto` on a flex item and
+  `0px` elsewhere, so the element's inline host changed a computed value with no visual change. That is owner
+  decision 3.
+- **The spinner's enter fade made the first comparison flaky.** The element's spinner mounts later than the static
+  one, so its opacity was mid-fade when read. The check now waits for every finite animation.
+- **The analyzer joins `--outdir` onto its cwd.** An absolute temp path landed under the package as
+  `tmp/prism3-cem-…/`; it was caught in `git ls-files` and removed before the PR.
+- **A generator that edits files beside its output** is a hazard a freshness check can't see: the check compares the
+  manifest, not `package.json`. Reading `git status` after a gate run is what caught it.
+- **Transitive packages can be days old even when the direct pin is a year old.** The analyzer's 0.11.0 is from
+  2025, but two of its dependencies resolved to releases from this month.
+
+### Plan changes suggested
+
+- **S6 can fold `check:parity` in as is** and extend `CONTRACT` per component, as with `@prism3/css`.
+- **S3's elements should reuse the generator's rule** (every enum prop is a `data-prop-*` style hook; every other
+  prop needs a named mapping), so a text field's `<input>` attributes are declared, not guessed.
+- **Decide owner decision 3 before S5's layout stories**, since a flex or grid story is where the host's box shows.
+
+### Effort
+
+- **Wall clock:** about 12:50 to 13:12 UTC for the package, the three checks, the wiring and the hand mutations
+  (about 22 minutes), then the full gate run.
+- **Steps:** about 45 tool calls before the gate run: reading (the issue, journal, CSS package, scorer, def, CI and
+  doc wiring) about 15, writing 8 files, running and fixing about 20.
+- **Hand edits:** none to generated output. The generator, the bundling helper, three checks, the README, five
+  doc checklists, `ci.yml`, `verify.ts`, three layout regions, the root `overrides`, this entry and the progress
+  entry were written by hand. The lockfile came from `npm install --package-lock-only --ignore-scripts`, validated by
+  `npm ci`.
+- **Errors hit:** 7.
+  1. `npm install … esbuild` without `--save-dev` put it in `dependencies`; regenerated the lockfile from the base.
+  2. The first `overrides` pass left the lockfile unchanged, and deleting the two entries by hand left it
+     inconsistent. Regenerating from the base lockfile with the overrides in place was the fix.
+  3. The analyzer's `--outdir` with an absolute path (above).
+  4. Playwright's `evaluateAll` with a string expression returned `undefined`; replaced by a scoped role locator.
+  5. The spinner fade timing (above).
+  6. The shadow-root mutant threw before the behavior section could report; that section now records a thrown
+     error as a failure.
+  7. **The analyzer rewrites `package.json`.** By default it sets the `customElements` field to wherever it wrote,
+     so every `check:generated` run pointed it at a deleted temp dir, and a corrupted value was committed in a `wip:`
+     commit. Found in `git status` after the gate run, not by a gate. `custom-elements-manifest.config.mjs` now sets
+     `packagejson: false`, `package.json` names the committed manifest by hand, and a rerun of both commands leaves
+     it byte-identical.
+
+**Local gate record** (`npm run verify`'s 112 gates, with `GITHUB_BASE_REF=poc/arm-1`, after `regen`, in 5 chunks):
+109 PASS, 0 FAIL, 3 not run locally. `lint-schema-classification` failed once inside the 67-gate chunk
+(`lint-us-english.ts --files` "listed 0 schema file(s)") and passed when rerun alone, with nothing changed; a flake
+under load, not this diff. Not run locally, left to CI: `chrome` and `chrome-shards` (cut at the 10-minute chunk
+limit with no failure printed) and `plugin-test` (cut at the same limit in S2). This diff touches none of their
+inputs.
+
