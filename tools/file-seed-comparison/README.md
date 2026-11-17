@@ -100,6 +100,8 @@ names) into the findings' external table.
 - **Families**: display and body, each `match` on the name.
 - **Density**: `match` when equal.
 - **Radius**: the nearest engine stop (sharp 0, modest 0.5, standard 1, soft 1.5, round 2); `match` when equal.
+- **Action palette** (owner decision Q-BK7 A): `primary`, `accent` or `neutral`, `primary` when the seed leaves
+  `actionPalette` unset; `match` when equal.
 
 The agent's design.md is read through the engine's parser and the CLI's vocabulary resolution, so a lever set by a
 word (`radiusScale: soft`, `personality`) is scored as the engine reads it.

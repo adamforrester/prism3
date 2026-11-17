@@ -29,6 +29,7 @@
  *   · density — `match` when equal.
  *   · radius — the nearest of the engine's named stops (vocabulary.ts SLIDER_STOPS: sharp 0, modest 0.5,
  *     standard 1, soft 1.5, round 2); `match` when the stops agree.
+ *   · action — the palette the main action runs on (`actionPalette`, `primary` when unset); `match` when equal.
  *
  * INDEPENDENCE (docs/34). The answer key is authored from the sources it cites and is read, never written, here.
  * The engine path's output is not the agent's input (the agent sees only the facts report and the skill), and the
@@ -57,11 +58,11 @@ export const REPO_ROWS: Record<string, string> = {
 };
 
 type OK = { l: number; c: number; h: number };
-type Picks = { primary: OK | null; accent: OK | null; display: string | null; body: string | null; density: string; radiusScale: number };
+type Picks = { primary: OK | null; accent: OK | null; display: string | null; body: string | null; density: string; radiusScale: number; action: string };
 type KeyRow = {
   kind: string; pending?: boolean;
   primary?: OK; accent?: OK | { value: null };
-  families?: { display: string; body: string }; density?: { value: string }; radiusScale?: { bucket: string };
+  families?: { display: string; body: string }; density?: { value: string }; radiusScale?: { bucket: string }; actionPalette?: { value: string };
 };
 
 const toLab = ({ l, c, h }: OK) => ({ L: l, a: c * Math.cos((h * Math.PI) / 180), b: c * Math.sin((h * Math.PI) / 180) });
@@ -89,6 +90,7 @@ const agentPicks = (md: string): Picks => {
     primary: resolved.primary ?? null, accent: accent?.oklch ?? null,
     display: one(fam.display) ?? one(fam.title), body: one(fam.body),
     density: resolved.density ?? 'comfortable', radiusScale: typeof resolved.radiusScale === 'number' ? resolved.radiusScale : 1,
+    action: typeof resolved.actionPalette === 'string' ? resolved.actionPalette : 'primary',
   };
 };
 const enginePicks = (r: FileFactsReport): Picks & { confidence: Record<string, number> } => {
@@ -96,8 +98,8 @@ const enginePicks = (r: FileFactsReport): Picks & { confidence: Record<string, n
   const p = s.picks;
   return {
     primary: p.primary.value, accent: p.accent.value, display: p.families.value.display, body: p.families.value.body,
-    density: p.density.value, radiusScale: p.radiusScale.value,
-    confidence: { primary: p.primary.confidence, accent: p.accent.confidence, families: p.families.confidence, density: p.density.confidence, radiusScale: p.radiusScale.confidence },
+    density: p.density.value, radiusScale: p.radiusScale.value, action: p.actionPalette.value,
+    confidence: { primary: p.primary.confidence, accent: p.accent.confidence, families: p.families.confidence, density: p.density.confidence, radiusScale: p.radiusScale.confidence, action: p.actionPalette.confidence },
   };
 };
 
@@ -110,6 +112,7 @@ const score = (p: Picks, k: KeyRow) => {
     body: norm(p.body) === norm(k.families?.body) ? 'match' : 'miss',
     density: p.density === k.density?.value ? 'match' : 'miss',
     radius: radiusStop(p.radiusScale) === k.radiusScale?.bucket ? 'match' : 'miss',
+    action: p.action === k.actionPalette?.value ? 'match' : 'miss',
   };
 };
 
@@ -150,6 +153,7 @@ const main = async (): Promise<void> => {
     lines.push(`  families  engine display ${es.display} (${e.display}), body ${es.body} (${e.body})   conf ${e.confidence.families}`);
     lines.push(`            agent  ${as && a ? `display ${as.display} (${a.display}), body ${as.body} (${a.body})` : 'no fixture'}`);
     lines.push(`  density   engine ${es.density} (${e.density})   conf ${e.confidence.density}    agent ${as && a ? `${as.density} (${a.density})` : 'no fixture'}`);
+    lines.push(`  action    engine ${es.action} (${e.action})   conf ${e.confidence.action}    agent ${as && a ? `${as.action} (${a.action})` : 'no fixture'}`);
     lines.push(`  radius    engine ${es.radius} (${e.radiusScale} → ${radiusStop(e.radiusScale)})   conf ${e.confidence.radiusScale}    agent ${as && a ? `${as.radius} (${a.radiusScale} → ${radiusStop(a.radiusScale)})` : 'no fixture'}`);
   }
   if (args.includes('--json')) process.stdout.write(`${JSON.stringify(out, null, 2)}\n`);

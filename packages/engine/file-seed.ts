@@ -1,7 +1,8 @@
 /**
  * THE ENGINE-ONLY SEED (#2075 part 2, owner decision Q-FS1 A): reads one file facts report (`file-facts.ts`) and
- * proposes a starting brand input. Five picks — primary, accent, type families, density, radius — each with a
- * confidence and the evidence that drove it, plus the neutral cast a compiling input needs (not scored).
+ * proposes a starting brand input. Six picks — primary, accent, type families, density, radius, and the action
+ * palette (owner decision Q-BK7 A) — each with a confidence and the evidence that drove it, plus the neutral cast a
+ * compiling input needs (not scored).
  *
  *   seedFromFacts(report) → FileSeed           // pure, deterministic, dependency-free and node-free
  *   seedDesignMd(seed)    → string             // the seed as a `design.md`, in the shape `cli.ts` already compiles
@@ -23,8 +24,9 @@
  *   over the primary words (so `brand/secondary` is an accent). Status words (`success`, `warning`, `danger`, `error`,
  *   `info`, `positive`, `negative`, `caution`, `critical`, `alert`, `feedback`, `focus`) drop the observation:
  *   a status or focus color is not the brand anchor. Observations under chroma 0.05 (OKLCH) are neutrals.
- *   Chromatic observations group into HUE FAMILIES (within 20° of the family's heaviest member). The primary family
- *   ranks by weight + 3 × primary-hinted weight; the accent is the best other family at least 25° away, ranked by
+ *   Chromatic observations group into HUE FAMILIES: a color held as a stepped variable (`…/primary/650`) joins its
+ *   ramp's family; any other joins the first family within 15° of its heaviest member. The primary family ranks by
+ *   weight + 3 × primary-hinted weight; the accent is the best other family at least 15° away, ranked by
  *   weight + 3 × accent-hinted weight, and only when it is accent-hinted or weighs at least a quarter of the primary.
  *   Within a family the anchor is the color with the most hinted weight, then the most weight, then the most chroma.
  *   Confidence = the winner's share of the top two ranks, times 0.75 when no name hinted it.
@@ -44,6 +46,17 @@
  *   to quarter steps. The corner is, in order: a corner-radius variable named for a `button`, `field` or `input`; one
  *   named `md`/`medium`; one named `sm`/`small` × 2; else the most-used usage radius between 1 and 32px.
  *
+ *   ACTION PALETTE (`actionPalette`). Which palette the main action runs on, read from the roles named for it: a
+ *   COLOR variable with `action`, `interactive`, `button` or `cta` in its name, at rest (no state or inverse word),
+ *   for the main action (no `secondary`, `tertiary`, `neutral`, `accent`, `ghost`, `subtle`, `outline`, `quiet`,
+ *   `plain` or `link` rank word), and not a status or `destructive` one; plus every button-like usage fill. A
+ *   near-white value (lightness above 0.9) is the ink on the fill or the ground, not the action color, and is
+ *   skipped. Each votes its weight (as COLOR above) for the palette its color belongs to: the primary pick's family,
+ *   the accent pick's family, or neutral (chroma under 0.05); a color in any other family votes for none. The pick is
+ *   the heaviest of the three, `primary` on a tie; confidence = its share of all the votes. With no such role it
+ *   is `primary`, the engine default, at confidence 0. The input sets `actionPalette` only when the pick isn't
+ *   `primary`.
+ *
  *   NEUTRAL (not scored; a compiling input needs it). The chroma-weighted mean hue of the observed grays between
  *   lightness 0.15 and 0.95 with chroma at least 0.004, and their weighted median chroma, capped at 0.03.
  */
@@ -60,6 +73,7 @@ export type Density = 'compact' | 'comfortable' | 'spacious';
 export type Evidence = { from: 'variable' | 'style' | 'usage'; name: string; value: string; weight: number };
 export type Pick<T> = { value: T; confidence: number; evidence: Evidence[] };
 export type Families = { display: string | null; body: string | null; code: string | null };
+export type ActionPalette = 'primary' | 'accent' | 'neutral';
 export type FileSeed = {
   format: typeof FILE_SEED_FORMAT;
   rule: typeof SEED_RULE;
@@ -70,6 +84,7 @@ export type FileSeed = {
     families: Pick<Families>;
     density: Pick<Density>;
     radiusScale: Pick<number>;
+    actionPalette: Pick<ActionPalette>;
     neutral: Pick<{ hue: number; chroma: number }>;
   };
   /** The picks as a `BrandInput` the engine compiles; a null pick is left to the engine default. */
@@ -87,6 +102,9 @@ const ACCENT_WORDS = ['accent', 'secondary', 'tertiary', 'highlight'];
 const STATUS_WORDS = ['success', 'warning', 'danger', 'error', 'info', 'positive', 'negative', 'caution', 'critical', 'alert', 'feedback', 'focus'];
 // A variant of a role (inverse, or an interaction state) counts half: the rest state on the light ground is the anchor.
 const VARIANT_WORDS = ['inverse', 'inverted', 'dark', 'ondark', 'hover', 'hovered', 'pressed', 'active', 'focused', 'selected', 'disabled', 'visited'];
+const ACTION_WORDS = ['action', 'interactive', 'button', 'cta'];
+// A rank word names an action other than the main one; `destructive` is the danger action, a status in all but name.
+const ACTION_RANK_WORDS = ['secondary', 'tertiary', 'neutral', 'accent', 'ghost', 'subtle', 'outline', 'outlined', 'quiet', 'plain', 'link', 'destructive'];
 const CONTROL_WORDS = ['control', 'checkbox', 'radio', 'switch', 'toggle', 'icon'];
 const DISPLAY_WORDS = ['display', 'heading', 'headline', 'title', 'hero', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 const BODY_WORDS = ['body', 'paragraph', 'text', 'label', 'detail', 'caption', 'ui'];
@@ -199,11 +217,12 @@ const anchorOf = (f: Family, hint: 'primary' | 'accent'): { hex: string; ev: Evi
   return { hex, ev: top(e.ev) };
 };
 
-const pickColors = (r: FileFactsReport): { primary: Pick<OKLCH | null>; accent: Pick<OKLCH | null>; obs: Obs[] } => {
+type Colors = { primary: Pick<OKLCH | null>; accent: Pick<OKLCH | null>; obs: Obs[]; pFam: Family | null; aFam: Family | null };
+const pickColors = (r: FileFactsReport): Colors => {
   const obs = colorObservations(r);
   const fams = hueFamilies(obs, rampsOf(r));
   const none: Pick<OKLCH | null> = { value: null, confidence: 0, evidence: [] };
-  if (!fams.length) return { primary: none, accent: none, obs };
+  if (!fams.length) return { primary: none, accent: none, obs, pFam: null, aFam: null };
   const pRank = (f: Family) => f.weight + 3 * f.primaryHinted;
   const aRank = (f: Family) => f.weight + 3 * f.accentHinted;
   const byP = [...fams].sort((a, b) => pRank(b) - pRank(a) || a.hue - b.hue);
@@ -213,11 +232,53 @@ const pickColors = (r: FileFactsReport): { primary: Pick<OKLCH | null>; accent: 
   const primary: Pick<OKLCH | null> = { value: oklchOf(pa.hex), confidence: confidence(pShare * (p.primaryHinted > 0 ? 1 : 0.75)), evidence: pa.ev };
   const rest = fams.filter((f) => f !== p && hueGap(f.hue, p.hue) >= HUE_FAMILY && (f.accentHinted > 0 || f.weight >= p.weight / 4))
     .sort((a, b) => aRank(b) - aRank(a) || a.hue - b.hue);
-  if (!rest.length) return { primary, accent: none, obs };
+  if (!rest.length) return { primary, accent: none, obs, pFam: p, aFam: null };
   const a = rest[0];
   const aa = anchorOf(a, 'accent');
   const aShare = aRank(a) / (aRank(a) + (rest[1] ? aRank(rest[1]) : 0));
-  return { primary, accent: { value: oklchOf(aa.hex), confidence: confidence(aShare * (a.accentHinted > 0 ? 1 : 0.5)), evidence: aa.ev }, obs };
+  return { primary, accent: { value: oklchOf(aa.hex), confidence: confidence(aShare * (a.accentHinted > 0 ? 1 : 0.5)), evidence: aa.ev }, obs, pFam: p, aFam: a };
+};
+
+/** The palette the main action runs on, by where its rest roles and button fills resolve (the header's rule). */
+const pickAction = (r: FileFactsReport, c: Colors): Pick<ActionPalette> => {
+  const ramps = rampsOf(r);
+  const inFamily = (f: Family | null, hex: string, h: number): boolean => {
+    if (!f) return false;
+    const ramp = ramps.get(hex);
+    if (ramp) return f.key === ramp || f.obs.some((o) => o.hex === hex);
+    return f.obs.some((o) => o.hex === hex) || hueGap(f.hue, h) <= HUE_FAMILY;
+  };
+  const votes: Record<ActionPalette, number> = { primary: 0, accent: 0, neutral: 0 };
+  let total = 0;
+  const ev: Record<ActionPalette, Evidence[]> = { primary: [], accent: [], neutral: [] };
+  const vote = (hex: unknown, weight: number, e: Omit<Evidence, 'value' | 'weight'>): void => {
+    if (typeof hex !== 'string' || !/^#[0-9a-f]{6}([0-9a-f]{2})?$/.test(hex) || weight <= 0) return;
+    if (hex.length === 9 && parseInt(hex.slice(7), 16) < 128) return;
+    const h6 = hex.slice(0, 7);
+    const m = rgbToOklch(hexToRgb(h6));
+    if (m.l > 0.9) return;
+    const to: ActionPalette | null = m.c < 0.05 ? 'neutral'
+      : inFamily(c.pFam, h6, m.h ?? 0) ? 'primary' : inFamily(c.aFam, h6, m.h ?? 0) ? 'accent' : null;
+    total += weight;
+    if (!to) return;
+    votes[to] += weight;
+    ev[to].push({ ...e, value: h6, weight });
+  };
+  for (const v of r.variables.variables) {
+    if (v.type !== 'COLOR') continue;
+    const w = words(v.name);
+    if (!has(w, ACTION_WORDS) || has(w, ACTION_RANK_WORDS) || has(w, VARIANT_WORDS) || has(w, STATUS_WORDS)) continue;
+    const m = defaultValue(r, v);
+    if (!m || has(new Set((m.chain ?? []).flatMap((n) => [...words(n)])), STATUS_WORDS)) continue;
+    vote(m.resolved, (m.alias ? 2 : 1) + v.boundLayers, { from: 'variable', name: v.name });
+  }
+  for (const u of r.usage.paints)
+    if (u.role === 'button-like' && u.property === 'fill')
+      vote(u.color, u.layers, { from: 'usage', name: `fill on button-like${u.binding.kind === 'raw' ? '' : ` via ${u.binding.name ?? ''}`}` });
+  if (!total) return { value: 'primary', confidence: 0, evidence: [] };
+  const order: ActionPalette[] = ['primary', 'accent', 'neutral'];
+  const value = [...order].sort((a, b) => votes[b] - votes[a] || order.indexOf(a) - order.indexOf(b))[0];
+  return { value, confidence: confidence(votes[value] / total), evidence: top(ev[value]) };
 };
 
 /** The neutral cast from the observed grays (every color variable, style and usage row, status ones included). */
@@ -334,7 +395,9 @@ const pickRadius = (r: FileFactsReport): Pick<number> => {
 /* ── the seed ──────────────────────────────────────────────────────────────────────────────────────────────────────── */
 
 export const seedFromFacts = (report: FileFactsReport, id = 'seed'): FileSeed => {
-  const { primary, accent } = pickColors(report);
+  const colors = pickColors(report);
+  const { primary, accent } = colors;
+  const actionPalette = pickAction(report, colors);
   const neutral = pickNeutral(report);
   const families = pickFamilies(report);
   const density = pickDensity(report);
@@ -351,13 +414,14 @@ export const seedFromFacts = (report: FileFactsReport, id = 'seed'): FileSeed =>
     primary: primary.value ?? { l: 0.55, c: 0.15, h: 262 },
     neutral: neutral.value,
     ...(accent.value ? { brandColors: [{ name: 'accent', oklch: accent.value }] } : {}),
+    ...(actionPalette.value !== 'primary' ? { actionPalette: actionPalette.value } : {}),
     density: density.value,
     radiusScale: radiusScale.value,
     ...(Object.keys(fam).length ? { typography: { families: fam } } : {}),
   } as BrandInput;
   return {
     format: FILE_SEED_FORMAT, rule: SEED_RULE, factsFormat: report.format,
-    picks: { primary, accent, families, density, radiusScale, neutral }, input,
+    picks: { primary, accent, families, density, radiusScale, actionPalette, neutral }, input,
   };
 };
 

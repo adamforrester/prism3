@@ -185,14 +185,16 @@ saying which facts drove it.
    button-like fills in the report's paint usage. A status color (success, warning, danger, error, info) or a focus ring
    is not the primary unless nothing else is chromatic. Pin it in OKLCH as above.
 2. **Accent.** A second brand hue that roles call `accent` or `secondary` goes in `brandColors` as `name: accent`.
-   Set `actionPalette: accent` only when the action roles point at it. If there's no second brand hue, leave
-   `brandColors` out.
-3. **Families.** Display and title take the family the heading or display roles use; body, label and caption
+   If there's no second brand hue, leave `brandColors` out.
+3. **Action palette.** Read where the main action's roles point at rest (`action`, `interactive`, `button` or `cta`
+   in the name, not a secondary, ghost or destructive one, and not the white ink on the fill). On the accent, set
+   `actionPalette: accent`; on a near-black or gray, `actionPalette: neutral`. On the primary, leave it out.
+4. **Families.** Display and title take the family the heading or display roles use; body, label and caption
    take the body family. Skip icon fonts.
-4. **Density and radius.** A medium control height near 36px is `compact`, near 44px `comfortable`, near 56px
+5. **Density and radius.** A medium control height near 36px is `compact`, near 44px `comfortable`, near 56px
    `spacious`. `radiusScale` is the medium control corner divided by 4px. Read button and field corners, not
    checkbox or switch corners. Without variables, use the most-used padding and corner in `usage`.
-5. **Neutral.** Use the hue and chroma of the grays the file uses.
+6. **Neutral.** Use the hue and chroma of the grays the file uses.
 
 Then run the compile loop. Say in the prose which picks the report left open, so a reviewer knows what to check.
 

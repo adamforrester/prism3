@@ -7,7 +7,8 @@
       "accent": { "value": null, "source": "the brief declares no accent. The file names an amber `text/accent` role; a reader could defensibly propose it, so a pick here is scored `extra`, not `wrong`, and the findings discuss it" },
       "families": { "display": "ITC Garamond Std", "body": "Proxima Nova", "source": "the file's `font/family/display` and `font/family/body` roles. The redesign brief moved body to another face; the key is what the FILE says" },
       "density": { "value": "comfortable", "source": "`size/component/height-md` = 40px, nearest the comfortable 44px medium control" },
-      "radiusScale": { "bucket": "standard", "source": "`radius/md` = 4px = the engine's base md (scale 1). The redesign brief sets 0; the key is what the FILE says" }
+      "radiusScale": { "bucket": "standard", "source": "`radius/md` = 4px = the engine's base md (scale 1). The redesign brief sets 0; the key is what the FILE says" },
+      "actionPalette": { "value": "neutral", "source": "the reference brand's own brief pins `actionPalette: neutral` (packages/engine/examples/nb-redesign.design.md, \"actions are black, not red\"); the file's `button/foreground/primary/default` and `interactive/text/default` alias `color/neutral/950`" }
     },
     "prism2": {
       "kind": "repo: Prism 2's Figma variable export (variables, no layers, three modes)",
@@ -15,7 +16,8 @@
       "accent": { "l": 0.4763, "c": 0.2705, "h": 288.88, "source": "#6502E6, `color/brand/secondary/650`, which `text/brand/secondary` and `surface/brand/secondary` point at. `action/accent/*/rest` points two rungs darker (`/750`), so any rung of this ramp is a family match" },
       "families": { "display": "Poppins", "body": "Inter", "source": "`font/family/display` → Poppins, `font/family/body` → Inter" },
       "density": { "value": "comfortable", "source": "`size/component/height-md` = 44px" },
-      "radiusScale": { "bucket": "standard", "source": "`border/radius/button` = 4px; the default ramp reproduces Prism 2's container ramp 2/4/6/8/12/16 (packages/engine/scale.ts RADIUS_LADDER)" }
+      "radiusScale": { "bucket": "standard", "source": "`border/radius/button` = 4px; the default ramp reproduces Prism 2's container ramp 2/4/6/8/12/16 (packages/engine/scale.ts RADIUS_LADDER)" },
+      "actionPalette": { "value": "primary", "source": "every `action/primary/*/rest` role points at `color/brand/primary/650`, the primary" }
     },
     "emission-prism3": {
       "kind": "repo: the engine's own Figma emission for the default theme (variables + text styles)",
@@ -23,7 +25,8 @@
       "accent": { "l": 0.5573, "c": 0.2634, "h": 289.32, "source": "packages/engine/examples/prism3.design.md `brandColors.accent`" },
       "families": { "display": "Playfair Display", "body": "Inter", "source": "packages/engine/examples/prism3.design.md `typography.families`" },
       "density": { "value": "comfortable", "source": "packages/engine/examples/prism3.design.md `density`" },
-      "radiusScale": { "bucket": "standard", "source": "packages/engine/examples/prism3.design.md `radiusScale: 1`" }
+      "radiusScale": { "bucket": "standard", "source": "packages/engine/examples/prism3.design.md `radiusScale: 1`" },
+      "actionPalette": { "value": "primary", "source": "packages/engine/examples/prism3.design.md sets no `actionPalette` (action = primary, the default)" }
     },
     "emission-aurora": {
       "kind": "repo: the engine's own Figma emission for the maximal example brand (variables + text styles)",
@@ -31,7 +34,8 @@
       "accent": { "l": 0.55, "c": 0.15, "h": 235, "source": "packages/engine/examples/aurora.design.md `brandColors.accent` (the action palette)" },
       "families": { "display": "Clash Display", "body": "Inter", "source": "packages/engine/examples/aurora.design.md `typography.families`" },
       "density": { "value": "comfortable", "source": "packages/engine/examples/aurora.design.md `density`" },
-      "radiusScale": { "bucket": "round", "source": "packages/engine/examples/aurora.design.md `radiusScale: 2` (the `round` stop)" }
+      "radiusScale": { "bucket": "round", "source": "packages/engine/examples/aurora.design.md `radiusScale: 2` (the `round` stop)" },
+      "actionPalette": { "value": "accent", "source": "packages/engine/examples/aurora.design.md `actionPalette: accent`" }
     },
     "external-variables-1": { "kind": "pending: a non-Prism3 Figma file WITH variables", "pending": true },
     "external-variables-2": { "kind": "pending: a non-Prism3 Figma file WITH variables", "pending": true },

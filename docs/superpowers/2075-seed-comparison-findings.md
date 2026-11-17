@@ -1,6 +1,6 @@
 # Seeding a brand from a Figma file: engine-only vs agent (#2075 part 2 findings)
 
-**Date:** 2026-11-17 · **Type:** working note, recommendation only · **Source:** #2075 (owner decisions Q189, Q-FS1 A) ·
+**Date:** 2026-11-17 · **Type:** working note, recommendation only · **Source:** #2075 (owner decisions Q189, Q-FS1 A, Q-BK6, Q-BK7 A) ·
 **Harness:** `tools/file-seed-comparison/` · **Engine path:** `packages/engine/file-seed.ts` (`facts-seed/1`)
 
 The owner decides from this note whether the engine-only seed is **usable**, **limited** or **different**, and which
@@ -34,25 +34,29 @@ cases, if any, should be agent-only. Nothing here decides it.
 | | families | match / match (1.0) | match / match |
 | | density | match (0.7) | match |
 | | radius | match, standard (0.7) | match, standard |
+| | action | match, neutral (1.0) | match, neutral |
 | Prism 2 | primary | match, ΔE 0 (0.81) | match, ΔE 0 |
 | | accent | **close**, ΔE 0.109: two rungs dark (0.92) | match, ΔE 0 |
 | | families | match / match (1.0) | match / match |
 | | density | match (0.7) | match |
 | | radius | match, standard (0.8) | match, standard |
+| | action | match, primary (1.0) | match, primary |
 | emission, default theme | primary | match, ΔE 0 (0.96) | match, ΔE 0 |
 | | accent | match, ΔE 0 (1.0) | match, ΔE 0 |
 | | families | match / match (1.0) | match / match |
 | | density | match (0.7) | match |
 | | radius | match, standard (0.7) | match, standard |
+| | action | match, primary (1.0) | match, primary |
 | emission, maximal example | primary | match, ΔE 0.001 (0.67) | match, ΔE 0.001 |
 | | accent | **close**, ΔE 0.100: the hover-dark rung (1.0) | match, ΔE 0.027 |
 | | families | match / match (1.0) | match / match |
 | | density | match (0.7) | match |
 | | radius | match, round (0.7) | match, round |
+| | action | match, accent (1.0) | match, accent |
 
-**Engine: 22 of 24 checks match, 2 close, 0 miss. Agent: 24 of 24.** Each row has six checks (families count as
-display and body), and the reference brand's accent is `extra` for both paths: both proposed its amber, which the key
-doesn't have (owner decision 1).
+**Engine: 26 of 28 checks match, 2 close, 0 miss. Agent: 28 of 28.** Each row has seven checks (families count as
+display and body; the action palette is the seventh, Q-BK7 A), and the reference brand's accent is `extra` for both
+paths: both proposed its amber, which the key doesn't have (Q-BK6: the reference brand has no accent).
 
 ### Where the two paths differ, and why
 
@@ -65,13 +69,13 @@ doesn't have (owner decision 1).
   row's brand red is named for promo text and the focus ring, never `primary`, and its actions are near-black. The
   agent called the same pick "medium-low" for the same reason. Both picked the right red.
 
-### What only the agent did (outside the five picks)
+### What only the agent did (outside the six picks)
 
-None of these is scored, and each one changes the seed a reviewer would start from.
+None of these is scored, and each one changes the seed a reviewer would start from. Setting `actionPalette` was on
+this list until Q-BK7 A made it the engine's sixth pick; it now matches on all four rows.
 
 | Agent-only behavior | Row | Why the engine path can't do it today |
 |---|---|---|
-| Set `actionPalette` (neutral for the reference brand, accent for the example) by reading where the action roles point | reference brand, example | It isn't one of the five picks. The evidence is in the report (action-named roles resolve to a non-primary family), so the engine could learn it. That's a scope call (owner decision 2). |
 | Read variable **descriptions** ("the brand color, exact") to choose the anchor rung | both emissions | The engine reads names and counts, not prose. Descriptions in non-Prism3 files are rare and unstructured. |
 | **Compiled its seed and diffed it against the file**, then added `iconContrast`, `weightRoles`, `motionPersonality` and `layout` until the rebuild matched | example | A loop over the compiler, not a reading of the report. It's the agent path's real advantage on a file with full variables. |
 | Carried the file's gradient as written | Prism 2 | Out of scope for a seed. |
@@ -89,19 +93,24 @@ external rows". The reports and their answer keys stay off the repo; only verdic
 
 ## Assessment (recommendation; the owner decides)
 
-- **Files with named variables:** the engine-only seed looks **usable** for the five picks. Every pick landed on the
+- **Files with named variables:** the engine-only seed looks **usable** for the six picks. Every pick landed on the
   right hue family, font and bucket, and the two misses were one rung on the accent ramp. That holds for files named
   the way these are. The external rows will show whether it survives other people's naming.
-- **Beyond the five picks:** **limited.** The agent's seeds are closer to the file because it sets the action palette
-  and, on a fully tokenized file, fits more levers by compiling and comparing. If the mapping screen (part 3) should
-  show "actions run on the neutral" or "actions run on the accent", the engine needs that pick.
+- **Beyond the six picks:** **limited.** On a fully tokenized file the agent fits more levers by compiling and
+  comparing. The action palette, the one lever where the agent beat the engine on fidelity, is now the engine's sixth
+  pick (Q-BK7 A) and matches on every repo row.
 - **Files without variables:** **unknown.** No row measures it. This is where the paths are most likely to diverge,
   because names stop helping and only usage counts and layer roles remain.
-- **Agent-only cases, so far:** none of the five picks needs the agent on this evidence. The agent-only behaviors are
+- **Agent-only cases, so far:** none of the six picks needs the agent on this evidence. The agent-only behaviors are
   the rebuild-and-compare loop and reading prose descriptions. Whether to send a fully tokenized file to an agent for
   that loop is a product choice, not something these rows decide.
 
-## OWNER DECISIONS
+## OWNER DECISIONS (answered 2026-11-17)
+
+Decided: **1 → A (Q-BK6)**, the reference brand has no accent and the key keeps none. **2 → A (Q-BK7)**, built: the
+engine seed's sixth pick is the action palette (`file-seed.ts` header, "ACTION PALETTE"). **3 (Q-BK8)**, the owner is
+collecting the six external files; they are captured read-only later and only verdicts come back. **4**, the facts
+report stays `0.x` until the external rows are in. The questions as asked:
 
 1. **Does the reference brand have an accent?** Its legacy file names an amber `text/accent` role that both paths
    picked. Its own brief declares no accent and puts danger on the red.

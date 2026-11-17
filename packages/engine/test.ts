@@ -42908,6 +42908,35 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(s.picks.radiusScale.value === 1 && s.picks.radiusScale.evidence[0]?.name === 'border/radius/button',
     `#2075 seed: the radius reads the button corner (4px → 1) ahead of the md rung (8px) and the control corner (got ${JSON.stringify(s.picks.radiusScale)})`);
 
+  ok(s.picks.actionPalette.value === 'primary' && s.picks.actionPalette.evidence.some((e) => e.name === 'action/primary/fill/rest') && s.input.actionPalette === undefined,
+    `#2075 seed: the action palette is the primary when the main action's rest role points at it, its hover ignored, and the input leaves it unset (got ${JSON.stringify(s.picks.actionPalette)})`);
+
+  // Q-BK7 A: actions decoupled from the hero. A red brand whose main action roles are near-black, white ink on them,
+  // a red focus state and a red status; and a violet brand whose main action runs on an azure accent ramp, with a
+  // destructive action on red and a secondary action on the primary.
+  const blackActions = seedFromFacts(report({ vars: [
+    v('color/red/550', 'COLOR', '#cf0a2c'), v('color/neutral/950', 'COLOR', '#151415'), v('color/white', 'COLOR', '#ffffff'),
+    v('text/promo/default', 'COLOR', '#cf0a2c', ['color/red/550']),
+    v('button/fill/primary/default', 'COLOR', '#151415', ['color/neutral/950']),
+    v('button/border/primary/focused', 'COLOR', '#cf0a2c', ['color/red/550']),
+    v('button/text/primary/default', 'COLOR', '#ffffff', ['color/white']),
+    v('interactive/text/default', 'COLOR', '#151415', ['color/neutral/950']),
+    v('feedback/negative/bold', 'COLOR', '#cf0a2c', ['color/red/550']),
+  ] }));
+  ok(blackActions.picks.actionPalette.value === 'neutral' && blackActions.picks.actionPalette.confidence === 1 && blackActions.input.actionPalette === 'neutral',
+    `#2075 seed: main action roles on a near-black set the neutral action palette, the white ink and the red focus state ignored (got ${JSON.stringify(blackActions.picks.actionPalette)})`);
+  const accentActions = seedFromFacts(report({ vars: [
+    v('palette/primary/550', 'COLOR', '#5e4bc3'), v('palette/accent/500', 'COLOR', '#007cbb'), v('palette/danger/500', 'COLOR', '#c94c44'),
+    ...['text', 'icon', 'surface'].map((k) => v(`brand/primary/${k}`, 'COLOR', '#5e4bc3', ['palette/primary/550'])),
+    v('accent/surface', 'COLOR', '#007cbb', ['palette/accent/500']),
+    v('interactive/primary/fill/rest', 'COLOR', '#007cbb', ['palette/accent/500']),
+    v('interactive/primary/on-fill/rest', 'COLOR', '#ffffff'),
+    v('interactive/destructive/fill/rest', 'COLOR', '#c94c44', ['palette/danger/500']),
+    v('interactive/secondary/fill/rest', 'COLOR', '#5e4bc3', ['palette/primary/550']),
+  ] }));
+  ok(accentActions.picks.actionPalette.value === 'accent' && accentActions.picks.actionPalette.confidence === 1 && accentActions.input.actionPalette === 'accent' && hexOf(accentActions.picks.accent.value) === '#007cbb',
+    `#2075 seed: a main action on the accent ramp sets the accent action palette at confidence 1, the white ink on it and the destructive and secondary actions ignored (got ${JSON.stringify(accentActions.picks.actionPalette)})`);
+
   // A file with no variables at all: raw usage only. A button-like fill outweighs a larger number of icon layers.
   const rawOnly = report({
     paints: [{ role: 'button-like', color: '#0a7d4f', layers: 12 }, { role: 'icon', color: '#c2410c', layers: 30 }, { role: 'text', color: '#1f2933', layers: 200 }, { role: 'background', color: '#ffffff', layers: 90 }],
@@ -42937,17 +42966,17 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
 
   // Nothing to read: every pick is the engine default at confidence 0, and still compiles.
   const empty = seedFromFacts(report({}));
-  ok(empty.picks.primary.value === null && empty.picks.accent.value === null && [empty.picks.primary, empty.picks.density, empty.picks.radiusScale, empty.picks.families].every((p) => p.confidence === 0 && p.evidence.length === 0),
+  ok(empty.picks.primary.value === null && empty.picks.accent.value === null && empty.picks.actionPalette.value === 'primary' && [empty.picks.primary, empty.picks.density, empty.picks.radiusScale, empty.picks.families, empty.picks.actionPalette].every((p) => p.confidence === 0 && p.evidence.length === 0),
     `#2075 seed: an empty report defaults every pick at confidence 0 with no evidence (got ${JSON.stringify(empty.picks)})`);
 
   // The seed is a design.md the CLI already compiles: it parses, it validates, and the engine builds it.
-  for (const [label, seed] of [['prism2-shaped', s], ['raw-only', u], ['empty', empty]] as const) {
+  for (const [label, seed] of [['prism2-shaped', s], ['raw-only', u], ['empty', empty], ['neutral-action', blackActions], ['accent-action', accentActions]] as const) {
     const md = seedDesignMd(seed);
     const parsed = parseDesignMd(md).input;
     const errors = validateBrandInput(parsed);
     let built = true;
     try { brandTheme(parsed); } catch { built = false; }
-    ok(errors.length === 0 && built && JSON.stringify(parsed.primary) === JSON.stringify(seed.input.primary),
+    ok(errors.length === 0 && built && JSON.stringify(parsed.primary) === JSON.stringify(seed.input.primary) && parsed.actionPalette === seed.input.actionPalette,
       `#2075 seed: the ${label} seed's design.md parses back to its input, validates and builds (errors ${JSON.stringify(errors)}, built ${built})`);
   }
   ok(JSON.stringify(seedFromFacts(p2)) === JSON.stringify(s), '#2075 seed: the same report seeds the same bytes');
