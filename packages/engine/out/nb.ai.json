@@ -340,7 +340,7 @@
           "token": "border.tertiary",
           "min": "3:1",
           "ratio": 3.48,
-          "requirement": "MUST clear 3:1 against `border.tertiary` in every mode."
+          "requirement": "MUST clear 3:1 against `border.tertiary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -421,7 +421,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 13.88,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.text.primary",
@@ -451,7 +451,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 4.62,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -475,7 +475,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 4.02,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -499,7 +499,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 3.7,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -523,7 +523,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 3.74,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -623,7 +623,7 @@
           "token": "inverse.background.secondary",
           "min": "3:1",
           "ratio": 3.19,
-          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -643,7 +643,7 @@
           "token": "inverse.background.secondary",
           "min": "3:1",
           "ratio": 3.67,
-          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -663,7 +663,7 @@
           "token": "inverse.background.secondary",
           "min": "3:1",
           "ratio": 3.99,
-          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -683,7 +683,7 @@
           "token": "inverse.background.secondary",
           "min": "3:1",
           "ratio": 3.19,
-          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -703,7 +703,7 @@
           "token": "inverse.background.secondary",
           "min": "3:1",
           "ratio": 3.94,
-          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -807,7 +807,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 4.62,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -830,7 +830,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 4.62,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -850,7 +850,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 6.81,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -870,7 +870,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 9.93,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -890,7 +890,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 4.62,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -910,7 +910,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 4.62,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -958,7 +958,7 @@
           "token": "background.primary",
           "min": "4.5:1",
           "ratio": 6.85,
-          "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -983,7 +983,7 @@
           "token": "background.primary",
           "min": "4.5:1",
           "ratio": 6.85,
-          "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1011,13 +1011,13 @@
           "token": "background.primary",
           "min": "4.5:1",
           "ratio": 10.02,
-          "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "interactive.primary.hover-fill.hover",
           "min": "4.5:1",
           "ratio": 8.25,
-          "requirement": "MUST clear 4.5:1 against `interactive.primary.hover-fill.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.hover-fill.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1045,13 +1045,13 @@
           "token": "background.primary",
           "min": "4.5:1",
           "ratio": 10.02,
-          "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "interactive.primary.hover-fill.hover",
           "min": "4.5:1",
           "ratio": 8.25,
-          "requirement": "MUST clear 4.5:1 against `interactive.primary.hover-fill.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.hover-fill.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1079,13 +1079,13 @@
           "token": "background.primary",
           "min": "4.5:1",
           "ratio": 14.17,
-          "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "interactive.primary.hover-fill.pressed",
           "min": "4.5:1",
           "ratio": 10.3,
-          "requirement": "MUST clear 4.5:1 against `interactive.primary.hover-fill.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.hover-fill.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1113,13 +1113,13 @@
           "token": "background.primary",
           "min": "4.5:1",
           "ratio": 14.17,
-          "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "interactive.primary.hover-fill.pressed",
           "min": "4.5:1",
           "ratio": 10.3,
-          "requirement": "MUST clear 4.5:1 against `interactive.primary.hover-fill.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.hover-fill.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1145,7 +1145,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 6.85,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1171,7 +1171,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 10.02,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1197,7 +1197,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 14.17,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1223,7 +1223,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 6.85,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1249,7 +1249,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 10.02,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1275,7 +1275,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 14.17,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1298,7 +1298,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 4.62,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1318,7 +1318,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 6.81,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1338,7 +1338,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 9.93,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1358,7 +1358,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 4.62,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1378,7 +1378,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 4.62,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1428,7 +1428,7 @@
           "token": "background.tertiary",
           "min": "4.5:1",
           "ratio": 4.98,
-          "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.tertiary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1455,7 +1455,7 @@
           "token": "background.tertiary",
           "min": "4.5:1",
           "ratio": 4.98,
-          "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.tertiary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1483,13 +1483,13 @@
           "token": "background.tertiary",
           "min": "4.5:1",
           "ratio": 7.28,
-          "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.tertiary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "interactive.destructive.hover-fill.hover",
           "min": "4.5:1",
           "ratio": 8.25,
-          "requirement": "MUST clear 4.5:1 against `interactive.destructive.hover-fill.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.hover-fill.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1517,13 +1517,13 @@
           "token": "background.tertiary",
           "min": "4.5:1",
           "ratio": 7.28,
-          "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.tertiary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "interactive.destructive.hover-fill.hover",
           "min": "4.5:1",
           "ratio": 8.25,
-          "requirement": "MUST clear 4.5:1 against `interactive.destructive.hover-fill.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.hover-fill.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1551,13 +1551,13 @@
           "token": "background.tertiary",
           "min": "4.5:1",
           "ratio": 10.3,
-          "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.tertiary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "interactive.destructive.hover-fill.pressed",
           "min": "4.5:1",
           "ratio": 10.3,
-          "requirement": "MUST clear 4.5:1 against `interactive.destructive.hover-fill.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.hover-fill.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1585,13 +1585,13 @@
           "token": "background.tertiary",
           "min": "4.5:1",
           "ratio": 10.3,
-          "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.tertiary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "interactive.destructive.hover-fill.pressed",
           "min": "4.5:1",
           "ratio": 10.3,
-          "requirement": "MUST clear 4.5:1 against `interactive.destructive.hover-fill.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.hover-fill.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1617,7 +1617,7 @@
           "token": "background.tertiary",
           "min": "3:1",
           "ratio": 4.98,
-          "requirement": "MUST clear 3:1 against `background.tertiary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.tertiary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1643,7 +1643,7 @@
           "token": "background.tertiary",
           "min": "3:1",
           "ratio": 7.28,
-          "requirement": "MUST clear 3:1 against `background.tertiary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.tertiary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1669,7 +1669,7 @@
           "token": "background.tertiary",
           "min": "3:1",
           "ratio": 10.3,
-          "requirement": "MUST clear 3:1 against `background.tertiary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.tertiary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1695,7 +1695,7 @@
           "token": "background.tertiary",
           "min": "3:1",
           "ratio": 4.98,
-          "requirement": "MUST clear 3:1 against `background.tertiary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.tertiary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1721,7 +1721,7 @@
           "token": "background.tertiary",
           "min": "3:1",
           "ratio": 7.28,
-          "requirement": "MUST clear 3:1 against `background.tertiary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.tertiary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1747,7 +1747,7 @@
           "token": "background.tertiary",
           "min": "3:1",
           "ratio": 10.3,
-          "requirement": "MUST clear 3:1 against `background.tertiary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.tertiary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1861,7 +1861,7 @@
           "token": "background.primary",
           "min": "4.5:1",
           "ratio": 19.44,
-          "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1889,7 +1889,7 @@
           "token": "background.primary",
           "min": "4.5:1",
           "ratio": 19.44,
-          "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1917,13 +1917,13 @@
           "token": "background.primary",
           "min": "4.5:1",
           "ratio": 15.99,
-          "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "interactive.neutral.hover-fill.hover",
           "min": "4.5:1",
           "ratio": 13.16,
-          "requirement": "MUST clear 4.5:1 against `interactive.neutral.hover-fill.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.hover-fill.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1951,13 +1951,13 @@
           "token": "background.primary",
           "min": "4.5:1",
           "ratio": 15.99,
-          "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "interactive.neutral.hover-fill.hover",
           "min": "4.5:1",
           "ratio": 13.16,
-          "requirement": "MUST clear 4.5:1 against `interactive.neutral.hover-fill.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.hover-fill.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -1985,13 +1985,13 @@
           "token": "background.primary",
           "min": "4.5:1",
           "ratio": 11.81,
-          "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "interactive.neutral.hover-fill.pressed",
           "min": "4.5:1",
           "ratio": 8.58,
-          "requirement": "MUST clear 4.5:1 against `interactive.neutral.hover-fill.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.hover-fill.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2019,13 +2019,13 @@
           "token": "background.primary",
           "min": "4.5:1",
           "ratio": 11.81,
-          "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "interactive.neutral.hover-fill.pressed",
           "min": "4.5:1",
           "ratio": 8.58,
-          "requirement": "MUST clear 4.5:1 against `interactive.neutral.hover-fill.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.hover-fill.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2051,7 +2051,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 19.44,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2077,7 +2077,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 15.99,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2103,7 +2103,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 11.81,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2129,7 +2129,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 19.44,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2155,7 +2155,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 15.99,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2181,7 +2181,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 11.81,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2206,7 +2206,7 @@
           "token": "inverse.background.primary",
           "min": "4.5:1",
           "ratio": 5.04,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2231,7 +2231,7 @@
           "token": "inverse.background.primary",
           "min": "4.5:1",
           "ratio": 5.04,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2259,13 +2259,13 @@
           "token": "inverse.background.primary",
           "min": "4.5:1",
           "ratio": 6.96,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.interactive.primary.hover-fill.hover",
           "min": "4.5:1",
           "ratio": 5.73,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.hover-fill.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.hover-fill.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2293,13 +2293,13 @@
           "token": "inverse.background.primary",
           "min": "4.5:1",
           "ratio": 6.96,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.interactive.primary.hover-fill.hover",
           "min": "4.5:1",
           "ratio": 5.73,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.hover-fill.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.hover-fill.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2327,13 +2327,13 @@
           "token": "inverse.background.primary",
           "min": "4.5:1",
           "ratio": 9.41,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.interactive.primary.hover-fill.pressed",
           "min": "4.5:1",
           "ratio": 6.72,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.hover-fill.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.hover-fill.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2361,13 +2361,13 @@
           "token": "inverse.background.primary",
           "min": "4.5:1",
           "ratio": 9.41,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.interactive.primary.hover-fill.pressed",
           "min": "4.5:1",
           "ratio": 6.72,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.hover-fill.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.hover-fill.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2390,7 +2390,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 19.44,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2410,7 +2410,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 14.13,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2430,7 +2430,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 10.75,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2450,7 +2450,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 14.13,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2470,7 +2470,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 10.75,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2519,7 +2519,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 5.04,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2545,7 +2545,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 6.96,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2571,7 +2571,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 9.41,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2597,7 +2597,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 5.04,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2623,7 +2623,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 6.96,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2649,7 +2649,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 9.41,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2676,7 +2676,7 @@
           "token": "inverse.background.tertiary",
           "min": "4.5:1",
           "ratio": 4.91,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2703,7 +2703,7 @@
           "token": "inverse.background.tertiary",
           "min": "4.5:1",
           "ratio": 4.91,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2731,13 +2731,13 @@
           "token": "inverse.background.tertiary",
           "min": "4.5:1",
           "ratio": 6.67,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.interactive.destructive.hover-fill.hover",
           "min": "4.5:1",
           "ratio": 6.67,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.hover-fill.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.hover-fill.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2765,13 +2765,13 @@
           "token": "inverse.background.tertiary",
           "min": "4.5:1",
           "ratio": 6.67,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.interactive.destructive.hover-fill.hover",
           "min": "4.5:1",
           "ratio": 6.67,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.hover-fill.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.hover-fill.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2799,13 +2799,13 @@
           "token": "inverse.background.tertiary",
           "min": "4.5:1",
           "ratio": 8.91,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.interactive.destructive.hover-fill.pressed",
           "min": "4.5:1",
           "ratio": 7.73,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.hover-fill.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.hover-fill.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2833,13 +2833,13 @@
           "token": "inverse.background.tertiary",
           "min": "4.5:1",
           "ratio": 8.91,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.tertiary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.interactive.destructive.hover-fill.pressed",
           "min": "4.5:1",
           "ratio": 7.73,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.hover-fill.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.hover-fill.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2862,7 +2862,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 19.44,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2882,7 +2882,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 14.13,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2902,7 +2902,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 10.75,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2922,7 +2922,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 14.13,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2942,7 +2942,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 10.75,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -2991,7 +2991,7 @@
           "token": "inverse.background.tertiary",
           "min": "3:1",
           "ratio": 4.91,
-          "requirement": "MUST clear 3:1 against `inverse.background.tertiary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.tertiary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3017,7 +3017,7 @@
           "token": "inverse.background.tertiary",
           "min": "3:1",
           "ratio": 6.67,
-          "requirement": "MUST clear 3:1 against `inverse.background.tertiary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.tertiary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3043,7 +3043,7 @@
           "token": "inverse.background.tertiary",
           "min": "3:1",
           "ratio": 8.91,
-          "requirement": "MUST clear 3:1 against `inverse.background.tertiary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.tertiary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3069,7 +3069,7 @@
           "token": "inverse.background.tertiary",
           "min": "3:1",
           "ratio": 4.91,
-          "requirement": "MUST clear 3:1 against `inverse.background.tertiary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.tertiary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3095,7 +3095,7 @@
           "token": "inverse.background.tertiary",
           "min": "3:1",
           "ratio": 6.67,
-          "requirement": "MUST clear 3:1 against `inverse.background.tertiary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.tertiary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3121,7 +3121,7 @@
           "token": "inverse.background.tertiary",
           "min": "3:1",
           "ratio": 8.91,
-          "requirement": "MUST clear 3:1 against `inverse.background.tertiary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.tertiary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3149,7 +3149,7 @@
           "token": "inverse.background.primary",
           "min": "4.5:1",
           "ratio": 18.11,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3177,7 +3177,7 @@
           "token": "inverse.background.primary",
           "min": "4.5:1",
           "ratio": 18.11,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3205,13 +3205,13 @@
           "token": "inverse.background.primary",
           "min": "4.5:1",
           "ratio": 14.13,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.interactive.neutral.hover-fill.hover",
           "min": "4.5:1",
           "ratio": 11.62,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.hover-fill.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.hover-fill.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3239,13 +3239,13 @@
           "token": "inverse.background.primary",
           "min": "4.5:1",
           "ratio": 14.13,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.interactive.neutral.hover-fill.hover",
           "min": "4.5:1",
           "ratio": 11.62,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.hover-fill.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.hover-fill.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3273,13 +3273,13 @@
           "token": "inverse.background.primary",
           "min": "4.5:1",
           "ratio": 10.75,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.interactive.neutral.hover-fill.pressed",
           "min": "4.5:1",
           "ratio": 7.67,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.hover-fill.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.hover-fill.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3307,13 +3307,13 @@
           "token": "inverse.background.primary",
           "min": "4.5:1",
           "ratio": 10.75,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.interactive.neutral.hover-fill.pressed",
           "min": "4.5:1",
           "ratio": 7.67,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.hover-fill.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.hover-fill.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3336,7 +3336,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 19.44,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3356,7 +3356,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 14.13,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3376,7 +3376,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 10.75,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3396,7 +3396,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 14.13,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3416,7 +3416,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 10.75,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3465,7 +3465,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 18.11,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3491,7 +3491,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 14.13,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3517,7 +3517,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 10.75,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3543,7 +3543,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 18.11,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3569,7 +3569,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 14.13,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3595,7 +3595,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 10.75,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3619,7 +3619,7 @@
           "min": "4.5:1",
           "ratio": 15.5,
           "composited_over": "background.primary",
-          "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.primary.overlay.hover` composited over `background.primary`, in every mode."
+          "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.primary.overlay.hover` composited over `background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3643,7 +3643,7 @@
           "min": "4.5:1",
           "ratio": 12.1,
           "composited_over": "background.primary",
-          "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.primary.overlay.pressed` composited over `background.primary`, in every mode."
+          "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.primary.overlay.pressed` composited over `background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3667,7 +3667,7 @@
           "min": "4.5:1",
           "ratio": 12.1,
           "composited_over": "background.primary",
-          "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.primary.overlay.selected` composited over `background.primary`, in every mode."
+          "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.primary.overlay.selected` composited over `background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3691,7 +3691,7 @@
           "min": "4.5:1",
           "ratio": 15.5,
           "composited_over": "background.primary",
-          "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.neutral.overlay.hover` composited over `background.primary`, in every mode."
+          "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.neutral.overlay.hover` composited over `background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3715,7 +3715,7 @@
           "min": "4.5:1",
           "ratio": 12.1,
           "composited_over": "background.primary",
-          "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.neutral.overlay.pressed` composited over `background.primary`, in every mode."
+          "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.neutral.overlay.pressed` composited over `background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3739,7 +3739,7 @@
           "min": "4.5:1",
           "ratio": 12.1,
           "composited_over": "background.primary",
-          "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.neutral.overlay.selected` composited over `background.primary`, in every mode."
+          "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.neutral.overlay.selected` composited over `background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3763,7 +3763,7 @@
           "min": "4.5:1",
           "ratio": 15.5,
           "composited_over": "background.primary",
-          "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.destructive.overlay.hover` composited over `background.primary`, in every mode."
+          "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.destructive.overlay.hover` composited over `background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3787,7 +3787,7 @@
           "min": "4.5:1",
           "ratio": 12.1,
           "composited_over": "background.primary",
-          "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.destructive.overlay.pressed` composited over `background.primary`, in every mode."
+          "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.destructive.overlay.pressed` composited over `background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3811,7 +3811,7 @@
           "min": "4.5:1",
           "ratio": 12.1,
           "composited_over": "background.primary",
-          "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.destructive.overlay.selected` composited over `background.primary`, in every mode."
+          "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.destructive.overlay.selected` composited over `background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3835,7 +3835,7 @@
           "min": "4.5:1",
           "ratio": 14.25,
           "composited_over": "inverse.background.primary",
-          "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.primary.overlay.hover` composited over `inverse.background.primary`, in every mode."
+          "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.primary.overlay.hover` composited over `inverse.background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3859,7 +3859,7 @@
           "min": "4.5:1",
           "ratio": 10.06,
           "composited_over": "inverse.background.primary",
-          "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.primary.overlay.pressed` composited over `inverse.background.primary`, in every mode."
+          "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.primary.overlay.pressed` composited over `inverse.background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3883,7 +3883,7 @@
           "min": "4.5:1",
           "ratio": 10.06,
           "composited_over": "inverse.background.primary",
-          "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.primary.overlay.selected` composited over `inverse.background.primary`, in every mode."
+          "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.primary.overlay.selected` composited over `inverse.background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3907,7 +3907,7 @@
           "min": "4.5:1",
           "ratio": 14.25,
           "composited_over": "inverse.background.primary",
-          "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.neutral.overlay.hover` composited over `inverse.background.primary`, in every mode."
+          "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.neutral.overlay.hover` composited over `inverse.background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3931,7 +3931,7 @@
           "min": "4.5:1",
           "ratio": 10.06,
           "composited_over": "inverse.background.primary",
-          "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.neutral.overlay.pressed` composited over `inverse.background.primary`, in every mode."
+          "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.neutral.overlay.pressed` composited over `inverse.background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3955,7 +3955,7 @@
           "min": "4.5:1",
           "ratio": 10.06,
           "composited_over": "inverse.background.primary",
-          "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.neutral.overlay.selected` composited over `inverse.background.primary`, in every mode."
+          "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.neutral.overlay.selected` composited over `inverse.background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes."
         }
       ]
     },
@@ -3979,7 +3979,7 @@
           "min": "4.5:1",
           "ratio": 14.25,
           "composited_over": "inverse.background.primary",
-          "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.destructive.overlay.hover` composited over `inverse.background.primary`, in every mode."
+          "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.destructive.overlay.hover` composited over `inverse.background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4003,7 +4003,7 @@
           "min": "4.5:1",
           "ratio": 10.06,
           "composited_over": "inverse.background.primary",
-          "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.destructive.overlay.pressed` composited over `inverse.background.primary`, in every mode."
+          "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.destructive.overlay.pressed` composited over `inverse.background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4027,7 +4027,7 @@
           "min": "4.5:1",
           "ratio": 10.06,
           "composited_over": "inverse.background.primary",
-          "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.destructive.overlay.selected` composited over `inverse.background.primary`, in every mode."
+          "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.destructive.overlay.selected` composited over `inverse.background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4065,7 +4065,7 @@
           "token": "disabled.fill",
           "min": "3:1",
           "ratio": 3.03,
-          "requirement": "MUST clear 3:1 against `disabled.fill` in every mode."
+          "requirement": "MUST clear 3:1 against `disabled.fill` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4090,7 +4090,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 3.15,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4115,7 +4115,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 3.15,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4168,7 +4168,7 @@
           "token": "inverse.disabled.fill",
           "min": "3:1",
           "ratio": 3.02,
-          "requirement": "MUST clear 3:1 against `inverse.disabled.fill` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.disabled.fill` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4193,7 +4193,7 @@
           "token": "inverse.background.secondary",
           "min": "3:1",
           "ratio": 3.27,
-          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4218,7 +4218,7 @@
           "token": "inverse.background.secondary",
           "min": "3:1",
           "ratio": 3.27,
-          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4278,7 +4278,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 3.15,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4309,7 +4309,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 6.7,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4335,7 +4335,7 @@
           "token": "background.primary",
           "min": "4.5:1",
           "ratio": 4.59,
-          "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4380,7 +4380,7 @@
           "token": "inverse.background.secondary",
           "min": "3:1",
           "ratio": 3.27,
-          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4411,7 +4411,7 @@
           "token": "inverse.background.secondary",
           "min": "3:1",
           "ratio": 6.4,
-          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4439,7 +4439,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 4.67,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4467,7 +4467,7 @@
           "token": "background.primary",
           "min": "7:1",
           "ratio": 19.44,
-          "requirement": "MUST clear 7:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 7:1 against `background.primary` in light and dark modes, and 15:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4490,7 +4490,7 @@
           "token": "background.primary",
           "min": "4.5:1",
           "ratio": 4.59,
-          "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4529,7 +4529,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 3.15,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4554,7 +4554,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 5.63,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4581,7 +4581,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 5.78,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4606,7 +4606,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 5.45,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4631,7 +4631,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 5.63,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4656,7 +4656,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 5.51,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4695,7 +4695,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 3.85,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4734,7 +4734,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 4.11,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4773,7 +4773,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 3.79,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4812,7 +4812,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 3.85,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4851,7 +4851,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 3.86,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -4991,7 +4991,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 5.63,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5019,7 +5019,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 8.25,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5047,7 +5047,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 14.98,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5072,7 +5072,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 5.63,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5100,7 +5100,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 11.65,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5128,7 +5128,7 @@
           "token": "background.primary",
           "min": "7:1",
           "ratio": 19.44,
-          "requirement": "MUST clear 7:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 7:1 against `background.primary` in light and dark modes, and 15:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5151,7 +5151,7 @@
           "token": "background.primary",
           "min": "4.5:1",
           "ratio": 4.59,
-          "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5190,7 +5190,7 @@
           "token": "background.secondary",
           "min": "3:1",
           "ratio": 3.15,
-          "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5215,7 +5215,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 5.63,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5242,7 +5242,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 5.78,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5267,7 +5267,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 5.45,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5292,7 +5292,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 5.63,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5317,7 +5317,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 5.51,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5356,7 +5356,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 3.85,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5395,7 +5395,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 4.11,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5434,7 +5434,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 3.79,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5473,7 +5473,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 3.85,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5512,7 +5512,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 3.86,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5652,7 +5652,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 5.63,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5680,7 +5680,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 8.25,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5708,7 +5708,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 14.98,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5733,7 +5733,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 5.63,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5761,7 +5761,7 @@
           "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 11.65,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5789,7 +5789,7 @@
           "token": "inverse.background.primary",
           "min": "7:1",
           "ratio": 18.11,
-          "requirement": "MUST clear 7:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 7:1 against `inverse.background.primary` in light and dark modes, and 15:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.foreground.tertiary",
@@ -5820,7 +5820,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 4.67,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5859,7 +5859,7 @@
           "token": "inverse.background.secondary",
           "min": "3:1",
           "ratio": 3.27,
-          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5884,7 +5884,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 4.66,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5911,7 +5911,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 5.17,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5936,7 +5936,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 4.74,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5961,7 +5961,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 4.66,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -5986,7 +5986,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 4.65,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6025,7 +6025,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 3.46,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6064,7 +6064,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 3.3,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6103,7 +6103,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 3.57,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6142,7 +6142,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 3.46,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6181,7 +6181,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 3.51,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6206,7 +6206,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 4.66,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6234,7 +6234,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 6.43,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6262,7 +6262,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 11.49,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6287,7 +6287,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 4.66,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6315,7 +6315,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 8.7,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6343,7 +6343,7 @@
           "token": "inverse.background.primary",
           "min": "7:1",
           "ratio": 18.11,
-          "requirement": "MUST clear 7:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 7:1 against `inverse.background.primary` in light and dark modes, and 15:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6368,7 +6368,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 4.67,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6407,7 +6407,7 @@
           "token": "inverse.background.secondary",
           "min": "3:1",
           "ratio": 3.27,
-          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6432,7 +6432,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 4.66,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6459,7 +6459,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 5.17,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6484,7 +6484,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 4.74,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6509,7 +6509,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 4.66,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6534,7 +6534,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 4.65,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6573,7 +6573,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 3.46,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6612,7 +6612,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 3.3,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6651,7 +6651,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 3.57,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6690,7 +6690,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 3.46,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6729,7 +6729,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 3.51,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6754,7 +6754,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 4.66,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6782,7 +6782,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 6.43,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6810,7 +6810,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 11.49,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6835,7 +6835,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 4.66,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6863,7 +6863,7 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 8.7,
-          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6907,13 +6907,13 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 5.49,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         },
         {
           "token": "foreground.tertiary",
           "min": "3:1",
           "ratio": 3.48,
-          "requirement": "MUST clear 3:1 against `foreground.tertiary` in every mode."
+          "requirement": "MUST clear 3:1 against `foreground.tertiary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6933,7 +6933,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 4.58,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6953,7 +6953,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 4.89,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6973,7 +6973,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 5.44,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -6993,7 +6993,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 4.58,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7013,7 +7013,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 4.55,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7041,7 +7041,7 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 5.61,
-          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7097,7 +7097,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 4.24,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7117,7 +7117,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 3.97,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7137,7 +7137,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 4.31,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7157,7 +7157,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 4.24,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7177,7 +7177,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 4.26,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7205,7 +7205,7 @@
           "token": "inverse.background.primary",
           "min": "3:1",
           "ratio": 5.04,
-          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7244,13 +7244,13 @@
           "token": "interactive.primary.text.hover",
           "min": "4.5:1",
           "ratio": 8.25,
-          "requirement": "MUST clear 4.5:1 against `interactive.primary.text.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.text.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "interactive.primary.icon.hover",
           "min": "4.5:1",
           "ratio": 8.25,
-          "requirement": "MUST clear 4.5:1 against `interactive.primary.icon.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.icon.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7274,13 +7274,13 @@
           "token": "interactive.primary.text.pressed",
           "min": "4.5:1",
           "ratio": 10.3,
-          "requirement": "MUST clear 4.5:1 against `interactive.primary.text.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.text.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "interactive.primary.icon.pressed",
           "min": "4.5:1",
           "ratio": 10.3,
-          "requirement": "MUST clear 4.5:1 against `interactive.primary.icon.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.primary.icon.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7304,13 +7304,13 @@
           "token": "interactive.neutral.text.hover",
           "min": "4.5:1",
           "ratio": 13.16,
-          "requirement": "MUST clear 4.5:1 against `interactive.neutral.text.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.text.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "interactive.neutral.icon.hover",
           "min": "4.5:1",
           "ratio": 13.16,
-          "requirement": "MUST clear 4.5:1 against `interactive.neutral.icon.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.icon.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7334,13 +7334,13 @@
           "token": "interactive.neutral.text.pressed",
           "min": "4.5:1",
           "ratio": 8.58,
-          "requirement": "MUST clear 4.5:1 against `interactive.neutral.text.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.text.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "interactive.neutral.icon.pressed",
           "min": "4.5:1",
           "ratio": 8.58,
-          "requirement": "MUST clear 4.5:1 against `interactive.neutral.icon.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.neutral.icon.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7364,13 +7364,13 @@
           "token": "interactive.destructive.text.hover",
           "min": "4.5:1",
           "ratio": 8.25,
-          "requirement": "MUST clear 4.5:1 against `interactive.destructive.text.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.text.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "interactive.destructive.icon.hover",
           "min": "4.5:1",
           "ratio": 8.25,
-          "requirement": "MUST clear 4.5:1 against `interactive.destructive.icon.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.icon.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7394,13 +7394,13 @@
           "token": "interactive.destructive.text.pressed",
           "min": "4.5:1",
           "ratio": 10.3,
-          "requirement": "MUST clear 4.5:1 against `interactive.destructive.text.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.text.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "interactive.destructive.icon.pressed",
           "min": "4.5:1",
           "ratio": 10.3,
-          "requirement": "MUST clear 4.5:1 against `interactive.destructive.icon.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `interactive.destructive.icon.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7424,13 +7424,13 @@
           "token": "inverse.interactive.primary.text.hover",
           "min": "4.5:1",
           "ratio": 5.73,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.text.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.text.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.interactive.primary.icon.hover",
           "min": "4.5:1",
           "ratio": 5.73,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.icon.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.icon.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7454,13 +7454,13 @@
           "token": "inverse.interactive.primary.text.pressed",
           "min": "4.5:1",
           "ratio": 6.72,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.text.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.text.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.interactive.primary.icon.pressed",
           "min": "4.5:1",
           "ratio": 6.72,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.icon.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.icon.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7484,13 +7484,13 @@
           "token": "inverse.interactive.neutral.text.hover",
           "min": "4.5:1",
           "ratio": 11.62,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.text.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.text.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.interactive.neutral.icon.hover",
           "min": "4.5:1",
           "ratio": 11.62,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.icon.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.icon.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7514,13 +7514,13 @@
           "token": "inverse.interactive.neutral.text.pressed",
           "min": "4.5:1",
           "ratio": 7.67,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.text.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.text.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.interactive.neutral.icon.pressed",
           "min": "4.5:1",
           "ratio": 7.67,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.icon.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.icon.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7544,13 +7544,13 @@
           "token": "inverse.interactive.destructive.text.hover",
           "min": "4.5:1",
           "ratio": 6.67,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.text.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.text.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.interactive.destructive.icon.hover",
           "min": "4.5:1",
           "ratio": 6.67,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.icon.hover` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.icon.hover` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
@@ -7574,13 +7574,13 @@
           "token": "inverse.interactive.destructive.text.pressed",
           "min": "4.5:1",
           "ratio": 7.73,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.text.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.text.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         },
         {
           "token": "inverse.interactive.destructive.icon.pressed",
           "min": "4.5:1",
           "ratio": 7.73,
-          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.icon.pressed` in every mode."
+          "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.icon.pressed` in light and dark modes, and 7:1 in hc-light and hc-dark modes."
         }
       ]
     },
