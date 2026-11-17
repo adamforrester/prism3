@@ -10,7 +10,7 @@ theme, which the token list's card hides by being pinned light (`legacyHost`).
 The hooks are unchanged (`token-path-full`, `token-path-short`; the group is now `token-path`). It is a radio group, so
 it has one Tab stop and the arrow keys move between options. Section 27's required stops drop `token-path-short` for
 that reason. The `.seg` rules in `styles.css` are dead now and carry a note. Deleting them needs a
-`lint-live-css.mjs --accept`, which re-sweeps every browser suite; filed as a follow-up.
+`lint-live-css.mjs --accept`, which re-sweeps every browser suite; filed as #3923.
 
 **The survey.** Section 3911 walked every place, Export and the token list on both hosts and both themes. It found
 these segmented controls, all on `.p3-seg` with the shared selected style: the preview's mode control, Color's
