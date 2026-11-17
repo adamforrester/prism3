@@ -56,7 +56,9 @@ import { brandTheme, type BrandInput, buildTree } from '@prism3/engine';
 import { readFileSync } from 'node:fs';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -417,5 +419,5 @@ ok(atLimit.length === 7000 && isIssueUrl(atLimit), '#3522 R3 link: an issue URL 
 ok(!isIssueUrl('https://example.com/collect?d=1') && !isIssueUrl('https://github.com/someone-else/repo/issues/new?body=x') && !isIssueUrl(`${ISSUE_BASE}x?body=1`) && !isIssueUrl(42),
   'link: the plugin opens nothing but the issue form');
 
-console.log(failed ? `\n✗ ${failed} check(s) failed` : '\n✓ report: all checks passed');
+console.log(`${failed ? `\n✗ ${failed} check(s) failed` : '\n✓ report: all checks passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);
