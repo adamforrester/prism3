@@ -402,8 +402,7 @@
           "the `modifiers` axis (brief §4, §15) — the brief lists leading-visual / trailing-visual / icon-only / pending as one modifiers axis. This def omits it (#845): the two visuals are slot-presence axes, pending is a state, and icon-only is the separate icon-button."
         ],
         "unverified": [
-          "FINDING (engine): the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts). Its contrast against the host's own edge or fill is not measured — the offset is what makes it achievable, not what proves it.",
-          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it."
+          "FINDING (engine): the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts). Its contrast against the host's own edge or fill is not measured — the offset is what makes it achievable, not what proves it."
         ],
         "evolution": [
           "2026-10-14 (#2580, owner decision Q289.6 A): polymorphism (brief §3) — no separate link-button. Button takes href and renders <a>, and the href prop is no longer discouraged; a lighter navigation is Link.",
@@ -511,8 +510,7 @@
           "the `modifiers` axis (brief §4, §15) — the brief lists leading-visual / trailing-visual / icon-only / pending as one modifiers axis. This def omits it (#845): the two visuals are slot-presence axes, pending is a state, and icon-only is the separate icon-button."
         ],
         "unverified": [
-          "FINDING (engine): the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts). Its contrast against the host's own edge or fill is not measured — the offset is what makes it achievable, not what proves it.",
-          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it."
+          "FINDING (engine): the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts). Its contrast against the host's own edge or fill is not measured — the offset is what makes it achievable, not what proves it."
         ],
         "evolution": [
           "2026-10-14 (#2580, owner decision Q289.6 A): polymorphism (brief §3) — no separate link-button. Button takes href and renders <a>, and the href prop is no longer discouraged; a lighter navigation is Link.",
@@ -620,8 +618,7 @@
           "the `modifiers` axis (brief §4, §15) — the brief lists leading-visual / trailing-visual / icon-only / pending as one modifiers axis. This def omits it (#845): the two visuals are slot-presence axes, pending is a state, and icon-only is the separate icon-button."
         ],
         "unverified": [
-          "FINDING (engine): the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts). Its contrast against the host's own edge or fill is not measured — the offset is what makes it achievable, not what proves it.",
-          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it."
+          "FINDING (engine): the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts). Its contrast against the host's own edge or fill is not measured — the offset is what makes it achievable, not what proves it."
         ],
         "evolution": [
           "2026-10-14 (#2580, owner decision Q289.6 A): polymorphism (brief §3) — no separate link-button. Button takes href and renders <a>, and the href prop is no longer discouraged; a lighter navigation is Link.",
