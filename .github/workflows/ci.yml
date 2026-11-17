@@ -1175,6 +1175,19 @@ jobs:
         timeout-minutes: 10
         run: npm run -w @prism3/web-components test:browser
 
+      # The arm 1 Storybook (#3408 S5, thin; Q-POC1 A): Storybook 10 on web-components-vite, building
+      # the button's stories in both delivery forms. Its script builds @prism3/tokens first.
+      - name: "@prism3/storybook builds (#3408 S5)"
+        timeout-minutes: 10
+        run: npm run -w @prism3/storybook build
+
+      # The built Storybook, served and opened in Chromium: the index holds exactly the check's own list
+      # of stories (component x form x case), each renders its component, each forced state shows, and
+      # the element and HTML stories of one case compute the same styles.
+      - name: "@prism3/storybook holds every story and each renders its state (#3408 S5)"
+        timeout-minutes: 10
+        run: npm run -w @prism3/storybook check:build
+
   plugin:
     # #3698 R4: skipped on a docs-only pull request, by the named exemption (`changes`, then `gates`).
     needs: [changes]

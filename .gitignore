@@ -12,6 +12,8 @@ apps/plugin/release-offline/
 # #3147: release records tools/release/prepare.ts writes (zips and a draft note), kept locally until the owner publishes them.
 tools/release/out/
 apps/tokenpress/dist/
+# The arm 1 Storybook build (#3408 S5): `npm run -w @prism3/storybook build`, never committed.
+apps/storybook/storybook-static/
 packages/tokens/build/
 packages/tokens/dist/
 

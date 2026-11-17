@@ -16,9 +16,13 @@
   "devDependencies": {
     "tsx": "4.23.15"
   },
-  "// overrides": "Two transitive packages of @custom-elements-manifest/analyzer (#3408 S4) held to releases at least two weeks old when they were added: the newest of each was days old. Remove an entry once the newer release has aged.",
+  "// overrides": "Transitive packages held to releases at least two weeks old when they were added, because the newest of each was days old (#3408): two from @custom-elements-manifest/analyzer (S4), four from Storybook (S5). Vite's rolldown and postcss are pinned as devDependencies of apps/storybook instead, because an override did not reach the Vite nested under that workspace. Remove an entry once the newer release has aged.",
   "overrides": {
     "@tybys/wasm-util": "0.10.4",
-    "@napi-rs/wasm-runtime": "1.2.6"
+    "@napi-rs/wasm-runtime": "1.2.6",
+    "@rolldown/pluginutils": "1.0.1",
+    "ws": "8.22.1",
+    "@babel/runtime": "7.29.10",
+    "@testing-library/user-event": "14.6.8"
   }
 }

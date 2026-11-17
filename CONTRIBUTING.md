@@ -1765,6 +1765,13 @@ npm run test:browser -w @prism3/web-components # needs Chromium; builds @prism3/
                                           # The element and plain HTML from the @prism3/css contract
                                           # compute equal styles on light and dark; pending and
                                           # inactive suppress the action and keep focus and name
+npm run build -w @prism3/storybook         # #3408 S5 (thin): Storybook 10 on web-components-vite,
+                                          # the button in both delivery forms, one story per state;
+                                          # builds @prism3/tokens first
+npm run check:build -w @prism3/storybook   # needs Chromium; run AFTER the Storybook build. The index
+                                          # holds exactly the check's own story list, each story
+                                          # renders its component and forced state, and the element
+                                          # and HTML stories of one case compute the same styles
 npx tsx packages/engine/lint-us-english.ts # run AFTER the web AND plugin builds — its scope is both
                                           # built bundles: apps/studio/dist/*.js and, since #937,
                                           # apps/plugin/dist (main.js + ui.html), where the component

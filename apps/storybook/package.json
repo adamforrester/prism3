@@ -1,0 +1,28 @@
+{
+  "name": "@prism3/storybook",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The arm 1 Storybook (#3408 S5, thin): every Prism3 component in both delivery forms, the custom element and plain HTML/CSS, one story per state.",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run -w @prism3/tokens build && storybook dev -p 6006",
+    "build": "npm run -w @prism3/tokens build && storybook build --quiet --output-dir storybook-static",
+    "check:build": "npx tsx check-build.ts"
+  },
+  "dependencies": {
+    "@prism3/css": "0.0.0",
+    "@prism3/tokens": "0.0.0",
+    "@prism3/web-components": "0.0.0"
+  },
+  "devDependencies": {
+    "@storybook/web-components-vite": "10.6.5",
+    "lit": "3.3.3",
+    "playwright": "^1.62.1",
+    "postcss": "8.5.32",
+    "rolldown": "1.2.16",
+    "storybook": "10.6.5",
+    "storybook-addon-pseudo-states": "10.6.5",
+    "vite": "8.3.5"
+  },
+  "// devDependencies": "postcss and rolldown are Vite's, pinned here so Vite resolves releases at least two weeks old (#3408 S5); nothing here imports them."
+}
