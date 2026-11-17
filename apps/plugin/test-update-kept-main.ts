@@ -40,7 +40,9 @@ import { entryFor, readLedger, recordSets } from './src/as-built-ledger';
 import { recheckHolds } from '../studio/src/state/update-file';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -251,5 +253,5 @@ ok(u2?.ok === true && f2?.due?.['radio-control']?.state === 'current' && ringBou
 
   `main/overwrite chosen: Overwrite chosen for the kept set alone replaces its edits: the 12 rings the plan binds to the indicator hold it, and the set reads current (${JSON.stringify({ headline: u2?.headline, state: f2?.due?.['radio-control']?.state, ringBound })})`);
 
-console.log(failed ? `\n${failed} failed` : '\nall passed');
+console.log(`${failed ? `\n${failed} failed` : '\nall passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

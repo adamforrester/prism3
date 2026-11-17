@@ -33,7 +33,9 @@ import { isMarkedOwned, markOwned } from './src/provenance';
 
 let failed = 0;
 let passed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) { passed++; console.log(`  ✓ ${label}`); }
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -168,5 +170,5 @@ ok(plans.stylesPlan.paints.length > 0, `the fixture brand emits gradient paint s
     + `(status ${row?.status ?? 'none'}, applied ${row?.applied}; names ${live.map((s) => `${s.id}=${s.name}`).join(', ')})`);
 }
 
-console.log(`\n${failed ? '✗' : '✓'} style renames: ${passed} passed, ${failed} failed`);
+console.log(`\n${failed ? '✗' : '✓'} style renames: ${passed} passed, ${failed} failed — ${executed} assertions executed`);
 if (failed) process.exit(1);
