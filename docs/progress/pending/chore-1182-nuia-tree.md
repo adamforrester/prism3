@@ -13,3 +13,11 @@ The fifth PR of the #1182 lane: 91 errors in three engine files the surfaces rea
 ### Proof
 
 `regen --check` is in sync (230 artifacts). The plan diff against the merge base, which now also covers every single-argument export of `design-md.ts` and `emit-figma-color.ts`, is identical over 3,472 digests.
+
+### A handled case kept handled
+
+The review found one site where the rewrite changed behavior. `tree.ts` reads the option row label's body line box per control rung, and a rung with no line box used to get no `label-inset`. A `must` turned that into a throw. The guard stays and the arithmetic moves inside it. A `test.ts` case builds the minimal theme with no `body.xs` composites and holds `control.size.sm` to no `label-inset`. That case failed by name on the rewrite and passes now.
+
+### Held from here
+
+`packages/engine/tsconfig.json` doesn't read these three files, so #3893's `NUIA_CLEAN` can't hold them. `typecheck-components.ts` gains `NUIA_CLEAN_BY_TSCONFIG`, one `--noUncheckedIndexedAccess` run per further tsconfig, the same arm stage 4 (#3913) adds. The three files are listed under `apps/plugin/tsconfig.main.json`, which reads them. Measured: one `must` removed from `tree.ts` passes the gate without the entry and fails it by name with the entry.
