@@ -118,7 +118,8 @@
  *                    commits' files pending, and every other arm passed it as a pure fold. The merged tree is
  *                    HEAD on CI's merge ref; on a branch, HEAD less what the base ref consumed since the
  *                    merge base, plus what it added; and HEAD over its first parent on a push run, which this
- *                    arm does NOT skip.
+ *                    arm does NOT skip. On a PR that merges `main` into another base branch the base is the newest
+ *                    `main` it carries (`integrationBase`, #3833), so `main`'s own folds are not read as this diff's.
  *                    `test.ts` (f) runs it over a scratch history: a stale fold fails it on its branch, its
  *                    merge ref and its squash's push run; the fold re-cut on the moved main passes; so does
  *                    #1880's fixture (a), whose leftovers main's own fold consumed. MUTATIONS VERIFIED
@@ -164,6 +165,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { STAMP_PATHS, onlyFilledStamps } from './rename-stamp-audit';
+import { integrationBase } from './comparison-base';
 
 const repo = join(import.meta.dirname, '../..');
 const FILE = 'docs/00-progress.md';
@@ -503,9 +505,13 @@ const leavesNothingPending = (base: string, tip: string | null, whence: string):
     console.error('  Commit your work (with its fragment) first. On a checkout of main itself this arm has nothing to');
     console.error('  hold; CI\'s push run on main skips it by GITHUB_EVENT_NAME, and nothing else does.\n');
   } else {
-    const base = mb.out.trim();
-    const tip = git('rev-parse', `${baseRef}^{commit}`).out.trim();
-    leavesNothingPending(base, tip, `base ${base.slice(0, 8)} (${baseRef}), and what ${baseRef} added since, at ${tip.slice(0, 8)}`);
+    // A PR that merges `main` into another base branch is read from the newest `main` it carries (#3833,
+    // `comparison-base.ts`): `main`'s folds deleted pending files since the merge base, and they are `main`'s
+    // folds, not this diff's. HEAD is then read as the merged tree, which on CI's merge ref it is.
+    const integ = integrationBase(git, baseRef!, mb.out.trim());
+    const base = integ?.base ?? mb.out.trim();
+    const tip = integ ? null : git('rev-parse', `${baseRef}^{commit}`).out.trim();
+    leavesNothingPending(base, tip, integ ? `base ${base.slice(0, 8)} (${integ.label}), HEAD read as the merged tree` : `base ${base.slice(0, 8)} (${baseRef}), and what ${baseRef} added since, at ${tip!.slice(0, 8)}`);
     const d = git('diff', '--name-status', '--no-renames', base, 'HEAD', '--', PENDING);
     if (!d.ok) cannotRun(`git diff over ${PENDING} failed.`, d.err);
     const rows = d.out.split('\n').map((l) => l.split('\t')).filter((r) => r.length === 2 && isFragment(r[1].slice(PENDING.length + 1)));
