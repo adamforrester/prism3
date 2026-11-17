@@ -3962,19 +3962,8 @@ export const planStamp = (plan: AnatomyPlan): string => {
  *  prefix, which a concatenated render puts next to a NEIGHBOUR's target — the #1262 review finding). */
 export const NEST_TARGET_SLOT = '__NEST_TARGET__';
 
-/** #1796 — TWO OR MORE PLAIN COMPONENTS under a nominated name: the AMBIGUOUS row of both `nestMissAdvice` and
- *  `swapMissAdvice`, one sentence for both. A name-keyed lookup kept whichever the search returned last, so the build
- *  nested or swapped in one of them and reported success; refused instead, as #1781 refuses two SETS under one name,
- *  because nothing but document order could choose. It names no target: the miss prefix carries it (`.nestTarget ->
- *  <name>`, `.swapTarget -> <name>`), as the nest path's COMPONENT_SET row does, and that keeps the paste payload's copy
- *  one constant with no runtime substitution — it ships in every chunk's shell, where #1798 holds the bytes. */
-export const AMBIGUOUS_COMPONENT = 'found more than one COMPONENT of that name; neither is used. Rename or remove one, then rebuild';
-
-export const nestMissAdvice = (found: 'COMPONENT_SET' | 'INSTANCE' | 'OTHER' | 'ABSENT' | 'AMBIGUOUS', target?: string): string => {
+export const nestMissAdvice = (found: 'COMPONENT_SET' | 'INSTANCE' | 'OTHER' | 'ABSENT', target?: string): string => {
   switch (found) {
-    case 'AMBIGUOUS':
-      // #1796 — two or more plain components under the exact name the def nests: see `AMBIGUOUS_COMPONENT`.
-      return AMBIGUOUS_COMPONENT;
     case 'COMPONENT_SET':
       // WAS the 108-miss case; now the case where the file holds a set and the DEF did not say which
       // member to nest — i.e. a part declaring `nest-exposed`, whose coordinate is the consumer's to
@@ -4312,7 +4301,7 @@ export const applyNestItemPrefersSrc = (): string => applyNestItemPrefers.toStri
  * nest path has demonstrated that for two releases, one branch above the swap site. So the paste path gets
  * the full four-way diagnosis, not a degraded one.
  */
-export type SwapFound = 'ABSENT' | 'COMPONENT_SET' | 'INSTANCE' | 'OTHER' | 'AMBIGUOUS';
+export type SwapFound = 'ABSENT' | 'COMPONENT_SET' | 'INSTANCE' | 'OTHER';
 
 /** The swap counterpart to `NEST_TARGET_SLOT` (#1288): the paste path bakes these four sentences before
  *  any node's `swapTarget` is known, so the name is carried as a sentinel and the payload replaces it with
@@ -4343,10 +4332,6 @@ export const swapMissAdvice = (found: SwapFound, target?: string): string => {
       return `found an INSTANCE named ${name}, not a component — swap in the main component instead of a copy of it, or publish ${name} under this name`;
     case 'OTHER':
       return `found a node named ${name} that is not a component — rename it, or publish the component this slot needs under the name ${name}`;
-    case 'AMBIGUOUS':
-      // #1796 — two or more plain components under the target's exact name, so neither is swapped in. The nest row's
-      // words: see `AMBIGUOUS_COMPONENT`.
-      return AMBIGUOUS_COMPONENT;
   }
 };
 
@@ -4484,12 +4469,6 @@ const effectByName=new Map(effects.map(s=>[s.name,s]));
 await figma.loadAllPagesAsync();
 const comps=figma.root.findAllWithCriteria({types:['COMPONENT']});
 const compByName=new Map(comps.map(c=>[c.name,c]));
-// THE NEST AND SWAP TARGETS' LOOKUP (#1796): a name held by ONE plain component maps to it, a name held by more maps to
-// 0. \`compByName\` keeps the last of several, which is document order picking, so the targets read \`one\`, and a 0 is
-// reported as \`AMB\` (the shared \`AMBIGUOUS_COMPONENT\`, baked once). Written for bytes: it ships in every chunk's
-// shell (#1798).
-const one=new Map();for(const c of comps)one.set(c.name,one.has(c.name)?0:c);
-const AMB=${JSON.stringify(AMBIGUOUS_COMPONENT)};
 // A SECOND criteria call, sets only (#681). Two calls rather than one widened call for the reason the
 // executor's port states: the COMPONENT map is instantiated from and a ComponentSetNode has no
 // createInstance, so one map per node type keeps each read honest about what it holds.
@@ -4520,7 +4499,7 @@ const resolveNestMember=${resolveNestMemberSrc()};
 // only WHICH strings ship; the payload runs in the file, so the search is available here exactly as it is
 // in the plugin. Failure path only for the reason the nest path states: a cold build already runs thousands
 // of subtree searches and the happy path must not pay for a diagnosis it never prints.
-const swapAdvice=(name)=>{const other=figma.root.findAll(x=>x.name===name)[0];return (one.get(name)===0?AMB:!other?${JSON.stringify(swapMissAdvice('ABSENT'))}:other.type==='COMPONENT_SET'?${JSON.stringify(swapMissAdvice('COMPONENT_SET'))}:other.type==='INSTANCE'?${JSON.stringify(swapMissAdvice('INSTANCE'))}:${JSON.stringify(swapMissAdvice('OTHER'))}).split(${JSON.stringify(SWAP_TARGET_SLOT)}).join(name);};
+const swapAdvice=(name)=>{const other=figma.root.findAll(x=>x.name===name)[0];return (!other?${JSON.stringify(swapMissAdvice('ABSENT'))}:other.type==='COMPONENT_SET'?${JSON.stringify(swapMissAdvice('COMPONENT_SET'))}:other.type==='INSTANCE'?${JSON.stringify(swapMissAdvice('INSTANCE'))}:${JSON.stringify(swapMissAdvice('OTHER'))}).split(${JSON.stringify(SWAP_TARGET_SLOT)}).join(name);};
 const misses=[];
 for(const [t,names] of seenTail) if(names.length>1) misses.push('AMBIGUOUS variable tail '+t+' — the file carries it under '+names.length+' brand roots ('+names.join(', ')+'), so a plan binding it cannot say which; remove or relink one of the sets');`;
 
@@ -4907,7 +4886,7 @@ const build=async(n)=>{
     // A slot with no resolvable target becomes a placeholder FRAME — but it says so. #482 shipped
     // the frame WITHOUT saying so, because there was no INSTANCE_SWAP branch at all: the plan
     // declared swappable slots and the paste built empty 24x24 boxes.
-    const target=n.swapTarget?one.get(n.swapTarget):undefined;
+    const target=n.swapTarget?compByName.get(n.swapTarget):undefined;
     if(!n.swapTarget)misses.push(n.name+'.swapTarget -> (none nominated; built as a placeholder frame)');
     // DIAGNOSE, then report (#1288) — was the bare name and nothing else, which said neither what the file
     // holds under it nor what to do about it. Composed BYTE-IDENTICALLY to the plugin's node loop: same
@@ -4927,14 +4906,12 @@ const build=async(n)=>{
     // once the instance is made, and it falls back the same way. Worded byte-identically to the plugin executor's twin.
     const pre=n.nestPrefer&&n.nestVariant?resolveNestMember(compSets,n.nestPrefer,n.nestVariant,nestVariantMatch,nestVariantMissAdvice):null;
     const preMember=pre&&!pre.miss?pre.member:null;
-    const nested=preMember?undefined:one.get(n.nestTarget);
+    const nested=preMember?undefined:compByName.get(n.nestTarget);
     // A SET the def named a coordinate in (#681). Checked only when the plain-component lookup missed:
     // a component and a set can share a name, and the component needs no coordinate to be unambiguous.
     // THE SET AND ITS MEMBER, resolved together (#1781): out of the named set's own children, never by member
     // name across the file. null = no set of that name; else a member, or a miss to report and build nothing.
-    // #1796: \`one\` holds 0 for two plain components of the name, which are not passed over for a set of it; the
-    // diagnosis below names them.
-    const res=preMember?{member:preMember}:nested===undefined&&n.nestVariant?resolveNestMember(compSets,n.nestTarget,n.nestVariant,nestVariantMatch,nestVariantMissAdvice):null;
+    const res=preMember?{member:preMember}:!nested&&n.nestVariant?resolveNestMember(compSets,n.nestTarget,n.nestVariant,nestVariantMatch,nestVariantMissAdvice):null;
     if(res&&res.miss){misses.push(n.name+res.miss);return null;}
     // The MEMBER is instantiated, never the set — Figma has no instance-of-a-set.
     if(res){node=res.member.createInstance();}
@@ -4945,7 +4922,7 @@ const build=async(n)=>{
       // #1330 even a \`nest-exposed\` part projects a default coordinate, so a real def never lands here with
       // a set — this is the defensive path for a coordinate-free plan, which the COMPONENT_SET advice names.
       const other=figma.root.findAll(x=>x.name===n.nestTarget)[0];
-      const found=(nested===0?AMB:!other?${JSON.stringify(nestMissAdvice('ABSENT'))}:other.type==='COMPONENT_SET'?${JSON.stringify(nestMissAdvice('COMPONENT_SET'))}:other.type==='INSTANCE'?${JSON.stringify(nestMissAdvice('INSTANCE'))}:${JSON.stringify(nestMissAdvice('OTHER'))}).split(${JSON.stringify(NEST_TARGET_SLOT)}).join(n.nestTarget);
+      const found=(!other?${JSON.stringify(nestMissAdvice('ABSENT'))}:other.type==='COMPONENT_SET'?${JSON.stringify(nestMissAdvice('COMPONENT_SET'))}:other.type==='INSTANCE'?${JSON.stringify(nestMissAdvice('INSTANCE'))}:${JSON.stringify(nestMissAdvice('OTHER'))}).split(${JSON.stringify(NEST_TARGET_SLOT)}).join(n.nestTarget);
       misses.push(n.name+'.nestTarget -> '+n.nestTarget+' ('+found+')');return null;
     }
     else{node=nested.createInstance();}
@@ -5313,7 +5290,7 @@ ${PIN_SLOT}${INSET_SLOT}
 };`;
 
 /**
- * DECLARE the component properties on a live set. Expects `set`, `PROPS`, `one` (#1796) and `misses`
+ * DECLARE the component properties on a live set. Expects `set`, `PROPS`, `compByName` and `misses`
  * in scope; leaves `propIds`.
  *
  * Shared by the single-shot and the CHUNKED payload for the same reason `PAYLOAD_PREAMBLE` is shared,
@@ -5363,7 +5340,7 @@ for(const p of PROPS){
     // Figma demands a NODE ID here. \`key\`, \`''\`, \`null\` and \`undefined\` are each rejected with
     // "Property value is incompatible with component property type" — so an unresolvable target is not
     // a missing default, it is a property that cannot be created at all.
-    const target=one.get(p.swapTarget);
+    const target=compByName.get(p.swapTarget);
     // "not found" was the wrong claim for three of the four states this reaches (#1288): a set, an instance
     // and a frame of that name are all FOUND. The consequence clause is the property loop's own — the slot
     // is not swappable at all, where the node loop above leaves a box a designer can still fill.

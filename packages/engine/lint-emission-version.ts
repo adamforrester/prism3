@@ -135,7 +135,7 @@ import { fileURLToPath } from 'node:url';
 import { ENGINE_VERSION, satisfiesBump } from './version';
 import { ENGINE_ARTIFACTS, SCHEMA_ARTIFACTS } from './regen';
 import { PENDING_STAMP, STAMP_PATHS, auditStamps, readStamps, type StampSources } from './rename-stamp-audit';
-import { comparisonBase, integrationBase } from './comparison-base';
+import { comparisonBase } from './comparison-base';
 
 const here = resolve(fileURLToPath(import.meta.url), '..');
 const repo = resolve(here, '../..');
@@ -285,10 +285,8 @@ if (!mb.ok || !mb.out.trim())
     '  ancestor. `fetch-depth: 0` in CI, `git fetch --unshallow` locally.',
   ]);
 // On the base branch the merge base is HEAD itself, and the first parent is compared instead (#2556):
-// `comparison-base.ts` has the reason, and `lint-push-base.ts` replays it against this gate. A PR that
-// merges `main` into another base branch is read from the newest `main` it carries instead (#3833, the same
-// file): `main`'s notes, folds and moved artifacts were judged by their own runs, not by this one.
-const cmp = integrationBase(git, baseRef!, mb.out.trim()) ?? comparisonBase(git, mb.out.trim(), die);
+// `comparison-base.ts` has the reason, and `lint-push-base.ts` replays it against this gate.
+const cmp = comparisonBase(git, mb.out.trim(), die);
 const base = cmp.base;
 
 // ---- SIDE A: did any artifact's content move? ----------------------------------------------------
