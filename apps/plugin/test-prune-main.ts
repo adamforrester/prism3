@@ -22,6 +22,7 @@
  *   · the `return;` after `PRUNE_COPY.noVersion(…)` dropped (a failed save still removes) → `main/no version, nothing removed` (#3709 S2);
  *   · the hand-edit pass's `stale()` back to its four named writes (prune left out) → `main/hand pass stale under prune` (#3737).
  *   · a pass a write made stale not asked for again when the write ends → `main/hand pass after the write` (#3804).
+ *   · Apply Theme's orphan-style note dropped from its summary → `main/apply reports orphan styles` (#1737).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -237,6 +238,36 @@ for (let i = 0; i < 5000 && !posted.slice(ended).some((m) => m?.type === 'hand-e
 const after = posted.slice(ended).filter((m) => m?.type === 'hand-edits');
 ok(ended >= 0 && after.some((m) => m.done === true),
   `main/hand pass after the write: once the prune ends, the pass it made stale runs to its end unasked (prune-result at ${ended}; posted after it ${JSON.stringify(after)})`);
+
+// #1737 — APPLY REPORTS THE STYLES THIS BRAND DOES NOT PLAN. An earlier brand's styles stay where they were (a new
+// brand's apply never touches a style it does not plan), and the verdict said nothing about them, while it reports the
+// same drift among variables. Planted here: two text styles and one effect style inside groups this brand's plan emits
+// (what an earlier brand leaves), and one hand-made text style outside every group (a designer's, never counted, the
+// namespace prune keeps to). Re-applied through main.ts; the note is the owner's DRAFT copy, typed here.
+// Mutation: main.ts's style-orphan note dropped from the summary → `main/apply reports orphan styles`.
+{
+  const plans = themePlans(input);
+  const groupOf = (names: readonly string[]): string => (names.find((n) => n.includes('/')) ?? '').split('/')[0];
+  const textGroup = groupOf(plans.textPlan.map((r) => r.name));
+  const effectGroup = groupOf(plans.stylesPlan.effects.map((r) => r.name));
+  if (!textGroup || !effectGroup) throw new Error(`premise: the plan has no grouped text or effect style (${textGroup}, ${effectGroup})`);
+  const plant = (make: () => any, name: string) => { const st = make(); st.name = name; return st; };
+  const fs = file as unknown as { createTextStyle: () => any; createEffectStyle: () => any };
+  const planted = [
+    plant(() => fs.createTextStyle(), `${textGroup}/zz-earlier/emphasis`),
+    plant(() => fs.createTextStyle(), `${textGroup}/zz-earlier/subtle`),
+    plant(() => fs.createEffectStyle(), `${effectGroup}/zz-earlier`),
+    plant(() => fs.createTextStyle(), 'Marketing/Hero'),
+  ];
+  const again = await send({ type: 'apply-theme', input }, ['apply-result']);
+  const NOTE = '⚠ 3 orphaned styles not in the plan (text: 2, effect: 1) — likely from an earlier brand; nothing was deleted';
+  const lines: string[] = again?.lines ?? [];
+  ok(applied?.lines?.length > 0 && !(applied.lines as string[]).some((l) => l.includes('orphaned style')),
+    `main/apply clean file, no orphan styles: the first apply, into a file holding only what it wrote, names no style (${JSON.stringify((applied?.lines ?? []).filter((l: string) => l.includes('style')))})`);
+  ok(again?.type === 'apply-result' && again.ok === true && String(again.summary).includes(NOTE) && lines.includes(NOTE)
+    && planted.every((st) => !st.removed),
+    `main/apply reports orphan styles: a re-apply names the three styles an earlier brand left in this brand's groups, not the hand-made one, and removes none (${JSON.stringify(lines.filter((l) => /style/.test(l) && l.startsWith('⚠')))}; removed ${planted.filter((st) => st.removed).length})`);
+}
 
 console.log = log;
 if (failed) { console.error(`\n${failed} check(s) failed`); process.exit(1); }
