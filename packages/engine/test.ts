@@ -11,7 +11,7 @@
  *     Each must build and clear EVERY mode contract — the real robustness test.
  * Exits non-zero on any failure.
  */
-import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, composite, RGB, storedOklch, formatRatio } from './color';
+import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, composite, RGB, storedOklch, formatRatio, floorRatio } from './color';
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, densitySpace, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { codeOnlyText } from './code-only-register';
@@ -1005,11 +1005,34 @@ for (const hx of ['#000000', '#333333', '#7f7f7f', '#808080', '#ffffff']) {
   const srcFiles = readdirSync(APPS, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(resolve(APPS, d.name, 'src')))
     .flatMap((d) => walk(resolve(APPS, d.name, 'src')));
   const rel = (f: string) => f.slice(resolve(APPS, '..').length + 1);
-  // A ratio's own `.toFixed(` (`r.ratio.toFixed(2)`, `minRatio.toFixed(`), or any `toFixed(n)` followed by `:1`.
-  const HAND_ROLLED = [/ratio\w*\)?\.toFixed\(/i, /\.toFixed\(\d\)\}:1/];
+  // A ratio's own `.toFixed(` (`r.ratio.toFixed(2)`, `minRatio.toFixed(`), or any `toFixed(n)` followed by `:1`. And
+  // (#3759) any two-place `Math.round(… * 100) / 100`: a ratio ROUNDED to a stored number reads 4.496 as 4.5 on its 4.5
+  // floor, and re-flooring it at print time cannot take that back. That shape carries no name to key on (`raw`, `x`,
+  // `light.ratio`), so every match is a finding and a non-ratio one is exempted by name below; store `floorRatio`.
+  const HAND_ROLLED = [/ratio\w*\)?\.toFixed\(/i, /\.toFixed\(\d\)\}:1/, /Math\.round\((?:[^()]|\([^()]*(?:\([^()]*\)[^()]*)*\))*\*\s*100\s*\)\s*\/\s*100(?![\d.])/];
+  const handRolled = (text: string): boolean => HAND_ROLLED.some((re) => re.test(text));
+  // The detector on planted lines (docs/34 SELF-CHECK): each shape this scan has met must match, each decoy must not.
+  const PLANTED = ['byMode[m.mode] = { ratio: Math.round(raw * 100) / 100, pass: raw >= ct.min };',
+    'ratio: Math.round(light.ratio * 100) / 100,', 'const ratio = Math.round(contrast(hexToRgb(a), hexToRgb(b)) * 100) / 100;',
+    'const r2 = (x: number) => Math.round(x * 100) / 100;', 'cell(r.ratio.toFixed(2))', '`${worst.toFixed(2)}:1`'];
+  const DECOYS = ['Math.round(a * 255) / 255', 'Math.round(x * 1000) / 1000', 'Math.floor(raw * 100) / 100', 'Math.round(x * 100) / 1000',
+    'Math.round(pct * 100)', 'const ratio = floorRatio(raw);', 'formatRatio(r.ratio, { bare: true })'];
+  const missed = PLANTED.filter((t) => !handRolled(t)), tripped = DECOYS.filter(handRolled);
+  ok(!missed.length && !tripped.length, `#3759 the ratio scan's detector finds every planted shape and no decoy (missed: ${missed.join(' ; ') || 'none'}; decoys tripped: ${tripped.join(' ; ') || 'none'})`);
+  // Named exemptions, each a two-place round that is not a ratio; each must still name a scanned line, so a stale one fails.
+  const APPS_EXEMPT: Record<string, RegExp[]> = {
+    'apps/plugin/src/spec-panel.ts': [/const num = .*Math\.round\(v \* 100\) \/ 100/],         // a measured px dimension
+    'apps/studio/src/domains/shape.ts': [/out\.push\(Math\.round\(v \* 100\) \/ 100\)/],      // a lever's step values
+    'apps/plugin/src/style-guide.ts': [/const a = Math\.round\(alphaOf\(c\) \* 100\) \/ 100/],   // a swatch's alpha, printed
+    // TokenPress is a guest (CLAUDE.md): its px conversion, two places, not a ratio.
+    'apps/tokenpress/src/plugin/exporter.ts': [/const pxValue = Math\.round\(value \* 100\) \/ 100/],
+    'apps/tokenpress/src/plugin/converters/dimension-converter.ts': [/const pxValue = Math\.round\(value \* 100\) \/ 100/],
+  };
   const rolled = srcFiles.flatMap((f) => readFileSync(f, 'utf8').split('\n').flatMap((text, i) =>
-    HAND_ROLLED.some((re) => re.test(text)) ? [`${rel(f)}:${i + 1}`] : []));
-  ok(rolled.length === 0, `#3697 L3 no hand-rolled contrast-ratio toFixed under apps/*/src — print through formatRatio (found: ${rolled.join(', ') || 'none'})`);
+    handRolled(text) && !(APPS_EXEMPT[rel(f)] ?? []).some((re) => re.test(text)) ? [`${rel(f)}:${i + 1}`] : []));
+  ok(rolled.length === 0, `#3697 L3 no hand-rolled contrast-ratio toFixed or two-place round under apps/*/src — print through formatRatio, store floorRatio (found: ${rolled.join(', ') || 'none'})`);
+  for (const [n, res] of Object.entries(APPS_EXEMPT)) for (const re of res)
+    ok(readFileSync(resolve(APPS, '..', n), 'utf8').split('\n').some((t) => re.test(t) && handRolled(t)), `#3759 the ratio-scan exemption ${re} in ${n} still names a scanned line`);
   // Represented, not counted: each known call site is in the scan and still names the formatter.
   for (const site of ['apps/plugin/src/set-override.ts', 'apps/plugin/src/style-guide.ts', 'apps/studio/src/preview/sections/kit.ts', 'apps/studio/src/ui/step-picker.ts', 'apps/studio/src/main.ts']) {
     const f = srcFiles.find((x) => rel(x) === site);
@@ -1032,15 +1055,26 @@ for (const hx of ['#000000', '#333333', '#7f7f7f', '#808080', '#ffffff']) {
     'modes.ts': [/borderSecondaryTarget\.toFixed\(/,
       // #3840: the sub-floor state-label note's one-place "about" — its form is the owner's call there.
       /about \$\{\+r\.toFixed\(1\)\}:1/],
+    // An alpha's emitted precision in the rgb dialect (`rgba(…, 0.1)`), not a ratio.
+    'color.ts': [/fmt === 'hex' \? Math\.round\(a \* 255\) \/ 255 : Math\.round\(a \* 100\) \/ 100/],
+    // A dark-mode shadow layer's alpha, not a ratio.
+    'theme-shadow.ts': [/const darkAlpha = .*Math\.round\(a \* \(0\.3 \+ 0\.09 \* i\) \* 100\) \/ 100/],
   };
   const engineSrc = readdirSync(HERE).filter((n) => n.endsWith('.ts') && n !== 'test.ts' && !n.endsWith('-test.ts') && !n.startsWith('lint-'));
   const engineRolled = engineSrc.flatMap((n) => readFileSync(resolve(HERE, n), 'utf8').split('\n').flatMap((text, i) =>
-    HAND_ROLLED.some((re) => re.test(text)) && !(ENGINE_EXEMPT[n] ?? []).some((re) => re.test(text)) ? [`packages/engine/${n}:${i + 1}`] : []));
-  ok(engineRolled.length === 0, `#3759 no hand-rolled contrast-ratio toFixed under packages/engine (gates and tests aside) — print through formatRatio (found: ${engineRolled.join(', ') || 'none'})`);
+    handRolled(text) && !(ENGINE_EXEMPT[n] ?? []).some((re) => re.test(text)) ? [`packages/engine/${n}:${i + 1}`] : []));
+  ok(engineRolled.length === 0, `#3759 no hand-rolled contrast-ratio toFixed or two-place round under packages/engine (gates and tests aside) — print through formatRatio, store floorRatio (found: ${engineRolled.join(', ') || 'none'})`);
   for (const [n, res] of Object.entries(ENGINE_EXEMPT)) for (const re of res)
-    ok(readFileSync(resolve(HERE, n), 'utf8').split('\n').some((t) => re.test(t) && HAND_ROLLED.some((h) => h.test(t))), `#3759 the ratio-scan exemption ${re} in ${n} still names a scanned line`);
-  for (const n of ['emit-dtcg.ts', 'nb-regression.ts'])
+    ok(readFileSync(resolve(HERE, n), 'utf8').split('\n').some((t) => re.test(t) && handRolled(t)), `#3759 the ratio-scan exemption ${re} in ${n} still names a scanned line`);
+  for (const n of ['emit-dtcg.ts', 'nb-regression.ts', 'visualize.ts'])
     ok(engineSrc.includes(n) && /\bformatRatio\b/.test(readFileSync(resolve(HERE, n), 'utf8')), `#3759 packages/engine/${n} is in the ratio scan and prints through formatRatio`);
+  for (const n of ['eval.ts', 'ai-metadata.ts'])
+    ok(engineSrc.includes(n) && /\bfloorRatio\b/.test(readFileSync(resolve(HERE, n), 'utf8')), `#3759 packages/engine/${n} is in the ratio scan and stores its ratios through floorRatio`);
+  ok(/\bfloorRatio\b/.test(readFileSync(resolve(APPS, 'plugin/src/set-override.ts'), 'utf8')), '#3759 apps/plugin/src/set-override.ts stores its data ratios through floorRatio');
+  // The values, driven at the review's case. Studio's contracts table: the preview stores the RAW ratio, so its floored
+  // print is 4.49 beside the failing dot. An eval failure and a stored floor never round up onto the 4.5 they miss.
+  ok(floorRatio(4.496) === 4.49 && floorRatio(4.4999) === 4.49 && floorRatio(4.5) === 4.5 && formatRatio(4.496, { bare: true }) === '4.49',
+    `#3759 floorRatio floors 4.496 and 4.4999 to 4.49 and keeps 4.5 (got ${floorRatio(4.496)}, ${floorRatio(4.4999)}, ${floorRatio(4.5)})`);
   const grayPrimary = storedOklch(rgbToOklch(hexToRgb('#808080')));
   const sameRgb = (c: RGB) => c.r === c.g && c.g === c.b;
   const neutralGray = (t: any) => t.palettes.find((p: any) => p.palette === 'neutral').steps.every((st: any) => sameRgb(st.rgb));
@@ -11637,6 +11671,14 @@ arm: {
   if (!exampleTheme('harbor', () => brandTheme(pinput))) break arm;
   const rp = resolvePreview(brandTheme(pinput));
   ok(rp.modes.length === 4, 'resolved preview: all four modes projected' + (rp.modes.length !== 4 ? ` — got ${rp.modes.length}` : ''));
+  // #3759: each contract's ratio is stored RAW, the very number its pass was decided on, so the contracts table's floored
+  // print never reads a rounded-up 4.50 beside a failing dot. Measured independently from the resolved hexes.
+  const cooked = rp.contracts.flatMap((c) => rp.modes.flatMap((m) => {
+    const r = c.byMode[m], fg = rp.colors[c.fg]?.[m], bg = rp.colors[c.bg]?.[m];
+    return r && fg && bg && r.ratio !== contrast(hexToRgb(fg), hexToRgb(bg)) ? [`${c.component}/${c.variant} ${m}: ${r.ratio}`] : [];
+  }));
+  const measuredPairs = rp.contracts.reduce((n, c) => n + rp.modes.filter((m) => c.byMode[m] && rp.colors[c.fg]?.[m] && rp.colors[c.bg]?.[m]).length, 0);
+  ok(measuredPairs > 100 && cooked.length === 0, `#3759 resolved preview: every contract ratio is the raw measured one, never pre-rounded (${measuredPairs} pairs; cooked: ${cooked.slice(0, 5).join(', ') || 'none'})`);
 
   const noHex = Object.entries(rp.colors).filter(([, byMode]) => rp.modes.some((m) => !byMode[m])).map(([k]) => k);
   ok(noHex.length === 0, 'resolved preview: every referenced colour role resolves to a hex in every mode' + (noHex.length ? ` — MISSING: ${noHex.join(', ')}` : ''));

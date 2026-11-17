@@ -217,7 +217,7 @@ p('');
 const failed = checks.filter((c) => !c.pass);
 const meanOfMeans = summary.reduce((a, s) => a + s.mean, 0) / summary.length;
 // Fold the functional checks into the gate accumulator (they were report-only before CR-06).
-for (const f of failed) failures.push(`contrast contract failed: ${f.label} = ${f.got.toFixed(2)} (rule ${f.rule})`);
+for (const f of failed) failures.push(`contrast contract failed: ${f.label} = ${formatRatio(f.got, { bare: true })} (rule ${f.rule})`);
 if (dimPass !== dimChecks) failures.push(`dimension axis: ${dimPass}/${dimChecks} exact — a px lever drifted from Prism2 space / NB radius`);
 // …and that the two populations exist AT ALL. See EXPECTED_CONTRACTS above for the measurement: both
 // of the lines below printed `0/0` and passed. Stated as populations rather than folded into the
