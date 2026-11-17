@@ -172,7 +172,7 @@
       ],
       "a11y": {
         "worstOnWhite": 3.61,
-        "worstOnBlack": 1.88,
+        "worstOnBlack": 1.87,
         "floor": 4.5,
         "clears": {
           "white": false,

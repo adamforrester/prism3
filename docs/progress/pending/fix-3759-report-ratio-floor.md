@@ -15,18 +15,24 @@ failures, `ai-metadata.ts`'s `contrast_with[].ratio` and its gradient sentence, 
 store `floorRatio(raw)`, a new export beside `formatRatio`, which now prints through it. Plan diff: 588 of 1,263
 `contrast_with` ratios across the five `.ai.json` files drop by exactly 0.01, none below its floor (the two at their
 floor, `nb` `text.on-warning`/`icon.on-warning`, stay); Prism3's `glow` gradient reads 1.87, not 1.88, for black text.
-No token, report, Figma or contract artifact moves.
+Running Studio's chrome suite on that fix found two more, in the DTCG emission itself, which the chrome oracle reads:
+`tree.ts` wrote each semantic color's `contrast` and each primitive's `contrastOnWhite` with `round(x, 2)`, and the
+gradient's worst-case pair the same way. They store `floorRatio` too: 2,409 `contrast`, 326 `contrastOnWhite` and 2
+`worstOnBlack` values across the five `tokens.json` and Prism3's `gradient-styles.json` drop by at most 0.01; nothing
+else moves. #3698 7a's tint check now holds a published contrast to the floor (never above the measured wash, less
+than one step below) instead of within ±0.005. No report, `.ai.json` field beyond those above, or contract moves.
 
 **Tests.** `test.ts` drives the row at 4.496/4.5 (prints `4.49`, ❌), reads the committed report back (every printed
 contrast agrees with its mark, over all 3,824 rows), and extends the #3750 source scan to `packages/engine`. Gates
 (`lint-*.ts`) and tests are out of scope: their messages are diagnostics, not artifacts. Two lines in `modes.ts` are
 named exemptions that must still match: the `border.secondary` target (an aim, not a measurement), and the state-label
 note's one-place "about N:1", filed as #3840 because its form is a copy decision. The scan now also finds any two-place
-`Math.round(… * 100) / 100`, under `apps/*/src` and `packages/engine` alike, with a planted self-check (six shapes, seven
-decoys); its five non-ratio matches (an alpha's precision, a measured px, a lever's steps, TokenPress's px) are named
+`Math.round(… * 100) / 100`, and a `round(…, 2)` helper call on a ratio, contrast or worst case, under `apps/*/src`
+and `packages/engine` alike, with a planted self-check (eight shapes, ten decoys); its seven non-ratio matches (three alphas, a measured px, a lever's steps, TokenPress's two px conversions) are named
 exemptions that must still match. Mutations: putting main's
 `toFixed(2)` back fails the row test and the engine scan by name; putting main's `Math.round` back in
-`resolve-preview.ts` fails the scan and the raw-ratio check by name; main's `nb-regression.ts` fails the scan and the
+`resolve-preview.ts` fails the scan and the raw-ratio check by name; `round(…, 2)` back in `tree.ts` fails the scan
+and #3698 7a by name; main's `nb-regression.ts` fails the scan and the
 represented check; one corrupted report cell fails the read-back.
 
 **Left apart.** `tree.ts`'s `floor2` (bare, trimmed zeros, into token descriptions) already floors, so it does not

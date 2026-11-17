@@ -1009,14 +1009,18 @@ for (const hx of ['#000000', '#333333', '#7f7f7f', '#808080', '#ffffff']) {
   // (#3759) any two-place `Math.round(… * 100) / 100`: a ratio ROUNDED to a stored number reads 4.496 as 4.5 on its 4.5
   // floor, and re-flooring it at print time cannot take that back. That shape carries no name to key on (`raw`, `x`,
   // `light.ratio`), so every match is a finding and a non-ratio one is exempted by name below; store `floorRatio`.
-  const HAND_ROLLED = [/ratio\w*\)?\.toFixed\(/i, /\.toFixed\(\d\)\}:1/, /Math\.round\((?:[^()]|\([^()]*(?:\([^()]*\)[^()]*)*\))*\*\s*100\s*\)\s*\/\s*100(?![\d.])/];
+  const HAND_ROLLED = [/ratio\w*\)?\.toFixed\(/i, /\.toFixed\(\d\)\}:1/, /Math\.round\((?:[^()]|\([^()]*(?:\([^()]*\)[^()]*)*\))*\*\s*100\s*\)\s*\/\s*100(?![\d.])/,
+    // …and a two-place `round(x, 2)` helper call on a ratio (`tree.ts`'s emitted `contrast`, a gradient's worst case).
+    /\bround\w*\((?:[^(),]|\([^()]*\))*\b(?:ratio|contrast|worst)\w*(?:[^(),]|\([^()]*\))*,\s*2\s*\)/i];
   const handRolled = (text: string): boolean => HAND_ROLLED.some((re) => re.test(text));
   // The detector on planted lines (docs/34 SELF-CHECK): each shape this scan has met must match, each decoy must not.
   const PLANTED = ['byMode[m.mode] = { ratio: Math.round(raw * 100) / 100, pass: raw >= ct.min };',
     'ratio: Math.round(light.ratio * 100) / 100,', 'const ratio = Math.round(contrast(hexToRgb(a), hexToRgb(b)) * 100) / 100;',
-    'const r2 = (x: number) => Math.round(x * 100) / 100;', 'cell(r.ratio.toFixed(2))', '`${worst.toFixed(2)}:1`'];
+    'const r2 = (x: number) => Math.round(x * 100) / 100;', 'cell(r.ratio.toFixed(2))', '`${worst.toFixed(2)}:1`',
+    '{ contrast: round(rr.ratio, 2), against: rr.against }', 'const wOnW = round(g.worstOnWhite, 2), wOnB = 0;'];
   const DECOYS = ['Math.round(a * 255) / 255', 'Math.round(x * 1000) / 1000', 'Math.floor(raw * 100) / 100', 'Math.round(x * 100) / 1000',
-    'Math.round(pct * 100)', 'const ratio = floorRatio(raw);', 'formatRatio(r.ratio, { bare: true })'];
+    'Math.round(pct * 100)', 'const ratio = floorRatio(raw);', 'formatRatio(r.ratio, { bare: true })',
+    'round(px / 16, 2)', 'round(ratio, 4)', 'round(lr.ratio * 2, 3)'];
   const missed = PLANTED.filter((t) => !handRolled(t)), tripped = DECOYS.filter(handRolled);
   ok(!missed.length && !tripped.length, `#3759 the ratio scan's detector finds every planted shape and no decoy (missed: ${missed.join(' ; ') || 'none'}; decoys tripped: ${tripped.join(' ; ') || 'none'})`);
   // Named exemptions, each a two-place round that is not a ratio; each must still name a scanned line, so a stale one fails.
@@ -42352,7 +42356,9 @@ arm: {
           if (!wash || !ground || !ink || typeof mx.contrast !== 'number') { bad.push(`${where}: unreadable (wash ${!!wash}, ground ${!!ground}, ink ${!!ink}, contrast ${mx.contrast})`); continue; }
           const truth = contrast(ink.rgb, composite(ground.rgb, wash.rgb, wash.a));
           checked++; tints++;
-          if (Math.abs(truth - mx.contrast) > 0.005 + 1e-9) bad.push(`${where}: publishes ${mx.contrast}, the emitted wash (alpha ${wash.a.toFixed(4)}) measures ${truth.toFixed(3)}`);
+          // Published floored to two places (#3759): never above what the wash measures, and less than one step below it.
+          const gap = truth - mx.contrast;
+          if (gap < -1e-9 || gap >= 0.01 + 1e-9) bad.push(`${where}: publishes ${mx.contrast}, the emitted wash (alpha ${wash.a.toFixed(4)}) measures ${truth.toFixed(3)}`);
         }
       }
       for (const [k, v] of Object.entries(o)) if (!k.startsWith('$')) walk(v, [...path, k]);
