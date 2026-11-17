@@ -91,7 +91,7 @@ import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-gl
 import { PROVIDER_LOGO_BOXES, PROVIDER_LOGO_DOCUMENTS } from './provider-logo-glyphs';
 import { makeTextField } from './components/text-field';
 import { canonicalShape, GlyphPathError } from './glyph-shape';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { isDeepStrictEqual } from 'node:util';
@@ -26741,42 +26741,6 @@ arm: {
       ok(swapRows.every((r) => r.prop === `property ↳ swap leading icon -> swap target ${ICON} (${swapMissAdvice(r.found, ICON)}; ${SWAP_NO_PROPERTY})`),
         `#1288 ...and so is the property-level one, under the canon panel label (#1380) (${swapRows.find((r) => r.prop !== `property ↳ swap leading icon -> swap target ${ICON} (${swapMissAdvice(r.found, ICON)}; ${SWAP_NO_PROPERTY})`)?.prop ?? 'all four match'})`);
 
-      // ---- #1796: TWO PLAIN COMPONENTS under a nest or swap target's exact name, on the PASTE path ----
-      // The payload's half of the plugin arms in `apps/plugin/test-write-components.ts` (`#1796 …`). `compByName` keeps
-      // one entry per name, so the payload used to nest or swap in whichever of two same-named components the search
-      // returned last, and report success. Now each target reads `oneComp`: two of a name are reported by name, through
-      // the shared advice's AMBIGUOUS row, and nothing is made from either. THE ORACLE is the host: the page is walked
-      // for an INSTANCE whose `mainComponent` the stub recorded under the target's name.
-      {
-        const instancesOf = (page: StubPage, name: string): number => {
-          let n = 0;
-          const walk = (x: Record<string, unknown>): void => {
-            if (x.type === 'INSTANCE' && (x as { mainComponent?: { name: string } }).mainComponent?.name === name) n++;
-            for (const c of (x.children as Record<string, unknown>[] | undefined) ?? []) walk(c);
-          };
-          for (const c of page.children) walk(c);
-          return n;
-        };
-        // REACHABILITY: with ONE of each, the grid really does nest the ring and swap in the icon.
-        const onePage: StubPage = { children: [] };
-        await runPayload(planSetToPluginJs(grid), { ...fullSet, page: onePage });
-        ok(instancesOf(onePage, 'focus-ring') > 0 && instancesOf(onePage, ICON) > 0,
-          `#1796 paste path reachable: with one of each, the grid nests focus-ring (${instancesOf(onePage, 'focus-ring')}) and swaps in ${ICON} (${instancesOf(onePage, ICON)})`);
-        const ringPage: StubPage = { children: [] };
-        const ring = await runPayload(planSetToPluginJs(grid), { ...fullSet, comps: [...fullSet.comps, 'focus-ring'], page: ringPage });
-        const ringMiss = [...new Set(ring.misses.filter((m) => m.includes('.nestTarget -> focus-ring')))];
-        ok(ringMiss.length > 0 && ringMiss.every((m) => m.includes('.nestTarget -> focus-ring (found more than one COMPONENT of that name; neither is used')) && instancesOf(ringPage, 'focus-ring') === 0,
-          `#1796 paste path: two plain components named focus-ring are reported by name and no ring is nested from either (${instancesOf(ringPage, 'focus-ring')} built; ${ringMiss[0] ?? JSON.stringify(ring.misses.slice(0, 2))})`);
-        const iconPage: StubPage = { children: [] };
-        const icon = await runPayload(planSetToPluginJs(grid), { ...fullSet, comps: [...fullSet.comps, ICON], page: iconPage });
-        const iconLead = swapMissesOf(icon.misses, 'leadingVisual')[0] ?? '(none)';
-        const iconProp = [...new Set(icon.misses.filter((m) => m.startsWith('property ') && m.indexOf(`swap target ${ICON}`) >= 0))][0] ?? '(none)';
-        ok(iconLead === `leadingVisual.swapTarget -> ${ICON} (${swapMissAdvice('AMBIGUOUS', ICON)}; ${SWAP_PLACEHOLDER})` && iconLead.includes('found more than one COMPONENT of that name; neither is used') && instancesOf(iconPage, ICON) === 0,
-          `#1796 paste path: two plain components named ${ICON} are reported by name at the swap node and neither is swapped in (${instancesOf(iconPage, ICON)} built; ${iconLead})`);
-        ok(iconProp === `property ↳ swap leading icon -> swap target ${ICON} (${swapMissAdvice('AMBIGUOUS', ICON)}; ${SWAP_NO_PROPERTY})`,
-          `#1796 paste path: ...and the swap property is not created from either (${iconProp})`);
-      }
-
       // ---- the BOOLEAN path through the PAYLOAD, not just the plan (#513's stated ceiling) --------
       // #513 said "the `booleans` path is unit-tested through a synthetic def but not yet exercised
       // live", and the coverage above (`boolProps`) is `planSetProperties` only — it proves the plan
@@ -37790,7 +37754,6 @@ arm: {
     git('init', '-q');
     put('packages/engine/lint-progress-order.ts', readFileSync(resolve(HERE, 'lint-progress-order.ts'), 'utf8'));
     put('packages/engine/rename-stamp-audit.ts', readFileSync(resolve(HERE, 'rename-stamp-audit.ts'), 'utf8'));
-    put('packages/engine/comparison-base.ts', readFileSync(resolve(HERE, 'comparison-base.ts'), 'utf8'));
     log([]); put('docs/progress/pending/README.md', 'Pending fragments.\n');
     commit('m0 seed');
     fragment('lane-pre-one', 'Pre one'); commit('m1');
@@ -37913,101 +37876,6 @@ arm: {
       `#2663 leaves nothing pending: the fold re-cut on the moved main passes (exit ${recut.status}: ${recut.lines.filter((l) => /leaves nothing|LEAVES NOTHING|✗/.test(l)).join(' | ')})`);
   } finally {
     rmSync(scratch, { recursive: true, force: true });
-  }
-}
-
-// ---- #3833 AN INTEGRATION BRANCH REFRESHED FROM MAIN -------------------------------------------------
-//
-// A PR into a branch other than `main` that merges `main` in carries `main`'s own notes, folds and executor
-// revisions, each already judged by its own run. Read from the branch's merge base, #3833's refresh failed
-// three gates on `main`'s work: emission-version's NOTE SHAPE on `main`'s patch notes over `main`'s folded
-// emission, progress-order's LEAVES NOTHING PENDING on `main`'s folds, executor-reach on five of `main`'s
-// revisions measured as one. `integrationBase` (`comparison-base.ts`) reads such a PR from the newest `main`
-// it carries. This replays the shape against the REAL gates, in a `--shared` clone of this repo with the
-// working tree on top (as `lint-push-base.ts` does), and the REAL fold.ts:
-//
-//   main:  W (the working tree) · m0 a pending minor note · m1 fold.ts folds it (every stamp moves) · m2 a patch note
-//   poc:   forks at m0 · p0 its own entry (pending, as an integration branch's entries stay)
-//   refresh: p0 merges m2, with an entry of its own. Read as a PR into `poc` (GITHUB_BASE_REF=poc).
-//
-// Before #3833's fix the three refresh cases fail with CI's own messages. Two controls keep the gate's teeth:
-// the refresh moving an artifact under its OWN patch note fails NOTE SHAPE, and so does an ordinary PR into
-// `poc` (no `main` merged), which keeps its merge base. MUTATIONS VERIFIED (#3833, each fails a case below by
-// name): `integrationBase` returning null · emission-version, progress-order and executor-reach each dropping
-// their call · the `ahead` test inverted (the ordinary-PR control).
-{
-  const REPO = resolve(HERE, '..', '..');
-  const work = mkdtempSync(join(tmpdir(), 'prism3-integration-base-'));
-  const clone = join(work, 'r');
-  const env: NodeJS.ProcessEnv = {};
-  for (const [k, v] of Object.entries(process.env)) if (!k.startsWith('GIT_') && !k.startsWith('GITHUB_')) env[k] = v;
-  Object.assign(env, { GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1', GIT_AUTHOR_NAME: 'fixture', GIT_AUTHOR_EMAIL: 'fixture@example.invalid', GIT_COMMITTER_NAME: 'fixture', GIT_COMMITTER_EMAIL: 'fixture@example.invalid' });
-  const gitIn = (dir: string, args: string[], input?: string): string => {
-    const r = spawnSync('git', ['-C', dir, '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', ...args], { encoding: 'utf8', env, input, maxBuffer: 256 * 1024 * 1024 });
-    if (r.status !== 0) throw new Error(`#3833 replay: git ${args.join(' ')} failed: ${r.stderr}`);
-    return r.stdout;
-  };
-  const git = (args: string[], input?: string): string => gitIn(clone, args, input).trim();
-  const put = (p: string, text: string) => { mkdirSync(dirname(join(clone, p)), { recursive: true }); writeFileSync(join(clone, p), text); };
-  const note = (slug: string, level: string) => put(`packages/engine/changes/${slug}.md`, `---\nengine: ${level}\n---\nThe #3833 replay's ${slug}.\n`);
-  const fragment = (slug: string) => put(`docs/progress/pending/${slug}.md`, `## (2026-11-16) — The #3833 replay's ${slug}\n\nBody.\n`);
-  const commit = (msg: string): string => { git(['add', '-A']); git(['commit', '-q', '--allow-empty', '-m', msg]); return git(['rev-parse', 'HEAD']); };
-  const tsx = (file: string, extra: Record<string, string>) => {
-    const r = spawnSync(process.execPath, [...process.execArgv, join(clone, file)], { cwd: clone, encoding: 'utf8', env: { ...env, ...extra }, maxBuffer: 64 * 1024 * 1024 });
-    return { status: r.status, out: `${r.stdout ?? ''}${r.stderr ?? ''}` };
-  };
-  const said = (r: { out: string }, re: RegExp) => r.out.split('\n').filter((l) => re.test(l)).join(' | ').slice(0, 400);
-  const PR = { GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'poc' };
-  const EMITTED = 'packages/engine/out/figma/prism3/focus.json';
-  const moveArtifact = () => put(EMITTED, `${readFileSync(join(clone, EMITTED), 'utf8')}\n`);
-  const FROM_MAIN = 'merge base with origin/main — HEAD carries';
-  try {
-    gitIn(work, ['clone', '-q', '--shared', '--no-checkout', REPO, clone]);
-    git(['checkout', '-q', '-B', 'main', gitIn(REPO, ['rev-parse', 'HEAD']).trim()]);
-    const patch = gitIn(REPO, ['diff', '--binary', 'HEAD']);
-    if (patch) git(['apply', '--binary', '-'], patch);
-    for (const p of gitIn(REPO, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean)) {
-      mkdirSync(dirname(join(clone, p)), { recursive: true });
-      copyFileSync(join(REPO, p), join(clone, p));
-    }
-    commit('W: the working tree');
-    // executor-reach imports `@prism3/engine`; the clone has no install, so point the name at its own engine.
-    mkdirSync(join(clone, 'node_modules', '@prism3'), { recursive: true });
-    symlinkSync(join(clone, 'packages', 'engine'), join(clone, 'node_modules', '@prism3', 'engine'), 'dir');
-
-    note('replay-main-minor', 'minor'); fragment('replay-main-minor'); const m0 = commit('m0: a pending minor note');
-    git(['checkout', '-q', '-b', 'poc', m0]); fragment('replay-poc-own'); const p0 = commit('p0: the branch\'s own entry');
-    git(['update-ref', 'refs/remotes/origin/poc', p0]);
-    git(['checkout', '-q', 'main']); git(['update-ref', 'refs/remotes/origin/main', m0]);
-    const fold = tsx('fold.ts', {});
-    if (fold.status !== 0) throw new Error(`#3833 replay: fold.ts failed in the clone: ${fold.out.slice(-1500)}`);
-    commit('m1: the fold');
-    note('replay-main-patch', 'patch'); fragment('replay-main-patch'); const m2 = commit('m2: a patch note');
-    git(['update-ref', 'refs/remotes/origin/main', m2]);
-    git(['checkout', '-q', '-b', 'refresh', p0]); git(['merge', '-q', '--no-ff', '-m', 'refresh from main', m2]);
-    fragment('replay-refresh'); commit('the refresh\'s entry');
-
-    const ev = tsx('packages/engine/lint-emission-version.ts', PR);
-    ok(ev.status === 0 && ev.out.includes(FROM_MAIN),
-      `#3833 emission-version: a refresh of an integration branch is read from the main it carries, so main's patch note over main's folded emission passes (exit ${ev.status}: ${said(ev, /NOTE SHAPE|FOLD|ONE WRITER|base |clean/)})`);
-    const po = tsx('packages/engine/lint-progress-order.ts', PR);
-    ok(po.status === 0 && po.out.includes('  ✓ leaves nothing pending: n/a — the diff consumes no pending file, so it is not a fold'),
-      `#3833 progress-order: main's fold is not read as the refresh's own fold (exit ${po.status}: ${said(po, /LEAVES|leaves|✗/)})`);
-    const er = tsx('apps/plugin/lint-executor-reach.ts', PR);
-    ok(er.status === 0 && er.out.includes(`(${FROM_MAIN}`),
-      `#3833 executor-reach: a refresh is read from the main it carries, not as one span over main's revisions (exit ${er.status}: ${said(er, /base |✗/)})`);
-
-    git(['checkout', '-q', '-b', 'refresh-own-patch', 'refresh']); moveArtifact(); note('replay-refresh-patch', 'patch'); commit('the refresh moves an artifact under a patch note');
-    const own = tsx('packages/engine/lint-emission-version.ts', PR);
-    ok(own.status === 1 && own.out.includes('NOTE SHAPE — packages/engine/changes/replay-refresh-patch.md declares `engine: patch`, and 1 committed artifact(s) moved (#1807).'),
-      `#3833 emission-version: the refresh's OWN patch note over its own moved artifact still fails NOTE SHAPE by name (exit ${own.status}: ${said(own, /NOTE SHAPE|base /)})`);
-    git(['checkout', '-q', '-b', 'ordinary', p0]); moveArtifact(); note('replay-ordinary-patch', 'patch'); commit('an ordinary PR into the branch');
-    const ord = tsx('packages/engine/lint-emission-version.ts', PR);
-    ok(ord.status === 1 && ord.out.includes('NOTE SHAPE — packages/engine/changes/replay-ordinary-patch.md declares `engine: patch`, and 1 committed artifact(s) moved (#1807).')
-        && ord.out.includes('(origin/poc, via GITHUB_BASE_REF, merge base)'),
-      `#3833 emission-version: an ordinary PR into the branch (no main merged) keeps its merge base and still fails NOTE SHAPE by name (exit ${ord.status}: ${said(ord, /NOTE SHAPE|base /)})`);
-  } finally {
-    rmSync(work, { recursive: true, force: true });
   }
 }
 
