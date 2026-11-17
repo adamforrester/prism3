@@ -1038,12 +1038,12 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     // `line-box`, one value per rung with NO per-mode override: a literal may not re-value by mode (#296), and the
     // Figma `control` collection is single-mode, so a `controlsByMode` brand (none in the corpus) keeps the default
     // mode's inset in a mode whose control is a different size. The code projection can compute it there.
-    const rowLine = must(bodyLineBox[ROW_LABEL_RUNG[c.name] ?? ''], `the body line box for control '${c.name}'`);
-    const inset = (box: number) => Math.max(0, (box - rowLine) / 2);
+    // A rung with no body line box (no corpus brand, but a theme without that body rung) gets no `label-inset`.
+    const rowLine = bodyLineBox[ROW_LABEL_RUNG[c.name] ?? ''];
     const rowInsets: Record<string, Token> = {};
     if (rowLine !== undefined) {
       const lr = ROW_LABEL_RUNG[c.name];
-      const li = inset(c.height);
+      const li = Math.max(0, (c.height - rowLine) / 2);
       rowInsets['label-inset'] = dimLeaf(li, `control.size.${c.name} label-inset — ${li}px, how far an option row's label starts below the top of its control cell: half of the ${c.height}px box less the ${rowLine}px \`type.body.${lr}\` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.`);
     }
     // #1015 — the corner, clamped to this rung's own edge (see `controlRadiusLeaf` above).
