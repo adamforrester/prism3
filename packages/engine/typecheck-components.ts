@@ -252,7 +252,8 @@ export const unbacked = (registry: readonly unknown[], exported: ReadonlySet<unk
  *  So this arm runs tsc a SECOND time over the same tsconfig with the flag forced on the command line,
  *  and fails on any diagnostic in a listed file. Errors elsewhere are the rollout's remaining work and
  *  are not this arm's business. A stage that cleans a file APPENDS it here, in the same PR, so the
- *  file is held from the moment it is clean (stage 2, #3900: `modes.ts` and `ramp.ts`). The stage that
+ *  file is held from the moment it is clean (stage 2, #3900: `modes.ts` and `ramp.ts`; stage 3, #3903: the
+ *  other twelve files of the tsconfig's graph). The stage that
  *  turns the flag on in that tsconfig deletes this list and this arm: from then on the main run holds
  *  every file.
  *
@@ -261,8 +262,20 @@ export const unbacked = (registry: readonly unknown[], exported: ReadonlySet<unk
  *  Repo-relative paths. */
 export const NUIA_CLEAN: readonly string[] = [
   'packages/engine/component-schema.ts',
+  'packages/engine/components/card-number-field.ts',
+  'packages/engine/components/code-input.ts',
+  'packages/engine/components/provider-logo.ts',
+  'packages/engine/components/sign-in-button.ts',
+  'packages/engine/figma-description.ts',
   'packages/engine/modes.ts',
   'packages/engine/ramp.ts',
+  'packages/engine/scale.ts',
+  'packages/engine/theme-brand.ts',
+  'packages/engine/theme-gradient.ts',
+  'packages/engine/theme-layout.ts',
+  'packages/engine/theme-shadow.ts',
+  'packages/engine/theme-type.ts',
+  'packages/engine/vocabulary.ts',
 ];
 
 /** The diagnostics that land in a clean-listed file. The `(` in the prefix is load-bearing: without it,
