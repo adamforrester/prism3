@@ -259,7 +259,11 @@ export const unbacked = (registry: readonly unknown[], exported: ReadonlySet<unk
  *  The oracle is tsc's own diagnostics, matched by the exact `<path>(` prefix tsc prints when run with
  *  `cwd: repo` — never a grep of the source for `[`, which would be a second, weaker type checker.
  *  Repo-relative paths. */
-export const NUIA_CLEAN: readonly string[] = ['packages/engine/component-schema.ts'];
+export const NUIA_CLEAN: readonly string[] = [
+  'packages/engine/component-schema.ts',
+  'packages/engine/modes.ts',
+  'packages/engine/ramp.ts',
+];
 
 /** The diagnostics that land in a clean-listed file. The `(` in the prefix is load-bearing: without it,
  *  `modes.ts` would also claim `modes.tsx` and `modes.ts.orig`. */

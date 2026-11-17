@@ -13,3 +13,7 @@ Each file gets a three-line local `must(x, what)`. It returns `x`, or throws a n
 ### Proof
 
 `regen --check` is in sync (230 artifacts). The plan diff (every exported single-argument function of `component-schema.ts`, `anatomy-figma.ts`, `tree.ts` and `modes.ts`, over every registered def) is identical over 3,038 digests.
+
+### Held from here
+
+`modes.ts` and `ramp.ts` join `NUIA_CLEAN` in `typecheck-components.ts`, the clean list stage 1 (#3893) added, so both are held clean from this merge rather than from the flag flip. Measured: one guard removed from `ramp.ts` (`must(STEP_NUMS[0], …)` read back as `STEP_NUMS[0]`) passes the gate before the files are listed, where only the "elsewhere" count moves, and fails it by name once they are listed (`packages/engine/ramp.ts(…): error TS2322`).
