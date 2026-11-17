@@ -14,8 +14,9 @@ or re-imported. A hand-edited member with any of these carries `restructured: tr
 **What the apply does.** Under Keep and Accept, a restructured member is skipped whole and named, "hand-edited, and the
 update changes its structure" (DRAFT wording after the #2956 wireframe). Overwrite writes the plan. A member whose own
 layer was added or removed by hand is skipped under every choice, as before, and a member with an edit the update would
-lose (#2673) keeps that more specific reason. Accept skips too: it keeps the edit, so the new structure could lose it
-just as Keep would.
+lose (#2673) keeps that more specific reason. **Owner decision (follows #2956): pending confirmation.** Accept skips
+too, held for the owner as #2673's is (#3901 review): Accept keeps the edit, so the new structure could lose it just as
+Keep would, but what Accept does is a change to what a choice does.
 
 **Changed arms.** `rows3153/hand edit kept` on Checkbox.Row and Radio.Row asserted the old behavior (the text column
 written around a kept gap). They now assert the skip (`rows3153/hand edit skipped`), and `rows3153/structure` reads the
