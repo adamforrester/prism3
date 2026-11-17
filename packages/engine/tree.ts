@@ -13,7 +13,7 @@
  * sandbox bundle. `emit-dtcg.ts` re-exports `buildTree` for existing importers.
  */
 import { bandPhrase } from './figma-description';
-import { RGB, contrast, hex, hexToRgb, emittedAlpha } from './color';
+import { RGB, contrast, floorRatio, hex, hexToRgb, emittedAlpha } from './color';
 import { Step } from './ramp';
 import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, FacePin, ResolvedUnderline, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER, SPIN_ROLE, SWEEP_ROLE, BODY_XS_DESCRIPTION, gridGapLink } from './theme';
 import { SizeStep, ControlSizeStep, controlRadius, AAA_TARGET_PX } from './scale';
@@ -65,7 +65,7 @@ const primitiveLeaf = (theme: Theme, paletteDesc: string, s: Step, isAnchor: boo
     // The band is glossed with what it holds and its real step range in THIS ramp (#1623 DT/T-8), so the
     // name is readable without a key: `Quarter-Tone band (light tints, steps 100–350)`.
     $description: `${paletteDesc} ${s.key} — ${bandPhrase(s.band, ramp.filter((x) => x.band === s.band).map((x) => x.key))}${role ? ` — ${role}` : ''}`,
-    $extensions: { prism3: { generated: true, source: 'oklch', oklch: { l: round(s.oklch.l), c: round(s.oklch.c), h: round(s.oklch.h, 2) }, hex: s.hex, band: s.band, anchor: isAnchor, contrastOnWhite: round(contrast(s.rgb, WHITE), 2), ...(hueSource ? { hueSource } : {}) } },
+    $extensions: { prism3: { generated: true, source: 'oklch', oklch: { l: round(s.oklch.l), c: round(s.oklch.c), h: round(s.oklch.h, 2) }, hex: s.hex, band: s.band, anchor: isAnchor, contrastOnWhite: floorRatio(contrast(s.rgb, WHITE)), ...(hueSource ? { hueSource } : {}) } },
   };
 };
 const baseLeaf = (theme: Theme, rgb: RGB, description: string, band: string): Token => ({
@@ -192,9 +192,9 @@ const gradientLeaf = (g: ResolvedGradient, fmt: 'rgb' | 'hex'): Token => {
   const geom = g.kind === 'radial' ? { center: g.center, shape: g.shape } : { angle: g.angle };
   // #2422: each ink is judged on its OWN measured worst case. The old free-text note tested
   // min(white, black) < 4.5 and so said "neither clears" whenever either side failed — false for white
-  // at 5.36:1. Compared un-rounded (CR-01); the rounded ratios are for display.
+  // at 5.36:1. Compared un-rounded (CR-01); the floored ratios are for display.
   const clears = { white: g.worstOnWhite >= TEXT_ON_GRADIENT_FLOOR, black: g.worstOnBlack >= TEXT_ON_GRADIENT_FLOOR };
-  const wOnW = round(g.worstOnWhite, 2), wOnB = round(g.worstOnBlack, 2); // rounded for display/emit
+  const wOnW = floorRatio(g.worstOnWhite), wOnB = floorRatio(g.worstOnBlack); // floored for display/emit (#3759)
   return {
     $type: 'gradient',
     $value: g.stops.map((s) => ({ color: `{${s.aliasOf}}`, position: round3(s.position) })),
@@ -662,8 +662,8 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
       // to keep only light's, so every dark and high-contrast overlay carried light-mode prose beside a
       // different value. Absent means "same as `$description`", which keeps the unchanged majority lean.
       modeOverrides[m] = rr.tint
-        ? { $value: tintValue(rr), tint: tintRefs(rr), contrast: round(rr.ratio, 2), against: rr.against, ...washFields(rr), ...(rr.min > 0 ? { min: rr.min } : {}), ...(rr.description !== lr.description ? { description: rr.description } : {}) }
-        : { $value: `{${rr.path}}`, aliasOf: rr.path, contrast: round(rr.ratio, 2), against: rr.against, ...washFields(rr), ...(rr.min > 0 ? { min: rr.min } : {}), ...(rr.description !== lr.description ? { description: rr.description } : {}) };
+        ? { $value: tintValue(rr), tint: tintRefs(rr), contrast: floorRatio(rr.ratio), against: rr.against, ...washFields(rr), ...(rr.min > 0 ? { min: rr.min } : {}), ...(rr.description !== lr.description ? { description: rr.description } : {}) }
+        : { $value: `{${rr.path}}`, aliasOf: rr.path, contrast: floorRatio(rr.ratio), against: rr.against, ...washFields(rr), ...(rr.min > 0 ? { min: rr.min } : {}), ...(rr.description !== lr.description ? { description: rr.description } : {}) };
     }
     if (lr.tint) {
       // A `solid-tint` SUBTLE FILL (#1614): the existing fill at an existing opacity step, translucent. There
@@ -676,7 +676,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
         $type: 'color', $value: tintValue(lr), $description: lr.description,
         $extensions: { prism3: {
           role: 'semantic', tint: tintRefs(lr),
-          contrast: round(lr.ratio, 2), against: lr.against, ...washFields(lr), ...(lr.min > 0 ? { min: lr.min } : {}),
+          contrast: floorRatio(lr.ratio), against: lr.against, ...washFields(lr), ...(lr.min > 0 ? { min: lr.min } : {}),
           modes: modeOverrides,
           figma: { collection: 'color', modes: ['light', ...OVERRIDE_MODES] },
         } },
@@ -690,7 +690,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     // Elevation is not a colour group — a component composes a foreground tier +
     // a shadow step (see docs/06). No parallel `elevation.*` tree is emitted.
     const leaf = aliasLeaf(lr.path, lr.description, {
-      contrast: round(lr.ratio, 2), against: lr.against, ...washFields(lr), ...(lr.min > 0 ? { min: lr.min } : {}),
+      contrast: floorRatio(lr.ratio), against: lr.against, ...washFields(lr), ...(lr.min > 0 ? { min: lr.min } : {}),
       modes: modeOverrides,
       figma: { collection: 'color', modes: ['light', ...OVERRIDE_MODES] },
     });
