@@ -17,8 +17,8 @@
 - **Only-candidate case.** When the taken palette is the only one left, the add row shows its reason line, then the
   existing hint ("Add a brand color on Palettes to use it for another button set."), and no add button: a form whose
   only option is disabled would offer an action that cannot run.
-- **Copy held for the owner.** The reason line, "This name is already a button set.", is DRAFT. The hint is unchanged;
-  rewording it is the owner's call.
+- **Copy approved by the owner (2026-11-17).** The reason line, "This name is already a button set.", is approved as written,
+  and the hint stays unchanged.
 
 ### Verification
 

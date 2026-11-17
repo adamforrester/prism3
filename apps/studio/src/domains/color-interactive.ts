@@ -83,7 +83,7 @@ export const STRICT_CAPTION = 'Off: inverse button labels clear 4.5:1 at rest an
 /** Owner decisions Q40 and Q53, verbatim (APPROVED). */
 export const ADD_COLUMN_HINT = 'Add a brand color on Palettes to use it for another button set.';
 /** Why "Add button set" lists a brand color disabled: a button set already carries its name, and a new set would take
- *  the same name, which the engine refuses (#3608, the owner's Q-AB1 B). DRAFT, pending the owner's approval. */
+ *  the same name, which the engine refuses (#3608, the owner's Q-AB1 B). Owner decision Q-AB1 B copy, verbatim (APPROVED 2026-11-17). */
 export const ADD_SET_TAKEN = 'This name is already a button set.';
 /** Owner decision Q53, verbatim (APPROVED): no "column" in visible copy; a column is a button set. */
 export const BUTTON_SET_COPY = {
