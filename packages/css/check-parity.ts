@@ -13,7 +13,8 @@
  *
  * HOW A COMPUTED VALUE NAMES A TOKEN. The page loads no real token CSS. Instead every color, dimension and typography
  * leaf of the tree is defined as a unique SENTINEL (a color `rgb(1, hi, lo)`, a length `10000+i px`, a font of size
- * `10000+i px`), so each computed value decodes back to exactly one token name. Two tokens with equal real values
+ * `10000+i px`, a number `i/1000`), so each computed value decodes back to exactly one token name. A number is read
+ * through the one property that scales one, `letter-spacing` (Q143 A): computed tracking ÷ computed font size × 1000. Two tokens with equal real values
  * (the outline border and the outline label both resolve to primary-600) still decode apart — a swap between them,
  * invisible to a screenshot, fails here by name.
  *
@@ -21,8 +22,8 @@
  * the contract's attributes (pending, disabled, inactive). `inactive` is the def's code-only state: it has no spec row,
  * and its def says its intended paint is `disabled`'s, so it is held to the disabled row.
  *
- * SELF-TEST. After the real run, four mutants must each FAIL BY NAME, or this check fails: a swapped token, a dropped
- * state, a dropped prop value in the CSS, and a dropped prop value in the markup contract.
+ * SELF-TEST. After the real run, five mutants must each FAIL BY NAME, or this check fails: a swapped token, a dropped
+ * state, a dropped prop value in the CSS, a dropped prop value in the markup contract, and dropped tracking.
  */
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
@@ -99,6 +100,7 @@ const decode = new Map<string, string>(); // computed value → token path
       if (t === 'dimension') { sentinel.set(cssName(path), `${10000 + k}px`); decode.set(`${10000 + k}px`, path); }
       // Chromium clamps font-size at 10000px, so a font sentinel lives below it, in its own decode namespace.
       if (t === 'typography') { sentinel.set(cssName(path), `400 ${1000 + k}px/1 serif`); decode.set(`font:${1000 + k}px`, path); }
+      if (t === 'number') { sentinel.set(cssName(path), `${k / 1000}`); decode.set(`ls:${k}`, path); }
       return;
     }
     for (const [key, v] of Object.entries(n)) if (!key.startsWith('$')) walk(v, [...p, key], t);
@@ -161,12 +163,15 @@ export const buildProbes = (markup: Markup): { probes: Probe[]; gaps: string[] }
     if (!row.parts.some((p: any) => p.part === 'container' && p.values.minWidth)) checks.push({ part: 'container', prop: 'min-width', want: '(none)', what: 'container minWidth (none)' });
     probes.push({ coord: { appearance: coord.inset === 'flush' ? 'text' : 'filled', ...coord }, state: 'rest', leading: leading === 'true', trailing: trailing === 'true', checks });
   }
-  // 5. Label styles: the type token, and its decoration (the font shorthand cannot carry it).
+  // 5. Label styles: the type token, and its decoration and tracking (the font shorthand carries neither).
   for (const row of SPEC.type) for (const p of row.parts) {
-    const deco = p.textStyle.split('.').reduce((n: any, k: string) => n?.[k], tree[ROOT])?.$value?.textDecoration ?? 'none';
+    const style = p.textStyle.split('.').reduce((n: any, k: string) => n?.[k], tree[ROOT])?.$value;
+    const deco = style?.textDecoration ?? 'none';
+    const ls = typeof style?.letterSpacing === 'string' ? style.letterSpacing.replace(/^\{|\}$/g, '').replace(new RegExp(`^${ROOT}\\.`), '') : `(literal ${style?.letterSpacing})`;
     probes.push({ coord: { ...row.where }, state: 'rest', leading: false, trailing: false, checks: [
       { part: p.part, prop: 'font-size', want: p.textStyle, what: `${p.part} textStyle` },
       { part: p.part, prop: 'text-decoration-line', want: `(kw ${deco})`, what: `${p.part} textDecoration` },
+      { part: p.part, prop: 'letter-spacing', want: ls, what: `${p.part} letterSpacing` },
     ] });
   }
   return { probes, gaps };
@@ -221,6 +226,7 @@ export const runParity = async (browser: any, css: string, markup: Markup): Prom
       const node = parts[c.part] ? el.querySelector(`:scope > ${parts[c.part]}`) : el;
       if (!node) return '(no element)';
       const cs = getComputedStyle(node);
+      if (c.prop === 'letter-spacing') return `ls:${Math.round((parseFloat(cs.letterSpacing) / parseFloat(cs.fontSize)) * 1000)}`;
       return c.prop === 'font-size' ? `font:${cs.fontSize}` : cs.getPropertyValue(c.prop);
     });
   }), [probes, PART]);
@@ -259,6 +265,8 @@ const MUTANTS: { name: string; css: string; markup: Markup; mustName: RegExp }[]
     css: dropRules(CSS, (s) => s.includes('[data-prop-size="large"]')), markup: MARKUP, mustName: /size=large .* binds/ },
   { name: 'drop a prop value in the markup contract (appearance=text)',
     css: CSS, markup: withoutValue(MARKUP, 'appearance', 'text'), mustName: /prop value appearance=text has no markup mapping/ },
+  { name: 'drop the tracking (every letter-spacing declaration)',
+    css: CSS.replace(/\n\s*letter-spacing: [^;]+;/g, ''), markup: MARKUP, mustName: /container\/label letterSpacing binds \(no token: ls:NaN\), the spec names core\.font\.letter-spacing-role\.normal/ },
 ];
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

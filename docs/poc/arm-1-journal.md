@@ -288,7 +288,123 @@ since the last merge (`a9ccfe0b`): #3835 `space.550`, #3836 and #3832.
 - **What #3836 broke:** its own `test.ts` arm, the "#3833 replay", runs the real `fold.ts` on a commit of this
   tree. Here that fold refuses: `poc/arm-1`'s own pending entry landed 2026-11-08, older than `main`'s newest
   folded entry, and an integration branch's entries stay pending. On `main` the tree always folds, so the arm
-  only fails on the kind of branch it was written for. Filed for `main`, not patched here.
+  only fails on the kind of branch it was written for. Filed for `main`, not patched here. **Closed:** #3848
+  (for #3842) fixed it on `main`: the replay now builds its clone on the `main` the tree carries. This branch
+  carries the fix (`27d67654`).
 
 **Lesson for Q55.** A fix to the gates an update is judged by is itself part of the update, and it can fail in the
 consumer's tree in a way the upstream tree can't show.
+
+---
+
+## S2 follow-ups — the owner's button decisions (Q139–Q146)
+
+Started 21:21 UTC on 2026-11-16, stacked on the refresh (`poc/arm-1-refresh`).
+
+### What was built
+
+- **Q143 A, tracking from the tokens.** Every label style the spec names now binds `letter-spacing` to the token
+  its own `letterSpacing` aliases: `calc(var(--pds3-core-font-letter-spacing-role-normal) * 1em)`, 9 declarations,
+  one per type row. This mirrors how the underline is read from the style's `textDecoration`. Since CONTRACT_VERSION
+  15.0.0 the token is a `number` (a fraction of the font size), hence the `* 1em`. The generator refuses a
+  dimension or a literal, so a type change fails generation by name instead of shipping a wrong unit.
+- **Q139 A and Q140 A, kept and documented.** The part classes, the `data-prop-*` hooks and the 88/104/128px
+  minimum widths are unchanged. The README gains an "Owner decisions this follows" section that names each one.
+- **Q141 / Q-HT1 A, the hit target (done in review).** `space.550` arrived with #3835 through the refresh, and #3835
+  bound the def: `size.{small,medium,large}.hit-target` → `space.300` / `space.550` / `space.550`. The first cut of
+  this PR still kept a hard-coded `HIT` table in `generate.ts`, with medium and large on `size.md.min-height`, and
+  the browser check took its floor from that same token. Review caught it (see "Review fixes" below). The generator
+  now reads each floor from the def's own binding, so medium and large read `--pds3-space-550`.
+
+### Not built: Q145 needs an owner call
+
+**Q145 A says Destructive and Neutral are one `p3-button` with a `data-prop-tone` value. The engine has no `tone`
+prop to follow.** `button`, `button-destructive` and `button-neutral` are three defs with identical props
+(`appearance`, `size`, `surface`, `inset`, …); "tone is the component" (`button.ts`, #1223). The instruction was to
+follow the def's own prop and values and invent none, so a `tone` attribute can't be built without inventing one.
+The scorer would also flag it today: `data-component="button" data-prop-tone="destructive"` scores as R1
+`button has no prop "tone"`, which `check-raw-values` runs over the demo.
+
+OWNER DECISION (Q145 follow-up): how should the tone reach markup?
+
+- **A. The engine gains a `tone` prop on `button`** (values from the sibling defs, e.g. `primary | destructive |
+  neutral`), in an engine PR to `main`. `data-prop-tone` then follows the def, and the scorer accepts it. It's a
+  component API change that reverses #1223, and it touches Figma's three component sets.
+- **B. One `p3-button` class, with the tone selected by the scorer's existing mark,
+  `data-component="button-destructive"`.** No engine change and no invented prop. "Not separate classes" holds, but
+  the attribute is `data-component`, not `data-prop-tone`.
+- **C. `data-prop-tone` in the CSS only,** with the scorer taught to map it to the sibling defs. The CSS would carry
+  a prop the def doesn't have, which is the thing R1 exists to catch.
+
+**Recommendation: B for the POC.** It needs no engine change, matches what the defs say today, and keeps the
+scorer honest. Take A later if the owner wants the tone in the def's own API. Whichever is chosen, `specs.json`
+already carries `button-destructive` and `button-neutral` rows, so generating them is mechanical.
+
+### Next (pending on separate engine PRs to `main`, not done here)
+
+- **Q142 A / #3506:** the emission carries radius, stroke width, focus-ring geometry and motion bindings, so the
+  generator stops reading the TypeScript defs.
+- **Q146 A:** the state transition and the 0.98 press scale bound to motion tokens in the def; the CSS picks them up
+  from the emission.
+
+### What was checked, and how
+
+- **`check:parity`:** 573 bindings (was 564). Number tokens now get a sentinel `i/1000`, and the computed
+  `letter-spacing ÷ font-size × 1000` decodes back to one token name. EXPECTED is the label style's own
+  `letterSpacing` alias in the DTCG, not the generator. A fifth in-memory mutant (every `letter-spacing` dropped)
+  must fail by name.
+- **`check:raw-values`:** a second documented exception, `letter-spacing`. It excuses a `core.*` read only inside
+  `letter-spacing`, and only for a token a label style `specs.json` names aliases. Two new mutants must be reported:
+  a role no label style names (`role-wide`), and the same token outside `letter-spacing` (`word-spacing`).
+- **`test:browser`:** 69 checks (was 67). The text button's label tracking equals the oracle's resolved number ×
+  the computed font size, on light and dark. A third mutant (the label rebound to `role-wide`) must fail by name.
+- **Hand mutations on disk**, after the commit `571c3163`, each restored with `git show HEAD:<path> > <path>`:
+
+  | Mutation | Fails by name |
+  |---|---|
+  | `button.css`: the medium filled label's tracking rebound to `role-wide` | parity: `size=medium appearance=filled …: container/label letterSpacing binds core.font.letter-spacing-role.wide, the spec names core.font.letter-spacing-role.normal` |
+  | `generate.ts`: the `letter-spacing` declaration dropped, then regenerated | parity: 9 bindings, `letterSpacing binds (no token: ls:NaN)` |
+  | `prism3.tokens.json`: the letter-spacing roles typed `dimension` again (pre-15.0.0) | generate: `type.label.md.emphasis: letterSpacing core.font.letter-spacing-role.normal is a dimension, not a number` |
+
+### Review fixes (2026-11-17, VERDICT: CHANGES at `577868cc`)
+
+- **Q-HT1 A wasn't applied, and nothing would notice.** `generate.ts` restated the floors in a `HIT` table, not
+  reading the def, so the reviewer set the def's `size.medium.hit-target` to `space.300` (24px) and
+  `check:generated`, `check:parity` and `test:browser` all still passed.
+  - **Fix, generator:** the `HIT` table is gone. Each size reads `button.tokens['size.<size>.hit-target']`, and
+    generation fails by name if a size has none. `button.css` regenerated: medium and large move from
+    `--pds3-size-md-min-height` to `--pds3-space-550`, the same 44px.
+  - **Fix, check:** `test:browser` holds the flush `::before` at every size, not only medium, to its own literals
+    (24 / 44 / 44 px) and to no token. A floor taken from the def or the generator would move with the mutation
+    and couldn't fail (`docs/34`). 73 checks (was 69). There's a new in-memory mutant: medium shrunk to
+    `space.300`.
+  - **The reviewer's mutation, re-run** on disk after a commit, restored with `git show HEAD:<path> > <path>`. With
+    the def's `size.medium.hit-target` set to `space.300`:
+    - Not regenerated: `check:generated` fails, `button.css is not what generate.ts writes from the emission`.
+    - Regenerated: `test:browser` fails by name, `light flush medium hit target is 93.8281×42, under 44×44`, and
+      the same for dark. The flush label is wider than 44px, but the 24px floor no longer lifts the 42px height.
+- **Before the fix,** `poc/arm-1` moved: #3833 was squash-merged as `a96bdd6a`. Merged into this branch with a merge
+  commit. The squash's tree equals #3833's head `5e487c33`, which this branch already carried. The only conflict was
+  the journal, where this branch's side was kept, so the merged tree equals `577868cc`.
+- **Non-blocking, also done:** `generate.ts`'s header and `button.css`'s banner no longer name `out/components/…`
+  for the uncommitted exports. The header now says `prism3.tokens.json` supplies two facts: decoration and tracking.
+
+### Surprises
+
+- **Chromium serializes a computed `letter-spacing` of 0 as `normal`.** At the house brand's tracking (0), a real
+  value check can't tell bound from unset. The browser check normalizes the expected value the same way. The
+  parity check's non-zero sentinels are what hold the binding.
+- **Every label style aliases `letter-spacing-role.normal`.** Q143 changes no pixel for this brand. It matters for a
+  brand whose label tracking isn't 0.
+- **Q145 assumed a prop the engine doesn't have.** The decision record and the defs disagree; see above.
+
+### Effort
+
+- **Wall clock:** about 21:21 to 21:40 UTC for the generator change, the three checks, the mutations, the README and
+  this entry; then the gate run.
+- **Steps:** about 30 tool calls: reading the defs, the specs, the token CSS, the scorer and the three checks about
+  12; writing about 8; running and fixing about 10.
+- **Hand edits:** `generate.ts` (one helper, one declaration), the three checks, the README section, this entry and
+  the progress entry. `button.css` was regenerated, not hand-edited.
+- **Errors hit:** 2. The first `$type` lookup ignored a group-inherited type, so it was rewritten as a walk. The
+  first browser check failed on Chromium's `normal`, as described above.

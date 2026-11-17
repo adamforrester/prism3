@@ -5,16 +5,18 @@
  *   npx tsx packages/css/generate.ts --check   exit 1 when the committed button.css is not what this writes
  *
  * WHAT IT READS, and why each source:
- *   - `packages/engine/out/components/specs.json` — the token names per part, size and state. Every color, every
+ *   - `specs.json` — the token names per part, size and state. Every color, every
  *     padding, gap, height and icon size, and every label style in `button.css` comes from a row here.
- *   - `packages/engine/out/components/component-defs.json` — the def's code API (`props`, defaults), so a prop's
+ *   - `component-defs.json` — the def's code API (`props`, defaults), so a prop's
  *     default value is the one the def states, never one this file picks.
- *   - `packages/engine/out/prism3.tokens.json` — one fact the token CSS loses: a label style's `textDecoration`.
- *     Stock Style Dictionary's `font` shorthand carries family, size, weight and line height, not decoration, so a
- *     text button's underline is read from the token's own value (`type.label.*.emphasis-link`, #3507).
+ *     Both are uncommitted exports (#3698 R3), generated fresh into a temp dir by `emission.ts`, never read from `out/`.
+ *   - `packages/engine/out/prism3.tokens.json` — two facts the token CSS loses: a label style's `textDecoration` and
+ *     its `letterSpacing` alias. Stock Style Dictionary's `font` shorthand carries family, size, weight and line
+ *     height, not decoration or tracking, so a text button's underline is read from the token's own value
+ *     (`type.label.*.emphasis-link`, #3507) and each label's tracking token from its style (Q143 A).
  *   - The TypeScript defs (`@prism3/engine/components/index`), for what the emission does not carry yet: the
  *     container's radius and stroke width, the focus ring's width, style and offset, the pending spinner's
- *     replacement rule (`anatomy.parts.spinner`), and the spinner's motion token names. Each is read from the def's
+ *     replacement rule (`anatomy.parts.spinner`), the spinner's motion token names, and each size's hit-target floor. Each is read from the def's
  *     own field, never restated. Getting these into `specs.json` is an engine change, filed as #3506.
  *
  * WHAT IT DOES NOT DECIDE. The markup contract (the classes, the `data-prop-*` attributes, the state attributes) is
@@ -176,6 +178,21 @@ for (const row of spec.redlines) {
 }
 
 // ------------------------------------------------------------------------------------------------ label styles
+// Tracking (Q143 A): the `font` shorthand can't carry it (#3507), so it's bound on its own, from the token the label
+// style's own `letterSpacing` aliases. Since CONTRACT_VERSION 15.0.0 that token is a `number`, a fraction of the font
+// size, so the CSS scales it by 1em; a dimension or a literal is refused rather than guessed at.
+const tracking = (style: string, l: any): string => {
+  const ref = l.$value?.letterSpacing;
+  const m = typeof ref === 'string' && ref.match(/^\{([^}]+)\}$/);
+  if (!m) throw new Error(`${style}: letterSpacing ${JSON.stringify(ref)} is not a token reference`);
+  const path = m[1].replace(new RegExp(`^${TOKEN_ROOT}\\.`), '');
+  // A DTCG $type may sit on the leaf or be inherited from a group above it.
+  let n: any = tree[TOKEN_ROOT], type: string | undefined = n?.$type;
+  for (const k of path.split('.')) { n = n?.[k]; if (n?.$type) type = n.$type; }
+  if (n?.$value === undefined) type = undefined;
+  if (type !== 'number') throw new Error(`${style}: letterSpacing ${path} is a ${type ?? 'missing token'}, not a number`);
+  return `calc(${v(path)} * 1em)`;
+};
 for (const row of spec.type) {
   const sel = coordSel(row.where);
   for (const p of row.parts) {
@@ -184,6 +201,7 @@ for (const row of spec.type) {
     add(partSel(sel, p.part), [
       ['font', v(p.textStyle)],
       ['text-decoration-line', l.$value?.textDecoration ?? 'none'],
+      ['letter-spacing', tracking(p.textStyle, l)],
     ]);
   }
 }
@@ -231,17 +249,22 @@ for (const surface of spec.axes.find((a: any) => a.name === 'surface').values) {
 
 // ------------------------------------------------------------------------------------------------ the hit target
 // codeOnly `hit-target`: a flush text button keeps its height but its box is label-width, so an invisible ::before,
-// centered, extends the target to 44×44 at medium and large and 24×24 at small. No token names a 24px target, so
-// small reads space.300 (24px) — an owner decision recorded in the journal.
-const HIT: Record<string, string> = { small: 'space.300', medium: 'size.md.min-height', large: 'size.md.min-height' };
+// centered, extends the target to each size's floor. The floor is the def's own `size.<size>.hit-target` binding
+// (Q-HT1 A: `space.300` at small, `space.550` at medium and large), read here, never restated: the emission does not
+// carry it yet (#3506). `check-browser.ts` holds the rendered box to its own literal px per size.
+const hitTok = (size: string): string => {
+  const t = tok[`size.${size}.hit-target`];
+  if (!t) throw new Error(`the button def binds no size.${size}.hit-target`);
+  return t;
+};
 for (const size of spec.axes.find((a: any) => a.name === 'size').values) {
-  const t = v(HIT[size]);
+  const t = v(hitTok(size));
   add(`${ROOT_CLASS}${propSel('inset', 'flush')}${propSel('size', size)}::before`, [
     ['content', '""'],
     ['position', 'absolute'],
     ['inset-block', `min(0%, calc((100% - ${t}) / 2))`],
     ['inset-inline', `min(0%, calc((100% - ${t}) / 2))`],
-  ], size === 'small' ? 'hit target (codeOnly hit-target): 24×24 at small' : undefined);
+  ], size === 'small' ? `hit target (codeOnly hit-target): the def's size.small.hit-target, ${hitTok('small')}` : undefined);
 }
 
 // ------------------------------------------------------------------------------------------------ pending: the spinner
@@ -283,7 +306,7 @@ const fmt = (r: Rule, indent: string) =>
 
 export const generate = (): string => [
   `/* @prism3/css — ${def.name} (${COMPONENT}). GENERATED by packages/css/generate.ts from the engine's emission`,
-  ` * (out/components/specs.json, component-defs.json) — do not edit; change the def and regenerate.`,
+  ` * (specs.json, component-defs.json, generated by emit-component-docs.ts --uncommitted) — do not edit; change the def and regenerate.`,
   ` * Needs the token CSS from @prism3/tokens. Markup contract: packages/css/README.md. */`,
   `@layer ${LAYER} {`,
   rules.map((r) => fmt(r, '  ')).join('\n'),
