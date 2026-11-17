@@ -58,6 +58,9 @@ And a third, found while graduating the gate — the one that had been hiding be
   property of Figma's model the way motion, line-height and the typeface tier genuinely are. Those
   have no variable type to hold them; a gradient has a paint style sitting behind an uncalled API.
   The distinction decides whether the unpaired arm carves this out forever or carries a ticket.
+  **Fixed:** the scanner reads paint styles and writes each gradient as a DTCG `gradient` token, so
+  both brands' 2 gradients pair, `$value` byte-identical; the gate went red on its stale memory until
+  the entries were removed.
 
 ### And one the harness found in itself
 
@@ -92,8 +95,9 @@ all. Each is a finding in its own right, not harness plumbing:
 
 - **W1** aliases are by NAME in the emission and by ID in TokenPress, so ids are minted here.
 - **W2** the mode axis has to be reassembled from filenames — #697's three-axis problem, executable.
-- **W3** three "collections" are Figma STYLES, not variable collections; **TokenPress reads no paint
-  channel**, so aurora's 2 gradients do not come back (#731 — the channel exists, the call does not).
+- **W3** three "collections" are Figma STYLES, not variable collections, each adapted into its own
+  scanner channel. Gradients reach TokenPress as paint styles since #731 added the call; before it,
+  aurora's 2 gradients did not come back. grid-styles has no channel and is reported as dropped.
 - **W4** a bound text-style property has to be split into a resolved value plus a `boundVariables` entry.
 - **W5** `exportToZip()` constructs its own scanner, so there is no seam to pass tokens in at — the
   only way to feed it is to install a global `figma` stub. The host *is* the seam (#703).
@@ -116,7 +120,7 @@ with no floor passes when the scan returns nothing).
 | **type-blind pairs** — a pairing that compares no types at all (#747) | RULE | 0 |
 | **axes** — every emitted collection's axis is declared, and every declaration still emitted (#697) | RULE | 0 unclassified, 0 stale |
 | **unpaired, tokenpress-only** | RULE | 0 |
-| **unpaired, prism3-only** | MEMORY, per path, with a cause and an issue | aurora's 2 gradients (#731) |
+| **unpaired, prism3-only** | MEMORY, per path, with a cause and an issue | nb's underline thickness and offset (#3085); aurora's 2 gradients until #731 |
 | **float32 leak** — the cleanup changed a value | RULE | 0 |
 | **scale** — the #709 opacity 100× | RULE | 0 |
 

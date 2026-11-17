@@ -1,12 +1,12 @@
 # Token Press
 
-A Figma plugin that exports Variables, Text Styles, and Effect Styles to DTCG/W3C-compliant JSON that is Style Dictionary-ready, packaged as a zip with one file per collection/mode, plus typography.json and shadows.json.
+A Figma plugin that exports Variables, Text Styles, Effect Styles and gradient Paint Styles to DTCG/W3C-compliant JSON that is Style Dictionary-ready, packaged as a zip with one file per collection/mode, plus typography.json, shadows.json and gradients.json.
 
 ## Features
 
 - **DTCG Compliance**: Exports tokens using W3C Design Tokens Community Group format ($type, $value, $description, $extensions)
 - **Multi-mode Support**: Separate files per collection/mode for multi-theme workflows
-- **Composite Tokens**: Typography and shadow tokens with proper sub-property mapping
+- **Composite Tokens**: Typography and shadow tokens with proper sub-property mapping, and gradient tokens from gradient paint styles
 - **Text Decoration Support**: Includes textDecoration, and the underline's textDecorationThickness and textDecorationOffset, in typography tokens
 - **Alias Resolution**: Preserves variable references as DTCG aliases with validation
 - **Style Dictionary Ready**: Output tested with Style Dictionary build pipeline
@@ -112,7 +112,8 @@ tokens.zip
 ├── brand-theme-light.json    # Multi-mode collection (light)
 ├── brand-theme-dark.json     # Multi-mode collection (dark)
 ├── typography.json           # All text styles as typography composites
-└── shadows.json             # All effect styles as shadow composites
+├── shadows.json              # All effect styles as shadow composites
+└── gradients.json            # Gradient paint styles as gradient tokens
 ```
 
 All files include consistent file-level metadata:
@@ -357,6 +358,37 @@ carrying axis identity in the export itself is the real fix.
   }
 }
 ```
+
+### Gradient Paint Styles → Gradient Tokens
+
+A paint style whose one visible paint is a gradient exports as a DTCG
+`gradient` token (Format Module 2025.10): an array of stops, each a color and a
+position from 0 to 1. A stop bound to a color variable exports as an alias to
+it, so the gradient follows the palette.
+
+```json
+{
+  "$type": "gradient",
+  "$value": [
+    { "color": "{palette.primary.600}", "position": 0 },
+    { "color": { "colorSpace": "srgb", "components": [0, 0.49, 0.73], "alpha": 1 }, "position": 1 }
+  ],
+  "$extensions": {
+    "figma": {
+      "styleId": "S:abc123",
+      "gradientType": "GRADIENT_LINEAR",
+      "gradientTransform": [[0.71, 0.71, 0], [-0.71, 0.71, 0.5]]
+    }
+  }
+}
+```
+
+A DTCG gradient holds stops and nothing else, so the kind of gradient (linear,
+radial, angular or diamond), its transform, and the paint's opacity when it is
+not 1 go in `$extensions.figma`, written when Figma extensions are on. Solid and
+image paint styles are not gradients and are not exported. A style that layers
+a gradient with other visible paints has no single-gradient form: it is
+skipped, and its name is logged.
 
 ## Technical Constraints
 

@@ -367,6 +367,7 @@ ok(freshRes.colorCreated === ctrl.colorCreated && freshPass.outcomes.every((o) =
 // (ii-b) THE FAN-IN FILE — both historical names present. Neither may move: the bindings on each point at
 // a different variable, and promoting one would silently discard the other. The FILE is the disambiguator,
 // so with one source live (above) it migrates and with two it refuses — no authored preference either way.
+// The one exception is a group where exactly one source is a relocation of the target (#1142, below).
 const fanShim = seedSolo();
 const fanCol = fanShim.collections.find((c) => c.name === 'color')!;
 for (const g of fanIn) for (const r of g.slice(1)) fanShim.createVariable(r.from, fanCol);
@@ -374,14 +375,34 @@ for (const g of fanIn) for (const r of g.slice(1)) fanShim.createVariable(r.from
 const fanPass = await beginMigration(fanShim as any);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
 const fanRes = await applyWritePlan(plan, fanShim as any, fanPass);
+// #1142: A GROUP WITH EXACTLY ONE RELOCATION OF ITS TARGET MIGRATES THAT ONE. Written out rather than derived
+// from the leaf rule `planVariableRenames` applies, so this list is an oracle the rule can fail against. Each
+// target's other sources are an older leaf (`border/inverse`, `text/on-inverse`) or #1140's dedupe
+// (`border/inverse/default`); they stay, reported as `target-occupied`. Every other group keeps two spellings
+// of one role in two eras, so neither is the relocation and both stay `ambiguous-source`.
+const RELOCATION_WINS: Record<string, string> = {
+  'color/inverse/border/primary': 'color/border/inverse/primary',
+  'color/inverse/border/focus': 'color/border/inverse/focus',
+  'color/inverse/text/primary': 'color/text/on-inverse/primary',
+  'color/inverse/icon/primary': 'color/icon/on-inverse/primary',
+};
+const relocGroups = fanIn.filter((g) => Object.hasOwn(RELOCATION_WINS, g[0].to));
+const ambigGroups = fanIn.filter((g) => !Object.hasOwn(RELOCATION_WINS, g[0].to));
+ok(relocGroups.length === Object.keys(RELOCATION_WINS).length,
+  `#1142 all ${Object.keys(RELOCATION_WINS).length} relocation groups are fan-in groups of the shipped map (found ${relocGroups.length}: ${relocGroups.map((g) => g[0].to).join(', ') || 'none'})`);
 const ambiguous = fanPass.outcomes.filter((o) => o.status === 'ambiguous-source');
-ok(ambiguous.length === fanIn.flat().length,
-  `#1013 fan-in with BOTH sources live → ambiguous-source for every entry in the group (${ambiguous.length}/${fanIn.flat().length}), migrating neither`);
-ok(fanIn.every((g) => g.every((r) => fanShim.vars.some((v) => v.name === r.from))),
-  '#1013 and both sources are LEFT ALONE — a refused migration writes nothing, so the designer keeps whichever bindings they have');
-ok(fanPass.outcomes.filter((o) => o.status === 'migrated').length === soloCount - fanIn.length,
-  `#1013 the ${soloCount - fanIn.length} unambiguous entries migrate anyway — a refusal is per-group, not per-pass`);
-ok(fanRes.orphans.find((o) => o.name === 'color')!.names.length === fanIn.flat().length,
+ok(ambiguous.length === ambigGroups.flat().length,
+  `#1013 fan-in with BOTH sources live → ambiguous-source for every entry in a group with no single relocation (${ambiguous.length}/${ambigGroups.flat().length}), migrating neither`);
+const relocMoved = fanPass.outcomes.filter((o) => o.status === 'migrated' && Object.values(RELOCATION_WINS).includes(o.from));
+const relocOccupied = fanPass.outcomes.filter((o) => o.status === 'target-occupied');
+ok(relocMoved.length === relocGroups.length && relocMoved.every((o) => o.to === nbVar(Object.keys(RELOCATION_WINS).find((t) => RELOCATION_WINS[t] === o.from)!))
+    && relocOccupied.length === relocGroups.flat().length - relocGroups.length,
+  `#1142 fan-in with a single relocation → the relocation migrates (${relocMoved.map((o) => o.from).join(', ') || 'NONE'}) and its ${relocGroups.flat().length - relocGroups.length} co-claimants report target-occupied (got ${relocOccupied.length}: ${relocOccupied.map((o) => o.from).join(', ')})`);
+ok(fanIn.every((g) => g.every((r) => r.from === RELOCATION_WINS[r.to] || fanShim.vars.some((v) => v.name === r.from))),
+  '#1013 and every source that did not migrate is LEFT ALONE — a refused migration writes nothing, so the designer keeps whichever bindings they have');
+ok(fanPass.outcomes.filter((o) => o.status === 'migrated').length === soloCount - ambigGroups.length,
+  `#1013 the ${soloCount - ambigGroups.length} entries with one answer migrate anyway — a refusal is per-group, not per-pass`);
+ok(fanRes.orphans.find((o) => o.name === 'color')!.names.length === fanIn.flat().length - relocGroups.length,
   '#1013 and the refused sources fall through to the ORPHAN report, so nothing goes unmentioned in either direction');
 
 // (iii) THE COLLECTION RENAME — one write, every child id intact. Driven with a synthetic entry rather

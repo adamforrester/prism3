@@ -382,32 +382,41 @@ export const modeSizePin = (mode: string, group: PerModeSizeGroup, variant: stri
 /** A #1587 viewport endpoint pin (`sizeOverrides.<g>.<v>.<vp>`), if any. */
 export const viewportPin = (group: PerModeSizeGroup, variant: string, vp: 'desktop' | 'mobile'): number | undefined =>
   brandState.typography?.sizeOverrides?.[group]?.[variant]?.[vp];
-/** Set or clear a brand-wide size, pruning empties so an all-cleared brand stays byte-identical. */
+/** Drop `typography` once a clear has emptied it, so a brand that arrived without the key (a new brand, a
+ *  `design.md` without one) is byte-identical again, not `typography: {}`: `isDirty` is exact equality (#1071).
+ *  The clear paths never create the key, the write paths do, and this is the one place it goes again. */
+const pruneTypography = (): void => {
+  if (brandState.typography && !Object.keys(brandState.typography).length) delete brandState.typography;
+};
+/** Set or clear a brand-wide size, pruning empties (`typography` included) so an all-cleared brand stays
+ *  byte-identical. */
 const setBrandSize = (group: PerModeSizeGroup, variant: string, px: number | undefined): void => {
-  const ty = (brandState.typography ??= {});
   if (px === undefined) {
-    const g = ty.sizes?.[group];
-    if (!g || !ty.sizes) return;
+    const ty = brandState.typography;
+    const g = ty?.sizes?.[group];
+    if (!ty?.sizes || !g) return;
     delete g[variant];
     if (!Object.keys(g).length) delete ty.sizes[group];
     if (!Object.keys(ty.sizes).length) delete ty.sizes;
+    pruneTypography();
     return;
   }
-  ((ty.sizes ??= {})[group] ??= {})[variant] = px;
+  (((brandState.typography ??= {}).sizes ??= {})[group] ??= {})[variant] = px;
 };
 /** Set or clear a viewport endpoint pin, pruning empties one axis deeper than `setBrandSize`. */
 const setViewportSize = (group: PerModeSizeGroup, variant: string, vp: 'desktop' | 'mobile', px: number | undefined): void => {
-  const ty = (brandState.typography ??= {});
   if (px === undefined) {
-    const rung = ty.sizeOverrides?.[group]?.[variant];
-    if (!rung || !ty.sizeOverrides) return;
+    const ty = brandState.typography;
+    const rung = ty?.sizeOverrides?.[group]?.[variant];
+    if (!ty?.sizeOverrides || !rung) return;
     delete rung[vp];
     if (!Object.keys(rung).length) delete ty.sizeOverrides[group]![variant];
     if (ty.sizeOverrides[group] && !Object.keys(ty.sizeOverrides[group]!).length) delete ty.sizeOverrides[group];
     if (!Object.keys(ty.sizeOverrides).length) delete ty.sizeOverrides;
+    pruneTypography();
     return;
   }
-  (((ty.sizeOverrides ??= {})[group] ??= {})[variant] ??= {})[vp] = px;
+  ((((brandState.typography ??= {}).sizeOverrides ??= {})[group] ??= {})[variant] ??= {})[vp] = px;
 };
 /** One heading size: `mode` `null` writes the brand-wide (desktop) size in `typography.sizes`; a mode writes
  *  `modeLevers[mode].typeSizes`. `undefined` clears it, pruned. */
@@ -428,6 +437,7 @@ export const releasePinnedSizes = (): void => {
     const caption = ty.sizes?.caption;
     delete ty.sizes; delete ty.sizeOverrides;
     if (caption) ty.sizes = { caption };
+    pruneTypography();
   }
   for (const m of Object.keys(brandState.modeLevers ?? {})) setModeLever(m, 'typeSizes', undefined);
 };
