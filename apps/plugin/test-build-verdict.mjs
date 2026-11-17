@@ -2537,4 +2537,11 @@ if (failed) {
   console.error(`\n${failed} failing:`);
   for (const f of failures) console.error(`  · ${f}`);
 }
+// #1066 M23: the count above was printed and read by nothing, so a neutered `ok()` read "0 of 0 assertions pass" at exit
+// 0. An authored floor, the suite's count when it was written: lower it only in the PR that shrinks the suite, saying why.
+const MIN_ASSERTIONS = 425;
+if (executed < MIN_ASSERTIONS) {
+  console.error(`\n❌ only ${executed} assertions ran, below this suite's floor of ${MIN_ASSERTIONS} — the suite shrank or collapsed (#1066)`);
+  process.exit(1);
+}
 process.exit(failed === 0 ? 0 : 1);

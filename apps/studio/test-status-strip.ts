@@ -28,7 +28,9 @@
 import { agentHeard, elapsed, heard, rowState, startStripRun, stepEnded, stripVerdict, stripView, withReading, type StripRun } from './src/state/status-strip';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -170,5 +172,5 @@ r = withReading(r, { run: 'update', phase: 'work', item: 'checkbox', done: 4, to
   ok(cleared === null && at(cleared).kind === 'idle', `agent/cleared: the agent's command ending clears it, and the strip is hidden (${J(cleared)})`);
 }
 
-console.log(failed ? `\n${failed} failed` : '\nall passed');
+console.log(`${failed ? `\n${failed} failed` : '\nall passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

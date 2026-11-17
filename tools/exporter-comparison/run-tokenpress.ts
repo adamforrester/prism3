@@ -8,14 +8,14 @@
  * ── W5, THE FIFTH WORKAROUND: THERE IS NO SEAM, SO WE BECOME THE HOST ───────────────────────────
  *
  * `TokenExporter.exportToZip()` calls `this.scanner.scanAll()`, and `TokenScanner.scanAll()` calls
- * four `figma.*` APIs. There is no parameter, no injected scanner, no constructor hook. So to run
- * the exporter unmodified the ONLY option is to install a global `figma` object whose four methods
+ * five `figma.*` APIs (four until #731 added paint styles). There is no parameter, no injected scanner, no constructor hook. So to run
+ * the exporter unmodified the ONLY option is to install a global `figma` object whose five methods
  * return the adapted arrays. That is not a testing convenience — it is the direct, executable
  * demonstration of #703's finding: the exporter's input type is the Figma host, and "no seam to pass
  * tokens in at" means the host is the seam.
  *
- * The stub is deliberately MINIMAL — exactly the four scanner reads and nothing else. It is not a
- * Figma emulator, and if the exporter ever reaches for a fifth API this throws by absence rather
+ * The stub is deliberately MINIMAL — exactly the five scanner reads and nothing else. It is not a
+ * Figma emulator, and if the exporter ever reaches for a sixth API this throws by absence rather
  * than returning a plausible empty value.
  *
  * `__PLUGIN_VERSION__` is a bare identifier the bundler's `define` substitutes; under tsx there is no
@@ -59,7 +59,7 @@ export const DEFAULT_DTCG_OPTIONS = {
   excludedCollections: [] as string[],
 } as const;
 
-/** W5 — install the four scanner reads and nothing more. */
+/** W5 — install the five scanner reads and nothing more. */
 const installFigmaStub = (a: Adapted): void => {
   (globalThis as Record<string, unknown>).figma = {
     variables: {
@@ -68,6 +68,7 @@ const installFigmaStub = (a: Adapted): void => {
     },
     getLocalTextStylesAsync: async () => a.textStyles,
     getLocalEffectStylesAsync: async () => a.effectStyles,
+    getLocalPaintStylesAsync: async () => a.paintStyles,
   };
 };
 
