@@ -73,8 +73,9 @@ font size, so the CSS writes `calc(var(--pds3-core-font-letter-spacing-role-…)
 - **Q140 A:** the minimum widths are the engine's derived 88, 104 and 128px. They're the one raw-px exception,
   because 104 and 128 aren't on the spacing scale. `check-raw-values.ts` excuses only those numbers, read from
   `specs.json`.
-- **Q141 / Q-HT1 A:** hit-target floors are spacing tokens. Small reads `space.300`. Medium and large are to read
-  `space.550` (44px) once the engine adds it; until then they read `size.md.min-height`, which is also 44px.
+- **Q141 / Q-HT1 A:** hit-target floors are spacing tokens: `space.300` (24px) at small, `space.550` (44px) at
+  medium and large. The generator reads each from the def's `size.<size>.hit-target` binding. The browser check
+  holds the rendered box to its own 24 / 44 / 44 px.
 - **Q143 A:** the label's tracking comes from the tokens, as the underline does (above). The `letter-spacing` read
   of a `core.font.letter-spacing-role.*` token is the second documented exception in `check-raw-values.ts`,
   limited to the tokens the label styles name.

@@ -288,7 +288,9 @@ since the last merge (`a9ccfe0b`): #3835 `space.550`, #3836 and #3832.
 - **What #3836 broke:** its own `test.ts` arm, the "#3833 replay", runs the real `fold.ts` on a commit of this
   tree. Here that fold refuses: `poc/arm-1`'s own pending entry landed 2026-11-08, older than `main`'s newest
   folded entry, and an integration branch's entries stay pending. On `main` the tree always folds, so the arm
-  only fails on the kind of branch it was written for. Filed for `main`, not patched here.
+  only fails on the kind of branch it was written for. Filed for `main`, not patched here. **Closed:** #3848
+  (for #3842) fixed it on `main`: the replay now builds its clone on the `main` the tree carries. This branch
+  carries the fix (`27d67654`).
 
 **Lesson for Q55.** A fix to the gates an update is judged by is itself part of the update, and it can fail in the
 consumer's tree in a way the upstream tree can't show.
@@ -308,10 +310,11 @@ Started 21:21 UTC on 2026-11-16, stacked on the refresh (`poc/arm-1-refresh`).
   dimension or a literal, so a type change fails generation by name instead of shipping a wrong unit.
 - **Q139 A and Q140 A, kept and documented.** The part classes, the `data-prop-*` hooks and the 88/104/128px
   minimum widths are unchanged. The README gains an "Owner decisions this follows" section that names each one.
-- **Q141 / Q-HT1 A, the hit target.** Small already read `space.300`, so nothing moved there. **Medium and large
-  stay on `size.md.min-height` (44px), pending `space.550`.** `space.550` isn't on `main` (`main` at `9dd8b6e5` has
-  `space.{0,025,050,075,100,150,200,250,300,400,…}`), and no open PR adds it yet. Once it lands, the change is one
-  line of `HIT` in `generate.ts` plus the browser check's floor token.
+- **Q141 / Q-HT1 A, the hit target (done in review).** `space.550` arrived with #3835 through the refresh, and #3835
+  bound the def: `size.{small,medium,large}.hit-target` → `space.300` / `space.550` / `space.550`. The first cut of
+  this PR still kept a hard-coded `HIT` table in `generate.ts`, with medium and large on `size.md.min-height`, and
+  the browser check took its floor from that same token. Review caught it (see "Review fixes" below). The generator
+  now reads each floor from the def's own binding, so medium and large read `--pds3-space-550`.
 
 ### Not built: Q145 needs an owner call
 
@@ -339,7 +342,6 @@ already carries `button-destructive` and `button-neutral` rows, so generating th
 
 ### Next (pending on separate engine PRs to `main`, not done here)
 
-- **`space.550`** (Q-HT1 A): then medium and large hit targets move to it.
 - **Q142 A / #3506:** the emission carries radius, stroke width, focus-ring geometry and motion bindings, so the
   generator stops reading the TypeScript defs.
 - **Q146 A:** the state transition and the 0.98 press scale bound to motion tokens in the def; the CSS picks them up
@@ -363,6 +365,29 @@ already carries `button-destructive` and `button-neutral` rows, so generating th
   | `button.css`: the medium filled label's tracking rebound to `role-wide` | parity: `size=medium appearance=filled …: container/label letterSpacing binds core.font.letter-spacing-role.wide, the spec names core.font.letter-spacing-role.normal` |
   | `generate.ts`: the `letter-spacing` declaration dropped, then regenerated | parity: 9 bindings, `letterSpacing binds (no token: ls:NaN)` |
   | `prism3.tokens.json`: the letter-spacing roles typed `dimension` again (pre-15.0.0) | generate: `type.label.md.emphasis: letterSpacing core.font.letter-spacing-role.normal is a dimension, not a number` |
+
+### Review fixes (2026-11-17, VERDICT: CHANGES at `577868cc`)
+
+- **Q-HT1 A wasn't applied, and nothing would notice.** `generate.ts` restated the floors in a `HIT` table, not
+  reading the def, so the reviewer set the def's `size.medium.hit-target` to `space.300` (24px) and
+  `check:generated`, `check:parity` and `test:browser` all still passed.
+  - **Fix, generator:** the `HIT` table is gone. Each size reads `button.tokens['size.<size>.hit-target']`, and
+    generation fails by name if a size has none. `button.css` regenerated: medium and large move from
+    `--pds3-size-md-min-height` to `--pds3-space-550`, the same 44px.
+  - **Fix, check:** `test:browser` holds the flush `::before` at every size, not only medium, to its own literals
+    (24 / 44 / 44 px) and to no token. A floor taken from the def or the generator would move with the mutation
+    and couldn't fail (`docs/34`). 73 checks (was 69). There's a new in-memory mutant: medium shrunk to
+    `space.300`.
+  - **The reviewer's mutation, re-run** on disk after a commit, restored with `git show HEAD:<path> > <path>`. With
+    the def's `size.medium.hit-target` set to `space.300`:
+    - Not regenerated: `check:generated` fails, `button.css is not what generate.ts writes from the emission`.
+    - Regenerated: `test:browser` fails by name, `light flush medium hit target is 93.8281×42, under 44×44`, and
+      the same for dark. The flush label is wider than 44px, but the 24px floor no longer lifts the 42px height.
+- **Before the fix,** `poc/arm-1` moved: #3833 was squash-merged as `a96bdd6a`. Merged into this branch with a merge
+  commit. The squash's tree equals #3833's head `5e487c33`, which this branch already carried. The only conflict was
+  the journal, where this branch's side was kept, so the merged tree equals `577868cc`.
+- **Non-blocking, also done:** `generate.ts`'s header and `button.css`'s banner no longer name `out/components/…`
+  for the uncommitted exports. The header now says `prism3.tokens.json` supplies two facts: decoration and tracking.
 
 ### Surprises
 
