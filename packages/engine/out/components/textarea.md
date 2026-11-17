@@ -160,43 +160,241 @@ Code-only states, with no design-file member: `pending`, `empty`.
 
 Padding reads top / right / bottom / left when its sides differ.
 
-Keyed by `size`.
+Keyed by `size`, `state`.
 
-**size=medium**
+**size=medium, state=rest**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
-| `container/body/control` | `space.100` / `space.200` / `space.100` / `space.200` | — | — | — | 120px (literal) | — |
+| `container/body/control` | `space.100` / `space.200` / `space.100` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
 | `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/body/messageRow` | — | `space.100` | — | — | — | — |
 | `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
 | `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=medium, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.200` / `space.100` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=medium, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.200` / `space.100` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=medium, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.200` / `space.100` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
 | `container/body/control/caret` | — | — | `control.size.md.line-box` | `border-width.hairline` | — | — |
-
-**size=small**
-
-| Part | Padding | Gap | Height | Width | Min width | Other |
-| --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
-| `container/body/control` | `space.075` / `space.200` / `space.075` / `space.200` | — | — | — | 120px (literal) | — |
 | `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/body/messageRow` | — | `space.100` | — | — | — | — |
 | `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
 | `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=medium, state=focus-visible-filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.200` / `space.100` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=medium, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.200` / `space.100` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=medium, state=read-only**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.200` / `space.100` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=small, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.075` / `space.200` / `space.075` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=small, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.075` / `space.200` / `space.075` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=small, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.075` / `space.200` / `space.075` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=small, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.075` / `space.200` / `space.075` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
 | `container/body/control/caret` | — | — | `control.size.sm.line-box` | `border-width.hairline` | — | — |
-
-**size=large**
-
-| Part | Padding | Gap | Height | Width | Min width | Other |
-| --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
-| `container/body/control` | `space.100` / `space.300` / `space.100` / `space.300` | — | — | — | 120px (literal) | — |
 | `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/body/messageRow` | — | `space.100` | — | — | — | — |
 | `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
 | `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=small, state=focus-visible-filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.075` / `space.200` / `space.075` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=small, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.075` / `space.200` / `space.075` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=small, state=read-only**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.075` / `space.200` / `space.075` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=large, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.300` / `space.100` / `space.300` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=large, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.300` / `space.100` / `space.300` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=large, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.300` / `space.100` / `space.300` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=large, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.300` / `space.100` / `space.300` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
 | `container/body/control/caret` | — | — | `control.size.lg.line-box` | `border-width.hairline` | — | — |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=large, state=focus-visible-filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.300` / `space.100` / `space.300` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=large, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.300` / `space.100` / `space.300` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=large, state=read-only**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.300` / `space.100` / `space.300` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
 
 ### Type
 
