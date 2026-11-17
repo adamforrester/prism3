@@ -64,7 +64,7 @@ const ALLOWED_HOSTS = ALLOWED.map((d) => new URL(d).host);
 const REFERENCE_ONLY: Record<string, string> = {
   'www.w3.org': 'the SVG and XHTML namespace URIs, an identifier and never fetched',
   'openfontlicense.org': "the embedded chrome fonts' license line, in a comment",
-  'github.com': 'license and source lines in comments',
+  'github.com': 'license and source lines in comments, and Report a problem\'s prefilled issue form (#2069), opened in the browser by `figma.openExternal`, never fetched by the plugin',
   'tabler.io': "the icon set's license line, in a comment",
   'prism3-ds.vercel.app': 'the docs site, opened in the browser by `figma.openExternal`, never fetched by the plugin',
 };

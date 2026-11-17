@@ -197,6 +197,9 @@ export const textarea: ComponentDef = {
   //     the same `color.border.danger` paints either node. The anatomy below puts the stroke on the
   //     `control` box that wraps the text, which is the container reading; `notes.unverified` keeps
   //     the code-side half.
+  // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
+  levers: { controlShape: { squares: ['radius.sm'] }, fieldStyle: { frame: 'control' } },
+
   tokens: {
     'fill': 'color.field.fill',
     // No hover wash (#2926, text-field's): hover is the border alone, `border.hover` below.
@@ -375,7 +378,10 @@ export const textarea: ComponentDef = {
         // Not on the focused field that holds a value (#2318, owner Q166 C): the value fills the box and wraps, so nothing
         // can follow its last character, and the owner chose no caret there over one at its start.
         presentWhen: { state: ['focus-visible'] },
-        note: 'The insertion point on the focused empty field, immediately before the placeholder, in the value ink. Code draws the native caret, colored by `caret-color`.',
+        // Maintainer detail, out of the reader caption (#3610): The insertion point on the focused empty field,
+        // immediately before the placeholder, in the value ink. Code draws the native caret, colored by `caret-
+        // color`.
+        note: 'The insertion point in a focused, empty field, right before the placeholder, in the value color.',
       },
       // THE TWO TEXT LAYERS (Option C) — text-field's, for #1567's measured reason: a bound TEXT node shows
       // its set's ONE default, so a placeholder and a value can differ per member only as two nodes. Each
@@ -410,7 +416,10 @@ export const textarea: ComponentDef = {
         corner: 'bottom-right',
         inset: 'grip-inset',
         optional: true,
-        note: 'The resize grip at the bottom-right corner, decorative: in code it is the browser\'s own handle. Pinned out of the flow, so the control keeps one size with it on or off. Shown by default (the `resize handle` boolean), since `resize` defaults to `vertical`.',
+        // Maintainer detail, out of the reader caption (#3610): The resize grip at the bottom-right corner,
+        // decorative: in code it is the browser's own handle. Pinned out of the flow, so the control keeps one size
+        // with it on or off. Shown by default (the `resize handle` boolean), since `resize` defaults to `vertical`.
+        note: 'The resize grip in the bottom-right corner, shown by default; it takes no space, so the field keeps its size with it on or off.',
       },
       // THE MESSAGE ROW — the message cell growing from the start and the counter cell hugging its caption at
       // the end, stretched to the field's width. Justified to the END, so with the message off the counter
@@ -440,7 +449,10 @@ export const textarea: ComponentDef = {
         nests: 'field-message',
         nesting: { kind: 'nest-fixed', variant: { status: 'default' }, follow: ['status'] },
         crossAxisFill: true,
-        note: 'Helper or validation text, composed rather than re-declared. Its status follows the field\'s validation by name. Hidden by default (#2926); the `message` boolean shows it, with the space above it.',
+        // Maintainer detail, out of the reader caption (#3610): Helper or validation text, composed rather than re-
+        // declared. Its status follows the field's validation by name. Hidden by default (#2926); the `message`
+        // boolean shows it, with the space above it.
+        note: 'Helper or validation text, hidden until the field has something to say; it takes the field\'s status.',
       },
       // THE COUNTER CELL — the stack gap above the counter, HUGGING the caption at the end of the row, so the
       // counter trails whether or not the message is shown. The `character count` boolean toggles this cell.
@@ -456,7 +468,10 @@ export const textarea: ComponentDef = {
         kind: 'text',
         type: 'counter-type',
         paintSlot: 'indicator',
-        note: 'The character counter, at the end of the message row. Hidden by default (the `character count` boolean), matching `showCount`, and independent of the message: either, both or neither can show. Beside the message it takes no height the row does not already have.',
+        // Maintainer detail, out of the reader caption (#3610): The character counter, at the end of the message row.
+        // Hidden by default (the `character count` boolean), matching `showCount`, and independent of the message:
+        // either, both or neither can show. Beside the message it takes no height the row does not already have.
+        note: 'The character count at the end of the message row, hidden by default; it shows with or without a message.',
       },
     },
     codeOnly: [
@@ -620,7 +635,7 @@ export const textarea: ComponentDef = {
   motion: {
     enter: 'none (present on mount)',
     exit: 'none',
-    reduceMotion: 'State transitions follow text-field\'s ~100–150ms token-driven contract. AUTO-GROW HAS NO HEIGHT TRANSITION: the height changes instantly on each keystroke, because an eased height lags behind the typing and reflows the layout below on every frame; if a transition is used at all it stays at or under 100ms and drops under prefers-reduced-motion. While the user drags the resize handle, strip every transition off the node, or the edge lags behind the cursor.',
+    reduceMotion: 'State transitions follow text-field\'s: motion.duration.fast with motion.easing-role.default. AUTO-GROW HAS NO HEIGHT TRANSITION: the height changes instantly on each keystroke, because an eased height lags behind the typing and reflows the layout below on every frame; if a transition is used at all it stays at or under motion.duration.fast and drops under prefers-reduced-motion. While the user drags the resize handle, strip every transition off the node, or the edge lags behind the cursor.',
   },
 
   notes: {

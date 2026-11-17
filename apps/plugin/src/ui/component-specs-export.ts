@@ -4,8 +4,7 @@
  * `component-catalog.ts` provides the catalog. Only the plugin build reads this entry, so the definitions cannot reach
  * the web bundle. The export is the engine's own function, the one `regen`, the CLI and MCP write theirs with.
  */
-import { componentDefs } from '@prism3/engine/components/index';
-import { componentDefsFileNames, exportComponentDefs, toSpecsComponents } from '@prism3/engine/component-defs-export';
+import { componentDefs, componentDefsFileNames, exportComponentDefs, toSpecsComponents } from '@prism3/engine/components';
 import { provideComponentSpecsExporter } from '../../../studio/src/state/component-specs-export';
 
 provideComponentSpecsExporter({

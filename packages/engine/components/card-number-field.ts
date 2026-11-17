@@ -60,6 +60,7 @@ if (tileless.length)
 
 export const cardNumberField: ComponentDef = makeTextField({
   id: 'card-number-field',
+  levers: { controlShape: { squares: ['radius.sm'] }, fieldStyle: { frame: 'control' } },
   name: 'CardNumberField',
   aliases: ['card-number-input', 'credit-card-number', 'card-number'],
   summary: 'Card number field: a text field with the card network\'s tile at its trailing edge.',
@@ -190,6 +191,7 @@ export const cardNumberField: ComponentDef = makeTextField({
       '3.2.2 On Input (no auto-advance when the number is complete)',
       '3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion',
       '1.4.11 Non-text Contrast (TextField\'s field boundary)',
+      '2.5.8 Target Size (the field)',
       '2.4.13 Focus Appearance (intent)',
     ],
     keyboard: 'Native text editing. Tab reaches the input; the tile is not a stop. Focus never moves on its own when the number is complete.',
@@ -225,7 +227,7 @@ export const cardNumberField: ComponentDef = makeTextField({
   ai: {
     primaryPurpose: 'Capture a payment card\'s number, showing the detected card network\'s tile and stating the network in text.',
     whenToUse: 'The card number in a checkout or a saved-card form, beside text fields for the expiration date and the security code.',
-    avoidWhen: 'The value is not a card number (TextField), the card is already saved (show its last four digits as text), or the payment is a wallet or express checkout (a wallet button, not built yet). Never for the expiration date or the security code (TextField with autocomplete cc-exp or cc-csc).',
+    avoidWhen: 'The value is not a card number (TextField), the card is already saved (show its last four digits as text), or the payment is a wallet or express checkout (WalletButton). Never for the expiration date or the security code (TextField with autocomplete cc-exp or cc-csc).',
     commonPartners: ['text-field', 'provider-logo', 'field-label', 'field-message', 'button', 'wallet-button'],
     triggerKeywords: ['card number', 'credit card field', 'payment card', 'card details', 'checkout card'],
     generationPriority: 2,

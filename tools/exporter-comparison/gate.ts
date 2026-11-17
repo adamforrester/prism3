@@ -241,8 +241,8 @@ const MIN_BRANDS = 3;
  *     experimental — "just warn, don't validate structure" (`utils/dtcg-validator.ts:288`).
  *
  * So this is a CAPABILITY GAP IN TOKENPRESS'S OWN LANE — the same shape as #709 — and NOT a property
- * of Figma's model the way motion, line-height and the typeface tier genuinely are. Those are
- * unreachable because Figma has no variable type to hold them; a gradient has a paint style sitting
+ * of Figma's model the way motion transitions and the typeface tier genuinely are. Those are
+ * unreachable because Figma has no variable type to hold them (line height was one until #2423); a gradient has a paint style sitting
  * right there behind an API call nobody makes. Filed as #731.
  *
  * Which is exactly why the entry carries `owner` and an issue: when #731 lands, aurora's gradients

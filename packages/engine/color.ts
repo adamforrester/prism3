@@ -136,6 +136,16 @@ export const contrast = (a: RGB, b: RGB): number => {
   return Math.max(la, lb) / Math.min(la, lb);
 };
 
+/** A contrast ratio as every surface prints one (#3697 L3): two places, FLOORED, then `:1`. A stated ratio is read as a
+ *  floor, so it never reads above what it measures: a 4.496 pair prints "4.49:1", never "4.50:1" beside a 4.5 minimum.
+ *  `bare` drops the `:1`, for a cell that prints the number alone (the studio's contrast-contracts table). The plugin's
+ *  style guide and override lines and the studio's pickers, preview and contracts table all print through this one;
+ *  `packages/engine/test.ts` fails a hand-rolled `toFixed` on a ratio under `apps/` (src). */
+export const formatRatio = (ratio: number, opts?: { readonly bare?: boolean }): string => {
+  const n = (Math.floor(ratio * 100) / 100).toFixed(2);
+  return opts?.bare ? n : `${n}:1`;
+};
+
 /** WCAG relative luminance of a color as actually rendered (0..1). */
 export const luminance = (rgb: RGB): number => relLuminance(rgb);
 

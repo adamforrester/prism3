@@ -21,12 +21,12 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 
 1. **Label** (optional) — The accessible name, composed rather than re-declared. Its size follows the field's, one step below the input; its label text, required marker, emphasis and weight surface on the text-field. A fix to FieldLabel still reaches this without a copy. Starts primary and regular. Fills the field's width; a long name wraps at FieldLabel's max width.
 2. **Leading visual** (optional) — An optional purpose glyph before the value, aria-hidden. Absent by default; the caller nominates the icon.
-3. **Caret**
+3. **Caret** — The insertion point in a focused, empty field, right before the placeholder, in the value color.
 4. **Caret end** — The insertion point on the focused field that holds a value, immediately after the value, in the value ink. Code draws the native caret where the user is typing.
 5. **Placeholder** — The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. One line; a long one clips at the value row's edge.
-6. **Value**
+6. **Value** — The entered value, on one line: shown when the field is filled or read-only, and a long value scrolls rather than ending in an ellipsis.
 7. **Trailing visual** (optional) — An optional trailing affix at the trailing edge (a clear / reveal glyph), aria-hidden as a glyph. Absent by default; the caller nominates the icon. Its interactive behavior is code-only.
-8. **Message** (optional)
+8. **Message** (optional) — Helper or validation text, hidden until the field has something to say; it takes the field's status and width, and a long message wraps.
 
 ## Styles
 

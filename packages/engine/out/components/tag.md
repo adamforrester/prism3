@@ -13,7 +13,7 @@ A compact, interactive token of one of two types. A select tag toggles on and of
 
 - **Purpose:** Render a small interactive token the user toggles or removes in place.
 - **Use when:** Inline filters toggled on and off (select), applied filters the user can remove, or recipients or keywords entered into a field (dismissible), usually in a group.
-- **Avoid when:** Nobody can act on it (use a badge), it runs an action (use a button), or it is a structured choice in a form submission (use a checkbox group or radio group).
+- **Avoid when:** Nobody can act on it (use Badge), it runs an action (use Button), or it is a structured choice in a form submission (use Checkbox.Group or Radio.Group).
 
 ## Anatomy
 
@@ -23,10 +23,10 @@ Shown on the default member: type `select`, selection `unselected`, size `medium
 2. **Content** — The row inside the pill: the optional leading icon, then the label and its check mark. It is inset by the tag's padding on both sides, except before the × slot of a dismissible tag, where the label runs straight to the slot. On a dismissible tag its gap is 4px less than the icon-to-label distance, since the label row adds a 4px inset of its own.
 3. **Label check** — The label and, on a selected select tag, the check mark after it, with a gap tighter than the one between the leading icon and the label. On a dismissible tag it is inset 4px at its leading edge, at every density, so the label sits 4px further in from the icon or the tag's edge.
 4. **Leading visual** (optional) — An optional icon or avatar before the label. Decorative: the label carries the name.
-5. **Label**
+5. **Label** — The tag's text, at the same weight whether or not the tag is selected, so the tag keeps its width when selected.
 6. **Check glyph** (optional) — The selected indicator, a check mark after the label. It exists only on a selected select tag and is on by default; the check icon switch hides it, leaving the tint and the 2px outline.
 7. **Dismiss** — The remove slot of a dismissible tag: a square as tall as the tag, at its trailing end, holding the × glyph.
-8. **Dismiss glyph** — The × of a dismissible tag, a plain glyph centered in the remove slot, in the tag's icon ink.
+8. **Close glyph** — The × of a dismissible tag, a plain glyph centered in the remove slot, in the tag's icon ink.
 9. **Focus ring** — The shared focus ring, around the whole tag while it has keyboard focus.
 
 ## Styles
@@ -99,7 +99,7 @@ Keep the label to one word where possible. Use the words the data or the user su
 
 - **Built from:** `focus-ring`
 - **Instead, consider:** `badge`, `button`, `checkbox-group`, `radio-group`
-- **Often used with:** `badge`, `icon`, `checkbox-group`, `radio-group`
+- **Often used with:** `icon`
 - **Replaces:**
   - a removable token list built as a listbox
   - a clickable div styled as a pill
@@ -138,7 +138,7 @@ Generated from the plan that builds the design-file component: 45 members. Value
 | `container/focusRing` | instance | state=focus-visible |
 | `container/content/labelCheck/checkGlyph` | instance | selection=selected |
 | `container/dismiss` | frame | type=dismissible |
-| `container/dismiss/dismissGlyph` | instance | type=dismissible |
+| `container/dismiss/closeGlyph` | instance | type=dismissible |
 
 Code-only states, with no design-file member: `read-only`.
 
@@ -152,7 +152,7 @@ Keyed by `size`, `type`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.md.height` | — | 64px (derived: height × 1.5) | — |
+| `container` | — | — | `size.md.height` | — | 64px (derived: height × 1.5, rounded to the nearest 8px) | — |
 | `container/content` | `space.0` / `space.150` / `space.0` / `space.150` | `space.100` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/content/labelCheck` | `space.0` | `space.075` | — | — | — | — |
@@ -162,7 +162,7 @@ Keyed by `size`, `type`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.sm.height` | — | 56px (derived: height × 1.5) | — |
+| `container` | — | — | `size.sm.height` | — | 56px (derived: height × 1.5, rounded to the nearest 8px) | — |
 | `container/content` | `space.0` / `space.100` / `space.0` / `space.100` | `space.075` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/content/labelCheck` | `space.0` | `space.050` | — | — | — | — |
@@ -172,7 +172,7 @@ Keyed by `size`, `type`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.lg.height` | — | 88px (derived: height × 1.5) | — |
+| `container` | — | — | `size.lg.height` | — | 88px (derived: height × 1.5, rounded to the nearest 8px) | — |
 | `container/content` | `space.0` / `space.200` / `space.0` / `space.200` | `space.150` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/content/labelCheck` | `space.0` | `space.100` | — | — | — | — |
@@ -182,34 +182,34 @@ Keyed by `size`, `type`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.md.height` | — | 64px (derived: height × 1.5) | — |
+| `container` | — | — | `size.md.height` | — | 64px (derived: height × 1.5, rounded to the nearest 8px) | — |
 | `container/content` | `space.0` / `space.0` / `space.0` / `space.150` | `space.050` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/content/labelCheck` | `space.0` / `space.0` / `space.0` / `space.050` | `space.075` | — | — | — | — |
 | `container/dismiss` | — | — | `size.md.height` | `size.md.height` | — | — |
-| `container/dismiss/dismissGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/dismiss/closeGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
 **size=small, type=dismissible**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.sm.height` | — | 56px (derived: height × 1.5) | — |
+| `container` | — | — | `size.sm.height` | — | 56px (derived: height × 1.5, rounded to the nearest 8px) | — |
 | `container/content` | `space.0` / `space.0` / `space.0` / `space.100` | `space.025` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/content/labelCheck` | `space.0` / `space.0` / `space.0` / `space.050` | `space.050` | — | — | — | — |
 | `container/dismiss` | — | — | `size.sm.height` | `size.sm.height` | — | — |
-| `container/dismiss/dismissGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/dismiss/closeGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 
 **size=large, type=dismissible**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.lg.height` | — | 88px (derived: height × 1.5) | — |
+| `container` | — | — | `size.lg.height` | — | 88px (derived: height × 1.5, rounded to the nearest 8px) | — |
 | `container/content` | `space.0` / `space.0` / `space.0` / `space.200` | `space.050` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/content/labelCheck` | `space.0` / `space.0` / `space.0` / `space.050` | `space.100` | — | — | — | — |
 | `container/dismiss` | — | — | `size.lg.height` | `size.lg.height` | — | — |
-| `container/dismiss/dismissGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/dismiss/closeGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 
 ### Type
 
@@ -317,7 +317,7 @@ Keyed by `type`, `selection`, `state`.
 | `container` | — | `color.interactive.neutral.border.rest` | — | — |
 | `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
 | `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.rest` | — |
-| `container/dismiss/dismissGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `container/dismiss/closeGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
 
 **type=dismissible, selection=unselected, state=hover**
 
@@ -326,7 +326,7 @@ Keyed by `type`, `selection`, `state`.
 | `container` | `color.interactive.neutral.overlay.hover` | `color.interactive.neutral.border.hover` | — | — |
 | `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.hover` |
 | `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.hover` | — |
-| `container/dismiss/dismissGlyph` | — | — | — | `color.interactive.neutral.icon.hover` |
+| `container/dismiss/closeGlyph` | — | — | — | `color.interactive.neutral.icon.hover` |
 
 **type=dismissible, selection=unselected, state=pressed**
 
@@ -335,7 +335,7 @@ Keyed by `type`, `selection`, `state`.
 | `container` | `color.interactive.neutral.overlay.pressed` | `color.interactive.neutral.border.pressed` | — | — |
 | `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.pressed` |
 | `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.pressed` | — |
-| `container/dismiss/dismissGlyph` | — | — | — | `color.interactive.neutral.icon.pressed` |
+| `container/dismiss/closeGlyph` | — | — | — | `color.interactive.neutral.icon.pressed` |
 
 **type=dismissible, selection=unselected, state=focus-visible**
 
@@ -344,7 +344,7 @@ Keyed by `type`, `selection`, `state`.
 | `container` | — | `color.interactive.neutral.border.rest` | — | — |
 | `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
 | `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.rest` | — |
-| `container/dismiss/dismissGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `container/dismiss/closeGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
 
 **type=dismissible, selection=unselected, state=disabled**
 
@@ -353,14 +353,14 @@ Keyed by `type`, `selection`, `state`.
 | `container` | — | `color.disabled.border` | — | — |
 | `container/content/leadingVisual` | — | — | — | `color.disabled.icon` |
 | `container/content/labelCheck/label` | — | — | `color.disabled.text` | — |
-| `container/dismiss/dismissGlyph` | — | — | — | `color.disabled.icon` |
+| `container/dismiss/closeGlyph` | — | — | — | `color.disabled.icon` |
 
 ### Nesting and properties
 
 - `container/content/leadingVisual` is a swap slot, property `↳ swap leading icon`, shown by `leading icon`
 - `container/focusRing` nests `focus-ring` at `surface=default`
 - `container/content/labelCheck/checkGlyph` nests `icon/check`
-- `container/dismiss/dismissGlyph` nests `icon/close`
+- `container/dismiss/closeGlyph` nests `icon/close`
 
 | Property | Type | Default |
 | --- | --- | --- |

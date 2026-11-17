@@ -13,14 +13,14 @@ A compact row of two to five short options in one neutral track, where exactly o
 
 - **Purpose:** Choose exactly one of two to five short, always-visible options that change a value in place.
 - **Use when:** A short single choice the user changes often or that changes the current view at once, such as list or grid, a time range or a delivery method.
-- **Avoid when:** The options switch panels of content (use tabs), there are more than five or the labels are long (use a select or a radio group), options need descriptions (use a radio group), it is one on/off setting (use a switch), or selecting goes to another page (a navigation of links).
+- **Avoid when:** The options switch panels of content (use Tabs), there are more than five or the labels are long (use Select or Radio.Group), options need descriptions (use Radio.Group), it is one on/off setting (use Switch.Row), or selecting goes to another page (a navigation of links).
 
 ## Anatomy
 
 Shown on the default member: size `medium`.
 
 1. **Container** — The control: a label above the track. It fills its column.
-2. **Label** (optional) — The visible label, naming what is being chosen. Shown by default. Starts primary and bold; its label text, required marker, emphasis and weight surface on the control (Q348 A).
+2. **Label** (optional) — The visible label, naming what is being chosen, shown by default; its text, required marker and weight are set on the control.
 3. **Track** — The track: a neutral fill behind every option, with no outline. Each option fills an equal share of it, and the selected one shows a pill on it.
 4. **Items** — The options: a native slot holding Segment instances, three by default, the first selected. Each option fills an equal share of the track.
 5. **Segment1** — The first option, selected.
@@ -31,11 +31,11 @@ Shown on the default member: size `medium`.
 
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
-| `size` | `medium`, `small`, `large` | once, when authored | Passed to every option. Medium is a button's height, 44px on comfortable and spacious density. |
+| `size` | `medium`, `small`, `large` | once, when authored | Passed to every option. Medium is a button's height, which clears 44px on comfortable and spacious density. |
 
 ## Usage guidelines
 
-Use a segmented control for a choice between two to five short options that changes a value in place: a parameter of the current view, such as list or grid, or a form value. Every option stays visible, and one is always selected. Don't use it to switch between panels of content (use tabs), for more than five options or long labels (use a select or a radio group), or for one setting that turns on and off (use a switch).
+Use a segmented control for a choice between two to five short options that changes a value in place: a parameter of the current view, such as list or grid, or a form value. Every option stays visible, and one is always selected. Don't use it to switch between panels of content (use Tabs), for more than five options or long labels (use Select or Radio.Group), or for one setting that turns on and off (use Switch.Row).
 
 ### Do
 
@@ -73,9 +73,9 @@ Use a segmented control for a choice between two to five short options that chan
 
 ### Motion
 
-- **Enter:** None. On selection the pill moves to the new option, about 150–200ms, or cross-fades.
+- **Enter:** None. On selection the pill travels to the new option on motion.transition.default, or cross-fades.
 - **Exit:** None.
-- **Reduced motion:** The indicator moves at once; only the color change remains.
+- **Reduced motion:** The indicator moves at once; only the color change remains, fading on motion.duration-reduced.fast.
 
 ## Content guidelines
 
@@ -86,7 +86,7 @@ One or two words per option, nouns, sentence case: "List", not "Show list".
 ## Related components
 
 - **Built from:** `field-label`, `segmented-control-segment`
-- **Instead, consider:** `tabs`, `radio-group`, `select`, `switch-row`
+- **Instead, consider:** `tabs`, `radio-group`, `select`, `switch-row`, `radio-row`, `button-group`, `counter`, `slider`
 - **Often used with:** `icon`
 - **Replaces:**
   - a radio group restyled as a compact switcher for a view that changes at once
@@ -104,7 +104,7 @@ One or two words per option, nouns, sentence case: "List", not "Show list".
 | `defaultValue` | string | — | no | The option selected first, when the control manages its own state. A segmented control always has one option selected. |
 | `onChange` | function | — | no | Called with the new value when the selection changes. Never called with an empty value. |
 | `behavior` | enum: 'view' \| 'form' | `view` | no | view: a group of buttons that changes the current view at once, the selected one marked as current. form: a radio group whose value is submitted with a form. One look, two behaviors; never wire one as the other. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Passed to every option. Medium is a button's height, 44px on comfortable and spacious density. |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Passed to every option. Medium is a button's height, which clears 44px on comfortable and spacious density. |
 | `width` | enum: 'auto' \| 'full' | `auto` | no | auto: every option as wide as the widest. full: the control fills its column and the options share it equally. |
 | `name` | string | — | no | The form field name, in the form behavior. |
 | `disabled` | boolean | `false` | no | Disables every option and takes the control out of the Tab order. |

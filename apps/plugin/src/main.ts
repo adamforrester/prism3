@@ -18,9 +18,10 @@
  * Compiled under `tsconfig.main.json` (plugin-typings, `lib` WITHOUT `dom`), so any accidental
  * `document`/`window` reference is a COMPILE error — the two-context split is enforced by types.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
-import { ENGINE_VERSION } from '@prism3/engine/version';
+import { applyHeadline, APPLY_FAILED_HEADLINE, failureDetail, conflictHeadline, componentHeadline, staleNote, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
+import { ENGINE_VERSION, serializeBrandInput, resolveAllModes, brandTheme, type BrandInput } from '@prism3/engine';
 import { appendBuildNote, buildNote, parseBuildId } from '../../studio/src/build-identity';
+import { isIssueUrl } from '../../studio/src/state/report';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
 import { restorePlacement, stripPlacement } from './window-place';
@@ -30,14 +31,13 @@ import { createRunGuard, guardFor, writes, busyMessage } from './run-guard';
 import type { WriteCmd } from './run-guard';
 import { strandedCollections, ownedModeIds } from './write-figma';
 import { classifyFile, libraryFileOf, outcomeOf, probeFile, type FileKindApi } from './file-kind';
-import { computePrunePlan, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary } from './prune-figma';
+import { computePrunePlan, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary, emptyPruneResult, prunePreviewHashOf, pruneConfirmRefusal, PRUNE_COPY } from './prune-figma';
 import type { PruneInput, PruneApi } from './prune-figma';
-import { isRefusal } from '@prism3/engine/rename-map';
-import { rootOf } from '@prism3/engine/figma-names';
+import { isRefusal, rootOf, buildFigmaColor, buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan, verifyReadback } from '@prism3/engine/figma';
 import { conflictSummary } from './preflight';
+import { conflictKey, choiceNote, isChoices, type CollisionChoices } from './collision-choice';
 import { APPLY_STAGES, runApplyTheme, themePlans, type ApplyStage, type ThemePace } from './apply-theme';
 import { emissionOf, themeDue } from './theme-emission';
-import { serializeBrandInput } from '@prism3/engine/persist-input';
 import { fieldStyleNote, searchFieldStyleNote } from './field-style-note';
 import { tagStyleNote } from './tag-style-note';
 import { gridSkippedNote } from './write-grid-styles';
@@ -52,7 +52,6 @@ import { ensureStyleGuideCells } from './style-guide-cells';
 import type { CellsApi } from './style-guide-cells';
 import { runStyleGuide, removeRetiredTables, styleGuideSummary, readCatalog, catalogFor, isSetUp } from './style-guide';
 import type { SgContract } from './style-guide';
-import { resolveAllModes } from '@prism3/engine/modes';
 import { TAXONOMY } from './file-taxonomy';
 import { blockHeadersLines, headerFor, pageHeaderItems, placeBlockHeaders } from './page-header';
 import type { PageHeaderOutcome, HeaderPage } from './page-header';
@@ -68,29 +67,22 @@ import { COVER_OFF, readDocSettings, writeDocSettings } from './doc-settings';
 import { livePanels, livePanelsOf, panelLeadsOf, paneledOf, panelsCleanCount, removeUneditedPanels, unpaneledOf, type CensusRoot } from './panel-census';
 import { DOC_PANEL_KEY, DOC_PANEL_NS, clearOrphanPanels, docPanelReach, drawDocPanel, findDocBlock, leadsPanel, PANEL_FORMAT, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
+import { type AnatomyPlan, checkAnatomySet, figmaAnatomyMembers, figmaAnatomySet, button, componentDefs, type ComponentDef } from '@prism3/engine/components';
 import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './build-telemetry';
 import { readFigmaVariables } from './read-figma';
 import { listFamilyStyleNames } from './list-fonts';
-import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
-import { verifyReadback } from '@prism3/engine/read-back';
-import { restoreInput } from './persist-figma';
+import { restoreInput, holdsInput, canon } from './persist-figma';
+import { planOverride, overrideVerdict, overrideData, wholeRunRefusal, type OverrideChange, type OverrideRefusal } from './set-override';
 import { declaredModesOf, failedChecks, seedSummary } from './seed-modes';
-import { brandTheme } from '@prism3/engine/theme';
-import type { BrandInput } from '@prism3/engine/theme';
-import { checkAnatomySet, figmaAnatomyMembers, figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { PACE_MS, pacer } from './pace';
 import { materializeForBrand, materializerFor } from './brand-def';
 import { dueOf, entryFor, needsPrint, printOf, printSteps, quietOf, readLedger, recordSets, type DueReason, type Ledger, type LedgerEntry, type PlanPrint } from './as-built-ledger';
 import { clearQueued, readQueue, setQueued, staleOf, visibleOf, type QueueRoot } from './add-queue';
 import { presentNames, prebuildDependencies, alsoBuiltItem, DependencyBuildError, SWAP_TARGET, labelAfterBuilds } from './build-deps';
 import type { DepHost } from './build-deps';
-import { button } from '@prism3/engine/components/button';
-import { componentDefs } from '@prism3/engine/components/index';
-import type { ComponentDef } from '@prism3/engine/component-schema';
 import { createAgentLink } from './agent-link';
 import { createActivityLog, type ActivityProblem } from './activity-log';
+import { runNotice } from './run-notice';
 import { createDispatcher, componentCensus } from './agent-dispatch';
 import type { ReadHost, ContextFacts } from './agent-reads';
 import type { ActionSink, AgentActions } from './agent-dispatch';
@@ -382,17 +374,23 @@ let updateStopAsked = false;
  * knobs (a `BrandInput`), not a bundled fixture. Same pure core, same executor: only the source of
  * the theme changed (#110). Idempotent find-by-name; colour axis (`core` + `color`).
  */
-const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> => {
+const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefined, sink: ActionSink): Promise<void> => {
   try {
     // The write sequence — fonts first, pre-flight, then the guarded executor calls — lives in
     // `apply-theme.ts` since #111, so the MCP paste harness can prove parity against this exact path. The
     // global `figma` is the host; everything below this line (the report) is unchanged.
-    const { plans, pf, guarded, before } = await runApplyTheme(input, figma, () => saveVersion(figma, { run: 'apply-theme' }).then(() => undefined), themePace(sink));
+    const { plans, pf, guarded, before, chose, exec, names, applied } = await runApplyTheme(input, figma, () => saveVersion(figma, { run: 'apply-theme' }).then(() => undefined), themePace(sink), choices);
     const { colorFiles, floatPlan, fontPlan, motionPlan } = plans;
     if (!guarded.ok) {
       sink.data({ conflicts: guarded.conflicts });
       const conflicts = conflictSummary(guarded.conflicts);
-      postVerdict({ type: 'apply-result', ok: false, headline: conflictHeadline(guarded.conflicts.length), summary: conflicts, lines: [conflicts] }, sink);
+      // #1909: the panel's refusal carries each collision with its key, so the panel can offer Skip or Rename for it.
+      // An agent's result is unchanged: it has `conflicts` through `sink.data` already, and `collisions` stays off.
+      // `chosen` (the review of #3518): the choices this apply already used, when a choice made a new collision, so the
+      // panel posts them back beside the new one and the first list is not asked again.
+      const collisions = sink === uiSink ? { collisions: guarded.conflicts.map((c) => ({ key: conflictKey(c), kind: c.kind, name: c.name, detail: c.detail })),
+        ...(Object.keys(applied).length ? { chosen: applied } : {}) } : {};
+      postVerdict({ type: 'apply-result', ok: false, headline: conflictHeadline(guarded.conflicts.length), summary: conflicts, lines: [conflicts], ...collisions }, sink);
       return;
     }
     const { mig, r, f, s, gs, tv, ts, mv } = guarded.result;
@@ -448,6 +446,8 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     // plans name. The plan-owned set is spelled with `$collection` / `plan.name` rather than the axis
     // labels the orphan report uses, because `core/dimension` is a label and `core` is what Figma has.
     const plannedCollections = [
+      // #1909: a collection a Rename wrote under its new name is the plan's too.
+      ...[names.core, names.color, ...exec.float.map((p) => p.name), ...exec.font.map((p) => p.name), ...exec.motion.map((p) => p.name)].filter((n): n is string => n !== null),
       colorFiles.palette.$collection,
       ...colorFiles.color.map((c) => c.$collection),
       ...floatPlan.map((p) => p.name),
@@ -510,6 +510,8 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
       motionReplacedItem(mv.replaced.length),
       `${r.bound + f.bound + tv.bound + mv.bound + ts.bound} bindings`, misses ? `${misses} misses` : '',
       ...renameNotes, orphanNote, strandedNote, resolvedNote, skippedNote, gridSkippedNote(gs.skipped), fontNote, refusedNote,
+      // #1909: what the person chose for the collisions this apply met, when it met any (copy DRAFT, `choiceNote`).
+      chose ? choiceNote(chose) ?? '' : '',
       // #2888: the search field's own edge, the same way. Before the field style line, which ends the list.
       searchFieldStyleNote(before, input),
       // #2695 (Q16 A): a field style switch reaches the field sets through Update, so Apply says so.
@@ -545,7 +547,8 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     });
     postVerdict({ type: 'apply-result', ok: misses === 0, headline: applyHeadline(misses, ts.skipped.length), summary, lines }, sink);
   } catch (e) {
-    const failure = `write failed: ${(e as Error).message}`;
+    // #3697 H4 (D3703.1 B): the class, then the host's message; Report a problem keeps only the class.
+    const failure = `write failed: ${failureDetail(e)}`;
     postVerdict({ type: 'apply-result', ok: false, headline: APPLY_FAILED_HEADLINE, summary: failure, lines: [failure] }, sink);
   }
 };
@@ -569,9 +572,17 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
  * `confirm: true` DELETES — recomputes from a fresh read (not from the preview's list, so the delete
  * acts on the file's current orphan set) and runs `applyPrunePlan`.
  *
+ * THE CONFIRM'S THREE GUARDS (#3697 R6, H2), in order, before the first removal: the file must hold `input` as its
+ * brand (the plan is built from the input, which need not have been applied, so an unapplied input could name what
+ * the file's sets still bind); the confirm must echo the `previewHash` its preview returned, and a fresh read must
+ * give the same plan; and a named version is saved, or nothing is removed. Each removal is then tried on its own,
+ * and `counts` runs in place, so a throw past the first removal reports what was removed, not 0.
+ *
  * Never flips into `applyTheme`'s path and writes nothing but deletes: a prune only removes.
  */
-const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Promise<void> => {
+const prune = async (input: BrandInput, confirm: boolean, previewHash: string | null, sink: ActionSink): Promise<void> => {
+  const counts = emptyPruneResult();
+  let removing = false;
   try {
     const theme = brandTheme(input);
     // The plans, exactly as `applyTheme` builds them — the plan is what defines "stale". No write.
@@ -673,13 +684,19 @@ const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Pro
       return t ? ` ${t}` : '';
     };
 
-    sink.data({ prunePlan: plan, staleFurniture: staleFurn.map((f) => ({ id: f.node.id, ...f.tag })) });
+    const hash = prunePreviewHashOf(plan, staleFurn.map((f) => f.node.id));
+    sink.data({ prunePlan: plan, staleFurniture: staleFurn.map((f) => ({ id: f.node.id, ...f.tag })), previewHash: hash });
     if (!confirm) {
       const n = prunePlanCount(plan);
       const summary = n === 0 && staleFurn.length ? furniturePruneText(staleFurn.length, false) : prunePreviewSummary(plan) + furnText(false, staleFurn.length);
-      sink.post({ type: 'prune-result', ok: true, applied: false, count: n + staleFurn.length, summary });
+      sink.post({ type: 'prune-result', ok: true, applied: false, count: n + staleFurn.length, summary, previewHash: hash });
       return;
     }
+    const refusal = pruneConfirmRefusal({ holdsInput: holdsInput(figma.root, input), previewHash: previewHash ?? '', currentHash: hash });
+    if (refusal) { sink.post({ type: 'prune-result', ok: false, applied: false, count: 0, summary: refusal }); return; }
+    try { await saveVersion(figma, { run: 'prune' }); }
+    catch (e) { sink.post({ type: 'prune-result', ok: false, applied: false, count: 0, summary: PRUNE_COPY.noVersion(failureDetail(e)) }); return; }
+    removing = true;
 
     const pruneApi: PruneApi = {
       getLocalVariableCollectionsAsync: () => figma.variables.getLocalVariableCollectionsAsync(),
@@ -689,15 +706,19 @@ const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Pro
       getLocalPaintStylesAsync: () => figma.getLocalPaintStylesAsync(),
       getLocalGridStylesAsync: () => figma.getLocalGridStylesAsync(),
     };
-    const res = await applyPrunePlan(plan, pruneApi);
-    const furnRemoved = pruneFurniture(tagged.map((t) => t.node as unknown as XNode), (id) => liveSets.has(id));
+    const res = await applyPrunePlan(plan, pruneApi, counts);
+    const furnRemoved = pruneFurniture(tagged.map((t) => t.node as unknown as XNode), (id) => liveSets.has(id), counts.failed);
     const removed = res.variables + res.collections + res.modes + res.styles;
     sink.data({ pruneApplied: { ...res, furniture: furnRemoved } });
-    const summary = removed === 0 && furnRemoved ? furniturePruneText(furnRemoved, true) : pruneAppliedSummary(res) + furnText(true, furnRemoved);
-    sink.post({ type: 'prune-result', ok: res.misses.length === 0, applied: true, count: removed + furnRemoved, summary });
+    const summary = removed === 0 && furnRemoved && !res.failed.length ? furniturePruneText(furnRemoved, true) : pruneAppliedSummary(res) + furnText(true, furnRemoved);
+    sink.post({ type: 'prune-result', ok: res.misses.length === 0 && res.failed.length === 0, applied: true, count: removed + furnRemoved, summary });
   } catch (e) {
-    // A thrown prune reports rather than crashing the UI — same posture as `applyTheme`'s catch.
-    sink.post({ type: 'prune-result', ok: false, applied: confirm, count: 0, summary: `prune failed: ${(e as Error).message}` });
+    // A thrown prune reports rather than crashing the UI — same posture as `applyTheme`'s catch. Once removals began,
+    // with the running counts (#3697 R6): a half-pruned file never reads as 0 removed.
+    const why = failureDetail(e);   // #3697 H4: as `applyTheme`'s
+    if (!removing) { sink.post({ type: 'prune-result', ok: false, applied: false, count: 0, summary: `prune failed: ${why}` }); return; }
+    sink.data({ pruneApplied: counts });
+    sink.post({ type: 'prune-result', ok: false, applied: true, count: counts.variables + counts.collections + counts.modes + counts.styles, summary: PRUNE_COPY.stopped(counts, why) });
   }
 };
 
@@ -1060,7 +1081,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
           ['. ', alsoBuiltItem(alsoBuilt)], ['. ', builtDocBlockItem(docBlock)], ...pageHeaderItems(headers).map((x) => ['. ', x] as const),
           ...furnitureItems(furniture, 'build').map((x) => ['. ', x] as const), ['. ', docBlockLine(furniture, 'build', fix)],
         ]),
-        causes: buildCauses,
+        causes: buildCauses, ...(alsoBuilt.length ? { alsoBuilt: alsoBuilt.map((d) => d.id) } : {}), // #3359: so the panel's run skips them
       }, furniture, 'build', fix), sink);
       verdictPosted = true;
       // #3309: the sets this run left not clean, and why, by the rule its `ok` reads: a miss that is not a skipped or
@@ -1668,10 +1689,10 @@ const passTarget = async (id: string, tick: () => Promise<void>): Promise<Update
     return { def: d.id, plans: checkAnatomySet(m, plans), single: true };
   } catch { return null; }
 };
-let handPass = 0;
+let handPass = 0, handPassOwed = false; // #3804: a pass a write ended is owed, and the write's end (`guarded`) asks for it again.
 const handEditsPass = async (): Promise<void> => {
-  const mine = ++handPass;
-  const stale = (): boolean => mine !== handPass || (['build-components', 'apply-theme', 'file-setup', 'style-guide'] as const).some((c) => guard.busy(c));
+  const mine = ++handPass; handPassOwed = false;
+  const stale = (): boolean => mine !== handPass || (guard.busy() && (handPassOwed = true)); // #3737: ANY write holding the file (one hold since #3697 R7), prune included; it owes the pass (#3804). A newer pass owes nothing.
   try {
     const read = await readPresent();
     const present = read.ids;
@@ -2212,23 +2233,25 @@ const styleGuideCleanup = async (ids: string[], sink: ActionSink): Promise<void>
 };
 
 /**
- * ONE RUN OF A WRITE AT A TIME, PER OPERATION (#1957; `run-guard.ts`). Each writing entry of the table
- * below goes through `guarded`, so the panel's buttons and the agent link meet the same guard. A second
- * write of a running operation is not run: its caller's sink is sent `refused`, and nothing else is.
+ * ONE WRITE AT A TIME, FILE-WIDE (#3697 R7; `run-guard.ts`). Each writing entry of the table below goes through
+ * `guarded`, so the panel's buttons and the agent link meet the same guard. Any write asked for while another holds the
+ * file is not run: its caller's sink is sent `refused`, naming both, and nothing else is.
  * The agent link asks first, through `refuse` below, so a declined command is never bracketed as running.
  */
 const guard = createRunGuard();
-const refusal = (cmd: WriteCmd, agent: boolean): MainToUi => ({ type: 'refused', code: 'busy', cmd, agent, message: busyMessage(cmd) });
+/** `cmd` is the write asked for; `held`, the one holding the file (#3697 R7: they can differ). */
+const refusal = (cmd: WriteCmd, agent: boolean, held: WriteCmd): MainToUi => ({ type: 'refused', code: 'busy', cmd, agent, message: busyMessage(held), held });
 const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<void>, confirm?: (...a: A) => boolean) =>
   (...a: A): Promise<void> => {
     if (!writes(cmd, confirm ? confirm(...a) : undefined)) return fn(...a);
     // Every action's sink is its last argument.
     const sink = a[a.length - 1] as ActionSink;
-    if (guard.busy(cmd)) { sink.post(refusal(cmd, sink !== uiSink)); return Promise.resolve(); }
+    const holder = guard.held();
+    if (holder) { sink.post(refusal(cmd, sink !== uiSink, holder)); return Promise.resolve(); }
     // #3081: a write may add or remove sets, so the live recount reads the file again after it (`presentCache`). It is
     // cleared as the write starts too: the write's verdict posts before the write's promise settles.
     presentCache = null; panelCache = null; presentRead = null; presentGen++; dropViews();
-    return guard.run(cmd, () => fn(...a)).finally(() => { presentCache = null; panelCache = null; presentRead = null; presentGen++; dropViews(); });
+    return guard.run(cmd, () => fn(...a)).finally(() => { presentCache = null; panelCache = null; presentRead = null; presentGen++; dropViews(); if (handPassOwed) void handEditsPass(); }); // #3804: a hand-edit pass this write ended runs again, over the file it left.
   };
 
 /**
@@ -2266,6 +2289,68 @@ const panelsClean = async (confirm: boolean, sink: ActionSink): Promise<void> =>
   }
 };
 
+/**
+ * #3394 (Q3394.1–.7 all A): THE AGENT LINK'S COLOR OVERRIDES. A preview plans the changes against the brand the file holds
+ * and writes nothing. A confirmed write plans them again, refuses when the plan's hash is not the preview's (the file's
+ * brand moved) or when the panel holds Theme edits the file does not, and then hands the planned brand to
+ * `ACTIONS.applyTheme`, the entry the panel's Apply reaches (so its guard, its saved version and its persist are the
+ * Theme write's own). Its verdict is its own, `override-result`, one Activity row (Q3394.7 A); the Theme write's verdict
+ * is read here and not posted. After a write the panel is sent the brand, so Theme shows what the agent stored.
+ */
+/** The brand the panel last asked the badge's recount or the checklist about: the brand on its screen (#3081). */
+let panelInput: BrandInput | null = null;
+const setOverride = async (changes: readonly OverrideChange[], previewHash: string | null, sink: ActionSink): Promise<void> => {
+  const applied = previewHash !== null;
+  const refused = (r: OverrideRefusal, extra: Record<string, unknown> = {}): void => {
+    sink.data({ refusals: [r], ...extra });
+    sink.post({ type: 'override-result', ok: false, preview: !applied, applied: false, headline: r.line, summary: r.line, lines: [r.line] });
+  };
+  let stored: BrandInput | null;
+  try { stored = restoreInput(figma.root); } catch { refused(wholeRunRefusal('unreadable-brand')); return; }
+  if (!stored) { refused(wholeRunRefusal('no-brand')); return; }
+  // A stored brand the engine refuses to build is one this build can't read, as far as an override is concerned.
+  let plan: ReturnType<typeof planOverride>;
+  try { plan = planOverride(stored, changes); } catch (e) { refused(wholeRunRefusal('unreadable-brand'), { error: (e as Error)?.message ?? String(e) }); return; }
+  if (!plan.ok || !applied) {
+    sink.data(overrideData(plan));
+    const v = overrideVerdict(plan, false);
+    sink.post({ type: 'override-result', ok: v.ok, preview: !applied, applied: false, headline: v.headline, summary: v.lines.join('; '), lines: v.lines });
+    return;
+  }
+  if (plan.previewHash !== previewHash) { refused(wholeRunRefusal('brand-moved'), { previewHash: plan.previewHash }); return; }
+  if (panelInput && !holdsInput(figma.root, panelInput)) { refused(wholeRunRefusal('theme-unsaved')); return; }
+  // The Theme write, through the table: the same function object the panel's Apply reaches, read at call time.
+  const posts: MainToUi[] = [];
+  const inner: ActionSink = { post: (m) => { posts.push(m); }, data: (d) => { sink.data({ theme: d }); } };
+  // The panel's brand as the write starts: an edit the designer makes while it runs must not be reloaded over.
+  const asked = panelInput ? canon(panelInput) : null;
+  let threw: string | null = null;
+  try { await ACTIONS.applyTheme(plan.input, undefined, inner); } catch (e) { threw = (e as Error)?.message ?? String(e); }
+  const busy = posts.find((m) => m.type === 'refused');
+  if (busy) { sink.post(busy); return; }
+  sink.data(overrideData(plan));
+  // The Theme write stores the brand once its variables are written, misses or not, so the panel is sent what the file
+  // holds, unless the panel's brand moved while it ran: then the panel keeps its edits, and Theme counts as due.
+  if (holdsInput(figma.root, plan.input) && (panelInput ? canon(panelInput) : null) === asked) {
+    panelInput = plan.input;
+    postToUi({ type: 'restore-input', input: plan.input });
+  }
+  if (threw !== null) {
+    const failure = `write failed: ${threw}`;
+    sink.post({ type: 'override-result', ok: false, preview: false, applied: holdsInput(figma.root, plan.input), headline: APPLY_FAILED_HEADLINE, summary: failure, lines: [failure] });
+    return;
+  }
+  const res = posts.find((m): m is Extract<MainToUi, { type: 'apply-result' }> => m.type === 'apply-result');
+  if (!res || !res.ok) {
+    // The Theme write's own words: it refused, failed or missed, and the brand it stores is only stored when it ran.
+    const headline = res?.headline ?? APPLY_FAILED_HEADLINE;
+    sink.post({ type: 'override-result', ok: false, preview: false, applied: holdsInput(figma.root, plan.input), headline, summary: res?.summary ?? headline, lines: res?.lines ?? [headline] });
+    return;
+  }
+  const v = overrideVerdict(plan, true);
+  sink.post({ type: 'override-result', ok: true, preview: false, applied: true, headline: v.headline, summary: v.lines.join('; '), lines: v.lines });
+};
+
 export const ACTIONS: AgentActions = {
   applyTheme: guarded('apply-theme', thenRestamp(applyTheme)),
   buildComponents: guarded('build-components', thenRestamp(buildComponents)),
@@ -2278,6 +2363,8 @@ export const ACTIONS: AgentActions = {
   adoptMembers: guarded('build-components', adoptMembers),
   drawSpecs: guarded('build-components', drawSpecs),
   panelsClean: guarded('prune', panelsClean, (confirm) => confirm),
+  // Not `guarded`: its write is `applyTheme`'s, which is.
+  setOverride,
 };
 
 /**
@@ -2296,11 +2383,14 @@ const dispatch = createDispatcher({
   // The Activity drawer's agent rows (UI redesign S11): when a command starts, and when it has ended.
   onStart: (id, cmd, apply) => { agentCmd = cmd; postToUi({ type: 'agent-started', id, cmd, ...(apply ? { apply: true as const } : {}) }); },
   onFinish: (id, cmd) => { agentCmd = null; postToUi({ type: 'agent-finished', id, cmd }); },
-  // #1957: an agent's write of an operation that is already running is declined before it starts.
+  // #1957, #3697 R7: an agent's write is declined before it starts while any write holds the file.
   refuse: (c) => {
-    const held = guardFor(c.cmd);
-    if (!held || !writes(held, c.cmd === 'prune' ? c.args.confirm : c.cmd === 'panels-clean' ? c.args.confirm === true : undefined) || !guard.busy(held)) return null;
-    return { message: busyMessage(held), post: refusal(held, true) };
+    const asked = guardFor(c.cmd);
+    const holder = guard.held();
+    if (!asked || !holder || !writes(asked, c.cmd === 'prune' ? c.args.confirm : c.cmd === 'panels-clean' ? c.args.confirm === true : undefined)) return null;
+    // #3394: a `set-override` preview reads and writes nothing, so it is never declined.
+    if (c.cmd === 'set-override' && !c.args.confirm) return null;
+    return { message: busyMessage(holder), post: refusal(asked, true, holder) };
   },
   // The panel's pills show an agent's result as they would a button's. An agent's prune PREVIEW goes as a
   // pill only: opened as the confirm dialog, the owner's Confirm would prune against the panel's knobs,
@@ -2421,10 +2511,12 @@ onUiMessage((msg: UiToMain) => {
     case 'file-sets-request':
       // #2909: Update file's checklist — which sets the file holds, whether it is set up, and what is due. A read: never
       // guarded.
+      if (msg.input) panelInput = msg.input;   // #3394: the brand on the panel's screen
       void fileSets(msg.input);
       return;
     case 'due-request':
       // #3081 Q810 A: the badge's live recount, against the brand the panel holds. A read: never guarded.
+      if (msg.input) panelInput = msg.input;   // #3394: the brand on the panel's screen
       void fileDue(msg.input, msg.seq);
       return;
     case 'add-queue':
@@ -2436,6 +2528,12 @@ onUiMessage((msg: UiToMain) => {
       if ((msg.op === 'components' || msg.op === 'update') && typeof msg.headline === 'string')
         activityLog.note({ op: msg.op, ok: msg.ok === true, headline: msg.headline, lines: Array.isArray(msg.lines) ? msg.lines.filter((x): x is string => typeof x === 'string') : [] });
       return;
+    case 'run-ended': {
+      // #533 (Q110 A): a short completion notice, only while minimized to the strip; the detail stays in Activity.
+      const n = runNotice(msg.line, beforeStrip !== null);
+      if (n) figma.notify(n.message, { timeout: n.timeout, button: { text: n.action, action: () => { setMinimized(false); } } });
+      return;
+    }
     case 'hand-edits-request':
       // #2909 Q2909.8 A: the background pass after load. A read: never guarded; a write starting ends it.
       void handEditsPass();
@@ -2452,7 +2550,7 @@ onUiMessage((msg: UiToMain) => {
       return;
     case 'update-stop':
       // #3170 Q3170.4 A: read by the panel's running update at its next set boundary; nothing running, nothing to stop.
-      if (guard.busy('build-components')) updateStopAsked = true;
+      if (guard.holding('build-components')) updateStopAsked = true;
       return;
     case 'draw-specs':
       // #2830 Q2830.3 A: Documentation › Specs, the panel's Draw specs, for the sets on the current page. The agent's
@@ -2469,7 +2567,8 @@ onUiMessage((msg: UiToMain) => {
       if (isHeight(msg.px)) void figma.clientStorage.setAsync(ACTIVITY_HEIGHT_KEY, Math.round(msg.px)).catch(() => {/* best-effort */});
       return;
     case 'apply-theme':
-      void ACTIONS.applyTheme(msg.input, uiSink);
+      // #1909: the panel's Skip or Rename for each collision, when it posts them; none is the refusal as before.
+      void ACTIONS.applyTheme(msg.input, isChoices(msg.collisions) ? msg.collisions : undefined, uiSink);
       return;
     case 'build-components':
       // `msg.def` straight through, `undefined` included — the resolution lives in `buildComponents`
@@ -2478,11 +2577,15 @@ onUiMessage((msg: UiToMain) => {
       return;
     case 'prune':
       // #1521 — `confirm` decides preview vs delete; both recompute from a fresh read inside `prune`.
-      void ACTIONS.prune(msg.input, msg.confirm, uiSink);
+      void ACTIONS.prune(msg.input, msg.confirm, msg.confirm ? msg.previewHash ?? null : null, uiSink);
       return;
     case 'open-docs':
       // #2637 Q384 — the bar's Docs. A read of nothing and a write to nothing in the file: never guarded.
       figma.openExternal(DOCS_URL);
+      return;
+    case 'open-issue':
+      // #2069 Q116 A — Report a problem's prefilled issue. Only the issue form on this repo opens; anything else is dropped.
+      if (isIssueUrl(msg.url)) figma.openExternal(msg.url);
       return;
     case 'file-setup':
       // #1554 — scaffold the page skeleton + build the two template assets. Its own action.
@@ -2497,8 +2600,8 @@ onUiMessage((msg: UiToMain) => {
       void styleGuideCatalog();
       return;
     case 'style-guide-cleanup':
-      // Q412 A — the confirmed cleanup. A write under the style guide's own guard: never while a run is drawing.
-      if (guard.busy('style-guide')) { uiSink.post(refusal('style-guide', false)); return; }
+      // Q412 A — the confirmed cleanup. A write under the file-wide hold (#3697 R7): never while any write runs.
+      { const holder = guard.held(); if (holder) { uiSink.post(refusal('style-guide', false, holder)); return; } }
       void guard.run('style-guide', () => styleGuideCleanup(Array.isArray(msg.ids) ? msg.ids.filter((x): x is string => typeof x === 'string') : [], uiSink));
       return;
     case 'panels-clean':
@@ -2507,7 +2610,7 @@ onUiMessage((msg: UiToMain) => {
       return;
     case 'style-guide-cancel':
       // S11.2 (P7) — read by the running style guide after its current table; nothing running, nothing to stop.
-      if (guard.busy('style-guide')) styleGuideStop = true;
+      if (guard.holding('style-guide')) styleGuideStop = true;
       return;
     case 'agent-link':
       // The owner's switch — the only way the link turns on. See `agent-link.ts`.

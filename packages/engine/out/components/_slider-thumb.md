@@ -1,6 +1,6 @@
 # Slider.Thumb
 
-> The thumb a Slider moves: an ink disc that sits on the track. Used only inside a Slider.
+> The thumb a slider moves: an ink disc that sits on the track. Used only inside a slider.
 
 - **ID:** `_slider-thumb`
 - **Category:** form
@@ -11,7 +11,7 @@
 
 The handle a Slider moves along its track: a disc in neutral ink that sits on the track with no gap. A light halo grows around it at hover and wider while pressed, and it shows the focus ring while it has keyboard focus. It comes in the Slider's three sizes. It lives inside a Slider, which places one thumb for a single value and two for a range, and is never placed on its own.
 
-- **Purpose:** The handle a Slider moves, inside a Slider only.
+- **Purpose:** Give a Slider the handle the user moves.
 - **Use when:** Only as a child of a Slider. Generate a Slider, which places one thumb for a single value and two for a range, and sets their size and state.
 - **Avoid when:** Anywhere outside a Slider. A switch handle is Switch.Control; a value chosen by dragging is a Slider.
 
@@ -88,7 +88,7 @@ No copy of its own.
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `aria-label` | string | — | no | The thumb's accessible name. Set by the Slider: the label for a single value, "Minimum {label}" and "Maximum {label}" for a range. |
+| `aria-label` | string | — | no | The thumb's accessible name. Set by the Slider: the label for a single value, "Minimum {label}" and "Maximum {label}" for a range, with ", required" added when the slider is required. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The disc's diameter: 18, 24 or 30px at the default density, from control.size.*.thumb. Set by the Slider. |
 | `disabled` | boolean | `false` | no | The disabled look. Set by the Slider when the whole control is disabled. |
 

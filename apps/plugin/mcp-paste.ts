@@ -43,7 +43,7 @@ import { dirname, resolve } from 'node:path';
 import { themePlans } from './src/apply-theme';
 import type { ThemePlans } from './src/apply-theme';
 import { emissionOf } from './src/theme-emission';
-import { preflightPlanOf } from './src/preflight';
+import { preflightPlanOf, bindingCollectionsOf } from './src/preflight';
 import type { PreflightPlan } from './src/preflight';
 import { pack, packNames } from './src/mcp-steps';
 import { reactionMap } from './src/reactions';
@@ -53,15 +53,9 @@ import { emitCoordValue } from './src/write-components';
 import { materializeForBrand } from './src/brand-def';
 import { missingDependencies, SWAP_TARGET } from './src/build-deps';
 import { leafForDef, leafPageName } from './src/file-taxonomy';
-import { figmaAnatomySet, figmaVarName, planComponentName, planSetChunks, planSetLayout, planToPluginJs } from '@prism3/engine/anatomy-figma';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
-import type { ComponentDef } from '@prism3/engine/component-schema';
-import type { BrandInput } from '@prism3/engine/theme';
-import type { WritePlan, FloatCollectionPlan, StylesPlan, GridStylePlan, TextStylePlan } from '@prism3/engine/write-plan';
-import { ENGINE_VERSION } from '@prism3/engine/version';
-import { parseDesignMd } from '@prism3/engine/design-md';
-import { parseStandardDesignMd, isStandardDesignMd, standardToBrandInput } from '@prism3/engine/standard-design-md';
+import { figmaAnatomySet, figmaVarName, planComponentName, planSetChunks, planSetLayout, planToPluginJs, type AnatomyPlan, componentDefs, type ComponentDef } from '@prism3/engine/components';
+import { type BrandInput, ENGINE_VERSION, parseDesignMd, parseStandardDesignMd, isStandardDesignMd, standardToBrandInput } from '@prism3/engine';
+import type { WritePlan, FloatCollectionPlan, StylesPlan, GridStylePlan, TextStylePlan } from '@prism3/engine/figma';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -220,6 +214,8 @@ export const themeScripts = (input: BrandInput, opts: ThemeOpts = {}): Script[] 
 
   // PRE-FLIGHT — variable rows per collection, then styles per kind, as one flat item list.
   const pf = preflightOf(p);
+  // The collections a binding may reach (#1904), handed to the color, styles and text steps as `apply-theme.ts` hands them.
+  const bindIn = bindingCollectionsOf(pf);
   type PfItem = { col: number; row: PreflightPlan['variables'][number]['rows'][number] } | { kind: keyof PreflightPlan['styles']; name: string };
   const pfItems: PfItem[] = [
     ...pf.variables.flatMap((g, col) => g.rows.map((row) => ({ col, row }))),
@@ -261,7 +257,8 @@ export const themeScripts = (input: BrandInput, opts: ThemeOpts = {}): Script[] 
 
   // COLOR — three passes.
   const { modes } = p.colorPlan.color;
-  const colorData = (label: string, plan: WritePlan) => ({ ...common(label), fonts, plan });
+  // `bindIn` rides only where a wash can bind (#1904): the alias pass. The palette and create passes bind nothing.
+  const colorData = (label: string, plan: WritePlan) => ({ ...common(label), fonts, plan, ...(plan.color.aliases.length ? { bindIn } : {}) });
   const colorPass = (name: string, rows: unknown[], planOf: (rows: never[]) => WritePlan, purpose: string) => {
     const slices = slice(rows, (s) => assemble('runColor', colorData(name, planOf(s as never[]))), name);
     slices.forEach((s, i) => {
@@ -280,10 +277,10 @@ export const themeScripts = (input: BrandInput, opts: ThemeOpts = {}): Script[] 
   type SItem = { effect: StylesPlan['effects'][number] } | { paint: StylesPlan['paints'][number] };
   const sItems: SItem[] = [...p.stylesPlan.effects.map((effect) => ({ effect })), ...p.stylesPlan.paints.map((paint) => ({ paint }))];
   const sPlan = (s: SItem[]): StylesPlan => ({ effects: s.flatMap((i) => ('effect' in i ? [i.effect] : [])), paints: s.flatMap((i) => ('paint' in i ? [i.paint] : [])) });
-  const sSlices = slice(sItems, (s) => assemble('runStyles', { ...common('styles'), fonts, plan: sPlan(s) }), 'styles');
+  const sSlices = slice(sItems, (s) => assemble('runStyles', { ...common('styles'), fonts, plan: sPlan(s), bindIn }), 'styles');
   sSlices.forEach((s, i) => {
     const label = `effect + paint styles ${i + 1}/${sSlices.length}`;
-    add({ phase: 'theme', kind: 'styles', label, purpose: 'Creates or updates the shadow (effect) and gradient (paint) styles.', expect: '{ ok: true, misses: [] }' }, 'runStyles', { ...common(label), fonts, plan: sPlan(s) });
+    add({ phase: 'theme', kind: 'styles', label, purpose: 'Creates or updates the shadow (effect) and gradient (paint) styles.', expect: '{ ok: true, misses: [] }' }, 'runStyles', { ...common(label), fonts, plan: sPlan(s), bindIn });
   });
   const gSlices = slice(p.gridPlan, (s) => assemble('runGrid', { ...common('grid'), fonts, plan: s as GridStylePlan }), 'grid styles');
   gSlices.forEach((s, i) => {
@@ -305,10 +302,10 @@ export const themeScripts = (input: BrandInput, opts: ThemeOpts = {}): Script[] 
   out.push({ phase: 'theme', kind: 'motion', label: 'motion variables', purpose: 'Writes the motion durations and the easing curves, easing roles and springs.', expect: '{ ok: true, misses: [], refused: [] }', js: motionJs });
 
   // TEXT styles.
-  const tSlices = slice(p.textPlan, (s) => assemble('runText', { ...common('text'), fonts, plan: s }), 'text styles');
+  const tSlices = slice(p.textPlan, (s) => assemble('runText', { ...common('text'), fonts, plan: s, bindIn }), 'text styles');
   tSlices.forEach((s, i) => {
     const label = `text styles ${i + 1}/${tSlices.length}`;
-    add({ phase: 'theme', kind: 'text', label, purpose: 'Creates or updates the text styles and binds them to the font variables.', expect: '{ ok: true, misses: [] } — `skipped` lists styles whose font this Figma lacks; that is a warning, not a failure.' }, 'runText', { ...common(label), fonts, plan: s });
+    add({ phase: 'theme', kind: 'text', label, purpose: 'Creates or updates the text styles and binds them to the font variables.', expect: '{ ok: true, misses: [] } — `skipped` lists styles whose font this Figma lacks; that is a warning, not a failure.' }, 'runText', { ...common(label), fonts, plan: s, bindIn });
   });
 
   // PERSIST.

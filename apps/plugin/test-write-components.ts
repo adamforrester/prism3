@@ -54,41 +54,27 @@
  * tells you nothing about which of the two loops did it. The responsiveness itself is verified by running
  * it in Figma, and the chunk size is set from `chunkMs` off that run. See `CHUNK` in `write-components.ts`.
  */
-import { figmaAnatomyPlan, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planSetProperties, planSetLayout, planComponentName, planStamp } from '@prism3/engine/anatomy-figma';
-import { ENGINE_VERSION } from '@prism3/engine/version';
-// Source-text only, for `main.ts`'s wiring — see the `(5)` block below for what that can and cannot see.
-import { readFileSync, readdirSync } from 'node:fs';
-import { button } from '@prism3/engine/components/button';
-import { fieldLabel } from '@prism3/engine/components/field-label';
 // The three selection controls read back for #1011 are resolved through `componentDefs` rather than
-// imported by path — the engine's `exports` map names only `button` and `field-label`, and #804's own
-// reasoning says an id-based lookup is the one the main thread does.
-import { fieldMessage } from '@prism3/engine/components/field-message';
-import { componentDefs } from '@prism3/engine/components/index';
-import type { ComponentDef } from '@prism3/engine/component-schema';
+// imported by name — the engine's components entry names only `button`, `fieldLabel` and `fieldMessage`, and
+// #804's own reasoning says an id-based lookup is the one the main thread does.
+import { figmaAnatomyPlan, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planSetProperties, planSetLayout, planComponentName, planStamp, button, fieldLabel, fieldMessage, componentDefs, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, type ComponentDef, type AnatomyPlan } from '@prism3/engine/components';
 // #1015 — the token VALUE half of the corner read-back. The shim gives every variable a synthetic value,
 // so a built node can only name the variable it binds; these three resolve that name against real brands.
-// All in the engine's `exports` map, which is why the value assertion can be co-located with the node one
+// All in the engine's public entries, which is why the value assertion can be co-located with the node one
 // instead of stranded in `test.ts` the way #1010's was.
-import { brandTheme } from '@prism3/engine/theme';
-import { buildTree, pxOf } from '@prism3/engine/tree';
-import { nbTheme } from '@prism3/engine/nb-fixture';
-import { exampleBrands } from '@prism3/engine/emit-brandinput';
+import { ENGINE_VERSION, brandTheme, buildTree, pxOf, leverManifest, parseDesignMd, type BrandInput } from '@prism3/engine';
+import { nbTheme, exampleBrands } from '@prism3/engine/harness';
+// #1608 — the brand's COLOR emission, the host-side oracle for the outline-hover arm.
+import { buildFigmaTextStyles, buildFigmaColor, buildWritePlan } from '@prism3/engine/figma';
+// Source-text only, for `main.ts`'s wiring — see the `(5)` block below for what that can and cannot see.
+import { readFileSync, readdirSync } from 'node:fs';
 // #1605 — the brand materialization `main.ts` projects through, plus NB's real input and emitted styles.
 import { materializeForBrand } from './src/brand-def';
-import { leverManifest } from '@prism3/engine/levers';
 import { prebuildDependencies, missingDependencies, DependencyBuildError, SWAP_TARGET as PLUGIN_SWAP_TARGET, labelAfterBuilds } from './src/build-deps';
-import { parseDesignMd } from '@prism3/engine/design-md';
-import { buildFigmaTextStyles } from '@prism3/engine/emit-figma-font';
-// #1608 — the brand's COLOR emission, the host-side oracle for the outline-hover arm.
-import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import { buildWritePlan } from '@prism3/engine/write-plan';
-import type { BrandInput } from '@prism3/engine/theme';
 import { applyComponentPlan, CHUNK, partialWriteOf, buildReportJson, REF_BACKOFF_MS } from './src/write-components';
 import { refsNote } from './src/apply-summary';
 import { partialWriteHeadline, partialWriteNote, componentHeadline, staleNote } from './src/apply-summary';
 import type { ComponentApplyOptions, ComponentProgress, BuildReport } from './src/write-components';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -1830,6 +1816,18 @@ ok(unavailThrew === '', `#680 a brand whose typeface is not installed no longer 
 ok(unavailMisses.some((m) => m.indexOf('.font ->') >= 0) && unavailMisses.some((m) => m.indexOf('.textStyle ->') >= 0 && m.indexOf('REFUSED') >= 0),
   `#680 ...the font load AND the refused style apply are both reported (${unavailMisses.length} misses)`);
 
+// THE STYLE-FONT REFUSAL'S REASON, WHATEVER THE HOST REJECTS WITH (#3731 review S1). The text-style path loads every
+// style-bound label in every component, so it is the one a file missing the brand's own typeface hits. A host that
+// rejects the style's font with a plain string has that string reported, the whole line typed here. Mutation: the
+// executor's text-style font catch back to `(err as Error).message` fails this arm by name.
+{
+  const r = await run(grid, { ...full(), page: { children: [] }, styleFont: missingFont, unavailableFonts: [missingFont], fontRefusal: 'string' });
+  const refused = r.misses.filter((m) => m.includes('.font -> Clash Display Semi Bold ('));
+  const off = refused.filter((m) => !/^[^ ]+\.font -> Clash Display Semi Bold \(Cannot load font "Clash Display Semi Bold": it is not available\.\)$/.test(m));
+  ok(refused.length > 0 && off.length === 0,
+    `#3731 style font reason: a host that rejects a text style's font with a string has it reported (${refused.length} reported; off: ${off[0] ?? 'none'})`);
+}
+
 // =============================================================================================
 // #682 — THE DEPRECATED PROPORTION LOCK, MIGRATED TO `unlockAspectRatio()`
 // =============================================================================================
@@ -2106,6 +2104,17 @@ catch (e) { mixedThrew = (e as Error).message; }
 ok(mixedThrew === '', `#1599 a mixed-font node does not crash the build — the floor skips figma.mixed rather than loading it${mixedThrew ? ` — ${mixedThrew.slice(0, 90)}` : ''}`);
 ok(mixedThrew === '' && !mixedRun.misses.some((m) => /\.font ->/.test(m)),
   `#1599 ...and nothing was handed to loadFontAsync — no font miss on the mixed arm (${mixedThrew ? 'threw' : mixedRun.misses.filter((m) => /\.font ->/.test(m)).join('; ') || 'none'})`);
+
+// THE FLOOR'S REFUSAL REASON (#3731 review S1). With no style resolved, the #1599 floor loads the node's own current font
+// (`createText`'s Inter Regular); refused with a plain string, that string is reported, the whole line typed here.
+// Mutation: the floor's catch back to `(err as Error).message` fails this arm by name.
+{
+  const r = await run(labelPlans, { ...fullFor(labelPlans), styles: [], unavailableFonts: [{ family: 'Inter', style: 'Regular' }], fontRefusal: 'string', page: { children: [] } });
+  const refused = r.misses.filter((m) => m.includes('.font -> Inter Regular ('));
+  const off = refused.filter((m) => !/^[^ ]+\.font -> Inter Regular \(Cannot load font "Inter Regular": it is not available\.\)$/.test(m));
+  ok(refused.length > 0 && off.length === 0,
+    `#3731 floor font reason: a host that rejects the node's own font with a string has it reported (${refused.length} reported; off: ${off[0] ?? 'none'})`);
+}
 
 // =============================================================================================
 // #1337 — A REFUSED COMPONENT-PROPERTY REFERENCE IS RECOVERED, NOT DROPPED
@@ -2606,7 +2615,7 @@ ok(fmRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 1,
     { def: 'switch-control', part: 'onGlyph', icon: 'icon/check', size: 'control/size/{size}/thumb' },
     { def: 'switch-control', part: 'offGlyph', icon: 'icon/close', size: 'control/size/{size}/thumb' },
     { def: 'tag', part: 'checkGlyph', icon: 'icon/check', size: 'icon/size/{size-1}' },
-    { def: 'tag', part: 'dismissGlyph', icon: 'icon/close', size: 'icon/size/{size-1}' },
+    { def: 'tag', part: 'closeGlyph', icon: 'icon/close', size: 'icon/size/{size-1}' },
     { def: 'select', part: 'chevronGlyph', icon: 'icon/chevron-down', size: 'icon/size/sm' },
     { def: 'textarea', part: 'gripGlyph', icon: 'icon/resize-grip', size: 'icon/size/xs' },
     { def: 'image-placeholder', part: 'markerGlyph', icon: 'icon/image', px: 180 },
@@ -2700,6 +2709,22 @@ await refusedProperty('setTextStyleIdAsync', grid, full(), { setTextStyleId: tru
 // No def declares `effectStyle` (#1007), so this site needs the probe plan rather than `grid`.
 const effProbe: AnatomyPlan = { ...labelPlans[0], root: { ...labelPlans[0].root, effectStyle: 'shadow/md' } };
 await refusedProperty('setEffectStyleIdAsync', [effProbe], fullFor([effProbe]), { setEffectStyleId: true }, /\.effectStyle ->/);
+// #3783 — A TEXT STYLE ON A NODE WITH NO SETTER is one REFUSED miss, and the style is NOT recorded as applied. The
+// optional call `setTextStyleIdAsync?.()` did nothing on a frame and the next line set `appliedStyle` anyway, so the
+// re-apply then reported a DISCARDED it had caused. The projector plans a text style on a TEXT node only, so this plan
+// is synthetic: a label plan's style forced onto its root FRAME, which the shim (as Figma) gives no setter.
+// Mutation: drop the executor's `!node.setTextStyleIdAsync` branch → `#3783 plugin` fails.
+{
+  const style = planTextStyles(labelPlans[0].root)[0];
+  const forced: AnatomyPlan = { ...labelPlans[0], root: { ...labelPlans[0].root, textStyle: style } };
+  let err = '';
+  let res: Awaited<ReturnType<typeof run>> | null = null;
+  try { res = await run([forced], { ...fullFor([forced]), page: { children: [] } }); } catch (e) { err = (e as Error).message; }
+  const mine = (res?.misses ?? []).filter((m) => m.startsWith(`${forced.root.name}.textStyle ->`));
+  const want = `${forced.root.name}.textStyle -> ${style} REFUSED (not a text node)`;
+  ok(!!style && forced.root.type !== 'TEXT' && err === '' && mine.length === 1 && mine[0] === want,
+    `#3783 plugin: a text style planned on a ${forced.root.type} with no setter is the one miss '${want}', not a style recorded as applied (${err ? 'THREW: ' + err.slice(0, 60) : mine.join(' | ') || 'no miss'})`);
+}
 
 const refusedStructure = async (label: string, refuse: NonNullable<ShimOpts['refuse']>) => {
   let threw = false;
@@ -3370,7 +3395,6 @@ const rSet = await run(iconPlans, { ...iconVars, page: setPage });
 ok(setPage.children.length === 1 && setPage.children[0].type === 'COMPONENT_SET' && rSet.emittedComponents === undefined,
   `#1012 MUTATION: the same plans WITHOUT emitAsComponents combine into ONE COMPONENT_SET with no emittedComponents (page ${setPage.children.length}, type ${setPage.children[0]?.type}, emitted ${rSet.emittedComponents === undefined ? 'undefined' : rSet.emittedComponents.length})`);
 
-console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 // =============================================================================================
 // #1605 — THE PLUGIN RESOLVES WEIGHT INTENT PER BRAND (the runtime half of #1602)
 // =============================================================================================
@@ -5038,6 +5062,51 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `#1781 with checkbox-row missing, __old__checkbox-row is not used in its place and the miss names the target (${goneMiss.length} misses, ${goneRows.length} rows from __old__; ${goneMiss[0] ?? 'NO MISS'})`);
 }
 
+// #1796 — TWO PLAIN COMPONENTS UNDER A NEST OR SWAP TARGET'S EXACT NAME
+// =============================================================================================
+// `compByName` keeps one entry per name, so with two plain components under the name a plan nominates, the build
+// nested or swapped in whichever the search returned last and reported success. Now both targets read `oneComp`:
+// two of a name are reported by name, through the shared advice's AMBIGUOUS row, and nothing is made from either —
+// as #1781 refuses two SETS under one name. THE ORACLE is the host: each built INSTANCE's `mainComponent`, recorded
+// by the shim when `createInstance` was called. The paste payload's twin is `test.ts`'s `#1796 paste path` arms.
+{
+  const instancesOf = (page: Page, name: string): number => {
+    let n = 0;
+    const walk = (x: Node): void => {
+      if (x.type === 'INSTANCE' && (x as { mainComponent?: { name: string } }).mainComponent?.name === name) n++;
+      for (const c of (x.children as Node[] | undefined) ?? []) walk(c);
+    };
+    for (const c of page.children) walk(c);
+    return n;
+  };
+  // REACHABILITY: with ONE of each, the grid really does nest the ring and swap in the target.
+  const onePage: Page = { children: [] };
+  await run(grid, { ...full(), page: onePage });
+  ok(instancesOf(onePage, NEST) > 0 && instancesOf(onePage, SWAP) > 0,
+    `#1796 reachable: with one of each, the grid nests ${NEST} (${instancesOf(onePage, NEST)}) and swaps in ${SWAP} (${instancesOf(onePage, SWAP)})`);
+  // The shim really holds two: a COMPONENT search returns the name twice.
+  const twoApi = makeShim({ ...full(), comps: [...full().comps!, NEST, SWAP] }) as unknown as { root: { findAllWithCriteria: (c: { types: string[] }) => { name: string }[] } };
+  const held = twoApi.root.findAllWithCriteria({ types: ['COMPONENT'] }).map((c) => c.name);
+  ok(held.filter((n) => n === NEST).length === 2 && held.filter((n) => n === SWAP).length === 2,
+    `#1796 reachable: a COMPONENT search returns ${NEST} and ${SWAP} twice each`);
+
+  const ringPage: Page = { children: [] };
+  const ring = await run(grid, { ...full(), comps: [...full().comps!, NEST], page: ringPage });
+  const ringMiss = [...new Set(ring.misses.filter((m) => m.includes(`.nestTarget -> ${NEST}`)))];
+  ok(ringMiss.length > 0 && ringMiss.every((m) => m.includes(`.nestTarget -> ${NEST} (found more than one COMPONENT of that name; neither is used`)) && instancesOf(ringPage, NEST) === 0,
+    `#1796 two plain components named ${NEST} are reported by name and no ring is nested from either (${instancesOf(ringPage, NEST)} built; ${ringMiss[0] ?? 'NO MISS'})`);
+  ok(ring.variants === 21, `#1796 ...and the set still builds all 21 members (${ring.variants})`);
+
+  const swapPage: Page = { children: [] };
+  const sw = await run(grid, { ...full(), comps: [...full().comps!, SWAP], page: swapPage });
+  const swNode = [...new Set(sw.misses.filter((m) => m.indexOf(`.swapTarget -> ${SWAP}`) >= 0))];
+  const swProp = [...new Set(sw.misses.filter((m) => m.startsWith('property ') && m.indexOf(`swap target ${SWAP}`) >= 0))];
+  ok(swNode.length > 0 && swNode.every((m) => m.includes(`.swapTarget -> ${SWAP} (${swapMissAdvice('AMBIGUOUS', SWAP)}; ${SWAP_PLACEHOLDER})`) && m.includes('found more than one COMPONENT of that name; neither is used')) && instancesOf(swapPage, SWAP) === 0,
+    `#1796 two plain components named ${SWAP} are reported by name at the swap node and neither is swapped in (${instancesOf(swapPage, SWAP)} built; ${swNode[0] ?? 'NO MISS'})`);
+  ok(swProp.length === 1 && swProp[0].includes(`(${swapMissAdvice('AMBIGUOUS', SWAP)}; ${SWAP_NO_PROPERTY})`),
+    `#1796 ...and the swap property is not created from either (${swProp[0] ?? 'NO MISS'})`);
+}
+
 // ---- #1750: a new set lands beside the page's content, never on top of it ------------------------------
 // Live: every set built onto `↳ Buttons` landed at (0,0) and covered the one before it. Every position below
 // is a literal. The one number the shim decides — the `button` set's measured box — is pinned first as a
@@ -5745,7 +5814,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 // after the style detaches it (#1567), which the shim models. The style names are typed here, not read from the plan.
 {
   const cell = componentDefs.find((d) => d.id === 'code-input-cell')!;
-  const STYLE: Record<string, string> = { small: 'body/md/default', medium: 'title/sm/strong', large: 'title/md/strong', xlarge: 'title/2xl/strong' };
+  const STYLE: Record<string, string> = { small: 'body/md/default', medium: 'title/sm/strong', large: 'title/md/strong', 'x-large': 'title/2xl/strong' };
   const plans = figmaAnatomySet(cell, { swapTarget: SWAP });
   const page: Page = { children: [] };
   const r = await applyComponentPlan(plans, makeShim({ ...fullFor(plans), page }) as any);
@@ -5754,12 +5823,13 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const wantDigits = plans.filter((p) => JSON.stringify(p.root).includes('"name":"digit"')).length;
   const off = digits.flatMap((d) => {
     const member = String((d.parent as Node | undefined)?.parent?.name);
-    const size = /size=(\w+)/.exec(member)?.[1] ?? '';
+    const size = /size=([\w-]+)/.exec(member)?.[1] ?? '';
     const style = String(d._textStyleId ?? '').replace(/^S:/, '');
     return style === STYLE[size] && d.leadingTrim === 'NONE' ? [] : [`${member}: ${style || 'no style'}, trim ${String(d.leadingTrim)}`];
   });
   const styleMisses = (r.misses ?? []).filter((m: string) => /digit\.(leadingTrim|textStyle)/.test(m));
-  ok(digits.length === wantDigits && wantDigits === 12 && off.length === 0 && styleMisses.length === 0,
+  // 16: 4 sizes × the two states that show a character (filled, active filled) × 2 statuses (Q-CC1 A, #3554).
+  ok(digits.length === wantDigits && wantDigits === 16 && off.length === 0 && styleMisses.length === 0,
     `#2428 code-input-cell: every built character (${digits.length} of ${wantDigits}) carries its size's text style (body md, title sm, md, 2xl), untrimmed, and the executor reports no style miss for it (off: ${[...off, ...styleMisses].slice(0, 4).join(' | ') || 'none'})`);
 }
 
@@ -5993,6 +6063,20 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       `sign-in build/font fallback: with Google Sans refused, all 96 members build, every Google label (${google.length}) lands in Roboto Medium 14/20, and the refused face is reported once per Google label as 'label.font -> Google Sans Medium (…)' (${refused.length} reported; off: ${offFace[0] ?? 'none'}; other misses: ${other[0] ?? 'none'})`);
   }
 
+  // THE REFUSAL'S REASON, WHATEVER THE HOST REJECTS WITH (the owner's Update file run, 2026-11-12). Figma's refusal of a
+  // face it does not have carried no `.message`, and every Google label read `label.font -> Google Sans Medium
+  // (undefined)`: the fallback landed, and the reason was lost. A host that rejects with a plain string must have that
+  // string reported, typed here. Mutation: the executor's literal-font catch back to `(err as Error).message` fails this
+  // arm by name.
+  {
+    const fb = await buildSignIn({ unavailableFonts: [{ family: 'Google Sans', style: 'Medium' }], fontRefusal: 'string' });
+    const refused = fb.misses.filter((x) => x.startsWith('label.font -> Google Sans Medium ('));
+    const want = 'label.font -> Google Sans Medium (Cannot load font "Google Sans Medium": it is not available.)';
+    const off = refused.filter((x) => x !== want);
+    ok(fb.members.length === 96 && refused.length === 36 && off.length === 0,
+      `sign-in build/font reason: a host that rejects the load with a string has it reported, on all 36 Google labels (${refused.length} reported; off: ${off[0] ?? 'none'})`);
+  }
+
   // THE LITERAL READ-BACK SPEAKS: a host that takes the container's literal fill and keeps nothing must surface as
   // 'container.fills -> DISCARDED (literal … set, not retained)' on every member, by value. Mutation: the executor's
   // literal read-back guard → `if (false)` fails this arm by name.
@@ -6132,4 +6216,21 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `#3048 every corner a plan binds is still bound to its variable on the built node: claimDefaults wrote no literal over it, which live would unbind it (${lost.length ? `${lost.length} lost: ${lost.slice(0, 4).join('; ')}` : `${claims}/${claims} held`})`);
 }
 
+// =============================================================================================
+// #1857 — THE SUMMARY LINE COUNTS EVERY ARM
+// =============================================================================================
+// The `ALL PASS` / `N FAILED` line is the one line a reader or a `grep` looks for. It once sat at about
+// two thirds of this file, so every arm appended below it ran AFTER the verdict was printed: a failure
+// there exited 1 while the summary still read `ALL PASS`. Read this file's own source and require that no
+// assertion call comes after the summary line, so an arm appended below it fails here, by name.
+{
+  const lines = readFileSync(new URL(import.meta.url), 'utf8').split('\n');
+  const summaries = lines.flatMap((l, i) => (l.includes("'ALL PASS'") && /^console\.log\(/.test(l) ? [i] : []));
+  const at = summaries[0] ?? -1;
+  const after = at < 0 ? [] : lines.slice(at + 1).flatMap((l, i) => (/^\s*(ok|pinned)\(/.test(l) ? [at + 2 + i] : []));
+  ok(summaries.length === 1 && after.length === 0,
+    `#1857 the summary line is printed after every assertion, so it counts them all (${summaries.length} summary line(s)${at >= 0 ? ` at line ${at + 1}` : ''}; ${after.length} assertion call(s) after it${after.length ? `, first at line ${after[0]}` : ''})`);
+}
+
+console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

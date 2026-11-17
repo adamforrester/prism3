@@ -10,7 +10,7 @@
  *  LABEL FIRST, TOKEN UNDER (the owner's QA-B2): `layoutLabel` draws a name in the ground's ink, its token pill under
  *  it, and its value beside. The ink comes from the ground's own custom properties (`ground()` in `kit.ts`), never
  *  inline, so it follows the previewed mode. Nothing here reads the session. */
-import type { LayoutAxis, Theme } from '@prism3/engine/theme';
+import type { LayoutAxis, Theme } from '@prism3/engine';
 import { el, hook, legibleInkOn, specimen, tokenPillSpan, type SgCtx } from './kit';
 
 export type LayoutCtx = {
@@ -47,7 +47,8 @@ export const tinted = (x: LayoutCtx, cls: string, hex: string, text?: string): H
 export const layoutLabel = (label: string, token: string, value: string, read?: [string, string]): HTMLElement => {
   const w = el('div', 'lyv-lab');
   const name = el('div', 'lyv-name');
-  name.append(el('b', 'lyv-label', label), tokenPillSpan(token));
+  name.append(el('b', 'lyv-label', label));
+  if (token) name.append(tokenPillSpan(token));   // '' = no token behind the row (full width, #2434)
   const v = el('span', 'lyv-val mono', value);
   if (read) v.dataset[read[0]] = read[1];
   w.append(name, v);

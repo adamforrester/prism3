@@ -22,7 +22,7 @@ import { currentMode, rp, setCurrentMode, subscribe, theme } from '../state/stor
 import { FLOOR_POINTER, breadthLine, healthLine, isDerived, modeLine, resolvedModes, verdictLine, verdictOf, type Verdict } from '../state/verdict';
 import { INSPECT, type InspectId } from './pages';
 import { glyph, h, hook, menuButton, tile } from './dom';
-import { ENGINE_VERSION } from '@prism3/engine/version';
+import { ENGINE_VERSION } from '@prism3/engine';
 import { buildChip, buildTitle } from '../build-identity';
 
 /** Short mode names, as the legacy mode strip and concept v6 show them. A custom mode shows its own name. */
@@ -90,6 +90,7 @@ export const modeControl = (cleanups: (() => void)[]): ModeControl => {
    *  drops it to the body. So when focus was in the control as the fit began and the one now shown does not hold it,
    *  focus moves to the one now shown: the checked radio, or the select. */
   const fit = (): void => {
+    delete wrap.dataset.fitPending;
     if (!wrap.isConnected) return;
     const had = wrap.contains(document.activeElement);
     place();
@@ -188,9 +189,10 @@ export const modeControl = (cleanups: (() => void)[]): ModeControl => {
   // radios and the select never changes the header's width. Moving the select to its own row changes the header's
   // height, which calls `fit` once more, and that measures the same widths and gives the same answer, so this
   // cannot loop. The fit runs in the next frame, not in the observer's callback: a size changed inside the callback
-  // is a "ResizeObserver loop" error (#2383).
+  // is a "ResizeObserver loop" error (#2383). #3668: until that frame, `data-fit-pending` says the answer on screen is
+  // about to be measured again, so a script choosing a mode waits for it to clear rather than act on the old answer.
   let frame = 0;
-  const ro = new ResizeObserver(() => { cancelAnimationFrame(frame); frame = requestAnimationFrame(fit); });
+  const ro = new ResizeObserver(() => { cancelAnimationFrame(frame); wrap.dataset.fitPending = 'true'; frame = requestAnimationFrame(fit); });
   // #2383: the title and Inspect are watched too, since a new page's title changes what is left for the select without
   // resizing the header. Never the control itself, whose own size the fit changes.
   queueMicrotask(() => {
@@ -242,6 +244,9 @@ export const inspectMenu = (open: (v: InspectId, opener: HTMLElement) => void, c
   btn.type = 'button';
   btn.setAttribute('aria-haspopup', 'menu');
   btn.setAttribute('aria-controls', 'p3-inspect-menu');
+  // #3553 Q-UI1 A: at the wide tier Inspect draws its icon alone, no word and no caret (`chrome.css`), so the mode control's radios fit beside
+  // every page's title at 1280; its name stays "Inspect".
+  btn.setAttribute('aria-label', 'Inspect');
   btn.append(glyph('layers'), h('span', 'p3-btn-label', 'Inspect'), glyph('chev'));
   const menu = hook(h('div', 'p3-menu'), 'inspect-menu');
   menu.id = 'p3-inspect-menu';

@@ -46,6 +46,13 @@
  * Importing the artifact LISTS from regen is importing the SUBJECT, not the expected value — the
  * same posture `lint-us-english.ts` takes. The expected value is the manifest, and it is authored.
  *
+ * READ THROUGH FOR #3698 §5, which suspected this gate of taking its universe from its subject. Verdict: SOUND. The
+ * lists decide only WHICH files are looked at; what each file is EXPECTED to be comes from the authored manifest,
+ * which nothing generates. MEASURED: a file added to `SCHEMA_ARTIFACTS` fails as `UNCLASSIFIED` by name; a file
+ * DROPPED from `SCHEMA_ARTIFACTS` (to slip a moved artifact past `lint-emission-version`) fails here as `STALE RULE`,
+ * because the manifest still names it. One gap, filed as #3818: `REPORT_ARTIFACTS` and `REFERENCE_ARTIFACTS`, which
+ * regen also writes, are outside the universe, so a new report passes unclassified.
+ *
  * THE TRAP THIS GATE SIDESTEPS, stated because it is the one a rewrite would fall into. Patterns
  * are expanded over the manifest's AUTHORED `brands` list, never over brands discovered from
  * `out/`. Expanding over discovered brands would make a new brand's six files match automatically —
@@ -93,7 +100,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ENGINE_ARTIFACTS, MAINTAINER_ARTIFACTS, ON_DEMAND_OUT, SCHEMA_ARTIFACTS } from './regen';
+import { ENGINE_ARTIFACTS, MAINTAINER_ARTIFACTS, ON_DEMAND_OUT, SCHEMA_ARTIFACTS, UNCOMMITTED_OUT } from './regen';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, 'out');
@@ -115,13 +122,15 @@ const walk = (dir: string, prefix: string): string[] => {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
     if (statSync(p).isDirectory()) found.push(...walk(p, `${prefix}${name}/`));
-    else if (!ON_DEMAND_OUT.includes(`${prefix}${name}`.slice('out/'.length))) found.push(`${prefix}${name}`);
+    else if (!ON_DEMAND_OUT.includes(`${prefix}${name}`.slice('out/'.length)) && !UNCOMMITTED_OUT.includes(`${prefix}${name}`.slice('out/'.length))) found.push(`${prefix}${name}`);
   }
   return found;
 };
 
 const actual = [
   ...walk(outDir, 'out/'),
+  // #3698 R3: emitted by regen and never committed, so CI's `out/` has no copy; still payload, so still classified.
+  ...UNCOMMITTED_OUT.map((f) => `out/${f}`),
   ...ENGINE_ARTIFACTS,
   ...SCHEMA_ARTIFACTS.map((f) => `schema/${f}`),
   ...MAINTAINER_ARTIFACTS.map((f) => `schema/${f}`),

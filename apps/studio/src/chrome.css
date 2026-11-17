@@ -231,6 +231,9 @@
   animation: p3-spin-show var(--p3-dur-fast) linear calc(var(--p3-dur-fast) * 3) both, p3-spin var(--p3-dur-spin) linear infinite;
 }
 .p3-btn-primary .p3-spin::before { border-top-color: var(--p3-inv-text); }
+/* #3553 Q-UI8 A: an icon on a primary button (Export's Download) takes the button's own ink, as its words do (the
+   inverse text; a disabled one takes the disabled icon ink, below), never the page's secondary icon gray. */
+.p3-btn-primary .p3-ico { color: var(--p3-inv-text); }
 /* A control's spinner is made with its label, at mount, and held invisible until the control turns busy, and
    an invisible element still runs its animations: the wait and the fade would be spent unseen, long before
    any write (#2332). So it holds no animation until then, and they start when the control turns busy. A
@@ -280,7 +283,13 @@
 /* Settings search (Q3): a magnifier at the end of the levers header opens a field in place. */
 .p3-search { display: flex; align-items: center; flex: none; min-width: 0; }
 .p3-search-box { display: none; }
-.p3-search[data-open="true"] { flex: 0 1 50%; }
+/* #3553 M1 A: an open field takes the row and the tabs hide, at every width (the narrow tier's rule, below, made general).
+   At 50% beside tabs that keep their width, the wide tier left the field about 52px of text, cut the last tab, and ran
+   the status and Close out of the levers column. Moving to another Theme page means closing Search first. */
+.p3-search[data-open="true"] { flex: 1 1 auto; }
+/* On Components the row also carries the page's title, which left the field 0px at 1024 and ran Close past the column at
+   every width: it gives way too, as the tabs do (the rail's tile still names the place). */
+.p3-nav:has(.p3-search[data-open="true"]) :is(.p3-tabs, .p3-preview-title) { display: none; }
 .p3-search[data-open="true"] .p3-search-open { display: none; }
 .p3-search[data-open="true"] .p3-search-box { display: flex; position: relative; align-items: center; gap: var(--p3-space-100); flex: 1 1 auto; min-width: 0; }
 .p3-search-box > .p3-ico { position: absolute; left: var(--p3-space-150); color: var(--p3-icon-2); pointer-events: none; }
@@ -356,9 +365,16 @@
 .p3-export-out { background: var(--p3-fill-1); border-left: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-bardlg-desc { margin: 0; }
 .p3-bardlg-note { margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); }
-.p3-export-seg, .p3-export-oseg { align-self: flex-start; max-width: 100%; }
+.p3-export-oseg { align-self: flex-start; max-width: 100%; }
+/* #3553 M8: the option rows wrap. #3553 Q-UI11 A: the artifact switcher is Documentation's underline tabs (`.p3-tabs`,
+   above), on a hairline as Documentation's head is; the three fit the plugin's 380 (M8's overflow), and the row scrolls
+   rather than wrap if they ever do not. */
 .p3-export-oseg { flex-wrap: wrap; }
-.p3-export-oseg .p3-seg-tab { flex: 0 1 auto; padding: 0 var(--p3-space-150); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
+.p3-export-tabhead { display: flex; border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
+/* #3553 Q-UI7 A: the options are set in the chrome's Inter, as every other segmented control is; only Token names', whose
+   options are token spellings, stay in mono. */
+.p3-export-oseg .p3-seg-tab { flex: 0 1 auto; padding: 0 var(--p3-space-150); font-size: var(--p3-fs-12); }
+.p3-export-oseg[data-key="tokenNameCase"] .p3-seg-tab { font-family: var(--p3-font-mono); }
 .p3-export-sets { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-rhythm-row); }
 /* #3337 (Q3337.4 A): Export's settings join the rhythm: rows a row apart, an L3 label space-050 above its control, the
    control's note the hint rhythm under it. */
@@ -377,6 +393,11 @@
 }
 .p3-bardlg-import { display: grid; gap: var(--p3-space-075); padding: var(--p3-space-150) var(--p3-space-300); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-bardlg-import > .p3-menu-item { justify-self: start; }
+/* #3553 M9: Export draws its captions and its Import action with the menu's classes, so they kept the menu's inner
+   padding and sat a space-150 right of the files, the code and the notes they label. Here a caption starts at the
+   column's edge, and the action's label does too: the button keeps its own padding and hover fill, moved out by it. */
+:is(.p3-export-out, .p3-bardlg-import) > .p3-menu-cap { padding-inline: 0; }
+.p3-bardlg-import > .p3-menu-item { margin-inline-start: calc(-1 * var(--p3-space-150)); }
 
 /* ── the two panes (shown from the first moved page, S2) ─────────────────────────────────── */
 /* The tab row and the preview's title row share ONE grid row (Q2), so the two dividers sit at one y
@@ -425,6 +446,14 @@
   font-weight: var(--p3-fw-bold); letter-spacing: var(--p3-ls-tightest); line-height: var(--p3-lh-compact); white-space: nowrap;
 }
 .p3-preview-head > .p3-popwrap { margin-left: auto; }
+/* #3553 Q-UI1 A: at 1280 the mode control fell back to its select on the pages with longer titles (Style guide, Surfaces &
+   fills, Shape, Depth & motion), so the control changed form between tabs. The fit logic stays; the header gives it
+   room at the wide tier instead: the Contrast tile sets its icon beside its word rather than above it, and Inspect is
+   its icon alone. */
+.p3-frame[data-w="wide"] .p3-preview-head > .p3-tile-start { flex-direction: row; gap: var(--p3-space-075); }
+.p3-frame[data-w="wide"] .p3-preview-head [data-p3="inspect-open"] > :is(.p3-btn-label, .p3-ico:last-child) { display: none; }
+/* Square, as the chrome's other icon buttons (`.p3-btn-icon`), at the control height. */
+.p3-frame[data-w="wide"] .p3-preview-head [data-p3="inspect-open"] { padding: 0; min-width: var(--p3-ctl-h-sm); justify-content: center; }
 /* A button on the page ground takes the page's edge (B1), not the bar's. */
 .p3-btn-page { border-color: var(--p3-edge); }
 /* The mode control (Q1, model B): a radio group on the bar's step, the selected mode filled like a selected
@@ -503,6 +532,10 @@
    edge, radius and padding; only its ground moves, and its specimens stay on the brand's page. The card is
    pinned light, so this reads the light value in either chrome theme. */
 .p3-legacy-card .p3-sgsec { background: var(--p3-levers-bg); }
+/* #3553 M5 A: in the Style guide's galleries an inverse token pill shares its inline-flex wrap with its `inverse` badge. In a
+   narrow card the pill shrank below its longest segment and broke inside it, per character. The wrap wraps, so the
+   badge goes above the pill where the two do not fit side by side. */
+.p3-legacy-card .sg-pills .tpill-wrap { flex-wrap: wrap; }
 /* QA-I2, on Surfaces & fills (S4f): a ratio badge's mark in the chrome's status icon colors, a pass in the success
    icon and a miss in the danger icon, from the chrome theme `preview/badge-marks.ts` stamps on the mark (the one that
    contrasts most with the ground under it). An unstamped mark (no theme reaches 3:1 there) keeps the badge's ink. */
@@ -527,7 +560,6 @@
 .p3-frame[data-w="narrow"] .p3-nav { gap: var(--p3-space-100); padding: var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-nav .p3-tabs { display: none; }
 .p3-frame[data-w="narrow"] .p3-domrow { display: flex; flex: 1 1 auto; min-width: 0; }
-.p3-frame[data-w="narrow"] .p3-search[data-open="true"] { flex: 1 1 auto; }
 .p3-frame[data-w="narrow"] .p3-nav:has(.p3-search[data-open="true"]) .p3-domrow { display: none; }
 .p3-frame[data-w="narrow"] .p3-subnav { padding: var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-subnav .p3-seg { display: flex; width: 100%; }
@@ -849,7 +881,14 @@
 }
 /* One class over the page switch's on rule, which comes later in this file at the same weight. */
 .p3-switch.p3-agent-switch[aria-checked="true"] .p3-switch-knob { transform: translateX(calc(var(--p3-bar-track-w) - var(--p3-bar-thumb) - 2 * var(--p3-bar-thumb-inset))); }
-.p3-frame:is([data-w="narrow"], [data-bar-fit]) .p3-agent-switch-label { display: none; }
+/* #3553 Q-UI10 A: the label stays at the narrow tier, where Q3083.6 A had dropped it and left a bare toggle: there it is the
+   agent glyph rather than the word, so the brand switcher keeps its room. Only the wide bar's fit steps drop it, with the
+   other bar labels. */
+.p3-agent-switch-label { display: inline-flex; align-items: center; }
+.p3-agent-switch-label > .p3-ico { display: none; color: var(--p3-icon); }
+.p3-frame[data-w="wide"][data-bar-fit] .p3-agent-switch-label { display: none; }
+.p3-frame[data-w="narrow"] .p3-agent-switch-label > .p3-ico { display: block; }
+.p3-frame[data-w="narrow"] .p3-agent-switch-word { display: none; }
 .p3-frame[data-w="narrow"] .p3-switch.p3-agent-switch { min-height: var(--p3-ctl-h-xs); }
 /* Minimize (#2949, the owner's Q600 A): a tile at the rail's foot (Q731; on the top bar under #2909), drawn whether the
    agent link is on or off. */
@@ -963,6 +1002,9 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-rhythm-la
 .p3-readout { margin-left: auto; color: var(--p3-text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
 /* #1975: in a snug pane a long readout (Layout's container max, "1440px · 90rem") wraps under itself, set right. */
 .p3-levers[data-fit="snug"] .p3-readout { white-space: normal; text-align: right; }
+/* #3338: Button options is drawn in the preview's card, where no `data-fit` reaches, so a long readout (the Weights line,
+   "subtle 300 · … · max 900") wraps under itself there too, set right, rather than running past the card's edge. */
+.p3-cp-optsec .p3-readout { white-space: normal; text-align: right; }
 .p3-lever-head .p3-readout, .p3-slider-head > .p3-readout { line-height: var(--p3-lh-compact); }
 /* The ⓘ keeps its target (hit-min wide, at least; the narrow tier's buttons are ctl-h-xs tall) but overhangs the heading's
    line equally above and below, so it never sets the row's height at any tier: equal negative margins of a whole hit-min
@@ -1073,6 +1115,11 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-rhythm-la
 /* Personality: the engine's words as chips; a chosen one takes the selected edge and shows its check. A single-select
    `chipChoice` chip draws no check (#3117, Q3117.1 B): its edge alone shows it is pressed, so a pick keeps its width. */
 .p3-chips { display: flex; flex-wrap: wrap; gap: var(--p3-space-100); }
+/* #3553 Q-UI2 A: a single choice whose options do not fit one row is a list, one option to a row, the width of the
+   column (`stackWhenWrapped` in `lever-kit.ts` sets `data-stack`), never a wrap with an orphan on its last row. */
+.p3-choice[data-stack="true"], .p3-chips-one[data-stack="true"] { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+.p3-choice[data-stack="true"] > .p3-seg-tab { flex: none; }
+.p3-chips-one[data-stack="true"] > .p3-btn.p3-chip { justify-content: flex-start; }
 .p3-btn.p3-chip { min-height: var(--p3-ctl-h-xs); padding: 0 var(--p3-space-150); gap: var(--p3-space-050); font-weight: var(--p3-fw-default); }
 .p3-btn.p3-chip > .p3-ico { display: none; }
 .p3-btn.p3-chip[aria-pressed="true"] { border-color: var(--p3-ctl-edge); }
@@ -1330,6 +1377,9 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-fill-name { display: grid; gap: var(--p3-space-025); min-width: 0; }
 .p3-fill-label { font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
 .p3-fill-tok { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
+/* #3553 M3 A: a token that wraps at its dots (`tokenLabel`'s `wrap`, a `<wbr>` after each), so the part that tells
+   rows apart is never the part cut: the easing roles all ellipsized to "motion.easing-ro…" at the plugin's 380. */
+.p3-fill-tok.p3-fill-tok-wrap { overflow: visible; white-space: normal; }
 /* #2217 (heading pass 2): a label stacked over its control, with nothing on its right, puts its token flush right on the
    label's own line, and the token wraps under the label when the two do not fit; at the narrow tier it always does. */
 .p3-fill-name.p3-fill-name-online { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--p3-space-200); row-gap: var(--p3-space-025); }
@@ -1370,6 +1420,9 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
    its % (its name still says percent). */
 .p3-levers[data-fit="snug"] .p3-glassctl { padding-inline-start: 0; }
 .p3-levers[data-fit="snug"] .p3-glassctl .p3-colorfield-meta { display: none; }
+/* #3553 M4 A: every snug color field drops its OKLCH readout, as the glass control does: at the plugin's 380 it was cut to
+   "OKLCH 0.471 0.300…". A percent field's unit (`.p3-numfield`) stays. */
+.p3-levers[data-fit="snug"] .p3-colorfield:not(.p3-numfield) .p3-colorfield-meta { display: none; }
 /* #3106 (Q827 A): the name of the glass fill being added, its Add and Cancel, the token it makes, and why it can't be used. */
 .p3-glassdraft { display: grid; gap: var(--p3-space-050); }
 .p3-glassdraft-btns { display: flex; gap: var(--p3-space-100); }
@@ -1728,6 +1781,8 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
   max-height: calc(10 * var(--p3-ctl-h)); overflow: auto; padding: var(--p3-space-050);
   border: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-xl);
 }
+/* #3553 M11: with no collection open the tree has no rows, and its padded border drew an empty pill. */
+.p3-sg-tree:empty { display: none; }
 .p3-sg-row { display: flex; align-items: center; gap: var(--p3-space-025); min-height: var(--p3-ctl-h-xs); }
 .p3-sg-row[data-depth="1"] { padding-left: var(--p3-space-200); }
 .p3-sg-row[data-depth="2"] { padding-left: var(--p3-space-400); }
@@ -1967,6 +2022,9 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-frame[data-w="narrow"] .p3-docs-tabs { display: none; }
 .p3-frame[data-w="narrow"] .p3-docs-select { display: flex; margin-bottom: var(--p3-space-100); }
 .p3-docs-body > .p3-sg { max-width: none; margin: 0; padding: 0; }
+/* #3553 M12: the narrow tier's own padding for the guide (`.p3-frame[data-w="narrow"] .p3-sg`, above) outranked the line
+   before, so at the plugin's 380 the guide's body sat a space-150 inside the title and the section select over it. */
+.p3-frame[data-w="narrow"] .p3-docs-body > .p3-sg { padding: 0; }
 .p3-docs-card {
   display: grid; gap: var(--p3-space-075); padding: var(--p3-space-200); border: var(--p3-bw-hairline) solid var(--p3-line-1);
   border-radius: var(--p3-radius-xl); background: var(--p3-bg-page);
@@ -1988,10 +2046,7 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-tabs { flex: none; padding: 0 var(--p3-space-300); margin: 0; border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-upd-body { flex: 1 1 auto; min-height: 0; padding: var(--p3-space-150) var(--p3-space-300); gap: var(--p3-space-100); overflow: auto; }
 .p3-upd-body p { margin: 0; }
-.p3-upd-item { display: grid; gap: var(--p3-space-050); padding: var(--p3-space-100) 0; border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
-.p3-upd-item:last-child { border-bottom: 0; }
 .p3-upd-sub { padding-left: var(--p3-space-400); }
-.p3-upd-title { padding-left: var(--p3-space-100); }
 .p3-upd-sets { display: grid; gap: var(--p3-space-025); padding-left: var(--p3-space-300); }
 .p3-upd-setname { flex: 1 1 auto; min-width: 0; }
 /* #3133: a due row's name and tag, on one line where they fit (the tag at the line's end, the gap the row had) and on two
@@ -2005,7 +2060,7 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-subtitle { padding-left: var(--p3-space-400); color: var(--p3-text); font-weight: var(--p3-fw-emphasis); }
 /* At the narrow tier the items' titles are their boxes' labels, 12px (the tier's controls): Components' title and its
    subtitles take the same size, so the section reads at Theme's level there too. */
-.p3-frame[data-w="narrow"] :is(.p3-upd-title, .p3-upd-subtitle) { font-size: var(--p3-fs-12); }
+.p3-frame[data-w="narrow"] .p3-upd-title { font-size: var(--p3-fs-12); }
 .p3-upd-grouphead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--p3-space-100); }
 .p3-upd-grouphead > .p3-upd-removeall { min-height: var(--p3-ctl-h-xs); }
 .p3-upd-addrow { display: flex; align-items: center; gap: var(--p3-space-100); min-height: var(--p3-ctl-h-xs); padding-left: var(--p3-space-100); }
@@ -2033,14 +2088,79 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-handsel > .p3-sub { white-space: nowrap; }
 .p3-upd-handsel > .p3-selwrap { flex: none; }
 .p3-frame[data-w="narrow"] .p3-upd-handsel { flex-basis: 100%; }
-/* #3302 (the owner's Q3302.1 A, 2026-11-02): the check's progress at the foot's start, the chrome's own bar at the strip's
-   width and the count beside it in the secondary ink; Cancel and Update file stay at the end. At 380 the buttons wrap
-   under it as the row runs out. The bar moves only as a set is checked (#3150). */
-.p3-upd-progress { display: flex; align-items: center; gap: var(--p3-space-100); margin-right: auto; min-width: 0; }
+/* #3302 (the owner's Q3302.1 A, 2026-11-02): the check's progress, the chrome's own bar at the strip's width and the
+   count beside it in the secondary ink. Since #3712 (Q-UD2) it is a message row above the buttons, as every message
+   is. The bar moves only as a set is checked (#3150). */
+.p3-upd-progress { display: flex; align-items: center; gap: var(--p3-space-100); min-width: 0; }
 .p3-upd-prog { flex: none; width: calc(2 * var(--p3-ctl-h)); }
 .p3-upd-progtext { white-space: nowrap; }
-.p3-upd-handrow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); padding-left: var(--p3-space-300); }
-.p3-upd-saves { padding-left: var(--p3-space-300); }
+.p3-upd-handrow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); }
+/* ── #3712 (the owner's Q-UD2, 2026-11-13: direction C, folded step cards) ──────────────────────────────────────────
+   The Update tab's body is the levers gray (`.p3-levers`), each step a white card on it (`.p3-lsec`'s surface, hairline
+   and radius): its head row is the box and title, a status chip and, where it holds groups, a chevron that folds it.
+   Inside an open card each group is an inset on the fill gray (`.p3-tip`) with Palettes' small-capital title
+   (`.p3-card-title`), its rows split by hairlines. One indent for every line that explains a box: the box's label's
+   left edge (the check's hairline, its box and its gap), so a line starts where the text it explains starts (audit S3). */
+.p3-upd-deck { background: var(--p3-levers-bg); gap: var(--p3-space-100); }
+.p3-upd-deck > .p3-upd-lead, .p3-upd-deck > .p3-upd-sub { padding: 0; color: var(--p3-text-2); }
+.p3-upd-card { display: grid; gap: var(--p3-space-050); padding: var(--p3-space-100) var(--p3-space-150) var(--p3-space-150) var(--p3-space-200);
+  border: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-xl); background: var(--p3-bg-page); }
+.p3-upd-card[data-open="false"] { padding-bottom: var(--p3-space-100); }
+.p3-upd-card > * { min-width: 0; }
+.p3-upd-cardhead { display: flex; align-items: center; gap: var(--p3-space-100); min-height: var(--p3-ctl-h-sm); }
+.p3-upd-cardhead > .p3-btn.p3-check { width: auto; flex: 0 1 auto; margin-left: calc(-1 * var(--p3-space-100)); }
+.p3-upd-cardhead > .p3-sg-tag { flex: 0 1 auto; margin-left: auto; min-width: 0; }
+.p3-upd-cardhead > .p3-upd-cardtitle { flex: none; }
+.p3-upd-cardhead > .p3-upd-cardtitle + .p3-upd-fold { margin-left: auto; }
+.p3-upd-cardtitle { font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snugger); color: var(--p3-text); }
+.p3-upd-card[data-on="false"] .p3-upd-cardtitle { color: var(--p3-text-2); }
+.p3-btn.p3-btn-icon.p3-upd-fold { flex: none; min-width: var(--p3-ctl-h-xs); min-height: var(--p3-ctl-h-xs); }
+.p3-upd-fold[aria-expanded="true"] > .p3-ico { transform: rotate(90deg); }
+.p3-upd-card > .p3-upd-sub { padding-left: calc(var(--p3-bw-hairline) + var(--p3-space-200) + var(--p3-space-150)); }
+.p3-upd-card > .p3-upd-saves { padding-top: var(--p3-space-050); }
+.p3-upd-card > .p3-upd-summary, .p3-upd-card > .p3-upd-line { padding: var(--p3-space-050) 0; }
+/* #3712 (Q-UD4 A): a Clean up card's own action (Remove panels, Remove tables) in a row at its foot, at its end. */
+.p3-upd-cardacts { display: flex; justify-content: flex-end; padding-top: var(--p3-space-050); }
+.p3-upd-cardacts > .p3-btn { flex: 0 1 auto; min-width: 0; }
+.p3-upd-inset { gap: var(--p3-space-075); padding: var(--p3-space-150); padding-top: var(--p3-space-150); margin-top: var(--p3-space-050); border-radius: var(--p3-radius-lg); background: var(--p3-fill-1); }
+.p3-upd-inset .p3-upd-subtitle { padding: 0; color: var(--p3-text); }
+.p3-upd-inset .p3-upd-sub { padding: 0; }
+.p3-upd-inset .p3-upd-grouphead { min-height: var(--p3-ctl-h-xs); }
+.p3-upd-inset .p3-upd-sets { gap: 0; padding: 0; }
+.p3-upd-inset .p3-upd-sets > :is(.p3-upd-setrow, .p3-upd-addrow) { padding: var(--p3-space-075) 0; }
+.p3-upd-inset .p3-upd-sets > :not(.p3-upd-breaks) + :not(.p3-upd-breaks) { border-top: var(--p3-bw-hairline) solid var(--p3-line-2); }
+.p3-upd-inset .p3-upd-sets > .p3-upd-breaks { padding-bottom: var(--p3-space-075); }
+.p3-upd-inset .p3-upd-setline { padding-left: calc(var(--p3-bw-hairline) + var(--p3-space-200) + var(--p3-space-150)); }
+.p3-upd-inset .p3-upd-check { margin-left: calc(-1 * var(--p3-space-100)); width: calc(100% + var(--p3-space-100)); }
+.p3-upd-inset .p3-upd-checktext > .p3-sg-tag, .p3-upd-inset .p3-upd-krow .p3-sg-tag { background: var(--p3-bg-page); }
+.p3-upd-inset :is(.p3-upd-addall, .p3-upd-disclose) { margin-left: 0; }
+.p3-upd-locked > .p3-upd-setname { display: inline-flex; align-items: center; gap: var(--p3-space-075); }
+.p3-upd-locked > .p3-upd-setname > .p3-ico { flex: none; color: var(--p3-icon-2); }
+.p3-upd-locked + .p3-upd-setline, .p3-upd-krow .p3-upd-setline { padding-left: 0; }
+.p3-upd-krow { display: flex; align-items: center; gap: var(--p3-space-150); }
+.p3-upd-kname { display: grid; gap: var(--p3-space-025); flex: 1 1 auto; min-width: 0; }
+.p3-upd-kname > .p3-upd-setname { font-weight: var(--p3-fw-emphasis); }
+.p3-upd-kname > .p3-upd-will { color: var(--p3-text); }
+.p3-upd-krow > .p3-selwrap { flex: none; width: calc(var(--p3-l-col) * 2.5); }
+.p3-upd-krow .p3-select { min-height: var(--p3-ctl-h-xs); font-size: var(--p3-fs-12); padding-left: var(--p3-space-150); }
+.p3-upd-warn { align-items: flex-start; }
+.p3-upd-warn > .p3-ico, .p3-upd-libcall > .p3-ico { flex: none; }
+.p3-frame[data-w="narrow"] .p3-upd-card { padding-left: var(--p3-space-150); padding-right: var(--p3-space-100); }
+.p3-frame[data-w="narrow"] .p3-upd-krow { flex-wrap: wrap; }
+.p3-frame[data-w="narrow"] .p3-upd-krow > .p3-selwrap { width: 100%; }
+/* The foot (the owner's Q-UD2 change): one treatment in every state. Each message (the check's progress, why the action
+   is off, the library changes) is a full-width row above the buttons; the buttons keep one row and never stack, at 380
+   or at 640. The hand-edits choice (#3083) sits before them on their row, and at 380 on a row of its own above them. */
+.p3-bardlg-foot.p3-upd-foot { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+.p3-upd-msg { display: flex; min-width: 0; }
+.p3-upd-msg > * { flex: 1 1 auto; min-width: 0; }
+.p3-upd-msg > .p3-sub { margin: 0; }
+.p3-upd-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--p3-space-100); }
+.p3-upd-btns { display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: var(--p3-space-100); margin-left: auto; min-width: 0; }
+.p3-upd-btns > .p3-btn { flex: 0 1 auto; min-width: 0; }
+.p3-upd-libcall { align-items: flex-start; }
+.p3-upd-libcall > .p3-sg-warn-text { display: grid; gap: var(--p3-space-050); }
+.p3-upd-libcall .p3-sub { margin: 0; color: var(--p3-text); }
 /* #2909 Q2909.8 A: a set's statuses on Components' list, after its meta. */
 .p3-cp-status { display: inline-flex; flex-wrap: wrap; gap: var(--p3-space-025); flex: none; margin-left: var(--p3-space-050); }
 

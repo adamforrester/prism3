@@ -186,6 +186,9 @@ export const tag: ComponentDef = {
   // is what is left once the inset is taken off, never below 0 and never floored itself.
   visibleGaps: [{ gap: 'size.{size}.dismissible.gap', visible: 'size.{size}.dismissible.visible-gap', inset: 'size.{size}.dismissible.label-inset' }],
 
+  // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
+  levers: { tagStyle: { frame: 'container', row: 'content', labelRow: 'labelCheck', slot: 'dismiss' }, buttonLabelWeight: { labels: true } },
+
   tokens: {
     // Geometry. `radius.round` (the pill) keeps the tag off Button's `radius.md` rectangle, which an outlined
     // neutral tag would otherwise match edge for edge, and off the status badge's `radius.sm`; it is the
@@ -359,7 +362,10 @@ export const tag: ComponentDef = {
       label: {
         kind: 'text',
         type: 'size.{size}.type',
-        note: 'The tag text, at the same weight whether or not the tag is selected, so the label keeps its width when the tag is selected; the check mark, when shown, adds a cell after it. In code a long label wraps; Figma holds one line.',
+        // Maintainer detail, out of the reader caption (#3610): The tag text, at the same weight whether or not the
+        // tag is selected, so the label keeps its width when the tag is selected; the check mark, when shown, adds a
+        // cell after it. In code a long label wraps; Figma holds one line.
+        note: 'The tag\'s text, at the same weight whether or not the tag is selected, so the tag keeps its width when selected.',
       },
       checkGlyph: {
         kind: 'vector',
@@ -383,10 +389,10 @@ export const tag: ComponentDef = {
         innerTarget: true,
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         presentWhen: { type: ['dismissible'] },
-        children: ['dismissGlyph'],
+        children: ['closeGlyph'],
         note: 'The remove slot of a dismissible tag: a square as tall as the tag, at its trailing end, holding the × glyph.',
       },
-      dismissGlyph: {
+      closeGlyph: {
         kind: 'vector',
         glyph: 'close',
         size: 'size.{size}.icon',
@@ -577,7 +583,7 @@ export const tag: ComponentDef = {
   ai: {
     primaryPurpose: 'Render a small interactive token the user toggles or removes in place.',
     whenToUse: 'Inline filters toggled on and off (select), applied filters the user can remove, or recipients or keywords entered into a field (dismissible), usually in a group.',
-    avoidWhen: 'Nobody can act on it (use a badge), it runs an action (use a button), or it is a structured choice in a form submission (use a checkbox group or radio group).',
+    avoidWhen: 'Nobody can act on it (use Badge), it runs an action (use Button), or it is a structured choice in a form submission (use Checkbox.Group or Radio.Group).',
     commonPartners: ['badge', 'icon', 'checkbox-group', 'radio-group'],
     triggerKeywords: ['tag', 'chip', 'filter tag', 'filter chip', 'input tag', 'input chip', 'removable tag', 'dismissible tag', 'selectable tag', 'select tag', 'choice chip', 'facet', 'applied filter', 'recipient token'],
     generationPriority: 3,

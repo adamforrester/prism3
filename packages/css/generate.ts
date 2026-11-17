@@ -30,6 +30,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { button, focusRing, spinner } from '@prism3/engine/components/index';
 import { demoHtml } from './demo';
+import { readUncommitted } from './emission';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(HERE, '../engine/out');
@@ -42,8 +43,8 @@ const LAYER = 'p3';
 const ROOT_CLASS = `.${PREFIX}-${COMPONENT}`;
 
 // ------------------------------------------------------------------------------------------------ inputs
-const specs = JSON.parse(readFileSync(resolve(OUT, 'components/specs.json'), 'utf8')).components;
-const defs = JSON.parse(readFileSync(resolve(OUT, 'components/component-defs.json'), 'utf8')).components;
+const specs = readUncommitted('specs.json').components;
+const defs = readUncommitted('component-defs.json').components;
 const tree = JSON.parse(readFileSync(resolve(OUT, 'prism3.tokens.json'), 'utf8'));
 const TOKEN_ROOT = Object.keys(tree).filter((k) => !k.startsWith('$'))[0];
 

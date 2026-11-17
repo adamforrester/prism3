@@ -85,7 +85,7 @@ Page titles in sentence case, matching each page heading.
 
 - **Built from:** `page-nav-item`
 - **Instead, consider:** `tabs`, `breadcrumbs`
-- **Often used with:** `link`, `breadcrumbs`
+- **Often used with:** `link`
 - **Replaces:**
   - a tab list whose tabs change the page or the address
   - links styled as tabs with a selected state

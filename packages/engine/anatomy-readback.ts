@@ -78,6 +78,7 @@
  */
 
 import type { AnatomyPlan, FigmaNodePlan, NestOverride } from './anatomy-figma.ts';
+import { localeFreeCompare } from './locale-free-order';
 
 /** What the reader needs of a host node. Deliberately structural and open: a host carries far more,
  *  and naming only what is read keeps this file honest about its own scope. */
@@ -908,7 +909,7 @@ export const unclassifiedFields = (plans: AnatomyPlan[]): string[] => {
  *  harnesses so the coverage is read rather than assumed. */
 export const fieldCoverage = (): { checked: string[]; unchecked: { field: string; reason: string }[] } => ({
   checked: Object.entries(FIELDS).filter(([, f]) => f.check).map(([k]) => k).sort(),
-  unchecked: Object.entries(FIELDS).filter(([, f]) => !f.check).map(([field, f]) => ({ field, reason: f.reason ?? '' })).sort((a, b) => a.field.localeCompare(b.field)),
+  unchecked: Object.entries(FIELDS).filter(([, f]) => !f.check).map(([field, f]) => ({ field, reason: f.reason ?? '' })).sort((a, b) => localeFreeCompare(a.field, b.field)),
 });
 
 const childrenOf = (n: HostNode): HostNode[] => (Array.isArray(n.children) ? (n.children as HostNode[]) : []);

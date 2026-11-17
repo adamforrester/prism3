@@ -9,11 +9,11 @@
 
 ## Overview
 
-A labeled set for choosing exactly one from a small set of mutually exclusive, all-visible options. A required section label (FieldLabel) above a vertical stack of Radio.Row options. Owns the contract a single radio cannot — and without which the radios are not radios at all: the shared name that enforces exclusivity, the single scalar value, the single tab stop with roving focus, and all validation, announced once for the group. Use for 2 to about 7 options where seeing them all aids the decision; past that, a Select or a filtering combobox (not built yet) scans better. Not any-number selection (Checkbox.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).
+A labeled set for choosing exactly one from a small set of mutually exclusive, all-visible options. A required section label (FieldLabel) above a vertical stack of Radio.Row options. Owns the contract a single radio cannot — and without which the radios are not radios at all: the shared name that enforces exclusivity, the single scalar value, the single tab stop with roving focus, and all validation, announced once for the group. Use for 2 to 7 options where seeing them all aids the decision; past that, a Select or a filtering combobox (not built yet) scans better. Not any-number selection (Checkbox.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).
 
 - **Purpose:** Choose exactly one from a bounded set via a labeled stack of Radio.Row options, with the group owning the shared name, the single scalar value, group-level required and all validation.
-- **Use when:** A small bounded single-select committed on save (shipping method, plan tier, a contact preference), where seeing all 2 to about 7 options aids the choice and the group needs one label, one required rule and one validation message.
-- **Avoid when:** Any number of options may be chosen (Checkbox.Group — exactly-one versus any-number), a single independent opt-in with no siblings (a lone Checkbox.Row), the change takes effect the instant it is toggled (Switch.Row, or SegmentedControl), or the set runs past about 7 options or vertical space is tight (a Select, or a filtering combobox, not built yet).
+- **Use when:** A small bounded single-select committed on save (shipping method, plan tier, a contact preference), where seeing all 2 to 7 options aids the choice and the group needs one label, one required rule and one validation message.
+- **Avoid when:** Any number of options may be chosen (Checkbox.Group — exactly-one versus any-number), a single independent opt-in with no siblings (a lone Checkbox.Row), the change takes effect the instant it is toggled (Switch.Row, or SegmentedControl), or the set runs past 7 options or vertical space is tight (a Select, or a filtering combobox, not built yet).
 
 ## Anatomy
 
@@ -21,7 +21,7 @@ Shown on the default member: size `medium`, status `default`.
 
 1. **Label** — The group heading and accessible name, composed rather than re-declared. Starts primary and bold; its label text, required marker, emphasis and weight surface on the group. Its size follows the group; a fix to FieldLabel reaches here without a copy. Fills the group's width; a long heading wraps at FieldLabel's max width. It is MANDATORY: an unlabeled radio group announces "radio button, 1 of 3" with no idea what the choice is.
 2. **Items** — The items: a native slot holding the Radio.Row instances, three by default. A designer adds, removes and reorders rows in place.
-3. **Row1**
+3. **Row1** — The first option, always present; it fills the group's width and is selected when its value is the group's value.
 4. **Row2** — The second default item: a Radio.Row, the same nest configuration as the first, including the group-width fill.
 5. **Row3** — The third default item: a Radio.Row, the same nest configuration as the first, including the group-width fill.
 6. **Message** — The group's validation message under the options, a nested FieldMessage present only when the group is at error. Its status follows the group's, so it shows the error glyph and ink. Fills the group's width, so a long message wraps.
@@ -35,7 +35,7 @@ Shown on the default member: size `medium`, status `default`.
 
 ## Usage guidelines
 
-Use to choose exactly one of 2 to about 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Give the group a label that names the decision; let it own the shared name, the single scalar value, required and validation, and derive each row's checked state from the value rather than wiring it on the row. Compose the rows as items. Prefer vertical orientation, which scans better and lets long labels wrap safely. Past about 7 options a Select or a filtering combobox (not built yet) scans better; for any-number selection use Checkbox.Group, and for an immediate-effect setting Switch.Row.
+Use to choose exactly one of 2 to 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Give the group a label that names the decision; let it own the shared name, the single scalar value, required and validation, and derive each row's checked state from the value rather than wiring it on the row. Compose the rows as items. Prefer vertical orientation, which scans better and lets long labels wrap safely. Past 7 options a Select or a filtering combobox (not built yet) scans better; for any-number selection use Checkbox.Group, and for an immediate-effect setting Switch.Row.
 
 ### Do
 
@@ -51,7 +51,7 @@ Use to choose exactly one of 2 to about 7 mutually exclusive, all-visible option
 - Set checked, onChange or name on an individual option — all three belong to the group, and an option setting its own name breaks exclusivity outright
 - Make each option its own tab stop — the group is one stop with arrow navigation, and getting this wrong is the most common radio accessibility failure
 - Model an any-number choice as a radio group — that is Checkbox.Group
-- Reach for a radio group past about 7 options or in tight vertical space — that is a Select
+- Reach for a radio group past 7 options or in tight vertical space — that is a Select
 - Override Enter to select — Enter submits the form, and that expectation is universal
 
 ## Accessibility
@@ -60,7 +60,7 @@ Use to choose exactly one of 2 to about 7 mutually exclusive, all-visible option
 - **Focus:** Focus lands on one option at a time (roving), not on every option in turn. On focus restore into the group (a validation error, a legend click), focus the checked radio rather than blindly the first; if none is checked, the first non-disabled option. The group container is not itself focusable. Keep the :focus-visible ring instant (a fade lags rapid arrow navigation) and circular (the control is full-round).
 - **Screen readers:** radiogroup (role="radiogroup" on the container, or a native \<fieldset>) with aria-labelledby pointing at the FieldLabel; each row is a native \<input type="radio"> sharing the group's name
 
-  Prefer role="radiogroup" on a div plus aria-labelledby over \<fieldset>/\<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="radiogroup" keeps the layout freedom while preserving the shared-label announcement. The group label is mandatory for meaning: without it assistive tech announces an orphaned "radio button, 1 of 3". The group owns required and error — aria-required and aria-invalid associate to the group and announce once, and the group's message joins its aria-describedby; an individual option never owns its own required or error. The group passes its status to every option, so the options show the error without each claiming it. Native inputs sharing a name give the grouping, the exclusivity and the roving-tabindex keyboard model for free. Do not double-label: the rows carry their short labels, the group carries the decision.
+  Prefer role="radiogroup" on a div plus aria-labelledby over \<fieldset>/\<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="radiogroup" keeps the layout freedom while preserving the shared-label announcement. The group label is mandatory for meaning: without it assistive tech announces an orphaned "radio button, 1 of 3". The group owns required and error — aria-required and aria-invalid associate to the group and announce once, and the group's message joins its aria-describedby; an individual option never owns its own required or error. The group passes its status to every option, so the options show the error without each claiming it. Native inputs sharing a name give the grouping, the exclusivity and the single-tab-stop arrow-key model for free; native radios do not handle Home/End, so that jump is added in script. Do not double-label: the rows carry their short labels, the group carries the decision.
 
 ### WCAG
 
@@ -73,9 +73,9 @@ Use to choose exactly one of 2 to about 7 mutually exclusive, all-visible option
 
 ### Motion
 
-- **Enter:** None (present on mount). On select, the chosen option's dot scales in, about 100-150ms.
+- **Enter:** None (present on mount). On select, the chosen option's dot scales in, on motion.duration.fast.
 - **Exit:** Selecting an option animates the previously selected option's dot out — exclusivity made visible, and the only exit a radio has. Rows do not animate in or out of the stack.
-- **Reduced motion:** No layout motion. Under prefers-reduced-motion, both dots snap through opacity and color only; the focus ring appears instantly at every setting.
+- **Reduced motion:** No layout motion. Under prefers-reduced-motion, both dots fade with no scale, on motion.duration-reduced.fast; the focus ring appears instantly at every setting.
 
 ## Content guidelines
 
@@ -88,7 +88,7 @@ The group label names the decision; the rows carry the short options. Group erro
 ## Related components
 
 - **Built from:** `radio-row`, `field-label`, `field-message`
-- **Instead, consider:** `checkbox-group`, `select`, `switch-row`, `segmented-control`
+- **Instead, consider:** `checkbox-group`, `select`, `switch-row`, `segmented-control`, `tag`, `slider`
 - **Often used with:** `radio-control`
 - **Replaces:**
   - a bare set of \<input type="radio"> with no shared label or group wiring

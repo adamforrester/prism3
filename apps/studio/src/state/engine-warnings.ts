@@ -2,8 +2,8 @@
  * The engine's two notes that nothing else on screen says (#2909 Q2909.7 A). The Decisions log, Inspect's third view, is
  * cut: most of its notes restate a lever's value, which the lever already shows. Two kinds appeared nowhere else, so each
  * moves onto the lever it comes from, in the engine's own words:
- *   · an anchor outside the sRGB gamut, which ships clamped (`gamutNote` in `packages/engine/theme.ts`): on Primary, on
- *     the brand color it names, or on the pinned neutral;
+ *   · an anchor outside the sRGB gamut, which ships clamped (`gamutNote` in `packages/engine/theme-brand.ts`): on
+ *     Primary, on the brand color it names, or on the pinned neutral;
  *   · the danger hue the engine chose when the brand gave none (the `danger:` notes there: "the primary is not red, so
  *     danger gets its own red"): on Status colors' Danger.
  * Every note still ships in `$extensions.prism3.decisions`. Pure, no DOM, so `test-engine-warnings.ts` drives it over

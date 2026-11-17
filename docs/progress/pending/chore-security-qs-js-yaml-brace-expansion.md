@@ -1,5 +1,0 @@
-## (2026-11-07) — Lockfile picks up patched qs, js-yaml and brace-expansion
-
-Owner decision Q103 A: carry the security fixes GitHub raised on the private POC copy for **qs**, **js-yaml** and **brace-expansion**. `npm audit` on `main` (9a0847d1) showed js-yaml 4.3.1 (high, GHSA-2883-xcg3-v3hh), brace-expansion 1.1.18 and 5.0.9 under eslint, eslint-plugin-import and @typescript-eslint (high, GHSA-q2hr-2g5m-vwhr, GHSA-qhr7-859c-m2p7, GHSA-6j4f-fj2g-mc7p), and qs 6.15.3 under style-dictionary's bundled glob (moderate, GHSA-x5fp-wj9c-mxmx, GHSA-4mjr-xmp4-gh2g, GHSA-6pq8-jhm2-2vcw). All three are transitive, so `npm update qs js-yaml brace-expansion` moved them inside their existing ranges: js-yaml 4.3.2, brace-expansion 1.1.21 and 5.0.12, qs 6.17.1. Only `package-lock.json` changes, seven entries, and no `package.json` or engine output moves.
-
-**Why not `npm audit fix`:** it would also have moved glob, which this change leaves alone. The remaining advisories (deepmerge and @bundled-es-modules under style-dictionary, esbuild, glob, minimatch under @typescript-eslint) need a major bump or are out of scope, and are filed as one follow-up issue.

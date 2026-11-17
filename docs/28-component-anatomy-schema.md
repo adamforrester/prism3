@@ -485,9 +485,9 @@ work that owns them: `text-field` binds `border.focus` and `border.readonly` whi
 `focus-visible` and `read-only`, so neither is ever reached and a focused field would paint its **rest**
 border; and `field-message`'s `text` keys cannot be filled by a `{slot}` the projector fills with
 `label`. Both were equally real before, and nothing in the repo could see either. Naming them is what
-declaring the grammar bought — **and deferring them is what hid the other four**, which is §5.1.
+declaring the grammar bought — **and deferring them is what hid the other four**, which is §5.1.1.
 
-### 5.1 The slot vocabulary (#784)
+#### 5.1.1 The slot vocabulary (#784)
 
 **A def spells the paint ORDER and the AXES. It does not get to invent the slot NAMES.** The slot is the
 argument `paintOf` is *called* with, so the vocabulary is the projector's: `PAINT_SLOTS = ['fill',
@@ -655,7 +655,8 @@ mockup.
 each named step **one step down** the space ladder and spacious **one step up**. A step is one position in
 the ladder as `scale.ts` writes it — `0, 025, 050, 075, 100, 150, 200, 250, 300, 400, …` — so 16px goes to
 12 at compact and 20 at spacious, and 24px to 20 and 32. **The ends clamp:** compact at `space.0` stays
-`space.0`, spacious at `space.1200` stays `space.1200`. A spacing that must not move (Tag's 0 inset before
+`space.0`, spacious at `space.1200` stays `space.1200`. `space.550` (44px, #3408 Q-HT1 A) is a step of the
+scale but not of the ladder: it is the hit-target floor, not a rhythm step, so density never lands on it. A spacing that must not move (Tag's 0 inset before
 the dismissible × slot, a field's stack gap) stays off the list. Heights keep their own density window.
 This rule replaces the window padding used to ride on, so compact and spacious spacing moved for the
 existing components; the per-component table is in the PR and `docs/00-progress.md`.

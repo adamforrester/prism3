@@ -11,7 +11,7 @@
 
 One item in a List: a marker in a fixed-width column, then short text that wraps under itself rather than under the marker. The marker is a bullet, a number or an icon, and it sits on the first line of the text however many lines the item runs to. The marker column has one width for each type, so the text of every item in a list starts at one edge. Used inside a List; the List sets the type and size of every item it holds.
 
-- **Purpose:** One item inside a List: a marker in a fixed column, then text that wraps under itself.
+- **Purpose:** Hold one item inside a List: a marker in a fixed column, then text that wraps under itself.
 - **Use when:** Only as a child of a List. Generate a List, which places its items and sets their marker type and size.
 - **Avoid when:** Content a writer edits as normal copy (use a native text list in the text itself), a choice the user makes (a listbox), a command (a menu), or a navigation link (a navigation, not built yet).
 
@@ -22,7 +22,7 @@ Shown on the default member: type `unordered`, size `medium`.
 1. **Row** — The item: the marker column, then the text. Top-aligned, so a wrapping item keeps its marker on the first line.
 2. **Marker box** — The marker column: one width per type and one text line tall, so the marker sits on the first line and the text of every item in the list starts at one edge.
 3. **Bullet** — The bullet: a round dot, in the icon color.
-4. **Number**
+4. **Number** — The item's number, in the item's text style and color; the list counts it.
 5. **Icon** — The icon marker, a check by default and swappable, in the icon color. Decorative: the text carries the meaning.
 6. **Label** — The item text. It fills the rest of the row and wraps under itself, never under the marker.
 
@@ -252,7 +252,7 @@ Keyed by `type`.
 
 | Property | Type | Default |
 | --- | --- | --- |
-| `text` | text | `List item` |
+| `label` | text | `List item` |
 | `number` | text | `1.` |
 | `swap icon` | instance swap | — |
 

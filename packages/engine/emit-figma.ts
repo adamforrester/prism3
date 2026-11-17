@@ -63,8 +63,8 @@
  *     `container/max`, `container/narrow`) with different values/aliases per
  *     mode; gutter/margin per-mode alias into `space/*`. Composes independently
  *     with the colour light/dark collection: `mode` here is the *viewport*,
- *     over there it's the *theme*. `container/fluid` (100%) skipped — no Figma
- *     variable primitive for percentage-of-parent.
+ *     over there it's the *theme*. No `container/fluid`: the token layer
+ *     dropped it (#2434 — `100%` is no DTCG `dimension` unit).
  *   • SHADOW + GRADIENT — Effect Styles + Paint Styles (not variables — docs/08
  *     §5 variable-type ceiling). Shadow emits TWO style sets per step (light in
  *     `shadow/*`, dark in `shadow-dark/*`) because Figma Effect Styles don't

@@ -18,7 +18,7 @@ capabilities**. This split *is* the architecture — it decides where each layer
 |---|---|---|
 | Figma document (`figma.*`, canvas, variables, nodes) | ✅ **only here** | ❌ none |
 | DOM / rendering | ❌ | ✅ |
-| Network (`fetch`/`XHR`) | ❌ **cannot** | ✅ (gated by manifest) |
+| Network (`fetch`/`XHR`) | Figma's own `fetch`²; **Prism3's makes no request** | ✅ (gated by manifest) |
 | `setTimeout`/`setInterval` | ✅ Figma's own, not the browser's¹ | ✅ |
 | JS runtime | minimal (QuickJS-class): ES2020+, `Array/Object/Map/Set/Promise/Proxy/Reflect/JSON/Math/Date/RegExp/structuredClone` | full browser |
 
@@ -30,10 +30,20 @@ cancels "any `setTimeout` or `setInterval` timers", and `@figma/plugin-typings` 
 thread uses them in `apps/plugin/src/main.ts`: the agent link's mailbox poll (`schedule: (fn, ms) =>
 setTimeout(fn, ms)`), `fileKindApi`'s `after`, and `breathe()` (#2950).
 
+² The same is true of `fetch` (#2999). `@figma/plugin-typings` 1.141.0 declares `const fetch: (url: string, init?:
+FetchOptions) => Promise<FetchResponse>` as a main-thread global (`index.d.ts`, beside the timers), and Figma's
+reference documents it as a global ([`fetch`](https://developers.figma.com/docs/plugins/api/properties/global-fetch/)):
+"similar behavior to the standardized `fetch()` function, with some minor differences" (a string URL, plain-object
+headers, `redirect` only `follow` or `error`). [Making network
+requests](https://developers.figma.com/docs/plugins/making-network-requests/) says Figma blocks any request that
+"originates from your plugin" to a domain not in `allowedDomains`, and names neither context; whether the
+main-thread `fetch` is gated the same way has not been checked live. **Prism3's main thread makes no request all the same:** that is our design, not a sandbox limit, and
+`apps/plugin/lint-network-reach.ts` asserts it ("the main thread makes no request" over `release/main.js`).
+
 They communicate by **message passing only**: main → UI via `figma.ui.postMessage(msg)`; UI → main
-via `parent.postMessage({ pluginMessage: msg }, '*')`, received on `figma.ui.onmessage`. Because the
-main thread has **no network**, the canonical pattern is: *the UI iframe does any network, then
-postMessages results to the main thread, which touches the document.*
+via `parent.postMessage({ pluginMessage: msg }, '*')`, received on `figma.ui.onmessage`. Figma gives the
+main thread a `fetch` of its own (²), but **Prism3 keeps every request in the UI iframe**: *the UI iframe
+does any network, then postMessages results to the main thread, which touches the document.*
 
 **Why this matters for us:** our engine core is pure (no `node:`, no DOM, no network), so it can run
 in **either** context. The clean split:

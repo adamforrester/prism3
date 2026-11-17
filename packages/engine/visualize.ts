@@ -211,7 +211,7 @@ for (const b of brands) {
     const family = familyOf(tree, subNode(tree, v.fontFamily));
     const weight = numOf(tree, subNode(tree, v.fontWeight));
     const lh = numOf(tree, subNode(tree, v.lineHeight));
-    const ls = String(deref(tree, subNode(tree, v.letterSpacing))?.$value ?? '0');
+    const ls = `${Number(deref(tree, subNode(tree, v.letterSpacing))?.$value ?? 0)}em`;   // a multiplier of the font size (#2434)
     const tc = v.textCase ?? ext.textCase ?? 'none';
     const deco = v.textDecoration === 'underline' || ext.link ? 'underline' : 'none';
     const sizePx = ext.sizePx ?? remPxOf(tree, subNode(tree, v.fontSize));

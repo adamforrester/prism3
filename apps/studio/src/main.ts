@@ -19,13 +19,8 @@
  * volatile region (ramps or preview), so knob focus is never lost; a failed brand
  * combination is caught and surfaced with the last-good render preserved.
  */
-import { brandTheme } from '@prism3/engine/theme';
-import type { BrandInput } from '@prism3/engine/theme';
-import { hex, oklchToRgb } from '@prism3/engine/color';
-import { resolveAllModes } from '@prism3/engine/modes';
-import { toDesignMd } from '@prism3/engine/design-md';
+import { brandTheme, type BrandInput, formatRatio, hex, oklchToRgb, resolveAllModes, toDesignMd, buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode, ENGINE_VERSION } from '@prism3/engine';
 import { componentSpecsExporter } from './state/component-specs-export';
-import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
 import { hostCommit, type CheckedSetView, type HostCommit } from './write-adapter';
 import { AGENT_OP, initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type OpKey } from './state/host-session';
 import type { HostFonts } from './ui/fonts';
@@ -33,8 +28,11 @@ import { emToPercentLabel } from './em-percent';
 import { mountFrame, type Frame } from './shell/frame';
 import { isNewPage, pageOfTab } from './shell/pages';
 import type { StyleGuidesLend } from './shell/style-guides';
-import { kindOf, type ActivityLend, type ActivityReading, type OpReading, type UpdateReading } from './shell/activity';
+import { kindOf, OP_TITLE, type ActivityLend, type ActivityReading, type OpReading, type UpdateReading } from './shell/activity';
 import type { UpdateFileLend } from './shell/update-file';
+import type { ReportLend } from './shell/report';
+import type { CollisionsLend } from './shell/collisions';
+import { withEarlier } from './state/collisions';
 import type { StatusLend } from './shell/status-strip';
 import { agentHeard, heard, startStripRun, stepEnded, stripVerdict, stripView, withReading, rowState, STRIP_COPY, type StripAgent, type StripRead, type StripRun, type StripVerdict } from './state/status-strip';
 import type { DocumentationLend } from './shell/documentation';
@@ -72,7 +70,7 @@ import { shownName } from './state/brand-input';
 // Motion control to `domains/depth.ts` (S9.2); the Type writes to `state/type-input.ts` and every Type control to
 // `domains/type.ts` (S6.1 to S6.3). Nothing here writes either any more.
 import {
-  needsOverwriteConfirm, isUnrecoverable, editCount,
+  needsOverwriteConfirm, isUnrecoverable, editCount, isDirty,
   type Origin,
 } from './provenance';
 import {
@@ -125,6 +123,14 @@ const syncErrorBar = (): void => {
   // Owner Q189 A (#2146): a brand that arrives starting above 0px gets a one-click fix beside the line.
   else if (lastError) globalErr.show(`That change didn't apply: ${lastError} — you are seeing the last theme that resolved.`,
     firstBreakpointFix(lastError));
+  // #3697 Q-R9.1 A: the offer taken over unsaved edits stages the load, and the usual replace confirm takes the offer's
+  // place: the same sentence and the same two buttons the brand menu draws, under the same hooks.
+  else if (heldRestore && pendingLoad?.origin.kind === 'file') globalErr.show(overwriteText(pendingLoad), [
+    { label: 'Replace brand', run: barActions.replace, hook: 'overwrite-replace' },
+    { label: 'Cancel', run: barActions.cancelReplace, hook: 'overwrite-cancel' },
+  ]);
+  // #3697 R9: the file's brand, held because it arrived after the designer acted, with the action that loads it.
+  else if (heldRestore) globalErr.show(LATE_RESTORE.line, { label: LATE_RESTORE.action, run: takeHeldRestore });
   else globalErr.show(null);
   syncChromeHeight();   // the bar lives in the chrome; showing it moves everything sticky below
 };
@@ -385,12 +391,27 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   // #3081 Q810 A: a write's verdict, or a fresh read of the file's sets, may change what Update file would change.
   if (DUE_AFTER.has(m.kind)) recountDue();
   const effect = brandEffectFor(m, prev, host);
+  // #3697 R9: a Theme write that landed stores the panel's brand in the file, so the held one is no longer the file's.
+  if (heldRestore && m.kind === 'apply-result' && m.ok) {
+    heldRestore = null;
+    if (pendingLoad?.origin.kind === 'file') pendingLoad = null;   // its confirm goes with the offer it stood for
+    barChanged(); syncErrorBar();
+  }
   // Origin `file`: this brand IS what the Figma file holds, so it is what a reset returns to and what
   // dirtiness is measured against (#722).
   // #1989: a restore the engine refuses in RESOLUTION leaves `lastGoodInput` on the boot demo, so Apply and
   // Prune go off until a brand resolves (`restoreFailure`). `loadBrand` renders once, before this can know
   // the outcome, so a refusal renders again with the writes off and the bar saying why.
-  if (effect === 'loadBrand' && m.kind === 'restore-input') {
+  // #3697 R9 (the owner's A): THE FILE'S BRAND ARRIVING AFTER THE DESIGNER HAS ACTED. The boot read is asynchronous and the
+  // UI is live before it lands, as for the start moment below. If the designer has already chosen a brand (provenance is
+  // no longer boot's, by identity) or edited the placeholder, the file's brand would replace their work: it is held
+  // instead (`heldRestore`), and the strip offers to load it. Only the boot read is held: a restore the host sends later
+  // (#3394's override sync, which it sends only while the panel's brand is the one it wrote) still loads.
+  const late = effect === 'loadBrand' && m.kind === 'restore-input' && !bootRestoreSeen && userActed();
+  if (m.kind === 'restore-input' || m.kind === 'restore-input-empty' || m.kind === 'restore-input-error' || m.kind === 'restore-input-library') bootRestoreSeen = true;
+  if (late) { heldRestore = structuredClone(m.input as BrandInput); syncErrorBar(); }
+  else if (effect === 'loadBrand' && m.kind === 'restore-input') {
+    heldRestore = null;
     loadBrand(m.input as BrandInput, { kind: 'file' });
     if (lastError) { restoreFailure = { kind: 'unresolved', reason: lastError, brand: failedBrandOf(brandState) }; build(); }
   }
@@ -490,7 +511,7 @@ const contractTableEl = (contracts: typeof rp.contracts, paths = false): HTMLEle
     for (const m of rp.modes) {
       const cell = el('td', 'mcol');
       const r = ct.byMode[m];
-      if (r) { cell.append(el('span', `dot ${r.pass ? 'ok' : 'no'}`), el('span', 'ratio', r.ratio.toFixed(2))); }
+      if (r) { cell.append(el('span', `dot ${r.pass ? 'ok' : 'no'}`), el('span', 'ratio', formatRatio(r.ratio, { bare: true }))); }
       else cell.textContent = '—';
       tr.append(cell);
     }
@@ -597,9 +618,9 @@ const typeComposite = (tree: TreeNode, node: TreeNode, value?: unknown, onTarget
   if (v.letterSpacing) { const ls = deref(tree, t(v.letterSpacing)); const em = ls?.$extensions?.prism3?.em; if (em != null) parts.push(`${em}em · ${emToPercentLabel(em)}`); }
   return parts.join(' · ');
 };
-/** A shadow layer array → a compact CSS box-shadow string (for a monospace cell). */
+/** A shadow layer array → a compact CSS box-shadow string (for a monospace cell). `inset` leads, as in `resolve-preview.ts`'s `cssBoxShadow` (#3603). */
 const shadowCss = (layers: unknown): string => Array.isArray(layers)
-  ? layers.map((l: any) => `${l.offsetX} ${l.offsetY} ${l.blur} ${l.spread ?? '0'} ${l.color}`).join(', ')
+  ? layers.map((l: any) => `${l.inset ? 'inset ' : ''}${l.offsetX} ${l.offsetY} ${l.blur} ${l.spread ?? '0'} ${l.color}`).join(', ')
   : '';
 // ── Preview → Token list, split on the primitive/semantic tier line (#267 pattern) ──────────────
 // Typography carried this split first (#272, via `.pvseg`); this generalises it. Two defects forced
@@ -1126,11 +1147,18 @@ const mountView = (view: RootView): void => {
       frame = mountFrame(app, {
         host: commit.isFigma ? 'figma' : 'web',
         inspect: { contrast: renderPreviewContracts, tokens: renderPreviewTokens },
-        activity: { read: activityReading, closeDetail: closeOpenDetail, again: commit.isFigma ? activityAgain : undefined,
+        // #3011 (Q121 A): the drawer is the plugin's alone; the studio runs no write, so it lends none.
+        activity: commit.isFigma ? { read: activityReading, closeDetail: closeOpenDetail, again: activityAgain,
           // #3326: a cause names its set by def id; the drawer shows the set's name.
-          nameOf: (id: string) => entryOf(componentCatalog(), id)?.name ?? id },
+          nameOf: (id: string) => entryOf(componentCatalog(), id)?.name ?? id,
+          // #533 (Q110 A): a run's end, for the main thread's notice while minimized to the strip.
+          ended: (line: string) => commit.noteRunEnded(line) } : null,
         // #2909 IA v2 phase 1: Apply Theme and the Figma menu went into Update file, the plugin's one global write.
         updateFile: commit.isFigma ? updateFileLend : null,
+        // #2069 (Q116 A): Report a problem, from the Activity drawer, which only the plugin draws. #3524: on the web, from
+        // the rail, beside Help (DRAFT placement, the owner's call).
+        report: reportLend,
+        collisions: commit.isFigma ? collisionsLend : null,
         documentation: commit.isFigma ? documentationLend : null,
         status: commit.isFigma ? statusLend : null,
         // #2637 Q384: the bar's Docs. In the plugin the main thread opens the docs in the browser; on the web it is a link.
@@ -1433,7 +1461,12 @@ const overwriteText = (pending: { input: BrandInput; origin: Origin }): string =
 
 /** Tell the top bar its own state moved (UI redesign S13.1). It was `renderBar()`, which drew the bar here; the
  *  shell draws it now (`shell/bar.ts`) and repaints from the store's `bar` topic. */
-const barChanged = (): void => invalidate('bar');
+const barChanged = (): void => {
+  invalidate('bar');
+  // #3697 Q-R9.1 A: a `file` load waiting on the confirm is drawn by the error strip, not the bar, so a change to the
+  // pending load (staged, cancelled, or dropped as a menu closes) repaints the strip too.
+  if (heldRestore) syncErrorBar();
+};
 
 /** The bar's view of this file's state: the brand menu, the import box, the pending load, the dialogs. */
 const barRead = (): BarView => ({
@@ -1505,7 +1538,8 @@ const exportView = (): ExportView => {
     // Said out loud rather than left as an empty area: silence reads as a loading state or a bug.
     none: settings.length ? null : exportArtifact === 'component-specs' ? SPECS_NO_SETTINGS : 'Nothing to set — the brief is written one way.',
     right,
-    go: { text: exportArtifact === 'design-md' ? '↓ Download brief' : exportArtifact === 'component-specs' ? '↓ Download component specs' : '↓ Download tokens', off },
+    // #3553 Q-UI8 A: the word alone; the bar draws the vendored download icon before it.
+    go: { text: exportArtifact === 'design-md' ? 'Download brief' : exportArtifact === 'component-specs' ? 'Download component specs' : 'Download tokens', off },
     // The Figma-file path (#677) is absent rather than disabled: `availableImportSlots()` narrows to the copy-bearing
     // variant, so there is no string to render for a path whose behavior is undecided.
     imports: availableImportSlots().map((slot) => ({ label: slot.label, desc: slot.desc })),
@@ -1538,7 +1572,11 @@ const barActions: BarActions = {
       stageImport(read.text, 'file');
     });
   },
-  replace: () => { const p = pendingLoad; if (!p) return; pendingLoad = null; loadBrand(p.input, p.origin); },
+  replace: () => {
+    const p = pendingLoad; if (!p) return; pendingLoad = null;
+    loadBrand(p.input, p.origin);
+    if (p.origin.kind === 'file' && heldRestore === p.input) heldRestoreLoaded();   // #3697 Q-R9.1 A: the offer's confirm
+  },
   cancelReplace: () => { pendingLoad = null; barChanged(); },
   toggleExport: () => { exportMenuOpen = !exportMenuOpen; brandMenuOpen = false; importOpen = false; barChanged(); },
   closeExport: () => { exportMenuOpen = false; barChanged(); },
@@ -1559,7 +1597,9 @@ const barActions: BarActions = {
  *  thread recomputes the plan from a fresh read before it acts. Its preview's Cancel deletes nothing. */
 const deletePrune = (): void => {
   if (restoreFailure) return;
-  setHost({ pruneBusy: 'delete', prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, true);
+  // #3697 R6: the Delete echoes its preview's hash, so the host removes exactly the list the designer read.
+  const previewHash = host.prunePreview?.previewHash ?? '';
+  setHost({ pruneBusy: 'delete', prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, true, previewHash);
 };
 
 
@@ -1740,6 +1780,8 @@ const activityReading = (): ActivityReading => {
       // #2830 Q713 A: Documentation › Specs' Draw specs has a row of its own, like Style guides: "Drawing specs…" while
       // it is out, the panel's or an agent's, then its verdict. The Build set row never shows it.
       specs: opReading('specs', host.specsState === 'pending', verdictOf(host.specsState), fixed(PENDING_TEXT.specs)),
+      // #3394 Q3394.7 A: the agent link's color overrides. Only an agent runs them, so the row is never the panel's pending.
+      override: opReading('override', false, verdictOf(host.overrideState), fixed(null)),
     },
     detail: host.openDetail,
     refused: host.refused,
@@ -1759,7 +1801,8 @@ const activityReading = (): ActivityReading => {
 // Before this, an agent's run left the panel's Apply ready to post a second write over the same variables.
 
 /** True while a write of this kind runs: the panel's own slot is pending, or an agent's command runs it. */
-const applyBusy = (): boolean => host.applyState === 'pending' || agentRunning('apply');
+// #3394: an agent's set-override writes the theme through Theme's own guard, so Theme is busy while it runs.
+const applyBusy = (): boolean => host.applyState === 'pending' || agentRunning('apply') || agentRunning('override');
 const pruneBusy = (): boolean => !!host.pruneBusy || agentRunning('prune');
 const fileSetupBusy = (): boolean => host.fileSetupState === 'pending' || agentRunning('filesetup');
 const componentBusy = (): boolean => host.componentState === 'pending' || host.specsState === 'pending' || agentRunning('components') || agentRunning('specs');
@@ -1796,6 +1839,36 @@ const componentBusy = (): boolean => host.componentState === 'pending' || host.s
  */
 type RestoreFailure = { kind: 'unresolved' | 'rejected' | 'unreadable'; reason: string; brand: BrandInput | null };
 let restoreFailure: RestoreFailure | null = null;
+
+/** #3697 R9 (the owner's A): whether the host has answered the boot read (`restore-input` and its three siblings). */
+let bootRestoreSeen = false;
+/** #3697 R9: the file's brand, held because the boot read arrived after the designer had acted; null when none is held. */
+let heldRestore: BrandInput | null = null;
+/** #3697 R9: the designer has acted — chosen a brand (the sibling guards' identity test) or edited the placeholder. */
+const userActed = (): boolean => provenance !== bootProvenance || isDirty(brandState, bootProvenance);
+/** #3697 R9: the strip's offer while a late restore is held. OWNER DECISION: copy — a DRAFT to `docs/voice-standard.md`,
+ *  a placeholder until approved. So is drawing it in the error strip, which is the strip that already carries an action. */
+export const LATE_RESTORE = {
+  line: 'This file holds a saved brand. Your choice came first, so it stays on screen.',
+  action: 'Load the file\'s brand',
+} as const;
+/** #3697 R9, Q-R9.1 A: the offer taken. It goes through `stageLoad`, the one place that decides whether a replacement
+ *  needs confirming (#1033): with unsaved edits it stages the load and the strip shows the replace confirm in the offer's
+ *  place (`syncErrorBar`); with none it loads straight away. The held brand stays held until it loads, so a Cancel puts
+ *  the offer back and the edits stay. */
+const takeHeldRestore = (): void => {
+  const input = heldRestore;
+  if (!input) return;
+  stageLoad(input, { kind: 'file' });
+  if (!pendingLoad) heldRestoreLoaded();   // no edits to lose: `stageLoad` loaded it (and `loadBrand` clears `pendingLoad`)
+  else syncErrorBar();
+};
+/** #3697 R9: the held brand has loaded as the file's; finish exactly as an early restore would have (#1989's failure). */
+const heldRestoreLoaded = (): void => {
+  heldRestore = null;
+  if (lastError) { restoreFailure = { kind: 'unresolved', reason: lastError, brand: failedBrandOf(brandState) }; build(); }
+  syncErrorBar();
+};
 /** The file's failed brand as a design.md, or null when it cannot be written as one. */
 const failedBrandOf = (input: unknown): BrandInput | null => {
   try { toDesignMd(input as BrandInput); return input as BrandInput; } catch { return null; }
@@ -1821,7 +1894,19 @@ const RESTORE_OFF_HINT = "Off until a brand loads. This file's saved brand didn'
  *  the state. */
 const runApply = (): void => {
   if (applyBusy()) return;
-  setHost({ applyState: 'pending', openDetail: null }); hostChanged(); commit.postTheme(lastGoodInput);
+  setHost({ applyState: 'pending', openDetail: null, collisions: null, collisionsChosen: null }); hostChanged(); commit.postTheme(lastGoodInput);
+};
+/** #1909 (Q112 A): the collision choice. Apply runs Apply Theme again with a choice for every collision the refusal
+ *  named; Cancel closes the list and the refusal stands. Nothing is kept: the choices ride this one post. */
+const collisionsLend: CollisionsLend = {
+  read: () => host.collisions,
+  submit: (choices) => {
+    if (applyBusy()) return;
+    // The review of #3518: with the choices this attempt already used, so a renamed name someone else holds asks only once.
+    const all = withEarlier(host.collisionsChosen, choices);
+    setHost({ applyState: 'pending', openDetail: null, collisions: null, collisionsChosen: null }); hostChanged(); commit.postTheme(lastGoodInput, all);
+  },
+  cancel: () => { setHost({ collisions: null, collisionsChosen: null }); hostChanged(); },
 };
 /** Prune stale: a dry run first, whose count the confirm dialog shows (#1521). */
 const runPrune = (): void => {
@@ -1878,7 +1963,11 @@ const stopSets = (): void => { if (!run) return; run = stopRun(run); invalidate(
  *  build as still running, and sees one result when the run ends. A run of one set keeps the plugin's own verdict. */
 const runAfterResult = (m: Extract<Parameters<typeof reduce>[1], { kind: 'component-result' }>, posted: string | null): void => {
   if (!run || posted === null || currentOf(run) !== posted) return;
-  run = record(run, { id: posted, result: host.setBuilds.get(posted) ?? (m.ok ? 'ok' : m.completed ? 'issues' : 'failed'), headline: m.headline, causes: m.causes });
+  const had = run.results.length;
+  run = record(run, { id: posted, result: host.setBuilds.get(posted) ?? (m.ok ? 'ok' : m.completed ? 'issues' : 'failed'), headline: m.headline, causes: m.causes, ...(m.alsoBuilt ? { alsoBuilt: m.alsoBuilt } : {}) });
+  // #3359: a queued set this run's builds already made is recorded, not posted (`record`); its row reads built too.
+  const skipped = run.results.slice(had + 1);
+  if (skipped.length) setHost({ setBuilds: new Map([...host.setBuilds, ...skipped.map((x) => [x.id, x.result] as const)]) });
   if (!run.done) { postCurrent(); return; }
   const ended = run;
   run = null;
@@ -2092,7 +2181,9 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
     postUpdate(u, m.previewHash);
     return;
   }
-  if ((step === 'update' || step === 'cover') && updatePhase === 'apply' && m.kind === 'component-update-result') { updatePhase = null; endStep(m.ok, m.headline, false, true); return; }
+  // #3711 (Q-UF3 A): an update that wrote every set, some left to check, did all it was asked: the run goes on (`warn`),
+  // as past a To add step with problems (#3308). A set that stopped or was refused, or a stop asked for, still ends it.
+  if ((step === 'update' || step === 'cover') && updatePhase === 'apply' && m.kind === 'component-update-result') { updatePhase = null; endStep(m.ok, m.headline, m.completed, true); return; }
   // The build queue posts its sets one after another (`runAfterResult`); the step ends with the queue.
   // #3308: a queue that built every set, some with problems, did all it was asked: the run goes on (`warn`). A set that
   // failed, or a stop that left sets unbuilt, still ends it.
@@ -2186,6 +2277,19 @@ const statusLend: StatusLend = {
 };
 
 /** Update file's reads and writes, lent to the shell (`shell/update-file.ts`). */
+/** #2069 (Q116 A): Report a problem's inputs: the build, the engine, the host, each operation's latest result, and the
+ *  brand the panel holds (included only if the person opts in; read either way, so its words can be taken out). */
+const reportLend: ReportLend = {
+  read: () => {
+    const r = activityReading();
+    return {
+      stamp: PRISM3_BUILD, engine: ENGINE_VERSION, host: commit.isFigma ? 'figma' : 'web',
+      activity: (Object.keys(r.ops) as (keyof typeof r.ops)[]).map((k) => ({ title: OP_TITLE[k], verdict: r.ops[k].verdict, lines: r.ops[k].lines ?? (r.ops[k].summary ? [r.ops[k].summary!] : []), agent: r.ops[k].agent })),
+      brand: lastGoodInput as unknown as Record<string, unknown>,
+    };
+  },
+  openUrl: (url) => commit.openIssue(url),
+};
 const updateFileLend: UpdateFileLend = {
   read: () => ({
     fileSets: host.fileSets, liveDue: liveShown() ? host.liveDue : null, catalog: componentCatalog(), run: updateRun, stopped: updateStopped, off: writeOff(),

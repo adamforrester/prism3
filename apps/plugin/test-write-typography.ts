@@ -26,17 +26,15 @@
  *
  * Mirrors the other shim tests' dependency-free `ok(...)` style; exits non-zero on any failure.
  */
-import { buildFontVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
-import { brandTheme } from '@prism3/engine/theme';
-import { exampleBrands } from '@prism3/engine/emit-brandinput';
-import type { BrandInput } from '@prism3/engine/theme';
+import { buildFontVarPlan, buildTextStylePlan } from '@prism3/engine/figma';
+import { brandTheme, type BrandInput } from '@prism3/engine';
+import { exampleBrands, nbTheme } from '@prism3/engine/harness';
 import { applyVarCollectionPlan } from './src/write-figma';
 import { applyTextStylePlan, resolveFontStyle, normStyle } from './src/write-text-styles';
 import type { FontName } from './src/write-text-styles';
 import type { VarCollectionApplyResult as VarApplyResult } from './src/write-figma';
 import { preloadFonts, facesToPreload, loadPreloadCandidates } from './src/preload-fonts';
 import type { FontPreloadApi } from './src/preload-fonts';
-import { nbTheme } from '@prism3/engine/nb-fixture';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -235,6 +233,19 @@ const skippedThisFont = sr.skipped.filter((s) => textPlan.find((r) => r.name ===
 ok(sr.skipped.length >= 1 && skippedThisFont.length >= 1, `unavailable font → style(s) SKIPPED with a reason (${sr.skipped.length}), not thrown`);
 ok(sr.skipped.every((s) => /font unavailable/.test(s.reason)), 'each skip carries a "font unavailable" reason');
 ok(sr.created === textPlan.length - sr.skipped.length, `only the loadable styles were created (${sr.created}/${textPlan.length})`);
+
+// #3697 H4: the skip reason names the error's CLASS, never the host's message. A host message can carry
+// anything the file holds (a layer, a page), and this reason reaches agent data. Both sides are literals
+// here, not read from `errorClass`, so the mutation "carry `(e as Error).message` again" fails this arm by name.
+const HOST_SECRET = 'Checkout Hero / Q3 launch';
+class ThrowingFontShim extends TextStylesShim {
+  override async loadFontAsync(): Promise<void> { throw new TypeError(`cannot load font for ${HOST_SECRET}`); }
+}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const hr = await applyTextStylePlan(textPlan.slice(0, 1), new ThrowingFontShim(new Set(), vShim) as any);
+ok(hr.skipped.length === 1, `#3697 H4 premise: a rejecting loadFontAsync skips the style (${hr.skipped.length} skipped)`);
+ok(hr.skipped.every((s) => s.reason.endsWith('(TypeError)') && !s.reason.includes(HOST_SECRET)),
+  `#3697 H4 a rejected font load: the skip reason carries the error's class, not the host's message (${hr.skipped.map((s) => s.reason).join('; ')})`);
 
 // ---- #499: the emitted style name is a guess, and the spelling is per-FAMILY ------------------
 // Measured against a real 2,334-family library: `Semi Bold`/`SemiBold` is 3 spaced vs 575 tight with

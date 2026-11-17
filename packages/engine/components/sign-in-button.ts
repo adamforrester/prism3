@@ -14,7 +14,8 @@
  * them as a `literal` record keyed by provider × style, and the container (`literal: 'surface'`) and the label
  * (`literal: 'label'`) read it. The provider's fill never changes; hover and pressed lay a wash over it (Q-S6 A).
  * Prism3's tokens still drive the height, the padding and gap (Apple and Facebook), the brand's label type (Apple and
- * Facebook, Q-S7 A), the radius (`radius.md`, Q-S12 A), the 140 width floor and the focus ring.
+ * Facebook, Q-S7 A), the radius (`radius.md`, Q-S12 A, which Control shape repoints like Button's, Q-CS3 A), the 140
+ * width floor and the focus ring.
  *
  * ALL EIGHT PAIRS SHIP, 96 MEMBERS (Q831 A, superseding Q-S5 A's wait for artwork). Each style's glyph is in the mark
  * set: `provider/apple` and `provider/facebook` (black since #3134), `provider/google`, and `provider/facebook-blue`,
@@ -166,10 +167,14 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
       { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The height: 36, 44 or 56px. Give every sign-in button in a group the same size.' },
       { name: 'wording', type: 'string', default: 'continue', required: false, description: `The provider\'s wording, from its own list, translated by the app: ${providers.map((p) => `${RULES[p].name} ${wordingList(p)}`).join('; ')}. The provider\'s name is never translated. A wording the provider does not offer is refused.` },
       { name: 'fullWidth', type: 'boolean', default: false, required: false, description: 'Fill the column instead of hugging the label. The button never drops under 140px wide.' },
-      { name: 'onClick', type: '(event: MouseEvent) => void', required: false, description: 'Called before the provider\'s sign-in starts, for analytics or a loading state. The sign-in itself is the provider\'s.' },
+      { name: 'onClick', type: '(event: MouseEvent) => void', required: false, description: 'Called before the provider\'s sign-in starts, for analytics or to set isPending. The sign-in itself is the provider\'s. Not called while isPending or disabled.' },
+      // Owner decision Q-CC23 A (#3554): onClick named a loading state the button had no prop for. Both are code-only
+      // and not projected, as Button's `inactive` is; Q-S6 A decided the design file's states, not the code API.
+      { name: 'isPending', type: 'boolean', default: false, required: false, description: 'While the provider\'s sign-in is in flight: keeps focus (aria-disabled, not native disabled), sets aria-busy, ignores a second click, and announces busy through a polite live region. The provider\'s mark and words stay as drawn.' },
+      { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled, reserved for a sign-in the view does not offer right now; it leaves the tab order and the accessibility tree.' },
     ],
 
-    states: ['rest', 'hover', 'pressed', 'focus-visible'],
+    states: ['rest', 'hover', 'pressed', 'pending', 'focus-visible', 'disabled'],
     variants: {
       provider: [...providers],
       style: styles,
@@ -187,6 +192,8 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
       'border-width': 'border-width.hairline',
       ...ringTokens(),
     },
+    // Control shape reaches the brand's corner, as it reaches Button's (Q-CS3 A, Q-CS5 B, #3765).
+    levers: { controlShape: { capsules: ['radius.md'] } },
     // The provider's own colors, font and wording (Q-S2 A, Q-S7 A, Q-S8 A), as literals from the rule record above.
     literal: { key: '{provider}.{style}', entries },
 
@@ -225,7 +232,28 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
         },
         focusRing: focusRingPart('The shared focus ring, outside the provider\'s button while it has keyboard focus.'),
       },
+      derived: {
+        // Q-CS3 A (#3765): Control shape reaches this button as it reaches Button, through `levers.controlShape.capsules`
+        // (Q-CS5 B); this prose describes it and is kept for the plan stamp. Pill repoints `radius.md` to `radius.capsule`, Boxed to `radius.none`, Hairline to `radius.hairline`. No provider
+        // forbids any of them (read 2026-11-15): Apple's HIG, "you can change the corner radius to produce a button with
+        // square corners or a capsule-shape button", and for a custom button "a corner radius value that matches the other
+        // buttons in your UI"; Google's branding guidelines offer Rectangular and Pill and leave a custom button's boundary
+        // to Material; Facebook's login guidelines set no corner. So no provider is clamped.
+        'pill-radius': 'height ÷ 2 under Pill — a literal radius token would be wrong at more than one height',
+      },
       codeOnly: [
+      {
+        class: 'not-projected',
+        disposition: 'refused',
+        description:
+          'pending — not projected: the design file\'s states are rest, hover, pressed and focus-visible (Q-S6 A), and pending is code-only, as Button\'s inactive is (Q-CC23 A). In code isPending keeps focus with aria-disabled and aria-busy, ignores a second click while the provider\'s sign-in is in flight, and announces busy through a polite live region.',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'refused',
+        description:
+          'disabled — not projected: the design file\'s states are rest, hover, pressed and focus-visible (Q-S6 A), and disabled is code-only (Q-CC23 A). In code it is the native attribute, and the button leaves the tab order and the accessibility tree.',
+      },
       {
         class: 'platform-owned',
         disposition: 'refused',

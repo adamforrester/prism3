@@ -10,8 +10,8 @@
  * TWO HALVES, each with its own oracle:
  *
  *   1. LITERALS — the skill's text carries no duration, curve or spring constant. The oracle is the SHAPE
- *      of a literal, typed below: a number with `ms`/`s`, a spelled-out count of seconds, `cubic-bezier(`,
- *      `steps(`, `linear(`, the CSS `ease-*` keywords, a four-number curve, a number after `damping` /
+ *      of a literal, typed below: a number with `ms`/`s` (`.2s` too), a spelled-out count of seconds, `cubic-bezier(`,
+ *      `steps(`, `linear(`, the CSS `ease-*` and `step-start`/`step-end` keywords, a four-number curve, a number after `damping` /
  *      `stiffness` / `mass` / `bounce` / `velocity`, and a `motion.duration-ms.*` primitive step (a number
  *      spelled as a path).
  *   2. RESOLUTION — every `motion.*` path the skill names resolves, as a token or a family, in EVERY
@@ -61,11 +61,13 @@ type Finding = { file: string; kind: string; text: string; line: number };
 // ---- half 1: the literal shapes, typed here and nowhere else -------------------------------------
 const NUM = String.raw`-?\d*\.?\d+`;
 const SHAPES: { kind: string; re: RegExp; what: string }[] = [
-  // A number with a time unit. The lookbehind keeps `R11s`-style labels and dotted versions out.
-  { kind: 'DURATION LITERAL', re: /(?<![\w.])\d+(?:\.\d+)?\s?(?:ms|s)\b/g, what: 'a number with a time unit' },
+  // A number with a time unit, a leading-dot one (`.2s`, valid CSS) and an upper-case unit included (#3564). The
+  // lookbehind keeps `R11s`-style labels and dotted versions out: `v1.2s` is rejected at `1` and at `.2`.
+  { kind: 'DURATION LITERAL', re: /(?<![\w.])(?:\d+(?:\.\d+)?|\.\d+)\s?(?:ms|s)\b/gi, what: 'a number with a time unit' },
   { kind: 'DURATION LITERAL', re: /\b(?:\d+(?:\.\d+)?|zero|one|two|three|four|five|six|seven|eight|nine|ten|half a)[\s-]+(?:milliseconds?|seconds?)\b/gi, what: 'a count of seconds or milliseconds' },
   { kind: 'CURVE LITERAL', re: /\b(?:cubic-bezier|steps|linear)\s*\(/g, what: 'a CSS timing function' },
   { kind: 'CURVE LITERAL', re: /(?<![\w-])ease(?:-in-out|-in|-out)?(?![\w-])/g, what: 'a CSS easing keyword' },
+  { kind: 'CURVE LITERAL', re: /(?<![\w-])step-(?:start|end)(?![\w-])/g, what: 'a CSS step keyword' },
   { kind: 'CURVE LITERAL', re: new RegExp(String.raw`[\[(]\s*${NUM}\s*,\s*${NUM}\s*,\s*${NUM}\s*,\s*${NUM}\s*[\])]`, 'g'), what: 'a four-number curve' },
   { kind: 'SPRING LITERAL', re: new RegExp(String.raw`\b(?:damping|stiffness|mass|bounce|velocity)(?:\s+ratio)?(?:\s+of)?\s*[:=]?\s*${NUM}\b`, 'gi'), what: 'a spring constant' },
   { kind: 'PRIMITIVE STEP', re: /(?<![\w.-])motion\.duration-ms\.[a-z0-9*-]+/g, what: 'a duration primitive, which is a number spelled as a path' },
@@ -200,6 +202,10 @@ const selfCheck = (): string[] => {
   const fires: [string, string][] = [
     ['fades over 200ms', 'DURATION LITERAL'],
     ['a 0.3s fade', 'DURATION LITERAL'],
+    ['transition: opacity .2s', 'DURATION LITERAL'],
+    ['a delay of 150MS', 'DURATION LITERAL'],
+    ['animation-timing-function: step-end', 'CURVE LITERAL'],
+    ['step-start then hold', 'CURVE LITERAL'],
     ['waits 1.5 s', 'DURATION LITERAL'],
     ['after two seconds', 'DURATION LITERAL'],
     ['for 300 milliseconds', 'DURATION LITERAL'],
@@ -213,7 +219,8 @@ const selfCheck = (): string[] => {
   ];
   for (const [sample, kind] of fires) if (!kinds(sample).includes(kind)) bad.push(`${kind} no longer fires on "${sample}"`);
   const clean = 'R11 starts `motion.stagger` apart on `motion.transition.enter`; WCAG 2.2.2; a 44px target; the easing role decelerates; #3484.';
-  const noise = scanLiterals(clean, 'fixture');
+  // Dotted versions stay out of the leading-dot arm (#3564): neither half of `v1.2s` is a duration.
+  const noise = [...scanLiterals(clean, 'fixture'), ...scanLiterals('since v1.2s and 0.238.5s builds', 'fixture')];
   if (noise.length) bad.push(`the clean sample fires: ${noise.map((f) => `${f.kind} "${f.text}"`).join(', ')}`);
 
   const brands = new Map([['a', new Set(['motion', 'motion.easing-role', 'motion.easing-role.enter'])], ['b', new Set(['motion', 'motion.easing-role', 'motion.easing-role.enter'])]]);

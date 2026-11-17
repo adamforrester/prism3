@@ -66,6 +66,8 @@ export const USED_BY = {
       ],
       "radius.capsule": [
         "Button",
+        "WalletButton",
+        "SignInButton",
         "IconButton",
         "Progress"
       ],
@@ -73,8 +75,6 @@ export const USED_BY = {
         "CodeInput"
       ],
       "radius.md": [
-        "WalletButton",
-        "SignInButton",
         "SegmentedControl",
         "Pagination",
         "Banner"
@@ -119,18 +119,15 @@ export const USED_BY = {
       "radius.capsule": [
         "Progress"
       ],
-      "radius.lg": [
-        "CodeInput"
-      ],
       "radius.md": [
-        "WalletButton",
-        "SignInButton",
         "SegmentedControl",
         "Pagination",
         "Banner"
       ],
       "radius.none": [
         "Button",
+        "WalletButton",
+        "SignInButton",
         "IconButton",
         "FlushIconButton",
         "TextField",
@@ -139,9 +136,11 @@ export const USED_BY = {
         "Select",
         "Badge",
         "Dialog",
+        "PasswordField",
         "SearchField",
         "CardNumberField",
-        "Banner"
+        "Banner",
+        "CodeInput"
       ],
       "radius.round": [
         "IconButton",
@@ -157,9 +156,7 @@ export const USED_BY = {
         "ProviderLogo",
         "Badge",
         "SegmentedControl",
-        "PasswordField",
-        "Counter",
-        "CodeInput"
+        "Counter"
       ],
       "radius.xl": [
         "Toast"
@@ -174,20 +171,19 @@ export const USED_BY = {
       ],
       "radius.hairline": [
         "Button",
+        "WalletButton",
+        "SignInButton",
         "IconButton",
         "TextField",
         "Textarea",
         "Checkbox.Control",
         "Select",
+        "PasswordField",
         "SearchField",
-        "CardNumberField"
-      ],
-      "radius.lg": [
+        "CardNumberField",
         "CodeInput"
       ],
       "radius.md": [
-        "WalletButton",
-        "SignInButton",
         "SegmentedControl",
         "Pagination",
         "Banner"
@@ -212,9 +208,7 @@ export const USED_BY = {
         "ProviderLogo",
         "Badge",
         "SegmentedControl",
-        "PasswordField",
-        "Counter",
-        "CodeInput"
+        "Counter"
       ],
       "radius.xl": [
         "Toast"

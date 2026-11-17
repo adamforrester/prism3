@@ -43,9 +43,10 @@
 import { subscribe } from '../state/store';
 import type { OpKey } from '../state/host-session';
 import type { Cause } from '../../../plugin/src/messages';
-import type { Host } from './pages';
 import { armEnter, enterMark, glyph, h, hook, leave, tile } from './dom';
+import { REPORT_COPY } from '../state/report';
 import { runTime } from './run-time';
+import { worstEnd } from './run-ended';
 
 /** Whether the plugin's agent link is on (the owner's top-bar decision, 2026-10-05: Activity's name and tooltip say
  *  "agent link on" while it is). The plugin's Agent tile (`apps/plugin/src/agent-link-ui.ts`) reports each state the
@@ -86,6 +87,8 @@ export const OP_TITLE: Readonly<Record<OpKey, string>> = {
   'apply': 'Theme', components: 'Build set', filesetup: 'Set up file', styleguide: 'Style guides', prune: 'Prune stale', readback: 'Read-back',
   // #2830 Q713 A: Documentation › Specs' Draw specs, a row of its own. DRAFT wording (Q685 A).
   specs: 'Specs',
+  // #3394 Q3394.7 A: the agent link's color overrides, their own row.
+  override: 'Color override',
 };
 /** #3326 PR 2 (Q3326.4 A): each row's title, Update file's run among them (the approved renders' words). */
 export const ROW_TITLE: Readonly<Record<RowKey, string>> = { ...OP_TITLE, update: 'Update file' };
@@ -94,8 +97,8 @@ export const ROW_TITLE: Readonly<Record<RowKey, string>> = { ...OP_TITLE, update
 // At the wide tier, while the drawer is open, a handle on its top edge drags it taller: from today's open height (the
 // drawer as it draws with no height set) up to just under the preview header. The handle is a window splitter
 // (`role="separator"`): Arrow Up and Arrow Down move it by `HEIGHT_STEP`, Home and End go to the least and the most.
-// The height is kept per person under `prism3:activity-height`: the web keeps it in `localStorage` (`entry.ts`,
-// `persist-local.ts`); the plugin's iframe has no storage, so its UI entry posts each kept height to the main thread,
+// The height is kept per person under `prism3:activity-height`. The drawer is the plugin's alone (#3011, Q121 A), and its
+// iframe has no storage, so its UI entry posts each kept height to the main thread,
 // which keeps it in `figma.clientStorage` and sends it back on `ui-ready`, like the Theme choice
 // (`apps/plugin/src/ui/entry.ts`, `apps/plugin/src/main.ts`). At 380 the drawer stays a sheet and draws no handle (AD2).
 
@@ -106,14 +109,14 @@ export const heightOf = (v: unknown): number | null => (typeof v === 'number' &&
 let keptHeight: number | null = null;
 let keepHeight: ((px: number) => void) | null = null;
 const heightWatchers = new Set<() => void>();
-/** Each host hands over the height it kept, if any, and how to keep the next one: the web before the first render,
- *  the plugin's UI entry right after it (its kept height arrives later, through `restoreActivityHeight`). */
+/** The plugin's UI entry hands over how to keep the next height, right after the first render (its kept height arrives
+ *  later, through `restoreActivityHeight`). */
 export const initActivityHeight = (kept: unknown, keep: (px: number) => void): void => {
   keptHeight = heightOf(kept);
   keepHeight = keep;
   for (const f of heightWatchers) f();
 };
-/** Plugin only: the height the main thread kept, arriving after launch. Anything that is not a height is ignored. */
+/** The height the main thread kept, arriving after launch. Anything that is not a height is ignored. */
 export const restoreActivityHeight = (v: unknown): void => {
   const px = heightOf(v);
   if (px === null || px === keptHeight) return;
@@ -129,7 +132,7 @@ export const restoreActivityHeight = (v: unknown): void => {
  */
 /** Copy text from a Figma plugin's iframe, which may refuse the async clipboard: then a selected textarea and
  *  `execCommand('copy')`. Whether it was copied. */
-const copyText = async (text: string): Promise<boolean> => {
+export const copyText = async (text: string): Promise<boolean> => {
   try { await navigator.clipboard.writeText(text); return true; } catch { /* the iframe refused it: try the textarea */ }
   const ta = document.createElement('textarea');
   ta.value = text;
@@ -230,7 +233,12 @@ export type ActivitySource = () => ActivityReading;
 export type ActivityLend = { readonly read: ActivitySource; readonly closeDetail: () => void;
   /** #3326: a cause's subject (a def id) in the panel's words, the set's name. Absent, the id is shown. */
   readonly nameOf?: (id: string) => string;
-  readonly again?: { readonly can: (k: RowKey) => boolean; readonly run: (k: RowKey) => void } };
+  readonly again?: { readonly can: (k: RowKey) => boolean; readonly run: (k: RowKey) => void };
+  /** #2069 (Q116 A): open Report a problem, from the button at the foot of the open drawer. Absent, no button. */
+  readonly report?: (opener: HTMLElement) => void;
+  /** #533 (Q110 A): a run the panel started has ended and nothing else runs; `line` is its short line (`noticeLine`). Read
+   *  once per run, as the drawer reads one result per run. Absent (the web), nothing is told. */
+  readonly ended?: (line: string) => void };
 
 /** Q3113.4 A: a bad result's next step that runs it again, by operation (DRAFT wording). The boot read-back has none:
  *  nothing in the panel asks for it. */
@@ -285,6 +293,10 @@ export const finishLine = (k: RowKey, o: Pick<OpReading, 'state' | 'verdict' | '
   return `${ROW_TITLE[k]} ${warning ? 'finished with a warning' : 'failed'}${reason ? `: ${reason}` : ''}.`;
 };
 
+/** #533 (Q110 A): a run's short line, for the completion notice shown while the panel is minimized: the status line's
+ *  words (`finishLine`) without the reason, which stays in Activity. DRAFT, listed in the PR for the owner. */
+export const noticeLine = (k: RowKey, kind: Kind): string =>
+  `${ROW_TITLE[k]} ${kind === 'ok' ? 'finished' : kind === 'warn' ? 'finished with a warning' : 'failed'}.`;
 
 /** One result, as the drawer recorded it. `refused` marks a declined request (#1957), which is only ever
  *  history: it is not the operation's result, so a run that ends with no verdict skips it. */
@@ -329,7 +341,7 @@ const EMPTY: OpReading = { state: 'idle', ref: null, verdict: null, summary: nul
 
 /** Mount the drawer and its button. `narrow` reads the frame's width tier; `cleanups` takes the
  *  subscriptions and the pending collapse. `now` is the clock the times are read from. */
-export const mountActivity = (opts: { readonly host: Host; readonly lend: ActivityLend; readonly narrow: () => boolean; readonly now?: () => Date;
+export const mountActivity = (opts: { readonly lend: ActivityLend; readonly narrow: () => boolean; readonly now?: () => Date;
   /** An operation the page in view shows itself (S11.2, owner decision P1 variant 1: the Build style guides page and
    *  the style guide): the drawer does not open by itself when it starts or fails. Its row, the bar row and the dot
    *  still record it. */
@@ -384,10 +396,8 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   // sheet draws it (the stylesheet hides it wider), and there the bar row gives way to it.
   const sheetHead = hook(h('div', 'p3-drawer-head'), 'activity-sheet-head');
   const sheetCounts = h('span', 'p3-drawer-counts');
-  // Shown while nothing has run. The plugin's line is concept v6's; the studio runs no write.
-  const note = hook(h('p', 'p3-note p3-drawer-note', opts.host === 'figma'
-    ? 'Results of Apply, Build and Prune appear here after they run.'
-    : 'Nothing has run in this session.'), 'activity-note');
+  // Shown while nothing has run: concept v6's line. Plugin only: the studio mounts no drawer (#3011, Q121 A).
+  const note = hook(h('p', 'p3-note p3-drawer-note', 'Results of Apply, Build and Prune appear here after they run.'), 'activity-note');
   // The agent link's full status line (#2213, AS1 A): the open drawer's first line, above the runs, while the plugin
   // reports one.
   const linkDetail = hook(h('p', 'p3-note p3-drawer-note p3-drawer-linkline'), 'activity-agent-detail');
@@ -397,6 +407,15 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   linkDetail.append(glyph('agent'), linkDot, linkText);
   sheetHead.append(close, h('b', 'p3-drawer-title', 'Activity'), h('span', 'p3-spacer'), sheetCounts);
   body.append(sheetHead, linkDetail, rows, note);
+  // #2069 (Q116 A): Report a problem, the drawer's last line, where the session's results are. DRAFT placement and words.
+  if (opts.lend.report) {
+    const report = opts.lend.report;
+    const rep = hook(h('button', 'p3-btn p3-btn-page p3-drawer-report'), 'activity-report');
+    rep.type = 'button';
+    rep.textContent = REPORT_COPY.open;
+    rep.onclick = () => report(rep);
+    body.append(rep);
+  }
   drawer.append(toggle, body);
   // A write's control says it is busy while the write runs, panel or agent, and a polite status line says
   // so once, when it starts (owner decision #4 on #1956, the engine Button's `isPending` aria note), and again when it
@@ -898,9 +917,9 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     drawer.dataset.open = String(open);
     if (open) { drawer.setAttribute('role', 'region'); drawer.setAttribute('aria-label', 'Activity'); }
     else { drawer.removeAttribute('role'); drawer.removeAttribute('aria-label'); }
-    // Q3113.9 A: the plugin draws the bar row from launch; the studio runs no write, so its drawer stays undrawn. At 380 the
-    // strip waits for the first run, so a short window keeps #2105's room for the levers under an error line (Q3113.15).
-    drawer.dataset.ever = String((opts.host === 'figma' && !narrow()) || recs.size > 0);
+    // Q3113.9 A: the plugin draws the bar row from launch (the studio mounts no drawer, #3011). At 380 the strip waits for
+    // the first run, so a short window keeps #2105's room for the levers under an error line (Q3113.15).
+    drawer.dataset.ever = String(!narrow() || recs.size > 0);
     grip.hidden = !open;
     // #2176: sized once this paint is done, so today's open height is measured with its rows in place.
     queueMicrotask(sizeDrawer);
@@ -968,6 +987,10 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     rec.result = null;
   };
 
+  /** #533 (Q110 A): the runs the panel started that ended since the last notice. An agent's command answers the agent, so
+   *  it is not one. Kept across readings: a run that ends while another still runs (an agent's command beside a panel
+   *  write) is told once nothing runs, not lost with the reading it ended in. */
+  const pendingEnds: { readonly k: RowKey; readonly kind: Kind }[] = [];
   /** Compare the host's reading with the last one, and act on what moved (F2). */
   const onHost = (): void => {
     const cur = read();
@@ -1018,6 +1041,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
         // result marks the drawer unread, never opens it (S11.2).
         if (n.state === 'bad') { expanded.add(k); if (loud(k)) settledBad = true; else { quietlySettled.add(k); if (!open) unread = true; } } else { settledOk = true; expanded.delete(k); }
         said.push(finishLine(k, n));
+        if (!n.agent) pendingEnds.push({ k, kind: n.state === 'bad' ? kindOf(false, n.verdict, n.failed) : 'ok' });
         continue;
       }
       if (n.state === 'idle' || (n.state === p.state && n.ref === p.ref)) continue;
@@ -1054,6 +1078,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
         if (kind !== 'ok') { expanded.add('update'); settledBad = true; } else { settledOk = true; expanded.delete('update'); }
         const firstBad = u.steps.find((st) => st.state === 'bad' || st.state === 'warn');
         said.push(finishLine('update', { state: kind === 'ok' ? 'ok' : 'bad', verdict: u.verdict, summary: null, lines: firstBad ? [firstBad.words, ...firstBad.lines] : null, causes }, kind));
+        pendingEnds.push({ k: 'update', kind });
       }
     }
     // A request the main thread declined (#1957, the owner's call): straight into the row's earlier results,
@@ -1074,6 +1099,9 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     const reveal = cur.detail !== null && cur.detail !== last.detail && !quietlySettled.has(cur.detail) ? cur.detail : null;
     last = cur;
     const stillRunning = counts(cur).running > 0;
+    // #533 (Q110 A): one notice once nothing runs, the worst of what ended since the last one (`worstEnd`).
+    const worst = stillRunning ? null : worstEnd(pendingEnds);
+    if (worst) { pendingEnds.length = 0; opts.lend.ended?.(noticeLine(worst.k, worst.kind)); }
     // Q194 (#2487, amending decision #4 on #1956): a run's finish is announced too, so a reader knows the file is safe
     // to use again: a success briefly, a failure with its reason. The line then stands until the next start, whose
     // words differ from it; a later reading with nothing to say (`closeDetail` brings one at once) leaves it. A run that

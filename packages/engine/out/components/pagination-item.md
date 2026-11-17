@@ -1,6 +1,6 @@
 # Pagination.Item
 
-> A pagination cell: a page, the gap marker, previous or next. The current page is outlined.
+> A pagination cell: a page, the gap marker, previous or next. The current page is marked.
 
 - **ID:** `pagination-item`
 - **Category:** navigation
@@ -9,9 +9,9 @@
 
 ## Overview
 
-One cell in a pagination row: a page number, the gap marker, three dots, that stands for two or more hidden pages, or the previous or next cell, a chevron that opens the page before or after. A cell is as tall as an icon button and at least as wide as it is tall, so a row of pages between previous and next lines up as equal squares; a page number past two digits, or the word "Previous" or "Next" beside a chevron, widens it. The current page is marked, not filled: its number in the emphasis weight, with a light gray border around the cell, or a 2px underline under the number in a gray that stands out from the page at 3:1. It keeps its width, so the row does not move. At hover and press, another page and an unlabeled previous or next show a light neutral wash; a labeled previous or next shows no fill and its word and chevron darken, as a text link does. At the first or last page, previous or next stays in place and does nothing, drawn in the disabled ink. The gap marker is decorative: it does not respond to the pointer, takes no focus and is hidden from assistive technology. Pagination places the cells and decides which page is current.
+One cell in a pagination row: a page number, the gap marker, three dots, that stands for two or more hidden pages, or the previous or next cell, a chevron that opens the page before or after. A cell is as tall as an icon button and at least as wide as it is tall, so a row of pages between previous and next lines up as equal squares; a page number past two digits, or the word "Previous" or "Next" beside a chevron, widens it. The current page is marked, not filled: its number in the emphasis weight, with a light gray border around the cell, or a 2px underline under the number in the number's ink. It keeps its width, so the row does not move. At hover and press, another page and an unlabeled previous or next show a light neutral wash; a labeled previous or next shows no fill and its word and chevron darken, as a text link does. At the first or last page, previous or next stays in place and does nothing, drawn in the disabled ink. The gap marker is decorative: it does not respond to the pointer, takes no focus and is hidden from assistive technology. Pagination places the cells and decides which page is current.
 
-- **Purpose:** One page number, the ellipsis, or previous or next, inside a pagination row.
+- **Purpose:** Show one page number, the ellipsis, or previous or next, inside a pagination row.
 - **Use when:** Only as a child of Pagination. Generate Pagination, which places the pages, the gap marker, previous and next, and sets which page is current.
 - **Avoid when:** Anywhere outside Pagination: a single action is a Button, and a choice between a few views is a segmented control or tabs.
 
@@ -20,19 +20,19 @@ One cell in a pagination row: a page number, the gap marker, three dots, that st
 Shown on the default member: type `page`, selection `unselected`, style `border`, labeled `false`, size `medium`.
 
 1. **Container** — The cell: as tall as an icon button and at least as wide as it is tall, and the whole pointer target. The current page has a light gray border in the border style; another page and an unlabeled previous or next take a light neutral wash at hover and press. A labeled previous or next has no fill.
-2. **Previous glyph** — The previous cell's left chevron (Q414 A), at the gap icon's size, one rung under the icon button's glyph (Q428 A).
+2. **Previous glyph** — The previous cell's left chevron, one size under an icon button's glyph.
 3. **Previous text** — The word "Previous" after the chevron, on a labeled cell only (Pagination's simple type).
 4. **Label box** — Holds the number at the width of its emphasis weight, so the current page is as wide as any other, and the underline under it.
 5. **Balance** — An empty 2px frame above the number, as tall as the underline below it and zero wide, so the underlined number sits on the same line as its neighbors.
 6. **Reserve** — A zero-height frame that clips a copy of the number in the emphasis weight: it takes that width and shows nothing.
 7. **Label reserve** — The number again, in the emphasis weight, never seen: it holds the cell at that width.
 8. **Label** — The page number. Regular, and in the emphasis weight on the current page.
-9. **Underline** — The 2px line under the current page's number, in the underline style: as wide as the number, not the cell, in a gray that stands out from the page at 3:1.
+9. **Underline** — The 2px line under the current page's number, in the underline style: as wide as the number, not the cell, in the number's ink (the neutral selection mark), at 3:1 or more against the page.
 10. **Underline reserve** — A zero-height frame that clips a copy of the number, so the underline takes the number's width and shows only its own color.
 11. **Underline label** — The number again, in the emphasis weight, never seen: it sets the underline's width.
-12. **Gap glyph** — The gap marker: the more-horizontal icon, three dots, decorative and hidden from assistive technology (Q404 A). It is not a control.
+12. **Gap glyph** — The gap marker, three dots, decorative and hidden from screen readers; it is not a control.
 13. **Next text** — The word "Next" before the chevron, on a labeled cell only (Pagination's simple type).
-14. **Next glyph** — The next cell's right chevron (Q414 A).
+14. **Next glyph** — The next cell's right chevron.
 15. **Focus ring** — The shared focus ring, around the cell while it has keyboard focus.
 
 ## Styles
@@ -111,7 +111,7 @@ Numbers only on a page. The accessible name adds "Page". Previous and next read 
 | `label` | string | — | yes | The page number as shown, such as "4". Pagination sets it, through the locale's number format. |
 | `page` | number | — | no | The page this cell opens. Absent on an ellipsis. |
 | `href` | string | — | no | The address of the page. Present, the cell is a link; absent, it is a button that changes the page in place. |
-| `selected` | boolean | `false` | no | Whether this is the current page. Set by Pagination; do not set it on a cell inside a pagination row. |
+| `current` | boolean | `false` | no | Whether this is the current page: the mark and aria-current="page". Set by Pagination; do not set it on a cell inside a pagination row. |
 | `type` | enum: 'page' \| 'ellipsis' \| 'previous' \| 'next' | `page` | no | page: a page number the user can open. ellipsis: the three-dot icon that stands for two or more pages not shown. previous and next: the cell with a left or right chevron that opens the page before or after the current one. |
 | `labeled` | boolean | `false` | no | On previous and next only: true shows the word beside the chevron, as Pagination's simple type does. Passed down by Pagination. |
 | `previousLabel` | string | `Previous` | no | The word a labeled previous cell shows, "Previous" by default. Pass the translated word. |
@@ -273,7 +273,7 @@ Keyed by `type`, `selection`, `style`, `labeled`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/labelBox/reserve/labelReserve` | — | — | `color.interactive.neutral.text.rest` | — |
 | `container/labelBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
-| `container/labelBox/underline` | `color.border.tertiary` | — | — | — |
+| `container/labelBox/underline` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/labelBox/underline/underlineReserve/underlineLabel` | — | — | `color.interactive.neutral.text.rest` | — |
 
 **type=page, selection=selected, style=underline, labeled=false, state=focus-visible**
@@ -282,7 +282,7 @@ Keyed by `type`, `selection`, `style`, `labeled`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/labelBox/reserve/labelReserve` | — | — | `color.interactive.neutral.text.rest` | — |
 | `container/labelBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
-| `container/labelBox/underline` | `color.border.tertiary` | — | — | — |
+| `container/labelBox/underline` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/labelBox/underline/underlineReserve/underlineLabel` | — | — | `color.interactive.neutral.text.rest` | — |
 
 **type=ellipsis, selection=unselected, style=border, labeled=false, state=rest**

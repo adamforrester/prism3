@@ -1243,7 +1243,9 @@ const builtSizeAt = (def: ComponentDef, size: string | undefined, slots: PlanSlo
     ...(width !== undefined ? { placementWidth: width } : {}),
     ...(height !== undefined ? { placementHeight: height } : {}),
   };
-  if (height !== undefined && b.grow && parts[b.grow]) parts[b.grow] = { ...parts[b.grow], grow: true };
+  // `builtSize.grow` names a flow child of the column without typing its kind, so the part is widened to take `grow`
+  // (#3698 R5 item 3: type-only, the emitted JS is unchanged).
+  if (height !== undefined && b.grow && parts[b.grow]) parts[b.grow] = { ...parts[b.grow], grow: true } as PartDef;
   return { ...def, anatomy: { ...a, parts } };
 };
 
@@ -2060,8 +2062,10 @@ export const figmaAnatomyPlan = (
     const literalFont = p.literal === 'label' ? literal?.font : undefined;
     const literalTint = p.literal === 'mark' ? literal?.markTint : undefined;
     let textStyle: string | undefined;
-    // A literal font REPLACES the type binding at this member: the provider fixes the face.
-    if (p.type && !literalFont) textStyle = figmaTextStyleName(resolveKey(p.type, 'type'));
+    // A literal font REPLACES the type binding at this member: the provider fixes the face. A TEXT part only (#3783):
+    // a text style goes on a TEXT node, and on a FRAME or an instance there is no `setTextStyleIdAsync` to take it.
+    // The schema refuses `type` off a text part (Q-PU2 A); this guard keeps a def that bypassed it from planning one.
+    if (p.kind === 'text' && p.type && !literalFont) textStyle = figmaTextStyleName(resolveKey(p.type, 'type'));
     const literalPaints: { fills?: string[]; strokes?: string } = {};
     if (p.literal === 'surface') {
       const wash = literal?.wash?.[paintCoord.state ?? 'rest'];
@@ -2181,6 +2185,14 @@ export const figmaAnatomyPlan = (
       // A part that keeps its content's own paint (#2343 PR 2, `fixedPaint`) takes none: on a provider logo the host's
       // ink would be the retint the provider forbids.
       if (!p.fixedPaint) descendantFills = paintOf('icon');
+    } else if (p.kind === 'nest' && p.hostInk) {
+      // HOST-TO-NEST PAINT (owner decisions Q-FL1 A and Q-FL1.1 A, #3554; `PartDef.hostInk`). A nest otherwise keeps
+      // its own component's paint; one that declares `hostInk` takes the HOST's ink for that slot, resolved here exactly
+      // as a glyph part of the host would resolve it, so the disabled branch asks for the on-fill form where the host's
+      // disabled fill lands. Where the host keys nothing for the slot at this coordinate, nothing is pushed and the
+      // nested component's own ink stands. The ink rides `descendantFills` on the NESTED_INSTANCE, which both executors
+      // already paint on every VECTOR inside the node (#2380), so no executor code moves.
+      descendantFills = paintOf(p.hostInk);
     }
 
     // The placeholder lands only on a TEXT node, and only where the def declares a TEXT property for
@@ -2553,13 +2565,7 @@ export const figmaAnatomyPlan = (
  *  quietly omits an axis, and a set with no members is the same defect with the count at zero. */
 const PROJECTABLE_SLOT_AXES = ['leading', 'trailing'];
 
-/** The `derived` key a def carries to opt IN to `controlShape` (#1163). Its VALUE is inert prose ("height
- *  ÷ 2 — …"); its PRESENCE is the selector. Today button + icon-button carry it; switch + radio do not, so
- *  they are outside the pill-able set by construction (asserted in `test.ts`, so the lever can never square
- *  them off). A future chip/tag/segmented control joins the set by declaring this key — nothing else. */
-export const PILL_RADIUS_DERIVATION = 'pill-radius';
-
-/** The rung a pill-able control binds under `controlShape: pill`. `radius.capsule` is a 999px sentinel —
+/** The rung a button's corner binds under `controlShape: pill`. `radius.capsule` is a 999px sentinel —
  *  a single radius Figma clamps to min(w,h)/2 = height ÷ 2 at every size, which is the "pill-radius
  *  derivation" the def documents rather than a per-component literal. It is DISTINCT from `radius.round`
  *  (128px, the rung switch/radio bind intrinsically) on purpose (#1163): 128 stops being a full pill above
@@ -2568,17 +2574,17 @@ export const PILL_RADIUS_DERIVATION = 'pill-radius';
  *  bound to a radius corner, not a height variable bound across Figma's scope boundary. */
 export const PILL_RADIUS_RUNG = 'radius.capsule';
 
-/** The rung a pill-able control binds under `controlShape: boxed` (#1371) — a fixed 0px / sharp corner.
+/** The rung a Control shape corner binds under `controlShape: boxed` (#1371) — a fixed 0px / sharp corner.
  *  `radius.none` is ALWAYS emitted (it is the ramp's floor, `RADIUS_LADDER`'s `factor: 0`), so `boxed`
  *  carries no rung dependency: unlike `hairline` it is valid for every brand with nothing to provision. */
 export const BOXED_RADIUS_RUNG = 'radius.none';
 
-/** The rung a pill-able control binds under `controlShape: hairline` (#1371) — the fixed 1px sentinel
+/** The rung a Control shape corner binds under `controlShape: hairline` (#1371) — the fixed 1px sentinel
  *  (#1362). Every brand emits `radius.hairline` since #2053 (`radiusScale` pushes it unconditionally), so
  *  this rewrite always resolves, as `boxed`'s `radius.none` always has. */
 export const HAIRLINE_RADIUS_RUNG = 'radius.hairline';
 
-/** The rung each shape repoints the ROUNDED rung (`radius.md`) to on a pill-able def. `rounded` is `null`
+/** The rung each shape repoints a def's `levers.controlShape` refs to. `rounded` is `null`
  *  — the IDENTITY, no rewrite — which is what makes the default plan byte-identical (acceptance #1). */
 export const CONTROL_SHAPE_RUNG: Record<ControlShape, string | null> = {
   rounded: null,
@@ -2587,8 +2593,6 @@ export const CONTROL_SHAPE_RUNG: Record<ControlShape, string | null> = {
   hairline: HAIRLINE_RADIUS_RUNG,
 };
 
-/** True when `def` is a pill-able control — it declares the `pill-radius` derivation. */
-export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived?.[PILL_RADIUS_DERIVATION];
 
 /**
  * Materialize a def for a brand's `controlShape` lever (#1163), BEFORE projection — this is why the choice
@@ -2600,12 +2604,12 @@ export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived
  * projector a brand input, the caller that knows the brand rewrites the DEF first and hands the projector a
  * def as before. The projector stays a pure function of its def; the brand-specificity lives here.
  *
- * What it does: for a non-`rounded` shape, a pill-able control's ROUNDED rung — every `tokens` entry whose
- * ref is `radius.md` — is repointed to that shape's rung (`CONTROL_SHAPE_RUNG`): `pill` → `radius.capsule`
+ * What it does: for a non-`rounded` shape, every `tokens` entry whose ref the def names in
+ * `levers.controlShape.capsules` — the buttons' `radius.md` — is repointed to that shape's rung (`CONTROL_SHAPE_RUNG`): `pill` → `radius.capsule`
  * (height ÷ 2), `boxed` → `radius.none` (sharp), `hairline` → `radius.hairline` (1px). `varOf` still resolves
  * each binding through `def.tokens` exactly as before — only the ref it finds there has moved — so no binding
- * is bypassed and no per-component token is introduced. Under `rounded` (default) and for any def that is not
- * pill-able, this is the IDENTITY: it returns the same object, which is what makes `rounded` reproduce every
+ * is bypassed and no per-component token is introduced. Under `rounded` (default) and for any def that names
+ * no `levers.controlShape`, this is the IDENTITY: it returns the same object, which is what makes `rounded` reproduce every
  * plan byte-identically (acceptance #1, the no-op-default independence check).
  *
  * EACH SHAPE NAMES A RELATIONSHIP, NOT A RAW RADIUS (#1371). The four values are one selector reaching four
@@ -2625,50 +2629,43 @@ export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived
  * circular one stays circular, and `button` (which still binds `radius.md` under the key `radius`) is
  * repointed exactly as before — its default plan is byte-identical.
  *
- * NARROW BY CONSTRUCTION: it rewrites ONLY refs equal to the rounded rung and ONLY for pill-able defs, plus,
- * under `boxed` and `hairline` alone, the field and checkbox corners `FIELD_CORNER_REFS` names by def id (#2361).
- * `switch`/`radio` carry no `pill-radius` derivation, so `isPillable` is false and they pass through
- * untouched — and even were they pill-able, their `radius.round` ref is not the rounded rung, so the lever
- * cannot reach the one binding that already gives them their intrinsic pill/circle.
+ * NARROW BY CONSTRUCTION: it rewrites ONLY the refs a def names in `levers.controlShape`: `capsules` under every
+ * shape but Rounded, and, under `boxed` and `hairline` alone, the field and checkbox corners in `squares` (#2361).
+ * ALL OF ITS REACH LIVES THERE (owner Q-CS5 B, #3765). Until then Pill's reach came from a `pill-radius` key in
+ * `anatomy.derived`; that prose stays on the button defs because the plan carries `derived` and `planStamp` hashes it
+ * (dropping it would read every built button member as stale), but it no longer selects anything.
+ * `switch`/`radio` name no `levers.controlShape`, so they pass through untouched, and their `radius.round` is the
+ * intrinsic pill/circle no def lists.
  */
 export const ROUNDED_RADIUS_RUNG = 'radius.md';
 
 /**
  * `boxed` AND `hairline` REACH FIELDS AND THE CHECKBOX TOO (#2361, owner 2026-10-08: "1px corners everywhere",
- * for consistency first; Q139 added `boxed`, the same way). `rounded` and `pill` still reach only the pill-able
- * set: a pill field or a pill checkbox would be wrong, and `rounded` is the identity.
+ * for consistency first; Q139 added `boxed`, the same way). `rounded` and `pill` still reach only the buttons'
+ * `capsules`: a pill field or a pill checkbox would be wrong, and `rounded` is the identity.
  */
 export const FIELD_CORNER_SHAPES: readonly ControlShape[] = ['boxed', 'hairline'];
 
-/**
- * Each entry is a def id and the corner refs it repoints to the shape's rung (`radius.none` or `radius.hairline`).
- * SELECTED BY ID, NOT BY REF, and that is the point: `radius.sm` is also Badge's `status.radius`, which a field
+/*
+ * A def lists, in `levers.controlShape.squares`, the corner refs it repoints to the shape's rung (`radius.none` or
+ * `radius.hairline`). Selected per def, not by ref alone (#3698 R5 moved the table from here into each def), and that
+ * is the point: `radius.sm` is also Badge's `status.radius`, which a field
  * setting must not reach. The checkbox's refs are its per-rung clamped corner (#1015, `controlRadius`): 0px and
  * 1px are both below that clamp on every edge of 8px or more (`snap2(edge ÷ 8)` ≥ 2 there, and the smallest
  * control rung is 12px), so the clamp still holds and the `control.size.*.radius` tokens are emitted unchanged.
  * `radio-control` and `switch-control` are not listed: their `radius.round` is intrinsic, as under every other
  * shape. Rows and groups nest the control, so they carry no corner of their own to repoint.
  */
-export const FIELD_CORNER_REFS: Readonly<Record<string, readonly string[]>> = {
-  'text-field': ['radius.sm'],
-  select: ['radius.sm'],
-  textarea: ['radius.sm'],
-  // #2888: the Search field's box is TextField's, from the shared field factory.
-  'search-field': ['radius.sm'],
-  // #2343 PR 4: the Card number field's box is TextField's too.
-  'card-number-field': ['radius.sm'],
-  'checkbox-control': ['control.size.sm.radius', 'control.size.md.radius', 'control.size.lg.radius'],
-};
 
 export const applyControlShape = (def: ComponentDef, shape: ControlShape): ComponentDef => {
   const target = CONTROL_SHAPE_RUNG[shape];
   if (target === null) return def;
-  const fieldRefs = FIELD_CORNER_SHAPES.includes(shape) ? FIELD_CORNER_REFS[def.id] : undefined;
-  if (!isPillable(def) && !fieldRefs) return def;
-  const tokens = Object.fromEntries(
-    Object.entries(def.tokens).map(([k, ref]) => [k,
-      (isPillable(def) && ref === ROUNDED_RADIUS_RUNG) || !!fieldRefs?.includes(ref) ? target : ref]),
-  );
+  const refs = [
+    ...(def.levers?.controlShape?.capsules ?? []),
+    ...(FIELD_CORNER_SHAPES.includes(shape) ? def.levers?.controlShape?.squares ?? [] : []),
+  ];
+  if (!refs.length) return def;
+  const tokens = Object.fromEntries(Object.entries(def.tokens).map(([k, ref]) => [k, refs.includes(ref) ? target : ref]));
   return { ...def, tokens };
 };
 
@@ -2680,43 +2677,29 @@ export const applyControlShape = (def: ComponentDef, shape: ControlShape): Compo
 // (Q14 A), and a brand switch reaches an existing file through Update (Q16 A). No token is added (Q15 A): every
 // binding below is a rung or role the engine already emits for every brand.
 
-/**
- * The field family, each def named with the part that draws its frame (the bordered control). Keyed by def id,
- * `FIELD_CORNER_REFS`'s way, and held complete by `test.ts`: every def that binds the field chrome
- * (`color.field.fill`) is listed here, so a new field def cannot miss the lever by being left out.
+/*
+ * The field family: each field def names the part that draws its frame (the bordered control) in
+ * `levers.fieldStyle.frame` (#3698 R5; until then a table keyed by def id here). Held complete by `test.ts`: every def
+ * that binds the field chrome (`color.field.fill`) carries it, so a new field def cannot miss the lever by leaving it out.
  */
-export const FIELD_FRAME_PARTS: Readonly<Record<string, string>> = {
-  'text-field': 'control',
-  'password-field': 'control',
-  select: 'control',
-  textarea: 'control',
-  // #2719 (Q332 A names Code input a field; Q12 A on #2695): each cell is a field box, so each draws its own line.
-  // The row's gaps belong to `code-input`, which binds no field chrome and stays as authored.
-  'code-input-cell': 'container',
-  // #2888: drawn in the Search field style, which may differ from the other fields' (`fieldStyleFor`).
-  'search-field': 'control',
-  // #2343 PR 4: the Card number field's box is TextField's; under underline its tile sits at the line's end.
-  'card-number-field': 'control',
-};
 
 /**
  * THE SEARCH FIELD STYLE (#2888, owner decision Q514 taking Q?1 A). The brand's search field may take an edge of its
  * own: `follow` (the default) draws whatever Field style draws; `outline` or `underline` sets search apart from the
  * other fields. This resolves WHICH style a def is drawn in; `applyFieldStyle` still draws it, unchanged. Every def but
- * the ones listed here takes Field style, so a brand that leaves the lever unset, or sets `follow`, builds every def
+ * the ones whose `levers.fieldStyle.setting` is `searchFieldStyle` takes Field style, so a brand that leaves the lever unset, or sets `follow`, builds every def
  * exactly as before. The defaults live here, once, for every caller (the plugin's `materializeForBrand`, the
  * lever sweep).
  */
-export const SEARCH_FIELD_STYLE_DEFS: readonly string[] = ['search-field'];
-export const fieldStyleFor = (defId: string, input: { fieldStyle?: FieldStyle; searchFieldStyle?: SearchFieldStyle } | null | undefined): FieldStyle => {
+export const fieldStyleFor = (def: Pick<ComponentDef, 'levers'>, input: { fieldStyle?: FieldStyle; searchFieldStyle?: SearchFieldStyle } | null | undefined): FieldStyle => {
   const field = input?.fieldStyle ?? 'outline';
   const search = input?.searchFieldStyle ?? 'follow';
-  return SEARCH_FIELD_STYLE_DEFS.includes(defId) && search !== 'follow' ? search : field;
+  return def.levers?.fieldStyle?.setting === 'searchFieldStyle' && search !== 'follow' ? search : field;
 };
 
 /**
  * Materialize a def for the brand's `fieldStyle` lever (#2695). The IDENTITY under `outline` and for any def not in
- * `FIELD_FRAME_PARTS`: it returns the same object, so every outline plan is byte-identical to before.
+ * `levers.fieldStyle`: it returns the same object, so every outline plan is byte-identical to before.
  *
  * Under `underline`, on the frame part and the keys it names:
  *   · THE LINE (Q2, Q3, Q7): the four sides bind apart (`strokeEdges`). Top, end and start take `border-width.none`;
@@ -2752,10 +2735,10 @@ const UNDERLINE_RING: PartDef = {
 
 export const applyFieldStyle = (def: ComponentDef, style: FieldStyle): ComponentDef => {
   if (style === 'outline') return def;
-  const frameName = FIELD_FRAME_PARTS[def.id];
+  const frameName = def.levers?.fieldStyle?.frame;
   const a = def.anatomy;
   const frame = frameName ? a?.parts[frameName] : undefined;
-  if (!a || !frame) return def;
+  if (!a || !frameName || !frame || frame.kind !== 'box') return def;
   const tokens: Record<string, string> = {};
   for (const [k, ref] of Object.entries(def.tokens)) {
     if (k === 'disabled.fill') continue;
@@ -2804,12 +2787,9 @@ export const applyFieldStyle = (def: ComponentDef, style: FieldStyle): Component
 // members, axes, properties and layer names, so a brand switch reaches an existing file through Update and instances
 // stay linked. No token is added: every binding is a rung or role the engine already emits.
 
-/** The tag family, each def named with the four parts the underline reaches: the bordered `frame`, the inset content
- *  `row`, the `labelRow` that holds the label and the check, and the remove `slot`. Keyed by def id, `FIELD_FRAME_PARTS`'s
- *  way. Tag is the only member (the wireframe's finding: Segmented control and Tab do not take this lever). */
-export const TAG_STYLE_PARTS: Readonly<Record<string, { frame: string; row: string; labelRow: string; slot: string }>> = {
-  tag: { frame: 'container', row: 'content', labelRow: 'labelCheck', slot: 'dismiss' },
-};
+/* The tag family: each def names the four parts the underline reaches in `levers.tagStyle` (#3698 R5): the bordered
+ * `frame`, the inset content `row`, the `labelRow` that holds the label and the check, and the remove `slot`. Tag is the
+ * only member (the wireframe's finding: Segmented control and Tab do not take this lever). */
 
 /** The def key holding the underline's block-end inset per size (Q9 A: `space.050 / 075 / 100`; Q10 A: the same at
  *  every density, so it is not in `densitySpacing`). Authored on the def, so the pill and the underline share it. */
@@ -2817,7 +2797,7 @@ export const TAG_UNDERLINE_INSET = 'size.{size}.underline.inset';
 
 /**
  * Materialize a def for the brand's `tagStyle` lever (#2887). The IDENTITY under `pill` and for any def not in
- * `TAG_STYLE_PARTS`: it returns the same object, so every pill plan is byte-identical to before.
+ * `levers.tagStyle`: it returns the same object, so every pill plan is byte-identical to before.
  *
  * Under `underline`:
  *   · THE LINE (Q513.2, Q513.3, Q513.4): the four sides bind apart (`strokeEdges`). Top, end and start take
@@ -2846,10 +2826,10 @@ export const TAG_UNDERLINE_INSET = 'size.{size}.underline.inset';
  */
 export const applyTagStyle = (def: ComponentDef, style: TagStyle): ComponentDef => {
   if (style === 'pill') return def;
-  const names = TAG_STYLE_PARTS[def.id];
+  const names = def.levers?.tagStyle;
   const a = def.anatomy;
   const frame = names ? a?.parts[names.frame] : undefined;
-  if (!a || !names || !frame) return def;
+  if (!a || !names || !frame || frame.kind !== 'box') return def;
   const tokens: Record<string, string> = {};
   for (const [k, ref] of Object.entries(def.tokens)) if (!k.split('.').includes('overlay')) tokens[k] = ref;
   if (frame.radius) tokens[frame.radius] = 'radius.none';
@@ -2883,7 +2863,7 @@ export const applyTagStyle = (def: ComponentDef, style: TagStyle): ComponentDef 
   const row = a.parts[names.row];
   if (row?.padding) parts[names.row] = { ...row, padding: { ...row.padding, inlineLabel: 'underline.pad-0', inlineEnd: 'underline.pad-0', blockEnd: TAG_UNDERLINE_INSET } };
   const labelRow = a.parts[names.labelRow];
-  if (labelRow) {
+  if (labelRow?.kind === 'box') {
     const glyph = Object.values(a.parts).find((p) => p.kind === 'vector' && labelRow.children?.some((c) => a.parts[c] === p))?.size;
     if (glyph) parts[names.labelRow] = { ...labelRow, minHeight: glyph };
   }
@@ -2910,21 +2890,21 @@ export const applyTagStyle = (def: ComponentDef, style: TagStyle): ComponentDef 
 // through Update. No token is added: every label rung and its Emphasis role is emitted for every brand. A one-off dialog
 // is still a designer's hand override in Figma (Q588b A); Q588c keeps every other dialog choice a component property.
 
-/** The defs the setting reaches, each with the def key that holds its title's text style. Dialog only: whether Accordion,
- *  which binds the same `type.label.lg.emphasis` title, follows this or gets its own setting is the owner's (#2958 Q2). */
-export const DIALOG_TITLE_TYPE_KEYS: Readonly<Record<string, string>> = { dialog: 'title-type' };
+/* The defs the setting reaches each name the key that holds their title's text style, in `levers.dialogTitleSize`
+ * (#3698 R5). Dialog only: whether Accordion, which binds the same `type.label.lg.emphasis` title, follows this or gets
+ * its own setting is the owner's (#2958 Q2). */
 /** The label rung each setting binds. */
 export const DIALOG_TITLE_RUNG: Readonly<Record<DialogTitleSize, string>> = { large: 'lg', medium: 'md', small: 'sm' };
 
 /**
  * Materialize a def for the brand's `dialogTitleSize` lever (#2958). The IDENTITY under `large` and for any def not in
- * `DIALOG_TITLE_TYPE_KEYS`: it returns the same object, so every Large plan is byte-identical to before. Under `medium`
+ * `levers.dialogTitleSize`: it returns the same object, so every Large plan is byte-identical to before. Under `medium`
  * or `small` the title key binds that label rung, its role kept (`type.label.lg.emphasis` → `type.label.sm.emphasis`).
  * THROWS when the key does not hold a `type.label.<rung>.<role>` ref: rebinding anything else is the silent-loss shape.
  */
 export const applyDialogTitleSize = (def: ComponentDef, size: DialogTitleSize): ComponentDef => {
   if (size === 'large') return def;
-  const key = DIALOG_TITLE_TYPE_KEYS[def.id];
+  const key = def.levers?.dialogTitleSize?.titleType;
   if (!key) return def;
   const segs = def.tokens[key]?.split('.') ?? [];
   if (segs.length !== 4 || segs[0] !== 'type' || segs[1] !== 'label')
@@ -2941,18 +2921,14 @@ export const applyDialogTitleSize = (def: ComponentDef, size: DialogTitleSize): 
 // the glyph and the inks bind what they bound. Bold, a solid tone fill, is held on #3038: it needs the nested action and
 // dismiss re-pointed at the on-color, which no materializer can do.
 
-/** The defs the setting reaches, each with its per-tone fill keys. Banner only (Q4 A on #2924): Toast sits on the inverse
- *  surface with no tint, and FieldMessage has no surface. */
-export const BANNER_STYLE_FILL_KEYS: Readonly<Record<string, readonly string[]>> = {
-  // #3225 (Q-BN3.1 A): the neutral tone's fill moves too, from the secondary ground to the page color.
-  banner: ['info.fill', 'success.fill', 'warning.fill', 'danger.fill', 'neutral.fill'],
-};
+/* The defs the setting reaches each name their per-tone fill keys in `levers.bannerStyle.fills` (#3698 R5). Banner only
+ * (Q4 A on #2924): Toast sits on the inverse surface with no tint, and FieldMessage has no surface. */
 /** What each tone's fill binds at Tinted: the tone's tint, and for the neutral tone (#3225) the secondary ground. */
 const bannerTintOf = (tone: string): string => (tone === 'neutral' ? 'color.background.secondary' : `color.foreground.${tone}-subtle`);
 
 /**
  * Materialize a def for the brand's `bannerStyle` lever (#2924). The IDENTITY under `tinted` and for any def not in
- * `BANNER_STYLE_FILL_KEYS`: it returns the same object, so every Tinted plan is byte-identical to before. Under `outlined`
+ * `levers.bannerStyle`: it returns the same object, so every Tinted plan is byte-identical to before. Under `outlined`
  * each `<tone>.fill` key binds the page color, `color.background.primary`.
  * THROWS when a key does not hold its tone's tint, `color.foreground.<tone>-subtle` (the neutral tone's
  * `color.background.secondary`, #3225): rebinding anything else is the
@@ -2960,7 +2936,7 @@ const bannerTintOf = (tone: string): string => (tone === 'neutral' ? 'color.back
  */
 export const applyBannerStyle = (def: ComponentDef, style: BannerStyle): ComponentDef => {
   if (style === 'tinted') return def;
-  const keys = BANNER_STYLE_FILL_KEYS[def.id];
+  const keys = def.levers?.bannerStyle?.fills;
   if (!keys) return def;
   const tokens = { ...def.tokens };
   for (const key of keys) {
@@ -2972,13 +2948,13 @@ export const applyBannerStyle = (def: ComponentDef, style: BannerStyle): Compone
   return { ...def, tokens };
 };
 
-/** The parts the brand's `currentIndicator` lever reaches (#3345): Link's current-page bar, which every current link
- *  draws, a Page navigation item's included (it nests Link). Held as a literal so a renamed part fails loudly. */
-export const CURRENT_INDICATOR_PARTS: Readonly<Record<string, string>> = { link: 'bar' };
+/* The part the brand's `currentIndicator` lever reaches is named in `levers.currentIndicator.bar` (#3345, #3698 R5):
+ * Link's current-page bar, which every current link draws, a Page navigation item's included (it nests Link). A name
+ * that is not a foot bar throws below, and the validator refuses it first. */
 
 /**
  * Materialize a def for the brand's `currentIndicator` lever (#3345, owner decision 2026-11-03). The IDENTITY under
- * `full` and for any def not in `CURRENT_INDICATOR_PARTS`: it returns the same object, so every Full plan is
+ * `full` and for any def without `levers.currentIndicator`: it returns the same object, so every Full plan is
  * byte-identical to before. Under `partial` Link's foot bar takes `footShare` = `CURRENT_INDICATOR_PARTIAL_SHARE`
  * (0.5), which both executors draw as round(0.5 × the title's width), centered under it. The thickness (the bar's
  * bound height, `border-width.thick`) is untouched: 2px either way. Partial is the engine default (Q10 B, every
@@ -2987,7 +2963,7 @@ export const CURRENT_INDICATOR_PARTS: Readonly<Record<string, string>> = { link:
  */
 export const applyCurrentIndicator = (def: ComponentDef, style: CurrentIndicator): ComponentDef => {
   if (style === 'full') return def;
-  const name = CURRENT_INDICATOR_PARTS[def.id];
+  const name = def.levers?.currentIndicator?.bar;
   const a = def.anatomy;
   if (!name || !a) return def;
   const part = a.parts[name];
@@ -3084,10 +3060,11 @@ export const TEXT_FILL_STATES = ['hover', 'pressed'] as const;
  * at one size is the silent-loss shape, and the caller always has the brand's numbers in hand.
  */
 export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (ref: string) => number | undefined): ComponentDef => {
-  // "Control label weight" reaches the tag family too (#2945, Q591 A); the other button settings do not. Badge and
-  // every other def that binds a label style keep their own.
+  // "Control label weight" reaches a def outside the family that opts in with `levers.buttonLabelWeight` (Tag: #2945,
+  // Q591 A; its own entry since #3786); the other button settings do not. Badge and every other def that binds a label
+  // style keep their own.
   if (!isButtonFamily(def))
-    return layout.labelWeight === 'default' && TAG_STYLE_PARTS[def.id] ? { ...def, tokens: withDefaultLabels(def, def.tokens) } : def;
+    return layout.labelWeight === 'default' && def.levers?.buttonLabelWeight ? { ...def, tokens: withDefaultLabels(def, def.tokens) } : def;
   const a = def.anatomy!;
   const root = a.parts[a.root];
   if (!root.layout || !root.height)
@@ -3261,8 +3238,8 @@ export const resolveWeightIntent = (intent: string, avail: readonly WeightRoleNa
   throw new Error(`unknown weight intent '${intent}' — the declared intents are [${WEIGHT_INTENTS.join(', ')}]`);
 };
 
-/** THE FIXED WEIGHT INTENT (#2428, `ComponentDef.typeWeight`): every `type.<group>.*` ref's role tail repointed to the
- *  brand's resolution of the def's one intent. Identity for a def without it, and for a brand whose resolution is the
+/** THE FIXED WEIGHT INTENT (#2428, `ComponentDef.typeWeight`): every `type.<group>.*` ref's role tail (or only the
+ *  refs under `keys`, #3475) repointed to the brand's resolution of the def's one intent. Identity for a def without it, and for a brand whose resolution is the
  *  authored role. */
 const applyTypeWeight = (def: ComponentDef, avail: WeightAvailability): ComponentDef => {
   const tw = def.typeWeight;
@@ -3272,9 +3249,10 @@ const applyTypeWeight = (def: ComponentDef, avail: WeightAvailability): Componen
     throw new Error(`${def.id}: typeWeight.group '${tw.group}' has no emitted weight roles for this brand — a weight intent cannot resolve against a category the brand does not ship`);
   const role = resolveWeightIntent(tw.intent, groupAvail);
   const tokens: Record<string, string> = {};
+  const only = tw.keys ? new Set(tw.keys) : null;
   for (const [k, ref] of Object.entries(def.tokens)) {
     const segs = ref.split('.');
-    if (segs[0] === 'type' && segs[1] === tw.group) { segs[segs.length - 1] = role; tokens[k] = segs.join('.'); } else tokens[k] = ref;
+    if (segs[0] === 'type' && segs[1] === tw.group && (!only || only.has(k))) { segs[segs.length - 1] = role; tokens[k] = segs.join('.'); } else tokens[k] = ref;
   }
   return { ...def, tokens };
 };
@@ -3395,7 +3373,7 @@ const OUTLINE_SUBTLE_REF = /^color\.interactive\.([^.]+)\.subtle-fill\.([^.]+)$/
  *   · `solid-tint`      → the ref is repointed to the tinted-wash variable (below). The
  *                         slot precedence (`paintSlots: ['overlay', 'fill', …]`) is unchanged, so the
  *                         tinted wash lands exactly where the neutral wash did.
- *   · `opaque-fill`     → on `OPAQUE_FILL_DEFS` only, the wash ref is repointed to the opaque fill,
+ *   · `opaque-fill`     → on a def with `levers.outlineInteraction.opaqueFill` only, the wash ref is repointed to the opaque fill,
  *                         `interactive.<color>.hover-fill.<state>` (#3071); every other def is IDENTITY, so a
  *                         tag, segment or page keeps the wash, which the method still emits.
  *   · `none`            → the ENTRY IS DROPPED. `paintOf('overlay')` then resolves nothing and the box
@@ -3413,22 +3391,17 @@ const OUTLINE_SUBTLE_REF = /^color\.interactive\.([^.]+)\.subtle-fill\.([^.]+)$/
  * bound paint's opacity whenever Apply Theme rewrites the variable it is bound to, so one re-apply turned every
  * tinted hover into the solid fill (288 paints on the owner's NB file, 2026-09-25).
  */
-/**
- * The defs whose outline/text hover takes the OPAQUE fill under `opaque-fill` (#3071, owner Q3071.3 A, Q3071.4 A):
- * Button (outline, and text under `buttonTextHover: fill`, which copies the outline's slots after this runs), Icon
- * button (outline, ghost) and Flush icon button. Every other def keeps the neutral wash it binds: a fill on an
- * unselected tag, segment or page reads as selected, the state those controls exist to show. Named by id, since
- * which controls follow is the owner's decision, not a property of the ref.
+/*
+ * The defs whose outline/text hover takes the OPAQUE fill under `opaque-fill` (#3071, owner Q3071.3 A, Q3071.4 A) say so
+ * with `levers.outlineInteraction.opaqueFill` (#3698 R5): Button (outline, and text under `buttonTextHover: fill`, which
+ * copies the outline's slots after this runs), Icon button (outline, ghost) and Flush icon button. Every other def keeps
+ * the neutral wash it binds: a fill on an unselected tag, segment or page reads as selected, the state those controls
+ * exist to show. Named per def, since which controls follow is the owner's decision, not a property of the ref.
  */
-export const OPAQUE_FILL_DEFS: readonly string[] = [
-  'button', 'button-destructive', 'button-neutral',
-  'icon-button', 'icon-button-destructive', 'icon-button-neutral',
-  'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
-];
 
 export const applyOutlineInteraction = (def: ComponentDef, method: Theme['outlineInteraction']): ComponentDef => {
   if (method === 'overlay-neutral') return def;
-  if (method === 'opaque-fill' && !OPAQUE_FILL_DEFS.includes(def.id)) return def;
+  if (method === 'opaque-fill' && !def.levers?.outlineInteraction?.opaqueFill) return def;
   const touched = (ref: string) => OUTLINE_OVERLAY_REF.test(ref) || (method === 'none' && OUTLINE_SUBTLE_REF.test(ref));
   if (!Object.values(def.tokens).some(touched)) return def;
   const tokens: Record<string, string> = {};
@@ -3989,8 +3962,19 @@ export const planStamp = (plan: AnatomyPlan): string => {
  *  prefix, which a concatenated render puts next to a NEIGHBOUR's target — the #1262 review finding). */
 export const NEST_TARGET_SLOT = '__NEST_TARGET__';
 
-export const nestMissAdvice = (found: 'COMPONENT_SET' | 'INSTANCE' | 'OTHER' | 'ABSENT', target?: string): string => {
+/** #1796 — TWO OR MORE PLAIN COMPONENTS under a nominated name: the AMBIGUOUS row of both `nestMissAdvice` and
+ *  `swapMissAdvice`, one sentence for both. A name-keyed lookup kept whichever the search returned last, so the build
+ *  nested or swapped in one of them and reported success; refused instead, as #1781 refuses two SETS under one name,
+ *  because nothing but document order could choose. It names no target: the miss prefix carries it (`.nestTarget ->
+ *  <name>`, `.swapTarget -> <name>`), as the nest path's COMPONENT_SET row does, and that keeps the paste payload's copy
+ *  one constant with no runtime substitution — it ships in every chunk's shell, where #1798 holds the bytes. */
+export const AMBIGUOUS_COMPONENT = 'found more than one COMPONENT of that name; neither is used. Rename or remove one, then rebuild';
+
+export const nestMissAdvice = (found: 'COMPONENT_SET' | 'INSTANCE' | 'OTHER' | 'ABSENT' | 'AMBIGUOUS', target?: string): string => {
   switch (found) {
+    case 'AMBIGUOUS':
+      // #1796 — two or more plain components under the exact name the def nests: see `AMBIGUOUS_COMPONENT`.
+      return AMBIGUOUS_COMPONENT;
     case 'COMPONENT_SET':
       // WAS the 108-miss case; now the case where the file holds a set and the DEF did not say which
       // member to nest — i.e. a part declaring `nest-exposed`, whose coordinate is the consumer's to
@@ -4328,7 +4312,7 @@ export const applyNestItemPrefersSrc = (): string => applyNestItemPrefers.toStri
  * nest path has demonstrated that for two releases, one branch above the swap site. So the paste path gets
  * the full four-way diagnosis, not a degraded one.
  */
-export type SwapFound = 'ABSENT' | 'COMPONENT_SET' | 'INSTANCE' | 'OTHER';
+export type SwapFound = 'ABSENT' | 'COMPONENT_SET' | 'INSTANCE' | 'OTHER' | 'AMBIGUOUS';
 
 /** The swap counterpart to `NEST_TARGET_SLOT` (#1288): the paste path bakes these four sentences before
  *  any node's `swapTarget` is known, so the name is carried as a sentinel and the payload replaces it with
@@ -4359,6 +4343,10 @@ export const swapMissAdvice = (found: SwapFound, target?: string): string => {
       return `found an INSTANCE named ${name}, not a component — swap in the main component instead of a copy of it, or publish ${name} under this name`;
     case 'OTHER':
       return `found a node named ${name} that is not a component — rename it, or publish the component this slot needs under the name ${name}`;
+    case 'AMBIGUOUS':
+      // #1796 — two or more plain components under the target's exact name, so neither is swapped in. The nest row's
+      // words: see `AMBIGUOUS_COMPONENT`.
+      return AMBIGUOUS_COMPONENT;
   }
 };
 
@@ -4496,6 +4484,12 @@ const effectByName=new Map(effects.map(s=>[s.name,s]));
 await figma.loadAllPagesAsync();
 const comps=figma.root.findAllWithCriteria({types:['COMPONENT']});
 const compByName=new Map(comps.map(c=>[c.name,c]));
+// THE NEST AND SWAP TARGETS' LOOKUP (#1796): a name held by ONE plain component maps to it, a name held by more maps to
+// 0. \`compByName\` keeps the last of several, which is document order picking, so the targets read \`one\`, and a 0 is
+// reported as \`AMB\` (the shared \`AMBIGUOUS_COMPONENT\`, baked once). Written for bytes: it ships in every chunk's
+// shell (#1798).
+const one=new Map();for(const c of comps)one.set(c.name,one.has(c.name)?0:c);
+const AMB=${JSON.stringify(AMBIGUOUS_COMPONENT)};
 // A SECOND criteria call, sets only (#681). Two calls rather than one widened call for the reason the
 // executor's port states: the COMPONENT map is instantiated from and a ComponentSetNode has no
 // createInstance, so one map per node type keeps each read honest about what it holds.
@@ -4526,7 +4520,7 @@ const resolveNestMember=${resolveNestMemberSrc()};
 // only WHICH strings ship; the payload runs in the file, so the search is available here exactly as it is
 // in the plugin. Failure path only for the reason the nest path states: a cold build already runs thousands
 // of subtree searches and the happy path must not pay for a diagnosis it never prints.
-const swapAdvice=(name)=>{const other=figma.root.findAll(x=>x.name===name)[0];return (!other?${JSON.stringify(swapMissAdvice('ABSENT'))}:other.type==='COMPONENT_SET'?${JSON.stringify(swapMissAdvice('COMPONENT_SET'))}:other.type==='INSTANCE'?${JSON.stringify(swapMissAdvice('INSTANCE'))}:${JSON.stringify(swapMissAdvice('OTHER'))}).split(${JSON.stringify(SWAP_TARGET_SLOT)}).join(name);};
+const swapAdvice=(name)=>{const other=figma.root.findAll(x=>x.name===name)[0];return (one.get(name)===0?AMB:!other?${JSON.stringify(swapMissAdvice('ABSENT'))}:other.type==='COMPONENT_SET'?${JSON.stringify(swapMissAdvice('COMPONENT_SET'))}:other.type==='INSTANCE'?${JSON.stringify(swapMissAdvice('INSTANCE'))}:${JSON.stringify(swapMissAdvice('OTHER'))}).split(${JSON.stringify(SWAP_TARGET_SLOT)}).join(name);};
 const misses=[];
 for(const [t,names] of seenTail) if(names.length>1) misses.push('AMBIGUOUS variable tail '+t+' — the file carries it under '+names.length+' brand roots ('+names.join(', ')+'), so a plan binding it cannot say which; remove or relink one of the sets');`;
 
@@ -4767,7 +4761,7 @@ const PAYLOAD_LITERAL_READBACK = `  if(n.literalPaints){if(n.literalPaints.fills
   if(n.literalTint){const vecs=node.findAll?node.findAll(x=>x.type==='VECTOR'):[];if(vecs.some(v=>!__litHeld(v.fills,[n.literalTint])))misses.push(n.name+'.literalTint -> DISCARDED (literal '+n.literalTint+' set, not retained)');}`;
 const PAYLOAD_LITERAL_FONT = `  if(n.literalFont){
     const f=n.literalFont;let face=null;
-    for(const want of [{family:f.family,style:f.style},f.fallback]){try{await figma.loadFontAsync(want);face=want;break;}catch(err){misses.push(n.name+'.font -> '+want.family+' '+want.style+' ('+err.message+')');}}
+    for(const want of [{family:f.family,style:f.style},f.fallback]){try{await figma.loadFontAsync(want);face=want;break;}catch(err){misses.push(n.name+'.font -> '+want.family+' '+want.style+' ('+(err&&err.message!=null?String(err.message):String(err))+')');}}
     if(face){
       try{node.fontName={family:face.family,style:face.style};node.fontSize=f.size;node.lineHeight={unit:'PIXELS',value:f.lineHeight};}catch(err){misses.push(n.name+'.literalFont -> '+face.family+' '+face.style+' '+f.size+'/'+f.lineHeight+' ('+err.message+')');}
       const fn=node.fontName,lh=node.lineHeight;
@@ -4913,7 +4907,7 @@ const build=async(n)=>{
     // A slot with no resolvable target becomes a placeholder FRAME — but it says so. #482 shipped
     // the frame WITHOUT saying so, because there was no INSTANCE_SWAP branch at all: the plan
     // declared swappable slots and the paste built empty 24x24 boxes.
-    const target=n.swapTarget?compByName.get(n.swapTarget):undefined;
+    const target=n.swapTarget?one.get(n.swapTarget):undefined;
     if(!n.swapTarget)misses.push(n.name+'.swapTarget -> (none nominated; built as a placeholder frame)');
     // DIAGNOSE, then report (#1288) — was the bare name and nothing else, which said neither what the file
     // holds under it nor what to do about it. Composed BYTE-IDENTICALLY to the plugin's node loop: same
@@ -4933,12 +4927,14 @@ const build=async(n)=>{
     // once the instance is made, and it falls back the same way. Worded byte-identically to the plugin executor's twin.
     const pre=n.nestPrefer&&n.nestVariant?resolveNestMember(compSets,n.nestPrefer,n.nestVariant,nestVariantMatch,nestVariantMissAdvice):null;
     const preMember=pre&&!pre.miss?pre.member:null;
-    const nested=preMember?undefined:compByName.get(n.nestTarget);
+    const nested=preMember?undefined:one.get(n.nestTarget);
     // A SET the def named a coordinate in (#681). Checked only when the plain-component lookup missed:
     // a component and a set can share a name, and the component needs no coordinate to be unambiguous.
     // THE SET AND ITS MEMBER, resolved together (#1781): out of the named set's own children, never by member
     // name across the file. null = no set of that name; else a member, or a miss to report and build nothing.
-    const res=preMember?{member:preMember}:!nested&&n.nestVariant?resolveNestMember(compSets,n.nestTarget,n.nestVariant,nestVariantMatch,nestVariantMissAdvice):null;
+    // #1796: \`one\` holds 0 for two plain components of the name, which are not passed over for a set of it; the
+    // diagnosis below names them.
+    const res=preMember?{member:preMember}:nested===undefined&&n.nestVariant?resolveNestMember(compSets,n.nestTarget,n.nestVariant,nestVariantMatch,nestVariantMissAdvice):null;
     if(res&&res.miss){misses.push(n.name+res.miss);return null;}
     // The MEMBER is instantiated, never the set — Figma has no instance-of-a-set.
     if(res){node=res.member.createInstance();}
@@ -4949,7 +4945,7 @@ const build=async(n)=>{
       // #1330 even a \`nest-exposed\` part projects a default coordinate, so a real def never lands here with
       // a set — this is the defensive path for a coordinate-free plan, which the COMPONENT_SET advice names.
       const other=figma.root.findAll(x=>x.name===n.nestTarget)[0];
-      const found=(!other?${JSON.stringify(nestMissAdvice('ABSENT'))}:other.type==='COMPONENT_SET'?${JSON.stringify(nestMissAdvice('COMPONENT_SET'))}:other.type==='INSTANCE'?${JSON.stringify(nestMissAdvice('INSTANCE'))}:${JSON.stringify(nestMissAdvice('OTHER'))}).split(${JSON.stringify(NEST_TARGET_SLOT)}).join(n.nestTarget);
+      const found=(nested===0?AMB:!other?${JSON.stringify(nestMissAdvice('ABSENT'))}:other.type==='COMPONENT_SET'?${JSON.stringify(nestMissAdvice('COMPONENT_SET'))}:other.type==='INSTANCE'?${JSON.stringify(nestMissAdvice('INSTANCE'))}:${JSON.stringify(nestMissAdvice('OTHER'))}).split(${JSON.stringify(NEST_TARGET_SLOT)}).join(n.nestTarget);
       misses.push(n.name+'.nestTarget -> '+n.nestTarget+' ('+found+')');return null;
     }
     else{node=nested.createInstance();}
@@ -5025,13 +5021,15 @@ const build=async(n)=>{
   if(n.textStyle){
     const st=styleByName.get(n.textStyle);
     if(!st)misses.push(n.name+'.textStyle -> '+n.textStyle);
+    // A node with no text-style setter (a frame, an instance) is a miss, never a throw (#3783). Lockstep with the plugin.
+    else if(!node.setTextStyleIdAsync)misses.push(n.name+'.textStyle -> '+n.textStyle+' REFUSED (not a text node)');
     else{
       // The STYLE'S OWN font, loaded before the style is applied. \`setTextStyleIdAsync\` pulls in a
       // family/style pair (\`Inter Semi Bold\`) that need not be the one \`createText\` starts on, and
       // Figma requires a font to be loaded before any text write. Loading here rather than once at the
       // top because the plan is what knows which styles it uses, and a hard-coded \`Inter Regular\`
       // would be a guess about a brand's typography.
-      try{await figma.loadFontAsync(st.fontName);}catch(err){misses.push(n.name+'.font -> '+st.fontName.family+' '+st.fontName.style+' ('+err.message+')');}
+      try{await figma.loadFontAsync(st.fontName);}catch(err){misses.push(n.name+'.font -> '+st.fontName.family+' '+st.fontName.style+' ('+(err&&err.message!=null?String(err.message):String(err))+')');}
       await node.setTextStyleIdAsync(st.id);
       sty=st;
     }
@@ -5315,7 +5313,7 @@ ${PIN_SLOT}${INSET_SLOT}
 };`;
 
 /**
- * DECLARE the component properties on a live set. Expects `set`, `PROPS`, `compByName` and `misses`
+ * DECLARE the component properties on a live set. Expects `set`, `PROPS`, `one` (#1796) and `misses`
  * in scope; leaves `propIds`.
  *
  * Shared by the single-shot and the CHUNKED payload for the same reason `PAYLOAD_PREAMBLE` is shared,
@@ -5365,7 +5363,7 @@ for(const p of PROPS){
     // Figma demands a NODE ID here. \`key\`, \`''\`, \`null\` and \`undefined\` are each rejected with
     // "Property value is incompatible with component property type" — so an unresolvable target is not
     // a missing default, it is a property that cannot be created at all.
-    const target=compByName.get(p.swapTarget);
+    const target=one.get(p.swapTarget);
     // "not found" was the wrong claim for three of the four states this reaches (#1288): a set, an instance
     // and a frame of that name are all FOUND. The consequence clause is the property loop's own — the slot
     // is not swappable at all, where the node loop above leaves a box a designer can still fill.

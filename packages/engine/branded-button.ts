@@ -43,7 +43,8 @@ export const heightTokens = (): Record<string, string> => ({
   'size.large.height': 'size.lg.height',
 });
 
-/** The brand's own corner. No branded button carries a shape axis (Q-W5 A, Q-S12 A). */
+/** The brand's own corner. No branded button carries a shape axis (Q-W5 A, Q-S12 A); Control shape repoints it, as it does
+ *  Button's, through the `levers.controlShape.capsules` each def names (Q-CS3 A, Q-CS5 B, #3765). */
 export const radiusToken = (): Record<string, string> => ({ radius: 'radius.md' });
 
 /** The focus ring's width and its offset outside the button. */

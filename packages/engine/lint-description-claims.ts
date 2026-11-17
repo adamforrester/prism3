@@ -145,8 +145,9 @@ export const parseClaims = (d: string): Claim[] => {
       c.end = TOKEN.lastIndex + par[0].length;
       after = rest.slice(par[0].length);
     }
-    const on = /^ on (white & black|white|black|[a-z][a-z0-9-]*(?:[./][a-z0-9-]+)+)/.exec(after);
-    if (on) c.partner = on[1];
+    // #3555 Q-MD2 A: a DTCG description backticks the token it names ("on `background.secondary`"); a Figma line does not.
+    const on = /^ on (?:(white & black|white|black)|`?([a-z][a-z0-9-]*(?:[./][a-z0-9-]+)+)`?)/.exec(after);
+    if (on) c.partner = on[1] ?? on[2];
     out.push(c);
   }
   return out;
@@ -164,6 +165,12 @@ type Row = {
 };
 
 const failures: string[] = [];
+// Self-check: the grammar reads a backticked partner and a bare one alike, so the claim is held against the token it
+// names. Without it a dropped backtick arm would fall back to `against` and pass silently wherever the two agree.
+for (const [d, want] of [['Secondary text — 4.5:1 on `background.secondary`', 'background.secondary'], ['Secondary text — 4.5:1 on background/secondary', 'background/secondary']] as const) {
+  const got = parseClaims(d)[0]?.partner;
+  if (got !== want) failures.push(`self-check: "${d}" reads partner ${got ?? 'none'}, not ${want}`);
+}
 let checked = 0;
 const fail = (r: Row, c: Claim, why: string) => failures.push(`${r.where} [${r.mode}] "${c.text}" — ${why}\n      ${r.description}`);
 

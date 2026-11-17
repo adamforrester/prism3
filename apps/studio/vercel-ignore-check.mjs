@@ -151,7 +151,7 @@ const defBytes = (meta) => Object.values(meta.outputs).flatMap((o) => Object.ent
   .filter(([p, v]) => DEF_DIR.test(p.split('\\').join('/')) && v.bytesInOutput > 0)
   .map(([p, v]) => [p.slice(p.indexOf('packages/engine/')), v.bytesInOutput]);
 const planted = await build({
-  stdin: { contents: "import { componentDefs } from '@prism3/engine/components/index'; console.log(componentDefs.length);", resolveDir: root, loader: 'ts' },
+  stdin: { contents: "import { componentDefs } from '@prism3/engine/components'; console.log(componentDefs.length);", resolveDir: root, loader: 'ts' },
   bundle: true, format: 'esm', write: false, metafile: true, logLevel: 'silent', outfile: 'planted.js',
 });
 const plantedDefs = defBytes(planted.metafile);

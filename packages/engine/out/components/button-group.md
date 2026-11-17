@@ -9,7 +9,7 @@
 
 ## Overview
 
-A set of one to three buttons for the actions that close a task: Cancel and Save at the foot of a dialog, the buttons under a form. Inline puts them in a row at the end edge with the main action last; stacked puts them in a column of full-width buttons with the main action on top; fill puts them in a row whose buttons share the width. The buttons are Button, Button.Destructive and Button.Neutral, each its own action and spaced apart. Not a segmented control, whose buttons join edge to edge as one choice, and not a toolbar.
+A set of one to three buttons for the actions that close a task: Cancel and Save at the foot of a dialog, the buttons under a form. Inline puts them in a row at the end edge with the main action last; stacked puts them in a column of full-width buttons with the main action on top; fill puts them in a row whose buttons share the width. The buttons are Button, Button.Destructive and Button.Neutral, each its own action and spaced apart. Not a SegmentedControl, whose buttons join edge to edge as one choice, and not a toolbar.
 
 - **Purpose:** Lay out the one to three buttons that close a task, as a row at the end edge, a full-width stack or a row that shares the width.
 - **Use when:** The actions at the foot of a dialog, card or form: a main action with a Cancel beside it, or up to three related actions.

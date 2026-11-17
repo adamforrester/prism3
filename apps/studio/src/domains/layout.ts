@@ -2,9 +2,9 @@
  * Layout, the levers panel (UI redesign S10; concept v6's Layout page, V11).
  *
  * WHAT IT DRAWS, from the page's sections in `shell/pages.ts`, each headed and described as the preview section it
- * pairs with (owner decision Q23): the intro, then **Breakpoints** (the list: the first fixed at 0px, each other
- * width a field with its Remove, then Add breakpoint; two to seven, owner decision D13), **Grid** (the base grid
- * columns, then each breakpoint's columns, gutter and margin, each Auto or a value, D12) and **Containers** (the
+ * pairs with (owner decision Q23): the intro, then **Grid** (the base grid columns, then each breakpoint's columns,
+ * gutter and margin, each Auto or a value, D12; first since #683, Q111 A), **Breakpoints** (the list: the first fixed
+ * at 0px, each other width a field with its Remove, then Add breakpoint; two to seven, owner decision D13) and **Containers** (the
  * maximum width and the content container, sliders over today's stops, D15). Every lever is shown: Layout is
  * FIRST_CLASS, no Show advanced (Q4, R2). Last, the way on to Components.
  *

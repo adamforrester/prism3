@@ -330,13 +330,11 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { ensureStyleGuideCells } from './src/style-guide-cells';
 import type { CellsApi } from './src/style-guide-cells';
-import { STYLE_GUIDE_GROUPS, styleGuideGroupOf } from '@prism3/engine/style-guide-groups';
+import { STYLE_GUIDE_GROUPS, styleGuideGroupOf } from '@prism3/engine/figma';
 import { planStyleGuide, runStyleGuide, removeRetiredTables, styleGuideSummary, contrastText, humanizeName, varKind, sizeByPadding, catalogFor, isSetUp, tableMovesDue, relocateTables } from './src/style-guide';
 import { createRunGuard, busyMessage } from './src/run-guard';
 import type { StyleGuideApi, SgCatalog, SgTable, TableOutcome, StyleGuideResult, StyleGuideRun, StyleGuideOptions, StyleGuideProgress } from './src/style-guide';
-import { parseDesignMd } from '@prism3/engine/design-md';
-import { brandTheme } from '@prism3/engine/theme';
-import { resolveAllModes } from '@prism3/engine/modes';
+import { parseDesignMd, brandTheme, resolveAllModes } from '@prism3/engine';
 
 let failures = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -2232,7 +2230,7 @@ const main = async (): Promise<void> => {
     // second run is asked for through the same guard.
     const guard = createRunGuard();
     const request = <T>(fn: () => Promise<T>): Promise<{ ran: true; value: T } | { ran: false; message: string }> => {
-      if (guard.busy('style-guide')) return Promise.resolve({ ran: false, message: busyMessage('style-guide') });
+      if (guard.busy()) return Promise.resolve({ ran: false, message: busyMessage('style-guide') });
       let value!: T;
       return guard.run('style-guide', async () => { value = await fn(); }).then(() => ({ ran: true as const, value }));
     };
@@ -2245,7 +2243,7 @@ const main = async (): Promise<void> => {
     };
     const first = await request(() => draw(f15.api, contract, {}, { yieldTo }));
     const second = await hold.second;
-    ok(first.ran && second?.ran === false && second.message === 'Update file is already running. Try again when it finishes.',
+    ok(first.ran && second?.ran === false && second.message === 'Style guides is already running. Try again when it finishes.',
       `15: a run asked for while another is mid-yield is refused, in the guard's words (${JSON.stringify(second && (second.ran ? 'ran' : second.message))})`);
     const wraps = [...tablesOn(f15.prim), ...tablesOn(f15.sem)];
     const keys = new Set(wraps.map((w) => w.pluginData['prism3-style-guide']));
@@ -2292,7 +2290,7 @@ const main = async (): Promise<void> => {
     ok(textIn(cellAt(sg, r050, 2)) === '4px | ↗ | pds3/core/dimension/4' && textIn(cellAt(sg, r050, 3)) === '0.25rem',
       `16: its value cell reads px with its alias, and the REM column beside it REM at a 16px base: "${textIn(cellAt(sg, r050, 2))}" ‖ "${textIn(cellAt(sg, r050, 3))}"`);
     ok(textIn(cellAt(sg, rowOf(sg, '1200'), 2)) === '96px | ↗ | pds3/core/dimension/96' && textIn(cellAt(sg, rowOf(sg, '1200'), 3)) === '6rem', `16: space/1200 reads "96px", and "6rem" in its REM column (${textIn(cellAt(sg, rowOf(sg, '1200'), 2))} ‖ ${textIn(cellAt(sg, rowOf(sg, '1200'), 3))})`);
-    ok(JSON.stringify(sg.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn)) === JSON.stringify(['0', '025', '050', '075', '100', '150', '200', '250', '300', '400', '500', '600', '700', '800', '900', '1000', '1100', '1200'].map((st) => `pds3/space/${st}`)),
+    ok(JSON.stringify(sg.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn)) === JSON.stringify(['0', '025', '050', '075', '100', '150', '200', '250', '300', '400', '500', '550', '600', '700', '800', '900', '1000', '1100', '1200'].map((st) => `pds3/space/${st}`)),
       '16: the space scale in ramp order, 1000 after 900');
     // NUMERIC SORT: the metrics ramp is stored 16, 4, 100, 2.
     const step = gridOf(tableFrame(p2.prim, 'Step')!);
@@ -2615,15 +2613,15 @@ const main = async (): Promise<void> => {
     let rr: StyleGuideResult;
     try { rr = await draw(rz.api, contract, { tables: ['Space'] }); } finally { refuseBinding = false; }
     const rs = styleGuideSummary(rr);
-    // 17 of the 18: space/0 draws nothing, so it binds nothing (owner decision, live QA of 0.210.0).
-    ok(rr.tables[0]?.status === 'created' && rr.unbound === 17 && rs.summary.includes('17 display=filled spacing specimens are not bound to their variable') && rs.headline === '⚠ 17 specimens unbound',
+    // 18 of the 19 (`space/550` joined in #3408): space/0 draws nothing, so it binds nothing (owner decision, live QA of 0.210.0).
+    ok(rr.tables[0]?.status === 'created' && rr.unbound === 18 && rs.summary.includes('18 display=filled spacing specimens are not bound to their variable') && rs.headline === '⚠ 18 specimens unbound',
       `21: a padding bind the host refuses is counted and named, and the run completes: ${rr.unbound} — "${rs.headline}"`);
     const ig = await phase2File();
     ignorePadding = (n) => n.name === 'spacing-filled-example' && insideInstance(n);
     let ri: StyleGuideResult;
     try { ri = await draw(ig.api, contract, { tables: ['Space'] }); } finally { ignorePadding = null; }
-    // 17, not 18: space/0 draws nothing (owner decision, live QA of 0.210.0). The other 17 stay at the member's 0.01.
-    ok(ri.unbound === 17 && ri.misses.includes("17 display=filled spacing specimens are not sized to their value: bound by their left padding, the layer did not take the value's width (Space: 025, 050, 075 and 14 more)"),
+    // 18, not 19: space/0 draws nothing (owner decision, live QA of 0.210.0). The other 18 stay at the member's 0.01.
+    ok(ri.unbound === 18 && ri.misses.includes("18 display=filled spacing specimens are not sized to their value: bound by their left padding, the layer did not take the value's width (Space: 025, 050, 075 and 15 more)"),
       `21: a padding bind the width does not follow is read back, counted and named: ${ri.unbound} unbound`);
 
     // (3) + (4) FONTS, LOADED BEFORE THEY ARE BOUND, IN THE MODE PINNED FIRST. A family that varies by mode, whose
@@ -4692,8 +4690,9 @@ const main = async (): Promise<void> => {
         }
       });
       ok(wrong.length === 0, `43b ${who}: every gutter and margin prints the variable's value and the link its alias resolves through: a space step, a core dimension off the space scale, or unlinked (${wrong.slice(0, 3).join('; ') || 'all match'})`);
-      // The fixture exercises the off-scale arm where the emission has one: the reference brand's md margin, 44 (#3052).
-      ok(JSON.stringify(offScale) === JSON.stringify(dir === REF[0] ? ['md margin'] : []), `43b ${who}: off the space scale exactly where the catalog says (${offScale.join(', ') || 'none'})`);
+      // The off-scale arm had one witness, the reference brand's md margin, 44 (#3052). Since `space.550` (#3408 Q-HT1 A)
+      // 44 is a spacing step, so no committed brand has an off-scale gutter or margin and the arm is unwitnessed.
+      ok(JSON.stringify(offScale) === JSON.stringify([]), `43b ${who}: off the space scale exactly where the catalog says (${offScale.join(', ') || 'none'})`);
       // (c) NO MISMATCH CHIP where the emitted styles copy the variables (the engine's G1 holds).
       ok(!!gt && gt.rows.every((r) => !(r.extra ?? []).some((x) => (x.alias ?? '').includes('⚠ style'))), `43c ${who}: no mismatch chip where every grid style copies its variables`);
       // (d) THE CONTAINER TABLE on Grids & layouts, in Containers, its key unchanged; nothing of it on Primitive tokens; no

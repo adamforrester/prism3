@@ -175,7 +175,9 @@ export const tab: ComponentDef = {
       labelReserve: {
         kind: 'text',
         type: 'size.{size}.type.selected',
-        note: 'The label again, in the selected weight, never seen: it holds every tab at its bold width (Q226 A).',
+        // Maintainer detail, out of the reader caption (#3610): The label again, in the selected weight, never seen:
+        // it holds every tab at its bold width (Q226 A).
+        note: 'A hidden copy of the label in the selected weight, which holds each tab at its selected width so the tabs don\'t shift when the selection moves.',
       },
       label: {
         kind: 'text',
@@ -242,7 +244,7 @@ export const tab: ComponentDef = {
         class: 'motion',
         disposition: 'refused',
         description:
-          'The underline slide — in code the selected underline is one element owned by the tab list that moves and resizes to the selected tab (about 150–200ms). Figma draws it per tab. Under prefers-reduced-motion it snaps.',
+          'The underline slide — in code the selected underline is one element owned by the tab list that moves and resizes to the selected tab, on `motion.transition.default`. Figma draws it per tab. Under prefers-reduced-motion it snaps.',
       },
       {
         class: 'semantics',
@@ -309,7 +311,7 @@ export const tab: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'One trigger inside Tabs that shows its panel in place when selected.',
+    primaryPurpose: 'Show one panel in place when selected, as one trigger inside Tabs.',
     whenToUse: 'Only as a child of Tabs. Generate Tabs, which places one tab per panel and sets which one is selected.',
     avoidWhen: 'Changing the page or the address (a PageNav.Item inside PageNav), or switching a value within the current view (SegmentedControl).',
     commonPartners: ['tabs', 'icon', 'badge'],
@@ -326,7 +328,7 @@ export const tab: ComponentDef = {
   },
 
   motion: {
-    enter: 'None. On selection the underline slides from the previous tab to this one, about 150–200ms.',
+    enter: 'None. On selection the underline slides from the previous tab to this one, on motion.transition.default.',
     exit: 'None.',
     reduceMotion: 'The underline snaps to the selected tab; the panel swaps with no transition.',
   },

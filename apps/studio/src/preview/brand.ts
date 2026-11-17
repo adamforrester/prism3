@@ -76,6 +76,10 @@ export const mountBrandPreview = (host: HTMLElement, cleanups: (() => void)[], l
     try {
       card.replaceChildren();
       lend.styleGuide(card, paint);
+      // #3553 Q-UI12 A: each section container on the levers panel's gray (Q24, the class every other preview's sections
+      // carry), so previewing Dark draws its dark sample inside a gray host rather than a stray white panel. The card
+      // stays pinned light.
+      for (const s of card.querySelectorAll(':scope > .psec')) s.classList.add('p3-sgsec');
     } finally { painting = false; }
   };
   cleanups.push(subscribe('brand', paint), subscribe('mode', paint), subscribe('fonts', paint));   // fonts: the type sample's faces (#3138)

@@ -22,7 +22,7 @@ contract (two discriminated unions, one per direction) that compiles under both.
 
 ## The typed bridge
 
-`src/bridge-main.ts` / `src/bridge-ui.ts` are thin typed wrappers over the raw channel — the
+`src/bridge-main.ts` is the main thread's thin typed wrapper over the raw channel, and the UI side posts through `apps/studio/src/write-adapter.ts` — the
 figma-plugin-dev skill's React `usePluginMessage` hook adapted to a vanilla `addEventListener`
 wrapper (docs/22 §3). Every message is a variant of `UiToMain` / `MainToUi`; `assertNever` makes
 each handler's `switch` exhaustive, so a new message type can't be silently dropped.
@@ -47,7 +47,7 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
   (N modes, literal fallbacks) → `color` aliases (**per-mode** binding — the collapse-guard).
 - ✅ **Colour only** (`core-palette` + `color`), matching the CLI today. The theme is the bundled NB
   fixture (`nbThemeFrom(nbMeasured)`, JSON inlined) — `buildFigmaColor` bundles with **zero `node:`
-  builtins** thanks to the node-free `engine/emit-figma-color.ts`. A UI button fires `apply-theme`.
+  builtins** thanks to the node-free `packages/engine/emit-figma-color.ts`. A UI button fires `apply-theme`.
 - ✅ **Tested** without a live Figma: `test-write.ts` drives the executor against an in-memory
   `figma.variables` shim (twice — idempotency), asserting the materialisation contract. `npm test`.
 
@@ -89,7 +89,7 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
 - ✅ **Rehydrate on boot** — `ui-ready` runs `restoreToUi()` (independent of the #109 seed): reads the
   blob back, and if trusted posts `restore-input`; the shared UI loads it via `loadBrand`, so re-opening a
   themed file boots on that brand instead of the default `aurora`.
-- ✅ **Versioned + defensive** — pure `engine/persist-input.ts` (`PERSIST_VERSION`) tags the blob;
+- ✅ **Versioned + defensive** — pure `packages/engine/persist-input.ts` (`PERSIST_VERSION`) tags the blob;
   `deserializeBrandInput` returns `null` only on genuine absence (nothing ever stored). A NON-EMPTY
   blob it can't trust — parse error, no recognizable version stamp, or a version this build doesn't
   understand — THROWS `UnrecognizedPersistedInputError` instead (#480), and `restoreToUi` catches it
@@ -108,7 +108,7 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
 - ✅ **Eight FLOAT collections** materialise alongside colour: `core-dimension`, `space`, `radius`,
   `size`, `border-width`, `focus`, `opacity`, and `layout`. An apply now writes the geometric layer,
   not just colour.
-- ✅ **Node-free extraction** — `buildFigmaDims` + `buildFigmaLayout` moved to `engine/emit-figma-dims.ts`
+- ✅ **Node-free extraction** — `buildFigmaDims` + `buildFigmaLayout` moved to `packages/engine/emit-figma-dims.ts`
   (like the colour core), so they bundle into the plugin main thread (0 `node:` builtins preserved).
 - ✅ **Pure plan + executor** — `buildFloatWritePlan(theme)` reshapes both builders into a uniform
   `FloatCollectionPlan[]`; `applyFloatPlan` runs the same two-pass shape as the colour write, binding
@@ -126,7 +126,7 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
 - ✅ **Shadow → BOTH style sets** — `shadow/*` (light) + `shadow-dark/*` (dark), exactly as the engine
   emits them (Effect Styles can't carry Figma modes; a component swaps the pair by mode).
 - ✅ **Gradient → Paint Styles with BAKED resolved stops** + Figma `gradientTransform` (the emit's
-  `angle`/`center` → a 2×3 affine via `gradientTransformFor`). Node-free `engine/emit-figma-styles.ts`
+  `angle`/`center` → a 2×3 affine via `gradientTransformFor`). Node-free `packages/engine/emit-figma-styles.ts`
   + pure `buildStylesPlan`. Live-verified: a linear gradient + shadow render on a real rect.
 - ⏭ **Variable-linked gradient stops** (bind `ColorStop.boundVariables` to `palette/*` so gradients
   re-theme live) — a fast-follow; this lane bakes resolved colours.
@@ -136,7 +136,7 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
 - ✅ **The last write axis** — the plugin now materialises the whole generated system. Font VARIABLES
   (`core-font` per-mode: STRING family + FLOAT size/weight + FLOAT weight-role aliased; `type-sets`
   mobile/desktop) via the widened `VariablesApi` + `applyVarCollectionPlan` (mixed STRING+FLOAT, per-row
-  `resolvedType`). Node-free `engine/emit-figma-font.ts` + pure `buildFontVarPlan`/`buildTextStylePlan`.
+  `resolvedType`). Node-free `packages/engine/emit-figma-font.ts` + pure `buildFontVarPlan`/`buildTextStylePlan`.
 - ✅ **Text Styles** — new `apps/plugin/src/write-text-styles.ts` `TextStylesApi` port + `applyTextStylePlan`.
   fontFamily/fontSize/fontWeight bound to the font vars via `setBoundVariable`; fontStyle/lineHeight/
   letterSpacing/case/decoration baked. Run after the font vars (bound targets must exist first).
@@ -383,8 +383,13 @@ transports: A, the file mailbox, and B, the local desktop bridge.
   `{v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result|error, progress?}`, the
   commands (`AGENT_COMMANDS`: `status`, `apply-theme`, `build-components`, `file-setup`, `style-guide`, `prune`,
   `readback`, `update-components`, `capture-baseline`, `adopt-members`, `draw-specs`, the four read-only node
-  commands below, `activity` and `context`) and the validation both transports share. Unknown command, wrong version and malformed args are failed results,
+  commands below, `activity`, `panels-clean`, `context` and `set-override`) and the validation both transports share. Unknown command, wrong version and malformed args are failed results,
   never silence.
+- ✅ **Color overrides** (#3394, Q3394.1–.7 A) — `set-override` (`src/set-override.ts` plans, `main.ts`'s `setOverride`
+  writes) changes Theme color overrides: 1 to 32 changes, all or nothing, judged on the final state. A preview writes
+  nothing and returns a `previewHash`; the confirm echoes it and runs the Theme write through `ACTIONS.applyTheme`. A
+  change that puts a contracted pair below its minimum refuses the whole list, by pair and ratio. Its verdict is
+  `override-result`, the Activity drawer's "Color override" row. `test-agent-link.ts`'s `set-override/*` arms hold it.
 - ✅ **Read-only node commands** (#3147 Phase 2a, Q3147.10 and .14 A) — `inspect`, `component-keys`, `audit-frames`
   and `snapshot` (`src/agent-reads.ts`) read any layer, so a file where Prism3 is open needs no second plugin for the
   reads an agent makes there: keys and properties in the master, the done check on a rebuild, a local picture. They
@@ -426,7 +431,7 @@ transports: A, the file mailbox, and B, the local desktop bridge.
   fast. The mailbox polls so either route works; the first live run confirms it.
 - ✅ **Transport B, the local desktop bridge** — `tools/figma-bridge/server.ts` (a stdio MCP server plus a
   hand-rolled RFC 6455 WebSocket server on `ws://localhost:17331`) and `src/agent-bridge-relay.ts`: while
-  the link is on, the UI iframe holds the socket (the main thread has no network) and relays each command
+  the link is on, the UI iframe holds the socket (the main thread has no WebSocket; docs/18 §1) and relays each command
   to the same dispatcher the mailbox uses. It streams progress and console lines back. Since #3147 the
   relay ships in the network build ("Prism3 Studio"), whose manifest lists that one origin in
   `networkAccess.allowedDomains`; "Prism3 Studio Offline" carries no socket and offers the mailbox only.

@@ -26,13 +26,14 @@
  * `cleanup` is deliberately absent. No UI action removes components (the paste harness's `runCleanupPage`
  * is a harness step, not a handler the panel reaches), and this dispatcher routes only to those.
  */
-import { ENGINE_VERSION } from '@prism3/engine/version';
+import { ENGINE_VERSION, type BrandInput } from '@prism3/engine';
 import { AGENT_PROTOCOL_VERSION, READ_COMMANDS, parseCommand, failedResult } from './agent-protocol';
+import type { CollisionChoices } from './collision-choice';
 import type { ActivityArgs, UpdateChoiceArgs } from './agent-protocol';
 import type { AgentResult, AgentTransport, AgentProgress, ValidCommand, AgentCmd, DevCmd } from './agent-protocol';
 import { RUN_CODE, parseRunCode, runCode } from './dev-commands';
 import type { MainToUi, StyleGuideOptions } from './messages';
-import type { BrandInput } from '@prism3/engine/theme';
+import type { OverrideChange } from './set-override';
 import { allLeaves, leafPageName } from './file-taxonomy';
 import { inspect, componentKeys, auditFrames, snapshot, context, ReadRefusal } from './agent-reads';
 import type { ReadHost, ContextFacts } from './agent-reads';
@@ -48,20 +49,25 @@ export type ActionSink = {
  *  `summary` (#2177), and without `causes`, the drawer's marks (#3326; an agent reads the same facts as `activity`'s
  *  `problems`, #3309). Destructured, so every other key keeps its place and the envelope is the one agents always had. */
 export const forAgent = (m: MainToUi): MainToUi => {
-  if (!('lines' in m) && !('causes' in m)) return m;
-  const { lines: _drawerOnly, causes: _marks, ...rest } = m as MainToUi & { lines?: unknown; causes?: unknown };
+  if (!('lines' in m) && !('causes' in m) && !('collisions' in m) && !('chosen' in m)) return m;
+  // #1909: `collisions` and `chosen` are the panel's alone (its Skip or Rename list); `main.ts` sends them only to the
+  // panel, and this drops them too, so an agent's verdict keeps its keys whatever posts it.
+  const { lines: _drawerOnly, causes: _marks, collisions: _panelOnly, chosen: _panelChoices, ...rest } = m as MainToUi & { lines?: unknown; causes?: unknown; collisions?: unknown; chosen?: unknown };
   return rest as MainToUi;
 };
 
 /** The main-thread handlers the UI's buttons reach — built by `main.ts` from its own functions. */
 export type AgentActions = {
-  applyTheme(input: BrandInput, sink: ActionSink): Promise<void>;
+  /** `choices` (#1909): the panel's Skip or Rename per collision, before the sink (every action's sink is its last
+   *  argument, which the run guard reads). The agent link passes none, so an agent's apply that collides is refused. */
+  applyTheme(input: BrandInput, choices: CollisionChoices | undefined, sink: ActionSink): Promise<void>;
   /** `options.docBlock`: Update file's sets step (#3308 Q3308.3 A) and the agent's build (#3467 Q1 A) both pass it, so a
    *  first build on a themed file builds `_Doc-block` first, as the panel's first run does. */
   buildComponents(def: string | undefined, sink: ActionSink, options?: { readonly docBlock?: boolean }): Promise<void>;
   fileSetup(sink: ActionSink): Promise<void>;
   styleGuide(options: StyleGuideOptions, sink: ActionSink): Promise<void>;
-  prune(input: BrandInput, confirm: boolean, sink: ActionSink): Promise<void>;
+  /** `previewHash`: `null` for a preview, the preview's hash for a confirm (#3697 R6), as `updateComponents` takes it. */
+  prune(input: BrandInput, confirm: boolean, previewHash: string | null, sink: ActionSink): Promise<void>;
   seedFromFile(sink: ActionSink): Promise<void>;
   /** #2265: the in-place update's dry run (writes nothing) and the one-time baseline capture. */
   /** `previewHash` is `null` for a check and the check's hash for an apply (#2265 PR 2); `choices`, an apply's. */
@@ -76,6 +82,8 @@ export type AgentActions = {
   drawSpecs(def: string | undefined, scope: 'file' | 'page', sink: ActionSink): Promise<void>;
   /** #3137 Q3137.7 A: Clean up's usage panels: a count (`confirm` false), or the removal of the unedited ones. */
   panelsClean(confirm: boolean, sink: ActionSink): Promise<void>;
+  /** #3394: color overrides, previewed (`previewHash` null) or written through `applyTheme`, this table's own entry. */
+  setOverride(changes: readonly OverrideChange[], previewHash: string | null, sink: ActionSink): Promise<void>;
 };
 
 /** The slice of a page node the census reads. */
@@ -175,14 +183,14 @@ const readHost = (d: Deps): ReadHost => {
 type Route = (c: ValidCommand, a: AgentActions, sink: ActionSink, d: Deps) => Promise<void>;
 export const ROUTES: { [C in Exclude<AgentCmd, DevCmd>]: Route } = {
   status: async (_c, _a, sink, d) => { sink.data(await d.status()); },
-  'apply-theme': (c, a, sink) => a.applyTheme((c as Extract<ValidCommand, { cmd: 'apply-theme' }>).args.input, sink),
+  'apply-theme': (c, a, sink) => a.applyTheme((c as Extract<ValidCommand, { cmd: 'apply-theme' }>).args.input, undefined, sink),
   // #3467 Q1 A: the same `docBlock` ask as Update file's sets step (`apps/studio/src/main.ts`), through the same handler.
   'build-components': (c, a, sink) => a.buildComponents((c as Extract<ValidCommand, { cmd: 'build-components' }>).args.def, sink, { docBlock: true }),
   'file-setup': (_c, a, sink) => a.fileSetup(sink),
   'style-guide': (c, a, sink) => a.styleGuide((c as Extract<ValidCommand, { cmd: 'style-guide' }>).args, sink),
   prune: (c, a, sink) => {
-    const { input, confirm } = (c as Extract<ValidCommand, { cmd: 'prune' }>).args;
-    return a.prune(input, confirm, sink);
+    const args = (c as Extract<ValidCommand, { cmd: 'prune' }>).args;
+    return a.prune(args.input, args.confirm, args.confirm ? args.previewHash : null, sink);
   },
   'update-components': (c, a, sink) => {
     const args = (c as Extract<ValidCommand, { cmd: 'update-components' }>).args;
@@ -200,6 +208,10 @@ export const ROUTES: { [C in Exclude<AgentCmd, DevCmd>]: Route } = {
   activity: async (c, _a, sink, d) => {
     if (!d.activity) throw new Error('this plugin build keeps no activity log');
     sink.data(d.activity((c as Extract<ValidCommand, { cmd: 'activity' }>).args) as Record<string, unknown>);
+  },
+  'set-override': (c, a, sink) => {
+    const args = (c as Extract<ValidCommand, { cmd: 'set-override' }>).args;
+    return a.setOverride(args.changes, args.confirm ? args.previewHash : null, sink);
   },
   'panels-clean': (c, a, sink) => a.panelsClean((c as Extract<ValidCommand, { cmd: 'panels-clean' }>).args.confirm === true, sink),
   // #3300 B: read-only, the main thread's facts plus a capped walk for the protected nodes (`agent-reads.ts`).

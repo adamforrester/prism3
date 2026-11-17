@@ -19,7 +19,7 @@ A small vector glyph standing in for a concept, drawn on a square base-4/base-8 
 
 Shown on the default member: name `arrow-down`, tone `inherit`.
 
-1. **Glyph**
+1. **Glyph** — The glyph's outline, drawn on a square and scaled to the box it is placed in.
 
 ## Styles
 
@@ -76,6 +76,7 @@ Name a meaningful icon for the concept or the action it fires, in a word or two,
 
 ## Related components
 
+- **Instead, consider:** `provider-logo`
 - **Often used with:** `button`, `icon-button`, `text-field`, `field-message`, `select`, `tag`, `link`
 - **Replaces:**
   - legacy icon fonts

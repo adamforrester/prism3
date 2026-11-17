@@ -105,7 +105,9 @@ const PLUGIN_UI_ENTRY = 'apps/plugin/src/ui/entry.ts';
  *  from the data: a new message fails until it is claimed by a feature or added to this list on purpose. */
 const PLUMBING = ['ui-ready', 'agent-command', 'agent-bridge', 'agent-bridge-paired', 'agent-bridge-unpaired', 'style-guide-catalog-request', 'file-sets-request', 'style-guide-cancel', 'resize-ui', 'set-theme-pref', 'set-activity-height', 'open-docs',
   // #3309: the panel's summary of a run of several writes, kept for the agent's `activity`; no feature of its own.
-  'activity-note'];
+  'activity-note', 'run-ended',
+  // #2069: Report a problem's link, opened in the browser like `open-docs`; the report itself is panel chrome.
+  'open-issue'];
 
 const LANES = ['web', 'figma', 'agent'] as const;
 type LaneId = (typeof LANES)[number];
@@ -301,7 +303,7 @@ for (const m of PLUMBING) if (!uiSet.has(m)) fail('LANES', `PLUMBING lists '${m}
 type Runs = { module: string; symbol: string; call?: string };
 const TOOL_MODULE: Record<string, Runs> = {
   list_levers: { module: 'packages/engine/levers.ts', symbol: 'leverManifest', call: 'buildLeverManifest' },
-  theme_brand: { module: 'packages/engine/theme.ts', symbol: 'brandTheme' },
+  theme_brand: { module: 'packages/engine/theme-brand.ts', symbol: 'brandTheme' },
   score_consumption: { module: 'packages/engine/eval.ts', symbol: 'scoreConsumption' },
   theme_from_brief: { module: 'packages/engine/design-md.ts', symbol: 'parseDesignMd' },
   export_theme: { module: 'packages/engine/tree.ts', symbol: 'buildTree' },
@@ -316,7 +318,7 @@ const engineExports = (JSON.parse(read('packages/engine/package.json')) as { exp
 const resolveSpec = (from: string, spec: string): string | null => {
   let base: string;
   if (spec.startsWith('.')) base = resolve(repo, dirname(from), spec).slice(repo.length + 1);
-  else if (spec.startsWith('@prism3/engine/')) { const t = engineExports[`./${spec.slice('@prism3/engine/'.length)}`]; if (!t) return null; base = `packages/engine/${t.replace(/^\.\//, '')}`; }
+  else if (spec === '@prism3/engine' || spec.startsWith('@prism3/engine/')) { const t = engineExports[spec === '@prism3/engine' ? '.' : `./${spec.slice('@prism3/engine/'.length)}`]; if (!t) return null; base = `packages/engine/${t.replace(/^\.\//, '')}`; }
   else return null;
   for (const c of [base, `${base}.ts`, `${base}/index.ts`]) if (/\.ts$/.test(c) && exists(c)) return c;
   return null;

@@ -18,6 +18,14 @@
  *   4. A plugin with a token answers `{ type: 'hello', …, proof: HMAC(token, HELLO_LABEL + nonce) }`. A right proof gets
  *      `{ type: 'welcome' }` and the connection becomes the plugin. A missing or wrong proof closes it with
  *      `CLOSE.notPaired`, before any command.
+ *   5. THE SERVER PROVES ITSELF TOO (#3697 R8, the owner's A). Steps 2–4 prove the plugin to the server, not the server to
+ *      the plugin: any local process that held the port while the real bridge was down could welcome a hello and send
+ *      write commands into the open file. So the plugin draws its own random `clientNonce` for every connection and sends
+ *      it with its `pair` and its `hello`. The server's `welcome` carries `proof: HMAC(token, WELCOME_LABEL + clientNonce)`
+ *      and its `paired` carries `proof: HMAC(code, PAIRED_LABEL + clientNonce + ':' + token)`. The relay hears a welcome
+ *      only when its proof verifies against the token it holds, and a `paired` only while a code it sent is pending and
+ *      that code's proof verifies; anything else drops the connection, so nothing that cannot prove the secret is ever
+ *      "the bridge". Nothing the person sees changes.
  * The token lives in `figma.clientStorage` (per person, per machine), never in the file or its plugin data.
  *
  * THE HASH IS WRITTEN HERE, not borrowed. The UI iframe's origin is opaque, and whether `crypto.subtle` is there depends on
@@ -32,6 +40,11 @@ export const CODE_LENGTH = 8;
 export const PAIR_LABEL = 'prism3-bridge-pair-v1:';
 export const HELLO_LABEL = 'prism3-bridge-hello-v1:';
 export const TOKEN_LABEL = 'prism3-bridge-token-v1';
+/** #3697 R8: the server's two answers, each keyed by a secret only the real server holds, over the plugin's own nonce. */
+export const WELCOME_LABEL = 'prism3-bridge-welcome-v1:';
+export const PAIRED_LABEL = 'prism3-bridge-paired-v1:';
+/** The shape of a `clientNonce`: 32 random bytes as lower-case hex. The server answers no other. */
+export const CLIENT_NONCE_RE = /^[0-9a-f]{64}$/;
 /** WebSocket close codes in the private range (RFC 6455 §7.4.2). `held` (#3297): the connection proved its token, but
  *  another paired plugin instance holds the bridge — the server closed the older one for a newer connection, or refused a
  *  `yield` hello while one is attached. Not a pairing refusal: the token stands. */
@@ -124,3 +137,20 @@ export const hmacHex = (key: string, message: string): string => {
 /** The plugin's answers to a challenge. */
 export const pairProof = (code: string, nonce: string): string => hmacHex(normalizeCode(code), PAIR_LABEL + nonce);
 export const helloProof = (token: string, nonce: string): string => hmacHex(token, HELLO_LABEL + nonce);
+/** #3697 R8: what the real server answers, keyed by the token (a welcome) or the code (a paired). */
+export const welcomeProof = (token: string, clientNonce: string): string => hmacHex(token, WELCOME_LABEL + clientNonce);
+export const pairedProof = (code: string, clientNonce: string, token: string): string => hmacHex(normalizeCode(code), `${PAIRED_LABEL}${clientNonce}:${token}`);
+/** Two hex proofs equal, compared without an early exit. */
+export const sameProof = (want: string, got: unknown): boolean => {
+  if (typeof got !== 'string' || got.length !== want.length) return false;
+  let d = 0;
+  for (let i = 0; i < want.length; i++) d |= want.charCodeAt(i) ^ got.charCodeAt(i);
+  return d === 0;
+};
+/** A fresh `clientNonce`: 32 bytes from `crypto.getRandomValues` (the iframe's and Node's alike). Where there is none, the
+ *  SHA-256 of what the context does have, so the nonce still never repeats in practice; it is not a secret, only fresh. */
+export const randomNonce = (): string => {
+  const c = (globalThis as { crypto?: { getRandomValues?(a: Uint8Array): Uint8Array } }).crypto;
+  if (c && typeof c.getRandomValues === 'function') return hex(c.getRandomValues(new Uint8Array(32)));
+  return hex(sha256(utf8(`${Date.now()}:${Math.random()}:${Math.random()}:${Math.random()}`)));
+};

@@ -33,6 +33,8 @@
  *                    already has) may not be edited at all. The changelog may never carry a literal `{{`,
  *                    which is an unsubstituted placeholder. A PR that picks a number, or a merge
  *                    resolution that drops or rewrites someone's pending note, fails here by name.
+ *                    One exception, owner-approved: `APPROVED_NOTE_CORRECTIONS` (Q181 A, Q190 A, #3574) pins a
+ *                    note correction by its blob at the base and at HEAD, so only that exact edit passes.
  *   FOLD INTEGRITY — in a fold, HEAD's version is EXACTLY the next one at the highest level the deleted
  *                    notes declare (one version per fold), the first section under the FOLD MARKER is
  *                    headed by that version, and every deleted note's prose appears in that section.
@@ -133,7 +135,7 @@ import { fileURLToPath } from 'node:url';
 import { ENGINE_VERSION, satisfiesBump } from './version';
 import { ENGINE_ARTIFACTS, SCHEMA_ARTIFACTS } from './regen';
 import { PENDING_STAMP, STAMP_PATHS, auditStamps, readStamps, type StampSources } from './rename-stamp-audit';
-import { comparisonBase } from './comparison-base';
+import { comparisonBase, integrationBase } from './comparison-base';
 
 const here = resolve(fileURLToPath(import.meta.url), '..');
 const repo = resolve(here, '../..');
@@ -196,6 +198,15 @@ const SCOPE = [
 //              fails, rather than widening the scope while the promise list quietly stops describing
 //              it. Only the converse makes the list self-maintaining; the forward arm alone can police
 //              only the surfaces someone remembered to promise.
+//
+// READ THROUGH FOR #3698 §5, which suspected this gate of taking its universe from its subject. Verdict: SOUND.
+// `SCOPE` is regen's list of what it writes, so it decides only WHERE to look; the oracle is independent of it (an
+// ADDED change note in the diff, or `ENGINE_VERSION` moving forward). MEASURED: a committed change to
+// `schema/lever-manifest.json` with no note fails here by name. The one escape is to shrink the universe: drop that
+// file from `SCHEMA_ARTIFACTS` in the same diff, and this gate, `regen --check` and `drift-coverage` (229 is still above
+// ARTIFACT_FLOOR) all pass. Two gates with AUTHORED expectations catch it by name: `lint-payload-manifest.ts` (STALE
+// RULE: the manifest still names the file) and `lint-schema-classification.ts` (UNCLASSIFIED: the directory still
+// holds it). So that guard lives there; keep both in the gate list.
 //
 // A count is deliberately NOT asserted: `SCHEMA_ARTIFACTS` and `ENGINE_ARTIFACTS` are meant to grow,
 // and a pinned total would fail on every legitimate addition while proving nothing about coverage.
@@ -274,8 +285,10 @@ if (!mb.ok || !mb.out.trim())
     '  ancestor. `fetch-depth: 0` in CI, `git fetch --unshallow` locally.',
   ]);
 // On the base branch the merge base is HEAD itself, and the first parent is compared instead (#2556):
-// `comparison-base.ts` has the reason, and `lint-push-base.ts` replays it against this gate.
-const cmp = comparisonBase(git, mb.out.trim(), die);
+// `comparison-base.ts` has the reason, and `lint-push-base.ts` replays it against this gate. A PR that
+// merges `main` into another base branch is read from the newest `main` it carries instead (#3833, the same
+// file): `main`'s notes, folds and moved artifacts were judged by their own runs, not by this one.
+const cmp = integrationBase(git, baseRef!, mb.out.trim()) ?? comparisonBase(git, mb.out.trim(), die);
 const base = cmp.base;
 
 // ---- SIDE A: did any artifact's content move? ----------------------------------------------------
@@ -451,11 +464,33 @@ const exactNext = (from: string, level: string): string => {
 };
 const squash = (s: string): string => s.replace(/\s+/g, ' ').trim();
 
+// APPROVED NOTE CORRECTIONS (Q181 A, Q190 A, #3570, #3574) — the one owner-approved exception to the arm below.
+// The first fold to carry notes into served release pages found shipped en-GB in pending notes, written
+// before any prose gate read `changes/`. The owner approved one correction PR (Q181 A), covering every note
+// the upstream prose gate flags (Q190 A: the two `colour` notes and three more). Each entry pins the exact
+// edit: the note's blob at the base (`from`) and at HEAD (`to`), so nothing else rides along, and the
+// entry is spent once `main` carries `to` (a later edit starts from `to`, not `from`, and fails as usual).
+// Never add an entry without an owner decision named in `decision`: this list is that decision's record.
+const APPROVED_NOTE_CORRECTIONS: { path: string; from: string; to: string; decision: string }[] = [
+  { path: `${NOTES_DIR}/claude-color-family-order-2900.md`, from: 'd4626053ae73c6ec7b176ca1ee4e1a0c120f666c', to: 'c150a32e0df92410ab847931004d3c92a45061d3', decision: 'Q181 A' },
+  { path: `${NOTES_DIR}/claude-color-variable-order.md`, from: '79c6e7f3be9d70007298ba2f42d9a749068fa8b6', to: '342be9b537ecffe985935e6712410b1a6dce0b9d', decision: 'Q181 A' },
+  { path: `${NOTES_DIR}/claude-toast-message-14-3165.md`, from: '92c24aa32600cc2881c5d8a97c203fcbc5ddfa96', to: 'e971f2307ffa3fdc8caa40027b3bff8f3f2766d7', decision: 'Q181 A, Q190 A' },
+  { path: `${NOTES_DIR}/claude-1024-paste-rename-migration.md`, from: '574d138625ffc5282907a80c0c62d432362e8e7d', to: '44637a58439eaf2a422a00e0600b5be1b8d35619', decision: 'Q181 A, Q190 A' },
+  { path: `${NOTES_DIR}/claude-3186-centring.md`, from: '4de26788d7eeeb08ff2e70f62bd3f5152f1ee114', to: '5dd368282fd56379b88ce8ecc9838625384cf1fe', decision: 'Q181 A, Q190 A' },
+];
+const blobAt = (rev: string, p: string): string | null => { const r = git('rev-parse', `${rev}:${p}`); return r.ok ? r.out.trim() : null; };
+const approvedCorrections: string[] = [];
+const unapprovedEdits = modifiedNotes.filter((p) => {
+  const a = APPROVED_NOTE_CORRECTIONS.find((c) => c.path === p);
+  if (a && blobAt(base, p) === a.from && blobAt('HEAD', p) === a.to) { approvedCorrections.push(`${p} (${a.decision})`); return false; }
+  return true;
+});
+
 let writerLine: string;
-if (markerAtBase && modifiedNotes.length)
+if (markerAtBase && unapprovedEdits.length)
   die([
-    `ONE WRITER — this diff edits ${modifiedNotes.length} pending change note(s) that a merged PR wrote (#1807).`,
-    ...modifiedNotes.map((p) => `      ${p}`),
+    `ONE WRITER — this diff edits ${unapprovedEdits.length} pending change note(s) that a merged PR wrote (#1807).`,
+    ...unapprovedEdits.map((p) => `      ${p}${APPROVED_NOTE_CORRECTIONS.some((c) => c.path === p) ? '  (listed in APPROVED_NOTE_CORRECTIONS, but not this exact edit)' : ''}`),
     `    ${where}`,
     '',
     '  A pending note is another PR\'s declared bump, and only the fold consumes it. To add to or correct',
@@ -536,7 +571,7 @@ if (!markerAtBase) {
     ]);
   writerLine = `a fold — ${folded.length} note(s) consumed at ${top}, ${baseVersion} → ${headVersion}, every note's prose under it`;
 } else {
-  writerLine = 'no edit to ENGINE_VERSION or its changelog, and no note deleted';
+  writerLine = `no edit to ENGINE_VERSION or its changelog, and no note deleted${approvedCorrections.length ? `; ${approvedCorrections.length} owner-approved note correction(s): ${approvedCorrections.join(', ')}` : ''}`;
 }
 
 // ---- RENAME STAMPS (#1816) -----------------------------------------------------------------------
@@ -584,7 +619,7 @@ if (markerAtBase) {
       '',
       '  A PR that adds a rename rule writes its `since` as the quoted placeholder, in the rule and in test.ts\'s',
       '  table for it, and adds a change note in the same diff. The fold writes the version. An existing stamp',
-      '  never changes: a changed rule is a new rule, with a new id. CONTRIBUTING.md §2.',
+      '  never changes: a changed rule is a new rule, with a new id. packages/engine/changes/README.md.',
     ]);
   const pendingNow = atHead.stamps.filter((st) => st.since === PENDING_STAMP).length;
   stampLine = `${atHead.stamps.length} read at HEAD, ${pendingNow} pending the fold${isFold ? ` (this fold filled ${atBase.stamps.filter((st) => st.since === PENDING_STAMP).length} with ${headVersion})` : ''}`;

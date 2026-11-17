@@ -1276,7 +1276,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const extreme = polarity === 'dark' ? WHITE : BLACK;
     const base = polarity === 'dark' ? 'black' : 'white';
     for (const [rung, floor] of VEIL_RUNGS) {
-      const step = VEIL_STEPS.find((s) => contrast(extreme, composite(extreme, wash, s / 100)) >= floor);
+      // At the alpha that ships (#3698 finding 7a), as the overlay and wash paths do: the hex dialect writes 26/255
+      // for 10%, so a step chosen at the nominal alpha could clear a floor the emitted wash does not.
+      const step = VEIL_STEPS.find((s) => contrast(extreme, composite(extreme, wash, emittedAlpha(s / 100, theme.colorFormat))) >= floor);
       if (step === undefined)
         throw new Error(`veil.${polarity}.${rung}: no emitted alpha step clears ${floor}:1 over the worst-case pixel`);
       put(`veil.${polarity}.${rung}`,
@@ -1914,7 +1916,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const overlayColors = ['primary', 'neutral', 'destructive', ...theme.interactivePalettes.map((p) => p.name)];
     for (const color of overlayColors) {
       for (const [st, step] of OVERLAY_ALPHA) {
-        const ratio = contrast(contentRgb, composite(baseRgb, overlayBase, step / 100));
+        // At the alpha that ships (#3555 F4): the hex dialect emits 10% as 26/255, so the nominal 0.10 overstated the ratio.
+        const ratio = contrast(contentRgb, composite(baseRgb, overlayBase, emittedAlpha(step / 100, theme.colorFormat)));
         // `putWash`, not `put` (#963): `against` is the GROUND this composites over — the page — and
         // `legibleFor` is the ink that must survive on the result, which is what `cfg.secondaryMin`
         // bounds. Until #963 those were the same argument, so `against` read `text.primary` and every
@@ -1923,7 +1926,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         // shape the type forbids.
         putWash(`interactive.${color}.overlay.${st}`,
           { path: `${ns}.${overlayPal}.${step}`, rgb: overlayBase, ratio },
-          `${color} interactive overlay — ${st} (${step}% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.${color}.overlay.${st})`,
+          `${color} interactive overlay — ${st} (${step}% neutral wash for the page ground; the dark-band twin is inverse.interactive.${color}.overlay.${st})`,
           'background.primary', 'text.primary', cfg.secondaryMin, step / 100);
       }
     }
@@ -1945,7 +1948,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const invContentRgb = asGround('inverse.text.primary', pickMostExtreme(textCands, invRgb).rgb);   // the strongest ink on the band
     for (const color of overlayColors) {
       for (const [st, step] of OVERLAY_ALPHA) {
-        const ratio = contrast(invContentRgb, composite(invRgb, invOverlayBase, step / 100));
+        const ratio = contrast(invContentRgb, composite(invRgb, invOverlayBase, emittedAlpha(step / 100, theme.colorFormat)));
         // `putWash` since #963 — see the page twin above. `inverse.text.primary` moves from the
         // `against` slot to `legibleFor`, which is the slot it always meant.
         //
@@ -2033,7 +2036,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // disabled.border — those compose from generic families, so only rest/hover live in field.*.
   const fieldGroundRgb = asGround('background.secondary', cfg.bg.secondary.rgb);
   const fieldRest = pickMinPass(ramp, fieldGroundRgb, cfg.nonTextMin);
-  put('field.border.rest', fieldRest, `Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at ${cfg.nonTextMin}:1 against the darkest permissible ground (\`background.secondary\`), not the page alone`, 'background.secondary', cfg.nonTextMin);
+  put('field.border.rest', fieldRest, `Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at ${cfg.nonTextMin}:1 against \`background.secondary\`, the ground it is gated on, not the page alone`, 'background.secondary', cfg.nonTextMin);
   // Hover is a STATE DELTA expressed as a step offset from rest, not a second absolute ratio.
   //
   // It used to target `secondaryMin` — a TEXT constant — which is the same category error the bold
@@ -2052,7 +2055,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // step is a far weaker cue on 1px of chrome than on a filled button.
   const FIELD_HOVER_STEPS = 4;
   const fieldRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldRest.path)!.num;
-  put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, FIELD_HOVER_STEPS, dir, guardFrom(contrast(fieldRest.rgb, fieldGroundRgb), fieldGroundRgb, cfg.nonTextMin)), fieldGroundRgb), `Form field hover border — four ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on the darkest permissible ground. A field draws no hover fill, so this border is its hover cue, with the pointer`, 'background.secondary', cfg.nonTextMin);
+  put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, FIELD_HOVER_STEPS, dir, guardFrom(contrast(fieldRest.rgb, fieldGroundRgb), fieldGroundRgb, cfg.nonTextMin)), fieldGroundRgb), `Form field hover border — four ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on \`background.secondary\`. A field draws no hover fill, so this border is its hover cue, with the pointer`, 'background.secondary', cfg.nonTextMin);
   // `secondaryTextGround: 'page'` (owner Q-TXT1 A) fits the page's secondary ink on `background.primary`, the same
   // ground `text.primary` names, so it is the lightest secondary that still clears its bar on the page. Light and
   // dark only (owner Q3212.3 B): high contrast keeps its floor fit, because HC is for maximum legibility and the
@@ -2070,7 +2073,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   put('field.placeholder', pickMinPass(textCands, pageSecondary.rgb, cfg.secondaryMin),
     placeholderOnPage
       ? `Form field placeholder ink — a readable hint, ${cfg.secondaryMin}:1 on background.primary, the same ink as text.secondary (not a sub-AA placeholder)`
-      : `Form field placeholder ink — a readable hint, ${cfg.secondaryMin}:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)`,
+      : `Form field placeholder ink — a readable hint, ${cfg.secondaryMin}:1 on \`background.secondary\` behind the transparent fill (not a sub-AA placeholder)`,
     pageSecondary.name, cfg.secondaryMin);
 
   // The same four, for a field sitting on a dark hero / inverse band (#892). GENERATED against the
@@ -2096,10 +2099,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // that direction reverses. The same idiom the inverse interactive column already uses.
   const fieldInvGroundRgb = asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb);
   const fieldInvRest = pickMinPass(ramp, fieldInvGroundRgb, cfg.nonTextMin);
-  put('inverse.field.border.rest', fieldInvRest, `Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at ${cfg.nonTextMin}:1 against the darkest permissible inverse ground`, 'inverse.background.secondary', cfg.nonTextMin);
+  put('inverse.field.border.rest', fieldInvRest, `Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at ${cfg.nonTextMin}:1 against \`inverse.background.secondary\`, the ground it is gated on`, 'inverse.background.secondary', cfg.nonTextMin);
   const fieldInvRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldInvRest.path)!.num;
-  put('inverse.field.border.hover', rated(walk(r2p.neutral, fieldInvRestNum, FIELD_HOVER_STEPS, -dir, guardFrom(contrast(fieldInvRest.rgb, fieldInvGroundRgb), fieldInvGroundRgb, cfg.nonTextMin)), fieldInvGroundRgb), `Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on the darkest permissible inverse ground. A field draws no hover fill, so this border is its hover cue, with the pointer`, 'inverse.background.secondary', cfg.nonTextMin);
-  put('inverse.field.placeholder', pickMinPass(textCands, asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink on an inverse surface — a readable hint, ${cfg.secondaryMin}:1 on the darkest permissible inverse ground behind the transparent fill`, 'inverse.background.secondary', cfg.secondaryMin);
+  put('inverse.field.border.hover', rated(walk(r2p.neutral, fieldInvRestNum, FIELD_HOVER_STEPS, -dir, guardFrom(contrast(fieldInvRest.rgb, fieldInvGroundRgb), fieldInvGroundRgb, cfg.nonTextMin)), fieldInvGroundRgb), `Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on \`inverse.background.secondary\`. A field draws no hover fill, so this border is its hover cue, with the pointer`, 'inverse.background.secondary', cfg.nonTextMin);
+  put('inverse.field.placeholder', pickMinPass(textCands, asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink on an inverse surface — a readable hint, ${cfg.secondaryMin}:1 on \`inverse.background.secondary\` behind the transparent fill`, 'inverse.background.secondary', cfg.secondaryMin);
 
   // -------------------------------------------------------------- text (+ icon)
   // Ink. Built from a floor PROFILE so `text` (4.5:1) and `icon` can diverge: with
@@ -2494,6 +2497,19 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // The opaque outline hover fill (#3071) is put after this layer too, from its own setting.
     if (/^(?:inverse\.)?interactive\.[^.]+\.hover-fill\./.test(key))
       throw new Error(`overrides[${mode}]: '${key}' is the opaque outline hover fill (#3071), set by \`outlineHoverFill.${mode}\` on the page; the inverse band takes the default rule. It cannot be overridden on its own.`);
+    // A TRANSLUCENT WASH (#3072). Its strength is the alpha step it aliases (`black-alpha.10`), so a palette step
+    // emits it OPAQUE (the tree aliases the path and the role's `alpha` never reaches the value), and its ratio is an
+    // ink on the composite (#963), which this layer's `contrast(self, against)` does not measure. Refused, as #3071
+    // and #3073 refuse the roles this layer cannot write honestly. Read off the model the role was put with, so a
+    // wash added later is covered the day it is put.
+    const wash = roles[key];
+    if (wash?.model === 'ink-on-composite')
+      throw new Error(`overrides[${mode}]: '${key}' is a translucent wash (#3072): its strength is the alpha step it aliases, so a palette step would emit it opaque, and its contrast is '${wash.legibleFor}' on the composite. It cannot be overridden on its own.`);
+    // A SUBTLE FILL (#3072) is put after every mode resolves (`settleSolidTint`), from its fill at an opacity step, so
+    // an override here never reached the output and was dropped without a word. Refused, pointing at its fill.
+    const tint = /^((?:inverse\.)?interactive\.[^.]+\.)subtle-fill\./.exec(key);
+    if (tint)
+      throw new Error(`overrides[${mode}]: '${key}' is a subtle fill (#3072), the category's fill at an opacity step, set after this layer. It cannot be overridden on its own. Override '${tint[1]}fill.rest' and the tint follows it.`);
   }
   if (ov) {
     for (const [rolePath, ref] of Object.entries(ov)) {
@@ -2871,7 +2887,8 @@ const TINT_VISIBLE_DE = 2.3;
  *
  * READS THE SETTLED ROLES. Fill, ground and ink are read off each mode's final roles, so an override on the
  * fill or the ink (the per-mode override layer runs inside `resolveMode`) is what the tint follows and is
- * measured against. A subtle fill itself has nothing to override: it is not a color, it is a step.
+ * measured against. A subtle fill itself has nothing to override: it is not a color, it is a step, and an
+ * `overrides` entry naming one is refused in `resolveMode` (#3072) rather than dropped here.
  */
 const settleSolidTint = (theme: Theme, results: ModeResult[], only?: { color: string; state: 'selected' }): void => {
   const steps = OPACITY_STEPS.filter((s) => s > 0);
@@ -2895,8 +2912,11 @@ const settleSolidTint = (theme: Theme, results: ModeResult[], only?: { color: st
         const ink = m.roles[inkKeyOf(st)];
         return { m, fill: hexRgb(m.roles[fillKey]), ground: hexRgb(m.roles[groundKey]), ink: ink ? hexRgb(ink) : undefined, min: ink?.min ?? 0 };
       });
-      const legible = (st: string, s: number) => cells(st).every((c) => !c.ink || contrast(c.ink, composite(c.ground, c.fill, s / 100)) >= c.min);
-      const visible = (st: string, s: number) => cells(st).every((c) => deltaE2000(composite(c.ground, c.fill, s / 100), c.ground) >= TINT_VISIBLE_DE);
+      // Every composite here is at the alpha that ships (#3698 finding 7a), so the step the guards pick and the ratio
+      // published below measure the same wash.
+      const shipped = (s: number) => emittedAlpha(s / 100, theme.colorFormat);
+      const legible = (st: string, s: number) => cells(st).every((c) => !c.ink || contrast(c.ink, composite(c.ground, c.fill, shipped(s))) >= c.min);
+      const visible = (st: string, s: number) => cells(st).every((c) => deltaE2000(composite(c.ground, c.fill, shipped(s)), c.ground) >= TINT_VISIBLE_DE);
 
       // hover: the text guard steps down; failing nothing, the visibility guard steps up under the text cap.
       let h = steps.indexOf(nominalOf('hover'));
@@ -2921,7 +2941,8 @@ const settleSolidTint = (theme: Theme, results: ModeResult[], only?: { color: st
             // The SELECTED fill has two users since 2026-09-29 (an outline/text control, and a control the user
             // selects in place, Tag's select type), so its sentence names both rather than one.
             description: `${color} interactive subtle fill${prefix ? ' on a dark / inverse surface' : ''} — ${st} (the ${color} fill at opacity.${step}${why}; translucent, ${st === 'selected' ? 'the selected background of a selectable control or an outline/text control' : `the outline/text control's ${st} background`})`,
-            ratio: c.ink ? contrast(c.ink, composite(c.ground, c.fill, step / 100)) : 0,
+            // Measured at the alpha that ships (#3698 finding 7a), as the overlay paths above do (`emittedAlpha`).
+            ratio: c.ink ? contrast(c.ink, composite(c.ground, c.fill, shipped(step))) : 0,
             // A WASH (#963): `against` is the ground it composites over, `legibleFor` the ink that must survive
             // on the result — which is what `min` bounds. `hex` is the OPAQUE fill; `alpha` is the step.
             against: groundKey, legibleFor: inkKey, model: 'ink-on-composite',

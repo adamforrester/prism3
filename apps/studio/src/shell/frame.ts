@@ -58,6 +58,9 @@ import { glyph, h, hook, linkTile, menuButton, tile } from './dom';
 import { mountRail } from './rail';
 import { mountDocumentation, type DocumentationLend } from './documentation';
 import { mountUpdateFile, type UpdateFileLend } from './update-file';
+import { mountReport, type ReportLend } from './report';
+import { REPORT_COPY } from '../state/report';
+import { mountCollisions, type CollisionsLend } from './collisions';
 import { mountStatusStrip, type StatusLend } from './status-strip';
 import { inspectMenu, modeControl, modeLabel, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
 import { mountActivity, type ActivityLend } from './activity';
@@ -134,9 +137,11 @@ const OPERABLE = ['button', 'select', 'textarea', 'input:not([type="hidden"])', 
 
 /** The frame width at or below which it lays out as one narrow column (concept v6's `appNarrow`). */
 export const NARROW_MAX = 560;
-/** #1975: the levers pane width below which it is `data-fit="snug"`: narrower than the 380 its pages are laid out for,
- *  which the two panes reach at 640 and 800 (the 42% column). A width class for the same reason as narrow mode. */
-export const LEVERS_SNUG_MAX = 360;
+/** #1975: the levers pane width below which it is `data-fit="snug"`, a width class for the same reason as narrow mode.
+ *  #3553 M2 A raised it from 360 to 480: a fill row (swatch | name | step picker) does not fit one line until the pane is
+ *  about 480 wide, so between 360 and 480 the picker squeezed the name to 20–40px. The two panes reach 480 at a 1200 web
+ *  window (the 42% column is 404 at 1024 and 478 at 1200), so from 1024 to 1200 a row's picker now sits under its name. */
+export const LEVERS_SNUG_MAX = 480;
 
 export type Frame = {
   /** The sticky region: the bar, the notices and the tab row. */
@@ -148,7 +153,8 @@ export type Frame = {
   /** The shell's own bar nodes, which the bar places (S1.3, S1.4): the verdict (Contrast), the Activity button and the
    *  Figma menu (plugin only). Kept on the frame beside `barMain`, as main has them. */
   readonly verdict: HTMLElement;
-  readonly activity: HTMLElement;
+  /** Plugin only (#3011): the studio mounts no Activity drawer. */
+  readonly activity: HTMLElement | null;
   /** Slot: the notices row, under the top bar: the error strip (`notices.ts`). */
   readonly notices: HTMLElement;
   /** The Agent tile's stable, empty slot (IA-3, plugin only), placed by the bar between Theme and Activity (T7). The
@@ -200,10 +206,15 @@ const select = (tabs: readonly HTMLElement[], on: HTMLElement | null): void => {
 export const mountFrame = (app: HTMLElement, opts: {
   readonly host: Host;
   readonly inspect: InspectLegacy;
-  /** The host session's writes, as the Activity drawer reads them, and how it answers a request to show one (S1.4, S11). */
-  readonly activity: ActivityLend;
+  /** The host session's writes, as the Activity drawer reads them, and how it answers a request to show one (S1.4, S11),
+   *  or null where there is no Figma file: the studio runs no write, so it mounts no drawer (#3011, Q121 A). */
+  readonly activity: ActivityLend | null;
   /** #2909 IA v2 phase 1: Update file's reads and writes, or null where there is no Figma file (the studio). */
   readonly updateFile: UpdateFileLend | null;
+  /** #2069: Report a problem's reads and its link opener, or null for none. */
+  readonly report: ReportLend | null;
+  /** #1909: the collision choice a refused Apply Theme opens, or null where there is no Figma file. */
+  readonly collisions: CollisionsLend | null;
   /** #2909: Documentation's reads and writes, or null where there is no Figma file. */
   readonly documentation: DocumentationLend | null;
   /** #3170 part 2: the status strip's reading and its Stop, or null where there is no Figma file. */
@@ -433,18 +444,22 @@ export const mountFrame = (app: HTMLElement, opts: {
   // The drawer sits last in the frame, pinned to the bottom edge, under whichever region shows the page.
   // S11.2 (P1, variant 1): while the Build style guides page shows its run, the drawer does not open by itself for it.
   // Since #2909 no page shows a style guide's run (Documentation holds settings only), so the drawer is never quiet.
-  const activity = mountActivity({ host, lend: opts.activity, narrow: () => root.dataset.w === 'narrow', quiet: () => false,
+  // #2069: Report a problem opens from the drawer's foot, in its own layer over everything.
+  // #3011 (Q121 A): plugin only. The studio runs no write and has no door to the drawer since Q2909.9 A, so it mounts none.
+  // #3524: the web opens Report a problem from its rail instead (below, beside Help).
+  const report = opts.report ? mountReport(opts.report, cleanups) : null;
+  const activity = opts.activity ? mountActivity({ lend: report ? { ...opts.activity, report: (from) => report.open(from) } : opts.activity, narrow: () => root.dataset.w === 'narrow', quiet: () => false,
     // #2176: the open drawer grows up to just under the preview header (or Inspect's, in its place; or, on a page of
     // the shell's own, the head). A region not drawn measures 0, so the lowest bottom is the one shown.
-    room: { frame: root, ceiling: () => Math.max(...[head, previewHead, inspectHead].map((n) => n.getBoundingClientRect().bottom)) } }, cleanups);
+    room: { frame: root, ceiling: () => Math.max(...[head, previewHead, inspectHead].map((n) => n.getBoundingClientRect().bottom)) } }, cleanups) : null;
   // Q731 (the owner, 2026-10-26): the Agent tile's slot sits on the plugin's top bar, where Minimize was; Minimize's is at
   // the rail's foot, where Agent was.
   const agent = host === 'figma' ? hook(h('div', 'p3-agent-slot'), 'bar-agent') : null;
 
   // The Activity status line rides in the top bar, which is always drawn, on the bar's own ground.
-  bar.append(activity.live);
+  if (activity) bar.append(activity.live);
   // #3170 part 2: the status strip, at the panel's foot: first in the drawer, above its bar row (plugin only).
-  if (opts.status) activity.drawer.prepend(mountStatusStrip(opts.status, cleanups));
+  if (opts.status && activity) activity.drawer.prepend(mountStatusStrip(opts.status, cleanups));
   // The Build style guides page (S11.2): a full-width page of the shell's own, shown in the `page` layout.
   const menuPage = hook(h('main', 'p3-sgpage'), 'menu-page');
   menuPage.id = 'p3-menu-page';
@@ -455,7 +470,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   let homeView: HomeView | null = null;
   // S12: the window layer, last, so a window is drawn over the drawer too.
   const layer = hook(h('div', 'p3-layer'), 'layer');
-  root.append(head, panes, menuPage, home.node, inspect, activity.drawer, layer);
+  root.append(head, panes, menuPage, home.node, inspect, ...(activity ? [activity.drawer] : []), layer);
   app.append(root);
 
   // The verdict, in the Theme area's preview header (round 4: Contrast moved off the global bar into Theme). Then the
@@ -465,6 +480,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   // plugin's rail foot (Q731), and the plugin's entry fills it; Update file is the plugin's too. The web has neither (Q2909.9 A).
   const minimize = host === 'figma' ? hook(h('div', 'p3-agent-slot p3-min-slot'), 'rail-minimize') : null;
   const update = opts.updateFile ? mountUpdateFile(opts.updateFile, cleanups) : null;
+  const collisions = opts.collisions ? mountCollisions(opts.collisions, cleanups) : null;
   const exportPage = hook(h('div', 'p3-export-host'), 'export-host');
   let lastTheme: PageKey = isMenuPage(page) || page === 'components' ? pageOfTab('brand') : page;
   const goArea = (a: AreaId): void => {
@@ -481,13 +497,29 @@ export const mountFrame = (app: HTMLElement, opts: {
   help.btn.setAttribute('aria-label', 'Help');
   if (opts.openDocs) help.btn.onclick = () => opts.openDocs!();
   help.btn.classList.add('p3-rail-tile');
+  // #3524 (Q151 A follow-up): on the web, which draws no Activity drawer (#3011), Report a problem sits beside Help at the
+  // rail's foot and opens the same dialog. Icon alone, like Help (#3083); its name and tooltip are the dialog's own
+  // words. The plugin keeps it at the drawer's foot. DRAFT placement: the owner's call.
+  let reportTile: HTMLButtonElement | null = null;
+  if (report && !activity) {
+    const rep = tile('report-open', null);
+    rep.mark.append(glyph('report'));
+    rep.tip.textContent = REPORT_COPY.open;
+    rep.btn.setAttribute('aria-label', REPORT_COPY.open);
+    rep.btn.onclick = () => report.open(rep.btn);
+    rep.btn.classList.add('p3-rail-tile');
+    reportTile = rep.btn;
+  }
   theme.querySelector('.p3-tile')?.classList.add('p3-rail-tile');
   // Q2909.9 A: the web's rail holds Theme, Components and Export, and no Minimize.
-  const rail = mountRail({ logo: opts.logo(), areas: railAreas(host), go: goArea, foot: [minimize, help.btn, theme].filter((n): n is HTMLElement => !!n) });
+  const rail = mountRail({ logo: opts.logo(), areas: railAreas(host), go: goArea, foot: [minimize, help.btn, reportTile, theme].filter((n): n is HTMLElement => !!n) });
   root.prepend(rail.node);
   root.dataset.shell = 'rail';
   previewHead.insertBefore(verdict, previewHead.children[1] ?? null);
   if (update) root.append(update.layer);
+  if (report) root.append(report.layer);
+  // #1909: over Update file's, since a refused theme step can open it while that run ends.
+  if (collisions) root.append(collisions.layer);
   const barMain = mountBar(opts.bar, { agent, update: update?.button ?? null, exportPage }, cleanups);
   barSlot.append(barMain);
 
@@ -895,7 +927,7 @@ export const mountFrame = (app: HTMLElement, opts: {
 
   return {
     head, bar: barSlot, barMain, notices, verdict, syncSticky, layer,
-    activity: activity.button, agent, setHome,
+    activity: activity?.button ?? null, agent, setHome,
   };
 };
 

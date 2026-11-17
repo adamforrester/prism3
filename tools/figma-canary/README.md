@@ -96,14 +96,17 @@ Post it to the Mac's queue as `JOB <id>: canary <full commit sha>`, using the us
 >       `confirm: true`.
 >    4. `prune { input: <house brand>, confirm: false }` → `prune.json`: the Apply Theme plan read. Never send
 >       `confirm: true`.
->    5. `run-code` with the descriptor read below → `run-code.json`. It's recorded, not judged.
->    6. `status` again → `status-after.json`. The bridge serves whichever plugin holds it (#3297), so the run is
+>    5. `set-override { changes: [<one no-op change>], confirm: false }` → `set-override.json`: the color override
+>       preview (#3394), light's primary border set to the step the house brand resolves it to. Never send
+>       `confirm: true`.
+>    6. `run-code` with the descriptor read below → `run-code.json`. It's recorded, not judged.
+>    7. `status` again → `status-after.json`. The bridge serves whichever plugin holds it (#3297), so the run is
 >       bracketed: both ends must name the scratch file and the same build.
 > 6. **Collect and return.** `npx tsx tools/figma-canary/job.ts collect --run-dir <run folder>` writes `run.json`:
 >    `{ format, commit, responses }`, with `responses` keyed by command. Return that file verbatim.
 >    Don't summarize the responses, and don't say PASS or FAIL.
 
-The descriptor read (step 5.5) measures what the shim models in `apps/plugin/host-descriptors.json` (added by #3295). It runs only in
+The descriptor read (step 5.6) measures what the shim models in `apps/plugin/host-descriptors.json` (added by #3295). It runs only in
 a development build:
 
 ```js

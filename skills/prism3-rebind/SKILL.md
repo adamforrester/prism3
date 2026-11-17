@@ -113,7 +113,8 @@ decision for the owner (section 6), and most become component work.
     per breakpoint. Build the one that defines the shared shell first.
 16. **Keys without the library file.** Instances already placed in the consuming file (a stickersheet, an
     earlier rebuild) give each main's key and variant axes through `getMainComponentAsync()`. That finds
-    only what something instances; anything else still needs a key or a dragged-in instance.
+    only what something instances; anything else still needs a key or a dragged-in instance. In a file
+    that holds Prism3 locally, take the local main instead (section 8).
 17. **A source in another typeface.** Map text by role and size, not by font family, and read the
     library's own type guidance (an overview page, if it has one) before deciding the headings.
 18. **Keep the source copy exactly,** typos and odd spacing included, and list them as an owner question.
@@ -226,7 +227,8 @@ axis and its reason, in the log.
 | `createAutoLayout` isn't part of the plugin API | It isn't in the plugin typings, so a script written against it fails at its first call | `createFrame()`, then set the layout mode and auto sizing |
 | Mixed values are Symbols | A mixed `cornerRadius` or `strokeWeight` throws inside a template string | Guard for a Symbol before formatting |
 | Stale references after a placement | Reading a node after its parent was replaced, or looping into the nested parts of a component you have placed | Collect labels before placing; skip nodes inside instances; check `.removed` before each use |
-| A new library import never settles | `importComponentByKeyAsync`, `importComponentSetByKeyAsync` or `importStyleByKeyAsync` neither resolves nor rejects for minutes, and in a serial loop every later import waits behind it | Start every import at once, each raced against its own timeout. Run a long one as a background promise kept on `globalThis` and poll it. After about 60 seconds, reload the plugin UI; if it still hangs, ask the owner to drag one instance into the file. While imports stall, take mains, styles and variables from instances already in the file (`getMainComponentAsync`, `getStyleByIdAsync`, bound-variable ids), and keep a variable only if its collection is the library's: a legacy library can share the same name prefix |
+| A new library import never settles | `importComponentByKeyAsync`, `importComponentSetByKeyAsync` or `importStyleByKeyAsync` neither resolves nor rejects for minutes, and in a serial loop every later import waits behind it | Start every import at once, each raced against its own timeout. Run a long one as a background promise kept on `globalThis` and poll it. After about 60 seconds, reload the plugin UI; if it still hangs, ask the owner to drag one instance into the file. While imports stall, take mains, styles and variables from instances already in the file (`getMainComponentAsync`, `getStyleByIdAsync`, bound-variable ids), and keep a variable only if its collection is the library's: a legacy library can share the same name prefix. This applies only to a file that consumes Prism3 as a library: in a file that holds Prism3 locally, never import (section 8) |
+| An existing instance hands you the library's twin | In a file that holds Prism3 locally and also has Prism3's library enabled, an instance someone dragged from the Assets panel or pasted from another file points at the library's main, and its bindings at the library's variables. `getMainComponentAsync()` and `getVariableByIdAsync()` return those remote twins, and everything you place from them points at the library too | Before reusing a main or a variable reached through an instance, read its `remote`. If it is `true` and a local twin of the same name exists, reject it and use the local one, because local always wins. Log the instance as a finding (section 7) |
 | Library objects don't last | An imported set, style or variable that nothing uses is gone a few calls later, and so is a main taken with `getMainComponentAsync()` from an instance already in the file | Place an instance of each main you will reuse in a parking frame at once, imported or reached through an instance, and reach the main through `getMainComponentAsync()`. Re-import styles and variables right before use. Remove the parking frame when the pass is done |
 | A timed-out call keeps running | The plugin finishes its work after the bridge has reported a timeout, and leaves orphan nodes | After a timeout, find and remove orphans before rerunning. Give each slow step its own timeout race |
 | A photo is a stack of image fills | Copying only the first IMAGE paint shows the wrong colorway, and copying the whole fills array brings along any gradient someone laid over the photo to fake a fade or fix contrast | Copy every IMAGE paint, in order. Bind any solid under-layer to a Prism3 role, and leave a hand-set gradient out. If the design needed it, propose a veil or a component option |
@@ -311,7 +313,11 @@ A rogue binding is anything that still resolves to the legacy library. Walk ever
 - instances whose main component is remote (nested ones surface only after their parents are detached).
   On the library path, "remote" means remote and not one of Prism3's keys (section 8);
 - **inside Prism3 instances too**, for remote styles and variables left by a swap (section 4). On the
-  library path, a remote style or variable counts only if its key is not Prism3's (section 8).
+  library path, a remote style or variable counts only if its key is not Prism3's (section 8);
+- **a remote Prism3 key in a file that holds Prism3 locally is a finding:** an instance whose main, or a
+  style or variable whose key, is the published library's twin of something the file holds locally.
+  Local always wins, so it counts as rogue even though it is Prism3's. Swap it to the local twin; never
+  detach it (section 1).
 
 Report "left on purpose" separately, with a reason for each: photo fills, third-party marks, effects with
 no Prism3 equivalent (map effects to Prism3's `shadow/*` and `shadow-dark/*` effect styles and its
@@ -336,6 +342,17 @@ Once a set of rebuilt pages is done, run the consistency audit too (section 10).
 bound to Prism3 while the pages still disagree with each other.
 
 ## 8. When Prism3 is a published library, not local
+
+**Check for a local Prism3 first. In a file that holds Prism3 locally, never import its published twin
+by key, because local always wins.** Call `figma.variables.getLocalVariableCollectionsAsync()`: if it
+holds Prism3's collections (`core`, `type-sets` and the rest the plugin materialized), the file holds
+Prism3 locally. Use sections 1 to 7 and the file's own mains, styles and variables, and skip this
+section, even when Prism3's published library is enabled in the file too (a master file can publish
+and enable its own). An import by key (`importVariableByKeyAsync`, `importComponentSetByKeyAsync`,
+`importComponentByKeyAsync`, `importStyleByKeyAsync`) returns the library's remote twin, and every
+instance and binding placed from it then points at the library instead of the file. The same goes
+for a main or a variable reused from an existing instance: reject it if it is `remote` while a local
+twin of the same name exists (section 4).
 
 Sections 1 to 7 hold unchanged: attached components, fonts checked first, the rogue-binding audit. What
 changes is how Prism3 gets into the file, and how you tell it from the legacy library. Wherever this

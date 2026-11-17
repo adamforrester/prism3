@@ -28,15 +28,15 @@
  *   · `ledgerAfter` carrying `held` through a Keep run that kept no edits (` && o.kept.length` dropped) → `edits gone`;
  *   · `ledgerAfter` keeping only this run's `held` (the join with `was` dropped, `now ?? before` alone) → `held joined`;
  *   · `themeBlocked` when any blocker is Theme's (`lacks.theme > 0`) → `theme only/nest`;
- *   · `themeBlocked` ignoring the dry run's own blockers (`!had` dropped) → `theme only/dry run`.
+ *   · `themeBlocked` ignoring the dry run's own blockers (`!had` dropped) → `theme only/dry run`;
+ *   · `checkedSetOf` sending no `reasons` (#3713) → `theme only/nest`, `theme only/dry run`.
  *
  * This file drives the helpers itself, so it does not see `main.ts`'s wiring. `test-update-kept-main.ts` posts the same
  * run to the real `main.ts`, and `test:chrome` section ia2 drives the Studio dialog's re-check (#3428's review).
  */
 import { makeShim } from './component-shim';
 import type { Node, Page } from './component-shim';
-import { componentDefs } from '@prism3/engine/components/index';
-import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan } from '@prism3/engine/anatomy-figma';
+import { componentDefs, figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, type ComponentDef } from '@prism3/engine/components';
 import { SWAP_TARGET } from './src/build-deps';
 import { materializeForBrand } from './src/brand-def';
 import { applyComponentPlan } from './src/write-components';
@@ -46,12 +46,12 @@ import { dueOf, entryFor, printOf, readLedger, recordSets, type LedgerEntry } fr
 import { NS, persistInput } from './src/persist-figma';
 import { emissionOf, stampEmission, themeDue } from './src/theme-emission';
 import { themePlans } from './src/apply-theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import type { BrandInput } from '@prism3/engine/theme';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
+import type { BrandInput } from '@prism3/engine';
 import { catalogOf, CATALOG_SWAP_TARGET } from '../studio/src/state/component-catalog';
-import { checkScopeOf, defaultTicks, type LiveDue, dueSetsOf, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, stepsOf, updateDefsOf, UPDATE_COPY, type FileSets } from '../studio/src/state/update-file';
+import { displayNameOf } from '../studio/src/state/component-groups';
+import { blockedDueOf, checkScopeOf, compsOpensOf, defaultTicks, type LiveDue, dueSetsOf, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, stepsOf, updateDefsOf, UPDATE_COPY, type FileSets } from '../studio/src/state/update-file';
 import { leafForDef } from './src/file-taxonomy';
-import type { ComponentDef } from '@prism3/engine/component-schema';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -150,7 +150,15 @@ ok(defs.length === 2 && steps.join(',') === 'theme,update',
 // still lacks the indicator variables, and also has one blocker Theme cannot clear, so it must read blocked, not
 // "Updated after Theme". Two worlds: a nested component the file lacks (a non-Theme line among the file's lacks), and
 // a plan member the dry run refuses (a blocker found before the file's lacks are read).
-const ROW_BLOCKED = 'Can’t be updated in place yet; the agent’s update check says why';
+// #3713: the row names the check's own first reason, in plain words, never "the agent's update check says why".
+// With Theme ticked the indicator variables no longer count (Theme writes them), so nothing follows the nest; with
+// Theme not ticked they are counted. Sets are named as Components names them (`displayNameOf`, as the shell passes).
+const ROW_NEST = 'Can’t update yet — it needs Icon, which this file doesn’t have. Tick Icon on Components first.';
+const ROW_NEST_NO_THEME = 'Can’t update yet — it needs Icon, which this file doesn’t have. Tick Icon on Components first. 1 more reason.';
+const nameOf = (id: string): string => displayNameOf(catalog, id);
+// Its other reasons are all variables Theme writes, so with Theme ticked none is counted. Its first is a shape Studio's
+// copy does not know, so it reads the one fixed line (#3721, D3721.1 b).
+const ROW_DRY = 'Can’t update yet — the check gave a reason Studio doesn’t recognize. Report it with Report a problem.';
 const ROW_AFTER_THEME = 'Updated after Theme — Theme writes the variables and styles it binds first';
 {
   const lacking = { ...host, root: { ...host.root, findAllWithCriteria: (c: { types: string[] }) => host.root.findAllWithCriteria(c).filter((n) => String((n as { name?: unknown }).name) !== 'icon/close') } } as unknown as ApplyHost;
@@ -158,8 +166,10 @@ const ROW_AFTER_THEME = 'Updated after Theme — Theme writes the variables and 
   const c = checkedSetOf(p, 'tag');
   ok(p.blockers.some((b) => b.startsWith('Not in this file: icon/close.')) && p.blockers.some((b) => b.includes('the plan binds') && b.includes('not in this file')),
     `theme only/premise nest: tag lacks icon/close and the indicator variables (${JSON.stringify(p.blockers)})`);
-  ok(c.blocked && c.themeBlocked === undefined && UPDATE_COPY.checked(c, true) === ROW_BLOCKED && UPDATE_COPY.checked(c, true) !== ROW_AFTER_THEME,
-    `theme only/nest: a set that also lacks a nested component is not theme-blocked, and its row does not read "Updated after Theme" (${JSON.stringify([c.themeBlocked ?? null, UPDATE_COPY.checked(c, true)])})`);
+  ok(c.blocked && c.themeBlocked === undefined && UPDATE_COPY.checked(c, true, nameOf) === ROW_NEST && UPDATE_COPY.checked(c, true, nameOf) !== ROW_AFTER_THEME,
+    `theme only/nest: a set that also lacks a nested component is not theme-blocked, and its row does not read "Updated after Theme" (${JSON.stringify([c.themeBlocked ?? null, UPDATE_COPY.checked(c, true, nameOf)])})`);
+  ok(UPDATE_COPY.checked(c, false, nameOf) === ROW_NEST_NO_THEME,
+    `theme only/nest, Theme not ticked: the variables Theme writes are counted as one more reason (${UPDATE_COPY.checked(c, false, nameOf)})`);
 }
 {
   const plans = plansNow.get('tag')!;
@@ -168,8 +178,8 @@ const ROW_AFTER_THEME = 'Updated after Theme — Theme writes the variables and 
   const c = checkedSetOf(p, 'tag');
   ok(p.blockers[0]?.startsWith('the plan names a member that is not a coordinate: ') && p.blockers.slice(1).length > 0 && p.blockers.slice(1).every((b) => b.includes('the plan binds') && b.includes('not in this file')),
     `theme only/premise dry run: the dry run refuses a member first, and the file lacks only the indicator variables (${JSON.stringify(p.blockers)})`);
-  ok(c.blocked && c.themeBlocked === undefined && UPDATE_COPY.checked(c, true) === ROW_BLOCKED && UPDATE_COPY.checked(c, true) !== ROW_AFTER_THEME,
-    `theme only/dry run: a set the dry run already refuses is not theme-blocked, and its row does not read "Updated after Theme" (${JSON.stringify([c.themeBlocked ?? null, UPDATE_COPY.checked(c, true)])})`);
+  ok(c.blocked && c.themeBlocked === undefined && UPDATE_COPY.checked(c, true, nameOf) === ROW_DRY && UPDATE_COPY.checked(c, true, nameOf) !== ROW_AFTER_THEME,
+    `theme only/dry run: a set the dry run already refuses is not theme-blocked, and its row does not read "Updated after Theme" (${JSON.stringify([c.themeBlocked ?? null, UPDATE_COPY.checked(c, true, nameOf)])})`);
 }
 
 // THE THEME STEP: the brand's variables are written, the indicator ones with them.
@@ -193,6 +203,23 @@ const f1 = read();
 ok(dueSetsOf(catalog, f1).length === 0, `after/0 due: the check after the run finds no set due (${JSON.stringify(f1.due)})`);
 ok(f1.due.tag?.state === 'current', `after/tag current: the set nobody edited is current (${JSON.stringify(f1.due.tag)})`);
 ok(JSON.stringify(keptSetsOf(catalog, f1)) === '["radio-control"]', `after/kept listed: radio-control, whose kept edits held changes back, is listed under Kept edits (${JSON.stringify(f1.due['radio-control'])})`);
+
+/* ── #3712 (Q-UD2 A, Q-UD3 A): Components' chip and fold, over this run's own readings ──────────────────────────────
+ * The dialog's rule, fed what this file reads: before the run, two due sets (Theme ticked, so only Theme's variables
+ * block them and they stay Due), or with Theme unticked, the same two can't update yet; after the run, one set with kept
+ * edits and nothing due. Components opens by itself in the first two and stays folded in the last. The chip literals
+ * are the owner's (approved as written). MUTATION: `compsOpensOf` back to "open while it lists anything" (`=> true`) →
+ * `#3712 Q-UD3 kept only`, by name. */
+const comps = (f: FileSets, theme: boolean) => {
+  const due = dueSetsOf(catalog, f);
+  const blocked = blockedDueOf(due, { sets: seen }, theme);
+  const n = { add: 0, due: due.length - blocked.length, blocked: blocked.length, kept: keptSetsOf(catalog, f).length, panels: 0 };
+  return { chip: UPDATE_COPY.compsChip(n), open: compsOpensOf(n) };
+};
+const dueC = comps(f0, true), blockedC = comps(f0, false), keptC = comps(f1, true);
+ok(dueC.chip === '2 due' && dueC.open, `#3712 Q-UD3 due: before the run, Theme ticked, Components reads "2 due" and opens by itself (${JSON.stringify(dueC)})`);
+ok(blockedC.chip === '2 can’t update yet' && blockedC.open, `#3712 Q-UD3 blocked: Theme unticked, Components reads "2 can’t update yet" and opens by itself (${JSON.stringify(blockedC)})`);
+ok(keptC.chip === '1 with kept edits' && !keptC.open, `#3712 Q-UD3 kept only: after the run, Components reads "1 with kept edits" and stays folded (${JSON.stringify(keptC)})`);
 
 // What a kept edit holds back, worked out here from the plans alone: each recolored member whose ring today's plan binds
 // to the indicator (before #3402 it bound the border role, so that change is the one the edit holds back).

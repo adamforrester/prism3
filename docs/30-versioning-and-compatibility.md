@@ -61,6 +61,34 @@ changelog or a pending note, and a fold fails unless its version is exactly the 
 note it deleted appears under it. The semantic-conflict net is the fold PR's own CI, the first run of
 every gate over `main` plus the whole batch. How to fold: `CONTRIBUTING.md` §2.
 
+### Decided (2026-11-12, #3698 R1): the fold runs from a bot, and live output carries a build identity
+
+The rule above accepted that `main` runs new behavior under the previous number between folds. The cost
+grew with the gap: #3698 counted 303 pending notes under one `ENGINE_VERSION`. The owner's answer has two
+parts.
+
+- **The fold runs from a bot.** `.github/workflows/fold.yml` runs `fold.ts` and opens the fold PR, which
+  then passes review and `gates` like any other. It runs by hand until a cadence is chosen; the PR that
+  added it carries that question.
+- **Live output carries a build identity:** `<ENGINE_VERSION>+pending.<n>`, where `n` is the number of
+  change notes pending, and the plain version when none are (`packages/engine/build-identity.ts`). It is
+  semver build metadata, so a reader comparing versions ignores it, and `generator.version` keeps meaning
+  the release. It appears in three places:
+  - the MCP server's `serverInfo.version`;
+  - `$extensions.generator.build` in a token tree the MCP or the CLI writes for a brand;
+  - `build` in a brand's component-defs export written the same way. This is new in format
+    `prism3-component-defs/1.3`, a minor format bump, because a field was added.
+
+> **The committed corpus carries no build identity.** Each PR that adds a change note would otherwise
+> rewrite every committed tree's stamp. That is the shared line #1807 took away, and
+> `lint-emission-version.ts` fails a PR that edits an `out/` stamp. A committed file is identified by its
+> commit. `cli.ts --committed`, which regen passes, writes the plain version.
+
+**Classification.**
+- An additive `$extensions` field and an added optional export field: **minor** for the engine.
+- The format moves `1.2 → 1.3`.
+- The guaranteed name surface does not move, so `CONTRACT_VERSION` does not either.
+
 ### Decided (2026-09-02, #1252): the ENGINE surface is everything a consumer can observe — emitted trees AND the projected component surface; `out/` movement is one trigger, not the definition
 
 It had gone unstated and two merged PRs answered it opposite ways on the same shape.
@@ -370,10 +398,37 @@ Every bump after 14.0.0 has added guaranteed paths and removed or retyped none, 
 | 14.5.0 | #2349 (#2324) | `type.label.{sm,md,lg}.emphasis-link` |
 | 14.6.0 | #2528 | `type.label.{sm,md,lg}.default` and `-link`: labels always ship the default weight |
 | 14.7.0 | #2590 (#2586) | `type.label.{sm,md,lg}.line-box` |
+| 14.8.0 | #2791 (#2670) | `motion.duration.sweep`, `motion.duration-reduced.sweep` and the primitive `motion.duration-ms.1600`: the progress bar's indeterminate sweep |
 | 14.9.0 | #2973 (#2971) | `container.min`, the 320px narrowest column Banner's width floor binds |
 | 14.10.0 | #2792 (#2669) | `border-width.x-heavy`, the 6px track of the large Slider |
+| 14.11.0 | #3019 (#2869) | `blur.glass` and `color.glass.surface`, the glass treatment's blur radius and translucent fill |
 | 14.12.0 | #3049 | `color.foreground.raised`, the panel over the scrim that Dialog binds: the card surface unless the brand's `raisedSurface` says otherwise |
 | 14.13.0 | #3153 | `type.body.{xs,sm,md,lg}.line-box` and `control.size.{sm,md,lg}.label-inset`: an option row's control cell follows its label's own line box, and the label sets down where the control is taller |
+| 14.14.0 | #3402 (#3346) | `color.interactive.{primary,neutral,destructive}.indicator.{rest,hover,pressed}` and their `color.inverse.interactive.*` twins: the selection mark |
+| 14.15.0 | #3501 (#3475) | `type.caption.{md,lg}.line-box`, the caption twin of the label and body line boxes |
+
+### Letter spacing becomes a number, and `container.fluid` leaves (15.0.0, #2434 with #2423)
+
+Owner decision Q175 A (2026-11-11). The engine emitted two `dimension` tokens in units DTCG 2025.10
+doesn't allow (the spec allows `px` and `rem`): the letter-spacing ladder in `em` and `container.fluid` as
+`100%`. Stock native transforms read `-0.04em` as rem and wrote an absolute `-0.64`, which is right only
+at a 16px font size.
+
+- The 18 guaranteed `core.font.letter-spacing.*` steps and `core.font.letter-spacing-role.*` roles keep
+  their names and change `$type` to `number`, a multiplier of the font size (`-0.04em` → `-0.04`). A
+  retype is MAJOR. Each platform applies the multiplier itself (`packages/tokens/README.md`).
+- `container.fluid` is removed with no replacement path. Full width is a layout's default, not a value to
+  bind. No `DEPRECATIONS` entry: there is no one path to point at, the 14.0.0 precedent.
+
+`CONTRACT_VERSION` 14.15.0 → 15.0.0, accepted with `token-contract.ts --accept` after the bump. The Figma
+half of the decision (#2423, the same primitives as Figma number variables) moves no DTCG name, so it
+lands without a second bump.
+
+### Additions since 15.0.0 (MINOR)
+
+| `CONTRACT_VERSION` | PR | guaranteed paths added |
+|---|---|---|
+| 15.1.0 | (#3408, Q-HT1 A) | `space.550`, the 44px step beside the half steps `space.150` and `space.250`: the hit-target floor a medium or large Button binds in code |
 
 ## Change classification
 

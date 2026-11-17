@@ -628,7 +628,7 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   {
     const TYPE_MODE_FIELDS = new Set(['families', 'weights', 'typeSizes', 'lineHeights', 'letterSpacings']);
     const OTHER_MODE_FIELDS = new Set(['radius', 'tempo', 'easings', 'shadow', 'density']);
-    const themeSf = ts.createSourceFile('theme.ts', readFileSync(join(SRC, '../../../packages/engine/theme.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
+    const themeSf = ts.createSourceFile('theme-types.ts', readFileSync(join(SRC, '../../../packages/engine/theme-types.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
     let modeLeverFields: string[] = [];
     ts.forEachChild(themeSf, (n) => {
       if (ts.isTypeAliasDeclaration(n) && n.name.text === 'ModeLevers' && ts.isTypeLiteralNode(n.type))

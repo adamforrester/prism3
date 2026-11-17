@@ -240,7 +240,14 @@
         "Contrast results"
       ],
       "sources": [
-        "packages/engine/theme.ts",
+        "packages/engine/theme-brand.ts",
+        "packages/engine/theme-color.ts",
+        "packages/engine/theme-type.ts",
+        "packages/engine/theme-dims.ts",
+        "packages/engine/theme-shadow.ts",
+        "packages/engine/theme-motion.ts",
+        "packages/engine/theme-layout.ts",
+        "packages/engine/theme-gradient.ts",
         "packages/engine/tree.ts",
         "packages/engine/modes.ts",
         "packages/engine/emit-dtcg.ts",
@@ -855,7 +862,8 @@
           "snapshot",
           "activity",
           "panels-clean",
-          "context"
+          "context",
+          "set-override"
         ]
       }
     },
@@ -1628,6 +1636,28 @@
           ],
           "agentCommands": [
             "panels-clean"
+          ],
+          "connections": [
+            "agent-link",
+            "desktop-bridge"
+          ]
+        }
+      }
+    },
+    {
+      "id": "set-override",
+      "label": "Change color overrides over the agent link",
+      "group": "Write to Figma",
+      "lanes": {
+        "agent": {
+          "status": "shipped",
+          "via": "set-override: confirm false previews the changes and the pairs they move; true, with the preview's hash, writes the theme. A list that puts a pair below its minimum is refused whole",
+          "sources": [
+            "apps/plugin/src/agent-protocol.ts",
+            "apps/plugin/src/set-override.ts"
+          ],
+          "agentCommands": [
+            "set-override"
           ],
           "connections": [
             "agent-link",

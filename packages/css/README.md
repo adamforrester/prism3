@@ -5,8 +5,9 @@ platforms such as AEM and Drupal (`docs/35` §9.1, owner decision Q87 A). Part o
 This is S2: the **button** only.
 
 - `button.css` — the button's styles, in one cascade layer, `p3`. **Generated, never edited:** `generate.ts`
-  writes it from the engine's emission (`packages/engine/out/components/specs.json` and `component-defs.json`),
-  owner decision Q96 A. Change the def and regenerate.
+  writes it from the engine's emission (`specs.json` and `component-defs.json`), owner decision Q96 A. The engine
+  doesn't commit those two, so `emission.ts` generates them into a temp folder on each run. Change the def and
+  regenerate.
 - `demo.html` — every appearance, size and state on the light and dark themes and on an inverse band. Also generated.
 - It needs the token CSS from `@prism3/tokens` (the `--pds3-…` custom properties, Q98 A). Themes come from that
   package's `[data-theme]` blocks: set `data-theme="dark"` on any ancestor.

@@ -78,10 +78,8 @@
  *
  *   npx tsx apps/plugin/lint-unclaimed-defaults.ts
  */
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '../../packages/engine/anatomy-figma.ts';
-import type { AnatomyPlan } from '../../packages/engine/anatomy-figma.ts';
+import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, componentDefs } from '@prism3/engine/components';
 import { applyComponentPlan } from './src/write-components.ts';
-import { componentDefs } from '../../packages/engine/components/index.ts';
 
 // ── ACTUAL: a recording host ────────────────────────────────────────────────────────────────────────
 

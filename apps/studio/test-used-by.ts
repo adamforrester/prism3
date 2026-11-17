@@ -18,7 +18,7 @@
  * `the committed index matches the component definitions — stale: radius.rounded…`; the shape repoint skipped in
  * the generator → `under Control shape pill, Button uses radius.capsule …`.
  */
-import { componentDefs } from '@prism3/engine/components/index';
+import { componentDefs } from '@prism3/engine/components';
 import { USED_BY } from './src/preview/used-by';
 import { computeUsedBy, render } from './gen-used-by';
 

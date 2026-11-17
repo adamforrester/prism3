@@ -194,7 +194,7 @@ export const tabs: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use tabs to switch between peer sections of related content in one place, one at a time, such as a product\'s description, specifications and reviews. Don\'t use tabs to go to another page (use page navigation), to change a setting or filter the current view (use a segmented control or a select), or for content people need to compare side by side.',
+    usage: 'Use tabs to switch between peer sections of related content in one place, one at a time, such as a product\'s description, specifications and reviews. Don\'t use tabs to go to another page (use PageNav), to change a setting or filter the current view (use SegmentedControl or Select), or for content people need to compare side by side.',
     do: [
       'Keep labels short, parallel nouns',
       'Keep one tab selected at all times',
@@ -221,14 +221,14 @@ export const tabs: ComponentDef = {
 
   composition: {
     composesWith: ['tab-item'],
-    alternativeTo: ['select', 'accordion', 'segmented-control', 'page-nav'],
+    alternativeTo: ['select', 'accordion', 'segmented-control', 'page-nav', 'breadcrumbs', 'pagination'],
     replacesPatterns: ['show and hide divs with no tab semantics', 'role="tab" on links that change the route'],
     supersededBy: [],
     planned: [],
   },
 
   motion: {
-    enter: 'None. On a change, the underline slides to the new tab and the panel cross-fades, about 150–200ms.',
+    enter: 'None. On a change, the underline slides to the new tab and the panel cross-fades, on motion.transition.default.',
     exit: 'The outgoing panel fades out under the incoming one. Panels never slide sideways.',
     reduceMotion: 'The underline snaps and the panel swaps with no transition.',
   },

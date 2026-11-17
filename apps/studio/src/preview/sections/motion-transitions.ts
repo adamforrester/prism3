@@ -14,7 +14,7 @@
  *  Stamps its root with the shared-section marker (`data-sg-section="motion-transitions"`, `kit.ts`'s header).
  *  WHAT IT IS HANDED. The resolved motion axis, the mode in view, the playback state and the block's copy. Nothing here
  *  reads the session. */
-import type { Theme } from '@prism3/engine/theme';
+import type { Theme } from '@prism3/engine';
 import { el, hook, subHead, tokenPillBadged, tokenPillWrapping, viewOnly } from './kit';
 import { curveOfRole, motionStageSvg } from './motion-curves';
 

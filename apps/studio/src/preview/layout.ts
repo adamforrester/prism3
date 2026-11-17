@@ -2,9 +2,9 @@
  * Layout, the preview (UI redesign S10; concept v6's V11, owner decision D14).
  *
  * WHAT IT SHOWS, in the legacy Style guide's markup (owner direction for the domain previews, as S4a's Surfaces &
- * fills, S5.2's Interactive and S6's Type): one section per lever section, each headed and described as its lever
- * section is (Q23). **Breakpoints**: the ranges to scale, each in a primary tint. **Grid**: each breakpoint's columns as
- * tinted bars on a gray margin, with its columns, gutter and margin. **Containers**: the full width, the maximum width
+ * fills, S5.2's Interactive and S6's Type): one section per lever section, in their order, each headed and described as its
+ * lever section is (Q23). **Grid** (first since #683): each breakpoint's columns as tinted bars on a gray margin, with
+ * its columns, gutter and margin. **Breakpoints**: the ranges to scale, each in a primary tint. **Containers**: the full width, the maximum width
  * and the content container to scale against the widest breakpoint (T10). Token names under each label (QA-B2).
  *
  * NOTHING IN LAYOUT VARIES BY MODE. The values are the same in every mode; only the ground changes with the mode the
@@ -52,8 +52,9 @@ export const mountLayoutPreview = (host: HTMLElement, cleanups: (() => void)[]):
     });
     const x = layoutCtx(c, theme);
     const secs = [
-      breakpointsSection(x, copyOf('Breakpoints'), LAYOUT_HINTS.breakpoints),
+      // #683 (Q111 A): Grid first, in the lever sections' order (Q23).
       gridSection(x, copyOf('Grid'), LAYOUT_HINTS.grid, LAYOUT_LABELS),
+      breakpointsSection(x, copyOf('Breakpoints'), LAYOUT_HINTS.breakpoints),
       containersSection(x, copyOf('Containers'), LAYOUT_HINTS.containers, { fluid: LAYOUT_PREVIEW_DRAFT.fluid, max: LAYOUT_LABELS.max, narrow: LAYOUT_LABELS.narrow }),
     ];
     // Q24: each section's container on the levers panel's gray, as the other previews' are.

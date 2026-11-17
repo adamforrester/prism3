@@ -49,12 +49,11 @@
  * `PACE_MS` test dropped) → `apply/paced`.
  */
 import { makeShim } from './component-shim';
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
+import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, componentDefs } from '@prism3/engine/components';
 import { SWAP_TARGET } from './src/build-deps';
 import type { Node } from './component-shim';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import type { BrandInput } from '@prism3/engine/theme';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
+import type { BrandInput } from '@prism3/engine';
 import { runApplyTheme, themePlans } from './src/apply-theme';
 import { FileShim } from './file-shim';
 
@@ -418,7 +417,7 @@ ok(J(SETS.map((id) => membersOf(id).length)) === J([14, 50, 45]), `premise: the 
 {
   posted.length = 0;
   const sunk: any[] = [];
-  await (main.ACTIONS.applyTheme as (...a: unknown[]) => Promise<void>)(BRAND, { post: (m: unknown) => { sunk.push(m); }, data: () => undefined });
+  await (main.ACTIONS.applyTheme as (...a: unknown[]) => Promise<void>)(BRAND, undefined, { post: (m: unknown) => { sunk.push(m); }, data: () => undefined });
   ok(sunk.some((m) => m?.type === 'apply-result') && !posted.some((m) => m?.type === 'run-progress') && !sunk.some((m) => m?.type === 'run-progress'),
     'apply/agent: an agent\'s Apply Theme posts no reading');
 }

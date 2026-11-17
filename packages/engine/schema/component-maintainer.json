@@ -70,11 +70,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.glyph.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "styles",
           "field": "states",
           "reason": "empty"
@@ -102,11 +97,6 @@
         {
           "section": "related",
           "field": "composition.composesWith",
-          "reason": "empty"
-        },
-        {
-          "section": "related",
-          "field": "composition.alternativeTo",
           "reason": "empty"
         },
         {
@@ -270,11 +260,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.ring.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "styles",
           "field": "states",
           "reason": "empty"
@@ -356,7 +341,7 @@
         {
           "class": "hit-target",
           "disposition": "UNSUPPORTED",
-          "description": "touch-target-expansion — the optical box and the hit box are deliberately decoupled (::before / absolute overlay), reconciling the WCAG 2.5.8 24×24 floor with Apple HIG 44×44 without inflating a compact button. Figma has no concept of a hit area larger than the frame. A flush text button (#2350) keeps its default sibling's height but drops the minimum width, so its visible box is only as wide as its label and can be narrower than 44px. Its hit area in code is at least 44×44 at medium and large sizes, and at least 24×24 at small (#2408): an invisible extension, such as a transparent ::before inset outward and centered on the label, reaches past the label into the gutter, while the box stays label-width so the label still lines up. Figma is unchanged, because it has no hit areas."
+          "description": "touch-target-expansion — the optical box and the hit box are deliberately decoupled (::before / absolute overlay), reconciling the WCAG 2.5.8 24×24 floor with Apple HIG 44×44 without inflating a compact button. Figma has no concept of a hit area larger than the frame. A flush text button (#2350) keeps its default sibling's height but drops the minimum width, so its visible box is only as wide as its label and can be narrower than 44px. Its hit area in code is at least 44×44 at medium and large sizes, and at least 24×24 at small (#2408), the floors each size binds as `size.<size>.hit-target`: `space.550` at medium and large, `space.300` at small: an invisible extension, such as a transparent ::before inset outward and centered on the label, reaches past the label into the gutter, while the box stays label-width so the label still lines up. Figma is unchanged, because it has no hit areas."
         },
         {
           "class": "focus-ring",
@@ -418,7 +403,7 @@
         ],
         "unverified": [
           "FINDING (engine): the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts). Its contrast against the host's own edge or fill is not measured — the offset is what makes it achievable, not what proves it.",
-          "motion timing — the brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it."
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it."
         ],
         "evolution": [
           "2026-10-14 (#2580, owner decision Q289.6 A): polymorphism (brief §3) — no separate link-button. Button takes href and renders <a>, and the href prop is no longer discouraged; a lighter navigation is Link.",
@@ -433,21 +418,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.trailingVisual.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.spinner.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.emptyPattern",
@@ -480,7 +450,7 @@
         {
           "class": "hit-target",
           "disposition": "UNSUPPORTED",
-          "description": "touch-target-expansion — the optical box and the hit box are deliberately decoupled (::before / absolute overlay), reconciling the WCAG 2.5.8 24×24 floor with Apple HIG 44×44 without inflating a compact button. Figma has no concept of a hit area larger than the frame. A flush text button (#2350) keeps its default sibling's height but drops the minimum width, so its visible box is only as wide as its label and can be narrower than 44px. Its hit area in code is at least 44×44 at medium and large sizes, and at least 24×24 at small (#2408): an invisible extension, such as a transparent ::before inset outward and centered on the label, reaches past the label into the gutter, while the box stays label-width so the label still lines up. Figma is unchanged, because it has no hit areas."
+          "description": "touch-target-expansion — the optical box and the hit box are deliberately decoupled (::before / absolute overlay), reconciling the WCAG 2.5.8 24×24 floor with Apple HIG 44×44 without inflating a compact button. Figma has no concept of a hit area larger than the frame. A flush text button (#2350) keeps its default sibling's height but drops the minimum width, so its visible box is only as wide as its label and can be narrower than 44px. Its hit area in code is at least 44×44 at medium and large sizes, and at least 24×24 at small (#2408), the floors each size binds as `size.<size>.hit-target`: `space.550` at medium and large, `space.300` at small: an invisible extension, such as a transparent ::before inset outward and centered on the label, reaches past the label into the gutter, while the box stays label-width so the label still lines up. Figma is unchanged, because it has no hit areas."
         },
         {
           "class": "focus-ring",
@@ -542,7 +512,7 @@
         ],
         "unverified": [
           "FINDING (engine): the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts). Its contrast against the host's own edge or fill is not measured — the offset is what makes it achievable, not what proves it.",
-          "motion timing — the brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it."
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it."
         ],
         "evolution": [
           "2026-10-14 (#2580, owner decision Q289.6 A): polymorphism (brief §3) — no separate link-button. Button takes href and renders <a>, and the href prop is no longer discouraged; a lighter navigation is Link.",
@@ -557,21 +527,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.trailingVisual.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.spinner.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.emptyPattern",
@@ -604,7 +559,7 @@
         {
           "class": "hit-target",
           "disposition": "UNSUPPORTED",
-          "description": "touch-target-expansion — the optical box and the hit box are deliberately decoupled (::before / absolute overlay), reconciling the WCAG 2.5.8 24×24 floor with Apple HIG 44×44 without inflating a compact button. Figma has no concept of a hit area larger than the frame. A flush text button (#2350) keeps its default sibling's height but drops the minimum width, so its visible box is only as wide as its label and can be narrower than 44px. Its hit area in code is at least 44×44 at medium and large sizes, and at least 24×24 at small (#2408): an invisible extension, such as a transparent ::before inset outward and centered on the label, reaches past the label into the gutter, while the box stays label-width so the label still lines up. Figma is unchanged, because it has no hit areas."
+          "description": "touch-target-expansion — the optical box and the hit box are deliberately decoupled (::before / absolute overlay), reconciling the WCAG 2.5.8 24×24 floor with Apple HIG 44×44 without inflating a compact button. Figma has no concept of a hit area larger than the frame. A flush text button (#2350) keeps its default sibling's height but drops the minimum width, so its visible box is only as wide as its label and can be narrower than 44px. Its hit area in code is at least 44×44 at medium and large sizes, and at least 24×24 at small (#2408), the floors each size binds as `size.<size>.hit-target`: `space.550` at medium and large, `space.300` at small: an invisible extension, such as a transparent ::before inset outward and centered on the label, reaches past the label into the gutter, while the box stays label-width so the label still lines up. Figma is unchanged, because it has no hit areas."
         },
         {
           "class": "focus-ring",
@@ -666,7 +621,7 @@
         ],
         "unverified": [
           "FINDING (engine): the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts). Its contrast against the host's own edge or fill is not measured — the offset is what makes it achievable, not what proves it.",
-          "motion timing — the brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it."
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it."
         ],
         "evolution": [
           "2026-10-14 (#2580, owner decision Q289.6 A): polymorphism (brief §3) — no separate link-button. Button takes href and renders <a>, and the href prop is no longer discouraged; a lighter navigation is Link.",
@@ -681,21 +636,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.trailingVisual.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.spinner.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.emptyPattern",
@@ -728,7 +668,7 @@
         {
           "class": "platform-owned",
           "disposition": "REFUSED",
-          "description": "the provider's element — the component is a container the provider's element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify's Shop Pay element. It never draws a button of its own. It passes size as the element's height, the brand radius as the element's radius option (clamped for Google Pay, below), and type and style through unchanged."
+          "description": "the provider's element — the component is a container the provider's element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify's Shop Pay element. It never draws a button of its own. It passes size as the element's height, the brand radius as the element's radius option (clamped for Google Pay, below), and wording (as the provider's button type) and style through unchanged."
         },
         {
           "class": "runtime-behavior",
@@ -743,7 +683,7 @@
         {
           "class": "live-geometry",
           "disposition": "LOWERED",
-          "description": "the corner — Google Pay allows a radius of at most half the button's height, so the component passes min(radius, height / 2) as its buttonRadius. A soft brand's radius can pass half of a small or compact button. Apple Pay, PayPal and Shop Pay take the brand radius as it is."
+          "description": "the corner — Google Pay allows a radius of at most half the button's height, so the component passes min(radius, height / 2) as its buttonRadius, under every Control shape. A soft brand's radius can pass half of a small or compact button, and Pill's radius.capsule always does, so under Pill Google Pay is a capsule at exactly half its height. Apple Pay, PayPal and Shop Pay take the brand radius as it is, square or capsule."
         },
         {
           "class": "responsive-layout",
@@ -783,6 +723,7 @@
           "The style artwork, grounds and edges were captured from each provider's public SDK on 2026-10-30 (the records in marks/provenance.json). An SDK that changes its paint later is not seen until the artwork is captured again."
         ],
         "evolution": [
+          "2026-11-11 (#3554 Q-CC21 A): the wording prop is `wording`, as SignInButton names the same job, not `type`, which is the HTML button type on Button, IconButton and FlushIconButton. It still reaches the provider as its button type.",
           "Proposed on #2343 (2026-10-25, §2) as one of two branded buttons from one factory; the owner chose two components (Q-B4 A), valid provider × style pairs only (Q-B5 A) and the provider's own element in code (Q-B8 A). Built in PR 4 on the owner's logo marks (PR 3).",
           "Q-W1 (the Figma member) was built as A, a layout stand-in with no fill, while the providers' artwork was not in. #3174 took B (Q3174.1–6, all A): a style axis in each SDK's own names, each style drawn from the provider's SDK artwork with its record's ground and edge, and the stand-in kept as the any style, so every member built before is still there at style any.",
           "Q-W2 (heights outside a provider's range): built as A, no member, and kept by Q3174.4 A: PayPal has no large member, because 55 is its documented ceiling.",
@@ -838,6 +779,16 @@
     },
     "sign-in-button": {
       "codeOnly": [
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "pending — not projected: the design file's states are rest, hover, pressed and focus-visible (Q-S6 A), and pending is code-only, as Button's inactive is (Q-CC23 A). In code isPending keeps focus with aria-disabled and aria-busy, ignores a second click while the provider's sign-in is in flight, and announces busy through a polite live region."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "disabled — not projected: the design file's states are rest, hover, pressed and focus-visible (Q-S6 A), and disabled is code-only (Q-CC23 A). In code it is the native attribute, and the button leaves the tab order and the accessibility tree."
+        },
         {
           "class": "platform-owned",
           "disposition": "REFUSED",
@@ -998,7 +949,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1011,21 +962,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.icon.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.spinner.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.errorPattern",
@@ -1107,7 +1043,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1120,21 +1056,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.icon.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.spinner.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.errorPattern",
@@ -1216,7 +1137,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1229,21 +1150,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.icon.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.spinner.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.errorPattern",
@@ -1301,7 +1207,12 @@
         {
           "class": "composition",
           "disposition": "REFUSED",
-          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets isInactive on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus."
         },
         {
           "class": "right-to-left",
@@ -1319,7 +1230,7 @@
           "TWO NESTS EXPOSING `state` ON ONE HOST are built and exposed on the shim (`test-roundtrip.ts`), but untested on a real host, where Figma lists each exposed instance's properties under its layer name."
         ],
         "unverified": [
-          "motion timing — no motion token is bound, so nothing gates the 100–150ms target.",
+          "motion timing — the change names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "The focus ring clears 3:1 against the page (gated, focus-ring.ts); against a host's fill it is not measured.",
           "The round edge, `color.border.secondary`, is about 2:1 against the page by design (decorative, no floor). The glyph ink clears 3:1 against the page per family (gated, `test.ts` #2457); on the round shape's hover and pressed wash it keeps its contrast through the overlay contract (`interactive.<family>.overlay.*` against the family's text ink), which is gated for text ink, not the icon ink. Under `outlineInteraction: opaque-fill` (#3071) the round hover and pressed fill is the opaque `interactive.<family>.hover-fill.*` instead, and the icon ink is measured on it as its second pair."
         ],
@@ -1391,7 +1302,12 @@
         {
           "class": "composition",
           "disposition": "REFUSED",
-          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets isInactive on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus."
         },
         {
           "class": "right-to-left",
@@ -1409,7 +1325,7 @@
           "TWO NESTS EXPOSING `state` ON ONE HOST are built and exposed on the shim (`test-roundtrip.ts`), but untested on a real host, where Figma lists each exposed instance's properties under its layer name."
         ],
         "unverified": [
-          "motion timing — no motion token is bound, so nothing gates the 100–150ms target.",
+          "motion timing — the change names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "The focus ring clears 3:1 against the page (gated, focus-ring.ts); against a host's fill it is not measured.",
           "The round edge, `color.border.secondary`, is about 2:1 against the page by design (decorative, no floor). The glyph ink clears 3:1 against the page per family (gated, `test.ts` #2457); on the round shape's hover and pressed wash it keeps its contrast through the overlay contract (`interactive.<family>.overlay.*` against the family's text ink), which is gated for text ink, not the icon ink. Under `outlineInteraction: opaque-fill` (#3071) the round hover and pressed fill is the opaque `interactive.<family>.hover-fill.*` instead, and the icon ink is measured on it as its second pair."
         ],
@@ -1481,7 +1397,12 @@
         {
           "class": "composition",
           "disposition": "REFUSED",
-          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets isInactive on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus."
         },
         {
           "class": "right-to-left",
@@ -1499,7 +1420,7 @@
           "TWO NESTS EXPOSING `state` ON ONE HOST are built and exposed on the shim (`test-roundtrip.ts`), but untested on a real host, where Figma lists each exposed instance's properties under its layer name."
         ],
         "unverified": [
-          "motion timing — no motion token is bound, so nothing gates the 100–150ms target.",
+          "motion timing — the change names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "The focus ring clears 3:1 against the page (gated, focus-ring.ts); against a host's fill it is not measured.",
           "The round edge, `color.border.secondary`, is about 2:1 against the page by design (decorative, no floor). The glyph ink clears 3:1 against the page per family (gated, `test.ts` #2457); on the round shape's hover and pressed wash it keeps its contrast through the overlay contract (`interactive.<family>.overlay.*` against the family's text ink), which is gated for text ink, not the icon ink. Under `outlineInteraction: opaque-fill` (#3071) the round hover and pressed fill is the opaque `interactive.<family>.hover-fill.*` instead, and the icon ink is measured on it as its second pair."
         ],
@@ -1592,16 +1513,6 @@
         ]
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "names a tool"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.indicator.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "accessibility",
           "field": "accessibility.keyboard",
@@ -1701,26 +1612,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.errorGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.warningGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.successGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "styles",
           "field": "states",
           "reason": "empty"
@@ -1753,11 +1644,6 @@
         {
           "section": "related",
           "field": "composition.composesWith",
-          "reason": "empty"
-        },
-        {
-          "section": "related",
-          "field": "composition.alternativeTo",
           "reason": "empty"
         },
         {
@@ -1861,21 +1747,6 @@
         ]
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.caret.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.value.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.dialogPattern",
@@ -1993,26 +1864,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.caret.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.gripGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.counter.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.dialogPattern",
           "reason": "empty"
@@ -2049,7 +1900,7 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "motion — the check-glyph draw animation (brief §8: a stroke-dasharray draw at roughly 100-150ms, morphing dash to check, bypassed under prefers-reduced-motion). The def states it in `motion`; a Figma variant carries no motion, so the two glyph parts are static outlines at every coordinate."
+          "description": "motion — the check-glyph draw animation (brief §8: a stroke-dasharray draw, morphing dash to check, on motion.duration.fast, bypassed under prefers-reduced-motion). The def states it in `motion`; a Figma variant carries no motion, so the two glyph parts are static outlines at every coordinate."
         },
         {
           "class": "right-to-left",
@@ -2080,26 +1931,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.control.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.checkGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.dashGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.emptyPattern",
@@ -2181,7 +2012,7 @@
           "The unchecked box has no `pressed` binding. `color.field.border.*` emits `rest` and `hover` only, so a pressed unchecked box falls through to its rest border. Reaching into `color.interactive.neutral.border.pressed` for that one coordinate would put two families on one ladder, which is the inconsistency `lint-paint.ts` arm 1 exists to see in its axis-led form. The checked and indeterminate coordinates DO paint pressed, so the gap is asymmetric — worth knowing before anyone reads the pressed row as covered.",
           "`read-only` is declared and binds nothing (see `states`). The brief calls it \"the awkward one\" and recommends static text over a styled locked control, so there is no treatment to bind; a consumer choosing `aria-readonly` plus a prevented toggle has no token telling them what it should look like.",
           "The whole-row hit target — at least 24x24 (SC 2.5.8), 44 (Apple) / 48 (Material) on touch. Since #2894 the row's floor, `size.*.min-height`, is bound in Figma as well as code, and every row clears 24 by measurement (`test.ts` #2894: 29px at its smallest, small at compact). History: before #1433b gave the row 12px of block padding, an aurora `small` row at compact hugged to 21px, short of 24. `lint-hit-target` holds only the default (medium) row's `min-height` to 44px on comfortable and spacious density, which is why `accessibility.wcag` states 2.5.8 as intent (#1698). The heights are measured from emitted tokens and plans, not yet read back from a real host.",
-          "The check-glyph micro-motion (brief §8: an SVG stroke-dasharray draw at roughly 100-150ms, morphing dash to check) is stated in `checkbox-control`'s `motion`, and nothing checks it: `motion` is prose, and no token binding in either def points at the emitted `motion.duration-ms.*`."
+          "The check-glyph micro-motion (brief §8: an SVG stroke-dasharray draw, morphing dash to check) is stated in `checkbox-control`'s `motion` on motion.duration.fast, and nothing checks it: `motion` is prose, and no token binding in either def points at the emitted `motion.duration-ms.*`."
         ],
         "evolution": [
           "THE PAINT GRAMMAR IS AXIS-LED and the exemption is declared per-AXIS in `lint-paint.ts` (`NON_FAMILY_AXES`) rather than per-key. RESOLVED, not open — kept here because the rejected alternative is the instructive part. This def first shipped SLOT-led (`fill.checked`), which skips arm 1 by construction, since that rule only examines a key whose literal lead is an axis value: the same net coverage, none of the visibility, and exactly the shape the house rule forbids — a false positive is fixed by adding to the exemption list, never by narrowing a scan. The other alternative, axis-led with a `PROVENANCE_EXCEPTIONS` entry per binding, was costed at roughly four times `field-message`'s whole list for this one def; the axis-level entry replaces all twenty with one declaration that `radio-control` and `switch-control` inherit. What stays genuinely open is only the underlying fact, and it is a TOKEN-TIER claim anyone can check: the tier emits no `color.checked.*` family and should not grow one. If that stops being true, arm 1 should cover this axis and the exemption fails as no-longer-exercised, which is the direction it is checked in.",
@@ -2194,16 +2025,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.control.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.emptyPattern",
@@ -2354,7 +2175,7 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "motion — the select micro-motion (a spring/scale-up of the dot at roughly 100-150ms, and — uniquely — a SIBLING's dot animating OUT, the only exit animation a radio has, since it can never be deselected on its own). The def states it in `motion`; a Figma variant carries no motion, so the dot is static at every coordinate."
+          "description": "motion — the select micro-motion (a scale-up of the dot on motion.duration.fast, and — uniquely — a SIBLING's dot animating OUT, the only exit animation a radio has, since it can never be deselected on its own). The def states it in `motion`; a Figma variant carries no motion, so the dot is static at every coordinate."
         },
         {
           "class": "hit-target",
@@ -2389,21 +2210,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.control.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.dot.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.emptyPattern",
@@ -2490,21 +2296,11 @@
         "evolution": [
           "THE COMPANIONS ARE BUILT. This def used to record Radio.Control and RadioGroup as the two companions, with the group deferred (#901). `radio-control` (#1348) is the atom this Row nests, and `radio-group` (#1469) is the mandatory group that owns the shared `name`, the single scalar value, the roving-tabindex single tab stop, `orientation` and all validation.",
           "THE SELECT MICRO-MOTION HAS A HOME. It was recorded here as having no expression in the def schema. The schema has a `motion` field; the dot's transition is stated on `radio-control`, where the dot is, and this Row's `motion` names the rest.",
-          "Field POV (brief §13): the group became the mandatory first-class component and the bare radio an incomplete unit; composition (a group wrapping option children) replaced the options array; styled native inputs sharing a `name` replaced hand-rolled `role=radio` groups, with `role=\"radiogroup\"` + `aria-labelledby` over `fieldset`; the segmented control split out as a compact presentation of the same semantics; and selection-follows-focus was affirmed as the default, with the cheap-`onChange` caveat."
+          "Field POV (brief §13): the group became the mandatory first-class component and the bare radio an incomplete unit; composition (a group wrapping option children) replaced the options array; styled native inputs sharing a `name` replaced hand-rolled `role=radio` groups, with `role=\"radiogroup\"` + `aria-labelledby` over `fieldset`; SegmentedControl split out as a compact presentation of the same semantics; and selection-follows-focus was affirmed as the default, with the cheap-`onChange` caveat."
         ],
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.control.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.dialogPattern",
@@ -2518,6 +2314,11 @@
         {
           "section": "related",
           "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
           "reason": "empty"
         },
         {
@@ -2605,11 +2406,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.row1.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "styles",
           "field": "states",
           "reason": "empty"
@@ -2695,31 +2491,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.track.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.thumb.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.onGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.offGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.emptyPattern",
           "reason": "empty"
@@ -2802,7 +2573,7 @@
           "THE DECOMPOSITION IS UNVERIFIED ON A REAL HOST, the same way `checkbox-control`'s was: the nested control instance must pin its own HEIGHT (the track height) rather than stretch to the `control-box` line box, and whether the instance's inherited sizing mode cooperates with the row's auto-layout is a real-host question the offline shim cannot answer. The symptom to look for: a control instance stretched to the line-box height instead of centered within it. The control is non-square, so the Row pins HEIGHT only and the width is the control's own 2:1 — a narrower pin than checkbox's square.",
           "THE THUMB GLYPH IS UNVERIFIED ON A REAL HOST for legibility at its smallest size. Since #1425 the thumb is 0.75 × the track (`control.size.*.thumb`), 18px at `small` and 24px at `medium` in every corpus brand, so the glyph is ~12.7px and ~17px after its optical inset; the smallest case is compact density `small`, a 12px thumb and a ~8.5px glyph. The measurement is in `switch-control.ts`.",
           "THE LABEL SIDE HAS ONE EXPRESSION AND `labelPosition` STILL HAS NONE. The anatomy states the DEFAULT (`row.children` is `[label, trackBox]`, label-leading); the flipped order the prop selects is not expressible, because a prop is not a coordinate. RTL is the sharper half and inverts twice over (the row mirrors AND the thumb travel flips).",
-          "THE TRAVEL'S TWO ENDPOINTS ARE EXPRESSED AND THE MOTION BETWEEN THEM IS NOT — on `switch-control` now. The ~150–200ms ease-in-out slide with the synchronized track-color crossfade (dropping to 0ms under prefers-reduced-motion) is the animation the component is most recognized by and has no expression in the schema.",
+          "THE TRAVEL'S TWO ENDPOINTS ARE EXPRESSED AND THE MOTION BETWEEN THEM IS NOT — on `switch-control` now. The slide on motion.transition.default with the synchronized track-color crossfade (at once under prefers-reduced-motion) is the animation the component is most recognized by and has no expression in the schema.",
           "THE role=\"switch\" ANNOUNCEMENT INSIDE A SHADOW ROOT on older Safari with VoiceOver, where no explicit aria-label or aria-labelledby is set (KB switch brief §15, from Material 3's notes). The `aria` block already tells a web-component host to set the name explicitly; whether older Safari announces the role and state correctly across the shadow boundary is not checked by anything here.",
           "THE WHOLE-ROW HIT TARGET HAS A NUMBER SINCE #2894: the row's floor, `size.*.min-height` (the control-height ladder), is bound in Figma as well as code, so a single-line row measures 36/44 at comfortable and 29/36 at compact, and every row clears SC 2.5.8's 24×24 (`test.ts` #2894). Still unverified on a real host, and sharper here than on the siblings because the row is label-leading (the control sits at the trailing edge, furthest from the label). The track spilling past its line-box cell is #1439, which the taller row hides but does not fix."
         ],
@@ -2818,16 +2589,6 @@
         ]
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "names a tool"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.control.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.emptyPattern",
@@ -2885,6 +2646,11 @@
         {
           "class": "not-projected",
           "disposition": "LOWERED",
+          "description": "style — not projected: the field's edge is the brand's Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. In code the brand sets it once, every field takes it, and the field sets are built in that style (#2695)."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED",
           "description": "pending — not projected: its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, text-field's posture. In code async options are loading: a spinner replaces the chevron and the control sets aria-busy. It stays in `states` and is held out of the projected `stateAxis`, leaving size(3) × status(4) × state(7) = 84 members."
         },
         {
@@ -2921,26 +2687,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.value.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.chevronGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.emptyPattern",
@@ -3234,7 +2980,7 @@
         {
           "class": "announcement",
           "disposition": "REFUSED",
-          "description": "announcement — a wrapper with `role=\"status\"` and `aria-live=\"polite\"` around an `aria-hidden` `<svg>`, with the `label` (\"Loading\" by default) in a visually hidden span (brief §11). A host that already announces its busy state through its own live region — a Button or IconButton `isPending`, or a region carrying `aria-busy` with a live status (Primer's stance) — puts `aria-hidden=\"true\"` on the spinner, so the state is announced once. Never `aria-valuenow` and never `role=\"progressbar\"`: a spinner has no value."
+          "description": "announcement — the region comes first: a polite `role=\"status\"` region, the host's or the app's, is on the page and empty before the spinner shows, and the `label` (\"Loading\" by default) is written into it, visually hidden, when the spinner shows, because some screen readers ignore a region inserted together with its text (owner decision Q-CC25 A, as Progress, Toast and Banner require). The `<svg>` is `aria-hidden`. The label is the region's content, not its accessible name (brief §11). A host that already announces its busy state through its own live region — a Button or IconButton `isPending`, or a region carrying `aria-busy` with a live status (Primer's stance) — puts `aria-hidden=\"true\"` on the spinner, so the state is announced once. Never `aria-valuenow` and never `role=\"progressbar\"`: a spinner is not a progressbar (Q-CC24 A)."
         }
       ],
       "notes": {
@@ -3243,7 +2989,7 @@
           "STANDALONE COMPONENTS, not one variant set (`emitAsComponents`). The button swaps a spinner into its icon slot by component name, and a set member's name is not unique in a file.",
           "THE TURN IS NOT TEMPO-SCALED. `motion.duration.spin` holds 800ms at every tempo, where the transition ramp scales with the brand's tempo lever.",
           "A SEPARATE PRIMITIVE, not a `CircularProgress` variant (brief §1, §10). The practice default, and this def: a separate `Spinner` keeps the no-value contract off a component that carries `value` / `min` / `max`, so a button loader is never read as a `progressbar` that needs a value. The alternative is the fold MUI (`CircularProgress variant=\"indeterminate\"`) and Spectrum (`ProgressCircle isIndeterminate`) ship. Material 3 split its \"Loading indicator\" out of indeterminate progress in May 2025 (unverified, see below).",
-          "THE ANNOUNCEMENT MODEL (brief §6) — three methods in the field: `role=\"status\"` with a hidden \"Loading\" (the APG-recommended pattern, and this def's default); an indeterminate `role=\"progressbar\"` with no `aria-valuenow` (permitted, but some screen readers keep announcing the missing value, so ruled out here); and `aria-busy` on the region with an `aria-hidden` drawing (Primer; the practice default for the overlay or region case, and what a host does when it hides the spinner).",
+          "THE ANNOUNCEMENT MODEL (brief §6) — three methods in the field: `role=\"status\"` with a hidden \"Loading\" (the APG-recommended pattern, and this def's default); an indeterminate `role=\"progressbar\"` with no `aria-valuenow` (permitted, and Progress uses it for its visible indeterminate bar; a spinner is not a progressbar, so ruled out here, Q-CC24 A); and `aria-busy` on the region with an `aria-hidden` drawing (Primer; the practice default for the overlay or region case, and what a host does when it hides the spinner).",
           "INLINE vs OVERLAY, and the API divide (brief §3, §4). This def is the inline primitive only: no mask, no `spinning` toggle, no `fullscreen`. The alternatives are Ant's `Spin`, which wraps content in a dimming mask and blocks it, and, on API shape, Base Web's exhaustive `overrides` (drilling into `Svg` / `TrackPath`) against Spectrum's locked-down API (only `staticColor`). This def sits at the locked-down end: `size` and `label`.",
           "REDUCED MOTION SLOWS THE TURN rather than substituting a pulse (owner, 2026-09-26). Brief §6 and §8 name a slow opacity pulse, or a static indicator with a low-frequency text ellipsis, as the substitute. Both agree on the rule that matters: never a frozen ring, which reads as a crash (Primer: make it subtle, do not remove it).",
           "THE ANTI-FLASH DELAY IS THE HOST'S, not a `delay` prop. Brief §3 lists `delay` (~200–500ms), a first-class prop in Ant and Fluent. The host already decides when to mount the spinner and owns the busy announcement, so the timer sits with that decision; a `delay` prop would put a second timer beside the host's. The alternative is the brief's prop, defaulting to 0.",
@@ -3257,7 +3003,6 @@
         ],
         "unverified": [
           "The external 2026 version numbers and the Material 3 \"Loading indicator\" split (May 2025 Expressive Update) — brief §14 holds them loosely and flags them unverified, and so does this def. They back the separate-primitive call and the 200ms / 5s bands, both of which stand on their own reasoning.",
-          "The `role=\"status\"`-versus-`role=\"progressbar\"` announcement specifics — which screen readers keep announcing an indeterminate progressbar's missing value. The brief asks for verification against current screen readers; not verified here.",
           "1.4.11 for the arc: it takes its host's icon ink and is stated to clear 3:1, but that is not measured per host. Standalone it binds `color.icon.primary`, which the engine gates against `background.primary`; inside a host it takes whatever ink the host pushes (on-fill, disabled ink, their inverse twins), and no gate composes the spinner onto each host's ground and measures the arc there."
         ],
         "evolution": [
@@ -3274,11 +3019,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.frame.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "styles",
           "field": "states",
@@ -3385,7 +3125,8 @@
           "A leading icon on the status label, as the brief allows, painted from the tone's icon role.",
           "A `size` axis, `small | medium`, for the status label (owner direction on #2983, 2026-10-24): small is 11px text at 2px × 8px padding, about 19px tall. The count and dot stay medium. A large size, or a small count, once a host needs one.",
           "A third emphasis, `surface` (owner decision on #2983, 2026-10-24): the page surface with the tone's text and no edge, for a label on a photo or any busy ground. It replaces a separate `surface: default | media` axis drafted first, which the owner turned down: the style is an emphasis level, and its name must not say \"media\".",
-          "An inline style, `style: contained | inline` (owner decisions on #3199, 2026-10-31, Q-ST1 A and Q1–Q8 A): a status dot and plain body text on a text line, with no fill, padding, radius or edge, as tall as the line. The label is `text.primary`; the dot is `icon.<tone>` (neutral `icon.secondary`) at `space.100`, centered in a cell one line box tall. Spectrum ships the same look as a separate Status light; Carbon treats it as a status-indicator pattern apart from Tag; Polaris, GOV.UK and Atlassian have no inline form. The owner kept it inside Badge so a status choice is never a fork between two components. The 40 contained members gained `style=contained` in place."
+          "An inline style, `style: contained | inline` (owner decisions on #3199, 2026-10-31, Q-ST1 A and Q1–Q8 A): a status dot and plain body text on a text line, with no fill, padding, radius or edge, as tall as the line. The label is `text.primary`; the dot is `icon.<tone>` (neutral `icon.secondary`) at `space.100`, centered in a cell one line box tall. Spectrum ships the same look as a separate Status light; Carbon treats it as a status-indicator pattern apart from Tag; Polaris, GOV.UK and Atlassian have no inline form. The owner kept it inside Badge so a status choice is never a fork between two components. The 40 contained members gained `style=contained` in place.",
+          "The inline label's text size (owner decision Q93 B on #3475, 2026-11-07): the inline style takes the contained label's rung at each size, at the regular weight, `type.label.sm` (12px) at medium and `type.caption.md` (11px) at small, in place of #3199's body roles (16px and 14px). The inline style is a standalone status label like the others, only quieter, not text set in running copy. Its dot cell follows the new line box."
         ],
         "projection": []
       },
@@ -3567,11 +3308,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "names a tool"
-        },
-        {
           "section": "content",
           "field": "content.errorPattern",
           "reason": "empty"
@@ -3633,7 +3369,7 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "The underline slide — in code the selected underline is one element owned by the tab list that moves and resizes to the selected tab (about 150–200ms). Figma draws it per tab. Under prefers-reduced-motion it snaps."
+          "description": "The underline slide — in code the selected underline is one element owned by the tab list that moves and resizes to the selected tab, on `motion.transition.default`. Figma draws it per tab. Under prefers-reduced-motion it snaps."
         },
         {
           "class": "semantics",
@@ -3966,7 +3702,7 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "the turn — a chevron may rotate 180 degrees on open instead of swapping glyphs (motion.transition.enter / exit, the reduced duration under prefers-reduced-motion). Figma swaps the down and up glyphs, since a variant holds no motion."
+          "description": "the turn — a chevron may rotate 180 degrees on open instead of swapping glyphs, on motion.transition.default both ways, and swaps without turning under prefers-reduced-motion (the prism3-motion accordion recipe). Figma swaps the down and up glyphs, since a variant holds no motion."
         },
         {
           "class": "right-to-left",
@@ -3992,21 +3728,6 @@
         {
           "section": "accessibility",
           "field": "accessibility.keyboard",
-          "reason": "empty"
-        },
-        {
-          "section": "accessibility",
-          "field": "motion.enter",
-          "reason": "empty"
-        },
-        {
-          "section": "accessibility",
-          "field": "motion.exit",
-          "reason": "empty"
-        },
-        {
-          "section": "accessibility",
-          "field": "motion.reduceMotion",
           "reason": "empty"
         },
         {
@@ -4210,11 +3931,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.number.note",
-          "reason": "names a tool"
-        },
         {
           "section": "styles",
           "field": "states",
@@ -4502,7 +4218,7 @@
         {
           "class": "implementation",
           "disposition": "REFUSED",
-          "description": "The sliding indicator (optional) — one aria-hidden node behind the options, moved with transform from the selected option's measured box (a ResizeObserver, re-measured when fonts load or the direction changes), about 150–200ms. Under prefers-reduced-motion it moves without animation."
+          "description": "The sliding indicator (optional) — one aria-hidden node behind the options, moved with transform from the selected option's measured box (a ResizeObserver, re-measured when fonts load or the direction changes), on motion.transition.default. Under prefers-reduced-motion it moves without animation."
         },
         {
           "class": "responsive-layout",
@@ -4603,7 +4319,7 @@
         {
           "class": "semantics",
           "disposition": "REFUSED",
-          "description": "The current page — current renders aria-current=\"page\" on the current item in a navigation and on a breadcrumb's last item; a visual style alone is not enough. It stays a real <a> with its href, so hover, focus and the focus ring still work. The 2px bar sits at the foot of the line box, inside it (an inset box-shadow or a positioned pseudo-element, not a border that adds height). The bar's width is the brand's Current page indicator: the title's width, or half of it centered (inset-inline: 25%). Hover changes the color only: no underline joins the bar."
+          "description": "The current page — current renders aria-current=\"page\" on the current item in a navigation; a visual style alone is not enough. It stays a real <a> with its href, so hover, focus and the focus ring still work. The 2px bar sits at the foot of the line box, inside it (an inset box-shadow or a positioned pseudo-element, not a border that adds height). The bar's width is the brand's Current page indicator: the title's width, or half of it centered (inset-inline: 25%). Hover changes the color only: no underline joins the bar."
         },
         {
           "class": "visual-treatment",
@@ -4623,7 +4339,7 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "The color transition — about 150ms on color and the underline at hover and focus; under prefers-reduced-motion it snaps."
+          "description": "The color transition — on motion.duration.fast with motion.easing-role.default, on color and the underline at hover and focus; under prefers-reduced-motion it runs on motion.duration-reduced.fast."
         },
         {
           "class": "right-to-left",
@@ -4850,7 +4566,7 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "motion — opening: a centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge; an end panel slides in from the end edge; the backdrop fades. On `motion.duration.moderate` with `motion.easing-role.enter`, and `motion.easing-role.exit` to close. Under `prefers-reduced-motion`, every placement opens and closes at once, with no movement and no fade: `motion.duration-reduced.moderate` is 0ms. Figma shows the panel at rest."
+          "description": "motion — opening: a centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge; an end panel slides in from the end edge; the backdrop fades. On `motion.duration.moderate` with `motion.easing-role.enter`, and `motion.easing-role.exit` to close. Under `prefers-reduced-motion`, every placement and the backdrop fade only, with no slide and no scale, on `motion.duration-reduced.normal` to open and to close. Figma shows the panel at rest."
         },
         {
           "class": "visual-treatment",
@@ -4896,6 +4612,7 @@
           "Owner QA (2026-10-19): the close button takes the flush shape, not round. The X is the bare glyph with no edge or fill, and its 44×44px hit area is drawn in code.",
           "Owner decision Q363 (2026-10-16, #2661): the footer is a nested Button group whose native slot holds the buttons, replacing two fixed nested Buttons per layout. Cancel reads \"Cancel\" and Save \"Save\"; Cancel is Button.Neutral when the file has it and the primary Button otherwise (Q363.8 as amended, Q386), and since Q418 that is the Dialog's own preference on its nest of the group, which on its own keeps the primary outline Button; the `actions` prop is a slot of one to three Button elements (Q363.10 A).",
           "Owner decision Q483 A (2026-10-20, #2877), amending Q303.1: a side placement, as a value of `placement` and not a new component, for a sign-in or filter panel that slides in from the edge. Q488 A: it is `end`, the writing direction's end edge. Q489 A: one width, 480px, and no size, so 18 members. Q490 A: every corner square. Q491 A: reduced motion stays instant at every placement, and the contract no longer calls it a fade. Q492 A: the existing footers (an equal-width footer is #2880). Q493 A: the aliases side-sheet and drawer. Still a modal dialog with the scrim behind it.",
+          "Owner decision Q-M5 A (2026-11-07, #3413; #3488), amending Q491 A: under reduced motion every placement and the backdrop fade only, on `motion.duration-reduced.normal`, instead of opening and closing at once. A fade is not vestibular motion, and an instant swap of a full-screen layer loses the cue that a new layer opened. The movement is substituted, not deleted (`prism3-motion` R7), as Toast already does.",
           "Owner decision Q721 A (2026-10-27, #3049; Q3049.1 C, Q3049.2 A, Q3049.3 A, Q3049.4): the panel fills with its own role, `color.foreground.raised`, not the card surface. It holds the card surface unless the brand sets `raisedSurface` to `page` or `white`, which acts in light and hc-light only, so every dialog keeps its lift in dark.",
           "Owner decision Q492 B (2026-10-20, on #2877), built on #2880 with every recommendation accepted (2026-10-21): a fourth footer, `fill`, in the order inline, stacked, fill, none, that nests the Button group at `layout=fill` on every placement. The halves stay equal at every width and a long label wraps inside its button; nothing switches to stacked by itself, and the docs say to pick stacked for long labels. One to three buttons, as the `actions` slot allows, two being the case it is for. The defaults are Cancel then Save, with Cancel a Button.Neutral where the file has it."
         ],
@@ -5031,21 +4748,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.caret.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.value.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.dialogPattern",
@@ -5191,6 +4893,11 @@
         {
           "section": "content",
           "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "ai.commonPartners",
           "reason": "empty"
         },
         {
@@ -5349,7 +5056,8 @@
         "unverified": [],
         "evolution": [
           "2026-10-16 (#2666): built from the approved wireframe, every numbered call A. Sizes medium-first by the later owner rule Q359 B, which supersedes the proposal's small-first order.",
-          "2026-10-16 (Q382 A, after QA): the separator is its own part, `_breadcrumb-separator`, chevron or slash, chosen once on Breadcrumbs through a `separator` axis the item carries."
+          "2026-10-16 (Q382 A, after QA): the separator is its own part, `_breadcrumb-separator`, chevron or slash, chosen once on Breadcrumbs through a `separator` axis the item carries.",
+          "2026-11-11 (#3554 Q-CC17 A): the current page's text part is `label`, the main-text name, renamed in place through `COMPONENT_RENAMES`."
         ],
         "projection": []
       },
@@ -5504,6 +5212,11 @@
         {
           "section": "content",
           "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "ai.commonPartners",
           "reason": "empty"
         },
         {
@@ -5709,6 +5422,7 @@
           "2026-10-18 (Q414 A): `type` gains previous and next, the square cell with a chevron in the neutral ink and wash, with a disabled state for an end; `labeled` adds the word for simple.",
           "2026-10-19 (owner QA, Q426 A, Q427 A, Q428 A): the underline is as wide as the number (its childless balance frame stretches to the number instead of keeping a new frame's default width); the gap icon is in the page numbers' ink; the labeled previous and next lose the wash and change ink only; the chevrons and the gap icon are one icon-size rung smaller (xs, sm, md), the cells unchanged.",
           "2026-10-19 (Q427 A), WCAG 1.4.11 and the second cue: in the border style the current page's border is color.border.secondary, one rung lighter than border.tertiary (lowest 2.00 against color.background.primary in light and dark; 9.8 and up in high contrast). 1.4.11 asks 3:1 of the visual information needed to identify a state. Here the border is not needed: the current page's number is in the emphasis weight, and each page keeps the width of that weight, so the weight alone identifies it, with aria-current in code. The border is a second, decorative cue, so it may be subtle. The underline style has no other visual cue in its box, so its underline keeps border.tertiary at 3:1. The exception is this part only: test.ts holds the border to the emphasis weight and the underline to 3:1.",
+          "2026-11-11 (Q-CC12 A, #3554): the underline style's underline is a selection mark, so it binds color.interactive.neutral.indicator.rest, the mark that matches the number's ink, in place of border.tertiary. Its value moves from the mid gray to the label ink, and a brand that quiets its outline edges (#3346) no longer thins it below the 3:1 Q427 A requires. The border style's border stays an edge on border.secondary.",
           "2026-10-17 (Q394 A, Q395 A, Q404 A): the id loses the `_` prefix and the item becomes the items slot's preferred item, preferred-only; border.tertiary at 1px kept; the ellipsis becomes the decorative more-horizontal icon, so its text part, its TEXT property and the `mark` prop go."
         ],
         "projection": []
@@ -5826,7 +5540,7 @@
         {
           "class": "implementation",
           "disposition": "REFUSED",
-          "description": "A headless usePagination — returning the item list (page, ellipsis, previous, next, with selected and disabled) — is the brief's shape for the window. code delivery pending: behavior layer (#2454) decides whether it ships beside the component."
+          "description": "A headless usePagination — returning the item list (page, ellipsis, previous, next, with current and disabled) — is the brief's shape for the window. code delivery pending: behavior layer (#2454) decides whether it ships beside the component."
         }
       ],
       "notes": {
@@ -6098,21 +5812,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.caret.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.value.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.dialogPattern",
           "reason": "empty"
@@ -6234,21 +5933,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.caret.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.value.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.dialogPattern",
           "reason": "empty"
@@ -6290,7 +5974,7 @@
         {
           "class": "semantics",
           "disposition": "REFUSED",
-          "description": "dismissal — the dismiss button renders only when `dismissible` and `onDismiss` are both set. Its accessible name says what it dismisses (\"Dismiss error message\"), not a bare \"Close\". The dismissal is stored against an id and a version, so a dismissed notice does not return on reload. A banner about a condition that still blocks the user is not dismissible, or comes back only while the condition holds."
+          "description": "dismissal — the close button renders only when `dismissible` and `onDismiss` are both set. Its accessible name says what it dismisses (\"Dismiss error message\"), not a bare \"Close\". The dismissal is stored against an id and a version, so a dismissed notice does not return on reload. A banner about a condition that still blocks the user is not dismissible, or comes back only while the condition holds."
         },
         {
           "class": "keyboard-and-focus",
@@ -6300,7 +5984,7 @@
         {
           "class": "hit-target",
           "disposition": "UNSUPPORTED",
-          "description": "the dismiss target — the small flush FlushIconButton is a 20px glyph; its hit area extends to at least 44×44px in code, as FlushIconButton's does. The banner's padding (at least 12px at compact) and its gap to the content leave that room, and the action sits below the first line, so the dismiss's 24px target circle touches no other target (2.5.8)."
+          "description": "the close target — the small flush FlushIconButton is a 20px glyph; its hit area extends to at least 44×44px in code, as FlushIconButton's does. The banner's padding (at least 12px at compact) and its gap to the content leave that room, and the action sits below the first line, so the dismiss's 24px target circle touches no other target (2.5.8)."
         },
         {
           "class": "responsive-layout",
@@ -6310,12 +5994,12 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "motion — appears with an opacity fade; a dismiss collapses the height (about 150 to 200ms) and fades, on `motion.transition.exit`, so the content below does not jump. Under `prefers-reduced-motion` both are instant. A banner inserted at the top of a page later reserves its space. Figma shows the banner at rest."
+          "description": "motion — appears with an opacity fade; a dismiss collapses the height and fades, on `motion.transition.exit`, so the content below does not jump. Under `prefers-reduced-motion` both are instant. A banner inserted at the top of a page later reserves its space. Figma shows the banner at rest."
         },
         {
           "class": "right-to-left",
           "disposition": "UNSUPPORTED",
-          "description": "RTL — logical properties throughout: the glyph and the dismiss button swap edges. No glyph mirrors (the four tone glyphs and the close glyph are symmetric)."
+          "description": "RTL — logical properties throughout: the glyph and the close button swap edges. No glyph mirrors (the four tone glyphs and the close glyph are symmetric)."
         },
         {
           "class": "localization",
@@ -6373,6 +6057,7 @@
           "Whether the nested buttons' Rest, Hover and Pressed prototype reactions fire inside a nested instance (the open nesting item on #2466)."
         ],
         "evolution": [
+          "#3554 Q-CC26 A (owner decision 2026-11-11): the close button's part and Figma property are `close`, as on Toast and Dialog, renamed in place through `COMPONENT_RENAMES`; the code prop stays `dismissible`. Accessible names stay per component: Banner names the message it dismisses (\"Dismiss error message\"), because several banners can share a page, while a Toast is one at a time (\"Dismiss\") and a Dialog closes (\"Close\").",
           "#3225 (owner decisions 2026-11-01: Q-BN2.1–.3 A, Q-BN2.4 B, Q-BN3.1–.4 A, Q-BN4.1–.3 A), from the reference brand's rebuild: a body text property beside the slot, which stays for rich content behind rich body (an Update carries edited bodies across); a neutral tone, last on the axis, background.secondary with border.tertiary and no glyph (8 to 10 members); an inline link after the body's last word, in a wrapping, baseline-aligned row, never with the action.",
           "#2924 (owner Q693 A, Q707 A): a brand-wide Banner style, Tinted (the default) or Outlined, which moves the four fill bindings and nothing else. Bold, a solid tone fill, is held on #3038.",
           "Q386 (#2808): no component requires the Neutral button families, so the dismiss nests FlushIconButton.Neutral with the close glyph fixed and no swap, as Dialog's close does (Q385), and the action nests the primary Button, preferring Button.Neutral only when the file has it.",
@@ -6619,11 +6304,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.milestone.note",
-          "reason": "names a tool"
-        },
-        {
           "section": "content",
           "field": "content.emptyPattern",
           "reason": "empty"
@@ -6693,9 +6373,9 @@
           "description": "fill width — Figma keeps each cell at its size until a designer sets it to fill; code's `width=\"full\"` makes every cell `flex: 1 1 0` with `min-inline-size: 32px`, and the height stays the size's."
         },
         {
-          "class": "brand-setting",
+          "class": "not-projected",
           "disposition": "LOWERED",
-          "description": "style — the cell's edge is the brand's Field style setting, not a prop or a Figma variant: `outline` draws a box around each cell, `underline` one line under each cell. The brand sets it once, every field takes it, and the cell set is built in that style (#2695, #2719)."
+          "description": "style — not projected: the cell's edge is the brand's Field style setting, not a prop or a Figma variant: `outline` draws a box around each cell, `underline` one line under each cell. In code the brand sets it once, every field takes it, and the cell set is built in that style (#2695, #2719)."
         },
         {
           "class": "forced-colors",
@@ -6707,16 +6387,16 @@
         "contested": [
           "The focus edge on a default field (#3399, owner decision Q3399.1 A): while focused, the field's border becomes a 2px edge in the focus color. The inner 1px changes from the field's fill to the focus color, at 3:1 or more in every brand and mode. The outer 1px changes from the rest border to the focus color, and both are mid-luminance roles, so that change can fall below 3:1, as it does in every brand the engine ships. The decided trade-off, the same as on a status field: this meets WCAG AA (2.4.7, 2.4.11, 1.4.11), and under strict AAA 2.4.13 the indicator relies on the inner 1px band. The alternatives were a darker focus color for fields (a token-tier change) and a wider edge, which brings back the ring's look.",
           "The state names: the approved cell states say active and active filled; the closed state vocabulary has no `active`, so the cell spells them focus-visible and focus-visible-filled, Text field's names for the same ring and caret. Renaming them is a schema change held for the owner.",
-          "The character weight: no guaranteed type role is above 18px, so the medium, large and xlarge characters take the title steps in the brand's bold title weight (strong on most brands), and the small one Text field's body step in the default weight. A brand's own title ladder sets the exact size."
+          "The character weight: no guaranteed type role is above 18px, so the medium, large and x-large characters take the title steps in the brand's bold title weight (strong on most brands), and the small one Text field's body step in the default weight. A brand's own title ladder sets the exact size."
         ],
         "unverified": [
-          "An empty cell in error: the approved states draw error with a character only. A field in error with a short code shows its empty cells at rest in Figma; code draws the danger border on every cell.",
           "The character's centering in Figma: the styled character centers its line box, so a brand font whose descender is deeper than the room above its figures sets the figure slightly high. Code trims to the cap height and centers the figure itself."
         ],
         "evolution": [
           "2026-10-15 (#2428): owner decision Q329 A, the cell as a part in the code input's native items slot, its character edited on the cell; Q330 A, the four sizes.",
           "2026-10-17 (#2789): the character is trimmed to its cap height and baseline, so the cell centers the figure (owner QA 2026-10-16: the digit sat too high at medium and large; option A of the owner question on #2789).",
-          "2026-10-22 (#2789): owner QA Q534, the character carries its size's text style in Figma, so it follows the brand's type. Figma keeps vertical trim inside the style, so the Figma character is no longer trimmed; code still trims."
+          "2026-10-22 (#2789): owner QA Q534, the character carries its size's text style in Figma, so it follows the brand's type. Figma keeps vertical trim inside the style, so the Figma character is no longer trimmed; code still trims.",
+          "2026-11-11 (#3554): owner decision Q-CC1 A, error leaves the state axis for the fields' `status` axis (Q354), and `isInvalid` becomes `validation`. A cell in error now draws at every state but disabled, so an empty or active cell in error can be drawn; the old error member moves to status=error, filled."
         ],
         "projection": []
       },
@@ -6813,7 +6493,7 @@
         {
           "class": "static-placeholder",
           "disposition": "LOWERED",
-          "description": "the field's status and state in Figma — a placed field's cells are the designer's (owner decision Q329 A): switching the field to error or disabled changes its label and message, not its cells, and the designer sets each cell. Each member's default cells show that member's state, as a fresh insert's starting point. In code the input drives every cell."
+          "description": "the field's status and state in Figma — a placed field's cells are the designer's (owner decision Q329 A): switching the field to error or disabled changes its label and message, not its cells, and the designer sets each cell. Each member's default cells show that member's state and status, as a fresh insert's starting point. In code the input drives every cell."
         },
         {
           "class": "responsive-layout",
@@ -6843,8 +6523,8 @@
       ],
       "notes": {
         "contested": [
-          "The label size: one FieldLabel size at every cell size, because FieldLabel has no xlarge. Text field's label follows its size one step down.",
-          "The default cells per member: each member's six cells show its state (filled, active, disabled). Status has no mechanism to reach a nested coordinate, so an error member's default cells are not in error."
+          "The label size: one FieldLabel size at every cell size, because FieldLabel has no x-large. Text field's label follows its size one step down.",
+          "The default cells per member: each member's six cells show its state (filled, active, disabled) and, since the cell took the status axis (Q-CC1 A, #3554), its status, so an error member's default cells are in error. A placed field's cells are still the designer's (Q329)."
         ],
         "unverified": [
           "The nested cells' characters are set by an override inside a native slot, as List's item numbers are. Writing them through the plugin is unmeasured on a real host until the first Build."
@@ -6855,11 +6535,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.dialogPattern",

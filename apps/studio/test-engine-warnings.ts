@@ -13,8 +13,8 @@
  * Mutations that fail here by name: the gamut lead matched on another word → `gamut: the out-of-gamut primary …`; the
  * brand's own danger hue read as a substitution → `danger: a brand that sets danger …`.
  */
-import { brandTheme, type BrandInput } from '@prism3/engine/theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { brandTheme, type BrandInput } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { dangerSubstitution, gamutWarning } from './src/state/engine-warnings';
 
 let failed = 0;

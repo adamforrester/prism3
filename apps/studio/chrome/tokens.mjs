@@ -83,7 +83,9 @@ export const P = (p) => `${NS}.${p}`;
 // ── the tile's variable map: one role mapping, resolved per mode ───────────────────────────────
 // [variable, token path (below `pds3.`), kind]. The same path serves both themes; only the mode's
 // merged tree differs. Nothing here is a per-theme hand pick. v5 uses this map and adds to it.
-export const C = 'color', D = 'dim', N = 'num', T = 'time', E = 'ease';
+// `M` is a multiplier of the font size, written in `em`: letter spacing is a DTCG `number` since #2434 (`-0.03`),
+// and a bare number is not a valid `letter-spacing`, so the chrome applies it the way a CSS consumer does.
+export const C = 'color', D = 'dim', N = 'num', T = 'time', E = 'ease', M = 'em';
 export const TILE_VARS = [
   // surfaces: the page (top bar, levers, preview, drawer) and the inset tint (segment tracks, tips,
   // the per-mode body, the drawer's cards, badges). `fill-2` is the progress and spinner track.
@@ -153,11 +155,11 @@ export const TILE_VARS = [
   ['fw-strong', 'core.font.weight-role.strong', N],
   ['lh-compact', 'core.font.line-height-role.compact', N],
   ['lh-cozy', 'core.font.line-height-role.cozy', N], ['lh-normal', 'core.font.line-height-role.normal', N],
-  ['ls-snug', 'core.font.letter-spacing-role.snug', D],
+  ['ls-snug', 'core.font.letter-spacing-role.snug', M],
   // #2322 (owner, 2026-10-08): the headings' tracking and the view titles' weight. The view titles take Bold at
   // `tightest` (−4%), section headings `tighter` (−3%), group headings `snugger` (−1.5%), card titles `open` (+1%).
-  ['ls-tightest', 'core.font.letter-spacing-role.tightest', D], ['ls-tighter', 'core.font.letter-spacing-role.tighter', D],
-  ['ls-snugger', 'core.font.letter-spacing-role.snugger', D], ['ls-open', 'core.font.letter-spacing-role.open', D],
+  ['ls-tightest', 'core.font.letter-spacing-role.tightest', M], ['ls-tighter', 'core.font.letter-spacing-role.tighter', M],
+  ['ls-snugger', 'core.font.letter-spacing-role.snugger', M], ['ls-open', 'core.font.letter-spacing-role.open', M],
   ['fw-bold', 'core.font.weight.700', N],
   // motion
   ['dur-fast', 'motion.duration.fast', T], ['dur-spin', 'motion.duration.spin', T],
@@ -172,6 +174,8 @@ export const cssOf = (tree, [name, path, kind]) => {
   switch (kind) {
     case C: case D: case N: case T: return { css: String(value), chain };
     case E: return { css: `cubic-bezier(${value.join(', ')})`, chain };
+    case M: if (typeof value !== 'number') throw new Error(`${name}: ${path} is not a number multiplier: ${JSON.stringify(value)}`);
+      return { css: `${value}em`, chain };
     default: throw new Error(`unknown kind ${kind} for ${name}`);
   }
 };

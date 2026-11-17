@@ -32,9 +32,7 @@
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
-import { componentDefs } from '@prism3/engine/components/index';
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import type { ComponentDef } from '@prism3/engine/component-schema';
+import { componentDefs, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, type ComponentDef } from '@prism3/engine/components';
 import { SWAP_TARGET } from './src/build-deps';
 import { materializeForBrand } from './src/brand-def';
 import { applyComponentPlan } from './src/write-components';
@@ -94,7 +92,9 @@ const shim = makeShim({
   liveVars,
   styles: [...new Set(all.flatMap((p) => planTextStyles(p.root)))],
   effects: [...new Set(all.flatMap((p) => planEffectStyles(p.root)))],
-  comps: [...new Set([SWAP_TARGET, 'focus-ring', ...all.flatMap((p) => planComps(p.root))])],
+  // No `comps` (#1796): every component the two sets nest or swap to is a live one on the Dependencies page below, which
+  // the search returns. Naming them here too put each in the file twice, and two plain components of one name are now
+  // refused rather than picked between.
   page, pages: () => pages, liveRoot: true, liveComponents: true, identities: true, scaleConstrained: true,
 }) as Record<string, any>;
 const root = shim.root as Record<string, unknown>;

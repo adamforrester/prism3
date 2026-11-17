@@ -18,15 +18,11 @@
  *      a build that defines PRISM3_TEST_HOOKS true (the local `dist/`, never the deployed site, #2098).
  * The font probe's canvas used to be made at import too; it is now made on first use, in `main.ts`.
  */
-import { brandTheme } from '@prism3/engine/theme';
-import type { BrandInput } from '@prism3/engine/theme';
-import { resolvePreview } from '@prism3/engine/resolve-preview';
-import { toDesignMd } from '@prism3/engine/design-md';
+import { brandTheme, type BrandInput, resolvePreview, toDesignMd } from '@prism3/engine';
 import type { Origin } from './provenance';
-import { clearInput, persistActivityHeightPx, persistInput, restoreActivityHeightPx, restoreInput, type LocalStore } from './persist-local';
+import { clearInput, persistInput, restoreInput, type LocalStore } from './persist-local';
 import { glyph, h, hook } from './shell/dom';
 import { initTheme } from './shell/theme';
-import { initActivityHeight } from './shell/activity';
 import { BRANDS, BOOT_BRAND, brandState, initSession, rebuild, setPersist, setPath, subscribe } from './state/store';
 import { commit, handleHostMessage, mountApp, installStyles, mountResizeGrip, build } from './main';
 // The chrome stylesheet, as TEXT rather than as a separate emitted asset (#769) — see step 4 below for
@@ -114,10 +110,6 @@ if (PRISM3_HOST !== 'figma') {
   let store: LocalStore | null = null;
   try { store = localStorage; } catch { /* blocked: follow the device */ }
   initTheme(store);
-  // #2176: the Activity drawer's height, kept per viewer beside the theme. The plugin keeps its own through the main
-  // thread (`apps/plugin/src/ui/entry.ts`).
-  const kept = store;
-  initActivityHeight(kept ? restoreActivityHeightPx(kept) : null, (px) => { if (kept) persistActivityHeightPx(kept, px); });
 }
 
 // ---- 5. the resize grip ------------------------------------------------------------------------------

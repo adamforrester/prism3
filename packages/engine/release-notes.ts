@@ -66,6 +66,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { localeFreeCompare } from './locale-free-order';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const REPO = resolve(here, '../..');
@@ -327,8 +328,8 @@ const AREA_ORDER: ReleaseArea[] = ['figma', 'code', 'tokens'];
 const byOrder = (a: ReleaseItem, b: ReleaseItem): number =>
   CLASS_ORDER.indexOf(a.class) - CLASS_ORDER.indexOf(b.class)
   || AREA_ORDER.indexOf(a.area) - AREA_ORDER.indexOf(b.area)
-  || (a.component ?? a.token ?? '').localeCompare(b.component ?? b.token ?? '')
-  || a.text.localeCompare(b.text);
+  || localeFreeCompare(a.component ?? a.token ?? '', b.component ?? b.token ?? '')
+  || localeFreeCompare(a.text, b.text);
 
 export const diffSnapshots = (b: Snapshot, h: Snapshot): ReleaseItem[] =>
   [...figmaItems(b, h), ...codeItems(b, h), ...tokenItems(b, h)].sort(byOrder);
@@ -339,7 +340,7 @@ export const buildRelease = async (o: { version: string; from: string; base: str
   const items = diffSnapshots(await snapshotAt(o.base), await snapshotAt(o.head));
   const counts = { breaking: 0, new: 0, fix: 0 };
   for (const i of items) counts[i.class]++;
-  return { note: RELEASE_NOTE, version: o.version, from: o.from, date: o.date, base: o.base, counts, items, notes: [...o.notes].sort((a, b) => a.slug.localeCompare(b.slug)) };
+  return { note: RELEASE_NOTE, version: o.version, from: o.from, date: o.date, base: o.base, counts, items, notes: [...o.notes].sort((a, b) => localeFreeCompare(a.slug, b.slug)) };
 };
 
 const CLASS_HEADING: Record<ReleaseClass, string> = { breaking: 'Breaking changes', new: 'New', fix: 'Fixes' };

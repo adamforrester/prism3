@@ -44,12 +44,9 @@
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { brandTheme, type BrandInput } from '@prism3/engine/theme';
-import { resolveAllModes } from '@prism3/engine/modes';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import { serializeBrandInput } from '@prism3/engine/persist-input';
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
+import { brandTheme, type BrandInput, ENGINE_VERSION, resolveAllModes, serializeBrandInput } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
+import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, componentDefs } from '@prism3/engine/components';
 import { applyComponentPlan } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { makeShim, type Node } from './component-shim';
@@ -598,15 +595,15 @@ section('update — through a real Update in the component shim');
   ok(!!fr && thumb === fr && part(fr, 'version')?.characters === 'v0.236.0', 'update/premise: a cover drawn by 0.236.0, the thumbnail');
   const pre = await previewUpdate(host, targets);
   const v = previewVerdict(pre);
-  ok(pre.cover?.state === 'stale' && v.lines.some((l) => l.startsWith('Cover: to set the version to 0.237.0 (shows 0.236.0).')), `update/dry run lists the cover (${v.lines.join(' | ')})`);
+  ok(pre.cover?.state === 'stale' && v.lines.some((l) => l.startsWith(`Cover: to set the version to ${ENGINE_VERSION} (shows 0.236.0).`)), `update/dry run lists the cover (${v.lines.join(' | ')})`);
   ok(part(fr, 'version')?.characters === 'v0.236.0', 'update/the check wrote nothing');
   const res = await applyUpdate(host, api as never, targets, previewHashOf(pre), { today: '2026-10-21' });
   const now = tagged(cover as unknown as N);
-  ok(now.length === 1 && now[0] === fr && part(fr, 'version')?.characters === 'v0.237.0', `update/version refreshed on an unedited cover, read off the shim (${part(fr, 'version')?.characters})`);
+  ok(now.length === 1 && now[0] === fr && part(fr, 'version')?.characters === `v${ENGINE_VERSION}`, `update/version refreshed on an unedited cover, read off the shim (${part(fr, 'version')?.characters})`);
   const about = cover.children.find((n) => (n.getSharedPluginData as (a: string, b: string) => string)?.('prism3', ABOUT_KEY));
   ok(!!about && about.x === (fr.x as number) + 1920 + 40 && about.y === fr.y, `update/the About frame beside the cover, the thumbnail (${about?.x}, ${about?.y})`);
   const verdict = applyVerdict(res);
-  ok(verdict.lines.includes('Cover: version set to 0.237.0.') && verdict.lines.indexOf('Cover: version set to 0.237.0.') < verdict.lines.indexOf('About this library: drawn on the Cover page.'), `update/result line, the cover before the About frame (${verdict.lines.join(' | ')})`);
+  ok(verdict.lines.includes(`Cover: version set to ${ENGINE_VERSION}.`) && verdict.lines.indexOf(`Cover: version set to ${ENGINE_VERSION}.`) < verdict.lines.indexOf('About this library: drawn on the Cover page.'), `update/result line, the cover before the About frame (${verdict.lines.join(' | ')})`);
   ok(verdict.lines.includes('No version saved first — only the cover and About this library changed, no set.') && !res.version, `update/cover-page furniture only: no version saved (${verdict.lines.join(' | ')})`);
   // The brand renamed: the cover is the only work, and the hash covers it.
   blob.set('prism3/brandInput', serializeBrandInput({ ...(exampleBrands as Record<string, BrandInput>).harbor, name: 'Harbor Fleet' }));
@@ -663,9 +660,9 @@ section('update — through a real Update in the component shim');
   first.setSharedPluginData('prism3', 'cover', JSON.stringify({ engine: '0.236.0', name: 'Harbor', print: coverPrint(first) }));
   thumb = first;
   const pre7 = await previewUpdate(host, targets);
-  ok(eq(pre7.cover, { state: 'stale', redraw: true }) && previewVerdict(pre7).lines.includes('Cover: to redraw in the new design, at 0.237.0.'), `update/redraw: the dry run lists a first-design cover (${JSON.stringify(pre7.cover)})`);
+  ok(eq(pre7.cover, { state: 'stale', redraw: true }) && previewVerdict(pre7).lines.includes(`Cover: to redraw in the new design, at ${ENGINE_VERSION}.`), `update/redraw: the dry run lists a first-design cover (${JSON.stringify(pre7.cover)})`);
   const res7 = await applyUpdate(host, api as never, targets, previewHashOf(pre7), { today: '2026-10-26' });
-  ok(tagged(cover as unknown as N).length === 1 && tagged(cover as unknown as N)[0] === first && eq(chars(first), ['Harbor Quay', 'Design system', 'v0.237.0']) && thumb === first,
+  ok(tagged(cover as unknown as N).length === 1 && tagged(cover as unknown as N)[0] === first && eq(chars(first), ['Harbor Quay', 'Design system', `v${ENGINE_VERSION}`]) && thumb === first,
     `update/redraw: a first-design cover is redrawn in the new design through Update (${JSON.stringify(chars(first))})`);
   ok(applyVerdict(res7).lines.includes('Cover: redrawn in the new design.'), `update/redraw: result line (${applyVerdict(res7).lines.join(' | ')})`);
 }

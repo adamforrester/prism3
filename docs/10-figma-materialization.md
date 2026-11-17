@@ -208,8 +208,8 @@ It is not — binding is *wrong*, not merely unimplemented, for three independen
 is a **unitless multiplier** (`core.font.line-height.*` typed `number`), so a FLOAT variable holding
 `1.5` bound to line height renders as **1.5 px**, not 150%; (2) Figma binds line height **as pixels
 only** — a percentage/unitless line height cannot be variable-bound at all, a long-standing intentional
-platform limitation (measured against Figma's API, 2026-09); (3) no `font/line-height/*` Figma variable
-is emitted to bind to. A faithful bind would need a **per-size PIXEL** variable (fontSize × multiplier),
+platform limitation (measured against Figma's API, 2026-09); (3) until #2423 no `font/line-height/*` Figma variable
+was emitted to bind to, and the ones #2423 emits hold the multiplier with no scopes, so no picker offers them. A faithful bind would need a **per-size PIXEL** variable (fontSize × multiplier),
 which is size-dependent and would lose the mode invariance the PERCENT bake preserves — a new guaranteed
 name and a dropped invariant, i.e. an **owner contract decision**, not an engine fix. `lint-lineheight-bake.ts`
 gates the current shape (unbound PERCENT, mode-invariant) and fails by name if a later edit flips `bound`
@@ -488,6 +488,20 @@ border-width). The **4** uncovered — `motion`, `breakpoint`, `grid`, `containe
    FLOAT where the plan writes TIMING is deleted and re-created as TIMING, and Apply's result line says
    "Replaced N motion variables with the new timing type." (owner decision Q302) (`replacesOnRetype`, shared by the pre-flight and the
    executor). The new variable has a new id. Every other type mismatch still refuses.
+5b. **✅ DONE (2026-11-12, #2423, owner decision Q175 A + the collection name of 2026-11-12) — text spacing.**
+   Every brand's `text-spacing` collection (`out/figma/<brand>/text-spacing.json`, one `Default` mode) holds
+   the line-height and letter-spacing ladders and their roles as **FLOAT** variables named by their DTCG
+   paths, the motion precedent: `<root>/core/font/line-height/<step>`, `…/line-height-role/<role>`,
+   `…/letter-spacing/<step>`, `…/letter-spacing-role/<role>`. The values are the DTCG's multipliers
+   (`1.05`, `-0.04`; letter spacing has been a number since #2434). Steps are hidden from publishing,
+   roles are published and alias their steps. **No scopes, though Figma has `LINE_HEIGHT` and
+   `LETTER_SPACING`:** Figma reads a FLOAT bound to either text field as pixels, so a multiplier offered
+   in those pickers would bind as `1.05px`. Text styles keep their baked PERCENT (§4,
+   `lint-lineheight-bake.ts`, whose assertion E now holds these variables to an empty scope list).
+   Apply Theme writes the collection through `buildFloatWritePlan`; the CLI paste path writes it in
+   `dims-create`. On export, TokenPress types an unscoped `font/line-height/…` or `font/letter-spacing/…`
+   variable as `number` by its path (#2616's shape); `test:readback-parity` holds every leaf to
+   `out/<brand>.tokens.json` by path, type and value, and the exporter agreement gate pairs them.
 6. **✅ DONE (2026-07-04, #50) — Generalise** — emit aurora + wendys too (prove brand-agnostic).
    No fixtures for those, so gated on structural validity (every axis emits the right shape;
    every colour/dims/layout alias resolves *within each brand*; no namespace leakage — `figName`

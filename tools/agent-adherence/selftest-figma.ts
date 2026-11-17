@@ -24,6 +24,12 @@
  * `const { readFileSync: rd } = fs`, over a computed skill path) → `independence/static-aliases`; `keepFailed: true` at
  * `run`'s before step (`baseline`) → `before/run-strict`; an empty search read as `resultText.get(id) ?? ''` (a Glob with
  * no result skipped) → `probe/no-result-glob` (#3464).
+ * #3568: the save's call outcome ignored → `R7/bad-failed-save`; comments not blanked before the save search →
+ * `R7/bad-commented-save`, `R7/bad-commented-save-same-call`; the first write's own outcome ignored →
+ * `R7/bad-failed-save-same-call`; the `//`-after-`:` URL guard dropped → `R7/good-url-before-save`. 184 assertions run.
+ * #3584: the tool-call CLAUDE.md check case-sensitive again → `probe/claude-md-iname`; the user-turn check case-sensitive
+ * again → `probe/claude-md-lower-turn`.
+ * #3584 review: the `skills/` path check case-sensitive again → `probe/skills-path-case` (1 of 187). 187 assertions run.
  * THE PLUGIN IS THE ORACLE for the `args/*` arms (#3469): every command `setupCommands`, `resetCommands` and
  * `captureCommands` send goes through the plugin's own `parseCommand` (and `parseRunCode` for the dev `run-code`),
  * imported from `apps/plugin/src/`, and an arg it refuses, drops or rewrites fails that command's arm by its key.
@@ -254,6 +260,49 @@ console.log('\nR7 — process');
   ok(s.V.V7 === 0 && clean(s), `R7/good-version-first: a version saved at the top of the same write is version first (${say(s)})`);
 }
 
+{
+  // #3568: a save counts only when its call came back ok, and only outside a comment.
+  const r = fresh();
+  const o = r.calls.find((c) => c.kind === 'outcome' && c.seq === 3)!;
+  o.outcome = 'not-ok'; o.error = 'handler-threw';
+  const s = score(r);
+  ok(s.V.V7 === 1 && s.R7 === 1 && clean(s, ['V7']) && /call 4/.test(s.why.V7.join()), `R7/bad-failed-save: a version save whose call threw is not a save, one V7 (${say(s)})`);
+}
+{
+  const r = fresh();
+  const save = r.calls.find((c) => c.kind === 'attempt' && c.seq === 3)!;
+  save.args.code = `// TODO: await figma.saveVersionHistoryAsync('x')\nreturn 1;`;
+  const s = score(r);
+  ok(s.V.V7 === 1 && s.R7 === 1 && clean(s, ['V7']) && /call 4/.test(s.why.V7.join()), `R7/bad-commented-save: a version save only in a comment is not a save, one V7 (${say(s)})`);
+}
+{
+  const r = fresh();
+  r.calls = r.calls.filter((c) => c.seq !== 3);
+  const w = r.calls.find((c) => c.kind === 'attempt' && c.seq === 4)!;
+  w.args.code = `/* await figma.saveVersionHistoryAsync('first'); */ ${w.args.code}`;
+  const s = score(r);
+  ok(s.V.V7 === 1 && clean(s, ['V7']), `R7/bad-commented-save-same-call: a save in a block comment at the top of the write is not version first (${say(s)})`);
+}
+{
+  const r = fresh();
+  r.calls = r.calls.filter((c) => c.seq !== 3);
+  const w = r.calls.find((c) => c.kind === 'attempt' && c.seq === 4)!;
+  w.args.code = `await figma.saveVersionHistoryAsync('first'); ${w.args.code}`;
+  const o = r.calls.find((c) => c.kind === 'outcome' && c.seq === 4)!;
+  o.outcome = 'not-ok'; o.error = 'handler-threw';
+  const s = score(r);
+  ok(s.V.V7 === 1 && s.R7 === 1 && clean(s, ['V7']) && /call 4/.test(s.why.V7.join()), `R7/bad-failed-save-same-call: a save at the top of a write whose call threw is not version first, one V7 (${say(s)})`);
+}
+{
+  // The `//` in a URL string is not a comment: a save after it on the same line still counts.
+  const r = fresh();
+  r.calls = r.calls.filter((c) => c.seq !== 3);
+  const w = r.calls.find((c) => c.kind === 'attempt' && c.seq === 4)!;
+  w.args.code = `const src = 'https://example.com'; await figma.saveVersionHistoryAsync('first'); ${w.args.code.replace(/\n/g, ' ')}`;
+  const s = score(r);
+  ok(s.V.V7 === 0 && clean(s), `R7/good-url-before-save: a URL string before the save on the same line is not a comment, version first (${say(s)})`);
+}
+
 console.log('\nindependence — the scorer never reads the note, the resources or a skill (docs/34)');
 // Static (review S2, #3450 S2's shape, docs/34 corollary 2): the arms above see only what the scorer returns. These read
 // the SOURCE of score-figma.ts and of every local module it reaches, at any depth (#3450's walk), so a read that the
@@ -295,6 +344,22 @@ for (const file of scanned.filter((f) => RUN_READS[f])) {
   const loose = [...SRC.matchAll(READ_FNS)].filter((m) => !/^\s*\(/.test(SRC.slice(m.index! + m[0].length)) && !importSpans.some(([a, b]) => m.index! >= a && m.index! < b))
     .map((m) => SRC.slice(Math.max(0, m.index! - 12), m.index! + m[0].length + 8).replace(/\s+/g, ' ').trim());
   ok(renamed.length === 0 && loose.length === 0, `independence/static-aliases: ${file} reaches no read or exec under another name (${[...renamed, ...loose].join(', ') || 'none'})`);
+}
+
+// #3697 R6: a prune or update confirm writes only when it echoes its preview's hash; without one the plugin refuses it as
+// bad-args before any write. Each sent as call 0, before the version save at call 3.
+for (const [name, cmd, args, writes] of [
+  ['prune-confirm-hashed', 'prune', { input: {}, confirm: true, previewHash: 'abcdef01' }, true],
+  ['prune-confirm-no-hash', 'prune', { input: {}, confirm: true }, false],
+  ['prune-preview', 'prune', { input: {}, confirm: false }, false],
+  ['update-confirm-no-hash', 'update-components', { confirm: true }, false],
+  ['panels-clean-confirm', 'panels-clean', { confirm: true }, true],
+] as const) {
+  const r = fresh();
+  r.calls.push({ kind: 'attempt', seq: 0, cmd, args } as any, { kind: 'outcome', seq: 0, outcome: writes ? 'ok' : 'error' } as any);
+  const s = score(r);
+  ok(writes ? s.V.V7 === 1 && clean(s, ['V7']) && /call 0/.test(s.why.V7.join()) : s.V.V7 === 0 && clean(s),
+    `R7/${writes ? 'bad' : 'good'}-${name}: ${cmd} ${JSON.stringify(args)} before any version is ${writes ? 'one V7' : 'not a write'} (${say(s)})`);
 }
 
 // V7's write detector (review S4): each write below, sent as call 0 (before the version save at call 3), is one V7.
@@ -828,8 +893,14 @@ console.log('\nthe contamination probe');
     ['slash-commands', [{ ...init, slash_commands: ['review'] }], /slash_commands/],
     ['servers', [{ ...init, mcp_servers: [{ name: 'prism3-figma' }, { name: 'other' }] }], /not only prism3-figma/],
     ['claude-md', [init, { type: 'user', message: { content: [{ type: 'text', text: 'Contents of /x/CLAUDE.md (project instructions)' }] } }], /CLAUDE\.md reached/],
+    // #3584: any case, as #3567 made orchestrate.ts. `find / -iname claude.md` reaches the file too.
+    ['claude-md-iname', [init, { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'find / -iname claude.md' } }] } }], /reached for a CLAUDE\.md \(Bash\)/],
+    ['claude-md-lower-turn', [init, { type: 'user', message: { content: [{ type: 'text', text: 'Contents of /x/claude.md (project instructions)' }] } }], /CLAUDE\.md reached/],
     ['skill-tool', [init, { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Skill', input: { skill: 'prism3-rebind' } }] } }], /Skill tool/],
     ['skills-path', [init, { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Read', input: { file_path: '/repo/skills/prism3-rebind/SKILL.md' } }] } }], /skills\/ path/],
+    // #3584 review: any case, as the code surface's pattern and CLAUDE.md are. The Mac runner's filesystem is
+    // case-insensitive by default, so `Skills/` opens the same file.
+    ['skills-path-case', [init, { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'cat /repo/Skills/prism3-rebind/SKILL.md' } }] } }], /skills\/ path \(Bash\)/],
     ['github', [init, { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'WebFetch', input: { url: 'https://github.com/x/y' } }] } }], /GitHub/],
     ['no-init', [read], /no init/],
     ['own-agent', [{ ...init, agents: [...BUILTIN_AGENTS, 'reviewer'] }], /registered agents: reviewer$/],

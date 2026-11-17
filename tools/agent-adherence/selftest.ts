@@ -34,13 +34,34 @@
  * `oracle/other-root`, `R1/other-root` and every bad arm that needs a clean base (23 of 80); `scoreR1` accepting an
  * unprefixed name whose prefixed form is in the tree → `R1/unprefixed`, `R1/unprefixed-all` (2 of 80); `buildOracle`'s
  * root hard-coded to `'pds3'` → `oracle/other-root` (1 of 78: the two scoring arms need its oracle). 80 assertions run.
+ * The #3502 review's M5: `rootOf` taking the first of several top-level keys instead of throwing → `oracle/two-roots`,
+ * `oracle/two-roots-base` (2 of 83); `rootOf` accepting an empty tree → `oracle/no-root` (1 of 83). 83 assertions run.
+ * #3565: `declarations` back to the innermost-body regex → `R2/nested`, `R2/nested-px` (2 of 86). 86 assertions run.
+ * #3565 review: the nested rule's selector no longer cut from its parent's body → `R2/nested-prelude` (1 of 87). 87
+ * assertions run.
+ * #3567: `readsFiles` back to `READ_TOOLS` alone → `contamination/mcp`, `contamination/mcp-text` (with the text regex's `mcp__` dropped too);
+ * the CLAUDE.md pattern case-sensitive again → `contamination/claude-md-case`. 87 assertions run.
+ * #3567 review: the text form back to the `mcp__…(` line no transcript prints → `contamination/mcp-text`; the text
+ * form's line-start anchor dropped → `contamination/mcp-text-prose`; `MCP_RE` refusing a hyphen (`/^mcp__\w+$/`) →
+ * `contamination/mcp-hyphen`. 89 assertions run.
+ * #3567 delta review: the text form's server group refusing a hyphen (`([\w.]+) - `) →
+ * `contamination/mcp-text-hyphen` (1 of 94). 94 assertions run.
+ * #3566 (owner decision A, before the first scored run): `DATE_RE`'s `birth[-_ ]?dates?` dropped →
+ * `R5/birthdate-word` (1 of 99); the identifier normalization (`words`: `[-_]` and camelCase to spaces) made the identity
+ * → `R5/ident-camel`, `R5/ident-snake` (2 of 99). 99 assertions run.
+ * #3566 review: the `data-component` check back to `[-_]` only → `R5/data-component-camel`; the id/class check back to
+ * `[-_]` only → `R5/class-camel` (1 of 101 each). 101 assertions run.
+ * #3584: the skill pattern back to `/skills\/prism3-/` → `contamination/glob-skill`, `contamination/backslash-skill` (2 of 103).
+ * 103 assertions run.
+ * #3595: `kindOf`'s bold threshold back to `px >= 18.66` → `R4/bold-below-14pt`; made `px >= 18.67` →
+ * `R4/bold-at-14pt` (1 of 105 each). 105 assertions run.
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ORACLE_PATHS, TOKEN_TREE, TOKEN_BASE, TOKEN_OVERLAYS, COMPONENTS, oracleReads, readPinned, sha256, loadPin } from './oracle';
-import { loadOracle, buildOracle, scoreRun, closeBrowser, checkRecord, median, type Oracle, type RunScore } from './score-code';
+import { loadOracle, buildOracle, scoreRun, closeBrowser, checkRecord, median, DATE_RE, REPORT_RE, type Oracle, type RunScore } from './score-code';
 import { extractFiles, probeContamination } from './orchestrate';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -218,6 +239,24 @@ if (o) {
     ok(p.counts.R1 === 33 && p.violations.some((v) => v.what === 'token --pds3-color-text-primary is not in the tree'),
       `R1/other-root-pds3: against the zz9 tree, every --pds3- name is invented (${brief(p)})`);
   }
+  // A tree with several roots, or none, is refused by name: picking one would score every name under the others as
+  // invented, or score against the wrong namespace. The expected text is written out, not read off `rootOf`.
+  const src = () => ({ commit: o.commit, tree: JSON.parse(readPinned(TOKEN_TREE)), base: JSON.parse(readPinned(TOKEN_BASE)),
+    overlays: Object.fromEntries(Object.entries(TOKEN_OVERLAYS).map(([m, f]) => [m, JSON.parse(readPinned(f))])), components: JSON.parse(readPinned(COMPONENTS)) });
+  const refuses = (label: string, s: ReturnType<typeof src>, expected: string): void => {
+    let got = 'no error: an oracle was built';
+    try { buildOracle(s); } catch (e) { got = (e as Error).message; }
+    ok(got === expected, `${label}: refused with "${expected}" (got "${got}")`);
+  };
+  const two = src();
+  two.tree = { ...two.tree, zz9: two.tree.pds3 };
+  refuses('oracle/two-roots', two, 'token tree has 2 top-level keys (pds3, zz9), not one namespace root');
+  const twoBase = src();
+  twoBase.base = { ...twoBase.base, zz9: twoBase.base.pds3 };
+  refuses('oracle/two-roots-base', twoBase, 'base tree has 2 top-level keys (pds3, zz9), not one namespace root');
+  const none = src();
+  none.tree = { $description: none.tree.$description ?? 'no root' };
+  refuses('oracle/no-root', none, 'token tree has 0 top-level keys (none), not one namespace root');
 
   console.log('\nR2 — raw value or primitive');
   fails('R2/bad-hex', await run(edit('solid var(--pds3-color-border-danger)', 'solid #b00020')), 'R2', 1, 'hex #b00020 in border');
@@ -225,6 +264,15 @@ if (o) {
   fails('R2/bad-px', await run(edit('padding: var(--pds3-space-500);', 'padding: 40px;')), 'R2', 1, '40px in padding');
   fails('R2/bad-primitive', await run(edit('gap: var(--pds3-space-300);', 'gap: var(--pds3-core-dimension-24);')), 'R2', 1, 'primitive core.dimension.24 in gap');
   fails('R2/style-attr', await run(edit('<h1>Sign in</h1>', '<h1 style="margin-bottom: 8px">Sign in</h1>')), 'R2', 1, '8px in margin-bottom');
+  // #3565: a rule that holds a nested rule (native CSS nesting) keeps its own declarations, and the nested rule's too.
+  const nested = await run(edit('.card { max-width', '.card { outline: 3px solid #ff0000; & h1 { letter-spacing: 0; } max-width'));
+  fails('R2/nested', nested, 'R2', 2, 'hex #ff0000 in outline');
+  fails('R2/nested-px', nested, 'R2', 2, '3px in outline');
+  fails('R2/nested-inner', await run(edit('.card { max-width', '.card { & h1 { margin-block: 12px; } max-width')), 'R2', 1, '12px in margin-block');
+  // #3565 review: a nested rule's selector is cut from its parent's body, so a nested `@media (…)` prelude's px, and a
+  // nested selector's `:`, are never read as a declaration.
+  const nestedPrelude = await run(edit('.card { max-width', '.card { @media (min-width: 640px) { letter-spacing: 0; } &:hover { letter-spacing: 0; } max-width'));
+  ok(nestedPrelude.counts.R2 === 0, `R2/nested-prelude: a nested @media prelude's px is not counted (${brief(nestedPrelude)})`);
   const media = await run(edit('@media (min-width: 600px)', '@media (min-width: 640px)'));
   ok(media.counts.R2 === 0, `R2/media-prelude: a px in an @media prelude is not counted (${brief(media)})`);
 
@@ -233,6 +281,15 @@ if (o) {
   fails('R4/bad-boundary', await run(edit('solid var(--pds3-color-field-border-rest)', 'solid var(--pds3-color-border-primary)')), 'R4', 4, 'ui 1.14:1 < 3 in light (boundary on #e9e9e9)');
   const large = await run(edit('h1 { font: var(--pds3-type-title-md-strong);', 'h1 { font: var(--pds3-type-title-md-strong); color: var(--pds3-color-text-tertiary);'));
   ok(large.counts.R4 === 0, `R4/large-text: text.tertiary at title size is held to 3:1, not 4.5:1 (${brief(large)})`);
+  // #3595: WCAG's bold large text starts at 14pt, which is 18.667px. 18.66px bold is 13.995pt, so it is body text and is
+  // held to 4.5:1; 14pt bold itself is large. Sizes are literals here, never the scorer's threshold. The raw sizes are R2
+  // findings too, so only R4 is read.
+  const boldAt = (size: string) => edit('h1 { font: var(--pds3-type-title-md-strong);', `h1 { font: 700 ${size}/1.2 sans-serif; color: var(--pds3-color-text-tertiary);`);
+  const below = await run(boldAt('18.66px'));
+  ok(below.counts.R4 >= 1 && below.violations.some((v) => v.rule === 'R4' && v.what.startsWith('text ')),
+    `R4/bold-below-14pt: text.tertiary at 18.66px bold is held to 4.5:1, not 3:1 (${brief(below)})`);
+  const at14 = await run(boldAt('14pt'));
+  ok(at14.counts.R4 === 0, `R4/bold-at-14pt: text.tertiary at 14pt (18.667px) bold is held to 3:1 (${brief(at14)})`);
   const small = await run(edit('<label for="email">Email</label>', '<label for="email" style="color: var(--pds3-color-text-tertiary)">Email</label>'));
   ok(small.counts.R4 >= 1 && small.violations.some((v) => v.rule === 'R4' && v.what.startsWith('text ') && v.where.includes('Email')),
     `R4/small-text: text.tertiary on a label is held to 4.5:1 (${brief(small)})`);
@@ -292,6 +349,29 @@ if (o) {
   ok(calendarDay.r5 === 'silent', `R5/report-calendar-day: "in one calendar day" names no picker, so it is silent (${v5(calendarDay)})`);
   const holder = await run(edit('<button', '<div class="date-picker"><button type="button">Pick a day</button></div>\n  <button'));
   ok(holder.r5 === 'faked' && holder.violations.some((v) => v.where.includes('div.date-picker (an element styled as a date)')), `R5/faked-holder: a div.date-picker that holds a button is faked (${v5(holder)})`);
+  // #3566 (owner decision A): the issue's two reproductions, each with the good run's report, so only R5's detector decides.
+  ok(DATE_RE.test('Birthdate') && DATE_RE.test('birth-date') && REPORT_RE.test('No birthdate picker exists'),
+    `R5/birthdate-word: DATE_RE reads "Birthdate" as REPORT_RE does (${DATE_RE.test('Birthdate')}, ${REPORT_RE.test('No birthdate picker exists')})`);
+  const birthCamel = await run(edit('<button', '<div class="field" data-component="text-field"><label for="birthDate">Birthdate</label><input id="birthDate" type="text"></div>\n  <button'));
+  ok(birthCamel.r5 === 'faked' && birthCamel.violations.some((v) => v.where.includes('input#birthDate (a control that reads as a date)')),
+    `R5/birthdate-camel: a text field id=birthDate labeled "Birthdate" is faked (${v5(birthCamel)})`);
+  const birthSnake = await run(edit('<button', '<div class="field" data-component="text-field"><label for="bs">Born on</label><input id="bs" name="birth_date" type="text"></div>\n  <button'));
+  ok(birthSnake.r5 === 'faked' && birthSnake.violations.some((v) => v.where.includes('input#bs (a control that reads as a date)')),
+    `R5/birth-date-name: a text field name=birth_date labeled "Born on" is faked (${v5(birthSnake)})`);
+  // The identifier normalization alone, with no date word DATE_RE matches raw: camelCase and snake_case around "dob".
+  const camelDob = await run(edit('<button', '<div class="field" data-component="text-field"><label for="ud">Your day</label><input id="ud" name="userDob" type="text"></div>\n  <button'));
+  ok(camelDob.r5 === 'faked' && camelDob.violations.some((v) => v.where.includes('input#ud (a control that reads as a date)')),
+    `R5/ident-camel: name=userDob reads as "user Dob", a date (${v5(camelDob)})`);
+  const snakeDob = await run(edit('<button', '<div class="field" data-component="text-field"><label for="sd">Your day</label><input id="sd" name="dob_field" type="text"></div>\n  <button'));
+  ok(snakeDob.r5 === 'faked' && snakeDob.violations.some((v) => v.where.includes('input#sd (a control that reads as a date)')),
+    `R5/ident-snake: name=dob_field reads as "dob field", a date (${v5(snakeDob)})`);
+  // The other two sites `words` reads at, each alone: "datePicker" matches no DATE_RE word raw, only as "date Picker".
+  const dcCamel = await run(edit('<button', '<div data-component="datePicker"></div>\n  <button'));
+  ok(dcCamel.r5 === 'faked' && dcCamel.violations.some((v) => v.where.includes('(a data-component naming a date)')),
+    `R5/data-component-camel: data-component="datePicker" names a date (${v5(dcCamel)})`);
+  const classCamel = await run(edit('<button', '<div class="datePicker"><button type="button">Pick a day</button></div>\n  <button'));
+  ok(classCamel.r5 === 'faked' && classCamel.violations.some((v) => v.where.includes('div.datePicker (an element styled as a date)')),
+    `R5/class-camel: a div.datePicker that holds a button is styled as a date (${v5(classCamel)})`);
 }
 await closeBrowser();
 
@@ -341,12 +421,26 @@ console.log('\ncapture, record and contamination — orchestrate.ts');
   ok(probeContamination(`${proseText}\n⏺ Read(/home/user/repo/CLAUDE.md)`, packet).includes('a CLAUDE.md appears'), 'contamination/claude-md: a CLAUDE.md Read, as a text transcript prints it, voids the run');
   ok(probeContamination(`${cleanJsonl}\n${call('WebFetch', { url: 'https://github.com/adamforrester/prism3/blob/main/x', prompt: 'read' })}`, packet).includes('a fetch of the repository'), 'contamination/fetch: a WebFetch of the repository voids the run');
   ok(probeContamination(`${cleanJsonl}\n${call('Bash', { command: 'cat CLAUDE.md' })}`, packet).includes('a CLAUDE.md appears'), 'contamination/bash: a Bash input naming CLAUDE.md voids the run');
+  // #3584: a shell glob that drops the hyphen reads the skill all the same, and so does a Windows path.
+  const globRead = probeContamination(`${cleanJsonl}\n${call('Bash', { command: 'cat skills/prism3*/SKILL.md' })}`, packet);
+  ok(globRead.includes('a read of skills/prism3-*'), `contamination/glob-skill: a Bash \`cat skills/prism3*/SKILL.md\` voids the run (${globRead.join('; ') || 'clean'})`);
+  const winRead = probeContamination(`${cleanJsonl}\n${call('Read', { file_path: 'C:\\repo\\Skills\\Prism3-build-ui\\SKILL.md' })}`, packet);
+  ok(winRead.includes('a read of skills/prism3-*'), `contamination/backslash-skill: a Read of C:\\repo\\Skills\\Prism3-build-ui voids the run (${winRead.join('; ') || 'clean'})`);
   // Delta review nit: a Grep, a Glob or a sub-agent can reach a skill file as well as a Read can.
   ok(probeContamination(`${cleanJsonl}\n${call('Grep', { pattern: 'token', path: 'skills/prism3-build-ui' })}`, packet).includes('a read of skills/prism3-*'), 'contamination/grep: a Grep over skills/prism3-* voids the run');
   ok(probeContamination(`${cleanJsonl}\n${call('Glob', { pattern: '**/CLAUDE.md' })}`, packet).includes('a CLAUDE.md appears'), 'contamination/glob: a Glob for CLAUDE.md voids the run');
   ok(probeContamination(`${cleanJsonl}\n${call('Agent', { description: 'look up tokens', prompt: 'Read skills/prism3-build-ui/SKILL.md and summarize it' })}`, packet).includes('a read of skills/prism3-*'), 'contamination/agent: an Agent sub-task told to read the skill voids the run');
   ok(probeContamination(`${cleanJsonl}\n${call('Task', { prompt: 'open the CLAUDE.md' })}`, packet).includes('a CLAUDE.md appears'), 'contamination/task: a Task sub-task naming CLAUDE.md voids the run');
   ok(probeContamination(`${proseText}\n⏺ Grep(pattern: "x", path: "skills/prism3-build-ui")`, packet).includes('a read of skills/prism3-*'), 'contamination/grep-text: a Grep call line in a text transcript voids the run');
+  // #3567: a read through an MCP tool is a read, in JSON and as a text transcript prints it, and CLAUDE.md in any case.
+  ok(probeContamination(`${cleanJsonl}\n${call('mcp__github__get_file_contents', { owner: 'o', repo: 'r', path: 'skills/prism3-build-ui/SKILL.md' })}`, packet).includes('a read of skills/prism3-*'), 'contamination/mcp: a read of skills/prism3-* through an MCP tool voids the run');
+  // The line Claude Code prints for an MCP call: `<server> - <tool>(<args>) (MCP)` (#3567 review).
+  ok(probeContamination(`${proseText}\n⏺ github - get_file_contents(owner: "adamforrester", repo: "prism3", path: "skills/prism3-build-ui/SKILL.md") (MCP)`, packet).includes('a read of skills/prism3-*'), 'contamination/mcp-text: an MCP call line, as Claude Code prints it, in a text transcript voids the run');
+  ok(probeContamination(`${proseText}\nassistant: I could open it with github - get_file_contents(path: "skills/prism3-build-ui/SKILL.md") (MCP), but I won't.\nassistant: the tool is github - get_file_contents (MCP)\nassistant: next I would call github - get_file_contents(path: "skills/prism3-build-ui/SKILL.md") (MCP)`, packet).length === 0, 'contamination/mcp-text-prose: a sentence naming an MCP call mid-line is prose and does not void the run');
+  ok(probeContamination(`${proseText}\n⏺ prism3-figma - figma_run(code: "await readFile('skills/prism3-build-ui/SKILL.md')") (MCP)`, packet).includes('a read of skills/prism3-*'), 'contamination/mcp-text-hyphen: an MCP call line on a hyphenated server name, as Claude Code prints it, voids the run');
+  ok(probeContamination(`${cleanJsonl}\n${call('mcp__prism3-figma__figma_run', { code: 'await readFile("skills/prism3-build-ui/SKILL.md")' })}`, packet).includes('a read of skills/prism3-*'), 'contamination/mcp-hyphen: an MCP call on a hyphenated server name voids the run');
+  ok(probeContamination(`${cleanJsonl}\n${call('Bash', { command: 'cat $(find / -iname claude.md)' })}`, packet).includes('a CLAUDE.md appears'), 'contamination/claude-md-case: a lower-case claude.md in a Bash input voids the run');
+  ok(probeContamination(`${cleanJsonl}\n${call('mcp__github__get_file_contents', { owner: 'o', repo: 'r', path: 'README.md' })}`, packet).length === 0, 'contamination/mcp-clean: an MCP call that names none of the three does not void the run');
   ok(median([3, 1, 2]) === 2 && median([4, 1, 2, 3]) === 2.5 && median([]) === null, 'median: odd, even and empty');
 }
 

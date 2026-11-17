@@ -11,7 +11,7 @@
  *
  * HOW IT REPAINTS: by store subscription only (`brand` and `mode`), keeping focus on the element that had it.
  */
-import type { RadioDotShare } from '@prism3/engine/scale';
+import type { RadioDotShare } from '@prism3/engine';
 import { currentMode, lastError, rebuild, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
 import { brandRadioDot, setRadioDot } from '../state/shape-input';

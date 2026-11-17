@@ -41,11 +41,17 @@
  *     (mutations: the guard's `busy` check removed from `guarded` → busy/panel and busy/agent-first fail;
  *     the dispatcher's `refuse` removed → busy/agent fails; the `delete` moved out of the `finally` →
  *     busy/release fails, each by name)
- *   · busy/keying: while an apply runs, a different operation still runs (mutation: one hold shared by
- *     every operation → busy/keying fails). busy/preview: a prune preview, from the panel or an agent, is not
+ *   · busy/one hold (#3697 R7): while the panel's apply runs, the panel's file setup and style-guide cleanup and an
+ *     agent's build and prune delete are refused as busy, each naming Theme as the holder, and the apply's verdict is the
+ *     baseline's (mutation: a hold per operation, as before R7 → every `busy/one hold` arm fails by name; the style-guide cleanup's check alone put back on its own operation →
+ *     `busy/one hold: the panel's style-guide cleanup arriving mid Apply Theme is refused, …`). busy/preview: a prune preview, from the panel or an agent, is not
  *     refused while a delete runs, and a second delete is (mutations: `writes` true for a preview, or the
  *     panel's prune confirm read as always true → busy/preview's preview arms fail; the delete unguarded →
  *     its control arm fails).
+ *   · busy/words (#3718 D3718.1 B): a refusal names the write that holds the file, as literals: "Theme is already running. …"
+ *     behind Theme, "Style guides is already running. …" behind Style guides, and Theme for a file setup or an agent's build
+ *     asked for behind Theme (mutations: `refusal` worded by the asked `cmd` → the file-setup/build arm fails; the agent's
+ *     `refuse` worded by the asked write → the same arm fails; the old fixed "Update file" line → every arm fails, each by name).
  *   · busy/sink: a `refused` that reaches the agent's sink fails the command with its code (mutation: the
  *     dispatcher's refusal check removed → busy/sink fails). busy/titles: `run-guard.ts`'s TITLE equals the
  *     drawer's OP_TITLE (mutation: one title changed in either file → busy/titles fails) (#1995)
@@ -61,6 +67,10 @@
  *   · failures: unknown command, bad version, bad args → failed results; an id-less entry → inboxError
  *   · chunking: a result past the per-entry budget is split and the read snippet reassembles it
  *   · retention: only the last MAILBOX.keep results survive, chunks included
+ *   · run-notice/<arm> (#533, Q110 A): a `run-ended` while minimized to the strip shows one `figma.notify` with the
+ *     panel's line, 6000 ms, not the error style, and Restore as its button, which restores the window; with the full
+ *     window up, or after Restore, nothing is shown (mutation: `runNotice` ignoring `minimized` → run-notice/full-window
+ *     and run-notice/after-restore fail by name).
  *   · strip/<arm> (#2949): minimizing to the link strip resizes the window and nothing else — the link stays on, the
  *     poll stays armed and a command sent while minimized is run; the strip skips the 380×420 floor, is never kept as
  *     the window size, ignores a late drag, and Restore returns to the size from before; Turn off (the link switched
@@ -94,10 +104,10 @@
  *   · state: the panel receives the link state and the last command's headline
  *   · snippets: every agent-side script is short
  */
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import { ENGINE_VERSION } from '@prism3/engine/version';
-import { serializeBrandInput } from '@prism3/engine/persist-input';
-import type { BrandInput } from '@prism3/engine/theme';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
+/** Code-unit order, which no host locale moves (#3701). */
+const codeUnitOrder = (x: string, y: string): number => (x < y ? -1 : x > y ? 1 : 0);
+import { ENGINE_VERSION, serializeBrandInput, deserializeBrandInput, type BrandInput } from '@prism3/engine';
 import { MAILBOX, AGENT_COMMANDS, READ_COMMANDS, AGENT_PROTOCOL_VERSION, resultKey, utf8Bytes, parseCommand } from './src/agent-protocol';
 import { readFixture, ARGS, EXPECTED, canon, ACTIVITY_NOTES, activityExpected, atRead, AT, contextExpected } from './agent-read-fixture';
 import { ACTIVITY_KEEP } from './src/activity-log';
@@ -108,7 +118,10 @@ import { agentLinkShortStatus, agentLinkStatusText, agentLinkWord, agentStripTex
 import { createRunGuard, TITLE } from './src/run-guard';
 import { restorePlacement, stripPlacement } from './src/window-place';
 import { createDispatcher, ROUTES } from './src/agent-dispatch';
-import { NodeShim } from './file-shim';
+import { NodeShim, FileShim } from './file-shim';
+import { MAX_CHANGES, overrideVerdict } from './src/set-override';
+import type { OverridePlan } from './src/set-override';
+import { SET_OVERRIDE_MAX } from './src/agent-protocol';
 import type { NodeSpec } from './file-shim';
 import { EXECUTOR_REVISION } from './src/executor-revision';
 import { OP_TITLE } from '../studio/src/shell/activity';
@@ -265,8 +278,9 @@ type Case = { cmd: string; args: Record<string, unknown>; ui: Record<string, unk
 /** The panel's post less the drawer's `lines` (#2177): what the agent link has always been sent. */
 const withoutLines = (m: Record<string, unknown> | undefined): Record<string, unknown> | undefined => {
   if (!m) return m;
-  // #3326: `causes` is the drawer's too, dropped with `lines` (`forAgent`).
-  const { lines: _drawer, causes: _marks, ...rest } = m;
+  // #3326: `causes` is the drawer's too, dropped with `lines` (`forAgent`). #1909: so is a refusal's `collisions`, the
+  // panel's Skip or Rename list.
+  const { lines: _drawer, causes: _marks, collisions: _panel, ...rest } = m;
   return rest;
 };
 /** Each verdict kind's keys as the agent link read them before #2177, in order: typed here, never read from the code. */
@@ -288,7 +302,8 @@ const CASES: Case[] = [
 // The two update commands (#2265) have no panel twin yet (the panel's control is held for the owner), so they
 // have their own section below rather than a parity case. `draw-specs`' panel twin is scoped to the current page, so it
 // is not one either (`specs/panel`, below).
-const AGENT_ONLY = ['update-components', 'capture-baseline', 'adopt-members', 'draw-specs'];
+// `set-override` (#3394) is the agent link's alone (Q3394.2 A): its own section below, `set-override/*`.
+const AGENT_ONLY = ['update-components', 'capture-baseline', 'adopt-members', 'draw-specs', 'set-override'];
 ok(new Set(CASES.map((c) => c.cmd)).size + 1 + AGENT_ONLY.length + READ_COMMANDS.length === AGENT_COMMANDS.length && AGENT_ONLY.every((c) => (AGENT_COMMANDS as readonly string[]).includes(c)),
   'every write/read command has a case here (status is covered above, the agent-only commands and the node reads below)');
 const results: AgentResult[] = [];
@@ -548,11 +563,11 @@ section('one-run — a style guide asked for from one entry point while the othe
   r0.findAllWithCriteria = () => [{ name: '_style-guide-swatches', type: 'COMPONENT_SET', children: [] }, { name: '_style-guide-text-cells', type: 'COMPONENT_SET', children: [] }];
   type Verdict = { type?: string; ok?: boolean; headline?: string; summary?: string };
   const results_ = (): Verdict[] => posted.filter((m) => m.type === 'style-guide-result');
-  // Main's run guard (#1957, `run-guard.ts`) is the one guard: its refusal and its words, for this operation.
-  const SG_BUSY = 'Update file is already running. Try again when it finishes.';
+  // Main's run guard (#1957, `run-guard.ts`) is the one guard: its refusal and its words, which name the holder (#3718 D3718.1 B).
+  const SG_BUSY = 'Style guides is already running. Try again when it finishes.';
   const sgRefusals = (agentFlag: boolean) => posted.filter((m) => m.type === 'refused' && m.agent === agentFlag);
   const isSgRefusal = (m: any, agentFlag: boolean) =>
-    JSON.stringify(m) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'style-guide', agent: agentFlag, message: SG_BUSY });
+    JSON.stringify(m) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'style-guide', agent: agentFlag, message: SG_BUSY, held: 'style-guide' });
 
   // THE PANEL FIRST: a click starts a run, which holds at its yield; the agent link then asks for one.
   posted.length = 0;
@@ -565,6 +580,8 @@ section('one-run — a style guide asked for from one entry point while the othe
   ok(heldPanel > 0 && r1.ok === false && r1.error?.code === 'busy' && r1.error?.message === SG_BUSY && ar.length === 1 && isSgRefusal(ar[0], true),
     `one-run/agent: a style guide asked for over the link while the panel's run is mid-yield is refused with busy (${r1.error?.code}: ${r1.error?.message})`);
   ok(results_().length === 0 && !posted.some((m) => m.type === 'agent-started' && m.id === a1), 'one-run/agent: the refusal is no verdict over the panel\'s run, and the agent\'s run never started');
+  ok(r1.error?.message === 'Style guides is already running. Try again when it finishes.' && ar[0]?.message === 'Style guides is already running. Try again when it finishes.',
+    `busy/words: a refusal behind Style guides reads "Style guides is already running. Try again when it finishes." (${r1.error?.message}; ${ar[0]?.message})`);
   await release();
   const p1 = results_();
   ok(p1.length === 1, `one-run: the panel's run then finishes and reports once (${p1.map((m) => m.headline).join(', ')})`);
@@ -703,7 +720,8 @@ section('brackets/throw — a handler that throws still tells the panel the run 
 /* ── busy ───────────────────────────────────────────────────────────────────────────────────────────── */
 section('busy — a second write of an operation, while one is running, is refused with busy (#1957)');
 {
-  const BUSY = 'Update file is already running. Try again when it finishes.';
+  // The words name the write holding the file (#3718 D3718.1 B): Theme, in every arm of this section.
+  const BUSY = 'Theme is already running. Try again when it finishes.';
   /** Hold the host's text-style read, so a write that reaches it waits there until `release()`. */
   const hold = (): (() => Promise<void>) => {
     let open!: () => void;
@@ -715,8 +733,8 @@ section('busy — a second write of an operation, while one is running, is refus
   const savedHost = { getLocalTextStylesAsync: host.getLocalTextStylesAsync, loadFontAsync: host.loadFontAsync };
   Object.assign(host, { getLocalTextStylesAsync: held, loadFontAsync: async () => undefined });
   const refusals = (agentFlag: boolean) => posted.filter((m) => m.type === 'refused' && m.agent === agentFlag);
-  const isRefusal = (m: any, agentFlag: boolean) =>
-    JSON.stringify(m) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'apply-theme', agent: agentFlag, message: BUSY });
+  const isRefusal = (m: any, agentFlag: boolean, cmd = 'apply-theme', held = 'apply-theme') =>
+    JSON.stringify(m) === JSON.stringify({ type: 'refused', code: 'busy', cmd, agent: agentFlag, message: BUSY, held });
   // The baseline: a lone panel apply, nothing else running.
   posted.length = 0;
   await toUi({ type: 'apply-theme', input: brand });
@@ -731,6 +749,8 @@ section('busy — a second write of an operation, while one is running, is refus
   await toUi({ type: 'apply-theme', input: brand });
   const pr = refusals(false);
   ok(pr.length === 1 && isRefusal(pr[0], false), `busy/panel: the second apply is refused with busy and the owner's words (${pr[0]?.message})`);
+  ok(pr[0]?.message === 'Theme is already running. Try again when it finishes.',
+    `busy/words: a refusal behind Theme reads "Theme is already running. Try again when it finishes." (${pr[0]?.message})`);
   await release();
   const pv = posted.filter((m) => m.type === 'apply-result');
   ok(pv.length === 1 && JSON.stringify(pv[0]) === baseline, `busy/panel: the first write is unaffected: one verdict, the baseline's (${pv.length})`);
@@ -772,16 +792,44 @@ section('busy — a second write of an operation, while one is running, is refus
   // A write that throws releases too: the hold is dropped in a `finally`.
   const g2 = createRunGuard();
   await g2.run('apply-theme', async () => { throw new Error('test: the write threw'); }).catch(() => undefined);
-  ok(!g2.busy('apply-theme'), 'busy/release: a write that threw releases the operation');
+  ok(!g2.busy(), 'busy/release: a write that threw releases the file');
 
-  // KEYING (#1995): the hold is per operation. While an apply is held, a file setup still runs.
+  // ONE HOLD (#3697 R7, owner decision; was per operation, #1995). While the panel's Apply Theme is mid-write, every
+  // other write is refused, the panel's and an agent's, and the refusal names both the write asked for and Theme.
   posted.length = 0;
   release = hold();
   await toUi({ type: 'apply-theme', input: brand });
   await toUi({ type: 'file-setup' });
-  ok(!posted.some((m) => m.type === 'refused') && posted.some((m) => m.type === 'file-setup-result') && !posted.some((m) => m.type === 'apply-result'),
-    'busy/keying: while an apply is running, a file setup still runs and is not refused');
+  const fs1 = refusals(false);
+  ok(fs1.length === 1 && isRefusal(fs1[0], false, 'file-setup') && !posted.some((m) => m.type === 'file-setup-result'),
+    `busy/one hold: while an apply is running, the panel's file setup is refused, naming Theme as the holder (${JSON.stringify(fs1[0])})`);
+  calls.length = 0;
+  const bc = await send('build-components', { def: 'button' });
+  await tick();
+  const rbc = (await read(bc.id)) as AgentResult;
+  const abc = refusals(true);
+  ok(rbc.ok === false && rbc.error?.code === 'busy' && rbc.error?.message === BUSY && !calls.includes('buildComponents')
+    && abc.length === 1 && isRefusal(abc[0], true, 'build-components') && !posted.some((m) => m.type === 'agent-started' && m.id === bc.id),
+    `busy/one hold: an agent's build-components arriving mid Apply Theme is refused as busy before it starts, and the panel is told the holder (${rbc.error?.code}: ${rbc.error?.message}; ${JSON.stringify(abc[0])})`);
+  ok(fs1[0]?.message === 'Theme is already running. Try again when it finishes.' && abc[0]?.message === 'Theme is already running. Try again when it finishes.'
+    && rbc.error?.message === 'Theme is already running. Try again when it finishes.',
+    `busy/words: a file setup and an agent's build refused behind Theme name Theme, not the write asked for (${fs1[0]?.message}; ${abc[0]?.message}; ${rbc.error?.message})`);
+  const pc = await send('prune', { input: brand, confirm: true, previewHash: 'abcdef01' });
+  await tick();
+  const rpc = (await read(pc.id)) as AgentResult;
+  ok(rpc.ok === false && rpc.error?.code === 'busy' && !calls.includes('prune'),
+    `busy/one hold: an agent's prune delete arriving mid Apply Theme is refused as busy (${rpc.error?.code})`);
+  posted.length = 0;
+  await toUi({ type: 'style-guide-cleanup', ids: [] });
+  const sgc = refusals(false);
+  ok(sgc.length === 1 && isRefusal(sgc[0], false, 'style-guide') && !posted.some((m) => m.type === 'style-guide-cleanup-result'),
+    `busy/one hold: the panel's style-guide cleanup arriving mid Apply Theme is refused, naming Theme as the holder, and never runs (${JSON.stringify(sgc[0])})`);
   await release();
+  const ov = posted.filter((m) => m.type === 'apply-result');
+  ok(ov.length === 1 && JSON.stringify(ov[0]) === baseline, 'busy/one hold: the running apply is unaffected: one verdict, the baseline\'s');
+  posted.length = 0;
+  await toUi({ type: 'file-setup' });
+  ok(!posted.some((m) => m.type === 'refused') && posted.some((m) => m.type === 'file-setup-result'), 'busy/one hold: once the apply ends, the file setup runs');
 
   // PREVIEW (#1995): a prune preview writes nothing, so it is never refused, even while a prune delete runs.
   // The prune reads the file's collections, so that read holds the delete here.
@@ -794,7 +842,7 @@ section('busy — a second write of an operation, while one is running, is refus
   ok(!posted.some((m) => m.type === 'prune-result'), 'busy/preview: the prune delete is held mid-run');
   await toUi({ type: 'prune', input: brand, confirm: true });
   ok(posted.filter((m) => m.type === 'refused').length === 1 &&
-    JSON.stringify(posted.find((m) => m.type === 'refused')) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'prune', agent: false, message: 'Update file is already running. Try again when it finishes.' }),
+    JSON.stringify(posted.find((m) => m.type === 'refused')) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'prune', agent: false, message: 'Prune stale is already running. Try again when it finishes.', held: 'prune' }),
     'busy/preview: a second prune delete is refused (the control for the preview arms)');
   posted.length = 0;
   await toUi({ type: 'prune', input: brand, confirm: false });
@@ -819,7 +867,7 @@ section('busy/sink, busy/titles — a refusal reaching the agent\'s sink fails t
   const noop = async () => undefined;
   const d = createDispatcher({
     actions: {
-      applyTheme: async (_input: unknown, sink: { post(m: unknown): void }) => { sink.post({ type: 'refused', code: 'busy', cmd: 'apply-theme', agent: true, message: MSG }); },
+      applyTheme: async (_input: unknown, _choices: unknown, sink: { post(m: unknown): void }) => { sink.post({ type: 'refused', code: 'busy', cmd: 'apply-theme', agent: true, message: MSG }); },
       buildComponents: noop, fileSetup: noop, styleGuide: noop, prune: noop, seedFromFile: noop, updateComponents: noop, captureBaseline: noop, adoptMembers: noop, drawSpecs: noop, panelsClean: noop,
     } as unknown as Parameters<typeof createDispatcher>[0]['actions'],
     status: async () => ({}),
@@ -886,6 +934,24 @@ section('failures — answered, never silent');
   await tick();
   const rp = (await read(p.id)) as AgentResult;
   ok(rp.ok === false && rp.error?.code === 'bad-args' && calls.length === 0, 'prune without confirm → bad-args, and prune is not run');
+
+  // #3697 R6: a delete echoes its preview's hash, as `update-components` does. Without it, refused before any handler.
+  calls.length = 0;
+  const pn = await send('prune', { input: brand, confirm: true });
+  await tick();
+  const rpn = (await read(pn.id)) as AgentResult;
+  ok(rpn.ok === false && rpn.error?.code === 'bad-args' && rpn.error?.message === 'prune with confirm: true needs args.previewHash: the previewHash its preview returned' && calls.length === 0,
+    `prune/needs the hash: confirm: true with no previewHash → bad-args, and prune is not run (${rpn.error?.code})`);
+  {
+    const got: unknown[][] = [];
+    const fake = { prune: async (...a: unknown[]) => { got.push(a); } } as unknown as Parameters<(typeof ROUTES)['prune']>[1];
+    const env = (args: unknown) => parseCommand({ v: AGENT_PROTOCOL_VERSION, id: 'pr-h', cmd: 'prune', args, issuedAt: '2026-11-12T00:00:00Z' });
+    const yes = env({ input: brand, confirm: true, previewHash: 'abcdef01' });
+    const no = env({ input: brand, confirm: false, previewHash: 'abcdef01' });
+    for (const c of [yes, no]) if (c.ok) await ROUTES.prune(c.command, fake, {} as Parameters<(typeof ROUTES)['prune']>[2], {} as Parameters<(typeof ROUTES)['prune']>[3]);
+    ok(got.length === 2 && got[0][1] === true && got[0][2] === 'abcdef01' && got[1][1] === false && got[1][2] === null,
+      `prune/hash dispatch: a delete reaches the handler with its hash, and a preview with none, whatever it carries (${JSON.stringify(got.map((a) => [a[1], a[2]]))})`);
+  }
 
   calls.length = 0;
   const sg = await send('style-guide', { collections: 'color' });
@@ -1119,6 +1185,47 @@ section('strip — minimizing resizes the window and never touches the link or i
   await toUi({ type: 'agent-link', on: true });
 }
 
+/* ── run-notice (#533, Q110 A) ──────────────────────────────────────────────────────────────────────── */
+section('run-notice — a run that ends while minimized shows one short host notice; the detail stays in Activity');
+{
+  // The expected notice is literal: the panel's line, 6000 ms, Restore. Never read from `run-notice.ts`.
+  type Notice = { message: string; timeout?: number; error?: boolean; button?: { text: string; action: () => boolean | void } };
+  const notices: Notice[] = [];
+  host.notify = (message: string, o: Omit<Notice, 'message'> = {}) => { notices.push({ message, ...o }); return { cancel: () => undefined }; };
+  const ui = host.ui as { resize: (w: number, h: number) => void };
+  const origResize = ui.resize;
+  const sizes: [number, number][] = [];
+  ui.resize = (w, h) => { sizes.push([w, h]); };
+  const minimizedPosts = () => posted.filter((m) => m.type === 'ui-minimized').map((m) => m.minimized);
+  posted.length = 0;
+
+  await toUi({ type: 'run-ended', line: 'Update file finished.' });
+  ok(notices.length === 0, `run-notice/full-window: with the full window up, a run's end shows no notice (${notices.length} shown)`);
+
+  await toUi({ type: 'minimize-ui', minimized: true });
+  await toUi({ type: 'run-ended', line: 'Update file failed.' });
+  const n = notices[0];
+  ok(notices.length === 1 && n.message === 'Update file failed.',
+    `run-notice/shown: minimized, a run's end shows one notice with the panel's line (${JSON.stringify(notices.map((x) => x.message))})`);
+  ok(n?.timeout === 6000 && !n?.error, `run-notice/snackbar: the notice stays 6000 ms and is not the host's error style (${JSON.stringify({ timeout: n?.timeout, error: n?.error })})`);
+  ok(n?.button?.text === 'Restore' && typeof n?.button?.action === 'function', `run-notice/action: the notice's one button is Restore (${JSON.stringify(n?.button?.text)})`);
+
+  await toUi({ type: 'run-ended', line: '   ' });
+  await toUi({ type: 'run-ended', line: 42 });
+  ok(notices.length === 1, `run-notice/empty: an empty or non-text line shows nothing (${notices.length} shown)`);
+
+  n?.button?.action();
+  for (let i = 0; i < 20; i++) await settle();
+  ok(JSON.stringify(minimizedPosts()) === '[true,false]' && JSON.stringify(sizes.at(-1)) !== '[480,40]',
+    `run-notice/restore: Restore on the notice brings the full window back and answers ui-minimized false (${JSON.stringify({ posts: minimizedPosts(), last: sizes.at(-1) })})`);
+
+  await toUi({ type: 'run-ended', line: 'Set up file finished.' });
+  ok(notices.length === 1, `run-notice/after-restore: once restored, a run's end shows no notice (${notices.length} shown)`);
+
+  ui.resize = origResize;
+  delete host.notify;
+}
+
 /* ── strip-place (#3327) ─────────────────────────────────────────────────────────────────────────────── */
 section('strip-place — where Minimize and Restore put the window, against literals (#3327, #3416)');
 {
@@ -1323,7 +1430,7 @@ section('reads — inspect, component-keys, audit-frames, snapshot and activity 
     } }));
     const d = (await run('context', {})).r.result?.data as { sets?: { present?: number; due?: unknown }; prism3?: { engine?: { lastBuilt?: unknown } } };
     ok(d?.sets?.present === 2, `context/ledger/present: the two sets the ledger names are counted present (${canon(d?.sets)})`);
-    ok(canon([...((d?.sets?.due ?? []) as { set: string }[])].sort((a, b) => a.set.localeCompare(b.set))) === canon([{ set: 'badge', why: 'engine moved' }, { set: 'button', why: 'definition moved' }]),
+    ok(canon([...((d?.sets?.due ?? []) as { set: string }[])].sort((a, b) => codeUnitOrder(a.set, b.set))) === canon([{ set: 'badge', why: 'engine moved' }, { set: 'button', why: 'definition moved' }]),
       `context/ledger/due: each due set names why — badge's older engine, button's moved definition (${canon(d?.sets?.due)})`);
     ok(d?.prism3?.engine?.lastBuilt === ENGINE_VERSION, `context/ledger/lastBuilt: the newest engine any set was built with (${canon(d?.prism3?.engine)})`);
     if (had === undefined) store.delete(key); else store.set(key, had);
@@ -1350,6 +1457,247 @@ section('reads — inspect, component-keys, audit-frames, snapshot and activity 
   }
   root.children = saved.children;
   h.getNodeByIdAsync = saved.node; h.getStyleByIdAsync = saved.style; h.variables.getVariableByIdAsync = saved.variable;
+}
+
+/* ── set-override (#3394, Q3394.1–.7 all A) ─────────────────────────────────────────────────────────────── */
+section('set-override — color overrides: a preview that writes nothing, refusals by name, and a write through ACTIONS.applyTheme (#3394)');
+{
+  // THE FIXTURE: aurora with one stored override on a palette that is NOT the role's family (accent), the shape #3391's
+  // bug mislabeled. Every expected number below is a literal, typed from an independent WCAG calculation (relative
+  // luminance, sRGB, in Python) of the palette hexes, never read off `resolveAllModes`: neutral 600 #5c5c61 on white
+  // 6.65, neutral 400 #8e8e92 3.26, neutral 300 #a7a7aa 2.40, accent 600 #006188 6.85; on the link floor neutral 050
+  // #e9e9ea, neutral 500 #75767a 3.74 and neutral 550 #68686d 4.57, so a 4.5:1 link clamps to 550.
+  // Those are the `data` ratios, rounded to two places; a line prints the floored form (#3697 L3): 6.6487 reads 6.64:1,
+  // 2.3997 reads 2.39:1.
+  const stored = { ...(brand as Record<string, unknown>), overrides: { light: { 'interactive.primary.border.rest': { palette: 'neutral', step: '600' } } } } as unknown as BrandInput;
+  const BRAND_KEY = k('prism3', 'brandInput');
+  const putBrand = (b: BrandInput | null): void => { if (b) store.set(BRAND_KEY, serializeBrandInput(b)); else store.delete(BRAND_KEY); };
+  const storedOverrides = (): unknown => { const raw = store.get(BRAND_KEY); return raw ? deserializeBrandInput(raw)?.overrides : undefined; };
+  /** Writes to the `prism3` namespace (the stored brand), counted around a call. */
+  let prismWrites = 0;
+  const realSet = root.setSharedPluginData;
+  root.setSharedPluginData = (ns: string, key: string, v: string) => { if (ns === 'prism3') prismWrites++; realSet(ns, key, v); };
+  const run = async (args: unknown): Promise<AgentResult> => { const { id } = await send('set-override', args); await tick(); return (await read(id)) as AgentResult; };
+  const verdictOf = (r: AgentResult) => r.result?.verdict as { type?: string; ok?: boolean; preview?: boolean; applied?: boolean; headline?: string; summary?: string } | null;
+  const dataOf = (r: AgentResult) => (r.result?.data ?? {}) as any;
+  const BORDER = 'interactive.primary.border.rest';
+  /** What Activity holds this session, read through the agent link's own `activity` command. */
+  const activityRuns = async (): Promise<any[]> => { const { id } = await send('activity', {}); await tick(); return ((await read(id)) as AgentResult).result?.data?.runs as any[] ?? []; };
+
+  ok(SET_OVERRIDE_MAX === MAX_CHANGES && MAX_CHANGES === 32, `set-override/max: the protocol's cap and the plan's are both 32 (${SET_OVERRIDE_MAX}, ${MAX_CHANGES})`);
+
+  // The parse: every shape error is bad-args with its literal words, and nothing runs.
+  const one = { mode: 'light', role: BORDER, palette: 'neutral', step: '400' };
+  const BAD_LIST = 'set-override needs args.changes: 1 to 32 changes, each { mode, role, palette, step } or { mode, role, clear: true }';
+  for (const [name, args, msg] of [
+    ['none', { confirm: false }, BAD_LIST],
+    ['empty', { changes: [], confirm: false }, BAD_LIST],
+    ['33', { changes: Array.from({ length: 33 }, (_, i) => ({ ...one, role: `r${i}` })), confirm: false }, BAD_LIST],
+    ['both', { changes: [{ ...one, clear: true }], confirm: false }, 'set-override: change 0 takes exactly palette and step, or clear: true'],
+    ['no-mode', { changes: [{ role: BORDER, clear: true }], confirm: false }, 'set-override: change 0 needs a mode and a role'],
+    ['twice', { changes: [one, { mode: 'light', role: BORDER, clear: true }], confirm: false }, `set-override: ${BORDER} is listed twice for light`],
+    ['no-confirm', { changes: [one] }, 'set-override needs args.confirm: false to preview, true to write'],
+    ['no-hash', { changes: [one], confirm: true }, 'set-override with confirm: true needs args.previewHash: the previewHash its preview returned'],
+  ] as const) {
+    calls.length = 0;
+    const r = await run(args);
+    ok(r.ok === false && r.error?.code === 'bad-args' && r.error.message === msg && !calls.includes('setOverride'), `set-override/parse/${name}: bad-args, "${r.error?.message}"`);
+  }
+
+  // No brand stored: refused, whole run, its own words.
+  putBrand(null);
+  const nb = await run({ changes: [one], confirm: false });
+  ok(nb.ok === false && verdictOf(nb)?.headline === 'Not saved — this file holds no Prism3 brand. Write a theme first.' && dataOf(nb).refusals?.[0]?.reason === 'no-brand',
+    `set-override/no-brand: "${verdictOf(nb)?.headline}"`);
+
+  // The preview writes nothing: no stored brand, no Theme write; its verdict names the real palette both sides (#3391).
+  putBrand(stored);
+  prismWrites = 0;
+  calls.length = 0;
+  posted.length = 0;
+  const pv = await run({ changes: [one], confirm: false });
+  const pvd = dataOf(pv);
+  ok(pv.ok === true && prismWrites === 0 && !calls.includes('applyTheme') && JSON.stringify(storedOverrides()) === JSON.stringify(stored.overrides),
+    `set-override/preview-writes-nothing: ok, 0 brand writes (${prismWrites}), no Theme write (${calls.join(', ')})`);
+  ok(verdictOf(pv)?.type === 'override-result' && verdictOf(pv)?.preview === true && verdictOf(pv)?.applied === false
+    && verdictOf(pv)?.headline === 'Preview — 1 change; no pair moves below its minimum.'
+    && verdictOf(pv)?.summary === 'Light · interactive.primary.border.rest: neutral 600 → neutral 400 (6.64:1 → 3.26:1)',
+    `set-override/preview-verdict: "${verdictOf(pv)?.headline}" / "${verdictOf(pv)?.summary}"`);
+  ok(JSON.stringify(pvd.changes?.[0]?.before) === JSON.stringify({ override: { palette: 'neutral', step: '600' }, resolved: { palette: 'neutral', step: '600' }, hex: '#5c5c61', ratio: 6.65, min: 3, against: 'background.primary' })
+    && JSON.stringify(pvd.changes?.[0]?.after) === JSON.stringify({ override: { palette: 'neutral', step: '400' }, resolved: { palette: 'neutral', step: '400' }, hex: '#8e8e92', ratio: 3.26, min: 3, against: 'background.primary' }),
+    `set-override/before-names-real-palette: before is the stored neutral 600, never the row's accent (${JSON.stringify(pvd.changes?.[0]?.before?.override)})`);
+  ok(typeof pvd.previewHash === 'string' && /^[0-9a-f]{8}$/.test(pvd.previewHash) && Array.isArray(pvd.newMisses) && pvd.newMisses.length === 0,
+    `set-override/preview-hash: an 8-digit previewHash, no new misses (${pvd.previewHash})`);
+  ok(!(await activityRuns()).some((x: any) => x.op === 'override'), 'set-override/preview-not-logged: Activity records no run for a preview');
+
+  // The contrast refusal: the pair, its ratio and its minimum, and nothing stored.
+  calls.length = 0;
+  prismWrites = 0;
+  const lo = await run({ changes: [{ ...one, step: '300' }], confirm: false });
+  const lr = dataOf(lo).refusals?.[0];
+  ok(lo.ok === false && verdictOf(lo)?.headline === 'Not saved — 1 change puts a pair below its minimum.'
+    && verdictOf(lo)?.summary === 'Light · interactive.primary.border.rest → neutral 300: 2.39:1 against background.primary — below the 3:1 minimum.'
+    && lr?.reason === 'below-minimum' && lr?.ratio === 2.4 && lr?.min === 3 && lr?.against === 'background.primary' && prismWrites === 0,
+    `set-override/refuses-below-minimum: "${verdictOf(lo)?.summary}" (${JSON.stringify(lr)})`);
+  // A confirmed write of the same list is refused the same way, before any Theme write.
+  const loHash = dataOf(lo).previewHash as string;
+  calls.length = 0;
+  const lw = await run({ changes: [{ ...one, step: '300' }], confirm: true, previewHash: loHash });
+  ok(lw.ok === false && dataOf(lw).refusals?.[0]?.reason === 'below-minimum' && !calls.includes('applyTheme') && prismWrites === 0,
+    `set-override/refuses-below-minimum-write: the confirmed write is refused too, with no Theme write (${calls.join(', ')})`);
+
+  // The link clamp: the engine would emit 550 for an asked 300, so the change is refused rather than stored.
+  const cl = await run({ changes: [{ mode: 'light', role: 'text.link.default', palette: 'neutral', step: '300' }], confirm: false });
+  ok(cl.ok === false && dataOf(cl).refusals?.[0]?.reason === 'clamped'
+    && verdictOf(cl)?.summary === 'Light · text.link.default → neutral 300 resolves to neutral 550 — links hold 4.5:1. Pick neutral 550 or a step with more contrast.',
+    `set-override/refuses-clamped-link: "${verdictOf(cl)?.summary}"`);
+
+  // A role the mode lacks is refused, not skipped; every refusal in a list comes back in one round.
+  const un = await run({ changes: [{ mode: 'dark', role: 'interactive.primary.fill.hovr', palette: 'neutral', step: '700' }, { mode: 'light', role: 'background.secondary', palette: 'neutral', step: '100' },
+    { mode: 'light', role: 'text.primary', clear: true }, { mode: 'light', role: 'text.secondary', palette: 'brand-neutral', step: '900' }], confirm: false });
+  ok(un.ok === false && verdictOf(un)?.headline === "Not saved — 4 changes can't be made as sent."
+    && JSON.stringify(dataOf(un).refusals?.map((x: any) => x.line)) === JSON.stringify([
+      'Dark has no role interactive.primary.fill.hovr.',
+      'Light · background.secondary is a ground — set it in Surfaces, so the roles measured on it follow.',
+      'Light · text.primary has no override to clear.',
+      'Light · text.secondary: brand-neutral is not a palette in this brand.',
+    ]), `set-override/refuses-unknown-role: every refusal, in order (${JSON.stringify(dataOf(un).refusals?.map((x: any) => x.reason))})`);
+
+  // The roles the engine sets from elsewhere, or that Studio shows read-only, are refused by name, one line each (the
+  // proposal's §3 table). The brand gains a glass role and the opaque outline hover fill, so both are real roles here:
+  // without the refusal, the engine throws on either and the agent reads `unreadable-brand`. A focus ring and an icon
+  // carried from its text would be written, though Studio shows both rows read-only.
+  putBrand({ ...(stored as Record<string, unknown>), glassRoles: { card: { palette: 'neutral.050', alpha: 80 } }, outlineInteraction: 'opaque-fill' } as unknown as BrandInput);
+  const fs = await run({ changes: [{ mode: 'light', role: 'glass.card', palette: 'neutral', step: '100' }, { mode: 'light', role: 'interactive.primary.hover-fill.hover', palette: 'neutral', step: '100' },
+    { mode: 'light', role: 'border.focus', palette: 'neutral', step: '600' }, { mode: 'light', role: 'interactive.primary.icon.rest', palette: 'neutral', step: '700' }], confirm: false });
+  const fsr = (dataOf(fs).refusals ?? []) as any[];
+  const fsLine = (i: number): string | undefined => fsr.find((x) => x.index === i)?.line;
+  const fsReason = (i: number): string | undefined => fsr.find((x) => x.index === i)?.reason;
+  ok(fsReason(0) === 'follows-source' && fsLine(0) === 'Light · glass.card follows its source color — change the source instead.',
+    `set-override/refuses-glass: a brand glass role follows its source (${fsReason(0)}: "${fsLine(0)}")`);
+  ok(fsReason(1) === 'follows-source' && fsLine(1) === 'Light · interactive.primary.hover-fill.hover follows its source color — change the source instead.',
+    `set-override/refuses-hover-fill: the opaque outline hover fill follows its source (${fsReason(1)}: "${fsLine(1)}")`);
+  ok(fsReason(2) === 'locked' && fsLine(2) === "Light · border.focus isn't editable in Theme yet.",
+    `set-override/refuses-focus-ring: a focus ring is locked (${fsReason(2)}: "${fsLine(2)}")`);
+  ok(fsReason(3) === 'locked' && fsLine(3) === 'Light · interactive.primary.icon.rest follows interactive.primary.text.rest while icons match text.',
+    `set-override/refuses-carried-icon: an icon carried from its text is locked (${fsReason(3)}: "${fsLine(3)}")`);
+  ok(fs.ok === false && fsr.length === 4 && verdictOf(fs)?.headline === "Not saved — 4 changes can't be made as sent.",
+    `set-override/refuses-set-elsewhere: four refusals, no other, one headline (${JSON.stringify(fsr.map((x) => x.reason))}, "${verdictOf(fs)?.headline}")`);
+  putBrand(stored);
+
+  // The refusal headline counts the changes in a mode whose miss no one change owns (a dependent or a twin), all of
+  // them, not only the first. No example brand reaches this shape through `planOverride` yet, so the plan is built.
+  const light3 = [0, 1, 2].map((index) => ({ index, mode: 'light', role: `text.r${index}`, before: null, after: null }));
+  const dep = { index: null, mode: 'light', role: 'text.dependent', reason: 'below-minimum', line: 'L', ratio: 2, min: 4.5, against: 'background.primary' };
+  const hv = overrideVerdict({ ok: false, previewHash: '00000000', input: stored, changes: light3, moved: [], newMisses: [], stillBelow: [],
+    contrast: { before: { total: 0, fail: 0 }, after: { total: 0, fail: 0 } }, refusals: [dep] } as unknown as OverridePlan, false);
+  ok(hv.headline === 'Not saved — 3 changes put a pair below its minimum.', `set-override/headline-counts-mode: an unowned light miss counts all three light changes ("${hv.headline}")`);
+
+  // The panel holds Theme edits the file does not: the write is refused, its preview is not.
+  const pv2 = await run({ changes: [one], confirm: false });
+  const hash = dataOf(pv2).previewHash as string;
+  await toUi({ type: 'due-request', input: brand, seq: 1 });
+  calls.length = 0;
+  const tu = await run({ changes: [one], confirm: true, previewHash: hash });
+  ok(tu.ok === false && verdictOf(tu)?.headline === "Not saved — Theme has changes that aren't in the file yet. Run Update file or discard them, then send this again." && !calls.includes('applyTheme'),
+    `set-override/theme-unsaved: "${verdictOf(tu)?.headline}"`);
+  ok((await activityRuns()).some((x: any) => x.op === 'override' && x.by === 'agent' && x.verdict?.ok === false), 'set-override/refusal-logged: a refused write is an Activity run of its own');
+  await toUi({ type: 'due-request', input: stored, seq: 2 });
+
+  // The file's brand moved after the preview: refused, nothing written.
+  putBrand({ ...(stored as Record<string, unknown>), name: 'moved' } as unknown as BrandInput);
+  calls.length = 0;
+  const bm = await run({ changes: [one], confirm: true, previewHash: hash });
+  ok(bm.ok === false && verdictOf(bm)?.headline === "Not saved — the file's brand changed after the preview. Preview again." && !calls.includes('applyTheme'),
+    `set-override/brand-moved: "${verdictOf(bm)?.headline}"`);
+  putBrand(stored);
+  await toUi({ type: 'due-request', input: stored, seq: 3 });
+
+  // THE WRITE, against a file model that can take the Theme write: through ACTIONS.applyTheme (the spy is the table's
+  // own entry, so a copy of the handler fails here), the stored overrides, the variable alias, the panel's restore.
+  const shim = new FileShim() as unknown as Record<string, unknown>;
+  const grafted: Record<string, unknown> = {};
+  for (const name of Object.getOwnPropertyNames(FileShim.prototype)) {
+    const d = Object.getOwnPropertyDescriptor(FileShim.prototype, name)!;
+    if (name === 'constructor' || typeof d.value !== 'function') continue;
+    grafted[name] = host[name];
+    host[name] = (...a: unknown[]) => (shim[name] as (...x: unknown[]) => unknown)(...a);
+  }
+  const versions: string[] = [];
+  grafted.variables = host.variables; grafted.saveVersionHistoryAsync = host.saveVersionHistoryAsync;
+  host.variables = shim; host.saveVersionHistoryAsync = async (title: string) => { versions.push(title); };
+  const seen: unknown[][] = [];
+  const origApply = actions.applyTheme;
+  actions.applyTheme = (...a: unknown[]) => { seen.push(a); return origApply(...a); };
+  posted.length = 0;
+  const go = await run({ changes: [one], confirm: true, previewHash: hash });
+  actions.applyTheme = origApply;
+  const LIGHT = { [BORDER]: { palette: 'neutral', step: '400' } };
+  ok(seen.length === 1 && JSON.stringify((seen[0][0] as { overrides?: { light?: unknown } }).overrides?.light) === JSON.stringify(LIGHT),
+    `set-override/writes-through-apply: one ACTIONS.applyTheme call, with the planned overrides (${seen.length})`);
+  ok(go.ok === true && JSON.stringify(storedOverrides()) === JSON.stringify({ light: LIGHT }), `set-override/stored: the file's brand holds the new override (${JSON.stringify(storedOverrides())})`);
+  const vars = (shim as unknown as FileShim).vars;
+  const v = vars.find((x: any) => x.name === 'ads/color/interactive/primary/border/rest');
+  const light = (shim as unknown as FileShim).collections.find((c: any) => c.id === v?.variableCollectionId)?.modes.find((m: any) => m.name === 'light');
+  const target = vars.find((x: any) => x.id === v?.valuesByMode?.[light?.modeId]?.id);
+  ok(target?.name === 'ads/core/palette/neutral/400', `set-override/variable: light's border aliases ads/core/palette/neutral/400 (${target?.name})`);
+  ok(versions.length === 1, `set-override/version: the Theme write saved one version first (${versions.join(' | ')})`);
+  ok(verdictOf(go)?.applied === true && verdictOf(go)?.headline === 'Saved 1 color override — 972 of 972 pairs at or above their minimum.',
+    `set-override/saved: "${verdictOf(go)?.headline}"`);
+  const restore = posted.filter((m) => m.type === 'restore-input').pop();
+  ok(JSON.stringify(restore?.input?.overrides) === JSON.stringify({ light: LIGHT }), 'set-override/restore: the panel is sent the brand the file now holds');
+  ok(!posted.some((m) => m.type === 'apply-result'), 'set-override/one-verdict: the Theme write\'s own verdict is not posted; the run has one, override-result');
+  const runRow = (await activityRuns()).find((x: any) => x.op === 'override' && x.verdict?.ok === true);
+  ok(runRow?.by === 'agent' && runRow?.cmd === 'set-override' && JSON.stringify(runRow?.lines) === JSON.stringify(['Light · interactive.primary.border.rest: neutral 600 → neutral 400 (6.64:1 → 3.26:1)']),
+    `set-override/activity: one run, the agent's, its line before → after (${JSON.stringify(runRow?.lines)})`);
+  ok(OP_TITLE.override === 'Color override', `set-override/row: the drawer names the row "Color override" (${OP_TITLE.override})`);
+
+  // The designer edits Theme while the agent's write runs: the panel keeps the edit, and is not sent the stored brand.
+  await toUi({ type: 'due-request', input: { ...(stored as Record<string, unknown>), overrides: { light: LIGHT } }, seq: 5 });
+  const back = { mode: 'light', role: BORDER, palette: 'neutral', step: '600' };
+  const pv4 = await run({ changes: [back], confirm: false });
+  actions.applyTheme = (...a: unknown[]) => {
+    (host.ui as { onmessage: (m: unknown) => void }).onmessage({ type: 'due-request', input: { ...(stored as Record<string, unknown>), name: 'edited meanwhile' }, seq: 6 });
+    return origApply(...a);
+  };
+  posted.length = 0;
+  const kept = await run({ changes: [back], confirm: true, previewHash: dataOf(pv4).previewHash });
+  actions.applyTheme = origApply;
+  ok(kept.ok === true && !posted.some((m) => m.type === 'restore-input'), `set-override/panel-edit-kept: an edit made during the write is not reloaded over (${kept.ok}, ${posted.filter((m) => m.type === 'restore-input').length} restore)`);
+
+  // A stored brand the engine refuses to build: refused with a verdict, never a handler error.
+  const rejected = { ...(stored as Record<string, unknown>), overrides: { 'hc-light': { 'text.primary': { palette: 'neutral', step: '900' } } } } as unknown as BrandInput;
+  putBrand(rejected);
+  const ej = await run({ changes: [one], confirm: false });
+  ok(!ej.error && verdictOf(ej)?.headline === "Not saved — this file's brand was saved by a build this plugin can't read." && /generate-only/.test(String(dataOf(ej).error)),
+    `set-override/engine-refused: "${verdictOf(ej)?.headline ?? ej.error?.code}"`);
+  putBrand(stored);
+  await toUi({ type: 'due-request', input: stored, seq: 7 });
+
+  // busy: a confirmed write waits on no running Theme write; a preview is never refused. The words name Theme (#3718).
+  const BUSY = 'Theme is already running. Try again when it finishes.';
+  let open!: () => void;
+  gate = new Promise<void>((r) => { open = r; });
+  const savedTs = host.getLocalTextStylesAsync;
+  host.getLocalTextStylesAsync = held;
+  await toUi({ type: 'apply-theme', input: stored });
+  const pv3 = await run({ changes: [{ mode: 'light', role: BORDER, clear: true }], confirm: false });
+  posted.length = 0;
+  const bwSent = await send('set-override', { changes: [{ mode: 'light', role: BORDER, clear: true }], confirm: true, previewHash: dataOf(pv3).previewHash });
+  await tick();
+  const bw = (await read(bwSent.id)) as AgentResult;
+  // Declined by the dispatcher's own guard (`guardFor`), before it starts: the panel never shows it running.
+  ok(!posted.some((m) => m.type === 'agent-started' && m.id === bwSent.id), 'set-override/busy-declined: the busy write is declined before it starts, so the panel never shows it running');
+  gate = null; open();
+  for (let i = 0; i < 60; i++) await settle();
+  host.getLocalTextStylesAsync = savedTs;
+  ok(pv3.ok === true && bw.ok === false && bw.error?.code === 'busy' && bw.error?.message === BUSY,
+    `set-override/busy: while a Theme write runs a preview answers (${pv3.ok}) and the write is busy (${bw.error?.code})`);
+
+  for (const [name, val] of Object.entries(grafted)) host[name] = val;
+  root.setSharedPluginData = realSet;
+  putBrand(null);
+  await toUi({ type: 'due-request', seq: 4 });
 }
 
 /* ── switch-off ─────────────────────────────────────────────────────────────────────────────────────── */

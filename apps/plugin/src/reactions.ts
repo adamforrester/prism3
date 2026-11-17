@@ -42,7 +42,7 @@
  * NOT COVERED, stated because it is invisible from the call site: reactions on a member's descendants. Only the
  * member's own reactions are read, written and recorded.
  */
-import { coordKey, coordPairs } from '@prism3/engine/component-renames';
+import { coordKey, coordPairs } from '@prism3/engine';
 
 /** The axis the reactions are planned from, and its three values. */
 export const STATE_AXIS = 'state';

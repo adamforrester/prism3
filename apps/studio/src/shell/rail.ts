@@ -48,7 +48,9 @@ export const mountRail = (opts: { readonly logo: HTMLElement; readonly areas: re
     const { btn, mark: m, tip } = tile(`rail-${a.id}`, a.label);
     btn.classList.add('p3-rail-tile');
     btn.setAttribute('aria-label', a.name);
-    tip.textContent = a.name;
+    // #3553 Q-UI13 A: an area tile shows its label at every width, so it draws no tooltip repeating it (after a click it
+    // stayed under the resting pointer, over the page's first line). The foot's label-less tiles keep theirs.
+    tip.remove();
     m.append(glyph(a.glyph));
     btn.onclick = () => opts.go(a.id);
     return btn;
