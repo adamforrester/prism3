@@ -11,7 +11,7 @@
  *     Each must build and clear EVERY mode contract — the real robustness test.
  * Exits non-zero on any failure.
  */
-import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, composite, RGB, storedOklch, formatRatio } from './color';
+import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, composite, RGB, storedOklch, formatRatio, floorRatio } from './color';
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, densitySpace, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { codeOnlyText } from './code-only-register';
@@ -37,7 +37,7 @@ import type { FigmaCollectionFile } from './emit-figma';
 import { MOTION_FIGMA_COVERAGE, springBounce } from './emit-figma-dims';
 import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount, DTCG_TYPES } from './emit-dtcg-overlay';
 import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
-import { buildTree, validateBrandInput, readExampleBrand } from './emit-dtcg';
+import { buildTree, validateBrandInput, readExampleBrand, contractReportRow } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { validate as validateJsonSchema } from './json-schema-lite';
 import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
@@ -91,9 +91,10 @@ import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-gl
 import { PROVIDER_LOGO_BOXES, PROVIDER_LOGO_DOCUMENTS } from './provider-logo-glyphs';
 import { makeTextField } from './components/text-field';
 import { canonicalShape, GlyphPathError } from './glyph-shape';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
+import { readListing } from './files-listing';
 import { isDeepStrictEqual } from 'node:util';
 import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -110,6 +111,7 @@ const planIconComps = (n: { nestTarget?: string; children?: readonly unknown[] }
 
 import { Session as InspectorSession } from 'node:inspector/promises';
 import { componentSpec, specMaterialize } from './component-specs';
+import { renderUncommitted } from './regen';
 import { localeFreeCompare } from './locale-free-order';
 
 // ---- #1268 EVERY ASSERTION SITE RAN — a section going quiet is a failure, not a smaller pass ----------
@@ -1005,16 +1007,80 @@ for (const hx of ['#000000', '#333333', '#7f7f7f', '#808080', '#ffffff']) {
   const srcFiles = readdirSync(APPS, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(resolve(APPS, d.name, 'src')))
     .flatMap((d) => walk(resolve(APPS, d.name, 'src')));
   const rel = (f: string) => f.slice(resolve(APPS, '..').length + 1);
-  // A ratio's own `.toFixed(` (`r.ratio.toFixed(2)`, `minRatio.toFixed(`), or any `toFixed(n)` followed by `:1`.
-  const HAND_ROLLED = [/ratio\w*\)?\.toFixed\(/i, /\.toFixed\(\d\)\}:1/];
+  // A ratio's own `.toFixed(` (`r.ratio.toFixed(2)`, `minRatio.toFixed(`), or any `toFixed(n)` followed by `:1`. And
+  // (#3759) any two-place `Math.round(… * 100) / 100`: a ratio ROUNDED to a stored number reads 4.496 as 4.5 on its 4.5
+  // floor, and re-flooring it at print time cannot take that back. That shape carries no name to key on (`raw`, `x`,
+  // `light.ratio`), so every match is a finding and a non-ratio one is exempted by name below; store `floorRatio`.
+  const HAND_ROLLED = [/ratio\w*\)?\.toFixed\(/i, /\.toFixed\(\d\)\}:1/, /Math\.round\((?:[^()]|\([^()]*(?:\([^()]*\)[^()]*)*\))*\*\s*100\s*\)\s*\/\s*100(?![\d.])/,
+    // …and a two-place `round(x, 2)` helper call on a ratio (`tree.ts`'s emitted `contrast`, a gradient's worst case).
+    /\bround\w*\((?:[^(),]|\([^()]*\))*\b(?:ratio|contrast|worst)\w*(?:[^(),]|\([^()]*\))*,\s*2\s*\)/i];
+  const handRolled = (text: string): boolean => HAND_ROLLED.some((re) => re.test(text));
+  // The detector on planted lines (docs/34 SELF-CHECK): each shape this scan has met must match, each decoy must not.
+  const PLANTED = ['byMode[m.mode] = { ratio: Math.round(raw * 100) / 100, pass: raw >= ct.min };',
+    'ratio: Math.round(light.ratio * 100) / 100,', 'const ratio = Math.round(contrast(hexToRgb(a), hexToRgb(b)) * 100) / 100;',
+    'const r2 = (x: number) => Math.round(x * 100) / 100;', 'cell(r.ratio.toFixed(2))', '`${worst.toFixed(2)}:1`',
+    '{ contrast: round(rr.ratio, 2), against: rr.against }', 'const wOnW = round(g.worstOnWhite, 2), wOnB = 0;'];
+  const DECOYS = ['Math.round(a * 255) / 255', 'Math.round(x * 1000) / 1000', 'Math.floor(raw * 100) / 100', 'Math.round(x * 100) / 1000',
+    'Math.round(pct * 100)', 'const ratio = floorRatio(raw);', 'formatRatio(r.ratio, { bare: true })',
+    'round(px / 16, 2)', 'round(ratio, 4)', 'round(lr.ratio * 2, 3)'];
+  const missed = PLANTED.filter((t) => !handRolled(t)), tripped = DECOYS.filter(handRolled);
+  ok(!missed.length && !tripped.length, `#3759 the ratio scan's detector finds every planted shape and no decoy (missed: ${missed.join(' ; ') || 'none'}; decoys tripped: ${tripped.join(' ; ') || 'none'})`);
+  // Named exemptions, each a two-place round that is not a ratio; each must still name a scanned line, so a stale one fails.
+  const APPS_EXEMPT: Record<string, RegExp[]> = {
+    'apps/plugin/src/spec-panel.ts': [/const num = .*Math\.round\(v \* 100\) \/ 100/],         // a measured px dimension
+    'apps/studio/src/domains/shape.ts': [/out\.push\(Math\.round\(v \* 100\) \/ 100\)/],      // a lever's step values
+    'apps/plugin/src/style-guide.ts': [/const a = Math\.round\(alphaOf\(c\) \* 100\) \/ 100/],   // a swatch's alpha, printed
+    // TokenPress is a guest (CLAUDE.md): its px conversion, two places, not a ratio.
+    'apps/tokenpress/src/plugin/exporter.ts': [/const pxValue = Math\.round\(value \* 100\) \/ 100/],
+    'apps/tokenpress/src/plugin/converters/dimension-converter.ts': [/const pxValue = Math\.round\(value \* 100\) \/ 100/],
+  };
   const rolled = srcFiles.flatMap((f) => readFileSync(f, 'utf8').split('\n').flatMap((text, i) =>
-    HAND_ROLLED.some((re) => re.test(text)) ? [`${rel(f)}:${i + 1}`] : []));
-  ok(rolled.length === 0, `#3697 L3 no hand-rolled contrast-ratio toFixed under apps/*/src — print through formatRatio (found: ${rolled.join(', ') || 'none'})`);
+    handRolled(text) && !(APPS_EXEMPT[rel(f)] ?? []).some((re) => re.test(text)) ? [`${rel(f)}:${i + 1}`] : []));
+  ok(rolled.length === 0, `#3697 L3 no hand-rolled contrast-ratio toFixed or two-place round under apps/*/src — print through formatRatio, store floorRatio (found: ${rolled.join(', ') || 'none'})`);
+  for (const [n, res] of Object.entries(APPS_EXEMPT)) for (const re of res)
+    ok(readFileSync(resolve(APPS, '..', n), 'utf8').split('\n').some((t) => re.test(t) && handRolled(t)), `#3759 the ratio-scan exemption ${re} in ${n} still names a scanned line`);
   // Represented, not counted: each known call site is in the scan and still names the formatter.
   for (const site of ['apps/plugin/src/set-override.ts', 'apps/plugin/src/style-guide.ts', 'apps/studio/src/preview/sections/kit.ts', 'apps/studio/src/ui/step-picker.ts', 'apps/studio/src/main.ts']) {
     const f = srcFiles.find((x) => rel(x) === site);
     ok(!!f && /\b(formatRatio|fmtRatio)\b/.test(readFileSync(f, 'utf8')), `#3697 L3 ${site} is in the ratio scan and prints through formatRatio`);
   }
+  // #3759: the engine's own reports print through it too. The contract row, driven at the review's case: a 4.496 pair
+  // under a 4.5 floor prints 4.49 beside its ❌, never 4.50.
+  const row3759 = contractReportRow('text.secondary', { path: 'p.palette.neutral.550', ratio: 4.496, min: 4.5 }, 'p.palette');
+  ok(row3759 === '| text.secondary | neutral.550 | 4.49 | 4.5 | ❌ |', `#3759 modes-report row floors a 4.496 pair to 4.49 beside its ❌ (got "${row3759}")`);
+  // The committed report, read back: a printed contrast never reads at or above its floor beside a ❌, nor below it beside a ✅.
+  const reportRows = readFileSync(resolve(HERE, 'modes-report.md'), 'utf8').split('\n').map((l) => l.split('|').map((c) => c.trim()))
+    .filter((c) => c.length === 7 && /^\d+\.\d\d$/.test(c[3]) && /^[\d.]+$/.test(c[4]));
+  const liars = reportRows.filter((c) => (+c[3] >= +c[4]) !== (c[5] === '✅')).map((c) => `${c[1]} ${c[3]}/${c[4]} ${c[5]}`);
+  ok(reportRows.length > 1000 && liars.length === 0, `#3759 modes-report.md: every printed contrast agrees with its result (${reportRows.length} rows; disagree: ${liars.join(', ') || 'none'})`);
+  // And the scan reaches the engine (#3759): every non-test, non-gate source under packages/engine. A gate's own failure
+  // message is a diagnostic, not an artifact, so lint-*.ts is out of scope. Each exemption names its line and why, and
+  // must still match it, so a stale one fails rather than lingering.
+  const ENGINE_EXEMPT: Record<string, RegExp[]> = {
+    // A target the picker aims at, not a measured ratio.
+    'modes.ts': [/borderSecondaryTarget\.toFixed\(/,
+      // #3840: the sub-floor state-label note's one-place "about" — its form is the owner's call there.
+      /about \$\{\+r\.toFixed\(1\)\}:1/],
+    // An alpha's emitted precision in the rgb dialect (`rgba(…, 0.1)`), not a ratio.
+    'color.ts': [/fmt === 'hex' \? Math\.round\(a \* 255\) \/ 255 : Math\.round\(a \* 100\) \/ 100/],
+    // A dark-mode shadow layer's alpha, not a ratio.
+    'theme-shadow.ts': [/const darkAlpha = .*Math\.round\(a \* \(0\.3 \+ 0\.09 \* i\) \* 100\) \/ 100/],
+  };
+  const engineSrc = readdirSync(HERE).filter((n) => n.endsWith('.ts') && n !== 'test.ts' && !n.endsWith('-test.ts') && !n.startsWith('lint-'));
+  const engineRolled = engineSrc.flatMap((n) => readFileSync(resolve(HERE, n), 'utf8').split('\n').flatMap((text, i) =>
+    handRolled(text) && !(ENGINE_EXEMPT[n] ?? []).some((re) => re.test(text)) ? [`packages/engine/${n}:${i + 1}`] : []));
+  ok(engineRolled.length === 0, `#3759 no hand-rolled contrast-ratio toFixed or two-place round under packages/engine (gates and tests aside) — print through formatRatio, store floorRatio (found: ${engineRolled.join(', ') || 'none'})`);
+  for (const [n, res] of Object.entries(ENGINE_EXEMPT)) for (const re of res)
+    ok(readFileSync(resolve(HERE, n), 'utf8').split('\n').some((t) => re.test(t) && handRolled(t)), `#3759 the ratio-scan exemption ${re} in ${n} still names a scanned line`);
+  for (const n of ['emit-dtcg.ts', 'nb-regression.ts', 'visualize.ts'])
+    ok(engineSrc.includes(n) && /\bformatRatio\b/.test(readFileSync(resolve(HERE, n), 'utf8')), `#3759 packages/engine/${n} is in the ratio scan and prints through formatRatio`);
+  for (const n of ['eval.ts', 'ai-metadata.ts'])
+    ok(engineSrc.includes(n) && /\bfloorRatio\b/.test(readFileSync(resolve(HERE, n), 'utf8')), `#3759 packages/engine/${n} is in the ratio scan and stores its ratios through floorRatio`);
+  ok(/\bfloorRatio\b/.test(readFileSync(resolve(APPS, 'plugin/src/set-override.ts'), 'utf8')), '#3759 apps/plugin/src/set-override.ts stores its data ratios through floorRatio');
+  // The values, driven at the review's case. Studio's contracts table: the preview stores the RAW ratio, so its floored
+  // print is 4.49 beside the failing dot. An eval failure and a stored floor never round up onto the 4.5 they miss.
+  ok(floorRatio(4.496) === 4.49 && floorRatio(4.4999) === 4.49 && floorRatio(4.5) === 4.5 && formatRatio(4.496, { bare: true }) === '4.49',
+    `#3759 floorRatio floors 4.496 and 4.4999 to 4.49 and keeps 4.5 (got ${floorRatio(4.496)}, ${floorRatio(4.4999)}, ${floorRatio(4.5)})`);
   const grayPrimary = storedOklch(rgbToOklch(hexToRgb('#808080')));
   const sameRgb = (c: RGB) => c.r === c.g && c.g === c.b;
   const neutralGray = (t: any) => t.palettes.find((p: any) => p.palette === 'neutral').steps.every((st: any) => sameRgb(st.rgb));
@@ -2006,21 +2072,49 @@ for (const b of brands) {
 
   // The link ANCHORS where the action fill anchors (modes.ts `linkFollowsAction`), not at the rebased
   // palette's own baseline step (`theme.linkAnchorStep`). The accent above sits mid-ramp, so both anchors
-  // pick the same link steps and could not tell them apart; a far-lightness brand color can. Literals were
-  // measured on this tree. They also carry #1896 (the action anchor follows the `actionPalette` lever, so a
-  // `roleColors.action` rebase anchors at primary's step): fixing #1896 moves the fill and these together.
-  // BY-NAME MUTATION: `const linkAnchor = theme.linkAnchorStep;` in modes.ts → deep lands on 850 in light
-  // and hc-light, pale on 050 in dark and hc-dark, and both asserts below fail.
+  // pick the same link steps and could not tell them apart; a far-lightness brand color can, once its action
+  // anchor is PINNED away from its own shade. Since #1896 an unpinned rebase anchors the fill at the color's own
+  // shade, the same step `linkAnchorStep` names, so only a pin separates the two (deep pinned at 550, pale at 500).
+  // Literals were measured on this tree. BY-NAME MUTATION: `const linkAnchor = theme.linkAnchorStep;` in modes.ts →
+  // deep lands on 850 in light and hc-light, pale on 050 in dark and hc-dark, and both asserts below fail.
   // #2817: from that anchor the link then steps as far as it must to clear every surface it is placed on, so
   // light deep (550 → 600) sits one notch deeper than the anchor; dark pale and HC already cleared.
   const stepsOf = (t: ReturnType<typeof brandTheme>): Record<string, string | undefined> =>
     Object.fromEntries(linkByMode(t).map((r) => [r.mode, r.link?.path.split('.').slice(-2).join('.')]));
-  const deep = stepsOf(build({ brandColors: [{ name: 'deep', oklch: { l: 0.25, c: 0.08, h: 30 } }], roleColors: { action: 'deep' } }));
+  const DEEP = [{ name: 'deep', oklch: { l: 0.25, c: 0.08, h: 30 } }], PALE = [{ name: 'pale', oklch: { l: 0.92, c: 0.06, h: 95 } }];
+  const deep = stepsOf(build({ brandColors: DEEP, roleColors: { action: 'deep' }, actionAnchorStep: 550 }));
   ok(deep.light === 'deep.600' && deep['hc-light'] === 'deep.700',
-    `#1895: a dark rebased action color (deep, l 0.25) anchors the link where the action fill anchors — light deep.600 (anchor 550, #2817), hc-light deep.700 (got ${JSON.stringify(deep)})`);
-  const pale = stepsOf(build({ brandColors: [{ name: 'pale', oklch: { l: 0.92, c: 0.06, h: 95 } }], roleColors: { action: 'pale' } }));
+    `#1895: a dark rebased action color (deep, l 0.25, pinned at 550) anchors the link where the action fill anchors — light deep.600 (anchor 550, #2817), hc-light deep.700 (got ${JSON.stringify(deep)})`);
+  const pale = stepsOf(build({ brandColors: PALE, roleColors: { action: 'pale' }, actionAnchorStep: 500 }));
   ok(pale.dark === 'pale.450' && pale['hc-dark'] === 'pale.300',
-    `#1895: a pale rebased action color (pale, l 0.92) anchors the link where the action fill anchors — dark pale.450, hc-dark pale.300 (got ${JSON.stringify(pale)})`);
+    `#1895: a pale rebased action color (pale, l 0.92, pinned at 500) anchors the link where the action fill anchors — dark pale.450, hc-dark pale.300 (got ${JSON.stringify(pale)})`);
+
+  // #1896: `roleColors.action` and `actionPalette` are aliases (theme-schema.json), so they anchor the action fill
+  // at the same step: the resolved palette's own shade, not primary's. Literals from the issue's repro (accent →
+  // 450) and measured on this tree (deep → 850, pale → 050). BY-NAME MUTATION: key `actionBrandColor` off the
+  // `actionPalette` lever again in theme-brand.ts → the anchor literal, the four alias arms and the note fail.
+  const fillOf = (t: ReturnType<typeof brandTheme>, mode: string): string | undefined =>
+    (resolveAllModes(t).find((m) => m.mode === mode)?.roles as any)?.['interactive.primary.fill.rest']?.path.split('.').slice(-2).join('.');
+  ok(rc.roleAnchorStep.action === 450 && fillOf(rc, 'dark') === 'accent.450',
+    `#1896: roleColors.action 'accent' anchors the action fill at the accent's own shade, step 450 (dark fill accent.450) (got ${rc.roleAnchorStep.action}, ${fillOf(rc, 'dark')})`);
+  const deepRc = build({ brandColors: DEEP, roleColors: { action: 'deep' } }), paleRc = build({ brandColors: PALE, roleColors: { action: 'pale' } });
+  ok(fillOf(deepRc, 'light') === 'deep.850' && stepsOf(deepRc).light === 'deep.850' && fillOf(paleRc, 'dark') === 'pale.050' && stepsOf(paleRc).dark === 'pale.050',
+    `#1896: an unpinned rebased action color anchors fill and link at its own shade — light deep.850/deep.850, dark pale.050/pale.050 (got ${fillOf(deepRc, 'light')}/${stepsOf(deepRc).light}, ${fillOf(paleRc, 'dark')}/${stepsOf(paleRc).dark})`);
+  // Alias equality, role by role: the two spellings resolve every role to the same step in every mode. A primary
+  // anchored off 500 (l 0.4 → 650) makes the status and neutral arms witnesses too: before #1896 they took 650.
+  const B4 = { ...B, primary: { l: 0.4, c: 0.12, h: 262 }, brandColors: [...B.brandColors, ...DEEP, ...PALE] };
+  for (const pal of ['accent', 'deep', 'pale', 'neutral', 'success']) {
+    const viaLever = resolveAllModes(brandTheme({ ...B4, actionPalette: pal } as unknown as BrandInput));
+    const viaRole = resolveAllModes(brandTheme({ ...B4, roleColors: { action: pal } } as unknown as BrandInput));
+    const differ = viaLever.flatMap((m, i) => Object.entries(m.roles).filter(([k, v]) => (viaRole[i]?.roles as any)?.[k]?.path !== (v as any).path)
+      .map(([k, v]) => `${m.mode} ${k}: ${(v as any).path.split('.').slice(-2).join('.')} vs ${(viaRole[i]?.roles as any)?.[k]?.path.split('.').slice(-2).join('.')}`));
+    ok(viaLever.length === 4 && viaLever.length === viaRole.length && differ.length === 0,
+      `#1896: actionPalette '${pal}' and roleColors.action '${pal}' resolve every role to the same step in every mode (${differ.length} differ${differ.length ? `: ${differ.slice(0, 3).join('; ')}` : ''})`);
+  }
+  // The anchor note fires for the roleColors spelling too, naming the resolved palette. Wording unchanged; whether
+  // it fires for this spelling is the owner's call (#1896 OWNER DECISION, option A built). Literal note text.
+  ok(rc.notes.includes("action: anchored at 'accent' step 450, the brand's own shade — moved only if it misses 3:1 (7:1 in high contrast) against the contrast floor or background.tertiary."),
+    `#1896: with roleColors.action 'accent', the decisions log reports the anchor at the accent's own shade (got ${JSON.stringify(rc.notes.filter((n) => n.startsWith('action:')))})`);
 
   // The two link notes compare against the RESOLVED action palette and say "the action color" (owner
   // decision 2026-10-01). Literal note text, never a join of theme.ts's template (docs/34 shape 2). BY-NAME
@@ -10453,14 +10547,50 @@ arm: {
   const colorEntries = Object.entries(ai.color as Record<string, any>);
   const levelLeft = colorEntries.filter(([, r]) => 'avoid_when_level' in r || 'paired_with' in r).map(([k]) => k);
   ok(levelLeft.length === 0, 'sidecar: no entry carries the retired avoid_when_level or paired_with field' + (levelLeft.length ? ` — ${levelLeft.slice(0, 5).join(', ')}` : ''));
-  const badReq = colorEntries.flatMap(([k, r]) => (r.contrast_with ?? []).filter((cw: any) => {
+  // #1779: where the modes hold different floors the sentence names each mode's floor ("… in light and dark modes,
+  // and 4.5:1 in hc-light and hc-dark modes."). This block parses that with its own patterns, and holds a role's
+  // OWN pair (`contrast_with[0]` on a role the tree gives a floor) to the floors the TREE records, mode by mode — the
+  // check a payload reader runs. A second pair (no per-mode floor in the tree) is held to its own min and shape.
+  const reqRoot = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+  const treeFloors = (role: string): Record<string, string> | undefined => {
+    const ext = role.split('.').reduce((o: any, x) => o?.[x], tree[reqRoot]?.color)?.$extensions?.prism3;
+    if (!(ext?.min > 0)) return undefined;
+    return { light: `${ext.min}:1`, ...Object.fromEntries(Object.entries<any>(ext.modes ?? {}).filter(([, v]) => v?.min > 0).map(([m, v]) => [m, `${v.min}:1`])) };
+  };
+  const floorsStated = (clause: string, head: string, composite: boolean): Record<string, string> | 'every' | null => {
+    if (clause === (composite ? ', in every mode' : ' in every mode')) return 'every';
+    const out: Record<string, string> = {};
+    const parts = clause.replace(/^ in /, '').split(/, (?:and )?(?=(?:at )?[0-9])/);
+    for (const [i, part] of parts.entries()) {
+      const m = i === 0 ? ['', head, part] : part.match(composite ? /^at ([0-9.]+:1) or more in (.+)$/ : /^([0-9.]+:1) in (.+)$/);
+      const modes = m?.[2].match(/^(.+?) modes?$/)?.[1].split(/, | and /);
+      if (!m || !modes) return null;
+      for (const x of modes) out[x] = m[1];
+    }
+    return parts.length > 1 ? out : null;
+  };
+  const badReq = colorEntries.flatMap(([k, r]) => (r.contrast_with ?? []).filter((cw: any, i: number) => {
     const m = String(cw.requirement ?? '').match(cw.composited_over
-      ? /^MUST keep `([^`]+)` at (\d+(?:\.\d+)?:1) or more on `([^`]+)` composited over `([^`]+)`, in every mode\.$/
-      : /^MUST clear (\d+(?:\.\d+)?:1) against `([^`]+)` in every mode\.$/);
+      ? /^MUST keep `([^`]+)` at ([0-9.]+:1) or more on `([^`]+)` composited over `([^`]+)`(, in every mode| in .+)\.$/
+      : /^MUST clear ([0-9.]+:1) against `([^`]+)`( in every mode| in .+)\.$/);
     if (!m) return true;
-    return cw.composited_over ? m[1] !== cw.token || m[2] !== cw.min || m[3] !== k || m[4] !== cw.composited_over : m[1] !== cw.min || m[2] !== cw.token;
+    if (cw.composited_over ? m[1] !== cw.token || m[2] !== cw.min || m[3] !== k || m[4] !== cw.composited_over : m[1] !== cw.min || m[2] !== cw.token) return true;
+    const stated = floorsStated(m[cw.composited_over ? 5 : 3], cw.min, !!cw.composited_over);
+    if (!stated) return true;
+    const own = i === 0 ? treeFloors(k) : undefined;
+    if (!own) return false;
+    return stated === 'every' ? Object.values(own).some((v) => v !== cw.min)
+      : Object.keys(stated).length !== Object.keys(own).length || Object.entries(own).some(([md, v]) => stated[md] !== v);
   }).map(() => k));
-  ok(badReq.length === 0, 'sidecar: every contrast_with entry states its requirement as the check its own min and token define' + (badReq.length ? ` — ${badReq.slice(0, 5).join(', ')}` : ''));
+  ok(badReq.length === 0, 'sidecar: every contrast_with entry states its requirement as the check its own min and token define, with the floor of each mode as the tree records it (#1779)' + (badReq.length ? ` — ${badReq.slice(0, 5).join(', ')}` : ''));
+  // #1779, concrete: the issue's case (border.brand, 3:1 in light and dark, 4.5:1 in high contrast) and text.primary
+  // (7:1, 15:1 in high contrast), as literals; and a uniform floor (on-fill, 4.5:1 everywhere) keeps "in every mode".
+  ok(ai.color['border.brand']?.contrast_with?.[0]?.requirement === 'MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes.',
+    `#1779 sidecar: border.brand states 3:1 in light and dark and 4.5:1 in high contrast (got "${ai.color['border.brand']?.contrast_with?.[0]?.requirement}")`);
+  ok(/^MUST clear 7:1 against `[^`]+` in light and dark modes, and 15:1 in hc-light and hc-dark modes\.$/.test(ai.color['text.primary']?.contrast_with?.[0]?.requirement ?? ''),
+    `#1779 sidecar: text.primary states 7:1 in light and dark and 15:1 in high contrast (got "${ai.color['text.primary']?.contrast_with?.[0]?.requirement}")`);
+  ok(ai.color['interactive.primary.on-fill']?.contrast_with?.[0]?.requirement === 'MUST clear 4.5:1 against `interactive.primary.fill.rest` in every mode.',
+    `#1779 sidecar: a floor that holds in every mode (interactive.primary.on-fill, 4.5:1) still says "in every mode" (got "${ai.color['interactive.primary.on-fill']?.contrast_with?.[0]?.requirement}")`);
   // Concrete values, not just the structural pairing — docs/34 shape 5 ("it resolves" is not "it is
   // right"). text.primary holds a real AAA text contract against its surface; border.primary is the
   // decorative border, which carries no contract and so no requirement.
@@ -11611,6 +11741,14 @@ arm: {
   if (!exampleTheme('harbor', () => brandTheme(pinput))) break arm;
   const rp = resolvePreview(brandTheme(pinput));
   ok(rp.modes.length === 4, 'resolved preview: all four modes projected' + (rp.modes.length !== 4 ? ` — got ${rp.modes.length}` : ''));
+  // #3759: each contract's ratio is stored RAW, the very number its pass was decided on, so the contracts table's floored
+  // print never reads a rounded-up 4.50 beside a failing dot. Measured independently from the resolved hexes.
+  const cooked = rp.contracts.flatMap((c) => rp.modes.flatMap((m) => {
+    const r = c.byMode[m], fg = rp.colors[c.fg]?.[m], bg = rp.colors[c.bg]?.[m];
+    return r && fg && bg && r.ratio !== contrast(hexToRgb(fg), hexToRgb(bg)) ? [`${c.component}/${c.variant} ${m}: ${r.ratio}`] : [];
+  }));
+  const measuredPairs = rp.contracts.reduce((n, c) => n + rp.modes.filter((m) => c.byMode[m] && rp.colors[c.fg]?.[m] && rp.colors[c.bg]?.[m]).length, 0);
+  ok(measuredPairs > 100 && cooked.length === 0, `#3759 resolved preview: every contract ratio is the raw measured one, never pre-rounded (${measuredPairs} pairs; cooked: ${cooked.slice(0, 5).join(', ') || 'none'})`);
 
   const noHex = Object.entries(rp.colors).filter(([, byMode]) => rp.modes.some((m) => !byMode[m])).map(([k]) => k);
   ok(noHex.length === 0, 'resolved preview: every referenced colour role resolves to a hex in every mode' + (noHex.length ? ` — MISSING: ${noHex.join(', ')}` : ''));
@@ -26741,6 +26879,42 @@ arm: {
       ok(swapRows.every((r) => r.prop === `property ↳ swap leading icon -> swap target ${ICON} (${swapMissAdvice(r.found, ICON)}; ${SWAP_NO_PROPERTY})`),
         `#1288 ...and so is the property-level one, under the canon panel label (#1380) (${swapRows.find((r) => r.prop !== `property ↳ swap leading icon -> swap target ${ICON} (${swapMissAdvice(r.found, ICON)}; ${SWAP_NO_PROPERTY})`)?.prop ?? 'all four match'})`);
 
+      // ---- #1796: TWO PLAIN COMPONENTS under a nest or swap target's exact name, on the PASTE path ----
+      // The payload's half of the plugin arms in `apps/plugin/test-write-components.ts` (`#1796 …`). `compByName` keeps
+      // one entry per name, so the payload used to nest or swap in whichever of two same-named components the search
+      // returned last, and report success. Now each target reads `oneComp`: two of a name are reported by name, through
+      // the shared advice's AMBIGUOUS row, and nothing is made from either. THE ORACLE is the host: the page is walked
+      // for an INSTANCE whose `mainComponent` the stub recorded under the target's name.
+      {
+        const instancesOf = (page: StubPage, name: string): number => {
+          let n = 0;
+          const walk = (x: Record<string, unknown>): void => {
+            if (x.type === 'INSTANCE' && (x as { mainComponent?: { name: string } }).mainComponent?.name === name) n++;
+            for (const c of (x.children as Record<string, unknown>[] | undefined) ?? []) walk(c);
+          };
+          for (const c of page.children) walk(c);
+          return n;
+        };
+        // REACHABILITY: with ONE of each, the grid really does nest the ring and swap in the icon.
+        const onePage: StubPage = { children: [] };
+        await runPayload(planSetToPluginJs(grid), { ...fullSet, page: onePage });
+        ok(instancesOf(onePage, 'focus-ring') > 0 && instancesOf(onePage, ICON) > 0,
+          `#1796 paste path reachable: with one of each, the grid nests focus-ring (${instancesOf(onePage, 'focus-ring')}) and swaps in ${ICON} (${instancesOf(onePage, ICON)})`);
+        const ringPage: StubPage = { children: [] };
+        const ring = await runPayload(planSetToPluginJs(grid), { ...fullSet, comps: [...fullSet.comps, 'focus-ring'], page: ringPage });
+        const ringMiss = [...new Set(ring.misses.filter((m) => m.includes('.nestTarget -> focus-ring')))];
+        ok(ringMiss.length > 0 && ringMiss.every((m) => m.includes('.nestTarget -> focus-ring (found more than one COMPONENT of that name; neither is used')) && instancesOf(ringPage, 'focus-ring') === 0,
+          `#1796 paste path: two plain components named focus-ring are reported by name and no ring is nested from either (${instancesOf(ringPage, 'focus-ring')} built; ${ringMiss[0] ?? JSON.stringify(ring.misses.slice(0, 2))})`);
+        const iconPage: StubPage = { children: [] };
+        const icon = await runPayload(planSetToPluginJs(grid), { ...fullSet, comps: [...fullSet.comps, ICON], page: iconPage });
+        const iconLead = swapMissesOf(icon.misses, 'leadingVisual')[0] ?? '(none)';
+        const iconProp = [...new Set(icon.misses.filter((m) => m.startsWith('property ') && m.indexOf(`swap target ${ICON}`) >= 0))][0] ?? '(none)';
+        ok(iconLead === `leadingVisual.swapTarget -> ${ICON} (${swapMissAdvice('AMBIGUOUS', ICON)}; ${SWAP_PLACEHOLDER})` && iconLead.includes('found more than one COMPONENT of that name; neither is used') && instancesOf(iconPage, ICON) === 0,
+          `#1796 paste path: two plain components named ${ICON} are reported by name at the swap node and neither is swapped in (${instancesOf(iconPage, ICON)} built; ${iconLead})`);
+        ok(iconProp === `property ↳ swap leading icon -> swap target ${ICON} (${swapMissAdvice('AMBIGUOUS', ICON)}; ${SWAP_NO_PROPERTY})`,
+          `#1796 paste path: ...and the swap property is not created from either (${iconProp})`);
+      }
+
       // ---- the BOOLEAN path through the PAYLOAD, not just the plan (#513's stated ceiling) --------
       // #513 said "the `booleans` path is unit-tested through a synthetic def but not yet exercised
       // live", and the coverage above (`boolProps`) is `planSetProperties` only — it proves the plan
@@ -31421,7 +31595,7 @@ arm: {
   ok(cs.files.size === 2 && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json'),
     `export_theme: include:[componentSpecs] writes exactly the export and its Specs projection (${[...cs.files.keys()].join(', ')})`);
   const csDoc = JSON.parse(cs.files.get('./cs/component-defs.json') ?? '{}');
-  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.3' && Object.keys(csDoc.components ?? {}).length >= 40,
+  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.4' && Object.keys(csDoc.components ?? {}).length >= 40,
     `export_theme: the component-defs export is the brand's (${csDoc.brand?.id}), in its format, with every component (${Object.keys(csDoc.components ?? {}).length})`);
 
   // A bad brand must fail BEFORE anything is written — a partial export is worse than none.
@@ -33845,6 +34019,31 @@ arm: {
     'rename-map: fan-in with BOTH sources live → ambiguous-source for both, migrating neither — the file is the disambiguator, and picking one would silently discard the bindings on the other');
   ok(statuses(['color/a'], ['color/c'], [v('color/a', 'color/c'), v('color/b', 'color/c')]) === 'color/a→color/c:migrated',
     'rename-map: fan-in with ONE source live → an ordinary migration, so the 3 fan-in groups in the real map still migrate on a healthy file rather than refusing forever');
+  // #1142 — A RELOCATION AND A DEDUPE SHARING ONE TARGET. The relocation keeps the target's leaf
+  // (`primary`), the dedupe names another role (`default`), so the relocation migrates and the dedupe
+  // finds the target taken, `target-occupied`: two variables, the designer picks the survivor.
+  ok(statuses(['color/border/inverse/primary', 'color/border/inverse/default'], ['color/inverse/border/primary'],
+      [v('color/border/inverse/primary', 'color/inverse/border/primary'), v('color/border/inverse/default', 'color/inverse/border/primary')])
+      === 'color/border/inverse/default→color/inverse/border/primary:target-occupied | color/border/inverse/primary→color/inverse/border/primary:migrated',
+    '#1142 rename-map: a fan-in group with exactly ONE row keeping the target\'s leaf migrates that row and reports the rest target-occupied — the relocation carries its bindings, and the dedupe still waits for a human');
+  // …and with TWO rows keeping the leaf (one role in two eras' spellings), neither is the relocation, so the
+  // group stays ambiguous: the leaf picks a row only when it picks exactly one.
+  ok(statuses(['color/x/on-inverse/primary', 'color/x/inverse/primary'], ['color/inverse/x/primary'],
+      [v('color/x/on-inverse/primary', 'color/inverse/x/primary'), v('color/x/inverse/primary', 'color/inverse/x/primary')])
+      === 'color/x/inverse/primary→color/inverse/x/primary:ambiguous-source | color/x/on-inverse/primary→color/inverse/x/primary:ambiguous-source',
+    '#1142 rename-map: two rows keeping the target\'s leaf stay ambiguous-source — the leaf rule decides only when exactly one row qualifies');
+  // THE ISSUE'S OWN FAILURE PATH, ON THE SHIPPED MAP. A file written between #1013 and #1140 holds the value
+  // tier's `color/appearance/border/inverse/{primary,default}`. Composed through the shipped rules and the
+  // shipped contract rows exactly as the executor does, the relocation must migrate and the dedupe must not.
+  {
+    const R = 'zzfanin';
+    const old = ['color/appearance/border/inverse/primary', 'color/appearance/border/inverse/default'];
+    const rows = composeVariableRenames('color', old, renameMap().variables, MATERIALIZATION_RENAMES, R);
+    const got = planVariableRenames(old, [`${R}/color/inverse/border/primary`], rows)
+      .filter((o) => old.includes(o.from)).map((o) => `${o.from}:${o.status}`).sort().join(' | ');
+    ok(got === 'color/appearance/border/inverse/default:target-occupied | color/appearance/border/inverse/primary:migrated',
+      `#1142 rename-map: on the shipped map, a #1013-to-#1140 file's border/inverse/primary MIGRATES to inverse/border/primary and the deduped border/inverse/default reports target-occupied (got ${got || 'NOTHING'})`);
+  }
 
   // The collection planner, same shape — but it plans the WHOLE map at once (#1035), because a chain's
   // correct order is a property of the map and not of any single entry. Its plan-membership precondition
@@ -34099,6 +34298,29 @@ arm: {
     `rename-map: all ${colorContractRows.length} shipped contract rows are in \`color\` and NONE is keyed on a spelling a materialization rule would also rewrite — so no live name is claimed by both, and the fold has one answer${ruleReachable.length ? ` — REACHABLE: ${ruleReachable.slice(0, 3).map((r) => r.from).join(', ')}` : ''}`);
   ok(comp('color', [], [v('color/a', 'color/b', 'color')]) === `${CROOT}/color/a→${CROOT}/color/b`,
     'rename-map: a contract row whose source is not live still comes through — it has to, or `source-absent` would stop being reported and "checked, nothing to do" would silently become "never checked"');
+  // #1084 — A COMPOSED ROW'S `since` IS A CONTRACT_VERSION OR NOTHING. `VarRename.since` is documented as
+  // the `CONTRACT_VERSION` that retired `from`; a materialization rule's `since` is an `ENGINE_VERSION`. A
+  // row only a rule produced was never retired by the contract, so it carries '' rather than the rule's
+  // engine version. The oracle is the set of `since` values `DEPRECATIONS` holds, the contract's own record,
+  // which nothing in `composeVariableRenames` derives from.
+  {
+    const contractSince = new Set(DEPRECATIONS.map((d) => d.since));
+    const ruleOnly = composeVariableRenames('color', ['color/appearance/background/primary'], [], MATERIALIZATION_RENAMES, CROOT);
+    ok(ruleOnly.length === 1 && ruleOnly[0].since === '',
+      `#1084 rename-map: a row only a materialization rule produced carries since '' — got ${ruleOnly.map((r) => `'${r.since}'`).join(', ') || 'NO ROW'}; a rule's since is an ENGINE_VERSION, and this field holds a CONTRACT_VERSION`);
+    const withRow = composeVariableRenames('color', ['color/appearance/old'],
+      [{ collection: 'color', from: 'color/old', to: 'color/new', since: '8.0.0' }], MATERIALIZATION_RENAMES, CROOT);
+    ok(withRow.length === 1 && withRow[0].since === '8.0.0',
+      `#1084 rename-map: a row a contract row reached keeps that row's CONTRACT_VERSION, even when rules carried the name there first — got ${withRow.map((r) => `'${r.since}'`).join(', ') || 'NO ROW'}`);
+    // Across the shipped map and every era's spelling of every source it names: each composed `since` is
+    // '' or a version DEPRECATIONS records.
+    const shippedColor = renameMap().variables.filter((r) => r.collection === 'color');
+    const eras = shippedColor.flatMap((r) => [r.from, `${CROOT}/${r.from}`, r.from.replace(/^color\//, 'color/appearance/')]);
+    const stray = composeVariableRenames('color', eras, shippedColor, MATERIALIZATION_RENAMES, CROOT)
+      .filter((r) => r.since !== '' && !contractSince.has(r.since));
+    ok(stray.length === 0,
+      `#1084 rename-map: every composed row over the shipped map carries '' or a CONTRACT_VERSION from DEPRECATIONS — ${stray.length} do not${stray.length ? `: ${stray.slice(0, 3).map((r) => `${r.from}@${r.since}`).join(', ')}` : ''}`);
+  }
 }
 
 // ---- #1009: the vertical rule — the half that is claimed, and the half that is NOT a fix -----------
@@ -37754,6 +37976,7 @@ arm: {
     git('init', '-q');
     put('packages/engine/lint-progress-order.ts', readFileSync(resolve(HERE, 'lint-progress-order.ts'), 'utf8'));
     put('packages/engine/rename-stamp-audit.ts', readFileSync(resolve(HERE, 'rename-stamp-audit.ts'), 'utf8'));
+    put('packages/engine/comparison-base.ts', readFileSync(resolve(HERE, 'comparison-base.ts'), 'utf8'));
     log([]); put('docs/progress/pending/README.md', 'Pending fragments.\n');
     commit('m0 seed');
     fragment('lane-pre-one', 'Pre one'); commit('m1');
@@ -37876,6 +38099,200 @@ arm: {
       `#2663 leaves nothing pending: the fold re-cut on the moved main passes (exit ${recut.status}: ${recut.lines.filter((l) => /leaves nothing|LEAVES NOTHING|✗/.test(l)).join(' | ')})`);
   } finally {
     rmSync(scratch, { recursive: true, force: true });
+  }
+}
+
+// ---- #3833 AN INTEGRATION BRANCH REFRESHED FROM MAIN -------------------------------------------------
+//
+// A PR into a branch other than `main` that merges `main` in carries `main`'s own notes, folds and executor
+// revisions, each already judged by its own run. Read from the branch's merge base, #3833's refresh failed
+// three gates on `main`'s work: emission-version's NOTE SHAPE on `main`'s patch notes over `main`'s folded
+// emission, progress-order's LEAVES NOTHING PENDING on `main`'s folds, executor-reach on five of `main`'s
+// revisions measured as one. `integrationBase` (`comparison-base.ts`) reads such a PR from the newest `main`
+// it carries. This replays the shape against the REAL gates, in a `--shared` clone of this repo with the
+// working tree on top (as `lint-push-base.ts` does), and the REAL fold.ts:
+//
+//   main:  W (the working tree) · m0 a pending minor note · m1 fold.ts folds it (every stamp moves) · m2 a patch note
+//   poc:   forks at m0 · p0 its own entry (pending, as an integration branch's entries stay)
+//   refresh: p0 merges m2, with an entry of its own. Read as a PR into `poc` (GITHUB_BASE_REF=poc).
+//
+// Before #3833's fix the three refresh cases fail with CI's own messages. Two controls keep the gate's teeth:
+// the refresh moving an artifact under its OWN patch note fails NOTE SHAPE, and so does an ordinary PR into
+// `poc` (no `main` merged), which keeps its merge base. MUTATIONS VERIFIED (#3833, each fails a case below by
+// name): `integrationBase` returning null · emission-version, progress-order and executor-reach each dropping
+// their call · the `ahead` test inverted (the ordinary-PR control).
+{
+  const REPO = resolve(HERE, '..', '..');
+  const work = mkdtempSync(join(tmpdir(), 'prism3-integration-base-'));
+  const clone = join(work, 'r');
+  const env: NodeJS.ProcessEnv = {};
+  for (const [k, v] of Object.entries(process.env)) if (!k.startsWith('GIT_') && !k.startsWith('GITHUB_')) env[k] = v;
+  Object.assign(env, { GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1', GIT_AUTHOR_NAME: 'fixture', GIT_AUTHOR_EMAIL: 'fixture@example.invalid', GIT_COMMITTER_NAME: 'fixture', GIT_COMMITTER_EMAIL: 'fixture@example.invalid' });
+  const gitIn = (dir: string, args: string[], input?: string): string => {
+    const r = spawnSync('git', ['-C', dir, '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', ...args], { encoding: 'utf8', env, input, maxBuffer: 256 * 1024 * 1024 });
+    if (r.status !== 0) throw new Error(`#3833 replay: git ${args.join(' ')} failed: ${r.stderr}`);
+    return r.stdout;
+  };
+  const git = (args: string[], input?: string): string => gitIn(clone, args, input).trim();
+  const put = (p: string, text: string) => { mkdirSync(dirname(join(clone, p)), { recursive: true }); writeFileSync(join(clone, p), text); };
+  const note = (slug: string, level: string) => put(`packages/engine/changes/${slug}.md`, `---\nengine: ${level}\n---\nThe #3833 replay's ${slug}.\n`);
+  const fragment = (slug: string) => put(`docs/progress/pending/${slug}.md`, `## (2026-11-16) — The #3833 replay's ${slug}\n\nBody.\n`);
+  const commit = (msg: string): string => { git(['add', '-A']); git(['commit', '-q', '--allow-empty', '-m', msg]); return git(['rev-parse', 'HEAD']); };
+  const tsx = (file: string, extra: Record<string, string>) => {
+    const r = spawnSync(process.execPath, [...process.execArgv, join(clone, file)], { cwd: clone, encoding: 'utf8', env: { ...env, ...extra }, maxBuffer: 64 * 1024 * 1024 });
+    return { status: r.status, out: `${r.stdout ?? ''}${r.stderr ?? ''}` };
+  };
+  const said = (r: { out: string }, re: RegExp) => r.out.split('\n').filter((l) => re.test(l)).join(' | ').slice(0, 400);
+  const PR = { GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'poc' };
+  const EMITTED = 'packages/engine/out/figma/prism3/focus.json';
+  const moveArtifact = () => put(EMITTED, `${readFileSync(join(clone, EMITTED), 'utf8')}\n`);
+  const FROM_MAIN = 'merge base with origin/main — HEAD carries';
+  // A `--shared` clone of `src` at `dst`, on branch `main`, whose tip is W: `src`'s working tree as one commit.
+  //   · W sits on the `main` `src` CARRIES: its merge base with `origin/main` (then `main`), or HEAD when neither
+  //     resolves. On `main` that is HEAD's own history. On an integration branch it is not: that branch's own
+  //     pending entries stay pending and never fold, so on its first-parent chain they landed before `main`'s
+  //     newest folded entry, and the fold below refused them (#3842). On the carried `main` they land at W, as
+  //     any PR's entry lands at its merge.
+  //   · The clone keeps no ref but `main`. It would inherit `src`'s branches, and a local `poc/…` branch then
+  //     blocks the fixture's `poc` (#3842). The fixture names every other ref it reads.
+  const cloneWorkingTree = (src: string, dst: string): void => {
+    gitIn(work, ['clone', '-q', '--shared', '--no-checkout', src, dst]);
+    for (const ref of gitIn(dst, ['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes']).split('\n').filter(Boolean)) gitIn(dst, ['update-ref', '-d', ref]);
+    const mainRefIn = ['origin/main', 'main'].find((c) => spawnSync('git', ['-C', src, 'rev-parse', '--verify', '--quiet', `${c}^{commit}`], { env }).status === 0);
+    const carriedIn = mainRefIn ? spawnSync('git', ['-C', src, 'merge-base', 'HEAD', mainRefIn], { encoding: 'utf8', env }) : null;
+    const carried = carriedIn?.status === 0 && carriedIn.stdout.trim() ? carriedIn.stdout.trim() : gitIn(src, ['rev-parse', 'HEAD']).trim();
+    gitIn(dst, ['checkout', '-q', '-B', 'main', carried]);
+    const patch = gitIn(src, ['diff', '--binary', carried]);
+    if (patch) gitIn(dst, ['apply', '--binary', '-'], patch);
+    for (const p of gitIn(src, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean)) {
+      mkdirSync(dirname(join(dst, p)), { recursive: true });
+      copyFileSync(join(src, p), join(dst, p));
+    }
+    gitIn(dst, ['add', '-A']); gitIn(dst, ['commit', '-q', '--allow-empty', '-m', 'W: the working tree']);
+  };
+  try {
+    // #3842: the clone of an integration branch's tree. `main` c0 · c1; `poc/integ` forks at c0, adds its own
+    // entry at i1 and merges c1. Its entry must land at W, and W must sit on c1, the `main` it carries; and the
+    // branch `poc/integ` must not reach the clone. MUTATIONS VERIFIED (#3842, each fails a case here by name, and
+    // the first also fails the replay below on an integration branch's own tree with CI's fold refusal): W on
+    // HEAD instead of the carried `main` · the inherited refs kept.
+    {
+      const syn = join(work, 's');
+      const synClone = join(work, 'sc');
+      const ENTRY = 'docs/progress/pending/integ-own.md';
+      gitIn(work, ['init', '-q', '-b', 'main', syn]);
+      mkdirSync(join(syn, 'docs/progress/pending'), { recursive: true });
+      writeFileSync(join(syn, 'docs/progress/pending/README.md'), 'Pending.\n');
+      gitIn(syn, ['add', '-A']); gitIn(syn, ['commit', '-q', '-m', 'c0']);
+      gitIn(syn, ['checkout', '-q', '-b', 'poc/integ']);
+      writeFileSync(join(syn, ENTRY), '## (2026-11-08) — The integration branch\'s own entry\n');
+      gitIn(syn, ['add', '-A']); gitIn(syn, ['commit', '-q', '-m', 'i1']);
+      gitIn(syn, ['checkout', '-q', 'main']);
+      writeFileSync(join(syn, 'main.txt'), 'main moved\n');
+      gitIn(syn, ['add', '-A']); gitIn(syn, ['commit', '-q', '-m', 'c1']);
+      const c1 = gitIn(syn, ['rev-parse', 'HEAD']).trim();
+      gitIn(syn, ['checkout', '-q', 'poc/integ']); gitIn(syn, ['merge', '-q', '--no-ff', '-m', 'refresh from main', 'main']);
+      cloneWorkingTree(syn, synClone);
+      const w = gitIn(synClone, ['rev-parse', 'HEAD']).trim();
+      const landed = gitIn(synClone, ['log', '--first-parent', '--diff-filter=A', '--format=%H', 'HEAD', '--', ENTRY]).trim();
+      ok(landed === w && gitIn(synClone, ['rev-parse', 'HEAD^1']).trim() === c1,
+        `#3842 replay clone: an integration branch's own entry lands at W, on the main its tree carries (landed ${landed.slice(0, 8)}, W ${w.slice(0, 8)}, W's parent ${gitIn(synClone, ['rev-parse', 'HEAD^1']).trim().slice(0, 8)}, carried main ${c1.slice(0, 8)})`);
+      const refs = gitIn(synClone, ['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes']).trim();
+      ok(refs === 'refs/heads/main', `#3842 replay clone: the clone keeps no ref of the source but main, so a local poc/… branch cannot block the fixture's poc (refs: ${refs.split('\n').join(', ')})`);
+    }
+
+    cloneWorkingTree(REPO, clone);
+    // executor-reach imports `@prism3/engine`; the clone has no install, so point the name at its own engine.
+    mkdirSync(join(clone, 'node_modules', '@prism3'), { recursive: true });
+    symlinkSync(join(clone, 'packages', 'engine'), join(clone, 'node_modules', '@prism3', 'engine'), 'dir');
+
+    note('replay-main-minor', 'minor'); fragment('replay-main-minor'); const m0 = commit('m0: a pending minor note');
+    git(['checkout', '-q', '-b', 'poc', m0]); fragment('replay-poc-own'); const p0 = commit('p0: the branch\'s own entry');
+    git(['update-ref', 'refs/remotes/origin/poc', p0]);
+    git(['checkout', '-q', 'main']); git(['update-ref', 'refs/remotes/origin/main', m0]);
+    const fold = tsx('fold.ts', {});
+    if (fold.status !== 0) throw new Error(`#3833 replay: fold.ts failed in the clone: ${fold.out.slice(-1500)}`);
+    commit('m1: the fold');
+    note('replay-main-patch', 'patch'); fragment('replay-main-patch'); const m2 = commit('m2: a patch note');
+    git(['update-ref', 'refs/remotes/origin/main', m2]);
+    git(['checkout', '-q', '-b', 'refresh', p0]); git(['merge', '-q', '--no-ff', '-m', 'refresh from main', m2]);
+    fragment('replay-refresh'); commit('the refresh\'s entry');
+
+    const ev = tsx('packages/engine/lint-emission-version.ts', PR);
+    ok(ev.status === 0 && ev.out.includes(FROM_MAIN),
+      `#3833 emission-version: a refresh of an integration branch is read from the main it carries, so main's patch note over main's folded emission passes (exit ${ev.status}: ${said(ev, /NOTE SHAPE|FOLD|ONE WRITER|base |clean/)})`);
+    const po = tsx('packages/engine/lint-progress-order.ts', PR);
+    ok(po.status === 0 && po.out.includes('  ✓ leaves nothing pending: n/a — the diff consumes no pending file, so it is not a fold'),
+      `#3833 progress-order: main's fold is not read as the refresh's own fold (exit ${po.status}: ${said(po, /LEAVES|leaves|✗/)})`);
+    const er = tsx('apps/plugin/lint-executor-reach.ts', PR);
+    ok(er.status === 0 && er.out.includes(`(${FROM_MAIN}`),
+      `#3833 executor-reach: a refresh is read from the main it carries, not as one span over main's revisions (exit ${er.status}: ${said(er, /base |✗/)})`);
+
+    git(['checkout', '-q', '-b', 'refresh-own-patch', 'refresh']); moveArtifact(); note('replay-refresh-patch', 'patch'); commit('the refresh moves an artifact under a patch note');
+    const own = tsx('packages/engine/lint-emission-version.ts', PR);
+    ok(own.status === 1 && own.out.includes('NOTE SHAPE — packages/engine/changes/replay-refresh-patch.md declares `engine: patch`, and 1 committed artifact(s) moved (#1807).'),
+      `#3833 emission-version: the refresh's OWN patch note over its own moved artifact still fails NOTE SHAPE by name (exit ${own.status}: ${said(own, /NOTE SHAPE|base /)})`);
+    git(['checkout', '-q', '-b', 'ordinary', p0]); moveArtifact(); note('replay-ordinary-patch', 'patch'); commit('an ordinary PR into the branch');
+    const ord = tsx('packages/engine/lint-emission-version.ts', PR);
+    ok(ord.status === 1 && ord.out.includes('NOTE SHAPE — packages/engine/changes/replay-ordinary-patch.md declares `engine: patch`, and 1 committed artifact(s) moved (#1807).')
+        && ord.out.includes('(origin/poc, via GITHUB_BASE_REF, merge base)'),
+      `#3833 emission-version: an ordinary PR into the branch (no main merged) keeps its merge base and still fails NOTE SHAPE by name (exit ${ord.status}: ${said(ord, /NOTE SHAPE|base /)})`);
+
+    // #3863 — RELEASE NOTES ON AN INTEGRATION BRANCH REFRESHED BY A SQUASH. #3833 landed on `poc/arm-1` as a squash,
+    // a96bdd6a: one parent, and it sets `ENGINE_VERSION` to the version `main` folded. lint-release-notes reads a
+    // version's fold as the newest single-parent commit setting it, so walked from HEAD it read the squash as 0.238.0's
+    // fold, over a diff holding every note `main` added and folded since the branch forked: 86 problems in notes `main`'s
+    // run had passed, on #3863 and #3834, and on every later PR into the branch, since the squash never leaves it.
+    // `carriedMain` (`comparison-base.ts`) walks the folds from the `main` the tree carries on any PR into another base.
+    //   poc2: forks at W (before m0's note) · q0 its own entry · sq squashes m2 in (dated later, so a HEAD walk meets it
+    //   first) · remerge merges m2 for real. MUTATIONS VERIFIED (#3863, each fails a case here by name): the walk on HEAD
+    //   again (`walkFrom` = 'HEAD') · `integrationBase` in place of `carriedMain` (the ordinary PR after the refresh) ·
+    //   `carriedMain` returning a point on `main` too (the dropped note on main reads its fold from origin/main's tip).
+    {
+      const RN = 'packages/engine/lint-release-notes.ts';
+      const m1 = git(['rev-parse', `${m2}^1`]);
+      const w = git(['rev-parse', `${m0}^1`]);
+      const v = /ENGINE_VERSION = '(\d+\.\d+\.\d+)'/.exec(git(['show', `${m1}:packages/engine/version.ts`]))![1];
+      const POC2 = { GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'poc2' };
+      const NOT_FOLDED = `NOTES — ${v}: the notes carry replay-main-minor, which its fold did not fold`;
+      const DROPPED = `NOTES — ${v}: its fold folded replay-main-minor, and the notes do not carry it`;
+      git(['checkout', '-q', '-b', 'poc2', w]); fragment('replay-poc2-own'); commit('q0: the branch\'s own entry');
+      git(['merge', '-q', '--squash', m2]);
+      env.GIT_COMMITTER_DATE = new Date(Date.now() + 3600_000).toISOString();
+      let sq: string;
+      try { sq = commit('sq: main squashed in, as #3833 landed'); } finally { delete env.GIT_COMMITTER_DATE; }
+      git(['checkout', '-q', '-b', 'remerge', sq]); git(['merge', '-q', '--no-ff', '-m', 'merge main for real', m2]);
+      fragment('replay-remerge'); const rm = commit('the real merge\'s entry');
+      git(['update-ref', 'refs/remotes/origin/poc2', sq]);
+      const ref = tsx(RN, POC2);
+      ok(ref.status === 0 && ref.out.includes(`..${m1.slice(0, 8)} — `) && ref.out.includes('folds read from origin/main at'),
+        `#3863 release-notes: a real merge of main into a squash-refreshed branch reads ${v}'s fold from the main it carries (${m1.slice(0, 8)}), not the squash (exit ${ref.status}: ${said(ref, /folds read|\.\.|NOTES|❌/)})`);
+      const head = tsx(RN, {});
+      ok(head.status === 1 && head.out.includes(NOT_FOLDED) && head.out.includes(`..${sq.slice(0, 8)} — `),
+        `#3863 release-notes: the same tree walked from HEAD (no GITHUB_BASE_REF, as before the fix) reads the squash as the fold and fails NOTES by name (exit ${head.status}: ${said(head, /NOTES|\.\./)})`);
+      git(['checkout', '-q', '-b', 'poc2-ordinary', rm]); fragment('replay-poc2-ordinary'); commit('an ordinary PR into the refreshed branch');
+      git(['update-ref', 'refs/remotes/origin/poc2', rm]);
+      const later = tsx(RN, POC2);
+      ok(later.status === 0 && later.out.includes(`..${m1.slice(0, 8)} — `),
+        `#3863 release-notes: an ordinary PR into the branch after the refresh, which brings no new main, still reads the fold from main, not the squash on the branch's chain (exit ${later.status}: ${said(later, /folds read|\.\.|NOTES|❌/)})`);
+      // Teeth: a release that drops a note its fold folded fails on main and on the integration branch alike.
+      const dropNote = () => {
+        const p = join(clone, `docs/public/releases/${v}.json`);
+        const rel = JSON.parse(readFileSync(p, 'utf8')) as { notes: { slug: string }[] };
+        rel.notes = rel.notes.filter((n) => n.slug !== 'replay-main-minor');
+        writeFileSync(p, `${JSON.stringify(rel, null, 2)}\n`);
+      };
+      git(['checkout', '-q', '-b', 'main-drop', m2]); dropNote(); commit('main: the release drops a folded note');
+      const onMain = tsx(RN, { GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'main' });
+      ok(onMain.status === 1 && onMain.out.includes(DROPPED) && onMain.out.includes('folds read from HEAD\'s own history'),
+        `#3863 release-notes: on a PR into main the walk is HEAD's, and a release missing a note its fold folded fails NOTES by name (exit ${onMain.status}: ${said(onMain, /NOTES|folds read/)})`);
+      git(['checkout', '-q', '-b', 'poc2-drop', rm]); dropNote(); commit('poc2: the release drops a folded note');
+      const onPoc = tsx(RN, POC2);
+      ok(onPoc.status === 1 && onPoc.out.includes(DROPPED),
+        `#3863 release-notes: on a PR into the integration branch, a release missing a note main's fold folded still fails NOTES by name (exit ${onPoc.status}: ${said(onPoc, /NOTES|folds read/)})`);
+    }
+  } finally {
+    rmSync(work, { recursive: true, force: true });
   }
 }
 
@@ -41541,6 +41958,75 @@ arm: {
   ok(rowBad.length === 0, `Q351 A row props: Checkbox.Row, Radio.Row and Switch.Row each carry disabled, and Radio.Row readOnly, as a real boolean defaulting false (${rowBad.join('; ') || 'all 4'})`);
 }
 
+// ---- #3506 (owner Q142 A on #3408): THE EMISSION CARRIES EVERY CORNER, STROKE, FOCUS-RING AND MOTION BINDING ----
+//
+// A code generator reads `specs.json` and `component-defs.json` and nothing else, so a binding the def makes and the
+// emission drops is one the code cannot have. EXPECTED is read off each def as Apply materializes it (`specMaterialize`):
+// every part that names a corner (`radius`, `radiusEdges`) or a stroke (`strokeWidth`, `strokeEdges`) and is drawn, every
+// part that nests the shared focus ring (its `inset` token), and every `tokens` binding to a `motion.*` token. ACTUAL is
+// the two FILES, freshly emitted by the emitter's own process (`renderUncommitted`) and read as JSON, never a call to
+// `componentSpec`. A binding missing from either file fails by def, part and file. Then literal pins, typed here.
+{
+  const r = renderUncommitted();
+  if ('error' in r) ok(false, `#3506: the emission could not be rendered to check — ${r.error}`);
+  else {
+    const [defsFile, , specsFile] = r.files;
+    const defsJson = JSON.parse(readFileSync(defsFile, 'utf8'));
+    const specsJson = JSON.parse(readFileSync(specsFile, 'utf8'));
+    const files: [string, (id: string) => any][] = [
+      ['specs.json', (id) => specsJson.components?.[id]],
+      ['component-defs.json', (id) => defsJson.components?.[id]?.spec],
+    ];
+    for (const [file, specOf] of files) {
+      const miss: string[] = [];
+      let corners = 0, strokes = 0, rings = 0, motions = 0;
+      for (const authored of componentDefs) {
+        if (!authored.figmaProperties) continue;
+        const def = specMaterialize(authored);
+        const spec = specOf(authored.id);
+        if (!spec) { miss.push(`${authored.id}: no spec`); continue; }
+        for (const [name, part] of Object.entries(def.anatomy?.parts ?? {})) {
+          const paths: string[] = spec.anatomy.map((a: any) => a.part).filter((p: string) => p.split('/').pop() === name);
+          if (!paths.length) continue;                                     // a part no member draws binds nothing
+          const props = new Set<string>(spec.redlines.flatMap((row: any) => row.parts.filter((p: any) => paths.includes(p.part)).flatMap((p: any) => Object.keys(p.values))));
+          if (part.radius !== undefined || part.radiusEdges !== undefined) {
+            corners++;
+            if (![...props].some((k) => k === 'radius' || k.startsWith('radiusT') || k.startsWith('radiusB'))) miss.push(`${authored.id} ${name}: its corner (${part.radius ?? 'radiusEdges'}) is in no redline row`);
+          }
+          if (part.strokeWidth !== undefined || part.strokeEdges !== undefined) {
+            strokes++;
+            if (![...props].some((k) => k.startsWith('strokeWidth'))) miss.push(`${authored.id} ${name}: its stroke (${part.strokeWidth ?? 'strokeEdges'}) is in no redline row`);
+          }
+          if (part.nests === 'focus-ring') {
+            rings++;
+            const want = part.inset === undefined ? undefined : def.tokens[part.inset];
+            const got = (spec.focusRing ?? []).filter((f: any) => paths.includes(f.part));
+            if (!got.length) miss.push(`${authored.id} ${name}: nests the focus ring and has no focusRing row`);
+            else if (got.some((f: any) => f.offset !== want || !f.width || !f.style)) miss.push(`${authored.id} ${name}: focusRing ${JSON.stringify(got)}, want offset ${want} with a width and a style`);
+          }
+        }
+        for (const [key, ref] of Object.entries(def.tokens ?? {})) {
+          if (!ref.startsWith('motion.')) continue;
+          motions++;
+          if (spec.motion?.[key] !== ref) miss.push(`${authored.id}: motion binding '${key}' → ${ref} is ${spec.motion?.[key] === undefined ? 'absent' : `'${spec.motion[key]}'`}`);
+        }
+      }
+      ok(miss.length === 0 && corners >= 40 && strokes >= 30 && rings >= 20 && motions >= 5,
+        `#3506 ${file}: every drawn corner (${corners}), stroke (${strokes}), focus ring (${rings}) and motion binding (${motions}) a def makes is in the emission${miss.length ? ` — ${miss.length} missing: ${miss.slice(0, 4).join('; ')}` : ''}`);
+    }
+    // Literal pins, typed from the button and spinner defs and the owner's #3506 list (radius.md, border-width.hairline,
+    // the ring's width, offset and style, the spinner's five motion tokens): a projector that names the wrong token fails.
+    const bs = specsJson.components?.button;
+    const bc = bs?.redlines?.[0]?.parts?.find((p: any) => p.part === 'container')?.values ?? {};
+    ok(bc.radius?.token === 'radius.md' && bc.strokeWidth?.token === 'border-width.hairline',
+      `#3506: Button's container carries radius radius.md and stroke border-width.hairline (${JSON.stringify(bc.radius)}, ${JSON.stringify(bc.strokeWidth)})`);
+    ok(JSON.stringify(bs?.focusRing) === JSON.stringify([{ part: 'container/focusRing', offset: 'focus.ring.offset', width: 'focus.ring.width', style: 'focus.ring.style' }]),
+      `#3506: Button's focus ring is offset focus.ring.offset, width focus.ring.width, style focus.ring.style (${JSON.stringify(bs?.focusRing)})`);
+    ok(JSON.stringify(specsJson.components?.spinner?.motion) === JSON.stringify({ 'motion.turn': 'motion.duration.spin', 'motion.turn-reduced': 'motion.duration-reduced.spin', 'motion.enter': 'motion.duration.fast', 'motion.enter-reduced': 'motion.duration-reduced.fast', 'motion.enter-easing': 'motion.easing-role.enter' }),
+      `#3506: Spinner's motion is its five tokens, by binding (${JSON.stringify(specsJson.components?.spinner?.motion)})`);
+  }
+}
+
 // ---- #2830: THE COMPONENT SPEC MODEL — what a spec sheet shows, against the wireframe's hand-read values ----
 //
 // `component-specs.ts` builds the model from the plan; `apps/plugin/test-roundtrip.ts` holds it to the BUILT set,
@@ -42160,7 +42646,9 @@ arm: {
           if (!wash || !ground || !ink || typeof mx.contrast !== 'number') { bad.push(`${where}: unreadable (wash ${!!wash}, ground ${!!ground}, ink ${!!ink}, contrast ${mx.contrast})`); continue; }
           const truth = contrast(ink.rgb, composite(ground.rgb, wash.rgb, wash.a));
           checked++; tints++;
-          if (Math.abs(truth - mx.contrast) > 0.005 + 1e-9) bad.push(`${where}: publishes ${mx.contrast}, the emitted wash (alpha ${wash.a.toFixed(4)}) measures ${truth.toFixed(3)}`);
+          // Published floored to two places (#3759): never above what the wash measures, and less than one step below it.
+          const gap = truth - mx.contrast;
+          if (gap < -1e-9 || gap >= 0.01 + 1e-9) bad.push(`${where}: publishes ${mx.contrast}, the emitted wash (alpha ${wash.a.toFixed(4)}) measures ${truth.toFixed(3)}`);
         }
       }
       for (const [k, v] of Object.entries(o)) if (!k.startsWith('$')) walk(v, [...path, k]);
@@ -42289,6 +42777,58 @@ const MIN_ASSERTIONS = 1800;
   const note = pkg['//'] ?? '';
   ok(!/\bversion\b[^.]*\btracks?\b|\btracks?\b[^.]*\bversion\b/i.test(note),
     `#1019 packages/engine/package.json claims its version tracks ENGINE_VERSION, and nothing keeps it so — say it is inert instead (note: ${JSON.stringify(note.slice(-140))})`);
+}
+
+// #3843 — A `--files` LISTING ARRIVES WHOLE, AND ITS READER KNOWS WHEN IT DID NOT. `lint-us-english.ts --files` and
+// `lint-voice.ts --files` printed one `console.log` per line and then `process.exit(0)`. Node queues a write the kernel
+// buffer cannot take, and `process.exit` drops the queue, so a reader that fell behind lost the tail, while the child
+// still exited 0. `lint-schema-classification.ts` then read "listed 0 schema file(s)" five times in a day in CI. Here
+// the reader falls behind on purpose: the child writes into a pipe (64 KiB) whose reader sleeps for a second first, and
+// 4,000 lines (~150 KiB) overfill it. The old way of printing must lose lines here (else this harness reproduces
+// nothing), `printListing` must not, and `readListing` must name each loss rather than hand back what arrived.
+{
+  const dir = mkdtempSync(join(tmpdir(), 'prism3-files-listing-'));
+  const helper = JSON.stringify(resolve(HERE, 'files-listing.ts'));
+  const N = 4000;
+  const lines = `Array.from({ length: ${N} }, (_, i) => 'packages/engine/schema/listing-probe-' + String(i).padStart(5, '0') + '.json')`;
+  const children: Record<string, string> = {
+    // The shape both gates had before #3843.
+    old: `const lines = ${lines};\nfor (const l of lines) console.log(l);\nprocess.exit(0);\n`,
+    // The same, but still claiming its count on stderr: a regressed child the reader must catch by the count alone.
+    oldCounted: `const lines = ${lines};\nfor (const l of lines) console.log(l);\nconsole.error('--files: ' + lines.length + ' line(s) listed, complete');\nprocess.exit(0);\n`,
+    fixed: `import { printListing } from ${helper};\nawait printListing(${lines});\n`,
+  };
+  const late = (name: string) => {
+    const file = join(dir, `${name}.mts`); // .mts: the temp dir has no package.json saying ESM, and `fixed` awaits at the top level
+    writeFileSync(file, children[name]);
+    // pipefail: the pipeline's status is the child's, as a direct spawn's would be.
+    return spawnSync('bash', ['-c', 'set -o pipefail; npx tsx "$1" | { sleep 1; cat; }', '_', file], { cwd: HERE, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
+  };
+  try {
+    const old = late('old');
+    const oldLines = old.stdout.split('\n').length - 1;
+    ok(old.status === 0 && oldLines < N,
+      `#3843 the harness reproduces the failure: the old --files printing exits 0 and loses lines behind a late reader (exit ${old.status}, ${oldLines} of ${N} lines arrived; if all arrived, this test no longer forces the condition)`);
+    const oldRead = readListing(old);
+    ok('fault' in oldRead && oldRead.fault.startsWith('LISTING CUT OFF') && oldRead.fault.includes('never wrote'),
+      `#3843 readListing names a listing with no completion count CUT OFF (got ${JSON.stringify(oldRead).slice(0, 200)})`);
+    const counted = late('oldCounted');
+    const countedRead = readListing(counted);
+    ok('fault' in countedRead && countedRead.fault.startsWith('LISTING CUT OFF') && countedRead.fault.includes(`listed ${N} line(s) but`),
+      `#3843 readListing names a short delivery CUT OFF by its own count, even when the child claims completion (got ${JSON.stringify(countedRead).slice(0, 200)})`);
+    const fixed = late('fixed');
+    const fixedRead = readListing(fixed);
+    ok('lines' in fixedRead && fixedRead.lines.length === N && fixedRead.lines[N - 1].endsWith(`-${String(N - 1).padStart(5, '0')}.json`),
+      `#3843 printListing delivers every line behind a late reader, and readListing returns them all (exit ${fixed.status}, got ${'lines' in fixedRead ? `${fixedRead.lines.length} lines` : fixedRead.fault})`);
+    // A failed child is FAILED by name, never a short or empty list.
+    const failed = readListing({ status: 1, signal: null, error: undefined, stdout: 'a\n', stderr: 'boom' });
+    const killed = readListing({ status: null, signal: 'SIGTERM', error: undefined, stdout: '', stderr: '' });
+    const unrun = readListing({ status: null, signal: null, error: new Error('spawnSync npx ENOBUFS'), stdout: '', stderr: '' });
+    ok('fault' in failed && failed.fault.startsWith('LISTING FAILED: it exited 1') && 'fault' in killed && killed.fault.includes('killed by SIGTERM') && 'fault' in unrun && unrun.fault.includes('ENOBUFS'),
+      `#3843 readListing names a non-zero exit, a signal and a spawn error LISTING FAILED (got ${[failed, killed, unrun].map((x) => JSON.stringify(x).slice(0, 80)).join(' | ')})`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 if (pass + fails.length < MIN_ASSERTIONS) {

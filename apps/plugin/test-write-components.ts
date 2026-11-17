@@ -57,7 +57,7 @@
 // The three selection controls read back for #1011 are resolved through `componentDefs` rather than
 // imported by name — the engine's components entry names only `button`, `fieldLabel` and `fieldMessage`, and
 // #804's own reasoning says an id-based lookup is the one the main thread does.
-import { figmaAnatomyPlan, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planSetProperties, planSetLayout, planComponentName, planStamp, button, fieldLabel, fieldMessage, componentDefs, type ComponentDef, type AnatomyPlan } from '@prism3/engine/components';
+import { figmaAnatomyPlan, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planSetProperties, planSetLayout, planComponentName, planStamp, button, fieldLabel, fieldMessage, componentDefs, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, type ComponentDef, type AnatomyPlan } from '@prism3/engine/components';
 // #1015 — the token VALUE half of the corner read-back. The shim gives every variable a synthetic value,
 // so a built node can only name the variable it binds; these three resolve that name against real brands.
 // All in the engine's public entries, which is why the value assertion can be co-located with the node one
@@ -3395,7 +3395,6 @@ const rSet = await run(iconPlans, { ...iconVars, page: setPage });
 ok(setPage.children.length === 1 && setPage.children[0].type === 'COMPONENT_SET' && rSet.emittedComponents === undefined,
   `#1012 MUTATION: the same plans WITHOUT emitAsComponents combine into ONE COMPONENT_SET with no emittedComponents (page ${setPage.children.length}, type ${setPage.children[0]?.type}, emitted ${rSet.emittedComponents === undefined ? 'undefined' : rSet.emittedComponents.length})`);
 
-console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 // =============================================================================================
 // #1605 — THE PLUGIN RESOLVES WEIGHT INTENT PER BRAND (the runtime half of #1602)
 // =============================================================================================
@@ -5063,6 +5062,51 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `#1781 with checkbox-row missing, __old__checkbox-row is not used in its place and the miss names the target (${goneMiss.length} misses, ${goneRows.length} rows from __old__; ${goneMiss[0] ?? 'NO MISS'})`);
 }
 
+// #1796 — TWO PLAIN COMPONENTS UNDER A NEST OR SWAP TARGET'S EXACT NAME
+// =============================================================================================
+// `compByName` keeps one entry per name, so with two plain components under the name a plan nominates, the build
+// nested or swapped in whichever the search returned last and reported success. Now both targets read `oneComp`:
+// two of a name are reported by name, through the shared advice's AMBIGUOUS row, and nothing is made from either —
+// as #1781 refuses two SETS under one name. THE ORACLE is the host: each built INSTANCE's `mainComponent`, recorded
+// by the shim when `createInstance` was called. The paste payload's twin is `test.ts`'s `#1796 paste path` arms.
+{
+  const instancesOf = (page: Page, name: string): number => {
+    let n = 0;
+    const walk = (x: Node): void => {
+      if (x.type === 'INSTANCE' && (x as { mainComponent?: { name: string } }).mainComponent?.name === name) n++;
+      for (const c of (x.children as Node[] | undefined) ?? []) walk(c);
+    };
+    for (const c of page.children) walk(c);
+    return n;
+  };
+  // REACHABILITY: with ONE of each, the grid really does nest the ring and swap in the target.
+  const onePage: Page = { children: [] };
+  await run(grid, { ...full(), page: onePage });
+  ok(instancesOf(onePage, NEST) > 0 && instancesOf(onePage, SWAP) > 0,
+    `#1796 reachable: with one of each, the grid nests ${NEST} (${instancesOf(onePage, NEST)}) and swaps in ${SWAP} (${instancesOf(onePage, SWAP)})`);
+  // The shim really holds two: a COMPONENT search returns the name twice.
+  const twoApi = makeShim({ ...full(), comps: [...full().comps!, NEST, SWAP] }) as unknown as { root: { findAllWithCriteria: (c: { types: string[] }) => { name: string }[] } };
+  const held = twoApi.root.findAllWithCriteria({ types: ['COMPONENT'] }).map((c) => c.name);
+  ok(held.filter((n) => n === NEST).length === 2 && held.filter((n) => n === SWAP).length === 2,
+    `#1796 reachable: a COMPONENT search returns ${NEST} and ${SWAP} twice each`);
+
+  const ringPage: Page = { children: [] };
+  const ring = await run(grid, { ...full(), comps: [...full().comps!, NEST], page: ringPage });
+  const ringMiss = [...new Set(ring.misses.filter((m) => m.includes(`.nestTarget -> ${NEST}`)))];
+  ok(ringMiss.length > 0 && ringMiss.every((m) => m.includes(`.nestTarget -> ${NEST} (found more than one COMPONENT of that name; neither is used`)) && instancesOf(ringPage, NEST) === 0,
+    `#1796 two plain components named ${NEST} are reported by name and no ring is nested from either (${instancesOf(ringPage, NEST)} built; ${ringMiss[0] ?? 'NO MISS'})`);
+  ok(ring.variants === 21, `#1796 ...and the set still builds all 21 members (${ring.variants})`);
+
+  const swapPage: Page = { children: [] };
+  const sw = await run(grid, { ...full(), comps: [...full().comps!, SWAP], page: swapPage });
+  const swNode = [...new Set(sw.misses.filter((m) => m.indexOf(`.swapTarget -> ${SWAP}`) >= 0))];
+  const swProp = [...new Set(sw.misses.filter((m) => m.startsWith('property ') && m.indexOf(`swap target ${SWAP}`) >= 0))];
+  ok(swNode.length > 0 && swNode.every((m) => m.includes(`.swapTarget -> ${SWAP} (${swapMissAdvice('AMBIGUOUS', SWAP)}; ${SWAP_PLACEHOLDER})`) && m.includes('found more than one COMPONENT of that name; neither is used')) && instancesOf(swapPage, SWAP) === 0,
+    `#1796 two plain components named ${SWAP} are reported by name at the swap node and neither is swapped in (${instancesOf(swapPage, SWAP)} built; ${swNode[0] ?? 'NO MISS'})`);
+  ok(swProp.length === 1 && swProp[0].includes(`(${swapMissAdvice('AMBIGUOUS', SWAP)}; ${SWAP_NO_PROPERTY})`),
+    `#1796 ...and the swap property is not created from either (${swProp[0] ?? 'NO MISS'})`);
+}
+
 // ---- #1750: a new set lands beside the page's content, never on top of it ------------------------------
 // Live: every set built onto `↳ Buttons` landed at (0,0) and covered the one before it. Every position below
 // is a literal. The one number the shim decides — the `button` set's measured box — is pinned first as a
@@ -6172,4 +6216,21 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `#3048 every corner a plan binds is still bound to its variable on the built node: claimDefaults wrote no literal over it, which live would unbind it (${lost.length ? `${lost.length} lost: ${lost.slice(0, 4).join('; ')}` : `${claims}/${claims} held`})`);
 }
 
+// =============================================================================================
+// #1857 — THE SUMMARY LINE COUNTS EVERY ARM
+// =============================================================================================
+// The `ALL PASS` / `N FAILED` line is the one line a reader or a `grep` looks for. It once sat at about
+// two thirds of this file, so every arm appended below it ran AFTER the verdict was printed: a failure
+// there exited 1 while the summary still read `ALL PASS`. Read this file's own source and require that no
+// assertion call comes after the summary line, so an arm appended below it fails here, by name.
+{
+  const lines = readFileSync(new URL(import.meta.url), 'utf8').split('\n');
+  const summaries = lines.flatMap((l, i) => (l.includes("'ALL PASS'") && /^console\.log\(/.test(l) ? [i] : []));
+  const at = summaries[0] ?? -1;
+  const after = at < 0 ? [] : lines.slice(at + 1).flatMap((l, i) => (/^\s*(ok|pinned)\(/.test(l) ? [at + 2 + i] : []));
+  ok(summaries.length === 1 && after.length === 0,
+    `#1857 the summary line is printed after every assertion, so it counts them all (${summaries.length} summary line(s)${at >= 0 ? ` at line ${at + 1}` : ''}; ${after.length} assertion call(s) after it${after.length ? `, first at line ${after[0]}` : ''})`);
+}
+
+console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

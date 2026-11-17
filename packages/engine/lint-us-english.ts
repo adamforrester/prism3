@@ -167,6 +167,7 @@ import { servedToolsList, servedStrings, servedBridgeInstructions } from './mcp-
 // #387/#511 property is unchanged — `scan()` below and `SELF_CHECK` both drive the imported `enGb`,
 // so neutering a rule fails this gate's self-check rather than only going quiet in production.
 import { enGb, EN_GB_FILE_NAMES, EN_GB_SLUGS } from './prose-rules.ts';
+import { printListing } from './files-listing.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
@@ -354,10 +355,9 @@ const gated: string[] = [
 // Exits before any scanning, so it is cheap and cannot be confused with a verdict. It also exits before the surface
 // and self checks (#3698 R4), so it lists the walked set in a tree with no build, as `test-docs-only.sh`'s
 // `scope/…` cases read it in CI's engine job: an unbuilt bundle lists no file, and every bundle is under `apps/`.
-if (process.argv.includes('--files')) {
-  for (const f of gated) console.log(shown(f));
-  process.exit(0);
-}
+// Printed through `printListing`, never `console.log` and `process.exit`: exiting drops whatever the reader had not yet
+// taken, and still exits 0. That cut every schema file off this list in CI five times in a day (#3843).
+if (process.argv.includes('--files')) await printListing(gated.map(shown));
 
 // ---- SELF-CHECK: does the scanner still detect what it claims to? ----
 // Without this, deleting a scan makes the gate go QUIET rather than fail — which is exactly how

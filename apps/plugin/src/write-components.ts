@@ -1919,6 +1919,9 @@ const writeComponentSet = async (
   // AFTER the offline guards, because a throw from them leaves nothing to name (#913).
   trail.component = component;
   const misses: string[] = [];
+  // #2956 (point 1): EVERY NODE KEPT AS A HAND EDIT this run, by id. Its own pass is skipped (`kept`) and its parent's
+  // passes leave it (#2943, `held`); the property wiring below is a writer from outside both, so it reads this.
+  const keptIds = new Set<string>();
 
   // Four namespaces, four name→object maps. Unfiltered variable fetch, the #146 lesson: a
   // type-filtered call returns only that type, and a plan binds FLOAT dimensions and COLOR paints.
@@ -1950,7 +1953,16 @@ const writeComponentSet = async (
   await api.loadAllPagesAsync();
   // The cast lives HERE, next to the criteria that make it true: `types: ['COMPONENT']` is what
   // guarantees every result is a `CompRef` (see the port's note on why the port itself cannot say so).
-  const compByName = new Map((api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly CompRef[]).map((c) => [c.name, c] as const));
+  const comps = api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly CompRef[];
+  const compByName = new Map(comps.map((c) => [c.name, c] as const));
+  // HOW MANY plain components carry each name (#1796). A nest or swap target resolves only when exactly ONE does:
+  // `compByName` keeps the last of several, which is document order picking, so the targets read `oneComp`, and
+  // `twice` sends a name held more than once to the AMBIGUOUS row of the shared advice (the paste payload's twin:
+  // `compN` / `oneComp` in `anatomy-figma.ts`).
+  const compCount = new Map<string, number>();
+  for (const c of comps) compCount.set(c.name, (compCount.get(c.name) ?? 0) + 1);
+  const twice = (name: string): boolean => (compCount.get(name) ?? 0) > 1;
+  const oneComp = (name: string): CompRef | undefined => (compCount.get(name) === 1 ? compByName.get(name) : undefined);
   // The SET map (#681). A second criteria call rather than a widened one — see the port's note on why
   // each cast needs its own criteria list. Sets only: a `nest-fixed` part resolves a MEMBER out of one,
   // and this is the only lookup in this file whose results are never instantiated directly.
@@ -1968,6 +1980,7 @@ const writeComponentSet = async (
    *  answered from the map: the map cannot tell an INSTANCE from a FRAME from nothing at all, and three
    *  of the four rows below need exactly that distinction. */
   const swapFound = (name: string): SwapFound => {
+    if (twice(name)) return 'AMBIGUOUS';   // #1796
     const other = api.root.findAll((x) => x.name === name)[0];
     return !other ? 'ABSENT'
       : other.type === 'COMPONENT_SET' ? 'COMPONENT_SET'
@@ -2021,7 +2034,7 @@ const writeComponentSet = async (
   const fitsHost = (n: FigmaNodePlan, k: CompNode): boolean => {
     const want = n.type === 'TEXT' ? 'TEXT'
       : n.type === 'NESTED_INSTANCE' ? 'INSTANCE'
-      : n.type === 'INSTANCE_SWAP' ? (n.swapTarget && compByName.get(n.swapTarget) ? 'INSTANCE' : 'FRAME')
+      : n.type === 'INSTANCE_SWAP' ? (n.swapTarget && oneComp(n.swapTarget) ? 'INSTANCE' : 'FRAME')
       : n.type === 'CONTENT_SLOT' ? 'SLOT'
       : 'FRAME';
     return k.type === want;
@@ -2075,9 +2088,10 @@ const writeComponentSet = async (
   const build = async (n: FigmaNodePlan, parts?: Map<string, Wr>, expose?: Wr[], ex?: Wr, keep?: ReadonlySet<string>, path = '.', edited?: ReadonlySet<string>, adopt?: { from: Wr[]; take: (k: Wr) => void }): Promise<Wr | null> => {
     let node: Wr;
     const kept = !!ex && !!keep?.has(path);
+    if (kept && ex.id != null) keptIds.add(String(ex.id));
     if (n.type === 'TEXT') node = ex ?? wr(api.createText());
     else if (n.type === 'INSTANCE_SWAP') {
-      const target = n.swapTarget ? compByName.get(n.swapTarget) : undefined;
+      const target = n.swapTarget ? oneComp(n.swapTarget) : undefined;
       if (!n.swapTarget) misses.push(`${n.name}.swapTarget -> (none nominated; built as a placeholder frame)`);
       // DIAGNOSE, then report (#1280 PR-C). Was the bare name and nothing else, which said neither what
       // the file holds under it nor what to do about it. The advice names `n.swapTarget` itself rather
@@ -2101,7 +2115,14 @@ const writeComponentSet = async (
       // instance is made (below), and it falls back the same way. Worded byte-identically to the paste payload's twin.
       const pre = n.nestPrefer && n.nestVariant ? resolveNestMember(compSets, n.nestPrefer, n.nestVariant, nestVariantMatch, nestVariantMissAdvice) : null;
       const preMember = pre && pre.miss === undefined ? pre.member : undefined;
-      const nested = !preMember && n.nestTarget ? compByName.get(n.nestTarget) : undefined;
+      const nested = !preMember && n.nestTarget ? oneComp(n.nestTarget) : undefined;
+      // #1796 — TWO OR MORE PLAIN COMPONENTS under the target's exact name: reported by name, nothing nested from
+      // either, before the set path below can answer in their place. Worded by the shared `nestMissAdvice`, as the
+      // paste payload's twin is. On Update the instance is left as it is, as for #1781's two sets.
+      if (!preMember && n.nestTarget && twice(n.nestTarget)) {
+        misses.push(`${n.name}.nestTarget -> ${n.nestTarget} (${nestMissAdvice('AMBIGUOUS', n.nestTarget)})`);
+        return null;
+      }
       // THE SET AND ITS MEMBER, resolved together and only together (#1781) — see `resolveNestMember`, which
       // this executor and the paste payload share, decision AND wording. The member comes out of the named
       // set's own `children`. It used to be re-looked-up by NAME in `compByName`, where `size=small` is every
@@ -2703,7 +2724,10 @@ const writeComponentSet = async (
       if (ex) {
         // A TYPE CHANGE IS A REPLACEMENT, the one way an update changes a child's id; the dry run lists each one.
         if (cand && !fits) wr(cand).remove?.();
-        if (((node.children ?? []) as Wr[])[at] !== kid) node.insertChild?.(at, kid);
+        // A NODE KEPT AS A HAND EDIT KEEPS ITS CHILDREN'S ORDER (#2956 point 1). The order is in its record (its
+        // children's names, in order), so a designer's reorder reads as an edit on this node and is reported kept: a
+        // child it already holds is not moved. A child the plan adds is still placed.
+        if (!(kept && kid === cand) && ((node.children ?? []) as Wr[])[at] !== kid) node.insertChild?.(at, kid);
         at++;
         if (kid !== cand) trail.loose.delete(kid);
       } else {
@@ -3727,7 +3751,7 @@ const writeComponentSet = async (
     if (p.type === 'INSTANCE_SWAP') {
       // Figma demands a NODE ID. The component `key`, `''`, `null` and `undefined` are each rejected,
       // so an unresolvable target is not a missing default — it is a property that cannot be created.
-      const target = compByName.get(p.swapTarget);
+      const target = oneComp(p.swapTarget);
       // "not found" was the wrong claim for three of the four file states, exactly as it was on the nest
       // path before #681 (#1280 PR-C). The consequence clause is the harsher of the two: the node loop
       // above degrades to a fillable frame, this one cannot degrade at all.
@@ -3936,6 +3960,10 @@ const writeComponentSet = async (
       const field = own?.field ?? r.field;
       const id = propIds.get(own?.prop ?? r.prop);
       if (!id) continue;   // the property itself failed above and reported its own cause
+      // A NODE KEPT AS A HAND EDIT KEEPS ITS LINKS (#2956 point 1). Its references are in its record, so a link a
+      // designer removed or re-pointed reads as an edit on it and is reported kept: it is not wired again. Only a
+      // property this run added is wired on it, since no designer could have unlinked that one.
+      if (node.id != null && keptIds.has(String(node.id)) && preexistingProps.has(id)) continue;
       // #1679 — A MEMBER THIS RUN DID NOT BUILD IS REPAIRED, NOT RE-WIRED. On a Build over an existing set
       // every member is skipped by name and reaches this loop with no `builtFor`. A reference that already
       // reads the plan's property is left alone — no write, so a clean existing set costs one read per slot
