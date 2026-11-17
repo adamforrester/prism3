@@ -34,3 +34,20 @@ The update, record, adopt and draw-specs catches post the raw message as the who
   `main`'s `main.ts` and `report.ts`, 17 checks fail by name.
 - Mutations: dropping the `DETAIL` rule fails 13 report checks and 5 redaction arms by name. `file setup failed:`
   carrying the class alone fails `#3702 D3703.1 B Set up file: the drawer line keeps the host's message`.
+
+**Review fixes (VERDICT: CHANGES at 21d3e8bb).** Three shapes `failureDetail` can produce still reached the report:
+- A host message over several lines: the report cuts a detail to the end of its line, so the second line got through
+  whole. `failureDetail` now puts the message on one line (`apply-summary.ts`); the drawer shows it joined by a space.
+- A class `errorClass` admits that is not an `…Error` (`DOMException`, a lowercase `invariant`). After each head a
+  #3702 site posts its detail after (`DETAIL_HEADS` in `report.ts`), the report admits any class that grammar emits.
+  `DETAIL`'s `…Error` rule stays for anything else.
+- The refused-writes note, when the variable's name holds `(` or `:` (a collision Rename's `… (Prism3)`, #1909): the
+  name now ends at the first `: ` outside its parentheses, and with none, nothing inside the parenthesis is kept.
+
+Tests: `test-report.ts` types each of the ten heads with `DOMException`, `FigmaException` and `invariant`, and four
+refused-note names; `test-report-redaction.ts` throws a two-line message (Set up file), a `DOMException` (Style guide)
+and an `invariant` (Build components) from the host, and holds `DETAIL_HEADS` against every `${failureDetail(` site in
+`main.ts`. Against the previous head, 7 report checks and 5 redaction checks fail. Mutations, each failing by name: the
+line breaks kept, `HEAD_DETAIL`'s class back to `…Error`, the refused name back to `[^:()]*`, a head dropped from
+`DETAIL_HEADS`. Not in #3702's list, so filed as #3865: `Prune stopped — <Class>: <message>. Removed …` keeps the
+message.

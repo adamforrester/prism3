@@ -44,7 +44,9 @@
  * line to the error's class): `reduceFailure` dropped from `buildReport` → `#3697 H4 D3703.1 B a thrown write's and
  * prune's lines keep the error's class, not the host's message`. #3702 (every other line that carries a host's message):
  * the `DETAIL` rule dropped from `reduceLine` → `#3702 component build: the report keeps the error's class, not the host's
- * message`, and each other site of the table by name.
+ * message`, and each other site of the table by name. #3702 review: `HEAD_DETAIL`'s class back to `…Error` → `#3702
+ * review, class DOMException: …` (and `FigmaException`, `invariant`); the refused-writes name back to `[^:()]*` →
+ * `#3702 review, refused writes, a renamed variable: …`.
  */
 import { ENGINE_VOCABULARY, brandWords, buildReport, isIssueUrl, issueUrl, scrub, ISSUE_BASE, URL_LIMIT, type ReportInput } from './src/state/report';
 import { brandTheme, type BrandInput, buildTree } from '@prism3/engine';
@@ -266,6 +268,52 @@ ok(authoredOn.includes('hds/color/interactive/seaside/fill/rest') && authoredOn.
   // A line that only mentions an error, with no class-and-message detail, is left as it is.
   const plain = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Run', verdict: '✓ done', lines: ['Errors: none', 'TypeError counts: 0 (button)'], agent: false }] });
   ok(plain.includes('  - Errors: none\n') && plain.includes('  - TypeError counts: 0 (button)'), '#3702 a line with no class-and-message detail is left as it is');
+}
+
+// ── #3702 review: a class `errorClass` admits but `DETAIL`'s `…Error` does not, after every head a site posts ──
+// `errorClass` passes any one-word name (`DOMException`, a host's `FigmaException`, a lowercase `invariant`), so each
+// site's line is typed with each, and the report must keep the class alone. Heads typed here as `main.ts` posts them.
+{
+  const SECRET = 'page "SecretPage" is locked';
+  const sites: readonly [posted: (d: string) => string, reported: (c: string) => string][] = [
+    [(d) => `component build failed: ${d}`, (c) => `component build failed: ${c}`],
+    [(d) => `file setup failed: ${d}. Built from tree-test0000 at 2026-11-12T00:00:00Z.`, (c) => `file setup failed: ${c}`],
+    [(d) => `style guide failed: ${d}`, (c) => `style guide failed: ${c}`],
+    [(d) => `read-back failed: ${d}`, (c) => `read-back failed: ${c}`],
+    [(d) => `Cleanup failed: ${d}`, (c) => `Cleanup failed: ${c}`],
+    [(d) => `No canvas labels for button: Figma refused the write (${d})`, (c) => `No canvas labels for button: Figma refused the write (${c})`],
+    [(d) => `Cover: not drawn, Figma refused the write (${d}).`, (c) => `Cover: not drawn, Figma refused the write (${c})`],
+    [(d) => `button: can't be checked. the engine could not plan it (${d}).`, (c) => `button: can't be checked. the engine could not plan it (${c})`],
+    [(d) => `Sets not moved to their pages: the named version could not be saved (${d}).`, (c) => `Sets not moved to their pages: the named version could not be saved (${c})`],
+    [(d) => `Nothing removed — the named version could not be saved (${d}).`, (c) => `Nothing removed — the named version could not be saved (${c})`],
+  ];
+  for (const cls of ['DOMException', 'FigmaException', 'invariant']) {
+    const bad: string[] = [];
+    for (const [posted, reported] of sites) {
+      const rep = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Run', verdict: '✗ failed', lines: [posted(`${cls}: ${SECRET}`)], agent: false }] });
+      const line = rep.split('\n').find((l) => l.startsWith('  - ')) ?? '';
+      if (line !== `  - ${reported(cls)}` || rep.includes('SecretPage')) bad.push(line);
+    }
+    ok(bad.length === 0, `#3702 review, class ${cls}: after each of the ${sites.length} heads the report keeps the class, not the host's message (${JSON.stringify(bad)})`);
+  }
+}
+
+// ── #3702 review: the refused-writes note, when the variable's name holds `(` or `:` ──
+// A collision Rename writes a variable as `<name> (Prism3)` (#1909), and the host's reason can hold `: ` itself. The
+// report keeps the name, parentheses and all; with no `: ` outside the name's parentheses, it keeps nothing of either.
+{
+  const cases: readonly [label: string, posted: string, reported: string][] = [
+    ['a renamed variable', '⚠ 1 variable writes refused by Figma (hds/color/brand (Prism3): in set_value: SecretPage is locked)', '⚠ 1 variable writes refused by Figma (hds/color/brand (Prism3))'],
+    ['a name with a colon', '⚠ 2 variable writes refused by Figma (hds/ratio/16:9: in set_value: SecretPage is locked)', '⚠ 2 variable writes refused by Figma (hds/ratio/16:9)'],
+    ['an unclosed parenthesis', '⚠ 1 variable writes refused by Figma (hds/odd (x: in set_value: SecretPage is locked)', '⚠ 1 variable writes refused by Figma ([removed])'],
+    ['a clause of the one-line summary', 'applied · ⚠ 3 variable writes refused by Figma (hds/color/brand (Prism3): SecretPage) · 2 fonts', 'applied · ⚠ 3 variable writes refused by Figma (hds/color/brand (Prism3))'],
+  ];
+  for (const [label, posted, reported] of cases) {
+    const rep = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Apply Theme', verdict: '✓ applied', lines: [posted], agent: false }] });
+    const line = rep.split('\n').find((l) => l.startsWith('  - ')) ?? '';
+    ok(line === `  - ${reported}` && !rep.includes('SecretPage'),
+      `#3702 review, refused writes, ${label}: the report keeps at most the variable's name, never the host's reason (${JSON.stringify(line)})`);
+  }
 }
 
 // ── #3525 review finding 1: a name next to prose punctuation is still a whole segment ──

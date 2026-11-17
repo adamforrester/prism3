@@ -149,11 +149,38 @@ const reduceWriteFailure = (line: string): string => line.replace(FAILED, (_, he
  *  `: ` (`file setup failed: Error: …`) or after `(` (`Figma refused the write (Error: …)`). The message runs to the end
  *  of its line, so the report keeps the class and cuts the rest; a detail that opened a parenthesis gets it closed. */
 const DETAIL = /(^|: |\()((?:[A-Z][A-Za-z0-9]*)?Error): .*$/;
+/** The class grammar `errorClass` emits (`plugin/src/apply-summary.ts`): one word, a letter first. `DETAIL` above finds a
+ *  detail anywhere by its `…Error` name; after a head a #3702 site is known to post, any class that grammar admits is
+ *  one (`DOMException`, a lowercase `invariant`), so the two halves of the contract agree (#3702 review). */
+const CLASS = '[A-Za-z][A-Za-z0-9]*';
+/** The text each #3702 site posts right before its `failureDetail` (`main.ts`, `prune-figma.ts`'s version note).
+ *  `test-report-redaction.ts` holds this list against every `failureDetail(` site in the plugin's source. */
+export const DETAIL_HEADS: readonly string[] = [
+  'component build failed: ', 'file setup failed: ', 'style guide failed: ', 'read-back failed: ', 'Cleanup failed: ',
+  'Figma refused the write (', 'the engine could not plan it (', 'the named version could not be saved (',
+];
+const HEAD_DETAIL = new RegExp(`(${DETAIL_HEADS.map((h) => escapeRe(h)).join('|')})(${CLASS}): .*$`);
 /** The apply's variable-write note names the variable, then the host's reason as `write-figma.ts` records it, with no
- *  class (`⚠ 3 variable writes refused by Figma (<name>: <reason>)`): the report keeps the name. The note is a line of
- *  its own, and also a clause of the apply's one-line summary, so the cut runs to the end of the line either way. */
-const REFUSED_WRITES = /(variable writes refused by Figma \([^:()]*): .*$/;
-const reduceLine = (l: string): string => l.replace(REFUSED_WRITES, '$1)').replace(DETAIL, (_, at: string, cls: string) => `${at}${cls}${at === '(' ? ')' : ''}`);
+ *  class (`⚠ 3 variable writes refused by Figma (<name>: <reason>)`): the report keeps the name. A name may hold
+ *  parentheses (a collision Rename's `… (Prism3)`, #1909), so the name ends at the first `: ` outside them; with none,
+ *  nothing inside the parenthesis is kept. The note is a line of its own, and also a clause of the apply's one-line
+ *  summary, so the cut runs to the end of the line either way. */
+const REFUSED_HEAD = 'variable writes refused by Figma (';
+const reduceRefused = (l: string): string => {
+  const at = l.indexOf(REFUSED_HEAD);
+  if (at < 0) return l;
+  const from = at + REFUSED_HEAD.length;
+  let depth = 0;
+  for (let i = from; i < l.length; i++) {
+    if (l[i] === '(') depth++;
+    else if (l[i] === ')') depth = Math.max(0, depth - 1);
+    else if (depth === 0 && l.startsWith(': ', i)) return `${l.slice(0, i)})`;
+  }
+  return `${l.slice(0, from)}${REDACTED})`;
+};
+const reduceLine = (l: string): string => reduceRefused(l)
+  .replace(HEAD_DETAIL, (_, head: string, cls: string) => `${head}${cls}${head.endsWith('(') ? ')' : ''}`)
+  .replace(DETAIL, (_, at: string, cls: string) => `${at}${cls}${at === '(' ? ')' : ''}`);
 
 export const reduceFailure = (line: string): string => reduceWriteFailure(line).split('\n').map(reduceLine).join('\n');
 
