@@ -15,8 +15,11 @@
  *    disabled; inactive and pending stay focusable. `@axe-core/playwright` is not a dependency of this repo, so the
  *    axe pass is held for the owner's decision (journal, S2).
  *
- * SELF-TEST: two mutants, each must fail by name — a rest fill rebound to the hover token, and a ring drawn on any
- * `:focus` (so a mouse click shows it).
+ * 4. HIT TARGET. A flush button's `::before` is at least 24×24 at small and 44×44 at medium and large, held to this
+ *    file's own px literals, never to a token the def or the generator names (`docs/34`).
+ *
+ * SELF-TEST: four mutants, each must fail by name — the label tracking rebound, a rest fill rebound to the hover
+ * token, a ring drawn on any `:focus` (so a mouse click shows it), and the medium hit target shrunk to 24px.
  */
 import { createRequire } from 'node:module';
 import { existsSync, readFileSync } from 'node:fs';
@@ -30,6 +33,8 @@ const REPO = resolve(HERE, '../..');
 const json = (p: string) => JSON.parse(readFileSync(resolve(REPO, p), 'utf8'));
 const TOKENS_CSS = resolve(REPO, 'packages/tokens/dist/prism3.css');
 const DEMO = pathToFileURL(resolve(HERE, 'demo.html')).href;
+/** The least hit target per size, in px: WCAG 2.5.8's 24 at small, the enhanced 44 at medium and large (Q-HT1 A). */
+const HIT_FLOOR_PX: Record<string, number> = { small: 24, medium: 44, large: 44 };
 
 const oracle = buildOracle({
   commit: 'working tree', tree: json(TOKEN_TREE), base: json(TOKEN_BASE),
@@ -128,10 +133,13 @@ export const run = async (browser: any, extraCss = ''): Promise<{ failures: stri
       return { spinner, leading, trailing };
     }, `[data-demo="${theme}/default/filled/default/medium/icons-pending"]`);
     ok(pend.spinner !== 'none' && pend.leading === 'none' && pend.trailing !== 'none', `${theme} pending with icons: the spinner should replace the leading visual only (spinner ${pend.spinner}, leading ${pend.leading}, trailing ${pend.trailing})`);
-    // the flush hit target: at least 44×44 at medium (codeOnly hit-target)
-    const hit = await page.evaluate((q: string) => { const cs = getComputedStyle(document.querySelector(q)!, '::before'); return [parseFloat(cs.width), parseFloat(cs.height)]; }, `[data-demo="${theme}/default/text/flush/medium/rest"]`);
-    const floor = parseFloat(await normalize('length', resolved(mode, 'size.md.min-height')));
-    ok(hit[0] >= floor && hit[1] >= floor, `${theme} flush medium hit target is ${hit[0]}×${hit[1]}, under ${floor}×${floor}`);
+    // the flush hit target (codeOnly hit-target, Q-HT1 A): at least the size's floor, in px. These literals are this
+    // check's own, written apart from the def and the generator (docs/34): the def binds a token and the generator
+    // reads that binding, so a floor taken from either would move with it and could not fail.
+    for (const [size, floor] of Object.entries(HIT_FLOOR_PX)) {
+      const hit = await page.evaluate((q: string) => { const cs = getComputedStyle(document.querySelector(q)!, '::before'); return [parseFloat(cs.width), parseFloat(cs.height)]; }, `[data-demo="${theme}/default/text/flush/${size}/rest"]`);
+      ok(hit[0] >= floor && hit[1] >= floor, `${theme} flush ${size} hit target is ${hit[0]}×${hit[1]}, under ${floor}×${floor}`);
+    }
     // tracking (Q143 A): the text button's label tracks by its style's letterSpacing, a number × the font size
     const tr = await page.evaluate((q: string) => { const cs = getComputedStyle(document.querySelector(q)!.querySelector('.p3-button__label')!); return [cs.letterSpacing, cs.fontSize]; }, `[data-demo="${theme}/default/text/default/medium/rest"]`);
     const ratio = Number(resolved(mode, 'core.font.letter-spacing-role.normal'));
@@ -166,6 +174,9 @@ export const run = async (browser: any, extraCss = ''): Promise<{ failures: stri
 };
 
 const MUTANTS: { name: string; css: string; mustName: RegExp }[] = [
+  { name: 'the medium flush hit target shrunk to the small floor',
+    css: '.p3-button[data-prop-inset="flush"][data-prop-size="medium"]::before { inset: min(0%, calc((100% - var(--pds3-space-300)) / 2)) !important; }',
+    mustName: /flush medium hit target is .*under 44×44/ },
   { name: 'the label tracking rebound to a wider role',
     css: '.p3-button__label { letter-spacing: calc(var(--pds3-core-font-letter-spacing-role-wide) * 1em) !important; }',
     mustName: /text medium label letter-spacing is .*core\.font\.letter-spacing-role\.normal/ },
