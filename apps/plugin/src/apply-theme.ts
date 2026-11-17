@@ -20,7 +20,7 @@ import { applyStylesPlan } from './write-styles';
 import { applyGridStylePlan } from './write-grid-styles';
 import { applyTextStylePlan } from './write-text-styles';
 import { renameStylesForPlan, renameTextStylesForPlan } from './rename-styles';
-import { guardApply, preflightApply, preflightPlanOf, COLOR_NAMES } from './preflight';
+import { guardApply, preflightApply, preflightPlanOf, bindingCollectionsOf, COLOR_NAMES } from './preflight';
 import { conflictKey, resolveCollisions, type CollisionChoices, type ChoiceTally } from './collision-choice';
 
 /** How many times one apply resolves the person's choices before the guarded pre-flight decides (#1909). Each pass needs
@@ -136,6 +136,9 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       // `beginMigration` is independent of how many entries the map holds, and a future entry can
       // reintroduce a chain without a change on this line.
       const mig = await beginMigration(host.variables);
+      // THE BINDING TARGETS' COLLECTIONS (#1904): the ones the pre-flight checked, so every style, text-style and wash
+      // binding below resolves where it looked. After the rename pre-pass, so each carries the name the writers find.
+      const bindIn = bindingCollectionsOf(preflightPlanOf(exec, names));
       // FLOAT axes (#146): core/dimension, space/radius/size/border-width/focus/opacity + layout. FIRST, since
       // the tinted wash moved into its variable (#1614, #1646): a wash's color value aliases an `opacity/<n>`
       // variable, so the opacity collection must exist before the color pass binds it. Nothing in the FLOAT
@@ -146,14 +149,14 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       // The pointer-tier executor that used to run next went with the tier (#1148) — there is no second
       // collection to alias into, so the cross-call ordering dependency it existed for is gone too.
       await pace?.stage('color', 1);
-      const r = await applyWritePlan(colorPlan, host.variables, mig, pace?.tick, names);
+      const r = await applyWritePlan(colorPlan, host.variables, mig, pace?.tick, names, bindIn);
       // STYLE axes (shadow/gradient lane): Effect Styles (shadow/* + shadow-dark/*) + Paint Styles
       // (gradients, baked stops). The global `figma` structurally satisfies the StylesApi port.
       await pace?.stage('styles', 2);
       // THE STYLE RENAME PASS (#1040): a style the engine renamed takes its new name in place first, so the writer
       // finds it under that name and the layers using it follow. A no-op while the record is empty.
       const sr = await renameStylesForPlan(stylesPlan, host);
-      const s = await applyStylesPlan(stylesPlan, host, pace?.tick);
+      const s = await applyStylesPlan(stylesPlan, host, pace?.tick, bindIn);
       // GRID STYLES (#1480): one reusable Figma Grid Style per breakpoint (`sm`, …; renamed in place from `Grid / sm`, #2467), sourced from
       // the same layout data as the numeric `layout` collection. STATIC — a grid style cannot mode-switch
       // off a variable — so N breakpoints = N styles, coexisting with the variables (the responsive source
@@ -168,7 +171,7 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       // The Text Style port needs figma's style/font surface + figma.variables' getter (`theme-ports.ts`).
       await pace?.stage('text-styles', 5);
       const tr = await renameTextStylesForPlan(textPlan, textApiOf(host));   // #1040, as for the styles above
-      const ts = await applyTextStylePlan(textPlan, textApiOf(host), pace?.tick);
+      const ts = await applyTextStylePlan(textPlan, textApiOf(host), pace?.tick, bindIn);
       // MOTION (#2412): TIMING durations + EASING curves, roles and springs, through the same mixed-type
       // executor. Independent of every other axis: nothing aliases into or out of `motion`.
       await pace?.stage('motion', 6);

@@ -299,7 +299,7 @@ export const runPreflight = async (raw: unknown): Promise<StepReport> => {
 /** COLOR (#108): a slice of the `WritePlan` — palette rows, `color` create rows, or `color` alias rows. */
 export const runColor = (raw: unknown) => writeStep(raw, 'color', async (host, d, r) => {
   const mig = await beginMigration(host.variables);
-  const res = await applyWritePlan(d.plan as WritePlan, host.variables, mig);
+  const res = await applyWritePlan(d.plan as WritePlan, host.variables, mig, undefined, undefined, d.bindIn as string[] | undefined);
   Object.assign(r, { migration: migrationOf(mig), created: res.paletteCreated + res.colorCreated, total: res.paletteTotal + res.colorTotal, bound: res.bound, misses: res.misses });
 });
 
@@ -314,7 +314,7 @@ export const runFloat = (raw: unknown) => writeStep(raw, 'float', async (host, d
 export const runStyles = (raw: unknown) => writeStep(raw, 'styles', async (host, d, r) => {
   // #1040: the style rename pass Apply Theme runs before the same writer (`rename-styles.ts`).
   const renamed = (await renameStylesForPlan(d.plan as StylesPlan, host)).filter((o) => o.applied).length;
-  const res = await applyStylesPlan(d.plan as StylesPlan, host);
+  const res = await applyStylesPlan(d.plan as StylesPlan, host, undefined, d.bindIn as string[] | undefined);
   if (renamed) r.renamed = renamed;
   Object.assign(r, { created: res.effects.created + res.paints.created, total: res.effects.total + res.paints.total, bound: res.paints.bound + res.effects.bound, misses: res.misses });
 });
@@ -342,7 +342,7 @@ export const runMotion = (raw: unknown) => writeStep(raw, 'motion', async (host,
 /** TEXT styles (#237). */
 export const runText = (raw: unknown) => writeStep(raw, 'text', async (host, d, r) => {
   const renamed = (await renameTextStylesForPlan(d.plan as TextStylePlan, textApiOf(host))).filter((o) => o.applied).length;   // #1040
-  const res = await applyTextStylePlan(d.plan as TextStylePlan, textApiOf(host));
+  const res = await applyTextStylePlan(d.plan as TextStylePlan, textApiOf(host), undefined, d.bindIn as string[] | undefined);
   if (renamed) r.renamed = renamed;
   Object.assign(r, { created: res.created, total: res.total, bound: res.bound, misses: res.misses, skipped: res.skipped, resolvedStyles: res.resolvedStyles, resolvedCuts: res.resolvedCuts, cutRefused: res.cutRefused });
 });

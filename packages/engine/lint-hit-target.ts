@@ -235,6 +235,9 @@ const FLUSH_RULE = [/flush/, /at least 44×44 at medium and large sizes/, /at le
 // …and must not widen the 44×44 back: small, or every size, at 44×44 is the rule over-scoped.
 const FLUSH_OVERSCOPE = /44×44 at small\b|\bsmall, medium\b|every size|all sizes/;
 const FLUSH_SIZES = ['medium', 'large'];
+// The code-side floor each flush member's size binds as a spacing token (owner Q141 revised, Q-HT1 A on #3408):
+// 24px at small (WCAG 2.5.8), 44px at medium and large (2.5.5). Literals, never read off the def or `scale.ts`.
+const CODE_FLOOR_PX: Record<string, number> = { small: 24, medium: 44, large: 44 };
 const FLUSH_SMALL_SIZES = ['small'];
 /** The `codeOnly` entry that states the code-side hit area, or the phrases no entry carries (an over-scoped
  *  entry reports the over-scope pattern). Pure, so the self-check can drive it. */
@@ -672,6 +675,23 @@ for (const id of FLUSH_MEMBERS) {
   const gap = flushRuleGap(codeOnlyText(def.anatomy?.codeOnly));
   rows.push(`${id}/inset=flush → width floor dropped; hit area ≥ 44×44 in code at ${FLUSH_SIZES.join(' and ')}, ≥ 24×24 at ${FLUSH_SMALL_SIZES.join(', ')} (codeOnly) [code-side rule, #2408, Q170 B, Q174 B]${gap.length ? '  ✗' : ''}`);
   if (gap.length) failures.push(`${id}/inset=flush: no codeOnly entry states the code-side hit area, 44×44 at medium and large and 24×24 at small (missing or over-scoped: ${gap.join(', ')}) — a flush member has no width floor, so the height measured above does not cover it. State that its hit area is at least 44×44 at medium and large sizes and at least 24×24 at small in code through a ::before extension (owner Q154 A, Q170 B, Q174 B, #2408).`);
+  // THE FLOOR AS A SPACING TOKEN (owner Q141 revised, Q-HT1 A on #3408). The code-side floor above is prose; code
+  // reads it as a token, `size.<size>.hit-target`, a `space.*` step at every size (no dedicated hit-target tokens,
+  // no mixing token types). EXPECTED is CODE_FLOOR_PX, literals here; ACTUAL is the emitted px of the token the def
+  // binds, read through `def.tokens` on every density's build. Re-pointing medium at `space.500` (40px), or binding
+  // a `size.*` rung, fails here by name.
+  for (const s of sizes) {
+    const key = `size.${s}.hit-target`;
+    const ref = def.tokens?.[key];
+    const want = CODE_FLOOR_PX[s];
+    if (want === undefined) { failures.push(`${id}/${s}: CODE_FLOOR_PX states no floor for this size — decide its code-side hit area with the owner, then add it.`); continue; }
+    if (ref === undefined) { failures.push(`${id}/${s}: binds no code-side hit-target floor at tokens['${key}'] — the ${want}px floor must be stated as a spacing token (owner Q141, Q-HT1 A).`); continue; }
+    if (!/^space\.[0-9]+$/.test(ref)) { failures.push(`${id}/${s}: tokens['${key}'] is '${ref}', not a space.* step — hit-target floors bind spacing tokens at every size (owner Q141 revised).`); continue; }
+    const got = [...floorBuilds, compactBuild].map((b) => ({ density: b.density, px: resolvePx(b.tree, b.root, ref) }));
+    const off = got.filter((g) => g.px !== want);
+    rows.push(`${id}/${s} → code-side hit-target floor ${ref} = ${got.map((g) => g.px).join('/')}px (want ${want}) [Q141, Q-HT1 A]${off.length ? '  ✗' : ''}`);
+    if (off.length) failures.push(`${id}/${s}: tokens['${key}'] → ${ref} resolves to ${off.map((g) => `${g.px === undefined ? 'nothing' : `${g.px}px`} on ${g.density}`).join(', ')}, but the code-side hit-target floor at ${s} is ${want}px (owner Q141, Q-HT1 A).`);
+  }
 }
 
 const comfortable = floorBuilds.find((b) => b.density === 'comfortable')!;

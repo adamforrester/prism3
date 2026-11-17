@@ -4296,6 +4296,11 @@
         "$value": "{hds.core.dimension.40}",
         "$description": "`space.500` — 40px (5× 8px base)"
       },
+      "550": {
+        "$type": "dimension",
+        "$value": "{hds.core.dimension.44}",
+        "$description": "`space.550` — 44px (5.5× 8px base)"
+      },
       "600": {
         "$type": "dimension",
         "$value": "{hds.core.dimension.48}",

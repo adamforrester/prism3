@@ -21945,6 +21945,19 @@
           }
         }
       },
+      "550": {
+        "$type": "dimension",
+        "$value": "{hds.core.dimension.44}",
+        "$description": "`space.550` — 44px (5.5× 8px base)",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "hds.core.dimension.44",
+            "px": 44,
+            "mult": 5.5
+          }
+        }
+      },
       "600": {
         "$type": "dimension",
         "$value": "{hds.core.dimension.48}",

@@ -8379,6 +8379,12 @@
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{ads.core.dimension.40}"
     },
+    "space.550": {
+      "$description": "`space.550` — 44px (5.5× 8px base)",
+      "meaning": "Spacing step 550",
+      "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
+      "resolves_to": "{ads.core.dimension.44}"
+    },
     "space.600": {
       "$description": "`space.600` — 48px (6× 8px base)",
       "meaning": "Spacing step 600",
@@ -11417,7 +11423,8 @@
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
         "size.md.height",
-        "size.md.min-height"
+        "size.md.min-height",
+        "space.550"
       ]
     },
     "core.dimension.48": {

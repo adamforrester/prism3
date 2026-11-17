@@ -149,6 +149,7 @@ Integer px, so the bar is **exact equality**, not ΔE. Space follows Prism2's nu
 | space.300 | space | Prism2 | 24 | 24 | ✅ |
 | space.400 | space | Prism2 | 32 | 32 | ✅ |
 | space.500 | space | Prism2 | 40 | 40 | ✅ |
+| space.550 | space | — | 44 | (engine addition) | ⊕ |
 | space.600 | space | Prism2 | 48 | 48 | ✅ |
 | space.700 | space | Prism2 | 56 | 56 | ✅ |
 | space.800 | space | Prism2 | 64 | 64 | ✅ |
