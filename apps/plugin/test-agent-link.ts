@@ -351,6 +351,22 @@ for (const c of CASES) {
   ok(at('agent-started') >= 0 && at('agent-started') < at(c.verdictType) && at(c.verdictType) < at('agent-finished'),
     `brackets/${c.cmd}: the panel gets agent-started, then the verdict, then agent-finished, naming the command`);
 }
+// #2087: an agent's build names its set on agent-started, so the Components page can record the verdict against it. No
+// def builds Button (the protocol's own default), so the start names `button`. EXPECTED typed here as literals.
+for (const [args, want] of [[{ def: 'tag' }, 'tag'], [{}, 'button']] as const) {
+  posted.length = 0;
+  const { id } = await send('build-components', args);
+  await tick();
+  const st = posted.find((m) => m.type === 'agent-started' && m.id === id) as { def?: unknown } | undefined;
+  ok(st?.def === want, `#2087 agent-started names the set: build-components ${JSON.stringify(args)} → def ${JSON.stringify(st?.def)}`);
+}
+{
+  posted.length = 0;
+  const { id } = await send('file-setup', {});
+  await tick();
+  const st = posted.find((m) => m.type === 'agent-started' && m.id === id) as Record<string, unknown> | undefined;
+  ok(!!st && !('def' in st), '#2087 agent-started names a set only for build-components');
+}
 // The readback also carries the component census; on a file with no component pages every page is absent.
 {
   const rb = results[CASES.findIndex((c) => c.cmd === 'readback')];

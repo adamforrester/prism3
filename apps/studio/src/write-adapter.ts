@@ -75,7 +75,8 @@ export type HostMessage =
   | { kind: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string; pillOnly?: boolean; previewHash?: string }
   // UI redesign S11: an agent command's start, its build progress, and its end, for the Activity drawer.
   // `cmd` stays a string here; which commands have an operation to show is the host session's call.
-  | { kind: 'agent-started'; id: string; cmd: string; confirmed?: true }
+  // `def`: the set a `build-components` builds (#2087), so its verdict is recorded against that set.
+  | { kind: 'agent-started'; id: string; cmd: string; confirmed?: true; def?: string }
   // A style guide's reading arrives as phase `table` (#1778): `done` of `total` tables drawn.
   | { kind: 'agent-progress'; id: string; phase: 'build' | 'wire' | 'retry' | 'table'; done: number; total: number }
   | { kind: 'agent-finished'; id: string }
@@ -651,7 +652,8 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
     return p && isId(m.id) ? { kind: 'agent-progress', id: m.id, ...p } : null;
   },
   'agent-log': null,
-  'agent-started': (m) => (isId(m.id) && typeof m.cmd === 'string' ? { kind: 'agent-started', id: m.id, cmd: m.cmd, ...(m.apply === true ? { confirmed: true as const } : {}) } : null),
+  'agent-started': (m) => (isId(m.id) && typeof m.cmd === 'string'
+    ? { kind: 'agent-started', id: m.id, cmd: m.cmd, ...(m.apply === true ? { confirmed: true as const } : {}), ...(isId(m.def) ? { def: m.def } : {}) } : null),
   'agent-finished': (m) => (isId(m.id) ? { kind: 'agent-finished', id: m.id } : null),
   // #1957. Dropped unless every field is usable: a refusal with no operation has no row to land in.
   'refused': (m) => (m.code === 'busy' && typeof m.cmd === 'string' && typeof m.agent === 'boolean' && typeof m.message === 'string' && m.message
