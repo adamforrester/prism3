@@ -92,6 +92,7 @@ apps/plugin/test-doc-panel.ts #3205
 apps/plugin/test-doc-panel.ts #3265
 apps/plugin/test-doc-panel.ts #3303
 apps/plugin/test-doc-panel.ts #3552
+apps/plugin/test-doc-panel.ts #3773
 apps/plugin/test-doc-panel.ts #848
 apps/plugin/test-file-components.ts #1600
 apps/plugin/test-file-components.ts #1713
