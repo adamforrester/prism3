@@ -50,7 +50,9 @@ import { computePrunePlan, type PruneInput } from './src/prune-figma';
 import { ownedModeIds } from './src/write-figma';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -816,5 +818,5 @@ for (const c of ['skip', 'rename'] as const) {
   ok(washIds.length > 0 && into(washIds) === 0, `#1904 wash opacity: ${into(washIds)} of ${washIds.length} opacity aliases landed in the stranded collection`);
 }
 
-console.log(failed ? `\n✗ ${failed} check(s) failed` : '\n✓ apply pre-flight: all checks passed');
+console.log(`${failed ? `\n✗ ${failed} check(s) failed` : '\n✓ apply pre-flight: all checks passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

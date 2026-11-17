@@ -40,7 +40,9 @@ import { applyUpdate, previewHashOf, type ApplyHost } from './src/update-apply';
 import { readRun, rereadAfter, withRoot, type Criteria } from './src/run-read';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -275,5 +277,5 @@ const world = async (paged: boolean, more: N[] = []) => {
     `apply/moved: after the run moves a set to a page it made, the run's lookup finds it once (${JSON.stringify(res.relocated ?? res.refusedAll ?? null)}; found ${JSON.stringify(found)})`);
 }
 
-console.log(failed ? `\n${failed} failed` : '\nall passed');
+console.log(`${failed ? `\n${failed} failed` : '\nall passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

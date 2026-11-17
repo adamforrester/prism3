@@ -5997,6 +5997,15 @@ arm: {
   try { brandTheme({ id: 'x', primary: { l: 0.5, c: 0.2, h: 20 }, neutral: { hue: 20, chroma: 0.01 }, actionPalette: 'primary', accentPalette: 'primary' } as unknown as BrandInput); }
   catch { threw = true; }
   ok(threw, 'accent: accentPalette === actionPalette is rejected');
+  // #3845 — the guard reads the palette action RESOLVES to, so `roleColors.action` (the schema's alias of
+  // `actionPalette`) refuses the same identical column, and frees the column it no longer duplicates.
+  const g3845 = { id: 'g3845', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 },
+    brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1, h: 200 } }] };
+  const throws3845 = (extra: object): boolean => { try { brandTheme({ ...g3845, ...extra } as unknown as BrandInput); return false; } catch { return true; } };
+  ok(throws3845({ actionPalette: 'accent', accentPalette: 'accent' }) && throws3845({ roleColors: { action: 'accent' }, accentPalette: 'accent' }),
+    '#3845: accentPalette equal to the resolved action palette is rejected under both spellings (actionPalette, roleColors.action)');
+  ok(!throws3845({ actionPalette: 'accent', accentPalette: 'primary' }) && !throws3845({ roleColors: { action: 'accent' }, accentPalette: 'primary' }),
+    '#3845: accentPalette primary is allowed once action resolves to accent, under both spellings');
 }
 
 // ------------------------------------- the iconContrast DEFAULT is pinned, not merely documented
