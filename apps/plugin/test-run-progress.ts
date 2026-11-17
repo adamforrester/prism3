@@ -58,7 +58,9 @@ import { runApplyTheme, themePlans } from './src/apply-theme';
 import { FileShim } from './file-shim';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -422,5 +424,5 @@ ok(J(SETS.map((id) => membersOf(id).length)) === J([14, 50, 45]), `premise: the 
     'apply/agent: an agent\'s Apply Theme posts no reading');
 }
 
-console.log(failed ? `\n${failed} failed` : '\nall passed');
+console.log(`${failed ? `\n${failed} failed` : '\nall passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

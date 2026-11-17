@@ -138,41 +138,41 @@ Keyed by `size`, `style`, `type`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `surface` | `space.100` / `space.150` / `space.100` / `space.150` | `space.0` | — | — | — | — |
+| `surface` | `space.100` / `space.150` / `space.100` / `space.150` | `space.0` | — | — | — | radius `radius.sm`; stroke `border-width.hairline` |
 
 **size=small, style=contained, type=status**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `surface` | `space.025` / `space.100` / `space.025` / `space.100` | `space.0` | — | — | — | — |
+| `surface` | `space.025` / `space.100` / `space.025` / `space.100` | `space.0` | — | — | — | radius `radius.sm`; stroke `border-width.hairline` |
 
 **size=medium, style=inline, type=status**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `surface` | `space.0` | `space.100` | — | — | — | — |
+| `surface` | `space.0` | `space.100` | — | — | — | radius `radius.none`; stroke `border-width.hairline` |
 | `surface/dotCell` | — | — | `type.label.sm.line-box` | — | — | — |
-| `surface/dotCell/statusDot` | — | — | `space.100` | `space.100` | — | — |
+| `surface/dotCell/statusDot` | — | — | `space.100` | `space.100` | — | radius `radius.round` |
 
 **size=small, style=inline, type=status**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `surface` | `space.0` | `space.075` | — | — | — | — |
+| `surface` | `space.0` | `space.075` | — | — | — | radius `radius.none`; stroke `border-width.hairline` |
 | `surface/dotCell` | — | — | `type.caption.md.line-box` | — | — | — |
-| `surface/dotCell/statusDot` | — | — | `space.100` | `space.100` | — | — |
+| `surface/dotCell/statusDot` | — | — | `space.100` | `space.100` | — | radius `radius.round` |
 
 **size=medium, style=contained, type=count**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `surface` | `space.025` / `space.075` / `space.025` / `space.075` | `space.0` | — | — | — | — |
+| `surface` | `space.025` / `space.075` / `space.025` / `space.075` | `space.0` | — | — | — | radius `radius.round`; stroke `border-width.hairline` |
 
 **size=medium, style=contained, type=dot**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `surface` | `space.0` | `space.0` | — | — | — | — |
+| `surface` | `space.0` | `space.0` | — | — | — | radius `radius.round`; stroke `border-width.hairline` |
 | `surface/dot` | — | — | `space.100` | `space.100` | — | — |
 
 ### Type

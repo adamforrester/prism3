@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Gradients are exported.** Gradient paint styles now export to
+  `gradients.json` (`shared/gradients.json` in a multi-mode export) as DTCG
+  `gradient` tokens: an array of `{ color, position }` stops, with a stop bound
+  to a color variable written as an alias. The gradient's kind, transform and
+  paint opacity go in `$extensions.figma`. Before, paint styles were never
+  read, so every gradient was missing from the export with no warning. A style
+  that layers a gradient with other visible paints is skipped and its name
+  logged; solid and image paint styles are not exported.
 - **Line-height and letter-spacing multipliers are typed as numbers.** An
   unscoped `font/line-height/…` or `font/letter-spacing/…` variable, or its
   `-role` alias, with no scopes at all, now exports as a unitless `number`:

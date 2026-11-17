@@ -25,7 +25,9 @@ import { materializeForBrand } from './src/brand-def';
 import { prebuildDependencies } from './src/build-deps';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -109,4 +111,4 @@ ok(measured === want.length * TABS_PER_MEMBER && order.length === 0,
   `#3344 tabs paint order: in every member the list draws the baseline before the tabs, so every indicator paints over it (${order.length} off — ${order.slice(0, 2).join('; ') || 'none'})`);
 
 if (failed) { console.error(`\n${failed} failed`); process.exit(1); }
-console.log('\nall passed');
+console.log(`\nall passed — ${executed} assertions executed`);

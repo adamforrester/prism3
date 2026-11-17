@@ -696,6 +696,8 @@
 }
 .p3-drawer-body[hidden] { display: none; }
 .p3-drawer-note { margin: 0; }
+/* The owner (2026-11-17): Report a problem, a ghost icon button at the end of the open drawer's last line. */
+.p3-btn.p3-drawer-report { justify-self: end; }
 .p3-drawer-note[hidden] { display: none; }
 /* Q3113.8 A: the sheet's header row at 380 (a 24 × 24 close icon, "Activity", the counts, the agent dot), which takes the
    bar row's place there. Wider, the bar row closes the drawer and no header is drawn. */
@@ -2098,7 +2100,7 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 /* ── #3712 (the owner's Q-UD2, 2026-11-13: direction C, folded step cards) ──────────────────────────────────────────
    The Update tab's body is the levers gray (`.p3-levers`), each step a white card on it (`.p3-lsec`'s surface, hairline
    and radius): its head row is the box and title, a status chip and, where it holds groups, a chevron that folds it.
-   Inside an open card each group is an inset on the fill gray (`.p3-tip`) with Palettes' small-capital title
+   Inside an open card each group is an inset, a step lighter than the fill gray since 2026-11-17 (below), with Palettes' small-capital title
    (`.p3-card-title`), its rows split by hairlines. One indent for every line that explains a box: the box's label's
    left edge (the check's hairline, its box and its gap), so a line starts where the text it explains starts (audit S3). */
 .p3-upd-deck { background: var(--p3-levers-bg); gap: var(--p3-space-100); }
@@ -2122,7 +2124,10 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 /* #3712 (Q-UD4 A): a Clean up card's own action (Remove panels, Remove tables) in a row at its foot, at its end. */
 .p3-upd-cardacts { display: flex; justify-content: flex-end; padding-top: var(--p3-space-050); }
 .p3-upd-cardacts > .p3-btn { flex: 0 1 auto; min-width: 0; }
-.p3-upd-inset { gap: var(--p3-space-075); padding: var(--p3-space-150); padding-top: var(--p3-space-150); margin-top: var(--p3-space-050); border-radius: var(--p3-radius-lg); background: var(--p3-fill-1); }
+/* The owner (2026-11-17): the inset one step lighter, and no white chip on it. `levers-bg` is that step in both themes:
+   neutral 025 in light (fill-1 is 050), and neutral 900 in dark, fill-1's own step, since 850 puts text-2 at 4.17:1.
+   A chip in it keeps the tag's own fill (`.p3-sg-tag`), so no white pill sits on gray. DRAFT: the owner's call. */
+.p3-upd-inset { gap: var(--p3-space-075); padding: var(--p3-space-150); padding-top: var(--p3-space-150); margin-top: var(--p3-space-050); border-radius: var(--p3-radius-lg); background: var(--p3-levers-bg); }
 .p3-upd-inset .p3-upd-subtitle { padding: 0; color: var(--p3-text); }
 .p3-upd-inset .p3-upd-sub { padding: 0; }
 .p3-upd-inset .p3-upd-grouphead { min-height: var(--p3-ctl-h-xs); }
@@ -2132,7 +2137,6 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-inset .p3-upd-sets > .p3-upd-breaks { padding-bottom: var(--p3-space-075); }
 .p3-upd-inset .p3-upd-setline { padding-left: calc(var(--p3-bw-hairline) + var(--p3-space-200) + var(--p3-space-150)); }
 .p3-upd-inset .p3-upd-check { margin-left: calc(-1 * var(--p3-space-100)); width: calc(100% + var(--p3-space-100)); }
-.p3-upd-inset .p3-upd-checktext > .p3-sg-tag, .p3-upd-inset .p3-upd-krow .p3-sg-tag { background: var(--p3-bg-page); }
 .p3-upd-inset :is(.p3-upd-addall, .p3-upd-disclose) { margin-left: 0; }
 .p3-upd-locked > .p3-upd-setname { display: inline-flex; align-items: center; gap: var(--p3-space-075); }
 .p3-upd-locked > .p3-upd-setname > .p3-ico { flex: none; color: var(--p3-icon-2); }

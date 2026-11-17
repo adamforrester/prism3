@@ -101,6 +101,9 @@ const ADDED: Record<string, number> = {
   // prism3 #3085 — the text-style reader keeps the underline's thickness and offset (PERCENT as %, PIXELS as
   // px or rem, AUTO left out), and the CSS export writes them.
   'tests/unit/text-decoration-metrics.test.ts': 7,
+  // prism3 #731 — gradient paint styles were never scanned, so every gradient was missing from the export. Now
+  // scanned and written to `gradients.json` as DTCG `gradient` tokens, stop colors bound to variables as aliases.
+  'tests/unit/gradient-paint-styles.test.ts': 6,
 };
 
 // ---- the harness checks itself first -------------------------------------------------------

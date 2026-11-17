@@ -231,6 +231,20 @@ const specChecks: SpecCheck[] = [];
 const HOST_GEOMETRY: Record<string, string> = {
   paddingTop: 'paddingTop', paddingRight: 'paddingRight', paddingBottom: 'paddingBottom', paddingLeft: 'paddingLeft',
   itemSpacing: 'gap', counterAxisSpacing: 'rowGap', height: 'height', minHeight: 'minHeight', width: 'width', minWidth: 'minWidth', maxWidth: 'maxWidth',
+  // #3506: the corners and the stroke. Each host key names its own corner or side; the model collapses four equal ones to
+  // one value (`EDGE_UNIFORM`), and a bound scalar `strokeWeight` reads back on the four per-side keys (#1332).
+  topLeftRadius: 'radiusTopLeft', topRightRadius: 'radiusTopRight', bottomRightRadius: 'radiusBottomRight', bottomLeftRadius: 'radiusBottomLeft',
+  strokeWeight: 'strokeWidth', strokeTopWeight: 'strokeWidthTop', strokeRightWeight: 'strokeWidthRight', strokeBottomWeight: 'strokeWidthBottom', strokeLeftWeight: 'strokeWidthLeft',
+};
+/** A per-corner or per-side property → the one the model writes when all four agree. */
+const EDGE_UNIFORM: Record<string, string> = {
+  radiusTopLeft: 'radius', radiusTopRight: 'radius', radiusBottomRight: 'radius', radiusBottomLeft: 'radius',
+  strokeWidthTop: 'strokeWidth', strokeWidthRight: 'strokeWidth', strokeWidthBottom: 'strokeWidth', strokeWidthLeft: 'strokeWidth',
+};
+/** A uniform property → the four host keys that must each bind it. `strokeWidth` is also met by the scalar key. */
+const EDGE_KEYS: Record<string, string[]> = {
+  radius: ['topLeftRadius', 'topRightRadius', 'bottomRightRadius', 'bottomLeftRadius'],
+  strokeWidth: ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'],
 };
 /** Node types that are drawn geometry inside a glyph frame, not parts. */
 const DRAWN = new Set(['VECTOR', 'BOOLEAN_OPERATION', 'STAR', 'ELLIPSE', 'POLYGON', 'LINE', 'RECTANGLE']);
@@ -289,7 +303,8 @@ const specReadback = (spec: ComponentSpec, members: HostNode[], set: HostNode | 
         if (typeof id !== 'string') continue;
         facts.redlines++;
         const host = ports.varName(id);
-        const want = (values as Record<string, { token?: string; px?: number }>)[prop];
+        const vs = values as Record<string, { token?: string; px?: number }>;
+        const want = vs[prop] ?? (EDGE_UNIFORM[prop] ? vs[EDGE_UNIFORM[prop]] : undefined);
         if (!want?.token || !varIs(host, want.token)) miss(h.name, path, prop, want ? JSON.stringify(want) : 'in the model', `host binds ${host ?? `unresolvable ${id}`}`);
       }
       for (const key of ['minWidth', 'maxWidth', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'] as const) {
@@ -410,7 +425,12 @@ const specReadback = (spec: ComponentSpec, members: HostNode[], set: HostNode | 
         if (typeof n[key] !== 'number' || (n[key] as number) < 0 || typeof bv[key]?.id === 'string') miss(h.name, part.part, prop, 'a computed unbound number', `host ${key} ${String(n[key])}${typeof bv[key]?.id === 'string' ? ', bound' : ''}`);
         continue;
       }
-      if (v.token !== undefined) {
+      if (v.token !== undefined && EDGE_KEYS[prop]) {
+        // A uniform corner or stroke: every one of the four host keys binds it (or, for a stroke, the scalar does).
+        const scalar = prop === 'strokeWidth' && typeof bv.strokeWeight?.id === 'string' && varIs(ports.varName(bv.strokeWeight.id as string), v.token);
+        const off = EDGE_KEYS[prop].filter((k) => { const id = bv[k]?.id; return typeof id !== 'string' || !varIs(ports.varName(id), v.token!); });
+        if (!scalar && off.length) miss(h.name, part.part, prop, v.token, `host ${off.map((k) => `${k} ${typeof bv[k]?.id === 'string' ? ports.varName(bv[k]!.id as string) : 'UNBOUND'}`).join(', ')}`);
+      } else if (v.token !== undefined) {
         const id = bv[key]?.id;
         if (typeof id !== 'string' || !varIs(ports.varName(id), v.token)) miss(h.name, part.part, prop, v.token, typeof id === 'string' ? `host binds ${ports.varName(id)}` : 'UNBOUND on the host');
       } else {

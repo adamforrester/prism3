@@ -24,7 +24,9 @@ import {
 import type { ComponentProgress } from './src/write-components';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -302,5 +304,5 @@ ok(CALM_TICKS >= 2, `CALM_TICKS requires more than one quiet sample (${CALM_TICK
 // makes that table wrong, which is the kind of documented measurement that otherwise rots silently.
 ok(MAX_TICKS === 400, `MAX_TICKS is the budget the header's measured table is computed from (${MAX_TICKS})`);
 
-console.log(`\nplugin BUILD TELEMETRY: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
+console.log(`\nplugin BUILD TELEMETRY: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'} — ${executed} assertions executed`);
 if (failed) process.exit(1);

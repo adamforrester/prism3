@@ -116,28 +116,28 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `frame` | — | — | `control.size.md.thumb` | `control.size.md.thumb` | — | — |
-| `frame/pressHalo` | `space.050` | — | — | — | — | — |
-| `frame/pressHalo/hoverHalo` | `space.050` | — | — | — | — | — |
-| `frame/pressHalo/hoverHalo/disc` | — | — | `control.size.md.thumb` | `control.size.md.thumb` | — | — |
+| `frame` | — | — | `control.size.md.thumb` | `control.size.md.thumb` | — | radius `radius.round` |
+| `frame/pressHalo` | `space.050` | — | — | — | — | radius `radius.round` |
+| `frame/pressHalo/hoverHalo` | `space.050` | — | — | — | — | radius `radius.round`; stroke `border-width.heavy` |
+| `frame/pressHalo/hoverHalo/disc` | — | — | `control.size.md.thumb` | `control.size.md.thumb` | — | radius `radius.round` |
 
 **size=small**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `frame` | — | — | `control.size.sm.thumb` | `control.size.sm.thumb` | — | — |
-| `frame/pressHalo` | `space.050` | — | — | — | — | — |
-| `frame/pressHalo/hoverHalo` | `space.050` | — | — | — | — | — |
-| `frame/pressHalo/hoverHalo/disc` | — | — | `control.size.sm.thumb` | `control.size.sm.thumb` | — | — |
+| `frame` | — | — | `control.size.sm.thumb` | `control.size.sm.thumb` | — | radius `radius.round` |
+| `frame/pressHalo` | `space.050` | — | — | — | — | radius `radius.round` |
+| `frame/pressHalo/hoverHalo` | `space.050` | — | — | — | — | radius `radius.round`; stroke `border-width.heavy` |
+| `frame/pressHalo/hoverHalo/disc` | — | — | `control.size.sm.thumb` | `control.size.sm.thumb` | — | radius `radius.round` |
 
 **size=large**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `frame` | — | — | `control.size.lg.thumb` | `control.size.lg.thumb` | — | — |
-| `frame/pressHalo` | `space.050` | — | — | — | — | — |
-| `frame/pressHalo/hoverHalo` | `space.050` | — | — | — | — | — |
-| `frame/pressHalo/hoverHalo/disc` | — | — | `control.size.lg.thumb` | `control.size.lg.thumb` | — | — |
+| `frame` | — | — | `control.size.lg.thumb` | `control.size.lg.thumb` | — | radius `radius.round` |
+| `frame/pressHalo` | `space.050` | — | — | — | — | radius `radius.round` |
+| `frame/pressHalo/hoverHalo` | `space.050` | — | — | — | — | radius `radius.round`; stroke `border-width.heavy` |
+| `frame/pressHalo/hoverHalo/disc` | — | — | `control.size.lg.thumb` | `control.size.lg.thumb` | — | radius `radius.round` |
 
 ### Color
 
