@@ -10,7 +10,7 @@ const svg = (d: string) => `<svg viewBox="0 0 24 24" fill="currentColor" aria-hi
 // Remix Icon (https://remixicon.com), licensed under the Remix Icon License v1.0, copied from packages/engine/icons/
 // (see its NOTICE.md): search-line, information-line, and the three status glyphs field-message nests
 // (warning-triangle = alert-line, error-circle = error-warning-line, check-circle = checkbox-circle-line).
-const ICON = {
+export const ICON = {
   leading: svg('M18.031 16.6168L22.3137 20.8995L20.8995 22.3137L16.6168 18.031C15.0769 19.263 13.124 20 11 20C6.032 20 2 15.968 2 11C2 6.032 6.032 2 11 2C15.968 2 20 6.032 20 11C20 13.124 19.263 15.0769 18.031 16.6168ZM16.0247 15.8748C17.2475 14.6146 18 12.8956 18 11C18 7.1325 14.8675 4 11 4C7.1325 4 4 7.1325 4 11C4 14.8675 7.1325 18 11 18C12.8956 18 14.6146 17.2475 15.8748 16.0247L16.0247 15.8748Z'),
   trailing: svg('M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22ZM12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20ZM11 7H13V9H11V7ZM11 11H13V17H11V11Z'),
   error: svg('M12.865 3.00017L22.3912 19.5002C22.6674 19.9785 22.5035 20.5901 22.0252 20.8662C21.8732 20.954 21.7008 21.0002 21.5252 21.0002H2.47266C1.92037 21.0002 1.47266 20.5525 1.47266 20.0002C1.47266 19.8246 1.51886 19.6522 1.60663 19.5002L11.1329 3.00017C11.4091 2.52187 12.0206 2.358 12.4989 2.63414C12.651 2.72191 12.7772 2.84815 12.865 3.00017ZM4.20471 19.0002H19.7932L11.9989 5.50017L4.20471 19.0002ZM10.9989 16.0002H12.9989V18.0002H10.9989V16.0002ZM10.9989 9.00017H12.9989V14.0002H10.9989V9.00017Z'),
@@ -29,7 +29,7 @@ export type FieldOpts = {
   icons: boolean; message: boolean; required?: boolean; emphasis?: string; weight?: string;
 };
 const STATES = ['rest', 'filled', 'disabled', 'read-only', 'pending'];
-const COPY: Record<Kind, { label: string; placeholder: string; value: string; message: Record<string, string> }> = {
+export const COPY: Record<Kind, { label: string; placeholder: string; value: string; message: Record<string, string> }> = {
   'text-field': {
     label: 'Email address', placeholder: 'name@example.com', value: 'ada@example.com',
     message: {

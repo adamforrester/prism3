@@ -2,7 +2,7 @@
   "name": "@prism3/web-components",
   "version": "0.0.0",
   "private": true,
-  "description": "Prism3 components as Lit custom elements in the light DOM, rendering @prism3/css's markup and styled only by its CSS.",
+  "description": "Prism3 components as Lit custom elements in the light DOM, rendering @prism3/css's markup and styled only by its CSS: <p3-button>, <p3-text-field> and <p3-password-field>.",
   "type": "module",
   "main": "./p3-button.js",
   "module": "./p3-button.js",
@@ -10,11 +10,15 @@
   "exports": {
     ".": "./p3-button.js",
     "./p3-button.js": "./p3-button.js",
+    "./p3-text-field.js": "./p3-text-field.js",
+    "./p3-password-field.js": "./p3-password-field.js",
     "./custom-elements.json": "./custom-elements.json",
     "./package.json": "./package.json"
   },
   "files": [
     "p3-button.js",
+    "p3-text-field.js",
+    "p3-password-field.js",
     "custom-elements.json",
     "README.md"
   ],
@@ -22,8 +26,8 @@
     "generate": "npx tsx generate.ts && npm run manifest",
     "manifest": "cem analyze --outdir .",
     "check:generated": "npx tsx generate.ts --check && npx tsx check-manifest.ts",
-    "check:parity": "npx tsx check-parity.ts",
-    "test:browser": "npm run -w @prism3/tokens build && npx tsx check-browser.ts"
+    "check:parity": "npx tsx check-parity.ts && npx tsx check-parity-fields.ts",
+    "test:browser": "npm run -w @prism3/tokens build && npx tsx check-browser.ts && npx tsx check-browser-fields.ts"
   },
   "dependencies": {
     "lit": "3.3.3"

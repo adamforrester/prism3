@@ -14,10 +14,14 @@
  * - When the form submits, the field goes back to hidden, so a browser never stores the value as plain text.
  * - Every string can be set per button: data-p3-show, data-p3-hide, data-p3-shown, data-p3-hidden. The defaults are the
  *   def's (DRAFT, Q301.5).
+ * - Inside a `<p3-password-field>` that has upgraded (`:defined`), the element owns the button and this script stands
+ *   aside, so a page that loads both toggles once. Before the element's script runs, this one works the same markup.
  */
 (() => {
   const TOGGLE = '.p3-password-field__toggle';
   const TEXT = { show: 'Show', hide: 'Hide', shown: 'Your password is shown', hidden: 'Your password is hidden' };
+  /** A button the `<p3-password-field>` element owns: this script leaves it alone. */
+  const owned = (button) => !!button.closest('p3-password-field:defined');
   const say = (button, key) => button.getAttribute(`data-p3-${key}`) || TEXT[key];
 
   let region;
@@ -45,12 +49,12 @@
   };
 
   const enhance = (root = document) => {
-    for (const button of root.querySelectorAll(TOGGLE)) if (inputOf(button)) button.hidden = false;
+    for (const button of root.querySelectorAll(TOGGLE)) if (!owned(button) && inputOf(button)) button.hidden = false;
   };
 
   document.addEventListener('click', (event) => {
     const button = event.target instanceof Element && event.target.closest(TOGGLE);
-    if (!button || button.disabled) return;
+    if (!button || button.disabled || owned(button)) return;
     const input = inputOf(button);
     if (!input) return;
     const shown = input.type === 'password';
@@ -63,7 +67,7 @@
     if (!(form instanceof HTMLFormElement)) return;
     for (const button of form.querySelectorAll(TOGGLE)) {
       const input = inputOf(button);
-      if (input && input.type === 'text') set(button, input, false);
+      if (!owned(button) && input && input.type === 'text') set(button, input, false);
     }
   }, true);
 

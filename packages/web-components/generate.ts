@@ -18,6 +18,9 @@
  * to markup is written below, in `MARKUP`; `check-parity.ts` holds its own copy, written apart, so the two can
  * disagree and fail (`docs/34`).
  *
+ * THE FIELDS (`p3-text-field.js`, `p3-password-field.js`) are written by `generate-fields.ts`, called from here, so
+ * `--check` covers all three elements.
+ *
  * The output is plain JavaScript with JSDoc types, so a client needs no build to read it and
  * `@custom-elements-manifest/analyzer` can read each property's type, default and description.
  */
@@ -25,6 +28,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readUncommitted } from '../css/emission';
+import { FIELD_IDS, fieldSource } from './generate-fields';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const ELEMENT_FILE = resolve(HERE, 'p3-button.js');
@@ -202,15 +206,22 @@ ${styled.map((p) => `        ${attr(p.name)}=\${this.${field(p.name)}}`).join('\
 if (!customElements.get('${TAG}')) customElements.define('${TAG}', P3Button);
 `;
 
+/** Every element this package generates: the button, then the fields. */
+export const outputs = (): [string, string][] => [
+  [ELEMENT_FILE, source()],
+  ...FIELD_IDS.map((id): [string, string] => [resolve(HERE, `p3-${id}.js`), fieldSource(id)]),
+];
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const out = source();
+  const out = outputs();
+  const names = out.map(([f]) => f.slice(HERE.length + 1)).join(', ');
   if (process.argv.includes('--check')) {
-    let now = '';
-    try { now = readFileSync(ELEMENT_FILE, 'utf8'); } catch { /* absent */ }
-    if (now !== out) { console.error('FAIL generated: p3-button.js is not what generate.ts writes from the emission. Run: npx tsx packages/web-components/generate.ts'); process.exit(1); }
-    console.log(`OK generated: p3-button.js matches the ${COMPONENT} def (${props.length} props)`);
+    const stale = out.filter(([f, text]) => { try { return readFileSync(f, 'utf8') !== text; } catch { return true; } });
+    for (const [f] of stale) console.error(`FAIL generated: ${f.slice(HERE.length + 1)} is not what generate.ts writes from the emission. Run: npx tsx packages/web-components/generate.ts`);
+    if (stale.length) process.exit(1);
+    console.log(`OK generated: ${names} match their defs (${COMPONENT}: ${props.length} props)`);
   } else {
-    writeFileSync(ELEMENT_FILE, out);
-    console.log(`wrote p3-button.js (${props.length} props)`);
+    for (const [f, text] of out) writeFileSync(f, text);
+    console.log(`wrote ${names}`);
   }
 }

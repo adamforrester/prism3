@@ -1137,3 +1137,178 @@ protected by being strict about unknown input and by checking its output byte fo
   it followed the button's `ring-width`, which the emitter uses only as `strokeInset`. Both are `focus.ring.width`
   today, so the bytes are the same. Rebinding the button's `ring-width` alone no longer moves the CSS, and rebinding the
   focus ring's `width` does. This is the more correct source, because the outline the CSS draws is the ring.
+
+---
+
+## S4 for the fields — `<p3-text-field>` and `<p3-password-field>`, in Lit 3
+
+Started about 18:44 UTC on 2026-11-17, stacked on the "Refresh 3" PR (`poc/arm-1-emission-bindings` at `90a500bc`).
+It follows `<p3-button>`'s pattern (S4): generated from the emission, light DOM, styled only by `@prism3/css`.
+
+### What was built
+
+- **`generate-fields.ts`**, called from `generate.ts`, so `check:generated` covers all three elements. It writes
+  `p3-text-field.js` and `p3-password-field.js` from each def's props in `component-defs.json`. Each prop is a Lit
+  property of the def's name, reflected to `data-prop-<name>`, with the def's default and description. The
+  exception is `value` (owner decision 4). A prop of an unknown type, or one with no `MARKUP` row, fails generation
+  by name. The Show/Hide button's variant comes from `specs.json`'s `nesting`. The message glyphs come from
+  `field-message`'s anatomy `when`. The glyph art comes from `@prism3/css`'s `demo-fields.ts`, now exported, so both
+  delivery forms draw the same marks.
+- **The markup is `@prism3/css`'s fields contract.** A native `<label for>` and `<input>` sit in one tree with the
+  message. The label's `for` names the input's id, which is generated when unset. `aria-describedby` names the
+  message when `showMessage` is on, and `aria-invalid` is set at `error`. The spinner span is always written. The
+  three status glyphs are in the glyph cell, so a live status change is one attribute.
+- **The Show/Hide button, in Lit** (Q301.4 A, Q301.5 A, Q301.7 A). It's `@prism3/css`'s nested Button markup, never
+  hidden once the element runs, with `aria-controls` naming the input. Its visible text is "Show" or "Hide" plus a
+  visually hidden " password", and it has no `aria-pressed`. A press switches `type` in the same task, keeps the
+  caret (below) and focus, and announces once in the page's polite live region. A submit returns the input to masked
+  in the capture phase. Disabled disables the button; read-only leaves it live.
+- **The markup works before JS runs.** `@prism3/css`'s markup written inside the element is a plain field: the
+  button stays hidden, or `password-field.js` runs it. On upgrade the element adopts the markup's props: size,
+  validation, label, the input's attributes, the message and its text, the glyphs, a value typed before the upgrade,
+  and focus with the caret. Then it renders its own. `password-field.js` now stands aside inside a `:defined`
+  `<p3-password-field>`, so a page that loads both toggles once.
+- **`value` and `onChange`.** `onChange` is called with each `input` event. Typing updates `value`, and setting
+  `value` sets the input.
+- `custom-elements.json` covers all three elements. The package's `exports` and `files` list the two new modules,
+  and both READMEs document the fields.
+
+### Decisions
+
+Followed: Q95 B (Lit 3), Q96 A (generated from the emission, with a parity gate), Q97 A (`p3-<def id>`, as S4 owner
+decision 5 recommended), Q86 A (native HTML plus a small script, here the element), S4 owner decision 1
+(`data-prop-*` on the host), S4 owner decision 2 (slot names are the def's: `slot="leadingIcon"`), and
+Q301.2 B / Q301.3 B / Q380 A for the Show/Hide button's place and variant.
+
+**Settled by the def, so not an owner decision:** the toggle's accessible name and icon. Q301.4 A and Q301.5 A give
+the name ("Show password" / "Hide password", from visible text plus a visually hidden suffix), no `aria-pressed`, and
+no icon. The def's "avoid" list names an eye icon inside the field. The wording is DRAFT (Q301.5). The element reads
+the same `data-p3-*` overrides as `@prism3/css`'s script.
+
+**OWNER DECISIONS** (each built as the recommendation):
+
+1. **OWNER DECISION: def props named like built-in element members: `id`, `inputMode` and `prefix`.** Mirroring the
+   def exactly means Lit properties of those names, which shadow `HTMLElement.id`, `HTMLElement.inputMode` and
+   `Element.prefix` on the host. Options:
+   - **A. Mirror exactly (built).** `el.id` and `data-prop-id` name the inner input, as `ariaLabel` does on
+     `<p3-button>`. The host's own `id` attribute still exists, but `el.id` no longer reads it. A page that writes
+     `<p3-text-field id="email">` gives the host that id, not the input, so a `<label for="email">` outside it
+     labels nothing.
+   - B. Keep the built-ins and rename the props on the element (`inputId`, …). This breaks "props mirror the defs"
+     and the parity gate's one-name rule.
+   - C. Move a host `id` attribute onto the input at upgrade, as React's `id` does. The host then has no id, and a
+     framework that sets `el.id` reaches the input.
+
+   **Recommendation: A** for the POC, with the README naming `data-prop-id`. Revisit if the Storybook stories or the
+   ejection scenario set `id` on the host.
+2. **OWNER DECISION: events.** The def has one handler, `onChange`, described as "Change handler (also onBlur /
+   onFocus)", which reads as React's per-keystroke `onChange`. Options:
+   - **A. No custom events (built).** `onChange` is called on each `input` event, and the native `input`, `change`,
+     `focus` and `blur` events bubble from the inner input through the host, because the DOM is light.
+   - B. Also dispatch a `p3-change` `CustomEvent` from the host, the common custom-element style. That's a second
+     event name per prop to keep in parity.
+   - C. Call `onChange` on `change` (commit) rather than `input`.
+
+   **Recommendation: A.** One handler that matches the def's React reading, and native events for everyone else.
+3. **OWNER DECISION: how markup works before JS runs.** Options:
+   - **A. Adopt on upgrade (built).** The `@prism3/css` markup written inside the element works alone, and the
+     element reads its props, a typed value and focus from it, then renders its own.
+   - B. Lit SSR with hydration (`@lit-labs/ssr`). This adds a server render step and a dependency.
+   - C. No pre-JS markup: the element is empty until defined, and pages that need it use `@prism3/css` directly.
+
+   **Recommendation: A.** It is Q86 A's progressive enhancement with no new dependency, and the browser check holds
+   all three stages: no script, the CSS script only, then the element.
+4. **OWNER DECISION: `value` is a property only, never an attribute.** Every other prop reflects to `data-prop-*`.
+   Reflecting `value` would write each keystroke into the DOM, including a password, where page scripts, extensions
+   and DOM snapshots read it. Options: **A. property only (built)**, with `defaultValue` as the attribute; or B.
+   reflect it like the rest. **Recommendation: A.**
+5. **OWNER DECISION: `prefix`, `suffix` and `clearable` are declared but not rendered.** The def's anatomy has no
+   part for a text affix (#1699) or a Clear button, so `@prism3/css` has no style for them. Options: **A. declare,
+   don't render, and document it (built)**; or B. build a Clear button in the element now, unstyled by any def.
+   **Recommendation: A**, until the def's anatomy has the parts.
+
+Taken as technical calls (documented in the README, reversible): the generated id is `p3-<def id>-<n>`; the host
+stays `display: inline`, as on `<p3-button>` (S4 owner decision 3, still open); and tab order is the anatomy's
+(button, then input), as `@prism3/css` has it (S3 owner decision 2, still open).
+
+### What was checked, and how
+
+The CI steps aren't new: `check:parity` and `test:browser` chain the fields' checks after the button's, and
+`check:generated` covers the three elements.
+
+- **`check:generated`**: the three elements equal a fresh generation, and `custom-elements.json` equals a fresh
+  analyzer run over all three.
+- **`check-parity-fields.ts`**, the fields' element gate (docs/34):
+  - **EXPECTED** is `components.ai.json` and `component-defs.json`, which must agree, plus the check's own
+    hand-written contract: where each prop lands, by selector inside the host.
+  - **ACTUAL** is the manifest and the live elements: 42 text-field and 26 password-field prop values, set by
+    attribute and by property. Invented and missing props fail.
+  - **The associations, on every element:** the label's `for` is the input's id and its `control` is the input;
+    two elements never share a generated id; `aria-describedby` names the message in the same tree; and the button's
+    `aria-controls` names the input. Setting `value` sets the input, and it is never written to `data-prop-value`.
+  - **Eight mutants fail by name:** error without `aria-invalid`; the message missing from `aria-describedby`; the
+    label not naming the input; a dropped prop (`readOnly`); an invented prop (`reveal`); a changed default
+    (`size`); the button without `aria-controls`; a value dropped from the manifest's `autoComplete` union.
+- **`check-browser-fields.ts`**, 1,304 checks with the real token CSS and all five `@prism3/css` stylesheets:
+  - **Both delivery forms.** Each sample is drawn twice: plain, from `@prism3/css`'s own demo markup, and as the
+    element. There are 18 samples per field: every size × status, filled, disabled, read-only, pending, icons and
+    required. Every part's 23 computed properties are equal, on light and dark, and each box must draw a border.
+  - **By role and keyboard.** Inputs are found by their label text. Error sets `aria-invalid`, and the description
+    reaches the message. Tab goes button, then input.
+  - **The Show/Hide button.** Click, Enter and Space are tested. The caret holds after typing; focus stays on the
+    button; the name is "Hide password"; there is no `aria-pressed`; there's one `role="status"` region announcing
+    each change; the input is masked at the submit's bubble phase; read-only stays live and disabled is disabled.
+  - **The three stages.** With no script, a plain masked field with the button hidden. With `password-field.js`
+    only, the button works. When the element then upgrades, it adopts the id, label, size, required and help text,
+    keeps the typed value, focus and the 1–4 caret, and one click toggles once.
+  - **`onChange` and `value`.** `onChange` is called once per input event, `value` follows, and nothing is written
+    to an attribute.
+  - **Five mutants fail by name:** the submit handler removed; adoption dropping a typed value; the toggle moving
+    focus to the input; the caret put back only once; `password-field.js` no longer standing aside.
+- **Hand mutations on disk**, each after a `wip:` commit, restored with `git reset --hard`:
+
+  | Mutation | Fails by name |
+  |---|---|
+  | The committed `p3-text-field.js` drops `?required` | `check:generated`: `p3-text-field.js is not what generate.ts writes`; parity: `text-field required=true: .p3-text-field__entry required is null, the contract says ""` |
+  | `generate-fields.ts` loses its `readOnly` markup row | generate: `text-field.readOnly: a flag prop with no markup mapping in generate-fields.ts` |
+  | The engine's text-field def gains an `autoFocus` prop | generate: `text-field.autoFocus: a flag prop with no markup mapping`, so the generator reads the emission |
+
+  A first attempt at the first row edited `aria-invalid`, a parity self-test's anchor. The check refused with
+  `self-test "aria-invalid" changed nothing: its anchor is gone`, which is the guard working, but not the failure the
+  row was meant to show, so it was redone on `required`.
+- `@prism3/css`'s four checks still pass after its two edits: `ICON` and `COPY` exported, and the script standing
+  aside. The button's own element checks are unchanged and pass.
+
+### Surprises and learnings
+
+- **Chromium resets the caret of a blurred input whose type changes, one task later, if the input has had focus.**
+  Clicking Show blurs the input, so the common case loses the caret: type a password, then press Show. The restore
+  in the same task, which `@prism3/css`'s script does, is overwritten. S3's check missed it, because its input was
+  never focused. The element puts the caret back again after that task. The script's defect is filed as #3921, not
+  fixed here.
+- **`getByLabel` reads the label's text with the `aria-hidden` required marker in it**, so an exact "Password" match
+  finds nothing. The check anchors the match instead.
+- **Restoring focus in `firstUpdated` runs before `updated` writes the adopted value**, which moved the caret to the
+  end. Focus is now restored in `updated`, after the value.
+- **The parity probe first reported a missing attribute as "no toggle"**: its `??` treated `null` as absent. Caught
+  by the `aria-controls` mutant, which failed under the wrong name.
+- **The second worktree had no `node_modules`.** `cem` wasn't found until `npm ci` ran there.
+
+### Plan changes suggested
+
+- **Fix #3921 in `@prism3/css` before S5's stories**, so the two delivery forms keep the caret the same way.
+- **Settle S4 owner decision 3 (the host's box) and S3 owner decision 2 (tab order)** before the Storybook layouts,
+  because the fields are block-level content inside an inline host.
+- **When #3917 lands,** the element generator needs nothing: it reads props and nesting only.
+
+### Effort
+
+- **Wall clock:** about 18:44 to 19:05 UTC for the generator, the two checks, the caret diagnosis, the hand
+  mutations, the READMEs and this entry. The full gate run is extra.
+- **Steps:** about 40 tool calls: reading the button element, its checks, the CSS contract, the defs and S3's
+  decisions (about 10); writing 4 files and editing 8; running, debugging and fixing (about 20).
+- **Hand edits:** none to generated output. The generator, the two checks, the bundler and manifest wiring, the
+  package's exports and scripts, two `@prism3/css` edits (two exports, the script standing aside), the READMEs, this
+  entry and the progress entry.
+- **Errors hit:** 6: the missing `node_modules`, the probe's `??`, `getByLabel`'s marker, the caret reset, the
+  refocus order, and the self-test anchor collision (above).
