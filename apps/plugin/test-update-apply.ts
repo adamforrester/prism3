@@ -251,7 +251,8 @@
  *   rows3153/…     Checkbox.Row, Radio.Row and Switch.Row built as main built them before #3153 (owner Q852, Q853 A)
  *                  take one Update in place: the option rows gain the text column (the label MOVED into it) and the
  *                  hidden description with its two properties, off by default; every key and id kept; a designer's gap
- *                  on one member's row kept and reported as a hand edit, before and after. Mutations: the description
+ *                  on one member's row reported as a hand edit, before and after. On the option rows that member is
+ *                  skipped whole (#2956 point 2), on Switch.Row kept around the edit. Mutations: the description
  *                  boolean defaulting on → `rows3153/structure`, `rows3153/description`.
  *   rows3173/…     Checkbox.Row, Radio.Row and Switch.Row built before #3173 (owner Q3173 A), the medium control-to-label
  *                  gap on `space/100`, take one Update in place: only the medium members read update, and each one's
@@ -892,6 +893,49 @@ section('keep — every hand-edited path survives an update that rewrites its me
   ok(await fillVar(m) === changed, `keep/root written: the edited member's root still takes the plan's new fill (${await fillVar(m)})`);
   ok(await fillVar(member(PLAIN)) === changed && JSON.stringify(plainRing()) === JSON.stringify(plainCorners),
     `keep/plain updated: a member with no hand edits takes the new fill, and its ring is re-cornered from its host as before (${await fillVar(member(PLAIN))}; ${JSON.stringify(plainRing())})`);
+}
+
+/* ── structural update on a hand-edited member (#2956 point 2) ─────────────────────────────────────────── */
+section('structure — an update that changes a hand-edited member\'s structure skips the member whole (#2956 point 2)');
+{
+  // Owner decision (2026-10-23): a structural update on a hand-edited member skips the member and reports it. The edit
+  // here is on the member root's fill, away from every layer the plans touch, so only the structure rule can skip it.
+  // Each plan below changes one kind of structure on every member of a Tag; the control changes only a fill. Expected
+  // values are typed here. Mutations: each arm of the dry run's structural test dropped → the arm it names
+  // (`structure/added`, `/removed`, `/retyped`); the apply's skip dropped → every `structure/<kind> skipped`.
+  const NAME = 'type=select, selection=unselected, size=medium, state=rest';
+  const RED = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 1, g: 0, b: 0 } }];
+  const lv = (q: AnatomyPlan): Record<string, unknown> => planChild(planChild(q.root, 'content'), 'leadingVisual') as unknown as Record<string, unknown>;
+  const kinds: { kind: string; choice: 'keep' | 'accept' | 'overwrite'; change: (q: AnatomyPlan) => void; skips: boolean; content: string }[] = [
+    { kind: 'added', choice: 'keep', change: (q) => { planChild(q.root, 'content').children!.push({ name: 'extra', type: 'FRAME', bound: {}, children: [] } as unknown as PlanNode); }, skips: true, content: '["leadingVisual","labelCheck"]' },
+    { kind: 'removed', choice: 'keep', change: (q) => { const c = planChild(q.root, 'content'); c.children = c.children!.filter((x) => x.name !== 'leadingVisual'); }, skips: true, content: '["leadingVisual","labelCheck"]' },
+    { kind: 'retyped', choice: 'keep', change: (q) => { const x = lv(q); x.type = 'FRAME'; for (const k of ['swapTarget', 'propertyRef', 'descendantFills']) delete x[k]; }, skips: true, content: '["leadingVisual","labelCheck"]' },
+    { kind: 'added accept', choice: 'accept', change: (q) => { planChild(q.root, 'content').children!.push({ name: 'extra', type: 'FRAME', bound: {}, children: [] } as unknown as PlanNode); }, skips: true, content: '["leadingVisual","labelCheck"]' },
+    { kind: 'added overwrite', choice: 'overwrite', change: (q) => { planChild(q.root, 'content').children!.push({ name: 'extra', type: 'FRAME', bound: {}, children: [] } as unknown as PlanNode); }, skips: false, content: '["leadingVisual","labelCheck","extra"]' },
+    { kind: 'none', choice: 'keep', change: (q) => { planChild(q.root, 'content').paints = { ...(planChild(q.root, 'content').paints ?? {}), fills: 'color/keep/changed' }; }, skips: false, content: '["leadingVisual","labelCheck"]' },
+  ];
+  for (const k of kinds) {
+    const w = await world(TAG, plansOf(TAG), { extraVars: ['color/keep/changed'] });
+    const member = (): Node => membersOf(w.set()).find((m) => m.name === NAME)!;
+    member().fills = JSON.parse(JSON.stringify(RED));
+    const next = w.plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; k.change(q); return q; });
+    const targets = [{ def: TAG, plans: next }];
+    const pre = await previewUpdate(w.host, targets);
+    const st = pre.sets[0].states.find((x) => x.member === NAME);
+    ok(st?.state === 'handEdited' && (st.restructured === true) === (k.kind !== 'none'), `structure/${k.kind}: the dry run reads the edited member as ${k.kind === 'none' ? 'not ' : ''}restructured (${JSON.stringify(st)})`);
+    const res = await applyUpdate(w.host, w.api as any, targets, previewHashOf(pre), { choices: { handEdits: k.choice } });
+    const o = res.outcomes[0];
+    const content = JSON.stringify((childNamed(member(), 'content').children as Node[]).map((c) => c.name));
+    if (k.skips) {
+      ok(JSON.stringify(o.skipped) === JSON.stringify([{ member: NAME, reason: 'hand-edited, and the update changes its structure' }]) && !o.updated.includes(NAME) && o.updated.length === 44
+        && JSON.stringify(member().fills) === JSON.stringify(RED) && content === k.content && String(childNamed(childNamed(member(), 'content'), 'leadingVisual').type) === 'INSTANCE',
+        `structure/${k.kind} skipped: under ${k.choice} the member is skipped whole and named, its fill and layers as they were, the other 44 updated (${JSON.stringify(o.skipped)}; ${content}; ${o.updated.length} updated)`);
+    } else {
+      // Overwrite writes the plan's fill over the edit; Keep with no structural change keeps it.
+      ok(o.updated.includes(NAME) && !o.skipped.length && content === k.content && (JSON.stringify(member().fills) === JSON.stringify(RED)) === (k.choice === 'keep'),
+        `structure/${k.kind} written: under ${k.choice} the member is updated, its layers ${k.content}, its edited fill ${k.choice === 'keep' ? 'kept' : 'overwritten'} (${o.updated.length} updated; ${content}; ${JSON.stringify(o.skipped)})`);
+    }
+  }
 }
 
 /* ── keep, reported (#3086) ──────────────────────────────────────────────────────────────────────────── */
@@ -5574,7 +5618,14 @@ for (const [ROW, MEMBERS, STACKED] of [['checkbox-row', 6, true], ['radio-row', 
     `${ROW} rows3153/dry run: all ${MEMBERS} members read update, none added, dropped, renamed or replaced, nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'})`);
   ok(p.handEdits.length === 1 && p.handEdits[0].member === edited.name && p.handEdits[0].path === 'content',
     `${ROW} rows3153/hand edit reported: the dry run reports the designer's edit on ${String(edited.name)}'s content, and nothing else (${JSON.stringify(p.handEdits).slice(0, 240)})`);
-  ok(res.outcomes[0].kept.length === 1 && res.outcomes[0].kept[0].path === 'content' && (childNamed(edited, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === editVar,
+  // #2956 point 2 (owner decision 2026-10-23): on the option rows the update changes the edited member's structure (the
+  // text column), so Keep skips that member whole and names it, its gap and its old layers as they were. Switch.Row's
+  // structure does not move, so its member is updated around the kept gap.
+  const gapKept = (childNamed(edited, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === editVar;
+  if (STACKED) ok(res.outcomes[0].kept.length === 0 && JSON.stringify(res.outcomes[0].skipped) === JSON.stringify([{ member: edited.name, reason: 'hand-edited, and the update changes its structure' }]) && gapKept
+      && JSON.stringify(kids(childNamed(edited, 'content'))) === '["controlCell","label"]',
+    `${ROW} rows3153/hand edit skipped: the edited member is skipped and named, its gap and its layers as the designer left them (${JSON.stringify(res.outcomes[0].skipped)}; [${kids(childNamed(edited, 'content')).join(', ')}])`);
+  else ok(res.outcomes[0].kept.length === 1 && res.outcomes[0].kept[0].path === 'content' && gapKept,
     `${ROW} rows3153/hand edit kept: the apply keeps the designer's gap and lists it (${JSON.stringify(res.outcomes[0].kept)})`);
   ok(applyVerdict(res).ok, `${ROW} rows3153/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
   const after = identityOf(w.set());
@@ -5590,13 +5641,13 @@ for (const [ROW, MEMBERS, STACKED] of [['checkbox-row', 6, true], ['radio-row', 
   }
   ok(lost.length === 0, `${ROW} rows3153/kept: every node keeps its id, the label moved rather than rebuilt (${lost.slice(0, 2).join('; ') || `all ${MEMBERS}`})`);
   // THE NEW STRUCTURE, read off the shim's nodes.
-  const shape = membersOf(w.set()).filter((m) => {
+  const shape = membersOf(w.set()).filter((m) => !(STACKED && m.name === edited.name)).filter((m) => {
     const c = childNamed(m, 'content');
     if (!STACKED) return JSON.stringify(kids(c)) !== JSON.stringify(['label', 'controlCell']);
     const t = childNamed(c, 'textStack');
     return !(JSON.stringify(kids(c)) === JSON.stringify(['controlCell', 'textStack']) && JSON.stringify(kids(t)) === JSON.stringify(['label', 'description']) && childNamed(t, 'description').visible === false);
   });
-  ok(shape.length === 0, `${ROW} rows3153/structure: ${STACKED ? 'content holds [controlCell, textStack], the text column [label, description], the description hidden' : 'content still holds [label, controlCell]'} (${shape.slice(0, 2).map((m) => `${String(m.name)}: [${kids(childNamed(m, 'content')).join(', ')}]`).join('; ') || `all ${MEMBERS}`})`);
+  ok(shape.length === 0, `${ROW} rows3153/structure: ${STACKED ? 'every member but the skipped one: content holds [controlCell, textStack], the text column [label, description], the description hidden' : 'content still holds [label, controlCell]'} (${shape.slice(0, 2).map((m) => `${String(m.name)}: [${kids(childNamed(m, 'content')).join(', ')}]`).join('; ') || `all ${MEMBERS}`})`);
   if (STACKED) {
     const defs = w.set().componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }>;
     const bool = Object.entries(defs).find(([k, d]) => d.type === 'BOOLEAN' && /^description/.test(k));
