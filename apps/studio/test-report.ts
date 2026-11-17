@@ -11,12 +11,13 @@
  * settings are not in the report`; `brandWords` left out of the scrub → `Q116 opt-in: off, the brand's prefix and name
  * are replaced`; the hex rule dropped from `scrub` → `no keys: a long hex run is removed`; the token rule dropped →
  * `no keys: a token-shaped run is removed`; the Figma URL rule dropped → `no file names: a Figma file link is removed`;
- * `issueUrl` not cutting → `link: a long report is cut to fit`; `isIssueUrl` accepting any https URL → `link: the
- * plugin opens nothing but the issue form`.
+ * `isIssueUrl` accepting any https URL → `link: the plugin opens nothing but the issue form`. Since the owner's
+ * 2026-11-17 direction the link carries the title and a paste instruction alone: the report given back to `issueUrl`
+ * as its body → `paste: the issue opens with the title and the instruction alone`.
  *
  * The review at 03d62700 (findings 1, 2, 3, 5, 6), each fixture the reviewer's: short words matched by substring, or
- * not at all → `#3522 R1 …`; the cut not backing off a high surrogate → `#3522 R2 link: a cut inside an emoji …`;
- * `URL_LIMIT` raised past the literal 7000 → `#3522 R3 link: a long report is cut to at most 7000`; `isIssueUrl`'s
+ * not at all → `#3522 R1 …`; `URL_LIMIT` raised past the literal 7000 → `#3522 R3 link: the main thread opens no issue
+ * URL over 7000` (the cut and its #3522 R2 surrogate arm went with the 2026-11-17 change: the link holds no report); `isIssueUrl`'s
  * length bound dropped → `#3522 R3 link: an issue URL over 7000 is not opened`; a scrub rule dropped → its `#3522 R5`
  * arm; the verdict left unscrubbed → `#3522 R6 …`.
  *
@@ -394,28 +395,27 @@ ok(scrub('ends hf\nhf starts\tthen hf', ROOT) === 'ends [brand]\n[brand] starts\
 ok(scrub('tidewaters\novernight-watch\tshelf', [...PUNCT, ...ROOT]) === 'tidewaters\novernight-watch\tshelf', '#3560 an ordinary word holding a name stays whole next to a newline or a tab');
 
 // ── the link ──
-const url = issueUrl(off);
-ok(url.startsWith(`${ISSUE_BASE}?title=Problem%20report&body=`) && decodeURIComponent(url.split('&body=')[1]) === off, 'link: the issue form, prefilled with the whole report');
+// The owner (2026-11-17): "prepopulate with the title, but then the body has instructions to paste the rest". The issue
+// opens with the title and a body that only asks for the report, which travels on the clipboard. The expected URL is
+// typed here whole, so a body built from the report, or any change to the title or the instruction, fails by name.
+// MUTATION: `issueUrl` given the report back as its body → `paste: the issue opens with the title and the instruction alone`.
+const PASTE_URL = 'https://github.com/adamforrester/prism3/issues/new?title=Problem%20report&body='
+  + 'Paste%20the%20report%20here%20%E2%80%94%20Prism3%20copies%20it%20to%20your%20clipboard%20as%20it%20opens%20this%20page.'
+  + '%20Copy%20in%20the%20Report%20a%20problem%20dialog%20copies%20it%20again.';
+const url = issueUrl();
+ok(url === PASTE_URL, `paste: the issue opens with the title and the instruction alone (${url})`);
 const long = buildReport({ ...BASE, activity: [{ title: 'Build', verdict: '✗ failed', lines: Array.from({ length: 400 }, (_, i) => `member ${i} failed to bind its fill`), agent: false }] });
-const cut = issueUrl(long);
+ok(!decodeURIComponent(url).includes('### Diagnostics') && !decodeURIComponent(url).includes(long.slice(0, 40)) && url.length < 400,
+  `paste: the link carries nothing from the report, whatever its length (${url.length} characters)`);
 // GitHub refuses a prefilled issue URL past roughly 8 KB (observed; GitHub does not document the figure), so the
 // ceiling is typed here as a literal, 7000, and never read from the module under test (docs/34).
 const GITHUB_SAFE = 7000;
-ok(URL_LIMIT <= GITHUB_SAFE && cut.length <= GITHUB_SAFE, `#3522 R3 link: a long report is cut to at most 7000 characters (${cut.length})`);
-ok(cut.length <= URL_LIMIT && decodeURIComponent(cut.split('&body=')[1]).endsWith('The full report is on your clipboard: paste it here.)'), `link: a long report is cut to fit (${cut.length} ≤ ${URL_LIMIT}) and says where the rest is`);
-ok(isIssueUrl(url) && isIssueUrl(cut), 'link: the plugin opens the issue form it built');
+ok(URL_LIMIT <= GITHUB_SAFE, `#3522 R3 link: the main thread opens no issue URL over 7000 characters (${URL_LIMIT})`);
+ok(isIssueUrl(url), 'link: the plugin opens the issue form it built');
 const over = `${ISSUE_BASE}?body=`.padEnd(7001, 'x');
 const atLimit = `${ISSUE_BASE}?body=`.padEnd(7000, 'x');
 ok(over.length === 7001 && !isIssueUrl(over), '#3522 R3 link: an issue URL over 7000 characters is not opened');
 ok(atLimit.length === 7000 && isIssueUrl(atLimit), '#3522 R3 link: an issue URL of exactly 7000 characters is opened');
-// #3522 review R2: a cut that lands inside an emoji (a surrogate pair) backs off it, and does not throw.
-const emoji = buildReport({ ...BASE, activity: [{ title: 'Build', verdict: '✗ failed', lines: Array.from({ length: 400 }, (_, i) => `member ${i} on page "🎨 Components"`), agent: false }] });
-let emojiCuts = 0;
-let emojiErr = '';
-for (let pad = 0; pad < 12; pad++) {
-  try { const u = issueUrl('x'.repeat(pad) + emoji); decodeURIComponent(u); if (u.length <= 7000) emojiCuts++; } catch (e) { emojiErr = String(e); }
-}
-ok(emojiCuts === 12 && !emojiErr, `#3522 R2 link: a cut inside an emoji backs off it, and the link still opens (${emojiCuts}/12 cut${emojiErr ? `, ${emojiErr}` : ''})`);
 ok(!isIssueUrl('https://example.com/collect?d=1') && !isIssueUrl('https://github.com/someone-else/repo/issues/new?body=x') && !isIssueUrl(`${ISSUE_BASE}x?body=1`) && !isIssueUrl(42),
   'link: the plugin opens nothing but the issue form');
 

@@ -1310,6 +1310,12 @@ export const GATES: Gate[] = [
     cmd: engine('lint-control-shape-reach.ts'),
   },
   {
+    // #1834 — reads the suites' source and the authored registry; needs no build and no `after`.
+    id: 'lint-test-arms',
+    ciStep: 'A registered test arm is still in its suite (#1834)',
+    cmd: engine('lint-test-arms.ts'),
+  },
+  {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR
     // rather than about this tree: docs/34 shape 17 is explicit that nothing running inside a checkout
     // can tell whether that checkout is stale — a stale tree is internally consistent. So the subject
