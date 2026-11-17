@@ -42,7 +42,7 @@ import { brandState, currentMode, getPath, searchQuery, setPage, setSearchHits, 
 import { isDerived, resolvedModes } from '../state/verdict';
 import { rolesIn, stepHex, stepOfPath, stepsOf } from '../state/fills-input';
 import {
-  BUILT_IN_COLUMNS, LINK_ROWS, addAccent, isTextLinkRow, linkSurfacesOf, anchorOf, baselineAnchorStepOf, baselineStepOf, interactivePaletteOf, interactiveRowsFor,
+  BUILT_IN_COLUMNS, LINK_ROWS, addAccent, promotablePalettes, isTextLinkRow, linkSurfacesOf, anchorOf, baselineAnchorStepOf, baselineStepOf, interactivePaletteOf, interactiveRowsFor,
   REST_LABEL, overrideHeldOf, overrideLabel, pickerPalettesOf, removeAccent, setLever, setLinkPalette, setLinkRung, setStrictInteractiveContrast, stepKeyOf, writeInteractiveRow,
   type InteractiveRow, type LinkRungState,
 } from '../state/interactive-input';
@@ -104,9 +104,6 @@ export const LINK_COPY = {
   modes: 'Contrast in every mode',
   follow: 'Hover, visited and pressed follow this step:',
 } as const;
-/** The legacy page's promotable list never offered these: they are the built-in columns' names. */
-const RESERVED_COLUMNS = new Set(['primary', 'neutral', 'destructive']);
-
 const capWord = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 /** A column name safe in an element id. */
 const idOf = (col: string): string => `p3-icol-${col.replace(/[^a-z0-9-]/gi, '-')}`;
@@ -528,9 +525,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     // add and Cancel beside it. Cancel, or Escape in the form, writes nothing and puts the dashed button back.
     {
       const add = hook(h('div', 'p3-icol-add'), 'column-add');
-      const already = new Set((brandState.interactivePalettes ?? []).map((e) => e.palette));
-      const actionPal = theme.roleToPalette.action;
-      const promotable = ['primary', ...(brandState.brandColors ?? []).map((x) => x.name)].filter((p) => !already.has(p) && p !== actionPal && !RESERVED_COLUMNS.has(p));
+      const promotable = promotablePalettes(theme.roleToPalette.action);
       const reopen = (): void => root.querySelector<HTMLElement>('[data-p3="column-add-open"]')?.focus();
       if (!promotable.length) { adding = false; add.append(hook(subLine(ADD_COLUMN_HINT), 'column-promote-hint')); }
       else {

@@ -145,6 +145,19 @@ export const setLinkFamilyOverride = (mode: string, prefix: string, step: string
 
 // ── columns (legacy `renderAddAccentRow`, the column's remove) ──────────────────────────────────────
 
+/** The legacy page's promotable list never offered these: they are the built-in columns' names. */
+const RESERVED_COLUMNS = new Set(['primary', 'neutral', 'destructive']);
+/** What "Add button set" offers (the legacy page's list, Q35): Primary and every brand color, less any palette that
+ *  already has a column, the action palette (`actionPalette`, the theme's `roleToPalette.action`) and the built-in
+ *  columns' names. Also less any palette whose name a column already carries as its explicit `name` (#3608):
+ *  `addAccent` adds an unnamed column, which the engine names after its palette, and the engine refuses a duplicate
+ *  column name. */
+export const promotablePalettes = (actionPalette: string): string[] => {
+  const cols = brandState.interactivePalettes ?? [];
+  const already = new Set(cols.map((e) => e.palette));
+  const named = new Set(cols.map((e) => e.name).filter((n): n is string => n !== undefined));
+  return ['primary', ...(brandState.brandColors ?? []).map((x) => x.name)].filter((p) => !already.has(p) && !named.has(p) && p !== actionPalette && !RESERVED_COLUMNS.has(p));
+};
 /** Promote `palette` to an interactive column; the engine names it after the palette. */
 export const addAccent = (palette: string): void => {
   const arr = brandState.interactivePalettes ?? (brandState.interactivePalettes = []);
