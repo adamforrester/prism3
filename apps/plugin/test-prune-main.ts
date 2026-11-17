@@ -23,6 +23,7 @@
  *   · the hand-edit pass's `stale()` back to its four named writes (prune left out) → `main/hand pass stale under prune` (#3737).
  *   · a pass a write made stale not asked for again when the write ends → `main/hand pass after the write` (#3804).
  *   · prune's furniture rule back to "set alive" only (the parent not compared) → `main/moved set's furniture` (#2485).
+ *   · the `core/other` entry dropped from Apply Theme's `allOrphans` → `main/apply reports core/other` (#1109).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -103,6 +104,27 @@ const send = async (msg: unknown, kinds: readonly string[], ms = 120_000): Promi
 // The brand, applied by main.ts itself.
 const applied = await send({ type: 'apply-theme', input }, ['apply-result']);
 if (applied?.type !== 'apply-result' || !applied.ok) throw new Error(`premise: Apply Theme did not run clean (${JSON.stringify(applied)?.slice(0, 400)})`);
+
+// #1109 — APPLY REPORTS THE CORE VARIABLES NO SLICE OWNS, ON ITS SUMMARY. `test-write.ts` holds `uc` on
+// `runApplyTheme`'s result; this holds the line a designer reads, through main.ts. Planted in `core`: a hand-made
+// `<root>/core/zzlegacy/1` and an un-rooted `zzmisc/1`, neither in any slice. Removed after, so the arms below start
+// from the file Apply wrote. The label `core/other` is DRAFT (the owner's).
+// Mutation: the `core/other` entry dropped from main.ts's `allOrphans` → `main/apply reports core/other`.
+{
+  const croot = themePlans(input).colorPlan.palette[0].name.split('/')[0];
+  const coreCol = file.collections.find((c: any) => c.name === 'core');
+  if (!coreCol) throw new Error('premise: Apply Theme wrote no `core` collection');
+  const ghosts = [`${croot}/core/zzlegacy/1`, 'zzmisc/1'].map((n) => file.createVariable(n, coreCol, 'FLOAT'));
+  const again = await send({ type: 'apply-theme', input }, ['apply-result']);
+  const NOTE = '⚠ 2 orphaned variables not in the plan (core/other: 2) — likely renames; nothing was deleted';
+  const lines: string[] = again?.lines ?? [];
+  ok(!(applied.lines as string[]).some((l) => l.includes('orphaned variables')),
+    `main/apply clean file, no core/other: the first apply names no orphaned variable (${JSON.stringify((applied.lines as string[]).filter((l) => l.includes('orphaned')))})`);
+  ok(again?.type === 'apply-result' && again.ok === true && lines.includes(NOTE) && String(again.summary).includes(NOTE)
+    && ghosts.every((v: any) => !v.removed),
+    `main/apply reports core/other: a re-apply's summary counts the two core variables no slice owns, and removes neither (${JSON.stringify(lines.filter((l) => l.includes('orphaned')))})`);
+  for (const v of ghosts) v.remove();
+}
 
 // Three stale variables in the brand's own namespace, in the collection its first color variable lives in.
 const anchor = file.vars.find((v: any) => v.resolvedType === 'COLOR' && String(v.name).includes('/'));

@@ -25,3 +25,6 @@ variable); an un-rooted unplanned one is a `core/palette` orphan; and through `r
 file reports `uc: []`, while a hand-made `<root>/core/zzlegacy/1` and an un-rooted `zzmisc/1` are reported (but not the
 un-rooted palette name its slice owns) and left in place. On main four fail. Mutating `sliceGroupOf` to skip the rules
 fails three by name.
+`apps/plugin/test-prune-main.ts` holds the line a designer reads: through the real `main.ts`, a re-apply over the same
+two planted variables carries `⚠ 2 orphaned variables not in the plan (core/other: 2) …` (`main/apply reports
+core/other`). It fails on main, and with the `core/other` entry dropped from `allOrphans` it fails by name.
