@@ -7275,6 +7275,68 @@ if (runs('19')) {
       await hooks.need(page, '[data-p3="frame"]');
       await goPlace(page, 'color-interactive');
     }
+    // #3608 (the owner's Q-AB1 B): a brand color a button set already carries the name of is LISTED, disabled, with its
+    // reason, never hidden. The reason is in the option's title (#2044's pattern) and in a visible line the select
+    // names in `aria-describedby`, so it is read with the select. Selected anyway, it adds nothing; a free color still
+    // adds. When it is the only color left, its reason line precedes the hint. Seeded through storage (the issue's
+    // shape: a column `own-n` on `acc-n`, and a brand color `own-n` with no column) and restored the same way. EXPECTED
+    // typed here: the reason's words and the hint's, never read from the page's module (docs/34).
+    {
+      const TAKEN = 'This name is already a button set.';
+      const blob0 = await page.evaluate(() => localStorage.getItem('prism3:brandInput'));
+      await page.evaluate(() => {
+        const o = JSON.parse(localStorage.getItem('prism3:brandInput'));
+        (o.input.brandColors ??= []).push(...['acc-n', 'own-n'].map((name, h) => ({ name, oklch: { l: 0.55, c: 0.15, h: 40 + 90 * h } })));
+        o.input.interactivePalettes = [{ name: 'own-n', palette: 'acc-n' }];
+        localStorage.setItem('prism3:brandInput', JSON.stringify(o));
+      });
+      await page.reload({ waitUntil: 'networkidle' });
+      await hooks.need(page, '[data-p3="frame"]');
+      await goPlace(page, 'color-interactive');
+      const seeded = JSON.stringify(await persisted(page));
+      await hooks.click(page.locator('[data-p3="column-add-open"]'));
+      const form = () => page.evaluate(() => {
+        const sel = document.querySelector('[data-p3="column-promote-select"]');
+        const ids = (sel?.getAttribute('aria-describedby') ?? '').split(' ').filter(Boolean);
+        return {
+          opts: [...(sel?.options ?? [])].map((o) => ({ v: o.value, off: o.disabled, why: o.title })),
+          value: sel?.value ?? null,
+          said: ids.map((id) => { const n = document.getElementById(id); return n && n.getClientRects().length > 0 ? n.textContent : null; }),
+        };
+      });
+      const f1 = await form();
+      const own = f1.opts.find((o) => o.v === 'own-n');
+      ok(!!own && own.off && own.why === TAKEN && f1.opts.filter((o) => o.off).length === 1 && f1.value !== 'own-n',
+        `#3608: own-n is listed disabled with "${TAKEN}", and is not the select's starting value (${JSON.stringify(f1)})`);
+      ok(JSON.stringify(f1.said) === JSON.stringify([`Own-n: ${TAKEN}`]),
+        `#3608: the select is described by a visible line that gives own-n's reason, so it is announced (${JSON.stringify(f1.said)})`);
+      // Forced past the disabled option (a script, or a stale value), the add writes nothing.
+      await page.evaluate(() => { const sel = document.querySelector('[data-p3="column-promote-select"]'); sel.value = 'own-n'; });
+      await hooks.click(page.locator('[data-p3="column-promote"]'));
+      const forced = JSON.stringify(await persisted(page));
+      const ownCol = await page.evaluate(() => document.querySelectorAll('[data-p3="interactive-column"][data-column="own-n"]').length);
+      ok(forced === seeded && ownCol === 1, `#3608: own-n cannot be added: the brand is unchanged and own-n is still one button set (${ownCol} cards, brand kept: ${forced === seeded})`);
+      // A free color still adds, and the engine takes it (the card draws, unrefused). It is the last free one, so the
+      // row turns to the hint, own-n's reason before it.
+      if (await page.locator('[data-p3="column-promote-select"]').count() === 0) await hooks.click(page.locator('[data-p3="column-add-open"]'));
+      await page.locator('[data-p3="column-promote-select"]').selectOption('accent');
+      await hooks.click(page.locator('[data-p3="column-promote"]'));
+      await page.waitForFunction(() => !!document.querySelector('[data-p3="interactive-column"][data-column="accent"]'), null, { timeout: 5000 }).catch(() => {});
+      const after = await page.evaluate(() => ({
+        accent: !!document.querySelector('[data-p3="interactive-column"][data-column="accent"]'),
+        refused: document.querySelector('[data-p3="interactive-column"][data-column="accent"]')?.dataset.refused ?? null,
+        add: !!document.querySelector('[data-p3="column-add-open"]'),
+        lines: [...document.querySelectorAll('[data-p3="column-add"] .p3-sub')].map((n) => ({ hk: n.getAttribute('data-p3'), text: n.textContent })),
+      }));
+      ok(after.accent && after.refused !== 'true' && (await persisted(page))?.interactivePalettes?.some((e) => e.palette === 'accent'),
+        `#3608: a free color (accent) still adds a button set the engine takes (${JSON.stringify(after)})`);
+      ok(!after.add && JSON.stringify(after.lines) === JSON.stringify([{ hk: 'column-promote-taken', text: `Own-n: ${TAKEN}` }, { hk: 'column-promote-hint', text: ADD_SET_HINT }]),
+        `#3608: with own-n the only color left, its reason precedes the hint, and no add is offered (${JSON.stringify(after.lines)})`);
+      await page.evaluate((v) => localStorage.setItem('prism3:brandInput', v), blob0);
+      await page.reload({ waitUntil: 'networkidle' });
+      await hooks.need(page, '[data-p3="frame"]');
+      await goPlace(page, 'color-interactive');
+    }
     await chooseAnyMode(page, 'light');
 
     // Q59: in each derived mode every lever on the page is disabled, brand-wide ones included, under the derived
