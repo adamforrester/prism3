@@ -129,63 +129,63 @@ Keyed by `size`, `provider`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.100` / `space.200` / `space.100` / `space.150` | `space.100` | `size.md.height` | — | 140px (literal) | — |
+| `container` | `space.100` / `space.200` / `space.100` / `space.150` | `space.100` | `size.md.height` | — | 140px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `icon.size.sm` | — | — | — |
 
 **size=small, provider=apple**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.075` / `space.200` / `space.075` / `space.150` | `space.100` | `size.sm.height` | — | 140px (literal) | — |
+| `container` | `space.075` / `space.200` / `space.075` / `space.150` | `space.100` | `size.sm.height` | — | 140px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `icon.size.xs` | — | — | — |
 
 **size=large, provider=apple**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.100` / `space.300` / `space.100` / `space.200` | `space.150` | `size.lg.height` | — | 140px (literal) | — |
+| `container` | `space.100` / `space.300` / `space.100` / `space.200` | `space.150` | `size.lg.height` | — | 140px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `icon.size.md` | — | — | — |
 
 **size=medium, provider=google**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.100` / `space.150` / `space.100` / `space.150` | `space.100` | `size.md.height` | — | 140px (literal) | — |
+| `container` | `space.100` / `space.150` / `space.100` / `space.150` | `space.100` | `size.md.height` | — | 140px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `icon.size.sm` | — | — | — |
 
 **size=small, provider=google**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.075` / `space.150` / `space.075` / `space.150` | `space.100` | `size.sm.height` | — | 140px (literal) | — |
+| `container` | `space.075` / `space.150` / `space.075` / `space.150` | `space.100` | `size.sm.height` | — | 140px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `icon.size.xs` | — | — | — |
 
 **size=large, provider=google**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.100` / `space.150` / `space.100` / `space.150` | `space.100` | `size.lg.height` | — | 140px (literal) | — |
+| `container` | `space.100` / `space.150` / `space.100` / `space.150` | `space.100` | `size.lg.height` | — | 140px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `icon.size.md` | — | — | — |
 
 **size=medium, provider=facebook**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.100` / `space.200` / `space.100` / `space.150` | `space.100` | `size.md.height` | — | 140px (literal) | — |
+| `container` | `space.100` / `space.200` / `space.100` / `space.150` | `space.100` | `size.md.height` | — | 140px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `icon.size.sm` | — | — | — |
 
 **size=small, provider=facebook**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.075` / `space.200` / `space.075` / `space.150` | `space.100` | `size.sm.height` | — | 140px (literal) | — |
+| `container` | `space.075` / `space.200` / `space.075` / `space.150` | `space.100` | `size.sm.height` | — | 140px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `icon.size.xs` | — | — | — |
 
 **size=large, provider=facebook**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.100` / `space.300` / `space.100` / `space.200` | `space.150` | `size.lg.height` | — | 140px (literal) | — |
+| `container` | `space.100` / `space.300` / `space.100` / `space.200` | `space.150` | `size.lg.height` | — | 140px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `icon.size.md` | — | — | — |
 
 ### Type

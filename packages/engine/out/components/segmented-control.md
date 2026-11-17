@@ -136,7 +136,7 @@ Keyed by `size`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
-| `container/track` | `space.0` | `space.0` | — | — | — | — |
+| `container/track` | `space.0` | `space.0` | — | — | — | radius `radius.md` |
 | `container/track/items` | — | `space.0` | — | — | — | — |
 
 **size=small**
@@ -144,7 +144,7 @@ Keyed by `size`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
-| `container/track` | `space.0` | `space.0` | — | — | — | — |
+| `container/track` | `space.0` | `space.0` | — | — | — | radius `radius.md` |
 | `container/track/items` | — | `space.0` | — | — | — | — |
 
 **size=large**
@@ -152,7 +152,7 @@ Keyed by `size`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
-| `container/track` | `space.0` | `space.0` | — | — | — | — |
+| `container/track` | `space.0` | `space.0` | — | — | — | radius `radius.md` |
 | `container/track/items` | — | `space.0` | — | — | — | — |
 
 ### Color

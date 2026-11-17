@@ -158,7 +158,7 @@ Keyed by `size`, `placement`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `panel` | `space.300` / `space.0` / `space.300` / `space.0` | `space.200` | — | — | — | build width 560px (literal) |
+| `panel` | `space.300` / `space.0` / `space.300` / `space.0` | `space.200` | — | — | — | build width 560px (literal); radius `radius.2xl` |
 | `panel/header` | `space.0` / `space.300` / `space.0` / `space.300` | `space.200` | — | — | — | — |
 | `panel/header/titleBox` | — | `space.100` | — | — | — | — |
 | `panel/body` | `space.0` / `space.300` / `space.0` / `space.300` | — | — | — | — | — |
@@ -168,7 +168,7 @@ Keyed by `size`, `placement`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `panel` | `space.300` / `space.0` / `space.300` / `space.0` | `space.200` | — | — | — | build width 400px (literal) |
+| `panel` | `space.300` / `space.0` / `space.300` / `space.0` | `space.200` | — | — | — | build width 400px (literal); radius `radius.2xl` |
 | `panel/header` | `space.0` / `space.300` / `space.0` / `space.300` | `space.200` | — | — | — | — |
 | `panel/header/titleBox` | — | `space.100` | — | — | — | — |
 | `panel/body` | `space.0` / `space.300` / `space.0` / `space.300` | — | — | — | — | — |
@@ -178,7 +178,7 @@ Keyed by `size`, `placement`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `panel` | `space.300` / `space.0` / `space.300` / `space.0` | `space.200` | — | — | — | build width 720px (literal) |
+| `panel` | `space.300` / `space.0` / `space.300` / `space.0` | `space.200` | — | — | — | build width 720px (literal); radius `radius.2xl` |
 | `panel/header` | `space.0` / `space.300` / `space.0` / `space.300` | `space.200` | — | — | — | — |
 | `panel/header/titleBox` | — | `space.100` | — | — | — | — |
 | `panel/body` | `space.0` / `space.300` / `space.0` / `space.300` | — | — | — | — | — |
@@ -188,7 +188,7 @@ Keyed by `size`, `placement`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `panel` | `space.200` / `space.0` / `space.200` / `space.0` | `space.200` | — | — | — | build width 360px (literal) |
+| `panel` | `space.200` / `space.0` / `space.200` / `space.0` | `space.200` | — | — | — | build width 360px (literal); top-left radius `radius.2xl`; top-right radius `radius.2xl`; bottom-right radius `radius.none`; bottom-left radius `radius.none` |
 | `panel/header` | `space.0` / `space.200` / `space.0` / `space.200` | `space.200` | — | — | — | — |
 | `panel/header/titleBox` | — | `space.100` | — | — | — | — |
 | `panel/body` | `space.0` / `space.200` / `space.0` / `space.200` | — | — | — | — | — |
@@ -198,7 +198,7 @@ Keyed by `size`, `placement`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `panel` | `space.200` / `space.0` / `space.200` / `space.0` | `space.200` | — | — | — | build width 360px (literal); build height 640px (literal) |
+| `panel` | `space.200` / `space.0` / `space.200` / `space.0` | `space.200` | — | — | — | build width 360px (literal); build height 640px (literal); radius `radius.none` |
 | `panel/header` | `space.0` / `space.200` / `space.0` / `space.200` | `space.200` | — | — | — | — |
 | `panel/header/titleBox` | — | `space.100` | — | — | — | — |
 | `panel/body` | `space.0` / `space.200` / `space.0` / `space.200` | — | — | — | — | — |
@@ -208,7 +208,7 @@ Keyed by `size`, `placement`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `panel` | `space.300` / `space.0` / `space.300` / `space.0` | `space.200` | — | — | — | build width 480px (literal); build height 800px (literal) |
+| `panel` | `space.300` / `space.0` / `space.300` / `space.0` | `space.200` | — | — | — | build width 480px (literal); build height 800px (literal); radius `radius.none` |
 | `panel/header` | `space.0` / `space.300` / `space.0` / `space.300` | `space.200` | — | — | — | — |
 | `panel/header/titleBox` | — | `space.100` | — | — | — | — |
 | `panel/body` | `space.0` / `space.300` / `space.0` / `space.300` | — | — | — | — | — |
