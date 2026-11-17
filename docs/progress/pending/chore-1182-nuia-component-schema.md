@@ -1,6 +1,6 @@
 ## (2026-11-17) — noUncheckedIndexedAccess, stage 1: component-schema.ts clean (#1182)
 
-First PR of the #1182 lane. It fixes every error `component-schema.ts` reports under the flag, and does not turn the flag on yet: the engine tsconfig's import graph still reports about 180 more, which the next PR fixes before it flips the flag and adds the gate.
+First PR of the #1182 lane. It fixes every error `component-schema.ts` reports under the flag, and does not turn the flag on yet: the engine tsconfig's import graph still reports about 180 more, which later stages fix before one flips the flag. Until then a clean-list arm in `typecheck-components.ts` holds each cleaned file (below).
 
 ### Measured first
 
@@ -13,3 +13,7 @@ The issue's 402 (on `0e4e338`, studio tsconfig only) has grown. On `bb10c73`, su
 ### Proof that nothing moved
 
 `regen --check` is clean. A scratch plan diff called every exported single-argument function of `component-schema.ts`, `anatomy-figma.ts`, `tree.ts` and `modes.ts` with every registered def on `origin/main` and on the branch. All 3,038 digests matched.
+
+### What holds it until the flag is on
+
+Review found that nothing stopped this work being undone: with the flag off in the tsconfig, an unguarded index put back into `component-schema.ts` passed every gate. `typecheck-components.ts` now runs tsc a second time over the same tsconfig with `--noUncheckedIndexedAccess`, and fails on any error in a file on its `NUIA_CLEAN` list, which starts as `[component-schema.ts]`. Errors in other files are the rollout's remaining work and don't fail it. The arm also fails if tsc's own resolved config doesn't show the flag on, if a diagnostic names no file, or if a listed file isn't one tsc read. Each later stage appends the files it cleans (stage 2 adds `modes.ts` and `ramp.ts`); the stage that turns the flag on deletes the list and the arm. No new gate id, so `ci.yml` and the gate lists don't move.
