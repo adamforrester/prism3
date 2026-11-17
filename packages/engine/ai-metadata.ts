@@ -18,7 +18,7 @@
  */
 import { Theme, CORE_TIER, BODY_XS_DESCRIPTION } from './theme';
 import { resolveAllModes, ResolvedRole } from './modes';
-import { contrast, hexToRgb } from './color';
+import { contrast, floorRatio, hexToRgb } from './color';
 
 /** One contrast contract. `requirement` is the one place the sidecar carries an RFC 2119 keyword
  *  (#1623 AI/C-1, owner decision: `.ai.json` is the payload channel of `docs/voice-standard.md` §4).
@@ -619,7 +619,8 @@ export const AI_METADATA_SCHEMA = 'prism3-ai-metadata/0.5';
  *  mode by its `tokens.json` id via `modeList`, so an agent never checks a
  *  high-contrast pair against the light floor. Where every mode holds one floor it says "in every mode", as
  *  before. Wording: DRAFT, the owner's call (#1779 OWNER DECISION). */
-const floorRatio = (n: number) => `${n}:1`;
+/** A contract minimum as the sentence states it — "4.5:1". Not `floorRatio` (`color.ts`, #3759): a min is exact, never measured. */
+const minText = (n: number) => `${n}:1`;
 /** Group `[mode, floor]` pairs by floor, in the order the floors first appear, modes in their own order. */
 const floorGroups = (floors: [string, number][]): { min: number; modes: string[] }[] => {
   const groups: { min: number; modes: string[] }[] = [];
@@ -633,11 +634,11 @@ const contrastRequirement = (role: string, token: string, floors: [string, numbe
   // "…, and 4.5:1 in hc-light and hc-dark" — the last group takes the "and"; any between take a comma.
   const tail = (lead: (min: number) => string) => rest.map((g, i) => `${i === rest.length - 1 ? ', and ' : ', '}${lead(g.min)} in ${modeList(g.modes)}`).join('');
   if (compositedOver) {
-    const head = `MUST keep \`${token}\` at ${floorRatio(first.min)} or more on \`${role}\` composited over \`${compositedOver}\``;
-    return rest.length ? `${head} in ${modeList(first.modes)}${tail((n) => `at ${floorRatio(n)} or more`)}.` : `${head}, in every mode.`;
+    const head = `MUST keep \`${token}\` at ${minText(first.min)} or more on \`${role}\` composited over \`${compositedOver}\``;
+    return rest.length ? `${head} in ${modeList(first.modes)}${tail((n) => `at ${minText(n)} or more`)}.` : `${head}, in every mode.`;
   }
-  const head = `MUST clear ${floorRatio(first.min)} against \`${token}\``;
-  return rest.length ? `${head} in ${modeList(first.modes)}${tail(floorRatio)}.` : `${head} in every mode.`;
+  const head = `MUST clear ${minText(first.min)} against \`${token}\``;
+  return rest.length ? `${head} in ${modeList(first.modes)}${tail(minText)}.` : `${head} in every mode.`;
 };
 
 /** A thin-tier entry (AI/D-1): identity, purpose and resolution, and the per-mode values when a mode
@@ -800,7 +801,7 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
       ai.contrast_with = [{
         token,
         min: `${light.min}:1`,
-        ratio: Math.round(light.ratio * 100) / 100,
+        ratio: floorRatio(light.ratio),    // #3759: floored, like every printed ratio
         ...(over ? { composited_over: over } : {}),
         requirement: contrastRequirement(roleKey, token, modeNames.map((m) => [m, perMode[m]?.min ?? 0]), over),
       }];
@@ -820,8 +821,8 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     }
     for (const c of second) {
       const min = `${c.min}:1`;
-      const measured = Math.round(contrast(hexToRgb(light.hex), hexToRgb(c.partnerHex)) * 100) / 100;
-      (ai.contrast_with ??= []).push({ token: c.token, min, ratio: measured, requirement: contrastRequirement(roleKey, c.token, c.floors) });
+      const ratio = floorRatio(contrast(hexToRgb(light.hex), hexToRgb(c.partnerHex)));
+      (ai.contrast_with ??= []).push({ token: c.token, min, ratio, requirement: contrastRequirement(roleKey, c.token, c.floors) });
     }
     colorRoles[roleKey] = ai;
   }
@@ -1005,7 +1006,7 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
   // colour primitive listing a gradient that consumes it) resolves to a real entry.
   const gradient: Record<string, any> = {};
   for (const g of theme.gradient.gradients) {
-    const r2 = (x: number) => Math.round(x * 100) / 100;    // round only for display/emit
+    const r2 = floorRatio;    // floor only for the sentence (#3759): "drops to 4.49:1", never 4.5:1 beside "below 4.5:1"
     // AI/A-19: say which ink holds, per polarity, rather than quoting only the worse one. The pass/fail
     // test compares the raw value (CR-01); rounding is for the sentence.
     const inks = [{ ink: 'white', worst: g.worstOnWhite }, { ink: 'black', worst: g.worstOnBlack }];

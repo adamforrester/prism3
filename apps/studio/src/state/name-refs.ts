@@ -251,16 +251,22 @@ export const COLUMN_REFS: readonly NameRef[] = [
     field: 'overrides.<mode>.(inverse.)interactive.<column>.*', kind: 'column',
     rename: (b, p, n) => {
       const heads = [[`interactive.${p}.`, `interactive.${n}.`], [`inverse.interactive.${p}.`, `inverse.interactive.${n}.`]];
-      for (const m of Object.values((b.overrides ?? {}) as ByMode)) {
+      const ov = b.overrides as ByMode | undefined;
+      let pruned = false;
+      for (const mode of Object.keys(ov ?? {})) {
+        const m = ov![mode];
         if (!m) continue;
-        for (const key of Object.keys(m)) if (heads.some(([, to]) => key.startsWith(to))) delete m[key];
+        const stale = Object.keys(m).filter((key) => heads.some(([, to]) => key.startsWith(to)));
+        for (const key of stale) delete m[key];
         for (const key of Object.keys(m)) {
           const head = heads.find(([from]) => key.startsWith(from));
           if (!head) continue;
           m[head[1] + key.slice(head[0].length)] = m[key];
           delete m[key];
         }
+        if (stale.length && !Object.keys(m).length) { delete ov![mode]; pruned = true; }
       }
+      if (pruned && !Object.keys(ov!).length) b.overrides = undefined;
     },
     remove: (b, x) => {
       const ov = b.overrides as ByMode | undefined;
