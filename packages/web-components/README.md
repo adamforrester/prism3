@@ -1,7 +1,8 @@
 # @prism3/web-components
 
 Prism3 components as custom elements, written in Lit 3 (owner decision Q95 B). Part of the code POC's arm 1
-(#3408). This is S4: the **button** only, as `<p3-button>` (prefix `p3-`, Q97 A).
+(#3408). S4 built the **button**, `<p3-button>` (prefix `p3-`, Q97 A); the **text field** and the **password field**
+follow as `<p3-text-field>` and `<p3-password-field>`.
 
 - **Light DOM.** The element renders `@prism3/css`'s markup into itself: a native `<button class="p3-button">`, or an
   `<a href>`, with the same part spans and state attributes. There is no shadow root and no element style.
@@ -64,12 +65,61 @@ Children added after that are not read; set the property instead.
 Not built yet: the polite live region that announces the busy state, the spinner's anti-flash delay, and showing
 an inactive button's reason on focus. See the S4 entry in `docs/poc/arm-1-journal.md`.
 
+## The fields: `<p3-text-field>` and `<p3-password-field>`
+
+Generated the same way, by `generate-fields.ts` through `generate.ts`, from each def's props. Each renders
+`@prism3/css`'s fields markup in its light DOM: a native `<label for>` and `<input>` in one tree with the message, so
+the label names the input and `aria-describedby` reaches the message with no scripting. They need `field-label.css`,
+`field-message.css` and the field's own stylesheet; the password field also needs `button.css`.
+
+```html
+<p3-text-field data-prop-label="Email address" data-prop-type="email" data-prop-autocomplete="email"
+               data-prop-showmessage="true" data-prop-helptext="We send the receipt to this address."></p3-text-field>
+<p3-password-field data-prop-label="Password" data-prop-autocomplete="current-password"></p3-password-field>
+```
+
+| Prop | Property | Attribute | Reaches the markup as |
+|---|---|---|---|
+| `label` | `label` | `data-prop-label` | The text of the nested `<label class="p3-field-label" for>`. |
+| `value` | `value` | — | The input's live value. **A property only**: it's never reflected, so a typed password is never written into the DOM. Typing updates it. |
+| `defaultValue` | `defaultValue` | `data-prop-defaultvalue` | The input's `value` attribute. |
+| `onChange` | `onChange` | — | Called with each `input` event. Native `input` and `change` bubble from the inner input too. |
+| `type` (text field) | `type` | `data-prop-type` | The input's `type`. |
+| `placeholder` | `placeholder` | `data-prop-placeholder` | The input's `placeholder`. |
+| `helpText` | `helpText` | `data-prop-helptext` | The message's text at the default status. |
+| `validation` | `validation` | `data-prop-validation` | `data-prop-validation` on the field; at `error`, `aria-invalid="true"` on the input. |
+| `validationMessage` | `validationMessage` | `data-prop-validationmessage` | The message's text at a validation status (the help text when unset). |
+| `showMessage` | `showMessage` | `data-prop-showmessage` | Writes the message and names its id in the input's `aria-describedby`. |
+| `required`, `disabled`, `readOnly` | same | `data-prop-required`, `-disabled`, `-readonly` | The input's `required`, `disabled`, `readonly`. Disabled also disables the Show/Hide button; read-only leaves it live. |
+| `autoComplete` | `autoComplete` | `data-prop-autocomplete` | The input's `autocomplete`. |
+| `inputMode` (text field) | `inputMode` | `data-prop-inputmode` | The input's `inputmode`. |
+| `prefix`, `suffix`, `clearable` (text field) | same | `data-prop-prefix`, … | **Not rendered**: the def's anatomy has no part for them (#1699 for the affixes). |
+| `leadingIcon`, `trailingIcon` | same | — | The visual spans. In markup, a child with `slot="leadingIcon"` / `slot="trailingIcon"`. |
+| `isPending` | `isPending` | `data-prop-ispending` | `aria-busy="true"` on the input; the spinner takes the trailing cell. |
+| `size` | `size` | `data-prop-size` | `data-prop-size` on the field. |
+| `id` | `id` | `data-prop-id` | The input's `id`, named by the label's `for` (and the button's `aria-controls`). Generated when unset. The host's own `id` attribute stays the host's. |
+| `name` | `name` | `data-prop-name` | The input's `name`. |
+
+- **The Show/Hide button** (Q301.4 A, Q301.5 A, Q301.7 A). It is rendered in Lit, as `@prism3/css`'s nested Button,
+  with the variant the emission's `nesting` names. Its visible text is "Show" or "Hide", followed by a visually hidden
+  " password", and it has no `aria-pressed`. Pressing it switches the input between masked and plain, keeps the
+  caret and focus, and announces "Your password is shown" or "Your password is hidden" once in a polite live region
+  (the page's `[data-p3-announcer]` if it has one). It returns to masked when the form submits. The wording is the
+  def's DRAFT. `data-p3-show`, `-hide`, `-shown` and `-hidden` on the element override it, as they do for
+  `@prism3/css`'s script.
+- **Before the script runs.** `@prism3/css`'s markup written inside the element is a working field on its own. The
+  button stays hidden, or `@prism3/css/password-field.js` runs it. On upgrade the element adopts that markup's props,
+  a value typed into it and focus, and then renders its own. Inside an upgraded element, `password-field.js` stands
+  aside, so a page that loads both toggles once.
+- **Tab order** is the anatomy's: the Show/Hide button, then the input. This is the same as `@prism3/css` (journal S3,
+  owner decision 2).
+
 ## Checks
 
 | Script | What it asserts |
 |---|---|
-| `npm run -w @prism3/web-components check:generated` | `p3-button.js` is what `generate.ts` writes from the emission, and `custom-elements.json` is what the analyzer writes from it. |
-| `npm run -w @prism3/web-components check:parity` | The element, read from `custom-elements.json` and live in Chromium, has exactly the def's props, values and defaults, and each prop value renders the contract's markup. Six mutants must fail by name. |
-| `npm run -w @prism3/web-components test:browser` | With the real token CSS, the element and plain HTML from the `@prism3/css` contract compute equal styles on light and dark. Click, keyboard, form, link, slot and focus behavior. Three mutants must fail by name. |
+| `npm run -w @prism3/web-components check:generated` | `p3-button.js`, `p3-text-field.js` and `p3-password-field.js` are what `generate.ts` writes from the emission, and `custom-elements.json` is what the analyzer writes from them. |
+| `npm run -w @prism3/web-components check:parity` | The element, read from `custom-elements.json` and live in Chromium, has exactly the def's props, values and defaults, and each prop value renders the contract's markup. Six mutants must fail by name. `check-parity-fields.ts` does the same for the fields, and checks that the label names the input, `aria-describedby` reaches the message and the button controls the input. Eight mutants must fail by name. |
+| `npm run -w @prism3/web-components test:browser` | With the real token CSS, the element and plain HTML from the `@prism3/css` contract compute equal styles on light and dark. Click, keyboard, form, link, slot and focus behavior. Three mutants must fail by name. `check-browser-fields.ts` does the same for the fields across every size, status and state. It finds each input by its label, drives the Show/Hide button by mouse and keyboard, and checks submit, the upgrade over pre-written markup, `value` and `onChange`. Five mutants must fail by name. |
 
 The browser test needs the token CSS built first: its script runs `npm run -w @prism3/tokens build`.

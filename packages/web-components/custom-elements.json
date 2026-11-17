@@ -352,6 +352,1038 @@
           }
         }
       ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "p3-text-field.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "A single-line control for free-form, non-enumerable text — names, emails, SKUs, short queries. A composed host: label + input + helper/validation message, with the accessibility wiring (id generation, aria-describedby chain, aria-invalid) handled internally. Not multi-line (Textarea), not a known set (Select, or a combobox), not numeric-formatted (a number field), not suggestion-backed (a combobox). The combobox and number field are not built yet.\n\nRenders `@prism3/css`'s text-field markup in the light DOM: a native `<label for>` and `<input>` in one tree with the\nmessage, styled only by `@prism3/css`. Each prop of the def is a property of the same name, reflected to\n`data-prop-<name>`, except `value`, which is a property only.\nMarkup written inside the element before its script runs (the `@prism3/css` contract) is a working field on its own,\nand is adopted on upgrade: its props, a typed value, and focus carry over.",
+          "name": "P3TextField",
+          "slots": [
+            {
+              "description": "A child with `slot=\"leadingIcon\"`, moved into the leading-visual span when the element connects.",
+              "name": "leadingIcon"
+            },
+            {
+              "description": "A child with `slot=\"trailingIcon\"`, moved into the trailing-visual span when the element connects.",
+              "name": "trailingIcon"
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "#adopted",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "#auto",
+              "privacy": "private",
+              "default": "`p3-text-field-${++serial}`"
+            },
+            {
+              "kind": "field",
+              "name": "#refocus",
+              "privacy": "private",
+              "type": {
+                "text": "null"
+              },
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "#inputId",
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "#input",
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "#untouched",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "name"
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "#onInput",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "label",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "The visible, persistent label (rendered as FieldLabel). Required — a visually-hidden label is the only label-less case, and it still exists in the DOM. Never the placeholder.",
+              "default": "undefined",
+              "attribute": "data-prop-label",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "value",
+              "privacy": "public",
+              "description": "Controlled value; pair with onChange. A controlled value with no onChange is read-only by accident.",
+              "type": {
+                "text": "string | undefined"
+              },
+              "default": "undefined"
+            },
+            {
+              "kind": "field",
+              "name": "defaultValue",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Uncontrolled initial value — preferred for form-library ergonomics.",
+              "default": "undefined",
+              "attribute": "data-prop-defaultvalue",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "onChange",
+              "privacy": "public",
+              "description": "Change handler (also onBlur / onFocus).",
+              "type": {
+                "text": "((event: InputEvent) => void) | undefined"
+              },
+              "default": "undefined"
+            },
+            {
+              "kind": "field",
+              "name": "type",
+              "privacy": "public",
+              "type": {
+                "text": "'text' | 'email' | 'url' | 'tel' | 'search' | 'password'"
+              },
+              "description": "Attribute-only variants (mobile keyboard + autofill). Not number: numeric input needs a number field (not built yet). search / password are better served by their thin specializations.",
+              "default": "\"text\"",
+              "attribute": "data-prop-type",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "placeholder",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "An example only (\"name@example.com\"); vanishes on input; nothing load-bearing lives here.",
+              "default": "undefined",
+              "attribute": "data-prop-placeholder",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "helpText",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format before failure.",
+              "default": "undefined",
+              "attribute": "data-prop-helptext",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "validation",
+              "privacy": "public",
+              "type": {
+                "text": "'default' | 'error' | 'warning' | 'success'"
+              },
+              "description": "The validation state. Each non-default status swaps the input border to its own boundary (border-only — error → danger, warning → warning, success → success) and sets the nested message to the matching status; default is neutral. error also sets aria-invalid. The values align with FieldMessage's status axis, so this drives the nested message directly.",
+              "default": "\"default\"",
+              "attribute": "data-prop-validation",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "validationMessage",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "The validation text shown at error / warning / success, added to aria-describedby. For error, say what is wrong and how to fix it (SC 3.3.3), never \"Invalid\".",
+              "default": "undefined",
+              "attribute": "data-prop-validationmessage",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "showMessage",
+              "privacy": "public",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message below the input. Never hides a message the field needs: turn it on wherever there is helper or validation text.",
+              "default": "false",
+              "attribute": "data-prop-showmessage",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "required",
+              "privacy": "public",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Sets required / aria-required, and turns on the FieldLabel's required marker.",
+              "default": "false",
+              "attribute": "data-prop-required",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "disabled",
+              "privacy": "public",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Native disabled — removed from tab order, not submitted, silent to assistive tech, contrast-exempt. Reserve for fields irrelevant in the current state.",
+              "default": "false",
+              "attribute": "data-prop-disabled",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "readOnly",
+              "privacy": "public",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Distinct from disabled: focusable, selectable and copyable, submitted with the form, and passes contrast. Use for a value the user may read/copy but not edit (a generated key). The component's live edge.",
+              "default": "false",
+              "attribute": "data-prop-readonly",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "autoComplete",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Satisfies SC 1.3.5 Identify Input Purpose — an accessibility obligation, not a convenience.",
+              "default": "undefined",
+              "attribute": "data-prop-autocomplete",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "inputMode",
+              "privacy": "public",
+              "type": {
+                "text": "'text' | 'numeric' | 'decimal' | 'tel' | 'email' | 'url' | 'search'"
+              },
+              "description": "Selects the mobile virtual keyboard.",
+              "default": "undefined",
+              "attribute": "data-prop-inputmode",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "prefix",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "A leading text affix inside the field, before the value — a currency symbol or a unit (\"$\", \"€\"). Not part of the value and aria-hidden, so the label or helper text carries what it means. Follows the locale's placement (a symbol before or after the number). A glyph is leadingIcon, not this.",
+              "default": "undefined",
+              "attribute": "data-prop-prefix",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "suffix",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "A trailing text affix inside the field, after the value — a unit or a domain (\"kg\", \".com\"). Not part of the value and aria-hidden, so the label or helper text carries what it means. A glyph or a clear / reveal action is trailingIcon / clearable, not this.",
+              "default": "undefined",
+              "attribute": "data-prop-suffix",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "leadingIcon",
+              "privacy": "public",
+              "description": "An optional leading glyph before the value (a purpose or category mark, such as search), aria-hidden and never the accessible name. Hidden by default; the file nominates the swap target. Signals the field's purpose; validation never mutates it.",
+              "type": {
+                "text": "Node | string | undefined"
+              },
+              "default": "undefined"
+            },
+            {
+              "kind": "field",
+              "name": "trailingIcon",
+              "privacy": "public",
+              "description": "An optional trailing glyph at the field's trailing edge — a decorative mark (aria-hidden), or the glyph of a clear / reveal action, which in code is a focusable button with its own accessible name. The decorative-vs-interactive split is load-bearing. As a button, its hit area is at least 24×24 px, drawn around the 20px glyph, and adds no height to the field. Hidden by default; the file nominates the swap target.",
+              "type": {
+                "text": "Node | string | undefined"
+              },
+              "default": "undefined"
+            },
+            {
+              "kind": "field",
+              "name": "clearable",
+              "privacy": "public",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Adds a labeled Clear button that announces the cleared state and returns focus to the input (the recurring trap is stranding focus).",
+              "default": "false",
+              "attribute": "data-prop-clearable",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "isPending",
+              "privacy": "public",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Async validation/value — a spinner replaces an adornment without reflow; sets aria-busy; does not block typing unless intended.",
+              "default": "false",
+              "attribute": "data-prop-ispending",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "size",
+              "privacy": "public",
+              "type": {
+                "text": "'small' | 'medium' | 'large'"
+              },
+              "description": "Three tiers that scale the input type with the field (small 14px, medium 16px, large 18px, from type.body.sm, md and lg), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. small is for fine pointers only: on a coarse pointer (@media (pointer: coarse)) the code sets the small input to 16px, because iOS Safari zooms the page when it focuses an input under 16px. The field's edge, outline or underline, is the brand's Field style setting, not a prop.",
+              "default": "\"medium\"",
+              "attribute": "data-prop-size",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "id",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Wiring + form submission; auto-generated with useId if omitted, tying label→input and the aria-describedby chain.",
+              "default": "undefined",
+              "attribute": "data-prop-id",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "name",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "A real <input name> so the field works uncontrolled, in a native <form>, with useFormStatus / Server Actions, and the Constraint Validation API.",
+              "default": "undefined",
+              "attribute": "data-prop-name",
+              "reflects": true
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-prop-label",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "The visible, persistent label (rendered as FieldLabel). Required — a visually-hidden label is the only label-less case, and it still exists in the DOM. Never the placeholder.",
+              "default": "undefined",
+              "fieldName": "label"
+            },
+            {
+              "name": "data-prop-defaultvalue",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Uncontrolled initial value — preferred for form-library ergonomics.",
+              "default": "undefined",
+              "fieldName": "defaultValue"
+            },
+            {
+              "name": "data-prop-type",
+              "type": {
+                "text": "'text' | 'email' | 'url' | 'tel' | 'search' | 'password'"
+              },
+              "description": "Attribute-only variants (mobile keyboard + autofill). Not number: numeric input needs a number field (not built yet). search / password are better served by their thin specializations.",
+              "default": "\"text\"",
+              "fieldName": "type"
+            },
+            {
+              "name": "data-prop-placeholder",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "An example only (\"name@example.com\"); vanishes on input; nothing load-bearing lives here.",
+              "default": "undefined",
+              "fieldName": "placeholder"
+            },
+            {
+              "name": "data-prop-helptext",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format before failure.",
+              "default": "undefined",
+              "fieldName": "helpText"
+            },
+            {
+              "name": "data-prop-validation",
+              "type": {
+                "text": "'default' | 'error' | 'warning' | 'success'"
+              },
+              "description": "The validation state. Each non-default status swaps the input border to its own boundary (border-only — error → danger, warning → warning, success → success) and sets the nested message to the matching status; default is neutral. error also sets aria-invalid. The values align with FieldMessage's status axis, so this drives the nested message directly.",
+              "default": "\"default\"",
+              "fieldName": "validation"
+            },
+            {
+              "name": "data-prop-validationmessage",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "The validation text shown at error / warning / success, added to aria-describedby. For error, say what is wrong and how to fix it (SC 3.3.3), never \"Invalid\".",
+              "default": "undefined",
+              "fieldName": "validationMessage"
+            },
+            {
+              "name": "data-prop-showmessage",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message below the input. Never hides a message the field needs: turn it on wherever there is helper or validation text.",
+              "default": "false",
+              "fieldName": "showMessage"
+            },
+            {
+              "name": "data-prop-required",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Sets required / aria-required, and turns on the FieldLabel's required marker.",
+              "default": "false",
+              "fieldName": "required"
+            },
+            {
+              "name": "data-prop-disabled",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Native disabled — removed from tab order, not submitted, silent to assistive tech, contrast-exempt. Reserve for fields irrelevant in the current state.",
+              "default": "false",
+              "fieldName": "disabled"
+            },
+            {
+              "name": "data-prop-readonly",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Distinct from disabled: focusable, selectable and copyable, submitted with the form, and passes contrast. Use for a value the user may read/copy but not edit (a generated key). The component's live edge.",
+              "default": "false",
+              "fieldName": "readOnly"
+            },
+            {
+              "name": "data-prop-autocomplete",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Satisfies SC 1.3.5 Identify Input Purpose — an accessibility obligation, not a convenience.",
+              "default": "undefined",
+              "fieldName": "autoComplete"
+            },
+            {
+              "name": "data-prop-inputmode",
+              "type": {
+                "text": "'text' | 'numeric' | 'decimal' | 'tel' | 'email' | 'url' | 'search'"
+              },
+              "description": "Selects the mobile virtual keyboard.",
+              "default": "undefined",
+              "fieldName": "inputMode"
+            },
+            {
+              "name": "data-prop-prefix",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "A leading text affix inside the field, before the value — a currency symbol or a unit (\"$\", \"€\"). Not part of the value and aria-hidden, so the label or helper text carries what it means. Follows the locale's placement (a symbol before or after the number). A glyph is leadingIcon, not this.",
+              "default": "undefined",
+              "fieldName": "prefix"
+            },
+            {
+              "name": "data-prop-suffix",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "A trailing text affix inside the field, after the value — a unit or a domain (\"kg\", \".com\"). Not part of the value and aria-hidden, so the label or helper text carries what it means. A glyph or a clear / reveal action is trailingIcon / clearable, not this.",
+              "default": "undefined",
+              "fieldName": "suffix"
+            },
+            {
+              "name": "data-prop-clearable",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Adds a labeled Clear button that announces the cleared state and returns focus to the input (the recurring trap is stranding focus).",
+              "default": "false",
+              "fieldName": "clearable"
+            },
+            {
+              "name": "data-prop-ispending",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Async validation/value — a spinner replaces an adornment without reflow; sets aria-busy; does not block typing unless intended.",
+              "default": "false",
+              "fieldName": "isPending"
+            },
+            {
+              "name": "data-prop-size",
+              "type": {
+                "text": "'small' | 'medium' | 'large'"
+              },
+              "description": "Three tiers that scale the input type with the field (small 14px, medium 16px, large 18px, from type.body.sm, md and lg), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. small is for fine pointers only: on a coarse pointer (@media (pointer: coarse)) the code sets the small input to 16px, because iOS Safari zooms the page when it focuses an input under 16px. The field's edge, outline or underline, is the brand's Field style setting, not a prop.",
+              "default": "\"medium\"",
+              "fieldName": "size"
+            },
+            {
+              "name": "data-prop-id",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Wiring + form submission; auto-generated with useId if omitted, tying label→input and the aria-describedby chain.",
+              "default": "undefined",
+              "fieldName": "id"
+            },
+            {
+              "name": "data-prop-name",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "A real <input name> so the field works uncontrolled, in a native <form>, with useFormStatus / Server Actions, and the Constraint Validation API.",
+              "default": "undefined",
+              "fieldName": "name"
+            }
+          ],
+          "superclass": {
+            "name": "LitElement",
+            "package": "lit"
+          },
+          "tagName": "p3-text-field",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "P3TextField",
+          "declaration": {
+            "name": "P3TextField",
+            "module": "p3-text-field.js"
+          }
+        },
+        {
+          "kind": "custom-element-definition",
+          "name": "p3-text-field",
+          "declaration": {
+            "name": "P3TextField",
+            "module": "p3-text-field.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "p3-password-field.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "A single-line field for a secret the user types — a sign-in password, a new password, a PIN typed as text. TextField's anatomy and contract with one added action: a Show/Hide button at the end of the label row that switches the input between masked and plain text. Not for a one-time code in separate boxes (CodeInput), and not for any other single-line text (TextField).\n\nRenders `@prism3/css`'s password-field markup in the light DOM: a native `<label for>` and `<input>` in one tree with the\nmessage, styled only by `@prism3/css`. Each prop of the def is a property of the same name, reflected to\n`data-prop-<name>`, except `value`, which is a property only. The Show/Hide button switches the input between masked and plain text, keeps the caret and focus, announces the change, and returns to masked when the form submits.\nMarkup written inside the element before its script runs (the `@prism3/css` contract) is a working field on its own,\nand is adopted on upgrade: its props, a typed value, and focus carry over.",
+          "name": "P3PasswordField",
+          "slots": [
+            {
+              "description": "A child with `slot=\"leadingIcon\"`, moved into the leading-visual span when the element connects.",
+              "name": "leadingIcon"
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "#adopted",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "#auto",
+              "privacy": "private",
+              "default": "`p3-password-field-${++serial}`"
+            },
+            {
+              "kind": "field",
+              "name": "#refocus",
+              "privacy": "private",
+              "type": {
+                "text": "null"
+              },
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "#shown",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "#inputId",
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "#input",
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "#untouched",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "name"
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "#onInput",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#say",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "key"
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "#toggle",
+              "privacy": "private",
+              "description": "Masked ↔ plain. The input's type is set at once and the caret put back; focus stays on the button. Chromium resets\nthe caret of an input that has had focus one task after its type changes while it is blurred (a click on this\nbutton blurs it), so the caret is put back again after that task."
+            },
+            {
+              "kind": "field",
+              "name": "#onSubmit",
+              "privacy": "private",
+              "description": "Back to masked when the form submits (Q301.7 A), at once, so a browser never stores the value as plain text."
+            },
+            {
+              "kind": "field",
+              "name": "label",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "The visible, persistent label (rendered as FieldLabel), usually \"Password\" or \"New password\". Required. Never the placeholder.",
+              "default": "undefined",
+              "attribute": "data-prop-label",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "value",
+              "privacy": "public",
+              "description": "Controlled value; pair with onChange.",
+              "type": {
+                "text": "string | undefined"
+              },
+              "default": "undefined"
+            },
+            {
+              "kind": "field",
+              "name": "defaultValue",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Uncontrolled initial value.",
+              "default": "undefined",
+              "attribute": "data-prop-defaultvalue",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "onChange",
+              "privacy": "public",
+              "description": "Change handler (also onBlur / onFocus).",
+              "type": {
+                "text": "((event: InputEvent) => void) | undefined"
+              },
+              "default": "undefined"
+            },
+            {
+              "kind": "field",
+              "name": "placeholder",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "An example only; vanishes on input. The password rules belong in helper text or a list under the field, never here.",
+              "default": "undefined",
+              "attribute": "data-prop-placeholder",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "helpText",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Persistent guidance (rendered as FieldMessage, default status), wired via aria-describedby. State the rules for a new password here, before the user types.",
+              "default": "undefined",
+              "attribute": "data-prop-helptext",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "validation",
+              "privacy": "public",
+              "type": {
+                "text": "'default' | 'error' | 'warning' | 'success'"
+              },
+              "description": "The validation state, as on TextField: each non-default status swaps the input border and sets the nested message to the matching status; error also sets aria-invalid. The Show/Hide button never takes the status color.",
+              "default": "\"default\"",
+              "attribute": "data-prop-validation",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "validationMessage",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "The validation text shown at error / warning / success, added to aria-describedby. Say what is wrong and how to fix it (SC 3.3.3).",
+              "default": "undefined",
+              "attribute": "data-prop-validationmessage",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "showMessage",
+              "privacy": "public",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message. Never hides a message the field needs.",
+              "default": "false",
+              "attribute": "data-prop-showmessage",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "required",
+              "privacy": "public",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Sets required / aria-required, and turns on the FieldLabel's required marker.",
+              "default": "false",
+              "attribute": "data-prop-required",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "disabled",
+              "privacy": "public",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Native disabled. Disables the Show/Hide button with the field.",
+              "default": "false",
+              "attribute": "data-prop-disabled",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "readOnly",
+              "privacy": "public",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Focusable, copyable and submitted, and passes contrast. The Show/Hide button stays live, so a read-only value can still be shown.",
+              "default": "false",
+              "attribute": "data-prop-readonly",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "autoComplete",
+              "privacy": "public",
+              "type": {
+                "text": "'current-password' | 'new-password'"
+              },
+              "description": "Required (SC 1.3.5): current-password on a sign-in form, new-password where the user sets one, so a password manager fills or offers to generate it. Never off.",
+              "default": "undefined",
+              "attribute": "data-prop-autocomplete",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "leadingIcon",
+              "privacy": "public",
+              "description": "An optional leading glyph before the value, aria-hidden and never the accessible name. Hidden by default; the file nominates the swap target.",
+              "type": {
+                "text": "Node | string | undefined"
+              },
+              "default": "undefined"
+            },
+            {
+              "kind": "field",
+              "name": "isPending",
+              "privacy": "public",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Async validation in progress; sets aria-busy; does not block typing.",
+              "default": "false",
+              "attribute": "data-prop-ispending",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "size",
+              "privacy": "public",
+              "type": {
+                "text": "'small' | 'medium' | 'large'"
+              },
+              "description": "TextField's three tiers: the input type and the nested label scale with it. The Show/Hide button is small at every size, so the label row stays one label line tall. Every size keeps the input's 44px target; the button's hit area is 44×44 at medium and large and 24×24 at small, in code.",
+              "default": "\"medium\"",
+              "attribute": "data-prop-size",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "id",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Wiring + form submission; auto-generated with useId if omitted. The Show/Hide button's aria-controls names it.",
+              "default": "undefined",
+              "attribute": "data-prop-id",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "name",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "A real <input name>, so the field works in a native <form> and a password manager recognizes it.",
+              "default": "undefined",
+              "attribute": "data-prop-name",
+              "reflects": true
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-prop-label",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "The visible, persistent label (rendered as FieldLabel), usually \"Password\" or \"New password\". Required. Never the placeholder.",
+              "default": "undefined",
+              "fieldName": "label"
+            },
+            {
+              "name": "data-prop-defaultvalue",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Uncontrolled initial value.",
+              "default": "undefined",
+              "fieldName": "defaultValue"
+            },
+            {
+              "name": "data-prop-placeholder",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "An example only; vanishes on input. The password rules belong in helper text or a list under the field, never here.",
+              "default": "undefined",
+              "fieldName": "placeholder"
+            },
+            {
+              "name": "data-prop-helptext",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Persistent guidance (rendered as FieldMessage, default status), wired via aria-describedby. State the rules for a new password here, before the user types.",
+              "default": "undefined",
+              "fieldName": "helpText"
+            },
+            {
+              "name": "data-prop-validation",
+              "type": {
+                "text": "'default' | 'error' | 'warning' | 'success'"
+              },
+              "description": "The validation state, as on TextField: each non-default status swaps the input border and sets the nested message to the matching status; error also sets aria-invalid. The Show/Hide button never takes the status color.",
+              "default": "\"default\"",
+              "fieldName": "validation"
+            },
+            {
+              "name": "data-prop-validationmessage",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "The validation text shown at error / warning / success, added to aria-describedby. Say what is wrong and how to fix it (SC 3.3.3).",
+              "default": "undefined",
+              "fieldName": "validationMessage"
+            },
+            {
+              "name": "data-prop-showmessage",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message. Never hides a message the field needs.",
+              "default": "false",
+              "fieldName": "showMessage"
+            },
+            {
+              "name": "data-prop-required",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Sets required / aria-required, and turns on the FieldLabel's required marker.",
+              "default": "false",
+              "fieldName": "required"
+            },
+            {
+              "name": "data-prop-disabled",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Native disabled. Disables the Show/Hide button with the field.",
+              "default": "false",
+              "fieldName": "disabled"
+            },
+            {
+              "name": "data-prop-readonly",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Focusable, copyable and submitted, and passes contrast. The Show/Hide button stays live, so a read-only value can still be shown.",
+              "default": "false",
+              "fieldName": "readOnly"
+            },
+            {
+              "name": "data-prop-autocomplete",
+              "type": {
+                "text": "'current-password' | 'new-password'"
+              },
+              "description": "Required (SC 1.3.5): current-password on a sign-in form, new-password where the user sets one, so a password manager fills or offers to generate it. Never off.",
+              "default": "undefined",
+              "fieldName": "autoComplete"
+            },
+            {
+              "name": "data-prop-ispending",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Async validation in progress; sets aria-busy; does not block typing.",
+              "default": "false",
+              "fieldName": "isPending"
+            },
+            {
+              "name": "data-prop-size",
+              "type": {
+                "text": "'small' | 'medium' | 'large'"
+              },
+              "description": "TextField's three tiers: the input type and the nested label scale with it. The Show/Hide button is small at every size, so the label row stays one label line tall. Every size keeps the input's 44px target; the button's hit area is 44×44 at medium and large and 24×24 at small, in code.",
+              "default": "\"medium\"",
+              "fieldName": "size"
+            },
+            {
+              "name": "data-prop-id",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Wiring + form submission; auto-generated with useId if omitted. The Show/Hide button's aria-controls names it.",
+              "default": "undefined",
+              "fieldName": "id"
+            },
+            {
+              "name": "data-prop-name",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "A real <input name>, so the field works in a native <form> and a password manager recognizes it.",
+              "default": "undefined",
+              "fieldName": "name"
+            }
+          ],
+          "superclass": {
+            "name": "LitElement",
+            "package": "lit"
+          },
+          "tagName": "p3-password-field",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "P3PasswordField",
+          "declaration": {
+            "name": "P3PasswordField",
+            "module": "p3-password-field.js"
+          }
+        },
+        {
+          "kind": "custom-element-definition",
+          "name": "p3-password-field",
+          "declaration": {
+            "name": "P3PasswordField",
+            "module": "p3-password-field.js"
+          }
+        }
+      ]
     }
   ]
 }

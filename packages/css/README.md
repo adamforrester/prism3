@@ -142,7 +142,8 @@ The password field is the same, with the label in a label row beside the Show/Hi
   a plain password input. Its name is the visible "Show" or "Hide" plus the visually hidden " password". The script
   switches `type`, keeps the caret and focus, announces "Your password is shown" or "Your password is hidden" in a
   polite live region, and returns the field to hidden when its form submits. Each string can be set per button with
-  `data-p3-show`, `data-p3-hide`, `data-p3-shown` and `data-p3-hidden`.
+  `data-p3-show`, `data-p3-hide`, `data-p3-shown` and `data-p3-hidden`. Inside an upgraded `<p3-password-field>`
+  (`@prism3/web-components`), the element owns the button and the script stands aside.
 
 `check-parity-fields.ts` fails if a prop of a def is missing from its table below.
 

@@ -2,7 +2,7 @@
 // rewrites package.json's `customElements` field to wherever it wrote, which `check-manifest.ts`'s temp-dir run
 // would point outside the package. package.json names `./custom-elements.json` by hand.
 export default {
-  globs: ['p3-button.js'],
+  globs: ['p3-button.js', 'p3-text-field.js', 'p3-password-field.js'],
   litelement: true,
   packagejson: false,
 };
