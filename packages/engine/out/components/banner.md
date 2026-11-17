@@ -159,7 +159,7 @@ Keyed by `edge`, `tone`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 480px (literal) |
+| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 480px (literal); radius `radius.md`; stroke `border-width.hairline` |
 | `container/infoGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/content` | — | `space.050` | — | — | — | — |
 | `container/content/titleBox` | `space.050` / — / — / — | — | — | — | — | — |
@@ -171,7 +171,7 @@ Keyed by `edge`, `tone`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 960px (literal) |
+| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 960px (literal); radius `radius.none`; top stroke `border-width.hairline`; right stroke `border-width.none`; bottom stroke `border-width.hairline`; left stroke `border-width.none` |
 | `container/infoGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/content` | — | `space.050` | — | — | — | — |
 | `container/content/titleBox` | `space.050` / — / — / — | — | — | — | — | — |
@@ -183,7 +183,7 @@ Keyed by `edge`, `tone`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 480px (literal) |
+| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 480px (literal); radius `radius.md`; stroke `border-width.hairline` |
 | `container/successGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/content` | — | `space.050` | — | — | — | — |
 | `container/content/titleBox` | `space.050` / — / — / — | — | — | — | — | — |
@@ -195,7 +195,7 @@ Keyed by `edge`, `tone`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 960px (literal) |
+| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 960px (literal); radius `radius.none`; top stroke `border-width.hairline`; right stroke `border-width.none`; bottom stroke `border-width.hairline`; left stroke `border-width.none` |
 | `container/successGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/content` | — | `space.050` | — | — | — | — |
 | `container/content/titleBox` | `space.050` / — / — / — | — | — | — | — | — |
@@ -207,7 +207,7 @@ Keyed by `edge`, `tone`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 480px (literal) |
+| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 480px (literal); radius `radius.md`; stroke `border-width.hairline` |
 | `container/warningGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/content` | — | `space.050` | — | — | — | — |
 | `container/content/titleBox` | `space.050` / — / — / — | — | — | — | — | — |
@@ -219,7 +219,7 @@ Keyed by `edge`, `tone`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 960px (literal) |
+| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 960px (literal); radius `radius.none`; top stroke `border-width.hairline`; right stroke `border-width.none`; bottom stroke `border-width.hairline`; left stroke `border-width.none` |
 | `container/warningGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/content` | — | `space.050` | — | — | — | — |
 | `container/content/titleBox` | `space.050` / — / — / — | — | — | — | — | — |
@@ -231,7 +231,7 @@ Keyed by `edge`, `tone`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 480px (literal) |
+| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 480px (literal); radius `radius.md`; stroke `border-width.hairline` |
 | `container/dangerGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/content` | — | `space.050` | — | — | — | — |
 | `container/content/titleBox` | `space.050` / — / — / — | — | — | — | — | — |
@@ -243,7 +243,7 @@ Keyed by `edge`, `tone`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 960px (literal) |
+| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 960px (literal); radius `radius.none`; top stroke `border-width.hairline`; right stroke `border-width.none`; bottom stroke `border-width.hairline`; left stroke `border-width.none` |
 | `container/dangerGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/content` | — | `space.050` | — | — | — | — |
 | `container/content/titleBox` | `space.050` / — / — / — | — | — | — | — | — |
@@ -255,7 +255,7 @@ Keyed by `edge`, `tone`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 480px (literal) |
+| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 480px (literal); radius `radius.md`; stroke `border-width.hairline` |
 | `container/content` | — | `space.050` | — | — | — | — |
 | `container/content/titleBox` | `space.050` / — / — / — | — | — | — | — | — |
 | `container/content/bodyRow` | — | `space.050` | — | — | — | — |
@@ -266,7 +266,7 @@ Keyed by `edge`, `tone`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 960px (literal) |
+| `container` | `space.200` | `space.150` | — | — | `container.min` | build width 960px (literal); radius `radius.none`; top stroke `border-width.hairline`; right stroke `border-width.none`; bottom stroke `border-width.hairline`; left stroke `border-width.none` |
 | `container/content` | — | `space.050` | — | — | — | — |
 | `container/content/titleBox` | `space.050` / — / — / — | — | — | — | — | — |
 | `container/content/bodyRow` | — | `space.050` | — | — | — | — |

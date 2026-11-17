@@ -2404,7 +2404,11 @@ const dispatch = createDispatcher({
   onProgress: (id, progress) => postToUi({ type: 'agent-progress', id, progress }),
   onLog: (id, line) => postToUi({ type: 'agent-log', id, line }),
   // The Activity drawer's agent rows (UI redesign S11): when a command starts, and when it has ended.
-  onStart: (id, cmd, apply) => { agentCmd = cmd; postToUi({ type: 'agent-started', id, cmd, ...(apply ? { apply: true as const } : {}) }); },
+  // #2087: a build names its set (no def builds Button, as `buildComponents` does), so the Components page records its verdict.
+  onStart: (id, cmd, apply, def) => {
+    agentCmd = cmd;
+    postToUi({ type: 'agent-started', id, cmd, ...(apply ? { apply: true as const } : {}), ...(cmd === 'build-components' ? { def: def ?? button.id } : {}) });
+  },
   onFinish: (id, cmd) => { agentCmd = null; postToUi({ type: 'agent-finished', id, cmd }); },
   // #1957, #3697 R7: an agent's write is declined before it starts while any write holds the file.
   refuse: (c) => {

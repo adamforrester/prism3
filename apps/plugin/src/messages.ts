@@ -677,8 +677,9 @@ export type MainToUi =
   /** An agent command has started, and has finished (UI redesign S11): what lets the panel's Activity
    *  drawer show it running and mark its result as the agent's. Sent for every valid command, `status`
    *  included; the panel decides which have an operation to show. `finished` follows the command's
-   *  terminal verdict, and is sent even when its handler threw and posted none. */
-  | { type: 'agent-started'; id: string; cmd: AgentCmd; apply?: true }
+   *  terminal verdict, and is sent even when its handler threw and posted none. `def` names the set a
+   *  `build-components` builds (#2087), so the panel can record its verdict against that set. */
+  | { type: 'agent-started'; id: string; cmd: AgentCmd; apply?: true; def?: string }
   | { type: 'agent-finished'; id: string; cmd: AgentCmd };
 
 /** Narrow a discriminated union by its `type` tag — the payload a handler actually receives. */

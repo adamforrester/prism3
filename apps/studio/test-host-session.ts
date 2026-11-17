@@ -144,7 +144,9 @@ for (const c of verdictCases) {
 //
 // Mutations this fails by name: recording the verdict against nothing → `G9: a clean verdict for the panel's own build
 // of 'tag' records tag → ok`; reading "failed" off `ok` alone → `C1: a build that ran to the end with misses records
-// badge → issues, not failed`.
+// badge → issues, not failed`. #2087: recording only the panel's own builds (`agentDef` dropped) → `#2087: an agent's
+// build of 'button' records button → ok`; reading the agent run after it settled (`!prev.agentRun.settled` dropped) →
+// `#2087: a second verdict after the agent's run settled is not recorded against its set`.
 {
   const posted: HostSession = { ...init, componentState: 'pending', componentDef: 'tag' };
   const clean = step(posted, { kind: 'component-result', ok: true, completed: true, headline: '✓ built 45', summary: "set 'Tag'" });
@@ -154,10 +156,20 @@ for (const c of verdictCases) {
   ok(same([...issues.next.setBuilds], [['tag', 'ok'], ['badge', 'issues']]), `C1: a build that ran to the end with misses records badge → issues, not failed, and keeps tag's (${JSON.stringify([...issues.next.setBuilds])})`);
   const failed = step({ ...issues.next, componentState: 'pending', componentDef: 'tag' }, { kind: 'component-result', ok: false, completed: false, headline: '✗ apply failed', summary: 'x' });
   ok(failed.next.setBuilds.get('tag') === 'failed' && failed.next.setBuilds.get('badge') === 'issues', `C1: a build that stopped before the set records tag → failed, replacing its clean result (${JSON.stringify([...failed.next.setBuilds])})`);
-  // An agent's build (the panel posted nothing): its verdict names no set, so none is recorded.
-  const agentRun = step(init, { kind: 'agent-started', id: 'b9', cmd: 'build-components' }).next;
+  // #2087: an agent's build (the panel posted nothing) names its set on `agent-started`, so its verdict is recorded
+  // against that set, as the panel's own would be. A start that names none (an older host) records nothing.
+  const agentRun = step(init, { kind: 'agent-started', id: 'b9', cmd: 'build-components', def: 'button' }).next;
   const byAgent = step(agentRun, { kind: 'component-result', ok: true, completed: true, headline: '✓ built 432', summary: "set 'Button'" });
-  ok(byAgent.next.setBuilds.size === 0, `G9: an agent's build is not attributed to a set (${JSON.stringify([...byAgent.next.setBuilds])})`);
+  ok(same([...byAgent.next.setBuilds], [['button', 'ok']]), `#2087: an agent's build of 'button' records button → ok (${JSON.stringify([...byAgent.next.setBuilds])})`);
+  const agentIssues = step(step(byAgent.next, { kind: 'agent-started', id: 'b10', cmd: 'build-components', def: 'tag' }).next,
+    { kind: 'component-result', ok: false, completed: true, headline: '⚠ 20, 1 missed', summary: "set 'Tag'" });
+  ok(same([...agentIssues.next.setBuilds], [['button', 'ok'], ['tag', 'issues']]), `#2087: an agent's build of 'tag' with misses records tag → issues and keeps button's (${JSON.stringify([...agentIssues.next.setBuilds])})`);
+  const settled = step(byAgent.next, { kind: 'component-result', ok: false, completed: false, headline: '✗', summary: 'x' });
+  ok(settled.next.setBuilds.get('button') === 'ok', `#2087: a second verdict after the agent's run settled is not recorded against its set (${JSON.stringify([...settled.next.setBuilds])})`);
+  const unnamed = step(step(init, { kind: 'agent-started', id: 'b8', cmd: 'build-components' }).next, { kind: 'component-result', ok: true, completed: true, headline: '✓', summary: 'x' });
+  ok(unnamed.next.setBuilds.size === 0, `#2087: an agent's build that names no set records nothing (${JSON.stringify([...unnamed.next.setBuilds])})`);
+  const update = step(step(init, { kind: 'agent-started', id: 'u1', cmd: 'update-components', def: 'tag' }).next, { kind: 'component-result', ok: true, completed: true, headline: '✓', summary: 'x' });
+  ok(update.next.setBuilds.size === 0, `#2087: only a build-components run is attributed, not another components command (${JSON.stringify([...update.next.setBuilds])})`);
   // The panel's request declined behind an agent's run: no build of its own is coming, so it forgets the set.
   const declined = step({ ...agentRun, componentState: 'pending', componentDef: 'tag' }, { kind: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: 'busy' });
   ok(declined.next.componentDef === null && declined.next.componentState === null, 'G9: a declined panel build forgets the set it posted');

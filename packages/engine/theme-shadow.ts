@@ -37,7 +37,9 @@ export type ShadowAxis = {
 };
 // Base ramp at softness 1 — [keyY, keyBlur, keySpread, keyAlpha, ambY, ambBlur, ambSpread, ambAlpha].
 // Anchored to Tailwind/Polaris/NB curves; offsetY≈blur×0.6–0.7, spread tightens with size.
-const SHADOW_BASE: { name: string; key: number[]; amb: number[] }[] = [
+/** One shadow layer's geometry and alpha: `[offsetY, blur, spread, alpha]`. */
+type LayerSpec = [offsetY: number, blur: number, spread: number, alpha: number];
+const SHADOW_BASE: { name: string; key: LayerSpec; amb: LayerSpec }[] = [
   { name: 'xs', key: [1, 2, 0, 0.10], amb: [1, 3, 0, 0.06] },
   { name: 'sm', key: [1, 2, -1, 0.10], amb: [2, 6, -1, 0.07] },
   { name: 'md', key: [2, 4, -2, 0.12], amb: [4, 12, -3, 0.08] },
@@ -93,11 +95,11 @@ export const buildShadow = (defaultHue: number | null, input: BrandInput['shadow
     : tint.hue === null
       ? oklchToRgb({ l: tintL, c: 0, h: 0 })   // untinted: no hue, the same lift (Q58 B)
       : oklchToRgb({ l: tintL, c: maxChroma(tintL, tint.hue) * tint.amount, h: tint.hue });
-  const layer = (a: number[]): ShadowLayer => ({ offsetX: 0, offsetY: a[0], blur: Math.round(a[1] * softness), spread: a[2], alpha: a[3] });
+  const layer = (a: LayerSpec): ShadowLayer => ({ offsetX: 0, offsetY: a[0], blur: Math.round(a[1] * softness), spread: a[2], alpha: a[3] });
   // Dark: same geometry, alpha reduced and ramping UP with elevation (lower steps
   // nearly disappear — the surface lift does the work; top steps keep a whisper).
   const darkAlpha = (a: number, i: number): number => Math.round(a * (0.3 + 0.09 * i) * 100) / 100;
-  const darkLayer = (a: number[], i: number): ShadowLayer => ({ offsetX: 0, offsetY: a[0], blur: Math.round(a[1] * softness), spread: a[2], alpha: darkAlpha(a[3], i) });
+  const darkLayer = (a: LayerSpec, i: number): ShadowLayer => ({ offsetX: 0, offsetY: a[0], blur: Math.round(a[1] * softness), spread: a[2], alpha: darkAlpha(a[3], i) });
   const steps: ShadowStep[] = SHADOW_BASE.map((s, i) => ({
     name: s.name,
     light: [layer(s.key), layer(s.amb)],

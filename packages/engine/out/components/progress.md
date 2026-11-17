@@ -169,7 +169,8 @@ Keyed by `size`, `shape`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.075` | — | — | — | build width 360px (literal) |
 | `container/header` | — | `space.100` | — | — | — | min height `icon.size.md` |
-| `container/track` | — | — | `border-width.heavy` | — | — | — |
+| `container/track` | — | — | `border-width.heavy` | — | — | radius `radius.capsule` |
+| `container/track/fill` | — | — | — | — | — | radius `radius.capsule` |
 | `container/track/dotGlyph` | — | — | `border-width.heavy` | `border-width.heavy` | — | — |
 
 **size=medium, shape=circular**

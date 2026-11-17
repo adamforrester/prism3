@@ -135,7 +135,7 @@ Keyed by nothing: one row covers every member.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.100` / `space.100` / `space.100` / `space.200` | `space.100` | — | — | — | min height `size.md.height`; build width 360px (literal) |
+| `container` | `space.100` / `space.100` / `space.100` / `space.200` | `space.100` | — | — | — | min height `size.md.height`; build width 360px (literal); radius `radius.xl` |
 | `container/content` | — | `space.150` | — | — | — | — |
 | `container/controls` | — | `space.050` | — | — | — | — |
 | `container/content/glyphCell` | — | — | — | — | — | min height `type.body.sm.line-box` |
