@@ -190,7 +190,7 @@ Keyed by `size`.
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
 | `container/field` | — | `space.0` | — | — | — | — |
 | `container/field/control` | — | — | `size.md.min-height` | — | — | — |
-| `container/field/control/track` | — | — | `border-width.heavy` | — | — | — |
+| `container/field/control/track` | — | — | `border-width.heavy` | — | — | radius `radius.round` |
 | `container/field/control/track/bar` | — | — | `border-width.heavy` | — | — | — |
 | `container/field/control/track/spaceEnd` | — | — | `border-width.heavy` | — | — | — |
 | `container/inputs` | — | `space.150` | — | — | — | — |
@@ -203,7 +203,7 @@ Keyed by `size`.
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
 | `container/field` | — | `space.0` | — | — | — | — |
 | `container/field/control` | — | — | `size.md.min-height` | — | — | — |
-| `container/field/control/track` | — | — | `border-width.thick` | — | — | — |
+| `container/field/control/track` | — | — | `border-width.thick` | — | — | radius `radius.round` |
 | `container/field/control/track/bar` | — | — | `border-width.thick` | — | — | — |
 | `container/field/control/track/spaceEnd` | — | — | `border-width.thick` | — | — | — |
 | `container/inputs` | — | `space.150` | — | — | — | — |
@@ -216,7 +216,7 @@ Keyed by `size`.
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
 | `container/field` | — | `space.0` | — | — | — | — |
 | `container/field/control` | — | — | `size.md.min-height` | — | — | — |
-| `container/field/control/track` | — | — | `border-width.x-heavy` | — | — | — |
+| `container/field/control/track` | — | — | `border-width.x-heavy` | — | — | radius `radius.round` |
 | `container/field/control/track/bar` | — | — | `border-width.x-heavy` | — | — | — |
 | `container/field/control/track/spaceEnd` | — | — | `border-width.x-heavy` | — | — | — |
 | `container/inputs` | — | `space.150` | — | — | — | — |

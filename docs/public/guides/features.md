@@ -49,7 +49,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 
 <!-- src: packages/engine/mcp.ts:348-382#c8235700 --> <!-- src: packages/engine/mcp.ts:296-331#a6aa6b2c -->
 
-TokenPress, a separate Figma plugin, exports any Figma file's variables and styles as DTCG token files. See [Export tokens](export-tokens.md#export-any-figma-file-with-tokenpress). <!-- src: apps/tokenpress/README.md:3#68cda092 -->
+TokenPress, a separate Figma plugin, exports any Figma file's variables and styles as DTCG token files. See [Export tokens](export-tokens.md#export-any-figma-file-with-tokenpress). <!-- src: apps/tokenpress/README.md:3#9efac648 -->
 
 ## Limits worth knowing
 

@@ -485,9 +485,15 @@ export const TEST_HELPERS: Record<string, Record<string, string>> = {
   },
 };
 export const isTestFile = (f: string): boolean => /^test-[^/]+\.(?:ts|mjs)$/.test(f);
-/** The files a script body runs: each `npx tsx <file>` or `node <file>` entry of its `&&` chain. */
-export const filesRunBy = (body: string): string[] =>
-  body.split('&&').map((e) => /^\s*(?:npx\s+tsx|node)\s+(\S+\.(?:ts|mjs))\b/.exec(e)?.[1]).filter((f): f is string => !!f);
+/** The files a script body runs: each `npx tsx <file>` or `node <file>` entry of its `&&` chain. An entry that runs
+ *  the suite runner (`run-suites.ts`, #1066) runs the suites its workspace's `suites.json` lists, so `expand` maps
+ *  that entry to them; every other entry is itself. */
+export const filesRunBy = (body: string, expand: (f: string) => string[] = (f) => [f]): string[] =>
+  body.split('&&').map((e) => /^\s*(?:npx\s+tsx|node)\s+(\S+\.(?:ts|mjs))\b/.exec(e)?.[1]).filter((f): f is string => !!f).flatMap(expand);
+/** The suites `run-suites.ts` runs for a workspace: the `suites[].file` of its `suites.json`, never its `elsewhere`. */
+export const RUNNER = /(?:^|\/)run-suites\.ts$/;
+export const suitesRunByRunner = (suitesJson: string): string[] =>
+  ((JSON.parse(suitesJson) as { suites?: { file: string }[] }).suites ?? []).map((s) => s.file);
 /** The scripts `ci.yml` runs for a workspace, by its package name: `npm run -w <name> <script>` at the start of a line. */
 export const ciScriptsFor = (ciText: string, wsName: string): string[] => {
   const out: string[] = [];
@@ -497,10 +503,10 @@ export const ciScriptsFor = (ciText: string, wsName: string): string[] => {
 };
 export const unrunTestFiles = (
   onDisk: string[], scripts: Record<string, string>, ciScripts: string[], helpers: Record<string, string>,
-  importsOf: (f: string) => string,
+  importsOf: (f: string) => string, expand: (f: string) => string[] = (f) => [f],
 ): string[] => {
   const problems: string[] = [];
-  const run = new Set(ciScripts.flatMap((sc) => (scripts[sc] === undefined ? [] : filesRunBy(scripts[sc]))));
+  const run = new Set(ciScripts.flatMap((sc) => (scripts[sc] === undefined ? [] : filesRunBy(scripts[sc], expand))));
   for (const f of onDisk.filter(isTestFile)) {
     if (f in helpers) {
       if (run.has(f)) problems.push(`${f} is listed in TEST_HELPERS but a script CI runs runs it — remove the stale helper entry`);
@@ -1459,6 +1465,12 @@ jobs:
   if (!unrunTestFiles([...disk, 'test-d.ts'], scripts, ['test', 'test:x'], H, imports).some((p) => p.startsWith('test-d.ts '))) selfFails.push('the test-file arm passes a file whose only script CI does not run');
   if (!unrunTestFiles(disk, scripts, ['test'], H, imports).some((p) => p.startsWith('test-helper.mjs '))) selfFails.push('the test-file arm passes a helper no running test imports');
   if (!unrunTestFiles(disk, scripts, ['test', 'test:x'], { ...H, 'test-a.ts': 'x' }, imports).some((p) => p.startsWith('test-a.ts is listed'))) selfFails.push('the test-file arm passes a helper entry for a file a script runs');
+  // #1066: a script that runs the suite runner runs the suites its table lists, and only those.
+  const viaRunner = { test: 'npx tsx ../../run-suites.ts', 'test:x': 'node test-c.mjs' };
+  const table = (f: string): string[] => (RUNNER.test(f) ? suitesRunByRunner('{"suites":[{"file":"test-a.ts","floor":1},{"file":"test-b.ts","floor":1}],"elsewhere":{}}') : [f]);
+  if (unrunTestFiles(disk, viaRunner, ['test', 'test:x'], H, imports, table).length) selfFails.push('the test-file arm does not read the suites a run-suites.ts script runs');
+  const tableDropped = (f: string): string[] => (RUNNER.test(f) ? ['test-a.ts'] : [f]);
+  if (!unrunTestFiles(disk, viaRunner, ['test', 'test:x'], H, imports, tableDropped).some((p) => p.startsWith('test-b.ts '))) selfFails.push('the test-file arm passes a file dropped from the runner\'s suites.json');
   if (JSON.stringify(ciScriptsFor('      - name: A\n        run: npm run -w @prism3/sample test\n        # npm run -w @prism3/sample test:gone\n', '@prism3/sample')) !== '["test"]') selfFails.push('ciScriptsFor reads a script from a comment, or misses a run line');
 }
 
@@ -1769,7 +1781,8 @@ if (lostPointers.length) {
     const ciScripts = ciScriptsFor(ciText, pkg.name);
     if (tests.length < 5 || !ciScripts.length) problems.push(`${ws}: found ${tests.length} test file(s) and ${ciScripts.length} script(s) ci.yml runs — the arm read nothing`);
     checked += tests.length;
-    for (const p of unrunTestFiles(onDisk, pkg.scripts ?? {}, ciScripts, TEST_HELPERS[ws] ?? {}, (f) => readFileSync(resolve(dir, f), 'utf8')))
+    const expand = (f: string): string[] => (RUNNER.test(f) ? suitesRunByRunner(readFileSync(resolve(dir, 'suites.json'), 'utf8')) : [f]);
+    for (const p of unrunTestFiles(onDisk, pkg.scripts ?? {}, ciScripts, TEST_HELPERS[ws] ?? {}, (f) => readFileSync(resolve(dir, f), 'utf8'), expand))
       problems.push(`${ws}/${p}`);
   }
   console.log(`    test files: ${checked} test file(s) in ${TEST_WORKSPACES.join(', ')} checked against the scripts ci.yml runs`);

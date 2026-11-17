@@ -201,7 +201,7 @@ const main = async () => {
   ok(!!again && again.migrated.length === 0 && again.refused.length === 0 && judge(paste, pasteIds).length === 0,
     `#1024 paste path: re-running migrate on the migrated file moves nothing and refuses nothing (${again ? `migrated ${again.migrated.length}, refused ${again.refused.length}` : 'the migrate payload did not run'})`);
 
-  console.log(`\n${pass} passed, ${fail} failed`);
+  console.log(`\n${pass} passed, ${fail} failed — ${pass + fail} assertions executed`);
   if (fail) process.exit(1);
 };
 main();

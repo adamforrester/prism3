@@ -77,7 +77,9 @@ import { partialWriteHeadline, partialWriteNote, componentHeadline, staleNote } 
 import type { ComponentApplyOptions, ComponentProgress, BuildReport } from './src/write-components';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -6232,5 +6234,5 @@ ok(setPage.children.length === 1 && setPage.children[0].type === 'COMPONENT_SET'
     `#1857 the summary line is printed after every assertion, so it counts them all (${summaries.length} summary line(s)${at >= 0 ? ` at line ${at + 1}` : ''}; ${after.length} assertion call(s) after it${after.length ? `, first at line ${after[0]}` : ''})`);
 }
 
-console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
+console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'} — ${executed} assertions executed`);
 if (failed) process.exit(1);
