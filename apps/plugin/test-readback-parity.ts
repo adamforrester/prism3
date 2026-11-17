@@ -58,13 +58,14 @@
  * #2365), and each wash is then checked AS WRITTEN in the file: its color alias and its opacity alias, by name, in
  * every mode, against the emission's.
  *
- * ── the two style channels no exporter reads ──────────────────────────────────────────────────────
+ * ── the style channels compared as written ────────────────────────────────────────────────────────
  *
- * TokenPress reads variables, text styles and effect styles. It reads no paint styles (#731) and no grid styles, so
- * the gradients and grids Apply Theme writes would pass any export comparison by being absent from both sides.
- * They are compared AS WRITTEN instead, shim against emission: the same style names, descriptions, grids, and
- * gradient stops (position, color within the tolerance above, and the variable each stop is bound to). Not
- * compared: a gradient's transform matrix, which the emission states as an angle in its description.
+ * TokenPress reads variables, text, effect and, since #731, paint styles, so the gradients Apply Theme writes also
+ * cross the export comparison above as DTCG `gradient` tokens. It reads no grid styles, so the grids would pass any
+ * export comparison by being absent from both sides. Both are compared AS WRITTEN as well, shim against emission:
+ * the same style names, descriptions, grids, and gradient stops (position, color within the tolerance above, and the
+ * variable each stop is bound to). Not compared: a gradient's transform matrix, which the emission states as an
+ * angle in its description, and which TokenPress keeps in `$extensions.figma`, outside the compared `$value`.
  *
  * ── motion: the round trip to the engine's DTCG (#2394, #2412) ─────────────────────────────────────
  *
@@ -404,7 +405,7 @@ for (const brand of GATED) {
       `${brand}: the file holds what Apply Theme wrote (${file.vars.length} variables, ${file.styles.text.length} text, ${file.styles.effect.length} effect, ${file.styles.grid.length} grid, ${file.styles.paint.length} paint styles)`);
 
     // The shim is a host: TokenPress reads its variables and styles directly, the way it reads Figma's.
-    const fromShim: Adapted = { collections: file.collections, variables: file.vars, textStyles: file.styles.text, effectStyles: file.styles.effect } as unknown as Adapted;
+    const fromShim: Adapted = { collections: file.collections, variables: file.vars, textStyles: file.styles.text, effectStyles: file.styles.effect, paintStyles: file.styles.paint } as unknown as Adapted;
     const actual = leavesOf((await runTokenPress(fromShim)).files);
     const expected = leavesOf((await runTokenPress(adaptBrand(brand, join(FIGMA_OUT, brand)))).files);
     ok(expected.size > 0 && actual.size > 0, `${brand}: both exports hold tokens (shim ${actual.size}, emission ${expected.size})`);

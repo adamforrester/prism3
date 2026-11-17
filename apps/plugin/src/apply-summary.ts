@@ -48,12 +48,12 @@ export const errorClass = (e: unknown): string => {
   return typeof n === 'string' && /^[A-Za-z][A-Za-z0-9]*$/.test(n) ? n : 'Error';
 };
 
-/** What a failure line says after `write failed: ` or `prune failed: `: the error's class, then the host's message
- *  (`TypeError: in set_value: …`). The Activity drawer shows it whole, so the designer keeps Figma's reason (#3697 H4,
- *  D3703.1 B). A host message can carry anything the file holds — a page, a layer, a style — so Report a problem keeps
- *  only the class (`reduceFailure` in `studio/src/state/report.ts`), and the class leads so the report can find it. */
+/** What a failure line says after `write failed: ` or `prune failed: `: the class, then the host's message on one line
+ *  (`TypeError: in set_value: …`). The drawer shows it whole, so the designer keeps Figma's reason (#3697 H4, D3703.1 B).
+ *  A host message can name anything the file holds, so Report a problem keeps only the class (`reduceFailure`, studio's
+ *  `report.ts`): the class leads so the report finds it, and line breaks are joined since it cuts to a line's end. */
 export const failureDetail = (e: unknown): string => {
-  const m = e instanceof Error ? e.message : String(e);
+  const m = (e instanceof Error ? e.message : String(e)).replace(/\s*[\r\n\u2028\u2029]+\s*/g, ' ').trim();
   return m ? `${errorClass(e)}: ${m}` : errorClass(e);
 };
 

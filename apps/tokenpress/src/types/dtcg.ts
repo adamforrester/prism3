@@ -49,6 +49,18 @@ export interface DTCGShadowLayer {
 
 export type DTCGShadow = DTCGShadowLayer | DTCGShadowLayer[];
 
+/**
+ * One stop of a DTCG `gradient` (Format Module 2025.10, §9.6): a color and its
+ * position along the gradient, 0 to 1. The color is a literal or an alias
+ * string such as "{color.brand.600}".
+ */
+export interface DTCGGradientStop {
+  color: DTCGColor | string;
+  position: number;
+}
+
+export type DTCGGradient = DTCGGradientStop[];
+
 export interface DTCGAlias {
   $alias: string; // Reference like "{path.to.token}"
 }
@@ -60,6 +72,7 @@ export type DTCGValue =
   | DTCGDimension
   | DTCGTypography
   | DTCGShadow
+  | DTCGGradient
   | DTCGAlias
   | { value: number; unit: string }; // Duration and other structured values
 

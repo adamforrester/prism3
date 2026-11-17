@@ -111,6 +111,7 @@ const planIconComps = (n: { nestTarget?: string; children?: readonly unknown[] }
 
 import { Session as InspectorSession } from 'node:inspector/promises';
 import { componentSpec, specMaterialize } from './component-specs';
+import { renderUncommitted } from './regen';
 import { localeFreeCompare } from './locale-free-order';
 
 // ---- #1268 EVERY ASSERTION SITE RAN — a section going quiet is a failure, not a smaller pass ----------
@@ -2071,21 +2072,49 @@ for (const b of brands) {
 
   // The link ANCHORS where the action fill anchors (modes.ts `linkFollowsAction`), not at the rebased
   // palette's own baseline step (`theme.linkAnchorStep`). The accent above sits mid-ramp, so both anchors
-  // pick the same link steps and could not tell them apart; a far-lightness brand color can. Literals were
-  // measured on this tree. They also carry #1896 (the action anchor follows the `actionPalette` lever, so a
-  // `roleColors.action` rebase anchors at primary's step): fixing #1896 moves the fill and these together.
-  // BY-NAME MUTATION: `const linkAnchor = theme.linkAnchorStep;` in modes.ts → deep lands on 850 in light
-  // and hc-light, pale on 050 in dark and hc-dark, and both asserts below fail.
+  // pick the same link steps and could not tell them apart; a far-lightness brand color can, once its action
+  // anchor is PINNED away from its own shade. Since #1896 an unpinned rebase anchors the fill at the color's own
+  // shade, the same step `linkAnchorStep` names, so only a pin separates the two (deep pinned at 550, pale at 500).
+  // Literals were measured on this tree. BY-NAME MUTATION: `const linkAnchor = theme.linkAnchorStep;` in modes.ts →
+  // deep lands on 850 in light and hc-light, pale on 050 in dark and hc-dark, and both asserts below fail.
   // #2817: from that anchor the link then steps as far as it must to clear every surface it is placed on, so
   // light deep (550 → 600) sits one notch deeper than the anchor; dark pale and HC already cleared.
   const stepsOf = (t: ReturnType<typeof brandTheme>): Record<string, string | undefined> =>
     Object.fromEntries(linkByMode(t).map((r) => [r.mode, r.link?.path.split('.').slice(-2).join('.')]));
-  const deep = stepsOf(build({ brandColors: [{ name: 'deep', oklch: { l: 0.25, c: 0.08, h: 30 } }], roleColors: { action: 'deep' } }));
+  const DEEP = [{ name: 'deep', oklch: { l: 0.25, c: 0.08, h: 30 } }], PALE = [{ name: 'pale', oklch: { l: 0.92, c: 0.06, h: 95 } }];
+  const deep = stepsOf(build({ brandColors: DEEP, roleColors: { action: 'deep' }, actionAnchorStep: 550 }));
   ok(deep.light === 'deep.600' && deep['hc-light'] === 'deep.700',
-    `#1895: a dark rebased action color (deep, l 0.25) anchors the link where the action fill anchors — light deep.600 (anchor 550, #2817), hc-light deep.700 (got ${JSON.stringify(deep)})`);
-  const pale = stepsOf(build({ brandColors: [{ name: 'pale', oklch: { l: 0.92, c: 0.06, h: 95 } }], roleColors: { action: 'pale' } }));
+    `#1895: a dark rebased action color (deep, l 0.25, pinned at 550) anchors the link where the action fill anchors — light deep.600 (anchor 550, #2817), hc-light deep.700 (got ${JSON.stringify(deep)})`);
+  const pale = stepsOf(build({ brandColors: PALE, roleColors: { action: 'pale' }, actionAnchorStep: 500 }));
   ok(pale.dark === 'pale.450' && pale['hc-dark'] === 'pale.300',
-    `#1895: a pale rebased action color (pale, l 0.92) anchors the link where the action fill anchors — dark pale.450, hc-dark pale.300 (got ${JSON.stringify(pale)})`);
+    `#1895: a pale rebased action color (pale, l 0.92, pinned at 500) anchors the link where the action fill anchors — dark pale.450, hc-dark pale.300 (got ${JSON.stringify(pale)})`);
+
+  // #1896: `roleColors.action` and `actionPalette` are aliases (theme-schema.json), so they anchor the action fill
+  // at the same step: the resolved palette's own shade, not primary's. Literals from the issue's repro (accent →
+  // 450) and measured on this tree (deep → 850, pale → 050). BY-NAME MUTATION: key `actionBrandColor` off the
+  // `actionPalette` lever again in theme-brand.ts → the anchor literal, the four alias arms and the note fail.
+  const fillOf = (t: ReturnType<typeof brandTheme>, mode: string): string | undefined =>
+    (resolveAllModes(t).find((m) => m.mode === mode)?.roles as any)?.['interactive.primary.fill.rest']?.path.split('.').slice(-2).join('.');
+  ok(rc.roleAnchorStep.action === 450 && fillOf(rc, 'dark') === 'accent.450',
+    `#1896: roleColors.action 'accent' anchors the action fill at the accent's own shade, step 450 (dark fill accent.450) (got ${rc.roleAnchorStep.action}, ${fillOf(rc, 'dark')})`);
+  const deepRc = build({ brandColors: DEEP, roleColors: { action: 'deep' } }), paleRc = build({ brandColors: PALE, roleColors: { action: 'pale' } });
+  ok(fillOf(deepRc, 'light') === 'deep.850' && stepsOf(deepRc).light === 'deep.850' && fillOf(paleRc, 'dark') === 'pale.050' && stepsOf(paleRc).dark === 'pale.050',
+    `#1896: an unpinned rebased action color anchors fill and link at its own shade — light deep.850/deep.850, dark pale.050/pale.050 (got ${fillOf(deepRc, 'light')}/${stepsOf(deepRc).light}, ${fillOf(paleRc, 'dark')}/${stepsOf(paleRc).dark})`);
+  // Alias equality, role by role: the two spellings resolve every role to the same step in every mode. A primary
+  // anchored off 500 (l 0.4 → 650) makes the status and neutral arms witnesses too: before #1896 they took 650.
+  const B4 = { ...B, primary: { l: 0.4, c: 0.12, h: 262 }, brandColors: [...B.brandColors, ...DEEP, ...PALE] };
+  for (const pal of ['accent', 'deep', 'pale', 'neutral', 'success']) {
+    const viaLever = resolveAllModes(brandTheme({ ...B4, actionPalette: pal } as unknown as BrandInput));
+    const viaRole = resolveAllModes(brandTheme({ ...B4, roleColors: { action: pal } } as unknown as BrandInput));
+    const differ = viaLever.flatMap((m, i) => Object.entries(m.roles).filter(([k, v]) => (viaRole[i]?.roles as any)?.[k]?.path !== (v as any).path)
+      .map(([k, v]) => `${m.mode} ${k}: ${(v as any).path.split('.').slice(-2).join('.')} vs ${(viaRole[i]?.roles as any)?.[k]?.path.split('.').slice(-2).join('.')}`));
+    ok(viaLever.length === 4 && viaLever.length === viaRole.length && differ.length === 0,
+      `#1896: actionPalette '${pal}' and roleColors.action '${pal}' resolve every role to the same step in every mode (${differ.length} differ${differ.length ? `: ${differ.slice(0, 3).join('; ')}` : ''})`);
+  }
+  // The anchor note fires for the roleColors spelling too, naming the resolved palette. Wording unchanged; whether
+  // it fires for this spelling is the owner's call (#1896 OWNER DECISION, option A built). Literal note text.
+  ok(rc.notes.includes("action: anchored at 'accent' step 450, the brand's own shade — moved only if it misses 3:1 (7:1 in high contrast) against the contrast floor or background.tertiary."),
+    `#1896: with roleColors.action 'accent', the decisions log reports the anchor at the accent's own shade (got ${JSON.stringify(rc.notes.filter((n) => n.startsWith('action:')))})`);
 
   // The two link notes compare against the RESOLVED action palette and say "the action color" (owner
   // decision 2026-10-01). Literal note text, never a join of theme.ts's template (docs/34 shape 2). BY-NAME
@@ -31575,7 +31604,7 @@ arm: {
   ok(cs.files.size === 2 && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json'),
     `export_theme: include:[componentSpecs] writes exactly the export and its Specs projection (${[...cs.files.keys()].join(', ')})`);
   const csDoc = JSON.parse(cs.files.get('./cs/component-defs.json') ?? '{}');
-  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.3' && Object.keys(csDoc.components ?? {}).length >= 40,
+  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.4' && Object.keys(csDoc.components ?? {}).length >= 40,
     `export_theme: the component-defs export is the brand's (${csDoc.brand?.id}), in its format, with every component (${Object.keys(csDoc.components ?? {}).length})`);
 
   // A bad brand must fail BEFORE anything is written — a partial export is worse than none.
@@ -33999,6 +34028,31 @@ arm: {
     'rename-map: fan-in with BOTH sources live → ambiguous-source for both, migrating neither — the file is the disambiguator, and picking one would silently discard the bindings on the other');
   ok(statuses(['color/a'], ['color/c'], [v('color/a', 'color/c'), v('color/b', 'color/c')]) === 'color/a→color/c:migrated',
     'rename-map: fan-in with ONE source live → an ordinary migration, so the 3 fan-in groups in the real map still migrate on a healthy file rather than refusing forever');
+  // #1142 — A RELOCATION AND A DEDUPE SHARING ONE TARGET. The relocation keeps the target's leaf
+  // (`primary`), the dedupe names another role (`default`), so the relocation migrates and the dedupe
+  // finds the target taken, `target-occupied`: two variables, the designer picks the survivor.
+  ok(statuses(['color/border/inverse/primary', 'color/border/inverse/default'], ['color/inverse/border/primary'],
+      [v('color/border/inverse/primary', 'color/inverse/border/primary'), v('color/border/inverse/default', 'color/inverse/border/primary')])
+      === 'color/border/inverse/default→color/inverse/border/primary:target-occupied | color/border/inverse/primary→color/inverse/border/primary:migrated',
+    '#1142 rename-map: a fan-in group with exactly ONE row keeping the target\'s leaf migrates that row and reports the rest target-occupied — the relocation carries its bindings, and the dedupe still waits for a human');
+  // …and with TWO rows keeping the leaf (one role in two eras' spellings), neither is the relocation, so the
+  // group stays ambiguous: the leaf picks a row only when it picks exactly one.
+  ok(statuses(['color/x/on-inverse/primary', 'color/x/inverse/primary'], ['color/inverse/x/primary'],
+      [v('color/x/on-inverse/primary', 'color/inverse/x/primary'), v('color/x/inverse/primary', 'color/inverse/x/primary')])
+      === 'color/x/inverse/primary→color/inverse/x/primary:ambiguous-source | color/x/on-inverse/primary→color/inverse/x/primary:ambiguous-source',
+    '#1142 rename-map: two rows keeping the target\'s leaf stay ambiguous-source — the leaf rule decides only when exactly one row qualifies');
+  // THE ISSUE'S OWN FAILURE PATH, ON THE SHIPPED MAP. A file written between #1013 and #1140 holds the value
+  // tier's `color/appearance/border/inverse/{primary,default}`. Composed through the shipped rules and the
+  // shipped contract rows exactly as the executor does, the relocation must migrate and the dedupe must not.
+  {
+    const R = 'zzfanin';
+    const old = ['color/appearance/border/inverse/primary', 'color/appearance/border/inverse/default'];
+    const rows = composeVariableRenames('color', old, renameMap().variables, MATERIALIZATION_RENAMES, R);
+    const got = planVariableRenames(old, [`${R}/color/inverse/border/primary`], rows)
+      .filter((o) => old.includes(o.from)).map((o) => `${o.from}:${o.status}`).sort().join(' | ');
+    ok(got === 'color/appearance/border/inverse/default:target-occupied | color/appearance/border/inverse/primary:migrated',
+      `#1142 rename-map: on the shipped map, a #1013-to-#1140 file's border/inverse/primary MIGRATES to inverse/border/primary and the deduped border/inverse/default reports target-occupied (got ${got || 'NOTHING'})`);
+  }
 
   // The collection planner, same shape — but it plans the WHOLE map at once (#1035), because a chain's
   // correct order is a property of the map and not of any single entry. Its plan-membership precondition
@@ -41911,6 +41965,75 @@ arm: {
   const ROW_PROPS: [string, string][] = [['checkbox-row', 'disabled'], ['radio-row', 'disabled'], ['radio-row', 'readOnly'], ['switch-row', 'disabled']];
   const rowBad = ROW_PROPS.filter(([id, n]) => shapeOf(id, n) !== BOOL_OFF).map(([id, n]) => `${id}.${n}: ${shapeOf(id, n)}`);
   ok(rowBad.length === 0, `Q351 A row props: Checkbox.Row, Radio.Row and Switch.Row each carry disabled, and Radio.Row readOnly, as a real boolean defaulting false (${rowBad.join('; ') || 'all 4'})`);
+}
+
+// ---- #3506 (owner Q142 A on #3408): THE EMISSION CARRIES EVERY CORNER, STROKE, FOCUS-RING AND MOTION BINDING ----
+//
+// A code generator reads `specs.json` and `component-defs.json` and nothing else, so a binding the def makes and the
+// emission drops is one the code cannot have. EXPECTED is read off each def as Apply materializes it (`specMaterialize`):
+// every part that names a corner (`radius`, `radiusEdges`) or a stroke (`strokeWidth`, `strokeEdges`) and is drawn, every
+// part that nests the shared focus ring (its `inset` token), and every `tokens` binding to a `motion.*` token. ACTUAL is
+// the two FILES, freshly emitted by the emitter's own process (`renderUncommitted`) and read as JSON, never a call to
+// `componentSpec`. A binding missing from either file fails by def, part and file. Then literal pins, typed here.
+{
+  const r = renderUncommitted();
+  if ('error' in r) ok(false, `#3506: the emission could not be rendered to check — ${r.error}`);
+  else {
+    const [defsFile, , specsFile] = r.files;
+    const defsJson = JSON.parse(readFileSync(defsFile, 'utf8'));
+    const specsJson = JSON.parse(readFileSync(specsFile, 'utf8'));
+    const files: [string, (id: string) => any][] = [
+      ['specs.json', (id) => specsJson.components?.[id]],
+      ['component-defs.json', (id) => defsJson.components?.[id]?.spec],
+    ];
+    for (const [file, specOf] of files) {
+      const miss: string[] = [];
+      let corners = 0, strokes = 0, rings = 0, motions = 0;
+      for (const authored of componentDefs) {
+        if (!authored.figmaProperties) continue;
+        const def = specMaterialize(authored);
+        const spec = specOf(authored.id);
+        if (!spec) { miss.push(`${authored.id}: no spec`); continue; }
+        for (const [name, part] of Object.entries(def.anatomy?.parts ?? {})) {
+          const paths: string[] = spec.anatomy.map((a: any) => a.part).filter((p: string) => p.split('/').pop() === name);
+          if (!paths.length) continue;                                     // a part no member draws binds nothing
+          const props = new Set<string>(spec.redlines.flatMap((row: any) => row.parts.filter((p: any) => paths.includes(p.part)).flatMap((p: any) => Object.keys(p.values))));
+          if (part.radius !== undefined || part.radiusEdges !== undefined) {
+            corners++;
+            if (![...props].some((k) => k === 'radius' || k.startsWith('radiusT') || k.startsWith('radiusB'))) miss.push(`${authored.id} ${name}: its corner (${part.radius ?? 'radiusEdges'}) is in no redline row`);
+          }
+          if (part.strokeWidth !== undefined || part.strokeEdges !== undefined) {
+            strokes++;
+            if (![...props].some((k) => k.startsWith('strokeWidth'))) miss.push(`${authored.id} ${name}: its stroke (${part.strokeWidth ?? 'strokeEdges'}) is in no redline row`);
+          }
+          if (part.nests === 'focus-ring') {
+            rings++;
+            const want = part.inset === undefined ? undefined : def.tokens[part.inset];
+            const got = (spec.focusRing ?? []).filter((f: any) => paths.includes(f.part));
+            if (!got.length) miss.push(`${authored.id} ${name}: nests the focus ring and has no focusRing row`);
+            else if (got.some((f: any) => f.offset !== want || !f.width || !f.style)) miss.push(`${authored.id} ${name}: focusRing ${JSON.stringify(got)}, want offset ${want} with a width and a style`);
+          }
+        }
+        for (const [key, ref] of Object.entries(def.tokens ?? {})) {
+          if (!ref.startsWith('motion.')) continue;
+          motions++;
+          if (spec.motion?.[key] !== ref) miss.push(`${authored.id}: motion binding '${key}' → ${ref} is ${spec.motion?.[key] === undefined ? 'absent' : `'${spec.motion[key]}'`}`);
+        }
+      }
+      ok(miss.length === 0 && corners >= 40 && strokes >= 30 && rings >= 20 && motions >= 5,
+        `#3506 ${file}: every drawn corner (${corners}), stroke (${strokes}), focus ring (${rings}) and motion binding (${motions}) a def makes is in the emission${miss.length ? ` — ${miss.length} missing: ${miss.slice(0, 4).join('; ')}` : ''}`);
+    }
+    // Literal pins, typed from the button and spinner defs and the owner's #3506 list (radius.md, border-width.hairline,
+    // the ring's width, offset and style, the spinner's five motion tokens): a projector that names the wrong token fails.
+    const bs = specsJson.components?.button;
+    const bc = bs?.redlines?.[0]?.parts?.find((p: any) => p.part === 'container')?.values ?? {};
+    ok(bc.radius?.token === 'radius.md' && bc.strokeWidth?.token === 'border-width.hairline',
+      `#3506: Button's container carries radius radius.md and stroke border-width.hairline (${JSON.stringify(bc.radius)}, ${JSON.stringify(bc.strokeWidth)})`);
+    ok(JSON.stringify(bs?.focusRing) === JSON.stringify([{ part: 'container/focusRing', offset: 'focus.ring.offset', width: 'focus.ring.width', style: 'focus.ring.style' }]),
+      `#3506: Button's focus ring is offset focus.ring.offset, width focus.ring.width, style focus.ring.style (${JSON.stringify(bs?.focusRing)})`);
+    ok(JSON.stringify(specsJson.components?.spinner?.motion) === JSON.stringify({ 'motion.turn': 'motion.duration.spin', 'motion.turn-reduced': 'motion.duration-reduced.spin', 'motion.enter': 'motion.duration.fast', 'motion.enter-reduced': 'motion.duration-reduced.fast', 'motion.enter-easing': 'motion.easing-role.enter' }),
+      `#3506: Spinner's motion is its five tokens, by binding (${JSON.stringify(specsJson.components?.spinner?.motion)})`);
+  }
 }
 
 // ---- #2830: THE COMPONENT SPEC MODEL — what a spec sheet shows, against the wireframe's hand-read values ----

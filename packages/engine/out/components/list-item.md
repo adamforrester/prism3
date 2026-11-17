@@ -120,7 +120,7 @@ Keyed by `size`, `type`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
 | `row/markerBox` | — | — | `control.size.md.line-box` | `space.300` | — | — |
-| `row/markerBox/bullet` | — | — | `space.100` | `space.100` | — | — |
+| `row/markerBox/bullet` | — | — | `space.100` | `space.100` | — | radius `radius.round` |
 
 **size=x-small, type=unordered**
 
@@ -128,7 +128,7 @@ Keyed by `size`, `type`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
 | `row/markerBox` | — | — | `type.body.xs.line-box` | `space.200` | — | — |
-| `row/markerBox/bullet` | — | — | `space.075` | `space.075` | — | — |
+| `row/markerBox/bullet` | — | — | `space.075` | `space.075` | — | radius `radius.round` |
 
 **size=small, type=unordered**
 
@@ -136,7 +136,7 @@ Keyed by `size`, `type`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
 | `row/markerBox` | — | — | `control.size.sm.line-box` | `space.250` | — | — |
-| `row/markerBox/bullet` | — | — | `space.075` | `space.075` | — | — |
+| `row/markerBox/bullet` | — | — | `space.075` | `space.075` | — | radius `radius.round` |
 
 **size=large, type=unordered**
 
@@ -144,7 +144,7 @@ Keyed by `size`, `type`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
 | `row/markerBox` | — | — | `control.size.lg.line-box` | `space.400` | — | — |
-| `row/markerBox/bullet` | — | — | `space.100` | `space.100` | — | — |
+| `row/markerBox/bullet` | — | — | `space.100` | `space.100` | — | radius `radius.round` |
 
 **size=medium, type=ordered**
 
