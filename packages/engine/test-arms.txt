@@ -773,6 +773,7 @@ apps/studio/test-start-input.ts #2241
 apps/studio/test-start-input.ts #3553
 apps/studio/test-status-strip.ts #3170
 apps/studio/test-status-strip.ts #3177
+apps/studio/test-store.ts #1037
 apps/studio/test-store.ts #2487
 apps/studio/test-style-guides.ts #2372
 apps/studio/test-type-input.ts #1071
