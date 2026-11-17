@@ -1,7 +1,8 @@
 /**
  * Report a problem (#2069, owner decision Q116 A): a diagnostic bundle the person can copy, and a link that opens a
- * prefilled GitHub issue in their browser. No backend: the plugin declares no network, so nothing is sent from here;
- * the person reads the bundle, and files it or not.
+ * GitHub issue in their browser. No backend: the plugin declares no network, so nothing is sent from here; the person
+ * reads the bundle, and files it or not. The owner (2026-11-17): the issue opens with the title filled in and a body
+ * that only says to paste the report, which the panel has put on the clipboard; the link carries none of the report.
  *
  * WHAT THE BUNDLE HOLDS: the app's build, `ENGINE_VERSION`, the host, and each operation's latest result from the
  * Activity drawer (its verdict and its lines). **The brand input only when the person opts in** (`includeBrand`, off by
@@ -206,23 +207,15 @@ export const buildReport = (r: ReportInput): string => {
   return out.join('\n');
 };
 
-/** The longest issue URL this builds, under the roughly 8 KB at which GitHub refuses a prefilled issue URL, so a longer
- *  body is cut and says where the rest is. `test-report.ts` holds it to a literal ceiling. */
+/** The longest issue URL the plugin's main thread opens (`isIssueUrl`), under the roughly 8 KB at which GitHub refuses a
+ *  prefilled issue URL. `test-report.ts` holds it to a literal ceiling. */
 export const URL_LIMIT = 7000;
 
-/** The prefilled issue's URL: the title, and the body cut to fit `URL_LIMIT` with a line saying the full bundle is on
- *  the clipboard (the panel copies it before it opens the link). */
-export const issueUrl = (body: string): string => {
-  const at = (b: string): string => `${ISSUE_BASE}?title=${encodeURIComponent(REPORT_COPY.issueTitle)}&body=${encodeURIComponent(b)}`;
-  if (at(body).length <= URL_LIMIT) return at(body);
-  const note = `\n\n${REPORT_COPY.cut}`;
-  // A cut never splits a surrogate pair (an emoji in a page name): `encodeURIComponent` throws on half of one.
-  const head = (n: number): string => { const c = body.charCodeAt(n - 1); return body.slice(0, n > 0 && c >= 0xd800 && c <= 0xdbff ? n - 1 : n); };
-  let lo = 0;
-  let hi = body.length;
-  while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if (at(head(mid) + note).length <= URL_LIMIT) lo = mid; else hi = mid - 1; }
-  return at(head(lo) + note);
-};
+/** The issue's URL (the owner, 2026-11-17): the title, and a body that holds only the line asking for the report to be
+ *  pasted. The report itself travels on the clipboard (the panel copies it before it opens the link), so the link is the
+ *  same for every report and carries nothing from the session. */
+export const issueUrl = (): string =>
+  `${ISSUE_BASE}?title=${encodeURIComponent(REPORT_COPY.issueTitle)}&body=${encodeURIComponent(REPORT_COPY.issueBody)}`;
 
 /** The one kind of URL the plugin opens for a report: the issue form on this repo, nothing else. */
 export const isIssueUrl = (u: unknown): u is string => typeof u === 'string' && u.length <= URL_LIMIT && u.startsWith(`${ISSUE_BASE}?`);
@@ -254,5 +247,6 @@ export const REPORT_COPY = {
   noActivity: '- Nothing has run in this session.',
   byAgent: 'agent',
   bodyBrand: '### Brand settings (included by the reporter)',
-  cut: '(The report was cut to fit the link. The full report is on your clipboard: paste it here.)',
+  // Owner decision Q-RC1 A copy, verbatim (APPROVED 2026-11-17): the title prefilled, the body only asks for the report.
+  issueBody: 'Paste the report here — Prism3 copies it to your clipboard as it opens this page. Copy in the Report a problem dialog copies it again.',
 } as const;

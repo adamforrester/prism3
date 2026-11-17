@@ -170,10 +170,12 @@ export interface HostSession {
   readonly styleGuideCleanup: 'pending' | { readonly ok: boolean; readonly summary: string } | null;
   /** The set the panel's own pending build is for (UI redesign S8.2), `null` when the panel has no build out. The
    *  wire's `component-result` does not name its set, so the panel remembers the one it posted, and the verdict that
-   *  answers it is recorded against that set in `setBuilds`. */
+   *  answers it is recorded against that set in `setBuilds`. An agent's build names its set on `agent-started`
+   *  instead (`agentRun.def`, #2087). */
   readonly componentDef: string | null;
-  /** Each set's last build result in THIS session (owner decisions G9 A and C1 A, S8.2); a set with no entry was not built from this panel this session. Recorded only for the panel's
-   *  own builds: an agent's build carries no set id over the wire, so it is not attributed (it still lands in the
+  /** Each set's last build result in THIS session (owner decisions G9 A and C1 A, S8.2); a set with no entry was not
+   *  built this session. Recorded for the panel's own builds and for an agent's `build-components`, whose
+   *  `agent-started` names the set (#2087); an agent build that names none is not attributed (it still lands in the
    *  Activity drawer). Never persisted, and never read from the file. */
   readonly setBuilds: ReadonlyMap<string, SetBuild>;
   /** OPT-IN PRUNE (#1521) — Figma-only, and three slots for the same reason `applyState` is not
@@ -221,7 +223,9 @@ export interface HostSession {
    *  own reading, which the panel's `componentProgress` does not take: that one is accepted only while
    *  the panel's own build is pending. An agent's style guide reads phase `table`, its `done` of `total`
    *  tables (#1778, owner decision Q19 b), which the page row and the drawer show as a panel run's. */
-  readonly agentRun: { readonly id: string; readonly op: OpKey; readonly cmd: string; readonly settled: boolean; readonly progress: { phase: 'build' | 'wire' | 'retry' | 'table'; done: number; total: number } | null } | null;
+  readonly agentRun: { readonly id: string; readonly op: OpKey; readonly cmd: string; readonly settled: boolean; readonly progress: { phase: 'build' | 'wire' | 'retry' | 'table'; done: number; total: number } | null;
+    /** The set a `build-components` run builds, when its start named one (#2087). */
+    readonly def?: string } | null;
   /** The last write the main thread declined because a run of the same operation was already going
    *  (#1957), `null` until one is. `n` counts them, so the drawer can tell a second refusal from the first
    *  when the words are the same. A refusal is not a verdict: it settles no run and fills no verdict slot.
@@ -369,7 +373,8 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     case 'agent-started': {
       const op = AGENT_OP[m.cmd];
       // A confirmed update (#2265 PR 2) keeps its own name, so the drawer can say it is updating, not checking.
-      return op ? { ...s, agentRun: { id: m.id, op, cmd: m.confirmed ? `${m.cmd}:confirmed` : m.cmd, settled: false, progress: null } } : s;
+      const def = m.cmd === 'build-components' && m.def ? { def: m.def } : {};
+      return op ? { ...s, agentRun: { id: m.id, op, cmd: m.confirmed ? `${m.cmd}:confirmed` : m.cmd, settled: false, progress: null, ...def } } : s;
     }
     case 'agent-progress': {
       const r = s.agentRun;
@@ -409,9 +414,13 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     case 'component-result': {
       // The progress clears with the verdict, so a next build's first render cannot show this run's fraction.
       // S8.2 (G9): the verdict that answers the panel's own pending build is recorded against the set it posted.
+      // #2087: an agent's build, still running before this verdict (`prev`: `settleAgent` has just settled it), is
+      // recorded against the set its start named.
       const own = s.componentState === 'pending' && s.componentDef !== null;
+      const agentDef = prev.agentRun && !prev.agentRun.settled ? prev.agentRun.def : undefined;
+      const set = own ? s.componentDef : agentDef ?? null;
       const result: SetBuild = m.ok ? 'ok' : m.completed ? 'issues' : 'failed';
-      const setBuilds = own ? new Map([...s.setBuilds, [s.componentDef as string, result]]) : s.setBuilds;
+      const setBuilds = set !== null ? new Map([...s.setBuilds, [set, result]]) : s.setBuilds;
       return { ...s, componentState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines, causes: m.causes }, openDetail: m.ok ? null : 'components', componentProgress: null, componentDef: null, setBuilds, componentLatest: 'build' };
     }
     case 'component-update-result':
