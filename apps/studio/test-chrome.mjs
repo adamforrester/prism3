@@ -21878,6 +21878,36 @@ if (runs('1909')) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
   } finally { await ctx.close(); }
 } // 1909
+// THE QUIET ENTRY (the owner, 2026-11-17: "I'd like the 'report a problem' CTA to have less prominence … a small bug
+// icon button in the corner"). Report a problem is a ghost icon button, no visible words, at the end of the open
+// drawer's last line: named and titled "Report a problem", drawing the web rail's glyph (Tabler's message-report),
+// square at the tier's icon-button size (32 wide, 28 at the narrow tier; both over the 24 floor). Shown after a failed
+// apply opened the drawer. Literals typed here. DRAFT: the owner's call.
+// KEYBOARD REACH is pressed, not called: focus starts on the page and Tab is pressed until the button holds focus (a cap
+// of 400 presses), because `focus()` succeeds on a `tabindex="-1"` button and so cannot prove the Tab order.
+// MUTATIONS (each after a `wip:` commit, `activity.ts`): the button's text put back and its glyph dropped → `quiet entry`,
+// by name; `rep.tabIndex = -1` → `quiet entry: … reached by pressing Tab`, by name.
+const quietEntry2069 = async (page, where, size) => {
+  const qe = await page.evaluate(() => {
+    const b = document.querySelector('[data-p3="activity-report"]'), body = document.querySelector('[data-p3="activity-body"]');
+    if (!b || !body) return null;
+    const r = b.getBoundingClientRect(), br = body.getBoundingClientRect(), cs = getComputedStyle(body);
+    return { tag: b.tagName.toLowerCase(), name: b.getAttribute('aria-label'), title: b.title, text: b.textContent.trim(), icon: b.querySelector('svg')?.dataset.icon ?? null,
+      w: Math.round(r.width), h: Math.round(r.height), last: body.lastElementChild === b,
+      atEnd: Math.abs(r.right - (br.right - parseFloat(cs.paddingRight))) <= 1 };
+  });
+  ok(!!qe && qe.tag === 'button' && qe.name === 'Report a problem' && qe.title === 'Report a problem' && qe.text === '' && qe.icon === 'message-report'
+    && qe.w === size && qe.h === size && qe.last && qe.atEnd,
+    `#2069 ${where}: quiet entry: Report a problem is a small icon button (message-report, ${size} square, no visible words) named and titled "Report a problem", at the end of the drawer's last line (${JSON.stringify(qe)})`);
+  await page.evaluate(() => { document.activeElement?.blur(); });
+  let presses = 0, reached = false;
+  for (; presses < 400 && !reached; presses++) {
+    await page.keyboard.press('Tab');
+    reached = await page.evaluate(() => document.activeElement?.dataset?.p3 === 'activity-report');
+  }
+  ok(reached, `#2069 ${where}: quiet entry: Report a problem is reached by pressing Tab (${reached ? `${presses} presses` : 'not reached in 400 presses'})`);
+  await page.evaluate(() => { document.activeElement?.blur(); });
+};
 // #2069 (Q116 A): REPORT A PROBLEM. The Activity drawer's foot opens a dialog showing the diagnostic bundle, with the
 // brand's settings off by default (its token prefix shown as [brand]), Copy, and "Open a prefilled issue", which asks the
 // main thread to open GitHub's issue form. Expected words are literals; the house brand's prefix is `pds3`.
@@ -21893,26 +21923,8 @@ if (runs('2069')) {
     step = 'a failed apply';
     await postMsg(page, { type: 'apply-result', ok: false, headline: '✗ 1 conflict', summary: 'Nothing was written.', lines: ['Nothing was written. 1 conflict with existing content: variable "pds3/color/background/primary" is STRING in "color"'] });
     await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, WAIT);
-    // THE QUIET ENTRY (the owner, 2026-11-17: "I'd like the 'report a problem' CTA to have less prominence … a small bug
-    // icon button in the corner"). Report a problem is a ghost icon button, no visible words, at the end of the open
-    // drawer's last line: named and titled "Report a problem", drawing the web rail's glyph (Tabler's message-report),
-    // square, at least the 24 floor and no more than a small control (32), a button the keyboard reaches. Shown here,
-    // after a failed apply opened the drawer. Literals typed here. DRAFT: the owner's call. MUTATION (after a `wip:`
-    // commit): the button's text put back and its glyph dropped (`activity.ts`) → `quiet entry`, by name.
     step = 'quiet entry';
-    const qe = await page.evaluate(() => {
-      const b = document.querySelector('[data-p3="activity-report"]'), body = document.querySelector('[data-p3="activity-body"]');
-      if (!b || !body) return null;
-      const r = b.getBoundingClientRect(), br = body.getBoundingClientRect(), cs = getComputedStyle(body);
-      b.focus();
-      return { tag: b.tagName.toLowerCase(), name: b.getAttribute('aria-label'), title: b.title, text: b.textContent.trim(), icon: b.querySelector('svg')?.dataset.icon ?? null,
-        w: Math.round(r.width), h: Math.round(r.height), last: body.lastElementChild === b,
-        atEnd: Math.abs(r.right - (br.right - parseFloat(cs.paddingRight))) <= 1, focusable: document.activeElement === b };
-    });
-    ok(!!qe && qe.tag === 'button' && qe.name === 'Report a problem' && qe.title === 'Report a problem' && qe.text === '' && qe.icon === 'message-report'
-      && qe.w === qe.h && qe.w >= 24 && qe.w <= 32 && qe.last && qe.atEnd && qe.focusable,
-      `#2069 ${where}: quiet entry: Report a problem is a small icon button (message-report, 24 to 32 square, no visible words) named and titled "Report a problem", at the end of the drawer's last line, reached by the keyboard (${JSON.stringify(qe)})`);
-    await page.evaluate(() => document.activeElement?.blur());
+    await quietEntry2069(page, where, 32);
     step = 'open';
     await hooks.click(page.locator('[data-p3="activity-report"]'), WAIT);
     await hooks.need(page, '[data-p3="report-dialog"]', WAIT);
@@ -21982,6 +21994,21 @@ if (runs('2069')) {
       await settle(page);
       const back = await page.evaluate(() => ({ gone: !document.querySelector('[data-p3="report-dialog"]'), focus: document.activeElement?.getAttribute('data-p3') }));
       ok(back.gone && back.focus === 'report-open', `#3524 ${where}: Escape closes it and focus returns to the rail's Report a problem (${JSON.stringify(back)})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+  // The quiet entry at the narrow tier and dark: the icon button takes `ctl-h-xs` there (28), still over the 24 floor.
+  {
+    const where = '2069 figma dark 380';
+    const { ctx, page, errors } = await open({ host: 'figma', theme: 'dark', w: 380, h: 640 });
+    let step = 'a failed apply';
+    try {
+      await postMsg(page, { type: 'apply-result', ok: false, headline: '✗ 1 conflict', summary: 'Nothing was written.', lines: ['Nothing was written. 1 conflict with existing content: variable "pds3/color/background/primary" is STRING in "color"'] });
+      await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, WAIT);
+      step = 'quiet entry';
+      await quietEntry2069(page, where, 28);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
