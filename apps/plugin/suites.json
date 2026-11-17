@@ -18,7 +18,7 @@
     { "file": "test-update-components.ts", "floor": 154 },
     { "file": "test-update-apply.ts", "floor": 1122 },
     { "file": "test-update-kept-run.ts", "floor": 30 },
-    { "file": "test-update-kept-main.ts", "floor": 14 },
+    { "file": "test-update-kept-main.ts", "floor": 16 },
     { "file": "test-hand-edit-survival.ts", "floor": 40 },
     { "file": "test-run-read.ts", "floor": 14 },
     { "file": "test-as-built-ledger.ts", "floor": 47 },

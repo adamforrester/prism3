@@ -340,7 +340,9 @@ apps/plugin/test-update-doc-block.ts #3308
 apps/plugin/test-update-doc-block.ts #3467
 apps/plugin/test-update-fresh.ts #3128
 apps/plugin/test-update-fresh.ts #3325
+apps/plugin/test-update-kept-main.ts #2889
 apps/plugin/test-update-kept-main.ts #3421
+apps/plugin/test-update-kept-main.ts #3937
 apps/plugin/test-update-kept-run.ts #3402
 apps/plugin/test-update-kept-run.ts #3421
 apps/plugin/test-update-kept-run.ts #3712

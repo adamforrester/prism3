@@ -24,3 +24,6 @@ takes no `from`.
 **Measured.** `test-doc-panel.ts` `last changed/…` and `fold/…`, with the release notes pinned at 0.237.0 and a fold typed
 by hand. Mutations, each failing by name: the block not drawn; the lead's release read at the plugin's engine; the block
 out of the hash; the ledger's credit dropped; `changed` not kept by `recordSets`.
+`test-update-kept-main.ts` `main/changed recorded` and `main/panel recorded` read the entry the real `main.ts` writes
+after an update with panels on (the doc-panel arms build it by hand, so dropping `changed` from `panelFormatOf` passed
+them): `panelFormatOf` without `changed`, and without `panel` (#3937), each fail by name.
