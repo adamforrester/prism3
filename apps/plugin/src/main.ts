@@ -31,8 +31,8 @@ import { createRunGuard, guardFor, writes, busyMessage } from './run-guard';
 import type { WriteCmd } from './run-guard';
 import { strandedCollections, ownedModeIds } from './write-figma';
 import { classifyFile, libraryFileOf, outcomeOf, probeFile, type FileKindApi } from './file-kind';
-import { computePrunePlan, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary, emptyPruneResult, prunePreviewHashOf, pruneConfirmRefusal, PRUNE_COPY } from './prune-figma';
-import type { PruneInput, PruneApi } from './prune-figma';
+import { computePrunePlan, orphanStyles, styleOrphanNote, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary, emptyPruneResult, prunePreviewHashOf, pruneConfirmRefusal, PRUNE_COPY } from './prune-figma';
+import type { PruneInput, PruneApi, FileStyles } from './prune-figma';
 import { isRefusal, rootOf, buildFigmaColor, buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan, verifyReadback } from '@prism3/engine/figma';
 import { conflictSummary } from './preflight';
 import { conflictKey, choiceNote, isChoices, type CollisionChoices } from './collision-choice';
@@ -369,6 +369,15 @@ const themePace = (sink: ActionSink): ThemePace => {
 /** #3170 Q3170.4 A: the panel's "Stop after <set>" (`update-stop`), read by its running update at each set boundary. */
 let updateStopAsked = false;
 
+/** Every local style in the file, per kind, as plain name + description (#1577): what Prune's style arm and Apply
+ *  Theme's orphan-style note (#1737) both read, so the two read the same snapshot. */
+const localStyles = async (): Promise<FileStyles> => ({
+  text: (await figma.getLocalTextStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
+  effect: (await figma.getLocalEffectStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
+  paint: (await figma.getLocalPaintStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
+  grid: (await figma.getLocalGridStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
+});
+
 /**
  * Materialise a brand into `figma.variables` (#108) — the theme now comes LIVE from the shared UI's
  * knobs (a `BrandInput`), not a bundled fixture. Same pure core, same executor: only the source of
@@ -436,6 +445,20 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
     const orphanNote = orphanCount
       ? `⚠ ${orphanCount} orphaned variables not in the plan (${allOrphans.map((o) => `${o.name}: ${o.names.length}`).join(', ')}) — likely renames; nothing was deleted`
       : '';
+    // ORPHAN STYLES (#1737) — the same drift among styles. A style the plan does not write is never touched, so an earlier
+    // brand's `body/md/emphasis` stays in the picker. Counted with Prune's own rule (`orphanStyles`: inside a group the
+    // plan emits, or carrying the engine's description), so a designer's hand-made group is not named. Planned names are
+    // the plans as built AND as a collision choice wrote them (#1909): neither a skipped collision nor a renamed style is
+    // an orphan here, though Prune, passing the plans only, still offers a renamed one (#3860).
+    // Reported, never deleted: Prune is the delete path.
+    const plannedStyleNames = {
+      text: [...plans.textPlan, ...exec.text].map((x) => x.name),
+      effect: [...plans.stylesPlan.effects, ...exec.styles.effects].map((x) => x.name),
+      paint: [...plans.stylesPlan.paints, ...exec.styles.paints].map((x) => x.name),
+      grid: [...plans.gridPlan, ...exec.grid].map((x) => x.name),
+    };
+    const orphanStyleGroups = orphanStyles(await localStyles(), plannedStyleNames);
+    const orphanStylesNote = styleOrphanNote(orphanStyleGroups);
     // STRANDED COLLECTIONS (#1152) — the level above the orphan report, and the one no executor can
     // reach. `allOrphans` is assembled FROM the executors, so it can only describe collections a plan
     // already owns; a collection nothing plans is never upserted, never indexed, never counted, and
@@ -509,7 +532,7 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
       // #2412 (Q293 A): the one deletion Apply makes, so it is always said (wording: Q302).
       motionReplacedItem(mv.replaced.length),
       `${r.bound + f.bound + tv.bound + mv.bound + ts.bound} bindings`, misses ? `${misses} misses` : '',
-      ...renameNotes, orphanNote, strandedNote, resolvedNote, skippedNote, gridSkippedNote(gs.skipped), fontNote, refusedNote,
+      ...renameNotes, orphanNote, orphanStylesNote, strandedNote, resolvedNote, skippedNote, gridSkippedNote(gs.skipped), fontNote, refusedNote,
       // #1909: what the person chose for the collisions this apply met, when it met any (copy DRAFT, `choiceNote`).
       chose ? choiceNote(chose) ?? '' : '',
       // #2888: the search field's own edge, the same way. Before the field style line, which ends the list.
@@ -540,7 +563,7 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
           motion: { total: motionTotal, created: motionCreated, replaced: mv.replaced },
           textStyles: { total: ts.total, created: ts.created }, bindings: r.bound + f.bound + tv.bound + mv.bound + ts.bound,
         },
-        orphans: allOrphans, stranded,
+        orphans: allOrphans, orphanStyles: orphanStyleGroups, stranded,
         renames: { migrated, refused: migRefused, mapRefusals: mig.refusals },
         textStylesSkipped: ts.skipped, fontsUnavailable: pf.unavailable, resolvedStyles: ts.resolvedStyles,
       },
@@ -653,12 +676,7 @@ const prune = async (input: BrandInput, confirm: boolean, previewHash: string | 
       // `description` as well as `name` (#1577): the engine writes one on every style it emits, so it is
       // what recognizes a style a designer RENAMED out of the plan's group. Reduced to plain data here
       // rather than passed as live nodes, so `computePrunePlan` stays pure over a snapshot.
-      styles: {
-        text: (await figma.getLocalTextStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
-        effect: (await figma.getLocalEffectStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
-        paint: (await figma.getLocalPaintStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
-        grid: (await figma.getLocalGridStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
-      },
+      styles: await localStyles(),
       plannedVariables,
       plannedCollections,
       plannedStyles,
@@ -1184,7 +1202,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
       postVerdict({
         type: 'component-result', ok: false, completed: false,
         headline: partial ? partialWriteHeadline(partial) : APPLY_FAILED_HEADLINE,
-        ...fromClauses([['', `component build failed: ${(e as Error).message}`], [' — ', partial ? partialWriteItem(partial) : '']]),
+        ...fromClauses([['', `component build failed: ${failureDetail(e)}`], [' — ', partial ? partialWriteItem(partial) : '']]),
         // #3326: the host's own words first, then what the throw left on the canvas, as the summary leads with them.
         causes: [cause('bad', e instanceof DependencyBuildError ? e.dependency : defId ?? button.id, CAUSE_WHAT.failed,
           [(e as Error)?.message ?? String(e), ...(partial ? [partialWriteItem(partial)] : [])])],
@@ -1213,7 +1231,7 @@ const furnishSet = async (defId: string, setId: string, plans: AnatomyPlan[]): P
     if (!set || set.type !== 'COMPONENT_SET') return null;
     return await drawFurniture(figma as unknown as FurnitureApi, set as unknown as XNode, furnitureLayout(plans), defId);
   } catch (e) {
-    return { def: defId, parent: '', columns: 0, rows: 0, backdrops: 0, scrims: 0, cleared: 0, skipped: [`No canvas labels for ${defId}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], fontMisses: [] };
+    return { def: defId, parent: '', columns: 0, rows: 0, backdrops: 0, scrims: 0, cleared: 0, skipped: [`No canvas labels for ${defId}: Figma refused the write (${failureDetail(e)})`], fontMisses: [] };
   }
 };
 
@@ -1227,7 +1245,7 @@ const panelFor = async (set: XNode, defId: string, api: PanelApi = figma as unkn
   const def = componentDefs.find((d) => d.id === defId);
   if (!def) return { def: defId, drawn: false, sections: [], replaced: 0, kept: [], skipped: [], misses: [] };
   try { return await drawDocPanel(api, set as unknown as PNode, def, { names: defName }); }
-  catch (e) { return { def: defId, drawn: false, sections: [], replaced: 0, kept: [], skipped: [`No usage panel for ${defId}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], misses: [] }; }
+  catch (e) { return { def: defId, drawn: false, sections: [], replaced: 0, kept: [], skipped: [`No usage panel for ${defId}: Figma refused the write (${failureDetail(e)})`], misses: [] }; }
 };
 
 /** `panelFor` on a set by id, folded into the set's furniture outcome (the build's path). */
@@ -1781,7 +1799,7 @@ const updateTargets = (defId: string | readonly string[] | undefined, input?: Br
   for (const d of defs) {
     // `single` (#2296): an `emitAsComponents` def (the icons, the spinner) is read as single components, not a set.
     try { targets.push({ def: d.id, plans: figmaAnatomySet(materializeForBrand(d, brandInput), { swapTarget: SWAP_TARGET }), ...(d.figmaProperties?.emitAsComponents ? { single: true } : {}), ...(panels && leadsPanel(d.id) ? { doc: { def: d, names: defName } } : {}) }); }
-    catch (e) { refused.push({ def: d.id, reason: `the engine could not plan it (${(e as Error)?.message ?? String(e)})` }); }
+    catch (e) { refused.push({ def: d.id, reason: `the engine could not plan it (${failureDetail(e)})` }); }
   }
   return { targets, unknown: null, refused };
 };
@@ -1919,7 +1937,7 @@ const drawSpecs = async (defId: string | undefined, scope: 'file' | 'page', sink
     for (const { def, set } of targets) {
       let o: SpecOutcome;
       try { o = await drawSpecPanel(api, set, def, { materialize: (d) => materializeForBrand(d, brandInput) }); }
-      catch (e) { o = { def: def.id, drawn: false, sets: [], replaced: 0, kept: [], skipped: [`No spec panel for ${def.id}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], misses: [] }; }
+      catch (e) { o = { def: def.id, drawn: false, sets: [], replaced: 0, kept: [], skipped: [`No spec panel for ${def.id}: Figma refused the write (${failureDetail(e)})`], misses: [] }; }
       if (o.missing?.length) { items.push(`No spec panels: the file has no ${o.missing.join(', ')}. Run Set up file first`); break; }
       if (o.drawn) drawn.push(def.id);
       items.push(...specItems(o));
@@ -1969,7 +1987,7 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
     if (due.length) {
       let saved = false;
       try { await saveVersion(figma, { run: 'setup', sets: due.map((m) => ({ set: m.set })) }); saved = true; }
-      catch (e) { movesNote = `\nSets not moved to their pages: the named version could not be saved (${(e as Error)?.message ?? String(e)}).`; }
+      catch (e) { movesNote = `\nSets not moved to their pages: the named version could not be saved (${failureDetail(e)}).`; }
       if (saved) {
         relocated = await relocateSets(figma, TAXONOMY);
         // A moved block's header goes with it (#3172), and the page it leaves is named too.
@@ -2019,13 +2037,13 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
     // #2977: unless Documentation has the cover off for this file; then nothing is drawn and the thumbnail is left.
     if (!readDocSettings(figma.root).cover) cover = { did: 'none', skipped: COVER_OFF, fontMisses: [] };
     else try { cover = await drawCover(figma as unknown as CoverApi, figma.root as unknown as CoverRoot); }
-    catch (e) { cover = { did: 'none', skipped: `not drawn, Figma refused the write (${(e as Error)?.message ?? String(e)})`, fontMisses: [] }; }
+    catch (e) { cover = { did: 'none', skipped: `not drawn, Figma refused the write (${failureDetail(e)})`, fontMisses: [] }; }
     const coverNote = coverLine(cover);
     const summary = `pages: ${scaffold.created.length} created${scaffold.created.length ? ` (${scaffold.created.slice(0, 4).join(', ')}${scaffold.created.length > 4 ? '…' : ''})` : ' (all present)'}${assetNote}${movesNote}${coverNote ? `\n${coverNote}` : ''}`;
     sink.data({ fileSetup: { pagesCreated: scaffold.created, fileComponentsPage: page ? true : false, assets, cover, ...(relocated ? { relocated } : {}) } });
     sink.post({ type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: appendBuildNote(summary, PRISM3_BUILD) });
   } catch (e) {
-    sink.post({ type: 'file-setup-result', ok: false, headline: '✗ setup failed', summary: appendBuildNote(`file setup failed: ${(e as Error).message}`, PRISM3_BUILD) });
+    sink.post({ type: 'file-setup-result', ok: false, headline: '✗ setup failed', summary: appendBuildNote(`file setup failed: ${failureDetail(e)}`, PRISM3_BUILD) });
   }
 };
 
@@ -2081,7 +2099,7 @@ const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise
     sink.post({ type: 'style-guide-result', ok: v.ok, headline: v.headline, summary: appendBuildNote(summary, PRISM3_BUILD), lines, ...(result.stopped ? { stopped: result.stopped } : {}),
       ...(result.retired?.length ? { retired: result.retired } : {}) });
   } catch (e) {
-    const failure = `style guide failed: ${(e as Error).message}`;
+    const failure = `style guide failed: ${failureDetail(e)}`;
     sink.post({ type: 'style-guide-result', ok: false, headline: '✗ style guide failed', summary: appendBuildNote(failure, PRISM3_BUILD), lines: withBuildLine([failure]) });
   } finally {
     styleGuideStop = false;
@@ -2133,7 +2151,7 @@ const seedFromFile = async (sink: ActionSink): Promise<void> => {
   } catch (e) {
     // The read itself failed, so presence is UNKNOWN — reported false, since the outcome is an error
     // either way and claiming presence we could not establish would be worse than not claiming it.
-    sink.post({ type: 'seed-info', ok: false, present: false, summary: `read-back failed: ${(e as Error).message}`, failed: 0 });
+    sink.post({ type: 'seed-info', ok: false, present: false, summary: `read-back failed: ${failureDetail(e)}`, failed: 0 });
   }
 };
 
@@ -2233,7 +2251,7 @@ const styleGuideCleanup = async (ids: string[], sink: ActionSink): Promise<void>
     const summary = n ? `${n} table${n === 1 ? '' : 's'} removed: ${removed.join(', ')}` : 'No table removed';
     sink.post({ type: 'style-guide-cleanup-result', ok: left.length === 0, removed: ids.filter((id) => !left.includes(id)), summary: left.length ? `${summary}. ${left.length} left in place: the generator draws ${left.length === 1 ? 'it' : 'them'} again, or ${left.length === 1 ? 'it is' : 'they are'} gone` : summary });
   } catch (e) {
-    sink.post({ type: 'style-guide-cleanup-result', ok: false, removed: [], summary: `Cleanup failed: ${(e as Error).message}` });
+    sink.post({ type: 'style-guide-cleanup-result', ok: false, removed: [], summary: `Cleanup failed: ${failureDetail(e)}` });
   }
 };
 

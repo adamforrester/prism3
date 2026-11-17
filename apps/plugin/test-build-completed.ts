@@ -1024,7 +1024,7 @@ ok(JSON.stringify(specDefs()) === JSON.stringify([LEVER_DEF]) && !!drew && /^. d
   const refused = await askRun({ type: 'draw-specs' }, 'component-update-result');
   shim.createFrame = realFrame;
   shim.currentPage = shownPage;
-  const want = `No spec panel for ${LEVER_DEF}: Figma refused the write (in createFrame: refused)`;
+  const want = `No spec panel for ${LEVER_DEF}: Figma refused the write (Error: in createFrame: refused)`;
   ok(refused?.ok === false && refused?.headline === '⚠ drew 0 of 1 spec panels'
     && JSON.stringify(refused?.causes) === JSON.stringify([{ kind: 'warn', subject: null, what: 'drew 0 of 1 spec panels', reasons: [want] }]),
     `causes/draw specs refused: a panel the host refused is the verdict's cause, its line the reason (${JSON.stringify({ headline: refused?.headline, causes: refused?.causes })})`);
@@ -1045,7 +1045,7 @@ ok(JSON.stringify(specDefs()) === JSON.stringify([LEVER_DEF]) && !!drew && /^. d
   [host.appendChild, host.insertChild] = [app, ins];
   const parts = (id: string): string => `Parts of the spec panel for ${id} were not written (color/border/secondary; _Doc-block has no Type=Heading, Size=lg variant; _Doc-block has no Type=Paragraph, Size=md variant; …)`;
   const someWant = [{ kind: 'warn', subject: null, what: 'drew 3 of 4 spec panels',
-    reasons: [parts('focus-ring'), parts('switch-row'), 'No spec panel for badge: Figma refused the write (in appendChild: refused)', parts('divider')] }];
+    reasons: [parts('focus-ring'), parts('switch-row'), 'No spec panel for badge: Figma refused the write (Error: in appendChild: refused)', parts('divider')] }];
   ok(some?.ok === false && some?.headline === '⚠ drew 3 of 4 spec panels' && JSON.stringify(some?.causes) === JSON.stringify(someWant),
     `causes/draw specs some: a run that drew some panels is a warning, as its ⚠ headline, its items the reasons (${JSON.stringify({ headline: some?.headline, causes: some?.causes })})`);
   const find = root.findAllWithCriteria;
