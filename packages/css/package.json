@@ -2,23 +2,33 @@
   "name": "@prism3/css",
   "version": "0.0.0",
   "private": true,
-  "description": "Prism3 components as plain HTML and CSS: the styles and markup patterns, built on the token CSS from @prism3/tokens.",
+  "description": "Prism3 components as plain HTML and CSS: the styles, markup patterns and small behavior scripts, built on the token CSS from @prism3/tokens.",
   "type": "module",
   "style": "./button.css",
   "exports": {
     "./button.css": "./button.css",
+    "./field-label.css": "./field-label.css",
+    "./field-message.css": "./field-message.css",
+    "./text-field.css": "./text-field.css",
+    "./password-field.css": "./password-field.css",
+    "./password-field.js": "./password-field.js",
     "./package.json": "./package.json"
   },
   "files": [
     "button.css",
+    "field-label.css",
+    "field-message.css",
+    "text-field.css",
+    "password-field.css",
+    "password-field.js",
     "README.md"
   ],
   "scripts": {
     "generate": "npx --yes tsx@4 generate.ts",
     "check:generated": "npx --yes tsx@4 generate.ts --check",
     "check:raw-values": "npx --yes tsx@4 check-raw-values.ts",
-    "check:parity": "npx --yes tsx@4 check-parity.ts",
-    "test:browser": "npm run -w @prism3/tokens build && npx --yes tsx@4 check-browser.ts"
+    "check:parity": "npx --yes tsx@4 check-parity.ts && npx --yes tsx@4 check-parity-fields.ts",
+    "test:browser": "npm run -w @prism3/tokens build && npx --yes tsx@4 check-browser.ts && npx --yes tsx@4 check-browser-fields.ts"
   },
   "devDependencies": {
     "playwright": "^1.62.1"
