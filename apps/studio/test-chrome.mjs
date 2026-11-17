@@ -21821,6 +21821,8 @@ if (runs('1909')) {
 // main thread to open GitHub's issue form. Expected words are literals; the house brand's prefix is `pds3`.
 // MUTATIONS (each after a `wip:` commit): the box starting ticked → `#2069 … the brand's settings are off by default`;
 // `issueUrl` skipped (the bare form posted) → `#2069 … posts open-issue with the issue form, prefilled`.
+/** The issue's body (the owner, 2026-11-17: the title prefilled, the body only asks for the report). A literal, DRAFT. */
+const REPORT_PASTE = 'Paste the report here — Prism3 copies it to your clipboard as it opens this page. Copy in the Report a problem dialog copies it again.';
 if (runs('2069')) {
   console.log(`\nActivity: Report a problem (#2069, Q116 A)\n${'='.repeat(78)}`);
   const where = '2069 figma light 1280';
@@ -21848,12 +21850,20 @@ if (runs('2069')) {
     ok(t1.includes('### Brand settings (included by the reporter)') && t1.includes('pds3/color/background/primary'), `#2069 ${where}: ticked, the brand's settings join the report as they are`);
     await (SHOTS ? page.screenshot({ path: join(SHOTS, 's2069-plugin-light-1280-report.png') }) : null);
     step = 'open issue';
+    // The owner (2026-11-17): the issue opens with the title and a body that only asks for the report, which the panel
+    // puts on the clipboard (stubbed here to read it). MUTATION: the report given back to `issueUrl` as its body →
+    // `#2069 … posts open-issue with the title and the paste line`; the copy dropped from the click → `… the report
+    // shown is on the clipboard`.
+    await page.evaluate(() => { window.__clip = []; Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (t) => { window.__clip.push(String(t)); } } }); });
     await hooks.click(page.locator('[data-p3="report-open-issue"]'), WAIT);
     await page.waitForFunction(() => window.__issues.length > 0, null, WAIT).catch(() => {});
     const posts = await page.evaluate(() => window.__issues);
     const body = posts.length ? decodeURIComponent(String(posts[0].url).split('&body=')[1] ?? '') : '';
-    ok(posts.length === 1 && String(posts[0].url).startsWith('https://github.com/adamforrester/prism3/issues/new?title=Problem%20report&body=') && body === t1,
-      `#2069 ${where}: Open a prefilled issue posts open-issue with the issue form, prefilled with the report shown (${posts.length} posts)`);
+    ok(posts.length === 1 && String(posts[0].url).startsWith('https://github.com/adamforrester/prism3/issues/new?title=Problem%20report&body=') && body === REPORT_PASTE,
+      `#2069 ${where}: Open a prefilled issue posts open-issue with the title and the paste line alone (${posts.length} posts, body ${JSON.stringify(body.slice(0, 160))})`);
+    const clip = await page.evaluate(() => ({ clip: window.__clip, copy: document.querySelector('[data-p3="report-copy"]')?.textContent ?? null }));
+    ok(clip.clip.length === 1 && clip.clip[0] === t1 && clip.copy === 'Copied',
+      `#2069 ${where}: the report shown is on the clipboard as the issue opens, and Copy says Copied (${clip.clip.length} copies, Copy reads ${JSON.stringify(clip.copy)})`);
     step = 'escape';
     await page.keyboard.press('Escape');
     await settle(page);
@@ -21889,12 +21899,15 @@ if (runs('2069')) {
       ok(d0.modal === 'true' && d0.focusIn && d0.box === false && d0.text.includes('- Host: Web studio') && d0.text.includes('- Nothing has run in this session.'),
         `#3524 ${where}: the rail's Report a problem opens the dialog, modal, focus inside, the brand's settings off, the host the web studio (${JSON.stringify({ modal: d0.modal, focusIn: d0.focusIn, box: d0.box })})`);
       step = 'open issue';
+      await page.evaluate(() => { window.__clip = []; Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (t) => { window.__clip.push(String(t)); } } }); });
       await hooks.click(page.locator('[data-p3="report-open-issue"]'), WAIT);
       await page.waitForFunction(() => window.__opened.length > 0, null, WAIT).catch(() => {});
       const opened = await page.evaluate(() => window.__opened);
       const body = opened.length ? decodeURIComponent(opened[0].u.split('&body=')[1] ?? '') : '';
-      ok(opened.length === 1 && opened[0].u.startsWith('https://github.com/adamforrester/prism3/issues/new?title=Problem%20report&body=') && opened[0].t === '_blank' && body === d0.text,
-        `#3524 ${where}: Open a prefilled issue opens the issue form in a new tab, prefilled with the report shown (${opened.length} opened)`);
+      const clip = await page.evaluate(() => window.__clip);
+      ok(opened.length === 1 && opened[0].u.startsWith('https://github.com/adamforrester/prism3/issues/new?title=Problem%20report&body=') && opened[0].t === '_blank' && body === REPORT_PASTE
+        && clip.length === 1 && clip[0] === d0.text,
+        `#3524 ${where}: Open a prefilled issue opens the issue form in a new tab with the title and the paste line alone, the report shown on the clipboard (${opened.length} opened, ${clip.length} copies)`);
       step = 'escape';
       await page.keyboard.press('Escape');
       await settle(page);
