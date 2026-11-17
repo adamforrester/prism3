@@ -18,6 +18,10 @@ caption and action left with it, and 3553-icons no longer reads `export-import`.
 the open Export area alone by the import box's text and caret. It now holds the same by the preview's focus and scroll
 position.
 
+**Assertion floor.** `test-export-settings.ts` section 7 (four assertions on the slot model) left with the model,
+so the suite runs 230 assertions, and its floor in `apps/studio/suites.json` (#3904) moves by hand from 234 to 230.
+That is the shrink this diff explains, and the only one.
+
 **Guides.** No guide told anyone to import from Export: `theme-a-brand.md` already points to the brand menu's
 **Import design.md…**, and no bold label named the Export entry. The removed lines did move code that guides cite, so
 `lint-guide-claims` failed on line drift. `bar.ts` lost one line above every cited block, so its citations move up one

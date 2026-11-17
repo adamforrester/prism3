@@ -299,7 +299,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
 
   // ── the Export area ────────────────────────────────────────────────────────────────────────────
   /** The Export area's page (#723; the export dialog's content until #2909, without its scrim, Close, Cancel and modal
-   *  trap): the artifact, its settings, then the files and a preview, the action, the import slot. */
+   *  trap): the artifact, its settings, then the files and a preview, and the action (no import since #3910). */
   const exportPage = (x: ExportView, v: BarView): HTMLElement => {
     const dlg = hook(h('section', 'p3-bardlg p3-export-page'), 'export-page');
     dlg.setAttribute('aria-labelledby', 'p3-export-page-h');

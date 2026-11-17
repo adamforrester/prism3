@@ -724,26 +724,34 @@ export const metadataDefects = (tree: unknown, slug = 'brand'): string[] => {
  * build" is both of them: `typecheck` plus this, run by `npm run -w @prism3/studio test`.
  */
 export const declarationDefects = (): string[] => {
-  const out: string[] = [];
-  for (const s of ALL_SETTINGS) {
-    if (s.sources.length === 0) out.push(`${s.key}: declares no source — it would be visible nowhere`);
-    for (const src of s.sources) {
-      if (!ALL_SOURCES.includes(src)) out.push(`${s.key}: declares unknown source '${src}'`);
-    }
-    if (new Set(s.sources).size !== s.sources.length) out.push(`${s.key}: declares a source twice`);
-    if (!ARTIFACTS.some((a) => a.id === s.artifact)) out.push(`${s.key}: names unknown artifact '${s.artifact}'`);
-    if (!s.options.some((o) => o.value === s.def)) out.push(`${s.key}: default '${s.def}' is not one of its options`);
-    if (s.options.length < 2) out.push(`${s.key}: fewer than two options — nothing to choose`);
-    if (new Set(s.options.map((o) => o.value)).size !== s.options.length) out.push(`${s.key}: two options share a value`);
-  }
+  const out: string[] = ALL_SETTINGS.flatMap(settingDefects);
   const keys = ALL_SETTINGS.map((s) => s.key);
   if (new Set(keys).size !== keys.length) out.push('two settings share a key');
+  return out;
+};
+
+/**
+ * One setting's declaration defects — the per-item half of `declarationDefects`, exported so the test's
+ * mutation battery drives THIS predicate on its mutants rather than a copy of it (#1066 M24, the #387
+ * shape: a re-expressed predicate in the test kept catching `unreachable` after the shipped rule was
+ * deleted, so the suite certified a check that no longer existed). Only the cross-setting rule (two
+ * settings sharing a key) stays in `declarationDefects`, because it has no single item to judge.
+ */
+export const settingDefects = (s: SettingDef): string[] => {
+  const out: string[] = [];
+  if (s.sources.length === 0) out.push(`${s.key}: declares no source — it would be visible nowhere`);
+  for (const src of s.sources) {
+    if (!ALL_SOURCES.includes(src)) out.push(`${s.key}: declares unknown source '${src}'`);
+  }
+  if (new Set(s.sources).size !== s.sources.length) out.push(`${s.key}: declares a source twice`);
+  if (!ARTIFACTS.some((a) => a.id === s.artifact)) out.push(`${s.key}: names unknown artifact '${s.artifact}'`);
+  if (!s.options.some((o) => o.value === s.def)) out.push(`${s.key}: default '${s.def}' is not one of its options`);
+  if (s.options.length < 2) out.push(`${s.key}: fewer than two options — nothing to choose`);
+  if (new Set(s.options.map((o) => o.value)).size !== s.options.length) out.push(`${s.key}: two options share a value`);
   // A setting nobody can reach is as much a defect as one nobody declared: it means the export it
   // shapes cannot be produced. Checked against what is AVAILABLE, not against what is declarable.
-  for (const s of ALL_SETTINGS) {
-    if (!s.sources.some((src) => AVAILABLE_SOURCES.includes(src))) {
-      out.push(`${s.key}: no available source declares it — unreachable in the UI`);
-    }
+  if (!s.sources.some((src) => AVAILABLE_SOURCES.includes(src))) {
+    out.push(`${s.key}: no available source declares it — unreachable in the UI`);
   }
   return out;
 };
@@ -763,12 +771,15 @@ export const declarationDefects = (): string[] => {
  * reason — they are token names on purpose (`color.on-fill`), which is the setting demonstrating
  * itself; they are held to being real paths instead, below.
  */
+export const identifierHits = (text: string): readonly string[] =>
+  text.match(/\b[a-z][a-z0-9]*(?:[A-Z][a-z0-9]*)+\b|\b[a-z0-9]+_[a-z0-9]+\b/g) ?? [];
+
+/** Every rule above, over every shipped label and description. The shape test is `identifierHits`,
+ *  exported so the test's mutation battery drives the shipped rule rather than a copy (#1066 M24). */
 export const jargonDefects = (): string[] => {
   const out: string[] = [];
-  const identifierish = (text: string): readonly string[] =>
-    text.match(/\b[a-z][a-z0-9]*(?:[A-Z][a-z0-9]*)+\b|\b[a-z0-9]+_[a-z0-9]+\b/g) ?? [];
   const check = (where: string, text: string): void => {
-    for (const hit of identifierish(text)) out.push(`${where}: '${hit}' reads as an identifier, not as words`);
+    for (const hit of identifierHits(text)) out.push(`${where}: '${hit}' reads as an identifier, not as words`);
   };
   for (const a of ARTIFACTS) { check(`artifact ${a.id} label`, a.label); check(`artifact ${a.id} desc`, a.desc); }
   for (const s of ALL_SETTINGS) {
@@ -938,9 +949,25 @@ const leavesIn = (doc: unknown, s: SettingsState): readonly Leaf[] =>
  * which is a worse export. So the scope of the check is the scope of the merge.
  */
 export const aliasDefects = (tree: unknown, s: SettingsState, slug = 'brand'): string[] => {
-  const out: string[] = [];
   const files = projectDtcg(tree, slug, s);
-  const docs = files.map((f) => ({ name: f.name, doc: JSON.parse(f.text) as unknown }));
+  const { refs, dangling } = danglingAliases(files.map((f) => ({ name: f.name, doc: JSON.parse(f.text) as unknown })), s);
+  const out = [...dangling];
+  // An export with no references at all would pass the loop above vacuously — the shape docs/34 calls
+  // a probe over a haystack that cannot disagree. So assert there were references to resolve. Counted
+  // over the SET for the same reason: a split's palette file legitimately holds none of its own.
+  if (refs === 0) out.push(`${slug}: no aliases found to resolve — the check ran on nothing`);
+  return out;
+};
+
+/**
+ * The resolution half of `aliasDefects`, over documents already projected: every `{path}` reference in
+ * a leaf `$value`, resolved against the whole set's paths. Exported so the test's mutation battery
+ * drives the shipped resolver on a hand-broken document rather than a copy of it (#1066 M24).
+ */
+export const danglingAliases = (
+  docs: ReadonlyArray<{ readonly name: string; readonly doc: unknown }>, s: SettingsState,
+): { refs: number; dangling: string[] } => {
+  const dangling: string[] = [];
   // The whole set's paths, because a consumer merges the set before resolving.
   const defined = new Set(docs.flatMap(({ doc }) => pathsIn(doc, s)));
   let refs = 0;
@@ -949,7 +976,7 @@ export const aliasDefects = (tree: unknown, s: SettingsState, slug = 'brand'): s
       if (typeof v === 'string') {
         for (const m of v.matchAll(/\{([^{}]+)\}/g)) {
           refs++;
-          if (!defined.has(m[1])) out.push(`${name}: alias {${m[1]}} resolves to nothing`);
+          if (!defined.has(m[1])) dangling.push(`${name}: alias {${m[1]}} resolves to nothing`);
         }
         return;
       }
@@ -958,11 +985,7 @@ export const aliasDefects = (tree: unknown, s: SettingsState, slug = 'brand'): s
     };
     for (const { leaf } of leavesIn(doc, s)) walk(leaf.$value);
   }
-  // An export with no references at all would pass the loop above vacuously — the shape docs/34 calls
-  // a probe over a haystack that cannot disagree. So assert there were references to resolve. Counted
-  // over the SET for the same reason: a split's palette file legitimately holds none of its own.
-  if (refs === 0) out.push(`${slug}: no aliases found to resolve — the check ran on nothing`);
-  return out;
+  return { refs, dangling };
 };
 
 /**

@@ -191,7 +191,9 @@ import { livePanels, paneledOf, panelsCleanCount, removeUneditedPanels, unpanele
 import { COLOR_COLUMNS, COLOR_GAP, clearOrphanSpecPanels, drawSpecPanel, hexFor, planSpecPanel, specItems, type SpecApi } from './src/spec-panel';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string, detail = ''): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}${detail ? ` — ${detail}` : ''}`); }
 };
@@ -2417,4 +2419,4 @@ section('clean/… — panels off: Clean up removes unedited panels, and an edit
 }
 
 if (failed) { console.error(`\n✗ ${failed} doc panel check(s) failed`); process.exit(1); }
-console.log('\n✓ doc panel: every check passed');
+console.log(`\n✓ doc panel: every check passed — ${executed} assertions executed`);

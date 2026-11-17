@@ -302,6 +302,7 @@ export const CLI = [
 /** Files that read `process.argv` and are deliberately not listed, each with why. */
 export const CLI_EXCLUDED: Record<string, string> = {
   'packages/engine/test.ts': 'a gate; the gates are listed by `npx tsx verify.ts --list`',
+  'run-suites.ts': 'the runner behind `npm run -w @prism3/studio test` and `-w @prism3/plugin test` (#1066), a gate step; the gates are listed by `npx tsx verify.ts --list`',
   'packages/engine/emit-dtcg.ts': 'a regen step; run regen.ts',
   'packages/engine/emit-figma.ts': 'a regen step; run regen.ts',
   'packages/engine/emit-brandinput.ts': 'a regen step; run regen.ts',

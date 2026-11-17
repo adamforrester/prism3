@@ -37,7 +37,9 @@ import { preloadFonts, facesToPreload, loadPreloadCandidates } from './src/prelo
 import type { FontPreloadApi } from './src/preload-fonts';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -819,5 +821,5 @@ ok(fresh.byOrigin.crossed === 0 && fresh.byOrigin.file === 0 && fresh.loaded ===
     `#2942 underline off: every -link style of the auto brand reads AUTO for both (${autoLinks.length})`);
 }
 
-console.log(`\nplugin TYPOGRAPHY write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
+console.log(`\nplugin TYPOGRAPHY write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'} — ${executed} assertions executed`);
 if (failed) process.exit(1);
