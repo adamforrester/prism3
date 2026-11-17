@@ -446,10 +446,10 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
       ? `⚠ ${orphanCount} orphaned variables not in the plan (${allOrphans.map((o) => `${o.name}: ${o.names.length}`).join(', ')}) — likely renames; nothing was deleted`
       : '';
     // ORPHAN STYLES (#1737) — the same drift among styles. A style the plan does not write is never touched, so an earlier
-    // brand's `body/md/emphasis` stays in the picker beside this brand's styles. Counted with Prune's own rule
-    // (`orphanStyles`: inside a group this brand's plan emits, or carrying the engine's description), so a designer's
-    // hand-made group is not named, and the note and Prune's offer agree. Planned names are the plans as built AND as
-    // a collision choice wrote them (#1909), so neither a skipped collision nor a renamed style reads as an orphan.
+    // brand's `body/md/emphasis` stays in the picker. Counted with Prune's own rule (`orphanStyles`: inside a group the
+    // plan emits, or carrying the engine's description), so a designer's hand-made group is not named. Planned names are
+    // the plans as built AND as a collision choice wrote them (#1909): neither a skipped collision nor a renamed style is
+    // an orphan here, though Prune, passing the plans only, still offers a renamed one (#3860).
     // Reported, never deleted: Prune is the delete path.
     const plannedStyleNames = {
       text: [...plans.textPlan, ...exec.text].map((x) => x.name),

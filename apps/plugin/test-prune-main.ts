@@ -23,6 +23,7 @@
  *   · the hand-edit pass's `stale()` back to its four named writes (prune left out) → `main/hand pass stale under prune` (#3737).
  *   · a pass a write made stale not asked for again when the write ends → `main/hand pass after the write` (#3804).
  *   · Apply Theme's orphan-style note dropped from its summary → `main/apply reports orphan styles` (#1737).
+ *   · `...exec.text` dropped from Apply Theme's planned style names (a Rename reads as an orphan) → `main/apply renamed style, no orphan` (#1737).
  *   · prune's furniture rule back to "set alive" only (the parent not compared) → `main/moved set's furniture` (#2485).
  */
 import { readFileSync } from 'node:fs';
@@ -298,6 +299,29 @@ ok(ended >= 0 && after.some((m) => m.done === true),
   ok(again?.type === 'apply-result' && again.ok === true && String(again.summary).includes(NOTE) && lines.includes(NOTE)
     && planted.every((st) => !st.removed),
     `main/apply reports orphan styles: a re-apply names the three styles an earlier brand left in this brand's groups, not the hand-made one, and removes none (${JSON.stringify(lines.filter((l) => /style/.test(l) && l.startsWith('⚠')))}; removed ${planted.filter((st) => st.removed).length})`);
+}
+
+// #1737 — A RENAMED STYLE IS NOT AN ORPHAN. A collision answered Rename (#1909) writes Prism3's style under
+// `<name> (Prism3)`, a name no plan holds, inside a group the plan emits and marked as Prism3's: exactly what the
+// orphan rule counts, unless the names the collision choice wrote count as planned. Set up here: the arm above's
+// plants removed; this brand's own first text style given a designer's description (this shim models no style mark,
+// so the description is the whole ownership evidence: someone else's, a collision); re-applied with that collision answered Rename.
+// Mutation: `...exec.text` dropped from main.ts's `plannedStyleNames` → `main/apply renamed style, no orphan`.
+{
+  for (const st of [...file.styles.text, ...file.styles.effect]) if (/zz-earlier|^Marketing\/Hero$/.test(String(st.name))) st.remove();
+  const name = themePlans(input).textPlan.map((r) => r.name).find((n) => n.includes('/')) ?? '';
+  const theirs = file.styles.text.find((st: any) => st.name === name);
+  if (!theirs) throw new Error(`premise: the applied file holds no text style "${name}"`);
+  theirs.description = 'Our hero body, hand-made';
+  const refused = await send({ type: 'apply-theme', input }, ['apply-result']);
+  const key = `text style:${name}`;
+  ok(refused?.ok === false && JSON.stringify(refused).includes(name),
+    `main/apply renamed style, premise: the hand-described "${name}" is a collision, and the apply is refused (${refused?.headline})`);
+  const again = await send({ type: 'apply-theme', input, collisions: { [key]: 'rename' } }, ['apply-result']);
+  const lines: string[] = again?.lines ?? [];
+  const renamed = file.styles.text.find((st: any) => st.name === `${name} (Prism3)`);
+  ok(again?.ok === true && !!renamed && !theirs.removed && !lines.some((l) => l.includes('orphaned style')) && !String(again.summary).includes('orphaned style'),
+    `main/apply renamed style, no orphan: Rename writes "${name} (Prism3)" beside the designer's, and the verdict names no orphan style (${JSON.stringify(lines.filter((l) => /style/.test(l) && l.startsWith('⚠')))}; renamed ${!!renamed})`);
 }
 
 console.log = log;

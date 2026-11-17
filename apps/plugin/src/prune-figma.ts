@@ -354,8 +354,9 @@ export const ownedCollectionNames = (planned: Iterable<string>, file: readonly F
  * And an old `Grid / <bp>` whose `<bp>` the plan still emits is spared outright: it is the style the
  * next apply renames in place (`LEGACY_GRID_PREFIX`), not a stale one.
  *
- * Exported since #1737: Apply Theme reports exactly this set as the styles the brand does not plan, so its report and
- * Prune's offer cannot disagree about which styles are stale.
+ * Exported since #1737: Apply Theme reports this set as the styles the brand does not plan, so its report and Prune's
+ * offer share one rule. They differ only in the planned names each passes: Apply adds the names a collision Rename
+ * wrote, Prune does not yet (#3860), so after a Rename Prune offers the `… (Prism3)` style and Apply's note does not.
  */
 export const orphanStyles = (fileStyles: FileStyles, plannedStyles: StyleNames): PrunePlan['styles'] => {
   const styles: PrunePlan['styles'] = [];

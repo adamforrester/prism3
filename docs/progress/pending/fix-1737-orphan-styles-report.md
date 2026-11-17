@@ -8,12 +8,13 @@ summary, and agents get the lists as `orphanStyles` in the apply data. Nothing i
 **One rule, two readers.** The style arm of `computePrunePlan` moved out, unchanged, as `orphanStyles(fileStyles,
 plannedStyles)`, and Apply calls it. A style is reported when it sits in a group the brand's plan emits, or when it
 carries the engine's own description (#1577); a designer's hand-made group (`Marketing/Hero`) is not. So the note
-names exactly what Prune would offer, and the issue's "add them to Prune's scope" was already true (#1570). The file
+names what Prune would offer, except after a collision Rename (below, and #3860), and the issue's "add them to Prune's scope" was already true (#1570). The file
 read is one helper, `localStyles()`, shared by both.
 
 **Collisions.** The planned names are the plans as built plus the plans a collision choice wrote (#1909). A skipped
 collision leaves the foreign style under the plan's own name, and a Rename writes the plan's style under a new one, so
-neither reads as an orphan.
+neither reads as an orphan (`main/apply renamed style, no orphan`). Prune passes the plans only, so it still offers a
+renamed `… (Prism3)` style for deletion: a Prune defect, filed as #3860, not changed here.
 
 **OWNER DECISION (pending): the note's copy, and whether it names the styles.** Options: (A) a count per kind, in
 the orphan-variable note's shape, as built; (B) the same, plus the first three names, as the stranded-collection note
@@ -25,4 +26,6 @@ style inside the brand's groups, plus one hand-made style: the summary carries t
 removed (`main/apply reports orphan styles`). The first, clean apply names no style (`main/apply clean file, no orphan
 styles`). Fails on main. Mutations: the note dropped from the summary, and the description test dropped from
 `orphanStyles` (the hand-made style then counts, `4 orphaned styles`), each fail `main/apply reports orphan styles`.
-`test-prune.ts` is unchanged and passes over the extracted function.
+A third arm answers a text-style collision Rename and re-applies: the verdict names no orphan style (`main/apply
+renamed style, no orphan`); with `...exec.text` dropped from the planned names it fails by name (`⚠ 1 orphaned style
+not in the plan (text: 1)`). `test-prune.ts` is unchanged and passes over the extracted function.
