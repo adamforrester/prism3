@@ -15,6 +15,7 @@ import {
   DTCGDimension,
   DTCGTypography,
   DTCGShadow,
+  DTCGGradient,
   VariableConversionValue,
   JsonObject,
   UnknownValue,
@@ -52,6 +53,7 @@ export class TokenExporter {
   // Declared private, the subclass could not compile and TS reported the extends clause itself as bad.
   protected fileCount = 0;
   private skippedBlurStyles: string[] = [];
+  private skippedGradientStyles: string[] = [];
 
   /**
    * The namespace prefix that aliases in the file currently being built must
@@ -185,6 +187,7 @@ export class TokenExporter {
     const zip = new JSZip();
     this.fileCount = 0;
     this.skippedBlurStyles = [];
+    this.skippedGradientStyles = [];
 
     const reportProgress = (progress: number, message: string) => {
       if (progressCallback) {
@@ -194,7 +197,8 @@ export class TokenExporter {
 
     // Get all data
     reportProgress(PROGRESS_CONFIG.PHASES.SCAN_START, 'Analyzing design tokens...');
-    const { collections, variables, textStyles, effectStyles } = await this.scanner.scanAll({
+    const { collections, variables, textStyles, effectStyles, paintStyles } =
+      await this.scanner.scanAll({
       excludedCollectionNames: this.options.excludedCollections,
     });
 
@@ -217,6 +221,9 @@ export class TokenExporter {
     // Export shadow composites
     reportProgress(PROGRESS_CONFIG.PHASES.SHADOWS_START, 'Exporting shadow tokens...');
     await this.exportShadows(zip, effectStyles, hasMultiMode);
+
+    // Export gradient paint styles
+    this.exportGradients(zip, paintStyles, variables, hasMultiMode);
 
     // Generate ZIP with memory management
     reportProgress(PROGRESS_CONFIG.PHASES.ZIP_START, 'Creating ZIP file...');
@@ -539,6 +546,128 @@ export class TokenExporter {
 
     const shadowsPath = hasMultiMode ? 'shared/shadows.json' : 'shadows.json';
     zip.file(shadowsPath, JSON.stringify(shadowFile, null, 2));
+    this.fileCount++;
+  }
+
+  /**
+   * Exports gradient paint styles as DTCG `gradient` tokens (prism3 #731).
+   *
+   * A paint style is where Figma keeps a gradient, and DTCG 2025.10 defines a
+   * `gradient` type: an array of `{ color, position }` stops. A stop whose color
+   * is bound to a variable becomes an alias, so the gradient follows the
+   * palette; an unbound stop is a literal color in the export's color format.
+   *
+   * DTCG's gradient has stops and nothing else, so the kind of gradient
+   * (linear, radial, angular, diamond), its transform and the paint's opacity
+   * have no place in `$value`. They go in `$extensions.figma` when Figma
+   * extensions are on.
+   *
+   * Only a style whose one visible paint is a gradient is exported. A solid or
+   * image style is not a gradient and is left alone. A style that layers a
+   * gradient with other paints has no single-gradient form, so it is skipped
+   * and its name collected (see `getSkippedGradientStyles`), never dropped
+   * silently.
+   */
+  private exportGradients(
+    zip: JSZip,
+    paintStyles: PaintStyle[],
+    variables: Variable[],
+    hasMultiMode: boolean
+  ): void {
+    if (!paintStyles || paintStyles.length === 0) {
+      return;
+    }
+
+    const gradientTypes = ['GRADIENT_LINEAR', 'GRADIENT_RADIAL', 'GRADIENT_ANGULAR', 'GRADIENT_DIAMOND'];
+    const gradientStyles: { style: PaintStyle; paint: GradientPaint }[] = [];
+
+    paintStyles.forEach(paintStyle => {
+      const visible = paintStyle.paints.filter(p => p.visible !== false);
+      const gradients = visible.filter(p => gradientTypes.indexOf(p.type) !== -1);
+      if (gradients.length === 0) {
+        return;
+      }
+      if (visible.length !== 1) {
+        this.skippedGradientStyles.push(paintStyle.name);
+        return;
+      }
+      gradientStyles.push({ style: paintStyle, paint: gradients[0] as GradientPaint });
+    });
+
+    if (this.skippedGradientStyles.length > 0) {
+      console.warn(
+        `[Token Press] Skipped ${this.skippedGradientStyles.length} paint style(s) that layer a gradient with other paints — a DTCG gradient holds one:`,
+        this.skippedGradientStyles
+      );
+    }
+
+    if (gradientStyles.length === 0) {
+      return;
+    }
+
+    // Stops alias variables, so the wrapper decision comes first, from this
+    // file's own root keys.
+    this.beginFile(gradientStyles.map(g => g.style.name));
+
+    const variableMap = new Map(variables.map(v => [v.id, v]));
+    const gradientTokens: JsonObject = {};
+
+    gradientStyles.forEach(entry => {
+      const paint = entry.paint;
+      const stops: DTCGGradient = paint.gradientStops.map(stop => {
+        let color: DTCGColor | string | null = null;
+        const bound = stop.boundVariables && stop.boundVariables.color;
+        if (bound) {
+          const target = variableMap.get(bound.id);
+          if (target) {
+            color = createAliasReference(
+              target.name,
+              this.options.tokenNameCase,
+              this.activeNamespace
+            );
+          }
+        }
+        if (color === null) {
+          color =
+            this.options.colorFormat === 'css'
+              ? this.convertColorToCSS(stop.color)
+              : this.convertColor(stop.color);
+        }
+        return { color: color, position: roundToPrecision(stop.position) };
+      });
+
+      const token: DTCGToken = {
+        $type: 'gradient',
+        $value: stops,
+      };
+
+      if (entry.style.description) {
+        token.$description = entry.style.description;
+      }
+
+      if (this.options.includeFigmaExtensions) {
+        const figmaExt: JsonObject = {
+          styleId: entry.style.id,
+          gradientType: paint.type,
+          gradientTransform: paint.gradientTransform.map(row => row.slice()),
+        };
+        if (paint.opacity !== undefined && paint.opacity !== 1) {
+          figmaExt.opacity = paint.opacity;
+        }
+        token.$extensions = { figma: figmaExt };
+      }
+
+      this.setNestedProperty(
+        gradientTokens,
+        this.sanitizeTokenName(entry.style.name).split('/'),
+        token
+      );
+    });
+
+    const gradientFile = this.applyNamespaceIfNeeded(gradientTokens, this.getFileExtensions());
+
+    const gradientsPath = hasMultiMode ? 'shared/gradients.json' : 'gradients.json';
+    zip.file(gradientsPath, JSON.stringify(gradientFile, null, 2));
     this.fileCount++;
   }
 
@@ -1490,5 +1619,14 @@ export class TokenExporter {
    */
   getSkippedBlurStyles(): string[] {
     return this.skippedBlurStyles.slice();
+  }
+
+  /**
+   * Returns the names of paint styles that hold a gradient but were skipped
+   * because the gradient is layered with other visible paints, which a single
+   * DTCG `gradient` cannot represent. Cleared at the start of each export.
+   */
+  getSkippedGradientStyles(): string[] {
+    return this.skippedGradientStyles.slice();
   }
 }
