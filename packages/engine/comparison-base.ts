@@ -78,12 +78,9 @@ export const comparisonBase = (git: Git, mergeBase: string, die: (lines: string[
  * an ordinary PR into an integration branch, every PR into `main`, a merge-group run, a push run on `main`.
  */
 export const integrationBase = (git: Git, baseRef: string, mergeBase: string): ComparisonBase | null => {
-  if (baseRef === 'origin/main' || baseRef === 'main') return null;
-  const mainRef = ['origin/main', 'main'].find((c) => git('rev-parse', '--verify', '--quiet', `${c}^{commit}`).ok);
-  if (!mainRef) return null;
-  const mp = git('merge-base', 'HEAD', mainRef);
-  if (!mp.ok || !mp.out.trim()) return null;
-  const point = mp.out.trim();
+  const carried = carriedMain(git, baseRef);
+  if (!carried) return null;
+  const { mainRef, point } = carried;
   // Commits reachable from `point` and not from the merge base: zero means the base already holds this main.
   const ahead = git('rev-list', '--count', `${mergeBase}..${point}`);
   if (!ahead.ok || Number(ahead.out.trim()) === 0) return null;
@@ -92,4 +89,27 @@ export const integrationBase = (git: Git, baseRef: string, mergeBase: string): C
     onBase: false,
     label: `merge base with ${mainRef} — HEAD carries ${ahead.out.trim()} ${mainRef} commit(s) ${baseRef} lacks, judged by their own runs (#3833)`,
   };
+};
+
+/**
+ * THE `main` A TREE ON ANOTHER BASE BRANCH CARRIES (#3863): the merge base of HEAD and `main`, and which ref
+ * named `main`. `integrationBase` reads a PR's "before" there only when the PR brings that `main` in; a gate
+ * that walks HISTORY rather than diffing two trees needs it on every PR into the branch.
+ *
+ * An integration branch refreshed from `main` by a squash (#3833, a96bdd6a on `poc/arm-1`) holds a single-parent
+ * commit that sets `ENGINE_VERSION` to `main`'s version, with a diff spanning everything `main` merged since the
+ * branch last met it. That commit sits on the branch's first-parent chain for good, so a gate that reads the commit
+ * setting a version as its fold reads that squash as the fold, on every later PR into the branch, refresh or not.
+ * Walked from here instead, the history is `main`'s own, where each version's fold is the commit that folded it.
+ *
+ * Null when the base ref is `main` (the gate stays on HEAD's own history, as strict as it was), when no `main` ref
+ * resolves, or when HEAD and `main` share no commit: the caller keeps HEAD, which fails loud rather than passes.
+ */
+export const carriedMain = (git: Git, baseRef: string): { mainRef: string; point: string } | null => {
+  if (baseRef === 'origin/main' || baseRef === 'main') return null;
+  const mainRef = ['origin/main', 'main'].find((c) => git('rev-parse', '--verify', '--quiet', `${c}^{commit}`).ok);
+  if (!mainRef) return null;
+  const mp = git('merge-base', 'HEAD', mainRef);
+  if (!mp.ok || !mp.out.trim()) return null;
+  return { mainRef, point: mp.out.trim() };
 };

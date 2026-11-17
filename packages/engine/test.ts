@@ -38074,6 +38074,60 @@ arm: {
     ok(ord.status === 1 && ord.out.includes('NOTE SHAPE — packages/engine/changes/replay-ordinary-patch.md declares `engine: patch`, and 1 committed artifact(s) moved (#1807).')
         && ord.out.includes('(origin/poc, via GITHUB_BASE_REF, merge base)'),
       `#3833 emission-version: an ordinary PR into the branch (no main merged) keeps its merge base and still fails NOTE SHAPE by name (exit ${ord.status}: ${said(ord, /NOTE SHAPE|base /)})`);
+
+    // #3863 — RELEASE NOTES ON AN INTEGRATION BRANCH REFRESHED BY A SQUASH. #3833 landed on `poc/arm-1` as a squash,
+    // a96bdd6a: one parent, and it sets `ENGINE_VERSION` to the version `main` folded. lint-release-notes reads a
+    // version's fold as the newest single-parent commit setting it, so walked from HEAD it read the squash as 0.238.0's
+    // fold, over a diff holding every note `main` added and folded since the branch forked: 86 problems in notes `main`'s
+    // run had passed, on #3863 and #3834, and on every later PR into the branch, since the squash never leaves it.
+    // `carriedMain` (`comparison-base.ts`) walks the folds from the `main` the tree carries on any PR into another base.
+    //   poc2: forks at W (before m0's note) · q0 its own entry · sq squashes m2 in (dated later, so a HEAD walk meets it
+    //   first) · remerge merges m2 for real. MUTATIONS VERIFIED (#3863, each fails a case here by name): the walk on HEAD
+    //   again (`walkFrom` = 'HEAD') · `integrationBase` in place of `carriedMain` (the ordinary PR after the refresh) ·
+    //   `carriedMain` returning a point on `main` too (the dropped note on main reads its fold from origin/main's tip).
+    {
+      const RN = 'packages/engine/lint-release-notes.ts';
+      const m1 = git(['rev-parse', `${m2}^1`]);
+      const w = git(['rev-parse', `${m0}^1`]);
+      const v = /ENGINE_VERSION = '(\d+\.\d+\.\d+)'/.exec(git(['show', `${m1}:packages/engine/version.ts`]))![1];
+      const POC2 = { GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'poc2' };
+      const NOT_FOLDED = `NOTES — ${v}: the notes carry replay-main-minor, which its fold did not fold`;
+      const DROPPED = `NOTES — ${v}: its fold folded replay-main-minor, and the notes do not carry it`;
+      git(['checkout', '-q', '-b', 'poc2', w]); fragment('replay-poc2-own'); commit('q0: the branch\'s own entry');
+      git(['merge', '-q', '--squash', m2]);
+      env.GIT_COMMITTER_DATE = new Date(Date.now() + 3600_000).toISOString();
+      let sq: string;
+      try { sq = commit('sq: main squashed in, as #3833 landed'); } finally { delete env.GIT_COMMITTER_DATE; }
+      git(['checkout', '-q', '-b', 'remerge', sq]); git(['merge', '-q', '--no-ff', '-m', 'merge main for real', m2]);
+      fragment('replay-remerge'); const rm = commit('the real merge\'s entry');
+      git(['update-ref', 'refs/remotes/origin/poc2', sq]);
+      const ref = tsx(RN, POC2);
+      ok(ref.status === 0 && ref.out.includes(`..${m1.slice(0, 8)} — `) && ref.out.includes('folds read from origin/main at'),
+        `#3863 release-notes: a real merge of main into a squash-refreshed branch reads ${v}'s fold from the main it carries (${m1.slice(0, 8)}), not the squash (exit ${ref.status}: ${said(ref, /folds read|\.\.|NOTES|❌/)})`);
+      const head = tsx(RN, {});
+      ok(head.status === 1 && head.out.includes(NOT_FOLDED) && head.out.includes(`..${sq.slice(0, 8)} — `),
+        `#3863 release-notes: the same tree walked from HEAD (no GITHUB_BASE_REF, as before the fix) reads the squash as the fold and fails NOTES by name (exit ${head.status}: ${said(head, /NOTES|\.\./)})`);
+      git(['checkout', '-q', '-b', 'poc2-ordinary', rm]); fragment('replay-poc2-ordinary'); commit('an ordinary PR into the refreshed branch');
+      git(['update-ref', 'refs/remotes/origin/poc2', rm]);
+      const later = tsx(RN, POC2);
+      ok(later.status === 0 && later.out.includes(`..${m1.slice(0, 8)} — `),
+        `#3863 release-notes: an ordinary PR into the branch after the refresh, which brings no new main, still reads the fold from main, not the squash on the branch's chain (exit ${later.status}: ${said(later, /folds read|\.\.|NOTES|❌/)})`);
+      // Teeth: a release that drops a note its fold folded fails on main and on the integration branch alike.
+      const dropNote = () => {
+        const p = join(clone, `docs/public/releases/${v}.json`);
+        const rel = JSON.parse(readFileSync(p, 'utf8')) as { notes: { slug: string }[] };
+        rel.notes = rel.notes.filter((n) => n.slug !== 'replay-main-minor');
+        writeFileSync(p, `${JSON.stringify(rel, null, 2)}\n`);
+      };
+      git(['checkout', '-q', '-b', 'main-drop', m2]); dropNote(); commit('main: the release drops a folded note');
+      const onMain = tsx(RN, { GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'main' });
+      ok(onMain.status === 1 && onMain.out.includes(DROPPED) && onMain.out.includes('folds read from HEAD\'s own history'),
+        `#3863 release-notes: on a PR into main the walk is HEAD's, and a release missing a note its fold folded fails NOTES by name (exit ${onMain.status}: ${said(onMain, /NOTES|folds read/)})`);
+      git(['checkout', '-q', '-b', 'poc2-drop', rm]); dropNote(); commit('poc2: the release drops a folded note');
+      const onPoc = tsx(RN, POC2);
+      ok(onPoc.status === 1 && onPoc.out.includes(DROPPED),
+        `#3863 release-notes: on a PR into the integration branch, a release missing a note main's fold folded still fails NOTES by name (exit ${onPoc.status}: ${said(onPoc, /NOTES|folds read/)})`);
+    }
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
