@@ -728,7 +728,7 @@ const NOTE_SWEEP: [string, Record<string, unknown>][] = [
   ['outline hover fill under the wash', { outlineHoverFill: { light: { hover: 'neutral.050' } } }],
   // #3335: the wash's opacity set under No hover fill is kept and ignored, with a note.
   ['outline wash under no hover fill', { outlineInteraction: 'none', outlineWash: { hover: 5 } }],
-  ['grid margins off the spacing scale (#3052)', { layout: { marginOverrides: { md: 44, lg: 45 } } }],
+  ['grid margins off the spacing scale (#3052; md was 44 until space.550, #3408)', { layout: { marginOverrides: { md: 36, lg: 45 } } }],
   ['caption sizes and letter spacing pins (#3077)', { typography: { sizes: { caption: { md: 10 } }, tracking: { display: 'open', label: 'open' } } }],
   ['a trait pre-empted by another', { personality: ['soft', 'sharp'] }],
   // Every trait the schema advertises, so each trait's approved `why` is scanned too.

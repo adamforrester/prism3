@@ -348,6 +348,12 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // disappear).
     ...(BUTTON_SPACING_AT['small']),
     'size.small.height': 'size.sm.height',
+    // THE CODE-SIDE HIT-TARGET FLOOR, as a spacing step (owner Q141 revised, Q-HT1 A on #3408): the least hit area
+    // code gives the button, through the invisible extension the `hit-target` codeOnly entry describes. Small is
+    // `space.300` (24px, WCAG 2.5.8); medium and large are `space.550` (44px, the enhanced target). No part binds
+    // it, since Figma has no hit areas: it is here so code reads the floor as a token, not a number.
+    // `lint-hit-target.ts` holds each size to its own literal px.
+    'size.small.hit-target': 'space.300',
     'size.small.icon': 'icon.size.xs',
     'size.small.filled.type': 'type.label.sm.emphasis',
     'size.small.outline.type': 'type.label.sm.emphasis',
@@ -355,6 +361,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     'size.small.text.type': 'type.label.sm.emphasis-link',
     ...(BUTTON_SPACING_AT['medium']),
     'size.medium.height': 'size.md.height',
+    'size.medium.hit-target': 'space.550',
     'size.medium.icon': 'icon.size.sm',
     'size.medium.filled.type': 'type.label.md.emphasis',
     'size.medium.outline.type': 'type.label.md.emphasis',
@@ -362,6 +369,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     'size.medium.text.type': 'type.label.md.emphasis-link',
     ...(BUTTON_SPACING_AT['large']),
     'size.large.height': 'size.lg.height',
+    'size.large.hit-target': 'space.550',
     'size.large.icon': 'icon.size.md',
     // RESOLVED #1260 (owner target 2026-09-17): a large button's label is 18px at emphasis (600),
     // bound to the `type.label.lg` rung MINTED for it — the body-lg SIZE (18) at the label tier's own
@@ -547,7 +555,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
         class: 'hit-target',
         disposition: 'unsupported',
         description:
-          'touch-target-expansion — the optical box and the hit box are deliberately decoupled (::before / absolute overlay), reconciling the WCAG 2.5.8 24×24 floor with Apple HIG 44×44 without inflating a compact button. Figma has no concept of a hit area larger than the frame. A flush text button (#2350) keeps its default sibling\'s height but drops the minimum width, so its visible box is only as wide as its label and can be narrower than 44px. Its hit area in code is at least 44×44 at medium and large sizes, and at least 24×24 at small (#2408): an invisible extension, such as a transparent ::before inset outward and centered on the label, reaches past the label into the gutter, while the box stays label-width so the label still lines up. Figma is unchanged, because it has no hit areas.',
+          'touch-target-expansion — the optical box and the hit box are deliberately decoupled (::before / absolute overlay), reconciling the WCAG 2.5.8 24×24 floor with Apple HIG 44×44 without inflating a compact button. Figma has no concept of a hit area larger than the frame. A flush text button (#2350) keeps its default sibling\'s height but drops the minimum width, so its visible box is only as wide as its label and can be narrower than 44px. Its hit area in code is at least 44×44 at medium and large sizes, and at least 24×24 at small (#2408), the floors each size binds as `size.<size>.hit-target`: `space.550` at medium and large, `space.300` at small: an invisible extension, such as a transparent ::before inset outward and centered on the label, reaches past the label into the gutter, while the box stays label-width so the label still lines up. Figma is unchanged, because it has no hit areas.',
       },
       {
         class: 'focus-ring',
