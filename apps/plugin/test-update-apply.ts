@@ -5721,10 +5721,15 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
 }
 // A NODE A DESIGNER EDITED IS NOT MOVED (#2595): the move is decided before the hand-edit choice is made, so a node
 // with a hand edit at or under it is left out of the moves whatever the choice. The dry run lists it as removed on that
-// member and moved on the rest, and the apply rebuilds it there, as before #2595, and moves it on the rest. (Its hand
-// edit is not carried into the rebuilt node, as before #2595: #2673.) Twice: an edit ON the moved node, and one UNDER
-// it (its label), which must block the move as surely (#2595 review). Mutations: the executor ignoring `edited` →
-// `acc/edited agree`; `adoptions` dropping its under-a-node arm → `acc/edited under agree`, `acc/edited under dry run`.
+// member and moved on the rest. Twice: an edit ON the moved node, and one UNDER it (its label), which must block the
+// move as surely (#2595 review). Mutations: the executor ignoring `edited` → `acc/edited overwrite agree`; `adoptions`
+// dropping its under-a-node arm → `acc/edited under overwrite agree`, `acc/edited under dry run`.
+// #2673 (owner decision follows #2956: pending confirmation): REBUILDING THAT NODE WOULD LOSE THE EDIT, so the dry run
+// reads it as a conflict the update would lose (`lost`), and under Keep the apply skips the member whole and names
+// it, as it skips a layer added by hand. Before, the title was rebuilt in the row without the edit while the verdict
+// counted it "kept". Overwrite still rebuilds it, as asked. Mutations: the dry run's `lost` dropped →
+// `acc/<edit> lost`, `acc/<edit> keep skipped`, `acc/<edit> keep byte-identical`; the apply's skip dropped →
+// `acc/<edit> keep skipped`, `acc/<edit> keep byte-identical`.
 const ACC_BEFORE_ROW = (patch: (parts: Record<string, any>) => Record<string, any> = (x) => x) => {
   const now = componentDefs.find((x) => x.id === 'accordion')!;
   const { titleRow, ...restParts } = now.anatomy.parts;
@@ -5734,9 +5739,11 @@ const ACC_BEFORE_ROW = (patch: (parts: Record<string, any>) => Record<string, an
   } as typeof now;
 };
 for (const edit of [
-  { tag: 'edited', path: 'header/titleBox', on: (m: Node) => childNamed(childNamed(m, 'header'), 'titleBox'), apply: async (w: any, n: Node) => (n.setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: await varIdOf(w, 'space/0') }) },
-  { tag: 'edited under', path: 'header/titleBox/label', on: (m: Node) => childNamed(childNamed(childNamed(m, 'header'), 'titleBox'), 'label'), apply: async (_w: any, n: Node) => { (n as unknown as { opacity: number }).opacity = 0.5; } },
-]) {
+  { tag: 'edited', path: 'header/titleBox', on: (m: Node) => childNamed(childNamed(m, 'header'), 'titleBox'), apply: async (w: any, n: Node) => (n.setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: await varIdOf(w, 'space/0') }),
+    read: (n: Node) => JSON.stringify((n.boundVariables as Record<string, { id: string }> | undefined)?.itemSpacing?.id ?? null), want: '"V:space/0"' },
+  { tag: 'edited under', path: 'header/titleBox/label', on: (m: Node) => childNamed(childNamed(childNamed(m, 'header'), 'titleBox'), 'label'), apply: async (_w: any, n: Node) => { (n as unknown as { opacity: number }).opacity = 0.5; },
+    read: (n: Node) => JSON.stringify(n.opacity), want: '0.5' },
+]) for (const choice of ['keep', 'overwrite'] as const) {
   const ACC = 'accordion';
   const w = await world(ACC, figmaAnatomySet(ACC_BEFORE_ROW(), { swapTarget: SWAP_TARGET }));
   const m = membersOf(w.set())[0];
@@ -5751,13 +5758,26 @@ for (const edit of [
   const removed = p.changes.find((c) => c.part === 'header/titleBox' && /removed/.test(c.to));
   ok(JSON.stringify(edits) === JSON.stringify([edit.path]) && move?.members === 47 && removed?.members === 1 && removed.sample[0] === String(m.name),
     `acc/${edit.tag} dry run: with ${edit.path} edited, the title is listed as removed on its member, moved on the other 47 (${JSON.stringify(edits)}; moves ${move?.members}; removed ${removed?.members} on ${removed?.sample.join(', ')})`);
-  const res = await applyUpdate(w.host, w.api as any, [{ def: ACC, plans: plansOf(ACC) }], previewHashOf(pre), { choices: { handEdits: 'keep' } });
-  void res;
+  const hand = p.handEdits.find((h) => h.member === String(m.name));
+  ok(hand?.conflict === true && hand?.lost === true, `acc/${edit.tag} lost: the dry run reads the edit as a conflict the update would lose (${JSON.stringify(hand)})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: ACC, plans: plansOf(ACC) }], previewHashOf(pre), { choices: { handEdits: choice } });
   const row = (x: Node): Node | undefined => childNamed(childNamed(x, 'header'), 'titleRow');
-  const nowBox = String(childNamed(row(m)!, 'titleBox')?.id);
   const kept = membersOf(w.set()).slice(1).map((x) => String(childNamed(row(x)!, 'titleBox')?.id));
-  ok(nowBox !== boxId && (w.api._removed as Node[]).some((x) => String(x.id) === boxId) && JSON.stringify(kept) === JSON.stringify(others),
-    `acc/${edit.tag} agree: with ${edit.path} edited, the title is rebuilt in the row on its member, as the dry run listed it, and moved, by id, on the other 47 (${boxId} → ${nowBox}; ${kept.filter((id, i) => id !== others[i]).length} others changed)`);
+  const mNow = membersOf(w.set())[0];
+  if (choice === 'keep') {
+    const o = res.outcomes[0];
+    const skip = o.skipped.find((k) => k.member === String(mNow.name));
+    ok(!o.updated.includes(String(mNow.name)) && skip?.reason === `the update rebuilds a layer edited by hand (${edit.path})` && !o.kept.some((k) => k.member === String(mNow.name)),
+      `acc/${edit.tag} keep skipped: under Keep the member is skipped and named, never counted as a hand edit kept (${JSON.stringify(skip)}; kept ${JSON.stringify(o.kept)})`);
+    const box = childNamed(childNamed(mNow, 'header'), 'titleBox');
+    ok(!row(mNow) && String(box?.id) === boxId && edit.read(edit.on(mNow)) === edit.want,
+      `acc/${edit.tag} keep byte-identical: the title stays where the designer left it, by id, with the edit as made (${String(box?.id)}; ${box ? edit.read(edit.on(mNow)) : 'gone'})`);
+    ok(JSON.stringify(kept) === JSON.stringify(others), `acc/${edit.tag} keep others moved: the other 47 move their title into the row, by id (${kept.filter((id, i) => id !== others[i]).length} changed)`);
+  } else {
+    const nowBox = String(childNamed(row(mNow)!, 'titleBox')?.id);
+    ok(nowBox !== boxId && (w.api._removed as Node[]).some((x) => String(x.id) === boxId) && JSON.stringify(kept) === JSON.stringify(others),
+      `acc/${edit.tag} overwrite agree: with ${edit.path} edited, Overwrite rebuilds the title in the row on its member, as the dry run listed it, and moves it, by id, on the other 47 (${boxId} → ${nowBox}; ${kept.filter((id, i) => id !== others[i]).length} others changed)`);
+  }
 }
 {
   // A MOVED NODE IS STILL COMPARED TO ITS PLAN (#2595 review): the dry run diffs each moved subtree at its new path,
