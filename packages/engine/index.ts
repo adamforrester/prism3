@@ -41,7 +41,7 @@ export type {
   RaisedSurface, ResolvedGradient, ScrimStrength, Theme, TypeComposite, TypographyInput,
 } from './theme';
 export {
-  ACHROMATIC_C, composite, contrast, formatRatio, hex, hexToRgb, oklchToRgb, rgbToOklch, storedOklch,
+  ACHROMATIC_C, composite, contrast, floorRatio, formatRatio, hex, hexToRgb, oklchToRgb, rgbToOklch, storedOklch,
 } from './color';
 export type { RGB } from './color';
 export { BUILTIN_MODES, GROUND_INPUT, outlineFillRole, resolveAllModes, withIconTwins } from './modes';
