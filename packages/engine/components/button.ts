@@ -307,6 +307,16 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     'focus-ring': 'color.border.focus',
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset',
+    // THE MOTION, AS BINDINGS (#3408 Q146 A, after Q-MD4 A named them in prose). The state change (fill, border, ink,
+    // shadow) and the press both run on the ramp's `fast` step with the default curve: the brief's ~100–150ms, and
+    // prism3-motion R6 (a control's state change is `instant` or `fast`). Under reduced motion the color change keeps
+    // its reduced twin and the press scale resolves to none, so the press has no reduced binding. The press's 0.98
+    // MAGNITUDE is not a timing and no token holds it: it stays in `motion.reduceMotion` (OWNER DECISION on the PR).
+    'motion.state': 'motion.duration.fast',
+    'motion.state-easing': 'motion.easing-role.default',
+    'motion.state-reduced': 'motion.duration-reduced.fast',
+    'motion.press': 'motion.duration.fast',
+    'motion.press-easing': 'motion.easing-role.default',
     // A flush button's padding (#2350): the zero step, bound rather than left a literal 0, so the designer reads
     // `space/0` on both sides and a brand cannot move it. Zero by meaning: a pinned icon sits at the edge.
     'inset.flush': 'space.0',
@@ -813,9 +823,9 @@ const makeButton = (id: string, name: string, summary: string, description: stri
   motion: {
     enter: 'none (present on mount)',
     exit: 'none',
-    // Q-MD4 A (#3555): the brief's ~100–150ms maps to motion.duration.fast, named in prose. `motion` is prose, so
-    // nothing gates it; recorded in `notes.unverified`.
-    reduceMotion: 'State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
+    // Q-MD4 A (#3555): the brief's ~100–150ms maps to motion.duration.fast. Since #3408 Q146 A the tokens are bound in
+    // `tokens` (`motion.state*`, `motion.press*`), and `test.ts` holds the bindings; this prose names the same ones.
+    reduceMotion: 'State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98) on the same duration and curve gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
   },
 
   notes: {
@@ -843,7 +853,6 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       // #1697 — narrowed. The ring's 3:1 against the PAGE is gated (focus-ring.ts wcag, per mode, 4.5:1 in
       // high contrast); what stays open is its contrast against the host's own edge.
       'FINDING (engine): the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts). Its contrast against the host\'s own edge or fill is not measured — the offset is what makes it achievable, not what proves it.',
-      'motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.',
     ],
   },
 });

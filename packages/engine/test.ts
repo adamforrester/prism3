@@ -41537,6 +41537,37 @@ arm: {
   ok(rowBad.length === 0, `Q351 A row props: Checkbox.Row, Radio.Row and Switch.Row each carry disabled, and Radio.Row readOnly, as a real boolean defaulting false (${rowBad.join('; ') || 'all 4'})`);
 }
 
+// ---- #3408 Q146 A: BUTTON'S STATE TRANSITION AND PRESS BIND MOTION TOKENS ----
+//
+// The brief's ~100–150ms state change and the 0.98 press were prose (Q-MD4 A), so nothing could read or gate them. The
+// three Button defs now bind them in `tokens`. EXPECTED is typed here: the five bindings, and prism3-motion R6's rule
+// that a control's state change takes `instant` or `fast` (a literal set, not read from the skill or the ramp). ACTUAL
+// is each def's own `tokens`, and every bound path must resolve in every committed brand's emitted tree.
+{
+  const WANT: Record<string, string> = {
+    'motion.state': 'motion.duration.fast', 'motion.state-easing': 'motion.easing-role.default',
+    'motion.state-reduced': 'motion.duration-reduced.fast',
+    'motion.press': 'motion.duration.fast', 'motion.press-easing': 'motion.easing-role.default',
+  };
+  const R6 = new Set(['motion.duration.instant', 'motion.duration.fast']);
+  const trees = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f) && !f.includes('.base.'))
+    .map((f) => ({ f, t: JSON.parse(readFileSync(resolve(HERE, 'out', f), 'utf8')) }));
+  for (const id of ['button', 'button-destructive', 'button-neutral']) {
+    const tok = componentDefs.find((d) => d.id === id)?.tokens ?? {};
+    const got = Object.fromEntries(Object.entries(tok).filter(([k]) => k.startsWith('motion.')));
+    ok(JSON.stringify(got) === JSON.stringify(WANT), `#3408 Q146 A ${id}: binds the state transition and the press to motion tokens (${JSON.stringify(got)})`);
+    const slow = ['motion.state', 'motion.press'].filter((k) => !R6.has(tok[k]));
+    ok(slow.length === 0, `#3408 Q146 A ${id}: the state change and the press are R6-quick, instant or fast (${slow.map((k) => `${k} → ${tok[k]}`).join(', ') || 'both'})`);
+    ok(tok['motion.state-reduced'] === tok['motion.state']?.replace('motion.duration.', 'motion.duration-reduced.'),
+      `#3408 Q146 A ${id}: the reduced state change is the reduced twin of its duration (${tok['motion.state-reduced']} for ${tok['motion.state']})`);
+    const unresolved = trees.flatMap(({ f, t }) => {
+      const root = Object.keys(t)[0];
+      return Object.values(got).filter((ref) => ref.split('.').reduce((n: any, k) => n?.[k], t[root])?.$value === undefined).map((ref) => `${ref} in ${f}`);
+    });
+    ok(trees.length >= 4 && unresolved.length === 0, `#3408 Q146 A ${id}: every motion binding resolves in all ${trees.length} brands${unresolved.length ? ` — not: ${unresolved.slice(0, 3).join('; ')}` : ''}`);
+  }
+}
+
 // ---- #2830: THE COMPONENT SPEC MODEL — what a spec sheet shows, against the wireframe's hand-read values ----
 //
 // `component-specs.ts` builds the model from the plan; `apps/plugin/test-roundtrip.ts` holds it to the BUILT set,
