@@ -345,6 +345,11 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
       continue;
     }
     if (rootReplaced.has(s.member)) { skipped.push({ member: s.member, reason: 'the member itself would need replacing' }); continue; }
+    // AN EDIT THE UPDATE WOULD LOSE (#2673): its layer is removed or replaced, so keeping it by path keeps nothing. Under
+    // Keep and Accept the member is skipped whole, as a layer added by hand is, and named. Overwrite writes the plan, so
+    // it rebuilds the layer as asked. DRAFT wording for the owner.
+    const lost = choice === 'overwrite' ? [] : edits.filter((e) => e.lost).map((e) => e.path.replace(/#\d+$/, ''));
+    if (lost.length) { skipped.push({ member: s.member, reason: `the update rebuilds ${lost.length === 1 ? 'a layer' : 'layers'} edited by hand (${lost.slice(0, 3).join(', ')}${lost.length > 3 ? ', …' : ''})` }); continue; }
     // `overwrite` writes over every edited node; `keep` and `accept` leave them, and differ only in the record.
     const edited = new Set(edits.map((e) => e.path.replace(/#\d+$/, '')));
     const keep = choice === 'overwrite' ? new Set<string>() : edited;
