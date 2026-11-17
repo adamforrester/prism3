@@ -339,7 +339,7 @@
         {
           "token": "border.tertiary",
           "min": "3:1",
-          "ratio": 3.51,
+          "ratio": 3.5,
           "requirement": "MUST clear 3:1 against `border.tertiary` in every mode."
         }
       ]
@@ -450,7 +450,7 @@
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 4.85,
+          "ratio": 4.84,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -474,7 +474,7 @@
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 3.75,
+          "ratio": 3.74,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -498,7 +498,7 @@
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 3.79,
+          "ratio": 3.78,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -622,7 +622,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "3:1",
-          "ratio": 3.05,
+          "ratio": 3.04,
           "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -642,7 +642,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "3:1",
-          "ratio": 3.94,
+          "ratio": 3.93,
           "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -662,7 +662,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "3:1",
-          "ratio": 3.9,
+          "ratio": 3.89,
           "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -682,7 +682,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "3:1",
-          "ratio": 3.9,
+          "ratio": 3.89,
           "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -702,7 +702,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "3:1",
-          "ratio": 3.93,
+          "ratio": 3.92,
           "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -829,7 +829,7 @@
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 4.85,
+          "ratio": 4.84,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -849,7 +849,7 @@
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 6.82,
+          "ratio": 6.81,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -869,7 +869,7 @@
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 9.41,
+          "ratio": 9.4,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -889,7 +889,7 @@
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 4.85,
+          "ratio": 4.84,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -909,7 +909,7 @@
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 4.85,
+          "ratio": 4.84,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -1313,7 +1313,7 @@
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 8.23,
+          "ratio": 8.22,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -1403,7 +1403,7 @@
         {
           "token": "background.tertiary",
           "min": "4.5:1",
-          "ratio": 4.89,
+          "ratio": 4.88,
           "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
         }
       ]
@@ -1430,7 +1430,7 @@
         {
           "token": "background.tertiary",
           "min": "4.5:1",
-          "ratio": 4.89,
+          "ratio": 4.88,
           "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
         }
       ]
@@ -1458,7 +1458,7 @@
         {
           "token": "background.tertiary",
           "min": "4.5:1",
-          "ratio": 7.22,
+          "ratio": 7.21,
           "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
         }
       ]
@@ -1486,7 +1486,7 @@
         {
           "token": "background.tertiary",
           "min": "4.5:1",
-          "ratio": 7.22,
+          "ratio": 7.21,
           "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
         }
       ]
@@ -1514,7 +1514,7 @@
         {
           "token": "background.tertiary",
           "min": "4.5:1",
-          "ratio": 10.24,
+          "ratio": 10.23,
           "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
         }
       ]
@@ -1542,7 +1542,7 @@
         {
           "token": "background.tertiary",
           "min": "4.5:1",
-          "ratio": 10.24,
+          "ratio": 10.23,
           "requirement": "MUST clear 4.5:1 against `background.tertiary` in every mode."
         }
       ]
@@ -1568,7 +1568,7 @@
         {
           "token": "background.tertiary",
           "min": "3:1",
-          "ratio": 4.89,
+          "ratio": 4.88,
           "requirement": "MUST clear 3:1 against `background.tertiary` in every mode."
         }
       ]
@@ -1594,7 +1594,7 @@
         {
           "token": "background.tertiary",
           "min": "3:1",
-          "ratio": 7.22,
+          "ratio": 7.21,
           "requirement": "MUST clear 3:1 against `background.tertiary` in every mode."
         }
       ]
@@ -1620,7 +1620,7 @@
         {
           "token": "background.tertiary",
           "min": "3:1",
-          "ratio": 10.24,
+          "ratio": 10.23,
           "requirement": "MUST clear 3:1 against `background.tertiary` in every mode."
         }
       ]
@@ -1646,7 +1646,7 @@
         {
           "token": "background.tertiary",
           "min": "3:1",
-          "ratio": 4.89,
+          "ratio": 4.88,
           "requirement": "MUST clear 3:1 against `background.tertiary` in every mode."
         }
       ]
@@ -1672,7 +1672,7 @@
         {
           "token": "background.tertiary",
           "min": "3:1",
-          "ratio": 7.22,
+          "ratio": 7.21,
           "requirement": "MUST clear 3:1 against `background.tertiary` in every mode."
         }
       ]
@@ -1698,7 +1698,7 @@
         {
           "token": "background.tertiary",
           "min": "3:1",
-          "ratio": 10.24,
+          "ratio": 10.23,
           "requirement": "MUST clear 3:1 against `background.tertiary` in every mode."
         }
       ]
@@ -1812,7 +1812,7 @@
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 19.43,
+          "ratio": 19.42,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -1840,7 +1840,7 @@
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 19.43,
+          "ratio": 19.42,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -1978,7 +1978,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 19.43,
+          "ratio": 19.42,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -2056,7 +2056,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 19.43,
+          "ratio": 19.42,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -2133,7 +2133,7 @@
         {
           "token": "inverse.background.primary",
           "min": "4.5:1",
-          "ratio": 4.94,
+          "ratio": 4.93,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2158,7 +2158,7 @@
         {
           "token": "inverse.background.primary",
           "min": "4.5:1",
-          "ratio": 4.94,
+          "ratio": 4.93,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2242,7 +2242,7 @@
         {
           "token": "inverse.background.primary",
           "min": "4.5:1",
-          "ratio": 10.05,
+          "ratio": 10.04,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2270,7 +2270,7 @@
         {
           "token": "inverse.background.primary",
           "min": "4.5:1",
-          "ratio": 10.05,
+          "ratio": 10.04,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2293,7 +2293,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 19.43,
+          "ratio": 19.42,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2333,7 +2333,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 10.78,
+          "ratio": 10.77,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2373,7 +2373,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 10.78,
+          "ratio": 10.77,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2396,7 +2396,7 @@
         {
           "token": "inverse.interactive.primary.fill.rest",
           "min": "4.5:1",
-          "ratio": 8.28,
+          "ratio": 8.27,
           "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.fill.rest` in every mode."
         }
       ]
@@ -2422,7 +2422,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 4.94,
+          "ratio": 4.93,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2474,7 +2474,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 10.05,
+          "ratio": 10.04,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2500,7 +2500,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 4.94,
+          "ratio": 4.93,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2552,7 +2552,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 10.05,
+          "ratio": 10.04,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2741,7 +2741,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 19.43,
+          "ratio": 19.42,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2781,7 +2781,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 10.78,
+          "ratio": 10.77,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2821,7 +2821,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 10.78,
+          "ratio": 10.77,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -3140,7 +3140,7 @@
         {
           "token": "inverse.background.primary",
           "min": "4.5:1",
-          "ratio": 10.78,
+          "ratio": 10.77,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -3168,7 +3168,7 @@
         {
           "token": "inverse.background.primary",
           "min": "4.5:1",
-          "ratio": 10.78,
+          "ratio": 10.77,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -3191,7 +3191,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 19.43,
+          "ratio": 19.42,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -3231,7 +3231,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 10.78,
+          "ratio": 10.77,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -3271,7 +3271,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 10.78,
+          "ratio": 10.77,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -3294,7 +3294,7 @@
         {
           "token": "inverse.interactive.neutral.fill.rest",
           "min": "4.5:1",
-          "ratio": 19.43,
+          "ratio": 19.42,
           "requirement": "MUST clear 4.5:1 against `inverse.interactive.neutral.fill.rest` in every mode."
         }
       ]
@@ -3372,7 +3372,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 10.78,
+          "ratio": 10.77,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -3450,7 +3450,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 10.78,
+          "ratio": 10.77,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -3497,7 +3497,7 @@
         {
           "token": "text.primary",
           "min": "4.5:1",
-          "ratio": 12.1,
+          "ratio": 12.09,
           "composited_over": "background.primary",
           "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.primary.overlay.pressed` composited over `background.primary`, in every mode."
         }
@@ -3521,7 +3521,7 @@
         {
           "token": "text.primary",
           "min": "4.5:1",
-          "ratio": 12.1,
+          "ratio": 12.09,
           "composited_over": "background.primary",
           "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.primary.overlay.selected` composited over `background.primary`, in every mode."
         }
@@ -3569,7 +3569,7 @@
         {
           "token": "text.primary",
           "min": "4.5:1",
-          "ratio": 12.1,
+          "ratio": 12.09,
           "composited_over": "background.primary",
           "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.neutral.overlay.pressed` composited over `background.primary`, in every mode."
         }
@@ -3593,7 +3593,7 @@
         {
           "token": "text.primary",
           "min": "4.5:1",
-          "ratio": 12.1,
+          "ratio": 12.09,
           "composited_over": "background.primary",
           "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.neutral.overlay.selected` composited over `background.primary`, in every mode."
         }
@@ -3641,7 +3641,7 @@
         {
           "token": "text.primary",
           "min": "4.5:1",
-          "ratio": 12.1,
+          "ratio": 12.09,
           "composited_over": "background.primary",
           "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.destructive.overlay.pressed` composited over `background.primary`, in every mode."
         }
@@ -3665,7 +3665,7 @@
         {
           "token": "text.primary",
           "min": "4.5:1",
-          "ratio": 12.1,
+          "ratio": 12.09,
           "composited_over": "background.primary",
           "requirement": "MUST keep `text.primary` at 4.5:1 or more on `interactive.destructive.overlay.selected` composited over `background.primary`, in every mode."
         }
@@ -3713,7 +3713,7 @@
         {
           "token": "inverse.text.primary",
           "min": "4.5:1",
-          "ratio": 10.07,
+          "ratio": 10.06,
           "composited_over": "inverse.background.primary",
           "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.primary.overlay.pressed` composited over `inverse.background.primary`, in every mode."
         }
@@ -3737,7 +3737,7 @@
         {
           "token": "inverse.text.primary",
           "min": "4.5:1",
-          "ratio": 10.07,
+          "ratio": 10.06,
           "composited_over": "inverse.background.primary",
           "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.primary.overlay.selected` composited over `inverse.background.primary`, in every mode."
         }
@@ -3785,7 +3785,7 @@
         {
           "token": "inverse.text.primary",
           "min": "4.5:1",
-          "ratio": 10.07,
+          "ratio": 10.06,
           "composited_over": "inverse.background.primary",
           "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.neutral.overlay.pressed` composited over `inverse.background.primary`, in every mode."
         }
@@ -3809,7 +3809,7 @@
         {
           "token": "inverse.text.primary",
           "min": "4.5:1",
-          "ratio": 10.07,
+          "ratio": 10.06,
           "composited_over": "inverse.background.primary",
           "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.neutral.overlay.selected` composited over `inverse.background.primary`, in every mode."
         }
@@ -3857,7 +3857,7 @@
         {
           "token": "inverse.text.primary",
           "min": "4.5:1",
-          "ratio": 10.07,
+          "ratio": 10.06,
           "composited_over": "inverse.background.primary",
           "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.destructive.overlay.pressed` composited over `inverse.background.primary`, in every mode."
         }
@@ -3881,7 +3881,7 @@
         {
           "token": "inverse.text.primary",
           "min": "4.5:1",
-          "ratio": 10.07,
+          "ratio": 10.06,
           "composited_over": "inverse.background.primary",
           "requirement": "MUST keep `inverse.text.primary` at 4.5:1 or more on `inverse.interactive.destructive.overlay.selected` composited over `inverse.background.primary`, in every mode."
         }
@@ -4023,7 +4023,7 @@
         {
           "token": "inverse.disabled.fill",
           "min": "3:1",
-          "ratio": 3.03,
+          "ratio": 3.02,
           "requirement": "MUST clear 3:1 against `inverse.disabled.fill` in every mode."
         }
       ]
@@ -4048,7 +4048,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "3:1",
-          "ratio": 3.25,
+          "ratio": 3.24,
           "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -4073,7 +4073,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "3:1",
-          "ratio": 3.25,
+          "ratio": 3.24,
           "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -4164,7 +4164,7 @@
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 6.68,
+          "ratio": 6.67,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -4192,7 +4192,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 4.55,
+          "ratio": 4.54,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -4237,7 +4237,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "3:1",
-          "ratio": 3.25,
+          "ratio": 3.24,
           "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -4296,7 +4296,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 4.64,
+          "ratio": 4.63,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -4324,7 +4324,7 @@
         {
           "token": "background.primary",
           "min": "7:1",
-          "ratio": 19.43,
+          "ratio": 19.42,
           "requirement": "MUST clear 7:1 against `background.primary` in every mode."
         }
       ]
@@ -4349,7 +4349,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 4.55,
+          "ratio": 4.54,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -4413,7 +4413,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 5.73,
+          "ratio": 5.72,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -4438,7 +4438,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 5.53,
+          "ratio": 5.52,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -4463,7 +4463,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 5.58,
+          "ratio": 5.57,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -4513,7 +4513,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 5.52,
+          "ratio": 5.51,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -4555,7 +4555,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 4.8,
+          "ratio": 4.79,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -4633,7 +4633,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 3.92,
+          "ratio": 3.91,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -4780,7 +4780,7 @@
         {
           "token": "foreground.warning",
           "min": "4.5:1",
-          "ratio": 4.6,
+          "ratio": 4.59,
           "requirement": "MUST clear 4.5:1 against `foreground.warning` in every mode."
         }
       ]
@@ -4826,7 +4826,7 @@
         {
           "token": "foreground.info",
           "min": "4.5:1",
-          "ratio": 4.56,
+          "ratio": 4.55,
           "requirement": "MUST clear 4.5:1 against `foreground.info` in every mode."
         }
       ]
@@ -4851,7 +4851,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 5.73,
+          "ratio": 5.72,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -4932,7 +4932,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 5.73,
+          "ratio": 5.72,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -4988,7 +4988,7 @@
         {
           "token": "background.primary",
           "min": "7:1",
-          "ratio": 19.43,
+          "ratio": 19.42,
           "requirement": "MUST clear 7:1 against `background.primary` in every mode."
         }
       ]
@@ -5013,7 +5013,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 4.55,
+          "ratio": 4.54,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -5077,7 +5077,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 5.73,
+          "ratio": 5.72,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -5102,7 +5102,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 5.53,
+          "ratio": 5.52,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -5127,7 +5127,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 5.58,
+          "ratio": 5.57,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -5177,7 +5177,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 5.52,
+          "ratio": 5.51,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -5219,7 +5219,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 4.8,
+          "ratio": 4.79,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -5297,7 +5297,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 3.92,
+          "ratio": 3.91,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -5444,7 +5444,7 @@
         {
           "token": "foreground.warning",
           "min": "4.5:1",
-          "ratio": 4.6,
+          "ratio": 4.59,
           "requirement": "MUST clear 4.5:1 against `foreground.warning` in every mode."
         }
       ]
@@ -5490,7 +5490,7 @@
         {
           "token": "foreground.info",
           "min": "4.5:1",
-          "ratio": 4.56,
+          "ratio": 4.55,
           "requirement": "MUST clear 4.5:1 against `foreground.info` in every mode."
         }
       ]
@@ -5515,7 +5515,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 5.73,
+          "ratio": 5.72,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -5596,7 +5596,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 5.73,
+          "ratio": 5.72,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -5683,7 +5683,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 4.64,
+          "ratio": 4.63,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -5722,7 +5722,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "3:1",
-          "ratio": 3.25,
+          "ratio": 3.24,
           "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -5747,7 +5747,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 4.56,
+          "ratio": 4.55,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -5797,7 +5797,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 4.58,
+          "ratio": 4.57,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -5822,7 +5822,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 4.57,
+          "ratio": 4.56,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -5847,7 +5847,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 4.64,
+          "ratio": 4.63,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -5925,7 +5925,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 3.53,
+          "ratio": 3.52,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -6003,7 +6003,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 3.5,
+          "ratio": 3.49,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -6042,7 +6042,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 3.51,
+          "ratio": 3.5,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -6067,7 +6067,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 4.56,
+          "ratio": 4.55,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -6095,7 +6095,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 6.59,
+          "ratio": 6.58,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -6148,7 +6148,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 4.56,
+          "ratio": 4.55,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -6176,7 +6176,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 9.27,
+          "ratio": 9.26,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -6229,7 +6229,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 4.64,
+          "ratio": 4.63,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -6268,7 +6268,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "3:1",
-          "ratio": 3.25,
+          "ratio": 3.24,
           "requirement": "MUST clear 3:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -6293,7 +6293,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 4.56,
+          "ratio": 4.55,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -6343,7 +6343,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 4.58,
+          "ratio": 4.57,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -6368,7 +6368,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 4.57,
+          "ratio": 4.56,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -6393,7 +6393,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 4.64,
+          "ratio": 4.63,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -6471,7 +6471,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 3.53,
+          "ratio": 3.52,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -6549,7 +6549,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 3.5,
+          "ratio": 3.49,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -6588,7 +6588,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 3.51,
+          "ratio": 3.5,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -6613,7 +6613,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 4.56,
+          "ratio": 4.55,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -6641,7 +6641,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 6.59,
+          "ratio": 6.58,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -6694,7 +6694,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 4.56,
+          "ratio": 4.55,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -6722,7 +6722,7 @@
         {
           "token": "inverse.background.secondary",
           "min": "4.5:1",
-          "ratio": 9.27,
+          "ratio": 9.26,
           "requirement": "MUST clear 4.5:1 against `inverse.background.secondary` in every mode."
         }
       ]
@@ -6766,13 +6766,13 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 5.52,
+          "ratio": 5.51,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         },
         {
           "token": "foreground.tertiary",
           "min": "3:1",
-          "ratio": 3.51,
+          "ratio": 3.5,
           "requirement": "MUST clear 3:1 against `foreground.tertiary` in every mode."
         }
       ]
@@ -6812,7 +6812,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 5.51,
+          "ratio": 5.5,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -6832,7 +6832,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 4.6,
+          "ratio": 4.59,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -6872,7 +6872,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 4.56,
+          "ratio": 4.55,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -6976,7 +6976,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 4.27,
+          "ratio": 4.26,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -6996,7 +6996,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 4.23,
+          "ratio": 4.22,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -7016,7 +7016,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 4.23,
+          "ratio": 4.22,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -7064,7 +7064,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 4.94,
+          "ratio": 4.93,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
