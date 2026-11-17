@@ -4770,7 +4770,7 @@ arm: {
       ],
     } };
     const AsyncFn = Object.getPrototypeOf(async () => {}).constructor;
-    return { plan, res: await new AsyncFn('figma', verifyJs(plan, plan.color.modes))(shim) as { modesDistinct: boolean; modes: string[]; fieldFamilyPresent: boolean; bareDangerPresent: boolean } };
+    return { plan, res: await new AsyncFn('figma', verifyJs(plan, plan.color.modes, []))(shim) as { modesDistinct: boolean; modes: string[]; fieldFamilyPresent: boolean; bareDangerPresent: boolean } };
   };
   const one = await runVerify(['light'], 'alias');
   ok(JSON.stringify(one.plan.color.modes) === '["light"]' && JSON.stringify(one.res.modes) === '["light"]',
