@@ -408,11 +408,15 @@ export const mountActivity = (opts: { readonly lend: ActivityLend; readonly narr
   sheetHead.append(close, h('b', 'p3-drawer-title', 'Activity'), h('span', 'p3-spacer'), sheetCounts);
   body.append(sheetHead, linkDetail, rows, note);
   // #2069 (Q116 A): Report a problem, the drawer's last line, where the session's results are. DRAFT placement and words.
+  // The owner (2026-11-17): less prominent. A ghost icon button at the line's end (the drawer's bottom corner), not a
+  // full-width button: the glyph the web rail draws for it (#3524), named and titled by its words, as Close Activity is.
   if (opts.lend.report) {
     const report = opts.lend.report;
-    const rep = hook(h('button', 'p3-btn p3-btn-page p3-drawer-report'), 'activity-report');
+    const rep = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon p3-drawer-report'), 'activity-report');
     rep.type = 'button';
-    rep.textContent = REPORT_COPY.open;
+    rep.setAttribute('aria-label', REPORT_COPY.open);
+    rep.title = REPORT_COPY.open;
+    rep.append(glyph('report'));
     rep.onclick = () => report(rep);
     body.append(rep);
   }
