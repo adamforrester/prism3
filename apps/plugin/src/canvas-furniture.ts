@@ -23,7 +23,7 @@
  *
  * PRISM3'S OWN, AND TAGGED SO. Every instance carries shared plugin data `prism3`/`furniture` naming its def and its
  * set. A rebuild or update clears the def's furniture on that parent, and the set's own on any other parent it was
- * moved from (`clearMovedFurniture`, #2485), and draws it fresh, so it never drifts from the grid; prune removes furniture whose set is gone (`staleFurniture`). The update's hand-edit check and the as-built
+ * moved from (`clearMovedFurniture`, #2485), and draws it fresh, so it never drifts from the grid; prune removes furniture whose set is gone or on another parent (`staleFurniture`). The update's hand-edit check and the as-built
  * record read the set's members only, and furniture is never a member: it is never appended into the set, which is
  * what keeps both blind to it (`test-canvas-furniture.ts` `update/…` holds that).
  *
@@ -765,21 +765,31 @@ export const furnishUpdate = async (
 };
 
 /**
- * The furniture prune removes: instances whose set is gone, or whose def no longer has furniture. `setAlive` answers
- * for a set id whether a component set with that id is still in the file. Pure, so the rule is checked offline.
+ * The furniture prune removes: instances whose set is gone, whose def no longer has furniture, or whose set is alive
+ * but on another parent (#2485, Q294 A: a designer moved the set, and its labels and backdrop stayed behind). Each
+ * item carries `parent`, the id of the node it sits in; `setParent` answers for a set id the id of that set's parent,
+ * or null when no component set with that id is in the file. Furniture is always drawn on its set's parent, so a copy
+ * anywhere else is one the set left. Pure, so the rule is checked offline.
  */
-export const staleFurniture = <T extends { tag: FurnitureTag }>(items: readonly T[], setAlive: (setId: string) => boolean): T[] =>
-  items.filter((i) => !hasFurniture(i.tag.def) || !setAlive(i.tag.set));
+export const staleFurniture = <T extends { tag: FurnitureTag; parent: string }>(items: readonly T[], setParent: (setId: string) => string | null): T[] =>
+  items.filter((i) => {
+    if (!hasFurniture(i.tag.def)) return true;
+    const home = setParent(i.tag.set);
+    return home === null || home !== i.parent;
+  });
+
+/** The id of the node `n` sits in, or '' when it has none. */
+export const parentIdOf = (n: { readonly parent?: unknown }): string => String((n.parent as { id?: unknown } | null | undefined)?.id ?? '');
 
 /**
  * PRUNE'S HALF: remove the stale furniture among `nodes` (every tagged instance in the file). Returns how many went.
  * A node with no furniture tag is never touched, so a hand-placed `inverse-bg` rectangle stays (Q172.5). Each removal
  * is tried on its own (#3697 R6): one that throws is recorded in `failed`, when given, and not counted.
  */
-export const pruneFurniture = (nodes: readonly XNode[], setAlive: (setId: string) => boolean, failed?: string[]): number => {
-  const tagged = nodes.map((node) => ({ node, tag: readTag(node) })).filter((x): x is { node: XNode; tag: FurnitureTag } => x.tag !== null);
+export const pruneFurniture = (nodes: readonly XNode[], setParent: (setId: string) => string | null, failed?: string[]): number => {
+  const tagged = nodes.map((node) => ({ node, tag: readTag(node), parent: parentIdOf(node) })).filter((x): x is { node: XNode; tag: FurnitureTag; parent: string } => x.tag !== null);
   let n = 0;
-  for (const f of staleFurniture(tagged, setAlive)) {
+  for (const f of staleFurniture(tagged, setParent)) {
     if (f.node.removed) continue;
     try { f.node.remove?.(); n++; }
     catch (e) { failed?.push(`furniture:${f.tag.def} (${(e as Error)?.message ?? String(e)})`); }
@@ -792,8 +802,8 @@ export const furniturePruneText = (n: number, applied: boolean): string => {
   if (n === 0) return '';
   const what = `${n} canvas label${n === 1 ? '' : 's'} or backdrop${n === 1 ? '' : 's'}`;
   return applied
-    ? `Removed ${what} left from a set no longer in this file.`
-    : `${what} ${n === 1 ? 'belongs' : 'belong'} to a set no longer in this file. Deleting ${n === 1 ? 'it' : 'them'} touches no component.`;
+    ? `Removed ${what} left from a set that was deleted or moved.`
+    : `${what} ${n === 1 ? 'belongs' : 'belong'} to a set that was deleted or moved. Deleting ${n === 1 ? 'it' : 'them'} touches no component.`;
 };
 
 /** A set's usage panel folded into its furniture outcome, so the run's template line and warning cover both. */

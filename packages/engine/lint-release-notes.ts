@@ -29,7 +29,8 @@
  * ── WHERE THE TWO SIDES COME FROM (docs/34) ─────────────────────────────────────────────────────────
  *
  * SUBJECT: the committed `docs/public/releases/*`, written by `release-notes.ts` (called from `fold.ts`).
- * ORACLE: git. For a version V, HEAD is the single-parent commit in HEAD's history that set
+ * ORACLE: git. For a version V, HEAD is the single-parent commit in HEAD's history (on a PR into a branch
+ * other than `main`, the history of the `main` HEAD carries, #3863) that set
  * `ENGINE_VERSION` to V (its fold), or the working tree when no commit has yet (a fold being written).
  * BASE is the commit that set the version before it. At each, this file reads the same four committed
  * records the generator reads and the rename ledger, and derives the changes with ITS OWN CODE.
@@ -76,12 +77,19 @@
  *   M12 its `29 new` changed to `28 new` in the `.md` only → MARKDOWN (counts 28 new).
  *   M13 its `0 breaking changes` changed to `3 breaking changes` in the `.md` only → MARKDOWN (counts 3 breaking).
  *   M14 its `from 0.236.0` changed to `from 0.235.0` in the `.md` only → MARKDOWN (follows).
+ *
+ * Run by `test.ts`'s #3863 replay (an integration branch refreshed from `main` by a squash, then by a real merge):
+ *
+ *   M15 the walk on HEAD again on a PR into another base → NOTES on the refresh: the squash is read as the fold.
+ *   M16 `integrationBase` in place of `carriedMain` → NOTES on an ordinary PR into the branch after the refresh.
+ *   M17 `carriedMain` not returning null for `main` → the PR-to-main case reads its folds from `origin/main`.
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { carriedMain } from './comparison-base';
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const DIR = 'docs/public/releases';
@@ -89,9 +97,9 @@ const DIR = 'docs/public/releases';
  *  the 0.232.0 fold). Every version from here on carries a release. */
 const FLOOR = '0.234.0';
 
-const git = (...args: string[]): { ok: boolean; out: string } => {
+const git = (...args: string[]): { ok: boolean; out: string; err: string } => {
   const r = spawnSync('git', ['-C', repo, ...args], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
-  return { ok: r.status === 0, out: r.stdout ?? '' };
+  return { ok: r.status === 0, out: r.stdout ?? '', err: (r.stderr ?? '').trim() };
 };
 const cannotRun = (why: string): never => {
   console.error(`\n❌ lint-release-notes CANNOT RUN — ${why}`);
@@ -252,9 +260,21 @@ const changes = (b: Recs, h: Recs): Item[] => {
 // version, and `--first-parent` took it for the fold, so a branch that merged `main` across a fold was
 // checked against a diff holding the branch's own changes. So: the whole history, each record's parents
 // printed, and any record with more than one parent skipped here rather than trusted to a git flag.
+//
+// A PR into a branch other than `main` walks from the `main` its tree carries instead (#3863, `carriedMain` in
+// `comparison-base.ts`). `main` is the only branch that folds, and an integration branch refreshed by a squash
+// (#3833, a96bdd6a on `poc/arm-1`) holds a single-parent commit setting `main`'s version, spanning everything
+// `main` merged since the branch last met it. Walked from HEAD, that squash is the newest commit setting the
+// version, so it was read as the fold, on every later PR into the branch: 0.238.0 judged over `be03a0dc..a96bdd6a`,
+// 86 problems in notes `main`'s own run had passed. `GITHUB_BASE_REF` names the base, as in every git-history gate;
+// unset (a push run, a merge-group run, a local run) or `main`, the walk is HEAD's, exactly as before.
+const prBase = process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : null;
+if (prBase && !git('rev-parse', '--verify', '--quiet', `${prBase}^{commit}`).ok) cannotRun(`GITHUB_BASE_REF names ${prBase}, which does not resolve, so which history holds the folds is unknown`);
+const carried = prBase ? carriedMain(git, prBase) : null;
+const walkFrom = carried?.point ?? 'HEAD';
 const folds = new Map<string, string>();
 {
-  const r = git('log', '-U0', '--format=%x00%H %P', '-G', 'ENGINE_VERSION = ', 'HEAD', '--', 'packages/engine/version.ts');
+  const r = git('log', '-U0', '--format=%x00%H %P', '-G', 'ENGINE_VERSION = ', walkFrom, '--', 'packages/engine/version.ts');
   if (!r.ok) cannotRun('git log failed');
   for (const rec of r.out.split('\0')) {
     const [sha, ...parents] = rec.split('\n')[0].trim().split(/\s+/);
@@ -263,7 +283,7 @@ const folds = new Map<string, string>();
     if (v && !folds.has(v)) folds.set(v, sha);
   }
 }
-if (!folds.size) cannotRun('no single-parent commit in HEAD\'s history sets ENGINE_VERSION');
+if (!folds.size) cannotRun(`no single-parent commit in ${carried ? `the history of ${carried.mainRef} at ${carried.point.slice(0, 8)}` : 'HEAD\'s history'} sets ENGINE_VERSION`);
 const working = versionIn(fileAt(null, 'packages/engine/version.ts'));
 if (!working) cannotRun('cannot read ENGINE_VERSION in the working tree');
 /** Where a version's tree is: its fold commit, or the working tree for a fold not yet committed. */
@@ -290,7 +310,7 @@ const report: string[] = [];
 for (const v of onDisk.sort(cmpVersion)) {
   const rel = JSON.parse(readFileSync(join(repo, DIR, `${v}.json`), 'utf8')) as { version: string; from: string; base: string; date: string; counts: Record<string, number>; items: Item[]; notes: { slug: string; level: string; prose: string }[] };
   const at = headOf(v);
-  if (at === undefined) { fail('CLAIMED, NOT IN THE DIFF', `${v}: no single-parent commit in HEAD's history sets ENGINE_VERSION to ${v}, and the working tree is ${working}`); continue; }
+  if (at === undefined) { fail('CLAIMED, NOT IN THE DIFF', `${v}: no single-parent commit in ${carried ? `${carried.mainRef}'s history at ${carried.point.slice(0, 8)}` : 'HEAD\'s history'} sets ENGINE_VERSION to ${v}, and the working tree is ${working}`); continue; }
   const from = versionIn(fileAt(at === null ? 'HEAD' : `${at}^1`, 'packages/engine/version.ts'));
   if (rel.version !== v) fail('INDEX', `${v}.json says it is ${rel.version}`);
   if (!from || rel.from !== from) { fail('NOTES', `${v}: the notes say they follow ${rel.from}; git says ${from ?? '(unreadable)'}`); continue; }
@@ -391,6 +411,9 @@ for (const v of onDisk.sort(cmpVersion)) {
 }
 
 console.log(`release notes (#2650): ${onDisk.length} release(s) in ${DIR}/, checked against git from ${FLOOR}`);
+console.log(carried
+  ? `  folds read from ${carried.mainRef} at ${carried.point.slice(0, 8)}, the main HEAD carries — the base is ${prBase}, and only main folds (#3863)`
+  : '  folds read from HEAD\'s own history');
 for (const l of report) console.log(l);
 if (fails.length) {
   console.error(`\n❌ lint-release-notes — ${fails.length} problem(s):`);

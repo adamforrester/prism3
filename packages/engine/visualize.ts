@@ -31,6 +31,7 @@ import { readExampleBrand } from './emit-dtcg';
 import { resolvePreview } from './resolve-preview';
 import { previewSpec } from './preview';
 import { at, deref, pxOf, subNode, numOf, remPxOf, familyOf } from './tree';
+import { formatRatio } from './color';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, 'out');
@@ -443,7 +444,7 @@ for (const b of brands) {
       const chipStyle = `background:${bg};color:${fg};border:${border};border-radius:${radius}px;padding:${pad};${font}`;
       const cs = rp.contracts.filter((c) => c.component === comp.id && c.variant === v.name);
       const rows = cs.map((c) => {
-        const dots = PVMODES.map((m) => { const r = c.byMode[m]; return r ? `<i class="${r.pass ? 'ok' : 'no'}" title="${m}: ${r.ratio}:1 (min ${c.min})">${PVABBR[m]}</i>` : ''; }).join('');
+        const dots = PVMODES.map((m) => { const r = c.byMode[m]; return r ? `<i class="${r.pass ? 'ok' : 'no'}" title="${m}: ${formatRatio(r.ratio)} (min ${c.min})">${PVABBR[m]}</i>` : ''; }).join('');
         const lr = c.byMode.light;
         // L-10: show the ACTUAL relation — a failing light contract used to print `3.20≥4.5`,
         // literally false. Use `<` + a fail class when it doesn't clear the min.
