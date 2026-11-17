@@ -21,6 +21,7 @@
 import { brandTheme, type BrandInput } from '@prism3/engine';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as store from './src/state/store';
+import { isDirty } from './src/provenance';
 import * as T from './src/state/type-input';
 import { knownWeightsOf } from './src/ui/fonts';
 import { typeSamplePicks, TYPE_SAMPLE_DISPLAY } from './src/preview/sections/type-sample';
@@ -548,6 +549,29 @@ console.log('\n11. Caption sizes and the letter spacing pin (#3077, owner decisi
   reset();
   T.setCaptionSize('lg', 14);
   check('caption lg set, md not', false);
+  reset();
+}
+
+console.log('\n12. A brand with no typography key stays byte-identical when a size is set and cleared (#1071)');
+{
+  // EXPECTED typed here: a new brand as the start window makes it, with NO `typography` key, written out as a literal
+  // (never read from `start-input.ts`). `isDirty` is exact equality, so a stray `typography: {}` is an edit.
+  const NO_TYPE: BrandInput = { id: 'untitled', root: 'prism', modes: ['light'], primary: { l: 0.5, c: 0.03, h: 250 }, neutral: { hue: 250, chroma: 0.004 } } as BrandInput;
+  const fresh = (): void => { store.initSession(structuredClone(NO_TYPE), { kind: 'new' }); loaded = JSON.stringify(store.brandState); };
+  const noKey = (): boolean => !('typography' in store.brandState);
+  for (const [what, set, clear] of [
+    ['a brand-wide size (setSizePin)', () => T.setSizePin(null, 'display', 'md', 60), () => T.setSizePin(null, 'display', 'md', undefined)],
+    ['a mobile size (setMobileSize)', () => T.setMobileSize('display', 'md', 40), () => T.setMobileSize('display', 'md', undefined)],
+    ['a size released (releasePinnedSizes)', () => T.setSizePin(null, 'display', 'md', 60), () => T.releasePinnedSizes()],
+  ] as const) {
+    fresh();
+    clear();
+    ok(noKey() && pristine(), `#1071: clearing ${what} on a brand with no typography writes nothing (${JSON.stringify(store.brandState.typography)})`);
+    set();
+    ok(!noKey(), `#1071: setting ${what} writes typography`);
+    clear();
+    ok(noKey() && pristine() && !isDirty(store.brandState, store.provenance), `#1071: setting then clearing ${what} prunes typography: byte-identical, not dirty (${JSON.stringify(store.brandState.typography)})`);
+  }
   reset();
 }
 

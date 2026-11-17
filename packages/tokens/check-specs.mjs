@@ -141,6 +141,12 @@ const PLACE = {
   paddingBottom: ['padding', 'bottom'], paddingLeft: ['padding', 'start'],
   gap: ['itemSpacing'], height: ['height'], minHeight: ['minHeight'],
   width: ['width'], minWidth: ['minWidth'], maxWidth: ['maxWidth'],
+  // #3506: the corner and the stroke. One value when uniform; a Corners / Sides object, in logical directions, when not.
+  radius: ['cornerRadius'], strokeWidth: ['strokeWeight'],
+  radiusTopLeft: ['cornerRadius', 'topStart'], radiusTopRight: ['cornerRadius', 'topEnd'],
+  radiusBottomRight: ['cornerRadius', 'bottomEnd'], radiusBottomLeft: ['cornerRadius', 'bottomStart'],
+  strokeWidthTop: ['strokeWeight', 'top'], strokeWidthRight: ['strokeWeight', 'end'],
+  strokeWidthBottom: ['strokeWeight', 'bottom'], strokeWidthLeft: ['strokeWeight', 'start'],
 };
 const leafOf = (p) => p.slice(p.lastIndexOf('/') + 1);
 const sameCoord = (a, b) => { const ka = Object.keys(a), kb = Object.keys(b); return ka.length === kb.length && ka.every((k) => a[k] === b[k]); };

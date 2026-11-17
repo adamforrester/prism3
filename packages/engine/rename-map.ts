@@ -522,8 +522,9 @@ export const validateRenameMap = (map: RenameMap): string[] => {
  *
  * `existing` is the variable names the file already holds in this collection; `planned` is the names
  * this write is about to produce. Grouped by target, because fan-in is only resolvable by looking at
- * the whole group: with one source live it is an ordinary migration, with two it is ambiguous and
- * neither moves.
+ * the whole group: with one source live it is an ordinary migration, and with two or more it is
+ * ambiguous and neither moves, unless exactly one of them keeps the target's leaf (#1142, at the
+ * `ambiguous-source` branch below).
  *
  * Returns an outcome for every entry considered, including the no-ops — a caller must be able to tell
  * "checked, nothing to do" from "never checked."
@@ -583,7 +584,31 @@ export const planVariableRenames = (
     // `deriveVariableRenames` collapses the same rename recorded under two contract paths (see its
     // header, #1140), and `test.ts` pins the map duplicate-free. Undo that and this branch starts
     // reporting one name recorded twice as ambiguous, refusing a migration that is not in doubt at all.
-    else if (live.length > 1) out.push(...live.map((r) => at(r, 'ambiguous-source')));
+    //
+    // ── UNLESS EXACTLY ONE OF THEM IS A RELOCATION OF THE TARGET (#1142) ──────────────────────────────
+    //
+    // A group can hold two DIFFERENT operations aimed at one name. #1140 relocates
+    // `border/inverse/primary` → `inverse/border/primary` (same role, new spelling, one right answer) and
+    // in the same release dedupes `border/inverse/default` onto that twin (a different role retired).
+    // Refusing both charged the dedupe's ambiguity to the relocation too: the relocation's variable kept
+    // every binding while the write pass created an empty `inverse/border/primary` beside it.
+    //
+    // The relocation is told apart by its LEAF, derived from the names and authored nowhere: a
+    // relocation moves the segments in front of the role's last word and keeps that word, and the dedupe
+    // names a different one (`default` → `primary`). The leaf is also the one segment every era's spelling
+    // and the brand root leave alone, so it reads the same on a composed row whatever the file's age.
+    // With EXACTLY ONE live row keeping the target's leaf, that row migrates first. The rest are then
+    // reported as they would be with the target already in the file, `target-occupied`: the designer
+    // holds two variables and decides which survives. Zero or several leaf matches (a half-migrated file
+    // holding two spellings of one name keeps the leaf in both) stay `ambiguous-source`, unchanged.
+    else if (live.length > 1) {
+      const leaf = (n: string): string => n.slice(n.lastIndexOf('/') + 1);
+      const kept = live.filter((r) => leaf(r.from) === leaf(to));
+      if (kept.length === 1) {
+        out.push(at(kept[0], 'migrated'));
+        out.push(...live.filter((r) => r !== kept[0]).map((r) => at(r, 'target-occupied')));
+      } else out.push(...live.map((r) => at(r, 'ambiguous-source')));
+    }
     else out.push(at(live[0], 'migrated'));
   }
   // Stable order so two runs diff cleanly and a truncated report head is not arbitrary. Locale-free (#3698):
