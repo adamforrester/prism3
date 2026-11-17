@@ -128,7 +128,7 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `control` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
+| `control` | — | — | `control.size.md.height` | `control.size.md.height` | — | radius `control.size.md.radius`; stroke `border-width.thick` |
 | `control/checkGlyph` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
 | `control/dashGlyph` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
 
@@ -136,7 +136,7 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `control` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
+| `control` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | radius `control.size.sm.radius`; stroke `border-width.thick` |
 | `control/checkGlyph` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
 | `control/dashGlyph` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
 
@@ -144,7 +144,7 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `control` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
+| `control` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | radius `control.size.lg.radius`; stroke `border-width.thick` |
 | `control/checkGlyph` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
 | `control/dashGlyph` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
 

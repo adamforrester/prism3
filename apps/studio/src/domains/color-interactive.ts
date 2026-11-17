@@ -42,7 +42,7 @@ import { brandState, currentMode, getPath, searchQuery, setPage, setSearchHits, 
 import { isDerived, resolvedModes } from '../state/verdict';
 import { rolesIn, stepHex, stepOfPath, stepsOf } from '../state/fills-input';
 import {
-  BUILT_IN_COLUMNS, LINK_ROWS, addAccent, isTextLinkRow, linkSurfacesOf, anchorOf, baselineAnchorStepOf, baselineStepOf, interactivePaletteOf, interactiveRowsFor,
+  BUILT_IN_COLUMNS, LINK_ROWS, addAccent, addSetOptions, isTextLinkRow, linkSurfacesOf, anchorOf, baselineAnchorStepOf, baselineStepOf, interactivePaletteOf, interactiveRowsFor,
   REST_LABEL, overrideHeldOf, overrideLabel, pickerPalettesOf, removeAccent, setLever, setLinkPalette, setLinkRung, setStrictInteractiveContrast, stepKeyOf, writeInteractiveRow,
   type InteractiveRow, type LinkRungState,
 } from '../state/interactive-input';
@@ -82,6 +82,9 @@ const NEXT = { label: 'Type', page: 'type' } as const;
 export const STRICT_CAPTION = 'Off: inverse button labels clear 4.5:1 at rest and may dip on hover and pressed. On: they clear 4.5:1 in every state.';
 /** Owner decisions Q40 and Q53, verbatim (APPROVED). */
 export const ADD_COLUMN_HINT = 'Add a brand color on Palettes to use it for another button set.';
+/** Why "Add button set" lists a brand color disabled: a button set already carries its name, and a new set would take
+ *  the same name, which the engine refuses (#3608, the owner's Q-AB1 B). Owner decision Q-AB1 B copy, verbatim (APPROVED 2026-11-17). */
+export const ADD_SET_TAKEN = 'This name is already a button set.';
 /** Owner decision Q53, verbatim (APPROVED): no "column" in visible copy; a column is a button set. */
 export const BUTTON_SET_COPY = {
   add: 'Add button set',
@@ -104,9 +107,6 @@ export const LINK_COPY = {
   modes: 'Contrast in every mode',
   follow: 'Hover, visited and pressed follow this step:',
 } as const;
-/** The legacy page's promotable list never offered these: they are the built-in columns' names. */
-const RESERVED_COLUMNS = new Set(['primary', 'neutral', 'destructive']);
-
 const capWord = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 /** A column name safe in an element id. */
 const idOf = (col: string): string => `p3-icol-${col.replace(/[^a-z0-9-]/gi, '-')}`;
@@ -528,11 +528,21 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     // add and Cancel beside it. Cancel, or Escape in the form, writes nothing and puts the dashed button back.
     {
       const add = hook(h('div', 'p3-icol-add'), 'column-add');
-      const already = new Set((brandState.interactivePalettes ?? []).map((e) => e.palette));
-      const actionPal = theme.roleToPalette.action;
-      const promotable = ['primary', ...(brandState.brandColors ?? []).map((x) => x.name)].filter((p) => !already.has(p) && p !== actionPal && !RESERVED_COLUMNS.has(p));
+      const listed = addSetOptions(theme.roleToPalette.action);
+      const promotable = listed.filter((o) => !o.taken).map((o) => o.palette);
+      // #3608 (the owner's Q-AB1 B): a brand color a button set already carries the name of is listed disabled, its
+      // reason in the option's title (#2044's pattern) and in a visible line per color that the select names in its
+      // `aria-describedby`, so the reason is read with the select, not on hover only.
+      const taken = listed.filter((o) => o.taken).map((o) => o.palette);
+      const takenLines = (): HTMLElement[] => taken.map((p) => {
+        const line = hook(subLine(`${capWord(p)}: ${ADD_SET_TAKEN}`), 'column-promote-taken');
+        line.id = `p3-promote-taken-${p.replace(/[^a-z0-9-]/gi, '-')}`;
+        line.dataset.palette = p;
+        return line;
+      });
       const reopen = (): void => root.querySelector<HTMLElement>('[data-p3="column-add-open"]')?.focus();
-      if (!promotable.length) { adding = false; add.append(hook(subLine(ADD_COLUMN_HINT), 'column-promote-hint')); }
+      // Nothing left to add: the hint, after the reason any taken color is listed with (#3608).
+      if (!promotable.length) { adding = false; add.append(...takenLines(), hook(subLine(ADD_COLUMN_HINT), 'column-promote-hint')); }
       else {
         // #3335 (Q3335.2 A): the approved tooltip, now a visible line above the button.
         add.append(hook(subLine(BUTTON_SET_TOOLTIP), 'column-add-line'));
@@ -547,7 +557,9 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
           const lab = h('label', 'p3-field-label', BUTTON_SET_COPY.select);
           lab.htmlFor = 'p3-promote';
           const sel = selectField('p3-promote', BUTTON_SET_COPY.select, 'column-promote-select', () => {});
-          sel.set(promotable.map((p) => ({ v: p, l: capWord(p) })), promotable[0]);
+          sel.set(listed.map((o) => ({ v: o.palette, l: capWord(o.palette), off: o.taken ? ADD_SET_TAKEN : undefined })), promotable[0]);
+          const why = takenLines();
+          if (why.length) sel.select.setAttribute('aria-describedby', why.map((w) => w.id).join(' '));
           const go = hook(h('button', 'p3-btn p3-btn-page'), 'column-promote');
           go.type = 'button';
           go.append(glyph('plus'), h('span', 'p3-btn-label', BUTTON_SET_COPY.add));
@@ -555,6 +567,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
           // way to the hint, so focus goes to the new set's card instead, as its jump link does.
           go.onclick = () => {
             const v = sel.select.value;
+            if (!promotable.includes(v)) return; // a taken color is never added (#3608)
             adding = false;
             edit('interactivePalettes', () => addAccent(v));
             const back = root.querySelector<HTMLElement>('[data-p3="column-add-open"]') ?? root.querySelector<HTMLElement>(`#${idOf(v)}`);
@@ -569,7 +582,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
           form.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); close(); } });
           const row = h('div', 'p3-icol-addrow');
           row.append(sel.el, go, cancel);
-          form.append(lab, row);
+          form.append(lab, row, ...why);
           add.append(form);
         }
       }

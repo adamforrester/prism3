@@ -341,6 +341,44 @@ export const ownedCollectionNames = (planned: Iterable<string>, file: readonly F
   return { of: (name) => to.get(name) ?? name, kept };
 };
 
+/**
+ * STYLES — per kind, orphans admitted by EITHER namespace test: the top-level group that kind's plan
+ * still emits (#1521), or the engine's own description signature (#1577), which is the only one that can
+ * recognize a style a designer RENAMED out of the group. Reuses `orphansOf` over the names, so the
+ * ordering the rest of the system reads is unchanged; the two tests are the namespace guard (there is no
+ * brand root on a style name). A style matching neither is spared — an addition, never a loosening.
+ *
+ * A planned name with NO separator has no group (#2467: the grid styles are bare sizes, `sm` … `2xl`).
+ * Read as its own group it would put a designer's `md/wide` in the engine's namespace, so it adds none,
+ * and a stale bare-named style is admitted by its description signature alone, NAMED in the review.
+ * And an old `Grid / <bp>` whose `<bp>` the plan still emits is spared outright: it is the style the
+ * next apply renames in place (`LEGACY_GRID_PREFIX`), not a stale one.
+ *
+ * Exported since #1737: Apply Theme reports this set as the styles the brand does not plan, so its report and Prune's
+ * offer share one rule. They differ only in the planned names each passes: Apply adds the names a collision Rename
+ * wrote, Prune does not yet (#3860), so after a Rename Prune offers the `… (Prism3)` style and Apply's note does not.
+ */
+export const orphanStyles = (fileStyles: FileStyles, plannedStyles: StyleNames): PrunePlan['styles'] => {
+  const styles: PrunePlan['styles'] = [];
+  for (const kind of STYLE_KINDS) {
+    const planned = plannedStyles[kind] ?? [];
+    const plannedGroups = new Set(planned.filter((n) => n.includes('/')).map(styleGroup));
+    const awaitingRename = new Set(kind === 'grid' ? planned.map((n) => LEGACY_GRID_PREFIX + n) : []);
+    const live = (fileStyles[kind] ?? []).map(asFileStyle);
+    const described = new Map(live.map((s) => [s.name, s.description ?? ''] as const));
+    const byProvenance: string[] = [];
+    const orphans = orphansOf(live.map((s) => s.name), planned).filter((n) => {
+      if (awaitingRename.has(n)) return false;
+      if (plannedGroups.has(styleGroup(n))) return true;
+      if (!isEngineDescription(kind, described.get(n) ?? '', planned)) return false;
+      byProvenance.push(n);
+      return true;
+    });
+    if (orphans.length) styles.push({ kind, names: orphans, byProvenance });
+  }
+  return styles;
+};
+
 export const computePrunePlan = (input: PruneInput): PrunePlan => {
   const { root } = input;
   const plannedVars = new Set(input.plannedVariables);
@@ -402,36 +440,19 @@ export const computePrunePlan = (input: PruneInput): PrunePlan => {
     if (offer.length) modes.push({ collection: c.name, modes: offer });
   }
 
-  // STYLES — per kind, orphans admitted by EITHER namespace test: the top-level group that kind's plan
-  // still emits (#1521), or the engine's own description signature (#1577), which is the only one that can
-  // recognize a style a designer RENAMED out of the group. Reuses `orphansOf` over the names, so the
-  // ordering the rest of the system reads is unchanged; the two tests are the namespace guard (there is no
-  // brand root on a style name). A style matching neither is spared — an addition, never a loosening.
-  //
-  // A planned name with NO separator has no group (#2467: the grid styles are bare sizes, `sm` … `2xl`).
-  // Read as its own group it would put a designer's `md/wide` in the engine's namespace, so it adds none,
-  // and a stale bare-named style is admitted by its description signature alone, NAMED in the review.
-  // And an old `Grid / <bp>` whose `<bp>` the plan still emits is spared outright: it is the style the
-  // next apply renames in place (`LEGACY_GRID_PREFIX`), not a stale one.
-  const styles: PrunePlan['styles'] = [];
-  for (const kind of STYLE_KINDS) {
-    const planned = input.plannedStyles[kind] ?? [];
-    const plannedGroups = new Set(planned.filter((n) => n.includes('/')).map(styleGroup));
-    const awaitingRename = new Set(kind === 'grid' ? planned.map((n) => LEGACY_GRID_PREFIX + n) : []);
-    const live = (input.styles[kind] ?? []).map(asFileStyle);
-    const described = new Map(live.map((s) => [s.name, s.description ?? ''] as const));
-    const byProvenance: string[] = [];
-    const orphans = orphansOf(live.map((s) => s.name), planned).filter((n) => {
-      if (awaitingRename.has(n)) return false;
-      if (plannedGroups.has(styleGroup(n))) return true;
-      if (!isEngineDescription(kind, described.get(n) ?? '', planned)) return false;
-      byProvenance.push(n);
-      return true;
-    });
-    if (orphans.length) styles.push({ kind, names: orphans, byProvenance });
-  }
+  // STYLES — `orphanStyles` above, the same set Apply Theme reports (#1737).
+  return { variables, collections, modes, styles: orphanStyles(input.styles, input.plannedStyles) };
+};
 
-  return { variables, collections, modes, styles };
+/**
+ * Apply Theme's note for the styles this brand does not plan (#1737): `orphanStyles`'s set, counted per kind, in the
+ * shape of the orphan-variable note beside it. Reported, never deleted: Prune is the delete path. Empty when there is
+ * none. Copy DRAFT for the owner.
+ */
+export const styleOrphanNote = (styles: PrunePlan['styles']): string => {
+  const n = styles.reduce((t, g) => t + g.names.length, 0);
+  if (n === 0) return '';
+  return `⚠ ${n} orphaned style${n === 1 ? '' : 's'} not in the plan (${styles.map((g) => `${g.kind}: ${g.names.length}`).join(', ')}) — likely from an earlier brand; nothing was deleted`;
 };
 
 /** Total items a prune plan would remove — the count shown to the designer before they confirm. */
