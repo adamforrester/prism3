@@ -146,65 +146,92 @@ Code-only states, with no design-file member: `read-only`.
 
 Padding reads top / right / bottom / left when its sides differ.
 
-Keyed by `size`, `type`.
+Keyed by `size`, `type`, `selection`.
 
-**size=medium, type=select**
+**size=medium, type=select, selection=unselected**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.md.height` | — | 64px (derived: height × 1.5, rounded to the nearest 8px) | — |
+| `container` | — | — | `size.md.height` | — | 64px (derived: height × 1.5, rounded to the nearest 8px) | radius `radius.round`; stroke `border-width.hairline` |
+| `container/content` | `space.0` / `space.150` / `space.0` / `space.150` | `space.100` | — | — | — | — |
+| `container/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/content/labelCheck` | `space.0` | `space.075` | — | — | — | — |
+
+**size=small, type=select, selection=unselected**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.sm.height` | — | 56px (derived: height × 1.5, rounded to the nearest 8px) | radius `radius.round`; stroke `border-width.hairline` |
+| `container/content` | `space.0` / `space.100` / `space.0` / `space.100` | `space.075` | — | — | — | — |
+| `container/content/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/content/labelCheck` | `space.0` | `space.050` | — | — | — | — |
+
+**size=large, type=select, selection=unselected**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.lg.height` | — | 88px (derived: height × 1.5, rounded to the nearest 8px) | radius `radius.round`; stroke `border-width.hairline` |
+| `container/content` | `space.0` / `space.200` / `space.0` / `space.200` | `space.150` | — | — | — | — |
+| `container/content/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/content/labelCheck` | `space.0` | `space.100` | — | — | — | — |
+
+**size=medium, type=select, selection=selected**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.md.height` | — | 64px (derived: height × 1.5, rounded to the nearest 8px) | radius `radius.round`; stroke `border-width.thick` |
 | `container/content` | `space.0` / `space.150` / `space.0` / `space.150` | `space.100` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/content/labelCheck` | `space.0` | `space.075` | — | — | — | — |
 | `container/content/labelCheck/checkGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
-**size=small, type=select**
+**size=small, type=select, selection=selected**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.sm.height` | — | 56px (derived: height × 1.5, rounded to the nearest 8px) | — |
+| `container` | — | — | `size.sm.height` | — | 56px (derived: height × 1.5, rounded to the nearest 8px) | radius `radius.round`; stroke `border-width.thick` |
 | `container/content` | `space.0` / `space.100` / `space.0` / `space.100` | `space.075` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/content/labelCheck` | `space.0` | `space.050` | — | — | — | — |
 | `container/content/labelCheck/checkGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 
-**size=large, type=select**
+**size=large, type=select, selection=selected**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.lg.height` | — | 88px (derived: height × 1.5, rounded to the nearest 8px) | — |
+| `container` | — | — | `size.lg.height` | — | 88px (derived: height × 1.5, rounded to the nearest 8px) | radius `radius.round`; stroke `border-width.thick` |
 | `container/content` | `space.0` / `space.200` / `space.0` / `space.200` | `space.150` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/content/labelCheck` | `space.0` | `space.100` | — | — | — | — |
 | `container/content/labelCheck/checkGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 
-**size=medium, type=dismissible**
+**size=medium, type=dismissible, selection=unselected**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.md.height` | — | 64px (derived: height × 1.5, rounded to the nearest 8px) | — |
+| `container` | — | — | `size.md.height` | — | 64px (derived: height × 1.5, rounded to the nearest 8px) | radius `radius.round`; stroke `border-width.hairline` |
 | `container/content` | `space.0` / `space.0` / `space.0` / `space.150` | `space.050` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/content/labelCheck` | `space.0` / `space.0` / `space.0` / `space.050` | `space.075` | — | — | — | — |
 | `container/dismiss` | — | — | `size.md.height` | `size.md.height` | — | — |
 | `container/dismiss/closeGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
-**size=small, type=dismissible**
+**size=small, type=dismissible, selection=unselected**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.sm.height` | — | 56px (derived: height × 1.5, rounded to the nearest 8px) | — |
+| `container` | — | — | `size.sm.height` | — | 56px (derived: height × 1.5, rounded to the nearest 8px) | radius `radius.round`; stroke `border-width.hairline` |
 | `container/content` | `space.0` / `space.0` / `space.0` / `space.100` | `space.025` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/content/labelCheck` | `space.0` / `space.0` / `space.0` / `space.050` | `space.050` | — | — | — | — |
 | `container/dismiss` | — | — | `size.sm.height` | `size.sm.height` | — | — |
 | `container/dismiss/closeGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 
-**size=large, type=dismissible**
+**size=large, type=dismissible, selection=unselected**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.lg.height` | — | 88px (derived: height × 1.5, rounded to the nearest 8px) | — |
+| `container` | — | — | `size.lg.height` | — | 88px (derived: height × 1.5, rounded to the nearest 8px) | radius `radius.round`; stroke `border-width.hairline` |
 | `container/content` | `space.0` / `space.0` / `space.0` / `space.200` | `space.050` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/content/labelCheck` | `space.0` / `space.0` / `space.0` / `space.050` | `space.100` | — | — | — | — |

@@ -127,8 +127,8 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `track` | `control.size.md.inset` | — | `control.size.md.track` | `control.size.md.width` | — | — |
-| `track/thumb` | — | — | `control.size.md.thumb` | `control.size.md.thumb` | — | — |
+| `track` | `control.size.md.inset` | — | `control.size.md.track` | `control.size.md.width` | — | radius `radius.round`; stroke `border-width.thick` |
+| `track/thumb` | — | — | `control.size.md.thumb` | `control.size.md.thumb` | — | radius `radius.round` |
 | `track/thumb/offGlyph` | — | — | `control.size.md.thumb` | `control.size.md.thumb` | — | — |
 | `track/thumb/onGlyph` | — | — | `control.size.md.thumb` | `control.size.md.thumb` | — | — |
 
@@ -136,8 +136,8 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `track` | `control.size.sm.inset` | — | `control.size.sm.track` | `control.size.sm.width` | — | — |
-| `track/thumb` | — | — | `control.size.sm.thumb` | `control.size.sm.thumb` | — | — |
+| `track` | `control.size.sm.inset` | — | `control.size.sm.track` | `control.size.sm.width` | — | radius `radius.round`; stroke `border-width.thick` |
+| `track/thumb` | — | — | `control.size.sm.thumb` | `control.size.sm.thumb` | — | radius `radius.round` |
 | `track/thumb/offGlyph` | — | — | `control.size.sm.thumb` | `control.size.sm.thumb` | — | — |
 | `track/thumb/onGlyph` | — | — | `control.size.sm.thumb` | `control.size.sm.thumb` | — | — |
 

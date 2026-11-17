@@ -1,23 +1,25 @@
 /**
  * Scans and retrieves design tokens from the Figma document.
- * Provides methods to enumerate variables, text styles, and effect styles
- * and organize them for DTCG export.
+ * Provides methods to enumerate variables, text styles, effect styles and
+ * paint styles, and organize them for DTCG export.
  */
 export class TokenScanner {
   /**
    * Scans all local design tokens from the Figma document.
-   * Retrieves variable collections, variables, text styles, and effect styles
-   * using async Figma APIs for optimal performance.
+   * Retrieves variable collections, variables, text styles, effect styles and
+   * paint styles using async Figma APIs for optimal performance. Paint styles
+   * are where a file's gradients live (prism3 #731).
    *
    * @returns Promise resolving to an object containing all scanned design resources
    */
   async scanAll(filter?: { excludedCollectionNames?: string[] }) {
     // Get all local resources using async APIs per PRD constraints
-    const [collections, variables, textStyles, effectStyles] = await Promise.all([
+    const [collections, variables, textStyles, effectStyles, paintStyles] = await Promise.all([
       figma.variables.getLocalVariableCollectionsAsync(),
       figma.variables.getLocalVariablesAsync(),
       figma.getLocalTextStylesAsync(),
       figma.getLocalEffectStylesAsync(),
+      figma.getLocalPaintStylesAsync(),
     ]);
 
     const excluded =
@@ -26,7 +28,7 @@ export class TokenScanner {
         : null;
 
     if (!excluded) {
-      return { collections, variables, textStyles, effectStyles };
+      return { collections, variables, textStyles, effectStyles, paintStyles };
     }
 
     // Filter out excluded collections + their variables. Aliases that target
@@ -44,6 +46,7 @@ export class TokenScanner {
       variables: includedVariables,
       textStyles,
       effectStyles,
+      paintStyles,
     };
   }
 

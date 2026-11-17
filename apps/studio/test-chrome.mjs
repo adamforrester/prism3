@@ -19025,6 +19025,27 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
         const ind = await indentOf();
         ok(ind.card[0] !== null && ind.card[0] === ind.card[1] && ind.due[0] !== null && ind.due[0] === ind.due[1],
           `${at}: #3712 indent at ${vw}: a card's line starts where its title does, and a due set's line where its name does (${JSON.stringify(ind)})`);
+        // THE INSET ONE STEP LIGHTER (the owner, 2026-11-17: "make the grey that is used in the component containers a
+        // shade lighter … the white labels on top of it look strange"). A group's inset inside a card was `fill-1`
+        // (neutral 050 in light) with each status chip on a white `bg-page` pill. Now, in light, the inset is one ramp
+        // step lighter, neutral 025, and a chip takes the fill every other tag takes (`color.foreground.primary`), so no
+        // white pill sits on gray. Dark keeps its step, neutral 900: the step lighter, 850, puts `text-2` at 4.17:1, under
+        // the 4.5 floor. EXPECTED from the emission (`LEVERS_GRAY`, `EMITTED_AT`), never from `chrome.css` or
+        // `chrome/spec.mjs`; every text node's contrast on it is held by the chrome probe. DRAFT: the owner's call.
+        // MUTATIONS (each after a `wip:` commit): the inset back on `fill-1` → `inset one step lighter … inset`; the chips'
+        // white-pill rule restored → `inset one step lighter … chips`, by name.
+        if (vw === 640) {
+          const toHex = (c) => { const m = /rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\)/.exec(c ?? ''); return m && (m[4] === undefined || Number(m[4]) === 1) ? `#${[m[1], m[2], m[3]].map((x) => Number(x).toString(16).padStart(2, '0')).join('')}` : (c ?? null); };
+          const ins = await page.evaluate(() => ({ insets: [...document.querySelectorAll('[data-p3="update-dialog"] .p3-upd-inset')].map((n) => getComputedStyle(n).backgroundColor),
+            chips: [...document.querySelectorAll('[data-p3="update-dialog"] .p3-upd-inset .p3-sg-tag')].map((n) => getComputedStyle(n).backgroundColor) }));
+          const wantInset = theme === 'light' ? LEVERS_GRAY : EMITTED_AT('dark', 'foreground.primary');
+          const wantChip = EMITTED_AT(theme, 'foreground.primary');
+          const insets = ins.insets.map(toHex), chips = ins.chips.map(toHex);
+          ok(insets.length > 0 && insets.every((c) => c === wantInset),
+            `${at}: inset one step lighter: inset: each group's inset in Update file is ${theme === 'light' ? 'neutral 025, one step lighter than fill-1' : 'neutral 900, as before'} (${wantInset}) (read ${JSON.stringify(insets)})`);
+          ok(chips.length > 0 && chips.every((c) => c === wantChip),
+            `${at}: inset one step lighter: chips: each status chip in an inset takes the tag fill, color.foreground.primary (${wantChip}), not a white pill (read ${JSON.stringify(chips)})`);
+        }
         const { changes: _c, ...plain } = sets[0];
         await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets: [plain, sets[1]] });
         await page.waitForFunction(() => !document.querySelector('[data-p3="update-library"]'), null, { timeout: 5000 }).catch(() => {});

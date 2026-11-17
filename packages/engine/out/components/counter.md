@@ -144,54 +144,150 @@ Generated from the plan that builds the design-file component: 18 members. Value
 
 Padding reads top / right / bottom / left when its sides differ.
 
-Keyed by `size`, `appearance`.
+Keyed by `size`, `appearance`, `state`.
 
-**size=medium, appearance=outline**
+**size=medium, appearance=outline, state=rest**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | — |
-| `container/control` | `space.0` / `space.150` / `space.0` / `space.150` | — | `size.md.height` | — | — | — |
+| `container/control` | `space.0` / `space.150` / `space.0` / `space.150` | — | `size.md.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
 | `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
 
-**size=small, appearance=outline**
+**size=medium, appearance=outline, state=focus-visible**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | — |
-| `container/control` | `space.0` / `space.150` / `space.0` / `space.150` | — | `size.sm.height` | — | — | — |
+| `container/control` | `space.0` / `space.150` / `space.0` / `space.150` | — | `size.md.height` | — | — | radius `radius.sm`; stroke `focus.ring.width` |
 | `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
 
-**size=large, appearance=outline**
+**size=medium, appearance=outline, state=disabled**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | — |
-| `container/control` | `space.0` / `space.200` / `space.0` / `space.200` | — | `size.lg.height` | — | — | — |
+| `container/control` | `space.0` / `space.150` / `space.0` / `space.150` | — | `size.md.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=small, appearance=outline, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` / `space.150` / `space.0` / `space.150` | — | `size.sm.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=small, appearance=outline, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` / `space.150` / `space.0` / `space.150` | — | `size.sm.height` | — | — | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=small, appearance=outline, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` / `space.150` / `space.0` / `space.150` | — | `size.sm.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=large, appearance=outline, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` / `space.200` / `space.0` / `space.200` | — | `size.lg.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
 | `container/control/entry` | `space.0` / `space.100` / `space.0` / `space.100` | — | — | — | 32px (literal) | — |
 
-**size=medium, appearance=ghost**
+**size=large, appearance=outline, state=focus-visible**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | — |
-| `container/control` | `space.0` | — | `size.md.height` | — | — | — |
+| `container/control` | `space.0` / `space.200` / `space.0` / `space.200` | — | `size.lg.height` | — | — | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/entry` | `space.0` / `space.100` / `space.0` / `space.100` | — | — | — | 32px (literal) | — |
+
+**size=large, appearance=outline, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` / `space.200` / `space.0` / `space.200` | — | `size.lg.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/entry` | `space.0` / `space.100` / `space.0` / `space.100` | — | — | — | 32px (literal) | — |
+
+**size=medium, appearance=ghost, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` | — | `size.md.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
 | `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
 
-**size=small, appearance=ghost**
+**size=medium, appearance=ghost, state=focus-visible**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | — |
-| `container/control` | `space.0` | — | `size.sm.height` | — | — | — |
+| `container/control` | `space.0` | — | `size.md.height` | — | — | radius `radius.sm`; stroke `focus.ring.width` |
 | `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
 
-**size=large, appearance=ghost**
+**size=medium, appearance=ghost, state=disabled**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | — |
-| `container/control` | `space.0` | — | `size.lg.height` | — | — | — |
+| `container/control` | `space.0` | — | `size.md.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=small, appearance=ghost, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` | — | `size.sm.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=small, appearance=ghost, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` | — | `size.sm.height` | — | — | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=small, appearance=ghost, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` | — | `size.sm.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=large, appearance=ghost, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` | — | `size.lg.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/entry` | `space.0` / `space.100` / `space.0` / `space.100` | — | — | — | 32px (literal) | — |
+
+**size=large, appearance=ghost, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` | — | `size.lg.height` | — | — | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/entry` | `space.0` / `space.100` / `space.0` / `space.100` | — | — | — | 32px (literal) | — |
+
+**size=large, appearance=ghost, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` | — | `size.lg.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
 | `container/control/entry` | `space.0` / `space.100` / `space.0` / `space.100` | — | — | — | 32px (literal) | — |
 
 ### Type

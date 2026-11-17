@@ -1919,6 +1919,9 @@ const writeComponentSet = async (
   // AFTER the offline guards, because a throw from them leaves nothing to name (#913).
   trail.component = component;
   const misses: string[] = [];
+  // #2956 (point 1): EVERY NODE KEPT AS A HAND EDIT this run, by id. Its own pass is skipped (`kept`) and its parent's
+  // passes leave it (#2943, `held`); the property wiring below is a writer from outside both, so it reads this.
+  const keptIds = new Set<string>();
 
   // Four namespaces, four name→object maps. Unfiltered variable fetch, the #146 lesson: a
   // type-filtered call returns only that type, and a plan binds FLOAT dimensions and COLOR paints.
@@ -2085,6 +2088,7 @@ const writeComponentSet = async (
   const build = async (n: FigmaNodePlan, parts?: Map<string, Wr>, expose?: Wr[], ex?: Wr, keep?: ReadonlySet<string>, path = '.', edited?: ReadonlySet<string>, adopt?: { from: Wr[]; take: (k: Wr) => void }): Promise<Wr | null> => {
     let node: Wr;
     const kept = !!ex && !!keep?.has(path);
+    if (kept && ex.id != null) keptIds.add(String(ex.id));
     if (n.type === 'TEXT') node = ex ?? wr(api.createText());
     else if (n.type === 'INSTANCE_SWAP') {
       const target = n.swapTarget ? oneComp(n.swapTarget) : undefined;
@@ -2720,7 +2724,10 @@ const writeComponentSet = async (
       if (ex) {
         // A TYPE CHANGE IS A REPLACEMENT, the one way an update changes a child's id; the dry run lists each one.
         if (cand && !fits) wr(cand).remove?.();
-        if (((node.children ?? []) as Wr[])[at] !== kid) node.insertChild?.(at, kid);
+        // A NODE KEPT AS A HAND EDIT KEEPS ITS CHILDREN'S ORDER (#2956 point 1). The order is in its record (its
+        // children's names, in order), so a designer's reorder reads as an edit on this node and is reported kept: a
+        // child it already holds is not moved. A child the plan adds is still placed.
+        if (!(kept && kid === cand) && ((node.children ?? []) as Wr[])[at] !== kid) node.insertChild?.(at, kid);
         at++;
         if (kid !== cand) trail.loose.delete(kid);
       } else {
@@ -3953,6 +3960,10 @@ const writeComponentSet = async (
       const field = own?.field ?? r.field;
       const id = propIds.get(own?.prop ?? r.prop);
       if (!id) continue;   // the property itself failed above and reported its own cause
+      // A NODE KEPT AS A HAND EDIT KEEPS ITS LINKS (#2956 point 1). Its references are in its record, so a link a
+      // designer removed or re-pointed reads as an edit on it and is reported kept: it is not wired again. Only a
+      // property this run added is wired on it, since no designer could have unlinked that one.
+      if (node.id != null && keptIds.has(String(node.id)) && preexistingProps.has(id)) continue;
       // #1679 — A MEMBER THIS RUN DID NOT BUILD IS REPAIRED, NOT RE-WIRED. On a Build over an existing set
       // every member is skipped by name and reaches this loop with no `builtFor`. A reference that already
       // reads the plan's property is left alone — no write, so a clean existing set costs one read per slot
