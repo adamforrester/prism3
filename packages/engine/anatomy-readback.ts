@@ -880,7 +880,7 @@ export const FIELDS: Record<string, FieldCheck> = {
       const bad: string[] = [];
       want.stops.forEach((s, i) => {
         const g = got[i];
-        if (!g) return; // `got` has as many stops as `want`, checked above
+        if (!g) { bad.push(`stop ${i} missing`); return; } // `got` has as many stops as `want`, so only a null entry lands here
         if (g.position !== s.position) bad.push(`stop ${i} at ${str(g.position)}`);
         const id = g.boundVariables?.color?.id;
         if (typeof id !== 'string') { bad.push(`stop ${i} NOT BOUND`); return; }
