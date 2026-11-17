@@ -21831,6 +21831,26 @@ if (runs('2069')) {
     step = 'a failed apply';
     await postMsg(page, { type: 'apply-result', ok: false, headline: '✗ 1 conflict', summary: 'Nothing was written.', lines: ['Nothing was written. 1 conflict with existing content: variable "pds3/color/background/primary" is STRING in "color"'] });
     await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, WAIT);
+    // THE QUIET ENTRY (the owner, 2026-11-17: "I'd like the 'report a problem' CTA to have less prominence … a small bug
+    // icon button in the corner"). Report a problem is a ghost icon button, no visible words, at the end of the open
+    // drawer's last line: named and titled "Report a problem", drawing the web rail's glyph (Tabler's message-report),
+    // square, at least the 24 floor and no more than a small control (32), a button the keyboard reaches. Shown here,
+    // after a failed apply opened the drawer. Literals typed here. DRAFT: the owner's call. MUTATION (after a `wip:`
+    // commit): the button's text put back and its glyph dropped (`activity.ts`) → `quiet entry`, by name.
+    step = 'quiet entry';
+    const qe = await page.evaluate(() => {
+      const b = document.querySelector('[data-p3="activity-report"]'), body = document.querySelector('[data-p3="activity-body"]');
+      if (!b || !body) return null;
+      const r = b.getBoundingClientRect(), br = body.getBoundingClientRect(), cs = getComputedStyle(body);
+      b.focus();
+      return { tag: b.tagName.toLowerCase(), name: b.getAttribute('aria-label'), title: b.title, text: b.textContent.trim(), icon: b.querySelector('svg')?.dataset.icon ?? null,
+        w: Math.round(r.width), h: Math.round(r.height), last: body.lastElementChild === b,
+        atEnd: Math.abs(r.right - (br.right - parseFloat(cs.paddingRight))) <= 1, focusable: document.activeElement === b };
+    });
+    ok(!!qe && qe.tag === 'button' && qe.name === 'Report a problem' && qe.title === 'Report a problem' && qe.text === '' && qe.icon === 'message-report'
+      && qe.w === qe.h && qe.w >= 24 && qe.w <= 32 && qe.last && qe.atEnd && qe.focusable,
+      `#2069 ${where}: quiet entry: Report a problem is a small icon button (message-report, 24 to 32 square, no visible words) named and titled "Report a problem", at the end of the drawer's last line, reached by the keyboard (${JSON.stringify(qe)})`);
+    await page.evaluate(() => document.activeElement?.blur());
     step = 'open';
     await hooks.click(page.locator('[data-p3="activity-report"]'), WAIT);
     await hooks.need(page, '[data-p3="report-dialog"]', WAIT);
