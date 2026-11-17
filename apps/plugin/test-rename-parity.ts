@@ -201,6 +201,54 @@ const main = async () => {
   ok(!!again && again.migrated.length === 0 && again.refused.length === 0 && judge(paste, pasteIds).length === 0,
     `#1024 paste path: re-running migrate on the migrated file moves nothing and refuses nothing (${again ? `migrated ${again.migrated.length}, refused ${again.refused.length}` : 'the migrate payload did not run'})`);
 
+  // #3857 (review of b4b7bd57): the arms above run `verify` only after `migrate` has moved `palette/black`, so by then
+  // every name has a group of its own and a membership read that ignores the rules agrees with one that applies them.
+  // Here the move is REFUSED — the target already exists — so the un-rooted name is still in the file when the
+  // reports run. Read through the rules, it belongs to the palette slice: the palette report names it, and neither
+  // path's unowned report does. Read by its own spelling, it would be in no group, so it would leave the palette
+  // report and land in `core/other`. Every expected list is typed here; neither path is the reference.
+  console.log('#3857 — an un-rooted palette name the migrate refuses is in the palette slice on both paths');
+  const STAY = 'palette/black';
+  const seedCollision = (f: FileShim): void => {
+    const core = f.createVariableCollection('core');
+    for (const n of [STAY, 'nbds/core/palette/black', ...UNOWNED]) f.createVariable(n, core, 'COLOR');
+  };
+  const pluginC = new FileShim();
+  seedCollision(pluginC);
+  const pasteC = new FileShim();
+  seedCollision(pasteC);
+  let pluginCUnowned: string[] | null = null;
+  try {
+    const migC = await beginMigration(pluginC.variables);
+    await applyWritePlan(plan, pluginC.variables, migC);
+    await applyFloatPlan(floats, pluginC.variables, migC);
+    await applyVarCollectionPlan(fonts, pluginC.variables, migC);
+    pluginCUnowned = await unownedCore(pluginC.variables, 'core', [
+      plan.palette.map((r) => r.name),
+      ...floats.filter((p) => p.name === 'core').map((p) => p.create.map((r) => r.name)),
+      ...fonts.filter((p) => p.name === 'core').map((p) => p.rows.map((r) => r.name)),
+    ], migC);
+  } catch (e) {
+    ok(false, `#3857 collision, plugin path: the write ran — it THREW: ${(e as Error).message}`);
+  }
+  let verifiedC: { orphans?: Record<string, { name: string }[]> } | undefined;
+  try {
+    await runPaste(pasteC, ['migrate', 'palette', 'color-create', 'dims-create', 'font-vars']);
+    verifiedC = (await runPaste(pasteC, ['verify']))[0] as typeof verifiedC;
+  } catch (e) {
+    ok(false, `#3857 collision, paste path: the migrate, palette, color-create, dims-create, font-vars and verify payloads ran — one THREW: ${(e as Error).message}`);
+  }
+  const stays = (f: FileShim) => f.vars.filter((v) => v.name === STAY).length;
+  ok(stays(pluginC) === 1 && stays(pasteC) === 1,
+    `#3857 collision premise: with ${STAY} and its target both seeded, neither path moves it (plugin ${stays(pluginC)}, paste ${stays(pasteC)} left)`);
+  const pasteCUnowned = verifiedC?.orphans && 'core/other' in verifiedC.orphans ? verifiedC.orphans['core/other'].map((o) => o.name) : null;
+  ok(JSON.stringify(pluginCUnowned) === JSON.stringify(UNOWNED) && JSON.stringify(pasteCUnowned) === JSON.stringify(UNOWNED),
+    `#3857 collision: both unowned reports are exactly ${JSON.stringify(UNOWNED)}, the un-moved ${STAY} in neither (plugin unownedCore ${JSON.stringify(pluginCUnowned)}, paste verify orphans['core/other'] ${JSON.stringify(pasteCUnowned)})`);
+  const palKeyC = Object.keys(verifiedC?.orphans ?? {}).find((k) => k.startsWith('core/palette'));
+  const palC = palKeyC ? verifiedC!.orphans![palKeyC].map((o) => o.name) : null;
+  ok(JSON.stringify(palC) === JSON.stringify([STAY]),
+    `#3857 collision: the paste verify's palette report names the un-moved ${STAY}, read through the rules into its slice (got ${palKeyC ? JSON.stringify(palC) : 'no palette entry'})`);
+
   console.log(`\n${pass} passed, ${fail} failed — ${pass + fail} assertions executed`);
   if (fail) process.exit(1);
 };
