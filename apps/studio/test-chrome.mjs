@@ -22809,24 +22809,38 @@ if (runs('3553-icons')) {
 //     legacy group carries no hook of its own, so it is named by its card's).
 if (runs('3911')) {
   console.log(`\nEvery segmented control's selected segment is the shared one (#3911)\n${'='.repeat(78)}`);
-  const SEL_PROPS = ['backgroundColor', 'color', 'fontWeight', 'boxShadow', 'outlineStyle',
+  const SEL_PROPS = ['backgroundColor', 'color', 'fontWeight', 'boxShadow', 'outlineStyle', 'textDecorationLine',
     ...['Top', 'Right', 'Bottom', 'Left'].flatMap((s) => [`border${s}Width`, `border${s}Style`, `border${s}Color`]),
     'borderTopLeftRadius', 'borderBottomRightRadius'];
+  // A tab underline is as often a pseudo-element bar as a border or a shadow (review of 90e374ba), so each selected
+  // segment's `::before` and `::after` are read too, against the probe's: what each would draw, not its text box.
+  const PSEUDO_PROPS = ['content', 'display', 'visibility', 'position', 'height', 'opacity', 'backgroundColor', 'backgroundImage',
+    'boxShadow', 'textDecorationLine', 'borderTopWidth', 'borderBottomWidth', 'borderBottomStyle', 'borderBottomColor'];
   /** Every drawn segmented control's selected segment, read against the probe. */
-  const readSegs = (page) => page.evaluate((props) => {
+  const readSegs = (page) => page.evaluate(([props, pseudoProps]) => {
     const shown = (n) => n.getClientRects().length > 0 && getComputedStyle(n).visibility !== 'hidden';
-    const sig = (n) => { const cs = getComputedStyle(n); return Object.fromEntries(props.map((p) => [p, cs[p]])); };
+    const sig = (n) => {
+      const cs = getComputedStyle(n);
+      const out = Object.fromEntries(props.map((p) => [p, cs[p]]));
+      for (const ps of ['::before', '::after']) { const pcs = getComputedStyle(n, ps); for (const p of pseudoProps) out[`${ps} ${p}`] = pcs[p]; }
+      return out;
+    };
     const frame = document.querySelector('[data-p3="frame"]');
     // The probe sits in the control's THEME (a legacy card is pinned light, `legacyHost`), and in nothing else of its.
-    const probeIn = (theme) => {
+    // Its markup follows the control's only where the SHARED rules branch on it: a lever-kit `choice` (`.p3-choice`) whose
+    // option carries `data-label` draws chrome.css's hidden bold-width reservation as its `::after` (#3115), so the probe
+    // is a `.p3-choice` with the same label then. No other class of the control's is copied, so a one-off rule still
+    // cannot reach the probe.
+    const probeIn = (theme, choice, label) => {
       const box = document.createElement('div');
       if (theme) box.dataset.theme = theme;
       box.style.cssText = 'position:fixed;left:-9999px;top:0';
       const pg = document.createElement('div');
-      pg.className = 'p3-seg';
+      pg.className = choice ? 'p3-seg p3-choice' : 'p3-seg';
       const p = document.createElement('button');
       p.type = 'button'; p.className = 'p3-seg-tab'; p.setAttribute('role', 'radio'); p.setAttribute('aria-checked', 'true');
-      p.textContent = 'Probe';
+      p.textContent = label ?? 'Probe';
+      if (label !== null) p.dataset.label = label;
       pg.append(p); box.append(pg); frame.append(box);
       const out = sig(p);
       box.remove();
@@ -22843,7 +22857,7 @@ if (runs('3911')) {
       if (!on) return { name, on: null };
       const held = on.disabled || on.getAttribute('aria-disabled') === 'true';
       const theme = g.closest('[data-theme]')?.dataset.theme ?? null;
-      const want = probeIn(theme);
+      const want = probeIn(theme, g.classList.contains('p3-choice'), on.getAttribute('data-label'));
       const got = sig(on);
       // A held segment draws the disabled treatment (the mode check's, #2208 DB1 A), so its style is not compared.
       const diff = held ? [] : props.filter((p) => got[p] !== want[p]).map((p) => `${p} ${got[p]} (shared ${want[p]})`);
@@ -22851,7 +22865,7 @@ if (runs('3911')) {
         .some((part) => { const n = part.replace(/rgba?\([^)]*\)/, '').match(/-?[\d.]+px/g)?.map(parseFloat) ?? []; return n.length >= 2 && n[0] === 0 && n[1] !== 0; });
       return { name, on: `${on.textContent.trim()}${held ? ', held' : ''}`, shared: g.classList.contains('p3-seg') && on.classList.contains('p3-seg-tab'), diff, underline, boxShadow: got.boxShadow };
     });
-  }, SEL_PROPS);
+  }, [SEL_PROPS, PSEUDO_PROPS]);
   for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
     const where = `3911 ${host} ${theme} 1280`;
     const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900, scale: SHOTS ? 2 : 1 });
