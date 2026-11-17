@@ -22,9 +22,9 @@
  */
 import {
   ALL_SETTINGS, ALL_SOURCES, AVAILABLE_SOURCES, ARTIFACTS, DTCG_SETTINGS, DESIGN_MD_SETTINGS,
-  IMPORT_SLOTS, SAMPLE_CRITERIA, defaultSettings, visibleSettings, projectDtcg, mergeFiles,
+  SAMPLE_CRITERIA, defaultSettings, visibleSettings, projectDtcg, mergeFiles,
   fileNames, previewFiles, sampleLeaves, leavesOf, rootKeyOf, renameSegment, unrenameSegment,
-  availableImportSlots, declarationDefects, jargonDefects, admissionDefects, aliasDefects,
+  declarationDefects, jargonDefects, admissionDefects, aliasDefects,
   sampleDefects, METADATA_OPTION, exportDtcg, exportFileNames, exportPreview, metadataDefects, groupMetaOf,
   type SettingDef, type SettingsState, type ExportSource,
 } from './src/export-settings';
@@ -265,21 +265,6 @@ for (const { id, tree } of corpus) {
     }
   }
 }
-
-// =============================================================================================
-// 7. Import is a slot — the unbuilt path is not reachable as a control
-// =============================================================================================
-
-console.log('\n=== 7. import slots ===');
-ok(IMPORT_SLOTS.length === 2, `two import slots declared (${IMPORT_SLOTS.map((s) => s.id).join(', ')})`);
-ok(availableImportSlots().length === 1 && availableImportSlots()[0].id === 'design-md',
-  'only the design.md slot is available — the Figma-file path waits on #677');
-const unbuilt = IMPORT_SLOTS.filter((s) => !s.available);
-ok(unbuilt.length === 1 && unbuilt.every((s) => 'needs' in s && !!s.needs),
-  `every unavailable slot names what it waits on (${unbuilt.map((s) => ('needs' in s ? s.needs : '?')).join(', ')})`);
-// The union is the enforcement: an unavailable slot HAS no label, so a renderer cannot show one.
-ok(unbuilt.every((s) => !('label' in s) && !('desc' in s)),
-  'an unavailable slot carries no copy — there is no string to render for a path that does not exist');
 
 // =============================================================================================
 // 7b. The download is the CONSUMER set, metadata off by default (#2552, owner decision Q250 A)

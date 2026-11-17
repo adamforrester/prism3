@@ -17818,22 +17818,24 @@ console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
   } finally { await ctx.close(); }
 // A10 (figma 1280): a host message while the Export dialog is open repaints the bar but leaves the dialog as it is: the
-// same node, the import text and its caret where they were. A marker set on the node by the TEST says whether it is the
-// same one; the message is an Apply verdict, which changes nothing the dialog shows.
+// same node, and the focused preview scrolled where it was. A marker set on the node by the TEST says whether it is the
+// same one; the message is an Apply verdict, which changes nothing the dialog shows. (Until #3910 this held the import
+// box's text and caret; Export has no import box now, so the state it holds is the preview's focus and scroll.)
 {
   const where = '§46 figma light 1280';
   const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w: 1280, h: 900 });
-  let step = 'open Export and its import box';
+  let step = 'open Export';
   try {
     // #2909: on the plugin Export is a rail area, its content the Export page (`export-page`), not a dialog.
     await hooks.click(page.locator('[data-p3="rail-export"]'), BOUND);
-    await hooks.need(page, '[data-p3="export-page"]', BOUND);
-    await hooks.click(page.locator('[data-p3="export-import"]'), BOUND);
-    await hooks.need(page, '[data-p3="import-text"]', BOUND);
-    step = 'type into the import box and put the caret mid-text';
-    const ta = page.locator('[data-p3="import-text"]');
-    await ta.fill('---\nname: caret test\n---');
-    await ta.evaluate((n) => { n.focus(); n.setSelectionRange(4, 4); n.closest('[data-p3="export-page"]').__p3Mark = 'kept'; });
+    await hooks.need(page, '[data-p3="export-page"] [data-p3="export-preview"]', BOUND);
+    step = 'focus the preview and scroll it';
+    const pre0 = await page.evaluate(() => {
+      const n = document.querySelector('[data-p3="export-preview"]');
+      n.focus(); n.scrollTop = 40; n.closest('[data-p3="export-page"]').__p3Mark = 'kept';
+      return n.scrollTop;
+    });
+    ok(pre0 === 40, `${where} A10 premise: the preview scrolls (scrollTop ${pre0} after setting 40)`);
     step = 'a host message';
     // A verdict is a `host` notification, which the bar repaints on; the premise below reads that it reached the bar.
     await page.evaluate(() => { window.__p3Bar = 0; new MutationObserver((rs) => { window.__p3Bar += rs.length; }).observe(document.querySelector('[data-p3="bar-main"]'), { subtree: true, childList: true, attributes: true, characterData: true }); });
@@ -17843,11 +17845,11 @@ console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
     ok(barMoved > 0, `${where} A10 premise: the host message reached the bar (${barMoved} mutation record(s))`);
     const st = await page.evaluate(() => {
       const d = document.querySelector('[data-p3="export-page"]');
-      const t = document.querySelector('[data-p3="import-text"]');
-      return { mark: d?.__p3Mark ?? null, value: t?.value ?? null, caret: t?.selectionStart ?? null, focused: document.activeElement === t };
+      const t = document.querySelector('[data-p3="export-preview"]');
+      return { mark: d?.__p3Mark ?? null, scroll: t?.scrollTop ?? null, focused: document.activeElement === t };
     });
-    ok(st.mark === 'kept' && st.value === '---\nname: caret test\n---' && st.caret === 4 && st.focused,
-      `${where} A10: a host message leaves the open Export area as it is, the import text and its caret in place (${JSON.stringify(st)})`);
+    ok(st.mark === 'kept' && st.scroll === 40 && st.focused,
+      `${where} A10: a host message leaves the open Export area as it is, the preview focused and scrolled where it was (${JSON.stringify(st)})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
@@ -21970,17 +21972,20 @@ if (runs('2069')) {
 } // 2069
 // #3553 M8 AND M9 (batch M-D): THE EXPORT PAGE. M8: at the plugin's 380 the artifact switcher ("Design tokens | Brand brief
 // | Component specs") was wider than its column, and "Component specs" ran past the panel's edge to x=401; the option rows
-// below already wrapped (`.p3-export-oseg`), and now the switcher does too. M9: Export draws its captions ("You get 4
-// files", "Import") and its Import action ("↑ Brand brief…") with the menu's classes, and they kept the menu's inner
-// padding, 12px right of the files, the code and the notes they label. EVERY caption directly in `.p3-export-out` ("You
+// below already wrapped (`.p3-export-oseg`), and now the switcher does too. M9: Export drew its captions ("You get 4
+// files") with the menu's classes, and they kept the menu's inner padding, 12px right of the files, the code and the
+// notes they label. EVERY caption directly in `.p3-export-out` ("You
 // get 4 files" and "A few tokens, shaped by these settings") is held, not just the first. Held on the plugin at 380 and 1280 and the web at
 // 1280, both themes: every switcher tab lies inside the column, and each caption's and the action's text starts where
 // the content it labels starts. MUTATIONS (each after a `wip:` commit): `.p3-export-seg` dropped from the wrap rule →
 // `#3553 M8 … every artifact tab lies inside its column`, at 380; the captions' `padding-inline: 0` dropped → `#3553 M9
-// … "You get 4 files" starts at the files' edge` and `… "Import" starts at its note's edge`; the action's negative margin
-// dropped → `#3553 M9 … "↑ Brand brief…" starts at its note's edge`; the caption rule narrowed to
+// … "You get 4 files" starts at the files' edge`; the caption rule narrowed to
 // `.p3-menu-cap:is(:has(+ .p3-export-files), :first-child)` → `#3553 M9 … "A few tokens, shaped by these settings"
 // starts at the files' edge`. Since #3553 Q-UI11 A the switcher is underline tabs (section 3553-export holds their form).
+// #3910 (owner direction 2026-11-17): Export offers no Import; importing a brief is the brand menu's, which 3553-icons
+// still reaches on both hosts. Held here on every host, width and theme, through `hooks.absent` with the files list as
+// its proof: the Export page draws no hook whose name holds "import", no upload icon and no caption starting "Import". MUTATION (after a `wip:` commit): the Import block restored in `bar.ts`'s
+// `exportArea` → `#3910 … Export offers no Import`.
 if (runs('3553-md')) {
   console.log(`\nExport: the switcher fits, and its captions align (#3553 M8, M9)\n${'='.repeat(78)}`);
   for (const [host, w, h] of [['figma', 380, 420], ['figma', 1280, 900], ['web', 1280, 900]]) for (const theme of ['light', 'dark']) {
@@ -22001,17 +22006,18 @@ if (runs('3553-md')) {
         const col = contentBox(seg.closest('.p3-bardlg-col'));
         const tabs = [...seg.querySelectorAll('[data-p3="export-artifact"]')].map((t) => { const r = t.getBoundingClientRect(); return { t: t.textContent, l: r.left, r: r.right }; });
         const out = page.querySelector('.p3-export-out');
-        const capIn = (box, text) => [...box.querySelectorAll(':scope > .p3-menu-cap')].find((c) => c.textContent.startsWith(text));
         const files = out.querySelector('.p3-export-files');
-        const imp = page.querySelector('.p3-bardlg-import');
         const caps = [...out.querySelectorAll(':scope > .p3-menu-cap')];
-        const icap = imp && capIn(imp, 'Import');
-        const act = imp?.querySelector('[data-p3="export-import"]');
-        const inote = imp?.querySelector('.p3-bardlg-note');
+        // #3910: what of Import the page still draws: any hook naming import (read off every element, so a retired hook is
+        // not named here, where the hook guard would require it drawn), an upload icon, or a caption that says Import.
+        const importHere = [
+          ...[...page.querySelectorAll('*')].map((n) => n.getAttribute('data-p3')).filter((r) => r && /import/.test(r)),
+          ...[...page.querySelectorAll('svg[data-icon="upload"]')].map(() => 'upload icon'),
+          ...[...page.querySelectorAll('.p3-menu-cap')].filter((c) => /^import/i.test(c.textContent.trim())).map((c) => `caption "${c.textContent.trim()}"`),
+        ];
         return {
-          col, tabs,
+          col, tabs, importHere,
           files: files && caps.length ? { caps: caps.map((c) => ({ text: c.textContent, l: textLeft(c) })), edge: textLeft(files) } : null,
-          imp: icap && act && inote ? { cap: textLeft(icap), act: textLeft(act), actText: act.textContent, edge: textLeft(inote) } : null,
         };
       });
       ok(m.tabs.length === 3, `${where}: premise, the switcher draws three artifact tabs (${m.tabs.map((t) => t.t).join(' | ')})`);
@@ -22019,11 +22025,8 @@ if (runs('3553-md')) {
       ok(out.length === 0, `#3553 M8 ${where}: every artifact tab lies inside its column (${Math.round(m.col.l)}–${Math.round(m.col.r)}; outside ${JSON.stringify(out.map((t) => [t.t, Math.round(t.l), Math.round(t.r)]))})`);
       ok(!!m.files && m.files.caps.some((c) => c.text.startsWith('You get')) && m.files.caps.some((c) => c.text.startsWith('A few tokens')), `${where}: premise, Export shows its files list and both captions, "You get…" and "A few tokens…" (${JSON.stringify(m.files)})`);
       if (m.files) for (const c of m.files.caps) ok(Math.abs(c.l - m.files.edge) <= ALIGN_TOLERANCE, `#3553 M9 ${where}: "${c.text}" starts at the files' edge (caption ${c.l.toFixed(1)}, files ${m.files.edge.toFixed(1)})`);
-      ok(!!m.imp, `${where}: premise, Export shows Import, its action and its note (${JSON.stringify(m.imp)})`);
-      if (m.imp) {
-        ok(Math.abs(m.imp.cap - m.imp.edge) <= ALIGN_TOLERANCE, `#3553 M9 ${where}: "Import" starts at its note's edge (caption ${m.imp.cap.toFixed(1)}, note ${m.imp.edge.toFixed(1)})`);
-        ok(Math.abs(m.imp.act - m.imp.edge) <= ALIGN_TOLERANCE, `#3553 M9 ${where}: "${m.imp.actText}" starts at its note's edge (label ${m.imp.act.toFixed(1)}, note ${m.imp.edge.toFixed(1)})`);
-      }
+      hooks.absent(ok, { seen: !!m.files, state: 'the Export page with its files list' }, m.importHere.length === 0,
+        `#3910 ${where}: Export offers no Import — importing a brief is the brand menu's (drawn here: ${JSON.stringify(m.importHere)})`);
       if (SHOTS && theme === 'light') await page.screenshot({ path: join(SHOTS, `s3553-md-${host}-${w}-export.png`) });
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
@@ -22676,11 +22679,11 @@ if (runs('3553-q1')) {
 // "↑ Import design.md…", "↑ Upload…", "↓ Download tokens" and "↑ Brand brief…" drew text characters where "Add brand color"
 // draws Tabler's plus. Each now draws the vendored icon (`svg[data-icon]`, the Tabler name, written here) before words
 // that carry no "+", "↑" or "↓". Held on both hosts at 1280, both themes: the brand menu's New brand (plus) and Import
-// design.md… (upload) and the import box's Upload .md (upload); Export's Download (download) and its Brand brief… import
-// (upload); and the start window's Upload… (upload). On a primary button (Download) the icon takes the button's ink, as
+// design.md… (upload) and the import box's Upload .md (upload); Export's Download (download) (its Brand brief… import left
+// Export in #3910); and the start window's Upload… (upload). On a primary button (Download) the icon takes the button's ink, as
 // its words do. MUTATION (after a `wip:` commit): New brand back to the text
 // "+ New brand" → `#3553 Q-UI8 … brand-menu-new draws the plus icon`.
-const ICON_ACTIONS = [['brand-menu-new', 'plus'], ['brand-menu-import', 'upload'], ['import-upload', 'upload'], ['dialog-confirm', 'download'], ['export-import', 'upload'], ['start-upload', 'upload']];
+const ICON_ACTIONS = [['brand-menu-new', 'plus'], ['brand-menu-import', 'upload'], ['import-upload', 'upload'], ['dialog-confirm', 'download'], ['start-upload', 'upload']];
 if (runs('3553-icons')) {
   console.log(`\nThe actions draw the vendored icons (#3553 Q-UI8)\n${'='.repeat(78)}`);
   for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
@@ -22707,7 +22710,7 @@ if (runs('3553-icons')) {
       step = 'export';
       await hooks.click(page.locator('[data-p3="rail-export"]'));
       await hooks.need(page, '[data-p3="export-page"] [data-p3="dialog-confirm"]');
-      for (const hk of ['dialog-confirm', 'export-import']) seen[hk] = await read(hk);
+      seen['dialog-confirm'] = await read('dialog-confirm');
       step = 'start window';
       await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
       await hooks.click(page.locator('[data-p3="brand-menu-new"]'));

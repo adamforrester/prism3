@@ -710,40 +710,6 @@ export const metadataDefects = (tree: unknown, slug = 'brand'): string[] => {
 };
 
 // ===========================================================================================
-// Import — a slot, not a control (#723, #721)
-// ===========================================================================================
-
-/**
- * The import half of the dialog.
- *
- * "Load Prism3-themed tokens from an existing Figma file" depends on #677, which is unbuilt, so it is
- * a SLOT rather than a control: building the affordance first bakes in an assumption about how
- * reconstruction works, and #677 has not decided that.
- *
- * The union is what enforces it. An unavailable slot has no `label` and no `desc` — there is no copy
- * to write for a path that does not exist — and `availableImportSlots()` narrows to the copy-bearing
- * variant, so a renderer cannot reach for a string the unbuilt slot does not have.
- */
-export type ImportSlot =
-  | { readonly id: string; readonly available: true; readonly label: string; readonly desc: string }
-  | { readonly id: string; readonly available: false; readonly needs: string };
-
-export const IMPORT_SLOTS: readonly ImportSlot[] = [
-  {
-    id: 'design-md',
-    available: true,
-    label: 'Brand brief',
-    desc: 'Paste or upload a brief. The engine has to accept it before it replaces what you have here.',
-  },
-  // #677: reconstructing a brand from emitted tokens is an undetermined inverse — the engine grows a
-  // whole system from sparse anchors, and that does not run backwards. Until it is decided, no control.
-  { id: 'figma-file', available: false, needs: '#677' },
-];
-
-export const availableImportSlots = (): ReadonlyArray<Extract<ImportSlot, { available: true }>> =>
-  IMPORT_SLOTS.filter((s): s is Extract<ImportSlot, { available: true }> => s.available);
-
-// ===========================================================================================
 // The checks — what makes the rules above rules
 // ===========================================================================================
 
@@ -814,10 +780,6 @@ export const jargonDefects = (): string[] => {
   }
   check(`${METADATA_OPTION.key} label`, METADATA_OPTION.label);
   check(`${METADATA_OPTION.key} desc`, METADATA_OPTION.desc);
-  for (const slot of availableImportSlots()) {
-    check(`import slot ${slot.id} label`, slot.label);
-    check(`import slot ${slot.id} desc`, slot.desc);
-  }
   return out;
 };
 
