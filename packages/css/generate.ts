@@ -29,7 +29,7 @@
  * sits in one named cascade layer, `p3`, so an author's unlayered CSS overrides it without a specificity fight.
  */
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { resolve, dirname, isAbsolute, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { demoHtml } from './demo';
 import { motionBinding, readUncommitted, uniformRedline } from './emission';
@@ -323,18 +323,29 @@ export const outputs = (): [string, string, number][] => {
 };
 
 /**
- * Q142 A: this package reads emitted files, not the engine's code. Every script here is scanned for an import of the
- * engine (`@prism3/engine…`, or a relative `../engine/` module; reading `../engine/out/` files and running the emitter as
- * a process are not imports). Only `residual.ts` may import it, and only the two facts it names.
+ * Q142 A: this package reads emitted files, not the engine's code. Every script here is scanned for a module specifier
+ * (`import … from`, `export … from`, a bare `import '…'`, `import(…)` and `require(…)`) that reaches the engine: the
+ * `@prism3/engine` package by name, or any relative or absolute path that RESOLVES under `packages/engine/` outside
+ * `out/`, however it is spelled (`../engine/x`, `../../packages/engine/x`, `./../engine/x`). Reading `../engine/out/`
+ * files and running the emitter as a process are not imports. Only `residual.ts` may import it, and only the two facts
+ * it names.
  */
 const RESIDUAL = 'residual.ts';
 const RESIDUAL_EXPORTS = ['hitTargetFloor', 'pendingReplacement'];
 export const engineImports = (): string[] => {
   const bad: string[] = [];
-  const IMPORT = /\b(?:import|from)\s*\(?\s*['"](@prism3\/engine[^'"]*|\.\.\/engine\/(?!out\/)[^'"]*)['"]/g;
-  for (const f of readdirSync(HERE).filter((x) => /\.(ts|js|mjs)$/.test(x)).sort()) {
+  const SPECIFIER = /\b(?:from|import|require)\s*\(?\s*['"]([^'"]+)['"]/g;
+  const ENGINE = resolve(HERE, '../engine'), OUT = resolve(ENGINE, 'out');
+  const under = (p: string, dir: string) => p === dir || p.startsWith(`${dir}${sep}`);
+  const reachesEngine = (spec: string): boolean => {
+    if (spec === '@prism3/engine' || spec.startsWith('@prism3/engine/')) return true;
+    if (!spec.startsWith('.') && !isAbsolute(spec)) return false;
+    const at = resolve(HERE, spec);
+    return under(at, ENGINE) && !under(at, OUT);
+  };
+  for (const f of readdirSync(HERE).filter((x) => /\.(ts|js|mjs|cjs)$/.test(x)).sort()) {
     const text = readFileSync(resolve(HERE, f), 'utf8');
-    for (const m of text.matchAll(IMPORT)) if (f !== RESIDUAL) bad.push(`${f} imports ${m[1]}; only ${RESIDUAL} may (Q142 A)`);
+    for (const m of text.matchAll(SPECIFIER)) if (f !== RESIDUAL && reachesEngine(m[1])) bad.push(`${f} imports ${m[1]}; only ${RESIDUAL} may (Q142 A)`);
     if (f === RESIDUAL) {
       const exported = [...text.matchAll(/^export const (\w+)/gm)].map((m) => m[1]);
       if (exported.join() !== RESIDUAL_EXPORTS.join()) bad.push(`${RESIDUAL} exports ${exported.join(', ') || 'nothing'}; the residual is ${RESIDUAL_EXPORTS.join(', ')} only (Q142 A)`);

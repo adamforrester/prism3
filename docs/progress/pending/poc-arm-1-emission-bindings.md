@@ -10,3 +10,5 @@ that carries corners, strokes, focus rings and motion. `@prism3/css`'s generator
   replacement rule, which the emission doesn't carry yet (#3917). `generate.ts --check` fails if any other script in
   the package imports the engine. This residual is an owner decision, recorded in `docs/poc/arm-1-journal.md`
   ("Refresh 3").
+- **The guard resolves paths.** `generate.ts --check` resolves every import, export-from, dynamic import and
+  `require` specifier and fails on any that lands in `packages/engine/` outside `out/`, however it is spelled.

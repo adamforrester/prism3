@@ -1107,3 +1107,33 @@ the right end state, and it doesn't block the fields' elements.
 three times. Two breaks were loud: a key the generator had no rule for, and a key the parity checks couldn't read.
 One was quiet: a row key that grew. The consumer was
 protected by being strict about unknown input and by checking its output byte for byte, not by the version numbers.
+
+### Review fixes (the CHANGES verdict on `90a500bc`)
+
+- **Base merge.** `poc/arm-1` moved to `2a08d9e7` (#3895, S5 thin) after this branched. It was merged in with a merge
+  commit. The only conflict was this journal, where both sides appended an entry; both are kept, S5 first, in the
+  order they started. `main` was not merged again, so #3841 (Button's motion) is still not in this refresh.
+- **The Q142 A guard read spellings, not paths.** `engineImports()` matched only `@prism3/engine…` and the one
+  relative spelling that climbs a single level to the engine, so `import '../../packages/engine/components/index'` passed `check:generated`, and `require(…)` was
+  never scanned. It now reads every specifier (`import … from`, `export … from`, a bare `import '…'`, `import(…)`,
+  `require(…)`), resolves each relative or absolute one against the package, and fails when it lands under
+  `packages/engine/` outside `out/`. Each probe below is a new `probe.ts` in the package, which the generator does not
+  import, so the guard and not a crash is what fails:
+
+  | Probe | `check:generated` |
+  |---|---|
+  | `import '../../packages/engine/components/index';` | `FAIL @prism3/css sources: probe.ts imports ../../packages/engine/components/index; only residual.ts may (Q142 A)` (passed before the fix) |
+  | `const _e = require('../engine/theme');` | `FAIL … probe.ts imports ../engine/theme; …` (passed before the fix) |
+  | `export { button } from './../engine/components/index';` | `FAIL … probe.ts imports ./../engine/components/index; …` |
+  | an absolute path to `packages/engine/theme` | `FAIL … probe.ts imports <path>/packages/engine/theme; …` |
+  | `await import('@prism3/engine/theme')` | `FAIL … probe.ts imports @prism3/engine/theme; …` |
+  | `import '../engine/out/components/specs.json';` (control) | OK: an emitted file is not the engine's code |
+  | `import '../../tools/agent-adherence/score-code';` (control) | OK: outside `packages/engine/` |
+
+  **Still not seen:** an engine import reached *through* another module. `check-browser*.ts` and
+  `check-raw-values.ts` reach `@prism3/engine/color` through `tools/agent-adherence/score-code.ts`. They are checks,
+  not the generator, so Q142 A does not cover them, and the guard reads direct specifiers only.
+- **`outline-width` now reads the focus ring's own `width`.** It is carried in the emission's `focusRing`. Before,
+  it followed the button's `ring-width`, which the emitter uses only as `strokeInset`. Both are `focus.ring.width`
+  today, so the bytes are the same. Rebinding the button's `ring-width` alone no longer moves the CSS, and rebinding the
+  focus ring's `width` does. This is the more correct source, because the outline the CSS draws is the ring.
