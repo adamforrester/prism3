@@ -20,6 +20,12 @@ export const STEP_NUMS = [
 
 export const stepKey = (n: number): string => String(n).padStart(3, '0');
 
+/** A list entry the caller has established is in range; a named throw, not a silent `undefined` (#1182). */
+const must = <T>(x: T | undefined, what: string): T => {
+  if (x === undefined) throw new Error(`ramp: ${what} is missing`);
+  return x;
+};
+
 export type Band = 'Highlights' | 'Quarter' | 'Mid' | 'ThreeQuarter' | 'Shadows';
 export const bandOf = (n: number): Band => {
   if (n <= 50) return 'Highlights';
@@ -54,7 +60,7 @@ export type RampOpts = {
 /** Where an even-L engine would auto-place a color of lightness `l`. */
 export const autoPlaceStep = (l: number, lMax = 0.975, lMin = 0.16): number => {
   const n = STEP_NUMS.length;
-  let best = STEP_NUMS[0], bestD = Infinity;
+  let best = must(STEP_NUMS[0], 'the first step'), bestD = Infinity;
   STEP_NUMS.forEach((num, i) => {
     const target = lMax + (lMin - lMax) * (i / (n - 1));
     const d = Math.abs(target - l);
@@ -117,9 +123,11 @@ const lCurve = (knots: { i: number; L: number }[], n: number): number[] => {
   const ks = [...knots].sort((a, b) => a.i - b.i);
   const L: number[] = [];
   for (let x = 0; x < n; x++) {
-    let a = ks[0], b = ks[ks.length - 1];
-    for (let k = 0; k < ks.length - 1; k++) {
-      if (x >= ks[k].i && x <= ks[k + 1].i) { a = ks[k]; b = ks[k + 1]; break; }
+    let a = must(ks[0], 'a first knot'), b = must(ks[ks.length - 1], 'a last knot');
+    for (const [k, lo] of ks.entries()) {
+      const hi = ks[k + 1];
+      if (!hi) break; // `lo` is the last knot: no segment starts here
+      if (x >= lo.i && x <= hi.i) { a = lo; b = hi; break; }
     }
     L[x] = a.i === b.i ? a.L : a.L + (b.L - a.L) * ((x - a.i) / (b.i - a.i));
   }
@@ -155,12 +163,13 @@ export const generateRamp = (opts: RampOpts): Step[] => {
   // keep knots monotonic in L (a lighter step must not end up darker)
   const sorted = [...knots].sort((a, b) => a.i - b.i);
   for (let k = 1; k < sorted.length; k++) {
-    if (sorted[k].L > sorted[k - 1].L) sorted[k].L = sorted[k - 1].L; // clamp non-increasing
+    const cur = must(sorted[k], `knot ${k}`), prev = must(sorted[k - 1], `knot ${k - 1}`);
+    if (cur.L > prev.L) cur.L = prev.L; // clamp non-increasing
   }
   const Ls = lCurve(sorted, n);
 
   const steps = STEP_NUMS.map((num, i) => {
-    let L = Ls[i], C: number, H: number;
+    let L = must(Ls[i], `curve L at step ${i}`), C: number, H: number;
     if (i === ai) {
       L = anchor!.oklch.l; C = anchor!.oklch.c; H = anchor!.oklch.h; // anchor exact
     } else {
@@ -176,8 +185,9 @@ export const generateRamp = (opts: RampOpts): Step[] => {
   // silently misread it — fail loud instead. (A consistent anchor, e.g. from autoPlaceStep as
   // brandTheme uses, never trips this.)
   for (let i = 1; i < steps.length; i++) {
-    if (steps[i].oklch.l > steps[i - 1].oklch.l + 1e-9)
-      throw new Error(`ramp: non-monotonic lightness — step ${steps[i].key} (L ${steps[i].oklch.l.toFixed(3)}) is lighter than ${steps[i - 1].key} (L ${steps[i - 1].oklch.l.toFixed(3)}). A pinned anchor's lightness disagrees with its step position; place the anchor at the step matching its L (autoPlaceStep).`);
+    const cur = must(steps[i], `step ${i}`), prev = must(steps[i - 1], `step ${i - 1}`);
+    if (cur.oklch.l > prev.oklch.l + 1e-9)
+      throw new Error(`ramp: non-monotonic lightness — step ${cur.key} (L ${cur.oklch.l.toFixed(3)}) is lighter than ${prev.key} (L ${prev.oklch.l.toFixed(3)}). A pinned anchor's lightness disagrees with its step position; place the anchor at the step matching its L (autoPlaceStep).`);
   }
   return steps;
 };
