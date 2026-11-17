@@ -1179,7 +1179,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
       postVerdict({
         type: 'component-result', ok: false, completed: false,
         headline: partial ? partialWriteHeadline(partial) : APPLY_FAILED_HEADLINE,
-        ...fromClauses([['', `component build failed: ${(e as Error).message}`], [' — ', partial ? partialWriteItem(partial) : '']]),
+        ...fromClauses([['', `component build failed: ${failureDetail(e)}`], [' — ', partial ? partialWriteItem(partial) : '']]),
         // #3326: the host's own words first, then what the throw left on the canvas, as the summary leads with them.
         causes: [cause('bad', e instanceof DependencyBuildError ? e.dependency : defId ?? button.id, CAUSE_WHAT.failed,
           [(e as Error)?.message ?? String(e), ...(partial ? [partialWriteItem(partial)] : [])])],
@@ -1208,7 +1208,7 @@ const furnishSet = async (defId: string, setId: string, plans: AnatomyPlan[]): P
     if (!set || set.type !== 'COMPONENT_SET') return null;
     return await drawFurniture(figma as unknown as FurnitureApi, set as unknown as XNode, furnitureLayout(plans), defId);
   } catch (e) {
-    return { def: defId, parent: '', columns: 0, rows: 0, backdrops: 0, scrims: 0, cleared: 0, skipped: [`No canvas labels for ${defId}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], fontMisses: [] };
+    return { def: defId, parent: '', columns: 0, rows: 0, backdrops: 0, scrims: 0, cleared: 0, skipped: [`No canvas labels for ${defId}: Figma refused the write (${failureDetail(e)})`], fontMisses: [] };
   }
 };
 
@@ -1222,7 +1222,7 @@ const panelFor = async (set: XNode, defId: string, api: PanelApi = figma as unkn
   const def = componentDefs.find((d) => d.id === defId);
   if (!def) return { def: defId, drawn: false, sections: [], replaced: 0, kept: [], skipped: [], misses: [] };
   try { return await drawDocPanel(api, set as unknown as PNode, def, { names: defName }); }
-  catch (e) { return { def: defId, drawn: false, sections: [], replaced: 0, kept: [], skipped: [`No usage panel for ${defId}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], misses: [] }; }
+  catch (e) { return { def: defId, drawn: false, sections: [], replaced: 0, kept: [], skipped: [`No usage panel for ${defId}: Figma refused the write (${failureDetail(e)})`], misses: [] }; }
 };
 
 /** `panelFor` on a set by id, folded into the set's furniture outcome (the build's path). */
@@ -1776,7 +1776,7 @@ const updateTargets = (defId: string | readonly string[] | undefined, input?: Br
   for (const d of defs) {
     // `single` (#2296): an `emitAsComponents` def (the icons, the spinner) is read as single components, not a set.
     try { targets.push({ def: d.id, plans: figmaAnatomySet(materializeForBrand(d, brandInput), { swapTarget: SWAP_TARGET }), ...(d.figmaProperties?.emitAsComponents ? { single: true } : {}), ...(panels && leadsPanel(d.id) ? { doc: { def: d, names: defName } } : {}) }); }
-    catch (e) { refused.push({ def: d.id, reason: `the engine could not plan it (${(e as Error)?.message ?? String(e)})` }); }
+    catch (e) { refused.push({ def: d.id, reason: `the engine could not plan it (${failureDetail(e)})` }); }
   }
   return { targets, unknown: null, refused };
 };
@@ -1914,7 +1914,7 @@ const drawSpecs = async (defId: string | undefined, scope: 'file' | 'page', sink
     for (const { def, set } of targets) {
       let o: SpecOutcome;
       try { o = await drawSpecPanel(api, set, def, { materialize: (d) => materializeForBrand(d, brandInput) }); }
-      catch (e) { o = { def: def.id, drawn: false, sets: [], replaced: 0, kept: [], skipped: [`No spec panel for ${def.id}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], misses: [] }; }
+      catch (e) { o = { def: def.id, drawn: false, sets: [], replaced: 0, kept: [], skipped: [`No spec panel for ${def.id}: Figma refused the write (${failureDetail(e)})`], misses: [] }; }
       if (o.missing?.length) { items.push(`No spec panels: the file has no ${o.missing.join(', ')}. Run Set up file first`); break; }
       if (o.drawn) drawn.push(def.id);
       items.push(...specItems(o));
@@ -1964,7 +1964,7 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
     if (due.length) {
       let saved = false;
       try { await saveVersion(figma, { run: 'setup', sets: due.map((m) => ({ set: m.set })) }); saved = true; }
-      catch (e) { movesNote = `\nSets not moved to their pages: the named version could not be saved (${(e as Error)?.message ?? String(e)}).`; }
+      catch (e) { movesNote = `\nSets not moved to their pages: the named version could not be saved (${failureDetail(e)}).`; }
       if (saved) {
         relocated = await relocateSets(figma, TAXONOMY);
         // A moved block's header goes with it (#3172), and the page it leaves is named too.
@@ -2014,13 +2014,13 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
     // #2977: unless Documentation has the cover off for this file; then nothing is drawn and the thumbnail is left.
     if (!readDocSettings(figma.root).cover) cover = { did: 'none', skipped: COVER_OFF, fontMisses: [] };
     else try { cover = await drawCover(figma as unknown as CoverApi, figma.root as unknown as CoverRoot); }
-    catch (e) { cover = { did: 'none', skipped: `not drawn, Figma refused the write (${(e as Error)?.message ?? String(e)})`, fontMisses: [] }; }
+    catch (e) { cover = { did: 'none', skipped: `not drawn, Figma refused the write (${failureDetail(e)})`, fontMisses: [] }; }
     const coverNote = coverLine(cover);
     const summary = `pages: ${scaffold.created.length} created${scaffold.created.length ? ` (${scaffold.created.slice(0, 4).join(', ')}${scaffold.created.length > 4 ? '…' : ''})` : ' (all present)'}${assetNote}${movesNote}${coverNote ? `\n${coverNote}` : ''}`;
     sink.data({ fileSetup: { pagesCreated: scaffold.created, fileComponentsPage: page ? true : false, assets, cover, ...(relocated ? { relocated } : {}) } });
     sink.post({ type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: appendBuildNote(summary, PRISM3_BUILD) });
   } catch (e) {
-    sink.post({ type: 'file-setup-result', ok: false, headline: '✗ setup failed', summary: appendBuildNote(`file setup failed: ${(e as Error).message}`, PRISM3_BUILD) });
+    sink.post({ type: 'file-setup-result', ok: false, headline: '✗ setup failed', summary: appendBuildNote(`file setup failed: ${failureDetail(e)}`, PRISM3_BUILD) });
   }
 };
 
@@ -2076,7 +2076,7 @@ const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise
     sink.post({ type: 'style-guide-result', ok: v.ok, headline: v.headline, summary: appendBuildNote(summary, PRISM3_BUILD), lines, ...(result.stopped ? { stopped: result.stopped } : {}),
       ...(result.retired?.length ? { retired: result.retired } : {}) });
   } catch (e) {
-    const failure = `style guide failed: ${(e as Error).message}`;
+    const failure = `style guide failed: ${failureDetail(e)}`;
     sink.post({ type: 'style-guide-result', ok: false, headline: '✗ style guide failed', summary: appendBuildNote(failure, PRISM3_BUILD), lines: withBuildLine([failure]) });
   } finally {
     styleGuideStop = false;
@@ -2128,7 +2128,7 @@ const seedFromFile = async (sink: ActionSink): Promise<void> => {
   } catch (e) {
     // The read itself failed, so presence is UNKNOWN — reported false, since the outcome is an error
     // either way and claiming presence we could not establish would be worse than not claiming it.
-    sink.post({ type: 'seed-info', ok: false, present: false, summary: `read-back failed: ${(e as Error).message}`, failed: 0 });
+    sink.post({ type: 'seed-info', ok: false, present: false, summary: `read-back failed: ${failureDetail(e)}`, failed: 0 });
   }
 };
 
@@ -2228,7 +2228,7 @@ const styleGuideCleanup = async (ids: string[], sink: ActionSink): Promise<void>
     const summary = n ? `${n} table${n === 1 ? '' : 's'} removed: ${removed.join(', ')}` : 'No table removed';
     sink.post({ type: 'style-guide-cleanup-result', ok: left.length === 0, removed: ids.filter((id) => !left.includes(id)), summary: left.length ? `${summary}. ${left.length} left in place: the generator draws ${left.length === 1 ? 'it' : 'them'} again, or ${left.length === 1 ? 'it is' : 'they are'} gone` : summary });
   } catch (e) {
-    sink.post({ type: 'style-guide-cleanup-result', ok: false, removed: [], summary: `Cleanup failed: ${(e as Error).message}` });
+    sink.post({ type: 'style-guide-cleanup-result', ok: false, removed: [], summary: `Cleanup failed: ${failureDetail(e)}` });
   }
 };
 

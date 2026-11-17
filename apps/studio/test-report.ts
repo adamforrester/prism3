@@ -42,7 +42,9 @@
  * off, a typeface family is replaced`. The same drop fails `apps/plugin/test-report-redaction.ts` over the plugin's
  * own lines. D3703.1 B (the drawer keeps the host's message; only the report reduces a `write failed:` or `prune failed:`
  * line to the error's class): `reduceFailure` dropped from `buildReport` → `#3697 H4 D3703.1 B a thrown write's and
- * prune's lines keep the error's class, not the host's message`.
+ * prune's lines keep the error's class, not the host's message`. #3702 (every other line that carries a host's message):
+ * the `DETAIL` rule dropped from `reduceLine` → `#3702 component build: the report keeps the error's class, not the host's
+ * message`, and each other site of the table by name.
  */
 import { ENGINE_VOCABULARY, brandWords, buildReport, isIssueUrl, issueUrl, scrub, ISSUE_BASE, URL_LIMIT, type ReportInput } from './src/state/report';
 import { brandTheme, type BrandInput, buildTree } from '@prism3/engine';
@@ -228,6 +230,42 @@ ok(authoredOn.includes('hds/color/interactive/seaside/fill/rest') && authoredOn.
   const rep = failedRep(false);
   ok(rep.includes('  - write failed: Error\n'), '#3697 H4 D3703.1 B a failure line with no class at its head reads `Error`, never the message');
   ok(rep.includes('  - member 3 failed to bind: Checkout Hero'), '#3697 H4 D3703.1 B a line that is not a write or prune failure is left as it is');
+}
+
+// ── #3702: every other line that carries a host's message keeps only the error's class in the report ──
+// D3703.1 B again: each line posts `failureDetail` (`<Class>: <message>`), the drawer shows it whole, and the report cuts
+// it to the class. Each line is typed as `main.ts` posts it, one per site #3702 names; each expected line is a literal.
+{
+  const SECRET = 'in appendChild: node "Checkout Hero / Q3 launch" on page "Unannounced"';
+  const cases: readonly [site: string, posted: string, reported: string][] = [
+    ['component build', `component build failed: TypeError: ${SECRET} — 2 nodes had already reached the file; they are parked in the frame 'Q3 launch' on this page`, 'component build failed: TypeError'],
+    ['canvas labels', `No canvas labels for button: Figma refused the write (Error: ${SECRET})`, 'No canvas labels for button: Figma refused the write (Error)'],
+    ['usage panel', `No usage panel for button: Figma refused the write (TypeError: ${SECRET})`, 'No usage panel for button: Figma refused the write (TypeError)'],
+    ['spec panel', `No spec panel for button: Figma refused the write (Error: ${SECRET})`, 'No spec panel for button: Figma refused the write (Error)'],
+    ['cover', `Cover: not drawn, Figma refused the write (Error: ${SECRET}).`, 'Cover: not drawn, Figma refused the write (Error)'],
+    ['engine plan', `button: can't be checked. the engine could not plan it (Error: ${SECRET}).`, 'button: can\'t be checked. the engine could not plan it (Error)'],
+    ['version save', `Sets not moved to their pages: the named version could not be saved (Error: ${SECRET}).`, 'Sets not moved to their pages: the named version could not be saved (Error)'],
+    ['file setup', `file setup failed: Error: ${SECRET}. Built from tree-test0000 at 2026-11-12T00:00:00Z.`, 'file setup failed: Error'],
+    ['style guide', `style guide failed: TypeError: ${SECRET}`, 'style guide failed: TypeError'],
+    ['read-back', `read-back failed: Error: ${SECRET}`, 'read-back failed: Error'],
+    ['cleanup', `Cleanup failed: Error: ${SECRET}`, 'Cleanup failed: Error'],
+    ['prune version', `Nothing removed — the named version could not be saved (Error: ${SECRET}).`, 'Nothing removed — the named version could not be saved (Error)'],
+    ['variable writes', `⚠ 3 variable writes refused by Figma (pds/color/blue: ${SECRET.slice(0, 60)})`, '⚠ 3 variable writes refused by Figma (pds/color/blue)'],
+  ];
+  for (const [site, posted, reported] of cases) {
+    const rep = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Run', verdict: '✗ failed', lines: [posted], agent: false }] });
+    const line = rep.split('\n').find((l) => l.startsWith('  - ')) ?? '';
+    ok(line === `  - ${reported}` && !/Checkout Hero|Q3 launch|Unannounced|appendChild/.test(rep),
+      `#3702 ${site}: the report keeps the error's class, not the host's message (${JSON.stringify(line)})`);
+  }
+  // A line of several, the host's message on one of them (`fileSetup`'s summary): only that line is cut.
+  const multi = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Set up file', verdict: '✓ file set up',
+    lines: [`pages: 2 created (Cover, Docs)\nSets not moved to their pages: the named version could not be saved (Error: ${SECRET}).\nCover: drawn.`], agent: false }] });
+  ok(multi.includes('pages: 2 created (Cover, Docs)\nSets not moved to their pages: the named version could not be saved (Error)\nCover: drawn.') && !/Checkout Hero|Unannounced/.test(multi),
+    `#3702 a multi-line summary: only the line with the host's message is cut (${JSON.stringify(multi.split('Activity').pop())})`);
+  // A line that only mentions an error, with no class-and-message detail, is left as it is.
+  const plain = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Run', verdict: '✓ done', lines: ['Errors: none', 'TypeError counts: 0 (button)'], agent: false }] });
+  ok(plain.includes('  - Errors: none\n') && plain.includes('  - TypeError counts: 0 (button)'), '#3702 a line with no class-and-message detail is left as it is');
 }
 
 // ── #3525 review finding 1: a name next to prose punctuation is still a whole segment ──

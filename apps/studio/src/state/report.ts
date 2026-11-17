@@ -9,8 +9,9 @@
  * line what could still carry one or a key — a Figma file URL, a long hex or token-shaped run (a key, a token, a
  * hash), and, while the brand is not included, the brand's own words (its `id`, `name` and `root`, which every token
  * name carries as its first segment, and every other string its author wrote, typeface families included: #3523,
- * #3561, #3697 H4). A thrown write's or prune's line keeps only the error's class, not the host's message the drawer
- * shows (`reduceFailure`, #3697 H4). Built from these fields alone, never from a dump of the session.
+ * #3561, #3697 H4). A thrown write's or prune's line, and every other line that carries a host's message (#3702), keeps
+ * only the error's class, not the host's message the drawer shows (`reduceFailure`, #3697 H4). Built from these fields
+ * alone, never from a dump of the session.
  *
  * Every string is a DRAFT placeholder (#2069: the placement and copy are the owner's call), in `REPORT_COPY`.
  */
@@ -139,8 +140,22 @@ const FAILED = /^((?:write|prune) failed): (?:([A-Za-z][A-Za-z0-9]*)(?=[:.]|$))?
 /** A failure line as the report carries it: the error's class alone (`write failed: TypeError`), never the host's
  *  message (#3697 H4, D3703.1 B). The Activity drawer shows the message, so the designer keeps Figma's reason, but the
  *  message can carry anything the file holds (a page, a layer, a style), and `scrub` takes out only the words it knows.
- *  A line with no class at its head reads `Error`. Any other line is unchanged. */
-export const reduceFailure = (line: string): string => line.replace(FAILED, (_, head: string, cls?: string) => `${head}: ${cls ?? 'Error'}`);
+ *  A `write failed:` or `prune failed:` line with no class at its head reads `Error`. Every other line that carries a
+ *  host's message is cut to its class the same way (#3702, `DETAIL` below); any other line is unchanged. */
+const reduceWriteFailure = (line: string): string => line.replace(FAILED, (_, head: string, cls?: string) => `${head}: ${cls ?? 'Error'}`);
+
+/** Every other line that carries a host's message (#3702) carries it as `failureDetail` does, `<Class>: <message>`,
+ *  where the class is an error's name (`Error`, `TypeError`, `DependencyBuildError`), at the start of the line, after
+ *  `: ` (`file setup failed: Error: …`) or after `(` (`Figma refused the write (Error: …)`). The message runs to the end
+ *  of its line, so the report keeps the class and cuts the rest; a detail that opened a parenthesis gets it closed. */
+const DETAIL = /(^|: |\()((?:[A-Z][A-Za-z0-9]*)?Error): .*$/;
+/** The apply's variable-write note names the variable, then the host's reason as `write-figma.ts` records it, with no
+ *  class (`⚠ 3 variable writes refused by Figma (<name>: <reason>)`): the report keeps the name. The note is a line of
+ *  its own, and also a clause of the apply's one-line summary, so the cut runs to the end of the line either way. */
+const REFUSED_WRITES = /(variable writes refused by Figma \([^:()]*): .*$/;
+const reduceLine = (l: string): string => l.replace(REFUSED_WRITES, '$1)').replace(DETAIL, (_, at: string, cls: string) => `${at}${cls}${at === '(' ? ')' : ''}`);
+
+export const reduceFailure = (line: string): string => reduceWriteFailure(line).split('\n').map(reduceLine).join('\n');
 
 /** The bundle, as Markdown, ready to paste into an issue. */
 export const buildReport = (r: ReportInput): string => {

@@ -2,7 +2,7 @@
 
 <!-- DRAFT for owner review (#2637, lane 4; corrected to the Update file checklist for #3264). -->
 
-Setting up a file gives it the page structure Prism3 builds into, plus the helper components the other steps draw with. <!-- src: apps/plugin/src/main.ts:1955-2025#34bf74fb -->
+Setting up a file gives it the page structure Prism3 builds into, plus the helper components the other steps draw with. <!-- src: apps/plugin/src/main.ts:1955-2025#390740ed -->
 It is the first item of the **Update file** checklist, **Set up file**, listed while the file isn't set up yet, or lacks something setup builds: "The pages, the templates and the style-guide cells. The cover too, while Docs has it on." <!-- src: apps/studio/src/state/update-file.ts:332-333 -->
 
 ## Set up a new file
