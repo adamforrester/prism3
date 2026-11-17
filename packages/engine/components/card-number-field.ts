@@ -42,7 +42,7 @@ import { FOCUS_EDGE_DEFAULT_NOTE, FOCUS_EDGE_STATUS_NOTE, makeTextField } from '
 
 /** The payment tiles: every mark the set draws on the tile artboard, by kind, so a kind renamed in the set (`card/` →
  *  `payment/`, PR 3) reaches this field without an edit. */
-const TILES = PROVIDER_LOGO_NAMES.filter((n) => { const [family = ''] = n.split('/'); return PROVIDER_LOGO_KINDS[family] === 'tile'; });
+const TILES = PROVIDER_LOGO_NAMES.filter((n) => PROVIDER_LOGO_KINDS[n.split('/')[0]] === 'tile');
 /** The tile kind, the first segment every tile shares. */
 const TILE_KIND = TILES[0]?.split('/')[0];
 if (!TILE_KIND || TILES.some((n) => !n.startsWith(`${TILE_KIND}/`)))

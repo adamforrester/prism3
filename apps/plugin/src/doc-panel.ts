@@ -26,6 +26,11 @@
  *     member reads as its family, linked to the lead's set, once across the lists (in the first that names it, #3552 Q-UG3 A), and the panel's own family is left out
  *     (#2970 Q5 A).
  *
+ * LAST CHANGED IN (#2889, #2858 piece 2; wireframe approved, Q479.3 A): under the header, above Overview, the lead set's
+ * newest release from the bundled release notes and that release's items for the set (`library-about.ts`), or
+ * "Unchanged since" the oldest notes. In the plan's hash and in the as-built ledger (`changed`), so after a fold only the
+ * panels whose block reads differently are due (owner decision A); the print covers it as it covers every block.
+ *
  * EVERY SPECIMEN AT ITS MEMBER'S OWN WIDTH (#2970 Q1 A). The panel is as wide as its widest stage needs and never
  * narrower than `PANEL_WIDTH` (`panelLayout`), read off the set alone, so the seat, the dry run and the apply agree.
  *
@@ -72,6 +77,7 @@ import { STAMP_KEY } from './write-components';
 import { builtByPrism3, readBaseline } from './member-baseline';
 import { readTag } from './canvas-furniture';
 import { readSpecTag } from './spec-tag';
+import { lastChangedIn, lastChangedLines, type ReleaseIndex } from './library-about';
 import { CAPTION, CHIP_SLOTS, CODE_STYLE, DOC_BLOCK_SET, DO_ROWS, SPECIMEN, STAGE_PAD, TOP_PADDING, docBlockVariant, variantValues, type DocBlockSize, type DocBlockType } from './doc-block';
 
 export const DOC_PANEL_NS = 'prism3';
@@ -87,6 +93,8 @@ export const DOC_PANEL_WIDTH = 'docPanelWidth';
 /** On the set's parent: each set whose panel the last draw found blocked, with the panel's height and plan then
  *  (`docPanelBlockers`). Cleared when the panel is drawn. */
 export const DOC_PANEL_BLOCKED = 'docPanelBlocked';
+/** The frame that holds the "Last changed in" block (#2889), between the header and the first section. */
+export const LAST_CHANGED = 'last-changed';
 /** On each section frame: the model section it draws. */
 export const DOC_SECTION_KEY = 'docSection';
 /** The panel's narrowest width. A set whose specimens need more widens its panel (`panelWidthFor`, #2970 Q1 A). */
@@ -162,7 +170,23 @@ export interface PanelSection { id: DocSectionId; title: string; blocks: PanelBl
 /** `family`: every def on the lead's taxonomy page, the lead included, when it holds more than one (#2927): the panel
  *  lists them under the lede, the lead first, each by its name in the family and its own summary's first sentence,
  *  linked to its set (#2970 Q4 A). */
-export interface PanelPlan { def: string; title: string; lede: string; family?: LinkItem[]; sections: PanelSection[]; hash: string }
+/** `changed`: the "Last changed in" block's lines (#2889, #2858 piece 2): the lead set's newest release, from the release
+ *  notes only (Q479.3 A), its date, then that release's items for the set; or "Unchanged since <first version>"; or none
+ *  when the notes hold nothing that old. In the hash, so after a fold only the panels whose block reads differently are
+ *  due (#2889, owner decision A). */
+export interface PanelPlan { def: string; title: string; lede: string; family?: LinkItem[]; changed: string[]; sections: PanelSection[]; hash: string }
+/** The release notes the "Last changed in" block reads: the plugin's own engine and the bundled notes, unless a test
+ *  pins them. */
+export interface PanelReleases { engine?: string; ix?: ReleaseIndex }
+/**
+ * THE "LAST CHANGED IN" BLOCK'S LINES FOR A PANEL (#2889): the family's LEAD set's history, the set the panel sits beside
+ * and is tagged with. A member's own release items are not read: the block names one set's release, as the approved
+ * wireframe drew it for one component (Q479). `lastChangedIn` caps it at the engine.
+ */
+export const lastChangedFor = (defId: string, r: PanelReleases = {}): string[] => lastChangedLines(lastChangedIn(defId, r.engine, r.ix));
+/** The block's text as the as-built ledger keeps it on a lead set (`changed`, #2889 decision A): a fold that moves it makes
+ *  the set due for its panel even when the set itself is current; one that leaves it does not. */
+export const lastChangedKey = (defId: string, r: PanelReleases = {}): string => fnv(JSON.stringify(lastChangedFor(defId, r)), false);
 /**
  * ONE NUMBERED ENTRY OF THE ANATOMY (#2916, #2927): its number, the part it marks, and that part's path below the
  * def's root, by part id (empty for the root itself: the specimen is the root). `bracket` marks a part that holds
@@ -325,7 +349,7 @@ const labelsBefore3265 = (def: ComponentDef, listed: readonly string[]): string[
  * (`test-doc-panel.ts`). `names` gives a component id its display name, for Related's chips; an id it does not know
  * shows as the id.
  */
-export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]; names?: (id: string) => string } = {}): PanelPlan => {
+export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]; names?: (id: string) => string; releases?: PanelReleases } = {}): PanelPlan => {
   const name = ctx.names ?? ((id: string) => id);
   const sections: PanelSection[] = [];
   const model = docSections(def, { modes: ctx.modes }).sections;
@@ -414,7 +438,7 @@ export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]
   // and its parts listed, the lead first and then the page's order. THE LEAD BY ITS NAME ONLY (#3552 Q-UG4 A): the lede
   // is its summary, so its entry does not say that again.
   const family = others.length ? [def, ...others].map((d) => ({ name: nameInFamily(name(d.id), fam!.page), def: d.id, ...(d === def ? {} : { note: firstSentences(d.summary, 1) }) })) : undefined;
-  const body = { def: def.id, title: family ? fam!.page : def.name, lede: plain(def.summary), ...(family ? { family } : {}), sections };
+  const body = { def: def.id, title: family ? fam!.page : def.name, lede: plain(def.summary), ...(family ? { family } : {}), changed: lastChangedFor(def.id, ctx.releases), sections };
   return { ...body, hash: `${PANEL_FORMAT}:${fnv(JSON.stringify(body), false)}${fnv(JSON.stringify(body), true)}` };
 };
 
@@ -741,6 +765,7 @@ const writtenTexts = (api: Pick<PanelApi, 'root'>, defId: string): Set<string> |
   const fam = panelFamily(defId);
   if (fam && fam.members.length > 1) out.add(fam.members.map(names).join(', '));
   if (plan.family) out.add(plan.family.map(linkLine).join('\n'));
+  if (plan.changed.length > 1) out.add(plan.changed.slice(1).join('\n'));
   for (const b of plan.sections.flatMap((s) => s.blocks)) if (b.type === 'Chips' && b.chips.length > CHIP_SLOTS) out.add(`+${b.chips.length - CHIP_SLOTS + 1} more`);
   for (const b of plan.sections.flatMap((s) => s.blocks)) if (b.type === 'Links') out.add(b.items.map(linkLine).join('\n'));
   for (const s of docSections(def, { modes: PANEL_MODES }).sections as DocSection[]) {
@@ -1035,7 +1060,7 @@ export const drawDocPanel = async (
   api: PanelApi,
   set: PNode,
   def: ComponentDef,
-  opts: { names?: (id: string) => string } = {},
+  opts: { names?: (id: string) => string; releases?: PanelReleases } = {},
 ): Promise<PanelOutcome> => {
   const out: PanelOutcome = { def: def.id, drawn: false, sections: [], replaced: 0, kept: [], skipped: [], misses: [] };
   const fam = panelFamily(def.id);
@@ -1046,7 +1071,7 @@ export const drawDocPanel = async (
   if (!blocks) { out.missing = [DOC_BLOCK_SET]; return out; }
   const variant = (type: DocBlockType, size: DocBlockSize = SIZE): PNode | undefined => (blocks.children ?? []).find((m) => m.name === docBlockVariant(type, size));
   const { modes, pin } = await panelModes(api);
-  const plan = planDocPanel(def, { modes, names: opts.names });
+  const plan = planDocPanel(def, { modes, names: opts.names, releases: opts.releases });
 
   // THE EARLIER PANELS: unedited ones go now, so they are not in the fresh panel's way; edited ones wait for the
   // fresh panel to land, and stay exactly as they are if it cannot.
@@ -1451,6 +1476,26 @@ export const drawDocPanel = async (
   // THE FAMILY (#2927, #2970 Q4 A): every set the panel covers, as a bulleted list under the lede, each name linked to its
   // set and followed by its own summary. DRAFT label (Q10).
   if (plan.family) await draw(header, { type: 'Links', label: 'In this family', items: plan.family });
+
+  // LAST CHANGED IN (#2889, #2858 piece 2, Q479.3 A): under the header, above Overview, as the approved wireframe places
+  // it. No block type of its own: the version line is a Heading block and the release's items a Paragraph block under
+  // it, bulleted. The wording is the approved wireframe's ("Last changed in", "Unchanged since").
+  if (plan.changed.length) {
+    const lc = frame(LAST_CHANGED, 'VERTICAL', 4);
+    panel.appendChild?.(lc);
+    fill(lc);
+    const h = block('Heading', SIZE);
+    if (h) { lc.appendChild?.(h); fill(h); await write(findText(h, 'text'), plan.changed[0], 'text'); }
+    const items = plan.changed.slice(1);
+    const para = items.length ? block('Paragraph', SIZE) : undefined;
+    if (para) {
+      lc.appendChild?.(para); fill(para);
+      const t = findText(para, 'text');
+      if (await write(t, items.join('\n'), 'text') && t) {
+        try { t.setRangeListOptions?.(0, String(t.characters).length, { type: 'UNORDERED' }); } catch { out.misses.push('Last changed in: list bullets not set'); }
+      }
+    }
+  }
 
   for (const s of plan.sections) {
     const d = block('Divider');

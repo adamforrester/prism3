@@ -317,7 +317,7 @@ export const codeInputCell: ComponentDef = {
 // THE DEFAULT CELLS (owner decision Q329 A): six, each following the field's size and status (Q-CC1 A), its character
 // set by override and its state set from the field's state, so each member opens on a picture of that state. A designer then sets each
 // placed cell themselves; the field's status and state never reach a placed instance's cells (the accepted trade-off).
-const CODE = '481902';
+const CODE = ['4', '8', '1', '9', '0', '2'];
 const cell = (n: number) => {
   // focus-visible: the first cell active. focus-visible-filled: three characters in, the fourth cell active.
   const partial = n < 3 ? 'filled' : n === 3 ? 'focus-visible' : 'rest';
@@ -340,7 +340,7 @@ const cell = (n: number) => {
         },
       },
     },
-    overrides: { texts: { digit: CODE.charAt(n) } },
+    overrides: { texts: { digit: CODE[n] } },
     note: `Cell ${n + 1} of the default six.`,
   };
 };

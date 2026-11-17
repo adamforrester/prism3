@@ -65,7 +65,7 @@ import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot 
 import { clearOrphanSpecPanels, drawSpecPanel, specItems, specTargets, type SpecApi, type SpecOutcome } from './spec-panel';
 import { COVER_OFF, readDocSettings, writeDocSettings } from './doc-settings';
 import { livePanels, livePanelsOf, panelLeadsOf, paneledOf, panelsCleanCount, removeUneditedPanels, unpaneledOf, type CensusRoot } from './panel-census';
-import { DOC_PANEL_KEY, DOC_PANEL_NS, clearOrphanPanels, docPanelReach, drawDocPanel, findDocBlock, leadsPanel, PANEL_FORMAT, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
+import { DOC_PANEL_KEY, DOC_PANEL_NS, clearOrphanPanels, docPanelReach, drawDocPanel, findDocBlock, lastChangedKey, leadsPanel, PANEL_FORMAT, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
 import { type AnatomyPlan, checkAnatomySet, figmaAnatomyMembers, figmaAnatomySet, button, componentDefs, type ComponentDef } from '@prism3/engine/components';
 import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './build-telemetry';
@@ -2693,7 +2693,8 @@ onUiMessage((msg: UiToMain) => {
  *  usage panels on for this file, the sets whose update checks a panel (`updateTargets`' `doc`); nothing on any other.
  *  The file's switch is read once per call. Defined here, at the end, so the lines public guides cite above stay put;
  *  it is called only once the module has loaded. */
-const panelFormatOf = (): ((def: string) => { panel?: number }) => {
+const panelFormatOf = (): ((def: string) => { panel?: number; changed?: string }) => {
   const on = readDocSettings(figma.root).panels;
-  return (id) => (on && leadsPanel(id) ? { panel: PANEL_FORMAT } : {});
+  // #2889: and the text of its "Last changed in" block, so a fold that moves it makes the set due (owner decision A).
+  return (id) => (on && leadsPanel(id) ? { panel: PANEL_FORMAT, changed: lastChangedKey(id) } : {});
 };

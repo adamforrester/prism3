@@ -4,13 +4,6 @@
  */
 import { type Dims, n2, type BrandInput } from './theme-types';
 
-/** A value the caller has established is present (an in-range index, a key just written); a named throw, not a
- *  silent `undefined` (#1182, `noUncheckedIndexedAccess`). */
-const must = <T>(x: T | undefined, what: string): T => {
-  if (x === undefined) throw new Error(`theme-layout: ${what} is missing`);
-  return x;
-};
-
 // ---------------------------------------------------------------------------
 // Layout axis (breakpoints + responsive grid + containers). Grounded in a
 // 10-system survey. Decisions:
@@ -137,8 +130,8 @@ export const buildLayout = (input: BrandInput['layout'] = {}): LayoutAxis => {
   const marginOverrides = input.marginOverrides ?? {};
   const grid: GridStep[] = breakpoints.map((b, i) => ({
     bp: b.name, columns: resolveColumns(overrides[b.name], cols(i)),
-    gutterPx: resolveGap(gutterOverrides[b.name], must(GUTTER_PX[Math.min(i, GUTTER_PX.length - 1)], 'a gutter'), 'gutterOverrides', b.name),
-    marginPx: resolveGap(marginOverrides[b.name], must(MARGIN_PX[Math.min(i, MARGIN_PX.length - 1)], 'a margin'), 'marginOverrides', b.name),
+    gutterPx: resolveGap(gutterOverrides[b.name], GUTTER_PX[Math.min(i, GUTTER_PX.length - 1)], 'gutterOverrides', b.name),
+    marginPx: resolveGap(marginOverrides[b.name], MARGIN_PX[Math.min(i, MARGIN_PX.length - 1)], 'marginOverrides', b.name),
   }));
   return { breakpoints, grid, baseColumns: base, containerMax: input.containerMax ?? 1440, containerNarrow: input.containerNarrow ?? 720, containerMin: CONTAINER_MIN_PX };
 };
