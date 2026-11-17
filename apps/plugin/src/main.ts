@@ -55,7 +55,7 @@ import type { SgContract } from './style-guide';
 import { TAXONOMY } from './file-taxonomy';
 import { blockHeadersLines, headerFor, pageHeaderItems, placeBlockHeaders } from './page-header';
 import type { PageHeaderOutcome, HeaderPage } from './page-header';
-import { withPanel, hasFurniture, clearFurniture, drawFurniture, seatNewSet, furnishUpdate, furnitureLayout, furnitureItems, docBlockLine, withFurnitureItems, withTemplateWarning, readTag, staleFurniture, pruneFurniture, furniturePruneText, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
+import { withPanel, hasFurniture, clearFurniture, drawFurniture, seatNewSet, furnishUpdate, furnitureLayout, furnitureItems, docBlockLine, withFurnitureItems, withTemplateWarning, readTag, staleFurniture, pruneFurniture, furniturePruneText, parentIdOf, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
 import type { DocBlockFix, FurnitureApi, FurnitureOutcome, FurnitureParent, FurnitureTag, XNode } from './canvas-furniture';
 import { cause, runCause, CAUSE_WHAT } from './causes';
 import { ensureFurnitureTemplates } from './furniture-templates';
@@ -666,19 +666,24 @@ const prune = async (input: BrandInput, confirm: boolean, previewHash: string | 
       root,
     };
     const plan = computePrunePlan(snapshot);
-    // THE CANVAS FURNITURE (#2406, #2188): labels and backdrops whose set is gone, or whose def the pilot no longer
-    // covers. Found by their tag, file-wide; a live set's furniture is the build's to redraw, never prune's.
+    // THE CANVAS FURNITURE (#2406, #2188): labels and backdrops whose set is gone, whose def the pilot no longer
+    // covers, or whose set moved to another parent and left them behind (#2485, Q294 A). Found by their tag,
+    // file-wide; furniture beside its live set is the build's to redraw, never prune's.
     await loadPagesYielding();
     const tagged = (figma.root.findAllWithCriteria({ types: ['INSTANCE'], sharedPluginData: { namespace: FURNITURE_NS, keys: [FURNITURE_KEY] } }) as readonly InstanceNode[])
-      .map((node) => ({ node, tag: readTag(node as unknown as XNode) }))
-      .filter((x): x is { node: InstanceNode; tag: FurnitureTag } => x.tag !== null);
-    const liveSets = new Set<string>();
+      .map((node) => ({ node, tag: readTag(node as unknown as XNode), parent: parentIdOf(node) }))
+      .filter((x): x is { node: InstanceNode; tag: FurnitureTag; parent: string } => x.tag !== null);
+    /** Each live set's parent id, by set id; a set not in the file has no entry. */
+    const liveSets = new Map<string, string>();
+    const checked = new Set<string>();
     for (const t of tagged) {
-      if (liveSets.has(t.tag.set)) continue;
+      if (checked.has(t.tag.set)) continue;
+      checked.add(t.tag.set);
       const n = t.tag.set ? await figma.getNodeByIdAsync(t.tag.set) : null;
-      if (n && n.type === 'COMPONENT_SET' && !n.removed) liveSets.add(t.tag.set);
+      if (n && n.type === 'COMPONENT_SET' && !n.removed) liveSets.set(t.tag.set, parentIdOf(n));
     }
-    const staleFurn = staleFurniture(tagged, (id) => liveSets.has(id));
+    const setParent = (id: string): string | null => liveSets.get(id) ?? null;
+    const staleFurn = staleFurniture(tagged, setParent);
     const furnText = (applied: boolean, n: number): string => {
       const t = furniturePruneText(n, applied);
       return t ? ` ${t}` : '';
@@ -707,7 +712,7 @@ const prune = async (input: BrandInput, confirm: boolean, previewHash: string | 
       getLocalGridStylesAsync: () => figma.getLocalGridStylesAsync(),
     };
     const res = await applyPrunePlan(plan, pruneApi, counts);
-    const furnRemoved = pruneFurniture(tagged.map((t) => t.node as unknown as XNode), (id) => liveSets.has(id), counts.failed);
+    const furnRemoved = pruneFurniture(tagged.map((t) => t.node as unknown as XNode), setParent, counts.failed);
     const removed = res.variables + res.collections + res.modes + res.styles;
     sink.data({ pruneApplied: { ...res, furniture: furnRemoved } });
     const summary = removed === 0 && furnRemoved && !res.failed.length ? furniturePruneText(furnRemoved, true) : pruneAppliedSummary(res) + furnText(true, furnRemoved);

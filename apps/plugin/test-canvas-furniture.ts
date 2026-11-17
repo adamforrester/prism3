@@ -97,7 +97,7 @@ import { captureBaselines, previewUpdate, previewLine, previewVerdict, type Upda
 import { applyUpdate, applyVerdict, previewHashOf } from './src/update-apply';
 import { BASELINE_KEY } from './src/member-baseline';
 import { NS } from './src/persist-figma';
-import { planFurniture, drawFurniture, seatNewSet, furnishUpdate, furnitureDue, furnitureLayout, furnitureItems, docBlockLine, withFurnitureItems, withTemplateWarning, sentenceCase, pruneFurniture, clearFurniture, hasFurniture, SCRIM_BACKDROPS, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
+import { planFurniture, drawFurniture, seatNewSet, furnishUpdate, furnitureDue, furnitureLayout, furnitureItems, docBlockLine, withFurnitureItems, withTemplateWarning, sentenceCase, pruneFurniture, furniturePruneText, clearFurniture, hasFurniture, SCRIM_BACKDROPS, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
 import { ensureFurnitureTemplates } from './src/furniture-templates';
 import type { Cause } from './src/messages';
 import { allLeaves } from './src/file-taxonomy';
@@ -1514,9 +1514,40 @@ section('prune — furniture whose set is gone');
   const unpiloted = make('icon', 'S:live2');
   const untagged = labelInstance('Top');
   page.appendChild(untagged);
-  const n = pruneFurniture(page.children, (id) => id === 'S:live' || id === 'S:live2');
+  // The live sets sit on this same page: `setParent` answers a live set's parent id, null for a set not in the file.
+  const n = pruneFurniture(page.children, (id) => (id === 'S:live' || id === 'S:live2' ? page.id : null));
   ok(n === 2 && page.children.includes(live) && !page.children.includes(gone) && !page.children.includes(unpiloted) && page.children.includes(untagged),
     `prune/stale: the label of a deleted set and one for a def with no furniture (Icon, single components) go; a live set's label and an untagged node stay (${n})`);
+}
+
+// #2485 (Q294 A): furniture whose set is alive but on ANOTHER parent is stale too. A designer moved the set; the next
+// Build or Update of it clears the old copy (`clearMovedFurniture`), and prune now does as well, for a moved set nobody
+// rebuilds. Still tag-only: an untagged node on the old page stays, and the moved set's copy beside it stays.
+// Mutation: `staleFurniture` back to "set alive" only → `prune/moved`.
+section('prune — furniture a moved set left on its old page (#2485)');
+{
+  const a = makePage('↳ A');
+  const b = makePage('↳ B');
+  const make = (on: ReturnType<typeof makePage>, def: string, set: string) => {
+    const n = labelInstance('Top');
+    on.appendChild(n);
+    (n.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', 'furniture', JSON.stringify({ v: 1, def, set, kind: 'label' }));
+    return n;
+  };
+  const leftBehind = make(a, 'button', 'S:moved');
+  const besideIt = make(b, 'button', 'S:moved');
+  const stayed = make(a, 'button', 'S:stayed');
+  const untagged = labelInstance('Top');
+  a.appendChild(untagged);
+  const home: Record<string, string> = { 'S:moved': b.id, 'S:stayed': a.id };
+  const n = pruneFurniture([...a.children, ...b.children], (id) => home[id] ?? null);
+  ok(n === 1 && !a.children.includes(leftBehind) && b.children.includes(besideIt) && a.children.includes(stayed) && a.children.includes(untagged),
+    `prune/moved: the label a moved set left on ↳ A goes; its copy beside it on ↳ B, a set's label still beside its set, and an untagged node stay (${n} removed; left behind ${a.children.includes(leftBehind) ? 'kept' : 'gone'}, beside ${b.children.includes(besideIt) ? 'kept' : 'gone'}, stayed ${a.children.includes(stayed) ? 'kept' : 'gone'}, untagged ${a.children.includes(untagged) ? 'kept' : 'gone'})`);
+  ok(furniturePruneText(1, false) === '1 canvas label or backdrop belongs to a set that was deleted or moved. Deleting it touches no component.'
+    && furniturePruneText(3, false) === '3 canvas labels or backdrops belong to a set that was deleted or moved. Deleting them touches no component.'
+    && furniturePruneText(3, true) === 'Removed 3 canvas labels or backdrops left from a set that was deleted or moved.'
+    && furniturePruneText(0, true) === '',
+    `prune/moved copy: one sentence family for both causes, as Q294 A wrote it (${JSON.stringify([furniturePruneText(1, false), furniturePruneText(3, true)])})`);
 }
 
 /* ── templates: `_Label` and `_inverse-backdrop` as file setup builds them ──────────────────────────────── */
