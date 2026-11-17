@@ -109,39 +109,179 @@ Generated from the plan that builds the design-file component: 48 members. Value
 
 Padding reads top / right / bottom / left when its sides differ.
 
-Keyed by `size`.
+Keyed by `size`, `state`.
 
-**size=medium**
+**size=medium, state=rest**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | — | — | 32px (literal) | build width 48px (literal); build height 56px (literal) |
+| `container` | — | — | — | — | 32px (literal) | build width 48px (literal); build height 56px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=medium, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 48px (literal); build height 56px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=medium, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 48px (literal); build height 56px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=medium, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 48px (literal); build height 56px (literal); radius `radius.sm`; stroke `focus.ring.width` |
 | `container/content` | `space.0` | — | — | — | — | — |
 | `container/content/caret` | — | — | `icon.size.sm` | `border-width.hairline` | — | — |
 
-**size=small**
+**size=medium, state=focus-visible-filled**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | — | — | 32px (literal) | build width 44px (literal); build height 44px (literal) |
+| `container` | — | — | — | — | 32px (literal) | build width 48px (literal); build height 56px (literal); radius `radius.sm`; stroke `focus.ring.width` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=medium, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 48px (literal); build height 56px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=small, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 44px (literal); build height 44px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=small, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 44px (literal); build height 44px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=small, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 44px (literal); build height 44px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=small, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 44px (literal); build height 44px (literal); radius `radius.sm`; stroke `focus.ring.width` |
 | `container/content` | `space.0` | — | — | — | — | — |
 | `container/content/caret` | — | — | `icon.size.xs` | `border-width.hairline` | — | — |
 
-**size=large**
+**size=small, state=focus-visible-filled**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | — | — | 32px (literal) | build width 56px (literal); build height 64px (literal) |
+| `container` | — | — | — | — | 32px (literal) | build width 44px (literal); build height 44px (literal); radius `radius.sm`; stroke `focus.ring.width` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=small, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 44px (literal); build height 44px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=large, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 56px (literal); build height 64px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=large, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 56px (literal); build height 64px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=large, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 56px (literal); build height 64px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=large, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 56px (literal); build height 64px (literal); radius `radius.sm`; stroke `focus.ring.width` |
 | `container/content` | `space.0` | — | — | — | — | — |
 | `container/content/caret` | — | — | `icon.size.md` | `border-width.hairline` | — | — |
 
-**size=x-large**
+**size=large, state=focus-visible-filled**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | — | — | 32px (literal) | build width 68px (literal); build height 72px (literal) |
+| `container` | — | — | — | — | 32px (literal) | build width 56px (literal); build height 64px (literal); radius `radius.sm`; stroke `focus.ring.width` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=large, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 56px (literal); build height 64px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=x-large, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 68px (literal); build height 72px (literal); radius `radius.lg`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=x-large, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 68px (literal); build height 72px (literal); radius `radius.lg`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=x-large, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 68px (literal); build height 72px (literal); radius `radius.lg`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=x-large, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 68px (literal); build height 72px (literal); radius `radius.lg`; stroke `focus.ring.width` |
 | `container/content` | `space.0` | — | — | — | — | — |
 | `container/content/caret` | — | — | `icon.size.xl` | `border-width.hairline` | — | — |
+
+**size=x-large, state=focus-visible-filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 68px (literal); build height 72px (literal); radius `radius.lg`; stroke `focus.ring.width` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=x-large, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 68px (literal); build height 72px (literal); radius `radius.lg`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
 
 ### Type
 

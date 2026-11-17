@@ -130,42 +130,42 @@ Keyed by `size`, `shape`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container` | — | — | `icon.size.sm` | `icon.size.sm` | — | radius `radius.none`; stroke `border-width.hairline` |
 | `container/icon` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
 **size=small, shape=flush**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container` | — | — | `icon.size.sm` | `icon.size.sm` | — | radius `radius.none`; stroke `border-width.hairline` |
 | `container/icon` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
 **size=large, shape=flush**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container` | — | — | `icon.size.md` | `icon.size.md` | — | radius `radius.none`; stroke `border-width.hairline` |
 | `container/icon` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 
 **size=medium, shape=round**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.md.height` | `size.md.height` | — | — |
+| `container` | — | — | `size.md.height` | `size.md.height` | — | radius `radius.round`; stroke `border-width.hairline` |
 | `container/icon` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
 **size=small, shape=round**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.sm.height` | `size.sm.height` | — | — |
+| `container` | — | — | `size.sm.height` | `size.sm.height` | — | radius `radius.round`; stroke `border-width.hairline` |
 | `container/icon` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
 **size=large, shape=round**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.lg.height` | `size.lg.height` | — | — |
+| `container` | — | — | `size.lg.height` | `size.lg.height` | — | radius `radius.round`; stroke `border-width.hairline` |
 | `container/icon` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 
 ### Color

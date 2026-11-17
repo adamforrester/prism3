@@ -101,7 +101,7 @@ Keyed by nothing: one row covers every member.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `ring` | — | — | `size.md.height` | `size.md.height` | — | — |
+| `ring` | — | — | `size.md.height` | `size.md.height` | — | stroke `focus.ring.width` |
 
 ### Color
 

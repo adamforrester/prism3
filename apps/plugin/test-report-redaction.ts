@@ -23,11 +23,22 @@
  *   · `reduceFailure` dropped from `buildReport` (`report.ts`) → `#3697 H4 a thrown write: the host's message is not in
  *     the report` and `#3697 H4 a thrown prune: the host's message is not in the report`;
  *   · `write failed:` carrying the class alone again (`main.ts`) → `#3697 H4 D3703.1 B a thrown write: the drawer line
- *     keeps the host's message`; the same at `prune failed:` → `#3697 H4 D3703.1 B a thrown prune: …`.
+ *     keeps the host's message`; the same at `prune failed:` → `#3697 H4 D3703.1 B a thrown prune: …`;
+ *   · #3702: the `DETAIL` rule dropped from `reduceLine` (`report.ts`) → `#3702 Build components: the report keeps the
+ *     error's class, not the host's message`, and the same for Set up file, Style guide, Clean up style guide and Read
+ *     from file; `file setup failed:` carrying the class alone (`main.ts`) → `#3702 D3703.1 B Set up file: the drawer
+ *     line keeps the host's message, its class in front`.
+ *   · #3702 review: `failureDetail` keeping a host message's line breaks (`apply-summary.ts`) → `#3702 Set up file, a
+ *     two-line host message: the report keeps the error's class, not the host's message`; `HEAD_DETAIL`'s class back to
+ *     `…Error` → `#3702 Style guide, a DOMException: …` and `#3702 Build components, an invariant: …`; a head dropped
+ *     from `DETAIL_HEADS` → `#3702 review: every head main.ts posts a failureDetail after is one the report cuts at`.
+ *   · #3702 second review: `failureDetail` collapsing `[\r\n]` only → `#3702 D3703.1 B Set up file, a host message
+ *     split by U+2028: the drawer line keeps the host's message, its class in front` (and U+2029). The report arm holds
+ *     under it: the report's own cut (`test-report.ts`) closes the same leak a second time.
  */
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { brandTheme, type BrandInput } from '@prism3/engine';
-import { buildReport, type ReportEntry } from '../studio/src/state/report';
+import { buildReport, DETAIL_HEADS, type ReportEntry } from '../studio/src/state/report';
 import { themePlans } from './src/apply-theme';
 import { FileShim } from './file-shim';
 
@@ -161,6 +172,140 @@ console.log('Report a problem over the plugin\'s own lines (#3697 H4)\n');
   ok(!text.includes('Checkout Hero') && !text.includes('Unannounced') && !text.includes('get_name'),
     `#3697 H4 a thrown prune: the host's message is not in the report (${JSON.stringify(posted[0]?.summary)})`);
   ok(text.includes('  - prune failed: Error\n') || text.endsWith('  - prune failed: Error'), '#3697 H4 a thrown prune: the report says the error\'s class');
+}
+
+/* ── 4–9. #3702: every other action that posts a host's message (D3703.1 B: the drawer keeps it; the report cuts it) ── */
+
+/** The drawer keeps the host's message with the class in front (`failureDetail`), and the report keeps the class. The
+ *  posted line and the reported line are both typed whole, so a site that posts the raw message, or the class alone,
+ *  fails by name here, and so does a report that keeps the message. */
+const TE = `TypeError: ${HOST_SECRET}`;
+const BUILT = 'Built from tree-test0000 at 2026-11-12T00:00:00Z.';
+const thrown = (name: string, posted: readonly Posted[], line: string | undefined, want: string, reported: string): void => {
+  ok(posted.length === 1, `#3702 premise: ${name} posts one result (${posted.length})`);
+  ok(line === want, `#3702 D3703.1 B ${name}: the drawer line keeps the host's message, its class in front (${JSON.stringify(line)})`);
+  const text = report(name, posted);
+  ok(!/Checkout Hero|Unannounced|get_name/.test(text) && text.includes(`  - ${reported}`),
+    `#3702 ${name}: the report keeps the error's class, not the host's message (${JSON.stringify(text.split('\n').filter((l) => l.startsWith('  - ')))})`);
+};
+const A = main.ACTIONS as unknown as Record<string, (...a: unknown[]) => Promise<void>>;
+const boom = async (): Promise<never> => { throw new TypeError(HOST_SECRET); };
+{
+  const real = figmaShim.loadAllPagesAsync;
+  figmaShim.loadAllPagesAsync = boom;
+  const built = await run((sink) => A.buildComponents('button', sink));
+  thrown('Build components', built, built[0]?.lines?.[0], `component build failed: ${TE}`, 'component build failed: TypeError');
+  const setup = await run((sink) => A.fileSetup(sink));
+  thrown('Set up file', setup, setup[0]?.summary, `file setup failed: ${TE}. ${BUILT}`, 'file setup failed: TypeError');
+  const guide = await run((sink) => A.styleGuide({}, sink));
+  thrown('Style guide', guide, guide[0]?.lines?.[0], `style guide failed: ${TE}`, 'style guide failed: TypeError');
+  // Cleanup is reached only from the panel's message (`style-guide-cleanup`), so it goes in that way.
+  const ui = figmaShim.ui as { postMessage: (m: unknown) => void; onmessage: ((m: unknown) => unknown) | null };
+  const cleaned: Posted[] = [];
+  const realPost = ui.postMessage;
+  ui.postMessage = (m) => { if ((m as Posted).type === 'style-guide-cleanup-result') cleaned.push(m as Posted); };
+  await ui.onmessage?.({ type: 'style-guide-cleanup', ids: ['tables'] });
+  for (let i = 0; i < 50 && !cleaned.length; i++) await new Promise((r) => setTimeout(r, 10));
+  ui.postMessage = realPost;
+  thrown('Clean up style guide', cleaned, cleaned[0]?.summary, `Cleanup failed: ${TE}`, 'Cleanup failed: TypeError');
+  figmaShim.loadAllPagesAsync = real;
+}
+{
+  const f = file as unknown as { getLocalVariableCollectionsAsync: () => Promise<unknown[]> };
+  const real = f.getLocalVariableCollectionsAsync;
+  f.getLocalVariableCollectionsAsync = boom;
+  const seeded = await run((sink) => A.seedFromFile(sink));
+  f.getLocalVariableCollectionsAsync = real;
+  thrown('Read from file', seeded, seeded[0]?.summary, `read-back failed: ${TE}`, 'read-back failed: TypeError');
+}
+{
+  // A per-value write the host refuses (`setSurviving`, `write-figma.ts`): recorded with the host's reason, not thrown.
+  // The shim refuses exactly the writes that path makes (read off the call's stack), so the apply still runs.
+  // The earlier arms' applies already created the variables, so the ones there are refused too, and any created now.
+  type Var = { setValueForMode: (m: string, v: unknown) => void };
+  const f = file as unknown as { vars: Var[]; createVariable: (...a: unknown[]) => Var };
+  const refuse = (v: Var): Var => {
+    const write = v.setValueForMode;
+    v.setValueForMode = function (this: unknown, m, x) { if (String(new Error().stack).includes('setSurviving')) throw new Error(HOST_SECRET); write.call(this, m, x); };
+    return v;
+  };
+  const kept = f.vars.map((v) => [v, v.setValueForMode] as const);
+  f.vars.forEach(refuse);
+  const real = f.createVariable;
+  f.createVariable = (...a) => refuse(real.apply(file, a));
+  const applied = (await run((sink) => (main.ACTIONS.applyTheme as (...a: unknown[]) => Promise<void>)(BRAND, undefined, sink))).filter((m) => m.type === 'apply-result');
+  f.createVariable = real;
+  for (const [v, w] of kept) v.setValueForMode = w;
+  const line = applied[0]?.lines?.find((l) => l.includes('variable writes refused by Figma'));
+  ok(applied.length === 1 && !!line && line.endsWith(`: ${HOST_SECRET.slice(0, 60)})`),
+    `#3702 premise and D3703.1 B a refused variable write: the drawer line keeps the host's reason (${JSON.stringify(line)})`);
+  const text = report('Apply Theme', applied);
+  const out = text.split('\n').find((l) => l.includes('variable writes refused by Figma')) ?? '';
+  ok(!/Checkout Hero|Unannounced|get_name/.test(text) && /^ {2}- ⚠ \d+ variable writes refused by Figma \([^:()]+\)$/.test(out),
+    `#3702 a refused variable write: the report keeps the variable's name, not the host's reason (${JSON.stringify(out)})`);
+}
+
+/* ── 9b. #3702 review: host messages `reduceFailure` cut short of the end ──────────────────────────────────────────── */
+// A host message over two lines (the report cuts a detail to the end of its LINE, so the second line got through), and
+// a class `errorClass` admits that is not an `…Error` (`DOMException`, a lowercase `invariant`). Thrown from the host,
+// through the real actions; the drawer line and the reported line are both typed whole.
+{
+  const SECOND = 'page "Unannounced" is locked by Checkout Hero';
+  const twoLines = async (): Promise<never> => { throw new Error(`in loadAllPagesAsync: failed\n${SECOND}`); };
+  const named = (name: string) => async (): Promise<never> => { throw Object.assign(new Error(HOST_SECRET), { name }); };
+  const real = figmaShim.loadAllPagesAsync;
+  figmaShim.loadAllPagesAsync = twoLines;
+  const setup = await run((sink) => A.fileSetup(sink));
+  thrown('Set up file, a two-line host message', setup, setup[0]?.summary,
+    `file setup failed: Error: in loadAllPagesAsync: failed ${SECOND}. ${BUILT}`, 'file setup failed: Error');
+  // Every other line terminator JS knows (CR, CRLF, U+2028, U+2029): `failureDetail` puts the message on one line.
+  for (const [label, t] of [['CR', '\r'], ['CRLF', '\r\n'], ['U+2028', '\u2028'], ['U+2029', '\u2029']] as const) {
+    figmaShim.loadAllPagesAsync = async (): Promise<never> => { throw new Error(`in loadAllPagesAsync: failed${t}${SECOND}`); };
+    const s = await run((sink) => A.fileSetup(sink));
+    thrown(`Set up file, a host message split by ${label}`, s, s[0]?.summary,
+      `file setup failed: Error: in loadAllPagesAsync: failed ${SECOND}. ${BUILT}`, 'file setup failed: Error');
+  }
+  figmaShim.loadAllPagesAsync = named('DOMException');
+  const guide = await run((sink) => A.styleGuide({}, sink));
+  thrown('Style guide, a DOMException', guide, guide[0]?.lines?.[0], `style guide failed: DOMException: ${HOST_SECRET}`, 'style guide failed: DOMException');
+  figmaShim.loadAllPagesAsync = named('invariant');
+  const built = await run((sink) => A.buildComponents('button', sink));
+  thrown('Build components, an invariant', built, built[0]?.lines?.[0], `component build failed: invariant: ${HOST_SECRET}`, 'component build failed: invariant');
+  figmaShim.loadAllPagesAsync = real;
+}
+
+/* ── 9c. #3702 review: the report's heads are every head the plugin posts a `failureDetail` after ─────────────────── */
+// `reduceFailure` admits any class only after a head it knows (`DETAIL_HEADS`), so a new site would leak a
+// `DOMException`'s message. Read from the plugin's source, independent of the list: every `${failureDetail(` in a
+// template is preceded by one of the report's heads, or by `write failed: ` (cut by its own rule). The two calls
+// outside a template are named: prune's (`prune failed: ${why}`, its own rule; `PRUNE_COPY.stopped`, filed as #3865)
+// and its version note (`PRUNE_COPY.noVersion`, whose head is checked in `prune-figma.ts`).
+{
+  const fs = await import('node:fs');
+  const src = fs.readFileSync(new URL('./src/main.ts', import.meta.url), 'utf8');
+  const heads = [...DETAIL_HEADS, 'write failed: '];
+  const sites = [...src.matchAll(/\$\{failureDetail\(/g)].map((m) => src.slice(Math.max(0, m.index - 60), m.index));
+  const unheaded = sites.filter((before) => !heads.some((h) => before.endsWith(h)));
+  const outside = [...src.matchAll(/failureDetail\(/g)].length - sites.length;
+  const prune = fs.readFileSync(new URL('./src/prune-figma.ts', import.meta.url), 'utf8');
+  ok(sites.length >= 12 && unheaded.length === 0 && outside === 2 && /noVersion: \(why: string\): string => `[^`]*the named version could not be saved \(\$\{why\}\)/.test(prune),
+    `#3702 review: every head main.ts posts a failureDetail after is one the report cuts at (${sites.length} sites; unheaded ${JSON.stringify(unheaded.map((b) => b.slice(-40)))}; ${outside} outside a template)`);
+}
+
+/* ── 10. #3702: the sites no shim here reaches post `failureDetail` too ─────────────────────────────────────────── */
+// Canvas labels, the usage and spec panels, the cover, the version save and the engine's plan refusal need a file this
+// shim does not model (a built set, a cover page, a saved version). Their report rule is held line by line in
+// `apps/studio/test-report.ts` (#3702); here each site's template is read from `main.ts`, so a site put back to the raw
+// message fails by name. The phrases are literals typed here.
+{
+  const src = (await import('node:fs')).readFileSync(new URL('./src/main.ts', import.meta.url), 'utf8');
+  for (const phrase of ['No canvas labels for ${defId}: Figma refused the write (', 'No usage panel for ${defId}: Figma refused the write (',
+    'No spec panel for ${def.id}: Figma refused the write (', 'not drawn, Figma refused the write (', 'the named version could not be saved (',
+    'the engine could not plan it (']) {
+    const at = src.indexOf(phrase);
+    ok(at >= 0 && src.startsWith('${failureDetail(e)})', at + phrase.length),
+      `#3702 ${phrase.replace(/\$\{[^}]+\}/g, '…').replace(/ \($/, '')}: the site posts failureDetail(e) (${at < 0 ? 'phrase not found' : JSON.stringify(src.slice(at + phrase.length, at + phrase.length + 40))})`);
+  }
 }
 
 console.log = log;

@@ -43,7 +43,13 @@
  * off, a typeface family is replaced`. The same drop fails `apps/plugin/test-report-redaction.ts` over the plugin's
  * own lines. D3703.1 B (the drawer keeps the host's message; only the report reduces a `write failed:` or `prune failed:`
  * line to the error's class): `reduceFailure` dropped from `buildReport` → `#3697 H4 D3703.1 B a thrown write's and
- * prune's lines keep the error's class, not the host's message`.
+ * prune's lines keep the error's class, not the host's message`. #3702 (every other line that carries a host's message):
+ * the `DETAIL` rule dropped from `reduceLine` → `#3702 component build: the report keeps the error's class, not the host's
+ * message`, and each other site of the table by name. #3702 review: `HEAD_DETAIL`'s class back to `…Error` → `#3702
+ * review, class DOMException: …` (and `FigmaException`, `invariant`); the refused-writes name back to `[^:()]*` →
+ * `#3702 review, refused writes, a renamed variable: …`. #3702 second review: `HEAD_DETAIL` ending in `.*$` again →
+ * `#3702 second review, U+2028 in a DOMException's message: …` (and CR, U+2029); `DETAIL` ending in `.*$` again → `#3702
+ * second review, U+2028 in a Error's message: …` (and TypeError; CR, U+2029), through its headless `Run stopped (` line.
  */
 import { ENGINE_VOCABULARY, brandWords, buildReport, isIssueUrl, issueUrl, scrub, ISSUE_BASE, URL_LIMIT, type ReportInput } from './src/state/report';
 import { brandTheme, type BrandInput, buildTree } from '@prism3/engine';
@@ -229,6 +235,120 @@ ok(authoredOn.includes('hds/color/interactive/seaside/fill/rest') && authoredOn.
   const rep = failedRep(false);
   ok(rep.includes('  - write failed: Error\n'), '#3697 H4 D3703.1 B a failure line with no class at its head reads `Error`, never the message');
   ok(rep.includes('  - member 3 failed to bind: Checkout Hero'), '#3697 H4 D3703.1 B a line that is not a write or prune failure is left as it is');
+}
+
+// ── #3702: every other line that carries a host's message keeps only the error's class in the report ──
+// D3703.1 B again: each line posts `failureDetail` (`<Class>: <message>`), the drawer shows it whole, and the report cuts
+// it to the class. Each line is typed as `main.ts` posts it, one per site #3702 names; each expected line is a literal.
+{
+  const SECRET = 'in appendChild: node "Checkout Hero / Q3 launch" on page "Unannounced"';
+  const cases: readonly [site: string, posted: string, reported: string][] = [
+    ['component build', `component build failed: TypeError: ${SECRET} — 2 nodes had already reached the file; they are parked in the frame 'Q3 launch' on this page`, 'component build failed: TypeError'],
+    ['canvas labels', `No canvas labels for button: Figma refused the write (Error: ${SECRET})`, 'No canvas labels for button: Figma refused the write (Error)'],
+    ['usage panel', `No usage panel for button: Figma refused the write (TypeError: ${SECRET})`, 'No usage panel for button: Figma refused the write (TypeError)'],
+    ['spec panel', `No spec panel for button: Figma refused the write (Error: ${SECRET})`, 'No spec panel for button: Figma refused the write (Error)'],
+    ['cover', `Cover: not drawn, Figma refused the write (Error: ${SECRET}).`, 'Cover: not drawn, Figma refused the write (Error)'],
+    ['engine plan', `button: can't be checked. the engine could not plan it (Error: ${SECRET}).`, 'button: can\'t be checked. the engine could not plan it (Error)'],
+    ['version save', `Sets not moved to their pages: the named version could not be saved (Error: ${SECRET}).`, 'Sets not moved to their pages: the named version could not be saved (Error)'],
+    ['file setup', `file setup failed: Error: ${SECRET}. Built from tree-test0000 at 2026-11-12T00:00:00Z.`, 'file setup failed: Error'],
+    ['style guide', `style guide failed: TypeError: ${SECRET}`, 'style guide failed: TypeError'],
+    ['read-back', `read-back failed: Error: ${SECRET}`, 'read-back failed: Error'],
+    ['cleanup', `Cleanup failed: Error: ${SECRET}`, 'Cleanup failed: Error'],
+    ['prune version', `Nothing removed — the named version could not be saved (Error: ${SECRET}).`, 'Nothing removed — the named version could not be saved (Error)'],
+    ['variable writes', `⚠ 3 variable writes refused by Figma (pds/color/blue: ${SECRET.slice(0, 60)})`, '⚠ 3 variable writes refused by Figma (pds/color/blue)'],
+  ];
+  for (const [site, posted, reported] of cases) {
+    const rep = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Run', verdict: '✗ failed', lines: [posted], agent: false }] });
+    const line = rep.split('\n').find((l) => l.startsWith('  - ')) ?? '';
+    ok(line === `  - ${reported}` && !/Checkout Hero|Q3 launch|Unannounced|appendChild/.test(rep),
+      `#3702 ${site}: the report keeps the error's class, not the host's message (${JSON.stringify(line)})`);
+  }
+  // A line of several, the host's message on one of them (`fileSetup`'s summary): only that line is cut.
+  const multi = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Set up file', verdict: '✓ file set up',
+    lines: [`pages: 2 created (Cover, Docs)\nSets not moved to their pages: the named version could not be saved (Error: ${SECRET}).\nCover: drawn.`], agent: false }] });
+  ok(multi.includes('pages: 2 created (Cover, Docs)\nSets not moved to their pages: the named version could not be saved (Error)\nCover: drawn.') && !/Checkout Hero|Unannounced/.test(multi),
+    `#3702 a multi-line summary: only the line with the host's message is cut (${JSON.stringify(multi.split('Activity').pop())})`);
+  // A line that only mentions an error, with no class-and-message detail, is left as it is.
+  const plain = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Run', verdict: '✓ done', lines: ['Errors: none', 'TypeError counts: 0 (button)'], agent: false }] });
+  ok(plain.includes('  - Errors: none\n') && plain.includes('  - TypeError counts: 0 (button)'), '#3702 a line with no class-and-message detail is left as it is');
+}
+
+// ── #3702 review: a class `errorClass` admits but `DETAIL`'s `…Error` does not, after every head a site posts ──
+// `errorClass` passes any one-word name (`DOMException`, a host's `FigmaException`, a lowercase `invariant`), so each
+// site's line is typed with each, and the report must keep the class alone. Heads typed here as `main.ts` posts them.
+{
+  const SECRET = 'page "SecretPage" is locked';
+  const sites: readonly [posted: (d: string) => string, reported: (c: string) => string][] = [
+    [(d) => `component build failed: ${d}`, (c) => `component build failed: ${c}`],
+    [(d) => `file setup failed: ${d}. Built from tree-test0000 at 2026-11-12T00:00:00Z.`, (c) => `file setup failed: ${c}`],
+    [(d) => `style guide failed: ${d}`, (c) => `style guide failed: ${c}`],
+    [(d) => `read-back failed: ${d}`, (c) => `read-back failed: ${c}`],
+    [(d) => `Cleanup failed: ${d}`, (c) => `Cleanup failed: ${c}`],
+    [(d) => `No canvas labels for button: Figma refused the write (${d})`, (c) => `No canvas labels for button: Figma refused the write (${c})`],
+    [(d) => `Cover: not drawn, Figma refused the write (${d}).`, (c) => `Cover: not drawn, Figma refused the write (${c})`],
+    [(d) => `button: can't be checked. the engine could not plan it (${d}).`, (c) => `button: can't be checked. the engine could not plan it (${c})`],
+    [(d) => `Sets not moved to their pages: the named version could not be saved (${d}).`, (c) => `Sets not moved to their pages: the named version could not be saved (${c})`],
+    [(d) => `Nothing removed — the named version could not be saved (${d}).`, (c) => `Nothing removed — the named version could not be saved (${c})`],
+  ];
+  for (const cls of ['DOMException', 'FigmaException', 'invariant']) {
+    const bad: string[] = [];
+    for (const [posted, reported] of sites) {
+      const rep = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Run', verdict: '✗ failed', lines: [posted(`${cls}: ${SECRET}`)], agent: false }] });
+      const line = rep.split('\n').find((l) => l.startsWith('  - ')) ?? '';
+      if (line !== `  - ${reported(cls)}` || rep.includes('SecretPage')) bad.push(line);
+    }
+    ok(bad.length === 0, `#3702 review, class ${cls}: after each of the ${sites.length} heads the report keeps the class, not the host's message (${JSON.stringify(bad)})`);
+  }
+}
+
+// ── #3702 second review: a line terminator inside a line, after every head a site posts ──
+// JS's `.` matches none of CR, U+2028 or U+2029, so a detail cut with `.*$` stopped short of them and the line went
+// through whole. `failureDetail` collapses them at the source; the report holds the cut whatever the producer does.
+// LF is the report's own line separator (`reduceFailure` splits on it), held at the source by `test-report-redaction.ts`.
+{
+  const SECRET = 'page "SecretPage" is locked';
+  const heads: readonly [posted: (d: string) => string, reported: (c: string) => string][] = [
+    [(d) => `component build failed: ${d}`, (c) => `component build failed: ${c}`],
+    [(d) => `file setup failed: ${d}. Built from tree-test0000 at 2026-11-12T00:00:00Z.`, (c) => `file setup failed: ${c}`],
+    [(d) => `style guide failed: ${d}`, (c) => `style guide failed: ${c}`],
+    [(d) => `read-back failed: ${d}`, (c) => `read-back failed: ${c}`],
+    [(d) => `Cleanup failed: ${d}`, (c) => `Cleanup failed: ${c}`],
+    [(d) => `No canvas labels for button: Figma refused the write (${d})`, (c) => `No canvas labels for button: Figma refused the write (${c})`],
+    [(d) => `button: can't be checked. the engine could not plan it (${d}).`, (c) => `button: can't be checked. the engine could not plan it (${c})`],
+    [(d) => `Sets not moved to their pages: the named version could not be saved (${d}).`, (c) => `Sets not moved to their pages: the named version could not be saved (${c})`],
+    [(d) => `write failed: ${d}`, (c) => `write failed: ${c}`],
+    [(d) => `Run stopped (${d})`, (c) => `Run stopped (${c})`],
+  ];
+  for (const [name, t] of [['CR', '\r'], ['U+2028', '\u2028'], ['U+2029', '\u2029']] as const) {
+    for (const cls of ['Error', 'TypeError', 'DOMException']) {
+      const bad: string[] = [];
+      for (const [i, [posted, reported]] of heads.entries()) {
+        if (i === heads.length - 1 && !cls.endsWith('Error')) continue; // no head: only `DETAIL`'s `…Error` rule applies
+        const rep = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Run', verdict: '✗ failed', lines: [posted(`${cls}: in loadAllPagesAsync: failed${t}${SECRET}`)], agent: false }] });
+        const line = rep.split('\n').find((l) => l.startsWith('  - ')) ?? '';
+        if (line !== `  - ${reported(cls)}` || rep.includes('SecretPage')) bad.push(line);
+      }
+      ok(bad.length === 0, `#3702 second review, ${name} in a ${cls}'s message: the report keeps the class, not the host's message (${JSON.stringify(bad)})`);
+    }
+  }
+}
+
+// ── #3702 review: the refused-writes note, when the variable's name holds `(` or `:` ──
+// A collision Rename writes a variable as `<name> (Prism3)` (#1909), and the host's reason can hold `: ` itself. The
+// report keeps the name, parentheses and all; with no `: ` outside the name's parentheses, it keeps nothing of either.
+{
+  const cases: readonly [label: string, posted: string, reported: string][] = [
+    ['a renamed variable', '⚠ 1 variable writes refused by Figma (hds/color/brand (Prism3): in set_value: SecretPage is locked)', '⚠ 1 variable writes refused by Figma (hds/color/brand (Prism3))'],
+    ['a name with a colon', '⚠ 2 variable writes refused by Figma (hds/ratio/16:9: in set_value: SecretPage is locked)', '⚠ 2 variable writes refused by Figma (hds/ratio/16:9)'],
+    ['an unclosed parenthesis', '⚠ 1 variable writes refused by Figma (hds/odd (x: in set_value: SecretPage is locked)', '⚠ 1 variable writes refused by Figma ([removed])'],
+    ['a clause of the one-line summary', 'applied · ⚠ 3 variable writes refused by Figma (hds/color/brand (Prism3): SecretPage) · 2 fonts', 'applied · ⚠ 3 variable writes refused by Figma (hds/color/brand (Prism3))'],
+  ];
+  for (const [label, posted, reported] of cases) {
+    const rep = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Apply Theme', verdict: '✓ applied', lines: [posted], agent: false }] });
+    const line = rep.split('\n').find((l) => l.startsWith('  - ')) ?? '';
+    ok(line === `  - ${reported}` && !rep.includes('SecretPage'),
+      `#3702 review, refused writes, ${label}: the report keeps at most the variable's name, never the host's reason (${JSON.stringify(line)})`);
+  }
 }
 
 // ── #3525 review finding 1: a name next to prose punctuation is still a whole segment ──

@@ -117,46 +117,51 @@ Keyed by `orientation`, `inset`, `labeled`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | `space.0` | `space.300` | `border-width.hairline` | `container.narrow` | — | — |
+| `container/rule` | — | — | — | — | — | stroke `border-width.hairline` |
 
 **orientation=horizontal, inset=none, labeled=true**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | `space.0` | `space.300` | `type.label.md.line-box` | `container.narrow` | — | — |
-| `container/leadingRule` | — | — | `border-width.hairline` | — | — | — |
-| `container/trailingRule` | — | — | `border-width.hairline` | — | — | — |
+| `container/leadingRule` | — | — | `border-width.hairline` | — | — | stroke `border-width.hairline` |
+| `container/trailingRule` | — | — | `border-width.hairline` | — | — | stroke `border-width.hairline` |
 
 **orientation=horizontal, inset=inset, labeled=false**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | `space.0` / `space.0` / `space.0` / `space.200` | `space.300` | `border-width.hairline` | `container.narrow` | — | — |
+| `container/rule` | — | — | — | — | — | stroke `border-width.hairline` |
 
 **orientation=horizontal, inset=middle-inset, labeled=false**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | `space.0` / `space.200` / `space.0` / `space.200` | `space.300` | `border-width.hairline` | `container.narrow` | — | — |
+| `container/rule` | — | — | — | — | — | stroke `border-width.hairline` |
 
 **orientation=vertical, inset=none, labeled=false**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | `space.0` | `space.150` | `size.md.height` | `border-width.hairline` | — | — |
+| `container/rule` | — | — | — | — | — | stroke `border-width.hairline` |
 
 **orientation=vertical, inset=none, labeled=true**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | `space.0` | `space.150` | `size.xl.height` | — | — | — |
-| `container/leadingRule` | — | — | — | `border-width.hairline` | — | — |
-| `container/trailingRule` | — | — | — | `border-width.hairline` | — | — |
+| `container/leadingRule` | — | — | — | `border-width.hairline` | — | stroke `border-width.hairline` |
+| `container/trailingRule` | — | — | — | `border-width.hairline` | — | stroke `border-width.hairline` |
 
 **orientation=vertical, inset=middle-inset, labeled=false**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | `space.100` / `space.0` / `space.100` / `space.0` | `space.150` | `size.md.height` | `border-width.hairline` | — | — |
+| `container/rule` | — | — | — | — | — | stroke `border-width.hairline` |
 
 ### Type
 

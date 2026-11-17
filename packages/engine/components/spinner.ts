@@ -88,6 +88,14 @@ export const spinner: ComponentDef = {
     'size.large': 'icon.size.lg',
     // Standalone ink. `currentColor` in code; in Figma the primary icon role until a host pushes its own.
     icon: 'color.icon.primary',
+    // THE MOTION, AS BINDINGS (#3506, owner Q142 A on #3408). The same five tokens `motion` and the codeOnly entries name
+    // in prose, bound here so the emission (`specs.json`'s `motion`) carries them and code reads names, not prose. No
+    // part binds them: Figma draws no motion.
+    'motion.turn': 'motion.duration.spin',
+    'motion.turn-reduced': 'motion.duration-reduced.spin',
+    'motion.enter': 'motion.duration.fast',
+    'motion.enter-reduced': 'motion.duration-reduced.fast',
+    'motion.enter-easing': 'motion.easing-role.enter',
   },
 
   anatomy: {
