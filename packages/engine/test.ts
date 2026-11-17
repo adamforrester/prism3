@@ -94,6 +94,7 @@ import { canonicalShape, GlyphPathError } from './glyph-shape';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
+import { readListing } from './files-listing';
 import { isDeepStrictEqual } from 'node:util';
 import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -42622,6 +42623,58 @@ const MIN_ASSERTIONS = 1800;
   const note = pkg['//'] ?? '';
   ok(!/\bversion\b[^.]*\btracks?\b|\btracks?\b[^.]*\bversion\b/i.test(note),
     `#1019 packages/engine/package.json claims its version tracks ENGINE_VERSION, and nothing keeps it so — say it is inert instead (note: ${JSON.stringify(note.slice(-140))})`);
+}
+
+// #3843 — A `--files` LISTING ARRIVES WHOLE, AND ITS READER KNOWS WHEN IT DID NOT. `lint-us-english.ts --files` and
+// `lint-voice.ts --files` printed one `console.log` per line and then `process.exit(0)`. Node queues a write the kernel
+// buffer cannot take, and `process.exit` drops the queue, so a reader that fell behind lost the tail, while the child
+// still exited 0. `lint-schema-classification.ts` then read "listed 0 schema file(s)" five times in a day in CI. Here
+// the reader falls behind on purpose: the child writes into a pipe (64 KiB) whose reader sleeps for a second first, and
+// 4,000 lines (~150 KiB) overfill it. The old way of printing must lose lines here (else this harness reproduces
+// nothing), `printListing` must not, and `readListing` must name each loss rather than hand back what arrived.
+{
+  const dir = mkdtempSync(join(tmpdir(), 'prism3-files-listing-'));
+  const helper = JSON.stringify(resolve(HERE, 'files-listing.ts'));
+  const N = 4000;
+  const lines = `Array.from({ length: ${N} }, (_, i) => 'packages/engine/schema/listing-probe-' + String(i).padStart(5, '0') + '.json')`;
+  const children: Record<string, string> = {
+    // The shape both gates had before #3843.
+    old: `const lines = ${lines};\nfor (const l of lines) console.log(l);\nprocess.exit(0);\n`,
+    // The same, but still claiming its count on stderr: a regressed child the reader must catch by the count alone.
+    oldCounted: `const lines = ${lines};\nfor (const l of lines) console.log(l);\nconsole.error('--files: ' + lines.length + ' line(s) listed, complete');\nprocess.exit(0);\n`,
+    fixed: `import { printListing } from ${helper};\nawait printListing(${lines});\n`,
+  };
+  const late = (name: string) => {
+    const file = join(dir, `${name}.mts`); // .mts: the temp dir has no package.json saying ESM, and `fixed` awaits at the top level
+    writeFileSync(file, children[name]);
+    // pipefail: the pipeline's status is the child's, as a direct spawn's would be.
+    return spawnSync('bash', ['-c', 'set -o pipefail; npx tsx "$1" | { sleep 1; cat; }', '_', file], { cwd: HERE, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
+  };
+  try {
+    const old = late('old');
+    const oldLines = old.stdout.split('\n').length - 1;
+    ok(old.status === 0 && oldLines < N,
+      `#3843 the harness reproduces the failure: the old --files printing exits 0 and loses lines behind a late reader (exit ${old.status}, ${oldLines} of ${N} lines arrived; if all arrived, this test no longer forces the condition)`);
+    const oldRead = readListing(old);
+    ok('fault' in oldRead && oldRead.fault.startsWith('LISTING CUT OFF') && oldRead.fault.includes('never wrote'),
+      `#3843 readListing names a listing with no completion count CUT OFF (got ${JSON.stringify(oldRead).slice(0, 200)})`);
+    const counted = late('oldCounted');
+    const countedRead = readListing(counted);
+    ok('fault' in countedRead && countedRead.fault.startsWith('LISTING CUT OFF') && countedRead.fault.includes(`listed ${N} line(s) but`),
+      `#3843 readListing names a short delivery CUT OFF by its own count, even when the child claims completion (got ${JSON.stringify(countedRead).slice(0, 200)})`);
+    const fixed = late('fixed');
+    const fixedRead = readListing(fixed);
+    ok('lines' in fixedRead && fixedRead.lines.length === N && fixedRead.lines[N - 1].endsWith(`-${String(N - 1).padStart(5, '0')}.json`),
+      `#3843 printListing delivers every line behind a late reader, and readListing returns them all (exit ${fixed.status}, got ${'lines' in fixedRead ? `${fixedRead.lines.length} lines` : fixedRead.fault})`);
+    // A failed child is FAILED by name, never a short or empty list.
+    const failed = readListing({ status: 1, signal: null, error: undefined, stdout: 'a\n', stderr: 'boom' });
+    const killed = readListing({ status: null, signal: 'SIGTERM', error: undefined, stdout: '', stderr: '' });
+    const unrun = readListing({ status: null, signal: null, error: new Error('spawnSync npx ENOBUFS'), stdout: '', stderr: '' });
+    ok('fault' in failed && failed.fault.startsWith('LISTING FAILED: it exited 1') && 'fault' in killed && killed.fault.includes('killed by SIGTERM') && 'fault' in unrun && unrun.fault.includes('ENOBUFS'),
+      `#3843 readListing names a non-zero exit, a signal and a spawn error LISTING FAILED (got ${[failed, killed, unrun].map((x) => JSON.stringify(x).slice(0, 80)).join(' | ')})`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 if (pass + fails.length < MIN_ASSERTIONS) {

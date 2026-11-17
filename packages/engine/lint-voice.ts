@@ -252,6 +252,7 @@ import { brandTheme } from './theme';
 // imported `voiceHits`.
 import { voiceHits, enGb } from './prose-rules.ts';
 import type { RawHit } from './prose-rules.ts';
+import { printListing } from './files-listing.ts';
 // The MCP tools/list as served (#1806): acquisition only, see the block below `gatedHits`.
 import { servedToolsList, servedStrings, servedBridgeInstructions } from './mcp-served';
 
@@ -502,11 +503,14 @@ const CLIENT_BUNDLES = ['apps/studio/dist/main.js', 'apps/plugin/dist/main.js', 
 // Exits before any scanning, so it is cheap and cannot be confused with a verdict. It also exits before the surface
 // and self checks (#3698 R4), so it lists the walked set in a tree with no build, as `test-docs-only.sh`'s
 // `scope/…` cases read it in CI's engine job: an unbuilt bundle lists no file, and every bundle is under `apps/`.
+// Printed through `printListing`, never `console.log` and `process.exit`: exiting drops whatever the reader had not yet
+// taken, and still exits 0. That cut every schema file off this list in CI five times in a day (#3843).
 if (process.argv.includes('--files')) {
-  for (const f of gated) console.log(shown(f));
-  // The client-name arm's bundles, where the voice rules do not already walk them.
-  for (const b of CLIENT_BUNDLES) if (!gated.includes(join(repo, b))) console.log(b);
-  process.exit(0);
+  await printListing([
+    ...gated.map(shown),
+    // The client-name arm's bundles, where the voice rules do not already walk them.
+    ...CLIENT_BUNDLES.filter((b) => !gated.includes(join(repo, b))),
+  ]);
 }
 
 // ---- SELF-CHECK: does the scanner still detect what it claims to? ----

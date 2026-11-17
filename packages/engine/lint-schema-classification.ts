@@ -121,6 +121,7 @@
  * file is not shipped, and would make the gate fail on a scratch file mid-work.
  */
 import { execSync, spawnSync } from 'node:child_process';
+import { readListing } from './files-listing.ts';
 import { readFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -401,11 +402,18 @@ for (const { file } of MAINTAINER_ONLY) {
 const scannedBy = new Map<string, Set<string>>();
 for (const gate of PROSE_GATES) {
   const r = spawnSync('npx', ['tsx', gate, '--files'], { cwd: repo, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
+  // A listing that failed or was cut off says so by name (#3843). The gate's count, on stderr, is checked against the
+  // lines that reached us: a cut-off listing once read here as "exited 0 and listed 0 schema file(s)".
+  const listing = readListing(r);
+  if ('fault' in listing) {
+    failures.push(`\`npx tsx ${gate} --files\`: ${listing.fault}`);
+    continue;
+  }
   const prefix = `${SCHEMA_DIR}/`;
-  const files = new Set((r.stdout ?? '').split('\n').filter((l) => l.startsWith(prefix)).map((l) => l.slice(prefix.length).trim()));
-  // Not looking is not clean: a gate that could not list its set, or listed no schema file, is a blind run.
-  if (r.status !== 0 || !files.size) {
-    failures.push(`SCANNED BLIND: \`npx tsx ${gate} --files\` exited ${r.status} and listed ${files.size} schema file(s), so what it scans cannot be read. ${(r.stderr ?? '').trim().slice(0, 300)}`);
+  const files = new Set(listing.lines.filter((l) => l.startsWith(prefix)).map((l) => l.slice(prefix.length).trim()));
+  // Not looking is not clean: a whole listing that names no schema file is a blind run.
+  if (!files.size) {
+    failures.push(`SCANNED BLIND: \`npx tsx ${gate} --files\` listed ${listing.lines.length} file(s), whole, and none under ${prefix}, so what it scans in schema/ cannot be read.`);
     continue;
   }
   scannedBy.set(gate, files);
