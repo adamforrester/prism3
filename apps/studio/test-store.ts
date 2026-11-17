@@ -25,6 +25,8 @@
 import { type BrandInput, brandTheme } from '@prism3/engine';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as store from './src/state/store';
+import { isDirty, needsOverwriteConfirm } from './src/provenance';
+import { stashBefore, stillOffered } from './src/state/undo-load';
 
 let failed = 0;
 let executed = 0;
@@ -196,6 +198,32 @@ ok(JSON.stringify(store.brandState) === beforeLevers, 'clearing the only per-mod
 const o: Record<string, unknown> = {};
 store.setPath(o, 'a.b.c', 3);
 ok(store.getPath(o, 'a.b.c') === 3 && store.getPath(o, 'a.x.c') === undefined, 'setPath creates intermediate objects; getPath reads through a missing one as undefined');
+
+// ---- Undo load (#1037, owner decision Q319.2): the replaced brand comes back with its edits, still guarded ----------
+// EXPECTED from outside the module: the brands are the engine's examples, the edit is a rename typed here, and "still
+// guarded" is the provenance module's own `needsOverwriteConfirm` over the restored state, never the stash's flag.
+// Mutations that fail here BY NAME: `restoreInput` taking a fresh provenance from the input (`provenanceOf`) →
+// `#1037 restoreInput: the edits come back still unsaved`; `stashBefore` keeping a stash with no edits to lose →
+// `#1037 stashBefore: a load over an untouched brand keeps nothing`.
+{
+  const ids = Object.keys(exampleBrands);
+  const [mine, other] = [ids[0], ids[1]];
+  store.initSession(structuredClone((exampleBrands as Record<string, BrandInput>)[mine]), { kind: 'example', id: mine });
+  ok(stashBefore(store.brandState, store.provenance, 'x') === null, '#1037 stashBefore: a load over an untouched brand keeps nothing');
+  store.brandState.name = 'work in progress';
+  const u = stashBefore(store.brandState, store.provenance, 'work in progress');
+  ok(u !== null && u.input.name === 'work in progress' && u.input !== store.brandState, '#1037 stashBefore: a load over edits keeps a copy of the edited brand');
+  store.loadInput((exampleBrands as Record<string, BrandInput>)[other], { kind: 'example', id: other });
+  ok(stillOffered(u, store.brandState, store.provenance), '#1037 stillOffered: offered while the loaded example is untouched');
+  store.brandState.name = 'edited after the load';
+  ok(!stillOffered(u, store.brandState, store.provenance), '#1037 stillOffered: the first edit to the loaded brand ends the offer');
+  store.restoreInput(u!.input, u!.provenance);
+  ok(store.brandState.name === 'work in progress' && store.brandState.id === (exampleBrands as Record<string, BrandInput>)[mine].id,
+    `#1037 restoreInput: the replaced brand is back, its edit included (${store.brandState.name})`);
+  ok(isDirty(store.brandState, store.provenance) && needsOverwriteConfirm(store.brandState, store.provenance) && store.provenance.origin.kind === 'example',
+    '#1037 restoreInput: the edits come back still unsaved, and a next load asks first');
+  ok(store.page === 'palettes' && store.theme.root !== undefined && store.lastError === null, '#1037 restoreInput: it resolves and resets the view, as a load does');
+}
 
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);

@@ -266,6 +266,21 @@ export const loadInput = (input: BrandInput, origin: Origin): void => {
   invalidate('page');
 };
 
+/** Put back a brand a load replaced, WITH ITS PROVENANCE (#1037, Undo load): the same reset as `loadInput`, except that
+ *  the origin and baseline are the ones it had, not new ones from `input`. So unsaved edits come back still unsaved, and
+ *  the overwrite confirm still guards them. `loadInput` would make them the baseline and the confirm would stop asking. */
+export const restoreInput = (input: BrandInput, prov: Provenance): void => {
+  brandState = structuredClone(input);
+  provenance = prov;
+  resolve();
+  currentMode = rp.modes[0];
+  page = 'palettes';
+  invalidate('origin');
+  invalidate('brand');
+  invalidate('mode');
+  invalidate('page');
+};
+
 /** Return to the start moment without touching the working brand: the origin becomes `none`, so
  *  `firstRun()` reads true and the start screen follows (#722). */
 export const clearOrigin = (): void => {

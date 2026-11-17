@@ -4625,6 +4625,50 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   console.log(`  B "${said}"`);
 }
 
+// D — UNDO LOAD (#1037, owner decision Q319.2: "add an Undo load that restores the previous input until the next edit").
+// Load an example over edits, through the confirm; Undo load puts the edited brand back, still guarded; and a second
+// load's offer is ended by the first edit to the loaded brand. EXPECTED typed here: the rename, the hook and the button's
+// words. Mutations that fail here BY NAME: never offering it → `Undo load is offered after Replace brand`; restoring with
+// a fresh provenance (`loadBrand` in place of `restoreInput`) → `after Undo load, a next example load still asks first`;
+// dropping the edit subscription → `the first edit to the loaded brand ends the Undo load offer`.
+{
+  const [atRisk, arriving] = BRANDS;
+  const { ctx, page, drain } = await openBrand(atRisk);
+  const undo = '[data-p3="bar-main"] [data-p3="undo-load"]';
+  const loadOver = async (name) => {
+    await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+    await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-example"]');
+    await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-example"]').filter({ hasText: name }).first());
+  };
+  ok(await page.locator(undo).count() === 0, 'Undo load is not offered before any load replaced edits');
+  await tabClick(page, 'brand');
+  await page.fill('[data-p3="brand-name"]', 'renamed-in-smoke');
+  await loadOver(arriving);
+  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="overwrite-confirm"]');
+  await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="overwrite-replace"]'));
+  await page.waitForSelector(undo, { timeout: 5000 }).catch(() => {});
+  const words = (await page.locator(undo).first().textContent().catch(() => null))?.trim();
+  ok(words === 'Undo load', `Undo load is offered after Replace brand — got ${JSON.stringify(words)}`);
+  if (words === 'Undo load') {
+    await hooks.click(page.locator(undo));
+    await page.waitForSelector(undo, { state: 'detached', timeout: 5000 }).catch(() => {});
+    await tabClick(page, 'brand');
+    ok(await page.inputValue('[data-p3="brand-name"]') === 'renamed-in-smoke', 'Undo load puts back the replaced brand, its edit included');
+    ok(await page.locator(undo).count() === 0, 'Undo load is offered once: the restore ends it');
+    await loadOver(arriving);
+    ok(await page.locator('[data-p3="brand-menu"] [data-p3="overwrite-confirm"]').count() === 1, 'after Undo load, a next example load still asks first (the edits are still unsaved)');
+    await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="overwrite-replace"]'));
+    await page.waitForSelector(undo, { timeout: 5000 }).catch(() => {});
+    await tabClick(page, 'brand');
+    await page.fill('[data-p3="brand-name"]', 'edited-after-the-load');
+    await page.waitForSelector(undo, { state: 'detached', timeout: 5000 }).catch(() => {});
+    ok(await page.locator(undo).count() === 0, 'the first edit to the loaded brand ends the Undo load offer');
+  }
+  const errs = drain();
+  ok(errs.length === 0, `Undo load: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+
 // C — RETIRED IN UI REDESIGN S3. It held the Examples `.cur` marker live while the menu's Name field was typed
 // into (#1075): the field patched the bar without re-rendering the menu, so a render-time marker went stale in
 // the open popover. S3 moved the Name field to Brand › Identity, so no field in the menu writes the name any
