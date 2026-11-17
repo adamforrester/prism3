@@ -7,8 +7,8 @@ Overview (Q479.3 A: release notes only). The data was already built by #2876 (`l
 release's items as a Paragraph (sm), bulleted. No new block type, so `_Doc-block` and Set up file are untouched.
 
 **Whose release.** The family's lead set's: the set the panel sits beside and is tagged with. A member's own release
-items are not read. This is held for the owner on the PR: a family whose member changed and whose lead did not reads
-"Unchanged since" today.
+items are not read. This is held for the owner on the PR: a family whose member changed after its lead would show the
+lead's older release. Measured at 0.238.0, no family's member reads a newer release than its lead.
 
 **Only panels whose text moved go stale (owner decision A).** Two places had to agree. The plan's hash covers the block,
 so `docPanelDue` reads a panel as due exactly when its block reads differently. But Update file only checks a set the
