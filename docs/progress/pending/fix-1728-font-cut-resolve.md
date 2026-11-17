@@ -19,10 +19,16 @@ absent from the host, or no host list all leave the planned value.
 lacks `Semi Bold Italic`:
 - A fresh apply stopped at stage 5 (`#1728 interrupted/fresh`), and a re-apply stopped there (`#1728 interrupted/re-apply`), leave the
   Playfair cut at `SemiBold Italic`. Both fail on main with `"Semi Bold Italic"`.
-- A pure two-mode arm (`#1728 per mode`) matches the family by mode name and leaves an aliased mode alone.
+- A pure two-mode arm (`#1728 per mode`) matches the family by mode name.
+- Two pure arms pin the alias guards, each in the mode whose family (Playfair) spells the cut differently, so removing
+  a guard is observable. In `#1728 aliased cut left alone`, the cut row aliases there. In `#1728 aliased family left
+  alone`, the family row aliases there, with a literal fallback naming Playfair. `#1728 resolved count` holds the total.
 
 **Mutations.** The variable stage given the unresolved plan fails both interrupted arms. A substitute style (the family's
 first) for a missing cut fails `missing cut left alone`. Matching modes by index instead of name fails `per mode`.
+Dropping the cut-row alias guard (`|| row.aliasByMode[i]`) fails `aliased cut left alone`. Dropping the family-row guard
+(`|| fam.row.aliasByMode[j]`) fails `aliased family left alone`. Each also fails `resolved count`. Both guards survived
+the first version of the arms (review of `167e1a74`).
 
 **Not here.** The agent paste path's font step (`mcp-steps.ts` `runFont`) writes the cut plan without the text plan, so it
 keeps the old order. That is filed separately.

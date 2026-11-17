@@ -111,21 +111,44 @@ console.log('\n#1728 — the cut variable is resolved before the variable stage 
 }
 
 // #1728 — PER MODE, by mode name. Every committed brand has one font mode, so the arm above cannot see a cut whose family
-// differs by mode. Two modes here, the family row listing them in the other order: `a` reads Playfair, `b` reads Inter,
-// and a third cut aliases in `b`, so that mode is left to the alias. Typed expectations; no host.
+// differs by mode. Two modes here, the family row listing them in the other order: `a` reads Playfair, `b` reads Inter.
+// Typed expectations; no host.
+// #1728 review — THE TWO ALIAS GUARDS, each where its removal is observable: in mode `a`, whose Playfair spells
+// `Semi Bold` as `SemiBold`. `cut/y` aliases in `a`, so its literal there is a fallback the alias overrides. `cut/z`'s
+// family row `fam/z` aliases in `a`, with a literal fallback naming Playfair: pass A writes that literal, then pass B
+// binds the alias (`write-figma.ts`), so the literal may name another family than the one the alias reaches, and a cut
+// resolved against it could be the wrong family's spelling. Mutations: the cut-row guard dropped (`|| row.aliasByMode[i]`)
+// → `#1728 aliased cut left alone`; the family-row guard dropped (`|| fam.row.aliasByMode[j]`) → `#1728 aliased family
+// left alone`; each also fails `#1728 resolved count`.
 {
   const row = (name: string, values: string[], alias: (string | null)[] = values.map(() => null)) =>
     ({ name, resolvedType: 'STRING', scopes: [], description: '', hidden: false, valuesByMode: values, aliasByMode: alias }) as any;
   const plan = [
-    { name: 'core', modes: ['a', 'b'], rows: [row('cut/x', ['Semi Bold Italic', 'Semi Bold Italic']), row('cut/y', ['Semi Bold', 'Semi Bold'], [null, 'cut/x'])] },
-    { name: 'fam', modes: ['b', 'a'], rows: [row('fam/x', ['Inter', 'Playfair Display'])] },
+    { name: 'core', modes: ['a', 'b'], rows: [
+      row('cut/x', ['Semi Bold Italic', 'Semi Bold Italic']),
+      row('cut/y', ['Semi Bold', 'Semi Bold'], ['cut/x', null]),
+      row('cut/z', ['Semi Bold', 'Semi Bold']),
+    ] },
+    { name: 'fam', modes: ['b', 'a'], rows: [
+      row('fam/x', ['Inter', 'Playfair Display']),
+      row('fam/z', ['Inter', 'Playfair Display'], [null, 'fam/x']),
+    ] },
   ] as any;
-  const text = [{ fontStyleVar: 'cut/x', fontFamilyVar: 'fam/x' }, { fontStyleVar: 'cut/y', fontFamilyVar: 'fam/x' }] as any;
+  const text = [
+    { fontStyleVar: 'cut/x', fontFamilyVar: 'fam/x' },
+    { fontStyleVar: 'cut/y', fontFamilyVar: 'fam/x' },
+    { fontStyleVar: 'cut/z', fontFamilyVar: 'fam/z' },
+  ] as any;
   const host = new Map([['Playfair Display', ['SemiBold Italic', 'SemiBold']], ['Inter', ['Semi Bold Italic', 'Semi Bold']]]);
   const r = resolveCutPlan(plan, text, host);
-  const vx = r.plans[0].rows[0].valuesByMode, vy = r.plans[0].rows[1].valuesByMode;
-  ok(JSON.stringify(vx) === JSON.stringify(['SemiBold Italic', 'Semi Bold Italic']) && JSON.stringify(vy) === JSON.stringify(['SemiBold', 'Semi Bold']) && r.resolved === 2,
-    `#1728 per mode: each mode's cut resolves against the family that mode reads, matched by mode name, and an aliased mode is left alone (x ${JSON.stringify(vx)}, y ${JSON.stringify(vy)}, ${r.resolved} resolved)`);
+  const [vx, vy, vz] = r.plans[0].rows.map((x) => x.valuesByMode);
+  ok(JSON.stringify(vx) === JSON.stringify(['SemiBold Italic', 'Semi Bold Italic']),
+    `#1728 per mode: each mode's cut resolves against the family that mode reads, matched by mode name (x ${JSON.stringify(vx)})`);
+  ok(JSON.stringify(vy) === JSON.stringify(['Semi Bold', 'Semi Bold']),
+    `#1728 aliased cut left alone: a cut row that aliases in a mode keeps its literal there, even where that mode's family spells the cut differently (y ${JSON.stringify(vy)})`);
+  ok(JSON.stringify(vz) === JSON.stringify(['Semi Bold', 'Semi Bold']),
+    `#1728 aliased family left alone: a cut is not resolved against a family row's literal in a mode where that row aliases (z ${JSON.stringify(vz)})`);
+  ok(r.resolved === 1, `#1728 resolved count: one value changed, cut/x in mode a (${r.resolved} resolved)`);
   const none = resolveCutPlan(plan, text, undefined);
   ok(none.resolved === 0 && JSON.stringify(none.plans[0].rows[0].valuesByMode) === JSON.stringify(['Semi Bold Italic', 'Semi Bold Italic']),
     `#1728 no host list: every cut is written as planned (${none.resolved} resolved)`);
