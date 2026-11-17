@@ -23,7 +23,7 @@
  *
  * The copy below is the owner's, as drafted on #3394 (Q3394.5 A), except where a comment marks it DRAFT.
  */
-import { brandTheme, type BrandInput, resolveAllModes, withIconTwins, GROUND_INPUT, type ModeResult, type PrimitiveRef, contrast, formatRatio, hexToRgb } from '@prism3/engine';
+import { brandTheme, type BrandInput, resolveAllModes, withIconTwins, GROUND_INPUT, type ModeResult, type PrimitiveRef, contrast, floorRatio, formatRatio, hexToRgb } from '@prism3/engine';
 import { canon } from './persist-figma';
 
 /** The most changes one call takes. A migration like #3336 is 13. */
@@ -70,8 +70,8 @@ export type OverridePlan = {
   readonly contrast: { readonly before: { readonly total: number; readonly fail: number }; readonly after: { readonly total: number; readonly fail: number } };
   readonly refusals: readonly OverrideRefusal[];
   /**
-   * One Activity line per change, printed from the unrounded ratios (#3697 L3): the `ratio` fields above are rounded
-   * to two places for `data`, and a rounded ratio printed through the floored formatter reads 4.496 as 4.50:1.
+   * One Activity line per change, printed from the unrounded ratios (#3697 L3): the `ratio` fields above are floored
+   * to two places for `data`, and re-flooring a floored value can drop a step to float error.
    * Not part of `data` (`overrideData` names its fields).
    */
   readonly activity: readonly string[];
@@ -131,7 +131,8 @@ const fnv1a = (s: string): string => {
 };
 export const overrideHash = (stored: BrandInput, changes: readonly OverrideChange[]): string => fnv1a(`${canon(stored)}\n${canon(changes)}`);
 
-const round = (x: number): number => Math.round(x * 100) / 100;
+// A ratio carried in `data` is floored, never rounded (#3759): a refused 4.496 pair reads 4.49, not 4.5 on its 4.5 floor.
+const floored = floorRatio;
 const below = (ratio: number, min: number): boolean => ratio + 1e-9 < min;
 /** The focus rings: Studio shows them read-only (#1966). */
 const FOCUS_ROLES: ReadonlySet<string> = new Set(['border.focus', 'inverse.border.focus']);
@@ -151,7 +152,7 @@ const pairsOf = (all: readonly ModeResult[]): Map<string, OverridePair> => {
   return out;
 };
 const totals = (p: Map<string, OverridePair>) => ({ total: p.size, fail: [...p.values()].filter((x) => below(x.ratio, x.min)).length });
-const shown = (p: OverridePair): OverridePair => ({ mode: p.mode, role: p.role, against: p.against, ratio: round(p.ratio), min: p.min });
+const shown = (p: OverridePair): OverridePair => ({ mode: p.mode, role: p.role, against: p.against, ratio: floored(p.ratio), min: p.min });
 
 /** The palette and step a role's emitted path names, under the brand's namespace; null for a fixed primitive. */
 const resolvedOf = (path: string, ns: string): PrimitiveRef | null => {
@@ -164,7 +165,7 @@ const resolvedOf = (path: string, ns: string): PrimitiveRef | null => {
 const sideOf = (all: readonly ModeResult[], ns: string, mode: string, role: string, stored: PrimitiveRef | undefined): OverrideSide | null => {
   const r = all.find((m) => m.mode === mode)?.roles[role];
   if (!r) return null;
-  return { override: stored ? { palette: stored.palette, step: stored.step } : null, resolved: resolvedOf(r.path, ns), hex: r.hex, ratio: round(r.ratio), min: r.min, against: r.against };
+  return { override: stored ? { palette: stored.palette, step: stored.step } : null, resolved: resolvedOf(r.path, ns), hex: r.hex, ratio: floored(r.ratio), min: r.min, against: r.against };
 };
 
 const isClear = (c: OverrideChange): c is Extract<OverrideChange, { clear: true }> => 'clear' in c && c.clear === true;
@@ -241,12 +242,12 @@ export const planOverride = (stored: BrandInput, changes: readonly OverrideChang
     const a = all1.find((m) => m.mode === c.mode)?.roles[c.role]?.against;
     return `${c.mode}|${c.role}|${a}`;
   }));
-  // `newMisses` keeps the raw pairs until the refusal lines are printed (#3697 L3); `data` reads them rounded.
+  // `newMisses` keeps the raw pairs until the refusal lines are printed (#3697 L3); `data` reads them floored.
   const misses: OverridePair[] = [], stillBelow: OverridePair[] = [], moved: OverrideMove[] = [];
   for (const [key, p] of p1) {
     const was = p0.get(key);
     if (below(p.ratio, p.min)) { if (was && below(was.ratio, was.min)) stillBelow.push(shown(p)); else misses.push(p); }
-    if (was && !own.has(key) && Math.abs(was.ratio - p.ratio) >= 0.005) moved.push({ ...shown(p), before: round(was.ratio) });
+    if (was && !own.has(key) && Math.abs(was.ratio - p.ratio) >= 0.005) moved.push({ ...shown(p), before: floored(was.ratio) });
   }
   for (const miss of misses) {
     const i = kept.find((k) => changes[k].mode === miss.mode && changes[k].role === miss.role);
@@ -255,7 +256,7 @@ export const planOverride = (stored: BrandInput, changes: readonly OverrideChang
     // A clamped change already says why; its pair is not refused twice.
     if (i !== undefined && refusals.some((r) => r.index === i && r.reason === 'clamped')) continue;
     refusals.push({ index: i ?? null, mode: miss.mode, role: miss.role, reason: 'below-minimum', line: OVERRIDE_COPY.belowMinimum(miss.mode, miss.role, to, miss.ratio, miss.min, miss.against),
-      ratio: round(miss.ratio), min: miss.min, against: miss.against });
+      ratio: floored(miss.ratio), min: miss.min, against: miss.against });
   }
   refusals.sort((a, b) => (a.index ?? Infinity) - (b.index ?? Infinity));
   const planned = changes.map((c, index) => ({ index, mode: c.mode, role: c.role,
