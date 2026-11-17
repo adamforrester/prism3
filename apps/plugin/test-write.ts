@@ -17,6 +17,10 @@
 import { buildFigmaColor, buildWritePlan, buildFloatWritePlan, deriveVariableRenames, isRefusal } from '@prism3/engine/figma';
 import { nbThemeFrom } from '@prism3/engine';
 import { applyWritePlan, applyFloatPlan, orphansOf, strandedCollections, beginMigration } from './src/write-figma';
+import { runApplyTheme, themePlans } from './src/apply-theme';
+import { FileShim } from './file-shim';
+import type { BrandInput } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { readFigmaVariables } from './src/read-figma';
 import { NB_MEASURED_JSON as nbMeasured } from '@prism3/engine/harness';
 
@@ -168,12 +172,10 @@ ok(orphansOf(['z', 'a'], []).join() === 'a,z', 'orphansOf: sorted, so two runs d
 const ghostShim = new VariablesShim();
 const ghostPal = ghostShim.createVariableCollection('core');
 const ghostCol = ghostShim.createVariableCollection('color');
-// The palette ghost is ROOTED (#1097) and the colour one is not, and the asymmetry is measured rather than
-// stylistic. `upsertCollection` narrows `core` to the SLICE the calling plan owns (`coreGroupOf`), because
-// three executors write into one collection now — so an un-rooted `palette/accent/550` is in no core group,
-// is filtered out of `byName`, and is invisible to the orphan report AND to the migration pass. That hole is
-// real and is **#1109**, not asserted here; what this arm is about is a stale leaf inside a slice the plan
-// DOES own, which is the drift a designer actually accumulates.
+// The palette ghost is ROOTED (#1097) and the colour one is not. `upsertCollection` narrows `core` to the
+// SLICE the calling plan owns, because three executors write into one collection now; what this arm is about
+// is a stale leaf inside a slice the plan DOES own, which is the drift a designer actually accumulates. The
+// un-rooted and unowned shapes are #1109's, and its arms are at the end of this file.
 ghostShim.createVariable(nbVar('core/palette/accent/550'), ghostPal);   // pre-rename palette generation
 ghostShim.createVariable('color/appearance/interactive/primary/text', ghostCol);  // flat leaf, now a group
 const ghostNames = [nbVar('core/palette/accent/550'), 'color/appearance/interactive/primary/text'];
@@ -820,6 +822,57 @@ ok(halfRes.orphans.find((o) => o.name === 'color')!.names.includes(nbVar('color/
     `#3050 strong: re-apply moves color/scrim/default's alias to black-alpha 80 / 80 / 90 / 90 (${JSON.stringify(after)})`);
   ok(!!idBefore && idBefore === idAfter && re.colorCreated === 0 && re.misses.length === 0,
     `#3050 the alias moves on the same variable: same id, nothing created, no misses (${idBefore} → ${idAfter}, created ${re.colorCreated})`);
+}
+
+// ---- #1109: a `core` variable outside the plan's owned slice is seen ----
+{
+  // (1) AN UN-ROOTED PALETTE NAME joins the palette slice by the name the #1097 rule carries it to. One is a
+  // name the plan writes (so it must MIGRATE, keeping its id), one is not (so the palette slice must report it).
+  const plannedTail = plan.palette[0].name.split('/').slice(2).join('/');          // `palette/<…>`, root and tier off
+  const shim1109 = new VariablesShim();
+  const core1109 = shim1109.createVariableCollection('core');
+  const unrootedLive = shim1109.createVariable(plannedTail, core1109);
+  shim1109.createVariable('palette/zzghost/1', core1109);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+  const pass1109 = await beginMigration(shim1109 as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+  const res1109 = await applyWritePlan(plan, shim1109 as any, pass1109);
+  const moved = pass1109.outcomes.find((o) => o.from === plannedTail);
+  ok(moved?.status === 'migrated' && moved.to === plan.palette[0].name && unrootedLive.name === plan.palette[0].name,
+    `#1109 an un-rooted ${plannedTail} in \`core\` migrates to ${plan.palette[0].name}, the same variable renamed (got ${moved ? `${moved.status} → ${moved.to}` : 'NO OUTCOME'}, variable now ${unrootedLive.name})`);
+  const palOrphans = res1109.orphans.find((o) => o.name === 'core/palette')?.names ?? [];
+  ok(palOrphans.includes('palette/zzghost/1'),
+    `#1109 an un-rooted palette name the plan does not write is reported in the core/palette orphans (got ${palOrphans.join(', ') || 'none'})`);
+
+  // (2) A GROUP NO SLICE OWNS, through Apply Theme itself: the three \`core\` writers ran, and the leftover is read
+  // once. Applied once first, so \`core\` is Prism3's own collection when the ghosts are seeded (the pre-flight
+  // refuses a same-named collection someone else made).
+  const brand = (exampleBrands as Record<string, BrandInput>).harbor;
+  const croot = themePlans(brand).colorPlan.palette[0].name.split('/')[0];
+  const file = new FileShim();
+  file.faces = [...new Map(themePlans(brand).textPlan.map((r) => [`${r.fontFamilyPrimary}|${r.fontStyle}`, { family: r.fontFamilyPrimary, style: r.fontStyle }])).values()];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim is the host
+  const clean = await runApplyTheme(brand, file as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the guarded result's shape is the subject
+  const cleanUc = clean.guarded.ok ? (clean.guarded.result as any).uc : undefined;
+  ok(Array.isArray(cleanUc) && cleanUc.length === 0,
+    `#1109 a file Apply Theme just wrote reports zero unowned core variables, present and empty (got ${JSON.stringify(cleanUc)})`);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural
+  const coreCol = (file as any).collections.find((c: { name: string }) => c.name === 'core');
+  const ghosts = [`${croot}/core/zzlegacy/1`, 'zzmisc/1'];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural
+  for (const g of ghosts) (file as any).createVariable(g, coreCol, 'FLOAT');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural
+  (file as any).createVariable('palette/zzghost/2', coreCol, 'COLOR');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim is the host
+  const again = await runApplyTheme(brand, file as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the guarded result's shape is the subject
+  const uc = again.guarded.ok ? (again.guarded.result as any).uc : undefined;
+  ok(JSON.stringify(uc) === JSON.stringify([...ghosts].sort()),
+    `#1109 Apply Theme reports the core variables in a group no slice owns — a hand-made ${ghosts[0]} and an un-rooted ${ghosts[1]} no rule routes into a slice — and not the un-rooted palette name its slice owns (got ${JSON.stringify(uc)})`);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural
+  ok(ghosts.every((g) => (file as any).vars.some((v: { name: string }) => v.name === g)),
+    '#1109 and the unowned variables are left in place — reported, never deleted');
 }
 
 console.log(`\nplugin write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);

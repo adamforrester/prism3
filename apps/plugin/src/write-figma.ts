@@ -37,7 +37,7 @@
  * the minimal slice of `figma.variables` the executor touches, so the whole pass sequence is
  * unit-testable against an in-memory shim (see `apps/plugin/test-write.mjs`) with no real Figma.
  */
-import { type WritePlan, type Rgba, type FloatCollectionPlan, type VarCollectionPlan, renameMap, openMigration, renameCollections, renameVariables, type RenameMap, type MaterializationStep, type Migration, MATERIALIZATION_RENAMES, CORE_COLLECTION, UNSCOPED_TYPES, type FigmaEasing, coreGroupOf, ownedCoreGroup, rootOf } from '@prism3/engine/figma';
+import { type WritePlan, type Rgba, type FloatCollectionPlan, type VarCollectionPlan, renameMap, openMigration, renameCollections, renameVariables, type RenameMap, type MaterializationStep, type Migration, MATERIALIZATION_RENAMES, CORE_COLLECTION, UNSCOPED_TYPES, type FigmaEasing, coreGroupOf, ownedCoreGroup, rootOf, composeVariableRenames } from '@prism3/engine/figma';
 import { bindingTargets } from './binding-targets';
 
 /** The minimal `figma.variables` surface the executor needs. Declaring it as a port (rather than
@@ -453,6 +453,52 @@ export const beginMigration = async (
   return mig;
 };
 
+/**
+ * The `core` group a variable belongs to for SLICE membership (#1109): its own group when it has one, else
+ * the group of the name the materialization rules carry it to. A pre-#1097 `palette/x` is in no group as
+ * spelled, and the #1097 rule takes it to `<root>/core/palette/x`, so it belongs to the palette slice. With
+ * no pass, no root, or a refused map (whose rules `openMigration` disarms), a variable with no group of its
+ * own stays in none, which is what `unownedCore` then reports.
+ */
+const sliceGroupOf = (collection: string, name: string, root: string, pass?: Migration): string | null => {
+  const own = coreGroupOf(name);
+  if (own !== null || !pass || !root) return own;
+  const [row] = composeVariableRenames(collection, [name], [], pass.rules, root);
+  return row ? coreGroupOf(row.to) : null;
+};
+
+/**
+ * The `core` variables NO plan's slice owns (#1109) — **reported, never deleted**.
+ *
+ * Three executors write into `core`, each narrowed to the group its plan owns, so each reports orphans in
+ * its own slice only. A variable in a group none of them owns (a hand-made `<root>/core/x/*`, one the
+ * engine no longer emits, or an un-rooted name no rule routes into a slice) is in no executor's index,
+ * so it reached no orphan report and no migration. No single executor can see it; this is called once
+ * all three have run, with every slice's planned names.
+ *
+ * `slices` are the planned names of each plan that writes `collection`. A non-empty slice spanning more
+ * than one group owns the whole collection, so nothing is unowned. Sorted, so two runs diff cleanly.
+ */
+export const unownedCore = async (
+  vars: VariablesApi,
+  collection: string | null,
+  slices: readonly (readonly string[])[],
+  pass?: Migration,
+): Promise<string[]> => {
+  const live = slices.filter((s) => s.length > 0);
+  if (!collection || !live.length) return [];
+  const groups = live.map((s) => ownedCoreGroup(s));
+  if (groups.some((g) => g === null)) return [];
+  const owned = new Set(groups);
+  const col = (await vars.getLocalVariableCollectionsAsync()).find((c) => c.name === collection);
+  if (!col) return [];
+  const root = rootOf(live[0][0]);
+  return (await vars.getLocalVariablesAsync())
+    .filter((v) => v.variableCollectionId === col.id && !owned.has(sliceGroupOf(collection, v.name, root, pass)))
+    .map((v) => v.name)
+    .sort();
+};
+
 // Idempotent get-or-create for a collection by name (find-by-name → reuse). Scopes the returned
 // var index to that collection so a name collision across collections can't cross-wire.
 //
@@ -479,11 +525,14 @@ export const beginMigration = async (
 // exactly). `ownedCoreGroup` derives the slice from the plan's own rows, which is what ownership means
 // here rather than a guess about it, and it is positional — no brand root is spelled.
 //
-// The residual gap is stated rather than defended, and it is **#1109**: a `core` variable in a group NO
-// plan owns is filtered out of `byName` before it can be seen, so it is invisible to all three orphan
-// reports AND to the migration pass. Two ways to land there — a pre-#1097 un-rooted name (`palette/x` is
-// in no group, since `coreGroupOf` reads the segment after the root) and a group the engine has stopped
-// emitting. The alternative is a cross-executor planned-union, which is a wider change than this lane.
+// #1109 closed the two ways a `core` variable used to fall outside every slice, unseen by any orphan
+// report or by the migration pass:
+//   · A pre-#1097 UN-ROOTED name (`palette/x` is in no group, since `coreGroupOf` reads the segment after
+//     the root). Membership is read on the name the MATERIALIZATION rules carry it to (`sliceGroupOf`), so
+//     `palette/x` joins the palette slice: the migration pass can move it, and its slice reports it if not.
+//   · A group NO plan owns (a hand-made `<root>/core/x/*`, or one the engine no longer emits). No executor
+//     can see that alone, so `unownedCore` reads it once the three have run, from `runApplyTheme`, which
+//     holds all three slices.
 const upsertCollection = async (
   vars: VariablesApi,
   name: string,
@@ -496,15 +545,6 @@ const upsertCollection = async (
     collections.find((c) => c.name === name) ??
     vars.createVariableCollection(name);
   const owns = ownedCoreGroup(planned);
-  // NB: fetch ALL local variables (no type filter) — `getLocalVariablesAsync('COLOR')` returns ONLY
-  // COLOR-typed vars, which would make `byName` empty for a FLOAT collection and break idempotency
-  // (re-apply would re-create every FLOAT var → duplicates). We scope by `variableCollectionId`
-  // anyway, so the unfiltered fetch is correct for both the colour and FLOAT (#146) executors.
-  const byName = new Map(
-    (await vars.getLocalVariablesAsync())
-      .filter((v) => v.variableCollectionId === collection.id && (owns === null || coreGroupOf(v.name) === owns))
-      .map((v) => [v.name, v] as const),
-  );
   // THE BRAND ROOT, FROM THE PLAN (#1097). The rules and the contract rows both need it, and the plan is
   // the one thing in scope that carries it: every planned name is `<root>/…`, so the first segment of any of
   // them IS the root. Positional — no prefix is spelled here, which is the property `test-readback.ts`
@@ -514,6 +554,15 @@ const upsertCollection = async (
   // also nothing for a migration to land on: every target would be un-planned. So the rename pass is skipped
   // rather than run against a guess — the write itself is unaffected.
   const root = planned.length ? rootOf(planned[0]) : '';
+  // NB: fetch ALL local variables (no type filter) — `getLocalVariablesAsync('COLOR')` returns ONLY
+  // COLOR-typed vars, which would make `byName` empty for a FLOAT collection and break idempotency
+  // (re-apply would re-create every FLOAT var → duplicates). We scope by `variableCollectionId`
+  // anyway, so the unfiltered fetch is correct for both the colour and FLOAT (#146) executors.
+  const byName = new Map(
+    (await vars.getLocalVariablesAsync())
+      .filter((v) => v.variableCollectionId === collection.id && (owns === null || sliceGroupOf(name, v.name, root, pass) === owns))
+      .map((v) => [v.name, v] as const),
+  );
   if (pass && root) {
     // The variable half of the rename pass, shared with the CLI paste path (#1024): compose the CONTRACT
     // rows with the MATERIALIZATION rules, plan, and apply — re-keying `byName` so the caller's create loop

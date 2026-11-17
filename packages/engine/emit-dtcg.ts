@@ -21,7 +21,7 @@
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { contrast } from './color';
+import { contrast, formatRatio } from './color';
 import { Theme, brandTheme, BrandInput } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes, ModeResult } from './modes';
@@ -132,6 +132,12 @@ const validate = (data: any, schema: any, defs: any, path = ''): string[] => {
   }
   return e;
 };
+/** One row of `modes-report.md`'s contract table. The contrast cell prints through `formatRatio`, FLOORED, so a pair
+ *  measuring 4.496 against a 4.5 floor reads `4.49` beside its ❌, never `4.50` (#3759, the #3697 L3 rule). */
+export const contractReportRow = (roleKey: string, r: { path: string; ratio: number; min: number }, namespace: string): string => {
+  const checked = r.min > 0, pass = !checked || r.ratio >= r.min;
+  return `| ${roleKey} | ${r.path.replace(namespace + '.', '')} | ${checked ? formatRatio(r.ratio, { bare: true }) : '—'} | ${checked ? r.min : '—'} | ${checked ? (pass ? '✅' : '❌') : '·'} |`;
+};
 const brandSchema = JSON.parse(readFileSync(resolve(here, './schema/theme-schema.json'), 'utf8'));
 /** Validate a parsed BrandInput against the canonical theme-schema.json contract. */
 export const validateBrandInput = (input: unknown): string[] => validate(input, brandSchema, brandSchema.$defs ?? {});
@@ -194,10 +200,7 @@ if (isMain) {
     md.push('', `Palettes: ${theme.palettes.map((p) => p.palette).join(', ')}. Danger draws from \`${theme.roleToPalette.danger}\`.`, '');
     for (const mr of modes) {
       md.push(`## ${theme.id} — color mode: ${mr.mode}`, '', '| role | → step | contrast | floor | result |', '|---|---|---|---|---|');
-      for (const [roleKey, r] of Object.entries(mr.roles)) {
-        const checked = r.min > 0, pass = !checked || r.ratio >= r.min;
-        md.push(`| ${roleKey} | ${r.path.replace(theme.namespace + '.', '')} | ${checked ? r.ratio.toFixed(2) : '—'} | ${checked ? r.min : '—'} | ${checked ? (pass ? '✅' : '❌') : '·'} |`);
-      }
+      for (const [roleKey, r] of Object.entries(mr.roles)) md.push(contractReportRow(roleKey, r, theme.namespace));
       md.push('');
     }
     md.push(`## ${theme.id} — dimension axis`, '', `Grid (${stats.dimLeaves} primitives, px): ${theme.dims.grid.join(', ')}`, '');
