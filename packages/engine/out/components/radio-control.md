@@ -123,22 +123,22 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `control` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
-| `control/dot` | — | — | `control.size.md.dot` | `control.size.md.dot` | — | — |
+| `control` | — | — | `control.size.md.height` | `control.size.md.height` | — | radius `radius.round`; stroke `border-width.thick` |
+| `control/dot` | — | — | `control.size.md.dot` | `control.size.md.dot` | — | radius `radius.round` |
 
 **size=small**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `control` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
-| `control/dot` | — | — | `control.size.sm.dot` | `control.size.sm.dot` | — | — |
+| `control` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | radius `radius.round`; stroke `border-width.thick` |
+| `control/dot` | — | — | `control.size.sm.dot` | `control.size.sm.dot` | — | radius `radius.round` |
 
 **size=large**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `control` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
-| `control/dot` | — | — | `control.size.lg.dot` | `control.size.lg.dot` | — | — |
+| `control` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | radius `radius.round`; stroke `border-width.thick` |
+| `control/dot` | — | — | `control.size.lg.dot` | `control.size.lg.dot` | — | radius `radius.round` |
 
 ### Color
 

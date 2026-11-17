@@ -14,10 +14,11 @@
  *     its `letterSpacing` alias. Stock Style Dictionary's `font` shorthand carries family, size, weight and line
  *     height, not decoration or tracking, so a text button's underline is read from the token's own value
  *     (`type.label.*.emphasis-link`, #3507) and each label's tracking token from its style (Q143 A).
- *   - The TypeScript defs (`@prism3/engine/components/index`), for what the emission does not carry yet: the
- *     container's radius and stroke width, the focus ring's width, style and offset, the pending spinner's
- *     replacement rule (`anatomy.parts.spinner`), the spinner's motion token names, and each size's hit-target floor. Each is read from the def's
- *     own field, never restated. Getting these into `specs.json` is an engine change, filed as #3506.
+ *   - Since Q142 A (#3506, #3839) `specs.json` also carries the container's radius and stroke width (redlines), the
+ *     focus ring's width, style and offset (`focusRing`) and the spinner's motion tokens (`motion`), so they are read
+ *     there, never from the engine's TypeScript defs.
+ *   - `residual.ts`, the two facts the emission does not carry yet: each size's hit-target floor and the pending
+ *     spinner's replacement rule. It is the one file here that imports the engine's defs (journal, "Refresh 3").
  *
  * WHAT IT DOES NOT DECIDE. The markup contract (the classes, the `data-prop-*` attributes, the state attributes) is
  * documented in this package's README, and the parity check (`check-parity.ts`) holds its own copy of it, written
@@ -27,12 +28,12 @@
  * THE PREFIX is `p3-` (Q97 A), the token names are stock Style Dictionary's `--pds3-…` (Q98 A), and every rule
  * sits in one named cascade layer, `p3`, so an author's unlayered CSS overrides it without a specificity fight.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { resolve, dirname, isAbsolute, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { button, focusRing, spinner } from '@prism3/engine/components/index';
 import { demoHtml } from './demo';
-import { readUncommitted } from './emission';
+import { motionBinding, readUncommitted, uniformRedline } from './emission';
+import { hitTargetFloor, pendingReplacement } from './residual';
 import { tree, TOKEN_ROOT, v, leaf, kebab, tracking, fmt, type Rule } from './tokens';
 import { fieldLabelCss, fieldMessageCss, passwordFieldCss, textFieldCss } from './fields';
 
@@ -111,11 +112,10 @@ const rules: Rule[] = [];
 const add = (sel: string, decls: [string, string][], note?: string) => { if (decls.length) rules.push({ sel, decls, note }); };
 
 // ------------------------------------------------------------------------------------------------ the base
-const tok = button.tokens as Record<string, string>;
-const need = (map: Record<string, string>, key: string, who: string) => {
-  if (!map[key]) throw new Error(`${who} has no token "${key}"`);
-  return map[key];
-};
+// The corner and stroke are redlines (#3839), the same on every row, so the base rule carries them once.
+const EDGE_KEYS = new Set(['radius', 'strokeWidth']);
+const radius = uniformRedline(spec, 'container', 'radius');
+const strokeWidth = uniformRedline(spec, 'container', 'strokeWidth');
 add(ROOT_CLASS, [
   ['box-sizing', 'border-box'],
   ['position', 'relative'],
@@ -130,8 +130,8 @@ add(ROOT_CLASS, [
   ['background-color', 'transparent'],
   ['border-style', 'solid'],
   ['border-color', 'transparent'],
-  ['border-width', v(need(tok, 'border-width', 'button'))],
-  ['border-radius', v(need(tok, 'radius', 'button'))],
+  ['border-width', v(strokeWidth)],
+  ['border-radius', v(radius)],
 ], 'base: the stroke is on every appearance, transparent where it paints nothing, so all three share one box');
 for (const part of ['container/leadingVisual', 'container/trailingVisual']) {
   add(partSel(ROOT_CLASS, part), [['display', 'inline-flex'], ['flex', 'none']]);
@@ -141,8 +141,13 @@ add(`${ROOT_CLASS}[data-prop-fullwidth="true"]`, [['inline-size', '100%']], 'ful
 
 // ------------------------------------------------------------------------------------------------ sizes (redlines)
 const enumAxes = new Set(spec.axes.filter((a: any) => a.kind !== 'slot' && a.kind !== 'state').map((a: any) => a.name));
-const slotPart: Record<string, string> = Object.fromEntries(
-  (button.figmaProperties?.slotAxes ?? []).map((s: any) => [s.name, `container/${s.part}`]));
+/** A slot axis's part: the one swap part a redline row has exactly when the axis is `true`. */
+const slotPart: Record<string, string> = Object.fromEntries(spec.axes.filter((a: any) => a.kind === 'slot').map((a: any) => {
+  const swaps = spec.anatomy.filter((x: any) => x.kind === 'swap').map((x: any) => x.part);
+  const parts = swaps.filter((part: string) => spec.redlines.every((r: any) => r.parts.some((p: any) => p.part === part) === (r.where[a.name] === 'true')));
+  if (parts.length !== 1) throw new Error(`slot axis "${a.name}" matches ${parts.length} swap parts by the redlines`);
+  return [a.name, parts[0]];
+}));
 const coordSel = (where: Record<string, string>, state?: string): string => {
   let s = ROOT_CLASS;
   for (const [axis, val] of Object.entries(where)) {
@@ -163,6 +168,7 @@ for (const row of spec.redlines) {
   for (const p of row.parts) {
     const decls: [string, string][] = [];
     for (const [k, val] of Object.entries<any>(p.values)) {
+      if (p.part === 'container' && EDGE_KEYS.has(k)) continue; // on the base rule, asserted uniform above
       const prop = k === 'height' ? heightProp(p.part) : SIZE_PROP[k];
       if (!prop) throw new Error(`no CSS property for redline "${k}" on ${p.part}`);
       decls.push([prop, value(val, `${p.part}.${k}`)]);
@@ -208,18 +214,19 @@ for (const row of spec.colors) {
 
 // ------------------------------------------------------------------------------------------------ the focus ring
 const ringNest = spec.nesting.find((n: any) => n.part === 'container/focusRing');
-if (!ringNest || ringNest.component !== focusRing.id) throw new Error('the button no longer nests focus-ring at container/focusRing');
-const ringTok = focusRing.tokens as Record<string, string>;
+if (!ringNest || ringNest.component !== 'focus-ring' || !specs[ringNest.component]) throw new Error('the button no longer nests focus-ring at container/focusRing');
+const ring = (spec.focusRing ?? []).find((r: any) => r.part === ringNest.part);
+if (!ring) throw new Error(`the emission has no focusRing row for ${ringNest.part}`);
 const ringColor = (surface: string) => {
-  const r = specs[focusRing.id].colors.find((c: any) => c.where.surface === surface);
+  const r = specs[ringNest.component].colors.find((c: any) => c.where.surface === surface);
   const stroke = r?.parts.find((p: any) => p.part === 'ring')?.stroke;
   if (!stroke) throw new Error(`focus-ring has no ring stroke at surface=${surface}`);
   return stroke;
 };
 add(`${ROOT_CLASS}:focus-visible`, [
-  ['outline-width', v(need(tok, 'ring-width', 'button'))],
-  ['outline-style', v(need(ringTok, 'style', 'focus-ring'))],
-  ['outline-offset', v(need(tok, 'ring-offset', 'button'))],
+  ['outline-width', v(ring.width)],
+  ['outline-style', v(ring.style)],
+  ['outline-offset', v(ring.offset)],
 ], 'the focus ring: an outline, so it takes no cell, survives forced colors and keeps through pending and inactive');
 for (const surface of spec.axes.find((a: any) => a.name === 'surface').values) {
   if (!ringNest.follows.includes('surface')) throw new Error('the focus ring no longer follows surface');
@@ -229,13 +236,9 @@ for (const surface of spec.axes.find((a: any) => a.name === 'surface').values) {
 // ------------------------------------------------------------------------------------------------ the hit target
 // codeOnly `hit-target`: a flush text button keeps its height but its box is label-width, so an invisible ::before,
 // centered, extends the target to each size's floor. The floor is the def's own `size.<size>.hit-target` binding
-// (Q-HT1 A: `space.300` at small, `space.550` at medium and large), read here, never restated: the emission does not
-// carry it yet (#3506). `check-browser.ts` holds the rendered box to its own literal px per size.
-const hitTok = (size: string): string => {
-  const t = tok[`size.${size}.hit-target`];
-  if (!t) throw new Error(`the button def binds no size.${size}.hit-target`);
-  return t;
-};
+// (Q-HT1 A: `space.300` at small, `space.550` at medium and large), read through `residual.ts`, never restated: the
+// emission does not carry it yet. `check-browser.ts` holds the rendered box to its own literal px per size.
+const hitTok = hitTargetFloor;
 for (const size of spec.axes.find((a: any) => a.name === 'size').values) {
   const t = v(hitTok(size));
   add(`${ROOT_CLASS}${propSel('inset', 'flush')}${propSel('size', size)}::before`, [
@@ -247,8 +250,13 @@ for (const size of spec.axes.find((a: any) => a.name === 'size').values) {
 }
 
 // ------------------------------------------------------------------------------------------------ pending: the spinner
-const sp = (button.anatomy.parts as any).spinner;
-if (sp?.when !== 'pending' || sp.nests !== spinner.id) throw new Error('the button\'s spinner part moved');
+// The emission's anatomy and nesting say where and when; `residual.ts` says what it replaces.
+const spAnat = spec.anatomy.find((a: any) => a.part === 'container/spinner');
+const spNest = spec.nesting.find((n: any) => n.part === 'container/spinner');
+const spinnerId = [...new Set<string>((spNest?.components ?? []).map((c: string) => c.split('/')[0]))];
+if (spAnat?.when?.state?.join() !== 'pending' || spinnerId.length !== 1 || !specs[spinnerId[0]]) throw new Error('the button\'s spinner part moved');
+const spinnerSpec = specs[spinnerId[0]];
+const sp = pendingReplacement();
 const busy = `${ROOT_CLASS}${STATE_SEL.pending}`;
 const spin = partClass('container/spinner');
 add(`${ROOT_CLASS} > ${spin}`, [['display', 'none'], ['flex', 'none']]);
@@ -265,18 +273,17 @@ const none = replaces.map(hasNot).join('');
 add(`${busy}${none} > ${spin}`, [['position', 'absolute'], ['inset', '0'], ['margin', 'auto']]);
 add(`${busy}${none} > ${partClass(`container/${sp.overlaysWhenAbsent}`)}`, [['opacity', '0']]);
 
-// The spinner's own motion (its def's `motion` field names the tokens; this asserts each name is still there).
-const motionText = `${spinner.motion?.enter ?? ''} ${spinner.motion?.reduceMotion ?? ''}`;
-const motion = (token: string) => { if (!motionText.includes(`\`${token}\``)) throw new Error(`spinner.motion no longer names ${token}`); return v(token); };
+// The spinner's own motion: its def's motion bindings, from the emission (#3839).
+const motion = (key: string) => v(motionBinding(spinnerSpec, key));
 add(`${ROOT_CLASS} > ${spin} > svg`, [
   ['inline-size', '100%'],
   ['block-size', '100%'],
-  ['animation', `${PREFIX}-spin ${motion('motion.duration.spin')} linear infinite`],
+  ['animation', `${PREFIX}-spin ${motion('motion.turn')} linear infinite`],
 ], 'spinner: turns continuously, linear, never stopped');
-add(`${busy} > ${spin}`, [['animation', `${PREFIX}-fade-in ${motion('motion.duration.fast')} ${motion('motion.easing-role.enter')} both`]], 'spinner: fades in on show');
+add(`${busy} > ${spin}`, [['animation', `${PREFIX}-fade-in ${motion('motion.enter')} ${motion('motion.enter-easing')} both`]], 'spinner: fades in on show');
 const reduced: Rule[] = [
-  { sel: `${ROOT_CLASS} > ${spin} > svg`, decls: [['animation-duration', motion('motion.duration-reduced.spin')]] },
-  { sel: `${busy} > ${spin}`, decls: [['animation-duration', motion('motion.duration-reduced.fast')]] },
+  { sel: `${ROOT_CLASS} > ${spin} > svg`, decls: [['animation-duration', motion('motion.turn-reduced')]] },
+  { sel: `${busy} > ${spin}`, decls: [['animation-duration', motion('motion.enter-reduced')]] },
 ];
 
 // ------------------------------------------------------------------------------------------------ write
@@ -315,13 +322,47 @@ export const outputs = (): [string, string, number][] => {
   ];
 };
 
+/**
+ * Q142 A: this package reads emitted files, not the engine's code. Every script here is scanned for a module specifier
+ * (`import … from`, `export … from`, a bare `import '…'`, `import(…)` and `require(…)`) that reaches the engine: the
+ * `@prism3/engine` package by name, or any relative or absolute path that RESOLVES under `packages/engine/` outside
+ * `out/`, however it is spelled (`../engine/x`, `../../packages/engine/x`, `./../engine/x`). Reading `../engine/out/`
+ * files and running the emitter as a process are not imports. Only `residual.ts` may import it, and only the two facts
+ * it names.
+ */
+const RESIDUAL = 'residual.ts';
+const RESIDUAL_EXPORTS = ['hitTargetFloor', 'pendingReplacement'];
+export const engineImports = (): string[] => {
+  const bad: string[] = [];
+  const SPECIFIER = /\b(?:from|import|require)\s*\(?\s*['"]([^'"]+)['"]/g;
+  const ENGINE = resolve(HERE, '../engine'), OUT = resolve(ENGINE, 'out');
+  const under = (p: string, dir: string) => p === dir || p.startsWith(`${dir}${sep}`);
+  const reachesEngine = (spec: string): boolean => {
+    if (spec === '@prism3/engine' || spec.startsWith('@prism3/engine/')) return true;
+    if (!spec.startsWith('.') && !isAbsolute(spec)) return false;
+    const at = resolve(HERE, spec);
+    return under(at, ENGINE) && !under(at, OUT);
+  };
+  for (const f of readdirSync(HERE).filter((x) => /\.(ts|js|mjs|cjs)$/.test(x)).sort()) {
+    const text = readFileSync(resolve(HERE, f), 'utf8');
+    for (const m of text.matchAll(SPECIFIER)) if (f !== RESIDUAL && reachesEngine(m[1])) bad.push(`${f} imports ${m[1]}; only ${RESIDUAL} may (Q142 A)`);
+    if (f === RESIDUAL) {
+      const exported = [...text.matchAll(/^export const (\w+)/gm)].map((m) => m[1]);
+      if (exported.join() !== RESIDUAL_EXPORTS.join()) bad.push(`${RESIDUAL} exports ${exported.join(', ') || 'nothing'}; the residual is ${RESIDUAL_EXPORTS.join(', ')} only (Q142 A)`);
+    }
+  }
+  return bad;
+};
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const out = outputs();
   const summary = out.filter(([, , n]) => n).map(([f, , n]) => `${f.slice(HERE.length + 1)} (${n} rules)`).join(', ');
   if (process.argv.includes('--check')) {
     const stale = out.filter(([f, text]) => { try { return readFileSync(f, 'utf8') !== text; } catch { return true; } });
     for (const [f] of stale) console.error(`FAIL @prism3/css: ${f.slice(HERE.length + 1)} is not what generate.ts writes from the emission. Run: npx tsx packages/css/generate.ts`);
-    if (stale.length) process.exit(1);
+    const imports = engineImports();
+    for (const x of imports) console.error(`FAIL @prism3/css sources: ${x}`);
+    if (stale.length || imports.length) process.exit(1);
     console.log(`OK @prism3/css: ${summary} and demo.html match the generator`);
   } else {
     for (const [f, text] of out) writeFileSync(f, text);

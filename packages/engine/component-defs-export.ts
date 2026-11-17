@@ -50,7 +50,7 @@ import { at, buildTree, pxOf } from './tree';
 import { CONTRACT_VERSION, ENGINE_VERSION } from './version';
 import { localeFreeCompare } from './locale-free-order';
 
-export const COMPONENT_DEFS_FORMAT = 'prism3-component-defs/1.3';
+export const COMPONENT_DEFS_FORMAT = 'prism3-component-defs/1.4';
 /** The Specs schema version the projection is written against, and checked against (`packages/tokens/check-specs.mjs`). */
 export const SPECS_SCHEMA_VERSION = '0.39.0';
 
@@ -217,13 +217,16 @@ export const exportComponentDefs = (defs: readonly ComponentDef[], opts: { brand
 //   padding*/gap/height/width/min*/max* → styles.padding (Sides) / itemSpacing / height / width / minHeight /
 //                                         minWidth / maxWidth; a token → TokenReference {$token, $type: dimension},
 //                                         a literal or derived px → a number
+//   radius* / strokeWidth* (#3506)      → styles.cornerRadius / strokeWeight: a scalar when uniform, a Corners /
+//                                         Sides object (logical directions) when they differ
 //   textStyle                           → styles.typography TokenReference {$type: typography}
 //   fill / stroke / ink / icon          → backgroundColor / strokes / textColor / fillColor, TokenReference {$type: color}
 //                                         (`icon` sits on its part's element, usually an `instance`: Specs
 //                                         describes fillColor as glyph-only, in prose, not as a constraint)
 //   per-brand px                        → TokenReference.$extensions["com.prism3"].px
 //
-//   OMITTED (kept in the Prism3 export): accessibility, content, docs, ai (incl. avoidWhen), motion, composition
+//   OMITTED (kept in the Prism3 export): accessibility, content, docs, ai (incl. avoidWhen), motion (the def's prose and
+//   the spec's `motion` bindings, #3506: Specs has no motion key), the spec's `focusRing` (#3506), composition
 //   (relationships), aliases/category/status/summary/description, axis kinds beyond the prop extension, nesting rules
 //   (follows/exposes/when/where), Figma component properties, rowGap, buildWidth/buildHeight, computed values,
 //   gradients, the provider `literal` record, brand settings. Specs `metadata` is omitted: it requires a Figma
@@ -242,19 +245,28 @@ const dimension = (v: SpecValue, root: string | null): unknown =>
   'token' in v ? tokenRef(v.token, 'dimension', root, v.px) : 'px' in v ? v.px : undefined;
 
 const SIDE: Record<string, string> = { paddingTop: 'top', paddingRight: 'end', paddingBottom: 'bottom', paddingLeft: 'start' };
-const SCALAR: Record<string, string> = { gap: 'itemSpacing', height: 'height', minHeight: 'minHeight', width: 'width', minWidth: 'minWidth', maxWidth: 'maxWidth' };
+const SCALAR: Record<string, string> = { gap: 'itemSpacing', height: 'height', minHeight: 'minHeight', width: 'width', minWidth: 'minWidth', maxWidth: 'maxWidth', radius: 'cornerRadius', strokeWidth: 'strokeWeight' };
+// #3506: a corner or stroke side that differs from the others → Specs' `Corners` / `Sides` object, logical directions.
+const CORNER: Record<string, string> = { radiusTopLeft: 'topStart', radiusTopRight: 'topEnd', radiusBottomRight: 'bottomEnd', radiusBottomLeft: 'bottomStart' };
+const STROKE_SIDE: Record<string, string> = { strokeWidthTop: 'top', strokeWidthRight: 'end', strokeWidthBottom: 'bottom', strokeWidthLeft: 'start' };
 
 const geometryStyles = (values: Partial<Record<string, SpecValue>>, root: string | null): Json => {
   const out: Json = {};
   const padding: Json = {};
+  const corners: Json = {};
+  const strokeSides: Json = {};
   for (const [k, v] of Object.entries(values)) {
     if (!v) continue;
     const val = dimension(v, root);
     if (val === undefined) continue;                     // a computed value has no number and no token: omitted
     if (SIDE[k]) padding[SIDE[k]] = val;
+    else if (CORNER[k]) corners[CORNER[k]] = val;
+    else if (STROKE_SIDE[k]) strokeSides[STROKE_SIDE[k]] = val;
     else if (SCALAR[k]) out[SCALAR[k]] = val;
   }
   if (Object.keys(padding).length) out.padding = padding;
+  if (Object.keys(corners).length) out.cornerRadius = corners;
+  if (Object.keys(strokeSides).length) out.strokeWeight = strokeSides;
   return out;
 };
 

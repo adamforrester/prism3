@@ -1393,15 +1393,7 @@ const VERDICTS: Verdict[] = [
     category: 1,
     verdict: 'EXPECTED',
     claim:
-      'aurora\'s 2 gradients are unreachable: Figma paint styles are neither variables nor effect styles and TokenPress\'s scanner has no call that returns them (W3). The only genuinely unpaired paths in either brand',
-    source: '#703 named gradients as outside the scanner\'s reach',
-    when: (r) => r.paths.unpairedPrism3.some((p) => p.startsWith('gradient.')),
-  },
-  {
-    category: 1,
-    verdict: 'EXPECTED',
-    claim:
-      'once renames, axis collapse and the emission\'s own gaps are accounted for, NOTHING is missing in either direction (aurora keeps only the 2 gradients). The two exporters cover the same token surface',
+      'once renames, axis collapse and the emission\'s own gaps are accounted for, NOTHING is missing in either direction (the gradients pair since #731 gave TokenPress a paint-style channel). The two exporters cover the same token surface',
     source: '#697 hoped for this; this is the first measurement of it',
     when: (r) => r.paths.unpairedTokenPress.length === 0 && r.paths.unpairedPrism3.length <= 2,
   },
@@ -1591,6 +1583,7 @@ const printReport = (r: BrandReport): void => {
     console.log(`       ${s.collection.padEnd(16)} ${String(s.count).padStart(3)} -> ${s.channel}`);
   }
   console.log(`  W4 text-style bindings split in two     : ${r.adapted.textStyleBindingsSplit} (unresolved: ${r.adapted.textStyleBindingsUnresolved.length})`);
+  console.log(`     gradient stops left unbound          : ${r.adapted.gradientStopBindingsUnresolved.length}`);
 
   console.log(`\nCOUNTS:`);
   console.log(`  prism3 base leaves        : ${r.counts.prism3Base}`);

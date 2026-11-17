@@ -8,6 +8,9 @@ S2 built the **button**; S3 adds the **text field** and the **password field**, 
   writes it from the engine's emission (`specs.json` and `component-defs.json`), owner decision Q96 A. The engine
   doesn't commit those two, so `emission.ts` generates them into a temp folder on each run. Change the def and
   regenerate.
+- **It reads emitted files, not the engine's code** (Q142 A). The corner, stroke, focus ring and motion come from
+  `specs.json` (#3839). Two facts the emission doesn't carry yet, Button's hit-target floors and its pending spinner's
+  replacement rule, are read in `residual.ts`, the one file that may import the engine's defs.
 - `demo.html` — every appearance, size and state on the light and dark themes and on an inverse band. Also generated.
 - It needs the token CSS from `@prism3/tokens` (the `--pds3-…` custom properties, Q98 A). Themes come from that
   package's `[data-theme]` blocks: set `data-theme="dark"` on any ancestor.
@@ -228,7 +231,8 @@ one input, so `filled` needs no attribute: the value's ink is the input's `color
   because 104 and 128 aren't on the spacing scale. `check-raw-values.ts` excuses only those numbers, read from
   `specs.json`.
 - **Q141 / Q-HT1 A:** hit-target floors are spacing tokens: `space.300` (24px) at small, `space.550` (44px) at
-  medium and large. The generator reads each from the def's `size.<size>.hit-target` binding. The browser check
+  medium and large. The generator reads each from the def's `size.<size>.hit-target` binding, through `residual.ts`
+  until the emission carries it. The browser check
   holds the rendered box to its own 24 / 44 / 44 px.
 - **Q143 A:** the label's tracking comes from the tokens, as the underline does (above). The `letter-spacing` read
   of a `core.font.letter-spacing-role.*` token is the second documented exception in `check-raw-values.ts`,
@@ -284,7 +288,7 @@ fields' 120px minimum width as a documented raw px.
 
 | Script | What it asserts |
 |---|---|
-| `npm run -w @prism3/css check:generated` | `button.css` and `demo.html` are what the generator writes from the emission. |
+| `npm run -w @prism3/css check:generated` | `button.css` and `demo.html` are what the generator writes from the emission. No script here imports the engine except `residual.ts`, and that file exports only its two facts (Q142 A). |
 | `npm run -w @prism3/css check:raw-values` | No hex, `rgb()`, non-zero `px` or primitive token in the CSS, outside the documented exceptions (the agent-adherence scorer's own R2). |
 | `npm run -w @prism3/css check:parity` | Rendered in Chromium, every part × size × state binds the token `specs.json` names, and every prop and value in `components.ai.json` has a markup mapping. Mutants must fail by name. |
 | `npm run -w @prism3/css test:browser` | `demo.html` on the light and dark themes: computed colors and sizes against the resolved token values, focus-visible on keyboard and not on mouse. |

@@ -981,3 +981,159 @@ and demo, not test pages.
 111 PASS, 0 FAIL, 3 not run locally, left to CI as in S2 and S4: `chrome`, `chrome-shards` and `plugin-test`.
 `lint-us-english` and `lint-voice` failed once when run before the Studio and plugin builds existed in this fresh
 worktree ("the gate's SCOPE shrank"), which is their ordering rule working. Both passed after the builds.
+
+
+---
+
+## Refresh 3 — `main`'s emission bindings, and `@prism3/css` reads emitted files only (Q142 A; a Q55 data point)
+
+Started about 17:35 UTC on 2026-11-17, from `poc/arm-1` at `f3e6dc4b`, merging `main` at `77f4ced5`: 15 commits,
+merged with a merge commit (`75ea4eed`), never rebased. #3841 (Button's motion bindings, Q146 A) isn't on `main` yet,
+so it's not in this refresh.
+
+### What arrived
+
+- **#3839 (#3506, Q142 A):** the emission carries each component's corner, stroke, focus ring and motion bindings.
+  `specs.json` went from format 1.0 to 1.1 and `component-defs.json` from 1.3 to 1.4. `radius` and `strokeWidth` are
+  new redline keys, `focusRing` lists each part that nests the shared ring (offset, width, style), and `motion` lists
+  each `motion.*` binding. The spinner now binds its five motion tokens by key (`motion.turn`, `motion.enter`, …).
+- **#3835 (Q-HT1 A):** `space.550` joins the spacing scale. It was already on this branch through the second update.
+- **Neither version moved.** ENGINE_VERSION is still 0.238.0 and CONTRACT_VERSION 15.1.0: #3839's change note waits
+  for the next fold. The token CSS didn't change.
+
+### What broke
+
+- **The generator, loudly.** `check:generated` crashed on the first new key: `no CSS property for redline "radius" on
+  container`. The generator refuses keys it has no rule for, so a new key fails it by name.
+- **The fields, quietly (caught by the byte check).** A redline row's key grows where a value moves. The field's
+  stroke moves at focus, so its rows went from one per size to one per size and state (3 × 7). Each row had the same
+  padding and gaps, and the generator wrote one rule per row, so `text-field.css` grew by 207 duplicate lines. The
+  output was still correct CSS, so only `check:generated`'s byte comparison saw it. Without that check, the duplicates
+  would have shipped.
+- **Both parity checks, by name.** They probe every redline key, so they met `radius` and `strokeWidth` too.
+  `check-parity.ts` failed 48 bindings as `container radius binds (no token: )`. It had no CSS property for the key,
+  read an empty property, and reported it as a value mismatch, not a missing rule. `check-parity-fields.ts` failed
+  126 as `redline container/control.radius has no CSS property in this check`. It also probed every redline row at
+  rest, which became wrong once rows carry `state`. `check:parity` runs the two with `&&`, so the fields' failure
+  showed only after the button's was fixed.
+
+### The fix (this PR)
+
+- **`generate.ts` and `fields.ts` read the four binding kinds from `specs.json`.** They stop importing the TypeScript
+  defs. The new helpers are in `emission.ts`:
+  - `uniformRedline` takes the one token a part's corner or stroke binds across the rows the CSS folds together, and
+    fails when they bind more than one. The button's container uses one radius and one stroke. The field's box uses
+    one radius, one stroke in every code state but focus, and one focus edge.
+  - `ringStyle` is the shared ring's own style. Every host's `focusRing` row names it, and they must agree. The fields
+    nest no ring, but their focus edge uses the ring's style.
+  - `motionBinding` reads the spinner's motion by key.
+- **The fields' redlines collapse by state.** Rows that differ only by `state` write one rule. A value other than the
+  stroke that differs between two states of one size fails by part.
+- **Facts the emission doesn't name, derived from what it does:**
+  - **The button's slot axes.** A slot axis's part is the one swap part present in a redline row exactly when the
+    axis is `true`. This replaces `figmaProperties.slotAxes`.
+  - **The spinner's identity.** It's the nesting's `fixed` components (`spinner/small`, …). This replaces
+    `spinner.id`.
+  - **The field's pending spinner size and ink.** It takes the leading glyph's width and rest ink. These were the
+    def's `icon-size` and `icon` keys, which no row names, and they resolve to the same tokens.
+  - **The disabled value's ink.** It's the disabled placeholder's ink. This replaces a cross-check against the def's
+    `disabled.label.on-fill`, which resolves to the same token.
+- **The parity checks read the new keys.** `radius` is read as `border-top-left-radius` and `strokeWidth` as
+  `border-top-width`. In the fields, each redline row is probed in its own state, and a focus row's stroke is the
+  focus edge's `outline-width` (#3399). A redline key the button check has no property for is now a named gap, not an
+  empty read. The fields now check 1,149 bindings, up from 1,065.
+- **The residual, `residual.ts`.** Two facts aren't emitted, so they're still read from the defs, in this one file:
+  - Button's hit-target floors (`size.<size>.hit-target`, Q-HT1 A). #3835 bound them after Q142 A was decided.
+  - The pending spinner's `replaces` and `overlaysWhenAbsent`. This was #3506's fourth item, which #3839 left out.
+
+  Filed as #3917. `generate.ts --check` now scans every script in the package and fails if anything other than
+  `residual.ts` imports the engine, or if `residual.ts` exports anything beyond those two facts.
+
+**OWNER DECISION: the two facts the emission doesn't carry** (#3917). Options:
+- **A. Keep the two-fact residual in `residual.ts` until the engine emits them (built).** The import is in one
+  file, held there by `check:generated`, and deleted when #3917 lands.
+- B. Emit both now, in an engine PR to `main`, before this refresh merges. This keeps Q142 A literally, but adds an
+  engine PR and a second refresh to this lane.
+- C. Restate both in `@prism3/css` as literals, with the parity check holding them. This drops the import but
+  restates def data, which Q96 A rules out.
+
+**Recommendation: A**, with #3917 as the follow-up. The residual is two facts, named, and its size is enforced. B is
+the right end state, and it doesn't block the fields' elements.
+
+### What was checked, and how
+
+- **Byte identity.** Every generated file was saved before the merge. After the change, `button.css`,
+  `field-label.css`, `field-message.css`, `text-field.css`, `password-field.css` and `demo.html` are all `cmp`-equal
+  to it, and `check:generated` passes. No binding changed value, so the CSS didn't change.
+- `@prism3/css`: `check:raw-values`, `check:parity`, `test:browser`. `@prism3/web-components`: `check:generated`,
+  `check:parity`, `test:browser`. All pass.
+- **Mutations, each after a `wip:` commit, restored with `git reset --hard`:**
+
+  | Mutation | Fails by name |
+  |---|---|
+  | `fields.ts` imports `@prism3/engine/components/index` | `FAIL @prism3/css sources: fields.ts imports @prism3/engine/components/index; only residual.ts may (Q142 A)` |
+  | `residual.ts` gains a third export | `residual.ts exports hitTargetFloor, pendingReplacement, extra; the residual is … only` |
+  | The text field's hover stroke bound to `focus.ring.width` in the def | `text-field container/control.strokeWidth: binds border-width.hairline, focus.ring.width across its rows, not one token` |
+  | The spinner def loses `motion.enter-easing` | `spinner has no motion binding "motion.enter-easing" in the emission` |
+  | **The emitter alone** (`component-specs.ts`) writes the ring offset token as the ring's width; no def changed | `button.css is not what generate.ts writes from the emission` |
+  | The generator binds the button's corner to `radius.sm`, regenerated | `check-parity.ts`: `container radius binds radius.sm, the spec names radius.md` (24 bindings) |
+  | The field's focus edge drawn at the rest stroke width, regenerated | `check-parity-fields.ts`: `text-field size=medium state=focus-visible: container/control strokeWidth binds border-width.hairline, the spec names focus.ring.width` (12) |
+
+  The last row is the one that matters for Q142 A. A change made only to the emission reaches the CSS, so the
+  generator reads the emission and not the defs. **One known blind spot:** a generator that restated
+  `'radius.md'` as a literal, with the same value, still passes `check:generated`, because the output is the same.
+  The parity check's own `CONTRACT` and the browser checks catch a wrong value, not a restated right one.
+- The full `verify.ts` run, with `GITHUB_BASE_REF=poc/arm-1`, is in the PR body.
+
+### Surprises
+
+- **A redline key can grow under a consumer.** #3839's own note says so ("a row's key grows where they move"), but
+  a consumer that keyed rules by row didn't notice: its output stayed valid CSS, just repeated.
+- **Two facts the owner thought were covered weren't.** Q142 A was decided before Q-HT1 A bound the hit-target floors,
+  so the list the engine PR built from didn't include them.
+
+### Effort
+
+- **Wall clock:** about 17:35 to 18:45 UTC for the merge, the mapping, the change, the guard, the mutations, this
+  entry and the gate run (about 30 minutes of it).
+- **Conflicts:** none. `npm ci` was clean.
+- **Hand edits:** `generate.ts` (about 40 lines), `fields.ts` (about 50), `emission.ts` (+35), `residual.ts` (new,
+  34), the two parity checks (about 12 lines), three README sentences, this entry and the progress entry. No generated file changed.
+- **Errors hit:** 3, all from the update (above). The parity failure was missed at first: a quick run's `tail -2`
+  showed only the self-test lines, and the FAIL line above them was cut off. `verify.ts`'s table caught it. One mutation `sed` matched nothing the first time, because the
+  field's stroke tokens are built in a loop. It was redone on the loop.
+
+**Lesson for Q55.** The update was additive, a minor format bump and no version change, yet it broke the consumer
+three times. Two breaks were loud: a key the generator had no rule for, and a key the parity checks couldn't read.
+One was quiet: a row key that grew. The consumer was
+protected by being strict about unknown input and by checking its output byte for byte, not by the version numbers.
+
+### Review fixes (the CHANGES verdict on `90a500bc`)
+
+- **Base merge.** `poc/arm-1` moved to `2a08d9e7` (#3895, S5 thin) after this branched. It was merged in with a merge
+  commit. The only conflict was this journal, where both sides appended an entry; both are kept, S5 first, in the
+  order they started. `main` was not merged again, so #3841 (Button's motion) is still not in this refresh.
+- **The Q142 A guard read spellings, not paths.** `engineImports()` matched only `@prism3/engine…` and the one
+  relative spelling that climbs a single level to the engine, so `import '../../packages/engine/components/index'` passed `check:generated`, and `require(…)` was
+  never scanned. It now reads every specifier (`import … from`, `export … from`, a bare `import '…'`, `import(…)`,
+  `require(…)`), resolves each relative or absolute one against the package, and fails when it lands under
+  `packages/engine/` outside `out/`. Each probe below is a new `probe.ts` in the package, which the generator does not
+  import, so the guard and not a crash is what fails:
+
+  | Probe | `check:generated` |
+  |---|---|
+  | `import '../../packages/engine/components/index';` | `FAIL @prism3/css sources: probe.ts imports ../../packages/engine/components/index; only residual.ts may (Q142 A)` (passed before the fix) |
+  | `const _e = require('../engine/theme');` | `FAIL … probe.ts imports ../engine/theme; …` (passed before the fix) |
+  | `export { button } from './../engine/components/index';` | `FAIL … probe.ts imports ./../engine/components/index; …` |
+  | an absolute path to `packages/engine/theme` | `FAIL … probe.ts imports <path>/packages/engine/theme; …` |
+  | `await import('@prism3/engine/theme')` | `FAIL … probe.ts imports @prism3/engine/theme; …` |
+  | `import '../engine/out/components/specs.json';` (control) | OK: an emitted file is not the engine's code |
+  | `import '../../tools/agent-adherence/score-code';` (control) | OK: outside `packages/engine/` |
+
+  **Still not seen:** an engine import reached *through* another module. `check-browser*.ts` and
+  `check-raw-values.ts` reach `@prism3/engine/color` through `tools/agent-adherence/score-code.ts`. They are checks,
+  not the generator, so Q142 A does not cover them, and the guard reads direct specifiers only.
+- **`outline-width` now reads the focus ring's own `width`.** It is carried in the emission's `focusRing`. Before,
+  it followed the button's `ring-width`, which the emitter uses only as `strokeInset`. Both are `focus.ring.width`
+  today, so the bytes are the same. Rebinding the button's `ring-width` alone no longer moves the CSS, and rebinding the
+  focus ring's `width` does. This is the more correct source, because the outline the CSS draws is the ring.

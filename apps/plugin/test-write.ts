@@ -17,6 +17,10 @@
 import { buildFigmaColor, buildWritePlan, buildFloatWritePlan, deriveVariableRenames, isRefusal } from '@prism3/engine/figma';
 import { nbThemeFrom } from '@prism3/engine';
 import { applyWritePlan, applyFloatPlan, orphansOf, strandedCollections, beginMigration } from './src/write-figma';
+import { runApplyTheme, themePlans } from './src/apply-theme';
+import { FileShim } from './file-shim';
+import type { BrandInput } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { readFigmaVariables } from './src/read-figma';
 import { NB_MEASURED_JSON as nbMeasured } from '@prism3/engine/harness';
 
@@ -168,12 +172,10 @@ ok(orphansOf(['z', 'a'], []).join() === 'a,z', 'orphansOf: sorted, so two runs d
 const ghostShim = new VariablesShim();
 const ghostPal = ghostShim.createVariableCollection('core');
 const ghostCol = ghostShim.createVariableCollection('color');
-// The palette ghost is ROOTED (#1097) and the colour one is not, and the asymmetry is measured rather than
-// stylistic. `upsertCollection` narrows `core` to the SLICE the calling plan owns (`coreGroupOf`), because
-// three executors write into one collection now — so an un-rooted `palette/accent/550` is in no core group,
-// is filtered out of `byName`, and is invisible to the orphan report AND to the migration pass. That hole is
-// real and is **#1109**, not asserted here; what this arm is about is a stale leaf inside a slice the plan
-// DOES own, which is the drift a designer actually accumulates.
+// The palette ghost is ROOTED (#1097) and the colour one is not. `upsertCollection` narrows `core` to the
+// SLICE the calling plan owns, because three executors write into one collection now; what this arm is about
+// is a stale leaf inside a slice the plan DOES own, which is the drift a designer actually accumulates. The
+// un-rooted and unowned shapes are #1109's, and its arms are at the end of this file.
 ghostShim.createVariable(nbVar('core/palette/accent/550'), ghostPal);   // pre-rename palette generation
 ghostShim.createVariable('color/appearance/interactive/primary/text', ghostCol);  // flat leaf, now a group
 const ghostNames = [nbVar('core/palette/accent/550'), 'color/appearance/interactive/primary/text'];
@@ -365,6 +367,7 @@ ok(freshRes.colorCreated === ctrl.colorCreated && freshPass.outcomes.every((o) =
 // (ii-b) THE FAN-IN FILE — both historical names present. Neither may move: the bindings on each point at
 // a different variable, and promoting one would silently discard the other. The FILE is the disambiguator,
 // so with one source live (above) it migrates and with two it refuses — no authored preference either way.
+// The one exception is a group where exactly one source is a relocation of the target (#1142, below).
 const fanShim = seedSolo();
 const fanCol = fanShim.collections.find((c) => c.name === 'color')!;
 for (const g of fanIn) for (const r of g.slice(1)) fanShim.createVariable(r.from, fanCol);
@@ -372,14 +375,34 @@ for (const g of fanIn) for (const r of g.slice(1)) fanShim.createVariable(r.from
 const fanPass = await beginMigration(fanShim as any);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
 const fanRes = await applyWritePlan(plan, fanShim as any, fanPass);
+// #1142: A GROUP WITH EXACTLY ONE RELOCATION OF ITS TARGET MIGRATES THAT ONE. Written out rather than derived
+// from the leaf rule `planVariableRenames` applies, so this list is an oracle the rule can fail against. Each
+// target's other sources are an older leaf (`border/inverse`, `text/on-inverse`) or #1140's dedupe
+// (`border/inverse/default`); they stay, reported as `target-occupied`. Every other group keeps two spellings
+// of one role in two eras, so neither is the relocation and both stay `ambiguous-source`.
+const RELOCATION_WINS: Record<string, string> = {
+  'color/inverse/border/primary': 'color/border/inverse/primary',
+  'color/inverse/border/focus': 'color/border/inverse/focus',
+  'color/inverse/text/primary': 'color/text/on-inverse/primary',
+  'color/inverse/icon/primary': 'color/icon/on-inverse/primary',
+};
+const relocGroups = fanIn.filter((g) => Object.hasOwn(RELOCATION_WINS, g[0].to));
+const ambigGroups = fanIn.filter((g) => !Object.hasOwn(RELOCATION_WINS, g[0].to));
+ok(relocGroups.length === Object.keys(RELOCATION_WINS).length,
+  `#1142 all ${Object.keys(RELOCATION_WINS).length} relocation groups are fan-in groups of the shipped map (found ${relocGroups.length}: ${relocGroups.map((g) => g[0].to).join(', ') || 'none'})`);
 const ambiguous = fanPass.outcomes.filter((o) => o.status === 'ambiguous-source');
-ok(ambiguous.length === fanIn.flat().length,
-  `#1013 fan-in with BOTH sources live → ambiguous-source for every entry in the group (${ambiguous.length}/${fanIn.flat().length}), migrating neither`);
-ok(fanIn.every((g) => g.every((r) => fanShim.vars.some((v) => v.name === r.from))),
-  '#1013 and both sources are LEFT ALONE — a refused migration writes nothing, so the designer keeps whichever bindings they have');
-ok(fanPass.outcomes.filter((o) => o.status === 'migrated').length === soloCount - fanIn.length,
-  `#1013 the ${soloCount - fanIn.length} unambiguous entries migrate anyway — a refusal is per-group, not per-pass`);
-ok(fanRes.orphans.find((o) => o.name === 'color')!.names.length === fanIn.flat().length,
+ok(ambiguous.length === ambigGroups.flat().length,
+  `#1013 fan-in with BOTH sources live → ambiguous-source for every entry in a group with no single relocation (${ambiguous.length}/${ambigGroups.flat().length}), migrating neither`);
+const relocMoved = fanPass.outcomes.filter((o) => o.status === 'migrated' && Object.values(RELOCATION_WINS).includes(o.from));
+const relocOccupied = fanPass.outcomes.filter((o) => o.status === 'target-occupied');
+ok(relocMoved.length === relocGroups.length && relocMoved.every((o) => o.to === nbVar(Object.keys(RELOCATION_WINS).find((t) => RELOCATION_WINS[t] === o.from)!))
+    && relocOccupied.length === relocGroups.flat().length - relocGroups.length,
+  `#1142 fan-in with a single relocation → the relocation migrates (${relocMoved.map((o) => o.from).join(', ') || 'NONE'}) and its ${relocGroups.flat().length - relocGroups.length} co-claimants report target-occupied (got ${relocOccupied.length}: ${relocOccupied.map((o) => o.from).join(', ')})`);
+ok(fanIn.every((g) => g.every((r) => r.from === RELOCATION_WINS[r.to] || fanShim.vars.some((v) => v.name === r.from))),
+  '#1013 and every source that did not migrate is LEFT ALONE — a refused migration writes nothing, so the designer keeps whichever bindings they have');
+ok(fanPass.outcomes.filter((o) => o.status === 'migrated').length === soloCount - ambigGroups.length,
+  `#1013 the ${soloCount - ambigGroups.length} entries with one answer migrate anyway — a refusal is per-group, not per-pass`);
+ok(fanRes.orphans.find((o) => o.name === 'color')!.names.length === fanIn.flat().length - relocGroups.length,
   '#1013 and the refused sources fall through to the ORPHAN report, so nothing goes unmentioned in either direction');
 
 // (iii) THE COLLECTION RENAME — one write, every child id intact. Driven with a synthetic entry rather
@@ -820,6 +843,57 @@ ok(halfRes.orphans.find((o) => o.name === 'color')!.names.includes(nbVar('color/
     `#3050 strong: re-apply moves color/scrim/default's alias to black-alpha 80 / 80 / 90 / 90 (${JSON.stringify(after)})`);
   ok(!!idBefore && idBefore === idAfter && re.colorCreated === 0 && re.misses.length === 0,
     `#3050 the alias moves on the same variable: same id, nothing created, no misses (${idBefore} → ${idAfter}, created ${re.colorCreated})`);
+}
+
+// ---- #1109: a `core` variable outside the plan's owned slice is seen ----
+{
+  // (1) AN UN-ROOTED PALETTE NAME joins the palette slice by the name the #1097 rule carries it to. One is a
+  // name the plan writes (so it must MIGRATE, keeping its id), one is not (so the palette slice must report it).
+  const plannedTail = plan.palette[0].name.split('/').slice(2).join('/');          // `palette/<…>`, root and tier off
+  const shim1109 = new VariablesShim();
+  const core1109 = shim1109.createVariableCollection('core');
+  const unrootedLive = shim1109.createVariable(plannedTail, core1109);
+  shim1109.createVariable('palette/zzghost/1', core1109);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+  const pass1109 = await beginMigration(shim1109 as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+  const res1109 = await applyWritePlan(plan, shim1109 as any, pass1109);
+  const moved = pass1109.outcomes.find((o) => o.from === plannedTail);
+  ok(moved?.status === 'migrated' && moved.to === plan.palette[0].name && unrootedLive.name === plan.palette[0].name,
+    `#1109 an un-rooted ${plannedTail} in \`core\` migrates to ${plan.palette[0].name}, the same variable renamed (got ${moved ? `${moved.status} → ${moved.to}` : 'NO OUTCOME'}, variable now ${unrootedLive.name})`);
+  const palOrphans = res1109.orphans.find((o) => o.name === 'core/palette')?.names ?? [];
+  ok(palOrphans.includes('palette/zzghost/1'),
+    `#1109 an un-rooted palette name the plan does not write is reported in the core/palette orphans (got ${palOrphans.join(', ') || 'none'})`);
+
+  // (2) A GROUP NO SLICE OWNS, through Apply Theme itself: the three \`core\` writers ran, and the leftover is read
+  // once. Applied once first, so \`core\` is Prism3's own collection when the ghosts are seeded (the pre-flight
+  // refuses a same-named collection someone else made).
+  const brand = (exampleBrands as Record<string, BrandInput>).harbor;
+  const croot = themePlans(brand).colorPlan.palette[0].name.split('/')[0];
+  const file = new FileShim();
+  file.faces = [...new Map(themePlans(brand).textPlan.map((r) => [`${r.fontFamilyPrimary}|${r.fontStyle}`, { family: r.fontFamilyPrimary, style: r.fontStyle }])).values()];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim is the host
+  const clean = await runApplyTheme(brand, file as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the guarded result's shape is the subject
+  const cleanUc = clean.guarded.ok ? (clean.guarded.result as any).uc : undefined;
+  ok(Array.isArray(cleanUc) && cleanUc.length === 0,
+    `#1109 a file Apply Theme just wrote reports zero unowned core variables, present and empty (got ${JSON.stringify(cleanUc)})`);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural
+  const coreCol = (file as any).collections.find((c: { name: string }) => c.name === 'core');
+  const ghosts = [`${croot}/core/zzlegacy/1`, 'zzmisc/1'];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural
+  for (const g of ghosts) (file as any).createVariable(g, coreCol, 'FLOAT');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural
+  (file as any).createVariable('palette/zzghost/2', coreCol, 'COLOR');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim is the host
+  const again = await runApplyTheme(brand, file as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the guarded result's shape is the subject
+  const uc = again.guarded.ok ? (again.guarded.result as any).uc : undefined;
+  ok(JSON.stringify(uc) === JSON.stringify([...ghosts].sort()),
+    `#1109 Apply Theme reports the core variables in a group no slice owns — a hand-made ${ghosts[0]} and an un-rooted ${ghosts[1]} no rule routes into a slice — and not the un-rooted palette name its slice owns (got ${JSON.stringify(uc)})`);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural
+  ok(ghosts.every((g) => (file as any).vars.some((v: { name: string }) => v.name === g)),
+    '#1109 and the unowned variables are left in place — reported, never deleted');
 }
 
 console.log(`\nplugin write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);

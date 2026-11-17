@@ -15,7 +15,7 @@
  *
  * Compiled under `tsconfig.main.json` (plugin-typings, no `dom`).
  */
-import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration } from './write-figma';
+import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration, unownedCore } from './write-figma';
 import { applyStylesPlan } from './write-styles';
 import { applyGridStylePlan } from './write-grid-styles';
 import { applyTextStylePlan } from './write-text-styles';
@@ -26,7 +26,7 @@ import { conflictKey, resolveCollisions, type CollisionChoices, type ChoiceTally
 /** How many times one apply resolves the person's choices before the guarded pre-flight decides (#1909). Each pass needs
  *  a choice for a collision the last pass made, which only a renamed name already taken does; this bounds it. */
 const RESOLVE_PASSES = 8;
-import { preloadFonts } from './preload-fonts';
+import { preloadFonts, availableStylesByFamily, resolveCutPlan } from './preload-fonts';
 import { persistInput, restoreInput } from './persist-figma';
 import { emissionOf, stampEmission } from './theme-emission';
 import { fontPreloadApiOf, preflightApiOf, textApiOf } from './theme-ports';
@@ -105,6 +105,10 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
   // with harbor's style name, a pair in neither plan), so this reads the file's styles as well as the
   // plan. It never throws: a typeface this Figma genuinely lacks is reported, not fatal.
   const pf = await preloadFonts(textPlan, fontPreloadApiOf(host));
+  // THE CUT VARIABLES IN EACH FAMILY'S OWN SPELLING (#1728), resolved before the variable stage writes them, so no
+  // stage writes a cut the family lacks under that name (Playfair's `SemiBold Italic`, not the engine's `Semi Bold
+  // Italic`). Only the values the variable stage writes change: the pre-flight and the print read the plans as built.
+  const cutPlan = resolveCutPlan(fontPlan, textPlan, await availableStylesByFamily(fontPreloadApiOf(host)));
   // THE BRAND THIS APPLY REPLACES (#2695), read before the write persists the new one, so the report can say when the
   // field style moved (`field-style-note.ts`). An unreadable store reads as none, as every other restore here does.
   let before: BrandInput | null = null;
@@ -167,7 +171,7 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       // TYPOGRAPHY (#237): core/font + type-sets variables first (bound targets must exist), then Text
       // Styles.
       await pace?.stage('type-vars', 4);
-      const tv = await applyVarCollectionPlan(fontPlan, host.variables, mig, pace?.tick);
+      const tv = await applyVarCollectionPlan(cutPlan.plans, host.variables, mig, pace?.tick);
       // The Text Style port needs figma's style/font surface + figma.variables' getter (`theme-ports.ts`).
       await pace?.stage('text-styles', 5);
       const tr = await renameTextStylesForPlan(textPlan, textApiOf(host));   // #1040, as for the styles above
@@ -176,12 +180,19 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       // executor. Independent of every other axis: nothing aliases into or out of `motion`.
       await pace?.stage('motion', 6);
       const mv = await applyVarCollectionPlan(motionPlan, host.variables, mig, pace?.tick);
+      // THE `core` VARIABLES NO SLICE OWNS (#1109), read after the three `core` writers ran: each reports its own slice,
+      // so a variable in a group none of them owns was in no report. Only here are all three slices in scope.
+      const uc = await unownedCore(host.variables, names.core, [
+        colorPlan.palette.map((r) => r.name),
+        ...floatPlan.filter((p) => p.name === names.core).map((p) => p.create.map((r) => r.name)),
+        ...fontPlan.filter((p) => p.name === names.core).map((p) => p.rows.map((r) => r.name)),
+      ], mig);
       // Persist the exact knobs alongside the variables (#131) — so re-opening this file rehydrates
       // the UI to THIS brand, not the default. Only after a real materialisation (inside the try).
       persistInput(host.root, input);
       // #3422 Q44.1 A: and the print of what was written, so the recount can tell an engine update apart (`theme-emission.ts`).
       stampEmission(host.root, emissionOf(plans));
-      return { mig, r, f, s, gs, tv, ts, mv, styleRenames: [...sr, ...tr] };
+      return { mig, r, f, s, gs, tv, ts, mv, uc, styleRenames: [...sr, ...tr] };
     },
   );
   return { plans, pf, guarded, before, chose, exec, names, applied };

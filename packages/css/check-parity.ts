@@ -116,6 +116,9 @@ const COLOR_PROP: Record<string, string> = { fill: 'background-color', stroke: '
 const SIZE_PROP: Record<string, string> = {
   paddingTop: 'padding-top', paddingBottom: 'padding-bottom', paddingLeft: 'padding-left', paddingRight: 'padding-right',
   gap: 'column-gap', width: 'width', minWidth: 'min-width',
+  // #3839: the corner and the stroke are redlines too. One corner and one side stand for all four: the generator writes
+  // the shorthand from one token, and a per-corner key would be a new name, unmapped here, so it fails as a gap.
+  radius: 'border-top-left-radius', strokeWidth: 'border-top-width',
 };
 
 export const buildProbes = (markup: Markup): { probes: Probe[]; gaps: string[] } => {
@@ -157,6 +160,7 @@ export const buildProbes = (markup: Markup): { probes: Probe[]; gaps: string[] }
     const checks: Probe['checks'] = [];
     for (const p of row.parts) for (const [k, val] of Object.entries<any>(p.values)) {
       const prop = k === 'height' ? (p.part === 'container' ? 'min-height' : 'height') : SIZE_PROP[k];
+      if (!prop) { gaps.push(`redline ${p.part}.${k} has no CSS property in this check`); continue; }
       const want = val.token ?? `(px ${val.px})`;
       checks.push({ part: p.part, prop, want, what: `${p.part} ${k}` });
     }

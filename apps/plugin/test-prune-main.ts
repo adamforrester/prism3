@@ -22,7 +22,10 @@
  *   · the `return;` after `PRUNE_COPY.noVersion(…)` dropped (a failed save still removes) → `main/no version, nothing removed` (#3709 S2);
  *   · the hand-edit pass's `stale()` back to its four named writes (prune left out) → `main/hand pass stale under prune` (#3737).
  *   · a pass a write made stale not asked for again when the write ends → `main/hand pass after the write` (#3804).
+ *   · Apply Theme's orphan-style note dropped from its summary → `main/apply reports orphan styles` (#1737).
+ *   · `...exec.text` dropped from Apply Theme's planned style names (a Rename reads as an orphan) → `main/apply renamed style, no orphan` (#1737).
  *   · prune's furniture rule back to "set alive" only (the parent not compared) → `main/moved set's furniture` (#2485).
+ *   · the `core/other` entry dropped from Apply Theme's `allOrphans` → `main/apply reports core/other` (#1109).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -103,6 +106,27 @@ const send = async (msg: unknown, kinds: readonly string[], ms = 120_000): Promi
 // The brand, applied by main.ts itself.
 const applied = await send({ type: 'apply-theme', input }, ['apply-result']);
 if (applied?.type !== 'apply-result' || !applied.ok) throw new Error(`premise: Apply Theme did not run clean (${JSON.stringify(applied)?.slice(0, 400)})`);
+
+// #1109 — APPLY REPORTS THE CORE VARIABLES NO SLICE OWNS, ON ITS SUMMARY. `test-write.ts` holds `uc` on
+// `runApplyTheme`'s result; this holds the line a designer reads, through main.ts. Planted in `core`: a hand-made
+// `<root>/core/zzlegacy/1` and an un-rooted `zzmisc/1`, neither in any slice. Removed after, so the arms below start
+// from the file Apply wrote. The label `core/other` is DRAFT (the owner's).
+// Mutation: the `core/other` entry dropped from main.ts's `allOrphans` → `main/apply reports core/other`.
+{
+  const croot = themePlans(input).colorPlan.palette[0].name.split('/')[0];
+  const coreCol = file.collections.find((c: any) => c.name === 'core');
+  if (!coreCol) throw new Error('premise: Apply Theme wrote no `core` collection');
+  const ghosts = [`${croot}/core/zzlegacy/1`, 'zzmisc/1'].map((n) => file.createVariable(n, coreCol, 'FLOAT'));
+  const again = await send({ type: 'apply-theme', input }, ['apply-result']);
+  const NOTE = '⚠ 2 orphaned variables not in the plan (core/other: 2) — likely renames; nothing was deleted';
+  const lines: string[] = again?.lines ?? [];
+  ok(!(applied.lines as string[]).some((l) => l.includes('orphaned variables')),
+    `main/apply clean file, no core/other: the first apply names no orphaned variable (${JSON.stringify((applied.lines as string[]).filter((l) => l.includes('orphaned')))})`);
+  ok(again?.type === 'apply-result' && again.ok === true && lines.includes(NOTE) && String(again.summary).includes(NOTE)
+    && ghosts.every((v: any) => !v.removed),
+    `main/apply reports core/other: a re-apply's summary counts the two core variables no slice owns, and removes neither (${JSON.stringify(lines.filter((l) => l.includes('orphaned')))})`);
+  for (const v of ghosts) v.remove();
+}
 
 // Three stale variables in the brand's own namespace, in the collection its first color variable lives in.
 const anchor = file.vars.find((v: any) => v.resolvedType === 'COLOR' && String(v.name).includes('/'));
@@ -268,6 +292,59 @@ for (let i = 0; i < 5000 && !posted.slice(ended).some((m) => m?.type === 'hand-e
 const after = posted.slice(ended).filter((m) => m?.type === 'hand-edits');
 ok(ended >= 0 && after.some((m) => m.done === true),
   `main/hand pass after the write: once the prune ends, the pass it made stale runs to its end unasked (prune-result at ${ended}; posted after it ${JSON.stringify(after)})`);
+
+// #1737 — APPLY REPORTS THE STYLES THIS BRAND DOES NOT PLAN. An earlier brand's styles stay where they were (a new
+// brand's apply never touches a style it does not plan), and the verdict said nothing about them, while it reports the
+// same drift among variables. Planted here: two text styles and one effect style inside groups this brand's plan emits
+// (what an earlier brand leaves), and one hand-made text style outside every group (a designer's, never counted, the
+// namespace prune keeps to). Re-applied through main.ts; the note is the owner's DRAFT copy, typed here.
+// Mutation: main.ts's style-orphan note dropped from the summary → `main/apply reports orphan styles`.
+{
+  const plans = themePlans(input);
+  const groupOf = (names: readonly string[]): string => (names.find((n) => n.includes('/')) ?? '').split('/')[0];
+  const textGroup = groupOf(plans.textPlan.map((r) => r.name));
+  const effectGroup = groupOf(plans.stylesPlan.effects.map((r) => r.name));
+  if (!textGroup || !effectGroup) throw new Error(`premise: the plan has no grouped text or effect style (${textGroup}, ${effectGroup})`);
+  const plant = (make: () => any, name: string) => { const st = make(); st.name = name; return st; };
+  const fs = file as unknown as { createTextStyle: () => any; createEffectStyle: () => any };
+  const planted = [
+    plant(() => fs.createTextStyle(), `${textGroup}/zz-earlier/emphasis`),
+    plant(() => fs.createTextStyle(), `${textGroup}/zz-earlier/subtle`),
+    plant(() => fs.createEffectStyle(), `${effectGroup}/zz-earlier`),
+    plant(() => fs.createTextStyle(), 'Marketing/Hero'),
+  ];
+  const again = await send({ type: 'apply-theme', input }, ['apply-result']);
+  const NOTE = '⚠ 3 orphaned styles not in the plan (text: 2, effect: 1) — likely from an earlier brand; nothing was deleted';
+  const lines: string[] = again?.lines ?? [];
+  ok(applied?.lines?.length > 0 && !(applied.lines as string[]).some((l) => l.includes('orphaned style')),
+    `main/apply clean file, no orphan styles: the first apply, into a file holding only what it wrote, names no style (${JSON.stringify((applied?.lines ?? []).filter((l: string) => l.includes('style')))})`);
+  ok(again?.type === 'apply-result' && again.ok === true && String(again.summary).includes(NOTE) && lines.includes(NOTE)
+    && planted.every((st) => !st.removed),
+    `main/apply reports orphan styles: a re-apply names the three styles an earlier brand left in this brand's groups, not the hand-made one, and removes none (${JSON.stringify(lines.filter((l) => /style/.test(l) && l.startsWith('⚠')))}; removed ${planted.filter((st) => st.removed).length})`);
+}
+
+// #1737 — A RENAMED STYLE IS NOT AN ORPHAN. A collision answered Rename (#1909) writes Prism3's style under
+// `<name> (Prism3)`, a name no plan holds, inside a group the plan emits and marked as Prism3's: exactly what the
+// orphan rule counts, unless the names the collision choice wrote count as planned. Set up here: the arm above's
+// plants removed; this brand's own first text style given a designer's description (this shim models no style mark,
+// so the description is the whole ownership evidence: someone else's, a collision); re-applied with that collision answered Rename.
+// Mutation: `...exec.text` dropped from main.ts's `plannedStyleNames` → `main/apply renamed style, no orphan`.
+{
+  for (const st of [...file.styles.text, ...file.styles.effect]) if (/zz-earlier|^Marketing\/Hero$/.test(String(st.name))) st.remove();
+  const name = themePlans(input).textPlan.map((r) => r.name).find((n) => n.includes('/')) ?? '';
+  const theirs = file.styles.text.find((st: any) => st.name === name);
+  if (!theirs) throw new Error(`premise: the applied file holds no text style "${name}"`);
+  theirs.description = 'Our hero body, hand-made';
+  const refused = await send({ type: 'apply-theme', input }, ['apply-result']);
+  const key = `text style:${name}`;
+  ok(refused?.ok === false && JSON.stringify(refused).includes(name),
+    `main/apply renamed style, premise: the hand-described "${name}" is a collision, and the apply is refused (${refused?.headline})`);
+  const again = await send({ type: 'apply-theme', input, collisions: { [key]: 'rename' } }, ['apply-result']);
+  const lines: string[] = again?.lines ?? [];
+  const renamed = file.styles.text.find((st: any) => st.name === `${name} (Prism3)`);
+  ok(again?.ok === true && !!renamed && !theirs.removed && !lines.some((l) => l.includes('orphaned style')) && !String(again.summary).includes('orphaned style'),
+    `main/apply renamed style, no orphan: Rename writes "${name} (Prism3)" beside the designer's, and the verdict names no orphan style (${JSON.stringify(lines.filter((l) => /style/.test(l) && l.startsWith('⚠')))}; renamed ${!!renamed})`);
+}
 
 console.log = log;
 if (failed) { console.error(`\n${failed} check(s) failed`); process.exit(1); }
