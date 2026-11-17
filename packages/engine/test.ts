@@ -34135,6 +34135,29 @@ arm: {
     `rename-map: all ${colorContractRows.length} shipped contract rows are in \`color\` and NONE is keyed on a spelling a materialization rule would also rewrite — so no live name is claimed by both, and the fold has one answer${ruleReachable.length ? ` — REACHABLE: ${ruleReachable.slice(0, 3).map((r) => r.from).join(', ')}` : ''}`);
   ok(comp('color', [], [v('color/a', 'color/b', 'color')]) === `${CROOT}/color/a→${CROOT}/color/b`,
     'rename-map: a contract row whose source is not live still comes through — it has to, or `source-absent` would stop being reported and "checked, nothing to do" would silently become "never checked"');
+  // #1084 — A COMPOSED ROW'S `since` IS A CONTRACT_VERSION OR NOTHING. `VarRename.since` is documented as
+  // the `CONTRACT_VERSION` that retired `from`; a materialization rule's `since` is an `ENGINE_VERSION`. A
+  // row only a rule produced was never retired by the contract, so it carries '' rather than the rule's
+  // engine version. The oracle is the set of `since` values `DEPRECATIONS` holds, the contract's own record,
+  // which nothing in `composeVariableRenames` derives from.
+  {
+    const contractSince = new Set(DEPRECATIONS.map((d) => d.since));
+    const ruleOnly = composeVariableRenames('color', ['color/appearance/background/primary'], [], MATERIALIZATION_RENAMES, CROOT);
+    ok(ruleOnly.length === 1 && ruleOnly[0].since === '',
+      `#1084 rename-map: a row only a materialization rule produced carries since '' — got ${ruleOnly.map((r) => `'${r.since}'`).join(', ') || 'NO ROW'}; a rule's since is an ENGINE_VERSION, and this field holds a CONTRACT_VERSION`);
+    const withRow = composeVariableRenames('color', ['color/appearance/old'],
+      [{ collection: 'color', from: 'color/old', to: 'color/new', since: '8.0.0' }], MATERIALIZATION_RENAMES, CROOT);
+    ok(withRow.length === 1 && withRow[0].since === '8.0.0',
+      `#1084 rename-map: a row a contract row reached keeps that row's CONTRACT_VERSION, even when rules carried the name there first — got ${withRow.map((r) => `'${r.since}'`).join(', ') || 'NO ROW'}`);
+    // Across the shipped map and every era's spelling of every source it names: each composed `since` is
+    // '' or a version DEPRECATIONS records.
+    const shippedColor = renameMap().variables.filter((r) => r.collection === 'color');
+    const eras = shippedColor.flatMap((r) => [r.from, `${CROOT}/${r.from}`, r.from.replace(/^color\//, 'color/appearance/')]);
+    const stray = composeVariableRenames('color', eras, shippedColor, MATERIALIZATION_RENAMES, CROOT)
+      .filter((r) => r.since !== '' && !contractSince.has(r.since));
+    ok(stray.length === 0,
+      `#1084 rename-map: every composed row over the shipped map carries '' or a CONTRACT_VERSION from DEPRECATIONS — ${stray.length} do not${stray.length ? `: ${stray.slice(0, 3).map((r) => `${r.from}@${r.since}`).join(', ')}` : ''}`);
+  }
 }
 
 // ---- #1009: the vertical rule — the half that is claimed, and the half that is NOT a fix -----------
