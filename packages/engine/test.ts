@@ -6019,6 +6019,15 @@ arm: {
   try { brandTheme({ id: 'x', primary: { l: 0.5, c: 0.2, h: 20 }, neutral: { hue: 20, chroma: 0.01 }, actionPalette: 'primary', accentPalette: 'primary' } as unknown as BrandInput); }
   catch { threw = true; }
   ok(threw, 'accent: accentPalette === actionPalette is rejected');
+  // #3845 — the guard reads the palette action RESOLVES to, so `roleColors.action` (the schema's alias of
+  // `actionPalette`) refuses the same identical column, and frees the column it no longer duplicates.
+  const g3845 = { id: 'g3845', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 },
+    brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1, h: 200 } }] };
+  const throws3845 = (extra: object): boolean => { try { brandTheme({ ...g3845, ...extra } as unknown as BrandInput); return false; } catch { return true; } };
+  ok(throws3845({ actionPalette: 'accent', accentPalette: 'accent' }) && throws3845({ roleColors: { action: 'accent' }, accentPalette: 'accent' }),
+    '#3845: accentPalette equal to the resolved action palette is rejected under both spellings (actionPalette, roleColors.action)');
+  ok(!throws3845({ actionPalette: 'accent', accentPalette: 'primary' }) && !throws3845({ roleColors: { action: 'accent' }, accentPalette: 'primary' }),
+    '#3845: accentPalette primary is allowed once action resolves to accent, under both spellings');
 }
 
 // ------------------------------------- the iconContrast DEFAULT is pinned, not merely documented
@@ -42396,6 +42405,37 @@ arm: {
   const pPlain = (shim.styles.text as any[]).filter((x) => !x.name.endsWith('-link') && ('textDecorationThickness' in x || 'textDecorationOffset' in x));
   ok(pasted.skipped.length === 0 && pLinks.length === 18 && pOff.length === 0 && pPlain.length === 0,
     `#2942 underline, paste path: the reference brand's 18 pasted -link styles read PERCENT 5 / 25, and no plain style has either field (${pLinks.length} links; ${pOff.length} off; ${pPlain.length} plain touched)`);
+}
+
+// ---- #3408 Q146 A: BUTTON'S STATE TRANSITION AND PRESS BIND MOTION TOKENS ----
+//
+// The brief's ~100–150ms state change and the 0.98 press were prose (Q-MD4 A), so nothing could read or gate them. The
+// three Button defs now bind them in `tokens`. EXPECTED is typed here: the five bindings, and prism3-motion R6's rule
+// that a control's state change takes `instant` or `fast` (a literal set, not read from the skill or the ramp). ACTUAL
+// is each def's own `tokens`, and every bound path must resolve in every committed brand's emitted tree.
+{
+  const WANT: Record<string, string> = {
+    'motion.state': 'motion.duration.fast', 'motion.state-easing': 'motion.easing-role.default',
+    'motion.state-reduced': 'motion.duration-reduced.fast',
+    'motion.press': 'motion.duration.fast', 'motion.press-easing': 'motion.easing-role.default',
+  };
+  const R6 = new Set(['motion.duration.instant', 'motion.duration.fast']);
+  const trees = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f) && !f.includes('.base.'))
+    .map((f) => ({ f, t: JSON.parse(readFileSync(resolve(HERE, 'out', f), 'utf8')) }));
+  for (const id of ['button', 'button-destructive', 'button-neutral']) {
+    const tok = componentDefs.find((d) => d.id === id)?.tokens ?? {};
+    const got = Object.fromEntries(Object.entries(tok).filter(([k]) => k.startsWith('motion.')));
+    ok(JSON.stringify(got) === JSON.stringify(WANT), `#3408 Q146 A ${id}: binds the state transition and the press to motion tokens (${JSON.stringify(got)})`);
+    const slow = ['motion.state', 'motion.press'].filter((k) => !R6.has(tok[k]));
+    ok(slow.length === 0, `#3408 Q146 A ${id}: the state change and the press are R6-quick, instant or fast (${slow.map((k) => `${k} → ${tok[k]}`).join(', ') || 'both'})`);
+    ok(tok['motion.state-reduced'] === tok['motion.state']?.replace('motion.duration.', 'motion.duration-reduced.'),
+      `#3408 Q146 A ${id}: the reduced state change is the reduced twin of its duration (${tok['motion.state-reduced']} for ${tok['motion.state']})`);
+    const unresolved = trees.flatMap(({ f, t }) => {
+      const root = Object.keys(t)[0];
+      return Object.values(got).filter((ref) => ref.split('.').reduce((n: any, k) => n?.[k], t[root])?.$value === undefined).map((ref) => `${ref} in ${f}`);
+    });
+    ok(trees.length >= 4 && unresolved.length === 0, `#3408 Q146 A ${id}: every motion binding resolves in all ${trees.length} brands${unresolved.length ? ` — not: ${unresolved.slice(0, 3).join('; ')}` : ''}`);
+  }
 }
 
 // ---- #3346 (owner Q1 revised A, E1 A, E3 A; 2026-11-03): THE SELECTION MARK, `interactive.<c>.indicator.*` ----

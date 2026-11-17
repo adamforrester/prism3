@@ -23,7 +23,9 @@ import { NB_MEASURED_JSON as nbMeasured } from '@prism3/engine/harness';
 const codeUnitOrder = (x: string, y: string): number => (x < y ? -1 : x > y ? 1 : 0);
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -505,5 +507,5 @@ ok(stopsOf(runForeign).length > 0 && stopsOf(runForeign).every((n) => n.startsWi
   }
 }
 
-console.log(`\nplugin read-back: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
+console.log(`\nplugin read-back: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'} — ${executed} assertions executed`);
 if (failed) process.exit(1);
