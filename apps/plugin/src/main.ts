@@ -31,8 +31,8 @@ import { createRunGuard, guardFor, writes, busyMessage } from './run-guard';
 import type { WriteCmd } from './run-guard';
 import { strandedCollections, ownedModeIds } from './write-figma';
 import { classifyFile, libraryFileOf, outcomeOf, probeFile, type FileKindApi } from './file-kind';
-import { computePrunePlan, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary, emptyPruneResult, prunePreviewHashOf, pruneConfirmRefusal, PRUNE_COPY } from './prune-figma';
-import type { PruneInput, PruneApi } from './prune-figma';
+import { computePrunePlan, orphanStyles, styleOrphanNote, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary, emptyPruneResult, prunePreviewHashOf, pruneConfirmRefusal, PRUNE_COPY } from './prune-figma';
+import type { PruneInput, PruneApi, FileStyles } from './prune-figma';
 import { isRefusal, rootOf, buildFigmaColor, buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan, verifyReadback } from '@prism3/engine/figma';
 import { conflictSummary } from './preflight';
 import { conflictKey, choiceNote, isChoices, type CollisionChoices } from './collision-choice';
@@ -369,6 +369,15 @@ const themePace = (sink: ActionSink): ThemePace => {
 /** #3170 Q3170.4 A: the panel's "Stop after <set>" (`update-stop`), read by its running update at each set boundary. */
 let updateStopAsked = false;
 
+/** Every local style in the file, per kind, as plain name + description (#1577): what Prune's style arm and Apply
+ *  Theme's orphan-style note (#1737) both read, so the two read the same snapshot. */
+const localStyles = async (): Promise<FileStyles> => ({
+  text: (await figma.getLocalTextStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
+  effect: (await figma.getLocalEffectStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
+  paint: (await figma.getLocalPaintStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
+  grid: (await figma.getLocalGridStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
+});
+
 /**
  * Materialise a brand into `figma.variables` (#108) — the theme now comes LIVE from the shared UI's
  * knobs (a `BrandInput`), not a bundled fixture. Same pure core, same executor: only the source of
@@ -436,6 +445,20 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
     const orphanNote = orphanCount
       ? `⚠ ${orphanCount} orphaned variables not in the plan (${allOrphans.map((o) => `${o.name}: ${o.names.length}`).join(', ')}) — likely renames; nothing was deleted`
       : '';
+    // ORPHAN STYLES (#1737) — the same drift among styles. A style the plan does not write is never touched, so an earlier
+    // brand's `body/md/emphasis` stays in the picker. Counted with Prune's own rule (`orphanStyles`: inside a group the
+    // plan emits, or carrying the engine's description), so a designer's hand-made group is not named. Planned names are
+    // the plans as built AND as a collision choice wrote them (#1909): neither a skipped collision nor a renamed style is
+    // an orphan here, though Prune, passing the plans only, still offers a renamed one (#3860).
+    // Reported, never deleted: Prune is the delete path.
+    const plannedStyleNames = {
+      text: [...plans.textPlan, ...exec.text].map((x) => x.name),
+      effect: [...plans.stylesPlan.effects, ...exec.styles.effects].map((x) => x.name),
+      paint: [...plans.stylesPlan.paints, ...exec.styles.paints].map((x) => x.name),
+      grid: [...plans.gridPlan, ...exec.grid].map((x) => x.name),
+    };
+    const orphanStyleGroups = orphanStyles(await localStyles(), plannedStyleNames);
+    const orphanStylesNote = styleOrphanNote(orphanStyleGroups);
     // STRANDED COLLECTIONS (#1152) — the level above the orphan report, and the one no executor can
     // reach. `allOrphans` is assembled FROM the executors, so it can only describe collections a plan
     // already owns; a collection nothing plans is never upserted, never indexed, never counted, and
@@ -509,7 +532,7 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
       // #2412 (Q293 A): the one deletion Apply makes, so it is always said (wording: Q302).
       motionReplacedItem(mv.replaced.length),
       `${r.bound + f.bound + tv.bound + mv.bound + ts.bound} bindings`, misses ? `${misses} misses` : '',
-      ...renameNotes, orphanNote, strandedNote, resolvedNote, skippedNote, gridSkippedNote(gs.skipped), fontNote, refusedNote,
+      ...renameNotes, orphanNote, orphanStylesNote, strandedNote, resolvedNote, skippedNote, gridSkippedNote(gs.skipped), fontNote, refusedNote,
       // #1909: what the person chose for the collisions this apply met, when it met any (copy DRAFT, `choiceNote`).
       chose ? choiceNote(chose) ?? '' : '',
       // #2888: the search field's own edge, the same way. Before the field style line, which ends the list.
@@ -540,7 +563,7 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
           motion: { total: motionTotal, created: motionCreated, replaced: mv.replaced },
           textStyles: { total: ts.total, created: ts.created }, bindings: r.bound + f.bound + tv.bound + mv.bound + ts.bound,
         },
-        orphans: allOrphans, stranded,
+        orphans: allOrphans, orphanStyles: orphanStyleGroups, stranded,
         renames: { migrated, refused: migRefused, mapRefusals: mig.refusals },
         textStylesSkipped: ts.skipped, fontsUnavailable: pf.unavailable, resolvedStyles: ts.resolvedStyles,
       },
@@ -653,12 +676,7 @@ const prune = async (input: BrandInput, confirm: boolean, previewHash: string | 
       // `description` as well as `name` (#1577): the engine writes one on every style it emits, so it is
       // what recognizes a style a designer RENAMED out of the plan's group. Reduced to plain data here
       // rather than passed as live nodes, so `computePrunePlan` stays pure over a snapshot.
-      styles: {
-        text: (await figma.getLocalTextStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
-        effect: (await figma.getLocalEffectStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
-        paint: (await figma.getLocalPaintStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
-        grid: (await figma.getLocalGridStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
-      },
+      styles: await localStyles(),
       plannedVariables,
       plannedCollections,
       plannedStyles,
