@@ -711,7 +711,13 @@ export const ENGINE_VERSION = '0.238.0';
  * default, not a value to bind. No `DEPRECATIONS` entry, the 14.0.0 precedent: there is no one path to point at. The
  * Figma half of the decision (#2423, the primitives as number variables) moves no DTCG name and needs no further bump.
  */
-export const CONTRACT_VERSION = '15.0.0';
+/**
+ * 15.1.0 (owner Q-HT1 A on #3408, 2026-11-16): MINOR. `space.550` (44px, 5.5× the 8px base) joins the guaranteed
+ * surface, beside the half steps `space.150` and `space.250`: the enhanced target size, the code-side hit-target floor a
+ * medium or large Button binds (`size.<size>.hit-target`, owner Q141 revised). One added path; an added path cannot
+ * break a reference. Nothing is removed or retyped. It is a step of the scale, not of the density ladder (`scale.ts`).
+ */
+export const CONTRACT_VERSION = '15.1.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
