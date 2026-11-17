@@ -2992,6 +2992,30 @@ section('replace — a child whose type changed is the one node replaced, and th
   ok(!Object.keys(defs).some((k) => k.startsWith('↳ swap leading icon')), `replace/property removed: the swap property is gone (${Object.keys(defs).filter((k) => !k.includes('=')).join(', ')})`);
 }
 
+{
+  // #2673, A LAYER THE PLAN REPLACES FOR A TYPE CHANGE: a hand edit on it would go with the old node. The dry run reads it
+  // as lost, and under Keep the member is skipped whole and named; the other 44 are replaced as above. Expected values
+  // typed here. Mutation: `rebuilt` not seeded from the replacements → `replace/hand-edited lost`, `/kept`.
+  const w = await world(TAG);
+  const NAME = 'type=select, selection=unselected, size=medium, state=rest';
+  const lv = (): Node => childNamed(childNamed(membersOf(w.set()).find((m) => m.name === NAME)!, 'content'), 'leadingVisual');
+  const id = String(lv().id);
+  lv().opacity = 0.5;
+  const next = w.plans.map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    const x = planChild(planChild(q.root, 'content'), 'leadingVisual') as unknown as Record<string, unknown>;
+    x.type = 'FRAME';
+    for (const k of ['swapTarget', 'propertyRef', 'descendantFills']) delete x[k];
+    return q;
+  });
+  const { pre, res } = await confirm(w, [{ def: TAG, plans: next }]);
+  const hand = pre.sets[0].handEdits.find((h) => h.member === NAME);
+  ok(hand?.path === 'content/leadingVisual' && hand.conflict === true && hand.lost === true, `replace/hand-edited lost: the dry run reads the edit on the replaced layer as lost (${JSON.stringify(hand)})`);
+  const o = res.outcomes[0];
+  ok(o.skipped.some((k) => k.member === NAME && k.reason === 'the update rebuilds a layer edited by hand (content/leadingVisual)') && String(lv().id) === id && lv().type === 'INSTANCE' && lv().opacity === 0.5 && o.updated.length === 44,
+    `replace/hand-edited kept: the member is skipped, and its leading icon keeps its id, its type and the edit (${JSON.stringify(o.skipped)}; ${String(lv().id)} ${String(lv().type)} ${String(lv().opacity)}; ${o.updated.length} updated)`);
+}
+
 /* ── property ────────────────────────────────────────────────────────────────────────────────────────── */
 section('property — a default the plan changed is edited in place, keeping the property');
 {
