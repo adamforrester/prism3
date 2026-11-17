@@ -17,11 +17,14 @@ copied file by file over themselves.
 **Not in scope.** During `regenerate()` itself, which plain `regen` runs too, each step rewrites its files with
 `writeFileSync`, so a build can still read a half-written file. Filed as #3914.
 
-**Measured.** `test.ts` gains four #2029 arms. Three run `restoreTree` on a fixture (rewrite, same-bytes rewrite,
-added file, added directory, deleted file) and check the tree is byte-identical, the timestamps are restored, and the
-inodes of the root, a kept directory and an unchanged file are kept. One runs a real `regen --check` and checks that
-`out/` and `out/prism3.tokens.json` keep their inodes. A deleted and recreated entry gets a new inode, so this is
+**Measured.** `test.ts` gains five #2029 arms. Four run `restoreTree` on a fixture (rewrite, same-bytes rewrite,
+added file, added directory, deleted file) and check the tree is byte-identical, the timestamps are restored, the
+inodes of the root, a kept directory and an unchanged file are kept, and a file whose bytes differ gets a new inode
+with no hidden sibling left (the rename, not a write into the file). One runs a real `regen --check` and checks that
+`out/` and `out/figma` keep their inodes. It reads directories, not a file: a drifted file is renamed over by design,
+so a file's inode would blame the restore for a stale tree. A deleted and recreated entry gets a new inode, so this is
 deterministic, where polling for a missing file is not. On main, two fail by name (`restoreTree` is not exported;
-`tokens inode CHANGED`). Mutations, each failing by name: `restoreTree` deleting and recopying (the inode arm and
-the end-to-end arm), and `check()` going back to delete-and-copy while `restoreTree` stays correct (the end-to-end
-arm, where `out/`'s own inode was reused and the file's was not).
+`out/figma inode CHANGED`). Mutations, each failing by name: `restoreTree` deleting and recopying (the inode arm and
+the end-to-end arm), a differing file copied straight over the old one (the rename arm), and `check()` going back to
+delete-and-copy while `restoreTree` stays correct (the end-to-end arm, where `out/`'s own inode was reused and
+`out/figma`'s was not).
