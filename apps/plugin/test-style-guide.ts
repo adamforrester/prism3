@@ -337,7 +337,9 @@ import type { StyleGuideApi, SgCatalog, SgTable, TableOutcome, StyleGuideResult,
 import { parseDesignMd, brandTheme, resolveAllModes } from '@prism3/engine';
 
 let failures = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (!cond) { failures++; console.error(`  ✗ ${label}`); }
   else console.log(`  ✓ ${label}`);
 };
@@ -4881,7 +4883,7 @@ const main = async (): Promise<void> => {
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
-  console.log('\nstyle guide: all checks pass');
+  console.log(`\nstyle guide: all checks pass — ${executed} assertions executed`);
 };
 
 void main();

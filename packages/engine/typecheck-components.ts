@@ -242,6 +242,50 @@ export const unregistered = (
 export const unbacked = (registry: readonly unknown[], exported: ReadonlySet<unknown>): unknown[] =>
   registry.filter((d) => !exported.has(d));
 
+/** THE `noUncheckedIndexedAccess` CLEAN LIST (#1182). The flag is not on in `packages/engine/tsconfig.json` yet — the
+ *  rollout is staged, and the import graph still carries errors in files no stage has reached. Each
+ *  stage makes some files clean; without this list nothing holds them clean, because the gate's main
+ *  run uses the tsconfig as written, where the flag is off. Measured on #3893: one unguarded index
+ *  reintroduced into `component-schema.ts` failed `tsc --noUncheckedIndexedAccess` by line (TS2532)
+ *  and passed this gate's main run with 0 errors.
+ *
+ *  So this arm runs tsc a SECOND time over the same tsconfig with the flag forced on the command line,
+ *  and fails on any diagnostic in a listed file. Errors elsewhere are the rollout's remaining work and
+ *  are not this arm's business. A stage that cleans a file APPENDS it here, in the same PR, so the
+ *  file is held from the moment it is clean (stage 2, #3900: `modes.ts` and `ramp.ts`; stage 3, #3903: the
+ *  other twelve files of the tsconfig's graph). The stage that
+ *  turns the flag on in that tsconfig deletes this list and this arm: from then on the main run holds
+ *  every file.
+ *
+ *  The oracle is tsc's own diagnostics, matched by the exact `<path>(` prefix tsc prints when run with
+ *  `cwd: repo` — never a grep of the source for `[`, which would be a second, weaker type checker.
+ *  Repo-relative paths. */
+export const NUIA_CLEAN: readonly string[] = [
+  'packages/engine/component-schema.ts',
+  'packages/engine/components/card-number-field.ts',
+  'packages/engine/components/code-input.ts',
+  'packages/engine/components/provider-logo.ts',
+  'packages/engine/components/sign-in-button.ts',
+  'packages/engine/figma-description.ts',
+  'packages/engine/scale.ts',
+  'packages/engine/theme-brand.ts',
+  'packages/engine/theme-gradient.ts',
+  'packages/engine/theme-layout.ts',
+  'packages/engine/theme-shadow.ts',
+  'packages/engine/theme-type.ts',
+  'packages/engine/vocabulary.ts',
+];
+
+/** The diagnostics that land in a clean-listed file. The `(` in the prefix is load-bearing: without it,
+ *  `modes.ts` would also claim `modes.tsx` and `modes.ts.orig`. */
+export const nuiaRegressions = (diagnostics: string[], clean: readonly string[]): string[] =>
+  diagnostics.filter((d) => clean.some((f) => d.startsWith(`${f}(`)));
+
+/** Diagnostics tied to no file — `error TS5023: Unknown compiler option`, a missing tsconfig. If the
+ *  flag never reached tsc, the run is not a check, and a clean list with no file errors is not a pass. */
+export const unplacedDiagnostics = (diagnostics: string[]): string[] =>
+  diagnostics.filter((d) => !/^[^\s(]+\(\d+,\d+\): error TS\d+/.test(d));
+
 // ---- SELF-CHECK: can the gate still see what it claims to, and can it still fail? ------------------
 // Every sample drives the exported functions above — the same ones the real run calls, never a
 // reimplementation of the parsing or the membership test (`docs/34` shape 2: a self-check that
@@ -372,6 +416,27 @@ if (unbacked([alphaDef], new Set([alphaDef, betaDef])).length) {
   selfFails.push('the registry converse check flags a member that IS exported by a def file (false positive)');
 }
 
+// NUIA CLEAN LIST (#1182): an error in a listed file is reported; one in an unlisted file is not; a
+// path that merely STARTS with a listed path is not claimed by it; an unplaced diagnostic is caught.
+const nuiaSample = [
+  'packages/engine/component-schema.ts(4636,15): error TS2532: Object is possibly \'undefined\'.',
+  'packages/engine/modes.ts(10,3): error TS2532: Object is possibly \'undefined\'.',
+  'packages/engine/component-schema.tsx(1,1): error TS2532: Object is possibly \'undefined\'.',
+];
+const nuiaHit = nuiaRegressions(nuiaSample, ['packages/engine/component-schema.ts']);
+if (nuiaHit.length !== 1 || !nuiaHit[0]?.startsWith('packages/engine/component-schema.ts(4636,15)')) {
+  selfFails.push('the noUncheckedIndexedAccess arm does not report exactly the error in its clean-listed file');
+}
+if (nuiaRegressions(nuiaSample, []).length) {
+  selfFails.push('the noUncheckedIndexedAccess arm reports an error in a file nobody listed as clean');
+}
+if (unplacedDiagnostics(nuiaSample).length) {
+  selfFails.push('a file-placed diagnostic reads as unplaced');
+}
+if (unplacedDiagnostics(["error TS5023: Unknown compiler option '--noUncheckedIndexAccess'."]).length !== 1) {
+  selfFails.push('an unplaced diagnostic (the flag never reached tsc) is NOT caught — the arm could pass without running');
+}
+
 if (selfFails.length) {
   console.error("\n❌ the component-def typecheck gate's own detection is broken — it cannot see what it claims to:\n");
   for (const f of selfFails) console.error(`    ${f}`);
@@ -472,6 +537,26 @@ const emitted = [engineDir, resolve(repo, DEFS_DIR)].flatMap((dir) =>
     .map((f) => `${dir.slice(repo.length + 1)}/${f}`),
 );
 
+// ---- the noUncheckedIndexedAccess clean list (#1182) ---------------------------------------------
+// Same tsconfig, same cwd, the flag forced on the command line. Three things must hold before an empty
+// result means "clean": tsc's own resolved view has the flag on (not this file's belief that the CLI
+// spelling is right), no diagnostic is unplaced, and every listed file is one tsc actually read — a
+// listed file that left the import graph would otherwise be "clean" because nothing looked at it.
+const NUIA_FLAG = '--noUncheckedIndexedAccess';
+const nuiaShown = spawnSync(process.execPath, [tscBin, '-p', TSCONFIG, NUIA_FLAG, '--showConfig'], { cwd: repo, encoding: 'utf8' });
+let nuiaOn: unknown;
+try {
+  nuiaOn = JSON.parse(nuiaShown.stdout).compilerOptions?.noUncheckedIndexedAccess;
+} catch {
+  nuiaOn = undefined;
+}
+const nuiaTsc = spawnSync(process.execPath, [tscBin, '-p', TSCONFIG, NUIA_FLAG, '--listFiles'], { cwd: repo, encoding: 'utf8' });
+const nuiaOut = `${nuiaTsc.stdout ?? ''}${nuiaTsc.stderr ?? ''}`;
+const nuiaDiagnostics = parseDiagnostics(nuiaOut);
+const nuiaUnplaced = unplacedDiagnostics(nuiaDiagnostics);
+const nuiaUnread = unrepresented([...NUIA_CLEAN], parseListedFiles(nuiaOut, repo));
+const nuiaHits = nuiaRegressions(nuiaDiagnostics, NUIA_CLEAN);
+
 // ---- the registry arm (#742) ---------------------------------------------------------------------
 // The modules are IMPORTED, not parsed. Reading `index.ts` as text and matching import statements
 // would be a second implementation of module resolution living inside the gate — and it would go
@@ -518,6 +603,11 @@ if (!Array.isArray(registryDefs) || registryDefs.length < 3) {
   });
   if (stranded.length) failures.push(`${stranded.length} registry entr(ies) exported by no tracked def file`);
 }
+if (!NUIA_CLEAN.length) failures.push('the noUncheckedIndexedAccess clean list is empty — delete the arm with the list, never the list alone');
+if (nuiaOn !== true) failures.push(`${TSCONFIG} with ${NUIA_FLAG} does not resolve to noUncheckedIndexedAccess: true — the clean-list run is not a check`);
+if (nuiaUnplaced.length) failures.push(`${nuiaUnplaced.length} diagnostic(s) tied to no file in the ${NUIA_FLAG} run — a harness failure, not a clean list`);
+if (nuiaUnread.length) failures.push(`${nuiaUnread.length} noUncheckedIndexedAccess clean-listed file(s) tsc did not read`);
+if (nuiaHits.length) failures.push(`${nuiaHits.length} noUncheckedIndexedAccess error(s) in a clean-listed file (#1182)`);
 if (noEmit !== true) failures.push(`${TSCONFIG} does not resolve to noEmit: true — the engine stays buildless`);
 if (emitted.length) failures.push(`${emitted.length} emitted file(s) in packages/engine/ — this gate must not build`);
 
@@ -541,6 +631,21 @@ if (failures.length) {
     console.error('\n  emitted into the engine — this gate runs a CHECK, not a build:');
     for (const e of emitted) console.error(`    ${e}`);
   }
+  if (nuiaUnplaced.length) {
+    console.error(`\n  ${NUIA_FLAG} run, diagnostics tied to no file:`);
+    for (const d of nuiaUnplaced) console.error(`    ${d}`);
+  }
+  if (nuiaUnread.length) {
+    console.error('\n  on the noUncheckedIndexedAccess clean list but NOT read by tsc — clean because nothing looked.');
+    console.error('  Repoint or remove the entry in NUIA_CLEAN:');
+    for (const u of nuiaUnread) console.error(`    ${u}`);
+  }
+  if (nuiaHits.length) {
+    console.error('\n  noUncheckedIndexedAccess regressions — these files were made clean by a #1182 stage and must');
+    console.error('  stay clean until the flag is on in the tsconfig. Guard the index, or rewrite the loop as');
+    console.error('  `Object.entries`; a `!` needs a comment naming the local invariant:');
+    for (const h of nuiaHits) console.error(`    ${h}`);
+  }
   if (orphaned.length) {
     console.error(`\n  tracked and typechecked, but NOT in the registry — \`componentDefs\` is the set every`);
     console.error(`  projection iterates, so a def missing from it exists and is invisible. Add it to ${REGISTRY}:`);
@@ -557,3 +662,5 @@ if (failures.length) {
 console.log(`✓ component defs typecheck clean — ${defs.length} tracked def(s), all present in the ${listed.length} file(s) tsc read (noEmit, nothing emitted).`);
 for (const d of defs) console.log(`    ${d}`);
 console.log(`  ✓ registry — all ${defs.length} tracked def(s) are in \`componentDefs\`, and all ${(registryDefs as unknown[]).length} entr(ies) come from a tracked def file (${REGISTRY}).`);
+console.log(`  ✓ noUncheckedIndexedAccess — 0 errors in the ${NUIA_CLEAN.length} clean-listed file(s) (#1182; ${nuiaDiagnostics.length} elsewhere, the rollout's remaining work):`);
+for (const f of NUIA_CLEAN) console.log(`    ${f}`);
