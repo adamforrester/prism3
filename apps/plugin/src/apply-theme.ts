@@ -15,7 +15,7 @@
  *
  * Compiled under `tsconfig.main.json` (plugin-typings, no `dom`).
  */
-import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration } from './write-figma';
+import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration, unownedCore } from './write-figma';
 import { applyStylesPlan } from './write-styles';
 import { applyGridStylePlan } from './write-grid-styles';
 import { applyTextStylePlan } from './write-text-styles';
@@ -180,12 +180,19 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       // executor. Independent of every other axis: nothing aliases into or out of `motion`.
       await pace?.stage('motion', 6);
       const mv = await applyVarCollectionPlan(motionPlan, host.variables, mig, pace?.tick);
+      // THE `core` VARIABLES NO SLICE OWNS (#1109), read after the three `core` writers ran: each reports its own slice,
+      // so a variable in a group none of them owns was in no report. Only here are all three slices in scope.
+      const uc = await unownedCore(host.variables, names.core, [
+        colorPlan.palette.map((r) => r.name),
+        ...floatPlan.filter((p) => p.name === names.core).map((p) => p.create.map((r) => r.name)),
+        ...fontPlan.filter((p) => p.name === names.core).map((p) => p.rows.map((r) => r.name)),
+      ], mig);
       // Persist the exact knobs alongside the variables (#131) — so re-opening this file rehydrates
       // the UI to THIS brand, not the default. Only after a real materialisation (inside the try).
       persistInput(host.root, input);
       // #3422 Q44.1 A: and the print of what was written, so the recount can tell an engine update apart (`theme-emission.ts`).
       stampEmission(host.root, emissionOf(plans));
-      return { mig, r, f, s, gs, tv, ts, mv, styleRenames: [...sr, ...tr] };
+      return { mig, r, f, s, gs, tv, ts, mv, uc, styleRenames: [...sr, ...tr] };
     },
   );
   return { plans, pf, guarded, before, chose, exec, names, applied };
