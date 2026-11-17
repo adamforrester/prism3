@@ -104,7 +104,9 @@ import { allLeaves } from './src/file-taxonomy';
 import type { TemplatesApi } from './src/furniture-templates';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -1627,5 +1629,5 @@ section('templates — the three file components, against the Q171 spec and #260
   ok(again.built.length === 0 && JSON.stringify(again.present) === JSON.stringify(['_Label', '_inverse-backdrop', '_scrim-backdrop']), `templates/idempotent: a second run builds nothing (${JSON.stringify(again)})`);
 }
 
-console.log(failed ? `\n❌ ${failed} failed` : '\n✅ canvas furniture: all checks passed');
+console.log(`${failed ? `\n❌ ${failed} failed` : '\n✅ canvas furniture: all checks passed'} — ${executed} assertions executed`);
 if (failed) process.exit(1);

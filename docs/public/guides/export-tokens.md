@@ -5,7 +5,7 @@
 There are two ways to get token files out, and they start from different places:
 
 - Export, an area of the Prism3 studio on the web and in the plugin, writes the brand you set in the studio. <!-- src: apps/studio/src/shell/pages.ts:518#a3230059 --> <!-- src: apps/studio/src/export-settings.ts:63-70#9d917e16 -->
-- TokenPress, a separate Figma plugin, writes what a Figma file holds: its variables, text styles and effect styles, whoever made them. <!-- src: apps/tokenpress/README.md:3#68cda092 --> <!-- src: apps/tokenpress/README.md:107-115#f1f2ff21 -->
+- TokenPress, a separate Figma plugin, writes what a Figma file holds: its variables, text styles, effect styles and gradient paint styles, whoever made them. <!-- src: apps/tokenpress/README.md:3#9efac648 --> <!-- src: apps/tokenpress/README.md:107-116#07079251 -->
 
 ## Export from the studio
 
@@ -42,7 +42,7 @@ To hand over the brand itself rather than its tokens, choose **Brand brief** ins
 
 ## Export any Figma file with TokenPress
 
-TokenPress is listed in Figma as "Token Press - DTCG Exporter". <!-- src: apps/tokenpress/manifest.json:2 --> It exports a file's variables, text styles and effect styles as DTCG JSON in one ZIP. It works on any file, not only one Prism3 wrote, and it makes no network requests. <!-- src: apps/tokenpress/README.md:3#68cda092 --> <!-- src: apps/tokenpress/manifest.json:12#8e160138 -->
+TokenPress is listed in Figma as "Token Press - DTCG Exporter". <!-- src: apps/tokenpress/manifest.json:2 --> It exports a file's variables, text styles, effect styles and gradient paint styles as DTCG JSON in one ZIP. It works on any file, not only one Prism3 wrote, and it makes no network requests. <!-- src: apps/tokenpress/README.md:3#9efac648 --> <!-- src: apps/tokenpress/manifest.json:12#8e160138 -->
 
 1. Run TokenPress in the file.
 2. Choose **Scan & Validate**. It lists the variables and styles and flags anything that would not export cleanly. <!-- src: apps/tokenpress/src/ui.html:1191 --> <!-- src: apps/tokenpress/README.md:86 -->

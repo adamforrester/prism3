@@ -505,7 +505,8 @@ console.log('\n11. #3448: renaming a brand color carries its interactive column\
   }
 
   // A RENAME BACK OFF A NAMED COLUMN'S NAME (#3545 fifth review). The table takes `acc-o → own-n` (no unnamed column),
-  // and "Add button set" offers `own-n` (#3608), so the user adds a column on it; the engine refuses the duplicate name,
+  // and a column lands on `own-n` ("Add button set" offered it until #3608; a brand imported in this shape can still
+  // carry one); the engine refuses the duplicate name,
   // and the user renames the palette back. The keys on `own-n` name the named column as much as the new one, so none
   // may move: `own-n` must still resolve to 300 / 700 with its keys on its own name.
   reset();
@@ -667,6 +668,39 @@ console.log('\n13. #3549: removing a brand color drops its interactive column\'s
   const gfill = pathOf('dark', FILL('named')), gborder = pathOf('light', BORDER('named'));
   ok(gfill.endsWith('.palette.acc-n.300') && gborder.endsWith('.palette.acc-n.700'),
     `#3549 guard: removing a palette named like another column's explicit name keeps that column's Dark anchor and border override, acc-n 300 / 700 (${gfill}, ${gborder})`);
+}
+
+console.log('\n14. #3608: "Add button set" lists a palette whose name a column already carries, disabled (Q-AB1 B)');
+{
+  // THE FIXTURE is the issue's repro: brand colors `acc-n` and `acc-o`, a column `own-n` on `acc-n`, and `acc-o` renamed
+  // to `own-n` (taken: `acc-o` has no unnamed column, #3545). An unnamed column on `own-n` would take that name, and the
+  // engine refuses a duplicate column name, so the add row lists it disabled (the owner's Q-AB1 B, never hidden). The
+  // engine is the oracle for "refuses": every palette the list leaves enabled must add a column the engine takes, and
+  // the one it disables must be one the engine refuses. The expected lists are literals typed here.
+  reset();
+  (store.brandState.brandColors ??= []).push(...['acc-n', 'acc-o', 'acc-f'].map((name, h) => ({ name, oklch: { l: 0.55, c: 0.15, h: 40 + 90 * h } })));
+  store.brandState.interactivePalettes = [{ name: 'own-n', palette: 'acc-n' }];
+  store.rebuild();
+  const action = store.theme.roleToPalette.action;
+  ok(P.renameBrandColor(store.brandState.brandColors!.findIndex((b) => b.name === 'acc-o'), 'own-n'), 'premise: acc-o → own-n is taken (no unnamed column)');
+  const listed = I.addSetOptions(action);
+  const takenOf = (p: string): boolean | undefined => listed.find((o) => o.palette === p)?.taken;
+  ok(takenOf('own-n') === true, `#3608 a brand color named like a column's explicit name is listed, disabled (${JSON.stringify(listed)})`);
+  ok(takenOf('acc-f') === false, `#3608 a free brand color is listed, enabled (${JSON.stringify(listed)})`);
+  ok(JSON.stringify(listed.filter((o) => o.taken).map((o) => o.palette)) === JSON.stringify(['own-n']), `#3608 only own-n is disabled (${JSON.stringify(listed)})`);
+  const offered = I.promotablePalettes(action);
+  ok(!offered.includes('own-n') && offered.includes('acc-f'), `#3608 the palettes the add row can add leave own-n out and keep acc-f (${JSON.stringify(offered)})`);
+  const engineTakes = (p: string): boolean => {
+    I.addAccent(p);
+    const t = takes();
+    store.brandState.interactivePalettes!.pop();
+    store.rebuild();
+    return t;
+  };
+  const refused = offered.filter((p) => !engineTakes(p));
+  ok(!refused.length, `#3608 every palette the add row leaves enabled adds a button set the engine takes (refused: ${JSON.stringify(refused)})`);
+  const disabledTaken = listed.filter((o) => o.taken).map((o) => o.palette).filter((p) => engineTakes(p));
+  ok(!disabledTaken.length, `#3608 every palette the add row disables is one the engine refuses (taken: ${JSON.stringify(disabledTaken)})`);
 }
 
 console.log(`\n${executed - failed}/${executed} interactive-input assertions passed.`);

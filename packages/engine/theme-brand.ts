@@ -481,7 +481,10 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
       // Back-compat: a bare accentPalette is exactly one 'accent' interactive column (docs/20 §3),
       // preserving the accent≠action guard so it never ships two identical-looking columns. No
       // anchorStep → `interactiveStepFor` computes it, reproducing the legacy accent placement.
-      if (input.accentPalette === actionPalette)
+      // Compared against the RESOLVED action palette (`roleToPalette.action`, final after the roleColors
+      // pass above), not the `actionPalette` lever: the schema calls `roleColors.action` and `actionPalette`
+      // aliases, so both spellings refuse the same identical column (#3845, the #1895 shape).
+      if (input.accentPalette === roleToPalette.action)
         throw new Error(`accentPalette '${input.accentPalette}' must differ from the action palette (docs/20 §3 — never ship two identical interactive columns)`);
       entries = [{ name: 'accent', palette: input.accentPalette }];
     } else {

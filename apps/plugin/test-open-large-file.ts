@@ -101,7 +101,9 @@ import { writeBaseline } from './src/member-baseline';
 import { nestedFirst, type UpdateTarget } from './src/update-plan';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -1068,5 +1070,5 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   standVars.length = 0;
 }
 
-console.log(failed ? `\n${failed} failed` : '\nall passed');
+console.log(`${failed ? `\n${failed} failed` : '\nall passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

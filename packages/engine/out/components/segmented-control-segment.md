@@ -133,6 +133,7 @@ Keyed by `size`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | `space.050` | — | `size.md.height` | — | — | build width 120px (literal) |
+| `container/indicator` | — | — | — | — | — | radius `radius.sm` |
 | `container/indicator/content` | `space.0` / `space.200` / `space.0` / `space.200` | `space.100` | — | — | — | — |
 | `container/indicator/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/indicator/content/labelBox/reserve` | — | — | `space.0` | — | — | — |
@@ -142,6 +143,7 @@ Keyed by `size`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | `space.050` | — | `size.sm.height` | — | — | build width 120px (literal) |
+| `container/indicator` | — | — | — | — | — | radius `radius.sm` |
 | `container/indicator/content` | `space.0` / `space.150` / `space.0` / `space.150` | `space.075` | — | — | — | — |
 | `container/indicator/content/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/indicator/content/labelBox/reserve` | — | — | `space.0` | — | — | — |
@@ -151,6 +153,7 @@ Keyed by `size`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | `space.050` | — | `size.lg.height` | — | — | build width 120px (literal) |
+| `container/indicator` | — | — | — | — | — | radius `radius.sm` |
 | `container/indicator/content` | `space.0` / `space.250` / `space.0` / `space.250` | `space.100` | — | — | — | — |
 | `container/indicator/content/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/indicator/content/labelBox/reserve` | — | — | `space.0` | — | — | — |

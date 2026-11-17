@@ -7275,6 +7275,68 @@ if (runs('19')) {
       await hooks.need(page, '[data-p3="frame"]');
       await goPlace(page, 'color-interactive');
     }
+    // #3608 (the owner's Q-AB1 B): a brand color a button set already carries the name of is LISTED, disabled, with its
+    // reason, never hidden. The reason is in the option's title (#2044's pattern) and in a visible line the select
+    // names in `aria-describedby`, so it is read with the select. Selected anyway, it adds nothing; a free color still
+    // adds. When it is the only color left, its reason line precedes the hint. Seeded through storage (the issue's
+    // shape: a column `own-n` on `acc-n`, and a brand color `own-n` with no column) and restored the same way. EXPECTED
+    // typed here: the reason's words and the hint's, never read from the page's module (docs/34).
+    {
+      const TAKEN = 'This name is already a button set.';
+      const blob0 = await page.evaluate(() => localStorage.getItem('prism3:brandInput'));
+      await page.evaluate(() => {
+        const o = JSON.parse(localStorage.getItem('prism3:brandInput'));
+        (o.input.brandColors ??= []).push(...['acc-n', 'own-n'].map((name, h) => ({ name, oklch: { l: 0.55, c: 0.15, h: 40 + 90 * h } })));
+        o.input.interactivePalettes = [{ name: 'own-n', palette: 'acc-n' }];
+        localStorage.setItem('prism3:brandInput', JSON.stringify(o));
+      });
+      await page.reload({ waitUntil: 'networkidle' });
+      await hooks.need(page, '[data-p3="frame"]');
+      await goPlace(page, 'color-interactive');
+      const seeded = JSON.stringify(await persisted(page));
+      await hooks.click(page.locator('[data-p3="column-add-open"]'));
+      const form = () => page.evaluate(() => {
+        const sel = document.querySelector('[data-p3="column-promote-select"]');
+        const ids = (sel?.getAttribute('aria-describedby') ?? '').split(' ').filter(Boolean);
+        return {
+          opts: [...(sel?.options ?? [])].map((o) => ({ v: o.value, off: o.disabled, why: o.title })),
+          value: sel?.value ?? null,
+          said: ids.map((id) => { const n = document.getElementById(id); return n && n.getClientRects().length > 0 ? n.textContent : null; }),
+        };
+      });
+      const f1 = await form();
+      const own = f1.opts.find((o) => o.v === 'own-n');
+      ok(!!own && own.off && own.why === TAKEN && f1.opts.filter((o) => o.off).length === 1 && f1.value !== 'own-n',
+        `#3608: own-n is listed disabled with "${TAKEN}", and is not the select's starting value (${JSON.stringify(f1)})`);
+      ok(JSON.stringify(f1.said) === JSON.stringify([`Own-n: ${TAKEN}`]),
+        `#3608: the select is described by a visible line that gives own-n's reason, so it is announced (${JSON.stringify(f1.said)})`);
+      // Forced past the disabled option (a script, or a stale value), the add writes nothing.
+      await page.evaluate(() => { const sel = document.querySelector('[data-p3="column-promote-select"]'); sel.value = 'own-n'; });
+      await hooks.click(page.locator('[data-p3="column-promote"]'));
+      const forced = JSON.stringify(await persisted(page));
+      const ownCol = await page.evaluate(() => document.querySelectorAll('[data-p3="interactive-column"][data-column="own-n"]').length);
+      ok(forced === seeded && ownCol === 1, `#3608: own-n cannot be added: the brand is unchanged and own-n is still one button set (${ownCol} cards, brand kept: ${forced === seeded})`);
+      // A free color still adds, and the engine takes it (the card draws, unrefused). It is the last free one, so the
+      // row turns to the hint, own-n's reason before it.
+      if (await page.locator('[data-p3="column-promote-select"]').count() === 0) await hooks.click(page.locator('[data-p3="column-add-open"]'));
+      await page.locator('[data-p3="column-promote-select"]').selectOption('accent');
+      await hooks.click(page.locator('[data-p3="column-promote"]'));
+      await page.waitForFunction(() => !!document.querySelector('[data-p3="interactive-column"][data-column="accent"]'), null, { timeout: 5000 }).catch(() => {});
+      const after = await page.evaluate(() => ({
+        accent: !!document.querySelector('[data-p3="interactive-column"][data-column="accent"]'),
+        refused: document.querySelector('[data-p3="interactive-column"][data-column="accent"]')?.dataset.refused ?? null,
+        add: !!document.querySelector('[data-p3="column-add-open"]'),
+        lines: [...document.querySelectorAll('[data-p3="column-add"] .p3-sub')].map((n) => ({ hk: n.getAttribute('data-p3'), text: n.textContent })),
+      }));
+      ok(after.accent && after.refused !== 'true' && (await persisted(page))?.interactivePalettes?.some((e) => e.palette === 'accent'),
+        `#3608: a free color (accent) still adds a button set the engine takes (${JSON.stringify(after)})`);
+      ok(!after.add && JSON.stringify(after.lines) === JSON.stringify([{ hk: 'column-promote-taken', text: `Own-n: ${TAKEN}` }, { hk: 'column-promote-hint', text: ADD_SET_HINT }]),
+        `#3608: with own-n the only color left, its reason precedes the hint, and no add is offered (${JSON.stringify(after.lines)})`);
+      await page.evaluate((v) => localStorage.setItem('prism3:brandInput', v), blob0);
+      await page.reload({ waitUntil: 'networkidle' });
+      await hooks.need(page, '[data-p3="frame"]');
+      await goPlace(page, 'color-interactive');
+    }
     await chooseAnyMode(page, 'light');
 
     // Q59: in each derived mode every lever on the page is disabled, brand-wide ones included, under the derived
@@ -18963,6 +19025,27 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
         const ind = await indentOf();
         ok(ind.card[0] !== null && ind.card[0] === ind.card[1] && ind.due[0] !== null && ind.due[0] === ind.due[1],
           `${at}: #3712 indent at ${vw}: a card's line starts where its title does, and a due set's line where its name does (${JSON.stringify(ind)})`);
+        // THE INSET ONE STEP LIGHTER (the owner, 2026-11-17: "make the grey that is used in the component containers a
+        // shade lighter … the white labels on top of it look strange"). A group's inset inside a card was `fill-1`
+        // (neutral 050 in light) with each status chip on a white `bg-page` pill. Now, in light, the inset is one ramp
+        // step lighter, neutral 025, and a chip takes the fill every other tag takes (`color.foreground.primary`), so no
+        // white pill sits on gray. Dark keeps its step, neutral 900: the step lighter, 850, puts `text-2` at 4.17:1, under
+        // the 4.5 floor. EXPECTED from the emission (`LEVERS_GRAY`, `EMITTED_AT`), never from `chrome.css` or
+        // `chrome/spec.mjs`; every text node's contrast on it is held by the chrome probe. DRAFT: the owner's call.
+        // MUTATIONS (each after a `wip:` commit): the inset back on `fill-1` → `inset one step lighter … inset`; the chips'
+        // white-pill rule restored → `inset one step lighter … chips`, by name.
+        if (vw === 640) {
+          const toHex = (c) => { const m = /rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\)/.exec(c ?? ''); return m && (m[4] === undefined || Number(m[4]) === 1) ? `#${[m[1], m[2], m[3]].map((x) => Number(x).toString(16).padStart(2, '0')).join('')}` : (c ?? null); };
+          const ins = await page.evaluate(() => ({ insets: [...document.querySelectorAll('[data-p3="update-dialog"] .p3-upd-inset')].map((n) => getComputedStyle(n).backgroundColor),
+            chips: [...document.querySelectorAll('[data-p3="update-dialog"] .p3-upd-inset .p3-sg-tag')].map((n) => getComputedStyle(n).backgroundColor) }));
+          const wantInset = theme === 'light' ? LEVERS_GRAY : EMITTED_AT('dark', 'foreground.primary');
+          const wantChip = EMITTED_AT(theme, 'foreground.primary');
+          const insets = ins.insets.map(toHex), chips = ins.chips.map(toHex);
+          ok(insets.length > 0 && insets.every((c) => c === wantInset),
+            `${at}: inset one step lighter: inset: each group's inset in Update file is ${theme === 'light' ? 'neutral 025, one step lighter than fill-1' : 'neutral 900, as before'} (${wantInset}) (read ${JSON.stringify(insets)})`);
+          ok(chips.length > 0 && chips.every((c) => c === wantChip),
+            `${at}: inset one step lighter: chips: each status chip in an inset takes the tag fill, color.foreground.primary (${wantChip}), not a white pill (read ${JSON.stringify(chips)})`);
+        }
         const { changes: _c, ...plain } = sets[0];
         await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets: [plain, sets[1]] });
         await page.waitForFunction(() => !document.querySelector('[data-p3="update-library"]'), null, { timeout: 5000 }).catch(() => {});
@@ -21816,6 +21899,36 @@ if (runs('1909')) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
   } finally { await ctx.close(); }
 } // 1909
+// THE QUIET ENTRY (the owner, 2026-11-17: "I'd like the 'report a problem' CTA to have less prominence … a small bug
+// icon button in the corner"). Report a problem is a ghost icon button, no visible words, at the end of the open
+// drawer's last line: named and titled "Report a problem", drawing the web rail's glyph (Tabler's message-report),
+// square at the tier's icon-button size (32 wide, 28 at the narrow tier; both over the 24 floor). Shown after a failed
+// apply opened the drawer. Literals typed here. DRAFT: the owner's call.
+// KEYBOARD REACH is pressed, not called: focus starts on the page and Tab is pressed until the button holds focus (a cap
+// of 400 presses), because `focus()` succeeds on a `tabindex="-1"` button and so cannot prove the Tab order.
+// MUTATIONS (each after a `wip:` commit, `activity.ts`): the button's text put back and its glyph dropped → `quiet entry`,
+// by name; `rep.tabIndex = -1` → `quiet entry: … reached by pressing Tab`, by name.
+const quietEntry2069 = async (page, where, size) => {
+  const qe = await page.evaluate(() => {
+    const b = document.querySelector('[data-p3="activity-report"]'), body = document.querySelector('[data-p3="activity-body"]');
+    if (!b || !body) return null;
+    const r = b.getBoundingClientRect(), br = body.getBoundingClientRect(), cs = getComputedStyle(body);
+    return { tag: b.tagName.toLowerCase(), name: b.getAttribute('aria-label'), title: b.title, text: b.textContent.trim(), icon: b.querySelector('svg')?.dataset.icon ?? null,
+      w: Math.round(r.width), h: Math.round(r.height), last: body.lastElementChild === b,
+      atEnd: Math.abs(r.right - (br.right - parseFloat(cs.paddingRight))) <= 1 };
+  });
+  ok(!!qe && qe.tag === 'button' && qe.name === 'Report a problem' && qe.title === 'Report a problem' && qe.text === '' && qe.icon === 'message-report'
+    && qe.w === size && qe.h === size && qe.last && qe.atEnd,
+    `#2069 ${where}: quiet entry: Report a problem is a small icon button (message-report, ${size} square, no visible words) named and titled "Report a problem", at the end of the drawer's last line (${JSON.stringify(qe)})`);
+  await page.evaluate(() => { document.activeElement?.blur(); });
+  let presses = 0, reached = false;
+  for (; presses < 400 && !reached; presses++) {
+    await page.keyboard.press('Tab');
+    reached = await page.evaluate(() => document.activeElement?.dataset?.p3 === 'activity-report');
+  }
+  ok(reached, `#2069 ${where}: quiet entry: Report a problem is reached by pressing Tab (${reached ? `${presses} presses` : 'not reached in 400 presses'})`);
+  await page.evaluate(() => { document.activeElement?.blur(); });
+};
 // #2069 (Q116 A): REPORT A PROBLEM. The Activity drawer's foot opens a dialog showing the diagnostic bundle, with the
 // brand's settings off by default (its token prefix shown as [brand]), Copy, and "Open a prefilled issue", which asks the
 // main thread to open GitHub's issue form. Expected words are literals; the house brand's prefix is `pds3`.
@@ -21831,6 +21944,8 @@ if (runs('2069')) {
     step = 'a failed apply';
     await postMsg(page, { type: 'apply-result', ok: false, headline: '✗ 1 conflict', summary: 'Nothing was written.', lines: ['Nothing was written. 1 conflict with existing content: variable "pds3/color/background/primary" is STRING in "color"'] });
     await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, WAIT);
+    step = 'quiet entry';
+    await quietEntry2069(page, where, 32);
     step = 'open';
     await hooks.click(page.locator('[data-p3="activity-report"]'), WAIT);
     await hooks.need(page, '[data-p3="report-dialog"]', WAIT);
@@ -21900,6 +22015,21 @@ if (runs('2069')) {
       await settle(page);
       const back = await page.evaluate(() => ({ gone: !document.querySelector('[data-p3="report-dialog"]'), focus: document.activeElement?.getAttribute('data-p3') }));
       ok(back.gone && back.focus === 'report-open', `#3524 ${where}: Escape closes it and focus returns to the rail's Report a problem (${JSON.stringify(back)})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+  // The quiet entry at the narrow tier and dark: the icon button takes `ctl-h-xs` there (28), still over the 24 floor.
+  {
+    const where = '2069 figma dark 380';
+    const { ctx, page, errors } = await open({ host: 'figma', theme: 'dark', w: 380, h: 640 });
+    let step = 'a failed apply';
+    try {
+      await postMsg(page, { type: 'apply-result', ok: false, headline: '✗ 1 conflict', summary: 'Nothing was written.', lines: ['Nothing was written. 1 conflict with existing content: variable "pds3/color/background/primary" is STRING in "color"'] });
+      await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, WAIT);
+      step = 'quiet entry';
+      await quietEntry2069(page, where, 28);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
