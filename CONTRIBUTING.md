@@ -1358,6 +1358,11 @@ npx tsx packages/engine/lint-control-shape-reach.ts # Control shape reaches what
                                                     # claimed corner under every shape and field style,
                                                     # nothing outside moves, and the description claims
                                                     # no family or corner the typed claim does not hold.
+npx tsx packages/engine/lint-test-arms.ts           # a registered test arm is still in its suite (#1834):
+                                                    # each (suite, #NNNN) in a test's string literals is
+                                                    # held to the authored test-arms.txt. A merge that
+                                                    # drops an arm fails ARM GONE by name; a new arm
+                                                    # fails UNREGISTERED until --accept adds it (sorted).
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR but one
