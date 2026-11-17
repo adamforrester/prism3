@@ -2071,21 +2071,49 @@ for (const b of brands) {
 
   // The link ANCHORS where the action fill anchors (modes.ts `linkFollowsAction`), not at the rebased
   // palette's own baseline step (`theme.linkAnchorStep`). The accent above sits mid-ramp, so both anchors
-  // pick the same link steps and could not tell them apart; a far-lightness brand color can. Literals were
-  // measured on this tree. They also carry #1896 (the action anchor follows the `actionPalette` lever, so a
-  // `roleColors.action` rebase anchors at primary's step): fixing #1896 moves the fill and these together.
-  // BY-NAME MUTATION: `const linkAnchor = theme.linkAnchorStep;` in modes.ts → deep lands on 850 in light
-  // and hc-light, pale on 050 in dark and hc-dark, and both asserts below fail.
+  // pick the same link steps and could not tell them apart; a far-lightness brand color can, once its action
+  // anchor is PINNED away from its own shade. Since #1896 an unpinned rebase anchors the fill at the color's own
+  // shade, the same step `linkAnchorStep` names, so only a pin separates the two (deep pinned at 550, pale at 500).
+  // Literals were measured on this tree. BY-NAME MUTATION: `const linkAnchor = theme.linkAnchorStep;` in modes.ts →
+  // deep lands on 850 in light and hc-light, pale on 050 in dark and hc-dark, and both asserts below fail.
   // #2817: from that anchor the link then steps as far as it must to clear every surface it is placed on, so
   // light deep (550 → 600) sits one notch deeper than the anchor; dark pale and HC already cleared.
   const stepsOf = (t: ReturnType<typeof brandTheme>): Record<string, string | undefined> =>
     Object.fromEntries(linkByMode(t).map((r) => [r.mode, r.link?.path.split('.').slice(-2).join('.')]));
-  const deep = stepsOf(build({ brandColors: [{ name: 'deep', oklch: { l: 0.25, c: 0.08, h: 30 } }], roleColors: { action: 'deep' } }));
+  const DEEP = [{ name: 'deep', oklch: { l: 0.25, c: 0.08, h: 30 } }], PALE = [{ name: 'pale', oklch: { l: 0.92, c: 0.06, h: 95 } }];
+  const deep = stepsOf(build({ brandColors: DEEP, roleColors: { action: 'deep' }, actionAnchorStep: 550 }));
   ok(deep.light === 'deep.600' && deep['hc-light'] === 'deep.700',
-    `#1895: a dark rebased action color (deep, l 0.25) anchors the link where the action fill anchors — light deep.600 (anchor 550, #2817), hc-light deep.700 (got ${JSON.stringify(deep)})`);
-  const pale = stepsOf(build({ brandColors: [{ name: 'pale', oklch: { l: 0.92, c: 0.06, h: 95 } }], roleColors: { action: 'pale' } }));
+    `#1895: a dark rebased action color (deep, l 0.25, pinned at 550) anchors the link where the action fill anchors — light deep.600 (anchor 550, #2817), hc-light deep.700 (got ${JSON.stringify(deep)})`);
+  const pale = stepsOf(build({ brandColors: PALE, roleColors: { action: 'pale' }, actionAnchorStep: 500 }));
   ok(pale.dark === 'pale.450' && pale['hc-dark'] === 'pale.300',
-    `#1895: a pale rebased action color (pale, l 0.92) anchors the link where the action fill anchors — dark pale.450, hc-dark pale.300 (got ${JSON.stringify(pale)})`);
+    `#1895: a pale rebased action color (pale, l 0.92, pinned at 500) anchors the link where the action fill anchors — dark pale.450, hc-dark pale.300 (got ${JSON.stringify(pale)})`);
+
+  // #1896: `roleColors.action` and `actionPalette` are aliases (theme-schema.json), so they anchor the action fill
+  // at the same step: the resolved palette's own shade, not primary's. Literals from the issue's repro (accent →
+  // 450) and measured on this tree (deep → 850, pale → 050). BY-NAME MUTATION: key `actionBrandColor` off the
+  // `actionPalette` lever again in theme-brand.ts → the anchor literal, the four alias arms and the note fail.
+  const fillOf = (t: ReturnType<typeof brandTheme>, mode: string): string | undefined =>
+    (resolveAllModes(t).find((m) => m.mode === mode)?.roles as any)?.['interactive.primary.fill.rest']?.path.split('.').slice(-2).join('.');
+  ok(rc.roleAnchorStep.action === 450 && fillOf(rc, 'dark') === 'accent.450',
+    `#1896: roleColors.action 'accent' anchors the action fill at the accent's own shade, step 450 (dark fill accent.450) (got ${rc.roleAnchorStep.action}, ${fillOf(rc, 'dark')})`);
+  const deepRc = build({ brandColors: DEEP, roleColors: { action: 'deep' } }), paleRc = build({ brandColors: PALE, roleColors: { action: 'pale' } });
+  ok(fillOf(deepRc, 'light') === 'deep.850' && stepsOf(deepRc).light === 'deep.850' && fillOf(paleRc, 'dark') === 'pale.050' && stepsOf(paleRc).dark === 'pale.050',
+    `#1896: an unpinned rebased action color anchors fill and link at its own shade — light deep.850/deep.850, dark pale.050/pale.050 (got ${fillOf(deepRc, 'light')}/${stepsOf(deepRc).light}, ${fillOf(paleRc, 'dark')}/${stepsOf(paleRc).dark})`);
+  // Alias equality, role by role: the two spellings resolve every role to the same step in every mode. A primary
+  // anchored off 500 (l 0.4 → 650) makes the status and neutral arms witnesses too: before #1896 they took 650.
+  const B4 = { ...B, primary: { l: 0.4, c: 0.12, h: 262 }, brandColors: [...B.brandColors, ...DEEP, ...PALE] };
+  for (const pal of ['accent', 'deep', 'pale', 'neutral', 'success']) {
+    const viaLever = resolveAllModes(brandTheme({ ...B4, actionPalette: pal } as unknown as BrandInput));
+    const viaRole = resolveAllModes(brandTheme({ ...B4, roleColors: { action: pal } } as unknown as BrandInput));
+    const differ = viaLever.flatMap((m, i) => Object.entries(m.roles).filter(([k, v]) => (viaRole[i]?.roles as any)?.[k]?.path !== (v as any).path)
+      .map(([k, v]) => `${m.mode} ${k}: ${(v as any).path.split('.').slice(-2).join('.')} vs ${(viaRole[i]?.roles as any)?.[k]?.path.split('.').slice(-2).join('.')}`));
+    ok(viaLever.length === 4 && viaLever.length === viaRole.length && differ.length === 0,
+      `#1896: actionPalette '${pal}' and roleColors.action '${pal}' resolve every role to the same step in every mode (${differ.length} differ${differ.length ? `: ${differ.slice(0, 3).join('; ')}` : ''})`);
+  }
+  // The anchor note fires for the roleColors spelling too, naming the resolved palette. Wording unchanged; whether
+  // it fires for this spelling is the owner's call (#1896 OWNER DECISION, option A built). Literal note text.
+  ok(rc.notes.includes("action: anchored at 'accent' step 450, the brand's own shade — moved only if it misses 3:1 (7:1 in high contrast) against the contrast floor or background.tertiary."),
+    `#1896: with roleColors.action 'accent', the decisions log reports the anchor at the accent's own shade (got ${JSON.stringify(rc.notes.filter((n) => n.startsWith('action:')))})`);
 
   // The two link notes compare against the RESOLVED action palette and say "the action color" (owner
   // decision 2026-10-01). Literal note text, never a join of theme.ts's template (docs/34 shape 2). BY-NAME
