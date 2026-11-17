@@ -19,6 +19,8 @@ nothing for "report"; the chrome draws from its own vendored Tabler set (#3083),
 vendored for the web. Tabler's `bug` would need re-vendoring (`chrome/vendor-icons.mjs` and the digest). That is
 flagged for the owner, not done.
 
-**Held by.** `test:chrome` section 2069, `quiet entry`. It checks the button's name and title, that it has no visible
-words, its glyph, that it is square between 24 and 32, that it is last in the drawer at its end, and that it takes
-focus. It fails on main by name.
+**Held by.** `test:chrome` section 2069, `quiet entry`, at figma light 1280 and figma dark 380. It checks the button's
+name and title, that it has no visible words, its glyph, that it is 32 square (28 at 380), and that it is last in the
+drawer at its end. It fails on main by name. A second arm presses Tab from the page until the button holds focus: a
+`focus()` call cannot prove keyboard reach, because it succeeds on a `tabindex="-1"` button. With `rep.tabIndex = -1`,
+that arm fails by name at both sizes.
