@@ -54,7 +54,9 @@ import { blockedDueOf, checkScopeOf, compsOpensOf, defaultTicks, type LiveDue, d
 import { leafForDef } from './src/file-taxonomy';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -270,5 +272,5 @@ ok(discarded.length === 0 && (rec.keptCount ?? 0) > 0,
     `held joined: a second Keep run holding B over an entry holding A records A and B, 3 members (${JSON.stringify(joined?.held)})`);
 }
 
-console.log(failed ? `\n${failed} failed` : '\nall passed');
+console.log(`${failed ? `\n${failed} failed` : '\nall passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

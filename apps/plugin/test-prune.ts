@@ -38,7 +38,9 @@ import type { PruneInput, PruneApi, StyleKind, StyleNames, FileStyles } from './
 import { dead, dieOnRemove, removeOnce } from './removal-shim';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -986,5 +988,5 @@ console.log('\n#3697 R6 — each removal tried, running counts, the confirm guar
   ok(prunePreviewHashOf(plan, ['1:2']) !== h, 'R6/hash: a stale canvas label is in the hash');
 }
 
-console.log(`\nplugin OPT-IN PRUNE: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
+console.log(`\nplugin OPT-IN PRUNE: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'} — ${executed} assertions executed`);
 if (failed) process.exit(1);

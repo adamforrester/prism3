@@ -696,6 +696,8 @@
 }
 .p3-drawer-body[hidden] { display: none; }
 .p3-drawer-note { margin: 0; }
+/* The owner (2026-11-17): Report a problem, a ghost icon button at the end of the open drawer's last line. */
+.p3-btn.p3-drawer-report { justify-self: end; }
 .p3-drawer-note[hidden] { display: none; }
 /* Q3113.8 A: the sheet's header row at 380 (a 24 × 24 close icon, "Activity", the counts, the agent dot), which takes the
    bar row's place there. Wider, the bar row closes the drawer and no header is drawn. */

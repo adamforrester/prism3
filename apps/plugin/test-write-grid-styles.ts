@@ -28,7 +28,9 @@ import { applyGridStylePlan, gridSkippedNote } from './src/write-grid-styles';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -209,5 +211,5 @@ ok(gridSkippedNote(['xs', 'sm', 'md', 'lg']) === '⚠ 4 grid styles skipped (alr
     `#2467 client 'Grid / sm': a client's own 'Grid / sm' is not renamed (renamed ${r.renamed}, its name now '${client.name}')`);
 }
 
-console.log(`\nplugin GRID-STYLE write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
+console.log(`\nplugin GRID-STYLE write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'} — ${executed} assertions executed`);
 if (failed) process.exit(1);
