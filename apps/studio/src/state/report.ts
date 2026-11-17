@@ -147,8 +147,9 @@ const reduceWriteFailure = (line: string): string => line.replace(FAILED, (_, he
 /** Every other line that carries a host's message (#3702) carries it as `failureDetail` does, `<Class>: <message>`,
  *  where the class is an error's name (`Error`, `TypeError`, `DependencyBuildError`), at the start of the line, after
  *  `: ` (`file setup failed: Error: …`) or after `(` (`Figma refused the write (Error: …)`). The message runs to the end
- *  of its line, so the report keeps the class and cuts the rest; a detail that opened a parenthesis gets it closed. */
-const DETAIL = /(^|: |\()((?:[A-Z][A-Za-z0-9]*)?Error): .*$/;
+ *  of its line, so the report keeps the class and cuts the rest; a detail that opened a parenthesis gets it closed. The
+ *  cut is `[\s\S]*`, not `.*`: JS's `.` stops at CR, U+2028 and U+2029, and a line holding one went through whole. */
+const DETAIL = /(^|: |\()((?:[A-Z][A-Za-z0-9]*)?Error): [\s\S]*$/;
 /** The class grammar `errorClass` emits (`plugin/src/apply-summary.ts`): one word, a letter first. `DETAIL` above finds a
  *  detail anywhere by its `…Error` name; after a head a #3702 site is known to post, any class that grammar admits is
  *  one (`DOMException`, a lowercase `invariant`), so the two halves of the contract agree (#3702 review). */
@@ -159,7 +160,7 @@ export const DETAIL_HEADS: readonly string[] = [
   'component build failed: ', 'file setup failed: ', 'style guide failed: ', 'read-back failed: ', 'Cleanup failed: ',
   'Figma refused the write (', 'the engine could not plan it (', 'the named version could not be saved (',
 ];
-const HEAD_DETAIL = new RegExp(`(${DETAIL_HEADS.map((h) => escapeRe(h)).join('|')})(${CLASS}): .*$`);
+const HEAD_DETAIL = new RegExp(`(${DETAIL_HEADS.map((h) => escapeRe(h)).join('|')})(${CLASS}): [\\s\\S]*$`);
 /** The apply's variable-write note names the variable, then the host's reason as `write-figma.ts` records it, with no
  *  class (`⚠ 3 variable writes refused by Figma (<name>: <reason>)`): the report keeps the name. A name may hold
  *  parentheses (a collision Rename's `… (Prism3)`, #1909), so the name ends at the first `: ` outside them; with none,

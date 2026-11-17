@@ -53,7 +53,7 @@ export const errorClass = (e: unknown): string => {
  *  A host message can name anything the file holds, so Report a problem keeps only the class (`reduceFailure`, studio's
  *  `report.ts`): the class leads so the report finds it, and line breaks are joined since it cuts to a line's end. */
 export const failureDetail = (e: unknown): string => {
-  const m = (e instanceof Error ? e.message : String(e)).replace(/\s*[\r\n]+\s*/g, ' ').trim();
+  const m = (e instanceof Error ? e.message : String(e)).replace(/\s*[\r\n\u2028\u2029]+\s*/g, ' ').trim();
   return m ? `${errorClass(e)}: ${m}` : errorClass(e);
 };
 

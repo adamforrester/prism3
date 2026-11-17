@@ -51,3 +51,16 @@ and an `invariant` (Build components) from the host, and holds `DETAIL_HEADS` ag
 line breaks kept, `HEAD_DETAIL`'s class back to `…Error`, the refused name back to `[^:()]*`, a head dropped from
 `DETAIL_HEADS`. Not in #3702's list, so filed as #3865: `Prune stopped — <Class>: <message>. Removed …` keeps the
 message.
+
+**Second review fix (VERDICT: CHANGES at a1e3db1c).** JS's `.` matches none of CR, U+2028 or U+2029, so a detail cut
+with `.*$` stopped short of one and the line reached the report whole. These three and LF are every line terminator
+ECMAScript defines. The report's two cuts (`HEAD_DETAIL`, `DETAIL`) now end in `[\s\S]*$`, as `FAILED` already did, so
+the guarantee holds whatever the producer posts. `failureDetail` also joins U+2028 and U+2029, as it did CR and LF, so
+the drawer shows the message on one line.
+
+Tests: `test-report.ts` types each of CR, U+2028 and U+2029 inside an `Error`, `TypeError` and `DOMException` message
+after each head, plus one line with no head (`Run stopped (`), so `DETAIL` is reached alone. All 9 arms fail against
+`a1e3db1c`. `test-report-redaction.ts` throws a message split by each of CR, CRLF, U+2028 and U+2029 through the real
+Set up file. The U+2028 and U+2029 arms fail against `a1e3db1c`. Mutations, each failing by name: `HEAD_DETAIL` back to
+`.*$` (the three `DOMException` arms), `DETAIL` back to `.*$` (the `Error` and `TypeError` arms, through the headless
+line), `failureDetail` back to `[\r\n]` (the U+2028 and U+2029 drawer arms).

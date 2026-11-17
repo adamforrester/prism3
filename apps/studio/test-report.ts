@@ -46,7 +46,9 @@
  * the `DETAIL` rule dropped from `reduceLine` → `#3702 component build: the report keeps the error's class, not the host's
  * message`, and each other site of the table by name. #3702 review: `HEAD_DETAIL`'s class back to `…Error` → `#3702
  * review, class DOMException: …` (and `FigmaException`, `invariant`); the refused-writes name back to `[^:()]*` →
- * `#3702 review, refused writes, a renamed variable: …`.
+ * `#3702 review, refused writes, a renamed variable: …`. #3702 second review: `HEAD_DETAIL` ending in `.*$` again →
+ * `#3702 second review, U+2028 in a DOMException's message: …` (and CR, U+2029); `DETAIL` ending in `.*$` again → `#3702
+ * second review, U+2028 in a Error's message: …` (and TypeError; CR, U+2029), through its headless `Run stopped (` line.
  */
 import { ENGINE_VOCABULARY, brandWords, buildReport, isIssueUrl, issueUrl, scrub, ISSUE_BASE, URL_LIMIT, type ReportInput } from './src/state/report';
 import { brandTheme, type BrandInput, buildTree } from '@prism3/engine';
@@ -295,6 +297,38 @@ ok(authoredOn.includes('hds/color/interactive/seaside/fill/rest') && authoredOn.
       if (line !== `  - ${reported(cls)}` || rep.includes('SecretPage')) bad.push(line);
     }
     ok(bad.length === 0, `#3702 review, class ${cls}: after each of the ${sites.length} heads the report keeps the class, not the host's message (${JSON.stringify(bad)})`);
+  }
+}
+
+// ── #3702 second review: a line terminator inside a line, after every head a site posts ──
+// JS's `.` matches none of CR, U+2028 or U+2029, so a detail cut with `.*$` stopped short of them and the line went
+// through whole. `failureDetail` collapses them at the source; the report holds the cut whatever the producer does.
+// LF is the report's own line separator (`reduceFailure` splits on it), held at the source by `test-report-redaction.ts`.
+{
+  const SECRET = 'page "SecretPage" is locked';
+  const heads: readonly [posted: (d: string) => string, reported: (c: string) => string][] = [
+    [(d) => `component build failed: ${d}`, (c) => `component build failed: ${c}`],
+    [(d) => `file setup failed: ${d}. Built from tree-test0000 at 2026-11-12T00:00:00Z.`, (c) => `file setup failed: ${c}`],
+    [(d) => `style guide failed: ${d}`, (c) => `style guide failed: ${c}`],
+    [(d) => `read-back failed: ${d}`, (c) => `read-back failed: ${c}`],
+    [(d) => `Cleanup failed: ${d}`, (c) => `Cleanup failed: ${c}`],
+    [(d) => `No canvas labels for button: Figma refused the write (${d})`, (c) => `No canvas labels for button: Figma refused the write (${c})`],
+    [(d) => `button: can't be checked. the engine could not plan it (${d}).`, (c) => `button: can't be checked. the engine could not plan it (${c})`],
+    [(d) => `Sets not moved to their pages: the named version could not be saved (${d}).`, (c) => `Sets not moved to their pages: the named version could not be saved (${c})`],
+    [(d) => `write failed: ${d}`, (c) => `write failed: ${c}`],
+    [(d) => `Run stopped (${d})`, (c) => `Run stopped (${c})`],
+  ];
+  for (const [name, t] of [['CR', '\r'], ['U+2028', '\u2028'], ['U+2029', '\u2029']] as const) {
+    for (const cls of ['Error', 'TypeError', 'DOMException']) {
+      const bad: string[] = [];
+      for (const [i, [posted, reported]] of heads.entries()) {
+        if (i === heads.length - 1 && !cls.endsWith('Error')) continue; // no head: only `DETAIL`'s `…Error` rule applies
+        const rep = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Run', verdict: '✗ failed', lines: [posted(`${cls}: in loadAllPagesAsync: failed${t}${SECRET}`)], agent: false }] });
+        const line = rep.split('\n').find((l) => l.startsWith('  - ')) ?? '';
+        if (line !== `  - ${reported(cls)}` || rep.includes('SecretPage')) bad.push(line);
+      }
+      ok(bad.length === 0, `#3702 second review, ${name} in a ${cls}'s message: the report keeps the class, not the host's message (${JSON.stringify(bad)})`);
+    }
   }
 }
 

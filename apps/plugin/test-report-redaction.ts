@@ -32,6 +32,9 @@
  *     two-line host message: the report keeps the error's class, not the host's message`; `HEAD_DETAIL`'s class back to
  *     `…Error` → `#3702 Style guide, a DOMException: …` and `#3702 Build components, an invariant: …`; a head dropped
  *     from `DETAIL_HEADS` → `#3702 review: every head main.ts posts a failureDetail after is one the report cuts at`.
+ *   · #3702 second review: `failureDetail` collapsing `[\r\n]` only → `#3702 D3703.1 B Set up file, a host message
+ *     split by U+2028: the drawer line keeps the host's message, its class in front` (and U+2029). The report arm holds
+ *     under it: the report's own cut (`test-report.ts`) closes the same leak a second time.
  */
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { brandTheme, type BrandInput } from '@prism3/engine';
@@ -255,6 +258,13 @@ const boom = async (): Promise<never> => { throw new TypeError(HOST_SECRET); };
   const setup = await run((sink) => A.fileSetup(sink));
   thrown('Set up file, a two-line host message', setup, setup[0]?.summary,
     `file setup failed: Error: in loadAllPagesAsync: failed ${SECOND}. ${BUILT}`, 'file setup failed: Error');
+  // Every other line terminator JS knows (CR, CRLF, U+2028, U+2029): `failureDetail` puts the message on one line.
+  for (const [label, t] of [['CR', '\r'], ['CRLF', '\r\n'], ['U+2028', '\u2028'], ['U+2029', '\u2029']] as const) {
+    figmaShim.loadAllPagesAsync = async (): Promise<never> => { throw new Error(`in loadAllPagesAsync: failed${t}${SECOND}`); };
+    const s = await run((sink) => A.fileSetup(sink));
+    thrown(`Set up file, a host message split by ${label}`, s, s[0]?.summary,
+      `file setup failed: Error: in loadAllPagesAsync: failed ${SECOND}. ${BUILT}`, 'file setup failed: Error');
+  }
   figmaShim.loadAllPagesAsync = named('DOMException');
   const guide = await run((sink) => A.styleGuide({}, sink));
   thrown('Style guide, a DOMException', guide, guide[0]?.lines?.[0], `style guide failed: DOMException: ${HOST_SECRET}`, 'style guide failed: DOMException');
