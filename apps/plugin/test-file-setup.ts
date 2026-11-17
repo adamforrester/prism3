@@ -33,7 +33,9 @@ import { emptiedLine, pageMovesDue, relocateSets } from './src/page-moves';
 import { makeShim } from './component-shim';
 
 let failures = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (!cond) { failures++; console.error(`  ✗ ${label}`); }
   else console.log(`  ✓ ${label}`);
 };
@@ -716,5 +718,5 @@ console.log('8. relocateSets: single components move as one, under their earlier
   ok(r.emptied.length === 0, `logos/theirs-page: Brand marks still holds the designer's components, so it is not reported as safe to delete (${JSON.stringify(r.emptied)})`);
 }
 
-console.log(failures === 0 ? '\nfile-setup: all assertions pass' : `\nfile-setup: ${failures} FAILED`);
+console.log(`${failures === 0 ? '\nfile-setup: all assertions pass' : `\nfile-setup: ${failures} FAILED`} — ${executed} assertions executed`);
 if (failures > 0) process.exit(1);

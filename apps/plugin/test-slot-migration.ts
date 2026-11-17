@@ -1025,5 +1025,5 @@ section('dialog — the footer buttons move into the nested Button.Group slot, k
   ok(!!found && current === null, `dialog/old shape: a set with the stacked footer's old buttons migrates, and one already holding the group does not (${!!found}, ${current === null})`);
 }
 
-console.log(`\n${failed ? `✗ ${failed} of ${executed} failed` : `✓ slot migration: all ${executed} pass`}`);
+console.log(`\n${failed ? `✗ ${failed} of ${executed} failed` : `✓ slot migration: all pass — ${executed} assertions executed`}`);
 if (failed) process.exit(1);
