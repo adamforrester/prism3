@@ -16,6 +16,10 @@
   `identifierHits`, `danglingAliases`). `declarationDefects`, `jargonDefects` and `aliasDefects` call them, and so does the
   battery. Only the cross-setting rule (two settings sharing a key) stays in `declarationDefects`.
 
+**`test-build-verdict.mjs`** (named in the issue) runs under `test:verdict`, not the `test` chain. It gets an in-file
+`MIN_ASSERTIONS = 425`, #659's shape. With its `ok()` neutered it now fails
+`only 0 assertions ran, below this suite's floor of 425`.
+
 **`lint-doc-gates`' test-file arm (#3727)** read the test files from the `&&` chains. A script that runs
 `run-suites.ts` now counts as running the suites its `suites.json` lists (not its `elsewhere`). Dropping
 `test-run-ended.ts` from the table fails that arm by name too.
