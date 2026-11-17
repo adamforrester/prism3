@@ -17,12 +17,13 @@
 import type { BrandInput } from '@prism3/engine';
 import { isDirty, needsOverwriteConfirm, type Provenance } from '../provenance';
 
-/** The brand a load replaced: its input and provenance as they were, and its name for the offer's hint. */
-export type UndoLoad = { readonly input: BrandInput; readonly provenance: Provenance; readonly name: string };
+/** The brand a load replaced: its input and provenance as they were, its last-good input (the live input when that
+ *  resolves; an earlier one when the live input holds a refused edit), and its name for the offer's hint. */
+export type UndoLoad = { readonly input: BrandInput; readonly provenance: Provenance; readonly lastGood: BrandInput; readonly name: string };
 
 /** What to keep before a load replaces `current`: a copy, when the load would lose edits; else null. */
-export const stashBefore = (current: BrandInput, prov: Provenance, name: string): UndoLoad | null =>
-  needsOverwriteConfirm(current, prov) ? { input: structuredClone(current), provenance: prov, name } : null;
+export const stashBefore = (current: BrandInput, prov: Provenance, name: string, lastGood: BrandInput): UndoLoad | null =>
+  needsOverwriteConfirm(current, prov) ? { input: structuredClone(current), provenance: prov, lastGood: structuredClone(lastGood), name } : null;
 
 /** Whether the offer still stands: the loaded brand is untouched since it loaded. The first edit ends it. */
 export const stillOffered = (u: UndoLoad | null, current: BrandInput, prov: Provenance): u is UndoLoad =>

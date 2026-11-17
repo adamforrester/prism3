@@ -269,10 +269,21 @@ export const loadInput = (input: BrandInput, origin: Origin): void => {
 /** Put back a brand a load replaced, WITH ITS PROVENANCE (#1037, Undo load): the same reset as `loadInput`, except that
  *  the origin and baseline are the ones it had, not new ones from `input`. So unsaved edits come back still unsaved, and
  *  the overwrite confirm still guards them. `loadInput` would make them the baseline and the confirm would stop asking. */
-export const restoreInput = (input: BrandInput, prov: Provenance): void => {
+export const restoreInput = (input: BrandInput, prov: Provenance, lastGood: BrandInput): void => {
   brandState = structuredClone(input);
   provenance = prov;
   resolve();
+  // The brand may have held a refused edit when the load replaced it (review of 6e73dba1): then the resolve above fails
+  // and would leave the LOADED example's theme, last-good input and persisted copy in place. Resolve the last-good brand
+  // it had instead, so the theme, what Apply posts and what a web reload opens are the user's again; `lastError` keeps the
+  // refusal, so the field still flags the edit, as it did before the load.
+  if (lastError !== null) {
+    theme = brandTheme(lastGood);
+    rp = resolvePreview(theme);
+    lastGoodInput = structuredClone(lastGood);
+    if (persistHolds) persistOwed = true;
+    else persist?.(lastGoodInput);
+  }
   currentMode = rp.modes[0];
   page = 'palettes';
   invalidate('origin');

@@ -1335,7 +1335,7 @@ const replaceWorking = (put: () => void): void => {
 /** A load the designer chose (an example, a design.md, a start-window path) that may replace unsaved edits (#1037). The
  *  brand it replaces is kept for Undo load when it had edits to lose; the guard asked first in that case. */
 const loadReplacing = (input: BrandInput, origin: Origin): void => {
-  const keep = stashBefore(brandState, provenance, shownName(brandState));
+  const keep = stashBefore(brandState, provenance, shownName(brandState), lastGoodInput);
   loadBrand(input, origin);
   undoLoad = keep;
   barChanged();
@@ -1346,7 +1346,7 @@ const loadReplacing = (input: BrandInput, origin: Origin): void => {
 const undoLastLoad = (): void => {
   const u = undoLoad;
   if (!u) return;
-  replaceWorking(() => restoreInput(u.input, u.provenance));
+  replaceWorking(() => restoreInput(u.input, u.provenance, u.lastGood));
 };
 // "Until the next edit" (Q319.2): the first edit to the loaded brand ends the offer, and a later edit back to the
 // loaded values does not bring it back. A load's own notifications are skipped (`loading`).
