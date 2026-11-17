@@ -26,7 +26,7 @@ import { conflictKey, resolveCollisions, type CollisionChoices, type ChoiceTally
 /** How many times one apply resolves the person's choices before the guarded pre-flight decides (#1909). Each pass needs
  *  a choice for a collision the last pass made, which only a renamed name already taken does; this bounds it. */
 const RESOLVE_PASSES = 8;
-import { preloadFonts } from './preload-fonts';
+import { preloadFonts, availableStylesByFamily, resolveCutPlan } from './preload-fonts';
 import { persistInput, restoreInput } from './persist-figma';
 import { emissionOf, stampEmission } from './theme-emission';
 import { fontPreloadApiOf, preflightApiOf, textApiOf } from './theme-ports';
@@ -105,6 +105,10 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
   // with harbor's style name, a pair in neither plan), so this reads the file's styles as well as the
   // plan. It never throws: a typeface this Figma genuinely lacks is reported, not fatal.
   const pf = await preloadFonts(textPlan, fontPreloadApiOf(host));
+  // THE CUT VARIABLES IN EACH FAMILY'S OWN SPELLING (#1728), resolved before the variable stage writes them, so no
+  // stage writes a cut the family lacks under that name (Playfair's `SemiBold Italic`, not the engine's `Semi Bold
+  // Italic`). Only the values the variable stage writes change: the pre-flight and the print read the plans as built.
+  const cutPlan = resolveCutPlan(fontPlan, textPlan, await availableStylesByFamily(fontPreloadApiOf(host)));
   // THE BRAND THIS APPLY REPLACES (#2695), read before the write persists the new one, so the report can say when the
   // field style moved (`field-style-note.ts`). An unreadable store reads as none, as every other restore here does.
   let before: BrandInput | null = null;
@@ -167,7 +171,7 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       // TYPOGRAPHY (#237): core/font + type-sets variables first (bound targets must exist), then Text
       // Styles.
       await pace?.stage('type-vars', 4);
-      const tv = await applyVarCollectionPlan(fontPlan, host.variables, mig, pace?.tick);
+      const tv = await applyVarCollectionPlan(cutPlan.plans, host.variables, mig, pace?.tick);
       // The Text Style port needs figma's style/font surface + figma.variables' getter (`theme-ports.ts`).
       await pace?.stage('text-styles', 5);
       const tr = await renameTextStylesForPlan(textPlan, textApiOf(host));   // #1040, as for the styles above
