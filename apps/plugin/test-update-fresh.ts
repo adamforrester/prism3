@@ -48,7 +48,9 @@ import { leafForDef } from './src/file-taxonomy';
 import { createRunGuard } from './src/run-guard';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -184,5 +186,5 @@ ok(upd?.type === 'component-update-result', `update/after the last set: answered
   ok(!g2.busy(), 'guard/release: the later run releases its own hold when it ends');
 }
 
-console.log(failed ? `\n${failed} failed` : '\nall passed');
+console.log(`${failed ? `\n${failed} failed` : '\nall passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);
