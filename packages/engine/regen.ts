@@ -18,9 +18,9 @@
 // exactly "does the committed `out/` match the committed sources".
 
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, relative, resolve } from 'node:path';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -190,6 +190,46 @@ const regenerate = (): void => {
   for (const { label, args } of STEPS) runStep(args, label);
 };
 
+/** Every file and every directory under `dir`, relative to it, with NOTHING skipped — the restore's universe. Not
+ *  `walk`: that one leaves out the on-demand and uncommitted files, which the comparison ignores and the restore
+ *  must still put back exactly as they were. */
+const treeOf = (dir: string, rel = ''): { files: string[]; dirs: string[] } => {
+  const files: string[] = [], dirs: string[] = [];
+  for (const name of readdirSync(join(dir, rel))) {
+    const r = rel ? join(rel, name) : name;
+    if (statSync(join(dir, r)).isDirectory()) { dirs.push(r); const sub = treeOf(dir, r); files.push(...sub.files); dirs.push(...sub.dirs); }
+    else files.push(r);
+  }
+  return { files, dirs };
+};
+
+/**
+ * Put `live` back to `snap`, IN PLACE (#2029): `live` itself is never deleted, and no file is ever missing or half
+ * written while it runs. The restore used to `rmSync(out)` and copy the snapshot back, and a Studio or plugin build
+ * reading `out/` inside that window failed with "cannot load the default theme", a message about the theme, not the
+ * race. Now a file whose bytes differ is written to a sibling and RENAMED over the old one (atomic on one file
+ * system); a file whose bytes match stays where it is. Every file gets its snapshot timestamps back (#2067), what
+ * regen added is removed, and so are the directories it made.
+ */
+export const restoreTree = (snap: string, live: string): void => {
+  const want = treeOf(snap);
+  const keepFiles = new Set(want.files), keepDirs = new Set(want.dirs);
+  const have = treeOf(live);
+  for (const f of have.files) if (!keepFiles.has(f)) rmSync(join(live, f), { force: true });
+  for (const d of [...have.dirs].sort((a, b) => b.length - a.length)) if (!keepDirs.has(d)) rmSync(join(live, d), { recursive: true, force: true });
+  for (const d of want.dirs) mkdirSync(join(live, d), { recursive: true });
+  for (const f of want.files) {
+    const src = join(snap, f), dst = join(live, f);
+    if (!existsSync(dst) || !readFileSync(dst).equals(readFileSync(src))) {
+      const tmp = join(dirname(dst), `.${basename(dst)}.restore-${process.pid}`);
+      cpSync(src, tmp, { preserveTimestamps: true });
+      renameSync(tmp, dst);
+    }
+    const st = statSync(src);
+    utimesSync(dst, st.atime, st.mtime);
+  }
+};
+
 const check = (): void => {
   const tmp = mkdtempSync(join(tmpdir(), 'prism3-regen-'));
   const outSnap = join(tmp, 'out');
@@ -279,8 +319,8 @@ const check = (): void => {
     // snapshot and the restore, keeps its timestamps (#2067): without that, a clean `--check` left each
     // artifact newer than a bundle built just before it, and `assertBundleFresh` refused that bundle as
     // stale. `icon-glyphs.ts` compiles into both bundles, and a `--check` run after a build must not leave it stale.
-    rmSync(outDir, { recursive: true, force: true });
-    cpSync(outSnap, outDir, { recursive: true, preserveTimestamps: true });
+    // `out/` is put back IN PLACE, never deleted and recopied (#2029): a build reading it meanwhile must find it.
+    restoreTree(outSnap, outDir);
     for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) cpSync(join(schemaSnap, f), join(schemaDir, f), { preserveTimestamps: true });
     for (const f of ENGINE_ARTIFACTS) cpSync(join(engineSnap, f), join(here, f), { preserveTimestamps: true });
     for (const f of REPORT_ARTIFACTS) {
