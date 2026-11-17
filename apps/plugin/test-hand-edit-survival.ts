@@ -16,14 +16,16 @@
  * run or the apply's report. The edit is read off the shim's node after the run. Each arm also asserts the member was
  * written (or, for a layer added or removed by hand, skipped whole), so an arm cannot pass by the update writing nothing.
  *
- * Mutations, each failing the arms it names:
+ * Mutations, each measured, each failing the arms it names (every arm fails under at least one):
  *   · the node's own `kept` guard dropped (`kept ? undefined : await own()` → `await own()`, `write-components.ts`)
- *     → `survival/<kind> <plan>` for paint, binding, padding, text, visibility, opacity, layout, root paint;
- *   · #2943's `held` guard dropped from the ring pass → `survival/focus ring root`, `/focus ring overlap`;
+ *     → `survival/paint overlap`, `/binding …`, `/padding …`, `/text …`, `/layout …`, `/root paint …` (11);
+ *   · the `kept` guard on `claimDefaults` dropped → `survival/paint root`, `/nested corner …`, `/visibility …`,
+ *     `/opacity …` (7);
+ *   · #2943's `held` guard dropped from the parent's child passes → `survival/focus ring root`, `/focus ring overlap`;
  *   · #2956 point 1's reorder guard dropped → `survival/reorder root`, `/reorder overlap`;
  *   · #2956 point 1's wiring guard dropped → `survival/link root`, `/link overlap`;
  *   · the apply's skip of a member with a layer added or removed by hand dropped (`update-apply.ts`, `plan`) →
- *     `survival/layer added …`, `/layer removed …`.
+ *     `survival/layer added …`, `/layer removed …` (4).
  */
 import { makeShim, type Node, type Page } from './component-shim';
 import { componentDefs, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan } from '@prism3/engine/components';
