@@ -31,3 +31,38 @@ export const readUncommitted = (name: 'specs.json' | 'component-defs.json' | 'co
   }
   return JSON.parse(readFileSync(resolve(dir, 'components', name), 'utf8'));
 };
+
+// ------------------------------------------------------------------------------------------------ emitted bindings
+// Q142 A (#3506, #3839): `specs.json` carries each component's corner, stroke, focus ring and motion bindings. These
+// read them, and refuse anything that would make one CSS value a guess (a binding that differs where the CSS has one rule).
+
+/**
+ * The one token a redline key binds on one part, across every row a filter keeps. Throws when the rows bind more than
+ * one, because the CSS writes the value once, on the part's base rule.
+ */
+export const uniformRedline = (spec: any, part: string, key: string, keep: (where: Record<string, string>) => boolean = () => true): string => {
+  const seen = new Set<string>();
+  for (const row of spec.redlines) {
+    if (!keep(row.where)) continue;
+    const val = row.parts.find((p: any) => p.part === part)?.values?.[key];
+    if (val === undefined) continue;
+    if (!val.token) throw new Error(`${spec.id} ${part}.${key}: ${JSON.stringify(val)} is not a token`);
+    seen.add(val.token);
+  }
+  if (seen.size !== 1) throw new Error(`${spec.id} ${part}.${key}: ${seen.size ? `binds ${[...seen].join(', ')} across its rows, not one token` : 'no row binds it'}`);
+  return [...seen][0];
+};
+
+/** The shared focus ring's own line style: every host's `focusRing` row names it, and they must agree. */
+export const ringStyle = (specs: Record<string, any>): string => {
+  const styles = new Set(Object.values(specs).flatMap((s: any) => (s.focusRing ?? []).map((r: any) => r.style)));
+  if (styles.size !== 1) throw new Error(`the focus ring's style is ${styles.size ? [...styles].join(', ') : 'in no focusRing row'}, not one token`);
+  return [...styles][0];
+};
+
+/** One of a component's motion bindings by its key in the def (`specs.json`'s `motion`). */
+export const motionBinding = (spec: any, key: string): string => {
+  const t = spec.motion?.[key];
+  if (!t) throw new Error(`${spec.id} has no motion binding "${key}" in the emission`);
+  return t;
+};

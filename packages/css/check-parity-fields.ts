@@ -190,8 +190,11 @@ export const buildProbes = (contracts: { field: Record<string, Contract>; label:
       }
       probes.push({ kind, props: { [statusProp]: status, ...STATE[state]?.props }, state, where: `${kind} ${w(row.where)}`, checks, icons: true });
     }
-    // 3. Sizes, every redline row.
+    // 3. Sizes, every redline row, in its own state: since #3839 a row carries the corner and stroke, and the stroke
+    // moves at focus, so the key holds `state`. The focus stroke is the focus edge, an inset outline (#3399).
     for (const row of spec.redlines) {
+      const { state = 'rest', ...coord } = row.where;
+      if (!STATE[state]) { gaps.push(`${kind} redline row ${w(row.where)}: no markup for state ${state}`); continue; }
       const checks: Check[] = [];
       for (const p of row.parts) for (const [k, val] of Object.entries<any>(p.values)) {
         const leaf = p.part.split('/').pop();
@@ -199,11 +202,12 @@ export const buildProbes = (contracts: { field: Record<string, Contract>; label:
         if (k === 'buildWidth') { skipped.add(`${kind} ${p.part}.buildWidth: the Figma build width`); continue; }
         const prop = k === 'gap' ? (p.part === 'container' ? 'row-gap' : 'column-gap')
           : k === 'height' ? (p.part === 'container/control' ? 'min-height' : 'height')
-          : ({ paddingTop: 'padding-top', paddingBottom: 'padding-bottom', paddingLeft: 'padding-left', paddingRight: 'padding-right', width: 'width', minWidth: 'min-width' } as Record<string, string>)[k];
+          : k === 'strokeWidth' ? (STATE[state].focus ? 'outline-width' : 'border-top-width')
+          : ({ paddingTop: 'padding-top', paddingBottom: 'padding-bottom', paddingLeft: 'padding-left', paddingRight: 'padding-right', width: 'width', minWidth: 'min-width', radius: 'border-top-left-radius' } as Record<string, string>)[k];
         if (!prop) { gaps.push(`${kind} redline ${p.part}.${k} has no CSS property in this check`); continue; }
         checks.push({ ...at(kind, p.part), prop, want: val.token ?? `(px ${val.px})`, what: `${p.part} ${k}` });
       }
-      probes.push({ kind, props: { ...row.where }, state: 'rest', where: `${kind} ${w(row.where)}`, checks, icons: true });
+      probes.push({ kind, props: { ...coord, ...STATE[state].props }, state, where: `${kind} ${w(row.where)}`, checks, icons: true });
     }
     // 4. Text, every type row (the placeholder at rest, the value filled).
     for (const row of spec.type) for (const p of row.parts) {
