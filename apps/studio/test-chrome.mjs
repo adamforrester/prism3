@@ -1101,8 +1101,9 @@ if (browser) {
  *  screen's prism3 chip (or `brand`'s), the OS scheme emulated, `query` (web only) appended to the page URL.
  *  Plugin: Figma's theme stubbed, then the start screen the host asks for, then the same example. Named
  *  options, so `brand` (#2194) and `query` (#2124) can't be passed in each other's place. */
-const open = async ({ host, theme, w, h, store, query = '', brand = 'prism3', prep, liveMotion = false }) => {
-  const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: theme, liveMotion });
+// `scale` (#3911): the device scale factor, for a section whose screenshots a person reads (2); measurements leave it at 1.
+const open = async ({ host, theme, w, h, store, query = '', brand = 'prism3', prep, liveMotion = false, scale = 1 }) => {
+  const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: theme, liveMotion, deviceScaleFactor: scale });
   const page = await ctx.newPage();
   // `prep` (#3138): runs on the page before it loads, for a section that must see every request from boot on.
   if (prep) await prep(page);
@@ -12022,7 +12023,9 @@ const FOCUS_SWEEP_SKIP = INSPECT_LEGACY.filter((h) => !SWEPT_LEGACY.includes(h))
  *  Brand's surface select, Depth & motion's replay and speed, and the token list's segments (Inspect › Token list, on
  *  Semantics, the one tier that draws the Alias path segment). */
 const B2_RING_NEEDS = ['[data-p3="style-guide-ground"]', '[data-p3="motion-play"]', '[data-p3="motion-slowmo"]', '[data-p3="token-tier-primitive"]',
-  '[data-p3="token-tier-semantic"]', '[data-p3="token-path-full"]', '[data-p3="token-path-short"]'];
+  // #3911: the Alias path control is the shared radio group now, one Tab stop (its selected option, Full on opening);
+  // Short is reached by the arrow keys, as every `choice` is, so it is no Tab stop to require here.
+  '[data-p3="token-tier-semantic"]', '[data-p3="token-path-full"]'];
 /** Controls the sweep must reach and measure, by hook: Continue, a chip, a text field, a tab, and one of each other
  *  kind the issue names. The plugin adds its own bar control and the Components set box (#2700). */
 const FOCUS_SWEEP_NEEDS = {
@@ -17500,8 +17503,9 @@ console.log(`\nInput commit and focus retention (#2487 PR 1)\n${'='.repeat(78)}`
 //   · D2: Brand's "View style guide on" surface select has that caption as its accessible name.
 //   · D5 and Q197: exactly one `main` landmark everywhere, and the only named regions are the two panes, Inspect and
 //     Activity, each only while it is drawn.
-//   · Q195: the token list's selected Alias path segment (`.seg-b.on`) draws an edge of 2px or more that reaches 3:1
-//     against its own fill and against the ground of its unselected neighbor.
+//   · Q195 (retired by #3911, owner direction 2026-11-17): the Alias path control drew its selection as a 2px underline
+//     on the legacy `.seg-b.on`; it is the shared segmented control now, and section 3911 holds its selected segment to
+//     the shared one.
 //   · Q196 (closes D6): the Interactive specimens are display-only: Tab never lands on one, on Brand's Style guide or on
 //     Color › Interactive, and the accessibility tree exposes none of them as a button.
 //
@@ -17517,8 +17521,6 @@ console.log(`\nInput commit and focus retention (#2487 PR 1)\n${'='.repeat(78)}`
 //     landmark and no named region (main 0, …)`, every place.
 //   · a lever section named again (brand.ts's `aria-labelledby`) → `… / brand: D5 Q197 exactly one main landmark and no
 //     named region (… regions ["Identity", …])`.
-//   · the underline dropped from `.seg-b.on` (styles.css) → `#2487 web 1280: Q195 the selected Alias path segment draws
-//     an edge of 2px or more at 3:1 …`.
 //   · `b.inert = true` removed (preview/sections/interactive.ts) → `#2487 web light 1280 / color-interactive: Q196 Tab
 //     never lands on a specimen …` and `… the accessibility tree exposes no specimen as a button …`, on Brand too.
 // The 2px ring on the legacy controls (B2) is section 27's: its sweep reads them by name (B2_RING_NEEDS).
@@ -17611,41 +17613,13 @@ console.log(`\n#2487 names, landmarks, the selected segment and the display-only
         }
         if (w === 1280) {
           step = 'Inspect › Token list';
-          // Over a Theme page: Components, the last place, shows no Inspect since #3149.
+          // Over a Theme page: Components, the last place, shows no Inspect since #3149. (Q195's measure of the Alias path
+          // segment stood here until #3911; section 3911 holds that control now.)
           await goPlace(page, 'brand');
           await hooks.click(page.locator('[data-p3="inspect-open"]'), WAIT);
           await hooks.click(page.locator('[data-p3="inspect-option-tokens"]'), WAIT);
           await hooks.click(page.locator('[data-p3="token-tier-semantic"]'), WAIT);
           await hooks.need(page, '[data-p3="token-path-full"]');
-          const seg = await page.evaluate(() => {
-            const parse = (s) => { const m = /rgba?\(([^)]+)\)/.exec(s ?? ''); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
-            const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
-            const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
-            const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
-            const groundOf = (n0) => { let acc = null; for (let n = n0; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return { ...acc, a: 1 }; } } return acc ? over(acc, { r: 255, g: 255, b: 255, a: 1 }) : { r: 255, g: 255, b: 255, a: 1 }; };
-            const on = [...document.querySelectorAll('[data-p3="token-path-full"], [data-p3="token-path-short"]')].find((b) => b.classList.contains('on'));
-            const off = [...document.querySelectorAll('[data-p3="token-path-full"], [data-p3="token-path-short"]')].find((b) => b !== on);
-            if (!on || !off) return { found: false };
-            // The edge: the box-shadow drawn INSIDE the segment and offset vertically (an underline, or an overline), or a
-            // border, whichever is wider. The browser's computed shadow lists the color first, then the offsets.
-            const edges = [];
-            for (const part of getComputedStyle(on).boxShadow.split(/,(?![^(]*\))/)) {
-              const c = parse(part);
-              const nums = part.replace(/rgba?\([^)]*\)/, '').match(/-?[\d.]+px/g)?.map(parseFloat) ?? [];
-              if (c && /inset/.test(part) && nums.length >= 2 && nums[0] === 0 && Math.abs(nums[1]) > 0) edges.push({ c, w: Math.abs(nums[1]) });
-            }
-            const cs = getComputedStyle(on);
-            for (const side of ['Top', 'Right', 'Bottom', 'Left']) {
-              const bw = parseFloat(cs[`border${side}Width`]);
-              if (cs[`border${side}Style`] !== 'none' && bw > 0) edges.push({ c: parse(cs[`border${side}Color`]), w: bw });
-            }
-            const fill = groundOf(on), beside = groundOf(off);
-            const best = edges.filter((e) => e.c).map((e) => ({ w: e.w, own: Math.floor(ratio(over(e.c, fill), fill) * 100) / 100, near: Math.floor(ratio(over(e.c, beside), beside) * 100) / 100 }))
-              .sort((a, b) => Math.min(b.own, b.near) - Math.min(a.own, a.near))[0] ?? null;
-            return { found: true, which: on.dataset.p3, best };
-          });
-          ok(seg.found && seg.best && seg.best.w >= FOCUS_WIDTH_MIN && seg.best.own >= NONTEXT_MIN && seg.best.near >= NONTEXT_MIN,
-            `${where}: Q195 the selected Alias path segment draws an edge of ${FOCUS_WIDTH_MIN}px or more at ${NONTEXT_MIN}:1 against its own fill and its neighbor's ground (read ${JSON.stringify(seg)})`);
           step = 'Activity';
           // #2909: the rail draws no Activity tile; its drawer opens from its own row, drawn once something has run. The
           // studio runs nothing, so its drawer is never drawn (Q2909.9 A): this step is the plugin's.
@@ -22724,6 +22698,135 @@ if (runs('3553-icons')) {
     } finally { await ctx.close(); }
   }
 } // 3553-icons
+// #3911 (owner report, 2026-11-17): EVERY SEGMENTED CONTROL DRAWS ITS SELECTED SEGMENT FROM ONE SOURCE. The token list's
+// Alias path control (Full / Short, Inspect › Token list › Semantics) was built from the legacy preview classes
+// (`.seg` / `.seg-b.on`, styles.css), whose selected segment carried a 2px --ink underline (Q195, #2487); every other
+// segmented control is the chrome's `.p3-seg` of `.p3-seg-tab`s and draws none. Held on both hosts, both themes, at 1280,
+// on every place, on the Export area and on the token list with each Alias path option selected:
+//   · the Alias path control is drawn, as a `.p3-seg` of `.p3-seg-tab`s (REPRESENTED: the arm fails when it measured none);
+//   · each drawn segmented control's selected segment computes the same selected style, property by property, as a PROBE
+//     the test draws itself: a `.p3-seg` holding one checked `.p3-seg-tab`, appended to the frame inside a box carrying
+//     the control's nearest `data-theme` (the token list's card is pinned light, `legacyHost`), and nothing else of the
+//     control's context. A HELD (disabled)
+//     selected segment, as the preview's mode control is on Color › Palettes, draws the disabled treatment instead
+//     (`.p3-mode`, #2208 DB1 A): its style is not compared, and it is still held to no underline;
+//   · no selected segment draws an underline (an inset box-shadow offset vertically).
+// What counts as a segmented control: `.p3-seg`, the legacy `.seg`, and any `[role="radiogroup"]`, drawn. Not counted,
+// by name: the token list's Primitives / Semantics tier row (`.pvseg.tok-seg`) and Export's artifact switcher
+// (`.p3-export-tabs`, #3553 Q-UI11 A), which are underline TAB rows by decision, not segmented controls.
+//
+// INDEPENDENCE (docs/34). EXPECTED is the probe's computed style: the shared rule as the browser cascades it onto markup
+// this test wrote, outside every control's context. ACTUAL is each drawn control's selected segment. A one-off rule that
+// reaches one control (a context selector, a class of its own, or a control left on the legacy classes) cannot reach
+// the probe, so it fails by name; an edit to the shared rule moves the probe and every control together, and passes.
+// MUTATIONS (each after a `wip:` commit, on both rebuilt bundles):
+//   · `.tok-ctrls .p3-seg-tab[aria-checked="true"]{box-shadow:inset 0 -2px 0 var(--ink)}` added to styles.css (the
+//     legacy sheet, where a shadow can land; the chrome build refuses one in chrome.css, T5) → `#3911 … token-path's
+//     selected segment draws no underline` and `… token-path's selected segment ("Full") draws the shared selected style`;
+//   · the Alias path control put back on `.seg` / `.seg-b` (main.ts), which is main before #3911 → `#3911 … the Alias
+//     path control is a shared segmented control` and `… inspect-token-list's selected segment draws no underline` (the
+//     legacy group carries no hook of its own, so it is named by its card's).
+if (runs('3911')) {
+  console.log(`\nEvery segmented control's selected segment is the shared one (#3911)\n${'='.repeat(78)}`);
+  const SEL_PROPS = ['backgroundColor', 'color', 'fontWeight', 'boxShadow', 'outlineStyle',
+    ...['Top', 'Right', 'Bottom', 'Left'].flatMap((s) => [`border${s}Width`, `border${s}Style`, `border${s}Color`]),
+    'borderTopLeftRadius', 'borderBottomRightRadius'];
+  /** Every drawn segmented control's selected segment, read against the probe. */
+  const readSegs = (page) => page.evaluate((props) => {
+    const shown = (n) => n.getClientRects().length > 0 && getComputedStyle(n).visibility !== 'hidden';
+    const sig = (n) => { const cs = getComputedStyle(n); return Object.fromEntries(props.map((p) => [p, cs[p]])); };
+    const frame = document.querySelector('[data-p3="frame"]');
+    // The probe sits in the control's THEME (a legacy card is pinned light, `legacyHost`), and in nothing else of its.
+    const probeIn = (theme) => {
+      const box = document.createElement('div');
+      if (theme) box.dataset.theme = theme;
+      box.style.cssText = 'position:fixed;left:-9999px;top:0';
+      const pg = document.createElement('div');
+      pg.className = 'p3-seg';
+      const p = document.createElement('button');
+      p.type = 'button'; p.className = 'p3-seg-tab'; p.setAttribute('role', 'radio'); p.setAttribute('aria-checked', 'true');
+      p.textContent = 'Probe';
+      pg.append(p); box.append(pg); frame.append(box);
+      const out = sig(p);
+      box.remove();
+      return out;
+    };
+    const groups = [...new Set(document.querySelectorAll('.p3-seg, .seg, [role="radiogroup"]'))]
+      .filter((g) => shown(g) && !g.matches('.tok-seg, .p3-export-tabs'));
+    const isOn = (b) => ['aria-checked', 'aria-pressed', 'aria-selected'].some((a) => b.getAttribute(a) === 'true') || b.classList.contains('on');
+    return groups.map((g) => {
+      let n = g;
+      while (n && !n.getAttribute('data-p3')) n = n.parentElement;
+      const name = n?.getAttribute('data-p3') ?? g.className;
+      const on = [...g.querySelectorAll('button, [role="radio"]')].find((b) => shown(b) && isOn(b));
+      if (!on) return { name, on: null };
+      const held = on.disabled || on.getAttribute('aria-disabled') === 'true';
+      const theme = g.closest('[data-theme]')?.dataset.theme ?? null;
+      const want = probeIn(theme);
+      const got = sig(on);
+      // A held segment draws the disabled treatment (the mode check's, #2208 DB1 A), so its style is not compared.
+      const diff = held ? [] : props.filter((p) => got[p] !== want[p]).map((p) => `${p} ${got[p]} (shared ${want[p]})`);
+      const underline = got.boxShadow.split(/,(?![^(]*\))/).filter((part) => /inset/.test(part))
+        .some((part) => { const n = part.replace(/rgba?\([^)]*\)/, '').match(/-?[\d.]+px/g)?.map(parseFloat) ?? []; return n.length >= 2 && n[0] === 0 && n[1] !== 0; });
+      return { name, on: `${on.textContent.trim()}${held ? ', held' : ''}`, shared: g.classList.contains('p3-seg') && on.classList.contains('p3-seg-tab'), diff, underline, boxShadow: got.boxShadow };
+    });
+  }, SEL_PROPS);
+  for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+    const where = `3911 ${host} ${theme} 1280`;
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900, scale: SHOTS ? 2 : 1 });
+    let step = 'boot';
+    const measured = new Map();
+    const hold = (at, list) => {
+      for (const c of list) {
+        measured.set(c.name, (measured.get(c.name) ?? 0) + 1);
+        ok(!!c.on, `#3911 ${where} / ${at}: ${c.name} draws a selected segment (${JSON.stringify(c)})`);
+        if (!c.on) continue;
+        ok(!c.underline, `#3911 ${where} / ${at}: ${c.name}'s selected segment draws no underline (box-shadow ${c.boxShadow})`);
+        ok(c.diff.length === 0, `#3911 ${where} / ${at}: ${c.name}'s selected segment ("${c.on}") draws the shared selected style${c.diff.length ? ` — differs in ${c.diff.join('; ')}` : ''}`);
+      }
+    };
+    try {
+      for (const place of NEW_PAGES) {
+        step = place;
+        await goPlace(page, place);
+        await settle(page);
+        hold(place, await readSegs(page));
+      }
+      step = 'Inspect › Token list › Semantics';
+      await goPlace(page, 'brand');
+      await hooks.click(page.locator('[data-p3="inspect-open"]'), WAIT);
+      await hooks.click(page.locator('[data-p3="inspect-option-tokens"]'), WAIT);
+      await hooks.click(page.locator('[data-p3="token-tier-semantic"]'), WAIT);
+      await hooks.need(page, '[data-p3="token-path-full"]');
+      await settle(page);
+      const alias = await page.evaluate(() => {
+        const b = document.querySelector('[data-p3="token-path-full"]');
+        const g = b?.parentElement;
+        return { group: g?.className ?? null, hook: g?.getAttribute('data-p3') ?? null, tabs: [...(g?.children ?? [])].map((n) => n.className) };
+      });
+      ok(alias.hook === 'token-path' && /\bp3-seg\b/.test(alias.group ?? '') && alias.tabs.length === 2 && alias.tabs.every((c) => /\bp3-seg-tab\b/.test(c)),
+        `#3911 ${where}: the Alias path control is a shared segmented control, a .p3-seg of .p3-seg-tab (read ${JSON.stringify(alias)})`);
+      hold('token list, Full', await readSegs(page));
+      if (SHOTS && host === 'web') await page.locator('.tok-ctrls').screenshot({ path: join(SHOTS, `s3911-${theme}-full.png`) });
+      step = 'Alias path: Short';
+      await hooks.click(page.locator('[data-p3="token-path-short"]'), WAIT);
+      await settle(page);
+      hold('token list, Short', await readSegs(page));
+      if (SHOTS && host === 'web') await page.locator('.tok-ctrls').screenshot({ path: join(SHOTS, `s3911-${theme}-short.png`) });
+      step = 'export';
+      await page.keyboard.press('Escape');
+      await hooks.click(page.locator('[data-p3="rail-export"]'), WAIT);
+      await hooks.need(page, '[data-p3="export-page"] [data-p3="export-setting"]');
+      await settle(page);
+      hold('export', await readSegs(page));
+      ok((measured.get('token-path') ?? 0) >= 2, `#3911 ${where}: premise, the Alias path control was measured with each option selected (${measured.get('token-path') ?? 0} reading(s); measured ${JSON.stringify([...measured])})`);
+      ok(measured.size >= 4, `#3911 ${where}: premise, segmented controls of four or more kinds were measured (${JSON.stringify([...measured])})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3911
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
