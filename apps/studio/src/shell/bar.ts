@@ -148,7 +148,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
   homeName.append(homeNameText, homeBadge);
 
   // #1037: Undo load, beside the switcher while it is offered. A button that stays until the next edit, not a toast that
-  // times out: the decision ties it to the next edit, and a timed control can vanish before it is reached.
+  // times out and can vanish before it is reached. "Undo load" is APPROVED wording (owner decision Q-BK2 A).
   const undo = hook(h('button', 'p3-btn p3-btn-page'), 'undo-load');
   undo.type = 'button';
   undo.textContent = 'Undo load';

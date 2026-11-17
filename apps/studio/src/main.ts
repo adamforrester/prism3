@@ -1515,7 +1515,7 @@ const barRead = (): BarView => ({
   // download) closes. The one mechanism that holds it open (#2995, nit 4).
   exportOpen: exportMenuOpen || page === 'export',
   home: homeBar(homeShown()),
-  // #1037: DRAFT wording (docs/voice-standard.md), an owner decision on the PR.
+  // #1037: APPROVED wording (owner decision Q-BK2 A, 2026-11-17), "Back to <brand>, with your edits".
   undo: undoLoad ? { hint: `Back to ${undoLoad.name}, with your edits` } : null,
 });
 

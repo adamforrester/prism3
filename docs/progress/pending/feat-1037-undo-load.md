@@ -14,12 +14,12 @@
 - **Which loads:** an example, a design.md import and a start-window path, which are all loads the designer chose. Not
   the file's own brand arriving (Replace brand on a held restore, #3697 R9).
 
-### Held for the owner (DRAFT, built as recommended)
+### Owner decisions (Q-BK2 A, 2026-11-17: APPROVED as built)
 
 1. **Button or toast:** a button in the bar that stays until the next edit, not a timed toast. A toast's timer would
    end the offer before "the next edit" does, and a control that disappears on a timer is hard to reach by keyboard.
 2. **Wording:** the button reads "Undo load" (the decision's own words). Its hint and accessible name add "Back to
-   <brand>, with your edits". DRAFT per `docs/voice-standard.md`.
+   <brand>, with your edits". APPROVED.
 3. **Scope:** issue question 3 asked whether this generalizes beyond examples. It is built for every load the designer
    chooses from the brand menu or the start window, because they share one door (`loadReplacing`).
 
