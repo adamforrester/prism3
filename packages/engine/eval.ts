@@ -25,7 +25,7 @@
  */
 
 import { resolveAllModes } from './modes';
-import { contrast, hexToRgb } from './color';
+import { contrast, floorRatio, hexToRgb } from './color';
 
 /**
  * The ONE tier a consumer should not reference directly — the raw primitives the semantic layer is
@@ -137,9 +137,9 @@ export const scoreContractCompliance = (pairs: UsedPair[], theme: any): Contract
       const fg = m.roles[fgK]?.hex, bg = m.roles[bgK]?.hex;
       if (!fg || !bg) continue;
       anyResolved = true; checked++;
-      const raw = contrast(hexToRgb(fg), hexToRgb(bg));    // CR-01: decide on the RAW ratio, round only to display
+      const raw = contrast(hexToRgb(fg), hexToRgb(bg));    // CR-01: decide on the RAW ratio, floor only to display
       if (raw >= min) pass++;
-      else failures.push({ pair: label, mode: m.mode, ratio: Math.round(raw * 100) / 100, min });
+      else failures.push({ pair: label, mode: m.mode, ratio: floorRatio(raw), min });    // #3759: never rounds up onto `min`
     }
     if (!anyResolved) unresolved.add(label);
   }
