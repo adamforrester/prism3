@@ -37,7 +37,7 @@ import type { FigmaCollectionFile } from './emit-figma';
 import { MOTION_FIGMA_COVERAGE, springBounce } from './emit-figma-dims';
 import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount, DTCG_TYPES } from './emit-dtcg-overlay';
 import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
-import { buildTree, validateBrandInput, readExampleBrand } from './emit-dtcg';
+import { buildTree, validateBrandInput, readExampleBrand, contractReportRow } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { validate as validateJsonSchema } from './json-schema-lite';
 import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
@@ -1015,6 +1015,32 @@ for (const hx of ['#000000', '#333333', '#7f7f7f', '#808080', '#ffffff']) {
     const f = srcFiles.find((x) => rel(x) === site);
     ok(!!f && /\b(formatRatio|fmtRatio)\b/.test(readFileSync(f, 'utf8')), `#3697 L3 ${site} is in the ratio scan and prints through formatRatio`);
   }
+  // #3759: the engine's own reports print through it too. The contract row, driven at the review's case: a 4.496 pair
+  // under a 4.5 floor prints 4.49 beside its ❌, never 4.50.
+  const row3759 = contractReportRow('text.secondary', { path: 'p.palette.neutral.550', ratio: 4.496, min: 4.5 }, 'p.palette');
+  ok(row3759 === '| text.secondary | neutral.550 | 4.49 | 4.5 | ❌ |', `#3759 modes-report row floors a 4.496 pair to 4.49 beside its ❌ (got "${row3759}")`);
+  // The committed report, read back: a printed contrast never reads at or above its floor beside a ❌, nor below it beside a ✅.
+  const reportRows = readFileSync(resolve(HERE, 'modes-report.md'), 'utf8').split('\n').map((l) => l.split('|').map((c) => c.trim()))
+    .filter((c) => c.length === 7 && /^\d+\.\d\d$/.test(c[3]) && /^[\d.]+$/.test(c[4]));
+  const liars = reportRows.filter((c) => (+c[3] >= +c[4]) !== (c[5] === '✅')).map((c) => `${c[1]} ${c[3]}/${c[4]} ${c[5]}`);
+  ok(reportRows.length > 1000 && liars.length === 0, `#3759 modes-report.md: every printed contrast agrees with its result (${reportRows.length} rows; disagree: ${liars.join(', ') || 'none'})`);
+  // And the scan reaches the engine (#3759): every non-test, non-gate source under packages/engine. A gate's own failure
+  // message is a diagnostic, not an artifact, so lint-*.ts is out of scope. Each exemption names its line and why, and
+  // must still match it, so a stale one fails rather than lingering.
+  const ENGINE_EXEMPT: Record<string, RegExp[]> = {
+    // A target the picker aims at, not a measured ratio.
+    'modes.ts': [/borderSecondaryTarget\.toFixed\(/,
+      // #3840: the sub-floor state-label note's one-place "about" — its form is the owner's call there.
+      /about \$\{\+r\.toFixed\(1\)\}:1/],
+  };
+  const engineSrc = readdirSync(HERE).filter((n) => n.endsWith('.ts') && n !== 'test.ts' && !n.endsWith('-test.ts') && !n.startsWith('lint-'));
+  const engineRolled = engineSrc.flatMap((n) => readFileSync(resolve(HERE, n), 'utf8').split('\n').flatMap((text, i) =>
+    HAND_ROLLED.some((re) => re.test(text)) && !(ENGINE_EXEMPT[n] ?? []).some((re) => re.test(text)) ? [`packages/engine/${n}:${i + 1}`] : []));
+  ok(engineRolled.length === 0, `#3759 no hand-rolled contrast-ratio toFixed under packages/engine (gates and tests aside) — print through formatRatio (found: ${engineRolled.join(', ') || 'none'})`);
+  for (const [n, res] of Object.entries(ENGINE_EXEMPT)) for (const re of res)
+    ok(readFileSync(resolve(HERE, n), 'utf8').split('\n').some((t) => re.test(t) && HAND_ROLLED.some((h) => h.test(t))), `#3759 the ratio-scan exemption ${re} in ${n} still names a scanned line`);
+  for (const n of ['emit-dtcg.ts', 'nb-regression.ts'])
+    ok(engineSrc.includes(n) && /\bformatRatio\b/.test(readFileSync(resolve(HERE, n), 'utf8')), `#3759 packages/engine/${n} is in the ratio scan and prints through formatRatio`);
   const grayPrimary = storedOklch(rgbToOklch(hexToRgb('#808080')));
   const sameRgb = (c: RGB) => c.r === c.g && c.g === c.b;
   const neutralGray = (t: any) => t.palettes.find((p: any) => p.palette === 'neutral').steps.every((st: any) => sameRgb(st.rgb));
