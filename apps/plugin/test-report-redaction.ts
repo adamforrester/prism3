@@ -43,7 +43,9 @@ import { themePlans } from './src/apply-theme';
 import { FileShim } from './file-shim';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -309,5 +311,5 @@ const boom = async (): Promise<never> => { throw new TypeError(HOST_SECRET); };
 }
 
 console.log = log;
-console.log(failed ? `\n${failed} failed` : '\nall passed');
+console.log(`${failed ? `\n${failed} failed` : '\nall passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);
