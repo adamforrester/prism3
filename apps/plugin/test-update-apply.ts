@@ -22,6 +22,13 @@
  *   drop/…         a member the plan no longer has is kept and marked deprecated, never deleted. Mutation: a
  *                  dropped member removed → `drop/kept`.
  *   add/…          a member the plan gained is built into the set; every existing member keeps its key.
+ *   member-order/… a member whose name lists its segments in another order (#2944) is renamed to the plan's order and
+ *                  updated in place, no rename listed or counted, and a build skips it as present: the set keeps 45
+ *                  members, one per coordinate. Mutations: `withOrderMoves` adding no move → `member-order/renamed in
+ *                  place`, `/keys`, `/settled` (the executor's coordinate match still stops the duplicate); that match
+ *                  dropped from `have`, or from the layout's `cellOf` → `member-order/build`; `withOrderMoves` not
+ *                  reading the plan's skip set → `member-order/skipped keeps its name`. On main every arm fails but
+ *                  that last one, `/no duplicate` with the issue's 46 members.
  *   stop/…         a run that stops part-way leaves members that read out of date, and running the update again
  *                  finishes it with every key unchanged. Mutation: the stamp written before the member is
  *                  configured → `stop/out of date`, `stop/finished`.
@@ -1131,6 +1138,61 @@ section('add, wash — a member an update adds is verified against its plan, its
     const line = res.outcomes[0]?.content.find((x) => x.startsWith(name) && /fills/.test(x));
     ok(!applyVerdict(res).ok && !!line, `add, wash/verified: the apply fails and names the added member's fill (${applyVerdict(res).headline}; ${line ?? JSON.stringify(res.outcomes[0]?.content.slice(0, 2))})`);
   }
+}
+
+/* ── order (#2944) ───────────────────────────────────────────────────────────────────────────────────── */
+section('order — a member whose name lists its segments in another order is updated in place, never added again (#2944)');
+{
+  // Figma rewrites a member's segment order when an axis is renamed in its UI. One member on its planned coordinate,
+  // under the reversed order: the update renames it to the plan's order and configures it in place; the set keeps 45
+  // members, one per coordinate, every key and id. Before #2944 the build's pass missed it by name and added a second.
+  // The dry run still lists no rename for it (#2265, `order/permuted` in test-update-components.ts).
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const odd = membersOf(w.set())[5];
+  const planName = String(odd.name);
+  odd.name = planName.split(', ').reverse().join(', ');
+  const before = identityOf(w.set());
+  const { pre, res } = await confirm(w, [{ def: TAG, plans: moveGap(w.plans) }]);
+  const o = res.outcomes[0];
+  const coords = membersOf(w.set()).map((m) => String(m.name).split(', ').sort().join(', '));
+  ok(pre.sets[0].counts.add === 0 && membersOf(w.set()).length === 45 && o.added === 0 && new Set(coords).size === 45,
+    `member-order/no duplicate: 45 members before and after, none added, one per coordinate (${membersOf(w.set()).length} members, ${o.added} added, ${coords.length - new Set(coords).size} doubled)`);
+  ok(pre.sets[0].counts.rename === 0 && o.renamed === 0 && String(odd.name) === planName && o.updated.includes(planName) && o.updated.length === 45,
+    `member-order/renamed in place: no rename is listed or counted, and the member takes the plan's order and is updated with the rest (${pre.sets[0].counts.rename} listed, ${o.renamed} counted; ${String(odd.name)}; ${o.updated.length} updated)`);
+  const after = identityOf(w.set());
+  ok(after.members.get(planName)?.id === before.members.get(planName.split(', ').reverse().join(', '))?.id && [...before.members.values()].every((b) => [...after.members.values()].some((a) => a.key === b.key && a.id === b.id)),
+    'member-order/keys: every member keeps its key and id, the renamed one included');
+  const again = await previewUpdate(w.host, [{ def: TAG, plans: moveGap(w.plans) }]);
+  ok(again.sets[0].counts.current === 45 && again.sets[0].counts.rename === 0, `member-order/settled: the next dry run reads all 45 current (${JSON.stringify(again.sets[0].counts).slice(0, 120)})`);
+}
+{
+  // A build over the same set (Build on a set already there, add-only) skips the member as present and adds nothing.
+  const w = await world(TAG);
+  const odd = membersOf(w.set())[5];
+  odd.name = String(odd.name).split(', ').reverse().join(', ');
+  const r = await applyComponentPlan(w.plans, w.api);
+  const coords = membersOf(w.set()).map((m) => String(m.name).split(', ').sort().join(', '));
+  ok(r.added === 0 && membersOf(w.set()).length === 45 && new Set(coords).size === 45 && !r.misses.some((x) => /NOT A GENERATED VARIANT/.test(x)),
+    `member-order/build: a build adds no member on a coordinate the set holds, and lays the reordered one out as its own (${membersOf(w.set()).length} members, ${r.added} added)`);
+}
+
+{
+  // A member the update skips keeps its name (#3816 review). The `unrecorded/skip` world, every record cleared, with one
+  // member under the reversed order: under `noBaseline: 'skip'` the plan leaves every member, so the order move must
+  // leave it too. Renamed, it was written to by a run that reports it left, under a name no longer in the file.
+  // Mutation: `withOrderMoves` not reading the plan's skip set → `member-order/skipped keeps its name`.
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  for (const m of membersOf(w.set())) (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, '');
+  const odd = membersOf(w.set())[5];
+  const oddName = String(odd.name).split(', ').reverse().join(', ');
+  odd.name = oddName;
+  const next = moveGap(w.plans);
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: next }]);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre), { choices: { noBaseline: 'skip' } });
+  const o = res.outcomes[0];
+  const names = new Set(membersOf(w.set()).map((m) => String(m.name)));
+  ok(o?.skipped.length === 45 && String(odd.name) === oddName && o.skipped.every((x) => names.has(x.member)) && o.renamed === 0,
+    `member-order/skipped keeps its name: under noBaseline: 'skip' the reordered member is left under its own name, and every member left is named as the file names it (${o?.skipped.length} left; ${String(odd.name)}; ${o?.skipped.filter((x) => !names.has(x.member)).length} named off the file)`);
 }
 
 /* ── stop ────────────────────────────────────────────────────────────────────────────────────────────── */
