@@ -2071,21 +2071,49 @@ for (const b of brands) {
 
   // The link ANCHORS where the action fill anchors (modes.ts `linkFollowsAction`), not at the rebased
   // palette's own baseline step (`theme.linkAnchorStep`). The accent above sits mid-ramp, so both anchors
-  // pick the same link steps and could not tell them apart; a far-lightness brand color can. Literals were
-  // measured on this tree. They also carry #1896 (the action anchor follows the `actionPalette` lever, so a
-  // `roleColors.action` rebase anchors at primary's step): fixing #1896 moves the fill and these together.
-  // BY-NAME MUTATION: `const linkAnchor = theme.linkAnchorStep;` in modes.ts → deep lands on 850 in light
-  // and hc-light, pale on 050 in dark and hc-dark, and both asserts below fail.
+  // pick the same link steps and could not tell them apart; a far-lightness brand color can, once its action
+  // anchor is PINNED away from its own shade. Since #1896 an unpinned rebase anchors the fill at the color's own
+  // shade, the same step `linkAnchorStep` names, so only a pin separates the two (deep pinned at 550, pale at 500).
+  // Literals were measured on this tree. BY-NAME MUTATION: `const linkAnchor = theme.linkAnchorStep;` in modes.ts →
+  // deep lands on 850 in light and hc-light, pale on 050 in dark and hc-dark, and both asserts below fail.
   // #2817: from that anchor the link then steps as far as it must to clear every surface it is placed on, so
   // light deep (550 → 600) sits one notch deeper than the anchor; dark pale and HC already cleared.
   const stepsOf = (t: ReturnType<typeof brandTheme>): Record<string, string | undefined> =>
     Object.fromEntries(linkByMode(t).map((r) => [r.mode, r.link?.path.split('.').slice(-2).join('.')]));
-  const deep = stepsOf(build({ brandColors: [{ name: 'deep', oklch: { l: 0.25, c: 0.08, h: 30 } }], roleColors: { action: 'deep' } }));
+  const DEEP = [{ name: 'deep', oklch: { l: 0.25, c: 0.08, h: 30 } }], PALE = [{ name: 'pale', oklch: { l: 0.92, c: 0.06, h: 95 } }];
+  const deep = stepsOf(build({ brandColors: DEEP, roleColors: { action: 'deep' }, actionAnchorStep: 550 }));
   ok(deep.light === 'deep.600' && deep['hc-light'] === 'deep.700',
-    `#1895: a dark rebased action color (deep, l 0.25) anchors the link where the action fill anchors — light deep.600 (anchor 550, #2817), hc-light deep.700 (got ${JSON.stringify(deep)})`);
-  const pale = stepsOf(build({ brandColors: [{ name: 'pale', oklch: { l: 0.92, c: 0.06, h: 95 } }], roleColors: { action: 'pale' } }));
+    `#1895: a dark rebased action color (deep, l 0.25, pinned at 550) anchors the link where the action fill anchors — light deep.600 (anchor 550, #2817), hc-light deep.700 (got ${JSON.stringify(deep)})`);
+  const pale = stepsOf(build({ brandColors: PALE, roleColors: { action: 'pale' }, actionAnchorStep: 500 }));
   ok(pale.dark === 'pale.450' && pale['hc-dark'] === 'pale.300',
-    `#1895: a pale rebased action color (pale, l 0.92) anchors the link where the action fill anchors — dark pale.450, hc-dark pale.300 (got ${JSON.stringify(pale)})`);
+    `#1895: a pale rebased action color (pale, l 0.92, pinned at 500) anchors the link where the action fill anchors — dark pale.450, hc-dark pale.300 (got ${JSON.stringify(pale)})`);
+
+  // #1896: `roleColors.action` and `actionPalette` are aliases (theme-schema.json), so they anchor the action fill
+  // at the same step: the resolved palette's own shade, not primary's. Literals from the issue's repro (accent →
+  // 450) and measured on this tree (deep → 850, pale → 050). BY-NAME MUTATION: key `actionBrandColor` off the
+  // `actionPalette` lever again in theme-brand.ts → the anchor literal, the four alias arms and the note fail.
+  const fillOf = (t: ReturnType<typeof brandTheme>, mode: string): string | undefined =>
+    (resolveAllModes(t).find((m) => m.mode === mode)?.roles as any)?.['interactive.primary.fill.rest']?.path.split('.').slice(-2).join('.');
+  ok(rc.roleAnchorStep.action === 450 && fillOf(rc, 'dark') === 'accent.450',
+    `#1896: roleColors.action 'accent' anchors the action fill at the accent's own shade, step 450 (dark fill accent.450) (got ${rc.roleAnchorStep.action}, ${fillOf(rc, 'dark')})`);
+  const deepRc = build({ brandColors: DEEP, roleColors: { action: 'deep' } }), paleRc = build({ brandColors: PALE, roleColors: { action: 'pale' } });
+  ok(fillOf(deepRc, 'light') === 'deep.850' && stepsOf(deepRc).light === 'deep.850' && fillOf(paleRc, 'dark') === 'pale.050' && stepsOf(paleRc).dark === 'pale.050',
+    `#1896: an unpinned rebased action color anchors fill and link at its own shade — light deep.850/deep.850, dark pale.050/pale.050 (got ${fillOf(deepRc, 'light')}/${stepsOf(deepRc).light}, ${fillOf(paleRc, 'dark')}/${stepsOf(paleRc).dark})`);
+  // Alias equality, role by role: the two spellings resolve every role to the same step in every mode. A primary
+  // anchored off 500 (l 0.4 → 650) makes the status and neutral arms witnesses too: before #1896 they took 650.
+  const B4 = { ...B, primary: { l: 0.4, c: 0.12, h: 262 }, brandColors: [...B.brandColors, ...DEEP, ...PALE] };
+  for (const pal of ['accent', 'deep', 'pale', 'neutral', 'success']) {
+    const viaLever = resolveAllModes(brandTheme({ ...B4, actionPalette: pal } as unknown as BrandInput));
+    const viaRole = resolveAllModes(brandTheme({ ...B4, roleColors: { action: pal } } as unknown as BrandInput));
+    const differ = viaLever.flatMap((m, i) => Object.entries(m.roles).filter(([k, v]) => (viaRole[i]?.roles as any)?.[k]?.path !== (v as any).path)
+      .map(([k, v]) => `${m.mode} ${k}: ${(v as any).path.split('.').slice(-2).join('.')} vs ${(viaRole[i]?.roles as any)?.[k]?.path.split('.').slice(-2).join('.')}`));
+    ok(viaLever.length === 4 && viaLever.length === viaRole.length && differ.length === 0,
+      `#1896: actionPalette '${pal}' and roleColors.action '${pal}' resolve every role to the same step in every mode (${differ.length} differ${differ.length ? `: ${differ.slice(0, 3).join('; ')}` : ''})`);
+  }
+  // The anchor note fires for the roleColors spelling too, naming the resolved palette. Wording unchanged; whether
+  // it fires for this spelling is the owner's call (#1896 OWNER DECISION, option A built). Literal note text.
+  ok(rc.notes.includes("action: anchored at 'accent' step 450, the brand's own shade — moved only if it misses 3:1 (7:1 in high contrast) against the contrast floor or background.tertiary."),
+    `#1896: with roleColors.action 'accent', the decisions log reports the anchor at the accent's own shade (got ${JSON.stringify(rc.notes.filter((n) => n.startsWith('action:')))})`);
 
   // The two link notes compare against the RESOLVED action palette and say "the action color" (owner
   // decision 2026-10-01). Literal note text, never a join of theme.ts's template (docs/34 shape 2). BY-NAME
@@ -10518,14 +10546,50 @@ arm: {
   const colorEntries = Object.entries(ai.color as Record<string, any>);
   const levelLeft = colorEntries.filter(([, r]) => 'avoid_when_level' in r || 'paired_with' in r).map(([k]) => k);
   ok(levelLeft.length === 0, 'sidecar: no entry carries the retired avoid_when_level or paired_with field' + (levelLeft.length ? ` — ${levelLeft.slice(0, 5).join(', ')}` : ''));
-  const badReq = colorEntries.flatMap(([k, r]) => (r.contrast_with ?? []).filter((cw: any) => {
+  // #1779: where the modes hold different floors the sentence names each mode's floor ("… in light and dark modes,
+  // and 4.5:1 in hc-light and hc-dark modes."). This block parses that with its own patterns, and holds a role's
+  // OWN pair (`contrast_with[0]` on a role the tree gives a floor) to the floors the TREE records, mode by mode — the
+  // check a payload reader runs. A second pair (no per-mode floor in the tree) is held to its own min and shape.
+  const reqRoot = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+  const treeFloors = (role: string): Record<string, string> | undefined => {
+    const ext = role.split('.').reduce((o: any, x) => o?.[x], tree[reqRoot]?.color)?.$extensions?.prism3;
+    if (!(ext?.min > 0)) return undefined;
+    return { light: `${ext.min}:1`, ...Object.fromEntries(Object.entries<any>(ext.modes ?? {}).filter(([, v]) => v?.min > 0).map(([m, v]) => [m, `${v.min}:1`])) };
+  };
+  const floorsStated = (clause: string, head: string, composite: boolean): Record<string, string> | 'every' | null => {
+    if (clause === (composite ? ', in every mode' : ' in every mode')) return 'every';
+    const out: Record<string, string> = {};
+    const parts = clause.replace(/^ in /, '').split(/, (?:and )?(?=(?:at )?[0-9])/);
+    for (const [i, part] of parts.entries()) {
+      const m = i === 0 ? ['', head, part] : part.match(composite ? /^at ([0-9.]+:1) or more in (.+)$/ : /^([0-9.]+:1) in (.+)$/);
+      const modes = m?.[2].match(/^(.+?) modes?$/)?.[1].split(/, | and /);
+      if (!m || !modes) return null;
+      for (const x of modes) out[x] = m[1];
+    }
+    return parts.length > 1 ? out : null;
+  };
+  const badReq = colorEntries.flatMap(([k, r]) => (r.contrast_with ?? []).filter((cw: any, i: number) => {
     const m = String(cw.requirement ?? '').match(cw.composited_over
-      ? /^MUST keep `([^`]+)` at (\d+(?:\.\d+)?:1) or more on `([^`]+)` composited over `([^`]+)`, in every mode\.$/
-      : /^MUST clear (\d+(?:\.\d+)?:1) against `([^`]+)` in every mode\.$/);
+      ? /^MUST keep `([^`]+)` at ([0-9.]+:1) or more on `([^`]+)` composited over `([^`]+)`(, in every mode| in .+)\.$/
+      : /^MUST clear ([0-9.]+:1) against `([^`]+)`( in every mode| in .+)\.$/);
     if (!m) return true;
-    return cw.composited_over ? m[1] !== cw.token || m[2] !== cw.min || m[3] !== k || m[4] !== cw.composited_over : m[1] !== cw.min || m[2] !== cw.token;
+    if (cw.composited_over ? m[1] !== cw.token || m[2] !== cw.min || m[3] !== k || m[4] !== cw.composited_over : m[1] !== cw.min || m[2] !== cw.token) return true;
+    const stated = floorsStated(m[cw.composited_over ? 5 : 3], cw.min, !!cw.composited_over);
+    if (!stated) return true;
+    const own = i === 0 ? treeFloors(k) : undefined;
+    if (!own) return false;
+    return stated === 'every' ? Object.values(own).some((v) => v !== cw.min)
+      : Object.keys(stated).length !== Object.keys(own).length || Object.entries(own).some(([md, v]) => stated[md] !== v);
   }).map(() => k));
-  ok(badReq.length === 0, 'sidecar: every contrast_with entry states its requirement as the check its own min and token define' + (badReq.length ? ` — ${badReq.slice(0, 5).join(', ')}` : ''));
+  ok(badReq.length === 0, 'sidecar: every contrast_with entry states its requirement as the check its own min and token define, with the floor of each mode as the tree records it (#1779)' + (badReq.length ? ` — ${badReq.slice(0, 5).join(', ')}` : ''));
+  // #1779, concrete: the issue's case (border.brand, 3:1 in light and dark, 4.5:1 in high contrast) and text.primary
+  // (7:1, 15:1 in high contrast), as literals; and a uniform floor (on-fill, 4.5:1 everywhere) keeps "in every mode".
+  ok(ai.color['border.brand']?.contrast_with?.[0]?.requirement === 'MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes.',
+    `#1779 sidecar: border.brand states 3:1 in light and dark and 4.5:1 in high contrast (got "${ai.color['border.brand']?.contrast_with?.[0]?.requirement}")`);
+  ok(/^MUST clear 7:1 against `[^`]+` in light and dark modes, and 15:1 in hc-light and hc-dark modes\.$/.test(ai.color['text.primary']?.contrast_with?.[0]?.requirement ?? ''),
+    `#1779 sidecar: text.primary states 7:1 in light and dark and 15:1 in high contrast (got "${ai.color['text.primary']?.contrast_with?.[0]?.requirement}")`);
+  ok(ai.color['interactive.primary.on-fill']?.contrast_with?.[0]?.requirement === 'MUST clear 4.5:1 against `interactive.primary.fill.rest` in every mode.',
+    `#1779 sidecar: a floor that holds in every mode (interactive.primary.on-fill, 4.5:1) still says "in every mode" (got "${ai.color['interactive.primary.on-fill']?.contrast_with?.[0]?.requirement}")`);
   // Concrete values, not just the structural pairing — docs/34 shape 5 ("it resolves" is not "it is
   // right"). text.primary holds a real AAA text contract against its surface; border.primary is the
   // decorative border, which carries no contract and so no requirement.
@@ -33954,6 +34018,31 @@ arm: {
     'rename-map: fan-in with BOTH sources live → ambiguous-source for both, migrating neither — the file is the disambiguator, and picking one would silently discard the bindings on the other');
   ok(statuses(['color/a'], ['color/c'], [v('color/a', 'color/c'), v('color/b', 'color/c')]) === 'color/a→color/c:migrated',
     'rename-map: fan-in with ONE source live → an ordinary migration, so the 3 fan-in groups in the real map still migrate on a healthy file rather than refusing forever');
+  // #1142 — A RELOCATION AND A DEDUPE SHARING ONE TARGET. The relocation keeps the target's leaf
+  // (`primary`), the dedupe names another role (`default`), so the relocation migrates and the dedupe
+  // finds the target taken, `target-occupied`: two variables, the designer picks the survivor.
+  ok(statuses(['color/border/inverse/primary', 'color/border/inverse/default'], ['color/inverse/border/primary'],
+      [v('color/border/inverse/primary', 'color/inverse/border/primary'), v('color/border/inverse/default', 'color/inverse/border/primary')])
+      === 'color/border/inverse/default→color/inverse/border/primary:target-occupied | color/border/inverse/primary→color/inverse/border/primary:migrated',
+    '#1142 rename-map: a fan-in group with exactly ONE row keeping the target\'s leaf migrates that row and reports the rest target-occupied — the relocation carries its bindings, and the dedupe still waits for a human');
+  // …and with TWO rows keeping the leaf (one role in two eras' spellings), neither is the relocation, so the
+  // group stays ambiguous: the leaf picks a row only when it picks exactly one.
+  ok(statuses(['color/x/on-inverse/primary', 'color/x/inverse/primary'], ['color/inverse/x/primary'],
+      [v('color/x/on-inverse/primary', 'color/inverse/x/primary'), v('color/x/inverse/primary', 'color/inverse/x/primary')])
+      === 'color/x/inverse/primary→color/inverse/x/primary:ambiguous-source | color/x/on-inverse/primary→color/inverse/x/primary:ambiguous-source',
+    '#1142 rename-map: two rows keeping the target\'s leaf stay ambiguous-source — the leaf rule decides only when exactly one row qualifies');
+  // THE ISSUE'S OWN FAILURE PATH, ON THE SHIPPED MAP. A file written between #1013 and #1140 holds the value
+  // tier's `color/appearance/border/inverse/{primary,default}`. Composed through the shipped rules and the
+  // shipped contract rows exactly as the executor does, the relocation must migrate and the dedupe must not.
+  {
+    const R = 'zzfanin';
+    const old = ['color/appearance/border/inverse/primary', 'color/appearance/border/inverse/default'];
+    const rows = composeVariableRenames('color', old, renameMap().variables, MATERIALIZATION_RENAMES, R);
+    const got = planVariableRenames(old, [`${R}/color/inverse/border/primary`], rows)
+      .filter((o) => old.includes(o.from)).map((o) => `${o.from}:${o.status}`).sort().join(' | ');
+    ok(got === 'color/appearance/border/inverse/default:target-occupied | color/appearance/border/inverse/primary:migrated',
+      `#1142 rename-map: on the shipped map, a #1013-to-#1140 file's border/inverse/primary MIGRATES to inverse/border/primary and the deduped border/inverse/default reports target-occupied (got ${got || 'NOTHING'})`);
+  }
 
   // The collection planner, same shape — but it plans the WHOLE map at once (#1035), because a chain's
   // correct order is a property of the map and not of any single entry. Its plan-membership precondition
