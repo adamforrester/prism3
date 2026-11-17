@@ -65,7 +65,8 @@
  */
 import { docSections, partName, type DocSection, type DocSectionId, type ComponentDef, componentDefs, CANVAS_FURNITURE } from '@prism3/engine/components';
 import { leadOf, leafForDef } from './file-taxonomy';
-import { isTemplateSet } from './file-components';
+import { isTemplateSet, REGULAR, SEMIBOLD, solid } from './file-components';
+import { LABEL_INK } from './furniture-templates';
 import { fingerprintOf, fnv, type SgNode } from './style-guide';
 import { NS } from './persist-figma';
 import { STAMP_KEY } from './write-components';
@@ -95,9 +96,17 @@ export const PANEL_WIDTH = 560;
  *  this wide or wider; then they stack. No cap otherwise: a single wide specimen widens the panel as far as it needs. */
 export const THEMING_ROW_MAX = 960;
 export const MODE_GAP = 16;
-/** What the width rule allows for one part marker across, before the host lays the Badge out: a bracket's tier is this
- *  plus `MARK_SEP` on each side. The draw measures the real Badge and widens the panel further if it needs to. */
-export const MARK_ROOM = 24;
+/** THE PART MARKER (#3773, owner decision B): a disc this many px across, drawn by the panel itself, never an instance of
+ *  the brand's Badge, so it never reads as the component it marks. The width rule's left gutter is one disc wide. */
+export const MARK_DISC = 20;
+/** The dot that ends each leader on its part's edge (#3773), in px across. */
+export const MARK_DOT = 4;
+/** How far above its bottom edge the outermost container's leader lands (#3773): near its bottom corner. */
+export const MARK_CORNER = 8;
+/** THE MARKERS' INK (#3773): `_Label`'s, a literal color, not a token, so it never moves with the brand it annotates. The
+ *  disc and every leader and dot are `MARK_INK`, the numeral `MARK_NUMERAL`. */
+export const MARK_INK = LABEL_INK;
+export const MARK_NUMERAL = '#FFFFFF';
 /** Between the set's right edge and the panel. More than `BACKDROP_PAD`, so a backdrop never reaches it. */
 export const PANEL_GAP = 40;
 export const PANEL_PAD = 24;
@@ -123,9 +132,11 @@ const SIZE: DocBlockSize = 'sm';
  *  6: each specimen sized again once its panel is on the page, where the host kept 5's width only until the panel
  *  moved there (#3205 follow-up). 7: each specimen FILLs its stage, its width set by the stage's padding, since Figma drops a
  *  width written to a layer inside an instance and 4–6's widths never held in a real file (#3205, owner review 2026-11-13).
+ *  8: the anatomy markers as `_Label`-ink discs with one direct leader per part, each ending in a dot on its part's
+ *  edge, and no brackets (#3773, owner decision B).
  *  The as-built ledger records it per set (`panel`, `main.ts` `ledgerNow`), so a raise
  *  makes a lead set due in Update file's check even when its set is current (#3205, the format-due credit). */
-export const PANEL_FORMAT = 7;
+export const PANEL_FORMAT = 8;
 /** THE TITLES (#2970 item 5, owner decision): the panel's title and each section's, in px, with their letter-spacing
  *  in percent. The tracking is the studio's: its 20px page titles take `ls-tightest` (−4%) and its 16px section titles
  *  `ls-tighter` (−3%), the default theme's values (`theme.ts` `LETTER_SPACINGS`). Written over the block's text style,
@@ -133,12 +144,10 @@ export const PANEL_FORMAT = 7;
 export const TITLE_TYPE = { size: 18, tracking: -4 } as const;
 export const SECTION_TYPE = { size: 16, tracking: -3 } as const;
 /** THE ANATOMY MARKERS' GEOMETRY (#2916, #2927; HELD FOR THE OWNER): the shortest leader, and its gap from the
- *  specimen's edge; the space between two markers, or a marker and its bracket; how far a leader or a bracket's tick
- *  reaches into its part, so it reads as touching it. */
+ *  specimen's edge; the space between two markers. */
 export const MARK_GAP = 8;
 export const MARK_SEP = 4;
-export const MARK_INSET = 2;
-/** The width of a leader or a bracket line. */
+/** The width of a leader. */
 export const LEADER = 1;
 
 /* ── the pure planner ──────────────────────────────────────────────────────────────────────────────────── */
@@ -165,11 +174,12 @@ export interface PanelSection { id: DocSectionId; title: string; blocks: PanelBl
 export interface PanelPlan { def: string; title: string; lede: string; family?: LinkItem[]; sections: PanelSection[]; hash: string }
 /**
  * ONE NUMBERED ENTRY OF THE ANATOMY (#2916, #2927): its number, the part it marks, and that part's path below the
- * def's root, by part id (empty for the root itself: the specimen is the root). `bracket` marks a part that holds
- * another marked part, the root among them (Q551 A on Q5): a bracket along its left edge instead of a leader. `parts`
+ * def's root, by part id (empty for the root itself: the specimen is the root). `container` marks a part that holds
+ * another marked part, the root among them (Q551 A on Q5): its leader comes in from the left gutter to its left edge
+ * (#3773; a bracket along that edge before). `parts`
  * counts the repeats merged into it (Q4): siblings with the same nest settings are one entry, marked on the first.
  */
-export interface AnatomyMark { n: number; part: string; path: string[]; bracket: boolean; parts: number; run: string[] }
+export interface AnatomyMark { n: number; part: string; path: string[]; container: boolean; parts: number; run: string[] }
 
 /** THE FAMILY A DEF'S PANEL COVERS (#2927, owner decision Q551 A on Q1): the defs on its taxonomy page that draw canvas
  *  furniture, in page order, and the one that leads (`leadOf`). A def on no page is a family of one. Null for a def
@@ -225,7 +235,7 @@ export const firstSentences = (s: string, n: number): string => {
 };
 
 /**
- * THE ANATOMY'S NUMBERED ENTRIES (#2916, #2927, #3265), from the def's part tree: pure, so the runs and the bracket rule
+ * THE ANATOMY'S NUMBERED ENTRIES (#2916, #2927, #3265), from the def's part tree: pure, so the runs and the container rule
  * are checked with no host. `listed` is the model's parts, in its order. A repeat (Q551 A on Q4) is a numbered sibling of
  * one name (`item1`, `item2`) nesting one component; its overrides (an item's own text) are content, not settings.
  * NUMBERED INSTANCES (#3265, owner decisions Q3265.1 A and Q3265.2 A): each instance keeps its number, and NEIGHBORS that
@@ -270,7 +280,7 @@ export const anatomyMarks = (def: ComponentDef, listed: readonly string[]): Anat
   }
   const marked = new Set(entries.map((e) => e.part));
   const holds = (id: string): boolean => [...marked].some((o) => o !== id && pathOf(o).includes(id));
-  return entries.map((e, i) => ({ n: i + 1, part: e.part, path: pathOf(e.part), bracket: e.part === root || holds(e.part), parts: e.run.length, run: e.run }));
+  return entries.map((e, i) => ({ n: i + 1, part: e.part, path: pathOf(e.part), container: e.part === root || holds(e.part), parts: e.run.length, run: e.run }));
 };
 
 /** The number a repeat's part carries (`cell4` → 4), or null for a part that is not numbered. */
@@ -441,7 +451,7 @@ export interface PNode {
   readonly parent?: unknown;
   readonly children?: readonly PNode[];
   characters?: string;
-  readonly fontName?: unknown;
+  fontName?: unknown;
   fontSize?: unknown;
   letterSpacing?: unknown;
   setRangeHyperlink?(start: number, end: number, link: { type: 'NODE' | 'URL'; value: string } | null): void;
@@ -472,6 +482,10 @@ export interface PNode {
   /** Where the node sits on the canvas, laid out: the one box a marker is placed from (#2916). */
   readonly absoluteBoundingBox?: { x: number; y: number; width: number; height: number } | null;
   clipsContent?: boolean;
+  cornerRadius?: unknown;
+  textAutoResize?: unknown;
+  textAlignHorizontal?: unknown;
+  textAlignVertical?: unknown;
   setProperties?(props: Record<string, string | boolean>): void;
   setExplicitVariableModeForCollection?(collection: unknown, modeId: string): void;
   resize?(w: number, h: number): void;
@@ -496,6 +510,8 @@ export interface PanelApi {
   /** The file's text styles: the code style a code span is drawn in (#3552 Q-UG2 A). */
   getLocalTextStylesAsync?(): Promise<readonly { id: string; name: string; fontName?: { family: string; style: string } }[]>;
   createFrame(): PNode;
+  /** The part markers' numerals (#3773): the disc is the panel's own furniture, not a block. */
+  createText(): PNode;
   variables?: {
     getLocalVariablesAsync(): Promise<readonly PanelVariable[]>;
     getLocalVariableCollectionsAsync?(): Promise<readonly { id: string; name: string; modes: readonly { modeId: string; name: string }[] }[]>;
@@ -953,33 +969,61 @@ export const anatomyMembers = (set: PNode, marks: readonly AnatomyMark[]): { mem
   }
   return out;
 };
+/** A node's box on the canvas as the host lays it out, or its offsets summed up its parents where the host gives none. */
+const boxOn = (n: PNode): Box => {
+  const r = n.absoluteBoundingBox;
+  if (r) return { x: r.x, y: r.y, width: r.width, height: r.height };
+  let x = 0, y = 0;
+  for (let q: PNode | undefined = n; q; q = q.parent as PNode | undefined) { x += q.x ?? 0; y += q.y ?? 0; }
+  return { x, y, width: n.width ?? 0, height: n.height ?? 0 };
+};
 /**
- * HOW MANY BRACKET TIERS A SPECIMEN TAKES, read off the member's layers as the draw lays them out (`drawMarkers`): the
- * innermost first, each in the lowest tier no bracket it overlaps already holds. Two brackets overlap down the page when
- * one holds the other, or when the layer that holds both lays them side by side; stacked siblings share a tier.
+ * THE LEFT GUTTER'S DISCS (#3773, owner decision B), pure on the containers' heights so the width rule and the draw
+ * place them alike. Each container's leader lands on its left edge: an outermost one (no other container listed here
+ * holds it) near its bottom corner (`MARK_CORNER`), an inner one at its middle. Each disc goes in the one left column, the
+ * shortest part first, since it has the least room: one that would touch another there slides along its own left edge to
+ * the nearest free place, so its leader still lands on the part (the root, tallest, gives way to a footer at its bottom).
+ * Only a part too short for any free place, as nested containers sharing one edge are, takes a further column. Returns,
+ * in the order given, each landing's offset from its part's top and its column.
  */
-const bracketTiers = (member: PNode, marks: readonly AnatomyMark[]): number => {
-  const nodes = [...marks].filter((m) => m.bracket).sort((a, b) => b.path.length - a.path.length).flatMap((m) => {
-    const n = locate(member, m.path);
-    return n ? [chain(n, member)] : [];
-  });
-  const tiers: PNode[][][] = [];
-  const meets = (a: PNode[], b: PNode[]): boolean => {
-    if (a.includes(b[0]) || b.includes(a[0])) return true;
-    const common = a.find((q) => b.includes(q));
-    return common?.layoutMode === 'HORIZONTAL';
-  };
-  for (const up of nodes) {
-    let t = 0;
-    while ((tiers[t] ?? []).some((o) => meets(o, up))) t++;
-    (tiers[t] ??= []).push(up);
+export const leftColumns = (items: readonly { path: readonly string[]; top: number; height: number }[], disc = MARK_DISC): { dy: number; column: number }[] => {
+  const holds = (o: readonly string[], l: readonly string[]): boolean => o.length < l.length && o.every((s, i) => l[i] === s);
+  const out: { dy: number; column: number }[] = items.map(() => ({ dy: 0, column: 0 }));
+  const cols: [number, number][][] = [];
+  const touches = (c: number, y: number): boolean => (cols[c] ?? []).some(([a, b]) => y - disc / 2 < b + MARK_SEP && a < y + disc / 2 + MARK_SEP);
+  for (const i of items.map((_, k) => k).sort((a, b) => items[a].height - items[b].height || items[b].path.length - items[a].path.length)) {
+    const it = items[i];
+    const outer = !items.some((o) => holds(o.path, it.path));
+    const want = it.top + (outer ? it.height - Math.min(MARK_CORNER, it.height / 2) : it.height / 2);
+    let y = want;
+    for (let k = 1; touches(0, y) && k <= it.height; k++) {
+      if (want - k >= it.top && !touches(0, want - k)) y = want - k;
+      else if (want + k <= it.top + it.height && !touches(0, want + k)) y = want + k;
+    }
+    if (touches(0, y)) y = want;
+    let c = 0;
+    while (touches(c, y)) c++;
+    (cols[c] ??= []).push([y - disc / 2, y + disc / 2]);
+    out[i] = { dy: y - it.top, column: c };
   }
-  return tiers.length;
+  return out;
+};
+/** How many left columns a member's containers take (`leftColumns`), read off its layers as the host lays them out. */
+const leftColumnsOf = (member: PNode, marks: readonly AnatomyMark[]): number => {
+  const M = boxOn(member);
+  const items = marks.filter((m) => m.container).flatMap((m) => {
+    const n = locate(member, m.path);
+    if (!n) return [];
+    const B = n === member ? M : boxOn(n);
+    return [{ path: m.path, top: B.y - M.y, height: B.height }];
+  });
+  return items.length ? Math.max(...leftColumns(items).map((c) => c.column)) + 1 : 0;
 };
 /** The stage a specimen `w` wide needs: its padding on the right, and on the left its padding or, when the specimen
- *  carries brackets, room for each tier (`MARK_ROOM`), whichever is more. */
-const stageFor = (w: number, tiers: number): number =>
-  w + STAGE_PAD + Math.max(STAGE_PAD, tiers ? MARK_GAP + tiers * (MARK_ROOM + 2 * MARK_SEP) + LEADER : 0);
+ *  carries a container's marker, the left gutter's columns of discs (`MARK_DISC`, #3773), whichever is more. No bracket
+ *  tiers: a container's leader comes in from the gutter, so nested containers share a column wherever their discs fit. */
+const stageFor = (w: number, columns: number): number =>
+  w + STAGE_PAD + Math.max(STAGE_PAD, columns ? MARK_GAP + columns * (MARK_DISC + 2 * MARK_SEP) : 0);
 /**
  * THE NARROWEST AN EXAMPLE MAY BE (#3205). Whether a member is `built` comes from the def alone, never from the sizing
  * the member reports: a root the def builds at a width (`placementWidth`, `builtSize` naming the member's value on its
@@ -1016,7 +1060,7 @@ export const panelLayout = (set: PNode, def: ComponentDef | undefined = componen
   const w0 = (set.children ?? [])[0]?.width ?? 0;
   const anatomy = def?.anatomy ? docSections(def).sections.find((s) => s.id === 'anatomy') : undefined;
   const marks = anatomy && anatomy.id === 'anatomy' ? anatomyMarks(def!, anatomy.parts.map((p) => p.id)) : [];
-  const stages = anatomyMembers(set, marks).map((a) => stageFor(a.member.width ?? 0, bracketTiers(a.member, a.marks)));
+  const stages = anatomyMembers(set, marks).map((a) => stageFor(a.member.width ?? 0, leftColumnsOf(a.member, a.marks)));
   const row = 2 * stageFor(w0, 0) + MODE_GAP;
   const stack = row + 2 * PANEL_PAD >= THEMING_ROW_MAX;
   return { width: Math.ceil(Math.max(PANEL_WIDTH - 2 * PANEL_PAD, stageFor(w0, 0), ...stages, stack ? 0 : row) + 2 * PANEL_PAD), stack };
@@ -1315,46 +1359,76 @@ export const drawDocPanel = async (
   };
 
   /**
-   * THE PART MARKERS (#2916, Q551 A on Q3–Q5), once the panel has its layout: a numbered Badge per mark, over the panel,
-   * placed from the boxes the host lays out (`absoluteBoundingBox`), never from summed offsets, which miss a part inside
-   * a slot or a nested instance. A part is marked in the specimen's gutter with a 1px leader to it: above when its
-   * middle is in the specimen's top half, else below, at its middle across. A part that holds another marked part (the
-   * root among them) gets a bracket along its left edge, its marker beside the bracket, the innermost nearest. A marker
-   * that would touch another on the same side moves one tier out, and the stage's padding grows to hold every tier.
-   * Each marker and its lines are one frame, `part <n>`. Returns how many parts were marked.
+   * THE PART MARKERS (#2916, Q551 A on Q3–Q5; #3773, owner decision B), once the panel has its layout: a numbered disc per
+   * mark in `_Label`'s ink (`MARK_INK`), over the panel, placed from the boxes the host lays out (`absoluteBoundingBox`),
+   * never from summed offsets, which miss a part inside a slot or a nested instance. ONE LEADER PER PART, containers
+   * included, ending in a `MARK_DOT` dot on the part's edge, never over its content. A part is marked in the specimen's
+   * top or bottom gutter: above when its middle is in the specimen's top half, else below, at its middle across, the
+   * leader stopping at its near edge. A container (a part that holds another marked part, the root among them) is marked
+   * in the left gutter, its leader coming in to its left edge: the outermost near its bottom corner (`MARK_CORNER`), an
+   * inner one at its middle. No brackets. A marker that would touch another on the same side moves one tier out, and the
+   * stage's padding grows to hold every tier.
+   *
+   * Each marker and its lines are one frame, `part <n>`, a child of the panel: never inside the set or a specimen, so the
+   * set's hand-edit check and its as-built record never read it, and the panel's print reads it as drawn, every fill a
+   * literal. Returns how many parts were marked.
    */
   const drawMarkers = async (): Promise<number> => {
-    const rect = (n: PNode): Box => {
-      const r = n.absoluteBoundingBox;
-      if (r) return { x: r.x, y: r.y, width: r.width, height: r.height };
-      let x = 0, y = 0;
-      for (let q: PNode | undefined = n; q; q = q.parent as PNode | undefined) { x += q.x ?? 0; y += q.y ?? 0; }
-      return { x, y, width: n.width ?? 0, height: n.height ?? 0 };
+    const rect = boxOn;
+    // The numeral's face: Inter Semi Bold, else Regular. A host with neither draws each disc without its numeral.
+    let face: { family: string; style: string } | null = null;
+    const discs = anatomy.reduce((k, a) => k + a.marks.length, 0);
+    if (discs) {
+      for (const f of [SEMIBOLD, REGULAR]) {
+        try { await api.loadFontAsync(f); face = f; break; } catch { /* the next face */ }
+      }
+      if (face !== SEMIBOLD) out.misses.push(`${SEMIBOLD.family} ${SEMIBOLD.style} unavailable for the part markers${face ? `: used ${face.family} ${face.style}` : ''}`);
+    }
+    const disc = (n: number): PNode => {
+      const d = api.createFrame();
+      d.name = 'marker';
+      d.fills = solid(MARK_INK);
+      d.cornerRadius = MARK_DISC / 2;
+      d.resize?.(MARK_DISC, MARK_DISC);
+      const t = api.createText();
+      t.name = 'count';
+      d.appendChild?.(t);
+      if (face) {
+        t.fontName = { ...face };
+        t.characters = String(n);
+      }
+      t.fontSize = 12;
+      t.fills = solid(MARK_NUMERAL);
+      t.textAutoResize = 'NONE';
+      t.textAlignHorizontal = 'CENTER';
+      t.textAlignVertical = 'CENTER';
+      t.resize?.(MARK_DISC, MARK_DISC);
+      t.x = 0;
+      t.y = 0;
+      return d;
     };
-    type Laid = { mark: AnatomyMark; part: PNode; group: PNode; badge: PNode; inner: PNode; side: 'top' | 'bottom' | 'left'; tier: number };
+    type Laid = { mark: AnatomyMark; part: PNode; group: PNode; disc: PNode; side: 'top' | 'bottom' | 'left'; tier: number; dy: number };
     const all: { spec: PNode; stage?: PNode; laid: Laid[] }[] = [];
     for (const a of anatomy) {
       const laid: Laid[] = [];
       for (const mark of a.marks) {
         const part = locate(a.spec, mark.path);
-        const badge = block('Part-marker');
-        if (!part || !badge) continue;
+        if (!part) continue;
         const group = api.createFrame();
         group.name = `part ${mark.n}`;
         group.fills = [];
         group.clipsContent = false;
         panel.appendChild?.(group);
         group.layoutPositioning = 'ABSOLUTE';
-        group.appendChild?.(badge);
-        try { badge.layoutSizingHorizontal = 'HUG'; } catch { /* the block keeps its width; the Badge inside is what is placed */ }
-        await write(findText(badge, 'count'), String(mark.n), 'marker count');
-        laid.push({ mark, part, group, badge, inner: find(badge, 'marker') ?? badge, side: 'top', tier: 0 });
+        const d = disc(mark.n);
+        group.appendChild?.(d);
+        laid.push({ mark, part, group, disc: d, side: 'top', tier: 0, dy: 0 });
       }
       all.push({ spec: a.spec, stage: a.stage, laid });
     }
     const every = all.flatMap((a) => a.laid);
     if (!every.length) return 0;
-    const mw = Math.max(...every.map((l) => rect(l.inner).width)), mh = Math.max(...every.map((l) => rect(l.inner).height));
+    const mw = Math.max(...every.map((l) => rect(l.disc).width)), mh = Math.max(...every.map((l) => rect(l.disc).height));
     // THE TIERS, from the boxes as first laid out: padding moves the specimen as a whole, so they hold after it.
     for (const { spec, stage, laid } of all) {
       const P = rect(spec);
@@ -1365,13 +1439,11 @@ export const drawDocPanel = async (
           if (!row.some(([a, b]) => lo < b + MARK_SEP && a < hi + MARK_SEP)) { row.push([lo, hi]); return t; }
         }
       };
-      // Brackets innermost first, so the deepest part sits nearest its specimen.
-      for (const l of [...laid].filter((x) => x.mark.bracket).sort((a, b) => b.mark.path.length - a.mark.path.length)) {
-        const B = rect(l.part);
-        l.side = 'left';
-        l.tier = tier('left', B.y, B.y + B.height);
-      }
-      for (const l of laid.filter((x) => !x.mark.bracket)) {
+      // The containers in the left gutter (`leftColumns`), placed as the width rule placed them.
+      const boxes = laid.filter((x) => x.mark.container);
+      leftColumns(boxes.map((l) => { const B = l.part === spec ? P : rect(l.part); return { path: l.mark.path, top: B.y - P.y, height: B.height }; }), mh)
+        .forEach((c, k) => { boxes[k].side = 'left'; boxes[k].dy = c.dy; boxes[k].tier = c.column; });
+      for (const l of laid.filter((x) => !x.mark.container)) {
         const B = rect(l.part);
         const cx = B.x + B.width / 2;
         l.side = B.y + B.height / 2 <= P.y + P.height / 2 ? 'top' : 'bottom';
@@ -1379,7 +1451,7 @@ export const drawDocPanel = async (
       }
       if (!stage) continue;
       const deepest = (side: Laid['side']) => Math.max(-1, ...laid.filter((l) => l.side === side).map((l) => l.tier));
-      const need = (side: Laid['side'], step: number) => (deepest(side) < 0 ? 0 : MARK_GAP + (deepest(side) + 1) * step + (side === 'left' ? LEADER : 0));
+      const need = (side: Laid['side'], step: number) => (deepest(side) < 0 ? 0 : MARK_GAP + (deepest(side) + 1) * step);
       for (const [k, side, step] of [['paddingTop', 'top', mh + MARK_SEP], ['paddingBottom', 'bottom', mh + MARK_SEP], ['paddingLeft', 'left', mw + 2 * MARK_SEP]] as const) {
         const n = need(side, step);
         // The left gutter is the stage's base: `fitSpecimens` adds the spare to it.
@@ -1391,8 +1463,8 @@ export const drawDocPanel = async (
       }
     }
     fitSpecimens();
-    // A GUTTER WIDER THAN THE RULE ALLOWED (the real Badge wider than `MARK_ROOM`): the panel widens again, before the
-    // places are read, so every specimen keeps its own width inside its stage.
+    // A GUTTER WIDER THAN THE RULE ALLOWED (the host laid a specimen out unlike its member, so its discs took more columns
+    // than `leftColumnsOf` read): the panel widens again, before the places are read, so every specimen keeps its width.
     const need = Math.max(0, ...all.map(({ spec, stage }) => (stage ? rect(spec).width + Number(stage.paddingLeft ?? 0) + Number(stage.paddingRight ?? 0) : 0))) + 2 * PANEL_PAD;
     if (need > (panel.width ?? 0)) { panel.resize?.(Math.ceil(need), panel.height ?? 1); panel.layoutSizingVertical = 'HUG'; }
     fitSpecimens();
@@ -1403,45 +1475,45 @@ export const drawDocPanel = async (
       const P = rect(spec);
       for (const l of laid) {
         const B = l.part === spec ? P : rect(l.part);
-        const lines: Box[] = [];
-        let mx: number, my: number;
+        let mx: number, my: number, leader: Box, end: { x: number; y: number };
         if (l.side === 'left') {
-          const lx = P.x - MARK_GAP - LEADER - l.tier * (mw + 2 * MARK_SEP);
-          const tick = B.x + MARK_INSET - lx;
-          lines.push({ x: lx, y: B.y, width: LEADER, height: B.height }, { x: lx, y: B.y, width: tick, height: LEADER }, { x: lx, y: B.y + B.height - LEADER, width: tick, height: LEADER });
-          mx = lx - MARK_SEP - mw;
-          my = B.y + B.height / 2 - mh / 2;
+          const y = B.y + l.dy;
+          mx = P.x - MARK_GAP - mw - l.tier * (mw + 2 * MARK_SEP);
+          my = y - mh / 2;
+          leader = { x: mx + mw, y: y - LEADER / 2, width: B.x - (mx + mw), height: LEADER };
+          end = { x: B.x, y };
         } else {
-          const cx = Math.round(B.x + B.width / 2);
+          const cx = B.x + B.width / 2;
           mx = cx - mw / 2;
           if (l.side === 'top') {
             my = P.y - MARK_GAP - mh - l.tier * (mh + MARK_SEP);
-            lines.push({ x: cx, y: my + mh, width: LEADER, height: B.y + MARK_INSET - (my + mh) });
+            leader = { x: cx - LEADER / 2, y: my + mh, width: LEADER, height: B.y - (my + mh) };
+            end = { x: cx, y: B.y };
           } else {
             my = P.y + P.height + MARK_GAP + l.tier * (mh + MARK_SEP);
-            const from = B.y + B.height - MARK_INSET;
-            lines.push({ x: cx, y: from, width: LEADER, height: my - from });
+            leader = { x: cx - LEADER / 2, y: B.y + B.height, width: LEADER, height: my - (B.y + B.height) };
+            end = { x: cx, y: B.y + B.height };
           }
         }
-        const boxes = [{ x: mx, y: my, width: mw, height: mh }, ...lines];
+        const dot: Box = { x: end.x - MARK_DOT / 2, y: end.y - MARK_DOT / 2, width: MARK_DOT, height: MARK_DOT };
+        const boxes = [{ x: mx, y: my, width: mw, height: mh }, leader, dot];
         const u = { x: Math.min(...boxes.map((b) => b.x)), y: Math.min(...boxes.map((b) => b.y)) };
         const w = Math.max(...boxes.map((b) => b.x + b.width)) - u.x, h = Math.max(...boxes.map((b) => b.y + b.height)) - u.y;
         l.group.x = u.x - at.x;
         l.group.y = u.y - at.y;
         l.group.resize?.(w, h);
-        // The Badge's own place inside its block, so the Badge, not the block, lands on the mark.
-        const inner = rect(l.inner), outer = rect(l.badge);
-        l.badge.x = mx - u.x - (inner.x - outer.x);
-        l.badge.y = my - u.y - (inner.y - outer.y);
-        lines.forEach((b, k) => {
+        l.disc.x = mx - u.x;
+        l.disc.y = my - u.y;
+        for (const [name, b, round] of [['leader', leader, 0], ['end', dot, MARK_DOT / 2]] as const) {
           const f = api.createFrame();
-          f.name = k ? 'tick' : 'leader';
-          f.fills = paint('color/text/secondary');
+          f.name = name;
+          f.fills = solid(MARK_INK);
+          if (round) f.cornerRadius = round;
           l.group.appendChild?.(f);
           f.x = b.x - u.x;
           f.y = b.y - u.y;
           f.resize?.(Math.max(LEADER, b.width), Math.max(LEADER, b.height));
-        });
+        }
         marked++;
       }
     }

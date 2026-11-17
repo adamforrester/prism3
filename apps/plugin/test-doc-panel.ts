@@ -153,11 +153,18 @@
  *                   font; Related's links, past a code-bearing entry (Tag's Badge typed as code here), land on the linked
  *                   names. Mutations: the font failure no longer clears the style → `code/no font`; the link offsets
  *                   counted in the planned text → `code/related links`.
- *   markers/…       (#2916) each leader's tip lies inside its part's box, at the part's middle, and each bracket runs
- *                   exactly its part's height with both ticks ending inside it; Breadcrumbs' six entries (the `items`
- *                   slot's among them) on two specimens, pinned by hand in `marks/breadcrumbs`. Mutations: a slot
- *                   part's marker placed against its slot → `markers/breadcrumbs`; marker 1 dropped →
- *                   `markers/breadcrumbs numbers` and every `markers/<def>`.
+ *   markers/…       (#2916, #3773 owner decision B) each part has one leader, one 4px end dot and one disc, all
+ *                   #9747FF (typed here), the numeral white, no bracket, tick or Badge instance: a part's dot lies on its
+ *                   near top or bottom edge at its middle, a container's (the root, or a part holding a listed part, read
+ *                   off the def's tree) on its left edge, the outermost 8 above its bottom, an inner one at its middle,
+ *                   off that place only where a disc there would touch another; no leader runs over its part;
+ *                   Breadcrumbs' six entries (the `items` slot's among them) on two specimens, pinned by hand in
+ *                   `marks/breadcrumbs`. Mutations: a slot part's marker placed against its slot → `markers/breadcrumbs`;
+ *                   marker 1 dropped → `markers/breadcrumbs numbers` and every `markers/<def>`. `markers/left …`: the
+ *                   left column's landings typed by hand (`leftColumns`). Mutation: the slide along the edge removed →
+ *                   `markers/left slides`. `markers/blind`: every marker a child of the panel, the set unchanged by the
+ *                   draw, the panel unedited after it. Mutations: the marker group appended to its specimen →
+ *                   `markers/blind`; the dot's ink bound to a token → every `markers/<def>`.
  *   family/related  (#2970 Q5 A) Checkbox's and Buttons' Related lists typed from the approved wireframe; a family named
  *                   twice in one list once. Mutations: the own-family drop removed → `family/related`, `family/related
  *                   buttons`; the de-duplication removed → `family/related once`. `related/…` (#3552 Q-UG3 A): Dialog's and
@@ -177,7 +184,7 @@ import { componentDefs, docSections, MAINTAINER_REGISTER, NAMES_A_TOOL, type Com
 import { applyComponentPlan } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { fixHostMethods, makeShim, type Node } from './component-shim';
-import { anatomyEntry, anatomyMarks, clearOrphanPanels, codeRuns, docPanelReach, docPanelReaches, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, printV2, PANEL_FORMAT, type PanelApi, type PNode } from './src/doc-panel';
+import { anatomyEntry, anatomyMarks, clearOrphanPanels, leftColumns, panelUnedited, codeRuns, docPanelReach, docPanelReaches, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, printV2, PANEL_FORMAT, type PanelApi, type PNode } from './src/doc-panel';
 import { dueOf, entryFor, readLedger, recordSets, type LedgerEntry } from './src/as-built-ledger';
 import { checkedSetOf } from './src/update-plan';
 import { TAXONOMY } from './src/file-taxonomy';
@@ -773,7 +780,7 @@ section('marks/… — repeats as runs of neighbors alike on the specimen, the r
   // Written out from the defs' part trees as read by hand (list: container > items > item1..3; tabs: container >
   // items > tab1..3 and the baseline; button: container and its parts, none holding another).
   const of = (id: string) => { const def = componentDefs.find((d) => d.id === id)!; const a = docSections(def).sections.find((x) => x.id === 'anatomy'); return anatomyMarks(def, a && a.id === 'anatomy' ? a.parts.map((pt) => pt.id) : []); };
-  const show = (ms: ReturnType<typeof anatomyMarks>) => ms.map((m) => `${m.n}:${m.part}${m.parts > 1 ? `x${m.parts}` : ''}${m.bracket ? '[' : ''}@${m.path.join('/')}`).join(' ');
+  const show = (ms: ReturnType<typeof anatomyMarks>) => ms.map((m) => `${m.n}:${m.part}${m.parts > 1 ? `x${m.parts}` : ''}${m.container ? '[' : ''}@${m.path.join('/')}`).join(' ');
   ok(show(of('list')) === '1:container[@ 2:items[@items 3:item1x3@items/item1', `marks/list: ${show(of('list'))}`, 'want 1:container[@ 2:items[@items 3:item1x3@items/item1');
   ok(show(of('tabs')) === '1:container[@ 2:items[@items 3:tab1@items/tab1 4:tab2x2@items/tab2 5:baseline@baseline', `marks/tabs: the selected tab apart from the two unselected (${show(of('tabs'))})`);
   // Pagination (#2665), read by hand: the row's items alternate, page 1, a gap, page 4, the current page 5, page 6, a gap,
@@ -787,7 +794,7 @@ section('marks/… — repeats as runs of neighbors alike on the specimen, the r
   const ci = '1:container[@ 2:label@label 3:items[@items 4:cell1x6@items/cell1 5:message@message';
   ok(show(of('code-input')) === ci, `marks/code-input: the six cells, alike on the specimen, one run (${show(of('code-input'))})`, `want ${ci}`);
   ok(show(of('counter')).includes('decrement') && show(of('counter')).includes('increment'), `marks/counter: two parts that nest one component with different jobs stay apart (${show(of('counter'))})`);
-  ok(of('button').every((m) => !m.bracket && m.parts === 1), 'marks/button: nothing merged, nothing bracketed');
+  ok(of('button').every((m) => !m.container && m.parts === 1), 'marks/button: nothing merged, nothing bracketed');
   // Breadcrumbs (#2916), read by hand: the container, the native items slot holding the trail (two ancestors alike, the
   // current page apart), and the parent path's back glyph and link, which only the `path=parent` member holds.
   const bc = '1:container[@ 2:items[@items 3:item1x2@items/item1 4:item3@items/item3 5:backGlyph@backGlyph 6:parentLink@parentLink';
@@ -947,8 +954,15 @@ section('quote/… — a planned line never ends inside an open "…" (#3552 N1)
 }
 
 /* ── markers: on their parts, by the host's own layout ─────────────────────────────────────────────────── */
-section('markers/… — every listed number on a specimen, on its part, by a leader or a bracket (#2916)');
+section('markers/… — every listed number on a specimen, on its part, by one leader ending in a dot on its edge (#2916, #3773)');
 {
+  /** _Label's ink, typed here (#3773, owner decision B), and the end dot's size across. */
+  const INK = '#9747FF', DOT = 4;
+  const hexOf = (n: N): string => {
+    const f = ((n.fills ?? []) as { color?: { r: number; g: number; b: number }; boundVariables?: unknown }[])[0];
+    if (!f?.color || f.boundVariables) return 'no literal fill';
+    return `#${[f.color.r, f.color.g, f.color.b].map((v) => Math.round(v * 255).toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+  };
   /** The part a number stands for, found by the oracle's own means: the drawn list's name for it, matched to the
    *  def's listed parts, then the first shown layer of that id in a specimen of the Anatomy (the specimen itself for
    *  the root). */
@@ -977,6 +991,16 @@ section('markers/… — every listed number on a specimen, on its part, by a le
       return (byNo.length ? byNo : parts.filter((pt) => pt.name === label)).map((pt) => pt.id);
     };
     const coveredIds: string[] = [];
+    // THE CONTAINERS, from the def's own part tree: a listed part that holds another listed part, the root among them.
+    const tree = (def.anatomy?.parts ?? {}) as Record<string, { children?: string[] }>;
+    const below = (id: string): string[] => (tree[id]?.children ?? []).flatMap((c) => [c, ...below(c)]);
+    const listed = new Set(parts.map((pt) => pt.id));
+    const container = (id: string): boolean => id === def.anatomy?.root || below(id).some((c) => listed.has(c));
+    const ancestors = (id: string): string[] => Object.keys(tree).filter((k) => below(k).includes(id));
+    const marked = new Map<N, string[]>();
+    const marksOn = (sp: N): string[] => marked.get(sp) ?? [];
+    const left: { spec: N; x: number; box: { x: number; y: number; width: number; height: number } }[] = [];
+    const slid: { num: string; id: string; spec: N; at: { x: number; y: number; width: number; height: number }; outer: boolean }[] = [];
     for (const num of nums) {
       const label = labelOf(num);
       const pool = covers(label).map((id) => parts.find((pt) => pt.id === id)!);
@@ -989,38 +1013,58 @@ section('markers/… — every listed number on a specimen, on its part, by a le
       const group = panel.children.find((c) => c.name === `part ${num}`);
       if (!group) { wrong.push(`${num} ${first.id}: no marker`); continue; }
       const box = group.absoluteBoundingBox!;
-      const lines = group.children.filter((c) => c.name === 'leader' || c.name === 'tick').map((c) => c.absoluteBoundingBox!);
-      const badge = group.children.find((c) => c.name === '_Doc-block')!;
-      const marker = walk(badge).find((c) => c.name === 'marker')!.absoluteBoundingBox!;
-      const hit = targets.find((t) => { const b = t.absoluteBoundingBox!; return overlapsBox(box, b) && lines.some((l) => overlapsBox(l, b)); });
-      if (!hit) { wrong.push(`${num} ${first.id}: its marker and leader reach no ${first.id} (${targets.length} in the specimens)`); continue; }
+      const leaders = group.children.filter((c) => c.name === 'leader');
+      const ends = group.children.filter((c) => c.name === 'end');
+      const disc = group.children.find((c) => c.name === 'marker');
+      // #3773 (owner decision B): no bracket, no tick and no Badge: one leader, one end dot and the disc, all _Label's ink.
+      if (leaders.length !== 1 || ends.length !== 1 || !disc || group.children.some((c) => c.name === 'tick' || c.type === 'INSTANCE')) {
+        wrong.push(`${num} ${first.id}: ${leaders.length} leaders, ${ends.length} end dots, ${disc ? 'a' : 'no'} disc, ${group.children.map((c) => c.name).join('/')}`); continue;
+      }
+      for (const [what, n] of [['disc', disc], ['leader', leaders[0]], ['end dot', ends[0]]] as const) if (hexOf(n) !== INK) wrong.push(`${num}: its ${what} is ${hexOf(n)}, not ${INK}`);
+      const numeral = walk(disc).find((c) => c.type === 'TEXT');
+      if (!numeral || String(numeral.characters) !== num || hexOf(numeral) !== '#FFFFFF') wrong.push(`${num}: the disc reads ${numeral?.characters} in ${numeral ? hexOf(numeral) : 'nothing'}`);
+      const L = leaders[0].absoluteBoundingBox!, E = ends[0].absoluteBoundingBox!, marker = disc.absoluteBoundingBox!;
+      if (Math.abs(E.width - DOT) > 0.01 || Math.abs(E.height - DOT) > 0.01) wrong.push(`${num}: its end dot is ${E.width}×${E.height}, not ${DOT}`);
+      const hit = targets.find((t) => overlapsBox(box, t.absoluteBoundingBox!) && overlapsBox(E, t.absoluteBoundingBox!));
+      if (!hit) { wrong.push(`${num} ${first.id}: its end dot reaches no ${first.id} (${targets.length} in the specimens)`); continue; }
       const part = first;
-      // ON ITS PART BY CONTAINMENT (#2916): a leader runs down (or up) the part's middle and its tip lies inside the
-      // part's box; a bracket runs exactly the part's height and both its ticks end inside the part. The root is always
-      // bracketed.
+      const spec = specs.find((sp) => walk(sp).includes(hit) || sp === hit)!;
+      // ON ITS PART'S EDGE, NEVER OVER ITS CONTENT (#3773): the dot's middle lies on the part's edge, and the leader runs
+      // from the disc to that point and no further into the part.
       const B = hit.absoluteBoundingBox!;
-      const inside = (x: number, y: number) => x >= B.x - 0.5 && x <= B.x + B.width + 0.5 && y >= B.y - 0.5 && y <= B.y + B.height + 0.5;
-      if (lines.length === 3) {
-        const [v, ...ticks] = lines;
-        if (Math.abs(v.y - B.y) > 0.5 || Math.abs(v.y + v.height - (B.y + B.height)) > 0.5) wrong.push(`${num} ${part.id}: its bracket runs ${v.y}–${v.y + v.height}, the part ${B.y}–${B.y + B.height}`);
-        if (!ticks.every((t) => inside(t.x + t.width, t.y))) wrong.push(`${num} ${part.id}: a bracket tick ends outside the part`);
-      } else if (lines.length === 1) {
-        const [l] = lines;
-        if (isRoot) wrong.push(`${num} ${part.id}: the root has a leader, not a bracket`);
+      const ex = E.x + E.width / 2, ey = E.y + E.height / 2;
+      const within = (v: number, lo: number, hi: number) => v >= lo - 0.5 && v <= hi + 0.5;
+      const into = L.x < B.x + B.width - 0.5 && L.x + L.width > B.x + 0.5 && L.y < B.y + B.height - 0.5 && L.y + L.height > B.y + 0.5;
+      if (into) wrong.push(`${num} ${part.id}: its leader runs over the part`);
+      if (container(part.id)) {
+        // In from the left gutter to its left edge: the outermost near its bottom corner, an inner one at its middle.
+        const outer = !marksOn(spec).some((o) => o !== part.id && container(o) && ancestors(part.id).includes(o));
+        const wantY = outer ? B.y + B.height - Math.min(8, B.height / 2) : B.y + B.height / 2;
+        if (Math.abs(ex - B.x) > 0.5 || !within(ey, B.y, B.y + B.height)) wrong.push(`${num} ${part.id}: a container's dot at ${ex},${ey}, off its left edge ${B.x},${B.y}–${B.y + B.height}`);
+        // Off its place only when a disc there would touch another in the column (checked once every disc is read).
+        if (Math.abs(ey - wantY) > 0.5) slid.push({ num, id: part.id, spec, at: { ...marker, y: wantY - marker.height / 2 }, outer });
+        if (L.height > 1.01 || Math.abs(L.x + L.width - B.x) > 0.5 || marker.x + marker.width > spec.absoluteBoundingBox!.x) wrong.push(`${num} ${part.id}: a container's leader does not come in from the left gutter`);
+        left.push({ spec, x: marker.x, box: marker });
+      } else {
+        if (isRoot) wrong.push(`${num} ${part.id}: the root is marked as a part, not a container`);
         const down = marker.y < B.y;
-        const tip = { x: l.x + l.width / 2, y: down ? l.y + l.height : l.y };
-        if (!inside(tip.x, tip.y)) wrong.push(`${num} ${part.id}: its leader ends at ${tip.x},${tip.y}, outside the part ${B.x},${B.y} ${B.width}×${B.height}`);
-        if (Math.abs(tip.x - (B.x + B.width / 2)) > 1) wrong.push(`${num} ${part.id}: its leader is ${Math.round(tip.x - (B.x + B.width / 2))}px off the part's middle`);
-      } else wrong.push(`${num} ${part.id}: ${lines.length} lines, neither a leader nor a bracket`);
-      const spec = specs.find((sp) => walk(sp).includes(hit))!;
+        if (Math.abs(ex - (B.x + B.width / 2)) > 1) wrong.push(`${num} ${part.id}: its dot is ${Math.round(ex - (B.x + B.width / 2))}px off the part's middle`);
+        if (Math.abs(ey - (down ? B.y : B.y + B.height)) > 0.5) wrong.push(`${num} ${part.id}: its dot at y ${ey}, not on the part's ${down ? 'top' : 'bottom'} edge ${down ? B.y : B.y + B.height}`);
+        if (L.width > 1.01 || !within(ex, L.x, L.x + L.width)) wrong.push(`${num} ${part.id}: its leader is not a vertical line to the dot`);
+      }
       if (overlapsBox(marker, spec.absoluteBoundingBox!)) wrong.push(`${num} ${part.id}: the marker sits on the specimen, not in its gutter`);
       const stage = (spec.parent as N).absoluteBoundingBox!;
       if (marker.x < stage.x || marker.y < stage.y || marker.x + marker.width > stage.x + stage.width || marker.y + marker.height > stage.y + stage.height)
         wrong.push(`${num} ${part.id}: the marker is outside its specimen's stage`);
-      if (texts(badge)[0] !== num) wrong.push(`${num}: the marker reads ${texts(badge)[0]}`);
+      marked.set(spec, [...(marked.get(spec) ?? []), part.id]);
     }
     // Every listed part is covered by exactly one entry, in the listed order.
     if (coveredIds.join() !== parts.map((pt) => pt.id).join()) wrong.push(`the entries cover ${coveredIds.join(',')}, the def lists ${parts.map((pt) => pt.id).join(',')}`);
+    for (const sl of slid) {
+      const grown = { x: sl.at.x - 4, y: sl.at.y - 4, width: sl.at.width + 8, height: sl.at.height + 8 };
+      if (!left.some((o) => o.spec === sl.spec && o.box !== undefined && Math.abs(o.box.y - (sl.at.y)) > 0.01 && overlapsBox(grown, o.box)))
+        wrong.push(`${sl.num} ${sl.id}: its dot is off its ${sl.outer ? 'bottom corner' : 'middle'} though that place is free`);
+    }
     const badges = panel.children.filter((c) => c.name.startsWith('part ')).map((g) => walk(g).find((c) => c.name === 'marker')!.absoluteBoundingBox!);
     const touching = badges.flatMap((b, i) => badges.slice(i + 1).filter((o) => overlapsBox(b, o)).map(() => i + 1));
     const inside = badges.every((b) => { const pb = panel.absoluteBoundingBox!; return b.x >= pb.x && b.y >= pb.y && b.x + b.width <= pb.x + pb.width && b.y + b.height <= pb.y + pb.height; });
@@ -1070,6 +1114,40 @@ section('markers/… — every listed number on a specimen, on its part, by a le
     const specs = walk(panelsOn(q)[0]).filter((c) => c.name === 'specimen');
     ok(specs.length >= 3, `markers/extra specimens: Tag's parts take ${specs.length} specimens in its Anatomy and Theming`);
   }
+}
+
+/* ── markers: the left gutter, and blind to the set ───────────────────────────────────────────────────── */
+section('markers/left and blind — containers share the left column where their discs fit; the markers live on the panel alone (#3773)');
+{
+  // THE LEFT COLUMN, typed by hand (#3773): an outermost container's leader lands 8 above its bottom edge, an inner one
+  // at its middle; the shortest part is placed first and a disc that would touch another slides along its own left
+  // edge, a further column only when its edge has no free place. A disc is 20 across and two keep 4 apart, so two
+  // landings in one column are at least 24 apart.
+  const show = (r: { dy: number; column: number }[]) => r.map((c) => `${c.dy}@${c.column}`).join(' ');
+  const acc = leftColumns([{ path: [], top: 0, height: 52 }, { path: ['header'], top: 0, height: 24 }, { path: ['header', 'titleRow'], top: 0, height: 24 }]);
+  ok(show(acc) === '44@0 12@1 12@0', `markers/left nested on one edge: Accordion's root near its corner, its header and title row at their middle, one in a second column (${show(acc)})`);
+  const dlg = leftColumns([{ path: [], top: 0, height: 156 }, { path: ['header'], top: 0, height: 36 }, { path: ['footer'], top: 132, height: 24 }]);
+  ok(show(dlg) === '120@0 18@0 12@0', `markers/left slides: Dialog's root gives way to its footer along its own edge, all in one column (${show(dlg)})`);
+  ok(show(leftColumns([{ path: [], top: 0, height: 10 }])) === '5@0', 'markers/left short root: a root under 16 high lands at its middle');
+
+  // BLIND TO THE SET (#3773): the markers, their leaders and dots are the panel's own children, never inside the set or a
+  // specimen, so the set's hand-edit check and its as-built record, which read the set, never see them; and the panel
+  // reads as unedited right after its draw, so its print holds the furniture as drawn.
+  const def = componentDefs.find((d) => d.id === 'accordion')!;
+  const p = page('↳ m blind');
+  const set = fakeSet(p, def.id);
+  const snap = (n: N): string => JSON.stringify(walk(n).map((c) => [c.name, c.type, c.visible, c.fills, c.characters, (c.children ?? []).length]));
+  const before = snap(set);
+  const api = host([p]);
+  const r = await drawDocPanel(api, set, def, { names });
+  const panel = panelsOn(p)[0];
+  const groups = walk(p).filter((c) => /^part \d+$/.test(String(c.name)));
+  const strays = groups.filter((g) => g.parent !== panel).map((g) => `${g.name} under ${(g.parent as N)?.name}`);
+  const inSet = walk(set).filter((c) => /^part \d+$|^leader$|^end$/.test(String(c.name)) || (c.name === 'marker' && c.type === 'FRAME'));
+  const unedited = await panelUnedited(api, panel);
+  ok((r.marked ?? 0) > 0 && groups.length === r.marked && !strays.length && !inSet.length && snap(set) === before && unedited,
+    `markers/blind: ${groups.length} markers, every one a child of the panel, none in the set or a specimen, the set unchanged by the draw, and the panel unedited after it`,
+    [...strays, ...inSet.map((c) => `${c.name} in the set`), snap(set) === before ? '' : 'the set changed', unedited ? '' : 'the panel reads as edited'].filter(Boolean).slice(0, 4).join('; '));
 }
 
 /* ── width: each specimen at its member's own width, the panel widening to fit ─────────────────────────── */
