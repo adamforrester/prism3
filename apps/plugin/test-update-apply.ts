@@ -894,6 +894,48 @@ section('keep — every hand-edited path survives an update that rewrites its me
     `keep/plain updated: a member with no hand edits takes the new fill, and its ring is re-cornered from its host as before (${await fillVar(member(PLAIN))}; ${JSON.stringify(plainRing())})`);
 }
 
+/* ── keep, order and links (#2956 point 1) ──────────────────────────────────────────────────────────── */
+section('keep — a kept node keeps its children\'s order and its property links (#2956 point 1)');
+{
+  // Two writers #2943 did not reach. A designer reordered a Tag's content (the label before the leading icon) and
+  // unlinked the label from its text property. Both are in the as-built record (the children's names in order; the
+  // component-property references), so both read as hand edits and the verdict says "kept". The parent's child loop
+  // put the plan's order back, and the set's property wiring linked the label again. Every expected value is typed
+  // here, never read from the plan.
+  for (const choice of ['keep', 'overwrite'] as const) {
+    const plans = plansOf(TAG);
+    const w = await world(TAG, plans, { extraVars: ['color/keep/changed'] });
+    const NAME = 'type=select, selection=unselected, size=medium, state=rest';
+    const member = (): Node => membersOf(w.set()).find((m) => m.name === NAME)!;
+    const content = childNamed(member(), 'content');
+    const label = childNamed(childNamed(content, 'labelCheck'), 'label');
+    (content.insertChild as (i: number, c: Node) => void)(0, childNamed(content, 'labelCheck'));
+    label.componentPropertyReferences = {};
+    const order = (): string => JSON.stringify((childNamed(member(), 'content').children as Node[]).map((c) => c.name));
+    const links = (): string => JSON.stringify(childNamed(childNamed(childNamed(member(), 'content'), 'labelCheck'), 'label').componentPropertyReferences ?? {});
+    ok(order() === '["labelCheck","leadingVisual"]' && links() === '{}', `keep ${choice}/premise: the reorder and the unlink are in place (${order()}; ${links()})`);
+    const next = plans.map((p) => {
+      const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+      q.root.paints = { ...(q.root.paints ?? {}), fills: 'color/keep/changed' };
+      return q;
+    });
+    const targets = [{ def: TAG, plans: next }];
+    const pre = await previewUpdate(w.host, targets);
+    const listed = pre.sets[0].handEdits.filter((h) => h.member === NAME).map((h) => h.path).sort();
+    ok(JSON.stringify(listed) === '["content","content/labelCheck/label"]', `keep ${choice}/listed: the dry run lists both edits (${JSON.stringify(listed)})`);
+    const res = await applyUpdate(w.host, w.api as any, targets, previewHashOf(pre), { choices: { handEdits: choice } });
+    ok(res.outcomes[0].updated.includes(NAME), `keep ${choice}/rewritten: the member is updated in place (${res.outcomes[0].updated.length} updated)`);
+    if (choice === 'keep') {
+      ok(order() === '["labelCheck","leadingVisual"]', `keep order/byte-identical: the content's children stay in the designer's order (${order()})`);
+      ok(links() === '{}', `keep links/byte-identical: the label stays unlinked from its text property (${links()})`);
+      ok(applyVerdict(res).headline.startsWith('✓'), `keep order/verdict: the run reads ✓ (${applyVerdict(res).headline})`);
+    } else {
+      ok(order() === '["leadingVisual","labelCheck"]', `keep order/overwrite restores: Overwrite puts the plan's order back (${order()})`);
+      ok(/^\{"characters":"label#/.test(links()), `keep links/overwrite restores: Overwrite links the label to its text property again (${links()})`);
+    }
+  }
+}
+
 /* ── keep, reported (#3086) ──────────────────────────────────────────────────────────────────────────── */
 section('keep, reported — a kept hand edit on a bound size is a hand edit kept, never a part not written (#3086)');
 {
