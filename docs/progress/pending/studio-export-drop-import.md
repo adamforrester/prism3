@@ -28,8 +28,8 @@ That is the shrink this diff explains, and the only one.
 (`:108`, `:175`, `:233-237`, `:237-293`). `main.ts` lost three, so `:1891` (the restore-off hint) becomes `:1888`. The
 fingerprints are unchanged: the blocks are the same, one or three lines higher.
 
-**Left for the owner.** The Brand brief artifact's description still says "Import it back here to get the brand again"
-(`export-settings.ts`). "Here" now reads as Studio, not the dialog. Rewording it is copy, so it is not changed.
+**Brand brief description (owner decision Q-BK3 A, APPROVED).** It said "Import it back here to get the brand again"
+(`export-settings.ts`), and "here" then read as the dialog. It now says "Import it in Studio to get the brand again."
 
 **Flake seen.** §46's `web light 1280 Shape: a drag stores at most one write` failed once (2 written) in a three-section
 run, then passed twice on re-run. It does not touch Export.

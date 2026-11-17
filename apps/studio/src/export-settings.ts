@@ -112,7 +112,7 @@ export const ARTIFACTS: readonly ArtifactDef[] = [
   {
     id: 'design-md',
     label: 'Brand brief',
-    desc: 'The few anchors this brand is generated from, as Markdown. Import it back here to get the brand again.',
+    desc: 'The few anchors this brand is generated from, as Markdown. Import it in Studio to get the brand again.',
   },
   {
     // #3425 (owner decision Q45 A; DRAFT wording for the owner, Q3425.1): the component-defs export for the brand on
