@@ -23,6 +23,7 @@
  *   · the hand-edit pass's `stale()` back to its four named writes (prune left out) → `main/hand pass stale under prune` (#3737).
  *   · a pass a write made stale not asked for again when the write ends → `main/hand pass after the write` (#3804).
  *   · Apply Theme's orphan-style note dropped from its summary → `main/apply reports orphan styles` (#1737).
+ *   · prune's furniture rule back to "set alive" only (the parent not compared) → `main/moved set's furniture` (#2485).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -195,6 +196,36 @@ ok(r6?.ok === false && r6.applied === false && r6.count === 0
   && String(r6.summary).startsWith('Nothing removed — the named version could not be saved')
   && live3().length === 2 && !events.some((e) => e.startsWith('remove:')),
   `main/no version, nothing removed: a failed version save removes nothing (count ${r6?.count}, ${live3().length} left, ${JSON.stringify(r6?.summary)}, ${JSON.stringify(events)})`);
+
+// #2485 (Q294 A) — FURNITURE A MOVED SET LEFT ON ITS OLD PAGE, through main.ts. The set is alive, on page B; one of its
+// labels sits beside it, one was left on page A. The preview offers the one left behind under the owner's sentence for
+// both causes, and the confirm removes it and only it. The two stale variables the failed save above kept are offered
+// too, so the furniture sentence is read as the summary's tail. Mutation: main.ts back to "set alive" only (its
+// liveSets a Set, the parent not compared) → `main/moved set's furniture`.
+{
+  const movedSet = { id: 'moved-set', type: 'COMPONENT_SET', removed: false, parent: { id: 'page-B' } };
+  const gone: string[] = [];
+  const furn = (id: string, page: string) => {
+    const n = {
+      id, type: 'INSTANCE', parent: { id: page }, removed: false,
+      getSharedPluginData: () => JSON.stringify({ v: 1, def: 'button', set: 'moved-set', kind: 'label' }),
+      remove: () => { n.removed = true; gone.push(id); },
+    };
+    return n;
+  };
+  furniture = [furn('left-behind', 'page-A'), furn('beside', 'page-B')];
+  const realGet = (file as unknown as { getNodeByIdAsync: (id: string) => Promise<unknown> }).getNodeByIdAsync;
+  Object.assign(file, { getNodeByIdAsync: async (id: string) => (id === 'moved-set' ? movedSet : null) });
+  const p = await send({ type: 'prune', input, confirm: false }, ['prune-result']);
+  const r = await send({ type: 'prune', input, confirm: true, previewHash: String(p?.previewHash ?? '') }, ['prune-result']);
+  Object.assign(file, { getNodeByIdAsync: realGet });
+  furniture = [];
+  ok(p?.applied === false && p.count === 3
+    && String(p.summary).endsWith(' 1 canvas label or backdrop belongs to a set that was deleted or moved. Deleting it touches no component.')
+    && r?.applied === true && r.ok === true && r.count === 3 && JSON.stringify(gone) === JSON.stringify(['left-behind'])
+    && String(r.summary).endsWith(' Removed 1 canvas label or backdrop left from a set that was deleted or moved.'),
+    `main/moved set's furniture: the label a moved set left on another page is offered and removed, the one beside it stays (preview count ${p?.count}, ${JSON.stringify(p?.summary)}; applied count ${r?.count}, removed ${JSON.stringify(gone)}, ${JSON.stringify(r?.summary)})`);
+}
 
 // #3737 — THE HAND-EDIT PASS READS NOTHING WHILE A PRUNE HOLDS THE FILE. Since #3718 one hold covers every write, but the
 // pass's staleness check named four writes and left out prune: a pass asked for while a prune's delete runs read on and

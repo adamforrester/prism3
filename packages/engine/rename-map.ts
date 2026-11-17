@@ -643,26 +643,25 @@ export type MaterializationStep = {
  * belt-and-braces for a future rule that forgets: a malformed rule stops the walk instead of spinning, and
  * the name it stopped at then fails `planVariableRenames` visibly.
  *
- * `since` is the LAST rule applied — the most recent materialisation the name passed through, which is what
- * a reader of the outcome wants when a name crossed two eras.
+ * It returns the NAME only, and no `since` (#1084). A rule's `since` is an `ENGINE_VERSION`, and the one
+ * field a composed row has for provenance is `VarRename.since`, a `CONTRACT_VERSION`. See the note at the
+ * push in `composeVariableRenames`.
  */
 const materialize = (
   collection: string,
   name: string,
   root: string,
   rules: readonly MaterializationStep[],
-): { name: string; since: string } => {
+): string => {
   let cur = name;
-  let since = '';
   for (let i = 0; i <= rules.length; i++) {
     const rule = rules.find((r) => r.domain(collection, cur, root));
     if (!rule) break;
     const next = rule.map(collection, cur, root);
     if (next === cur) break;                     // a rule that maps its own domain member to itself
     cur = next;
-    since = rule.since;
   }
-  return { name: cur, since };
+  return cur;
 };
 
 /**
@@ -738,12 +737,16 @@ export const composeVariableRenames = (
     // of #1097, so it enters at the materialisation layer rather than in the contract projection. Threading
     // a root through `renameMap()` instead would put a brand-specific value inside the derivation from
     // `DEPRECATIONS`, where nothing is brand-specific.
-    const tail = mid.name.startsWith(prefix) ? mid.name.slice(prefix.length) : mid.name;
+    const tail = mid.startsWith(prefix) ? mid.slice(prefix.length) : mid;
     const row = byFrom.get(tail);
-    const to = row ? `${prefix}${row.to}` : mid.name;
+    const to = row ? `${prefix}${row.to}` : mid;
     if (to === from) continue;
     consumed.add(tail);
-    out.push({ collection, from, to, since: row?.since ?? mid.since });
+    // `since` COMES FROM THE CONTRACT ROW OR IS EMPTY, NEVER FROM A RULE (#1084). `VarRename.since` is a
+    // `CONTRACT_VERSION`; a materialization rule's `since` is an `ENGINE_VERSION`, a different version
+    // space (`CollectionRename`'s note draws the same line). A row only a rule produced was never retired
+    // by the contract, so it has no contract version, and '' is this field's own not-known value.
+    out.push({ collection, from, to, since: row?.since ?? '' });
   }
   // Rooted on the way out too, so `planVariableRenames` reports `source-absent` against a name spelled the
   // way the file spells names. An un-rooted `from` here would be absent from EVERY file rather than from
