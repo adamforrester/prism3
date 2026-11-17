@@ -18,8 +18,8 @@ export type { FigmaEffect } from './emit-figma-styles';
 export { verifyFloatReadback, verifyReadback, verifyStylesReadback } from './read-back';
 export type { DeclaredModesInput, ReadValue, ReadbackSnapshot, ReadbackVerdict } from './read-back';
 export {
-  COLLECTION_RENAMES, deriveVariableRenames, isRefusal, openMigration, planCollectionRenames, renameCollections,
-  renameMap, renameVariables, validateRenameMap,
+  COLLECTION_RENAMES, composeVariableRenames, deriveVariableRenames, isRefusal, openMigration, planCollectionRenames,
+  renameCollections, renameMap, renameVariables, validateRenameMap,
 } from './rename-map';
 export type { MaterializationStep, Migration, RenameMap } from './rename-map';
 export { MATERIALIZATION_RENAMES, STYLE_RENAMES, planStyleRenames } from './materialization-renames';
