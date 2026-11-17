@@ -251,20 +251,8 @@ const MIN_BRANDS = 3;
  * forever instead, and nothing would have connected the exception to its fix.
  */
 const KNOWN_UNREACHABLE: Record<string, { path: string; why: string; owner: string; issue: string }[]> = {
-  aurora: [
-    {
-      path: 'gradient.brand',
-      why: 'a Figma PAINT style; TokenPress\'s scanner reads variables + text + effect styles only, and has no gradient converter',
-      owner: 'tokenpress',
-      issue: '#731',
-    },
-    {
-      path: 'gradient.glow',
-      why: 'a Figma PAINT style; TokenPress\'s scanner reads variables + text + effect styles only, and has no gradient converter',
-      owner: 'tokenpress',
-      issue: '#731',
-    },
-  ],
+  // aurora's two gradients (`gradient.brand`, `gradient.glow`) were here until #731 gave TokenPress's scanner a
+  // paint-style channel and a gradient converter; they pair now, and this gate went red on them until removed.
   // #2942 — the link underline. Figma has no variable for text decoration (neither field takes one, so the value is a
   // literal PERCENT written into each `-link` text style). Since #3085 TokenPress's text-style reader keeps that literal,
   // as `textDecorationThickness` / `textDecorationOffset` inside each style's typography composite, but prism3's
@@ -284,21 +272,7 @@ const KNOWN_UNREACHABLE: Record<string, { path: string; why: string; owner: stri
       issue: '#3085',
     },
   ],
-  // #1296 gave the default theme the same two gradient names, so the same cause covers them.
-  prism3: [
-    {
-      path: 'gradient.brand',
-      why: 'a Figma PAINT style; TokenPress\'s scanner reads variables + text + effect styles only, and has no gradient converter',
-      owner: 'tokenpress',
-      issue: '#731',
-    },
-    {
-      path: 'gradient.glow',
-      why: 'a Figma PAINT style; TokenPress\'s scanner reads variables + text + effect styles only, and has no gradient converter',
-      owner: 'tokenpress',
-      issue: '#731',
-    },
-  ],
+  // #1296 gave the default theme the same two gradient names; they left with aurora's when #731 landed.
 };
 
 /**
@@ -549,10 +523,11 @@ const main = async (): Promise<void> => {
     // Figma variable name. Note what is NOT asserted: the root's spelling. `prism`/`nbds`/`wendys` is
     // a brand's own choice and naming it here would make this gate brand-specific (#1097's rule).
     // WHICH TYPES A FIGMA STYLE CAN CARRY — this gate's own expectation, authored here and not imported
-    // from either exporter. prism3 emits exactly two style channels (text styles -> `typography`,
-    // effect styles -> `shadow`); a Figma style cannot hold a dimension, a color or a number, so an
-    // unrooted group carrying one of those is a VARIABLE that lost its root, which is the failure.
-    const STYLE_TYPES = new Set(['typography', 'shadow']);
+    // from either exporter. prism3 emits three style channels TokenPress reads (text styles ->
+    // `typography`, effect styles -> `shadow`, and since #731 gradient paint styles -> `gradient`); a
+    // Figma style cannot hold a dimension, a color or a number, so an unrooted group carrying one of
+    // those is a VARIABLE that lost its root, which is the failure.
+    const STYLE_TYPES = new Set(['typography', 'shadow', 'gradient']);
     const rooted = r.structure.tokenpressRootGroups.filter((g) => g.key === r.structure.prism3Root);
     const unrooted = r.structure.tokenpressRootGroups.filter((g) => g.key !== r.structure.prism3Root);
 
