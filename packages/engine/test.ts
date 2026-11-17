@@ -34018,6 +34018,31 @@ arm: {
     'rename-map: fan-in with BOTH sources live → ambiguous-source for both, migrating neither — the file is the disambiguator, and picking one would silently discard the bindings on the other');
   ok(statuses(['color/a'], ['color/c'], [v('color/a', 'color/c'), v('color/b', 'color/c')]) === 'color/a→color/c:migrated',
     'rename-map: fan-in with ONE source live → an ordinary migration, so the 3 fan-in groups in the real map still migrate on a healthy file rather than refusing forever');
+  // #1142 — A RELOCATION AND A DEDUPE SHARING ONE TARGET. The relocation keeps the target's leaf
+  // (`primary`), the dedupe names another role (`default`), so the relocation migrates and the dedupe
+  // finds the target taken, `target-occupied`: two variables, the designer picks the survivor.
+  ok(statuses(['color/border/inverse/primary', 'color/border/inverse/default'], ['color/inverse/border/primary'],
+      [v('color/border/inverse/primary', 'color/inverse/border/primary'), v('color/border/inverse/default', 'color/inverse/border/primary')])
+      === 'color/border/inverse/default→color/inverse/border/primary:target-occupied | color/border/inverse/primary→color/inverse/border/primary:migrated',
+    '#1142 rename-map: a fan-in group with exactly ONE row keeping the target\'s leaf migrates that row and reports the rest target-occupied — the relocation carries its bindings, and the dedupe still waits for a human');
+  // …and with TWO rows keeping the leaf (one role in two eras' spellings), neither is the relocation, so the
+  // group stays ambiguous: the leaf picks a row only when it picks exactly one.
+  ok(statuses(['color/x/on-inverse/primary', 'color/x/inverse/primary'], ['color/inverse/x/primary'],
+      [v('color/x/on-inverse/primary', 'color/inverse/x/primary'), v('color/x/inverse/primary', 'color/inverse/x/primary')])
+      === 'color/x/inverse/primary→color/inverse/x/primary:ambiguous-source | color/x/on-inverse/primary→color/inverse/x/primary:ambiguous-source',
+    '#1142 rename-map: two rows keeping the target\'s leaf stay ambiguous-source — the leaf rule decides only when exactly one row qualifies');
+  // THE ISSUE'S OWN FAILURE PATH, ON THE SHIPPED MAP. A file written between #1013 and #1140 holds the value
+  // tier's `color/appearance/border/inverse/{primary,default}`. Composed through the shipped rules and the
+  // shipped contract rows exactly as the executor does, the relocation must migrate and the dedupe must not.
+  {
+    const R = 'zzfanin';
+    const old = ['color/appearance/border/inverse/primary', 'color/appearance/border/inverse/default'];
+    const rows = composeVariableRenames('color', old, renameMap().variables, MATERIALIZATION_RENAMES, R);
+    const got = planVariableRenames(old, [`${R}/color/inverse/border/primary`], rows)
+      .filter((o) => old.includes(o.from)).map((o) => `${o.from}:${o.status}`).sort().join(' | ');
+    ok(got === 'color/appearance/border/inverse/default:target-occupied | color/appearance/border/inverse/primary:migrated',
+      `#1142 rename-map: on the shipped map, a #1013-to-#1140 file's border/inverse/primary MIGRATES to inverse/border/primary and the deduped border/inverse/default reports target-occupied (got ${got || 'NOTHING'})`);
+  }
 
   // The collection planner, same shape — but it plans the WHOLE map at once (#1035), because a chain's
   // correct order is a property of the map and not of any single entry. Its plan-membership precondition
