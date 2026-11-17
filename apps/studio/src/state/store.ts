@@ -28,6 +28,7 @@
  */
 import { brandTheme, type BrandInput, type Theme, resolvePreview, type ResolvedPreview } from '@prism3/engine';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
+import { stashBefore, type UndoLoad } from './undo-load';
 import { provenanceOf, noOrigin, type Origin, type Provenance } from '../provenance';
 import type { PageKey } from '../shell/pages';
 import { studioMessage } from './floor-refusal';
@@ -265,6 +266,11 @@ export const loadInput = (input: BrandInput, origin: Origin): void => {
   invalidate('mode');
   invalidate('page');
 };
+
+/** What Undo load keeps before a load replaces the working brand (#1037): the live input, its provenance, and the
+ *  last-good input behind it, which differs from the live one when the live one holds a refused edit. Here rather than
+ *  at the call site so the argument choice is tested (review of f3cca512): `main.ts`'s `loadReplacing` calls this. */
+export const stashForLoad = (name: string): UndoLoad | null => stashBefore(brandState, provenance, name, lastGoodInput);
 
 /** Put back a brand a load replaced, WITH ITS PROVENANCE (#1037, Undo load): the same reset as `loadInput`, except that
  *  the origin and baseline are the ones it had, not new ones from `input`. So unsaved edits come back still unsaved, and

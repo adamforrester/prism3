@@ -233,8 +233,8 @@ ok(store.getPath(o, 'a.b.c') === 3 && store.getPath(o, 'a.x.c') === undefined, '
 // refused edit back where the field shows it AND the last-good brand behind it: the theme, `lastGoodInput` (what Apply
 // posts) and the persisted copy (what a web reload opens) are the user's brand, never the example the load brought in.
 // Expected values typed here: the name `mine`, the root `pds3`, the error the engine gives for the refused edit.
-// Mutation that fails here BY NAME: `restoreInput` ignoring the stashed last-good → `#1037 restoreInput over a failing
-// edit: …`.
+// Mutations that fail here BY NAME: `restoreInput` ignoring the stashed last-good → `#1037 restoreInput over a failing
+// edit: …`; `stashForLoad` passing the live input as the last-good → `#1037 stashForLoad: …`.
 {
   const ids = Object.keys(exampleBrands);
   const [mine, other] = [ids[0], ids[1]];
@@ -248,7 +248,11 @@ ok(store.getPath(o, 'a.b.c') === 3 && store.getPath(o, 'a.x.c') === undefined, '
   try { brandTheme(store.brandState); } catch (e) { engineSays = (e as Error).message; }
   store.rebuild();
   ok(store.lastError === engineSays && store.lastGoodInput.name === 'mine', `#1037 premise: the live edit is refused and the last good brand is the named one (${store.lastError})`);
-  const u = stashBefore(store.brandState, store.provenance, 'mine', store.lastGoodInput);
+  // The stash `main.ts` keeps before a load (`loadReplacing` calls `stashForLoad`), so the argument choice is held here
+  // too (review of f3cca512): a stash whose last-good is the live, refused input fails `#1037 stashForLoad: …` BY NAME.
+  const u = store.stashForLoad('mine');
+  ok(u !== null && u.input.actionPalette === 'not-a-palette' && u.lastGood.name === 'mine' && u.lastGood.actionPalette === undefined,
+    `#1037 stashForLoad: the stash keeps the live brand with its refused edit, and the last good brand behind it (last good ${u?.lastGood.actionPalette ?? 'without the edit'})`);
   store.loadInput((exampleBrands as Record<string, BrandInput>)[other], { kind: 'example', id: other });
   ok(store.theme.root === 'ads' && persisted[persisted.length - 1]?.name === 'Aurora', `#1037 premise: the load brought in the other example and persisted it (${store.theme.root})`);
   store.restoreInput(u!.input, u!.provenance, u!.lastGood);

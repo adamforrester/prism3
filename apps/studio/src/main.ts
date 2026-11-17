@@ -66,7 +66,7 @@ import { displayNameOf, entryOf } from './state/component-groups';
 // The brand's Control shape, for the Style guide's radius sample (UI redesign S7, owner decision D18 B).
 import { brandControlShape } from './state/shape-input';
 import { shownName } from './state/brand-input';
-import { stashBefore, stillOffered, type UndoLoad } from './state/undo-load';
+import { stillOffered, type UndoLoad } from './state/undo-load';
 // The Elevation and Motion writes moved to `state/depth-motion-input.ts` (UI redesign S9.1), and every Elevation and
 // Motion control to `domains/depth.ts` (S9.2); the Type writes to `state/type-input.ts` and every Type control to
 // `domains/type.ts` (S6.1 to S6.3). Nothing here writes either any more.
@@ -83,7 +83,7 @@ import {
 // bindings here: read freely, reassigned only through its setters.
 import {
   BRANDS, brandState, provenance, bootProvenance, theme, lastGoodInput, rp, currentMode, lastError, page,
-  firstRun, ensureThemeFresh, loadInput, restoreInput, clearOrigin, setPage,
+  firstRun, ensureThemeFresh, loadInput, restoreInput, stashForLoad, clearOrigin, setPage,
   subscribe, invalidate,
   type Mode,
 } from './state/store';
@@ -1335,7 +1335,7 @@ const replaceWorking = (put: () => void): void => {
 /** A load the designer chose (an example, a design.md, a start-window path) that may replace unsaved edits (#1037). The
  *  brand it replaces is kept for Undo load when it had edits to lose; the guard asked first in that case. */
 const loadReplacing = (input: BrandInput, origin: Origin): void => {
-  const keep = stashBefore(brandState, provenance, shownName(brandState), lastGoodInput);
+  const keep = stashForLoad(shownName(brandState));
   loadBrand(input, origin);
   undoLoad = keep;
   barChanged();
