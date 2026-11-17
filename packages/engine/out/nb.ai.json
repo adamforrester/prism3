@@ -8760,10 +8760,10 @@
       "resolves_to": "{nbds.space.200}"
     },
     "grid.md.margin": {
-      "$description": "grid md margin — 44px (dimension alias: no spacing step has this value)",
+      "$description": "grid md margin — 44px (spacing-scale alias)",
       "meaning": "Layout grid margin at the md breakpoint",
       "when_to_use": "The margin of the page layout grid from the md breakpoint up.",
-      "resolves_to": "{nbds.core.dimension.44}"
+      "resolves_to": "{nbds.space.550}"
     },
     "grid.lg.columns": {
       "$description": "grid lg — 12 columns",
@@ -8866,6 +8866,12 @@
       "meaning": "Spacing step 500",
       "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
       "resolves_to": "{nbds.core.dimension.40}"
+    },
+    "space.550": {
+      "$description": "`space.550` — 44px (5.5× 8px base)",
+      "meaning": "Spacing step 550",
+      "when_to_use": "Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.",
+      "resolves_to": "{nbds.core.dimension.44}"
     },
     "space.600": {
       "$description": "`space.600` — 48px (6× 8px base)",
@@ -11620,7 +11626,8 @@
       "aliased_by": [
         "grid.md.margin",
         "size.md.height",
-        "size.md.min-height"
+        "size.md.min-height",
+        "space.550"
       ]
     },
     "core.dimension.48": {

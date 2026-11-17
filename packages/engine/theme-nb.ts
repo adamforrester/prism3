@@ -88,8 +88,8 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     // NB caps at 1920 + narrow 720. Its md margin is 44 (#3052, Q785 A). The 41px figure behind it is the
     // brand's desktop spec in its own two-mode layout, where md carries the 24-column, 16px-gutter grid:
     // whole-pixel 41px columns at 1440. It is not a property of this fixture's 5-breakpoint grid, where md
-    // is 8 columns and a 44 margin gives 71px columns at 768 (#3070). 44 is no spacing step, so
-    // `grid/margin` md links to `core/dimension/44`.
+    // is 8 columns and a 44 margin gives 71px columns at 768 (#3070). 44 is the spacing step `space.550`
+    // (#3408 Q-HT1 A), so `grid/margin` md links to `space/550`; before it, the link was `core/dimension/44`.
     layout: buildLayout({ containerMax: 1920, marginOverrides: { md: 44 } }),
     gradient: { gradients: [] },                                     // NB ships no gradients (it had none)
     notes: [

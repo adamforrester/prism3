@@ -424,6 +424,12 @@ at a 16px font size.
 half of the decision (#2423, the same primitives as Figma number variables) moves no DTCG name, so it
 lands without a second bump.
 
+### Additions since 15.0.0 (MINOR)
+
+| `CONTRACT_VERSION` | PR | guaranteed paths added |
+|---|---|---|
+| 15.1.0 | (#3408, Q-HT1 A) | `space.550`, the 44px step beside the half steps `space.150` and `space.250`: the hit-target floor a medium or large Button binds in code |
+
 ## Change classification
 
 | change to the guaranteed set | level | why |

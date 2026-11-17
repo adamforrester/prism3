@@ -4183,8 +4183,8 @@
         },
         "margin": {
           "$type": "dimension",
-          "$value": "{nbds.core.dimension.44}",
-          "$description": "grid md margin — 44px (dimension alias: no spacing step has this value)"
+          "$value": "{nbds.space.550}",
+          "$description": "grid md margin — 44px (spacing-scale alias)"
         }
       },
       "lg": {
@@ -4296,6 +4296,11 @@
         "$type": "dimension",
         "$value": "{nbds.core.dimension.40}",
         "$description": "`space.500` — 40px (5× 8px base)"
+      },
+      "550": {
+        "$type": "dimension",
+        "$value": "{nbds.core.dimension.44}",
+        "$description": "`space.550` — 44px (5.5× 8px base)"
       },
       "600": {
         "$type": "dimension",
