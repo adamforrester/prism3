@@ -21883,7 +21883,7 @@ if (runs('1909')) {
 // main thread to open GitHub's issue form. Expected words are literals; the house brand's prefix is `pds3`.
 // MUTATIONS (each after a `wip:` commit): the box starting ticked → `#2069 … the brand's settings are off by default`;
 // `issueUrl` skipped (the bare form posted) → `#2069 … posts open-issue with the issue form, prefilled`.
-/** The issue's body (the owner, 2026-11-17: the title prefilled, the body only asks for the report). A literal, DRAFT. */
+/** The issue's body (the owner, 2026-11-17: the title prefilled, the body only asks for the report). A literal, the owner-approved copy (Q-RC1 A). */
 const REPORT_PASTE = 'Paste the report here — Prism3 copies it to your clipboard as it opens this page. Copy in the Report a problem dialog copies it again.';
 if (runs('2069')) {
   console.log(`\nActivity: Report a problem (#2069, Q116 A)\n${'='.repeat(78)}`);

@@ -247,6 +247,6 @@ export const REPORT_COPY = {
   noActivity: '- Nothing has run in this session.',
   byAgent: 'agent',
   bodyBrand: '### Brand settings (included by the reporter)',
-  // DRAFT (the owner, 2026-11-17: "prepopulate with the title, but then the body has instructions to paste the rest").
+  // Owner decision Q-RC1 A copy, verbatim (APPROVED 2026-11-17): the title prefilled, the body only asks for the report.
   issueBody: 'Paste the report here — Prism3 copies it to your clipboard as it opens this page. Copy in the Report a problem dialog copies it again.',
 } as const;
