@@ -34135,6 +34135,29 @@ arm: {
     `rename-map: all ${colorContractRows.length} shipped contract rows are in \`color\` and NONE is keyed on a spelling a materialization rule would also rewrite — so no live name is claimed by both, and the fold has one answer${ruleReachable.length ? ` — REACHABLE: ${ruleReachable.slice(0, 3).map((r) => r.from).join(', ')}` : ''}`);
   ok(comp('color', [], [v('color/a', 'color/b', 'color')]) === `${CROOT}/color/a→${CROOT}/color/b`,
     'rename-map: a contract row whose source is not live still comes through — it has to, or `source-absent` would stop being reported and "checked, nothing to do" would silently become "never checked"');
+  // #1084 — A COMPOSED ROW'S `since` IS A CONTRACT_VERSION OR NOTHING. `VarRename.since` is documented as
+  // the `CONTRACT_VERSION` that retired `from`; a materialization rule's `since` is an `ENGINE_VERSION`. A
+  // row only a rule produced was never retired by the contract, so it carries '' rather than the rule's
+  // engine version. The oracle is the set of `since` values `DEPRECATIONS` holds, the contract's own record,
+  // which nothing in `composeVariableRenames` derives from.
+  {
+    const contractSince = new Set(DEPRECATIONS.map((d) => d.since));
+    const ruleOnly = composeVariableRenames('color', ['color/appearance/background/primary'], [], MATERIALIZATION_RENAMES, CROOT);
+    ok(ruleOnly.length === 1 && ruleOnly[0].since === '',
+      `#1084 rename-map: a row only a materialization rule produced carries since '' — got ${ruleOnly.map((r) => `'${r.since}'`).join(', ') || 'NO ROW'}; a rule's since is an ENGINE_VERSION, and this field holds a CONTRACT_VERSION`);
+    const withRow = composeVariableRenames('color', ['color/appearance/old'],
+      [{ collection: 'color', from: 'color/old', to: 'color/new', since: '8.0.0' }], MATERIALIZATION_RENAMES, CROOT);
+    ok(withRow.length === 1 && withRow[0].since === '8.0.0',
+      `#1084 rename-map: a row a contract row reached keeps that row's CONTRACT_VERSION, even when rules carried the name there first — got ${withRow.map((r) => `'${r.since}'`).join(', ') || 'NO ROW'}`);
+    // Across the shipped map and every era's spelling of every source it names: each composed `since` is
+    // '' or a version DEPRECATIONS records.
+    const shippedColor = renameMap().variables.filter((r) => r.collection === 'color');
+    const eras = shippedColor.flatMap((r) => [r.from, `${CROOT}/${r.from}`, r.from.replace(/^color\//, 'color/appearance/')]);
+    const stray = composeVariableRenames('color', eras, shippedColor, MATERIALIZATION_RENAMES, CROOT)
+      .filter((r) => r.since !== '' && !contractSince.has(r.since));
+    ok(stray.length === 0,
+      `#1084 rename-map: every composed row over the shipped map carries '' or a CONTRACT_VERSION from DEPRECATIONS — ${stray.length} do not${stray.length ? `: ${stray.slice(0, 3).map((r) => `${r.from}@${r.since}`).join(', ')}` : ''}`);
+  }
 }
 
 // ---- #1009: the vertical rule — the half that is claimed, and the half that is NOT a fix -----------
@@ -37961,16 +37984,61 @@ arm: {
   const EMITTED = 'packages/engine/out/figma/prism3/focus.json';
   const moveArtifact = () => put(EMITTED, `${readFileSync(join(clone, EMITTED), 'utf8')}\n`);
   const FROM_MAIN = 'merge base with origin/main — HEAD carries';
-  try {
-    gitIn(work, ['clone', '-q', '--shared', '--no-checkout', REPO, clone]);
-    git(['checkout', '-q', '-B', 'main', gitIn(REPO, ['rev-parse', 'HEAD']).trim()]);
-    const patch = gitIn(REPO, ['diff', '--binary', 'HEAD']);
-    if (patch) git(['apply', '--binary', '-'], patch);
-    for (const p of gitIn(REPO, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean)) {
-      mkdirSync(dirname(join(clone, p)), { recursive: true });
-      copyFileSync(join(REPO, p), join(clone, p));
+  // A `--shared` clone of `src` at `dst`, on branch `main`, whose tip is W: `src`'s working tree as one commit.
+  //   · W sits on the `main` `src` CARRIES: its merge base with `origin/main` (then `main`), or HEAD when neither
+  //     resolves. On `main` that is HEAD's own history. On an integration branch it is not: that branch's own
+  //     pending entries stay pending and never fold, so on its first-parent chain they landed before `main`'s
+  //     newest folded entry, and the fold below refused them (#3842). On the carried `main` they land at W, as
+  //     any PR's entry lands at its merge.
+  //   · The clone keeps no ref but `main`. It would inherit `src`'s branches, and a local `poc/…` branch then
+  //     blocks the fixture's `poc` (#3842). The fixture names every other ref it reads.
+  const cloneWorkingTree = (src: string, dst: string): void => {
+    gitIn(work, ['clone', '-q', '--shared', '--no-checkout', src, dst]);
+    for (const ref of gitIn(dst, ['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes']).split('\n').filter(Boolean)) gitIn(dst, ['update-ref', '-d', ref]);
+    const mainRefIn = ['origin/main', 'main'].find((c) => spawnSync('git', ['-C', src, 'rev-parse', '--verify', '--quiet', `${c}^{commit}`], { env }).status === 0);
+    const carriedIn = mainRefIn ? spawnSync('git', ['-C', src, 'merge-base', 'HEAD', mainRefIn], { encoding: 'utf8', env }) : null;
+    const carried = carriedIn?.status === 0 && carriedIn.stdout.trim() ? carriedIn.stdout.trim() : gitIn(src, ['rev-parse', 'HEAD']).trim();
+    gitIn(dst, ['checkout', '-q', '-B', 'main', carried]);
+    const patch = gitIn(src, ['diff', '--binary', carried]);
+    if (patch) gitIn(dst, ['apply', '--binary', '-'], patch);
+    for (const p of gitIn(src, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean)) {
+      mkdirSync(dirname(join(dst, p)), { recursive: true });
+      copyFileSync(join(src, p), join(dst, p));
     }
-    commit('W: the working tree');
+    gitIn(dst, ['add', '-A']); gitIn(dst, ['commit', '-q', '--allow-empty', '-m', 'W: the working tree']);
+  };
+  try {
+    // #3842: the clone of an integration branch's tree. `main` c0 · c1; `poc/integ` forks at c0, adds its own
+    // entry at i1 and merges c1. Its entry must land at W, and W must sit on c1, the `main` it carries; and the
+    // branch `poc/integ` must not reach the clone. MUTATIONS VERIFIED (#3842, each fails a case here by name, and
+    // the first also fails the replay below on an integration branch's own tree with CI's fold refusal): W on
+    // HEAD instead of the carried `main` · the inherited refs kept.
+    {
+      const syn = join(work, 's');
+      const synClone = join(work, 'sc');
+      const ENTRY = 'docs/progress/pending/integ-own.md';
+      gitIn(work, ['init', '-q', '-b', 'main', syn]);
+      mkdirSync(join(syn, 'docs/progress/pending'), { recursive: true });
+      writeFileSync(join(syn, 'docs/progress/pending/README.md'), 'Pending.\n');
+      gitIn(syn, ['add', '-A']); gitIn(syn, ['commit', '-q', '-m', 'c0']);
+      gitIn(syn, ['checkout', '-q', '-b', 'poc/integ']);
+      writeFileSync(join(syn, ENTRY), '## (2026-11-08) — The integration branch\'s own entry\n');
+      gitIn(syn, ['add', '-A']); gitIn(syn, ['commit', '-q', '-m', 'i1']);
+      gitIn(syn, ['checkout', '-q', 'main']);
+      writeFileSync(join(syn, 'main.txt'), 'main moved\n');
+      gitIn(syn, ['add', '-A']); gitIn(syn, ['commit', '-q', '-m', 'c1']);
+      const c1 = gitIn(syn, ['rev-parse', 'HEAD']).trim();
+      gitIn(syn, ['checkout', '-q', 'poc/integ']); gitIn(syn, ['merge', '-q', '--no-ff', '-m', 'refresh from main', 'main']);
+      cloneWorkingTree(syn, synClone);
+      const w = gitIn(synClone, ['rev-parse', 'HEAD']).trim();
+      const landed = gitIn(synClone, ['log', '--first-parent', '--diff-filter=A', '--format=%H', 'HEAD', '--', ENTRY]).trim();
+      ok(landed === w && gitIn(synClone, ['rev-parse', 'HEAD^1']).trim() === c1,
+        `#3842 replay clone: an integration branch's own entry lands at W, on the main its tree carries (landed ${landed.slice(0, 8)}, W ${w.slice(0, 8)}, W's parent ${gitIn(synClone, ['rev-parse', 'HEAD^1']).trim().slice(0, 8)}, carried main ${c1.slice(0, 8)})`);
+      const refs = gitIn(synClone, ['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes']).trim();
+      ok(refs === 'refs/heads/main', `#3842 replay clone: the clone keeps no ref of the source but main, so a local poc/… branch cannot block the fixture's poc (refs: ${refs.split('\n').join(', ')})`);
+    }
+
+    cloneWorkingTree(REPO, clone);
     // executor-reach imports `@prism3/engine`; the clone has no install, so point the name at its own engine.
     mkdirSync(join(clone, 'node_modules', '@prism3'), { recursive: true });
     symlinkSync(join(clone, 'packages', 'engine'), join(clone, 'node_modules', '@prism3', 'engine'), 'dir');
