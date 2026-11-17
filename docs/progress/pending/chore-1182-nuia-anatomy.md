@@ -16,3 +16,7 @@ Five functions in `anatomy-figma.ts` reach the executors as SOURCE: `nestVariant
 ### Proof, and a trap for whoever re-runs it
 
 `regen --check` is in sync. Against the branch's merge base, the plan diff (3,038 digests), every def object (62) and the five shipped sources are identical. The trap: a plan diff against an OLDER `main` showed `spinner` moving. That was `main` changing `spinner.ts` in between, not this PR. Diff against `git merge-base HEAD origin/main`, never against a snapshot taken earlier in the session.
+
+### Held from here
+
+#3893's clean list can't hold these two files, because `packages/engine/tsconfig.json` doesn't read them. So `typecheck-components.ts` gains a second list, `NUIA_CLEAN_BY_TSCONFIG`, run through `apps/plugin/tsconfig.main.json`, which does read them. It lists `anatomy-figma.ts` and `anatomy-readback.ts`. Each tsconfig is its own run, with the engine list's guards (the flag on, no unplaced diagnostic, every listed file read) plus `noEmit` on. Measured: one `must` removed from `anatomy-figma.ts` passes the gate without the entry and fails it by name with the entry.
