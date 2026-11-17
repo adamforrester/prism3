@@ -199,7 +199,10 @@ export type SetPreview = {
    *  order. Collapsing members are not moved: an update refuses a set that has them. */
   moves: { from: string; to: string }[];
   possibleRenames: { from: string; to: string }[];
-  handEdits: { member: string; path: string; conflict: boolean; structural: boolean }[];
+  /** `lost` (#2673): the edit is at or under a layer the update removes or replaces, so an apply that wrote the member
+   *  would rebuild it without the edit. Always a conflict. Under Keep and Accept the apply skips the member. Absent
+   *  otherwise. */
+  handEdits: { member: string; path: string; conflict: boolean; structural: boolean; lost?: true }[];
   /** #2265 PR 2 — every matched member that is not current, with how it reads; what an apply acts on. Current
    *  members are left out, so a set with nothing to do carries an empty list. Never capped: an apply must see all. */
   states: { member: string; state: Exclude<MemberState, 'current'>; earlierRecord?: true;
@@ -665,10 +668,15 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       changes.set(k, c);
     }
     const movedFrom = new Set(moves.map((mv) => mv.from));
+    // THE LAYERS THE UPDATE REBUILDS on this member (#2673): each it removes (not moved, so a renamed part is here
+    // too) and each it replaces for a type change. A hand edit at or under one is not kept by path: the fresh node
+    // is built at another path or as another node, and the old one, edit and all, is removed.
+    const rebuilt: string[] = replacements.filter((r) => r.member === m.name && r.path !== '.').map((r) => r.path);
     const extras: string[] = [];
     extraChildren(plan.root, snap, '.', extras);
     for (const mv of moves) extraChildren(mv.plan, mv.host, mv.to, extras);
     for (const part of extras.filter((x) => !movedFrom.has(x))) {
+      rebuilt.push(part);
       const parent = part.includes('/') ? part.slice(0, part.lastIndexOf('/')) : '.';
       touched.add(parent);
       if (!structural) removedLayers.set(part, (removedLayers.get(part) ?? 0) + 1);
@@ -733,8 +741,12 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       // difference on an edited node cannot be split into the edit's part and the plan's part, and it is
       // reported as a conflict. That can over-report; it never hides one.
       const moved = planMoved || (revField !== null && revField !== rev);
-      for (const p of [...edit.changed, ...edit.added, ...edit.removed])
-        handEdits.push({ member: m.name, path: p, conflict: moved && touched.has(p.replace(/#\d+$/, '')), structural });
+      for (const p of [...edit.changed, ...edit.added, ...edit.removed]) {
+        const at = p.replace(/#\d+$/, '');
+        // AN EDIT THE UPDATE WOULD LOSE (#2673) is a conflict whatever moved: the update rebuilds its layer.
+        const lost = rebuilt.some((r) => at === r || at.startsWith(`${r}/`));
+        handEdits.push({ member: m.name, path: p, conflict: lost || (moved && touched.has(at)), structural, ...(lost ? { lost: true as const } : {}) });
+      }
     }
   }
 
