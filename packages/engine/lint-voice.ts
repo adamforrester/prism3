@@ -288,22 +288,67 @@ const normativeHits = (txt: string): RawHit[] => [...txt.matchAll(NORMATIVE)].ma
 
 // ---- The payload channel's one carve-out. A requirement is exempt only as the sentence its own entry
 // defines; the patterns are this gate's, written independently of `ai-metadata.ts`.
-const REQ_PLAIN = /^MUST clear (\d+(?:\.\d+)?:1) against `([^`]+)` in every mode\.$/;
-const REQ_COMPOSITE = /^MUST keep `([^`]+)` at (\d+(?:\.\d+)?:1) or more on `([^`]+)` composited over `([^`]+)`, in every mode\.$/;
+// #1779: where the modes hold different floors the sentence names each one ("… in light and dark modes, and 4.5:1
+// in hc-light and hc-dark modes."), and a role's OWN pair (`contrast_with[0]`) is held to the floors the token tree beside
+// the sidecar records (`$extensions.prism3.min`, and `.modes.<id>.min`). So "in every mode" is refused where the
+// tree's floors differ, and a per-mode sentence is refused unless it states exactly the tree's floors. A second
+// pair (`alsoAgainst`, from either end) has no per-mode floor in the tree, so only its light floor and its shape are
+// checked; on a role with no floor of its own in the tree, `contrast_with[0]` is such a pair.
+const REQ_RATIO = String.raw`\d+(?:\.\d+)?:1`;
+const REQ_PLAIN = new RegExp(String.raw`^MUST clear (${REQ_RATIO}) against \`([^\`]+)\`( in every mode| in .+)\.$`);
+const REQ_COMPOSITE = new RegExp(String.raw`^MUST keep \`([^\`]+)\` at (${REQ_RATIO}) or more on \`([^\`]+)\` composited over \`([^\`]+)\`(, in every mode| in .+)\.$`);
+type Floors = Record<string, string>;
+/** The floors a requirement's mode clause states, by mode id — or 'every' — or null when it does not parse.
+ *  `first` is the head's floor; each later group restates its own ("4.5:1 in …", composite "at 7:1 or more in …"). */
+const statedFloors = (clause: string, first: string, composite: boolean): Floors | 'every' | null => {
+  if (/^,? in every mode$/.test(clause)) return 'every';
+  const groups = clause.replace(/^ in /, '').split(/, (?:and )?(?=(?:at )?\d)/);
+  const out: Floors = {};
+  for (const [i, g] of groups.entries()) {
+    const m = i === 0 ? [g, first, g] : g.match(composite ? new RegExp(String.raw`^at (${REQ_RATIO}) or more in (.+)$`) : new RegExp(String.raw`^(${REQ_RATIO}) in (.+)$`));
+    if (!m) return null;
+    const named = m[2].match(/^(.+?) modes?$/);
+    if (!named) return null;
+    const modes = named[1].split(/, | and /);
+    if (modes.some((x) => !/^[a-z0-9-]+$/.test(x) || x in out)) return null;
+    for (const x of modes) out[x] = i === 0 ? first : m[1];
+  }
+  return groups.length > 1 && new Set(Object.values(out)).size === groups.length ? out : null;
+};
+/** A role's per-mode floors as the token tree records them, `light` being the tree's own (base) value. */
+type TreeFloors = (role: string) => Floors | undefined;
+const treeFloorsOf = (tree: any): TreeFloors => {
+  const root = Object.keys(tree ?? {}).find((k) => !k.startsWith('$'));
+  return (role) => {
+    const ext = role.split('.').reduce((o: any, k) => o?.[k], tree?.[root!]?.color)?.$extensions?.prism3;
+    if (!ext || !(ext.min > 0)) return undefined;
+    const out: Floors = { light: `${ext.min}:1` };
+    for (const [m, v] of Object.entries<any>(ext.modes ?? {})) if (v?.min > 0) out[m] = `${v.min}:1`;
+    return out;
+  };
+};
+const sameFloors = (a: Floors, b: Floors) => Object.keys(a).length === Object.keys(b).length && Object.entries(a).every(([k, v]) => b[k] === v);
 const isPayloadSidecar = (abs: string) => /\/packages\/engine\/out\/[^/]+\.ai\.json$/.test(abs);
 let channelExempted = 0, channelFiles = 0;
 /** The sidecar text with every valid contract requirement blanked, re-serialized the way the emitter
  *  writes it (2-space JSON), so line numbers on a remaining hit still point at the committed file. */
-const carvePayload = (raw: string): { text: string; exempted: number } => {
+const carvePayload = (raw: string, floorsOf: TreeFloors): { text: string; exempted: number } => {
   const doc = JSON.parse(raw);
   let exempted = 0;
-  for (const [role, e] of Object.entries<any>(doc.color ?? {})) for (const cw of e?.contrast_with ?? []) {
+  for (const [role, e] of Object.entries<any>(doc.color ?? {})) for (const [i, cw] of (e?.contrast_with ?? []).entries()) {
     const r = String(cw?.requirement ?? '');
     const m = cw?.composited_over ? r.match(REQ_COMPOSITE) : r.match(REQ_PLAIN);
     const own = m && (cw.composited_over
       ? m[1] === cw.token && m[2] === cw.min && m[3] === role && m[4] === cw.composited_over
       : m[1] === cw.min && m[2] === cw.token);
-    if (own) { cw.requirement = ''; exempted++; }
+    if (!own) continue;
+    const stated = statedFloors(m[cw.composited_over ? 5 : 3], cw.min, !!cw.composited_over);
+    if (!stated) continue;
+    // The role's own pair is `contrast_with[0]` on a role the tree records a floor for. A role with no floor of its
+    // own (a ground listed for the ink measured on it, `hover-fill`, `foreground.tertiary`) carries only second pairs.
+    const tree = i === 0 ? floorsOf(role) : undefined;
+    if (tree && !(stated === 'every' ? Object.values(tree).every((v) => v === cw.min) : sameFloors(stated, tree))) continue;
+    cw.requirement = ''; exempted++;
   }
   return { text: JSON.stringify(doc, null, 2) + '\n', exempted };
 };
@@ -349,7 +394,7 @@ const scan = (abs: string): Hit[] => {
   // requirements (header: the payload channel). An unparseable sidecar is a surface this gate cannot see.
   let normText = txt;
   if (isPayloadSidecar(abs)) {
-    try { const c = carvePayload(raw); normText = c.text; channelExempted += c.exempted; channelFiles++; } catch (e) {
+    try { const c = carvePayload(raw, treeFloorsOf(JSON.parse(readFileSync(abs.replace(/\.ai\.json$/, '.tokens.json'), 'utf8')))); normText = c.text; channelExempted += c.exempted; channelFiles++; } catch (e) {
       blind.push(`${relative(repo, abs)} — payload sidecar did not parse (${(e as Error).message})`);
       return [];
     }
@@ -552,17 +597,30 @@ const LINE_SAMPLE = [
   ];
   for (const { sample, want } of cases) if ((normativeHits(sample).length > 0) !== want) selfFails.push(`normative: "${sample}" should${want ? '' : ' NOT'} be flagged`);
   const sidecar = (cw: object, extra: object = {}) => JSON.stringify({ color: { 'text.primary': { avoid_when: 'Do not use on fills.', contrast_with: [cw], ...extra } } });
+  // The tree beside the fixture: text.primary holds 7:1 in every mode; border.brand 3:1 in light and dark, 4.5:1 in HC.
+  const FLOORS: Record<string, Floors> = { 'text.primary': { light: '7:1', dark: '7:1' }, 'border.brand': { light: '3:1', dark: '3:1', 'hc-light': '4.5:1', 'hc-dark': '4.5:1' },
+    'scrim.wash': { light: '4.5:1', dark: '4.5:1', 'hc-light': '7:1', 'hc-dark': '7:1' }, 'scrim.even': { light: '4.5:1', dark: '4.5:1' } };
+  const floorsOf: TreeFloors = (r) => FLOORS[r];
   const own = { token: 'background.secondary', min: '7:1', requirement: 'MUST clear 7:1 against `background.secondary` in every mode.' };
-  const comp = { token: 'text.primary', min: '4.5:1', composited_over: 'background.primary', requirement: 'MUST keep `text.primary` at 4.5:1 or more on `text.primary` composited over `background.primary`, in every mode.' };
+  const brandSidecar = (requirement: string) => JSON.stringify({ color: { 'border.brand': { contrast_with: [{ token: 'background.primary', min: '3:1', requirement }] } } });
+  const comp = { token: 'text.primary', min: '4.5:1', composited_over: 'background.primary', requirement: 'MUST keep `text.primary` at 4.5:1 or more on `scrim.wash` composited over `background.primary`, in every mode.' };
+  const compSidecar = (cw: object, role = 'scrim.wash') => JSON.stringify({ color: { [role]: { contrast_with: [cw] } } });
   const channel: { name: string; raw: string; want: number }[] = [
     { name: 'its own requirement', raw: sidecar(own), want: 0 },
-    { name: 'its own composite requirement', raw: sidecar(comp), want: 0 },
+    { name: 'its own composite requirement', raw: compSidecar({ ...comp, requirement: comp.requirement.replace('scrim.wash', 'scrim.even') }, 'scrim.even'), want: 0 },
+    { name: 'a composite "in every mode" where the tree\'s floors differ', raw: compSidecar(comp), want: 1 },
+    { name: 'a per-mode composite requirement stating the tree\'s floors', raw: compSidecar({ ...comp, requirement: 'MUST keep `text.primary` at 4.5:1 or more on `scrim.wash` composited over `background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes.' }), want: 0 },
     { name: 'a requirement naming another token', raw: sidecar({ ...own, token: 'background.primary' }), want: 1 },
     { name: 'a requirement stating another floor', raw: sidecar({ ...own, min: '4.5:1' }), want: 1 },
     { name: 'a MUST on a usage sentence', raw: sidecar(own, { avoid_when: 'MUST not be used on fills.' }), want: 1 },
+    // #1779: per-mode floors, against the tree's.
+    { name: 'a per-mode requirement stating the tree\'s floors', raw: brandSidecar('MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes.'), want: 0 },
+    { name: '"in every mode" where the tree\'s floors differ', raw: brandSidecar('MUST clear 3:1 against `background.primary` in every mode.'), want: 1 },
+    { name: 'a per-mode requirement stating the wrong high-contrast floor', raw: brandSidecar('MUST clear 3:1 against `background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes.'), want: 1 },
+    { name: 'a per-mode requirement leaving a mode out', raw: brandSidecar('MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light mode.'), want: 1 },
   ];
   for (const { name, raw, want } of channel) {
-    const n = normativeHits(carvePayload(raw).text).length;
+    const n = normativeHits(carvePayload(raw, floorsOf).text).length;
     if (n !== want) selfFails.push(`payload channel: ${name} gave ${n} normative hit(s), expected ${want}`);
   }
 }
