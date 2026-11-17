@@ -42840,6 +42840,119 @@ const MIN_ASSERTIONS = 1800;
   }
 }
 
+// (imports hoist; kept beside the arms so no line a guide cites moves)
+import { seedFromFacts, seedDesignMd } from './file-seed';
+import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
+// ── #2075 part 2: the engine-only seed from a file facts report (file-seed.ts) ─────────────────────────────────
+// Every report below is written by hand, and every expected pick is stated here from the rule in file-seed.ts's
+// header, never read back from the interpreter (docs/34).
+{
+  type R = FileFactsReport;
+  const raw = { kind: 'raw' } as const;
+  const coll = (name: string, modes = ['Default']) => ({ id: `c:${name}`, name, key: null, remote: false, modes: modes.map((m) => ({ modeId: `${name}:${m}`, name: m })), defaultMode: modes[0], variables: 0 });
+  /** A variable whose default-mode value is `value`, reached directly or through `chain` (an alias when non-empty). */
+  const v = (name: string, type: string, value: unknown, chain: string[] = [], scopes: string[] = [], collection = 'tokens') => ({
+    id: `v:${name}`, name, key: null, remote: false, collectionId: `c:${collection}`, collection, type, scopes, description: '', hiddenFromPublishing: false, boundLayers: 0,
+    values: [{ mode: 'Default', modeId: `${collection}:Default`, value: chain.length ? null : value, alias: chain.length ? { id: `v:${chain[0]}`, name: chain[0] } : null, chain, resolved: value, unresolved: null }],
+  });
+  const report = (p: { vars?: ReturnType<typeof v>[]; textStyles?: { name: string; fontFamily: string; layers?: number }[]; paints?: { role: string; color: string; layers: number; name?: string }[]; radii?: { value: number; layers: number }[]; paddings?: { value: number; layers: number }[]; fonts?: { value: string; layers: number }[] }): R => ({
+    format: FILE_FACTS_FORMAT, engineVersion: 'test', roleRule: 'name-and-type/1',
+    coverage: { pages: 0, layers: 0, hiddenLayers: 0, unreadableLayers: 0, textLayers: 0, instances: 0 },
+    variables: { collections: [coll('tokens')], variables: p.vars ?? [] },
+    styles: { paint: [], effect: [], grid: [], text: (p.textStyles ?? []).map((s) => ({ id: `s:${s.name}`, name: s.name, key: null, remote: false, description: '', layers: s.layers ?? 0, fontFamily: s.fontFamily, fontStyle: 'Regular', fontSize: 16, lineHeight: null, letterSpacing: null, boundVariables: [] })) },
+    usage: {
+      paints: (p.paints ?? []).map((x) => ({ property: 'fill', role: x.role, paint: 'SOLID', color: x.color, binding: x.name ? { kind: 'variable', id: `v:${x.name}`, name: x.name, collection: null, remote: false } : raw, layers: x.layers, inInstances: 0 })),
+      typography: { fontFamilies: (p.fonts ?? []).map((f) => ({ value: f.value, binding: raw, layers: f.layers, inInstances: 0 })), fontStyles: [], fontWeights: [], fontSizes: [], lineHeights: [] },
+      radii: (p.radii ?? []).map((x) => ({ value: x.value, binding: raw, layers: x.layers, inInstances: 0 })),
+      spacing: (p.paddings ?? []).map((x) => ({ property: 'padding', value: x.value, binding: raw, layers: x.layers, inInstances: 0 })),
+    },
+    components: { used: [], missingMain: 0, localDefinitions: { components: 0, componentSets: 0 } },
+    libraries: { variableCollections: [], styles: [], components: { components: 0, instances: 0 } },
+    bindingSummary: { paints: { variable: 0, style: 0, raw: 0 }, typography: { variable: 0, style: 0, raw: 0 }, radii: { variable: 0, style: 0, raw: 0 }, spacing: { variable: 0, style: 0, raw: 0 } },
+  } as unknown as R);
+  const hexOf = (o: { l: number; c: number; h: number } | null): string | null => (o ? hex(oklchToRgb(o)) : null);
+
+  // A Prism 2-shaped file: a blue `primary` ramp and a violet `secondary` ramp 23° away (three `brand/secondary` roles:
+  // read as primary words, they would outrank the blue), a red status ramp that more roles point at than any other,
+  // and an action role at rest and at hover.
+  const p2 = report({ vars: [
+    v('color/blue/600', 'COLOR', '#283fff'), v('color/blue/650', 'COLOR', '#1e1eff'), v('color/blue/750', 'COLOR', '#0812c3'),
+    v('color/violet/650', 'COLOR', '#6502e6'), v('color/violet/750', 'COLOR', '#4a03aa'),
+    v('color/red/500', 'COLOR', '#d83c43'),
+    v('action/primary/fill/rest', 'COLOR', '#1e1eff', ['color/blue/650']),
+    v('action/primary/fill/hover', 'COLOR', '#0812c3', ['color/blue/750']),
+    v('action/primary/border/hover', 'COLOR', '#0812c3', ['color/blue/750']),
+    ...['text', 'surface', 'border'].map((k) => v(`brand/secondary/${k}`, 'COLOR', '#6502e6', ['color/violet/650'])),
+    ...['text', 'border', 'icon', 'fill', 'surface', 'hint', 'badge', 'banner', 'field', 'toast'].map((k) => v(`feedback/error/${k}`, 'COLOR', '#d83c43', ['color/red/500'])),
+    v('neutral/500', 'COLOR', '#707688'), v('neutral/850', 'COLOR', '#24262d'),
+    v('font/family/poppins', 'STRING', 'Poppins', [], ['FONT_FAMILY']), v('font/family/inter', 'STRING', 'Inter', [], ['FONT_FAMILY']),
+    v('font/family/display', 'STRING', 'Poppins', ['font/family/poppins'], ['FONT_FAMILY']),
+    v('font/family/body', 'STRING', 'Inter', ['font/family/inter'], ['FONT_FAMILY']),
+    v('font/family/code', 'STRING', 'Roboto Mono', [], ['FONT_FAMILY']),
+    v('font/family/icons', 'STRING', 'Material Symbols', [], ['FONT_FAMILY']),
+    v('size/component/height-md', 'FLOAT', 44), v('control/size/md/height', 'FLOAT', 20),
+    v('border/radius/md', 'FLOAT', 8, [], ['CORNER_RADIUS']), v('border/radius/button', 'FLOAT', 4, [], ['CORNER_RADIUS']),
+    v('control/radius', 'FLOAT', 2, [], ['CORNER_RADIUS']),
+  ] });
+  const s = seedFromFacts(p2);
+  ok(hexOf(s.picks.primary.value) === '#1e1eff',
+    `#2075 seed: the primary is the primary-named role's rest color, not its hover, nor the status red that more roles point at (got ${hexOf(s.picks.primary.value)})`);
+  ok(hexOf(s.picks.accent.value) === '#6502e6',
+    `#2075 seed: a secondary-named ramp 23° from the primary is the accent (got ${hexOf(s.picks.accent.value)})`);
+  ok(s.picks.primary.evidence.some((e) => e.name === 'action/primary/fill/rest') && s.picks.primary.confidence > 0.5,
+    `#2075 seed: the primary carries the role that named it as evidence, at confidence above 0.5 (got ${JSON.stringify(s.picks.primary)})`);
+  ok(s.picks.families.value.display === 'Poppins' && s.picks.families.value.body === 'Inter' && s.picks.families.value.code === 'Roboto Mono',
+    `#2075 seed: families split by role name: display Poppins, body Inter, code Roboto Mono, the icon font dropped (got ${JSON.stringify(s.picks.families.value)})`);
+  ok(s.picks.density.value === 'comfortable' && s.picks.density.evidence[0]?.name === 'size/component/height-md',
+    `#2075 seed: density reads the medium control height (44px → comfortable), never the selection control's 20px (got ${JSON.stringify(s.picks.density)})`);
+  ok(s.picks.radiusScale.value === 1 && s.picks.radiusScale.evidence[0]?.name === 'border/radius/button',
+    `#2075 seed: the radius reads the button corner (4px → 1) ahead of the md rung (8px) and the control corner (got ${JSON.stringify(s.picks.radiusScale)})`);
+
+  // A file with no variables at all: raw usage only. A button-like fill outweighs a larger number of icon layers.
+  const rawOnly = report({
+    paints: [{ role: 'button-like', color: '#0a7d4f', layers: 12 }, { role: 'icon', color: '#c2410c', layers: 30 }, { role: 'text', color: '#1f2933', layers: 200 }, { role: 'background', color: '#ffffff', layers: 90 }],
+    radii: [{ value: 6, layers: 40 }, { value: 16, layers: 10 }, { value: 999, layers: 50 }],
+    paddings: [{ value: 4, layers: 10 }, { value: 6, layers: 30 }, { value: 12, layers: 5 }],
+    fonts: [{ value: 'IBM Plex Sans', layers: 180 }, { value: 'Font Awesome 6 Pro', layers: 400 }],
+  });
+  const u = seedFromFacts(rawOnly);
+  ok(hexOf(u.picks.primary.value) === '#0a7d4f' && u.picks.primary.confidence === 0.46,
+    `#2075 seed: with no names, button-like usage (12 × 4) outweighs icon usage (30 × 1), at its share 48/78 × 0.75 for an unnamed pick = 0.46 (got ${hexOf(u.picks.primary.value)} at ${u.picks.primary.confidence})`);
+  ok(u.picks.radiusScale.value === 1.5,
+    `#2075 seed: the radius falls back to the most-used corner from 1 to 32px (6px → 1.5), the 999px pill ignored (got ${u.picks.radiusScale.value})`);
+  ok(u.picks.density.value === 'compact' && u.picks.density.confidence < 0.5,
+    `#2075 seed: density falls back to the median padding (6px → compact) at a lower confidence (got ${JSON.stringify(u.picks.density)})`);
+  ok(u.picks.families.value.body === 'IBM Plex Sans' && u.picks.families.value.display === 'IBM Plex Sans',
+    `#2075 seed: one used family is body and display both, the icon font dropped (got ${JSON.stringify(u.picks.families.value)})`);
+
+  // No button corner: the md rung is read, never the selection control's `md` corner that sorts ahead of it.
+  const noButton = seedFromFacts(report({ vars: [v('control/md/radius', 'FLOAT', 2, [], ['CORNER_RADIUS']), v('radius/md', 'FLOAT', 8, [], ['CORNER_RADIUS'])] }));
+  ok(noButton.picks.radiusScale.value === 2 && noButton.picks.radiusScale.evidence[0]?.name === 'radius/md',
+    `#2075 seed: without a button corner the radius reads the md rung (8px → 2), not the control's md corner (got ${JSON.stringify(noButton.picks.radiusScale)})`);
+
+  // #7a3cff measures to chroma 0.263468, which rounds to 0.2635: past the sRGB edge. The seed eases it to 0.2634.
+  const edge = seedFromFacts(report({ vars: [v('brand/primary', 'COLOR', '#7a3cff')] })).picks.primary.value;
+  ok(!!edge && edge.c === 0.2634 && hexOf(edge) === '#7a3cff',
+    `#2075 seed: a four-decimal anchor stays inside sRGB and round-trips to its hex (got ${JSON.stringify(edge)} → ${hexOf(edge)})`);
+
+  // Nothing to read: every pick is the engine default at confidence 0, and still compiles.
+  const empty = seedFromFacts(report({}));
+  ok(empty.picks.primary.value === null && empty.picks.accent.value === null && [empty.picks.primary, empty.picks.density, empty.picks.radiusScale, empty.picks.families].every((p) => p.confidence === 0 && p.evidence.length === 0),
+    `#2075 seed: an empty report defaults every pick at confidence 0 with no evidence (got ${JSON.stringify(empty.picks)})`);
+
+  // The seed is a design.md the CLI already compiles: it parses, it validates, and the engine builds it.
+  for (const [label, seed] of [['prism2-shaped', s], ['raw-only', u], ['empty', empty]] as const) {
+    const md = seedDesignMd(seed);
+    const parsed = parseDesignMd(md).input;
+    const errors = validateBrandInput(parsed);
+    let built = true;
+    try { brandTheme(parsed); } catch { built = false; }
+    ok(errors.length === 0 && built && JSON.stringify(parsed.primary) === JSON.stringify(seed.input.primary),
+      `#2075 seed: the ${label} seed's design.md parses back to its input, validates and builds (errors ${JSON.stringify(errors)}, built ${built})`);
+  }
+  ok(JSON.stringify(seedFromFacts(p2)) === JSON.stringify(s), '#2075 seed: the same report seeds the same bytes');
+}
+
 if (pass + fails.length < MIN_ASSERTIONS) {
   console.log(`  ❌ only ${pass + fails.length} assertions ran, expected at least ${MIN_ASSERTIONS} — the harness collapsed, so "0 failed" means nothing.`);
   process.exitCode = 1;

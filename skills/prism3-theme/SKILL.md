@@ -173,6 +173,29 @@ Loop until it exits 0 with all contracts passing. That closing loop **is** the
 deliverable — a `design.md` that compiles clean is a brand the engine can carry to every
 platform.
 
+## Starting from a file facts report
+
+A file facts report (`format` reads `prism3-file-facts/0.x`) is a read-only scan of an existing Figma file: its
+variables with every mode's value and alias chain, its styles, and how often each color, font, radius and padding
+is used, by layer role. When a report is your brief, read it in this order and write one `#` comment per pick
+saying which facts drove it.
+
+1. **Primary.** Look for a chromatic color that roles named for the brand or for actions point at
+   (`brand`, `primary`, `action`, `cta`), in the collection's default mode, at rest. Without names, use the most
+   button-like fills in the report's paint usage. A status color (success, warning, danger, error, info) or a focus ring
+   is not the primary unless nothing else is chromatic. Pin it in OKLCH as above.
+2. **Accent.** A second brand hue that roles call `accent` or `secondary` goes in `brandColors` as `name: accent`.
+   Set `actionPalette: accent` only when the action roles point at it. If there's no second brand hue, leave
+   `brandColors` out.
+3. **Families.** Display and title take the family the heading or display roles use; body, label and caption
+   take the body family. Skip icon fonts.
+4. **Density and radius.** A medium control height near 36px is `compact`, near 44px `comfortable`, near 56px
+   `spacious`. `radiusScale` is the medium control corner divided by 4px. Read button and field corners, not
+   checkbox or switch corners. Without variables, use the most-used padding and corner in `usage`.
+5. **Neutral.** Use the hue and chroma of the grays the file uses.
+
+Then run the compile loop. Say in the prose which picks the report left open, so a reviewer knows what to check.
+
 ## Two dialects (know which you're writing)
 
 - **Engine-native** (this skill) — frontmatter that maps 1:1 to the engine's input, as
