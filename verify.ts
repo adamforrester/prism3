@@ -1399,6 +1399,21 @@ export const GATES: Gate[] = [
     cmd: ws('@prism3/web-components', 'test:browser'),
     precondition: chromiumPrecondition,
   },
+  {
+    // #3408 S5 — Storybook 10's static build of the component stories; its script builds @prism3/tokens first.
+    id: 'storybook-build',
+    ciStep: '@prism3/storybook builds (#3408 S5)',
+    cmd: ws('@prism3/storybook', 'build'),
+  },
+  {
+    // #3408 S5 — serves storybook-static and opens every story in Chromium.
+    id: 'storybook-check',
+    ciStep: '@prism3/storybook holds every story and each renders its state (#3408 S5)',
+    cmd: ws('@prism3/storybook', 'check:build'),
+    after: ['storybook-build'],
+    why: 'it reads apps/storybook/storybook-static, which the build writes',
+    precondition: chromiumPrecondition,
+  },
 ];
 
 // ---- ORPHAN CHECK: a gate file that exists and is named in nothing --------------------------------

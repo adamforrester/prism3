@@ -71,6 +71,7 @@ prism3/                            (this repo — grows into the monorepo)
 ├── apps/
 │   ├── studio/                    the dashboard adapter (DOM/CSS host)
 │   ├── plugin/                    the plugin adapter (Figma sandbox host)
+│   ├── storybook/                 the arm 1 Storybook: components in both delivery forms (@prism3/storybook, #3408)
 │   └── tokenpress/                the Figma -> DTCG exporter, ported in (@prism3/tokenpress)
 ├── docs/                          the numbered design record + superpowers/
 ├── skills/                        shipped product skills (prism3-theme, prism3-build-ui)
