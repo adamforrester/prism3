@@ -272,3 +272,23 @@ The letter-spacing type change becomes live in the next PR, when the text button
 **Lesson for Q55.** The breaking change the contract announced didn't break this consumer; an unversioned change to
 which files the engine commits did. A consumer that reads the engine's build output, not just its token
 contract, needs that file list treated as an interface too.
+
+### Second update (2026-11-17)
+
+`main` merged in again, at `8a014b5c`, carrying the gate fix this refresh needed (#3836). Three new commits on `main`
+since the last merge (`a9ccfe0b`): #3835 `space.550`, #3836 and #3832.
+
+- **What arrived:** CONTRACT_VERSION 15.0.0 → 15.1.0, a MINOR. `space.550` joins the spacing scale, and Button's
+  hit-target floors bind spacing tokens.
+- **What broke in `@prism3/css`:** nothing. No conflict, `regen` changed nothing, and with the three exports absent
+  from `out/`, `check:generated`, `check:raw-values`, `check:parity` and `test:browser` all pass. `button.css` is
+  byte-identical, because it doesn't read `space.550` yet (Q141, in the next PR).
+- **What #3836 fixed:** with base `poc/arm-1`, `lint-emission-version` now reads from the newest `main` this
+  branch carries, `8a014b5c`, and passes. So do the other base-relative gates.
+- **What #3836 broke:** its own `test.ts` arm, the "#3833 replay", runs the real `fold.ts` on a commit of this
+  tree. Here that fold refuses: `poc/arm-1`'s own pending entry landed 2026-11-08, older than `main`'s newest
+  folded entry, and an integration branch's entries stay pending. On `main` the tree always folds, so the arm
+  only fails on the kind of branch it was written for. Filed for `main`, not patched here.
+
+**Lesson for Q55.** A fix to the gates an update is judged by is itself part of the update, and it can fail in the
+consumer's tree in a way the upstream tree can't show.
