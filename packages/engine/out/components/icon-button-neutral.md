@@ -130,29 +130,53 @@ Code-only states, with no design-file member: `inactive`.
 
 Padding reads top / right / bottom / left when its sides differ.
 
-Keyed by `size`.
+Keyed by `size`, `shape`.
 
-**size=medium**
+**size=medium, shape=square**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.md.height` | `size.md.height` | — | — |
+| `container` | — | — | `size.md.height` | `size.md.height` | — | radius `radius.md`; stroke `border-width.hairline` |
 | `container/icon` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/spinner` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 
-**size=small**
+**size=small, shape=square**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.sm.height` | `size.sm.height` | — | — |
+| `container` | — | — | `size.sm.height` | `size.sm.height` | — | radius `radius.md`; stroke `border-width.hairline` |
 | `container/icon` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/spinner` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
-**size=large**
+**size=large, shape=square**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.lg.height` | `size.lg.height` | — | — |
+| `container` | — | — | `size.lg.height` | `size.lg.height` | — | radius `radius.md`; stroke `border-width.hairline` |
+| `container/icon` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
+| `container/spinner` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
+
+**size=medium, shape=circular**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.md.height` | `size.md.height` | — | radius `radius.round`; stroke `border-width.hairline` |
+| `container/icon` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/spinner` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+**size=small, shape=circular**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.sm.height` | `size.sm.height` | — | radius `radius.round`; stroke `border-width.hairline` |
+| `container/icon` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/spinner` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, shape=circular**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.lg.height` | `size.lg.height` | — | radius `radius.round`; stroke `border-width.hairline` |
 | `container/icon` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
 | `container/spinner` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
 

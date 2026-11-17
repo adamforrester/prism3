@@ -895,6 +895,48 @@ section('keep — every hand-edited path survives an update that rewrites its me
     `keep/plain updated: a member with no hand edits takes the new fill, and its ring is re-cornered from its host as before (${await fillVar(member(PLAIN))}; ${JSON.stringify(plainRing())})`);
 }
 
+/* ── keep, order and links (#2956 point 1) ──────────────────────────────────────────────────────────── */
+section('keep — a kept node keeps its children\'s order and its property links (#2956 point 1)');
+{
+  // Two writers #2943 did not reach. A designer reordered a Tag's content (the label before the leading icon) and
+  // unlinked the label from its text property. Both are in the as-built record (the children's names in order; the
+  // component-property references), so both read as hand edits and the verdict says "kept". The parent's child loop
+  // put the plan's order back, and the set's property wiring linked the label again. Every expected value is typed
+  // here, never read from the plan.
+  for (const choice of ['keep', 'overwrite'] as const) {
+    const plans = plansOf(TAG);
+    const w = await world(TAG, plans, { extraVars: ['color/keep/changed'] });
+    const NAME = 'type=select, selection=unselected, size=medium, state=rest';
+    const member = (): Node => membersOf(w.set()).find((m) => m.name === NAME)!;
+    const content = childNamed(member(), 'content');
+    const label = childNamed(childNamed(content, 'labelCheck'), 'label');
+    (content.insertChild as (i: number, c: Node) => void)(0, childNamed(content, 'labelCheck'));
+    label.componentPropertyReferences = {};
+    const order = (): string => JSON.stringify((childNamed(member(), 'content').children as Node[]).map((c) => c.name));
+    const links = (): string => JSON.stringify(childNamed(childNamed(childNamed(member(), 'content'), 'labelCheck'), 'label').componentPropertyReferences ?? {});
+    ok(order() === '["labelCheck","leadingVisual"]' && links() === '{}', `keep ${choice}/premise: the reorder and the unlink are in place (${order()}; ${links()})`);
+    const next = plans.map((p) => {
+      const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+      q.root.paints = { ...(q.root.paints ?? {}), fills: 'color/keep/changed' };
+      return q;
+    });
+    const targets = [{ def: TAG, plans: next }];
+    const pre = await previewUpdate(w.host, targets);
+    const listed = pre.sets[0].handEdits.filter((h) => h.member === NAME).map((h) => h.path).sort();
+    ok(JSON.stringify(listed) === '["content","content/labelCheck/label"]', `keep ${choice}/listed: the dry run lists both edits (${JSON.stringify(listed)})`);
+    const res = await applyUpdate(w.host, w.api as any, targets, previewHashOf(pre), { choices: { handEdits: choice } });
+    ok(res.outcomes[0].updated.includes(NAME), `keep ${choice}/rewritten: the member is updated in place (${res.outcomes[0].updated.length} updated)`);
+    if (choice === 'keep') {
+      ok(order() === '["labelCheck","leadingVisual"]', `keep order/byte-identical: the content's children stay in the designer's order (${order()})`);
+      ok(links() === '{}', `keep links/byte-identical: the label stays unlinked from its text property (${links()})`);
+      ok(applyVerdict(res).headline.startsWith('✓'), `keep order/verdict: the run reads ✓ (${applyVerdict(res).headline})`);
+    } else {
+      ok(order() === '["leadingVisual","labelCheck"]', `keep order/overwrite restores: Overwrite puts the plan's order back (${order()})`);
+      ok(/^\{"characters":"label#/.test(links()), `keep links/overwrite restores: Overwrite links the label to its text property again (${links()})`);
+    }
+  }
+}
+
 /* ── structural update on a hand-edited member (#2956 point 2) ─────────────────────────────────────────── */
 section('structure — an update that changes a hand-edited member\'s structure skips the member whole (#2956 point 2)');
 {
@@ -5804,7 +5846,8 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
 // it, as it skips a layer added by hand. Before, the title was rebuilt in the row without the edit while the verdict
 // counted it "kept". Overwrite still rebuilds it, as asked. Mutations: the dry run's `lost` dropped →
 // `acc/<edit> lost`, `acc/<edit> keep skipped`, `acc/<edit> keep byte-identical`; the apply's skip dropped →
-// `acc/<edit> keep skipped`, `acc/<edit> keep byte-identical`.
+// `acc/<edit> keep skipped`, `acc/<edit> keep byte-identical`, and the same under accept; the skip limited to Keep →
+// `acc/<edit> accept skipped`, `acc/<edit> accept byte-identical`.
 const ACC_BEFORE_ROW = (patch: (parts: Record<string, any>) => Record<string, any> = (x) => x) => {
   const now = componentDefs.find((x) => x.id === 'accordion')!;
   const { titleRow, ...restParts } = now.anatomy.parts;
@@ -5818,7 +5861,7 @@ for (const edit of [
     read: (n: Node) => JSON.stringify((n.boundVariables as Record<string, { id: string }> | undefined)?.itemSpacing?.id ?? null), want: '"V:space/0"' },
   { tag: 'edited under', path: 'header/titleBox/label', on: (m: Node) => childNamed(childNamed(childNamed(m, 'header'), 'titleBox'), 'label'), apply: async (_w: any, n: Node) => { (n as unknown as { opacity: number }).opacity = 0.5; },
     read: (n: Node) => JSON.stringify(n.opacity), want: '0.5' },
-]) for (const choice of ['keep', 'overwrite'] as const) {
+]) for (const choice of ['keep', 'accept', 'overwrite'] as const) {
   const ACC = 'accordion';
   const w = await world(ACC, figmaAnatomySet(ACC_BEFORE_ROW(), { swapTarget: SWAP_TARGET }));
   const m = membersOf(w.set())[0];
@@ -5839,15 +5882,16 @@ for (const edit of [
   const row = (x: Node): Node | undefined => childNamed(childNamed(x, 'header'), 'titleRow');
   const kept = membersOf(w.set()).slice(1).map((x) => String(childNamed(row(x)!, 'titleBox')?.id));
   const mNow = membersOf(w.set())[0];
-  if (choice === 'keep') {
+  if (choice !== 'overwrite') {
+    // Keep and Accept alike: Accept keeps the edit and records it, so rebuilding the layer would lose it there too.
     const o = res.outcomes[0];
     const skip = o.skipped.find((k) => k.member === String(mNow.name));
     ok(!o.updated.includes(String(mNow.name)) && skip?.reason === `the update rebuilds a layer edited by hand (${edit.path})` && !o.kept.some((k) => k.member === String(mNow.name)),
-      `acc/${edit.tag} keep skipped: under Keep the member is skipped and named, never counted as a hand edit kept (${JSON.stringify(skip)}; kept ${JSON.stringify(o.kept)})`);
+      `acc/${edit.tag} ${choice} skipped: under ${choice} the member is skipped and named, never counted as a hand edit kept (${JSON.stringify(skip)}; kept ${JSON.stringify(o.kept)})`);
     const box = childNamed(childNamed(mNow, 'header'), 'titleBox');
     ok(!row(mNow) && String(box?.id) === boxId && edit.read(edit.on(mNow)) === edit.want,
-      `acc/${edit.tag} keep byte-identical: the title stays where the designer left it, by id, with the edit as made (${String(box?.id)}; ${box ? edit.read(edit.on(mNow)) : 'gone'})`);
-    ok(JSON.stringify(kept) === JSON.stringify(others), `acc/${edit.tag} keep others moved: the other 47 move their title into the row, by id (${kept.filter((id, i) => id !== others[i]).length} changed)`);
+      `acc/${edit.tag} ${choice} byte-identical: the title stays where the designer left it, by id, with the edit as made (${String(box?.id)}; ${box ? edit.read(edit.on(mNow)) : 'gone'})`);
+    ok(JSON.stringify(kept) === JSON.stringify(others), `acc/${edit.tag} ${choice} others moved: the other 47 move their title into the row, by id (${kept.filter((id, i) => id !== others[i]).length} changed)`);
   } else {
     const nowBox = String(childNamed(row(mNow)!, 'titleBox')?.id);
     ok(nowBox !== boxId && (w.api._removed as Node[]).some((x) => String(x.id) === boxId) && JSON.stringify(kept) === JSON.stringify(others),
