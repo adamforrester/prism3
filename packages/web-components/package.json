@@ -1,0 +1,36 @@
+{
+  "name": "@prism3/web-components",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Prism3 components as Lit custom elements in the light DOM, rendering @prism3/css's markup and styled only by its CSS.",
+  "type": "module",
+  "main": "./p3-button.js",
+  "module": "./p3-button.js",
+  "customElements": "./custom-elements.json",
+  "exports": {
+    ".": "./p3-button.js",
+    "./p3-button.js": "./p3-button.js",
+    "./custom-elements.json": "./custom-elements.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "p3-button.js",
+    "custom-elements.json",
+    "README.md"
+  ],
+  "scripts": {
+    "generate": "npx tsx generate.ts && npm run manifest",
+    "manifest": "cem analyze --outdir .",
+    "check:generated": "npx tsx generate.ts --check && npx tsx check-manifest.ts",
+    "check:parity": "npx tsx check-parity.ts",
+    "test:browser": "npm run -w @prism3/tokens build && npx tsx check-browser.ts"
+  },
+  "dependencies": {
+    "lit": "3.3.3"
+  },
+  "devDependencies": {
+    "@custom-elements-manifest/analyzer": "0.11.0",
+    "esbuild": "0.24.2",
+    "playwright": "^1.62.1"
+  }
+}

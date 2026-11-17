@@ -972,6 +972,12 @@ export const GATES: Gate[] = [
     cmd: ws('@prism3/css', 'check:raw-values'),
   },
   {
+    // #3408 S4 — p3-button.js and custom-elements.json are generated and committed; reads no build.
+    id: 'wc-generated',
+    ciStep: '@prism3/web-components matches what its generator and the analyzer write (#3408 S4)',
+    cmd: ws('@prism3/web-components', 'check:generated'),
+  },
+  {
     id: 'lint-skills',
     ciStep: 'Skills gate (shipped skills make true claims)',
     cmd: engine('lint-skills.ts'),
@@ -1377,6 +1383,20 @@ export const GATES: Gate[] = [
     id: 'css-browser',
     ciStep: '@prism3/css demo renders the resolved tokens on light and dark (#3408 S2)',
     cmd: ws('@prism3/css', 'test:browser'),
+    precondition: chromiumPrecondition,
+  },
+  {
+    // #3408 S4 — the element in Chromium against the emission and its manifest; reads no build.
+    id: 'wc-parity',
+    ciStep: "@prism3/web-components offers exactly the def's props, values and defaults (#3408 S4)",
+    cmd: ws('@prism3/web-components', 'check:parity'),
+    precondition: chromiumPrecondition,
+  },
+  {
+    // #3408 S4 — the element with the real token CSS; its script builds @prism3/tokens first.
+    id: 'wc-browser',
+    ciStep: "@prism3/web-components renders @prism3/css's button and its behavior (#3408 S4)",
+    cmd: ws('@prism3/web-components', 'test:browser'),
     precondition: chromiumPrecondition,
   },
 ];

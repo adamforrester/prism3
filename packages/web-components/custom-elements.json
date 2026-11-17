@@ -1,0 +1,357 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "p3-button.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand's primary action style, the expected look of a button. Not navigation (use Link, or give the button an href so it renders an <a>), not a persistent binary (Switch.Row), not one-of-many selection (SegmentedControl, or a toggle button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.\n\nRenders `@prism3/css`'s button markup in the light DOM: a native `<button class=\"p3-button\">`, or an `<a href>`,\nstyled only by `@prism3/css/button.css`. Each prop of the def is a property of the same name, reflected to\n`data-prop-<name>`. While pending or inactive a click is suppressed and focus is kept.",
+          "name": "P3Button",
+          "slots": [
+            {
+              "description": "A child with `slot=\"leadingVisual\"`, moved into the leading-visual span when the element connects.",
+              "name": "leadingVisual"
+            },
+            {
+              "description": "A child with `slot=\"trailingVisual\"`, moved into the trailing-visual span when the element connects.",
+              "name": "trailingVisual"
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "#adopted",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "#suppress",
+              "privacy": "private",
+              "description": "isPending and isInactive keep focus but suppress the action: no listener runs, no form submits, no link navigates."
+            },
+            {
+              "kind": "field",
+              "name": "#call",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "label",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Visible label; verb-first, sentence case, ≤3 words. Always required here — an icon-only control is the separate icon-button, which requires an accessible name instead.",
+              "default": "undefined",
+              "attribute": "data-prop-label",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "onClick",
+              "privacy": "public",
+              "description": "Action handler. Suppressed while isPending or isInactive.",
+              "type": {
+                "text": "((event: MouseEvent) => void) | undefined"
+              },
+              "default": "undefined"
+            },
+            {
+              "kind": "field",
+              "name": "appearance",
+              "privacy": "public",
+              "type": {
+                "text": "'filled' | 'outline' | 'text'"
+              },
+              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only.",
+              "default": "\"filled\"",
+              "attribute": "data-prop-appearance",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "size",
+              "privacy": "public",
+              "type": {
+                "text": "'small' | 'medium' | 'large'"
+              },
+              "description": "Control size — drives height, padding, and label type.",
+              "default": "\"medium\"",
+              "attribute": "data-prop-size",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "surface",
+              "privacy": "public",
+              "type": {
+                "text": "'default' | 'inverse'"
+              },
+              "description": "The ground the button sits on. default for a normal page; inverse for a dark or brand-filled band, where the button binds its color.inverse counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. A host that cannot know its ground picks default, and the designer sets inverse on the instance — the same answer the nested focus ring gives.",
+              "default": "\"default\"",
+              "attribute": "data-prop-surface",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "inset",
+              "privacy": "public",
+              "type": {
+                "text": "'default' | 'flush'"
+              },
+              "description": "Text appearance only. flush removes the inline padding on both sides, so the label lines up with the content edge above and below it, whether the button starts, ends or centers a row. A flush button hovers by color only, and its hit target keeps its height.",
+              "default": "\"default\"",
+              "attribute": "data-prop-inset",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "fullWidth",
+              "privacy": "public",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Stretch to container. Aliases: block / isFullWidth.",
+              "default": "false",
+              "attribute": "data-prop-fullwidth",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "type",
+              "privacy": "public",
+              "type": {
+                "text": "'button' | 'submit' | 'reset'"
+              },
+              "description": "Opinionated default 'button' to neutralize the platform's submit-on-enter-in-form trap; require 'submit' explicitly.",
+              "default": "\"button\"",
+              "attribute": "data-prop-type",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "isPending",
+              "privacy": "public",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Delays the spinner, preserves width, keeps focus (aria-disabled, not native disabled), suppresses re-fire, announces busy. Preferred over a loading prop.",
+              "default": "false",
+              "attribute": "data-prop-ispending",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "isInactive",
+              "privacy": "public",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Focusable disabled — visually muted, retains tab order, surfaces the blockage reason on focus. Use for a control blocked by satisfiable app state (e.g. submit on an incomplete form).",
+              "default": "false",
+              "attribute": "data-prop-isinactive",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "disabled",
+              "privacy": "public",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes it from the tab order and the accessibility tree. Prefer isInactive for anything relevant-but-blocked.",
+              "default": "false",
+              "attribute": "data-prop-disabled",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "leadingVisual",
+              "privacy": "public",
+              "description": "Icon / avatar / counter / spinner before the label.",
+              "type": {
+                "text": "Node | string | undefined"
+              },
+              "default": "undefined"
+            },
+            {
+              "kind": "field",
+              "name": "trailingVisual",
+              "privacy": "public",
+              "description": "Icon / caret / indicator after the label.",
+              "type": {
+                "text": "Node | string | undefined"
+              },
+              "default": "undefined"
+            },
+            {
+              "kind": "field",
+              "name": "href",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "A destination, for a navigation that needs a button's weight, such as \"Continue to checkout\". With an href, the button renders an <a href> in the same style, Enter follows it, and type and disabled no longer apply. Anything lighter is a Link.",
+              "default": "undefined",
+              "attribute": "data-prop-href",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "ariaLabel",
+              "privacy": "public",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Extends the visible label with context it does not carry (\"Delete invoice 1042\" on a \"Delete\" button). Start it with the visible text, so a voice-control user who speaks the label still activates the control (WCAG 2.5.3 Label in Name).",
+              "default": "undefined",
+              "attribute": "data-prop-aria-label",
+              "reflects": true
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-prop-label",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Visible label; verb-first, sentence case, ≤3 words. Always required here — an icon-only control is the separate icon-button, which requires an accessible name instead.",
+              "default": "undefined",
+              "fieldName": "label"
+            },
+            {
+              "name": "data-prop-appearance",
+              "type": {
+                "text": "'filled' | 'outline' | 'text'"
+              },
+              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only.",
+              "default": "\"filled\"",
+              "fieldName": "appearance"
+            },
+            {
+              "name": "data-prop-size",
+              "type": {
+                "text": "'small' | 'medium' | 'large'"
+              },
+              "description": "Control size — drives height, padding, and label type.",
+              "default": "\"medium\"",
+              "fieldName": "size"
+            },
+            {
+              "name": "data-prop-surface",
+              "type": {
+                "text": "'default' | 'inverse'"
+              },
+              "description": "The ground the button sits on. default for a normal page; inverse for a dark or brand-filled band, where the button binds its color.inverse counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. A host that cannot know its ground picks default, and the designer sets inverse on the instance — the same answer the nested focus ring gives.",
+              "default": "\"default\"",
+              "fieldName": "surface"
+            },
+            {
+              "name": "data-prop-inset",
+              "type": {
+                "text": "'default' | 'flush'"
+              },
+              "description": "Text appearance only. flush removes the inline padding on both sides, so the label lines up with the content edge above and below it, whether the button starts, ends or centers a row. A flush button hovers by color only, and its hit target keeps its height.",
+              "default": "\"default\"",
+              "fieldName": "inset"
+            },
+            {
+              "name": "data-prop-fullwidth",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Stretch to container. Aliases: block / isFullWidth.",
+              "default": "false",
+              "fieldName": "fullWidth"
+            },
+            {
+              "name": "data-prop-type",
+              "type": {
+                "text": "'button' | 'submit' | 'reset'"
+              },
+              "description": "Opinionated default 'button' to neutralize the platform's submit-on-enter-in-form trap; require 'submit' explicitly.",
+              "default": "\"button\"",
+              "fieldName": "type"
+            },
+            {
+              "name": "data-prop-ispending",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Delays the spinner, preserves width, keeps focus (aria-disabled, not native disabled), suppresses re-fire, announces busy. Preferred over a loading prop.",
+              "default": "false",
+              "fieldName": "isPending"
+            },
+            {
+              "name": "data-prop-isinactive",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Focusable disabled — visually muted, retains tab order, surfaces the blockage reason on focus. Use for a control blocked by satisfiable app state (e.g. submit on an incomplete form).",
+              "default": "false",
+              "fieldName": "isInactive"
+            },
+            {
+              "name": "data-prop-disabled",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes it from the tab order and the accessibility tree. Prefer isInactive for anything relevant-but-blocked.",
+              "default": "false",
+              "fieldName": "disabled"
+            },
+            {
+              "name": "data-prop-href",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "A destination, for a navigation that needs a button's weight, such as \"Continue to checkout\". With an href, the button renders an <a href> in the same style, Enter follows it, and type and disabled no longer apply. Anything lighter is a Link.",
+              "default": "undefined",
+              "fieldName": "href"
+            },
+            {
+              "name": "data-prop-aria-label",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Extends the visible label with context it does not carry (\"Delete invoice 1042\" on a \"Delete\" button). Start it with the visible text, so a voice-control user who speaks the label still activates the control (WCAG 2.5.3 Label in Name).",
+              "default": "undefined",
+              "fieldName": "ariaLabel"
+            }
+          ],
+          "superclass": {
+            "name": "LitElement",
+            "package": "lit"
+          },
+          "tagName": "p3-button",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "P3Button",
+          "declaration": {
+            "name": "P3Button",
+            "module": "p3-button.js"
+          }
+        },
+        {
+          "kind": "custom-element-definition",
+          "name": "p3-button",
+          "declaration": {
+            "name": "P3Button",
+            "module": "p3-button.js"
+          }
+        }
+      ]
+    }
+  ]
+}
