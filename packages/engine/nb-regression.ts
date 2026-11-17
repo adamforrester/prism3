@@ -13,7 +13,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { RGB, contrast, deltaE2000 } from './color';
+import { RGB, contrast, deltaE2000, formatRatio } from './color';
 import { stepKey, autoPlaceStep, Step } from './ramp';
 import { buildRamp } from './theme';
 import { loadSpecs, nbTheme } from './nb-fixture';
@@ -162,12 +162,12 @@ for (const t of [650, 800, 950]) {
 
 p('| check | ratio | rule | result |');
 p('|---|---|---|---|');
-for (const c of checks) p(`| ${c.label} | ${c.got.toFixed(2)} | ${c.rule} | ${c.pass ? '✅' : '❌'} |`);
+for (const c of checks) p(`| ${c.label} | ${formatRatio(c.got, { bare: true })} | ${c.rule} | ${c.pass ? '✅' : '❌'} |`);
 p('');
 
 // ---- compare the canary against the REAL NB value ----
 const nbPromo = nbStep('red', 550)!;
-p(`Canary cross-check — white on **real** NB \`red.550\`: ${contrast(nbPromo, WHITE).toFixed(2)}:1; on **generated** red.550: ${c550w.toFixed(2)}:1.`);
+p(`Canary cross-check — white on **real** NB \`red.550\`: ${formatRatio(contrast(nbPromo, WHITE))}; on **generated** red.550: ${formatRatio(c550w)}.`);
 p('');
 
 // ---- dimension axis regression (integer px → EXACT equality, not ΔE) ----
@@ -217,7 +217,7 @@ p('');
 const failed = checks.filter((c) => !c.pass);
 const meanOfMeans = summary.reduce((a, s) => a + s.mean, 0) / summary.length;
 // Fold the functional checks into the gate accumulator (they were report-only before CR-06).
-for (const f of failed) failures.push(`contrast contract failed: ${f.label} = ${f.got.toFixed(2)} (rule ${f.rule})`);
+for (const f of failed) failures.push(`contrast contract failed: ${f.label} = ${formatRatio(f.got, { bare: true })} (rule ${f.rule})`);
 if (dimPass !== dimChecks) failures.push(`dimension axis: ${dimPass}/${dimChecks} exact — a px lever drifted from Prism2 space / NB radius`);
 // …and that the two populations exist AT ALL. See EXPECTED_CONTRACTS above for the measurement: both
 // of the lines below printed `0/0` and passed. Stated as populations rather than folded into the

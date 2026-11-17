@@ -1523,7 +1523,7 @@ section('set-override — color overrides: a preview that writes nothing, refusa
     && verdictOf(pv)?.headline === 'Preview — 1 change; no pair moves below its minimum.'
     && verdictOf(pv)?.summary === 'Light · interactive.primary.border.rest: neutral 600 → neutral 400 (6.64:1 → 3.26:1)',
     `set-override/preview-verdict: "${verdictOf(pv)?.headline}" / "${verdictOf(pv)?.summary}"`);
-  ok(JSON.stringify(pvd.changes?.[0]?.before) === JSON.stringify({ override: { palette: 'neutral', step: '600' }, resolved: { palette: 'neutral', step: '600' }, hex: '#5c5c61', ratio: 6.65, min: 3, against: 'background.primary' })
+  ok(JSON.stringify(pvd.changes?.[0]?.before) === JSON.stringify({ override: { palette: 'neutral', step: '600' }, resolved: { palette: 'neutral', step: '600' }, hex: '#5c5c61', ratio: 6.64, min: 3, against: 'background.primary' })
     && JSON.stringify(pvd.changes?.[0]?.after) === JSON.stringify({ override: { palette: 'neutral', step: '400' }, resolved: { palette: 'neutral', step: '400' }, hex: '#8e8e92', ratio: 3.26, min: 3, against: 'background.primary' }),
     `set-override/before-names-real-palette: before is the stored neutral 600, never the row's accent (${JSON.stringify(pvd.changes?.[0]?.before?.override)})`);
   ok(typeof pvd.previewHash === 'string' && /^[0-9a-f]{8}$/.test(pvd.previewHash) && Array.isArray(pvd.newMisses) && pvd.newMisses.length === 0,
@@ -1531,13 +1531,14 @@ section('set-override — color overrides: a preview that writes nothing, refusa
   ok(!(await activityRuns()).some((x: any) => x.op === 'override'), 'set-override/preview-not-logged: Activity records no run for a preview');
 
   // The contrast refusal: the pair, its ratio and its minimum, and nothing stored.
+  // The `data` ratio is floored like the line (#3759): 2.39 beside "2.39:1", where a rounded one read 2.4.
   calls.length = 0;
   prismWrites = 0;
   const lo = await run({ changes: [{ ...one, step: '300' }], confirm: false });
   const lr = dataOf(lo).refusals?.[0];
   ok(lo.ok === false && verdictOf(lo)?.headline === 'Not saved — 1 change puts a pair below its minimum.'
     && verdictOf(lo)?.summary === 'Light · interactive.primary.border.rest → neutral 300: 2.39:1 against background.primary — below the 3:1 minimum.'
-    && lr?.reason === 'below-minimum' && lr?.ratio === 2.4 && lr?.min === 3 && lr?.against === 'background.primary' && prismWrites === 0,
+    && lr?.reason === 'below-minimum' && lr?.ratio === 2.39 && lr?.min === 3 && lr?.against === 'background.primary' && prismWrites === 0,
     `set-override/refuses-below-minimum: "${verdictOf(lo)?.summary}" (${JSON.stringify(lr)})`);
   // A confirmed write of the same list is refused the same way, before any Theme write.
   const loHash = dataOf(lo).previewHash as string;

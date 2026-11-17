@@ -543,6 +543,24 @@ console.log('\n11. #3448: renaming a brand color carries its interactive column\
   store.brandState.modeAnchors = { dark: {} };
   ok(P.renameBrandColor(p, 'acc-s') && same(store.brandState.modeAnchors, { dark: {} }),
     `#3613 prune: an empty map the brand already held is left as it was (${JSON.stringify(store.brandState.modeAnchors)})`);
+
+  // NO OVERRIDE MODE MAP IS LEFT EMPTY (#3678). The same drop runs over `overrides`: a stale override on the new
+  // column's name, the only key in its mode, leaves that mode's map pruned, as `setRoleOverride` prunes, and an emptied
+  // `overrides` goes too. A map holding another key stays, and an empty map the brand already held is left as it was.
+  // The expected shapes are literals typed here.
+  const oEmpties = (): string[] => Object.entries(store.brandState.overrides ?? {}).filter(([, m]) => !Object.keys(m ?? {}).length).map(([mode]) => mode);
+  const kept = { palette: 'primary', step: '600' };
+  store.brandState.modeAnchors = undefined;
+  store.brandState.overrides = { dark: { [BORDER('acc-t')]: { palette: 'primary', step: '700' } }, promo: { [BORDER('primary')]: kept, [`inverse.${BORDER('acc-t')}`]: { palette: 'primary', step: '200' } } };
+  ok(P.renameBrandColor(p, 'acc-t'), 'the rename onto a column name whose only Dark override is stale is taken');
+  ok(same(store.brandState.overrides, { promo: { [BORDER('primary')]: kept } }) && !oEmpties().length && takes(),
+    `#3678 prune: Dark's emptied override map is pruned, promo keeps its primary override, and no override map is left empty (${JSON.stringify(store.brandState.overrides)})`);
+  store.brandState.overrides = { dark: { [BORDER('acc-u')]: { palette: 'primary', step: '700' } } };
+  ok(P.renameBrandColor(p, 'acc-u') && store.brandState.overrides === undefined,
+    `#3678 prune: a rename that empties the only override map leaves no overrides at all (${JSON.stringify(store.brandState.overrides)})`);
+  store.brandState.overrides = { dark: {} };
+  ok(P.renameBrandColor(p, 'acc-v') && same(store.brandState.overrides, { dark: {} }),
+    `#3678 prune: an empty override map the brand already held is left as it was (${JSON.stringify(store.brandState.overrides)})`);
 }
 
 console.log('\n12. #3562: a brand color cannot be renamed to a palette the engine always mints');

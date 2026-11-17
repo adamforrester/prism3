@@ -22,6 +22,8 @@
  *   · the `return;` after `PRUNE_COPY.noVersion(…)` dropped (a failed save still removes) → `main/no version, nothing removed` (#3709 S2);
  *   · the hand-edit pass's `stale()` back to its four named writes (prune left out) → `main/hand pass stale under prune` (#3737).
  *   · a pass a write made stale not asked for again when the write ends → `main/hand pass after the write` (#3804).
+ *   · prune's furniture rule back to "set alive" only (the parent not compared) → `main/moved set's furniture` (#2485).
+ *   · the `core/other` entry dropped from Apply Theme's `allOrphans` → `main/apply reports core/other` (#1109).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -102,6 +104,27 @@ const send = async (msg: unknown, kinds: readonly string[], ms = 120_000): Promi
 // The brand, applied by main.ts itself.
 const applied = await send({ type: 'apply-theme', input }, ['apply-result']);
 if (applied?.type !== 'apply-result' || !applied.ok) throw new Error(`premise: Apply Theme did not run clean (${JSON.stringify(applied)?.slice(0, 400)})`);
+
+// #1109 — APPLY REPORTS THE CORE VARIABLES NO SLICE OWNS, ON ITS SUMMARY. `test-write.ts` holds `uc` on
+// `runApplyTheme`'s result; this holds the line a designer reads, through main.ts. Planted in `core`: a hand-made
+// `<root>/core/zzlegacy/1` and an un-rooted `zzmisc/1`, neither in any slice. Removed after, so the arms below start
+// from the file Apply wrote. The label `core/other` is DRAFT (the owner's).
+// Mutation: the `core/other` entry dropped from main.ts's `allOrphans` → `main/apply reports core/other`.
+{
+  const croot = themePlans(input).colorPlan.palette[0].name.split('/')[0];
+  const coreCol = file.collections.find((c: any) => c.name === 'core');
+  if (!coreCol) throw new Error('premise: Apply Theme wrote no `core` collection');
+  const ghosts = [`${croot}/core/zzlegacy/1`, 'zzmisc/1'].map((n) => file.createVariable(n, coreCol, 'FLOAT'));
+  const again = await send({ type: 'apply-theme', input }, ['apply-result']);
+  const NOTE = '⚠ 2 orphaned variables not in the plan (core/other: 2) — likely renames; nothing was deleted';
+  const lines: string[] = again?.lines ?? [];
+  ok(!(applied.lines as string[]).some((l) => l.includes('orphaned variables')),
+    `main/apply clean file, no core/other: the first apply names no orphaned variable (${JSON.stringify((applied.lines as string[]).filter((l) => l.includes('orphaned')))})`);
+  ok(again?.type === 'apply-result' && again.ok === true && lines.includes(NOTE) && String(again.summary).includes(NOTE)
+    && ghosts.every((v: any) => !v.removed),
+    `main/apply reports core/other: a re-apply's summary counts the two core variables no slice owns, and removes neither (${JSON.stringify(lines.filter((l) => l.includes('orphaned')))})`);
+  for (const v of ghosts) v.remove();
+}
 
 // Three stale variables in the brand's own namespace, in the collection its first color variable lives in.
 const anchor = file.vars.find((v: any) => v.resolvedType === 'COLOR' && String(v.name).includes('/'));
@@ -194,6 +217,36 @@ ok(r6?.ok === false && r6.applied === false && r6.count === 0
   && String(r6.summary).startsWith('Nothing removed — the named version could not be saved')
   && live3().length === 2 && !events.some((e) => e.startsWith('remove:')),
   `main/no version, nothing removed: a failed version save removes nothing (count ${r6?.count}, ${live3().length} left, ${JSON.stringify(r6?.summary)}, ${JSON.stringify(events)})`);
+
+// #2485 (Q294 A) — FURNITURE A MOVED SET LEFT ON ITS OLD PAGE, through main.ts. The set is alive, on page B; one of its
+// labels sits beside it, one was left on page A. The preview offers the one left behind under the owner's sentence for
+// both causes, and the confirm removes it and only it. The two stale variables the failed save above kept are offered
+// too, so the furniture sentence is read as the summary's tail. Mutation: main.ts back to "set alive" only (its
+// liveSets a Set, the parent not compared) → `main/moved set's furniture`.
+{
+  const movedSet = { id: 'moved-set', type: 'COMPONENT_SET', removed: false, parent: { id: 'page-B' } };
+  const gone: string[] = [];
+  const furn = (id: string, page: string) => {
+    const n = {
+      id, type: 'INSTANCE', parent: { id: page }, removed: false,
+      getSharedPluginData: () => JSON.stringify({ v: 1, def: 'button', set: 'moved-set', kind: 'label' }),
+      remove: () => { n.removed = true; gone.push(id); },
+    };
+    return n;
+  };
+  furniture = [furn('left-behind', 'page-A'), furn('beside', 'page-B')];
+  const realGet = (file as unknown as { getNodeByIdAsync: (id: string) => Promise<unknown> }).getNodeByIdAsync;
+  Object.assign(file, { getNodeByIdAsync: async (id: string) => (id === 'moved-set' ? movedSet : null) });
+  const p = await send({ type: 'prune', input, confirm: false }, ['prune-result']);
+  const r = await send({ type: 'prune', input, confirm: true, previewHash: String(p?.previewHash ?? '') }, ['prune-result']);
+  Object.assign(file, { getNodeByIdAsync: realGet });
+  furniture = [];
+  ok(p?.applied === false && p.count === 3
+    && String(p.summary).endsWith(' 1 canvas label or backdrop belongs to a set that was deleted or moved. Deleting it touches no component.')
+    && r?.applied === true && r.ok === true && r.count === 3 && JSON.stringify(gone) === JSON.stringify(['left-behind'])
+    && String(r.summary).endsWith(' Removed 1 canvas label or backdrop left from a set that was deleted or moved.'),
+    `main/moved set's furniture: the label a moved set left on another page is offered and removed, the one beside it stays (preview count ${p?.count}, ${JSON.stringify(p?.summary)}; applied count ${r?.count}, removed ${JSON.stringify(gone)}, ${JSON.stringify(r?.summary)})`);
+}
 
 // #3737 — THE HAND-EDIT PASS READS NOTHING WHILE A PRUNE HOLDS THE FILE. Since #3718 one hold covers every write, but the
 // pass's staleness check named four writes and left out prune: a pass asked for while a prune's delete runs read on and

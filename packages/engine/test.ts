@@ -11,7 +11,7 @@
  *     Each must build and clear EVERY mode contract — the real robustness test.
  * Exits non-zero on any failure.
  */
-import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, composite, RGB, storedOklch, formatRatio } from './color';
+import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, composite, RGB, storedOklch, formatRatio, floorRatio } from './color';
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, densitySpace, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { codeOnlyText } from './code-only-register';
@@ -37,7 +37,7 @@ import type { FigmaCollectionFile } from './emit-figma';
 import { MOTION_FIGMA_COVERAGE, springBounce } from './emit-figma-dims';
 import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount, DTCG_TYPES } from './emit-dtcg-overlay';
 import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
-import { buildTree, validateBrandInput, readExampleBrand } from './emit-dtcg';
+import { buildTree, validateBrandInput, readExampleBrand, contractReportRow } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { validate as validateJsonSchema } from './json-schema-lite';
 import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
@@ -1005,16 +1005,80 @@ for (const hx of ['#000000', '#333333', '#7f7f7f', '#808080', '#ffffff']) {
   const srcFiles = readdirSync(APPS, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(resolve(APPS, d.name, 'src')))
     .flatMap((d) => walk(resolve(APPS, d.name, 'src')));
   const rel = (f: string) => f.slice(resolve(APPS, '..').length + 1);
-  // A ratio's own `.toFixed(` (`r.ratio.toFixed(2)`, `minRatio.toFixed(`), or any `toFixed(n)` followed by `:1`.
-  const HAND_ROLLED = [/ratio\w*\)?\.toFixed\(/i, /\.toFixed\(\d\)\}:1/];
+  // A ratio's own `.toFixed(` (`r.ratio.toFixed(2)`, `minRatio.toFixed(`), or any `toFixed(n)` followed by `:1`. And
+  // (#3759) any two-place `Math.round(… * 100) / 100`: a ratio ROUNDED to a stored number reads 4.496 as 4.5 on its 4.5
+  // floor, and re-flooring it at print time cannot take that back. That shape carries no name to key on (`raw`, `x`,
+  // `light.ratio`), so every match is a finding and a non-ratio one is exempted by name below; store `floorRatio`.
+  const HAND_ROLLED = [/ratio\w*\)?\.toFixed\(/i, /\.toFixed\(\d\)\}:1/, /Math\.round\((?:[^()]|\([^()]*(?:\([^()]*\)[^()]*)*\))*\*\s*100\s*\)\s*\/\s*100(?![\d.])/,
+    // …and a two-place `round(x, 2)` helper call on a ratio (`tree.ts`'s emitted `contrast`, a gradient's worst case).
+    /\bround\w*\((?:[^(),]|\([^()]*\))*\b(?:ratio|contrast|worst)\w*(?:[^(),]|\([^()]*\))*,\s*2\s*\)/i];
+  const handRolled = (text: string): boolean => HAND_ROLLED.some((re) => re.test(text));
+  // The detector on planted lines (docs/34 SELF-CHECK): each shape this scan has met must match, each decoy must not.
+  const PLANTED = ['byMode[m.mode] = { ratio: Math.round(raw * 100) / 100, pass: raw >= ct.min };',
+    'ratio: Math.round(light.ratio * 100) / 100,', 'const ratio = Math.round(contrast(hexToRgb(a), hexToRgb(b)) * 100) / 100;',
+    'const r2 = (x: number) => Math.round(x * 100) / 100;', 'cell(r.ratio.toFixed(2))', '`${worst.toFixed(2)}:1`',
+    '{ contrast: round(rr.ratio, 2), against: rr.against }', 'const wOnW = round(g.worstOnWhite, 2), wOnB = 0;'];
+  const DECOYS = ['Math.round(a * 255) / 255', 'Math.round(x * 1000) / 1000', 'Math.floor(raw * 100) / 100', 'Math.round(x * 100) / 1000',
+    'Math.round(pct * 100)', 'const ratio = floorRatio(raw);', 'formatRatio(r.ratio, { bare: true })',
+    'round(px / 16, 2)', 'round(ratio, 4)', 'round(lr.ratio * 2, 3)'];
+  const missed = PLANTED.filter((t) => !handRolled(t)), tripped = DECOYS.filter(handRolled);
+  ok(!missed.length && !tripped.length, `#3759 the ratio scan's detector finds every planted shape and no decoy (missed: ${missed.join(' ; ') || 'none'}; decoys tripped: ${tripped.join(' ; ') || 'none'})`);
+  // Named exemptions, each a two-place round that is not a ratio; each must still name a scanned line, so a stale one fails.
+  const APPS_EXEMPT: Record<string, RegExp[]> = {
+    'apps/plugin/src/spec-panel.ts': [/const num = .*Math\.round\(v \* 100\) \/ 100/],         // a measured px dimension
+    'apps/studio/src/domains/shape.ts': [/out\.push\(Math\.round\(v \* 100\) \/ 100\)/],      // a lever's step values
+    'apps/plugin/src/style-guide.ts': [/const a = Math\.round\(alphaOf\(c\) \* 100\) \/ 100/],   // a swatch's alpha, printed
+    // TokenPress is a guest (CLAUDE.md): its px conversion, two places, not a ratio.
+    'apps/tokenpress/src/plugin/exporter.ts': [/const pxValue = Math\.round\(value \* 100\) \/ 100/],
+    'apps/tokenpress/src/plugin/converters/dimension-converter.ts': [/const pxValue = Math\.round\(value \* 100\) \/ 100/],
+  };
   const rolled = srcFiles.flatMap((f) => readFileSync(f, 'utf8').split('\n').flatMap((text, i) =>
-    HAND_ROLLED.some((re) => re.test(text)) ? [`${rel(f)}:${i + 1}`] : []));
-  ok(rolled.length === 0, `#3697 L3 no hand-rolled contrast-ratio toFixed under apps/*/src — print through formatRatio (found: ${rolled.join(', ') || 'none'})`);
+    handRolled(text) && !(APPS_EXEMPT[rel(f)] ?? []).some((re) => re.test(text)) ? [`${rel(f)}:${i + 1}`] : []));
+  ok(rolled.length === 0, `#3697 L3 no hand-rolled contrast-ratio toFixed or two-place round under apps/*/src — print through formatRatio, store floorRatio (found: ${rolled.join(', ') || 'none'})`);
+  for (const [n, res] of Object.entries(APPS_EXEMPT)) for (const re of res)
+    ok(readFileSync(resolve(APPS, '..', n), 'utf8').split('\n').some((t) => re.test(t) && handRolled(t)), `#3759 the ratio-scan exemption ${re} in ${n} still names a scanned line`);
   // Represented, not counted: each known call site is in the scan and still names the formatter.
   for (const site of ['apps/plugin/src/set-override.ts', 'apps/plugin/src/style-guide.ts', 'apps/studio/src/preview/sections/kit.ts', 'apps/studio/src/ui/step-picker.ts', 'apps/studio/src/main.ts']) {
     const f = srcFiles.find((x) => rel(x) === site);
     ok(!!f && /\b(formatRatio|fmtRatio)\b/.test(readFileSync(f, 'utf8')), `#3697 L3 ${site} is in the ratio scan and prints through formatRatio`);
   }
+  // #3759: the engine's own reports print through it too. The contract row, driven at the review's case: a 4.496 pair
+  // under a 4.5 floor prints 4.49 beside its ❌, never 4.50.
+  const row3759 = contractReportRow('text.secondary', { path: 'p.palette.neutral.550', ratio: 4.496, min: 4.5 }, 'p.palette');
+  ok(row3759 === '| text.secondary | neutral.550 | 4.49 | 4.5 | ❌ |', `#3759 modes-report row floors a 4.496 pair to 4.49 beside its ❌ (got "${row3759}")`);
+  // The committed report, read back: a printed contrast never reads at or above its floor beside a ❌, nor below it beside a ✅.
+  const reportRows = readFileSync(resolve(HERE, 'modes-report.md'), 'utf8').split('\n').map((l) => l.split('|').map((c) => c.trim()))
+    .filter((c) => c.length === 7 && /^\d+\.\d\d$/.test(c[3]) && /^[\d.]+$/.test(c[4]));
+  const liars = reportRows.filter((c) => (+c[3] >= +c[4]) !== (c[5] === '✅')).map((c) => `${c[1]} ${c[3]}/${c[4]} ${c[5]}`);
+  ok(reportRows.length > 1000 && liars.length === 0, `#3759 modes-report.md: every printed contrast agrees with its result (${reportRows.length} rows; disagree: ${liars.join(', ') || 'none'})`);
+  // And the scan reaches the engine (#3759): every non-test, non-gate source under packages/engine. A gate's own failure
+  // message is a diagnostic, not an artifact, so lint-*.ts is out of scope. Each exemption names its line and why, and
+  // must still match it, so a stale one fails rather than lingering.
+  const ENGINE_EXEMPT: Record<string, RegExp[]> = {
+    // A target the picker aims at, not a measured ratio.
+    'modes.ts': [/borderSecondaryTarget\.toFixed\(/,
+      // #3840: the sub-floor state-label note's one-place "about" — its form is the owner's call there.
+      /about \$\{\+r\.toFixed\(1\)\}:1/],
+    // An alpha's emitted precision in the rgb dialect (`rgba(…, 0.1)`), not a ratio.
+    'color.ts': [/fmt === 'hex' \? Math\.round\(a \* 255\) \/ 255 : Math\.round\(a \* 100\) \/ 100/],
+    // A dark-mode shadow layer's alpha, not a ratio.
+    'theme-shadow.ts': [/const darkAlpha = .*Math\.round\(a \* \(0\.3 \+ 0\.09 \* i\) \* 100\) \/ 100/],
+  };
+  const engineSrc = readdirSync(HERE).filter((n) => n.endsWith('.ts') && n !== 'test.ts' && !n.endsWith('-test.ts') && !n.startsWith('lint-'));
+  const engineRolled = engineSrc.flatMap((n) => readFileSync(resolve(HERE, n), 'utf8').split('\n').flatMap((text, i) =>
+    handRolled(text) && !(ENGINE_EXEMPT[n] ?? []).some((re) => re.test(text)) ? [`packages/engine/${n}:${i + 1}`] : []));
+  ok(engineRolled.length === 0, `#3759 no hand-rolled contrast-ratio toFixed or two-place round under packages/engine (gates and tests aside) — print through formatRatio, store floorRatio (found: ${engineRolled.join(', ') || 'none'})`);
+  for (const [n, res] of Object.entries(ENGINE_EXEMPT)) for (const re of res)
+    ok(readFileSync(resolve(HERE, n), 'utf8').split('\n').some((t) => re.test(t) && handRolled(t)), `#3759 the ratio-scan exemption ${re} in ${n} still names a scanned line`);
+  for (const n of ['emit-dtcg.ts', 'nb-regression.ts', 'visualize.ts'])
+    ok(engineSrc.includes(n) && /\bformatRatio\b/.test(readFileSync(resolve(HERE, n), 'utf8')), `#3759 packages/engine/${n} is in the ratio scan and prints through formatRatio`);
+  for (const n of ['eval.ts', 'ai-metadata.ts'])
+    ok(engineSrc.includes(n) && /\bfloorRatio\b/.test(readFileSync(resolve(HERE, n), 'utf8')), `#3759 packages/engine/${n} is in the ratio scan and stores its ratios through floorRatio`);
+  ok(/\bfloorRatio\b/.test(readFileSync(resolve(APPS, 'plugin/src/set-override.ts'), 'utf8')), '#3759 apps/plugin/src/set-override.ts stores its data ratios through floorRatio');
+  // The values, driven at the review's case. Studio's contracts table: the preview stores the RAW ratio, so its floored
+  // print is 4.49 beside the failing dot. An eval failure and a stored floor never round up onto the 4.5 they miss.
+  ok(floorRatio(4.496) === 4.49 && floorRatio(4.4999) === 4.49 && floorRatio(4.5) === 4.5 && formatRatio(4.496, { bare: true }) === '4.49',
+    `#3759 floorRatio floors 4.496 and 4.4999 to 4.49 and keeps 4.5 (got ${floorRatio(4.496)}, ${floorRatio(4.4999)}, ${floorRatio(4.5)})`);
   const grayPrimary = storedOklch(rgbToOklch(hexToRgb('#808080')));
   const sameRgb = (c: RGB) => c.r === c.g && c.g === c.b;
   const neutralGray = (t: any) => t.palettes.find((p: any) => p.palette === 'neutral').steps.every((st: any) => sameRgb(st.rgb));
@@ -11611,6 +11675,14 @@ arm: {
   if (!exampleTheme('harbor', () => brandTheme(pinput))) break arm;
   const rp = resolvePreview(brandTheme(pinput));
   ok(rp.modes.length === 4, 'resolved preview: all four modes projected' + (rp.modes.length !== 4 ? ` — got ${rp.modes.length}` : ''));
+  // #3759: each contract's ratio is stored RAW, the very number its pass was decided on, so the contracts table's floored
+  // print never reads a rounded-up 4.50 beside a failing dot. Measured independently from the resolved hexes.
+  const cooked = rp.contracts.flatMap((c) => rp.modes.flatMap((m) => {
+    const r = c.byMode[m], fg = rp.colors[c.fg]?.[m], bg = rp.colors[c.bg]?.[m];
+    return r && fg && bg && r.ratio !== contrast(hexToRgb(fg), hexToRgb(bg)) ? [`${c.component}/${c.variant} ${m}: ${r.ratio}`] : [];
+  }));
+  const measuredPairs = rp.contracts.reduce((n, c) => n + rp.modes.filter((m) => c.byMode[m] && rp.colors[c.fg]?.[m] && rp.colors[c.bg]?.[m]).length, 0);
+  ok(measuredPairs > 100 && cooked.length === 0, `#3759 resolved preview: every contract ratio is the raw measured one, never pre-rounded (${measuredPairs} pairs; cooked: ${cooked.slice(0, 5).join(', ') || 'none'})`);
 
   const noHex = Object.entries(rp.colors).filter(([, byMode]) => rp.modes.some((m) => !byMode[m])).map(([k]) => k);
   ok(noHex.length === 0, 'resolved preview: every referenced colour role resolves to a hex in every mode' + (noHex.length ? ` — MISSING: ${noHex.join(', ')}` : ''));
@@ -38009,16 +38081,61 @@ arm: {
   const EMITTED = 'packages/engine/out/figma/prism3/focus.json';
   const moveArtifact = () => put(EMITTED, `${readFileSync(join(clone, EMITTED), 'utf8')}\n`);
   const FROM_MAIN = 'merge base with origin/main — HEAD carries';
-  try {
-    gitIn(work, ['clone', '-q', '--shared', '--no-checkout', REPO, clone]);
-    git(['checkout', '-q', '-B', 'main', gitIn(REPO, ['rev-parse', 'HEAD']).trim()]);
-    const patch = gitIn(REPO, ['diff', '--binary', 'HEAD']);
-    if (patch) git(['apply', '--binary', '-'], patch);
-    for (const p of gitIn(REPO, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean)) {
-      mkdirSync(dirname(join(clone, p)), { recursive: true });
-      copyFileSync(join(REPO, p), join(clone, p));
+  // A `--shared` clone of `src` at `dst`, on branch `main`, whose tip is W: `src`'s working tree as one commit.
+  //   · W sits on the `main` `src` CARRIES: its merge base with `origin/main` (then `main`), or HEAD when neither
+  //     resolves. On `main` that is HEAD's own history. On an integration branch it is not: that branch's own
+  //     pending entries stay pending and never fold, so on its first-parent chain they landed before `main`'s
+  //     newest folded entry, and the fold below refused them (#3842). On the carried `main` they land at W, as
+  //     any PR's entry lands at its merge.
+  //   · The clone keeps no ref but `main`. It would inherit `src`'s branches, and a local `poc/…` branch then
+  //     blocks the fixture's `poc` (#3842). The fixture names every other ref it reads.
+  const cloneWorkingTree = (src: string, dst: string): void => {
+    gitIn(work, ['clone', '-q', '--shared', '--no-checkout', src, dst]);
+    for (const ref of gitIn(dst, ['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes']).split('\n').filter(Boolean)) gitIn(dst, ['update-ref', '-d', ref]);
+    const mainRefIn = ['origin/main', 'main'].find((c) => spawnSync('git', ['-C', src, 'rev-parse', '--verify', '--quiet', `${c}^{commit}`], { env }).status === 0);
+    const carriedIn = mainRefIn ? spawnSync('git', ['-C', src, 'merge-base', 'HEAD', mainRefIn], { encoding: 'utf8', env }) : null;
+    const carried = carriedIn?.status === 0 && carriedIn.stdout.trim() ? carriedIn.stdout.trim() : gitIn(src, ['rev-parse', 'HEAD']).trim();
+    gitIn(dst, ['checkout', '-q', '-B', 'main', carried]);
+    const patch = gitIn(src, ['diff', '--binary', carried]);
+    if (patch) gitIn(dst, ['apply', '--binary', '-'], patch);
+    for (const p of gitIn(src, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean)) {
+      mkdirSync(dirname(join(dst, p)), { recursive: true });
+      copyFileSync(join(src, p), join(dst, p));
     }
-    commit('W: the working tree');
+    gitIn(dst, ['add', '-A']); gitIn(dst, ['commit', '-q', '--allow-empty', '-m', 'W: the working tree']);
+  };
+  try {
+    // #3842: the clone of an integration branch's tree. `main` c0 · c1; `poc/integ` forks at c0, adds its own
+    // entry at i1 and merges c1. Its entry must land at W, and W must sit on c1, the `main` it carries; and the
+    // branch `poc/integ` must not reach the clone. MUTATIONS VERIFIED (#3842, each fails a case here by name, and
+    // the first also fails the replay below on an integration branch's own tree with CI's fold refusal): W on
+    // HEAD instead of the carried `main` · the inherited refs kept.
+    {
+      const syn = join(work, 's');
+      const synClone = join(work, 'sc');
+      const ENTRY = 'docs/progress/pending/integ-own.md';
+      gitIn(work, ['init', '-q', '-b', 'main', syn]);
+      mkdirSync(join(syn, 'docs/progress/pending'), { recursive: true });
+      writeFileSync(join(syn, 'docs/progress/pending/README.md'), 'Pending.\n');
+      gitIn(syn, ['add', '-A']); gitIn(syn, ['commit', '-q', '-m', 'c0']);
+      gitIn(syn, ['checkout', '-q', '-b', 'poc/integ']);
+      writeFileSync(join(syn, ENTRY), '## (2026-11-08) — The integration branch\'s own entry\n');
+      gitIn(syn, ['add', '-A']); gitIn(syn, ['commit', '-q', '-m', 'i1']);
+      gitIn(syn, ['checkout', '-q', 'main']);
+      writeFileSync(join(syn, 'main.txt'), 'main moved\n');
+      gitIn(syn, ['add', '-A']); gitIn(syn, ['commit', '-q', '-m', 'c1']);
+      const c1 = gitIn(syn, ['rev-parse', 'HEAD']).trim();
+      gitIn(syn, ['checkout', '-q', 'poc/integ']); gitIn(syn, ['merge', '-q', '--no-ff', '-m', 'refresh from main', 'main']);
+      cloneWorkingTree(syn, synClone);
+      const w = gitIn(synClone, ['rev-parse', 'HEAD']).trim();
+      const landed = gitIn(synClone, ['log', '--first-parent', '--diff-filter=A', '--format=%H', 'HEAD', '--', ENTRY]).trim();
+      ok(landed === w && gitIn(synClone, ['rev-parse', 'HEAD^1']).trim() === c1,
+        `#3842 replay clone: an integration branch's own entry lands at W, on the main its tree carries (landed ${landed.slice(0, 8)}, W ${w.slice(0, 8)}, W's parent ${gitIn(synClone, ['rev-parse', 'HEAD^1']).trim().slice(0, 8)}, carried main ${c1.slice(0, 8)})`);
+      const refs = gitIn(synClone, ['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes']).trim();
+      ok(refs === 'refs/heads/main', `#3842 replay clone: the clone keeps no ref of the source but main, so a local poc/… branch cannot block the fixture's poc (refs: ${refs.split('\n').join(', ')})`);
+    }
+
+    cloneWorkingTree(REPO, clone);
     // executor-reach imports `@prism3/engine`; the clone has no install, so point the name at its own engine.
     mkdirSync(join(clone, 'node_modules', '@prism3'), { recursive: true });
     symlinkSync(join(clone, 'packages', 'engine'), join(clone, 'node_modules', '@prism3', 'engine'), 'dir');
@@ -38054,6 +38171,60 @@ arm: {
     ok(ord.status === 1 && ord.out.includes('NOTE SHAPE — packages/engine/changes/replay-ordinary-patch.md declares `engine: patch`, and 1 committed artifact(s) moved (#1807).')
         && ord.out.includes('(origin/poc, via GITHUB_BASE_REF, merge base)'),
       `#3833 emission-version: an ordinary PR into the branch (no main merged) keeps its merge base and still fails NOTE SHAPE by name (exit ${ord.status}: ${said(ord, /NOTE SHAPE|base /)})`);
+
+    // #3863 — RELEASE NOTES ON AN INTEGRATION BRANCH REFRESHED BY A SQUASH. #3833 landed on `poc/arm-1` as a squash,
+    // a96bdd6a: one parent, and it sets `ENGINE_VERSION` to the version `main` folded. lint-release-notes reads a
+    // version's fold as the newest single-parent commit setting it, so walked from HEAD it read the squash as 0.238.0's
+    // fold, over a diff holding every note `main` added and folded since the branch forked: 86 problems in notes `main`'s
+    // run had passed, on #3863 and #3834, and on every later PR into the branch, since the squash never leaves it.
+    // `carriedMain` (`comparison-base.ts`) walks the folds from the `main` the tree carries on any PR into another base.
+    //   poc2: forks at W (before m0's note) · q0 its own entry · sq squashes m2 in (dated later, so a HEAD walk meets it
+    //   first) · remerge merges m2 for real. MUTATIONS VERIFIED (#3863, each fails a case here by name): the walk on HEAD
+    //   again (`walkFrom` = 'HEAD') · `integrationBase` in place of `carriedMain` (the ordinary PR after the refresh) ·
+    //   `carriedMain` returning a point on `main` too (the dropped note on main reads its fold from origin/main's tip).
+    {
+      const RN = 'packages/engine/lint-release-notes.ts';
+      const m1 = git(['rev-parse', `${m2}^1`]);
+      const w = git(['rev-parse', `${m0}^1`]);
+      const v = /ENGINE_VERSION = '(\d+\.\d+\.\d+)'/.exec(git(['show', `${m1}:packages/engine/version.ts`]))![1];
+      const POC2 = { GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'poc2' };
+      const NOT_FOLDED = `NOTES — ${v}: the notes carry replay-main-minor, which its fold did not fold`;
+      const DROPPED = `NOTES — ${v}: its fold folded replay-main-minor, and the notes do not carry it`;
+      git(['checkout', '-q', '-b', 'poc2', w]); fragment('replay-poc2-own'); commit('q0: the branch\'s own entry');
+      git(['merge', '-q', '--squash', m2]);
+      env.GIT_COMMITTER_DATE = new Date(Date.now() + 3600_000).toISOString();
+      let sq: string;
+      try { sq = commit('sq: main squashed in, as #3833 landed'); } finally { delete env.GIT_COMMITTER_DATE; }
+      git(['checkout', '-q', '-b', 'remerge', sq]); git(['merge', '-q', '--no-ff', '-m', 'merge main for real', m2]);
+      fragment('replay-remerge'); const rm = commit('the real merge\'s entry');
+      git(['update-ref', 'refs/remotes/origin/poc2', sq]);
+      const ref = tsx(RN, POC2);
+      ok(ref.status === 0 && ref.out.includes(`..${m1.slice(0, 8)} — `) && ref.out.includes('folds read from origin/main at'),
+        `#3863 release-notes: a real merge of main into a squash-refreshed branch reads ${v}'s fold from the main it carries (${m1.slice(0, 8)}), not the squash (exit ${ref.status}: ${said(ref, /folds read|\.\.|NOTES|❌/)})`);
+      const head = tsx(RN, {});
+      ok(head.status === 1 && head.out.includes(NOT_FOLDED) && head.out.includes(`..${sq.slice(0, 8)} — `),
+        `#3863 release-notes: the same tree walked from HEAD (no GITHUB_BASE_REF, as before the fix) reads the squash as the fold and fails NOTES by name (exit ${head.status}: ${said(head, /NOTES|\.\./)})`);
+      git(['checkout', '-q', '-b', 'poc2-ordinary', rm]); fragment('replay-poc2-ordinary'); commit('an ordinary PR into the refreshed branch');
+      git(['update-ref', 'refs/remotes/origin/poc2', rm]);
+      const later = tsx(RN, POC2);
+      ok(later.status === 0 && later.out.includes(`..${m1.slice(0, 8)} — `),
+        `#3863 release-notes: an ordinary PR into the branch after the refresh, which brings no new main, still reads the fold from main, not the squash on the branch's chain (exit ${later.status}: ${said(later, /folds read|\.\.|NOTES|❌/)})`);
+      // Teeth: a release that drops a note its fold folded fails on main and on the integration branch alike.
+      const dropNote = () => {
+        const p = join(clone, `docs/public/releases/${v}.json`);
+        const rel = JSON.parse(readFileSync(p, 'utf8')) as { notes: { slug: string }[] };
+        rel.notes = rel.notes.filter((n) => n.slug !== 'replay-main-minor');
+        writeFileSync(p, `${JSON.stringify(rel, null, 2)}\n`);
+      };
+      git(['checkout', '-q', '-b', 'main-drop', m2]); dropNote(); commit('main: the release drops a folded note');
+      const onMain = tsx(RN, { GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'main' });
+      ok(onMain.status === 1 && onMain.out.includes(DROPPED) && onMain.out.includes('folds read from HEAD\'s own history'),
+        `#3863 release-notes: on a PR into main the walk is HEAD's, and a release missing a note its fold folded fails NOTES by name (exit ${onMain.status}: ${said(onMain, /NOTES|folds read/)})`);
+      git(['checkout', '-q', '-b', 'poc2-drop', rm]); dropNote(); commit('poc2: the release drops a folded note');
+      const onPoc = tsx(RN, POC2);
+      ok(onPoc.status === 1 && onPoc.out.includes(DROPPED),
+        `#3863 release-notes: on a PR into the integration branch, a release missing a note main's fold folded still fails NOTES by name (exit ${onPoc.status}: ${said(onPoc, /NOTES|folds read/)})`);
+    }
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
@@ -42309,7 +42480,9 @@ arm: {
           if (!wash || !ground || !ink || typeof mx.contrast !== 'number') { bad.push(`${where}: unreadable (wash ${!!wash}, ground ${!!ground}, ink ${!!ink}, contrast ${mx.contrast})`); continue; }
           const truth = contrast(ink.rgb, composite(ground.rgb, wash.rgb, wash.a));
           checked++; tints++;
-          if (Math.abs(truth - mx.contrast) > 0.005 + 1e-9) bad.push(`${where}: publishes ${mx.contrast}, the emitted wash (alpha ${wash.a.toFixed(4)}) measures ${truth.toFixed(3)}`);
+          // Published floored to two places (#3759): never above what the wash measures, and less than one step below it.
+          const gap = truth - mx.contrast;
+          if (gap < -1e-9 || gap >= 0.01 + 1e-9) bad.push(`${where}: publishes ${mx.contrast}, the emitted wash (alpha ${wash.a.toFixed(4)}) measures ${truth.toFixed(3)}`);
         }
       }
       for (const [k, v] of Object.entries(o)) if (!k.startsWith('$')) walk(v, [...path, k]);
