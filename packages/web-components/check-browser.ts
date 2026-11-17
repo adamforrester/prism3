@@ -81,7 +81,7 @@ const PARTS = ['', '.p3-button__label', '.p3-button__leading-visual', '.p3-butto
 
 const page_ = (body: string, theme: string) => `<!doctype html><html lang="en" data-theme="${theme}"><head><meta charset="utf-8">
 <style>${readFileSync(TOKENS_CSS, 'utf8')}</style><style>${readFileSync(BUTTON_CSS, 'utf8')}</style>
-<style>body{margin:0;padding:16px;background:var(--pds3-color-surface-default)}.row{display:flex;gap:16px;align-items:start;margin-block-end:8px}.band{background:var(--pds3-color-inverse-surface-default)}</style>
+<style>body{margin:0;padding:16px;background:var(--pds3-color-background-primary)}.row{display:flex;gap:16px;align-items:start;margin-block-end:8px}.band{background:var(--pds3-color-inverse-background-primary)}</style>
 </head><body>${body}</body></html>`;
 
 export const run = async (browser: any, source: string): Promise<{ failures: string[]; passed: number }> => {

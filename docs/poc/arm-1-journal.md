@@ -823,6 +823,168 @@ inputs.
 
 ---
 
+## S5 (thin) — the arm 1 Storybook: the button in both delivery forms
+
+Started about 13:52 UTC on 2026-11-17. **Stacked on S4** (`poc/arm-1-s4-web-components`), because the element
+stories need `<p3-button>`. Q-POC1 A pulled a thin Storybook forward from S5. The accessibility and keyboard pass
+(`addon-a11y`, `addon-vitest`, axe, Q144 A) stays in S5 proper.
+
+### What was built
+
+`apps/storybook`, the `@prism3/storybook` workspace. It's a surface that builds and ships nothing, so it sits
+beside Studio and the plugin, not under `packages/`.
+
+- **Storybook 10 on `@storybook/web-components-vite`** (arm 1 architecture item 5). `main.js` resolves the framework
+  and the addon by path, because npm hoists `storybook` to the root but keeps the framework under the workspace.
+  Telemetry is off.
+- **`preview.js`** loads the shipped CSS the way a client does (`@prism3/tokens`, then `@prism3/css/button.css`,
+  then `@prism3/web-components`), and passes `custom-elements.json` to `setCustomElementsManifest`, so the element's
+  controls come from the analyzer. A toolbar global switches `data-theme` between light and dark. An inverse story
+  sits on the inverse background.
+- **Stories, `stories/button/`.** `cases.js` holds 18 cases shared by both forms:
+  - one per def state: rest, hover, pressed, focus-visible, disabled, inactive and pending;
+  - each appearance, plus text flush;
+  - each size;
+  - inverse, filled and outline;
+  - with visuals, and full width.
+
+  `button.element.stories.js` (`Components/Button/Element`) sets `<p3-button>`'s properties.
+  `button.html.stories.js` (`Components/Button/HTML`) writes `@prism3/css`'s README markup. That's 36 stories.
+- **Hover, pressed and focus-visible are forced** by `storybook-addon-pseudo-states` (its `pseudo` parameter). It
+  rewrites `button.css`'s rules inside `@layer p3` without trouble.
+- **Built for S3 to slot in.** Text-field and password-field each add a `stories/<component>/` folder with the same
+  three files, one stylesheet import in `preview.js`, and their rows in `check-build.ts`'s `EXPECTED`. No config
+  changes. None are added here.
+
+### Dependencies (pinned exactly, each release at least two weeks old on 2026-11-17)
+
+| Package | Version | Released | Note |
+|---|---|---|---|
+| `storybook` | 10.6.5 | 2026-10-27 | The scope comment named 10.6.6, which is from 2026-11-05: too new. |
+| `@storybook/web-components-vite` | 10.6.5 | 2026-10-27 | Brings `@storybook/web-components` and `@storybook/builder-vite` 10.6.5. |
+| `storybook-addon-pseudo-states` | 10.6.5 | 2026-10-27 | Forces the pseudo-class states. |
+| `vite` | 8.3.5 | 2026-10-21 | The builder's peer. |
+| `rolldown` | 1.2.16 | 2026-10-29 | Vite's bundler, pinned as a devDependency here (below). |
+| `postcss` | 8.5.32 | 2026-10-26 | Vite's, the same way. |
+| `lit` | 3.3.3 | 2026-05-14 | As in S4; the preview's theme frame is a Lit template. |
+
+**The transitive pins.** Storybook and Vite add 176 packages. Seven resolved to releases from the last two weeks.
+- **Root `overrides`** hold back four of them: `ws` 8.22.1, `@babel/runtime` 7.29.10,
+  `@testing-library/user-event` 14.6.8 and `@rolldown/pluginutils` 1.0.1.
+- **The other three are pinned as exact devDependencies of the workspace:** `rolldown` 1.2.16 (which pulls its
+  platform bindings to 1.2.16 with it), `postcss` 8.5.32 and `vite` itself. A root override didn't reach the Vite
+  that npm nests under `apps/storybook`, which is why.
+
+After both, every one of the 176 new packages was checked by its publish date. No existing lockfile entry changed
+version.
+
+### Decisions
+
+Followed: Q-POC1 A (a thin Storybook first), Q95 B (Lit 3 for the element stories), arm 1 architecture items 5
+(Storybook 10, `web-components-vite`, both delivery forms, a story per state) and 6 (controls from
+`custom-elements.json`), and Q144 A (axe waits for S5 proper).
+
+**OWNER DECISIONS** (each built as the recommendation):
+
+1. **OWNER DECISION: story organization.** Options:
+   - **A. One file per delivery form, `Components/<Component>/Element` and `…/HTML`, with the same story names
+     (built).** The sidebar reads component, then form, then state, and the check can pair the forms by name.
+   - B. One file per component, with paired stories ("Rest — element", "Rest — HTML").
+   - C. One story per state, showing both forms side by side.
+
+   **Recommendation: A.** It keeps each form's source panel clean for a client copying it. C is a good docs page for
+   S5 proper.
+2. **OWNER DECISION: forcing pseudo-states.** Options: **A. `storybook-addon-pseudo-states` (built)**, Storybook's
+   own addon, one more dependency, or B. no forced states: hover, pressed and focus are live only, so a static
+   screenshot can't show them. **Recommendation: A**, because the KPI 2 and KPI 3 checks (Q32 A) render from these
+   stories.
+3. **OWNER DECISION: "each tone".** The brief asks for a story per tone, but only the primary tone exists:
+   Destructive and Neutral wait on the Q145 follow-up (S2 follow-ups entry; the recommendation there is B,
+   `data-component`). The appearance stories (filled, outline, text, flush) and the inverse surface stand in.
+   **Recommendation:** add the tone stories in the PR that builds the tones. It's one case each in `cases.js`.
+4. **OWNER DECISION: where it lives.** **A. `apps/storybook` (built)**, a surface that builds, or B. `packages/`.
+   **Recommendation: A.**
+
+Not done here, for S5 proper: `addon-a11y` and `addon-vitest` (`@axe-core/playwright` is Q144 A's), the keyboard
+tests, and running the US-English and voice scans over the built Storybook (arm 1 architecture, "New gates").
+
+### What was checked, and how
+
+Two new CI steps, mirrored in `verify.ts`, CONTRIBUTING §3, CLAUDE.md §4 and the PR template (`lint-doc-gates`
+clean). `apps/storybook/` joined the layout regions in the root README, CLAUDE.md and `docs/09` §3
+(`lint-layout-claims` clean).
+
+- **`build`**: `storybook build` writes `storybook-static/` (gitignored) in about 2 seconds.
+- **`check:build`**, 144 checks. It serves the static build and opens every story in Chromium.
+  - **The index** holds exactly the 36 stories in the check's own hand-written `EXPECTED`
+    (component × form × case). Both a missing story and an extra one fail.
+  - **Each story renders a `.p3-button`**, inside `<p3-button>` for the element form and not for HTML.
+  - **Each forced state shows.** The check waits for the addon's class on the story root, then requires:
+    - hover and pressed paint a different fill than rest;
+    - focus-visible draws an outline, and rest draws none;
+    - pending, disabled and inactive carry their attributes;
+    - the three sizes have three heights;
+    - inverse paints a different fill than rest;
+    - rest's fill isn't transparent.
+  - **Both forms agree.** The element and HTML stories of each case compute the same fill, ink, border, outline,
+    height and padding.
+- **Hand mutations on disk**, after a `wip:` commit, each restored with `git show HEAD:<path> > <path>` and
+  rebuilt:
+
+  | Mutation | Fails by name |
+  |---|---|
+  | The HTML `Hover` export deleted | `index: story components-button-html--hover is missing from the build` |
+  | `Pressed` no longer forced (`pseudo` removed) | `components-button-element--pressed: the story root never got pseudo-active-all, so the addon did not force the state`, and the same for HTML |
+
+### A correction to S4, found here
+
+**S4's browser test named two tokens that don't exist.** Its page background read
+`--pds3-color-surface-default` and `--pds3-color-inverse-surface-default`, which aren't in the token CSS, so the
+background was transparent. The comparisons it makes are unaffected, because both forms sit on the same background.
+It was found while choosing the preview frame's tokens here. This PR fixes it to `color.background-primary` and
+`color.inverse.background-primary`, the tokens `@prism3/css`'s demo uses, and the test still passes 107 checks. The
+fix is carried here, not pushed to the S4 branch, because that branch was already up for review.
+
+**Learning:** a check page's own styling escapes the R1 scan, because `check-raw-values` covers the package's CSS
+and demo, not test pages.
+
+### Surprises and learnings
+
+- **The HTML stories rendered as text at first.** The theme frame is a Lit template, and Lit renders a string as
+  text. The HTML stories now parse their markup into nodes. The first check run said "did not render a .p3-button"
+  for all 18.
+- **The pseudo-state addon is asynchronous.** It applies its class after `STORY_RENDERED`, so a read straight after
+  render saw rest. The check waits for the class it expects. That also makes "the addon didn't run" a failure by
+  name, not a silent rest-colored pass.
+- **npm overrides don't reach a nested copy.** Root `overrides` held back four transitive packages but not
+  `rolldown` and `postcss`, which belong to the Vite nested under the workspace. Exact devDependencies did.
+- **Storybook's core can't find a nested framework by name.** The standard monorepo fix, resolving each package
+  to its folder in `main.js`, is in place.
+
+### Effort
+
+- **Wall clock:** about 13:52 to 14:16 UTC for the workspace, the stories, the check, the wiring, the mutations
+  and this entry; then the gate run.
+- **Steps:** about 35 tool calls: dependency research and pins about 10, writing 9 files, running and fixing about
+  15.
+- **Hand edits:** all of it. Nothing in this workspace is generated. The lockfile came from
+  `npm install --package-lock-only --ignore-scripts`, validated by `npm ci`.
+- **Errors hit:** 5.
+  1. Root overrides missed the nested Vite's `rolldown` and `postcss` (above).
+  2. A shell-quoting slip in an inline `node -e` (an apostrophe in a comment string). Moved to a script file.
+  3. `@storybook/web-components-vite` wasn't found by the hoisted core (above).
+  4. The HTML stories rendered as text (above).
+  5. The first check read the forced stories before the addon applied its class (above). Its 18 timeouts made that
+     run take 4 minutes 42 seconds; the fixed check takes about 13 seconds.
+
+**Local gate record** (`npm run verify`'s 114 gates, with `GITHUB_BASE_REF=poc/arm-1`, after `regen`, in 4 chunks):
+111 PASS, 0 FAIL, 3 not run locally, left to CI as in S2 and S4: `chrome`, `chrome-shards` and `plugin-test`.
+`lint-us-english` and `lint-voice` failed once when run before the Studio and plugin builds existed in this fresh
+worktree ("the gate's SCOPE shrank"), which is their ordering rule working. Both passed after the builds.
+
+
+---
+
 ## Refresh 3 — `main`'s emission bindings, and `@prism3/css` reads emitted files only (Q142 A; a Q55 data point)
 
 Started about 17:35 UTC on 2026-11-17, from `poc/arm-1` at `f3e6dc4b`, merging `main` at `77f4ced5`: 15 commits,
@@ -945,6 +1107,36 @@ the right end state, and it doesn't block the fields' elements.
 three times. Two breaks were loud: a key the generator had no rule for, and a key the parity checks couldn't read.
 One was quiet: a row key that grew. The consumer was
 protected by being strict about unknown input and by checking its output byte for byte, not by the version numbers.
+
+### Review fixes (the CHANGES verdict on `90a500bc`)
+
+- **Base merge.** `poc/arm-1` moved to `2a08d9e7` (#3895, S5 thin) after this branched. It was merged in with a merge
+  commit. The only conflict was this journal, where both sides appended an entry; both are kept, S5 first, in the
+  order they started. `main` was not merged again, so #3841 (Button's motion) is still not in this refresh.
+- **The Q142 A guard read spellings, not paths.** `engineImports()` matched only `@prism3/engine…` and the one
+  relative spelling that climbs a single level to the engine, so `import '../../packages/engine/components/index'` passed `check:generated`, and `require(…)` was
+  never scanned. It now reads every specifier (`import … from`, `export … from`, a bare `import '…'`, `import(…)`,
+  `require(…)`), resolves each relative or absolute one against the package, and fails when it lands under
+  `packages/engine/` outside `out/`. Each probe below is a new `probe.ts` in the package, which the generator does not
+  import, so the guard and not a crash is what fails:
+
+  | Probe | `check:generated` |
+  |---|---|
+  | `import '../../packages/engine/components/index';` | `FAIL @prism3/css sources: probe.ts imports ../../packages/engine/components/index; only residual.ts may (Q142 A)` (passed before the fix) |
+  | `const _e = require('../engine/theme');` | `FAIL … probe.ts imports ../engine/theme; …` (passed before the fix) |
+  | `export { button } from './../engine/components/index';` | `FAIL … probe.ts imports ./../engine/components/index; …` |
+  | an absolute path to `packages/engine/theme` | `FAIL … probe.ts imports <path>/packages/engine/theme; …` |
+  | `await import('@prism3/engine/theme')` | `FAIL … probe.ts imports @prism3/engine/theme; …` |
+  | `import '../engine/out/components/specs.json';` (control) | OK: an emitted file is not the engine's code |
+  | `import '../../tools/agent-adherence/score-code';` (control) | OK: outside `packages/engine/` |
+
+  **Still not seen:** an engine import reached *through* another module. `check-browser*.ts` and
+  `check-raw-values.ts` reach `@prism3/engine/color` through `tools/agent-adherence/score-code.ts`. They are checks,
+  not the generator, so Q142 A does not cover them, and the guard reads direct specifiers only.
+- **`outline-width` now reads the focus ring's own `width`.** It is carried in the emission's `focusRing`. Before,
+  it followed the button's `ring-width`, which the emitter uses only as `strokeInset`. Both are `focus.ring.width`
+  today, so the bytes are the same. Rebinding the button's `ring-width` alone no longer moves the CSS, and rebinding the
+  focus ring's `width` does. This is the more correct source, because the outline the CSS draws is the ring.
 
 ---
 
