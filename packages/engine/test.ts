@@ -10518,14 +10518,50 @@ arm: {
   const colorEntries = Object.entries(ai.color as Record<string, any>);
   const levelLeft = colorEntries.filter(([, r]) => 'avoid_when_level' in r || 'paired_with' in r).map(([k]) => k);
   ok(levelLeft.length === 0, 'sidecar: no entry carries the retired avoid_when_level or paired_with field' + (levelLeft.length ? ` — ${levelLeft.slice(0, 5).join(', ')}` : ''));
-  const badReq = colorEntries.flatMap(([k, r]) => (r.contrast_with ?? []).filter((cw: any) => {
+  // #1779: where the modes hold different floors the sentence names each mode's floor ("… in light and dark modes,
+  // and 4.5:1 in hc-light and hc-dark modes."). This block parses that with its own patterns, and holds a role's
+  // OWN pair (`contrast_with[0]` on a role the tree gives a floor) to the floors the TREE records, mode by mode — the
+  // check a payload reader runs. A second pair (no per-mode floor in the tree) is held to its own min and shape.
+  const reqRoot = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+  const treeFloors = (role: string): Record<string, string> | undefined => {
+    const ext = role.split('.').reduce((o: any, x) => o?.[x], tree[reqRoot]?.color)?.$extensions?.prism3;
+    if (!(ext?.min > 0)) return undefined;
+    return { light: `${ext.min}:1`, ...Object.fromEntries(Object.entries<any>(ext.modes ?? {}).filter(([, v]) => v?.min > 0).map(([m, v]) => [m, `${v.min}:1`])) };
+  };
+  const floorsStated = (clause: string, head: string, composite: boolean): Record<string, string> | 'every' | null => {
+    if (clause === (composite ? ', in every mode' : ' in every mode')) return 'every';
+    const out: Record<string, string> = {};
+    const parts = clause.replace(/^ in /, '').split(/, (?:and )?(?=(?:at )?[0-9])/);
+    for (const [i, part] of parts.entries()) {
+      const m = i === 0 ? ['', head, part] : part.match(composite ? /^at ([0-9.]+:1) or more in (.+)$/ : /^([0-9.]+:1) in (.+)$/);
+      const modes = m?.[2].match(/^(.+?) modes?$/)?.[1].split(/, | and /);
+      if (!m || !modes) return null;
+      for (const x of modes) out[x] = m[1];
+    }
+    return parts.length > 1 ? out : null;
+  };
+  const badReq = colorEntries.flatMap(([k, r]) => (r.contrast_with ?? []).filter((cw: any, i: number) => {
     const m = String(cw.requirement ?? '').match(cw.composited_over
-      ? /^MUST keep `([^`]+)` at (\d+(?:\.\d+)?:1) or more on `([^`]+)` composited over `([^`]+)`, in every mode\.$/
-      : /^MUST clear (\d+(?:\.\d+)?:1) against `([^`]+)` in every mode\.$/);
+      ? /^MUST keep `([^`]+)` at ([0-9.]+:1) or more on `([^`]+)` composited over `([^`]+)`(, in every mode| in .+)\.$/
+      : /^MUST clear ([0-9.]+:1) against `([^`]+)`( in every mode| in .+)\.$/);
     if (!m) return true;
-    return cw.composited_over ? m[1] !== cw.token || m[2] !== cw.min || m[3] !== k || m[4] !== cw.composited_over : m[1] !== cw.min || m[2] !== cw.token;
+    if (cw.composited_over ? m[1] !== cw.token || m[2] !== cw.min || m[3] !== k || m[4] !== cw.composited_over : m[1] !== cw.min || m[2] !== cw.token) return true;
+    const stated = floorsStated(m[cw.composited_over ? 5 : 3], cw.min, !!cw.composited_over);
+    if (!stated) return true;
+    const own = i === 0 ? treeFloors(k) : undefined;
+    if (!own) return false;
+    return stated === 'every' ? Object.values(own).some((v) => v !== cw.min)
+      : Object.keys(stated).length !== Object.keys(own).length || Object.entries(own).some(([md, v]) => stated[md] !== v);
   }).map(() => k));
-  ok(badReq.length === 0, 'sidecar: every contrast_with entry states its requirement as the check its own min and token define' + (badReq.length ? ` — ${badReq.slice(0, 5).join(', ')}` : ''));
+  ok(badReq.length === 0, 'sidecar: every contrast_with entry states its requirement as the check its own min and token define, with the floor of each mode as the tree records it (#1779)' + (badReq.length ? ` — ${badReq.slice(0, 5).join(', ')}` : ''));
+  // #1779, concrete: the issue's case (border.brand, 3:1 in light and dark, 4.5:1 in high contrast) and text.primary
+  // (7:1, 15:1 in high contrast), as literals; and a uniform floor (on-fill, 4.5:1 everywhere) keeps "in every mode".
+  ok(ai.color['border.brand']?.contrast_with?.[0]?.requirement === 'MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes.',
+    `#1779 sidecar: border.brand states 3:1 in light and dark and 4.5:1 in high contrast (got "${ai.color['border.brand']?.contrast_with?.[0]?.requirement}")`);
+  ok(/^MUST clear 7:1 against `[^`]+` in light and dark modes, and 15:1 in hc-light and hc-dark modes\.$/.test(ai.color['text.primary']?.contrast_with?.[0]?.requirement ?? ''),
+    `#1779 sidecar: text.primary states 7:1 in light and dark and 15:1 in high contrast (got "${ai.color['text.primary']?.contrast_with?.[0]?.requirement}")`);
+  ok(ai.color['interactive.primary.on-fill']?.contrast_with?.[0]?.requirement === 'MUST clear 4.5:1 against `interactive.primary.fill.rest` in every mode.',
+    `#1779 sidecar: a floor that holds in every mode (interactive.primary.on-fill, 4.5:1) still says "in every mode" (got "${ai.color['interactive.primary.on-fill']?.contrast_with?.[0]?.requirement}")`);
   // Concrete values, not just the structural pairing — docs/34 shape 5 ("it resolves" is not "it is
   // right"). text.primary holds a real AAA text contract against its surface; border.primary is the
   // decorative border, which carries no contract and so no requirement.
