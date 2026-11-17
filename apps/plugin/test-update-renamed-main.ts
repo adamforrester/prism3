@@ -28,7 +28,13 @@
  * Mutations this fails by name:
  *   · `readPresent` back to the current id alone (`[d.id, ...formerDefIds(d.id)]` → `[d.id]`) → `renamed/present`;
  *   · `dueOf`'s former-id arm removed → `renamed/at open`, `renamed/due`, and through them `renamed/check` and `renamed/one run`;
- *   · `ledgerDue`'s `formerEntry` dropped → `renamed/at open`.
+ *   · `ledgerDue`'s `formerEntry` dropped → `renamed/at open`;
+ *   · `readPresent`'s rename for one def alone (`formerDefIds(d.id)` → `d.id === 'provider-logo' ? formerDefIds(d.id) : []`)
+ *     → `renamed/tab present` (#2759's `tab` → `tab-item`, the other def rename the ledger declares).
+ *
+ * THE TAB SET: beside the marks the file holds today's Tab item drawn under the name it had before #2759, `tab`, a
+ * component set, recorded in the ledger under `tab`. It is the second def rename `formerDefIds` walks, and the one shaped
+ * as a set (`names.has(id)`), where provider-logo's marks are standalone components (`${id}/` prefix).
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
@@ -54,6 +60,7 @@ console.log('Update file on a file built before BrandMark was ProviderLogo, thro
 
 const NESTING = ['wallet-button', 'sign-in-button', 'card-number-field'] as const;
 const IDS = ['provider-logo', ...NESTING] as const;
+const TAB = 'tab-item';
 const plansNow = new Map(IDS.map((id) => [id, figmaAnatomySet(materializeForBrand(componentDefs.find((d) => d.id === id)!, null), { swapTarget: SWAP_TARGET })] as const));
 type PlanNode = AnatomyPlan['root'];
 /** A plan as it was drawn before #3148: each provider mark it names under `brand-mark/`, and (before #3174) each wallet
@@ -71,7 +78,9 @@ const olden = (n: PlanNode): PlanNode => {
 const isButton = (p: AnatomyPlan): boolean => String(p.coord.name).startsWith('button/');
 const marksWas = plansNow.get('provider-logo')!.filter((p) => !isButton(p)).map((p) => ({ ...p, component: 'brand-mark', root: olden(p.root) }));
 const plansWas = new Map<string, AnatomyPlan[]>(NESTING.map((id) => [id, plansNow.get(id)!.map((p) => ({ ...p, root: olden(p.root) }))]));
-const all = [...plansNow.values(), ...plansWas.values(), marksWas].flat();
+/** Tab item as the file holds it: a set named `tab`, its def's id before #2759 (the set's name in Figma is the def id). */
+const tabWas = figmaAnatomySet(materializeForBrand(componentDefs.find((d) => d.id === TAB)!, null), { swapTarget: SWAP_TARGET }).map((p) => ({ ...p, component: 'tab' }));
+const all = [...plansNow.values(), ...plansWas.values(), marksWas, tabWas].flat();
 
 // What the three sets need, read off today's plans, against the literal list below.
 const planComps = (n: PlanNode): string[] => [
@@ -166,16 +175,23 @@ icons.parent = root;
   page.children.splice(0, page.children.length, ...page.children.filter((n) => !built.includes(n)));
   for (const c of built) { icons.children.push(c); c.parent = icons as unknown as Node; }
 }
-for (const id of NESTING) {
-  const r = await applyComponentPlan(plansWas.get(id)!, shim as never);
+for (const [id, plans] of [...NESTING.map((id) => [id, plansWas.get(id)!] as const), ['tab', tabWas] as const]) {
+  const r = await applyComponentPlan(plans, shim as never);
   if (r.misses.length) throw new Error(`premise: ${id} built with ${r.misses.length} miss(es): ${r.misses[0]}`);
 }
-ok(comps().filter((n) => n.startsWith('brand-mark/')).length === 75 && !comps().some((n) => n.startsWith('provider-logo/')),
-  `fixture: the file holds 75 marks, every one named brand-mark/…, none provider-logo/… (${comps().filter((n) => n.startsWith('brand-mark/')).length})`);
+const setNames = (): string[] => pages.flatMap((p) => below(p)).filter((n) => n.type === 'COMPONENT_SET').map((n) => String(n.name));
+const inSets = (): string[] => pages.flatMap((p) => below(p)).filter((n) => n.type === 'COMPONENT' && n.parent?.type === 'COMPONENT_SET').map((n) => String(n.name));
+// As the template file holds them (read 2026-11-17): the marks are standalone components, not a set, and none is in one;
+// `button/apple-pay-black` is under neither name, so the update adds it.
+ok(comps().filter((n) => n.startsWith('brand-mark/')).length === 75 && !comps().some((n) => n.startsWith('provider-logo/'))
+  && !setNames().some((n) => /^(brand-mark|provider-logo)\b/.test(n)) && !inSets().some((n) => /^(brand-mark|provider-logo)\//.test(n))
+  && !comps().some((n) => /^(brand-mark|provider-logo)\/button\/apple-pay-black$/.test(n)),
+  `fixture: the file holds 75 standalone marks, every one named brand-mark/…, none provider-logo/…, none in a set, no button/apple-pay-black under either name (${comps().filter((n) => n.startsWith('brand-mark/')).length})`);
+ok(setNames().includes('tab') && !setNames().includes(TAB), `fixture: the file holds Tab item as a set named tab, none named tab-item (${JSON.stringify(setNames())})`);
 // The ledger as the builds then recorded it: provider-logo under the id it had, `brand-mark`; the three sets each under
 // a def that has moved since (their own drawing changed too, #3174 and after).
 const moved = (id: string) => ({ ...entryFor(materializeForBrand(componentDefs.find((d) => d.id === id)!, null)), def: 'built-before-3148' });
-recordSets(root as never, { 'brand-mark': moved('provider-logo'), ...Object.fromEntries(NESTING.map((id) => [id, moved(id)])) });
+recordSets(root as never, { 'brand-mark': moved('provider-logo'), tab: moved(TAB), ...Object.fromEntries(NESTING.map((id) => [id, moved(id)])) });
 
 const g = globalThis as Record<string, unknown>;
 g.figma = shim; g.__html__ = ''; g.PRISM3_BUILD = '2026-11-17T00:00:00Z tree-test0000';
@@ -219,6 +235,8 @@ const nameOf = (id: string): string => displayNameOf(catalog, id);
 const f0 = await send({ type: 'file-sets-request' }, ['file-sets']) as FileSets & { type: string };
 ok(!!f0?.present?.includes('provider-logo'), `renamed/present: main.ts reads provider-logo as in the file, its marks under brand-mark/ (${JSON.stringify(f0?.present)})`);
 ok(f0?.due?.['provider-logo']?.state === 'due', `renamed/due: main.ts reads provider-logo due, its ledger entry under brand-mark (${JSON.stringify(f0?.due?.['provider-logo'])})`);
+ok(!!f0?.present?.includes(TAB) && f0?.due?.[TAB]?.state === 'due',
+  `renamed/tab present: main.ts reads tab-item as in the file, its set named tab, and due by its entry under tab (${JSON.stringify([f0?.present?.includes(TAB), f0?.due?.[TAB]])})`);
 
 // 2. The check, scoped as Update file scopes it: the due sets.
 const scope = f0 ? dueSetsOf(catalog, f0) : [];
@@ -228,8 +246,8 @@ const row = (def: string): string => { const c = (c0?.sets ?? []).find((x: any) 
 const NEEDS = 'Can’t update yet — it needs Provider logo, which this file doesn’t have. Tick Provider logo on Components first.';
 const SWAPS = 'Can’t update yet — it swaps to Provider logo, which this file doesn’t have. Tick Provider logo on Components first.';
 const blocked = (c0?.sets ?? []).filter((c: any) => c.blocked).map((c: any) => [c.def, row(c.def)]);
-ok(scope.includes('provider-logo') && NESTING.every((id) => scope.includes(id)) && blocked.length === 0 && ![row('wallet-button'), row('sign-in-button')].includes(NEEDS) && row('card-number-field') !== SWAPS,
-  `renamed/check: the check takes provider-logo with the three sets, and none of the four reads blocked (${JSON.stringify({ scope, blocked })})`);
+ok(scope.includes('provider-logo') && [...NESTING, TAB].every((id) => scope.includes(id)) && blocked.length === 0 && ![row('wallet-button'), row('sign-in-button')].includes(NEEDS) && row('card-number-field') !== SWAPS,
+  `renamed/check: the check takes provider-logo with the three sets, and none of the five reads blocked (${JSON.stringify({ scope, blocked })})`);
 
 // 3. The update, as Update file posts it, then the file as it stands.
 const u = await send({ type: 'update-sets', defs: scope, previewHash: c0?.previewHash, handEdits: 'keep' }, ['component-update-result']);
@@ -239,14 +257,14 @@ const want = ['provider-logo/payment/generic', 'provider-logo/provider/apple', '
 // non-square mark reads back as drift Figma's importer does not have (`test-update-apply.ts`, THE PROVIDER LOGOS).
 const lines: string[] = u?.lines ?? [];
 const shimDrift = (l: string): boolean => /^provider-logo: \d+ fields still differ from the plan — /.test(l);
-ok(/^[✓⚠] Updated 4 sets/.test(String(u?.headline)) && lines.includes('provider-logo: 75 updated in place, 11 added.')
-  && NESTING.every((id) => lines.some((l) => new RegExp(`^${id}: \\d+ updated in place\\.$`).test(l)))
+ok(/^[✓⚠] Updated 5 sets/.test(String(u?.headline)) && lines.includes('provider-logo: 75 updated in place, 11 added.')
+  && [...NESTING, TAB].every((id) => lines.some((l) => new RegExp(`^${id}: \\d+ updated in place\\.$`).test(l)))
   && !lines.some((l) => /stopped|refused|can’t|not in this file/i.test(l)) && lines.filter((l) => / still differ /.test(l)).every(shimDrift)
-  && !after.some((n) => n.startsWith('brand-mark/')) && want.every((n) => after.includes(n)) && after.filter((n) => n.startsWith('provider-logo/')).length === 86,
-  `renamed/one run: one update renames the 75 marks in place, adds the 11 button marks, then updates the three sets, no brand-mark/ left (${JSON.stringify({ headline: u?.headline, lines: lines.slice(0, 5).map((l) => l.slice(0, 80)), brandMark: after.filter((n) => n.startsWith('brand-mark/')).length, providerLogo: after.filter((n) => n.startsWith('provider-logo/')).length })})`);
+  && !after.some((n) => n.startsWith('brand-mark/')) && setNames().includes(TAB) && !setNames().includes('tab') && want.every((n) => after.includes(n)) && after.filter((n) => n.startsWith('provider-logo/')).length === 86,
+  `renamed/one run: one update renames the 75 marks in place, adds the 11 button marks, then updates the three sets and renames the tab set to tab-item in place, no brand-mark/ or tab left (${JSON.stringify({ headline: u?.headline, lines: lines.slice(0, 5).map((l) => l.slice(0, 80)), brandMark: after.filter((n) => n.startsWith('brand-mark/')).length, sets: setNames(), providerLogo: after.filter((n) => n.startsWith('provider-logo/')).length })})`);
 const f1 = await send({ type: 'file-sets-request' }, ['file-sets']);
-ok(IDS.every((id) => f1?.due?.[id]?.state === 'current'),
-  `renamed/settled: after the run main.ts reads all four sets current (${JSON.stringify(Object.fromEntries(IDS.map((id) => [id, f1?.due?.[id]?.state])))})`);
+ok([...IDS, TAB].every((id) => f1?.due?.[id]?.state === 'current'),
+  `renamed/settled: after the run main.ts reads all five sets current (${JSON.stringify(Object.fromEntries([...IDS, TAB].map((id) => [id, f1?.due?.[id]?.state])))})`);
 
 console.log(`${failed ? `\n${failed} failed` : '\nall passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);
