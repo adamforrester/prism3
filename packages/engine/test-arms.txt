@@ -15,6 +15,7 @@ apps/plugin/test-agent-link.ts #1785
 apps/plugin/test-agent-link.ts #1884
 apps/plugin/test-agent-link.ts #1957
 apps/plugin/test-agent-link.ts #1995
+apps/plugin/test-agent-link.ts #2087
 apps/plugin/test-agent-link.ts #2177
 apps/plugin/test-agent-link.ts #2265
 apps/plugin/test-agent-link.ts #2909
@@ -670,6 +671,7 @@ apps/studio/test-fills-input.ts #2250
 apps/studio/test-fills-input.ts #3050
 apps/studio/test-fills-input.ts #3366
 apps/studio/test-glass-input.ts #3106
+apps/studio/test-host-session.ts #2087
 apps/studio/test-host-session.ts #3081
 apps/studio/test-host-session.ts #3110
 apps/studio/test-host-session.ts #3129
@@ -795,6 +797,7 @@ apps/studio/test-update-file.ts #3467
 apps/studio/test-update-file.ts #3712
 apps/studio/test-update-file.ts #3713
 apps/studio/test-write-adapter.ts #1840
+apps/studio/test-write-adapter.ts #2087
 apps/studio/test-write-adapter.ts #3697
 packages/engine/mcp-test.ts #1867
 packages/engine/mcp-test.ts #2068
