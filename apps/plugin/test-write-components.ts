@@ -3395,7 +3395,6 @@ const rSet = await run(iconPlans, { ...iconVars, page: setPage });
 ok(setPage.children.length === 1 && setPage.children[0].type === 'COMPONENT_SET' && rSet.emittedComponents === undefined,
   `#1012 MUTATION: the same plans WITHOUT emitAsComponents combine into ONE COMPONENT_SET with no emittedComponents (page ${setPage.children.length}, type ${setPage.children[0]?.type}, emitted ${rSet.emittedComponents === undefined ? 'undefined' : rSet.emittedComponents.length})`);
 
-console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 // =============================================================================================
 // #1605 — THE PLUGIN RESOLVES WEIGHT INTENT PER BRAND (the runtime half of #1602)
 // =============================================================================================
@@ -6217,4 +6216,21 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `#3048 every corner a plan binds is still bound to its variable on the built node: claimDefaults wrote no literal over it, which live would unbind it (${lost.length ? `${lost.length} lost: ${lost.slice(0, 4).join('; ')}` : `${claims}/${claims} held`})`);
 }
 
+// =============================================================================================
+// #1857 — THE SUMMARY LINE COUNTS EVERY ARM
+// =============================================================================================
+// The `ALL PASS` / `N FAILED` line is the one line a reader or a `grep` looks for. It once sat at about
+// two thirds of this file, so every arm appended below it ran AFTER the verdict was printed: a failure
+// there exited 1 while the summary still read `ALL PASS`. Read this file's own source and require that no
+// assertion call comes after the summary line, so an arm appended below it fails here, by name.
+{
+  const lines = readFileSync(new URL(import.meta.url), 'utf8').split('\n');
+  const summaries = lines.flatMap((l, i) => (l.includes("'ALL PASS'") && /^console\.log\(/.test(l) ? [i] : []));
+  const at = summaries[0] ?? -1;
+  const after = at < 0 ? [] : lines.slice(at + 1).flatMap((l, i) => (/^\s*(ok|pinned)\(/.test(l) ? [at + 2 + i] : []));
+  ok(summaries.length === 1 && after.length === 0,
+    `#1857 the summary line is printed after every assertion, so it counts them all (${summaries.length} summary line(s)${at >= 0 ? ` at line ${at + 1}` : ''}; ${after.length} assertion call(s) after it${after.length ? `, first at line ${after[0]}` : ''})`);
+}
+
+console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);
