@@ -9683,6 +9683,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
         put(live, 'added.json', '{}\n', 2_000_000);
         rmSync(join(live, 'figma/nb/gone.json'));
         const liveIno = statSync(live).ino, keepIno = statSync(join(live, 'keep.json')).ino, nbIno = statSync(join(live, 'figma/nb')).ino;
+        const changedIno = statSync(join(live, 'changed.json')).ino;
         restoreTree(snap, live);
         const list = (d: string): string[] => readdirSync(d, { recursive: true }).map(String).sort();
         const sameTree = JSON.stringify(list(live)) === JSON.stringify(list(snap))
@@ -9692,15 +9693,23 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
         ok(mtimeOff.length === 0, `#2029: restoreTree gives every file its snapshot timestamp back (#2067) (off: ${JSON.stringify(mtimeOff)})`);
         ok(statSync(live).ino === liveIno && statSync(join(live, 'figma/nb')).ino === nbIno && statSync(join(live, 'keep.json')).ino === keepIno,
           '#2029: restoreTree never deletes the live directory, a directory it keeps, or a file whose bytes did not change (same inodes)');
+        // A file whose bytes differ is written to a hidden sibling and renamed over the original, so a reader sees the old
+        // bytes or the new, never a half-written file. A rename gives the file a NEW inode; copying straight over it keeps
+        // the old one, so "the inode changed" is the deterministic signature of the rename (review of 0c7c1c0c).
+        ok(statSync(join(live, 'changed.json')).ino !== changedIno && !readdirSync(live).some((f) => f.includes('.restore-')),
+          '#2029: restoreTree replaces a file whose bytes differ by renaming a full copy over it, never by writing into it (new inode, no sibling left)');
       } finally { rmSync(root, { recursive: true, force: true }); }
     }
-    // The real gate, over this tree. Its exit status is not asserted: a tree with local edits drifts, and the
-    // property holds either way. A crash (no status) is a failure.
-    const outDir = new URL('./out/', import.meta.url).pathname;
-    const outIno = statSync(outDir).ino, tokensIno = statSync(join(outDir, 'prism3.tokens.json')).ino;
+    // The real gate, over this tree. Its exit status is not asserted: a tree with local edits drifts. The property
+    // asserted holds either way because it is read on DIRECTORIES (`out/` and `out/figma`), whose inodes the restore
+    // keeps whatever drifted. A drifted FILE is renamed over, by design, and gets a new inode, so a file's inode would
+    // blame the restore for a stale tree (review of 0c7c1c0c). A crash (no status) is a failure.
+    const outDir = new URL('./out/', import.meta.url).pathname, figmaDir = join(outDir, 'figma');
+    const outIno = statSync(outDir).ino, figmaIno = statSync(figmaDir).ino;
     const run = spawnSync('npx', ['tsx', new URL('./regen.ts', import.meta.url).pathname, '--check'], { encoding: 'utf8' });
-    ok((run.status === 0 || run.status === 1) && statSync(outDir).ino === outIno && statSync(join(outDir, 'prism3.tokens.json')).ino === tokensIno,
-      `#2029: regen --check leaves packages/engine/out and out/prism3.tokens.json in place — never deleted and recopied, so a build reading them meanwhile finds them (status ${run.status}; out inode ${statSync(outDir).ino === outIno ? 'kept' : 'CHANGED'}; tokens inode ${existsSync(join(outDir, 'prism3.tokens.json')) && statSync(join(outDir, 'prism3.tokens.json')).ino === tokensIno ? 'kept' : 'CHANGED'})`);
+    const figmaKept = existsSync(figmaDir) && statSync(figmaDir).ino === figmaIno;
+    ok((run.status === 0 || run.status === 1) && statSync(outDir).ino === outIno && figmaKept,
+      `#2029: regen --check leaves packages/engine/out and out/figma in place — never deleted and recopied, so a build reading them meanwhile finds them (status ${run.status}; out inode ${statSync(outDir).ino === outIno ? 'kept' : 'CHANGED'}; out/figma inode ${figmaKept ? 'kept' : 'CHANGED'})`);
   }
   // #988 — THE SAME RULE, GENERALISED, because the arm above is pinned to one filename and that is
   // exactly why it could not see the next instance.
