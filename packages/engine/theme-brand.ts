@@ -908,16 +908,20 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // brand's chosen shade while the note claimed the decision was honoured. `pickBrand` still nudges
   // to clear AA on the floor, so accessibility is preserved regardless. 'primary' → the primary
   // anchor; an unanchored palette (neutral / status) has no pinned step → the 500 mid pivot.
-  const actionBrandColor = (input.brandColors ?? []).find((b) => b.name === actionPalette);
-  const actionAnchorStep = actionPalette === 'primary' ? anchorStep
+  // Keyed off the RESOLVED action palette (`roleToPalette.action`, final after the roleColors pass), not the
+  // `actionPalette` lever (#1896): `roleColors.action` and `actionPalette` are aliases, so both spellings anchor
+  // the fill at the same step, and the note below fires for either (owner decision pending on #1896).
+  const resolvedAction = roleToPalette.action;
+  const actionBrandColor = (input.brandColors ?? []).find((b) => b.name === resolvedAction);
+  const actionAnchorStep = resolvedAction === 'primary' ? anchorStep
     : actionBrandColor ? autoPlaceStep(actionBrandColor.oklch.l)
     : 500;
   // A pinned `actionAnchorStep` is applied exactly (`modes.ts` `restFill`, `exact`, #331) and never moved, so
   // the note reports the pin, not the auto-placed step, and drops the auto-move clause (#1894). Its floor miss
   // is reported as the role's own ratio. Wording: DRAFT for the owner (#1894 Q-block).
   if (actionBrandColor) notes.push(input.actionAnchorStep !== undefined
-    ? `action: pinned at '${actionPalette}' step ${input.actionAnchorStep} by actionAnchorStep — applied exactly, never moved; a miss of 3:1 (7:1 in high contrast) is reported, not corrected.`
-    : `action: anchored at '${actionPalette}' step ${actionAnchorStep}, the brand's own shade — moved only if it misses 3:1 (7:1 in high contrast) against the contrast floor or background.tertiary.`);
+    ? `action: pinned at '${resolvedAction}' step ${input.actionAnchorStep} by actionAnchorStep — applied exactly, never moved; a miss of 3:1 (7:1 in high contrast) is reported, not corrected.`
+    : `action: anchored at '${resolvedAction}' step ${actionAnchorStep}, the brand's own shade — moved only if it misses 3:1 (7:1 in high contrast) against the contrast floor or background.tertiary.`);
 
   // ---- link palette (#1496) ----
   // Links DEFAULT to following the action colour: an unset `linkPalette` resolves to the palette the action
