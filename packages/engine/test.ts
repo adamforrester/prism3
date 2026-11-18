@@ -43256,6 +43256,23 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(rising === '', `#3872 rising breakpoints [0, 768.5, 1024] still build (got ${JSON.stringify(rising)})`);
 }
 
+// #3375 — List.Item's icon marker stays on `icon.size.sm/md/lg` (owner decision A, 2026-11-18), and the comment that
+// states its sizes must say what those bindings draw. It said 16/20/24 while the code drew 20/24/32. The comment is
+// authored prose and the px come from the def's bindings through the icon ladder, so the two halves are independent.
+{
+  const li = componentDefs.find((d) => d.id === 'list-item');
+  const tokens = (li?.tokens ?? {}) as Record<string, string>;
+  const drawn = ['small', 'medium', 'large'].map((sz) => {
+    const rung = /^icon\.size\.(\w+)$/.exec(tokens[`size.${sz}.icon`] ?? '')?.[1];
+    return ICON_SIZES.find((s) => s.name === rung)?.px;
+  });
+  const src = readFileSync(join(import.meta.dirname, 'components', 'list-item.ts'), 'utf8');
+  const at = src.indexOf('// THE ICON MARKER');
+  const stated = at < 0 ? null : /(\d+)\/(\d+)\/(\d+)/.exec(src.slice(at, src.indexOf('\n    \'', at)))?.slice(1).map(Number);
+  ok(drawn.join('/') === '20/24/32', `#3375 List.Item binds its small, medium and large icon marker at 20/24/32 (got ${drawn.join('/')})`);
+  ok(stated?.join('/') === drawn.join('/'), `#3375 List.Item's ICON MARKER comment states the sizes its bindings draw (comment ${stated?.join('/')}, drawn ${drawn.join('/')})`);
+}
+
 if (pass + fails.length < MIN_ASSERTIONS) {
   console.log(`  ❌ only ${pass + fails.length} assertions ran, expected at least ${MIN_ASSERTIONS} — the harness collapsed, so "0 failed" means nothing.`);
   process.exitCode = 1;
