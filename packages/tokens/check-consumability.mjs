@@ -62,6 +62,7 @@
  * JSON, variables from parsing the EMITTED CSS. Two artifacts, two readers. Deriving one from the
  * other would make the 1:1 collapse undetectable, which is the single thing this gate exists to see.
  */
+import { ruleArms } from './rule-no-custom-code.mjs';
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -179,6 +180,8 @@ for (const [label, file] of [['consumer config', CONFIG], ['shippable build', SH
     ok(!cfg.includes(banned),
       `[RULE] the ${label} declares no \`${banned}\` — no custom code a consumer would have to run`);
   }
+  // The names above are the ones that bit first; the structural arms are the rule itself (#3879).
+  ruleArms(label, file, ok);
 }
 
 // ---- SCOPE: representation, not a count (#635) ----
