@@ -21699,12 +21699,12 @@ arm: {
       ['docs.usage', fieldMessage.docs.usage ?? ''],
       ['textField.accessibility.aria', textField.accessibility.aria ?? ''],
     ];
-    const FIELD_REGION_ADVICE = [/polite live region/i, /\b(host|field) wraps\b/i, /self-announcing/i, /aria-live/i, /role="status"/i, /announce politely/i];
+    const FIELD_REGION_ADVICE = [/polite live region/i, /\b(host|field) wraps\b/i, /self-announcing/i, /aria-live/i, /role="status"/i, /announce politely/i, /role="alert"/i, /assertive/i];
     const offenders = fmProse.filter(([, t]) => FIELD_REGION_ADVICE.some((re) => re.test(t))).map(([where]) => where);
     ok(offenders.length === 0,
       `#1712 field-message and TextField give no field-level live-region advice — the form's error summary is the only region that announces (offending: ${offenders.join(', ') || 'none'})`);
     const aria = fieldMessage.accessibility.aria ?? '';
-    const missing = ['aria-invalid="true"', 'aria-describedby', 'error summary', 'never a live region'].filter((needle) => !aria.includes(needle));
+    const missing = ['aria-invalid="true"', 'aria-describedby', 'focus moves to the invalid field or to the form\'s error summary', 'never a live region'].filter((needle) => !aria.includes(needle));
     ok(missing.length === 0,
       `#1712 field-message's aria states the brief's model: aria-invalid="true", aria-describedby, focus to the field or the error summary, never a live region (missing: ${missing.join(', ') || 'none'})`);
   }
