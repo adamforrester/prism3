@@ -1,0 +1,106 @@
+{
+  "$collection": "type-sets",
+  "$mode": "mobile",
+  "variables": [
+    {
+      "name": "hds/font-fluid/display/sm/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "display sm strong size — 40px desktop, 32px mobile",
+      "value": 32,
+      "alias": null
+    },
+    {
+      "name": "hds/font-fluid/display/md/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "display md strong size — 56px desktop, 40px mobile",
+      "value": 40,
+      "alias": null
+    },
+    {
+      "name": "hds/font-fluid/display/lg/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "display lg strong size — 72px desktop, 40px mobile",
+      "value": 40,
+      "alias": null
+    },
+    {
+      "name": "hds/font-fluid/display/xl/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "display xl strong size — 80px desktop, 40px mobile",
+      "value": 40,
+      "alias": null
+    },
+    {
+      "name": "hds/font-fluid/display/2xl/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "display 2xl strong size — 112px desktop, 48px mobile",
+      "value": 48,
+      "alias": null
+    },
+    {
+      "name": "hds/font-fluid/display/3xl/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "display 3xl strong size — 144px desktop, 48px mobile",
+      "value": 48,
+      "alias": null
+    },
+    {
+      "name": "hds/font-fluid/title/lg/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "title lg strong size — 24px desktop, 20px mobile",
+      "value": 20,
+      "alias": null
+    },
+    {
+      "name": "hds/font-fluid/title/xl/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "title xl strong size — 28px desktop, 24px mobile",
+      "value": 24,
+      "alias": null
+    },
+    {
+      "name": "hds/font-fluid/title/2xl/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "title 2xl strong size — 36px desktop, 32px mobile",
+      "value": 32,
+      "alias": null
+    },
+    {
+      "name": "hds/font-fluid/eyebrow/lg/emphasis",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "eyebrow lg emphasis size — 18px desktop, 16px mobile",
+      "value": 16,
+      "alias": null
+    }
+  ]
+}

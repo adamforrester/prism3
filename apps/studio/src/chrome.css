@@ -1110,8 +1110,9 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-rhythm-la
 .p3-text-input:disabled {
   background: var(--p3-disabled-fill); border-color: var(--p3-disabled-edge); color: var(--p3-disabled-ink); cursor: not-allowed;
 }
-/* Personality: the engine's words as chips; a chosen one takes the selected edge and shows its check. A single-select
-   `chipChoice` chip draws no check (#3117, Q3117.1 B): its edge alone shows it is pressed, so a pick keeps its width. */
+/* Personality: the engine's words as chips; a chosen one takes the selected edge. No chip draws a check, single-select
+   `chipChoice` (#3117, Q3117.1 B) or Personality's `toggleChip` (#3263): the edge shows it is pressed, so a press keeps
+   the chip's width and the row's wrap. */
 .p3-chips { display: flex; flex-wrap: wrap; gap: var(--p3-space-100); }
 /* #3553 Q-UI2 A: a single choice whose options do not fit one row is a list, one option to a row, the width of the
    column (`stackWhenWrapped` in `lever-kit.ts` sets `data-stack`), never a wrap with an orphan on its last row. */
@@ -1119,9 +1120,7 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-rhythm-la
 .p3-choice[data-stack="true"] > .p3-seg-tab { flex: none; }
 .p3-chips-one[data-stack="true"] > .p3-btn.p3-chip { justify-content: flex-start; }
 .p3-btn.p3-chip { min-height: var(--p3-ctl-h-xs); padding: 0 var(--p3-space-150); gap: var(--p3-space-050); font-weight: var(--p3-fw-default); }
-.p3-btn.p3-chip > .p3-ico { display: none; }
 .p3-btn.p3-chip[aria-pressed="true"] { border-color: var(--p3-ctl-edge); }
-.p3-btn.p3-chip[aria-pressed="true"] > .p3-ico { display: inline-block; color: var(--p3-text); }
 /* Modes: a check per mode, its name and its note on one line (concept v6). The row is the control and its
    target; the box is the drawn edge (field-edge on the page, B1), so the row itself shows an edge only on hover.
    Light is a fixed row, not a control: its box is dashed, as v6 draws a check that cannot change. */
@@ -2137,6 +2136,8 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-locked > .p3-upd-setname { display: inline-flex; align-items: center; gap: var(--p3-space-075); }
 .p3-upd-locked > .p3-upd-setname > .p3-ico { flex: none; color: var(--p3-icon-2); }
 .p3-upd-locked + .p3-upd-setline, .p3-upd-krow .p3-upd-setline { padding-left: 0; }
+/* #2956: a Due row's "Turn off updates", a quiet ghost action under its line, set in from the box as the line is. */
+.p3-upd-setrow > .p3-upd-turnoff { justify-self: start; margin-left: calc(var(--p3-bw-hairline) + var(--p3-space-200) + var(--p3-space-150) - var(--p3-space-100)); min-height: var(--p3-ctl-h-xs); font-size: var(--p3-fs-12); }
 .p3-upd-krow { display: flex; align-items: center; gap: var(--p3-space-150); }
 .p3-upd-kname { display: grid; gap: var(--p3-space-025); flex: 1 1 auto; min-width: 0; }
 .p3-upd-kname > .p3-upd-setname { font-weight: var(--p3-fw-emphasis); }

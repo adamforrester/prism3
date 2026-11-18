@@ -37,7 +37,7 @@ import type { FigmaCollectionFile } from './emit-figma';
 import { MOTION_FIGMA_COVERAGE, springBounce } from './emit-figma-dims';
 import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount, DTCG_TYPES } from './emit-dtcg-overlay';
 import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
-import { buildTree, validateBrandInput, readExampleBrand, contractReportRow } from './emit-dtcg';
+import { buildTree, validateBrandInput, readExampleBrand, contractReportRow, emitTheme } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { validate as validateJsonSchema } from './json-schema-lite';
 import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
@@ -309,6 +309,7 @@ const BRAND_ROOTS: Record<string, string> = {
   nb: NB_ROOT,
   prism3: exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))?.root ?? unloadedRoot('prism3'),
   aurora: exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput))?.root ?? unloadedRoot('aurora'),
+  harbor: exampleTheme('harbor', () => brandTheme(exampleBrands()['harbor'] as BrandInput))?.root ?? unloadedRoot('harbor'),
   wendys: exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))?.root ?? unloadedRoot('wendys'),
 };
 const rootOfBrand = (brand: string): string => {
@@ -5870,8 +5871,8 @@ arm: {
     // onto `color`, so the stem is `color.<mode>.json` — one file per appearance mode, the shape the
     // value tier always had, under the short name. The floor arm on the next line is the only thing
     // between a fifth such move and a green suite — it is not decoration.
-    const figmaBrands = ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.light.json`)));
-    ok(figmaBrands.length >= 3, `color: the emission covers ${figmaBrands.length} brands (floor 3) — a dropped brand must not read as a clean pass`);
+    const figmaBrands = ['nb', 'aurora', 'harbor', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.light.json`)));
+    ok(figmaBrands.length >= 4, `color: the emission covers ${figmaBrands.length} brands (floor 4) — a dropped brand must not read as a clean pass`);
     for (const brand of figmaBrands) {
       const dir = resolve(HERE, `./out/figma/${brand}`);
 
@@ -9876,8 +9877,8 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
       if (!k.endsWith('-link') && !(meta?.avoid_when ?? '').includes('`type.caption.lg`')) bad.push(`${where}: .ai.json avoid_when does not send standalone small print to caption.lg ("${meta?.avoid_when}")`);
     }
   }
-  // The Figma text styles of the four brands that ship them: body/xs is not for running text.
-  for (const b of ['aurora', 'nb', 'prism3', 'wendys']) {
+  // The Figma text styles of the five brands that ship them: body/xs is not for running text.
+  for (const b of ['aurora', 'harbor', 'nb', 'prism3', 'wendys']) {
     const styles = JSON.parse(readFileSync(resolve(HERE, `out/figma/${b}/text-styles.json`), 'utf8')).styles as { name: string; description: string }[];
     const xs = styles.filter((st) => st.name.startsWith('body/xs/'));
     if (!xs.length) bad.push(`${b}: no body/xs Figma text style`);
@@ -30544,12 +30545,32 @@ arm: {
   }
 }
 
+// #1119 (owner decision 2026-11-18, A) — EVERY BRAND A DESIGNER CAN PICK HAS A COMMITTED FIGMA EMISSION. The studio and
+// the plugin offer the example brands (`schema/example-brands.json`); harbor was one of them with no `out/figma/harbor/`,
+// so every Figma-side gate that walks that directory ran without it and nothing could check a harbor build. The list
+// read here is the picker's, not `emit-figma.ts`'s, so dropping a brand from the emitter fails rather than shrinking the
+// set; and each directory must hold the reference brand's whole file set, so a partial emission fails too.
+{
+  const picker = Object.keys(JSON.parse(readFileSync(resolve(HERE, './schema/example-brands.json'), 'utf8')));
+  const filesOf = (b: string): string[] => existsSync(resolve(HERE, `./out/figma/${b}`))
+    ? readdirSync(resolve(HERE, `./out/figma/${b}`)).filter((f) => f.endsWith('.json')).sort() : [];
+  const reference = filesOf('nb');
+  ok(picker.includes('harbor') && reference.length >= 25,
+    `#1119 reachable: the picker offers harbor (${picker.join(', ')}) and the reference emission holds ${reference.length} files`);
+  for (const b of picker) {
+    const have = filesOf(b);
+    const missing = reference.filter((f) => !have.includes(f));
+    ok(have.length > 0 && missing.length === 0,
+      `#1119 ${b}: out/figma/${b}/ holds every Figma file the reference brand ships${have.length ? (missing.length ? ` — missing ${missing.slice(0, 4).join(', ')}` : '') : ' — the directory is absent'}`);
+  }
+}
+
 // #1786 — EVERY BRAND THE PLUGIN CAN EMIT, inside the `figma_execute` ceiling, and the chunked
 // `color-aliases` pass EXECUTED rather than only measured.
 //
-// THE BRAND SET IS AUTHORED, BY NAME (docs/34: represented, not counted). The four committed
-// `out/figma/<brand>/` trees are read from disk, because those are the bytes the CLI prints. harbor and
-// nb-redesign are `examples/*.design.md` briefs the plugin emits but no committed tree holds, so they are
+// THE BRAND SET IS AUTHORED, BY NAME (docs/34: represented, not counted). The five committed
+// `out/figma/<brand>/` trees are read from disk, because those are the bytes the CLI prints (harbor's since
+// #1119). nb-redesign is an `examples/*.design.md` brief the plugin emits but no committed tree holds, so they are
 // compiled here (the dialect route cli.ts takes) and registered in memory; every pass then runs on them
 // unchanged. Both directions are checked against the directories, so a new brief or a new committed
 // tree that nobody lists here fails by name rather than going unmeasured. That is how prism3 and wendys
@@ -30566,7 +30587,7 @@ arm: {
     { id: 'prism3', tree: 'committed' },
     { id: 'aurora', tree: 'committed' },
     { id: 'wendys', tree: 'committed' },
-    { id: 'harbor', tree: 'brief' },
+    { id: 'harbor', tree: 'committed' },
     { id: 'nb-redesign', tree: 'brief' },
   ];
   const figmaDirs = readdirSync(resolve(HERE, './out/figma')).sort();
@@ -39447,8 +39468,9 @@ arm: {
       if (r < floor) low.push(`${b}/${mode}: ${ink} on ${ground} ${r.toFixed(2)} < ${floor}`);
     }
   }
-  ok(BRANDS.join(',') === 'aurora,nb,prism3,wendys' && measured === 16 * PAIRS.length && low.length === 0,
-    `#2428 code-input contrast: the character clears 4.5:1 on both page grounds and every cell border 3:1 against the page in all 16 brand × mode cells (${measured} pairs measured over ${BRANDS.join(', ')}, lowest ${lowest.toFixed(2)}:1${low.length ? ` — ${low.slice(0, 6).join('; ')}` : ''})`);
+  // harbor joined the set when #1119 committed its emission: 5 brands × 4 modes.
+  ok(BRANDS.join(',') === 'aurora,harbor,nb,prism3,wendys' && measured === 20 * PAIRS.length && low.length === 0,
+    `#2428 code-input contrast: the character clears 4.5:1 on both page grounds and every cell border 3:1 against the page in all 20 brand × mode cells (${measured} pairs measured over ${BRANDS.join(', ')}, lowest ${lowest.toFixed(2)}:1${low.length ? ` — ${low.slice(0, 6).join('; ')}` : ''})`);
 }
 
 // ---- Figma's default member is the code default, on every axis (#2752, owner decision Q347 A) ----
@@ -43170,6 +43192,53 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
       `#2075 seed: the ${label} seed's design.md parses back to its input, validates and builds (errors ${JSON.stringify(errors)}, built ${built})`);
   }
   ok(JSON.stringify(seedFromFacts(p2)) === JSON.stringify(s), '#2075 seed: the same report seeds the same bytes');
+}
+
+// #3875 — the brand id names every file the CLI writes (`<id>.tokens.json` and five more), and nothing checked it:
+// `id: "../escaped"` wrote six files one level above --out, `"a/b"` crashed mid-write with a raw stack, and `""` wrote
+// hidden dotfiles. Three layers now hold: brandTheme refuses an id with a separator or nothing in it (and the schema
+// says the same), emitTheme refuses to write outside its directory whatever the id, and the CLI reports a failed
+// write through fail() rather than a stack trace. An id that is not a slug but is a safe file name still builds.
+{
+  const base = { id: 'ok', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 } } as unknown as BrandInput;
+  const refusal = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  for (const id of ['../escaped', 'Has Space/Slash', 'a\\b', '', '   ', '..']) {
+    const msg = refusal(() => brandTheme({ ...base, id } as unknown as BrandInput));
+    ok(msg.startsWith(`id: ${JSON.stringify(id)} can't name the brand's files`), `#3875 brandTheme refuses the id ${JSON.stringify(id)} by name (got ${JSON.stringify(msg)})`);
+  }
+  ok(refusal(() => brandTheme({ ...base, id: 'Has Space' } as unknown as BrandInput)) === '', '#3875 an id that is a safe file name but not a slug (Has Space) still builds');
+  const schemaErrs = validateBrandInput({ ...base, id: '../escaped' } as unknown as BrandInput);
+  ok(schemaErrs.some((e) => e.includes('id')), `#3875 the schema refuses the id "../escaped" (errors: ${JSON.stringify(schemaErrs)})`);
+  // Review of 12ce358d: the schema's pattern let `.`, `..`, a blank id and NUL through while brandTheme refused them, so
+  // a file-driven brief passed the schema and failed later. The two layers now agree, both ways, over the same ids.
+  for (const [id, refused] of [['.', true], ['..', true], ['   ', true], ['\t', true], [' ', true], ['\0', true], ['a\0b', true],
+    ['Has Space', false], ['...', false], [' ..', false], ['.hidden', false], ['aurora', false]] as const) {
+    const errs = validateBrandInput({ ...base, id } as unknown as BrandInput).filter((e) => e.startsWith('id:'));
+    const engine = refusal(() => brandTheme({ ...base, id } as unknown as BrandInput)) !== '';
+    ok(engine === refused && (errs.length > 0) === refused,
+      `#3875 the schema and brandTheme agree on the id ${JSON.stringify(id)}: ${refused ? 'both refuse it' : 'both accept it'} (brandTheme ${engine ? 'refused' : 'accepted'}; schema ${JSON.stringify(errs)})`);
+  }
+
+  const dir = mkdtempSync(join(tmpdir(), 'p3-3875-'));
+  try {
+    // The backstop: a theme that reaches emitTheme with an escaping id (a caller that skipped brandTheme's check).
+    const out = join(dir, 'out');
+    const theme = brandTheme(base); (theme as any).id = '../escaped';
+    const wrote = refusal(() => emitTheme(theme, out));
+    ok(wrote.includes('would be written outside') && !existsSync(join(dir, 'escaped.tokens.json')) && !existsSync(out),
+      `#3875 emitTheme refuses an id that would write outside its directory, before writing anything (got ${JSON.stringify(wrote)}; above --out: ${readdirSync(dir).join(', ')})`);
+    // The CLI: a write that fails (here, --out names a file) is reported through fail(), not as a stack trace.
+    const brief = join(dir, 'b.design.md');
+    writeFileSync(brief, '---\nid: clean\nprimary: { l: 0.55, c: 0.15, h: 260 }\nneutral: { hue: 260, chroma: 0.01 }\n---\n');
+    const notADir = join(dir, 'a-file');
+    writeFileSync(notADir, 'x');
+    const r = spawnSync('npx', ['tsx', resolve(HERE, 'cli.ts'), brief, '--out', notADir], { cwd: HERE, encoding: 'utf8' });
+    const err = r.stderr ?? '';
+    ok(r.status === 1 && err.includes("✖ could not write 'clean'") && !/\n\s+at /.test(err),
+      `#3875 the CLI reports a failed write through fail(), with no stack trace (exit ${r.status}; stderr ${JSON.stringify(err.slice(0, 300))})`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 // #3876 — the serializer wrote a quote in a double-quoted scalar as `\"`, and the parser never decoded it: every
