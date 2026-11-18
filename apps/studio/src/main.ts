@@ -67,6 +67,7 @@ import { displayNameOf, entryOf } from './state/component-groups';
 // The brand's Control shape, for the Style guide's radius sample (UI redesign S7, owner decision D18 B).
 import { brandControlShape } from './state/shape-input';
 import { shownName } from './state/brand-input';
+import { stillOffered, type UndoLoad } from './state/undo-load';
 // The Elevation and Motion writes moved to `state/depth-motion-input.ts` (UI redesign S9.1), and every Elevation and
 // Motion control to `domains/depth.ts` (S9.2); the Type writes to `state/type-input.ts` and every Type control to
 // `domains/type.ts` (S6.1 to S6.3). Nothing here writes either any more.
@@ -83,7 +84,7 @@ import {
 // bindings here: read freely, reassigned only through its setters.
 import {
   BRANDS, brandState, provenance, bootProvenance, theme, lastGoodInput, rp, currentMode, lastError, page,
-  firstRun, ensureThemeFresh, loadInput, clearOrigin, setPage,
+  firstRun, ensureThemeFresh, loadInput, restoreInput, stashForLoad, clearOrigin, setPage,
   subscribe, invalidate, postedInput, sessionBrandWords,
   type Mode,
 } from './state/store';
@@ -1273,6 +1274,9 @@ let importGen = 0;
  *  would measure against the wrong baseline. Storing the pair means the origin travels with the input
  *  it belongs to and the confirm button re-authors nothing. */
 let pendingLoad: { input: BrandInput; origin: Origin } | null = null;
+/** The brand the last load replaced, with its edits, offered back as Undo load until the next edit or load (#1037,
+ *  `state/undo-load.ts`). Null when there is nothing to put back. */
+let undoLoad: UndoLoad | null = null;
 /** True while `loadBrand` is inside `loadInput` — see there. */
 let loading = false;
 
@@ -1312,20 +1316,49 @@ subscribe('brand', () => {
  *
  *  A lint script could have checked the same thing by pattern; the required parameter checks it by
  *  construction, over every call site, with no scan to keep in scope. */
-const loadBrand = (input: BrandInput, origin: Origin): void => {
+const loadBrand = (input: BrandInput, origin: Origin): void => replaceWorking(() => loadInput(input, origin));
+
+/** What every wholesale replacement shares: `loadBrand`'s load, and Undo load's restore (#1037). Any replacement ends
+ *  an Undo load offer; `loadReplacing` sets a new one after it. */
+const replaceWorking = (put: () => void): void => {
   // The store replaces the input, sets the provenance from that same value, and resets the view to
   // the first page and mode (`loadInput`); what is left here is this file's own menus and the render.
   // `loadInput` tells its subscribers once each, after the new brand is resolved (#2487 A13); the `page`
   // subscriber still waits for `loading` to clear, because the `build()` below is this file's one render.
   loading = true;
+  undoLoad = null;
   // #1994: a brand loading is what ends a `rejected` or `unreadable` restore failure (see `restoreFailure`).
   if (restoreFailure && restoreFailure.kind !== 'unresolved') restoreFailure = null;
-  try { loadInput(input, origin); } finally { loading = false; }
+  try { put(); } finally { loading = false; }
   brandMenuOpen = false; importOpen = false; importErr = null; importText = ''; pendingLoad = null;
   startReopened = false;   // a load is a choice: the start window closes with it (S12)
   barChanged();
   build();
 };
+
+/** A load the designer chose (an example, a design.md, a start-window path) that may replace unsaved edits (#1037). The
+ *  brand it replaces is kept for Undo load when it had edits to lose; the guard asked first in that case. */
+const loadReplacing = (input: BrandInput, origin: Origin): void => {
+  const keep = stashForLoad(shownName(brandState));
+  loadBrand(input, origin);
+  undoLoad = keep;
+  barChanged();
+};
+
+/** Undo load (#1037): the replaced brand back, with its edits and its origin, so they are still unsaved and still
+ *  guarded. Offered once: the restore ends the offer. */
+const undoLastLoad = (): void => {
+  const u = undoLoad;
+  if (!u) return;
+  replaceWorking(() => restoreInput(u.input, u.provenance, u.lastGood));
+};
+// "Until the next edit" (Q319.2): the first edit to the loaded brand ends the offer, and a later edit back to the
+// loaded values does not bring it back. A load's own notifications are skipped (`loading`).
+const endUndoOnEdit = (): void => {
+  if (undoLoad && !loading && !stillOffered(undoLoad, brandState, provenance)) { undoLoad = null; barChanged(); }
+};
+subscribe('brand', endUndoOnEdit);
+subscribe('identity', endUndoOnEdit);
 
 /** Trigger a client-side file download (Blob → object URL → anchor click). */
 const download = (filename: string, text: string, mime: string): void => {
@@ -1489,6 +1522,8 @@ const barRead = (): BarView => ({
   // download) closes. The one mechanism that holds it open (#2995, nit 4).
   exportOpen: exportMenuOpen || page === 'export',
   home: homeBar(homeShown()),
+  // #1037: APPROVED wording (owner decision Q-BK2 A, 2026-11-17), "Back to <brand>, with your edits".
+  undo: undoLoad ? { hint: `Back to ${undoLoad.name}, with your edits` } : null,
 });
 
 /** The export dialog's content (#723, implementing #720), from `export-settings.ts`, which is pure and tested under
@@ -1578,10 +1613,12 @@ const barActions: BarActions = {
   },
   replace: () => {
     const p = pendingLoad; if (!p) return; pendingLoad = null;
-    loadBrand(p.input, p.origin);
+    // #1037: the file's own brand is not a load the designer chose to look at, so it offers no Undo load.
+    if (p.origin.kind === 'file') loadBrand(p.input, p.origin); else loadReplacing(p.input, p.origin);
     if (p.origin.kind === 'file' && heldRestore === p.input) heldRestoreLoaded();   // #3697 Q-R9.1 A: the offer's confirm
   },
   cancelReplace: () => { pendingLoad = null; barChanged(); },
+  undoLoad: () => undoLastLoad(),
   toggleExport: () => { exportMenuOpen = !exportMenuOpen; brandMenuOpen = false; importOpen = false; barChanged(); },
   closeExport: () => { exportMenuOpen = false; barChanged(); },
   artifact: (id) => { exportArtifact = id as ArtifactId; barChanged(); },
@@ -2428,7 +2465,7 @@ const syncStart = (): void => {
     guardFor: (c: StartChoice) => (needsOverwriteConfirm(brandState, provenance)
       ? guardText(shownName(brandState), originLabel(c.origin, 'arriving'), editCount(brandState, provenance.baseline))
       : null),
-    load: (c: StartChoice) => { home = null; homeStart = false; loadBrand(c.input, c.origin); },
+    load: (c: StartChoice) => { home = null; homeStart = false; loadReplacing(c.input, c.origin); },
   });
 };
 
