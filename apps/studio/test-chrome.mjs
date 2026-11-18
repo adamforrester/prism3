@@ -22794,10 +22794,10 @@ if (runs('3553-icons')) {
 //     control's context. A HELD (disabled)
 //     selected segment, as the preview's mode control is on Color › Palettes, draws the disabled treatment instead
 //     (`.p3-mode`, #2208 DB1 A): its style is not compared, and it is still held to no underline;
-//   · no selected segment draws an underline (an inset box-shadow offset vertically). A `border-bottom`, a
-//     `text-decoration` or a `::before` / `::after` bar fails the property-by-property comparison instead: the compared
-//     set includes `textDecorationLine` and what each pseudo-element would draw (review of 90e374ba), and the segment's
-//     own `backgroundImage`, where a gradient bar sized to 2px draws one (review of 15b22b87).
+//   · no selected segment draws an underline (an inset box-shadow offset vertically). Every other way to draw one (a
+//     border, a `border-image`, a `text-decoration`, a `background-image` bar, a `filter`, a `::before` / `::after`
+//     bar) fails the comparison instead, which reads the WHOLE computed style of the segment and its pseudo-elements
+//     but a closed list of geometry (SEL_EXEMPT, below; reviews of 90e374ba, 15b22b87 and 3403f780).
 // What counts as a segmented control: `.p3-seg`, the legacy `.seg`, and any `[role="radiogroup"]`, drawn. Not counted,
 // by name: the token list's Primitives / Semantics tier row (`.pvseg.tok-seg`) and Export's artifact switcher
 // (`.p3-export-tabs`, #3553 Q-UI11 A), which are underline TAB rows by decision, not segmented controls.
@@ -22814,27 +22814,49 @@ if (runs('3553-icons')) {
 //     path control is a shared segmented control` and `… inspect-token-list's selected segment draws no underline` (the
 //     legacy group carries no hook of its own, so it is named by its card's);
 //   · `[data-p3="token-path"] .p3-seg-tab[aria-checked="true"]{text-decoration:underline 2px}` → `… token-path's selected
-//     segment ("Full") draws the shared selected style — differs in textDecorationLine underline (shared none)`;
+//     segment ("Full") draws the shared selected style — differs in text-decoration-line underline (shared none)`;
 //   · a 2px --ink bar on that segment's `::before` (`content:""; position:absolute; bottom:2px; height:2px`) → the same
 //     arm, `— differs in ::before content "" (shared none); ::before position absolute …`;
 //   · a 2px `--ink` `background-image` gradient at the bottom of that segment (review of 15b22b87) → the same arm,
-//     `— differs in backgroundImage linear-gradient(…) (shared none)`.
+//     `— differs in background-image linear-gradient(…) (shared none)`;
+//   · `border-image:linear-gradient(to top,var(--ink) 0 2px,transparent 2px) 0 0 2 0 / 0 0 2px 0` on that segment
+//     (review of 3403f780) → the same arm, `— differs in border-image-slice … border-image-source linear-gradient(…)`;
+//   · `filter:drop-shadow(0 2px 0 var(--ink))` on it → the same arm, `— differs in filter drop-shadow(…) (shared none)`.
 if (runs('3911')) {
   console.log(`\nEvery segmented control's selected segment is the shared one (#3911)\n${'='.repeat(78)}`);
-  const SEL_PROPS = ['backgroundColor', 'backgroundImage', 'color', 'fontWeight', 'boxShadow', 'outlineStyle', 'textDecorationLine',
-    ...['Top', 'Right', 'Bottom', 'Left'].flatMap((s) => [`border${s}Width`, `border${s}Style`, `border${s}Color`]),
-    'borderTopLeftRadius', 'borderBottomRightRadius'];
-  // A tab underline is as often a pseudo-element bar as a border or a shadow (review of 90e374ba), so each selected
-  // segment's `::before` and `::after` are read too, against the probe's: what each would draw, not its text box.
-  const PSEUDO_PROPS = ['content', 'display', 'visibility', 'position', 'height', 'opacity', 'backgroundColor', 'backgroundImage',
-    'boxShadow', 'textDecorationLine', 'borderTopWidth', 'borderBottomWidth', 'borderBottomStyle', 'borderBottomColor'];
+  // THE WHOLE COMPUTED STYLE, NOT A LIST (review of 3403f780). Three reviews in a row found a drawing path a named
+  // property list missed (`text-decoration` and pseudo bars, then `background-image`, then `border-image` and `filter`),
+  // so the comparison is inverted: every property the browser computes for the selected segment, and for its `::before`
+  // and `::after`, is read against the probe's, and only the properties named here may differ. A paint property nobody
+  // listed fails by default. The list is CLOSED to what was measured differing on a clean run (every place, Export and
+  // the token list, both hosts and themes), and every name on it places or sizes the segment; none paints it:
+  const SEL_EXEMPT = new Set([
+    // the segment's box, which flexes to its group's width; the group's container sets that (a lever row, Export's rows);
+    'width', 'inline-size', 'height', 'block-size', 'flex-basis', 'flex-grow', 'flex-shrink',
+    // the room around and inside its label, which a container tightens (Export's setting rows, the mode control's icon);
+    'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+    'padding-block-start', 'padding-block-end', 'padding-inline-start', 'padding-inline-end', 'row-gap', 'column-gap',
+    // the origins of transform and perspective, computed as a point inside that box (50% 50%, in px);
+    'transform-origin', 'perspective-origin',
+    // the face of the label: Export's naming option shows a token path ("color.on-fill"), set in the mono face on purpose.
+    'font-family',
+  ]);
+  // Custom properties (`--*`) are exempt too: one draws nothing until a real property reads it, and that property is
+  // compared. A container's own (the scroll tempo, `--p3-scroll-*`) are inherited by every segment inside it.
+  const SEL_PSEUDOS = ['', '::before', '::after'];
   /** Every drawn segmented control's selected segment, read against the probe. */
-  const readSegs = (page) => page.evaluate(([props, pseudoProps]) => {
+  const readSegs = (page) => page.evaluate(([exempt, pseudos]) => {
     const shown = (n) => n.getClientRects().length > 0 && getComputedStyle(n).visibility !== 'hidden';
+    const skip = new Set(exempt);
     const sig = (n) => {
-      const cs = getComputedStyle(n);
-      const out = Object.fromEntries(props.map((p) => [p, cs[p]]));
-      for (const ps of ['::before', '::after']) { const pcs = getComputedStyle(n, ps); for (const p of pseudoProps) out[`${ps} ${p}`] = pcs[p]; }
+      const out = {};
+      for (const ps of pseudos) {
+        const cs = getComputedStyle(n, ps || null);
+        for (let i = 0; i < cs.length; i++) {
+          const p = cs[i];
+          if (!skip.has(p) && !p.startsWith('--')) out[`${ps ? `${ps} ` : ''}${p}`] = cs.getPropertyValue(p);
+        }
+      }
       return out;
     };
     const frame = document.querySelector('[data-p3="frame"]');
@@ -22872,12 +22894,12 @@ if (runs('3911')) {
       const want = probeIn(theme, g.classList.contains('p3-choice'), on.getAttribute('data-label'));
       const got = sig(on);
       // A held segment draws the disabled treatment (the mode check's, #2208 DB1 A), so its style is not compared.
-      const diff = held ? [] : Object.keys(got).filter((p) => got[p] !== want[p]).map((p) => `${p} ${got[p]} (shared ${want[p]})`);
-      const underline = got.boxShadow.split(/,(?![^(]*\))/).filter((part) => /inset/.test(part))
+      const diff = held ? [] : [...new Set([...Object.keys(got), ...Object.keys(want)])].filter((p) => got[p] !== want[p]).map((p) => `${p} ${got[p]} (shared ${want[p]})`);
+      const underline = got['box-shadow'].split(/,(?![^(]*\))/).filter((part) => /inset/.test(part))
         .some((part) => { const n = part.replace(/rgba?\([^)]*\)/, '').match(/-?[\d.]+px/g)?.map(parseFloat) ?? []; return n.length >= 2 && n[0] === 0 && n[1] !== 0; });
-      return { name, on: `${on.textContent.trim()}${held ? ', held' : ''}`, shared: g.classList.contains('p3-seg') && on.classList.contains('p3-seg-tab'), diff, underline, boxShadow: got.boxShadow };
+      return { name, on: `${on.textContent.trim()}${held ? ', held' : ''}`, shared: g.classList.contains('p3-seg') && on.classList.contains('p3-seg-tab'), diff, underline, boxShadow: got['box-shadow'] };
     });
-  }, [SEL_PROPS, PSEUDO_PROPS]);
+  }, [[...SEL_EXEMPT], SEL_PSEUDOS]);
   for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
     const where = `3911 ${host} ${theme} 1280`;
     const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900, scale: SHOTS ? 2 : 1 });

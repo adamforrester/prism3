@@ -21,8 +21,10 @@ Q-UI11 A). The mode control is held (disabled) on Color › Palettes and draws t
 (`.p3-mode`, #2208 DB1 A). The arm checks it for no underline but does not compare its style.
 
 **The gate.** `test-chrome.mjs` section 3911 (shard 2). For each drawn segmented control (`.p3-seg`, the legacy `.seg`,
-any `[role="radiogroup"]`), it reads the selected segment's computed fill, ink, weight, box-shadow, outline, text
-decoration, background image, borders and corners, and what its `::before` and `::after` would draw. It compares them, property by
+any `[role="radiogroup"]`), it reads the selected segment's **whole** computed style, and its `::before` and
+`::after`'s, every property but a short closed list that only places or sizes the segment (its box, flex, padding and
+gaps, the transform origins, the label's face for Export's mono naming option, and custom properties). Since the review
+of 3403f780 it reads every property rather than a named list, so a paint property nobody listed fails by default. It compares them, property by
 property, with a probe `.p3-seg-tab` the test appends to the frame inside the control's own `data-theme` and nothing
 else of its context. The probe is a `.p3-choice` with the same `data-label` when the control is one, because that is
 where the shared rules draw the hidden bold-width reservation (#3115); no other class of the control's is copied. It also fails on any inset, vertically offset shadow,
@@ -36,11 +38,15 @@ MUTATIONS, each after a `wip:` commit on both rebuilt bundles:
 - Main's markup, the control on `.seg`, fails `#3911 … the Alias path control is a shared segmented control` and
   `… inspect-token-list's selected segment draws no underline`.
 - `text-decoration: underline 2px` on the selected Alias path segment fails `… draws the shared selected style —
-  differs in textDecorationLine`, and a 2px `--ink` bar on its `::before` fails the same arm, `— differs in ::before
-  content … position … height … backgroundColor`: 8 checks each. Both passed the arm before (review of 90e374ba).
+  differs in text-decoration-line`, and a 2px `--ink` bar on its `::before` fails the same arm, `— differs in ::before
+  content … position … height … background-color`: 8 checks each. Both passed the arm before (review of 90e374ba).
 - A 2px `--ink` `background-image` gradient at the bottom of the selected Alias path segment fails `… draws the shared
-  selected style — differs in backgroundImage`. It passed the arm before (review of 15b22b87), because the segment's
+  selected style — differs in background-image`. It passed the arm before (review of 15b22b87), because the segment's
   own `backgroundImage` was not compared.
+- A 2px `--ink` `border-image` at the bottom of the selected Alias path segment fails `… draws the shared selected
+  style — differs in border-image-slice … border-image-source linear-gradient(…) (shared none)`, and
+  `filter: drop-shadow(0 2px 0 var(--ink))` on it fails the same arm, `— differs in filter drop-shadow(…) (shared
+  none)`: 8 checks each. Both passed the arm before (review of 3403f780), because neither property was on the list.
 
 **Q195 retired for this control (owner-decided, #3911 Q-BK1 A, 1(a)).** Section 45's Q195 arm required a 2px edge at
 3:1 on `.seg-b.on`. That is the underline #3911 asks to remove, so the arm is gone, and section 3911 holds the control
