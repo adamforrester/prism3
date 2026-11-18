@@ -12,6 +12,6 @@ already on main, so this PR leaves `agent-link.md` alone.
 - **Clean up › panels** follows the style-guide tables paragraph. It quotes the card's two lines
   and cites `panel-census.ts` for the claim that only unedited panels are removed and counted.
 - **Not changed:** the badge-name sentence near the top still lists only ", theme" among the extra
-  parts. #3137 also adds ", usage panels" there. That is filed separately, not fixed here.
+  parts. #3137 also adds ", usage panels" there. That is filed as #4022, not fixed here.
 
 `lint-guide-claims` passes. Mutating the quoted Clean up count line ("had panels on" to "had them on") fails it by name under CITE. A mutation of the row's disclosure quote does not fail, because the row's bold labels still anchor its claim. That is the gate's documented one-anchor rule, not a gap this PR opens.
