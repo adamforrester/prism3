@@ -1316,6 +1316,129 @@ The CI steps aren't new: `check:parity` and `test:browser` chain the fields' che
 
 ---
 
+## S5 (thin), continued — the text field and password field in the Storybook, and the #1712 A audit
+
+Started about 01:20 UTC on 2026-11-18, from `poc/arm-1` at `f563a3f1`. It adds the fields to the S5 Storybook the
+way the button's stories are built (#3895), and audits both field forms against owner decision #1712 A
+(2026-11-18).
+
+### What was built
+
+- **`stories/fields.js`**, the cases and renderers both fields share. Each case is the def's props by their element
+  names. The element form sets them as properties on `<p3-text-field>` or `<p3-password-field>`. The HTML form
+  writes `@prism3/css`'s README markup from the same props. The copy is `@prism3/css`'s demo copy, so no new wording.
+- **15 cases per field:** rest, filled, hover and focus-visible (forced), error, warning, success, disabled,
+  read-only, pending, required, small, medium, large, and the visual slots. The password field adds `Shown` and
+  `ShownError`, whose `play` presses Show the way a person does. Four story files, `Components/Text Field/…` and
+  `Components/Password Field/…`, each `Element` and `HTML`: **64 new stories, 100 in all.**
+- **`preview.js`** loads the four field stylesheets, `@prism3/css/password-field.js`, and the two element modules.
+- **The HTML password field calls `p3PasswordField.enhance()`** once its markup is in the page. Storybook mounts a
+  story after the script's load-time pass, as a page that adds fields after load does.
+
+### The #1712 A audit (field errors: `aria-invalid` + `aria-describedby`, focus to the field or the error summary, no field-level live region)
+
+Both forms were read and then checked in the browser, story by story:
+
+| Requirement | `@prism3/css` markup | `<p3-text-field>` / `<p3-password-field>` |
+|---|---|---|
+| `aria-invalid="true"` on the input at error, nowhere else | Yes (README contract) | Yes (`render`) |
+| `aria-describedby` names the message | Yes, when the message is written | Yes, when `showMessage` is on |
+| No field-level live region | None | None |
+| Focus to the field or the error summary | The page's job; the input is a native, focusable `<input>` | Same; the element moves no focus on error |
+
+**The one live region is page-level, and isn't about errors.** Show/Hide announces "Your password is shown/hidden"
+in one shared polite region (`[data-p3-announcer]`, the def's "app's shared polite live region"), appended to
+`<body>`, outside every field. #1712 A doesn't cover it, so it stays.
+
+**Nothing needed fixing.** `check:build` now holds the wiring on all 64 field stories: the label names the input,
+`aria-describedby` names the field's own message, `aria-invalid` is `"true"` at error and absent otherwise, and no
+element in a field has `aria-live` or a `status`, `alert` or `log` role.
+
+**OWNER DECISIONS** (none built; each is flagged, with a recommendation):
+
+1. **OWNER DECISION: an error with no message.** `validation="error"` with `showMessage` off sets `aria-invalid` but
+   writes no message, so nothing is described: a red border and no text (WCAG 3.3.1 wants the error in text). The
+   def's guidance says "never hides a message the field needs", but `showMessage` defaults to off. Options:
+   - A. Leave it to the guidance (today).
+   - B. At a non-default validation, the element writes the message whether or not `showMessage` is on, and the
+     `@prism3/css` README says the markup must include it.
+   - C. Keep the prop, and warn in the console when error has no message.
+
+   **Recommendation: B.** #1712 A pairs `aria-invalid` with `aria-describedby`, and B makes that pairing
+   unbreakable. It changes the def's prop semantics, so it belongs with the main-branch lane updating the def's
+   guidance.
+2. **OWNER DECISION: what `@prism3/web-components`'s root entry registers.** `import '@prism3/web-components'`
+   registers `<p3-button>` only (`exports["."]` is `p3-button.js`, from S4). The fields need their own imports, which
+   the preview now makes. Options: **A.** the root registers all three elements; **B.** keep the root as the button,
+   with per-element imports (today). **Recommendation: A**, since a client expects the package entry to define the
+   package's elements. Either way, `check:build` would have caught it: an unregistered element renders nothing.
+
+Not covered here: the focus move on submit. It is page behavior, so it belongs to the S5-proper keyboard pass, with
+a form story and an error summary.
+
+### What was checked, and how
+
+The CI steps aren't new: `build` and `check:build` already run.
+
+- **`check:build`: 868 checks over 100 stories.** `EXPECTED` gains the fields' 64 story ids, written by hand. Per
+  field story:
+  - it renders a `.p3-text-field` or `.p3-password-field`, inside the element for the element form;
+  - the #1712 A wiring (above);
+  - each status shows exactly its own glyph, and default shows none;
+  - the password field's button is revealed and names the input in `aria-controls`; `Shown`/`ShownError` end with
+    `type="text"` and "Hide", and every other story ends masked with "Show".
+
+  Per field and form:
+  - hover changes the box's border;
+  - focus-visible's box differs from rest's and hover's;
+  - rest, error, warning and success draw four border colors;
+  - disabled, read-only, pending (with the spinner shown) and required (with the marker shown) carry their state;
+  - the visual slots are drawn;
+  - the sizes have three input type sizes and rising heights over a 44px floor (small keeps medium's 44px target,
+    as the def's `size` prop says).
+
+  The two forms of each case then compute the same box, input, label and message styles (9 properties each).
+- **Hand mutations on disk**, each after a `wip:` commit, restored with `git show HEAD:<path> > <path>`, rebuilt:
+
+  | Mutation | Fails by name |
+  |---|---|
+  | The HTML password field's `ShownError` export deleted | `index: story components-password-field-html--shown-error is missing from the build` |
+  | `aria-live="polite"` on the HTML form's message | `components-text-field-html--rest: the field holds a live region, which #1712 A rules out: <p class="p3-field-message" …` (32 stories) |
+  | The HTML form drops `aria-invalid` at error | `components-text-field-html--error: aria-invalid is null at error, #1712 A wants "true"` (3 stories) |
+  | The HTML password field never calls `enhance` | `components-password-field-html--rest: the Show/Hide button is not revealed and wired (…"hidden":true…)` (17 stories) |
+
+### Surprises and learnings
+
+- **The element stories rendered empty at first.** The root entry registers the button only (owner decision 2).
+- **Small and medium fields share a height, 44px.** The check first asked for three heights, the button's rule. The
+  def says small keeps the 44px target, so the check now reads the input's type size and a 44px floor instead.
+- **A regex in a template string lost its backslash.** `split(/\s+/)` inside the check's page-side template literal
+  became `/s+/`, which split ids on the letter "s", so every `aria-describedby` looked unresolved. It's now
+  `split(' ')`.
+- **`play` alone didn't reveal the HTML Show/Hide button in the forced-state stories.** The reveal moved into the
+  render (`requestAnimationFrame`, then `enhance`), and `play` now only presses Show.
+
+### Effort
+
+- **Wall clock:** about 01:20 to 02:00 UTC for the stories, the check, the audit, the mutations and this entry; then
+  the gate run.
+- **Steps:** about 30 tool calls: reading the button stories, the fields' contract and elements, and the decisions
+  (about 10); writing 5 files and editing 4; building, running and fixing (about 12).
+- **Hand edits:** all of it. Nothing in the Storybook is generated.
+- **Errors hit:** 4: the unregistered elements, the size rule, the lost backslash, and the reveal under forced
+  states (above). The first run of the check with the unregistered elements timed out at 500 seconds.
+
+**Local gate record** (`npm run verify`'s 114 gates, with `GITHUB_BASE_REF=poc/arm-1`, after `regen`, in chunks
+under 10 minutes): 111 PASS, 0 FAIL, and 3 not run locally, left to CI as before: `chrome`, `chrome-shards` and
+`plugin-test`. Two first runs didn't count:
+- `engine-test` threw in its #3833 fold replay because this session's clone was shallow ("Could not read
+  4b17ddf4"). It passed after `git fetch --unshallow`.
+- `exporter-comparison` and `storybook-check` were cut off by the chunk's time limit and showed SKIP. Each passed
+  when rerun after its build.
+
+
+---
+
 ## Fix #3921 — `@prism3/css`'s Show/Hide script keeps the caret on an input that has had focus
 
 Started about 02:15 UTC on 2026-11-18, from `poc/arm-1` at `f563a3f1`. It's S4's caret finding, fixed in the
