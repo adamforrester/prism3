@@ -42654,8 +42654,10 @@ arm: {
 
   // (5) NO SHAPE BINDS A TEXT ROLE (owner, 2026-11-03), even where the values match. SUBJECT = every projected member
   // of every def; a node whose part is a `box` may not fill or stroke with a `text` role on either band. The oracle is
-  // the rule, typed here. `TEXT_CARET` is the one known exception, the text cursor drawn in the field's value ink,
-  // held for the owner (#3397), and is a floor: an entry that stops breaching fails as stale.
+  // the rule, typed here. `TEXT_CARET` is the one exception, exempt by owner decision (#3397 A, 2026-11-18): the text
+  // cursor keeps the field's value ink, matching CSS `caret-color: currentColor`, so it is not rebound to a shape role.
+  // It is a floor: an entry that stops breaching fails as stale. The skill states the same exemption, so an agent
+  // authoring a def reads it where it reads the rule (the arm below this one).
   // MUTATION: bind the tab's selected bar to `color.interactive.primary.text.rest` and this arm fails by name.
   const TEXT_ROLE = /^color\/(?:inverse\/)?(?:interactive\/[^/]+\/)?text\//;
   const TEXT_CARET = new Set(['text-field caret', 'text-field caretEnd', 'textarea caret', 'password-field caret', 'password-field caretEnd',
@@ -42677,7 +42679,16 @@ arm: {
   }
   const stale = [...TEXT_CARET].filter((x) => !caretSeen.has(x));
   ok(shapeNodes > 1000 && shapeOnText.size === 0 && stale.length === 0,
-    `#3346 no shape binds a text role: no box part fills or strokes with a text role on either band (${shapeNodes} box nodes; ${shapeOnText.size} off — ${[...shapeOnText].slice(0, 3).join('; ') || 'none'}; ${stale.length} stale caret exemption(s) ${stale.join(', ')})`);
+    `#3346 no shape binds a text role: no box part fills or strokes with a text role on either band, the caret exempt by #3397 A (${shapeNodes} box nodes; ${shapeOnText.size} off — ${[...shapeOnText].slice(0, 3).join('; ') || 'none'}; ${stale.length} stale caret exemption(s) ${stale.join(', ')})`);
+
+  // (6) THE CARET EXEMPTION IS RECORDED WHERE THE RULE IS READ (#3397 A). `TEXT_CARET` above is the code's half; an
+  // agent authoring a def reads the rule in `prism3-build-component`, so the skill names the caret as the exemption,
+  // cites the decision and states the ink it keeps. The oracle is the skill's text, independent of the set.
+  // MUTATION: delete the skill's caret sentence and this arm fails by name.
+  const skillText = readFileSync(resolve(HERE, '../../skills/prism3-build-component/SKILL.md'), 'utf8').replace(/\s+/g, ' ');
+  const caretRule = skillText.match(/The text cursor \(caret\).{0,240}?currentColor/)?.[0] ?? '';
+  ok(/#3397/.test(caretRule) && /color\.text\.primary/.test(caretRule) && /caret-color: currentColor/.test(caretRule),
+    `#3397 the skill records the caret's exemption from "no shape binds a text role": it keeps color.text.primary, matching caret-color: currentColor (${caretRule ? 'found: ' + caretRule.slice(0, 80) : 'no caret sentence in prism3-build-component'})`);
 }
 
 // #3555 C10 — A DERIVED SPEC RULE STATES ITS OWN ARITHMETIC. Tag's Specs rows read "64px (derived: height × 1.5)" while
