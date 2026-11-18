@@ -7250,8 +7250,8 @@ section('tint — SignInButton\'s white glyph on a dark fill reads current, and 
 // reported as a fallback, one line per part and face, and is not a part to check. A face whose fallback did not land either
 // stays a miss. Expected counts are literals typed here: 96 members, 36 of them on Google Sans. The font refusal is the
 // host's (`loadFontAsync` throwing), set after the build so the update meets it. Mutations: `splitFontFallbacks` not
-// called → `fallback/reported`, `fallback/not a miss`, `fallback/line`, `fallback/not to check`; its `notLanded` read dropped →
-// `fallback/miss kept`, `fallback/miss line`.
+// called → `fallback/reported`, `fallback/not a miss`, `fallback/line`; its `notLanded` read dropped → `fallback/miss kept`,
+// `fallback/miss line`.
 section("fallback — a declared font fallback that landed is reported as a fallback, not as parts not written (#4068)");
 {
   const id = 'sign-in-button';
@@ -7313,7 +7313,7 @@ section("fallback — a declared font fallback that landed is reported as a fall
 // the verdict carries its count (`sets`) for the run line. One plan, typed here: a set whose members are written, one whose
 // only work is its usage panel, one with nothing to write, and one with nothing to write that still differs from the plan,
 // which is the set to check. Mutations: `wroteTo` counting `asPreviewed` again → `counts/headline`, `counts/sets`; the To
-// check line dropped → `counts/to check named`.
+// check line dropped → `counts/to check named`, `fallback/miss line`.
 section('counts — one run gives one count of sets updated, and names the set to check (#4067)');
 {
   const base = { updated: [] as string[], added: 0, renamed: 0, deprecated: [] as string[], skipped: [], kept: [], unrecorded: [], handEdits: 'keep' as const, identity: [] as string[], content: [] as string[], misses: [] as string[] };
