@@ -19,6 +19,8 @@
  *   no-version     a host that refuses to save a version: refused, no page made.
  *   import-by-key  the guarded host throws on every import-by-key method, on `figma` and `figma.variables`, and records
  *                  it; and it reads a FIXED host method without throwing (#3209: a Proxy over `figma` threw there).
+ *   import-by-key-run  run() hands the executor the GUARDED host: an executor that asks the host it was given for an
+ *                  import-by-key method is refused and reported as SAFETY, and the raw host's method is never reached.
  *   page-deleted   a host that loses a page during the run: reported as a safety violation, naming the page.
  *   staging-lost   the run script alone, in a fresh global scope: refused, nothing written.
  *   other-plans    a result whose plan hash is not this checkout's: CANNOT ANSWER.
@@ -28,7 +30,8 @@
 import { componentDefs, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan } from '@prism3/engine/components';
 import { makeShim, type Node } from '../../apps/plugin/component-shim';
 import { body, bundle, planHashOf, reportLines, runDefs, scriptsFor, SCRIPT_CEILING, type Script } from './roundtrip';
-import { guardedHost, IMPORT_BY_KEY, type RunData, type RunResult } from './host-roundtrip';
+import { guardedHost, IMPORT_BY_KEY, run, type RunData, type RunResult } from './host-roundtrip';
+import { applyComponentPlan } from '../../apps/plugin/src/write-components';
 
 let failed = 0;
 const ok = (cond: boolean, label: string, detail = ''): void => {
@@ -144,6 +147,24 @@ console.log('component round trip (#1218) — offline self-test\n');
   let read = 'ok';
   try { void g.getLocalTextStylesAsync; } catch (e) { read = (e as Error).message; }
   ok(read === 'ok', 'import-by-key: the guard reads a FIXED host method without throwing (#3209)', read);
+}
+
+{
+  // The guard is only a guard if run() hands IT to the executor. Plant an executor that asks the host it was given for
+  // an import-by-key method (swallowing the refusal, as a careless executor might), then builds as the plugin does.
+  // The raw host answers that method too, recording that it was reached: a run that passed the raw host would import.
+  const { shim } = fileHost();
+  const rawReached: string[] = [];
+  shim.importComponentByKeyAsync = async (key: string) => { rawReached.push(key); return null; };
+  const planted: typeof applyComponentPlan = async (p, api, o) => {
+    try { await (api as unknown as { importComponentByKeyAsync: (k: string) => Promise<unknown> }).importComponentByKeyAsync('planted-key'); } catch { /* refused */ }
+    return applyComponentPlan(p, api, o);
+  };
+  const data: RunData = { runId: 'selftest-import-run', scratchFile: SCRATCH, defs, planHash: planHashOf(defs) };
+  const r = await run(shim, data, planted);
+  ok(rawReached.length === 0, 'import-by-key-run: the executor never reaches the raw host\'s import-by-key method', JSON.stringify(rawReached));
+  ok(r.violations.some((v) => /^the build asked to import by key \(importComponentByKeyAsync\)/.test(v)), 'import-by-key-run: the refusal is a safety violation, by name', JSON.stringify(r.violations));
+  ok(reportLines(r, planHashOf(defs)).lines.some((l) => l.startsWith('✗ SAFETY: the build asked to import by key')), 'import-by-key-run: the report prints it as SAFETY');
 }
 
 {

@@ -133,7 +133,10 @@ const componentNamesOf = async (f: Figma, root: Live | undefined): Promise<Map<s
   return out;
 };
 
-export const run = async (figma: unknown, data: RunData): Promise<RunResult> => {
+/** `build` is the executor, the plugin's own unless a test hands it one: the self-test's `import-by-key-run` arm plants
+ *  an executor that reaches for an import-by-key method through the host it is given, so the arm proves the executor
+ *  is handed the GUARDED host, not the raw one. The scripts the Mac runs always call `run(figma, data)`. */
+export const run = async (figma: unknown, data: RunData, build: typeof applyComponentPlan = applyComponentPlan): Promise<RunResult> => {
   const f = figma as Figma;
   const base = { format: RESULT_FORMAT as typeof RESULT_FORMAT, runId: data.runId, planHash: data.planHash, defs: [] as DefResult[], violations: [] as string[] };
   const file = String(f.root?.name ?? '');
@@ -167,7 +170,7 @@ export const run = async (figma: unknown, data: RunData): Promise<RunResult> => 
     const r: DefResult = { def: d.id, dependency: !!d.dependency, diffed: false, planned: d.plans.length, built: 0, misses: [], divergences: [], divergenceCount: 0 };
     out.defs.push(r);
     try {
-      const applied = await applyComponentPlan(d.plans, api, { targetPage: page as never, ...(d.emitAsComponents && d.dependency ? { emitAsComponents: true } : {}) });
+      const applied = await build(d.plans, api, { targetPage: page as never, ...(d.emitAsComponents && d.dependency ? { emitAsComponents: true } : {}) });
       r.misses = [...applied.misses];
     } catch (e) {
       r.threw = message(e);
