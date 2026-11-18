@@ -31,6 +31,7 @@ import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { provenanceOf, noOrigin, type Origin, type Provenance } from '../provenance';
 import type { PageKey } from '../shell/pages';
 import { studioMessage } from './floor-refusal';
+import { brandWords, mergeWords, type BrandWord } from './report';
 
 export type Mode = ResolvedPreview['modes'][number];
 
@@ -73,6 +74,20 @@ export let theme: Theme;
 // The last input that resolved cleanly — the ramps + anchor badges render from THIS, so when a
 // live edit fails (lastError set) the flagged anchor swatch still matches the shown ramp (M-16).
 export let lastGoodInput: BrandInput;
+
+// ---- the session's brand words (#3883) --------------------------------------------------------------
+// Report a problem scrubs a brand's words out of the Activity lines, and an Activity line is an operation's latest
+// result, which stays across brand loads, renames and a failed restore. So the words are collected from every brand
+// the session holds, not read off the one on screen when the report opens: each resolved brand (`initSession`,
+// every good `resolve`), and each brand posted to the host (`main.ts`, which also adds the live and failed-restore
+// brands when the report reads). Never pruned: a word stays scrubbed for the rest of the session.
+let seenWords: BrandWord[] = [];
+/** Add `b`'s words to the session's list. */
+export const noteBrandWords = (b: BrandInput | null | undefined): void => {
+  if (b) seenWords = mergeWords(seenWords, brandWords(b as unknown as Record<string, unknown>));
+};
+/** Every brand word the session has held, longest first. */
+export const sessionBrandWords = (): readonly BrandWord[] => seenWords;
 export let rp: ResolvedPreview;
 export let currentMode: Mode;
 export let lastError: string | null = null;
@@ -171,6 +186,8 @@ export const initSession = (input: BrandInput, origin: Origin): void => {
   bootProvenance = provenance;
   theme = brandTheme(brandState);
   lastGoodInput = structuredClone(brandState);
+  seenWords = [];
+  noteBrandWords(lastGoodInput);
   rp = resolvePreview(theme);
   currentMode = rp.modes[0];
   lastError = null;
@@ -184,6 +201,7 @@ const resolve = (): void => {
     rp = resolvePreview(t);
     theme = t;
     lastGoodInput = structuredClone(brandState);   // M-16: anchor badges read this, not the (maybe failing) live state
+    noteBrandWords(lastGoodInput);   // #3883
     lastError = null;
     writePersist();   // persist the last-good brand (web only — the plugin injects no writer; best-effort)
   } catch (e) {

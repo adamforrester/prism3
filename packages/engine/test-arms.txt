@@ -732,6 +732,7 @@ apps/studio/test-report.ts #3560
 apps/studio/test-report.ts #3561
 apps/studio/test-report.ts #3697
 apps/studio/test-report.ts #3702
+apps/studio/test-report.ts #3883
 apps/studio/test-run-ended.ts #533
 apps/studio/test-run-time.ts #3471
 apps/studio/test-shape-input.ts #2053
