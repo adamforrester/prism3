@@ -41,6 +41,7 @@ import { emissionOf, themeDue } from './theme-emission';
 import { fieldStyleNote, searchFieldStyleNote } from './field-style-note';
 import { tagStyleNote } from './tag-style-note';
 import { gridSkippedNote } from './write-grid-styles';
+import { styleRenamedNote } from './rename-styles';
 import { applyComponentPlan, partialWriteOf } from './write-components';
 import type { ComponentProgress, CompPageTarget, CompNode, ComponentsApi } from './write-components';
 import { saveBeforeBuild, saveVersion } from './version-title';
@@ -403,7 +404,7 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
       postVerdict({ type: 'apply-result', ok: false, headline: conflictHeadline(guarded.conflicts.length), summary: conflicts, lines: [conflicts], ...collisions }, sink);
       return;
     }
-    const { mig, r, f, s, gs, tv, ts, mv, uc } = guarded.result;
+    const { mig, r, f, s, gs, tv, ts, mv, uc, styleRenames } = guarded.result;
     // `motion` (#2412) — TIMING + EASING through the mixed-type executor; its refusals count with the font ones.
     const motionTotal = mv.collections.reduce((n, c) => n + c.total, 0);
     const motionCreated = mv.collections.reduce((n, c) => n + c.created, 0);
@@ -505,6 +506,8 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
       migrated.length ? `${migrated.length} renamed ${migrated.length === 1 ? 'token' : 'tokens'} migrated in place (bindings kept: ${migrated.slice(0, 3).map((o) => `${o.from}→${o.to}`).join(', ')}${migrated.length > 3 ? '…' : ''})` : '',
       migRefused.length ? `⚠ ${migRefused.length} ${migRefused.length === 1 ? 'rename' : 'renames'} refused (${migRefused.slice(0, 2).map((o) => `${o.from}→${o.to}: ${o.status}`).join(', ')}) — nothing moved for those` : '',
       mig.refusals.length ? `⚠ rename map invalid, no migrations attempted (${mig.refusals[0]})` : '',
+      // #1040 (owner decision A): a style the engine renamed, moved in place by `rename-styles.ts`. Copy DRAFT.
+      styleRenamedNote(styleRenames),
     ];
     // #499: styles whose emitted name was corrected (e.g. `Semi Bold` → `SemiBold`). Worth surfacing
     // rather than silently succeeding — it is the difference between "the guess was right" and "the
@@ -528,7 +531,7 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
       `palette ${r.paletteTotal} (+${r.paletteCreated})`, `color ${r.colorTotal} (+${r.colorCreated})`,
       `dims/layout ${f.collections.length} collections (+${floatCreated})`,
       `styles ${s.effects.total} effects (+${s.effects.created}, ${s.effects.bound} bound) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound) / ${gs.total} grid styles (+${gs.created})`,
-      `type ${pf.loaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created})`,
+      `type ${pf.brandLoaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created})`,
       `motion ${motionTotal} vars (+${motionCreated})`,
       // #2412 (Q293 A): the one deletion Apply makes, so it is always said (wording: Q302).
       motionReplacedItem(mv.replaced.length),
@@ -560,7 +563,7 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
           effects: { total: s.effects.total, created: s.effects.created, bound: s.effects.bound },
           gradients: { total: s.paints.total, created: s.paints.created, stopsBound: s.paints.bound },
           gridStyles: { total: gs.total, created: gs.created, renamed: gs.renamed, skipped: gs.skipped },
-          fontsLoaded: pf.loaded, fontVars: { total: fontVarTotal, created: fontVarCreated },
+          fontsLoaded: pf.brandLoaded, fontVars: { total: fontVarTotal, created: fontVarCreated },
           motion: { total: motionTotal, created: motionCreated, replaced: mv.replaced },
           textStyles: { total: ts.total, created: ts.created }, bindings: r.bound + f.bound + tv.bound + mv.bound + ts.bound,
         },
