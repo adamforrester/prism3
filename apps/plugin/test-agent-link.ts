@@ -1734,7 +1734,7 @@ section('set-override — color overrides: a preview that writes nothing, refusa
   await toUi({ type: 'apply-theme', input: stored });
   const pv3 = await run({ changes: [{ mode: 'light', role: BORDER, clear: true }], confirm: false });
   posted.length = 0;
-  const bwSent = await send('set-override', { changes: [{ mode: 'light', role: BORDER, clear: true }], confirm: true, previewHash: dataOf(pvTwo).previewHash });
+  const bwSent = await send('set-override', { changes: [{ mode: 'light', role: BORDER, clear: true }], confirm: true, previewHash: dataOf(pv3).previewHash });
   await tick();
   const bw = (await read(bwSent.id)) as AgentResult;
   // Declined by the dispatcher's own guard (`guardFor`), before it starts: the panel never shows it running.
