@@ -23,7 +23,8 @@ name the toolbar, and `test.ts` `#3949 tag-group role` holds both roles against 
 arms: `#3949 tag-group roving tabindex` holds the code-tier keyboard entry's one Tab stop (the last-focused tag
 `tabindex="0"`, every other `-1`), which only the surface digest held before; and `#3949 tag select contract` holds
 Tag's own role, keyboard, `aria` and select `codeOnly` entry to the decision. Tag had still said a group's select tags
-were checkboxes, listbox options or a radiogroup, and that arrows select. Still held:
+were checkboxes, listbox options or a radiogroup, and that arrows select. Besides that denylist, it asserts one tab stop
+and arrows that move focus without toggling, on Tag's select keyboard sentence and on Tag.Group's keyboard field. Still held:
 `generationPriority` 2, the 320px placement width, and the shipped prose (DRAFT under `docs/voice-standard.md`). The
 visual review of the projected set is in the #3928 QA round, not before the merge.
 
