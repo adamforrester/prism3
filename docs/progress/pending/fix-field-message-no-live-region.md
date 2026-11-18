@@ -11,7 +11,7 @@ The owner's decision on #1712 (2026-11-18, A) puts FieldMessage on its brief's m
 
 ### The gate
 
-`test.ts` gains a #1712 arm. It scans every shipped field-message string, plus TextField's aria, against hand-written patterns for advice that puts a region on the field ("polite live region", "host wraps", "self-announcing", `aria-live`, `role="status"`, "announce politely"). It also requires the aria to name `aria-invalid="true"`, `aria-describedby`, the error summary and "never a live region", so deleting the guidance outright fails too. Mutation: restoring the old aria sentence fails the arm by name, listing `accessibility.aria`.
+`test.ts` gains a #1712 arm. It scans every shipped field-message string, plus TextField's aria, against hand-written patterns for advice that puts a region on the field ("polite live region", "host wraps", "self-announcing", `aria-live`, `role="status"`, "announce politely", and, after review, `role="alert"` and "assertive", the loudest form of the same advice). It also requires the aria to name `aria-invalid="true"`, `aria-describedby`, the focus move to "the invalid field or to the form's error summary", and "never a live region", so deleting the guidance outright fails too. Mutations, each failing the arm by name: restoring the old aria sentence (`accessibility.aria`); adding a `role="alert"` sentence to TextField's aria (`textField.accessibility.aria`); adding "assertively" to `docs.usage`; and dropping the focus clause from the aria (`missing: focus moves to …`).
 
 ### A trap
 
