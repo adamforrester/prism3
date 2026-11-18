@@ -392,9 +392,13 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   if (!palettes.some((p) => p.palette === actionPalette)) {
     throw new Error(`actionPalette '${actionPalette}' is not a defined palette (have: ${palettes.map((p) => p.palette).join(', ')})`);
   }
-  notes.push(actionPalette === 'primary'
+  // Worded from the palette action RESOLVES to, `roleColors.action` before the lever (#3845, owner-decided
+  // Q-BK1 A, option A): the two are schema aliases, so a brand that sets either reads the same line. Said here,
+  // before the roleColors pass, so a corpus brand's notes keep their order; that pass validates the name.
+  const notedAction = input.roleColors?.action ?? actionPalette;
+  notes.push(notedAction === 'primary'
     ? `action: the primary palette, by default — actionPalette is not set.`
-    : `action: uses the '${actionPalette}' palette instead of primary, as the brand sets.`);
+    : `action: uses the '${notedAction}' palette instead of primary, as the brand sets.`);
 
   // ---- danger carve ----
   const roleToPalette: Record<Role, string> = {
