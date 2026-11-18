@@ -267,6 +267,8 @@ export const NUIA_CLEAN: readonly string[] = [
   'packages/engine/components/provider-logo.ts',
   'packages/engine/components/sign-in-button.ts',
   'packages/engine/figma-description.ts',
+  'packages/engine/modes.ts',
+  'packages/engine/ramp.ts',
   'packages/engine/scale.ts',
   'packages/engine/theme-brand.ts',
   'packages/engine/theme-gradient.ts',

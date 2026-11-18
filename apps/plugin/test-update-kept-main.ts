@@ -28,7 +28,9 @@
  *   · `main.ts`'s `update-sets` dropping the per-set choices (`sets`) → `main/overwrite chosen`;
  *   · `ledgerAfter` keeping only this run's `held`, as before #3436 (a second Keep run records the set current) →
  *     `main/held survives a second Keep`, `main/kept after a second Keep`;
- *   · `ledgerAfter` recording a set the apply stopped inside (#3424) → `main/stopped stays due`.
+ *   · `ledgerAfter` recording a set the apply stopped inside (#3424) → `main/stopped stays due`;
+ *   · `panelFormatOf` writing `{ panel: PANEL_FORMAT }` without `changed` (#2889) → `main/changed recorded`;
+ *   · `panelFormatOf` writing `{ changed }` without `panel` (#3937) → `main/panel recorded`.
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
@@ -38,6 +40,7 @@ import { materializeForBrand } from './src/brand-def';
 import { applyComponentPlan } from './src/write-components';
 import { entryFor, readLedger, recordSets } from './src/as-built-ledger';
 import { recheckHolds } from '../studio/src/state/update-file';
+import { lastChangedKey, leadsPanel, PANEL_FORMAT } from './src/doc-panel';
 
 let failed = 0;
 let executed = 0;
@@ -223,6 +226,17 @@ const ledger = readLedger(root as never) as Record<string, { held?: { members: n
 const held = ledger['radio-control']?.held;
 ok(!!held && held.members === 12 && ['rest', 'hover', 'pressed'].every((st) => held.changes.includes(`border → color/interactive/primary/indicator/${st}`)) && !ledger.tag?.held,
   `main/held recorded: main.ts recorded what radio-control's kept edits hold back, and nothing on tag (${JSON.stringify(held)})`);
+// #2889 / #3937 — THE PANEL FIELDS main.ts WRITES: the usage panels are on (the file's default), tag leads its panel and
+// radio-control does not. So tag's entry, written by the update, carries today's panel format (#3205) and its "Last
+// changed in" block's key (#2889), and radio-control's carries neither. Built by hand, as the doc-panel arms build it,
+// the entry cannot see `panelFormatOf` drop a field; read from the root, it can.
+const tagEntry = ledger.tag as { panel?: unknown; changed?: unknown } | undefined;
+const rcEntry = ledger['radio-control'] as { panel?: unknown; changed?: unknown } | undefined;
+ok(leadsPanel('tag') && !leadsPanel('radio-control') && typeof tagEntry?.changed === 'string' && tagEntry.changed !== ''
+  && tagEntry.changed === lastChangedKey('tag') && rcEntry?.changed === undefined,
+  `main/changed recorded: #2889: main.ts recorded tag's "Last changed in" key, and none on radio-control (${JSON.stringify({ tag: tagEntry?.changed, want: lastChangedKey('tag'), rc: rcEntry?.changed })})`);
+ok(tagEntry?.panel === PANEL_FORMAT && PANEL_FORMAT > 0 && rcEntry?.panel === undefined,
+  `main/panel recorded: #3937: main.ts recorded tag's panel format, and none on radio-control (${JSON.stringify({ tag: tagEntry?.panel, want: PANEL_FORMAT, rc: rcEntry?.panel })})`);
 const f1 = await send({ type: 'file-sets-request' }, ['file-sets']);
 ok(JSON.stringify(stateOf(f1)) === '{"radio-control":"kept","tag":"current"}',
   `main/kept listed: after the run main.ts reads tag current and radio-control kept, nothing due (${JSON.stringify(stateOf(f1))})`);
