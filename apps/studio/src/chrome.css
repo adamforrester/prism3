@@ -2137,6 +2137,8 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-locked > .p3-upd-setname { display: inline-flex; align-items: center; gap: var(--p3-space-075); }
 .p3-upd-locked > .p3-upd-setname > .p3-ico { flex: none; color: var(--p3-icon-2); }
 .p3-upd-locked + .p3-upd-setline, .p3-upd-krow .p3-upd-setline { padding-left: 0; }
+/* #2956: a Due row's "Turn off updates", a quiet ghost action under its line, set in from the box as the line is. */
+.p3-upd-setrow > .p3-upd-turnoff { justify-self: start; margin-left: calc(var(--p3-bw-hairline) + var(--p3-space-200) + var(--p3-space-150) - var(--p3-space-100)); min-height: var(--p3-ctl-h-xs); font-size: var(--p3-fs-12); }
 .p3-upd-krow { display: flex; align-items: center; gap: var(--p3-space-150); }
 .p3-upd-kname { display: grid; gap: var(--p3-space-025); flex: 1 1 auto; min-width: 0; }
 .p3-upd-kname > .p3-upd-setname { font-weight: var(--p3-fw-emphasis); }
