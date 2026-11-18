@@ -183,8 +183,7 @@ export const setColumns = (n: number): void => { setPath(brandState, 'layout.col
 const setOverride = (field: OverrideField, bp: string, v: number | undefined): void => {
   const next = { ...(layoutOf()[field] ?? {}) };
   if (v === undefined) delete next[bp]; else next[bp] = v;
-  if (Object.keys(next).length) setPath(brandState, `layout.${field}`, next);
-  else if (brandState.layout) delete (brandState.layout as LayoutIn)[field];
+  setPath(brandState, `layout.${field}`, Object.keys(next).length ? next : undefined);
 };
 /** One breakpoint's column count, or Auto (the ladder). */
 export const setColumnOverride = (bp: string, n: number | undefined): void => setOverride('columnOverrides', bp, n);

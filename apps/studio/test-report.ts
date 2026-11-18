@@ -51,8 +51,10 @@
  * `#3702 second review, U+2028 in a DOMException's message: …` (and CR, U+2029); `DETAIL` ending in `.*$` again → `#3702
  * second review, U+2028 in a Error's message: …` (and TypeError; CR, U+2029), through its headless `Run stopped (` line.
  */
+import * as reportModule from './src/state/report';
 import { ENGINE_VOCABULARY, brandWords, buildReport, isIssueUrl, issueUrl, scrub, ISSUE_BASE, URL_LIMIT, type ReportInput } from './src/state/report';
-import { brandTheme, type BrandInput, buildTree } from '@prism3/engine';
+import { brandTheme, type BrandInput, buildTree, EXAMPLE_BRANDS_JSON } from '@prism3/engine';
+import * as store from './src/state/store';
 import { readFileSync } from 'node:fs';
 
 let failed = 0;
@@ -66,7 +68,7 @@ const ok = (cond: boolean, label: string): void => {
 // A brand with an id, a display name and a token root, as a client's would carry. Fictional.
 const BRAND = { id: 'harbor', name: 'Harbor Fleet', root: 'hbr', primary: 'oklch(0.55 0.2 250)' };
 const BASE: ReportInput = {
-  stamp: '2026-11-07T21:00:00Z tree-a59be505 0899c2d5', engine: '0.237.0', host: 'figma', brand: BRAND, includeBrand: false,
+  stamp: '2026-11-07T21:00:00Z tree-a59be505 0899c2d5', engine: '0.237.0', host: 'figma', brand: BRAND, includeBrand: false, seen: [],
   activity: [
     { title: 'Apply Theme', verdict: '✗ 1 conflict', lines: ['Nothing was written. 1 conflict with existing content: variable "hbr/color/background/primary" is STRING in "color"'], agent: false },
     { title: 'Build', verdict: '✓ built', lines: ['button: 24 members, Harbor Fleet look'], agent: true },
@@ -418,6 +420,73 @@ ok(over.length === 7001 && !isIssueUrl(over), '#3522 R3 link: an issue URL over 
 ok(atLimit.length === 7000 && isIssueUrl(atLimit), '#3522 R3 link: an issue URL of exactly 7000 characters is opened');
 ok(!isIssueUrl('https://example.com/collect?d=1') && !isIssueUrl('https://github.com/someone-else/repo/issues/new?body=x') && !isIssueUrl(`${ISSUE_BASE}x?body=1`) && !isIssueUrl(42),
   'link: the plugin opens nothing but the issue form');
+
+// ── #3883: the words of every brand the session held, not only the one on screen ──
+// The Activity lines are each operation's latest result, which stays across a brand load, a rename and a failed
+// restore. A fictional client's run, then the report opened on a shipped example: before #3883 the scrub list came
+// from the example alone, and every client word went into the report.
+{
+  // Read through the namespace, so a tree without these (main before #3883) fails the arms by name, not at import.
+  const mergeWords = (reportModule as { mergeWords?: typeof reportModule.mergeWords }).mergeWords ?? ((...l: unknown[][]) => l.flat());
+  const sessionBrandWords = (store as { sessionBrandWords?: () => readonly unknown[] }).sessionBrandWords ?? (() => []);
+  const CLIENT = { id: 'acme', name: 'Acme Corp', root: 'acme', brandColors: [{ name: 'acmeblue', oklch: { l: 0.5, c: 0.1, h: 250 } }], customModes: [{ name: 'acme-night', base: 'dark' }], typography: { families: { body: 'Quillmark Sans Pro' } } };
+  const RUN = { title: 'Apply Theme', verdict: '✓ applied, mode acme-night', lines: ['wrote acme/core/palette/acmeblue/500', 'typefaces unavailable (Quillmark Sans Pro)'], agent: false };
+  const leaks = (t: string): string[] => ['acme', 'Acme', 'acmeblue', 'acme-night', 'Quillmark'].filter((w) => t.includes(w));
+  const example = (EXAMPLE_BRANDS_JSON as Record<string, Record<string, unknown>>).harbor!;
+  const later = buildReport({ ...BASE, brand: example, seen: brandWords(CLIENT), activity: [RUN] });
+  ok(leaks(later).length === 0 && later.includes('mode [brand]') && later.includes('[brand]/core/palette/[brand]/500'),
+    `#3883: a report on another brand scrubs the words of the brand the activity ran on (leaked: ${JSON.stringify(leaks(later))})`);
+  const later_on = buildReport({ ...BASE, brand: example, includeBrand: true, seen: brandWords(CLIENT), activity: [RUN] });
+  ok(leaks(later_on).length === 0 && later_on.includes('"id": "harbor"'),
+    `#3883: including the brand on screen includes it, and still scrubs an earlier brand's words (leaked: ${JSON.stringify(leaks(later_on))})`);
+  const same_on = buildReport({ ...BASE, brand: CLIENT, includeBrand: true, seen: brandWords(CLIENT), activity: [RUN] });
+  ok(same_on.includes('wrote acme/core/palette/acmeblue/500'),
+    '#3883: the included brand keeps its own words in the lines, though the session list holds them');
+  ok(JSON.stringify(mergeWords([{ whole: 'Acme' }], ['acme', 'b'], [{ whole: 'zz' }])) === JSON.stringify(['acme', { whole: 'zz' }, 'b']),
+    '#3883: mergeWords keeps one entry per word ignoring case, a plain string over { whole }, longest first');
+
+  // The session list, as the store collects it: the brand the session started on, a rename that resolved, and a load.
+  // A brand that resolves: the harbor example under the client's identity and typeface.
+  const client = { ...structuredClone(example), id: 'acme', name: 'Acme Corp', root: 'acme' } as Record<string, any>;
+  client.typography = { ...(client.typography ?? {}), families: { ...(client.typography?.families ?? {}), body: 'Quillmark Sans Pro' } };
+  store.initSession(client as unknown as BrandInput, { kind: 'file' });
+  store.brandState.root = 'acmeco';
+  store.rebuild();
+  store.loadInput(structuredClone((EXAMPLE_BRANDS_JSON as Record<string, unknown>).aurora) as BrandInput, { kind: 'example', id: 'aurora' });
+  const seen = sessionBrandWords() as ReturnType<typeof brandWords>;
+  const has = (w: string): boolean => seen.some((x) => (typeof x === 'string' ? x : x.whole).toLowerCase() === w);
+  const want = ['acme', 'acme corp', 'acmeco', 'quillmark sans pro', 'aurora'];
+  ok(want.every(has),
+    `#3883: the store keeps the words of every brand the session resolved: the first, a renamed root, a loaded example (missing: ${want.filter((w) => !has(w)).join(', ') || 'none'})`);
+  const viaStore = buildReport({ ...BASE, brand: store.lastGoodInput as unknown as Record<string, unknown>, seen, activity: [{ ...RUN, verdict: '✓ applied', lines: ['wrote acme/color/text/primary', 'wrote acmeco/color/text/primary', 'typefaces unavailable (Quillmark Sans Pro)'] }] });
+  ok(leaks(viaStore).length === 0, `#3883: a report built from the store's session list leaks no earlier brand's words (leaked: ${JSON.stringify(leaks(viaStore))})`);
+
+  // A rename skips `rebuild()`, so the post records its words (`postedInput`, review of #3961): rename the root the way
+  // Brand › Identity does (`syncIdentity`), post, then load another brand. The renamed root must still be on the list.
+  const postedInput = (store as { postedInput?: () => BrandInput }).postedInput ?? (() => store.lastGoodInput);
+  store.initSession(structuredClone(client) as unknown as BrandInput, { kind: 'file' });
+  store.brandState.root = 'acmezed';
+  store.syncIdentity();
+  const carried = postedInput();
+  store.loadInput(structuredClone((EXAMPLE_BRANDS_JSON as Record<string, unknown>).aurora) as BrandInput, { kind: 'example', id: 'aurora' });
+  ok(carried.root === 'acmezed' && (sessionBrandWords() as ReturnType<typeof brandWords>).some((x) => (typeof x === 'string' ? x : x.whole) === 'acmezed'),
+    '#3883: a renamed root that was posted without a rebuild stays on the session list after another brand loads');
+  // The brand the session starts on is noted by `initSession` itself, with no rebuild after it.
+  store.initSession(structuredClone(client) as unknown as BrandInput, { kind: 'file' });
+  ok((sessionBrandWords() as ReturnType<typeof brandWords>).some((x) => (typeof x === 'string' ? x : x.whole).toLowerCase() === 'quillmark sans pro'),
+    '#3883: initSession puts the starting brand\'s words on the session list before any rebuild');
+
+  // main.ts touches the DOM at import, so its wiring is read as source: every post that carries the brand records it
+  // first (a rename skips the rebuild, so a post is the one moment its words are known), and the report reads the list.
+  const main = readFileSync(new URL('./src/main.ts', import.meta.url), 'utf8');
+  const bare = main.match(/commit\.\w+\(lastGoodInput\b/g) ?? [];
+  ok(bare.length === 0 && /brandFor\(theme, posted\(\)\)/.test(main),
+    `#3883: no post to the host carries lastGoodInput without adding its words to the session (${bare.length} bare)`);
+  ok(/seen: mergeWords\(sessionBrandWords\(\)/.test(main) && /brand: briefInput\(\)/.test(main),
+    '#3883: the report reads the session list, and includes the failed restore\'s brand, not the boot demo');
+  ok(/const posted = postedInput;/.test(main) && /restoreFailure\?\.brand, heldRestore\]/.test(main),
+    '#3883: every post goes through the store\'s postedInput, and the scrub list takes a held restore\'s brand');
+}
 
 console.log(`${failed ? `\n✗ ${failed} check(s) failed` : '\n✓ report: all checks passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

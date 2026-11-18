@@ -126,6 +126,15 @@ export const buildLayout = (input: BrandInput['layout'] = {}): LayoutAxis => {
   // awaiting the owner). The studio's input already stops at seven (`MAX_BREAKPOINTS`).
   if (floors.length > 7)
     throw new Error(`The brand can have at most seven breakpoints. This brand has ${floors.length}.`);
+  // #3872: the floors are mobile-first min-widths, so each must be above the one before. Out of order, a consumer's
+  // `lg` query fired before `md`'s and the grid ladder landed on the wrong widths; a repeat named one floor twice; a
+  // negative floor is below the first. The schema's description already says "ascending" but cannot enforce it. A
+  // fractional floor is a real width and stays allowed. DRAFT wording, awaiting the owner, with the values as entered.
+  for (let i = 1; i < floors.length; i++) {
+    const at = floors[i]!, before = floors[i - 1]!;
+    if (!Number.isFinite(at) || at <= before)
+      throw new Error(`Breakpoints must rise: ${at}px follows ${before}px.`);
+  }
   const base = input.columns ?? 12;
   const n = floors.length;
   const names = bpNames(n);

@@ -28,9 +28,11 @@
  */
 import { brandTheme, type BrandInput, type Theme, resolvePreview, type ResolvedPreview } from '@prism3/engine';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
+import { stashBefore, type UndoLoad } from './undo-load';
 import { provenanceOf, noOrigin, type Origin, type Provenance } from '../provenance';
 import type { PageKey } from '../shell/pages';
 import { studioMessage } from './floor-refusal';
+import { brandWords, mergeWords, type BrandWord } from './report';
 
 export type Mode = ResolvedPreview['modes'][number];
 
@@ -73,6 +75,24 @@ export let theme: Theme;
 // The last input that resolved cleanly — the ramps + anchor badges render from THIS, so when a
 // live edit fails (lastError set) the flagged anchor swatch still matches the shown ramp (M-16).
 export let lastGoodInput: BrandInput;
+
+// ---- the session's brand words (#3883) --------------------------------------------------------------
+// Report a problem scrubs a brand's words out of the Activity lines, and an Activity line is an operation's latest
+// result, which stays across brand loads, renames and a failed restore. So the words are collected from every brand
+// the session holds, not read off the one on screen when the report opens: each resolved brand (`initSession`,
+// every good `resolve`), and each brand posted to the host (`main.ts`, which also adds the live and failed-restore
+// brands when the report reads). Never pruned: a word stays scrubbed for the rest of the session.
+let seenWords: BrandWord[] = [];
+/** Add `b`'s words to the session's list. */
+export const noteBrandWords = (b: BrandInput | null | undefined): void => {
+  if (b) seenWords = mergeWords(seenWords, brandWords(b as unknown as Record<string, unknown>));
+};
+/** Every brand word the session has held, longest first. */
+export const sessionBrandWords = (): readonly BrandWord[] => seenWords;
+/** The brand a post to the host carries: `lastGoodInput`, its words added to the session's first. A rename skips
+ *  `rebuild()` (`syncIdentity`), so a post is the one moment the root an Activity line will name is known. Here, not in
+ *  `main.ts`, so `test-report.ts` runs it: rename, post, load another brand, and the renamed root is still scrubbed. */
+export const postedInput = (): BrandInput => { noteBrandWords(lastGoodInput); return lastGoodInput; };
 export let rp: ResolvedPreview;
 export let currentMode: Mode;
 export let lastError: string | null = null;
@@ -171,6 +191,8 @@ export const initSession = (input: BrandInput, origin: Origin): void => {
   bootProvenance = provenance;
   theme = brandTheme(brandState);
   lastGoodInput = structuredClone(brandState);
+  seenWords = [];
+  noteBrandWords(lastGoodInput);
   rp = resolvePreview(theme);
   currentMode = rp.modes[0];
   lastError = null;
@@ -184,6 +206,7 @@ const resolve = (): void => {
     rp = resolvePreview(t);
     theme = t;
     lastGoodInput = structuredClone(brandState);   // M-16: anchor badges read this, not the (maybe failing) live state
+    noteBrandWords(lastGoodInput);   // #3883
     lastError = null;
     writePersist();   // persist the last-good brand (web only — the plugin injects no writer; best-effort)
   } catch (e) {
@@ -266,6 +289,37 @@ export const loadInput = (input: BrandInput, origin: Origin): void => {
   invalidate('page');
 };
 
+/** What Undo load keeps before a load replaces the working brand (#1037): the live input, its provenance, and the
+ *  last-good input behind it, which differs from the live one when the live one holds a refused edit. Here rather than
+ *  at the call site so the argument choice is tested (review of f3cca512): `main.ts`'s `loadReplacing` calls this. */
+export const stashForLoad = (name: string): UndoLoad | null => stashBefore(brandState, provenance, name, lastGoodInput);
+
+/** Put back a brand a load replaced, WITH ITS PROVENANCE (#1037, Undo load): the same reset as `loadInput`, except that
+ *  the origin and baseline are the ones it had, not new ones from `input`. So unsaved edits come back still unsaved, and
+ *  the overwrite confirm still guards them. `loadInput` would make them the baseline and the confirm would stop asking. */
+export const restoreInput = (input: BrandInput, prov: Provenance, lastGood: BrandInput): void => {
+  brandState = structuredClone(input);
+  provenance = prov;
+  resolve();
+  // The brand may have held a refused edit when the load replaced it (review of 6e73dba1): then the resolve above fails
+  // and would leave the LOADED example's theme, last-good input and persisted copy in place. Resolve the last-good brand
+  // it had instead, so the theme, what Apply posts and what a web reload opens are the user's again; `lastError` keeps the
+  // refusal, so the field still flags the edit, as it did before the load.
+  if (lastError !== null) {
+    theme = brandTheme(lastGood);
+    rp = resolvePreview(theme);
+    lastGoodInput = structuredClone(lastGood);
+    if (persistHolds) persistOwed = true;
+    else persist?.(lastGoodInput);
+  }
+  currentMode = rp.modes[0];
+  page = 'palettes';
+  invalidate('origin');
+  invalidate('brand');
+  invalidate('mode');
+  invalidate('page');
+};
+
 /** Return to the start moment without touching the working brand: the origin becomes `none`, so
  *  `firstRun()` reads true and the start screen follows (#722). */
 export const clearOrigin = (): void => {
@@ -291,9 +345,28 @@ export const setSearchHits = (n: number | null): void => { searchHits = n; inval
 // ---- paths into the input --------------------------------------------------------------------------
 
 export const getPath = (o: any, p: string): any => p.split('.').reduce((a, k) => (a == null ? undefined : a[k]), o);
+/** Write `v` at the dot path `p`, creating missing parents. `undefined` is a clear (#3878): it deletes the key,
+ *  creates nothing, and prunes each parent object it leaves empty, so a value set and then put back to Auto
+ *  leaves the brand byte-identical to one never edited (the rule `clearSurface` and `pruneModeLevers` hold).
+ *  An array is never pruned, and neither is `o` itself. `null` is a value, not a clear. */
 export const setPath = (o: any, p: string, v: unknown): void => {
   const ks = p.split('.');
   const last = ks.pop()!;
+  if (v === undefined) {
+    const chain: any[] = [o];
+    for (const k of ks) {
+      const next = chain[chain.length - 1][k];
+      if (next == null || typeof next !== 'object') return;
+      chain.push(next);
+    }
+    delete chain[ks.length][last];
+    for (let i = ks.length; i > 0; i--) {
+      const node = chain[i];
+      if (Array.isArray(node) || Object.keys(node).length) break;
+      delete chain[i - 1][ks[i - 1]!];
+    }
+    return;
+  }
   let cur = o;
   for (const k of ks) { if (cur[k] == null || typeof cur[k] !== 'object') cur[k] = {}; cur = cur[k]; }
   cur[last] = v;

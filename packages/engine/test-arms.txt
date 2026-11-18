@@ -209,6 +209,7 @@ apps/plugin/test-slot-migration.ts #3796
 apps/plugin/test-slot-migration.ts #3797
 apps/plugin/test-slot-migration.ts #3809
 apps/plugin/test-start-screen.mjs #1031
+apps/plugin/test-start-screen.mjs #1037
 apps/plugin/test-start-screen.mjs #1041
 apps/plugin/test-start-screen.mjs #1184
 apps/plugin/test-start-screen.mjs #1197
@@ -589,6 +590,7 @@ apps/studio/test-chrome.mjs #3164
 apps/studio/test-chrome.mjs #3170
 apps/studio/test-chrome.mjs #3177
 apps/studio/test-chrome.mjs #3199
+apps/studio/test-chrome.mjs #3263
 apps/studio/test-chrome.mjs #3298
 apps/studio/test-chrome.mjs #3302
 apps/studio/test-chrome.mjs #3305
@@ -617,6 +619,7 @@ apps/studio/test-chrome.mjs #3700
 apps/studio/test-chrome.mjs #3711
 apps/studio/test-chrome.mjs #3712
 apps/studio/test-chrome.mjs #3713
+apps/studio/test-chrome.mjs #3878
 apps/studio/test-chrome.mjs #3910
 apps/studio/test-chrome.mjs #3911
 apps/studio/test-chrome.mjs #533
@@ -681,6 +684,7 @@ apps/studio/test-fills-input.ts #3050
 apps/studio/test-fills-input.ts #3366
 apps/studio/test-glass-input.ts #3106
 apps/studio/test-host-session.ts #2087
+apps/studio/test-host-session.ts #2956
 apps/studio/test-host-session.ts #3081
 apps/studio/test-host-session.ts #3110
 apps/studio/test-host-session.ts #3129
@@ -708,6 +712,7 @@ apps/studio/test-layout-input.ts #2146
 apps/studio/test-layout-input.ts #2482
 apps/studio/test-layout-input.ts #2513
 apps/studio/test-layout-input.ts #3052
+apps/studio/test-layout-input.ts #3878
 apps/studio/test-lever-controls.ts #1835
 apps/studio/test-lever-controls.ts #3365
 apps/studio/test-outline-roles.ts #1629
@@ -732,12 +737,14 @@ apps/studio/test-report.ts #3560
 apps/studio/test-report.ts #3561
 apps/studio/test-report.ts #3697
 apps/studio/test-report.ts #3702
+apps/studio/test-report.ts #3883
 apps/studio/test-run-ended.ts #533
 apps/studio/test-run-time.ts #3471
 apps/studio/test-shape-input.ts #2053
 apps/studio/test-shell-imports.ts #2700
 apps/studio/test-smoke.mjs #1031
 apps/studio/test-smoke.mjs #1033
+apps/studio/test-smoke.mjs #1037
 apps/studio/test-smoke.mjs #1141
 apps/studio/test-smoke.mjs #1147
 apps/studio/test-smoke.mjs #1196
@@ -784,7 +791,9 @@ apps/studio/test-start-input.ts #2241
 apps/studio/test-start-input.ts #3553
 apps/studio/test-status-strip.ts #3170
 apps/studio/test-status-strip.ts #3177
+apps/studio/test-store.ts #1037
 apps/studio/test-store.ts #2487
+apps/studio/test-store.ts #3878
 apps/studio/test-style-guides.ts #2372
 apps/studio/test-type-input.ts #1071
 apps/studio/test-type-input.ts #1727
@@ -794,9 +803,11 @@ apps/studio/test-type-input.ts #2194
 apps/studio/test-type-input.ts #2225
 apps/studio/test-type-input.ts #2324
 apps/studio/test-type-input.ts #3077
+apps/studio/test-type-input.ts #3878
 apps/studio/test-type-input.ts #831
 apps/studio/test-update-file.ts #1234
 apps/studio/test-update-file.ts #1780
+apps/studio/test-update-file.ts #2956
 apps/studio/test-update-file.ts #3090
 apps/studio/test-update-file.ts #3110
 apps/studio/test-update-file.ts #3129
@@ -1204,6 +1215,10 @@ packages/engine/test.ts #3842
 packages/engine/test.ts #3843
 packages/engine/test.ts #3845
 packages/engine/test.ts #3863
+packages/engine/test.ts #3871
+packages/engine/test.ts #3872
+packages/engine/test.ts #3875
+packages/engine/test.ts #3876
 packages/engine/test.ts #388
 packages/engine/test.ts #390
 packages/engine/test.ts #391

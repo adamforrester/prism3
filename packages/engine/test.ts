@@ -37,7 +37,7 @@ import type { FigmaCollectionFile } from './emit-figma';
 import { MOTION_FIGMA_COVERAGE, springBounce } from './emit-figma-dims';
 import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount, DTCG_TYPES } from './emit-dtcg-overlay';
 import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
-import { buildTree, validateBrandInput, readExampleBrand, contractReportRow } from './emit-dtcg';
+import { buildTree, validateBrandInput, readExampleBrand, contractReportRow, emitTheme } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { validate as validateJsonSchema } from './json-schema-lite';
 import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
@@ -42996,6 +42996,31 @@ const MIN_ASSERTIONS = 1800;
   }
 }
 
+// #3871 — a weight role keys a primitive (`core.font.weight.<value>`), so a fractional weight emits an alias that
+// resolves nowhere (`{…weight.450.5}` reads `.5` as a child), and a weight outside DTCG's [1, 1000] ships a fontWeight
+// the spec rejects. brandTheme refuses both, globally and per mode; a whole weight in range still builds clean.
+{
+  const base = { id: 'w3871', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 } } as unknown as BrandInput;
+  const refusal = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const withRoles = (weightRoles: Record<string, unknown>) => ({ ...base, typography: { weightRoles } }) as unknown as BrandInput;
+  const frac = refusal(() => brandTheme(withRoles({ default: 450.5 })));
+  ok(frac.includes('typography.weightRoles') && frac.includes("'default'") && frac.includes('450.5'),
+    `#3871 a fractional weight role (default 450.5) is refused by name (got ${JSON.stringify(frac)})`);
+  for (const [role, w] of [['max', 0], ['strong', 2000], ['subtle', -100], ['emphasis', Number.NaN]] as const) {
+    const msg = refusal(() => brandTheme(withRoles({ [role]: w })));
+    ok(msg.includes('typography.weightRoles') && msg.includes(`'${role}'`), `#3871 a weight role outside [1, 1000] (${role} ${w}) is refused by name (got ${JSON.stringify(msg)})`);
+  }
+  const perMode = refusal(() => brandTheme({ ...base, modeLevers: { dark: { weights: { default: 450.5 } } } } as unknown as BrandInput));
+  ok(perMode.includes("mode 'dark' weight 'default'"), `#3871 a fractional per-mode weight (dark default 450.5) is refused by name (got ${JSON.stringify(perMode)})`);
+  // The accept side: whole weights at the edges of DTCG's range build, and every alias resolves.
+  const edge = buildTree(brandTheme(withRoles({ subtle: 1, default: 450, max: 1000 })));
+  ok(edge.stats.broken.length === 0, `#3871 whole weights 1/450/1000 build with every alias resolving (broken: ${edge.stats.broken.slice(0, 3).map((b: any) => b.ref).join(', ')})`);
+  // The schema says the same, so a file-driven brief fails at the schema before the engine.
+  const schemaErrs = validateBrandInput(withRoles({ default: 450.5, strong: 2000 }));
+  ok(schemaErrs.some((e) => e.includes('weightRoles.default') && e.includes('not an integer')) && schemaErrs.some((e) => e.includes('weightRoles.strong')),
+    `#3871 the schema refuses a fractional and an out-of-range weight role (errors: ${JSON.stringify(schemaErrs)})`);
+}
+
 // (imports hoist; kept beside the arms so no line a guide cites moves)
 import { seedFromFacts, seedDesignMd } from './file-seed';
 import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
@@ -43145,6 +43170,90 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
       `#2075 seed: the ${label} seed's design.md parses back to its input, validates and builds (errors ${JSON.stringify(errors)}, built ${built})`);
   }
   ok(JSON.stringify(seedFromFacts(p2)) === JSON.stringify(s), '#2075 seed: the same report seeds the same bytes');
+}
+
+// #3875 — the brand id names every file the CLI writes (`<id>.tokens.json` and five more), and nothing checked it:
+// `id: "../escaped"` wrote six files one level above --out, `"a/b"` crashed mid-write with a raw stack, and `""` wrote
+// hidden dotfiles. Three layers now hold: brandTheme refuses an id with a separator or nothing in it (and the schema
+// says the same), emitTheme refuses to write outside its directory whatever the id, and the CLI reports a failed
+// write through fail() rather than a stack trace. An id that is not a slug but is a safe file name still builds.
+{
+  const base = { id: 'ok', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 } } as unknown as BrandInput;
+  const refusal = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  for (const id of ['../escaped', 'Has Space/Slash', 'a\\b', '', '   ', '..']) {
+    const msg = refusal(() => brandTheme({ ...base, id } as unknown as BrandInput));
+    ok(msg.startsWith(`id: ${JSON.stringify(id)} can't name the brand's files`), `#3875 brandTheme refuses the id ${JSON.stringify(id)} by name (got ${JSON.stringify(msg)})`);
+  }
+  ok(refusal(() => brandTheme({ ...base, id: 'Has Space' } as unknown as BrandInput)) === '', '#3875 an id that is a safe file name but not a slug (Has Space) still builds');
+  const schemaErrs = validateBrandInput({ ...base, id: '../escaped' } as unknown as BrandInput);
+  ok(schemaErrs.some((e) => e.includes('id')), `#3875 the schema refuses the id "../escaped" (errors: ${JSON.stringify(schemaErrs)})`);
+  // Review of 12ce358d: the schema's pattern let `.`, `..`, a blank id and NUL through while brandTheme refused them, so
+  // a file-driven brief passed the schema and failed later. The two layers now agree, both ways, over the same ids.
+  for (const [id, refused] of [['.', true], ['..', true], ['   ', true], ['\t', true], [' ', true], ['\0', true], ['a\0b', true],
+    ['Has Space', false], ['...', false], [' ..', false], ['.hidden', false], ['aurora', false]] as const) {
+    const errs = validateBrandInput({ ...base, id } as unknown as BrandInput).filter((e) => e.startsWith('id:'));
+    const engine = refusal(() => brandTheme({ ...base, id } as unknown as BrandInput)) !== '';
+    ok(engine === refused && (errs.length > 0) === refused,
+      `#3875 the schema and brandTheme agree on the id ${JSON.stringify(id)}: ${refused ? 'both refuse it' : 'both accept it'} (brandTheme ${engine ? 'refused' : 'accepted'}; schema ${JSON.stringify(errs)})`);
+  }
+
+  const dir = mkdtempSync(join(tmpdir(), 'p3-3875-'));
+  try {
+    // The backstop: a theme that reaches emitTheme with an escaping id (a caller that skipped brandTheme's check).
+    const out = join(dir, 'out');
+    const theme = brandTheme(base); (theme as any).id = '../escaped';
+    const wrote = refusal(() => emitTheme(theme, out));
+    ok(wrote.includes('would be written outside') && !existsSync(join(dir, 'escaped.tokens.json')) && !existsSync(out),
+      `#3875 emitTheme refuses an id that would write outside its directory, before writing anything (got ${JSON.stringify(wrote)}; above --out: ${readdirSync(dir).join(', ')})`);
+    // The CLI: a write that fails (here, --out names a file) is reported through fail(), not as a stack trace.
+    const brief = join(dir, 'b.design.md');
+    writeFileSync(brief, '---\nid: clean\nprimary: { l: 0.55, c: 0.15, h: 260 }\nneutral: { hue: 260, chroma: 0.01 }\n---\n');
+    const notADir = join(dir, 'a-file');
+    writeFileSync(notADir, 'x');
+    const r = spawnSync('npx', ['tsx', resolve(HERE, 'cli.ts'), brief, '--out', notADir], { cwd: HERE, encoding: 'utf8' });
+    const err = r.stderr ?? '';
+    ok(r.status === 1 && err.includes("✖ could not write 'clean'") && !/\n\s+at /.test(err),
+      `#3875 the CLI reports a failed write through fail(), with no stack trace (exit ${r.status}; stderr ${JSON.stringify(err.slice(0, 300))})`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// #3876 — the serializer wrote a quote in a double-quoted scalar as `\"`, and the parser never decoded it: every
+// export → import added a backslash before each quote in a brand name, and the scanners toggled their quote state on
+// the escaped quote. The round-trip gate above runs only the example brands, and none holds a quote in a string, so it
+// could not fail (docs/34: the subject's inputs did not cover the case). These inputs do.
+{
+  const base = { id: 'q3876', primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 } };
+  for (const name of ['The "Blue" brand', '5" screen', `a\\b "c" 'd' #e: f`, 'ends with \\', '\\"']) {
+    let x: any = { ...base, name, typography: { families: { body: name } }, meta: { [name]: name } };
+    for (let i = 0; i < 3; i++) x = parseDesignMd(toDesignMd(x)).input;
+    ok(x.name === name && x.typography?.families?.body === name && x.meta?.[name] === name,
+      `#3876 three design.md round trips keep ${JSON.stringify(name)} as a name, a value and a key (got ${JSON.stringify(x.name)}, ${JSON.stringify(x.typography?.families?.body)}, keys ${JSON.stringify(Object.keys(x.meta ?? {}))})`);
+  }
+  // A hand-written brief: an escaped quote must not end the string for the comment scanner or the key scanner.
+  const commented = parseDesignMd('---\nid: q\nname: "5\\" screen" # a note\n---\n').input as any;
+  ok(commented.name === '5" screen', `#3876 a trailing comment after an escaped quote is stripped (got ${JSON.stringify(commented.name)})`);
+  const keyed = parseYamlSubset('meta:\n  "a\\": b": 1\n') as any;
+  ok(keyed?.meta?.['a": b'] === 1, `#3876 a block key holding an escaped quote and a colon splits at its own colon (got ${JSON.stringify(keyed)})`);
+}
+
+// #3872 — breakpoints are mobile-first min-width floors, so each must be above the one before. Out of order
+// ([0, 1024, 768]) emitted lg below md, a repeat named one floor twice, and a negative floor sat below the first;
+// each built cleanly (and a null floor, which no JSON brief can hold as a number, crashed on `.toFixed`). brandTheme
+// now refuses them, naming the floor and the one it follows.
+{
+  const base = { id: 'bp3872', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 } } as unknown as BrandInput;
+  const refusal = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const withBps = (breakpoints: number[]) => ({ ...base, layout: { breakpoints } }) as unknown as BrandInput;
+  for (const [bps, at, before] of [[[0, 1024, 768], '768', '1024'], [[0, 768, 768], '768', '768'], [[0, -5, 768], '-5', '0'], [[0, 768, null], 'null', '768']] as const) {
+    const msg = refusal(() => brandTheme(withBps([...bps] as number[])));
+    ok(msg.startsWith('Breakpoints must rise') && msg.includes(`${at}px follows ${before}px`),
+      `#3872 breakpoints [${bps.join(', ')}] are refused, naming ${at}px after ${before}px (got ${JSON.stringify(msg)})`);
+  }
+  // The accept side: rising floors, a fractional one among them, still build.
+  const rising = refusal(() => brandTheme(withBps([0, 768.5, 1024])));
+  ok(rising === '', `#3872 rising breakpoints [0, 768.5, 1024] still build (got ${JSON.stringify(rising)})`);
 }
 
 if (pass + fails.length < MIN_ASSERTIONS) {

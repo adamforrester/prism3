@@ -22,7 +22,10 @@
  *                   `legacy/family members`, `legacy/family edited`; the text check dropped → `legacy/edited`,
  *                   `legacy/family edited`, `family/kept`. Tabs' panel with its legend as drawn before #3265 ("4  Tab ×2")
  *                   is replaced too. Mutation: the labels before #3265 dropped from `writtenTexts` (the
- *                   `labelsBefore3265` line) → `legacy/merged legend`.
+ *                   `labelsBefore3265` line) → `legacy/merged legend`. Tabs' and Code input's panels with their entries as
+ *                   drawn before #2927 Q2927-R1 A (no disc, "4  Tabs 2–3", "4  Cells 1–6") are replaced too. Mutation:
+ *                   the numbered entry labels dropped from `writtenTexts` (the `${b.n}  ${b.label}` line) →
+ *                   `legacy/numbered tabs`, `legacy/numbered code-input`.
  *   replace/…       a second draw of an unedited panel replaces it: one panel, the earlier removed.
  *   hand edit/…     a panel whose text a designer changed is kept: renamed "(edited)", tagged kept, its edit intact, below
  *                   the fresh panel and clear of it, and named in the run's clauses; a third draw keeps it once and draws
@@ -192,6 +195,15 @@
  *                   indicator`: the owner's case takes a top or bottom leader; `markers/side …`: `containerSides` typed
  *                   by hand. Mutations: every container led from the left → `markers/no crossing`, `markers/accordion
  *                   trailing indicator`; the clear-side fallback removed → `markers/side clear`.
+ *   parts list/…    (#2927, owner decision Q2927-R1 A) over every lead, each anatomy entry is a row led by a disc, one per
+ *                   planned entry; no anatomy label, planned or drawn, starts with a number; each entry's disc looks
+ *                   exactly like its specimen marker (ink, size, corner, numeral, face, no stroke or effect) and is
+ *                   #9747FF, 20 across, its numeral white and its place in the list (typed here); Tabs' and Code input's
+ *                   repeats, typed by hand, read one disc each ("4 Tabs 2–3", "4 Cells 1–6"). Mutations: the number back
+ *                   in the label → `parts list/no number in the label`, `parts list/repeats tabs`, `parts list/repeats
+ *                   code-input`; the entry's disc dropped → `parts list/disc` and both `parts list/repeats …`; the
+ *                   entry's disc another ink → `parts list/matches the marker`, `parts list/typed`; the entry's disc
+ *                   numbered one on → `parts list/typed`, `parts list/matches the marker`, both `parts list/repeats …`.
  *   family/related  (#2970 Q5 A) Checkbox's and Buttons' Related lists typed from the approved wireframe; a family named
  *                   twice in one list once. Mutations: the own-family drop removed → `family/related`, `family/related
  *                   buttons`; the de-duplication removed → `family/related once`. `related/…` (#3552 Q-UG3 A): Dialog's and
@@ -852,10 +864,18 @@ section('anatomy/… — held-back part notes never reach a panel');
 }
 
 /** The numbers the drawn Anatomy lists: each Field label there that starts with one. */
-const listedNumbers = (panel: N): string[] => {
+/** THE PARTS LIST AS DRAWN (#2927, Q2927-R1 A): each anatomy entry is a row whose first layer is a disc (a frame named
+ *  `marker`) and whose label is the Field block's; its number is the disc's numeral, never read off the label. */
+const partEntries = (panel: N): { num: string; label: string; row: N; disc: N }[] => {
   const sec = walk(panel).find((c) => c.getSharedPluginData!('prism3', 'docSection') === 'anatomy');
-  return sec ? walk(sec).filter((c) => c.type === 'TEXT' && c.name === 'label').map((c) => /^(\d+)\s/.exec(String(c.characters))?.[1]).filter((x): x is string => !!x) : [];
+  return (sec ? walk(sec) : []).flatMap((row) => {
+    const disc = (row.children ?? [])[0];
+    if (row.type !== 'FRAME' || disc?.name !== 'marker' || disc.type !== 'FRAME') return [];
+    const label = walk(row).find((c) => c.type === 'TEXT' && c.name === 'label');
+    return [{ num: String(walk(disc).find((c) => c.type === 'TEXT')?.characters ?? ''), label: String(label?.characters ?? ''), row, disc }];
+  });
 };
+const listedNumbers = (panel: N): string[] => partEntries(panel).map((e) => e.num).filter(Boolean);
 
 /* ── marks: the numbered entries, from the part tree ───────────────────────────────────────────────────── */
 section('marks/… — repeats as runs of neighbors alike on the specimen, the root and the parts that hold others bracketed (#2927 Q4, Q5; #3265)');
@@ -889,7 +909,7 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
 {
   // The anatomy legend as the panel plans it: each entry's label and its one-sentence caption.
   const legend = (id: string): string[] => planDocPanel(componentDefs.find((d) => d.id === id)!, { modes: ['light', 'dark'], names }).sections
-    .find((x) => x.id === 'anatomy')!.blocks.flatMap((b) => (b.type === 'Field' ? [`${b.label} — ${b.text}`] : []));
+    .find((x) => x.id === 'anatomy')!.blocks.flatMap((b) => (b.type === 'Field' ? [`${b.n}  ${b.label} — ${b.text}`] : []));
   const want = (id: string, lines: string[], why: string): void => {
     const got = legend(id);
     const at = got.findIndex((l, i) => l !== lines[i]);
@@ -1064,7 +1084,7 @@ section('markers/… — every listed number on a specimen, on its part, by one 
     const wrong: string[] = [];
     const nums = listedNumbers(panel);
     const taken = new Set<string>();
-    const labelOf = (num: string): string => String(walk(sec).find((c) => c.name === 'label' && String(c.characters).startsWith(`${num}  `))!.characters).slice(`${num}  `.length).replace(/ \(optional\)$/, '');
+    const labelOf = (num: string): string => (partEntries(panel).find((e) => e.num === num)?.label ?? '').replace(/ \(optional\)$/, '');
     // #3265: a label names one instance ("Cell 4") or a run ("Cells 1–6"); each is read back to the def's parts by their
     // part names ("Cell4"), so the oracle knows which parts an entry covers without asking the panel.
     const covers = (label: string): ComponentDef['id'][] => {
@@ -1285,6 +1305,66 @@ section('markers/left and blind — containers share the left column where their
   ok((r.marked ?? 0) > 0 && groups.length === r.marked && !strays.length && !inSet.length && snap(set) === before && unedited,
     `markers/blind: ${groups.length} markers, every one a child of the panel, none in the set or a specimen, the set unchanged by the draw, and the panel unedited after it`,
     [...strays, ...inSet.map((c) => `${c.name} in the set`), snap(set) === before ? '' : 'the set changed', unedited ? '' : 'the panel reads as edited'].filter(Boolean).slice(0, 4).join('; '));
+}
+
+/* ── parts list: each entry's number is its marker's disc (#2927, owner decision Q2927-R1 A) ───────────── */
+section('parts list/… — each anatomy entry draws its marker\'s disc, and its label carries no number (#2927, Q2927-R1 A)');
+{
+  // Typed here, never read off the plugin: _Label's ink (#3773 B), the disc's size and the numeral's color.
+  const INK = '#9747FF', DISC = 20, NUMERAL = '#FFFFFF';
+  const hexOf = (n: N | undefined): string => {
+    const f = ((n?.fills ?? []) as { color?: { r: number; g: number; b: number }; boundVariables?: unknown }[])[0];
+    if (!f?.color || f.boundVariables) return 'no literal fill';
+    return `#${[f.color.r, f.color.g, f.color.b].map((v) => Math.round(v * 255).toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+  };
+  /** What a disc looks like, everything but where it sits: its ink, size, corner, numeral, numeral's ink, face and size. */
+  const look = (d: N): string => {
+    const t = walk(d).find((c) => c.type === 'TEXT');
+    return JSON.stringify([d.type, hexOf(d), d.width, d.height, d.cornerRadius, (d.strokes ?? []).length, (d.effects ?? []).length,
+      String(t?.characters ?? ''), hexOf(t), t?.fontName, t?.fontSize, (d.children ?? []).length]);
+  };
+  const noDisc: string[] = [], unlike: string[] = [], numbered: string[] = [], typed: string[] = [];
+  for (const def of leads) {
+    const p = page(`↳ pl ${def.id}`);
+    const set = fakeSet(p, def.id);
+    await drawDocPanel(host([p]), set, def, { names });
+    const panel = panelsOn(p)[0];
+    if (!panel) continue;
+    const a = docSections(def).sections.find((x) => x.id === 'anatomy');
+    if (!a || a.id !== 'anatomy') continue;
+    // The plan's entries, by their Field blocks; each must be drawn as a row led by a disc.
+    const fields = planDocPanel(def, { modes: ['light', 'dark'], names }).sections.find((x) => x.id === 'anatomy')!.blocks.filter((b) => b.type === 'Field');
+    const sec = walk(panel).find((c) => c.getSharedPluginData!('prism3', 'docSection') === 'anatomy')!;
+    const inSpecimen = (c: N): boolean => { for (let q = c.parent as N | undefined; q && q !== sec; q = q.parent as N | undefined) if (q.name === 'specimen') return true; return false; };
+    const labels = walk(sec).filter((c) => c.type === 'TEXT' && c.name === 'label' && !inSpecimen(c));
+    const entries = partEntries(panel);
+    if (entries.length !== fields.length || entries.length !== labels.length) noDisc.push(`${def.id}: ${entries.length} entries with a disc, ${labels.length} labels, ${fields.length} planned`);
+    // No label, planned or drawn, starts with a number: the disc is the entry's only number.
+    for (const l of [...fields.map((b) => (b.type === 'Field' ? b.label : '')), ...labels.map((c) => String(c.characters))]) if (/^\s*\d/.test(l)) numbered.push(`${def.id}: "${l}"`);
+    entries.forEach((e, i) => {
+      // THE SAME DISC AS ITS MARKER: the specimen's `part <n>` disc and the entry's look alike in every respect.
+      const marker = panel.children.find((c) => c.name === `part ${e.num}`)?.children.find((c) => c.name === 'marker');
+      if (!marker) { unlike.push(`${def.id} ${e.num}: no specimen marker reads ${e.num}`); return; }
+      if (look(e.disc) !== look(marker)) unlike.push(`${def.id} ${e.num}: entry disc ${look(e.disc)} ≠ marker ${look(marker)}`);
+      // And that look is the typed one: _Label ink, 20 across, a white numeral reading the entry's place in the list.
+      const t = walk(e.disc).find((c) => c.type === 'TEXT');
+      if (hexOf(e.disc) !== INK || e.disc.width !== DISC || e.disc.height !== DISC || hexOf(t) !== NUMERAL || e.num !== String(i + 1) || e.disc.type === 'INSTANCE')
+        typed.push(`${def.id} entry ${i + 1}: ${hexOf(e.disc)} ${e.disc.width}×${e.disc.height}, numeral "${e.num}" in ${hexOf(t)}`);
+    });
+  }
+  ok(!noDisc.length, 'parts list/disc: every lead\'s anatomy entry is a row led by a disc, one per planned entry', noDisc.slice(0, 4).join('; '));
+  ok(!numbered.length, 'parts list/no number in the label: no anatomy label, planned or drawn, starts with a number', numbered.slice(0, 4).join('; '));
+  ok(!unlike.length, 'parts list/matches the marker: each entry\'s disc looks exactly like its specimen marker', unlike.slice(0, 4).join('; '));
+  ok(!typed.length, `parts list/typed: each entry disc is ${INK}, ${DISC} across, its numeral ${NUMERAL} and its place in the list`, typed.slice(0, 4).join('; '));
+  // REPEATS (#3265, #3292), typed by hand: Tabs reads disc 3 "Tab 1" and disc 4 "Tabs 2–3", one disc each, and Code input's
+  // run of six cells is one entry, disc 4 "Cells 1–6". The range is the label's; the disc is the entry's one number.
+  for (const [id, want] of [['tabs', ['1 Container', '2 Tab slot', '3 Tab 1', '4 Tabs 2\u20133', '5 Baseline']], ['code-input', ['1 Container', '2 Label', '3 Cell slot', '4 Cells 1\u20136', '5 Message (optional)']]] as const) {
+    const p = page(`↳ pl repeat ${id}`);
+    await drawDocPanel(host([p]), fakeSet(p, id), componentDefs.find((d) => d.id === id)!, { names });
+    const got = partEntries(panelsOn(p)[0]).map((e) => `${e.num} ${e.label}`);
+    const discs = partEntries(panelsOn(p)[0]).map((e) => e.row.children.filter((c) => c.name === 'marker').length);
+    ok(got.join('|') === want.join('|') && discs.every((k) => k === 1), `parts list/repeats ${id}: ${want.join(', ')}, one disc per entry`, `got ${got.join(', ')}; discs ${discs.join(',')}`);
+  }
 }
 
 /* ── width: each specimen at its member's own width, the panel widening to fit ─────────────────────────── */
@@ -1613,7 +1693,7 @@ section('legacy/… — a panel printed the old way, its set rebuilt since: repl
     const ta = host([t]);
     await drawDocPanel(ta, ts, tabs, { names });
     const oldPanel = panelsOn(t)[0];
-    const was: Record<string, string> = { '3  Tab 1': '3  Tab1', '4  Tabs 2\u20133': '4  Tab \u00d72', 'One trigger in a tab list.': 'A second tab.' };
+    const was: Record<string, string> = { 'Tab 1': '3  Tab1', 'Tabs 2\u20133': '4  Tab \u00d72', 'One trigger in a tab list.': 'A second tab.' };
     const swapped = walk(oldPanel).filter((c) => c.type === 'TEXT' && String(c.characters) in was);
     for (const c of swapped) c.characters = was[String(c.characters)];
     await printOld(oldPanel);
@@ -1621,6 +1701,29 @@ section('legacy/… — a panel printed the old way, its set rebuilt since: repl
     const r3 = await drawDocPanel(ta, ts, tabs, { names });
     ok(swapped.length === 3 && texts(oldPanel).includes('4  Tab \u00d72') && r3.replaced === 1 && r3.kept.length === 0 && panelsOn(t).length === 1,
       `legacy/merged legend: an old-print panel whose legend reads "4  Tab \u00d72" is replaced, not kept (lines swapped ${swapped.length} of 3, replaced ${r3.replaced}, kept ${r3.kept.length})`);
+  }
+
+  // A PANEL DRAWN BEFORE #2927 (Q2927-R1 A): each anatomy entry was its Field alone, no disc, its label carrying the
+  // number ("4  Tabs 2\u20133", "4  Cells 1\u20136"). The repeats are the case only the numbered form in `writtenTexts` covers:
+  // a part's plain `n  name` line never reads "4  Tabs 2\u20133". Each entry is turned back into that form here, printed
+  // the old way, its set rebuilt: the panel still reads as Prism3's own text, so it is replaced, not kept aside.
+  for (const [id, want] of [['tabs', '4  Tabs 2\u20133'], ['code-input', '4  Cells 1\u20136']] as const) {
+    const d = componentDefs.find((x) => x.id === id)!;
+    const t = page(`\u21b3 ${id} legacy numbered`);
+    const ts = fakeSet(t, id);
+    const ta = host([t]);
+    await drawDocPanel(ta, ts, d, { names });
+    const oldPanel = panelsOn(t)[0];
+    const entries = partEntries(oldPanel);
+    for (const e of entries) {
+      e.row.children.splice(e.row.children.indexOf(e.disc), 1);
+      walk(e.row).find((c) => c.type === 'TEXT' && c.name === 'label')!.characters = `${e.num}  ${e.label}`;
+    }
+    await printOld(oldPanel);
+    rebuild(t, id);
+    const r4 = await drawDocPanel(ta, ts, d, { names });
+    ok(entries.length === 5 && texts(oldPanel).includes(want) && !partEntries(oldPanel).length && r4.replaced === 1 && r4.kept.length === 0 && panelsOn(t).length === 1,
+      `legacy/numbered ${id}: an old-print panel whose entries read "${want}", no disc, is replaced, not kept (entries ${entries.length}, replaced ${r4.replaced}, kept ${r4.kept.length})`);
   }
 
   // THE BUTTONS PAGE (#2968): four sets, laid out before one panel per family, each with its own panel printed the

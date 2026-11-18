@@ -120,7 +120,7 @@ const entry = (title: string, m: Posted): ReportEntry => ({
 });
 const rawText = (ms: readonly Posted[]): string => ms.map((m) => [m.headline, m.summary, ...(m.lines ?? [])].join('\n')).join('\n');
 const report = (title: string, ms: readonly Posted[]): string =>
-  buildReport({ stamp: 'stamp', engine: '0.0.0', host: 'figma', includeBrand: false, brand: BRAND as unknown as Record<string, unknown>, activity: ms.map((m) => entry(title, m)) });
+  buildReport({ stamp: 'stamp', engine: '0.0.0', host: 'figma', includeBrand: false, seen: [], brand: BRAND as unknown as Record<string, unknown>, activity: ms.map((m) => entry(title, m)) });
 /** A literal survives when it is in the text as a whole segment (no letter or digit on either side), in any case. */
 const survives = (text: string, word: string): boolean =>
   new RegExp(`(^|[^A-Za-z0-9])${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[^A-Za-z0-9])`, 'i').test(text);

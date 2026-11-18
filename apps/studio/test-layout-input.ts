@@ -58,7 +58,7 @@ reset();
 L.setColumnOverride('md', 6);
 ok(J(lay()) === J({ columnOverrides: { md: 6 } }) && gridAt(768)?.columns === 6, `setColumnOverride(md, 6) writes columnOverrides.md 6 and the engine's 768px grid has 6 columns — ${J(lay())}`);
 L.setColumnOverride('md', undefined);
-ok(J(lay()) === '{}', `setColumnOverride(md, auto) on the last entry deletes layout.columnOverrides (the legacy page left layout as {}) — ${J(lay())}`);
+ok(lay() === undefined, `#3878: setColumnOverride(md, auto) on the last entry deletes layout.columnOverrides, and the layout it emptied — ${J(lay())}`);
 L.setGapOverride('gutterOverrides', 'md', 4);
 L.setGapOverride('marginOverrides', 'lg', 40);
 ok(J(lay()) === J({ gutterOverrides: { md: 4 }, marginOverrides: { lg: 40 } }) && gridAt(768)?.gutterPx === 4 && gridAt(1024)?.marginPx === 40,
@@ -66,7 +66,7 @@ ok(J(lay()) === J({ gutterOverrides: { md: 4 }, marginOverrides: { lg: 40 } }) &
 L.setGapOverride('gutterOverrides', 'md', undefined);
 ok(lay()?.gutterOverrides === undefined && 'gutterOverrides' in (lay() ?? {}) === false, `setGapOverride(gutter, md, auto) on the last entry deletes layout.gutterOverrides — ${J(lay())}`);
 L.setGapOverride('marginOverrides', 'lg', undefined);
-ok(J(lay()) === '{}', `setGapOverride(margin, lg, auto) on the last entry deletes layout.marginOverrides — ${J(lay())}`);
+ok(lay() === undefined, `#3878: setGapOverride(margin, lg, auto) on the last entry deletes layout.marginOverrides, and the layout it emptied — ${J(lay())}`);
 L.setGapOverride('gutterOverrides', 'md', 5);
 ok(takes() && gridAt(768)?.gutterPx === 5, 'an off-scale gutter (5px) is taken by the engine as 5px, linked or flagged, never snapped (#3052, Q785 A); the page still offers only spacing steps');
 reset();
