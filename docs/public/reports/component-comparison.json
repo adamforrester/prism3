@@ -1685,6 +1685,10 @@
           "name": "title"
         },
         {
+          "name": "showTitle",
+          "default": true
+        },
+        {
           "name": "description"
         },
         {
@@ -8673,6 +8677,12 @@
       },
       {
         "id": "switch-row",
+        "default": true
+      }
+    ],
+    "showTitle": [
+      {
+        "id": "dialog",
         "default": true
       }
     ],

@@ -2569,6 +2569,10 @@
             "type": "TEXT"
           },
           {
+            "name": "show title",
+            "type": "BOOLEAN"
+          },
+          {
             "name": "description",
             "type": "BOOLEAN"
           },
