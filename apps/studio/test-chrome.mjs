@@ -22971,7 +22971,7 @@ if (runs('3938')) {
   const readRow = (page) => page.evaluate(() => {
     const bar = document.querySelector('.tok-ctrls');
     if (!bar) return null;
-    const caps = [...bar.querySelectorAll('.pfield > .pfk')].map((c) => ({ text: c.textContent.trim(), top: Math.round(c.getBoundingClientRect().top * 100) / 100 }));
+    const caps = [...bar.querySelectorAll('.pfield > .pfk')].map((c) => ({ text: c.textContent.trim(), top: Math.round(c.getBoundingClientRect().top * 100) / 100, ctl: Math.round(c.nextElementSibling.getBoundingClientRect().height * 100) / 100, field: Math.round(c.parentElement.getBoundingClientRect().height * 100) / 100 }));
     const selects = [...bar.querySelectorAll('select')].map((x) => ({ hook: x.getAttribute('data-p3'), cls: x.className }));
     return { caps, selects };
   });
@@ -22984,9 +22984,9 @@ if (runs('3938')) {
       await goPlace(page, 'brand');
       await hooks.click(page.locator('[data-p3="inspect-open"]'), WAIT);
       await hooks.click(page.locator('[data-p3="inspect-option-tokens"]'), WAIT);
-      for (const tier of ['semantic', 'primitive']) {
+      for (const [tier, tab] of [['semantic', '[data-p3="token-tier-semantic"]'], ['primitive', '[data-p3="token-tier-primitive"]']]) {
         step = `tier ${tier}`;
-        await hooks.click(page.locator(`[data-p3="token-tier-${tier}"]`), WAIT);
+        await hooks.click(page.locator(tab), WAIT);
         await hooks.need(page, '.tok-ctrls .pfield');
         await settle(page);
         const row = await readRow(page);
