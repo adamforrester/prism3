@@ -141,10 +141,11 @@ const SIZE: DocBlockSize = 'sm';
  *  moved there (#3205 follow-up). 7: each specimen FILLs its stage, its width set by the stage's padding, since Figma drops a
  *  width written to a layer inside an instance and 4–6's widths never held in a real file (#3205, owner review 2026-11-13).
  *  8: the anatomy markers as `_Label`-ink discs with one direct leader per part, each ending in a dot on its part's
- *  edge, and no brackets (#3773, owner decision B).
+ *  edge, and no brackets (#3773, owner decision B). 9: each anatomy entry's number drawn as its marker's disc, not
+ *  as text in its label (#2927, owner decision Q2927-R1 A).
  *  The as-built ledger records it per set (`panel`, `main.ts` `ledgerNow`), so a raise
  *  makes a lead set due in Update file's check even when its set is current (#3205, the format-due credit). */
-export const PANEL_FORMAT = 8;
+export const PANEL_FORMAT = 9;
 /** THE TITLES (#2970 item 5, owner decision): the panel's title and each section's, in px, with their letter-spacing
  *  in percent. The tracking is the studio's: its 20px page titles take `ls-tightest` (−4%) and its 16px section titles
  *  `ls-tighter` (−3%), the default theme's values (`theme.ts` `LETTER_SPACINGS`). Written over the block's text style,
@@ -157,13 +158,18 @@ export const MARK_GAP = 8;
 export const MARK_SEP = 4;
 /** The width of a leader. */
 export const LEADER = 1;
+/** Between a parts-list entry's disc and its Field block (#2927, Q2927-R1 A; HELD FOR THE OWNER with the disc's top
+ *  alignment, under the copy-file QA). */
+export const ENTRY_GAP = 8;
 
 /* ── the pure planner ──────────────────────────────────────────────────────────────────────────────────── */
 
 export type PanelBlock =
   | { type: 'Heading'; text: string; size: DocBlockSize }
   | { type: 'Paragraph'; text: string; size: DocBlockSize }
-  | { type: 'Field'; label: string; text: string }
+  /** `n`: an anatomy entry's number (#2927, owner decision Q2927-R1 A), drawn as the same disc as its specimen marker
+   *  (`MARK_DISC`) before the label, which then carries no number of its own. */
+  | { type: 'Field'; label: string; text: string; n?: number }
   | { type: 'Do-Dont'; do: string[]; dont: string[] }
   | { type: 'Chips'; label: string; chips: string[]; note?: string }
   /** A bulleted list (#2970 item 3): each item's name, the def whose set it links to when the file has one, and a line
@@ -370,7 +376,7 @@ export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]
   for (const s of model as DocSection[]) {
     if (PANEL_OMITS.includes(s.id)) continue;
     const blocks: PanelBlock[] = [];
-    const field = (label: string, text: string, n: number) => blocks.push({ type: 'Field', label, text: firstSentences(text, n) });
+    const field = (label: string, text: string, n: number, mark?: number) => blocks.push({ type: 'Field', label, text: firstSentences(text, n), ...(mark === undefined ? {} : { n: mark }) });
     let row = false;
     switch (s.id) {
       case 'overview':
@@ -382,9 +388,10 @@ export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]
         blocks.push({ type: 'Specimen', caption: `Shown on the default member: ${s.specimen.map((x) => `${x.axis} ${x.value}`).join(', ')}`, marks });
         for (const m of marks) {
           const p = s.parts.find((x) => x.id === m.part)!;
-          // #3265: "Cell 4" for one instance, "Cells 1–6" for a run, each captioned truly for every part it covers.
+          // #3265: "Cell 4" for one instance, "Cells 1–6" for a run, each captioned truly for every part it covers. The
+          // number is the entry's disc, never its label's text (Q2927-R1 A): one number source, the marker's.
           const e = anatomyEntry(def, m, (id) => s.parts.find((x) => x.id === id)?.caption ?? '');
-          field(`${m.n}  ${e.label}${p.optional ? ' (optional)' : ''}`, e.caption, 1);
+          field(`${e.label}${p.optional ? ' (optional)' : ''}`, e.caption, 1, m.n);
         }
         break;
       }
@@ -784,6 +791,8 @@ const writtenTexts = (api: Pick<PanelApi, 'root'>, defId: string): Set<string> |
   if (plan.changed.length > 1) out.add(plan.changed.slice(1).join('\n'));
   for (const b of plan.sections.flatMap((s) => s.blocks)) if (b.type === 'Chips' && b.chips.length > CHIP_SLOTS) out.add(`+${b.chips.length - CHIP_SLOTS + 1} more`);
   for (const b of plan.sections.flatMap((s) => s.blocks)) if (b.type === 'Links') out.add(b.items.map(linkLine).join('\n'));
+  // An anatomy entry as it read before its number became a disc (#2927, Q2927-R1 A): "3  Caret".
+  for (const b of plan.sections.flatMap((s) => s.blocks)) if (b.type === 'Field' && b.n !== undefined) out.add(`${b.n}  ${b.label}`);
   for (const s of docSections(def, { modes: PANEL_MODES }).sections as DocSection[]) {
     // A further specimen's caption names what its member changes (`markSpecimens`): each pair, joined by commas.
     if (s.id === 'styles') for (const pair of [...s.axes.flatMap((a) => a.values.map((v) => `${a.axis} ${v}`)), ...s.states.map((v) => `state ${v}`)]) out.add(`${SHOWN_ON}${pair}`);
@@ -1212,6 +1221,44 @@ export const drawDocPanel = async (
     if (!i) out.misses.push(`${DOC_BLOCK_SET} has no ${docBlockVariant(type, size ?? SIZE)} variant`);
     return i;
   };
+  /** The numeral's face for every part disc, the specimen's markers and the parts list's alike: Inter Semi Bold, else
+   *  Regular, loaded once. A host with neither draws each disc without its numeral. The miss line's wording is APPROVED
+   *  (owner decision Q-BK4 A, 2026-11-17). */
+  let face: { family: string; style: string } | null | undefined;
+  const markFace = async (): Promise<void> => {
+    if (face !== undefined) return;
+    face = null;
+    for (const f of [SEMIBOLD, REGULAR]) {
+      try { await api.loadFontAsync(f); face = f; break; } catch { /* the next face */ }
+    }
+    if (face !== SEMIBOLD) out.misses.push(`${SEMIBOLD.family} ${SEMIBOLD.style} unavailable for the part markers${face ? `: used ${face.family} ${face.style}` : ''}`);
+  };
+  /** THE PART DISC (#3773 B): `MARK_DISC` across, filled `MARK_INK`, its numeral `MARK_NUMERAL`. The one drawing of a
+   *  part's number: each specimen marker is one, and so is each parts-list entry's (#2927, Q2927-R1 A). Call
+   *  `markFace` first. */
+  const disc = (n: number): PNode => {
+    const d = api.createFrame();
+    d.name = 'marker';
+    d.fills = solid(MARK_INK);
+    d.cornerRadius = MARK_DISC / 2;
+    d.resize?.(MARK_DISC, MARK_DISC);
+    const t = api.createText();
+    t.name = 'count';
+    d.appendChild?.(t);
+    if (face) {
+      t.fontName = { ...face };
+      t.characters = String(n);
+    }
+    t.fontSize = 12;
+    t.fills = solid(MARK_NUMERAL);
+    t.textAutoResize = 'NONE';
+    t.textAlignHorizontal = 'CENTER';
+    t.textAlignVertical = 'CENTER';
+    t.resize?.(MARK_DISC, MARK_DISC);
+    t.x = 0;
+    t.y = 0;
+    return d;
+  };
   const setBool = (i: PNode, name: string, value: boolean): void => { const k = propKey(i, name); if (k) i.setProperties?.({ [k]: value }); };
 
   // The member the specimens show: the set's own default, its first.
@@ -1355,8 +1402,20 @@ export const drawDocPanel = async (
   const draw = async (into: PNode, b: PanelBlock): Promise<void> => {
     const i = block(b.type === 'Links' ? 'Field' : b.type, b.type === 'Heading' || b.type === 'Paragraph' ? b.size : SIZE);
     if (!i) return;
-    into.appendChild?.(i);
-    fill(i);
+    // A NUMBERED ANATOMY ENTRY (#2927, owner decision Q2927-R1 A): a row of its part's disc, the one `disc` draws for the
+    // specimen's marker, then the Field block, so the list and the specimen read their number from one drawing.
+    if (b.type === 'Field' && b.n !== undefined) {
+      await markFace();
+      const row = frame(`entry ${b.n}`, 'HORIZONTAL', ENTRY_GAP);
+      into.appendChild?.(row);
+      fill(row);
+      row.appendChild?.(disc(b.n));
+      row.appendChild?.(i);
+      i.layoutGrow = 1;
+    } else {
+      into.appendChild?.(i);
+      fill(i);
+    }
     switch (b.type) {
       case 'Heading': case 'Paragraph': await write(findText(i, 'text'), b.text, 'text'); break;
       case 'Field': await write(findText(find(i, 'row') ?? i, 'label'), b.label, 'label'); await write(findText(find(i, 'row') ?? i, 'text'), b.text, 'text'); break;
@@ -1433,39 +1492,7 @@ export const drawDocPanel = async (
    */
   const drawMarkers = async (): Promise<number> => {
     const rect = boxOn;
-    // The numeral's face: Inter Semi Bold, else Regular. A host with neither draws each disc without its numeral. The
-    // miss line's wording is APPROVED (owner decision Q-BK4 A, 2026-11-17).
-    let face: { family: string; style: string } | null = null;
-    const discs = anatomy.reduce((k, a) => k + a.marks.length, 0);
-    if (discs) {
-      for (const f of [SEMIBOLD, REGULAR]) {
-        try { await api.loadFontAsync(f); face = f; break; } catch { /* the next face */ }
-      }
-      if (face !== SEMIBOLD) out.misses.push(`${SEMIBOLD.family} ${SEMIBOLD.style} unavailable for the part markers${face ? `: used ${face.family} ${face.style}` : ''}`);
-    }
-    const disc = (n: number): PNode => {
-      const d = api.createFrame();
-      d.name = 'marker';
-      d.fills = solid(MARK_INK);
-      d.cornerRadius = MARK_DISC / 2;
-      d.resize?.(MARK_DISC, MARK_DISC);
-      const t = api.createText();
-      t.name = 'count';
-      d.appendChild?.(t);
-      if (face) {
-        t.fontName = { ...face };
-        t.characters = String(n);
-      }
-      t.fontSize = 12;
-      t.fills = solid(MARK_NUMERAL);
-      t.textAutoResize = 'NONE';
-      t.textAlignHorizontal = 'CENTER';
-      t.textAlignVertical = 'CENTER';
-      t.resize?.(MARK_DISC, MARK_DISC);
-      t.x = 0;
-      t.y = 0;
-      return d;
-    };
+    if (anatomy.some((a) => a.marks.length)) await markFace();
     type Laid = { mark: AnatomyMark; part: PNode; group: PNode; disc: PNode; side: 'top' | 'bottom' | 'left'; tier: number; dy: number };
     const all: { spec: PNode; stage?: PNode; laid: Laid[] }[] = [];
     for (const a of anatomy) {

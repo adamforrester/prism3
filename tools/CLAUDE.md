@@ -351,16 +351,3 @@ is gated is the bridge's arm switch, `PRISM3_BRIDGE_ARM`, by the `arm/…` arms 
 The scorer never reads the bridge's note, its resources or a skill (`docs/34` shape 1): its names are literals or come
 from the run's own captures, and the self-test's `independence/static-*` arms read its source to keep it so. The code
 half (`score-code.ts`) is a separate lane and shares no module with this one.
-
-## `tools/file-seed-comparison/`
-
-#2075 part 2 (Q-FS1 A): turns one file facts report into a starting brand two ways and scores both against
-`answer-key.json`, which is written by hand from the sources each value cites. The engine path, `file-seed.ts`, runs
-live. The agent path is `agent/<row>.design.md`, recorded by a fresh agent that saw only the report and the
-`prism3-theme` skill, so the comparison re-runs without an agent. `scan-script.ts` is the external rows' capture: a
-`use_figma` script that runs part 1's own `scanOpenFile` in the open file and returns the report in hashed chunks.
-`selftest` runs it against a shim and checks that the rejoined report equals a direct scan. **No gate sibling, and the
-reason is the subject:** the question is which path to build on, the owner answers it from the findings
-(`docs/superpowers/2075-seed-comparison-findings.md`), and nobody has decided what score would be a failure. The
-interpreter's own behavior *is* gated, in `test.ts`'s `#2075 seed` arms. **The one rule to keep:** external reports
-name a client's pages, styles and components, so they and their keys stay off the repo, and only verdicts come back.
