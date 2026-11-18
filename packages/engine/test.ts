@@ -43205,6 +43205,25 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(backstop.includes('step 37 is not on the primary ramp'), `#3873 pickBrand refuses an exact anchor off the ramp rather than falling back to 500 (got ${JSON.stringify(backstop.slice(0, 160))})`);
 }
 
+// #3876 — the serializer wrote a quote in a double-quoted scalar as `\"`, and the parser never decoded it: every
+// export → import added a backslash before each quote in a brand name, and the scanners toggled their quote state on
+// the escaped quote. The round-trip gate above runs only the example brands, and none holds a quote in a string, so it
+// could not fail (docs/34: the subject's inputs did not cover the case). These inputs do.
+{
+  const base = { id: 'q3876', primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 } };
+  for (const name of ['The "Blue" brand', '5" screen', `a\\b "c" 'd' #e: f`, 'ends with \\', '\\"']) {
+    let x: any = { ...base, name, typography: { families: { body: name } }, meta: { [name]: name } };
+    for (let i = 0; i < 3; i++) x = parseDesignMd(toDesignMd(x)).input;
+    ok(x.name === name && x.typography?.families?.body === name && x.meta?.[name] === name,
+      `#3876 three design.md round trips keep ${JSON.stringify(name)} as a name, a value and a key (got ${JSON.stringify(x.name)}, ${JSON.stringify(x.typography?.families?.body)}, keys ${JSON.stringify(Object.keys(x.meta ?? {}))})`);
+  }
+  // A hand-written brief: an escaped quote must not end the string for the comment scanner or the key scanner.
+  const commented = parseDesignMd('---\nid: q\nname: "5\\" screen" # a note\n---\n').input as any;
+  ok(commented.name === '5" screen', `#3876 a trailing comment after an escaped quote is stripped (got ${JSON.stringify(commented.name)})`);
+  const keyed = parseYamlSubset('meta:\n  "a\\": b": 1\n') as any;
+  ok(keyed?.meta?.['a": b'] === 1, `#3876 a block key holding an escaped quote and a colon splits at its own colon (got ${JSON.stringify(keyed)})`);
+}
+
 // #3872 — breakpoints are mobile-first min-width floors, so each must be above the one before. Out of order
 // ([0, 1024, 768]) emitted lg below md, a repeat named one floor twice, and a negative floor sat below the first;
 // each built cleanly (and a null floor, which no JSON brief can hold as a number, crashed on `.toFixed`). brandTheme
