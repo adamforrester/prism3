@@ -11,3 +11,6 @@ the same contract, and its markup writers follow it. Engine output doesn't move,
   `error` adopts with `showMessage` off, so set back to default it writes no message.
 - **Two check weaknesses fixed:** the element parity contract's message link passed when no message was written, and
   the element browser check's mutants were built at load, so a hand mutation crashed it before the real run reported.
+- **Owner decisions (2026-11-18):** 1 B, so at a status with neither `validationMessage` nor `helpText` the element
+  also logs one console warning, once per status it enters (DRAFT text, in the journal); 2 A, the contract only, with
+  no runtime repair in `@prism3/css`. `wc-browser`'s section 6d and a new self-test mutant hold the warning by name.

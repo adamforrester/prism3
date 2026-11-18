@@ -27,10 +27,13 @@
  *    `aria-describedby`. A status set live writes it; back at default, `showMessage` off writes none. The plain form
  *    (`@prism3/css`'s markup) is held the same way at each status with `showMessage` off, and a field pre-rendered at
  *    error adopts with `showMessage` off, so set back to default it writes no message.
+ *    A status with neither `validationMessage` nor `helpText` logs one console warning naming the element and its
+ *    status (OWNER DECISION 1 B, #3968); a field with either text, or at default, logs none.
  *
- * SELF-TEST: six mutants must each fail by name: the submit handler removed, adoption dropping a typed value, the
+ * SELF-TEST: seven mutants must each fail by name: the submit handler removed, adoption dropping a typed value, the
  * toggle moving focus to the input, the caret put back only once (Chromium resets it a task later), `@prism3/css`'s
- * script no longer standing aside, and the message written only when `showMessage` is on (Q-POC2 A).
+ * script no longer standing aside, the message written only when `showMessage` is on (Q-POC2 A), and the empty-status console warning removed
+ * (OWNER DECISION 1 B).
  */
 import { createRequire } from 'node:module';
 import { existsSync, readFileSync } from 'node:fs';
@@ -317,6 +320,32 @@ export const run = async (browser: any, src: Sources): Promise<{ failures: strin
     }
     await page.close();
   }
+
+  // 6d. a status with no text warns the developer (OWNER DECISION 1 B, #3968). At error, warning or success with
+  // neither validationMessage nor helpText, each element logs one console warning that names it and its status. A
+  // field with either text, or at default, logs none, and a status set live warns once, not on every render.
+  {
+    const page = await browser.newPage();
+    const warnings: string[] = [];
+    page.on('console', (m: any) => { if (m.type() === 'warning') warnings.push(m.text()); });
+    const STATUSES = ['error', 'warning', 'success'];
+    const auto = (k: Kind) => (k === 'password-field' ? ' data-prop-autocomplete="current-password"' : '');
+    await page.setContent(page_(KINDS.flatMap((k) => [
+      ...STATUSES.map((st) => `<p3-${k} data-prop-label="L" data-prop-id="empty-${k}-${st}" data-prop-validation="${st}"${auto(k)}></p3-${k}>`),
+      `<p3-${k} data-prop-label="L" data-prop-id="vm-${k}" data-prop-validation="error" data-prop-validationmessage="Why."${auto(k)}></p3-${k}>`,
+      `<p3-${k} data-prop-label="L" data-prop-id="ht-${k}" data-prop-validation="warning" data-prop-helptext="Help."${auto(k)}></p3-${k}>`,
+      `<p3-${k} data-prop-label="L" data-prop-id="def-${k}"${auto(k)}></p3-${k}>`,
+    ]).join('') + `<p3-text-field data-prop-label="Live" data-prop-id="live-empty"></p3-text-field>`));
+    await load(page);
+    const named = (k: string, st: string) => warnings.filter((w) => w.includes(`<p3-${k}>`) && w.includes(`validation="${st}"`) && /no validationMessage or helpText/.test(w));
+    for (const k of KINDS) for (const st of STATUSES)
+      ok(named(k, st).length === 1, `OWNER DECISION 1 B: <p3-${k}> at ${st} with neither validationMessage nor helpText logs ${named(k, st).length} console warnings naming it, not 1 (${JSON.stringify(warnings.slice(0, 3))})`);
+    ok(warnings.length === KINDS.length * STATUSES.length, `OWNER DECISION 1 B: the page logs ${warnings.length} console warnings, not ${KINDS.length * STATUSES.length}: one per empty-status field, none for a field with a validationMessage, a helpText, or at default (${JSON.stringify(warnings)})`);
+    const before = warnings.length;
+    await page.evaluate(`(async () => { const el = document.querySelector('p3-text-field:has(#live-empty)'); el.validation = 'error'; await el.updateComplete; el.label = 'Live 2'; await el.updateComplete; })()`);
+    ok(warnings.length - before === 1, `OWNER DECISION 1 B: <p3-text-field> set live to error with no text logs ${warnings.length - before} console warnings over two renders, not 1`);
+    await page.close();
+  }
   return { failures, passed };
 };
 
@@ -336,6 +365,7 @@ const MUTANTS: { name: string; src: () => Sources; mustName: RegExp }[] = [
   { name: 'the toggle moving focus to the input', src: () => ({ ...REAL, elements: { ...SOURCE, 'password-field': swap(PF, 'this.requestUpdate();\n    announce(', 'input.focus();\n    this.requestUpdate();\n    announce(', 'focus') }}), mustName: /^toggle click: focus went to "p3-password-field__entry"/ },
   { name: 'the caret put back once only, not after Chromium\'s reset', src: () => ({ ...REAL, elements: { ...SOURCE, 'password-field': swap(PF, '      setTimeout(() => input.setSelectionRange(start, end), 0);\n', '', 'caret') }}), mustName: /^toggle click: the caret moved to 0,0, not 2,5/ },
   { name: 'the message written only when showMessage is on (Q-POC2 A)', src: () => ({ ...REAL, elements: { ...SOURCE, 'text-field': swap(SOURCE['text-field'], "const writeMessage = this.showMessage || status !== 'default';", 'const writeMessage = this.showMessage;', 'writeMessage') }}), mustName: /^Q-POC2: <p3-text-field> at error with showMessage off renders no linked, shown message/ },
+  { name: 'the empty-status console warning removed (OWNER DECISION 1 B)', src: () => ({ ...REAL, elements: { ...SOURCE, 'text-field': swap(SOURCE['text-field'], /\n\s*if \(empty && this\.#warnedStatus !== status\) console\.warn\([^\n]*/, '', 'empty-status warning') }}), mustName: /^OWNER DECISION 1 B: <p3-text-field> at error with neither validationMessage nor helpText logs 0 console warnings/ },
   { name: '@prism3/css\'s script no longer standing aside', src: () => ({ ...REAL, cssScript: swap(CSS_SCRIPT, "const owned = (button) => !!button.closest('p3-password-field:defined');", 'const owned = () => false;', 'owned')}), mustName: /^upgrade: with both scripts, one click did not show the value once/ },
 ];
 

@@ -181,6 +181,7 @@ ${props.map(initializer).join('\n')}
   #adopted = false;
   #auto = \`${P}-\${++serial}\`;
   #refocus = null;
+  #warnedStatus = null;
 ${password ? `  #shown = false;
 ` : ''}
   get #inputId() {
@@ -269,6 +270,13 @@ ${password ? `
       input.focus();
       if (start !== null && end !== null) input.setSelectionRange(start, end);
     }
+    // OWNER DECISION 1 B (#3968): a status with neither validationMessage nor helpText writes an empty message, so the
+    // element warns the developer, once per status it enters, not on every render. DRAFT text.
+    const status = this.validation ?? 'default';
+    const text = status === 'default' ? this.helpText : (this.validationMessage ?? this.helpText);
+    const empty = status !== 'default' && (text === undefined || text === null || text === '');
+    if (empty && this.#warnedStatus !== status) console.warn(\`<${TAG}> has validation="\${status}" and no validationMessage or helpText, so its message is empty. Set validationMessage to say why the field is at this status.\`);
+    this.#warnedStatus = empty ? status : null;
   }
 
   #onInput = (event) => {

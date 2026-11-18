@@ -1577,6 +1577,15 @@ unchanged; the engine def lives on `main`.
    unlinked message, or reveals a hidden one, at a status. A script can't write missing text.
    **Recommendation: A.** B adds a script to every text field for a markup error the checks already catch.
 
+**Owner answers (2026-11-18, on #3968):** decision 1 is **B**, and decision 2 is **A** (no change). At `error`,
+`warning` or `success` with neither `validationMessage` nor `helpText`, each element still writes A's empty, linked
+message and also logs one console warning, once per status it enters. The text is DRAFT:
+`<p3-text-field> has validation="error" and no validationMessage or helpText, so its message is empty. Set
+validationMessage to say why the field is at this status.` (with the element's tag and status). `wc-browser`'s
+section 6d holds it: one warning per empty-status field naming the element and status, none with either text or at
+default, and one, not one per render, for a status set live. Its self-test mutant removes the warning and must fail
+by name.
+
 ### What was checked, and how
 
 - **`wc-browser` (`check-browser-fields.ts`), new section 6.** For each element at error, warning and success with
