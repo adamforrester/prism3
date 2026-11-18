@@ -33,6 +33,11 @@ export type ReportInput = {
   /** The brand input the panel holds, or null. Read for its words even when it is not included, so `scrub` can take them out. */
   readonly brand: Readonly<Record<string, unknown>> | null;
   readonly includeBrand: boolean;
+  /** The words of every brand the session has held (#3883), not only `brand`: an Activity line is an operation's
+   *  latest result, and it stays across brand loads, renames and a failed restore. Scrubbed whether or not `brand` is
+   *  included, except the included brand's own words, which the report then carries anyway. Required, so a caller
+   *  cannot leave the earlier brands out by forgetting it. */
+  readonly seen: readonly BrandWord[];
 };
 
 const REDACTED = '[removed]';
@@ -98,6 +103,18 @@ export const brandWords = (brand: Readonly<Record<string, unknown>> | null): Bra
     whole.push({ whole: n });
   }
   return [...new Set(words), ...whole].sort((a, b) => wordText(b).length - wordText(a).length);
+};
+
+/** Several word lists as one (#3883): one entry per word, ignoring case. A plain string wins over `{ whole }` for the
+ *  same text (it matches more, so it scrubs at least as much), and the longest words come first, as `brandWords` sorts. */
+export const mergeWords = (...lists: ReadonlyArray<readonly BrandWord[]>): BrandWord[] => {
+  const by = new Map<string, BrandWord>();
+  for (const w of lists.flat()) {
+    const k = wordText(w).toLowerCase();
+    const had = by.get(k);
+    if (!had || (typeof had !== 'string' && typeof w === 'string')) by.set(k, w);
+  }
+  return [...by.values()].sort((a, b) => wordText(b).length - wordText(a).length);
 };
 
 const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -188,7 +205,9 @@ export const reduceFailure = (line: string): string => reduceWriteFailure(line).
 
 /** The bundle, as Markdown, ready to paste into an issue. */
 export const buildReport = (r: ReportInput): string => {
-  const words = r.includeBrand ? [] : brandWords(r.brand);
+  // #3883: every brand the session held, not only the one on screen now. With the brand included, its own words stay.
+  const own = new Set((r.includeBrand ? brandWords(r.brand) : []).map((w) => wordText(w).toLowerCase()));
+  const words = mergeWords(r.includeBrand ? [] : brandWords(r.brand), r.seen).filter((w) => !own.has(wordText(w).toLowerCase()));
   const s = (x: string): string => scrub(reduceFailure(x), words);
   const out: string[] = [
     REPORT_COPY.bodyAsk, '', REPORT_COPY.bodyWhat, '', '', REPORT_COPY.bodyDiag,

@@ -36,6 +36,10 @@
  * (`FONT_SHORTHAND`; `letterSpacing` and `textDecoration` cannot ride in it). A composite type with no
  * order written down, or a field the order does not name, fails rather than being compared loosely.
  * What the split still loses: the separators themselves (`,` between shadow layers, `/` in the shorthand).
+ *
+ * [OWN FILE] (#3877): each block also ships alone at `@prism3/tokens/prism3/<mode>.css`, and each of those
+ * files runs the same [NAMES], [PREFIX], [VALUE] and [MODE] arms against the contract and the tree, not
+ * against the joined file. Only the selector was checked before, so an empty `[data-theme="dark"] {}` passed.
  */
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
@@ -172,16 +176,17 @@ try {
   const blocks = readBlocks(readFileSync(main, 'utf8'));
   console.log(`  blocks: ${[...blocks.keys()].join(' · ')}\n`);
   ok(blocks.size === PROMISED_BLOCKS.length, `the CSS holds exactly the ${PROMISED_BLOCKS.length} promised blocks (got ${blocks.size})`);
-  const root = blocks.get(':root') ?? {};
-  for (const sel of PROMISED_BLOCKS) {
-    const vars = blocks.get(sel);
-    ok(Boolean(vars), `[BLOCK] \`${sel}\` is in the installed CSS`);
-    if (!vars) continue;
+  /**
+   * [NAMES], [PREFIX], [VALUE] and [MODE] over one block, read from `where`. Each file is held against the
+   * contract and the engine's tree directly, never against another file of the build (#3877): a per-mode
+   * file compared to the joined file would only prove the build agrees with itself.
+   */
+  const checkBlock = (where, sel, vars, root) => {
     const missing = expected.filter((n) => !(n in vars));
     ok(missing.length === 0,
-      `[NAMES] \`${sel}\` defines every guaranteed name under \`${PREFIX}\` (${expected.length - missing.length}/${expected.length})${missing.length ? ` — missing e.g. ${missing.slice(0, 5).join(', ')}` : ''}`);
+      `[NAMES] \`${sel}\`${where} defines every guaranteed name under \`${PREFIX}\` (${expected.length - missing.length}/${expected.length})${missing.length ? ` — missing e.g. ${missing.slice(0, 5).join(', ')}` : ''}`);
     const off = Object.keys(vars).filter((n) => !n.startsWith(PREFIX));
-    ok(off.length === 0, `[PREFIX] every name in \`${sel}\` starts \`${PREFIX}\`${off.length ? ` — e.g. ${off.slice(0, 3).join(', ')}` : ''}`);
+    ok(off.length === 0, `[PREFIX] every name in \`${sel}\`${where} starts \`${PREFIX}\`${off.length ? ` — e.g. ${off.slice(0, 3).join(', ')}` : ''}`);
     // [VALUE] (#3563): each guaranteed declaration holds the engine's value for this block's mode.
     const mode = sel === ':root' ? null : sel.match(/"(.+)"/)[1];
     const wrong = [];
@@ -198,19 +203,36 @@ try {
       if (want === undefined || !sameValue(want, vars[name], type)) wrong.push(`${name}: ${vars[name]} (the engine's ${mode ?? 'base'} value is ${JSON.stringify(want)})`);
     }
     ok(compared === expected.length - missing.length && wrong.length === 0,
-      `[VALUE] \`${sel}\` holds the engine's ${mode ?? 'base'} value for every guaranteed name (${compared - wrong.length}/${compared})${wrong.length ? ` — e.g. ${wrong.slice(0, 3).join('; ')}` : ''}`);
+      `[VALUE] \`${sel}\`${where} holds the engine's ${mode ?? 'base'} value for every guaranteed name (${compared - wrong.length}/${compared})${wrong.length ? ` — e.g. ${wrong.slice(0, 3).join('; ')}` : ''}`);
     if (sel !== ':root') {
       const differs = expected.some((n) => n in vars && vars[n] !== root[n]);
-      ok(differs, `[MODE] \`${sel}\` changes at least one guaranteed value from \`:root\` — it is a theme, not a copy`);
+      ok(differs, `[MODE] \`${sel}\`${where} changes at least one guaranteed value from \`:root\` — it is a theme, not a copy`);
     }
+  };
+
+  const root = blocks.get(':root') ?? {};
+  for (const sel of PROMISED_BLOCKS) {
+    const vars = blocks.get(sel);
+    ok(Boolean(vars), `[BLOCK] \`${sel}\` is in the installed CSS`);
+    if (vars) checkBlock('', sel, vars, root);
   }
 
-  // ---- each block also ships on its own, at @prism3/tokens/prism3/<mode>.css ----
+  // ---- each block also ships on its own, at @prism3/tokens/prism3/<mode>.css (#3877) ----
+  // The same arms, run over the file itself. Checking only that the selector is there passed a
+  // `[data-theme="dark"] {}` with no declarations, and would pass one carrying another mode's values.
+  let ownRoot = {};
   for (const sel of PROMISED_BLOCKS) {
     const mode = sel === ':root' ? 'base' : sel.match(/"(.+)"/)[1];
+    const spec = `@prism3/tokens/prism3/${mode}.css`;
     let file;
-    try { file = req.resolve(`@prism3/tokens/prism3/${mode}.css`); } catch { file = null; }
-    ok(Boolean(file) && readBlocks(readFileSync(file, 'utf8')).has(sel), `\`@prism3/tokens/prism3/${mode}.css\` resolves and holds \`${sel}\``);
+    try { file = req.resolve(spec); } catch { file = null; }
+    const own = file ? readBlocks(readFileSync(file, 'utf8')) : new Map();
+    ok(Boolean(file) && own.size === 1 && own.has(sel),
+      `[OWN FILE] \`${spec}\` resolves and holds exactly one block, \`${sel}\`${file ? ` (got ${[...own.keys()].join(' · ') || 'none'})` : ''}`);
+    const vars = own.get(sel);
+    if (!vars) continue;
+    if (sel === ':root') ownRoot = vars;
+    checkBlock(` in ${mode}.css`, sel, vars, ownRoot);
   }
 } finally {
   rmSync(tmp, { recursive: true, force: true });

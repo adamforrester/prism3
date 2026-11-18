@@ -300,6 +300,9 @@ export const NUIA_CLEAN_BY_TSCONFIG: readonly { tsconfig: string; clean: readonl
   { tsconfig: 'apps/plugin/tsconfig.main.json', clean: [
     'packages/engine/anatomy-figma.ts',
     'packages/engine/anatomy-readback.ts',
+    'packages/engine/design-md.ts',
+    'packages/engine/emit-figma-color.ts',
+    'packages/engine/tree.ts',
   ] },
 ];
 

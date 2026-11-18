@@ -1582,7 +1582,7 @@
         {
           "class": "announcement",
           "disposition": "REFUSED",
-          "description": "the live region — a message that appears or changes after render must be announced without stealing focus, which the host does by wrapping it in a polite live region. That is a runtime announcement behavior with no visual expression at all: the Figma member for `status=error` looks identical whether the message was there on load or arrived on blur, and the difference is the whole of whether a screen-reader user learns about it."
+          "description": "the announcement — the message is never a live region of its own (§6, §11). On error the host sets aria-invalid=\"true\" on the field and references this message's id in aria-describedby, and focus moves to the invalid field or to the form's error summary, so the message is read once, with the field. The one region that announces is the form's error summary (§12). A live region on the field fires while focus moves to the field and reads the error twice. That is runtime behavior with no visual expression at all: the Figma member for `status=error` looks identical whether the message was there on load or arrived on submit."
         },
         {
           "class": "not-projected",

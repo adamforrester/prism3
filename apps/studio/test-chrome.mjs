@@ -8082,7 +8082,7 @@ for (const host of ['web', 'figma']) {
     ok(dup === 'Roboto is already in the library.' && JSON.stringify((await persisted(page))?.typography?.typefaceLibrary) === '["Roboto"]', `type: a duplicate by slug is refused, nothing written ("${dup}")`);
     await hooks.click(page.locator('[data-p3="face-row"][data-slug="roboto"] [data-p3="face-remove"]'));
     await page.waitForFunction(() => !document.querySelector('[data-p3="face-row"][data-slug="roboto"]'), null, { timeout: 5000 }).catch(() => {});
-    ok(JSON.stringify((await persisted(page))?.typography?.typefaceLibrary) === '[]', `type: Show advanced's remove takes the unused face out (the legacy bytes, [] left) (${JSON.stringify((await persisted(page))?.typography?.typefaceLibrary)})`);
+    ok((await persisted(page))?.typography?.typefaceLibrary === undefined, `#3878: type: Show advanced's remove takes the last face out and unsets the library, no [] left (${JSON.stringify((await persisted(page))?.typography?.typefaceLibrary)})`);
     const inUse = await page.evaluate(() => ['inter', 'playfair-display', 'jetbrains-mono'].map((x) => !!document.querySelector(`[data-p3="face-row"][data-slug="${x}"] [data-p3="face-remove"]`)));
     ok(inUse.every((x) => !x), `type: a face a text type uses offers no remove (${JSON.stringify(inUse)})`);
     ok((await previewView(page)).view === view0, `V1 edit: Type's edits never move the preview's home (${view0})`);

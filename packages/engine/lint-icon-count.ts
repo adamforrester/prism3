@@ -116,26 +116,56 @@ export const iconProse = (def: ComponentDef): ProseField[] => {
 /** One glyph-count claim found in prose: the integer, and the phrase it sat in (for the message). */
 export type CountClaim = { count: number; phrase: string };
 
-// A count is a claim about the glyph vocabulary when an integer is bound to a set-of-glyphs noun. The
-// separator is whitespace / slash / hyphen ONLY, so "16px glyph" (px between number and noun) and
-// "44×44" (no noun) are not claims — measured against the icon def's real prose, which carries pixel
-// sizes, WCAG SC numbers and issue refs that must never read as glyph counts. `members`/`sources` are
-// safe HERE specifically because the icon set projects one member per glyph and `sources` names the
-// SVGs one-to-one; neither would mean anything else in THIS def (the reason the scope is one def).
+// A count is a claim about the glyph vocabulary when a number is bound to a set-of-glyphs noun. Between the
+// number and the noun sit at most TWO words (`99 named glyphs`, `all 99 of its glyphs`, `99 SVG icons`), or
+// words then `set|vocabulary|library of` (`a 99-strong set of glyphs`), joined by whitespace / slash / hyphen
+// ONLY (#3882: the adjacent-only form missed every one of those). A joining word (`JOINERS`) ends the phrase. A word is letters only and must follow a
+// separator, so "16px glyph" (px glued to the number) and "44×44" (no noun) are still not claims — measured
+// against the icon def's real prose, which carries pixel sizes, WCAG SC numbers and issue refs that must never
+// read as glyph counts. A number is digits or a spelled-out English number from two to ninety-nine; `one` is
+// left out because "one glyph" describes a single glyph, never the set. `members`/`sources` are safe HERE
+// specifically because the icon set projects one member per glyph and `sources` names the SVGs one-to-one;
+// neither would mean anything else in THIS def (the reason the scope is one def).
+const UNITS = ['two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+const TEENS = ['ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+const TENS = ['twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+/** A spelled-out number as its value: `forty-six` → 46. Undefined for anything else. Exported for the self-check. */
+export const spelledValue = (word: string): number | undefined => {
+  const [t, u] = word.toLowerCase().split(/[\s-]+/);
+  const unit = (w: string | undefined): number | undefined => (w === 'one' ? 1 : UNITS.includes(w ?? '') ? UNITS.indexOf(w!) + 2 : undefined);
+  if (TENS.includes(t!)) { const v = (TENS.indexOf(t!) + 2) * 10; return u === undefined ? v : unit(u) !== undefined ? v + unit(u)! : undefined; }
+  if (u !== undefined) return undefined;
+  return TEENS.includes(t!) ? TEENS.indexOf(t!) + 10 : unit(t);
+};
+const SPELLED = String.raw`(?:${TENS.join('|')})(?:[\s-](?:one|${UNITS.join('|')}))?|${TEENS.join('|')}|${UNITS.join('|')}`;
+const NUM = String.raw`(\d{1,4}|${SPELLED})`;
+/** Words that join two phrases rather than qualify the noun: "8 by 5 and a logo" is a size, then a new phrase. */
+const JOINERS = ['and', 'or', 'but', 'by', 'per', 'to', 'at', 'in', 'on', 'for', 'with', 'than', 'from', 'is', 'are', 'was'];
+const GAP = String.raw`(?:[\s/-]+(?!(?:${JOINERS.join('|')})\b)[a-z]+){0,2}`;
+/** The regexes for one noun set: the number before its noun, and `set|vocabulary|… of N`. Shared by both defs. */
+const countRes = (noun: string, heads: string): RegExp[] => [
+  new RegExp(String.raw`\b${NUM}${GAP}[\s/-]*${noun}\b`, 'gi'),
+  new RegExp(String.raw`\b${NUM}${GAP}[\s/-]+(?:set|vocabulary|library)\s+of\s+${noun}\b`, 'gi'),
+  new RegExp(String.raw`\b(?:${heads})\s+of\s+${NUM}\b`, 'gi'),
+];
+/** Every claim the regexes find, one per distinct match position, its number read as digits or words. */
+const claimsBy = (res: RegExp[], text: string): CountClaim[] => {
+  const seen = new Map<number, CountClaim>();
+  for (const re of res) {
+    re.lastIndex = 0;
+    for (const m of text.matchAll(re)) {
+      const n = /^\d+$/.test(m[1]!) ? Number(m[1]) : spelledValue(m[1]!);
+      if (n !== undefined && !seen.has(m.index! + m[0].indexOf(m[1]!))) seen.set(m.index! + m[0].indexOf(m[1]!), { count: n, phrase: m[0] });
+    }
+  }
+  return [...seen.values()];
+};
 const NOUN = '(?:glyphs?|icons?|members?|sources?)';
-const AFTER_RE = new RegExp(String.raw`\b(\d{1,4})[\s/-]*${NOUN}\b`, 'gi');
-const OF_RE = new RegExp(String.raw`\b(?:set|vocabulary|library)\s+of\s+(\d{1,4})\b`, 'gi');
+const ICON_RES = countRes(NOUN, 'set|vocabulary|library');
 
 /** Every glyph-count claim in a piece of text. Pure, and driven by BOTH the self-check and the real run
  *  — never a reimplementation on either side (docs/34 shape 2). */
-export const iconCounts = (text: string): CountClaim[] => {
-  const out: CountClaim[] = [];
-  for (const re of [AFTER_RE, OF_RE]) {
-    re.lastIndex = 0;
-    for (const m of text.matchAll(re)) out.push({ count: Number(m[1]), phrase: m[0] });
-  }
-  return out;
-};
+export const iconCounts = (text: string): CountClaim[] => claimsBy(ICON_RES, text);
 
 /** The claims in `text` whose number disagrees with the live vocabulary. */
 export const staleCounts = (text: string, expected: number): CountClaim[] =>
@@ -158,6 +188,15 @@ if (!iconCounts('verified across all 40 sources').some((c) => c.count === 40)) {
 // 3. `set of N` with no trailing noun (the OF_RE arm), and `N-glyph` (hyphen separator).
 if (!iconCounts('a vocabulary of 39 glyphs').some((c) => c.count === 39)) selfFails.push('OF_RE / plural-noun arm broke');
 if (!iconCounts('a 39-glyph set').some((c) => c.count === 39)) selfFails.push('the hyphen-separated "N-glyph" form is not detected');
+// 3b. #3882: the forms the adjacent-only detector missed, each reported as its number.
+for (const [text, n] of [
+  ['One of 99 named glyphs from the icon set', 99], ['all 99 of its glyphs', 99], ['99 SVG icons', 99],
+  ['a 99-strong set of glyphs', 99], ['forty-six glyphs', 46], ['Forty six icons in all', 46], ['twelve named sources', 12],
+] as const) {
+  if (!iconCounts(text).some((c) => c.count === n)) selfFails.push(`#3882: "${text}" is not read as a claim of ${n} (got ${JSON.stringify(iconCounts(text))})`);
+}
+if (spelledValue('one') !== 1 || spelledValue('ninety-nine') !== 99 || spelledValue('forty') !== 40 || spelledValue('one hundred') !== undefined) selfFails.push('#3882: spelledValue misreads a number');
+if (iconCounts('one glyph per slot').length) selfFails.push('#3882: "one glyph" reads as a count of the set');
 // 4. NO FALSE POSITIVES on the numbers the icon def's real prose actually carries. Every string below is
 //    lifted from a live field — if any reads as a glyph count, the gate would fail on correct prose.
 for (const clean of [
@@ -246,25 +285,18 @@ if (floorProblems.length) {
 // Its own noun list: `providers`, `marks` and `logos` are what a sentence about the mark set would count, and
 // `members`/`sources` mean one member and one file per mark here as they do for the icon set.
 const MARK_NOUN = '(?:marks?|logos?|providers?|members?|sources?|networks?)';
-const MARK_AFTER_RE = new RegExp(String.raw`\b(\d{1,4})[\s/-]*${MARK_NOUN}\b`, 'gi');
-const MARK_OF_RE = new RegExp(String.raw`\b(?:set|vocabulary|library|list)\s+of\s+(\d{1,4})\b`, 'gi');
-export const markCounts = (text: string): CountClaim[] => {
-  const out: CountClaim[] = [];
-  for (const re of [MARK_AFTER_RE, MARK_OF_RE]) {
-    re.lastIndex = 0;
-    for (const m of text.matchAll(re)) out.push({ count: Number(m[1]), phrase: m[0] });
-  }
-  return out;
-};
+const MARK_RES = countRes(MARK_NOUN, 'set|vocabulary|library|list');
+export const markCounts = (text: string): CountClaim[] => claimsBy(MARK_RES, text);
 {
   const bad: string[] = [];
   if (!markCounts('the set of 12 marks').some((c) => c.count === 12)) bad.push('"the set of 12 marks" is not detected');
   if (!markCounts('about 12 providers').some((c) => c.count === 12)) bad.push('"12 providers" is not detected');
   if (!markCounts('a 19-mark set').some((c) => c.count === 19)) bad.push('the hyphenated "19-mark" form is not detected');
+  for (const text of ['One of 12 supported providers', 'all twelve of its marks', 'a 12-strong set of logos']) if (!markCounts(text).length) bad.push(`#3882: "${text}" is not read as a count of marks`);
   // #3062's case, through the extractor: a def whose only count is in `summary`.
   const summaryOnly = { summary: 'One of 74 marks: sign-in, payment and social.', description: 'no count here' } as unknown as ComponentDef;
   if (!iconProse(summaryOnly).some((f) => f.field === 'summary' && markCounts(f.text).some((c) => c.count === 74))) bad.push('a mark count in `summary` does not reach the detector (#3062)');
-  for (const clean of ['Square marks are 24 by 24, payment tiles 32 by 20', 'logos 24 high at their own width', 'The height: 20, 24 or 32px']) {
+  for (const clean of ['Square marks are 24 by 24, payment tiles 32 by 20', 'logos 24 high at their own width', 'The height: 20, 24 or 32px', 'a payment tile stays 8 by 5 and a logo keeps its width']) {
     if (markCounts(clean).length) bad.push(`false positive on real provider-logo prose: "${clean}" → ${JSON.stringify(markCounts(clean))}`);
   }
   if (bad.length) {
