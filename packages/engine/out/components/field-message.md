@@ -34,13 +34,13 @@ Shown on the default member: status `default`.
 
 ## Usage guidelines
 
-Place directly below a field to carry persistent helper guidance (default status) or a validation result (error / warning / success). Reuse the same component under every field control so the icon-plus-text, gated-contrast contract holds everywhere. The field wires it into aria-describedby.
+Place directly below a field to carry persistent helper guidance (default status) or a validation result (error / warning / success). Reuse the same component under every field control so the icon-plus-text, gated-contrast contract holds everywhere. The field wires it into `aria-describedby`.
 
 ### Do
 
 - Show the format/constraint in the default status before the user can fail
 - Pair the status with an icon so it is never color-only
-- Let the host own aria-describedby + aria-invalid; keep this node presentational
+- Let the host own `aria-describedby` + `aria-invalid`; keep this node presentational
 
 ### Don't
 
@@ -50,7 +50,7 @@ Place directly below a field to carry persistent helper guidance (default status
 
 ## Accessibility
 
-- **Screen readers:** none (rendered text; the host associates it via aria-describedby)
+- **Screen readers:** none (rendered text; the host associates it via `aria-describedby`)
 
   The status icon is aria-hidden — the caption text carries the meaning, so a non-default status starts with a visually hidden prefix that names it ("Error:"), announced even where the glyph is not. The prefix is translatable, like the message after it — a hard-coded English prefix before a localized message is a broken reading. The message does not announce itself; the host field references its id in aria-describedby (and sets aria-invalid on error). If the message appears/changes dynamically, the host wraps it in a polite live region so it is announced without stealing focus.
 

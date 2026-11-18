@@ -142,7 +142,7 @@ const built: ComponentDef = makeTextField({
   ],
 
   accessibility: {
-    role: 'searchbox (native <input type="search">), plus a native <button type="button"> to clear it',
+    role: 'searchbox (native `<input type="search">`), plus a native `<button type="button">` to clear it',
     wcag: [
       '1.3.1 Info and Relationships (a label, kept in the DOM when visually hidden, and the search landmark)',
       '2.4.6 Headings and Labels (the label names what is searched)',

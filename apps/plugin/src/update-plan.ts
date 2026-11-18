@@ -199,7 +199,10 @@ export type SetPreview = {
    *  order. Collapsing members are not moved: an update refuses a set that has them. */
   moves: { from: string; to: string }[];
   possibleRenames: { from: string; to: string }[];
-  handEdits: { member: string; path: string; conflict: boolean; structural: boolean }[];
+  /** `lost` (#2673): the edit is at or under a layer the update removes or replaces, so an apply that wrote the member
+   *  would rebuild it without the edit. Always a conflict. Under Keep and Accept the apply skips the member. Absent
+   *  otherwise. */
+  handEdits: { member: string; path: string; conflict: boolean; structural: boolean; lost?: true }[];
   /** #2265 PR 2 — every matched member that is not current, with how it reads; what an apply acts on. Current
    *  members are left out, so a set with nothing to do carries an empty list. Never capped: an apply must see all. */
   states: { member: string; state: Exclude<MemberState, 'current'>; earlierRecord?: true;
@@ -208,7 +211,12 @@ export type SetPreview = {
     damaged?: string[];
     /** #2674 — the same member, its prototype reactions pointing at a member no longer in the set: the apply skips it,
      *  so they are left dangling, and its skip says so. Absent otherwise. */
-    dangling?: true }[];
+    dangling?: true;
+    /** #2956 point 2 (owner decision 2026-10-23) — a member edited by hand whose update changes its structure: a layer
+     *  the plan adds, removes, replaces or moves into a new frame. Under Keep and Accept the apply skips it whole and
+     *  names it; Overwrite writes it. Absent otherwise, and on a member whose layer was added or removed by hand, which
+     *  every choice skips. */
+    restructured?: true }[];
   /** #2188 Q173 — the members an update moves to their place in the grid, by name (`gridMoves`). Absent when none. */
   positions?: string[];
   /** #2542 (owner decision Q245.2 A) — the WHOLE SET moves on its page, to where a fresh build would place it
@@ -619,6 +627,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       ...(damaged.length ? { damaged: damaged.map((f) => faultLine(m.name, f)) } : {}),
       ...(rxv.dangling ? { dangling: true as const } : {}),
     } : {};
+    const at = states.length;
     if (state !== 'current') states.push({ member: m.name, state, ...(earlier ? { earlierRecord: true as const } : {}), ...hurt });
     if (state === 'current' || state === 'revisionUnknown') continue;
 
@@ -665,10 +674,15 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       changes.set(k, c);
     }
     const movedFrom = new Set(moves.map((mv) => mv.from));
+    // THE LAYERS THE UPDATE REBUILDS on this member (#2673): each it removes (not moved, so a renamed part is here
+    // too) and each it replaces for a type change. A hand edit at or under one is not kept by path: the fresh node
+    // is built at another path or as another node, and the old one, edit and all, is removed.
+    const rebuilt: string[] = replacements.filter((r) => r.member === m.name && r.path !== '.').map((r) => r.path);
     const extras: string[] = [];
     extraChildren(plan.root, snap, '.', extras);
     for (const mv of moves) extraChildren(mv.plan, mv.host, mv.to, extras);
     for (const part of extras.filter((x) => !movedFrom.has(x))) {
+      rebuilt.push(part);
       const parent = part.includes('/') ? part.slice(0, part.lastIndexOf('/')) : '.';
       touched.add(parent);
       if (!structural) removedLayers.set(part, (removedLayers.get(part) ?? 0) + 1);
@@ -715,6 +729,12 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       if (c.sample.length < 3) c.sample.push(m.name);
       changes.set(k, c);
     }
+    // A STRUCTURAL UPDATE ON A MEMBER EDITED BY HAND (#2956 point 2, owner decision 2026-10-23: skip the member and
+    // report it). Structural: a planned layer the member lacks, a layer whose type changes, one moved into a frame the
+    // plan inserts, or one the plan no longer has. Its edits could not be trusted to survive the new structure, so the
+    // update leaves the whole member, as it does one with a layer added by hand.
+    if (state === 'handEdited' && !structural && (placed.some(({ d, part }) => d.field === 'children' || (d.field === 'type' && part !== '.')) || moves.length > 0 || extras.some((x) => !movedFrom.has(x))))
+      states[at] = { ...states[at], restructured: true };
     if (state === 'update' && placed.length === 0 && moves.length === 0 && extras.length === 0 && dropped.length === 0 && !(m.drawn ?? []).length && !rxv.differs && !nested.length) {
       counts.reapplied++;
       const k = '.\u0000stamp\u0000\u0000';
@@ -733,8 +753,12 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       // difference on an edited node cannot be split into the edit's part and the plan's part, and it is
       // reported as a conflict. That can over-report; it never hides one.
       const moved = planMoved || (revField !== null && revField !== rev);
-      for (const p of [...edit.changed, ...edit.added, ...edit.removed])
-        handEdits.push({ member: m.name, path: p, conflict: moved && touched.has(p.replace(/#\d+$/, '')), structural });
+      for (const p of [...edit.changed, ...edit.added, ...edit.removed]) {
+        const at = p.replace(/#\d+$/, '');
+        // AN EDIT THE UPDATE WOULD LOSE (#2673) is a conflict whatever moved: the update rebuilds its layer.
+        const lost = rebuilt.some((r) => at === r || at.startsWith(`${r}/`));
+        handEdits.push({ member: m.name, path: p, conflict: lost || (moved && touched.has(at)), structural, ...(lost ? { lost: true as const } : {}) });
+      }
     }
   }
 

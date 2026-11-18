@@ -251,7 +251,8 @@
  *   rows3153/…     Checkbox.Row, Radio.Row and Switch.Row built as main built them before #3153 (owner Q852, Q853 A)
  *                  take one Update in place: the option rows gain the text column (the label MOVED into it) and the
  *                  hidden description with its two properties, off by default; every key and id kept; a designer's gap
- *                  on one member's row kept and reported as a hand edit, before and after. Mutations: the description
+ *                  on one member's row reported as a hand edit, before and after. On the option rows that member is
+ *                  skipped whole (#2956 point 2), on Switch.Row kept around the edit. Mutations: the description
  *                  boolean defaulting on → `rows3153/structure`, `rows3153/description`.
  *   rows3173/…     Checkbox.Row, Radio.Row and Switch.Row built before #3173 (owner Q3173 A), the medium control-to-label
  *                  gap on `space/100`, take one Update in place: only the medium members read update, and each one's
@@ -932,6 +933,49 @@ section('keep — a kept node keeps its children\'s order and its property links
     } else {
       ok(order() === '["leadingVisual","labelCheck"]', `keep order/overwrite restores: Overwrite puts the plan's order back (${order()})`);
       ok(/^\{"characters":"label#/.test(links()), `keep links/overwrite restores: Overwrite links the label to its text property again (${links()})`);
+    }
+  }
+}
+
+/* ── structural update on a hand-edited member (#2956 point 2) ─────────────────────────────────────────── */
+section('structure — an update that changes a hand-edited member\'s structure skips the member whole (#2956 point 2)');
+{
+  // Owner decision (2026-10-23): a structural update on a hand-edited member skips the member and reports it. The edit
+  // here is on the member root's fill, away from every layer the plans touch, so only the structure rule can skip it.
+  // Each plan below changes one kind of structure on every member of a Tag; the control changes only a fill. Expected
+  // values are typed here. Mutations: each arm of the dry run's structural test dropped → the arm it names
+  // (`structure/added`, `/removed`, `/retyped`); the apply's skip dropped → every `structure/<kind> skipped`.
+  const NAME = 'type=select, selection=unselected, size=medium, state=rest';
+  const RED = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 1, g: 0, b: 0 } }];
+  const lv = (q: AnatomyPlan): Record<string, unknown> => planChild(planChild(q.root, 'content'), 'leadingVisual') as unknown as Record<string, unknown>;
+  const kinds: { kind: string; choice: 'keep' | 'accept' | 'overwrite'; change: (q: AnatomyPlan) => void; skips: boolean; content: string }[] = [
+    { kind: 'added', choice: 'keep', change: (q) => { planChild(q.root, 'content').children!.push({ name: 'extra', type: 'FRAME', bound: {}, children: [] } as unknown as PlanNode); }, skips: true, content: '["leadingVisual","labelCheck"]' },
+    { kind: 'removed', choice: 'keep', change: (q) => { const c = planChild(q.root, 'content'); c.children = c.children!.filter((x) => x.name !== 'leadingVisual'); }, skips: true, content: '["leadingVisual","labelCheck"]' },
+    { kind: 'retyped', choice: 'keep', change: (q) => { const x = lv(q); x.type = 'FRAME'; for (const k of ['swapTarget', 'propertyRef', 'descendantFills']) delete x[k]; }, skips: true, content: '["leadingVisual","labelCheck"]' },
+    { kind: 'added accept', choice: 'accept', change: (q) => { planChild(q.root, 'content').children!.push({ name: 'extra', type: 'FRAME', bound: {}, children: [] } as unknown as PlanNode); }, skips: true, content: '["leadingVisual","labelCheck"]' },
+    { kind: 'added overwrite', choice: 'overwrite', change: (q) => { planChild(q.root, 'content').children!.push({ name: 'extra', type: 'FRAME', bound: {}, children: [] } as unknown as PlanNode); }, skips: false, content: '["leadingVisual","labelCheck","extra"]' },
+    { kind: 'none', choice: 'keep', change: (q) => { planChild(q.root, 'content').paints = { ...(planChild(q.root, 'content').paints ?? {}), fills: 'color/keep/changed' }; }, skips: false, content: '["leadingVisual","labelCheck"]' },
+  ];
+  for (const k of kinds) {
+    const w = await world(TAG, plansOf(TAG), { extraVars: ['color/keep/changed'] });
+    const member = (): Node => membersOf(w.set()).find((m) => m.name === NAME)!;
+    member().fills = JSON.parse(JSON.stringify(RED));
+    const next = w.plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; k.change(q); return q; });
+    const targets = [{ def: TAG, plans: next }];
+    const pre = await previewUpdate(w.host, targets);
+    const st = pre.sets[0].states.find((x) => x.member === NAME);
+    ok(st?.state === 'handEdited' && (st.restructured === true) === (k.kind !== 'none'), `structure/${k.kind}: the dry run reads the edited member as ${k.kind === 'none' ? 'not ' : ''}restructured (${JSON.stringify(st)})`);
+    const res = await applyUpdate(w.host, w.api as any, targets, previewHashOf(pre), { choices: { handEdits: k.choice } });
+    const o = res.outcomes[0];
+    const content = JSON.stringify((childNamed(member(), 'content').children as Node[]).map((c) => c.name));
+    if (k.skips) {
+      ok(JSON.stringify(o.skipped) === JSON.stringify([{ member: NAME, reason: 'hand-edited, and the update changes its structure' }]) && !o.updated.includes(NAME) && o.updated.length === 44
+        && JSON.stringify(member().fills) === JSON.stringify(RED) && content === k.content && String(childNamed(childNamed(member(), 'content'), 'leadingVisual').type) === 'INSTANCE',
+        `structure/${k.kind} skipped: under ${k.choice} the member is skipped whole and named, its fill and layers as they were, the other 44 updated (${JSON.stringify(o.skipped)}; ${content}; ${o.updated.length} updated)`);
+    } else {
+      // Overwrite writes the plan's fill over the edit; Keep with no structural change keeps it.
+      ok(o.updated.includes(NAME) && !o.skipped.length && content === k.content && (JSON.stringify(member().fills) === JSON.stringify(RED)) === (k.choice === 'keep'),
+        `structure/${k.kind} written: under ${k.choice} the member is updated, its layers ${k.content}, its edited fill ${k.choice === 'keep' ? 'kept' : 'overwritten'} (${o.updated.length} updated; ${content}; ${JSON.stringify(o.skipped)})`);
     }
   }
 }
@@ -3032,6 +3076,30 @@ section('replace — a child whose type changed is the one node replaced, and th
   ok(lvType.every((t) => t === 'FRAME'), `replace/written: every member's leading visual is now a frame (${[...new Set(lvType)]})`);
   const defs = (w.set().componentPropertyDefinitions ?? {}) as Record<string, unknown>;
   ok(!Object.keys(defs).some((k) => k.startsWith('↳ swap leading icon')), `replace/property removed: the swap property is gone (${Object.keys(defs).filter((k) => !k.includes('=')).join(', ')})`);
+}
+
+{
+  // #2673, A LAYER THE PLAN REPLACES FOR A TYPE CHANGE: a hand edit on it would go with the old node. The dry run reads it
+  // as lost, and under Keep the member is skipped whole and named; the other 44 are replaced as above. Expected values
+  // typed here. Mutation: `rebuilt` not seeded from the replacements → `replace/hand-edited lost`, `/kept`.
+  const w = await world(TAG);
+  const NAME = 'type=select, selection=unselected, size=medium, state=rest';
+  const lv = (): Node => childNamed(childNamed(membersOf(w.set()).find((m) => m.name === NAME)!, 'content'), 'leadingVisual');
+  const id = String(lv().id);
+  lv().opacity = 0.5;
+  const next = w.plans.map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    const x = planChild(planChild(q.root, 'content'), 'leadingVisual') as unknown as Record<string, unknown>;
+    x.type = 'FRAME';
+    for (const k of ['swapTarget', 'propertyRef', 'descendantFills']) delete x[k];
+    return q;
+  });
+  const { pre, res } = await confirm(w, [{ def: TAG, plans: next }]);
+  const hand = pre.sets[0].handEdits.find((h) => h.member === NAME);
+  ok(hand?.path === 'content/leadingVisual' && hand.conflict === true && hand.lost === true, `replace/hand-edited lost: the dry run reads the edit on the replaced layer as lost (${JSON.stringify(hand)})`);
+  const o = res.outcomes[0];
+  ok(o.skipped.some((k) => k.member === NAME && k.reason === 'the update rebuilds a layer edited by hand (content/leadingVisual)') && String(lv().id) === id && lv().type === 'INSTANCE' && lv().opacity === 0.5 && o.updated.length === 44,
+    `replace/hand-edited kept: the member is skipped, and its leading icon keeps its id, its type and the edit (${JSON.stringify(o.skipped)}; ${String(lv().id)} ${String(lv().type)} ${String(lv().opacity)}; ${o.updated.length} updated)`);
 }
 
 /* ── property ────────────────────────────────────────────────────────────────────────────────────────── */
@@ -5592,7 +5660,14 @@ for (const [ROW, MEMBERS, STACKED] of [['checkbox-row', 6, true], ['radio-row', 
     `${ROW} rows3153/dry run: all ${MEMBERS} members read update, none added, dropped, renamed or replaced, nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'})`);
   ok(p.handEdits.length === 1 && p.handEdits[0].member === edited.name && p.handEdits[0].path === 'content',
     `${ROW} rows3153/hand edit reported: the dry run reports the designer's edit on ${String(edited.name)}'s content, and nothing else (${JSON.stringify(p.handEdits).slice(0, 240)})`);
-  ok(res.outcomes[0].kept.length === 1 && res.outcomes[0].kept[0].path === 'content' && (childNamed(edited, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === editVar,
+  // #2956 point 2 (owner decision 2026-10-23): on the option rows the update changes the edited member's structure (the
+  // text column), so Keep skips that member whole and names it, its gap and its old layers as they were. Switch.Row's
+  // structure does not move, so its member is updated around the kept gap.
+  const gapKept = (childNamed(edited, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === editVar;
+  if (STACKED) ok(res.outcomes[0].kept.length === 0 && JSON.stringify(res.outcomes[0].skipped) === JSON.stringify([{ member: edited.name, reason: 'hand-edited, and the update changes its structure' }]) && gapKept
+      && JSON.stringify(kids(childNamed(edited, 'content'))) === '["controlCell","label"]',
+    `${ROW} rows3153/hand edit skipped: the edited member is skipped and named, its gap and its layers as the designer left them (${JSON.stringify(res.outcomes[0].skipped)}; [${kids(childNamed(edited, 'content')).join(', ')}])`);
+  else ok(res.outcomes[0].kept.length === 1 && res.outcomes[0].kept[0].path === 'content' && gapKept,
     `${ROW} rows3153/hand edit kept: the apply keeps the designer's gap and lists it (${JSON.stringify(res.outcomes[0].kept)})`);
   ok(applyVerdict(res).ok, `${ROW} rows3153/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
   const after = identityOf(w.set());
@@ -5608,13 +5683,13 @@ for (const [ROW, MEMBERS, STACKED] of [['checkbox-row', 6, true], ['radio-row', 
   }
   ok(lost.length === 0, `${ROW} rows3153/kept: every node keeps its id, the label moved rather than rebuilt (${lost.slice(0, 2).join('; ') || `all ${MEMBERS}`})`);
   // THE NEW STRUCTURE, read off the shim's nodes.
-  const shape = membersOf(w.set()).filter((m) => {
+  const shape = membersOf(w.set()).filter((m) => !(STACKED && m.name === edited.name)).filter((m) => {
     const c = childNamed(m, 'content');
     if (!STACKED) return JSON.stringify(kids(c)) !== JSON.stringify(['label', 'controlCell']);
     const t = childNamed(c, 'textStack');
     return !(JSON.stringify(kids(c)) === JSON.stringify(['controlCell', 'textStack']) && JSON.stringify(kids(t)) === JSON.stringify(['label', 'description']) && childNamed(t, 'description').visible === false);
   });
-  ok(shape.length === 0, `${ROW} rows3153/structure: ${STACKED ? 'content holds [controlCell, textStack], the text column [label, description], the description hidden' : 'content still holds [label, controlCell]'} (${shape.slice(0, 2).map((m) => `${String(m.name)}: [${kids(childNamed(m, 'content')).join(', ')}]`).join('; ') || `all ${MEMBERS}`})`);
+  ok(shape.length === 0, `${ROW} rows3153/structure: ${STACKED ? 'every member but the skipped one: content holds [controlCell, textStack], the text column [label, description], the description hidden' : 'content still holds [label, controlCell]'} (${shape.slice(0, 2).map((m) => `${String(m.name)}: [${kids(childNamed(m, 'content')).join(', ')}]`).join('; ') || `all ${MEMBERS}`})`);
   if (STACKED) {
     const defs = w.set().componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }>;
     const bool = Object.entries(defs).find(([k, d]) => d.type === 'BOOLEAN' && /^description/.test(k));
@@ -5763,10 +5838,16 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
 }
 // A NODE A DESIGNER EDITED IS NOT MOVED (#2595): the move is decided before the hand-edit choice is made, so a node
 // with a hand edit at or under it is left out of the moves whatever the choice. The dry run lists it as removed on that
-// member and moved on the rest, and the apply rebuilds it there, as before #2595, and moves it on the rest. (Its hand
-// edit is not carried into the rebuilt node, as before #2595: #2673.) Twice: an edit ON the moved node, and one UNDER
-// it (its label), which must block the move as surely (#2595 review). Mutations: the executor ignoring `edited` →
-// `acc/edited agree`; `adoptions` dropping its under-a-node arm → `acc/edited under agree`, `acc/edited under dry run`.
+// member and moved on the rest. Twice: an edit ON the moved node, and one UNDER it (its label), which must block the
+// move as surely (#2595 review). Mutations: the executor ignoring `edited` → `acc/edited overwrite agree`; `adoptions`
+// dropping its under-a-node arm → `acc/edited under overwrite agree`, `acc/edited under dry run`.
+// #2673 (owner decision follows #2956: pending confirmation): REBUILDING THAT NODE WOULD LOSE THE EDIT, so the dry run
+// reads it as a conflict the update would lose (`lost`), and under Keep the apply skips the member whole and names
+// it, as it skips a layer added by hand. Before, the title was rebuilt in the row without the edit while the verdict
+// counted it "kept". Overwrite still rebuilds it, as asked. Mutations: the dry run's `lost` dropped →
+// `acc/<edit> lost`, `acc/<edit> keep skipped`, `acc/<edit> keep byte-identical`; the apply's skip dropped →
+// `acc/<edit> keep skipped`, `acc/<edit> keep byte-identical`, and the same under accept; the skip limited to Keep →
+// `acc/<edit> accept skipped`, `acc/<edit> accept byte-identical`.
 const ACC_BEFORE_ROW = (patch: (parts: Record<string, any>) => Record<string, any> = (x) => x) => {
   const now = componentDefs.find((x) => x.id === 'accordion')!;
   const { titleRow, ...restParts } = now.anatomy.parts;
@@ -5776,9 +5857,11 @@ const ACC_BEFORE_ROW = (patch: (parts: Record<string, any>) => Record<string, an
   } as typeof now;
 };
 for (const edit of [
-  { tag: 'edited', path: 'header/titleBox', on: (m: Node) => childNamed(childNamed(m, 'header'), 'titleBox'), apply: async (w: any, n: Node) => (n.setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: await varIdOf(w, 'space/0') }) },
-  { tag: 'edited under', path: 'header/titleBox/label', on: (m: Node) => childNamed(childNamed(childNamed(m, 'header'), 'titleBox'), 'label'), apply: async (_w: any, n: Node) => { (n as unknown as { opacity: number }).opacity = 0.5; } },
-]) {
+  { tag: 'edited', path: 'header/titleBox', on: (m: Node) => childNamed(childNamed(m, 'header'), 'titleBox'), apply: async (w: any, n: Node) => (n.setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: await varIdOf(w, 'space/0') }),
+    read: (n: Node) => JSON.stringify((n.boundVariables as Record<string, { id: string }> | undefined)?.itemSpacing?.id ?? null), want: '"V:space/0"' },
+  { tag: 'edited under', path: 'header/titleBox/label', on: (m: Node) => childNamed(childNamed(childNamed(m, 'header'), 'titleBox'), 'label'), apply: async (_w: any, n: Node) => { (n as unknown as { opacity: number }).opacity = 0.5; },
+    read: (n: Node) => JSON.stringify(n.opacity), want: '0.5' },
+]) for (const choice of ['keep', 'accept', 'overwrite'] as const) {
   const ACC = 'accordion';
   const w = await world(ACC, figmaAnatomySet(ACC_BEFORE_ROW(), { swapTarget: SWAP_TARGET }));
   const m = membersOf(w.set())[0];
@@ -5793,13 +5876,27 @@ for (const edit of [
   const removed = p.changes.find((c) => c.part === 'header/titleBox' && /removed/.test(c.to));
   ok(JSON.stringify(edits) === JSON.stringify([edit.path]) && move?.members === 47 && removed?.members === 1 && removed.sample[0] === String(m.name),
     `acc/${edit.tag} dry run: with ${edit.path} edited, the title is listed as removed on its member, moved on the other 47 (${JSON.stringify(edits)}; moves ${move?.members}; removed ${removed?.members} on ${removed?.sample.join(', ')})`);
-  const res = await applyUpdate(w.host, w.api as any, [{ def: ACC, plans: plansOf(ACC) }], previewHashOf(pre), { choices: { handEdits: 'keep' } });
-  void res;
+  const hand = p.handEdits.find((h) => h.member === String(m.name));
+  ok(hand?.conflict === true && hand?.lost === true, `acc/${edit.tag} lost: the dry run reads the edit as a conflict the update would lose (${JSON.stringify(hand)})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: ACC, plans: plansOf(ACC) }], previewHashOf(pre), { choices: { handEdits: choice } });
   const row = (x: Node): Node | undefined => childNamed(childNamed(x, 'header'), 'titleRow');
-  const nowBox = String(childNamed(row(m)!, 'titleBox')?.id);
   const kept = membersOf(w.set()).slice(1).map((x) => String(childNamed(row(x)!, 'titleBox')?.id));
-  ok(nowBox !== boxId && (w.api._removed as Node[]).some((x) => String(x.id) === boxId) && JSON.stringify(kept) === JSON.stringify(others),
-    `acc/${edit.tag} agree: with ${edit.path} edited, the title is rebuilt in the row on its member, as the dry run listed it, and moved, by id, on the other 47 (${boxId} → ${nowBox}; ${kept.filter((id, i) => id !== others[i]).length} others changed)`);
+  const mNow = membersOf(w.set())[0];
+  if (choice !== 'overwrite') {
+    // Keep and Accept alike: Accept keeps the edit and records it, so rebuilding the layer would lose it there too.
+    const o = res.outcomes[0];
+    const skip = o.skipped.find((k) => k.member === String(mNow.name));
+    ok(!o.updated.includes(String(mNow.name)) && skip?.reason === `the update rebuilds a layer edited by hand (${edit.path})` && !o.kept.some((k) => k.member === String(mNow.name)),
+      `acc/${edit.tag} ${choice} skipped: under ${choice} the member is skipped and named, never counted as a hand edit kept (${JSON.stringify(skip)}; kept ${JSON.stringify(o.kept)})`);
+    const box = childNamed(childNamed(mNow, 'header'), 'titleBox');
+    ok(!row(mNow) && String(box?.id) === boxId && edit.read(edit.on(mNow)) === edit.want,
+      `acc/${edit.tag} ${choice} byte-identical: the title stays where the designer left it, by id, with the edit as made (${String(box?.id)}; ${box ? edit.read(edit.on(mNow)) : 'gone'})`);
+    ok(JSON.stringify(kept) === JSON.stringify(others), `acc/${edit.tag} ${choice} others moved: the other 47 move their title into the row, by id (${kept.filter((id, i) => id !== others[i]).length} changed)`);
+  } else {
+    const nowBox = String(childNamed(row(mNow)!, 'titleBox')?.id);
+    ok(nowBox !== boxId && (w.api._removed as Node[]).some((x) => String(x.id) === boxId) && JSON.stringify(kept) === JSON.stringify(others),
+      `acc/${edit.tag} overwrite agree: with ${edit.path} edited, Overwrite rebuilds the title in the row on its member, as the dry run listed it, and moves it, by id, on the other 47 (${boxId} → ${nowBox}; ${kept.filter((id, i) => id !== others[i]).length} others changed)`);
+  }
 }
 {
   // A MOVED NODE IS STILL COMPARED TO ITS PLAN (#2595 review): the dry run diffs each moved subtree at its new path,
