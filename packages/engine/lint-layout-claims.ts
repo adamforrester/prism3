@@ -33,7 +33,7 @@
  * INDEPENDENT half of every comparison here: the "exists" side comes from git, the "claimed" side from
  * parsing the document. Two sources, two readers, neither derived from the other (`docs/34`).
  *
- * ── THREE ARMS, because a claim has more than one shape ──────────────────────────────────────────
+ * ── FOUR ARMS, because a claim has more than one shape ───────────────────────────────────────────
  *
  * A. RELATIVE REFERENCES (every tracked `.md` minus the exemptions) — resolved from the containing
  *    directory. This is the #663 arm. Only EXPLICITLY relative refs (`../`, `./`) are in scope, and
@@ -51,6 +51,17 @@
  * C. LAYOUT-REGION REPRESENTATION (the same regions, the converse question) — every subject in
  *    `layoutSubjects()` must appear in every region. This is the #669 arm, the only one that can see
  *    an absence.
+ *
+ * D. BARE MARKDOWN LINKS (the same documents as arm A) — a link target in `](…)` syntax that does not
+ *    open with `./` or `../`, such as `[x](apps/studio/)` or `[x](CONTRIBUTING.md)`. Added by #653 (owner
+ *    decision A, 2026-11-18). Arm A's limit above is about bare path-shaped TOKENS in prose, where a
+ *    reader cannot tell "from the root" from "from here". Link syntax has no such doubt: a renderer
+ *    resolves a bare link target from the document's OWN directory, and a leading `/` from the repo
+ *    root, so that is how this arm resolves them. Measured when it landed: 112 bare links across the
+ *    scanned documents, 0 dead, so it went green on day one with no noise to narrow away. A URL
+ *    (any `scheme:`), a fragment-only `#anchor`, a placeholder and anything inside a code span are not
+ *    claims: a code span that quotes link syntax is an example of a link, not a link. Reference-style
+ *    definitions (`[x]: path`) are not read; none of the scanned documents uses one.
  *
  * ── SCOPE IS DECLARED, NOT INFERRED ─────────────────────────────────────────────────────────────
  *
@@ -226,6 +237,31 @@ export const relativeClaims = (text: string, docDir: string): Claim[] => {
       if (!path.includes('/')) continue; // the token was a bare fragment, not a path claim
       const r = resolveWithin(docDir, path);
       // `ref` keeps the anchor so the message quotes what the doc actually wrote.
+      if (r !== null) out.push({ line: i + 1, ref: tok, resolved: r });
+    }
+  });
+  return out;
+};
+
+/** A link target with a scheme (`https:`, `mailto:`) points outside the repo: not a path claim. */
+const SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+
+/** ARM D — bare Markdown link targets outside fenced blocks and code spans (#653). Resolved the way a
+ *  renderer resolves them: from the document's own directory, or from the repo root when the target
+ *  opens with `/`. `./` and `../` targets are arm A's, so they are left to it rather than counted twice. */
+export const bareLinkClaims = (text: string, docDir: string): Claim[] => {
+  const out: Claim[] = [];
+  let fenced = false;
+  text.split('\n').forEach((line, i) => {
+    if (/^\s*```/.test(line)) { fenced = !fenced; return; }
+    if (fenced) return;
+    for (const m of line.replace(CODE_SPAN, '').matchAll(LINK_TARGET)) {
+      const tok = m[1].trim();
+      if (SCHEME.test(tok) || tok.startsWith('#') || tok.startsWith('./') || tok.startsWith('../')) continue;
+      if (PLACEHOLDER.test(tok)) continue;
+      const path = stripFragment(tok);
+      if (!path) continue;
+      const r = path.startsWith('/') ? resolveWithin('', path) : resolveWithin(docDir, path);
       if (r !== null) out.push({ line: i + 1, ref: tok, resolved: r });
     }
   });
@@ -438,6 +474,39 @@ if (resolveWithin('', '../../packages/engine') !== null) selfFails.push('a ref e
   }
 }
 
+// 6b. ARM D — a bare Markdown link (#653). #648's exact row, `[`web/`](web/)`, in the root README must be
+//     flagged by its resolved path. The arm resolves from the doc's own directory, so the same target
+//     from `apps/` is a different (dead) path and from the root a live one. A directory link, a file link
+//     without a slash, a root-relative `/` link and an anchored link to a real file must all pass. A URL,
+//     a fragment-only link, a link quoted in a code span and a link in a fence are not claims at all.
+{
+  const row648 = '| [`web/`](web/) | The **dashboard**. See [`apps/studio/README.md`](apps/studio/README.md) |\n';
+  const dead648 = deadClaims(FIXTURE_TRACKED, bareLinkClaims(row648, ''));
+  if (!dead648.some((c) => c.resolved === 'web' && c.line === 1)) {
+    selfFails.push("arm D does not flag #648's bare dead link `](web/)` by path and line — the #653 class would ship again");
+  }
+  if (dead648.some((c) => c.resolved === 'apps/studio/README.md')) selfFails.push('arm D flags a CORRECT bare link (false positive)');
+  const fromApps = bareLinkClaims('see [the engine](packages/engine/)\n', 'apps');
+  if (!deadClaims(FIXTURE_TRACKED, fromApps).some((c) => c.resolved === 'apps/packages/engine')) {
+    selfFails.push("arm D resolves a bare link from the repo root, not from the document's own directory");
+  }
+  const live = bareLinkClaims([
+    'a [dir](apps/studio/) and a [file](README.md) and [root](/packages/engine/README.md)',
+    'and [an anchor](packages/engine/README.md#run) to a real file',
+  ].join('\n'), '');
+  if (live.length !== 4) selfFails.push(`arm D extracted ${live.length} of 4 bare links from the live fixture — the extractor drops a form`);
+  if (deadClaims(FIXTURE_TRACKED, live).length) {
+    selfFails.push(`arm D flags a live bare link (false positive): ${deadClaims(FIXTURE_TRACKED, live).map((c) => c.ref).join(', ')}`);
+  }
+  const notClaims = bareLinkClaims([
+    'a [site](https://example.com/web/) and [mail](mailto:a@b.c) and [here](#web)',
+    'quoted as an example: `[x](web/)`',
+    'a [rel](../web/) belongs to arm A',
+    '```', '[x](web/)', '```',
+  ].join('\n'), '');
+  if (notClaims.length) selfFails.push(`arm D reads a non-claim as a bare link: ${notClaims.map((c) => c.ref).join(', ')}`);
+}
+
 // 7. trackedHas must answer from the TRACKED list, never the filesystem — the #653 measurement.
 if (trackedHas(FIXTURE_TRACKED, 'Prism3')) selfFails.push('trackedHas accepts a path absent from the tracked list');
 if (!trackedHas(FIXTURE_TRACKED, 'packages/engine/')) selfFails.push('trackedHas rejects a tracked directory when given a trailing slash');
@@ -497,6 +566,21 @@ if (relRefCount < 10) {
   process.exit(1);
 }
 
+// ARM D — bare Markdown links (#653), over the same documents as arm A.
+const armD: { doc: string; claims: Claim[] }[] = [];
+let bareLinkCount = 0;
+for (const doc of scanned) {
+  const claims = bareLinkClaims(readFileSync(resolve(repo, doc), 'utf8'), dirname(doc) === '.' ? '' : dirname(doc));
+  bareLinkCount += claims.length;
+  const dead = deadClaims(tracked, claims);
+  if (dead.length) armD.push({ doc, claims: dead });
+}
+// 112 when the arm landed. A floor well under that, so an extractor that stopped matching reads as broken.
+if (bareLinkCount < 50) {
+  console.error(`\n❌ only ${bareLinkCount} bare Markdown link(s) found across ${scanned.length} documents — the arm D extractor broke.`);
+  process.exit(1);
+}
+
 // ARMS B and C — the declared layout regions, both directions.
 const armB: { region: string; claims: Claim[] }[] = [];
 const armC: { region: string; missing: string[] }[] = [];
@@ -514,7 +598,7 @@ for (const spec of LAYOUT_REGIONS) {
   if (missing.length) armC.push({ region: spec.label, missing });
 }
 
-console.log(`Layout-claim check — ${scanned.length} markdown file(s) in scope (${markdown.length - scanned.length} exempt), ${relRefCount} relative reference(s), ${LAYOUT_REGIONS.length} layout region(s), ${subjects.length} subject(s): ${subjects.join(' ')}`);
+console.log(`Layout-claim check — ${scanned.length} markdown file(s) in scope (${markdown.length - scanned.length} exempt), ${relRefCount} relative reference(s), ${bareLinkCount} bare link(s), ${LAYOUT_REGIONS.length} layout region(s), ${subjects.length} subject(s): ${subjects.join(' ')}`);
 
 if (armA.length) {
   failed = true;
@@ -526,6 +610,16 @@ if (armA.length) {
   console.error('\n  Resolved from each document\'s OWN directory, against `git ls-files`. A path-segment');
   console.error('  deletion is not depth-preserving: #663 shipped `../docs/NN` from `apps/*/README.md`,');
   console.error('  which is `apps/docs/NN`. Fix the depth, or the target moved and the doc must follow.');
+}
+if (armD.length) {
+  failed = true;
+  const n = armD.reduce((a, x) => a + x.claims.length, 0);
+  console.error(`\n❌ [ARM D] ${n} bare Markdown link(s) in ${armD.length} document(s) name a path git does not track:\n`);
+  for (const { doc, claims } of armD) {
+    for (const c of claims) console.error(`    ${doc}:${c.line}  ${c.ref}  →  ${c.resolved}`);
+  }
+  console.error('\n  A bare link resolves from the document\'s OWN directory (a leading `/` from the repo root),');
+  console.error('  against `git ls-files`. #648 shipped `[`web/`](web/)` after `web/` moved to `apps/studio/` (#653).');
 }
 if (armB.length) {
   failed = true;
