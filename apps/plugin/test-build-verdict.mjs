@@ -1950,7 +1950,7 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
   const toExport = async (page, artifact) => {
     await hooks.click(page.locator('[data-p3="rail-export"]'), { timeout: 4000 }).catch(() => {});
     await hooks.need(page, '[data-p3="export-page"]', { timeout: 4000 }).catch(() => {});
-    // Anchored: the import slot reads "↑ Brand brief…" too, and a loose match is refused as ambiguous.
+    // Anchored (callers pass `/^…$/`), so the match is the artifact's own button and no other that merely contains its name.
     await hooks.click(page.locator('[data-p3="export-page"] button', { hasText: artifact }), { timeout: 4000 }).catch(() => {});
     return page.evaluate(() => ({
       off: document.querySelector('[data-p3="export-page"] [data-p3="dialog-confirm"]')?.disabled ?? null,

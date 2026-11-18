@@ -91,7 +91,7 @@ import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-gl
 import { PROVIDER_LOGO_BOXES, PROVIDER_LOGO_DOCUMENTS } from './provider-logo-glyphs';
 import { makeTextField } from './components/text-field';
 import { canonicalShape, GlyphPathError } from './glyph-shape';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { readListing } from './files-listing';
@@ -111,7 +111,7 @@ const planIconComps = (n: { nestTarget?: string; children?: readonly unknown[] }
 
 import { Session as InspectorSession } from 'node:inspector/promises';
 import { componentSpec, specMaterialize } from './component-specs';
-import { renderUncommitted } from './regen';
+import { renderUncommitted } from './regen'; import * as regenModule from './regen'; // the namespace: #2029 reads restoreTree off it, so main (without it) fails an arm by name, not the import
 import { localeFreeCompare } from './locale-free-order';
 
 // ---- #1268 EVERY ASSERTION SITE RAN — a section going quiet is a failure, not a smaller pass ----------
@@ -4771,7 +4771,7 @@ arm: {
       ],
     } };
     const AsyncFn = Object.getPrototypeOf(async () => {}).constructor;
-    return { plan, res: await new AsyncFn('figma', verifyJs(plan, plan.color.modes))(shim) as { modesDistinct: boolean; modes: string[]; fieldFamilyPresent: boolean; bareDangerPresent: boolean } };
+    return { plan, res: await new AsyncFn('figma', verifyJs(plan, plan.color.modes, []))(shim) as { modesDistinct: boolean; modes: string[]; fieldFamilyPresent: boolean; bareDangerPresent: boolean } };
   };
   const one = await runVerify(['light'], 'alias');
   ok(JSON.stringify(one.plan.color.modes) === '["light"]' && JSON.stringify(one.res.modes) === '["light"]',
@@ -9650,6 +9650,66 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     const dispatch = src.indexOf("process.argv.includes('--check')");
     ok(guard !== -1 && dispatch > guard,
       '[#349] regen.ts guards its CLI dispatch behind an entry-point check — importing it for the ARTIFACTS constants must not regenerate');
+  }
+  // #2029 — `regen --check` puts `out/` back IN PLACE. It used to `rmSync(out)` and copy its snapshot back, and a
+  // Studio or plugin build reading `out/` inside that window failed with "cannot load the default theme". Two
+  // halves: `restoreTree` on a fixture (fast, every case named), and a real `--check` over this tree, which holds
+  // the property where the race lives. A directory deleted and recreated gets a NEW inode, so "same inode before
+  // and after" is the deterministic signature of "never deleted"; a race test that polls for a missing file is not.
+  {
+    const restoreTree = (regenModule as Record<string, unknown>).restoreTree as ((snap: string, live: string) => void) | undefined;
+    ok(typeof restoreTree === 'function', '#2029: regen.ts exports restoreTree, the in-place restore --check uses');
+    if (typeof restoreTree === 'function') {
+      const root = mkdtempSync(join(tmpdir(), 'prism3-2029-'));
+      try {
+        const snap = join(root, 'snap'), live = join(root, 'live');
+        const put = (dir: string, rel: string, body: string, mtimeS: number) => {
+          mkdirSync(dirname(join(dir, rel)), { recursive: true });
+          writeFileSync(join(dir, rel), body);
+          utimesSync(join(dir, rel), mtimeS, mtimeS);
+        };
+        // The snapshot: an unchanged file, a file regen rewrites, a nested file regen deletes, an on-demand-style file.
+        for (const dir of [snap, live]) {
+          put(dir, 'keep.json', '{"keep":1}\n', 1_000_000);
+          put(dir, 'changed.json', '{"v":1}\n', 1_000_100);
+          put(dir, 'figma/nb/gone.json', '{"gone":1}\n', 1_000_200);
+          put(dir, 'figma/nb/stays.json', '{"stays":1}\n', 1_000_300);
+        }
+        // What a regen leaves: a rewrite, a same-bytes rewrite with a fresh mtime, an added file in an added
+        // directory, an added file beside the committed ones, and a deleted file.
+        put(live, 'changed.json', '{"v":2}\n', 2_000_000);
+        put(live, 'figma/nb/stays.json', '{"stays":1}\n', 2_000_000);
+        put(live, 'figma/new/added.json', '{}\n', 2_000_000);
+        put(live, 'added.json', '{}\n', 2_000_000);
+        rmSync(join(live, 'figma/nb/gone.json'));
+        const liveIno = statSync(live).ino, keepIno = statSync(join(live, 'keep.json')).ino, nbIno = statSync(join(live, 'figma/nb')).ino;
+        const changedIno = statSync(join(live, 'changed.json')).ino;
+        restoreTree(snap, live);
+        const list = (d: string): string[] => readdirSync(d, { recursive: true }).map(String).sort();
+        const sameTree = JSON.stringify(list(live)) === JSON.stringify(list(snap))
+          && list(snap).every((f) => statSync(join(snap, f)).isDirectory() || readFileSync(join(snap, f)).equals(readFileSync(join(live, f))));
+        ok(sameTree, `#2029: restoreTree leaves the live tree byte-identical to the snapshot — added files and directories gone, the deleted file back (live ${JSON.stringify(list(live))})`);
+        const mtimeOff = list(snap).filter((f) => !statSync(join(snap, f)).isDirectory() && Math.floor(statSync(join(live, f)).mtimeMs) !== Math.floor(statSync(join(snap, f)).mtimeMs));
+        ok(mtimeOff.length === 0, `#2029: restoreTree gives every file its snapshot timestamp back (#2067) (off: ${JSON.stringify(mtimeOff)})`);
+        ok(statSync(live).ino === liveIno && statSync(join(live, 'figma/nb')).ino === nbIno && statSync(join(live, 'keep.json')).ino === keepIno,
+          '#2029: restoreTree never deletes the live directory, a directory it keeps, or a file whose bytes did not change (same inodes)');
+        // A file whose bytes differ is written to a hidden sibling and renamed over the original, so a reader sees the old
+        // bytes or the new, never a half-written file. A rename gives the file a NEW inode; copying straight over it keeps
+        // the old one, so "the inode changed" is the deterministic signature of the rename (review of 0c7c1c0c).
+        ok(statSync(join(live, 'changed.json')).ino !== changedIno && !readdirSync(live).some((f) => f.includes('.restore-')),
+          '#2029: restoreTree replaces a file whose bytes differ by renaming a full copy over it, never by writing into it (new inode, no sibling left)');
+      } finally { rmSync(root, { recursive: true, force: true }); }
+    }
+    // The real gate, over this tree. Its exit status is not asserted: a tree with local edits drifts. The property
+    // asserted holds either way because it is read on DIRECTORIES (`out/` and `out/figma`), whose inodes the restore
+    // keeps whatever drifted. A drifted FILE is renamed over, by design, and gets a new inode, so a file's inode would
+    // blame the restore for a stale tree (review of 0c7c1c0c). A crash (no status) is a failure.
+    const outDir = new URL('./out/', import.meta.url).pathname, figmaDir = join(outDir, 'figma');
+    const outIno = statSync(outDir).ino, figmaIno = statSync(figmaDir).ino;
+    const run = spawnSync('npx', ['tsx', new URL('./regen.ts', import.meta.url).pathname, '--check'], { encoding: 'utf8' });
+    const figmaKept = existsSync(figmaDir) && statSync(figmaDir).ino === figmaIno;
+    ok((run.status === 0 || run.status === 1) && statSync(outDir).ino === outIno && figmaKept,
+      `#2029: regen --check leaves packages/engine/out and out/figma in place — never deleted and recopied, so a build reading them meanwhile finds them (status ${run.status}; out inode ${statSync(outDir).ino === outIno ? 'kept' : 'CHANGED'}; out/figma inode ${figmaKept ? 'kept' : 'CHANGED'})`);
   }
   // #988 — THE SAME RULE, GENERALISED, because the arm above is pinned to one filename and that is
   // exactly why it could not see the next instance.
