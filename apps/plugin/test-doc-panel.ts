@@ -174,7 +174,9 @@
  *                   left column's landings typed by hand (`leftColumns`). Mutation: the slide along the edge removed →
  *                   `markers/left slides`. `markers/blind`: every marker a child of the panel, the set unchanged by the
  *                   draw, the panel unedited after it. Mutations: the marker group appended to its specimen →
- *                   `markers/blind`; the dot's ink bound to a token → every `markers/<def>`. `markers/no crossing`
+ *                   `markers/blind`; the dot's ink bound to a token → every `markers/<def>`. No halo and no ring (decision B,
+ *                   Q-BK4 A (1)): the disc, leader and dot carry no stroke and no effect, and the group nothing else.
+ *                   Mutations: a white ring on the disc, a white halo on the leader and dot → every `markers/<def>`. `markers/no crossing`
  *                   (Q-BK4 A): no container's leader, on any lead, crosses another shown part; `markers/accordion trailing
  *                   indicator`: the owner's case takes a top or bottom leader; `markers/side …`: `containerSides` typed
  *                   by hand. Mutations: every container led from the left → `markers/no crossing`, `markers/accordion
@@ -1092,6 +1094,13 @@ section('markers/… — every listed number on a specimen, on its part, by one 
         wrong.push(`${num} ${first.id}: ${leaders.length} leaders, ${ends.length} end dots, ${disc ? 'a' : 'no'} disc, ${group.children.map((c) => c.name).join('/')}`); continue;
       }
       for (const [what, n] of [['disc', disc], ['leader', leaders[0]], ['end dot', ends[0]]] as const) if (hexOf(n) !== INK) wrong.push(`${num}: its ${what} is ${hexOf(n)}, not ${INK}`);
+      // NO HALO AND NO RING (#3773, owner decision B, confirmed Q-BK4 A (1)): the disc, the leader and the end dot are
+      // fills only, with no stroke and no effect on any of them, and the group holds nothing else to draw one with.
+      for (const [what, n] of [['disc', disc], ['leader', leaders[0]], ['end dot', ends[0]]] as const) {
+        const strokes = ((n as { strokes?: unknown[] }).strokes ?? []).length, effects = ((n as { effects?: unknown[] }).effects ?? []).length;
+        if (strokes || effects) wrong.push(`${num}: its ${what} carries ${strokes} stroke(s) and ${effects} effect(s), not none (a halo or ring)`);
+      }
+      if (group.children.length !== 3) wrong.push(`${num}: its group holds ${group.children.map((c) => c.name).join('/')}, not just the disc, the leader and the end dot`);
       const numeral = walk(disc).find((c) => c.type === 'TEXT');
       if (!numeral || String(numeral.characters) !== num || hexOf(numeral) !== '#FFFFFF') wrong.push(`${num}: the disc reads ${numeral?.characters} in ${numeral ? hexOf(numeral) : 'nothing'}`);
       const L = leaders[0].absoluteBoundingBox!, E = ends[0].absoluteBoundingBox!, marker = disc.absoluteBoundingBox!;
