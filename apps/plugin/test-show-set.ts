@@ -15,9 +15,12 @@
  * called on the host and posted.
  *
  * Mutations this fails by name (measured 2026-11-18): `show-set`'s case dropped from `main.ts` and `buildComponents` without
- * `thenTellSet`, together → 3 of 13: `#3119 show-set makes the set's page current and fits the view to it (page Cover,
- * viewed 0)`, `#3119 show-set for a set the file lacks answers set-in-file false ([])` and `#3119 a Build set is followed by
- * set-in-file for its set, after its verdict (["component-result"], [])`.
+ * `thenTellSet`, together → 4 of 15: `#3119 show-set makes the set's page current and fits the view to it (page Cover,
+ * viewed 0)`, `#3119 show-set for a set the file lacks answers set-in-file false ([])`, `#3119 a Build set is followed by
+ * set-in-file for its set, after its verdict (["component-result"], [])` and `#3119 show-set once the write ends shows the
+ * set (page Cover, viewed 0)`. M1, `if (guard.held()) return;` dropped from
+ * `showSet` → 1 of 15: `#3119 show-set while a write holds the file moves nothing and posts nothing (held apply-theme, page Badge,
+ * viewed 1, [])`.
  */
 import { makeShim } from './component-shim';
 import { pageOf, setNodeOf, showSetNode } from './src/show-set';
@@ -117,6 +120,33 @@ await settle();
 const order = posted.map((m) => m?.type).filter((t) => t === 'component-result' || t === 'set-in-file');
 ok(JSON.stringify(order) === '["component-result","set-in-file"]' && JSON.stringify(inFile()) === JSON.stringify([{ type: 'set-in-file', def: 'no-such-def', inFile: false }]),
   `#3119 a Build set is followed by set-in-file for its set, after its verdict (${JSON.stringify(order)}, ${JSON.stringify(inFile())})`);
+
+// show-set while a write holds the file: refused quietly, so nothing moves and nothing is posted (the write's own page
+// moves are the write's). The hold is a real Theme run through `ACTIONS`, parked on its first variables read (a read the
+// set search never makes); the control is a second write refused `busy` behind it. After the hold, the same post shows
+// the set, so the arm measures the guard, not a show that never moves.
+{
+  let releaseHold: () => void = () => undefined;
+  const vars = fig.variables;
+  fig.variables = { ...vars, getLocalVariableCollectionsAsync: () => new Promise((r) => { releaseHold = () => r([]); }) };
+  const brand = { id: 'example', name: 'Example', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } };
+  const actions = (main as unknown as { ACTIONS: Record<string, (...a: unknown[]) => Promise<void>> }).ACTIONS;
+  const hold = actions.applyTheme(brand, undefined, { post: () => undefined, data: () => undefined });
+  await settle();
+  const second: { type?: string; code?: string; held?: string }[] = [];
+  await actions.fileSetup({ post: (m: { type?: string }) => { second.push(m); }, data: () => undefined });
+  current = p1.page; viewed.length = 0; posted.length = 0;
+  send({ type: 'show-set', def: 'badge' });
+  await settle();
+  ok(second.length === 1 && second[0].code === 'busy' && second[0].held === 'apply-theme' && current === p1.page && viewed.length === 0 && inFile().length === 0,
+    `#3119 show-set while a write holds the file moves nothing and posts nothing (held ${second[0]?.held}, page ${(current as { name?: string })?.name}, viewed ${viewed.length}, ${JSON.stringify(inFile())})`);
+  releaseHold(); fig.variables = vars;
+  await hold; await settle();
+  current = p1.page; viewed.length = 0;
+  send({ type: 'show-set', def: 'badge' });
+  await settle();
+  ok(current === p2.page && viewed.length === 1, `#3119 show-set once the write ends shows the set (page ${(current as { name?: string })?.name}, viewed ${viewed.length})`);
+}
 
 console.log(failed ? `❌ ${failed} FAILED — ${executed} assertions executed` : `✅ ALL PASS — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

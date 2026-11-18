@@ -2376,10 +2376,6 @@ const updateFileLend: UpdateFileLend = {
   cleanUp: (ids) => styleGuidesLend.cleanUp(ids),
 };
 
-/** #3113 (Q3113.4 A): a bad result's "… again" in the Activity drawer, through the write call the panel already makes for
- *  it: Update file's run for the theme, Set up file and the style guides, the Components page's run for the sets the last
- *  panel build asked for, Clean up's dry run for Prune stale, and Documentation's Draw specs. It may start only while
- *  nothing runs, panel or agent, and never after a failed restore (#1989); each call keeps its own guard as well. */
 /** #3119: "Show the set in Figma" on a Build set result: the set the last build verdict was about, while the file holds it
  *  as the main thread last said; never for an update check's result (`componentLatest`), which builds nothing. It may run
  *  while nothing else runs, as running again may. */
@@ -2388,6 +2384,10 @@ const activityShowSet: NonNullable<ActivityLend['showSet']> = {
   can: () => !(restoreFailure || updateRun || Object.values(activityReading().ops).some((o) => o.state === 'running')),
   show: (def) => { if (commit.isFigma) commit.postShowSet(def); },
 };
+/** #3113 (Q3113.4 A): a bad result's "… again" in the Activity drawer, through the write call the panel already makes for
+ *  it: Update file's run for the theme, Set up file and the style guides, the Components page's run for the sets the last
+ *  panel build asked for, Clean up's dry run for Prune stale, and Documentation's Draw specs. It may start only while
+ *  nothing runs, panel or agent, and never after a failed restore (#1989); each call keeps its own guard as well. */
 const activityAgain: NonNullable<ActivityLend['again']> = {
   can: (k) => {
     if (restoreFailure || updateRun || Object.values(activityReading().ops).some((o) => o.state === 'running')) return false;

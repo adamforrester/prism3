@@ -51,7 +51,15 @@ agrees). CONTRACT unchanged.
 - **Mutations, each failing by name:**
   - main's drawer code fails 8 of 12 in the chrome section;
   - the lend not reading `setInFile` fails 8 of 24;
-  - main's `show-set` case and `thenTellSet` both dropped fail 3 of 13 in the plugin suite.
+  - main's `show-set` case and `thenTellSet` both dropped fail 4 of 15 in the plugin suite.
+- **Review follow-up (should-fix 1 and two nits):**
+  - `test-show-set.ts` holds the guard with a real Theme run and posts `show-set`: nothing moves and nothing is posted.
+    The control is a second write refused `busy`, and the same post shows the set once the run ends. Dropping
+    `if (guard.held()) return;` from `showSet` fails that arm by name. Floor 13 → 15.
+  - `test:chrome` section `3119`: while an agent's Theme runs, the button is aria-disabled and a click posts nothing. It
+    fails by name, 4 of 32, with the `aria-disabled` line dropped or with `can` returning true.
+  - `test-write-adapter.ts`: `set-in-file` with a non-boolean `inFile` reads as not in the file. It fails by name under
+    `=== true` → `!== false`. Floor 123 → 129.
 
 ### Guides
 
