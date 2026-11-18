@@ -28,6 +28,21 @@ old `component-defs.json` stays for one release, so the contributor and the proo
 | write the twin with one extra byte | `DEFS TWIN: component-contracts.json and its compatibility copy component-defs.json differ`, exit 1 |
 | stop writing the twin | `lint-component-docs CANNOT RUN — … wrote no components/component-contracts.json`, exit 1 |
 
+### After review (CHANGES at `cb657fe0`)
+
+- The CLI arm in `test.ts` now finds `<id>.component-contracts.json` beside `<id>.component-defs.json` and holds the two
+  byte-identical. Before, `cli.ts` could stop writing the new file and `test.ts` stayed green (the review's M1).
+- A new plugin suite, `apps/plugin/test-component-specs-export.ts` (floor 6), calls the exporter the iframe entry
+  provides: the listed names are the three files, typed by hand, the files written are those names, and the contracts
+  file and its compatibility copy carry the same bytes. Before, nothing read that exporter (the review's M2).
+
+| mutation | result |
+|---|---|
+| `cli.ts` stops writing `names.contracts` | `❌ #1325 cli.ts --component-specs: … got no harbor.component-contracts.json`, exit 1 |
+| the plugin's `files` drops the contracts entry | `✗ #1325 files/match the listed names`, `✗ #1325 files/same bytes`, exit 1 |
+| the plugin's contracts entry gets other bytes | `✗ #1325 files/same bytes: … 2677219 vs 2677218 bytes`, exit 1 |
+| the plugin's `fileNames` drops the contracts name | `✗ #1325 names/listed`, exit 1 |
+
 ### Owner decisions held
 
 - OWNER DECISION: the file name. Options: `component-contracts.json` (built, recommended: plural like the file it
