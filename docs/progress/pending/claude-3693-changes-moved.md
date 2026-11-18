@@ -40,3 +40,14 @@ one-line edit plus that assertion.
 - `docs/public/guides/agent-link.md` gains one line: a color override's confirm is refused as `changes-moved` or
   `brand-moved`, cited to `confirmMoved`. The two `main.ts` citations below the edit moved by two lines, and they are
   re-pointed with their fingerprints unchanged.
+
+### Review fixes
+
+- **The real-Figma canary:** `tools/figma-canary/judge.ts` required set-override's `previewHash` to be 8 hex digits, so
+  a live run would hold every rebuild on the split hash. It now requires 16, the fixtures carry 16, and a selftest arm,
+  `hash-8-digits/set-override`, holds an 8-digit hash by name.
+- **The agent reference:** set-override's description names the new refusal, "the changes sent are not the ones
+  previewed" (DRAFT, the owner's call). A `#3693` arm in `test.ts` asserts the committed reference names each reason
+  `confirmMoved` returns.
+- The `set-override/busy` arm's confirm echoes its own preview's hash again (`pv3`), as on main: the busy guard declines
+  it before the hash is read.
