@@ -15,10 +15,10 @@ import '@prism3/css/password-field.css';
 // The HTML password field's Show/Hide behavior, the script a client page loads; it stands aside inside an upgraded
 // <p3-password-field>.
 import '@prism3/css/password-field.js';
-// The package's root entry registers <p3-button> only, so each field element is imported by its own module.
-import '@prism3/web-components';
-import '@prism3/web-components/p3-text-field.js';
-import '@prism3/web-components/p3-password-field.js';
+// The package's root entry registers nothing (Q-POC3 B): each element is imported from its own entry.
+import '@prism3/web-components/button';
+import '@prism3/web-components/text-field';
+import '@prism3/web-components/password-field';
 
 // The element stories' controls and docs come from the analyzer's manifest, not from a list written here.
 setCustomElementsManifest(manifest);
