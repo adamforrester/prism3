@@ -13,6 +13,7 @@ owner still met was distance and inconsistency:
 The proposal moves one group, always titled "Outline & text hover", directly under Fill, under every method. It holds
 pickers, the wash read-out or one line under No hover fill. The method and Wash opacity stay in Interactive settings,
 since the method is brand-wide (Q3335.6 A). The placement is a layout change only: same levers, tokens and writes.
+The owner's A settles "beside Fill", not the always-shown group or the folded wash groups, so those are Q3116.3.
 
 **Real values.** The frames' chrome takes the built Studio's `--p3-*` values in light and dark. The swatches, buttons
 and ratios take the example brand's roles resolved under each method at `2ef39ee6`, so the page is a snapshot. Each
@@ -23,5 +24,7 @@ row shows its role's own contracted ratio. The worst-label line is recomputed on
 - Q3116.1, which parts a brand changes. The label and border hover and pressed roles are shared with tabs, tags,
   pagination, segmented controls, switches and checkboxes, so button-only label and border colors would be new tokens.
 - Q3116.2, the method chooser's form.
+- Q3116.3, whether the group shows under every method with the "Overlay wash" and "Tinted wash" groups folded into it
+  (as drawn), only under Solid fill with the wash read-outs moved up beside Fill, or with the wash groups kept separate.
 - Q3105.1, whether the pressed contrast check reaches the washes.
 - Q3105.2, whether contrast moves the pressed step or only the label.

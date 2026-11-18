@@ -156,7 +156,7 @@ th { color: var(--text-2); font-weight: 600; }
   <p class="muted">Color › Interactive, in Studio and the plugin (one shell). The owner decided where these colors go: with each button set's fill and state pickers, not under the outline hover method's chooser. This page shows that placement before and after, and asks only the questions still open.</p>
 
   <div class="banner">
-    <strong>How to read this.</strong> Every frame is a mock of the levers panel, drawn with the Studio chrome's own colors and the example brand's resolved colors (<code>prism3</code>, at <code>main</code> <code>2ef39ee6</code>). Use the method menu to see each method. The dashed outline marks the group that moves. Tags such as <a class="qtag" href="#q3116-1">Q3116.1</a> point to an open question <a href="#questions">at the end</a>. Where a question is open, the "after" frames draw today's build and say so. All new wording is DRAFT.
+    <strong>How to read this.</strong> Every frame is a mock of the levers panel, drawn with the Studio chrome's own colors and the example brand's resolved colors (<code>prism3</code>, at <code>main</code> <code>2ef39ee6</code>). Use the method menu to see each method. The dashed outline marks the group that moves. Tags such as <a class="qtag" href="#q3116-1">Q3116.1</a> point to an open question <a href="#questions">at the end</a>. Where a question is open, the "after" frames draw today's build and say so. The one exception is <a class="qtag" href="#q3116-3">Q3116.3</a>: the frames draw its option A, and it is still open. All new wording is DRAFT.
   </div>
 
   <h2 id="today">What is there today</h2>
@@ -167,10 +167,10 @@ th { color: var(--text-2); font-weight: 600; }
     <li>The label and border have hover and pressed rows already, in the card's Text and Border groups. Those colors are shared: the same Text and Border roles also color tabs, tags, pagination, segmented controls, switches and checkboxes. That is why <a class="qtag" href="#q3116-1">Q3116.1</a> is a real choice.</li>
   </ul>
 
-  <h2 id="change">What the decided placement changes</h2>
+  <h2 id="change">What the page proposes</h2>
   <ul class="tight">
     <li><strong>The group moves up, directly under Fill</strong>, so the filled button's hover and pressed and the outline and text buttons' hover and pressed read as one block.</li>
-    <li><strong>The group shows under every method</strong>, always with the same title. It holds pickers under Solid fill, the wash swatches (read-only, with where to change them) under a wash, and one line under No hover fill. Today's separate "Overlay wash" and "Tinted wash" groups fold into it.</li>
+    <li><strong>The group shows under every method</strong>, always with the same title. It holds pickers under Solid fill, the wash swatches (read-only, with where to change them) under a wash, and one line under No hover fill. Today's separate "Overlay wash" and "Tinted wash" groups fold into it. The owner's A doesn't settle this, so it is open: <a class="qtag" href="#q3116-3">Q3116.3</a>.</li>
     <li>The method chooser and Wash opacity stay in Interactive settings, because they apply to every button set. Their form is <a class="qtag" href="#q3116-2">Q3116.2</a>.</li>
     <li>Nothing in the engine changes for the placement: same levers, same tokens, same writes. It is a Studio layout change only.</li>
   </ul>
@@ -236,6 +236,17 @@ th { color: var(--text-2); font-weight: 600; }
     <p class="why"><strong>Why A:</strong> it splits the two things the four names mix: whether there is a fill, and what color the wash is. It also keeps Studio's rule of chips for two to four options (#1675), with short labels that don't wrap. It writes the same four values as today, so nothing in the engine changes. The labels are DRAFT.</p>
   </section>
 
+  <section class="q" id="q3116-3">
+    <h3><span class="qtag">Q3116.3</span> Does the group show under every method, with the wash groups folded into it?</h3>
+    <p>The owner's A puts these colors beside Fill. It doesn't say what the card shows under the other three methods. Today the "Outline &amp; text hover" group shows only under Solid fill. Under a wash, the card shows a separate read-only "Overlay wash" or "Tinted wash" group instead, and under No hover fill it shows nothing. The "after" frames draw A.</p>
+    <ol>
+      <li class="rec"><strong>A (rec).</strong> One group under every method, as drawn. It is always titled "Outline &amp; text hover" and always sits directly under Fill. It holds pickers under Solid fill, the wash swatches (read-only, with where to change them) under a wash, and one line under No hover fill. The "Overlay wash" and "Tinted wash" groups fold into it.</li>
+      <li><strong>B.</strong> The group under Solid fill only, as today. The "Overlay wash" and "Tinted wash" read-outs stay as they are, with their own titles, but move up beside Fill too. Under No hover fill, nothing shows.</li>
+      <li><strong>C.</strong> The two wash groups kept separate and where they are today, after Border · inverse. Only the Solid fill group moves up beside Fill.</li>
+    </ol>
+    <p class="why"><strong>Why A:</strong> the hover colors are in the same place, under the same title, whichever method the brand picks, and under a wash the group says where to change them. B and C keep today's split, and C leaves the wash read-outs far below Fill. All three are layout only: same levers, tokens and writes.</p>
+  </section>
+
   <section class="q" id="q3105-1">
     <h3><span class="qtag">Q3105.1</span> Should the pressed contrast check also cover the two washes?</h3>
     <p>Under Solid fill, the label is checked against both the hover fill and the pressed fill. Under the neutral and tinted washes, the pressed state is still checked against the page, or not at all. One known case falls short: on one brand's high-contrast modes, a pressed label on the neutral wash measures 6.99:1 against a 7:1 floor.</p>
@@ -263,7 +274,7 @@ th { color: var(--text-2); font-weight: 600; }
     <li>The other button sets. Neutral, Destructive and any added set get the same group in the same place. The frames draw Primary only.</li>
     <li>The style guide pages and the preview's own layout. Neither changes.</li>
   </ul>
-  <p class="muted" style="margin-top:32px;font-size:13px">DRAFT wireframe · #3116 · Refs #3105 (Q3105.1, Q3105.2), #3071, #3335, #3115, #1675. Made for owner review; not a shipped surface.</p>
+  <p class="muted" style="margin-top:32px;font-size:13px">DRAFT wireframe · #3116 (Q3116.1, Q3116.2, Q3116.3) · Refs #3105 (Q3105.1, Q3105.2), #3071, #3335, #3115, #1675. Made for owner review; not a shipped surface.</p>
 </main>
 
 <script>
