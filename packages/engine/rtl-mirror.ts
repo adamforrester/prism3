@@ -24,10 +24,10 @@ export const mirrorParts = (def: ComponentDef): Record<Mirror, string[]> => {
 const words = (id: string): string => id.replace(/^_+/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
 
 /** `a`, `a and b`, `a, b and c`. */
-const list = (xs: string[]): string => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}`);
+const list = (xs: string[]): string => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 
 /** `a`, `a or b`, `a, b or c`. */
-const either = (xs: string[]): string => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} or ${xs.at(-1)}`);
+const either = (xs: string[]): string => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} or ${xs[xs.length - 1]}`);
 
 /** The parts as one subject: a glyph part (`chevronGlyph`) reads as its shape plus "glyph", pluralized together
  *  (`previousGlyph`, `nextGlyph` → "previous and next glyphs"), every other part as its words. */
