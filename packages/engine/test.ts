@@ -7686,6 +7686,22 @@ arm: {
         && /One Tab stop/.test(tg.accessibility.keyboard) && /arrows/.test(tg.accessibility.keyboard)
         && /A select group is `role="toolbar"`/.test(semantics),
         `#3949 tag-group role: a select group is role="toolbar" with one Tab stop and arrow keys, a dismissible group role="grid" (select: ${selectRole.slice(0, 60) || 'none'}; roles ${declared || 'none'}; codeOnly ${/role="toolbar"/.test(semantics) ? 'toolbar' : 'missing'})`);
+      // The roving tabindex (review of #3949, S2): the code-tier keyboard entry holds the one-Tab-stop mechanics, so a
+      // re-accepted surface digest cannot quietly lose them. Literals from the decision, read against the shipped entry.
+      const kbd = (codeOnlyText(tg.anatomy?.codeOnly) ?? []).find((l) => l.startsWith('The keyboard')) ?? '';
+      ok(/one Tab stop/i.test(kbd) && /roving tabindex/.test(kbd) && (kbd.match(/tabindex="0"/g) ?? []).length === 1
+        && /the last-focused tag holds `tabindex="0"`/.test(kbd) && /every other `-1`/.test(kbd),
+        `#3949 tag-group roving tabindex: one Tab stop, the last-focused tag tabindex="0" and every other -1 (${kbd.slice(0, 110) || 'no keyboard entry'})`);
+      // Tag's own fields agree with the group contract (review of #3949, S1): Tag.Group owns a select group's selection
+      // as pressed toggle buttons in a role="toolbar" (#1739 A, Q-TG1 B), so Tag never tells a reader to build the group
+      // as a listbox, a radiogroup or checkboxes, or that arrows select. Literals, read against Tag's shipped fields.
+      const tagDef = componentDefs.find((d) => d.id === 'tag');
+      const tagSelect = (codeOnlyText(tagDef?.anatomy?.codeOnly) ?? []).find((l) => l.startsWith('The select tag in code')) ?? '';
+      const tagText = JSON.stringify([tagDef?.accessibility, tagSelect]);
+      const tagStray = [...new Set([...tagText.matchAll(/listbox|radiogroup|role=\\?"checkbox\\?"|aria-checked|aria-selected|single-choice|single choice|move and select/g)].map((m) => m[0].replace(/\\/g, '')))];
+      ok(!!tagDef && tagStray.length === 0 && /aria-pressed/.test(tagDef.accessibility.role) && /role="toolbar"/.test(tagDef.accessibility.role)
+        && /aria-pressed/.test(tagSelect) && /role="toolbar"/.test(tagSelect),
+        `#3949 tag select contract: Tag's role, keyboard, aria and select code entry match Tag.Group's toolbar of pressed buttons (stray: ${tagStray.join(', ') || 'none'}; role ${tagDef?.accessibility.role.slice(0, 70)})`);
       const shipped = JSON.stringify([tg.summary, tg.description, tg.docs, tg.ai, tg.accessibility, tg.props]);
       const overflow = (codeOnlyText(tg.anatomy?.codeOnly) ?? []).find((l) => l.startsWith('Overflow')) ?? '';
       ok(!/\+N more|\+\d+ more/i.test(shipped) && /flex-wrap: wrap/.test(overflow),
