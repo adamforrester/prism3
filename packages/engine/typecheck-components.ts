@@ -296,6 +296,8 @@ export const unplacedDiagnostics = (diagnostics: string[]): string[] =>
  *  chance to build. The stage that turns the flag on in a tsconfig deletes that tsconfig's entry. */
 export const NUIA_CLEAN_BY_TSCONFIG: readonly { tsconfig: string; clean: readonly string[] }[] = [
   { tsconfig: 'apps/plugin/tsconfig.main.json', clean: [
+    'packages/engine/anatomy-figma.ts',
+    'packages/engine/anatomy-readback.ts',
     'packages/engine/design-md.ts',
     'packages/engine/emit-figma-color.ts',
     'packages/engine/tree.ts',

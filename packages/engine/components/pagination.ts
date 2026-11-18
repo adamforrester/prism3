@@ -758,7 +758,7 @@ export const pagination: ComponentDef = {
   },
 
   accessibility: {
-    role: 'navigation: a <nav> landmark named "Pagination", holding a list of links or buttons',
+    role: 'navigation: a `<nav>` landmark named "Pagination", holding a list of links or buttons',
     wcag: [
       '1.3.1 Info and Relationships (a labeled navigation landmark around a list; the current page carries aria-current="page")',
       '1.4.1 Use of Color (the current page has a border or an underline and a heavier weight, and aria-current)',
@@ -814,7 +814,7 @@ export const pagination: ComponentDef = {
   composition: {
     composesWith: ['pagination-item'],
     alternativeTo: ['tabs'],
-    replacesPatterns: ['page links built from <a href="#"> and click handlers', 'a disabled next button that drops focus at the last page', 'infinite scroll on a page with a footer'],
+    replacesPatterns: ['page links built from `<a href="#">` and click handlers', 'a disabled next button that drops focus at the last page', 'infinite scroll on a page with a footer'],
     supersededBy: [],
     planned: ['table', 'carousel'],
   },
