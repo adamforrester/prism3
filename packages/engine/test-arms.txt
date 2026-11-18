@@ -781,6 +781,7 @@ apps/studio/test-smoke.mjs #2942
 apps/studio/test-smoke.mjs #330
 apps/studio/test-smoke.mjs #3335
 apps/studio/test-smoke.mjs #388
+apps/studio/test-smoke.mjs #3880
 apps/studio/test-smoke.mjs #576
 apps/studio/test-smoke.mjs #775
 apps/studio/test-smoke.mjs #779
@@ -793,6 +794,7 @@ apps/studio/test-status-strip.ts #3177
 apps/studio/test-store.ts #1037
 apps/studio/test-store.ts #2487
 apps/studio/test-store.ts #3878
+apps/studio/test-store.ts #3880
 apps/studio/test-style-guides.ts #2372
 apps/studio/test-type-input.ts #1071
 apps/studio/test-type-input.ts #1727
