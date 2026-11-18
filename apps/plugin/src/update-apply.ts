@@ -358,7 +358,7 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
       const d = s.damaged ?? [];
       skipped.push({ member: s.member, reason: 'a layer was added or removed by hand'
         + (d.length ? `, and it draws other than its plan (${d.slice(0, 3).join('; ')}${d.length > 3 ? '; …' : ''})` : '')
-        + (s.dangling ? `, and its ${REACTIONS} point at a member no longer in the set` : '')});
+        + (s.dangling ? `, and its ${REACTIONS} point at a member no longer in the set` : '') });
       around.push(s.member);
       continue;
     }

@@ -92,7 +92,7 @@ To bring variants Prism3 did not build under its updates, an agent can claim the
 ### Updates off
 
 A set can have its updates off. Update file then leaves it as it is, and every hand edit on it stays where you left it. In Activity the run says so calmly, for example "Button: left as it is. Updates off." <!-- src: apps/plugin/src/updates-off.ts:61 -->
-Such a set is never due, and the count on the button leaves it out. <!-- src: apps/plugin/src/as-built-ledger.ts:291#222872f0 -->
+Such a set is never due, and once the whole file has been read, the count on the button leaves it out. Right after the file opens, the count can include it for a moment. <!-- src: apps/plugin/src/as-built-ledger.ts:291#222872f0 -->
 
 Updates turn off by themselves only when an update can't apply around a set's hand edits: it had to skip a member whole for them, such as one with a layer you added. The rest of the set is still updated in that run. <!-- src: apps/plugin/src/update-apply.ts:1191#ef6ef842 -->
 An ordinary hand edit, such as a recolor, stays a hand edit, and the set keeps updating.
