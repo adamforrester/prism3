@@ -16,6 +16,10 @@ content was lost on the way through collapsed, which matches the field report. `
 - **Tests:** the #2417 accordion arm now reads "a native slot on every member, shown while expanded and built
   hidden while collapsed". It failed before the fix (`collapsed/medium: ABSENT`) and passes after. #910's
   generic presence arms read a `hiddenWhenAbsent` part as shown or not shown.
+- **Baselines:** `lint-component-surface --accept` (the accordion's plan digest moved, with the `minor` note
+  declared) and `lint-paint --accept`. The census gains the 24 collapsed members' hidden placeholder ink, so
+  96 paint assignments where there were 72. `lint-part-union`'s ADMITS table is the gate's own authored copy,
+  not derived from the schema, and it gains `hiddenWhenAbsent: ['box']`.
 - **Mutation:** dropping `hiddenWhenAbsent: true` from the accordion's panel fails the #3058 arm by name.
 - **Not measured:** that Figma's own variant switch keeps a hidden slot's content. The shim builds and reads
   back the hidden slot, but the claim about Figma's override carry-over is host behavior. The owner can check
