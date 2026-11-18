@@ -43189,6 +43189,24 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(schemaErrs.some((e) => e.includes('shadow.tint.amount')), `#3874 the schema refuses a global shadow tint amount of 50 (errors: ${JSON.stringify(schemaErrs)})`);
 }
 
+// #3872 — breakpoints are mobile-first min-width floors, so each must be above the one before. Out of order
+// ([0, 1024, 768]) emitted lg below md, a repeat named one floor twice, and a negative floor sat below the first;
+// each built cleanly (and a null floor, which no JSON brief can hold as a number, crashed on `.toFixed`). brandTheme
+// now refuses them, naming the floor and the one it follows.
+{
+  const base = { id: 'bp3872', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 } } as unknown as BrandInput;
+  const refusal = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const withBps = (breakpoints: number[]) => ({ ...base, layout: { breakpoints } }) as unknown as BrandInput;
+  for (const [bps, at, before] of [[[0, 1024, 768], '768', '1024'], [[0, 768, 768], '768', '768'], [[0, -5, 768], '-5', '0'], [[0, 768, null], 'null', '768']] as const) {
+    const msg = refusal(() => brandTheme(withBps([...bps] as number[])));
+    ok(msg.startsWith('Breakpoints must rise') && msg.includes(`${at}px follows ${before}px`),
+      `#3872 breakpoints [${bps.join(', ')}] are refused, naming ${at}px after ${before}px (got ${JSON.stringify(msg)})`);
+  }
+  // The accept side: rising floors, a fractional one among them, still build.
+  const rising = refusal(() => brandTheme(withBps([0, 768.5, 1024])));
+  ok(rising === '', `#3872 rising breakpoints [0, 768.5, 1024] still build (got ${JSON.stringify(rising)})`);
+}
+
 if (pass + fails.length < MIN_ASSERTIONS) {
   console.log(`  ❌ only ${pass + fails.length} assertions ran, expected at least ${MIN_ASSERTIONS} — the harness collapsed, so "0 failed" means nothing.`);
   process.exitCode = 1;
