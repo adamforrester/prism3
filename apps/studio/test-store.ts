@@ -25,6 +25,8 @@
 import { type BrandInput, brandTheme, typefaceSlug } from '@prism3/engine';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as store from './src/state/store';
+import { isDirty, needsOverwriteConfirm } from './src/provenance';
+import { stashBefore, stillOffered } from './src/state/undo-load';
 
 let failed = 0;
 let executed = 0;
@@ -196,6 +198,72 @@ ok(JSON.stringify(store.brandState) === beforeLevers, 'clearing the only per-mod
 const o: Record<string, unknown> = {};
 store.setPath(o, 'a.b.c', 3);
 ok(store.getPath(o, 'a.b.c') === 3 && store.getPath(o, 'a.x.c') === undefined, 'setPath creates intermediate objects; getPath reads through a missing one as undefined');
+
+// ---- Undo load (#1037, owner decision Q319.2): the replaced brand comes back with its edits, still guarded ----------
+// EXPECTED from outside the module: the brands are the engine's examples, the edit is a rename typed here, and "still
+// guarded" is the provenance module's own `needsOverwriteConfirm` over the restored state, never the stash's flag.
+// Mutations that fail here BY NAME: `restoreInput` taking a fresh provenance from the input (`provenanceOf`) →
+// `#1037 restoreInput: the edits come back still unsaved`; `stashBefore` keeping a stash with no edits to lose →
+// `#1037 stashBefore: a load over an untouched brand keeps nothing`.
+{
+  const ids = Object.keys(exampleBrands);
+  const [mine, other] = [ids[0], ids[1]];
+  store.initSession(structuredClone((exampleBrands as Record<string, BrandInput>)[mine]), { kind: 'example', id: mine });
+  ok(stashBefore(store.brandState, store.provenance, 'x', store.lastGoodInput) === null, '#1037 stashBefore: a load over an untouched brand keeps nothing');
+  store.brandState.name = 'work in progress';
+  const u = stashBefore(store.brandState, store.provenance, 'work in progress', store.lastGoodInput);
+  ok(u !== null && u.input.name === 'work in progress' && u.input !== store.brandState, '#1037 stashBefore: a load over edits keeps a copy of the edited brand');
+  store.loadInput((exampleBrands as Record<string, BrandInput>)[other], { kind: 'example', id: other });
+  ok(stillOffered(u, store.brandState, store.provenance), '#1037 stillOffered: offered while the loaded example is untouched');
+  store.brandState.name = 'edited after the load';
+  ok(!stillOffered(u, store.brandState, store.provenance), '#1037 stillOffered: the first edit to the loaded brand ends the offer');
+  store.restoreInput(u!.input, u!.provenance, u!.lastGood);
+  ok(store.brandState.name === 'work in progress' && store.brandState.id === (exampleBrands as Record<string, BrandInput>)[mine].id,
+    `#1037 restoreInput: the replaced brand is back, its edit included (${store.brandState.name})`);
+  ok(isDirty(store.brandState, store.provenance) && needsOverwriteConfirm(store.brandState, store.provenance) && store.provenance.origin.kind === 'example',
+    '#1037 restoreInput: the edits come back still unsaved, and a next load asks first');
+  // The restored brand's root (`pds3`, the first example's) is typed here, and differs from the loaded one's (`ads`), so
+  // a restore that skips the resolve leaves the loaded example's theme and fails BY NAME (review of 6e73dba1, item 3).
+  ok(store.page === 'palettes' && store.lastError === null && store.theme.root === 'pds3' && store.lastGoodInput.name === 'work in progress',
+    `#1037 restoreInput: it resolves the restored brand and resets the view, as a load does (theme root ${store.theme.root}, last good ${store.lastGoodInput.name})`);
+}
+
+// ---- Undo load over a brand whose live edit fails (review of 6e73dba1, item 2) --------------------------------------
+// The replaced brand held a refused edit, so its last-good input was an earlier state, not the live one. Undo puts the
+// refused edit back where the field shows it AND the last-good brand behind it: the theme, `lastGoodInput` (what Apply
+// posts) and the persisted copy (what a web reload opens) are the user's brand, never the example the load brought in.
+// Expected values typed here: the name `mine`, the root `pds3`, the error the engine gives for the refused edit.
+// Mutations that fail here BY NAME: `restoreInput` ignoring the stashed last-good → `#1037 restoreInput over a failing
+// edit: …`; `stashForLoad` passing the live input as the last-good → `#1037 stashForLoad: …`.
+{
+  const ids = Object.keys(exampleBrands);
+  const [mine, other] = [ids[0], ids[1]];
+  const persisted: BrandInput[] = [];
+  store.setPersist((input) => { persisted.push(structuredClone(input)); });
+  store.initSession(structuredClone((exampleBrands as Record<string, BrandInput>)[mine]), { kind: 'example', id: mine });
+  store.brandState.name = 'mine';
+  store.rebuild();
+  store.brandState.actionPalette = 'not-a-palette';
+  let engineSays = '';
+  try { brandTheme(store.brandState); } catch (e) { engineSays = (e as Error).message; }
+  store.rebuild();
+  ok(store.lastError === engineSays && store.lastGoodInput.name === 'mine', `#1037 premise: the live edit is refused and the last good brand is the named one (${store.lastError})`);
+  // The stash `main.ts` keeps before a load (`loadReplacing` calls `stashForLoad`), so the argument choice is held here
+  // too (review of f3cca512): a stash whose last-good is the live, refused input fails `#1037 stashForLoad: …` BY NAME.
+  const u = store.stashForLoad('mine');
+  ok(u !== null && u.input.actionPalette === 'not-a-palette' && u.lastGood.name === 'mine' && u.lastGood.actionPalette === undefined,
+    `#1037 stashForLoad: the stash keeps the live brand with its refused edit, and the last good brand behind it (last good ${u?.lastGood.actionPalette ?? 'without the edit'})`);
+  store.loadInput((exampleBrands as Record<string, BrandInput>)[other], { kind: 'example', id: other });
+  ok(store.theme.root === 'ads' && persisted[persisted.length - 1]?.name === 'Aurora', `#1037 premise: the load brought in the other example and persisted it (${store.theme.root})`);
+  store.restoreInput(u!.input, u!.provenance, u!.lastGood);
+  ok(store.brandState.name === 'mine' && store.brandState.actionPalette === 'not-a-palette' && store.lastError === engineSays,
+    `#1037 restoreInput over a failing edit: the refused edit is back in the live brand, flagged as before (${store.lastError})`);
+  ok(store.lastGoodInput.name === 'mine' && store.lastGoodInput.actionPalette === undefined && store.theme.root === 'pds3',
+    `#1037 restoreInput over a failing edit: the theme and the last good brand are the user's, not the loaded example's (theme root ${store.theme.root}, last good ${store.lastGoodInput.name})`);
+  ok(persisted[persisted.length - 1]?.name === 'mine' && persisted[persisted.length - 1]?.actionPalette === undefined,
+    `#1037 restoreInput over a failing edit: the persisted copy is the user's last good brand, so a reload opens it (${persisted[persisted.length - 1]?.name})`);
+  store.setPersist(null);
+}
 
 // ---- #3878: a clear is a clear — set, then back to Auto, leaves the brand byte-identical ----------------
 // Each writer below clears with `undefined` (or an emptied list or map). Before #3878, `setPath` materialized
