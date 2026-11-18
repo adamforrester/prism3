@@ -32,7 +32,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { context, main, open, require, result, stories, type Plant, type Story, type Result } from './a11y-harness.ts';
+import { context, DROPPED, main, open, require, result, stories, type Plant, type Story, type Result } from './a11y-harness.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BASELINE = resolve(HERE, 'aria-snapshots.json');
@@ -114,7 +114,7 @@ export const run = async (browser: unknown, origin: string, plant: Plant = {}, o
   const ctx = await context(browser, plant);
   const page = await ctx.newPage();
   const got: Record<string, Partial<Record<Story['form'], string>>> = {};
-  const all = stories();
+  const all = stories(plant);
   try {
     for (const s of all.filter(only)) {
       try { await open(page, origin, s, 'light', plant); }
@@ -191,5 +191,5 @@ const MUTANTS = [
 ];
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  await main('aria', 'Each case\'s element and HTML forms build the same accessibility tree (ARIA snapshot plus descriptions), equal to the accepted aria-snapshots.json, with every HAS row present.', run as never, ACCEPT ? [] : MUTANTS);
+  await main('aria', 'Each case\'s element and HTML forms build the same accessibility tree (ARIA snapshot plus descriptions), equal to the accepted aria-snapshots.json, with every HAS row present.', run as never, ACCEPT ? [] : [...MUTANTS, ...DROPPED('aria')]);
 }

@@ -21,14 +21,14 @@ export type Story = { id: string; component: string; form: 'element' | 'html'; c
 export const COMPONENTS = ['button', 'text-field', 'password-field'] as const;
 
 /** Every story in the build, parsed from its id: `components-<component>-<form>--<case>`. */
-export const stories = (): Story[] => {
+export const stories = (plant: Plant = {}): Story[] => {
   if (!existsSync(resolve(STATIC, 'index.json'))) {
     console.error('FAIL setup: apps/storybook/storybook-static/index.json is missing. Run: npm run -w @prism3/storybook build');
     process.exit(1);
   }
   const entries = JSON.parse(readFileSync(resolve(STATIC, 'index.json'), 'utf8')).entries as Record<string, { type: string }>;
   const out: Story[] = [];
-  for (const id of Object.keys(entries).filter((k) => entries[k].type === 'story')) {
+  for (const id of Object.keys(entries).filter((k) => entries[k].type === 'story' && !plant.drop?.includes(k))) {
     const m = /^components-(button|text-field|password-field)-(element|html)--(.+)$/.exec(id);
     if (!m) { console.error(`FAIL setup: story ${id} is not components-<component>-<form>--<case>`); process.exit(1); }
     out.push({ id, component: m[1], form: m[2] as Story['form'], case: m[3] });
@@ -59,9 +59,10 @@ const FORCED: Record<string, string> = { hover: 'pseudo-hover-all', pressed: 'ps
 
 /**
  * What a self-test mutant plants: `init` runs before the page's own scripts, `after` once the story has settled,
- * and `css` is added after that.
+ * and `css` is added after that. `drop` removes story ids from the suite's enumeration, as a filter slipped into
+ * `stories()` would: the represented check must then name each one.
  */
-export type Plant = { init?: string; after?: string; css?: string };
+export type Plant = { init?: string; after?: string; css?: string; drop?: string[] };
 
 /**
  * Opens one story in `theme` and waits until it has settled: the component is in the root, every element has
@@ -111,6 +112,19 @@ export const context = async (browser: any, plant: Plant = {}) => {
   });
   if (plant.init) await ctx.addInitScript(plant.init);
   return ctx;
+};
+
+/**
+ * The represented-story mutants every check carries (review of #3971): one story dropped from the enumeration must be
+ * named as not checked, and its case named as checked in one form only. The id and the wording are literals here.
+ */
+export const DROPPED = (label: string) => {
+  const plant: Plant = { drop: ['components-text-field-html--error'] };
+  const only = (s: Story) => s.component === 'text-field' && s.case === 'error';
+  return [
+    { name: 'a story dropped from the suite', plant, only, mustName: new RegExp(`^components-text-field-html--error: not checked by ${label}`) },
+    { name: 'a case left in one form only', plant, only, mustName: new RegExp(`^text-field--error: only the element form was checked by ${label}`) },
+  ];
 };
 
 export type Result = { failures: string[]; passed: number; notes: string[]; ok: (cond: boolean, what: string) => void };

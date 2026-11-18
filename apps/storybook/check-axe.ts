@@ -21,7 +21,7 @@
  */
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { context, main, open, require, result, stories, type Plant, type Story, type Result } from './a11y-harness.ts';
+import { context, DROPPED, main, open, require, result, stories, type Plant, type Story, type Result } from './a11y-harness.ts';
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'];
 const THEMES = ['light', 'dark'] as const;
@@ -54,7 +54,7 @@ export const run = async (browser: unknown, origin: string, plant: Plant = {}, o
   const page = await ctx.newPage();
   let rulesRun = 0;
   try {
-    for (const s of stories().filter(only)) for (const theme of THEMES) {
+    for (const s of stories(plant).filter(only)) for (const theme of THEMES) {
       const where = `${s.id} (${theme})`;
       try { await open(page, origin, s, theme, plant); }
       catch (e) { r.failures.push(`${where}: did not settle: ${(e as Error).message.split('\n')[0]}`); continue; }
@@ -115,5 +115,5 @@ const MUTANTS = [
 ];
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  await main('axe', 'Every story, in light and dark, has no axe violation and nothing left for review (WCAG 2.0–2.2 A and AA).', run as never, MUTANTS);
+  await main('axe', 'Every story, in light and dark, has no axe violation and nothing left for review (WCAG 2.0–2.2 A and AA).', run as never, [...MUTANTS, ...DROPPED('axe')]);
 }

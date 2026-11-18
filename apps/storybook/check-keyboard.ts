@@ -31,7 +31,7 @@
  */
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { context, main, open, result, stories, type Plant, type Story, type Result } from './a11y-harness.ts';
+import { context, DROPPED, main, open, result, stories, type Plant, type Story, type Result } from './a11y-harness.ts';
 
 const NAME: Record<string, string> = { pending: 'Saving', 'with-visuals': 'Add item' };
 const LABEL: Record<string, string> = { 'text-field': 'Email address', 'password-field': 'Password' };
@@ -81,7 +81,7 @@ export const run = async (browser: unknown, origin: string, plant: Plant = {}, o
   const r = result();
   const ctx = await context(browser, plant);
   const page = await ctx.newPage();
-  const all = stories().filter(only);
+  const all = stories(plant).filter(only);
   const orders: Record<string, Partial<Record<Story['form'], string[]>>> = {};
   const at = (s: Story) => open(page, origin, s, 'light', plant);
   const find = (c: string, form: string, cs: string) => all.find((s) => s.component === c && s.form === form && s.case === cs);
@@ -229,5 +229,5 @@ const MUTANTS = [
 ];
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  await main('keyboard', 'Tab order (every story, both forms agreeing), Space and Enter on the button, the Show/Hide toggle by keyboard, and focus-visible on keyboard only.', run as never, MUTANTS);
+  await main('keyboard', 'Tab order (every story, both forms agreeing), Space and Enter on the button, the Show/Hide toggle by keyboard, and focus-visible on keyboard only.', run as never, [...MUTANTS, ...DROPPED('keyboard')]);
 }
