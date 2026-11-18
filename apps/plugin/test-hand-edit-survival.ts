@@ -25,7 +25,12 @@
  *   · #2956 point 1's reorder guard dropped → `survival/reorder root`, `/reorder overlap`;
  *   · #2956 point 1's wiring guard dropped → `survival/link root`, `/link overlap`;
  *   · the apply's skip of a member with a layer added or removed by hand dropped (`update-apply.ts`, `plan`) →
- *     `survival/layer added …`, `/layer removed …` (4).
+ *     `survival/layer added …`, `/layer removed …` (4);
+ *   · #3076's icon swap: the instance's main left out of the as-built signature (`sig.main = null`, `member-baseline.ts`)
+ *     → every `survival/icon swap …` assertion (9); the nested instance's `!kept` re-point guard dropped
+ *     (`write-components.ts`) → `/icon swap …` and `/icon swap inset …`, root and overlap (4); the slot's `!kept` guard
+ *     dropped → `/icon swap slot root`, `/icon swap slot overlap` (2); `slotRepoints` unwired (`update-plan.ts`) →
+ *     `/icon swap slot overlap conflict`.
  */
 import { makeShim, type Node, type Page } from './component-shim';
 import { componentDefs, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan } from '@prism3/engine/components';
@@ -142,11 +147,11 @@ const KINDS: Kind[] = [
   // that is a nested instance (Tag's check), a glyph inset in a frame (Checkbox's check), and a slot whose default a
   // property names (Search field's clear). "overlap" re-points the same node at another core icon, the case of an
   // engine that changes the glyph it draws there, so the swap is a conflict.
-  { kind: 'icon swap', def: 'tag', member: TAG_SELECTED, edits: 'content/labelCheck/checkGlyph', edit: swapTo('content/labelCheck/checkGlyph'),
+  { kind: 'icon swap (#3076)', def: 'tag', member: TAG_SELECTED, edits: 'content/labelCheck/checkGlyph', edit: swapTo('content/labelCheck/checkGlyph'),
     read: (m) => mainName(kid(m, 'content/labelCheck/checkGlyph')), want: BRAND_ICON, overlap: retarget('content/labelCheck/checkGlyph') },
-  { kind: 'icon swap inset', def: 'checkbox-control', member: CHECKED, edits: 'checkGlyph/glyph', edit: swapTo('checkGlyph/glyph'),
+  { kind: 'icon swap inset (#3076)', def: 'checkbox-control', member: CHECKED, edits: 'checkGlyph/glyph', edit: swapTo('checkGlyph/glyph'),
     read: (m) => mainName(kid(m, 'checkGlyph/glyph')), want: BRAND_ICON, overlap: retarget('checkGlyph/glyph') },
-  { kind: 'icon swap slot', def: 'search-field', member: SEARCH_MEMBER, edits: 'control/trailingVisual', edit: swapTo('control/trailingVisual'),
+  { kind: 'icon swap slot (#3076)', def: 'search-field', member: SEARCH_MEMBER, edits: 'control/trailingVisual', edit: swapTo('control/trailingVisual'),
     read: (m) => mainName(kid(m, 'control/trailingVisual')), want: BRAND_ICON, overlap: retarget('control/trailingVisual') },
 ];
 

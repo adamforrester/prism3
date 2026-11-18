@@ -80,6 +80,7 @@ Open **Update file** again to check afresh. <!-- src: apps/studio/src/state/upda
 |---|---|
 | The set and each variant | Kept, with the same ids, so every instance of it, in this file or one that uses it as a library, still points at it. <!-- src: apps/plugin/src/update-apply.ts:8-12#cb1e78db --> |
 | A hand edit on a variant | Kept by default, and reported again on the next check. <!-- src: apps/plugin/src/update-apply.ts:18-19#2863d9bd --> The **Overwrite** choice writes over it instead. <!-- src: apps/studio/src/state/update-file.ts:387 --> |
+| An icon you swapped inside a variant, such as the brand's own check in place of Prism3's | Kept, like any other hand edit, and reported on the next check. <!-- src: apps/plugin/src/member-baseline.ts:378-379#9be7affb --> |
 | A variant the brand dropped | Kept in the set and marked deprecated, with its name recorded. Never deleted. <!-- src: apps/plugin/src/update-apply.ts:20-21#bc79ac24 --> |
 | A variant Prism3 did not build | Skipped. <!-- src: apps/plugin/src/update-apply.ts:23#833d0bf0 --> |
 | A variant whose layer structure was edited | Skipped whole, because its parts can no longer be matched one by one. <!-- src: apps/plugin/src/update-apply.ts:26#488f7db7 --> |
