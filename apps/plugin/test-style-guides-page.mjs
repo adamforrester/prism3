@@ -371,10 +371,19 @@ const runGuides = async (page) => {
     fontDisplay: 'auto', paragraphSpacing: false, textDecoration: false, tokenNames: 'short', tables: [ALL_KEYS[1], ALL_KEYS[3]] };
   ok(canon(drawn) === canon(WANT), `Q2909.23 A: Update file draws the saved selection by key, with the saved options (${JSON.stringify(drawn)})`);
   ok(sentOf(st, 'apply-theme').length === 0 && sentOf(st, 'build-components').length === 0, `an unticked item is not run: no theme, no sets (${sentOf(st, 'apply-theme').length}, ${sentOf(st, 'build-components').length})`);
+  // The run's table list, as the main thread sends it before drawing (#2561 reads the verdict pill this run leaves).
+  await post(page, { type: 'style-guide-tables', tables: [{ key: ALL_KEYS[1], title: 'Primary', page: '↳ Semantic tokens' }, { key: ALL_KEYS[3], title: 'Text', page: '↳ Semantic tokens' }] });
   await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 2 tables', summary: '2 tables updated in place' });
   await until(page, "Update file idle after the run's verdict", () => document.querySelector('[data-p3="update-file"]')?.getAttribute('aria-busy') !== 'true');
   const busy = await page.evaluate(() => document.querySelector('[data-p3="update-file"]')?.getAttribute('aria-busy'));
   ok(busy !== 'true', `the run ends with the style guide's verdict: Update file is idle again (aria-busy ${busy})`);
+  // #2561 (owner decision A): the verdict pill is one step down the chrome's type scale (12px to 10px) with tighter sides
+  // (12px to 8px), and stays a 24px target: it is a button. Expected px typed here, never read from the stylesheet.
+  await until(page, 'the verdict pill drawn', () => !!document.querySelector('[data-p3="sg-verdict"]'));
+  const pill = await page.evaluate(() => { const n = document.querySelector('[data-p3="sg-verdict"]'); const c = n && getComputedStyle(n);
+    return c && { fs: c.fontSize, pl: c.paddingLeft, pr: c.paddingRight, h: n.getBoundingClientRect().height, tag: n.tagName.toLowerCase(), text: n.textContent }; });
+  ok(!!pill && pill.fs === '10px' && pill.pl === '8px' && pill.pr === '8px' && pill.h >= 24 && pill.tag === 'button' && pill.text === '✓ style guide: 2 tables',
+    `#2561: the verdict pill draws 10px type with 8px sides, still a 24px button (${JSON.stringify(pill)})`);
   ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
