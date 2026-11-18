@@ -22793,7 +22793,8 @@ if (runs('3553-icons')) {
 //     (`.p3-mode`, #2208 DB1 A): its style is not compared, and it is still held to no underline;
 //   · no selected segment draws an underline (an inset box-shadow offset vertically). A `border-bottom`, a
 //     `text-decoration` or a `::before` / `::after` bar fails the property-by-property comparison instead: the compared
-//     set includes `textDecorationLine` and what each pseudo-element would draw (review of 90e374ba).
+//     set includes `textDecorationLine` and what each pseudo-element would draw (review of 90e374ba), and the segment's
+//     own `backgroundImage`, where a gradient bar sized to 2px draws one (review of 15b22b87).
 // What counts as a segmented control: `.p3-seg`, the legacy `.seg`, and any `[role="radiogroup"]`, drawn. Not counted,
 // by name: the token list's Primitives / Semantics tier row (`.pvseg.tok-seg`) and Export's artifact switcher
 // (`.p3-export-tabs`, #3553 Q-UI11 A), which are underline TAB rows by decision, not segmented controls.
@@ -22812,10 +22813,12 @@ if (runs('3553-icons')) {
 //   · `[data-p3="token-path"] .p3-seg-tab[aria-checked="true"]{text-decoration:underline 2px}` → `… token-path's selected
 //     segment ("Full") draws the shared selected style — differs in textDecorationLine underline (shared none)`;
 //   · a 2px --ink bar on that segment's `::before` (`content:""; position:absolute; bottom:2px; height:2px`) → the same
-//     arm, `— differs in ::before content "" (shared none); ::before position absolute …`.
+//     arm, `— differs in ::before content "" (shared none); ::before position absolute …`;
+//   · a 2px `--ink` `background-image` gradient at the bottom of that segment (review of 15b22b87) → the same arm,
+//     `— differs in backgroundImage linear-gradient(…) (shared none)`.
 if (runs('3911')) {
   console.log(`\nEvery segmented control's selected segment is the shared one (#3911)\n${'='.repeat(78)}`);
-  const SEL_PROPS = ['backgroundColor', 'color', 'fontWeight', 'boxShadow', 'outlineStyle', 'textDecorationLine',
+  const SEL_PROPS = ['backgroundColor', 'backgroundImage', 'color', 'fontWeight', 'boxShadow', 'outlineStyle', 'textDecorationLine',
     ...['Top', 'Right', 'Bottom', 'Left'].flatMap((s) => [`border${s}Width`, `border${s}Style`, `border${s}Color`]),
     'borderTopLeftRadius', 'borderBottomRightRadius'];
   // A tab underline is as often a pseudo-element bar as a border or a shadow (review of 90e374ba), so each selected
