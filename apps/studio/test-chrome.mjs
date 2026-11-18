@@ -5139,7 +5139,13 @@ for (const host of ['web', 'figma']) {
     `#1946: the custom mode keeps the record of where it started, on screen and saved (${afterOff.base}, ${JSON.stringify(savedOff?.customModes)})`);
   await hooks.click(page.locator('[data-p3="mode-on-dark"]'));
   await page.waitForFunction(() => document.querySelector('[data-p3="mode-on-dark"]')?.getAttribute('aria-checked') === 'true');
+  // custom-1 holds a copy of light's per-mode input since #1946 (this theme sets a light surface), so removing it
+  // drops that copy, and the confirm lists it first. The surface line is the confirm's own row format, typed here.
   await hooks.click(page.locator('[data-p3="custom-mode-remove"]'));
+  await hooks.need(page, '[data-p3="custom-mode-confirm"]');
+  const rmList = await page.evaluate(() => [...document.querySelectorAll('[data-p3="custom-mode-confirm"] li')].map((li) => li.textContent));
+  ok(rmList.length > 0 && rmList.every((l) => l.startsWith('Surface: ')), `#1946: removing custom-1 lists the copy of light's surface it drops (${JSON.stringify(rmList)})`);
+  await hooks.click(page.locator('[data-p3="custom-mode-confirm-go"]'));
   // D10 (#2487 PR 5): a bounded wait whose result is the assertion, so a regression fails here by name instead of
   // timing out into the catch and skipping the rest of the Brand case.
   const customGone = await page.waitForFunction(() => !document.querySelector('[data-p3="mode-option"][data-mode="custom-1"]'), null, { timeout: 5000 }).then(() => true, () => false);

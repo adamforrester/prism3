@@ -224,8 +224,7 @@ export const mountBrandLevers = (host: HTMLElement, cleanups: (() => void)[]): v
         const cur = customModes()[i];
         if (!cur) return;
         nm.set(cur.name);
-        // A mode can be based only on a mode the brand ships (the legacy add form's rule), so dark is offered
-        // while dark is on, and kept while a mode is based on it.
+        // Dark is offered while dark is on, and kept while a mode started from it, which may outlive dark (#1946).
         base.set([{ v: 'light', l: 'light' }, ...(dark || cur.base === 'dark' ? [{ v: 'dark', l: 'dark' }] : [])], cur.base);
       });
     });
