@@ -808,7 +808,7 @@
     },
     "slider": {
       "members": 30,
-      "sha256": "75d3ac70fb1cf7972899867c641d98dae8ac99777b3275c8b08623632d52ec5e",
+      "sha256": "cdeb20c00139e74ef6e274f2c9b55dd3525502b1120796b79f17e068740c2228",
       "properties": [
         "inputs:BOOLEAN",
         "label:BOOLEAN",

@@ -431,7 +431,7 @@
           "name": "selected",
           "bindings": {
             "text": "color.text.brand",
-            "indicator": "color.interactive.primary.border.rest",
+            "indicator": "color.interactive.primary.indicator.rest",
             "type": "type.label.md.emphasis",
             "padX": "space.200",
             "padY": "space.150"
@@ -444,7 +444,7 @@
               "label": "selected label"
             },
             {
-              "fg": "color.interactive.primary.border.rest",
+              "fg": "color.interactive.primary.indicator.rest",
               "bg": "color.background.primary",
               "min": 3,
               "label": "indicator"

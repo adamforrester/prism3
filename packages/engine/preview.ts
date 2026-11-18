@@ -142,10 +142,11 @@ export const previewSpec: PreviewSpec = {
       variants: [
         { name: 'default', bindings: { text: 'color.text.secondary', type: 'type.label.md.emphasis', padX: 'space.200', padY: 'space.150' },
           contracts: [{ fg: 'color.text.secondary', bg: 'color.background.primary', min: TEXT, label: 'label on page' }] },
-        // The indicator is a RESTING mark, not an interaction edge — the nav item is selected, not
-        // hovered — so it takes `border.rest` specifically rather than tracking states (#576).
-        { name: 'selected', bindings: { text: 'color.text.brand', indicator: 'color.interactive.primary.border.rest', type: 'type.label.md.emphasis', padX: 'space.200', padY: 'space.150' },
-          contracts: [{ fg: 'color.text.brand', bg: 'color.background.primary', min: TEXT, label: 'selected label' }, { fg: 'color.interactive.primary.border.rest', bg: 'color.background.primary', min: UI, label: 'indicator' }] },
+        // The indicator is a RESTING selection mark, not an interaction edge — the nav item is selected, not
+        // hovered — so it takes the rest step rather than tracking states (#576), on the selection mark
+        // `interactive.primary.indicator.*`, so a brand's outline-edge setting never reaches it (owner, #3398 A).
+        { name: 'selected', bindings: { text: 'color.text.brand', indicator: 'color.interactive.primary.indicator.rest', type: 'type.label.md.emphasis', padX: 'space.200', padY: 'space.150' },
+          contracts: [{ fg: 'color.text.brand', bg: 'color.background.primary', min: TEXT, label: 'selected label' }, { fg: 'color.interactive.primary.indicator.rest', bg: 'color.background.primary', min: UI, label: 'indicator' }] },
       ],
     },
     {
