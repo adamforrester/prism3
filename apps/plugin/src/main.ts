@@ -90,7 +90,7 @@ import type { ActionSink, AgentActions } from './agent-dispatch';
 import { AGENT_COMMANDS, failedResult } from './agent-protocol';
 import { dropFor as dropViewsFor, dropViews, keepView, keptView, noteVariables, variablesPrint, viewEpoch, watchViews } from './member-views';
 import { breakingOf, type CheckProgress } from './update-plan';
-import { previewUpdate, captureBaselines, previewVerdict, captureVerdictText, adoptMembers as adoptAll, adoptVerdictText, handEditsOf, checkedSetOf } from './update-plan';
+import { locateSets, previewUpdate, captureBaselines, previewVerdict, captureVerdictText, adoptMembers as adoptAll, adoptVerdictText, handEditsOf, checkedSetOf } from './update-plan';
 import type { UpdateHost, UpdateTarget } from './update-plan';
 
 // Show the UI iframe. `__html__` is the bundled shared-UI HTML Figma injects from `manifest.ui`
@@ -2409,8 +2409,8 @@ const setUpdatesOff = async (def: string, off: boolean, sink: ActionSink): Promi
     const d = componentDefs.find((x) => x.id === def);
     if (!d?.figmaProperties || d.figmaProperties.emitAsComponents) throw new Error(`${def} has no component set to carry it`);
     await loadPagesYielding();
-    const names = [def, ...formerDefIds(def)];
-    const set = figma.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }).find((n) => names.includes(n.name));
+    // The set the update check reads (`locateSets`): the current id's, or a former id's only when it is absent.
+    const set = locateSets(figma as unknown as UpdateHost, { def, plans: [] }).found[0] as SceneNode | undefined;
     if (!set) throw new Error(`this file has no ${def} set`);
     writeUpdatesOff(set, off ? 'designer' : null);
     sink.post({ type: 'updates-off', def, off, ok: true });

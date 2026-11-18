@@ -44,7 +44,7 @@
     { "file": "test-mcp-paste.ts", "floor": 164 },
     { "file": "test-paste-reactions.ts", "floor": 16 },
     { "file": "test-rename-parity.ts", "floor": 6 },
-    { "file": "test-agent-link.ts", "floor": 354 },
+    { "file": "test-agent-link.ts", "floor": 355 },
     { "file": "test-agent-bridge.ts", "floor": 271 },
     { "file": "test-build-completed.ts", "floor": 136 },
     { "file": "test-update-fresh.ts", "floor": 70 },
