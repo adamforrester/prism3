@@ -1886,7 +1886,9 @@ section('strip-relaunch — a new launch puts the first Minimize on the spot thi
   r0.findAllWithCriteria = find;
   root.children = [{ type: 'PAGE', name: 'Tag', children: [set], findAllWithCriteria: find }];
   const answer = () => posted.find((m) => m.type === 'updates-off');
-  const read = async () => { posted.length = 0; await toUi({ type: 'file-sets-request' }); for (let i = 0; i < 5000 && !posted.some((m) => m.type === 'file-sets'); i++) { if (i % 50 === 49) for (const fn of [...timers.values()]) fn(); await settle(); } return posted.find((m) => m.type === 'file-sets'); };
+  // The answer to this request, not a host read after open (`atOpen`, which an earlier arm's relaunch can still post).
+  const mine = (m: any): boolean => m.type === 'file-sets' && !m.atOpen;
+  const read = async () => { posted.length = 0; await toUi({ type: 'file-sets-request' }); for (let i = 0; i < 5000 && !posted.some(mine); i++) { if (i % 50 === 49) for (const fn of [...timers.values()]) fn(); await settle(); } return posted.find(mine); };
   posted.length = 0;
   await toUi({ type: 'updates-off', def: 'tag', off: true });
   const a1 = answer();
