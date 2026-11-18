@@ -38,7 +38,7 @@ npm run tokens-html                       # render out/tokens.html — a live vi
 # and STANDARD brand-skills / google-labs design.md (flat colors + x-prism3).
 npx tsx packages/engine/cli.ts packages/engine/examples/harbor.design.md [--out <dir>]
 npx tsx packages/engine/cli.ts packages/engine/examples/wendys.design.md --fidelity   # standard dialect + observed-vs-generated report
-npx tsx packages/engine/cli.ts packages/engine/examples/harbor.design.md --out <dir> --component-specs   # also <id>.component-defs.json + its Specs projection
+npx tsx packages/engine/cli.ts packages/engine/examples/harbor.design.md --out <dir> --component-specs   # also <id>.component-contracts.json + its Specs projection (and <id>.component-defs.json, the same file under its old name, for one release)
 npx tsx packages/engine/emit-levers.ts     # (re)emit schema/lever-manifest.json — the shared-control contract (plugin/playground/MCP)
 npx tsx packages/engine/emit-preview.ts    # (re)emit schema/preview-spec.json — the shared live-preview spec (plugin/playground)
 npx tsx packages/engine/emit-brandinput.ts # (re)emit schema/example-brands.json — validated boot brands for the browser hosts
