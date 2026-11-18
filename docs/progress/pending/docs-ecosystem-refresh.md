@@ -27,8 +27,7 @@ node, edge, feature and status against `origin/main` at `4cda6917` and against `
 
 ### Left out on purpose
 
-- **"Updates off" (#3948)** is still an open PR. Its `updates-off` message will need a feature row, or the lane
-  claims will fail, so that PR or a follow-up adds the row once it merges.
+- **"Updates off" (#3948)** merged with its own `updates-off` feature row, so this PR adds none.
 - **Report a problem** stays in the gate's `PLUMBING` list. #2069 classed it as panel chrome, and changing that is the
   owner's call.
 - **The real-host round-trip tool (#1218)** has no place in the model. A check has no status field, so a planned
