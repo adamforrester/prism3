@@ -33,3 +33,7 @@ untouched brand, an offer that survives edits, and the edit subscription dropped
 `apps/plugin/test-start-screen.mjs` holds the scope's exclusion: right after `#3697 R9 confirm-replace` (the file's
 own brand arriving over unsaved edits), `#1037 the file's own brand arriving offers no Undo load`. Mutation, failing
 it by name: `loadReplacing` for every origin (`undo-load drawn: 1`).
+`test-smoke.mjs` §5 D also holds the scope's inclusion for the start window (review of 48e5a430): an edit, then **New
+brand** and an example picked in the start window, through its guard, draws Undo load, and Undo puts the edit back.
+Mutation, failing it by name: the start window's `load` calling `loadBrand` in place of `loadReplacing` (`main.ts`) →
+`#1037 Undo load is offered after a start-window load (New brand › aurora) — got undefined`.

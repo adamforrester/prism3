@@ -737,6 +737,7 @@ apps/studio/test-shape-input.ts #2053
 apps/studio/test-shell-imports.ts #2700
 apps/studio/test-smoke.mjs #1031
 apps/studio/test-smoke.mjs #1033
+apps/studio/test-smoke.mjs #1037
 apps/studio/test-smoke.mjs #1141
 apps/studio/test-smoke.mjs #1147
 apps/studio/test-smoke.mjs #1196

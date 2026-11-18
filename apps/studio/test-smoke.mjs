@@ -4668,6 +4668,36 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   ok(errs.length === 0, `Undo load: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
 }
+// D, the start window (review of 48e5a430). Q-BK2 A scopes Undo load to EVERY load the designer chooses, and New brand
+// reopens the start window over the current brand, so an example picked there can replace edits too. The case above
+// drives Replace brand only. Mutation that fails here BY NAME: the start window's `load` calling `loadBrand` in place of
+// `loadReplacing` (main.ts) → `#1037 Undo load is offered after a start-window load`.
+{
+  const [atRisk, arriving] = BRANDS;
+  const { ctx, page, drain } = await openBrand(atRisk);
+  const undo = '[data-p3="bar-main"] [data-p3="undo-load"]';
+  await tabClick(page, 'brand');
+  await page.fill('[data-p3="brand-name"]', 'renamed-in-smoke');
+  await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+  await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-new"]'));
+  await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: arriving }).first());
+  // The edits are at risk, so the start window's guard asks first (G15 A); its discard is the load.
+  const guarded = await page.locator('[data-p3="start-guard-discard"]').count();
+  ok(guarded === 1, `#1037 premise: the start-window load over edits asks first (start-guard-discard drawn ${guarded})`);
+  if (guarded) await hooks.click(page.locator('[data-p3="start-guard-discard"]'));
+  await page.waitForSelector(undo, { timeout: 5000 }).catch(() => {});
+  const words = (await page.locator(undo).first().textContent().catch(() => null))?.trim();
+  ok(words === 'Undo load', `#1037 Undo load is offered after a start-window load (New brand › ${arriving}) — got ${JSON.stringify(words)}`);
+  if (words === 'Undo load') {
+    await hooks.click(page.locator(undo));
+    await page.waitForSelector(undo, { state: 'detached', timeout: 5000 }).catch(() => {});
+    await tabClick(page, 'brand');
+    ok(await page.inputValue('[data-p3="brand-name"]') === 'renamed-in-smoke', '#1037 Undo load after a start-window load puts back the replaced brand, its edit included');
+  }
+  const errs = drain();
+  ok(errs.length === 0, `Undo load (start window): 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
 
 // C — RETIRED IN UI REDESIGN S3. It held the Examples `.cur` marker live while the menu's Name field was typed
 // into (#1075): the field patched the bar without re-rendering the menu, so a render-time marker went stale in
