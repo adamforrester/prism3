@@ -39,6 +39,7 @@ Component settings, such as how buttons place their icons, are in the **Componen
 Some sections start folded. Open them with the "Show N advanced" button under the section list. <!-- src: apps/studio/src/domains/color-palettes.ts:331 -->
 
 **Personality** words fill the settings you have not set yet. Settings you set win. <!-- src: apps/studio/src/shell/pages.ts:159 -->
+Picking a word turns its opposite off: soft and sharp, dense and generous, calm and energetic, bold and restrained. Where two words fill the same setting, the first one picked wins. <!-- src: packages/engine/vocabulary.ts:147-152#26cbcd4d --> <!-- src: apps/studio/src/state/brand-input.ts:79-94#6e66e9f9 -->
 On **Palettes**, your colors are pinned as anchors on their ramps and never shifted. <!-- src: apps/studio/src/shell/pages.ts:168 -->
 
 ## Read the preview
