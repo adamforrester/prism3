@@ -1417,10 +1417,12 @@
           "status": "shipped",
           "via": "Update file: the sets the file lacks, listed in its checklist",
           "sources": [
-            "apps/plugin/src/write-components.ts"
+            "apps/plugin/src/write-components.ts",
+            "apps/plugin/src/show-set.ts"
           ],
           "messages": [
-            "build-components"
+            "build-components",
+            "show-set"
           ]
         },
         "agent": {

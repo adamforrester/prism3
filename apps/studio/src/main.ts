@@ -1153,7 +1153,7 @@ const mountView = (view: RootView): void => {
         host: commit.isFigma ? 'figma' : 'web',
         inspect: { contrast: renderPreviewContracts, tokens: renderPreviewTokens },
         // #3011 (Q121 A): the drawer is the plugin's alone; the studio runs no write, so it lends none.
-        activity: commit.isFigma ? { read: activityReading, closeDetail: closeOpenDetail, again: activityAgain,
+        activity: commit.isFigma ? { read: activityReading, closeDetail: closeOpenDetail, again: activityAgain, showSet: activityShowSet,
           // #3326: a cause names its set by def id; the drawer shows the set's name.
           nameOf: (id: string) => entryOf(componentCatalog(), id)?.name ?? id,
           // #533 (Q110 A): a run's end, for the main thread's notice while minimized to the strip.
@@ -2380,6 +2380,14 @@ const updateFileLend: UpdateFileLend = {
  *  it: Update file's run for the theme, Set up file and the style guides, the Components page's run for the sets the last
  *  panel build asked for, Clean up's dry run for Prune stale, and Documentation's Draw specs. It may start only while
  *  nothing runs, panel or agent, and never after a failed restore (#1989); each call keeps its own guard as well. */
+/** #3119: "Show the set in Figma" on a Build set result: the set the last build verdict was about, while the file holds it
+ *  as the main thread last said; never for an update check's result (`componentLatest`), which builds nothing. It may run
+ *  while nothing else runs, as running again may. */
+const activityShowSet: NonNullable<ActivityLend['showSet']> = {
+  def: () => (host.componentLatest === 'build' && host.componentSet !== null && host.setInFile.get(host.componentSet) === true ? host.componentSet : null),
+  can: () => !(restoreFailure || updateRun || Object.values(activityReading().ops).some((o) => o.state === 'running')),
+  show: (def) => { if (commit.isFigma) commit.postShowSet(def); },
+};
 const activityAgain: NonNullable<ActivityLend['again']> = {
   can: (k) => {
     if (restoreFailure || updateRun || Object.values(activityReading().ops).some((o) => o.state === 'running')) return false;
