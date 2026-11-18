@@ -1545,10 +1545,10 @@ each element registers from its own entry, the button included.
 
   | Entry | File | Registers |
   |---|---|---|
-  | `.` | `index.js` (new) | nothing |
-  | `./button` | `p3-button.js` | `<p3-button>` |
-  | `./text-field` | `p3-text-field.js` | `<p3-text-field>` |
-  | `./password-field` | `p3-password-field.js` | `<p3-password-field>` |
+  | `@prism3/web-components` | `index.js` (new) | nothing |
+  | `@prism3/web-components/button` | `p3-button.js` | `<p3-button>` |
+  | `@prism3/web-components/text-field` | `p3-text-field.js` | `<p3-text-field>` |
+  | `@prism3/web-components/password-field` | `p3-password-field.js` | `<p3-password-field>` |
 
   `main` and `module` name `index.js`, and `files` ships it. The old `./p3-*.js` subpaths are gone, so each element
   has one entry name. `custom-elements.json` and `package.json` stay as data entries.
@@ -1579,7 +1579,7 @@ class.
 
 - **`check-entries.ts`** (new, chained into `test:browser`, so `wc-browser` runs it). Its expected entries and tags are
   written by hand from the owner decision, not read from the package:
-  1. **The exports map.** The script entries are exactly `.`, `./button`, `./text-field` and `./password-field`.
+  1. **The exports map.** The script entries are exactly the root, `/button`, `/text-field` and `/password-field`.
      `main` and `module` name the root's file, and every entry's file is in `files`.
   2. **A consumer resolves them.** From `apps/storybook`, Node resolves each entry to the file the map names.
   3. **What each entry registers.** Each entry is bundled alone through the map (esbuild) and loaded into a fresh
@@ -1590,7 +1590,7 @@ class.
   - the root importing the button: `root (@prism3/web-components): registered <p3-button>, expected nothing`;
   - the text field's entry also registering the button: `./text-field: registered <p3-button>, <p3-text-field>, expected exactly <p3-text-field>`;
   - the button's entry pointing at the text field: `./button: registered <p3-text-field>, expected exactly <p3-button>`;
-  - an old `./p3-button.js` entry kept: `exports: "./p3-button.js" is not an expected entry (…)`.
+  - an old `p3-button.js` subpath entry kept: the exports-map line naming it "not an expected entry".
 - **Hand mutations on disk**, each after a commit, restored with `git show HEAD:<path> > <path>`:
 
   | Mutation | Result |
