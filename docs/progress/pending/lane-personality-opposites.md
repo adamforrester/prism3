@@ -21,7 +21,8 @@ kept bold's neutral fill; a word turned off leaves the rest in pick order; for e
 the suite, each way round, the second pick turns the first off and an unrelated word stays on. Chrome section `3976`
 (shard 2), both hosts and themes at 1280: the order line reads the copy, sits under the chips in the `.p3-sub` ink;
 each pair, each way round, is never on together; bold then premium lists bold first, and on the web is saved bold
-first. Engine `test.ts`: the pairs are the owner's four, no word is in two, and each pair sets a shared lever
+first. Chrome section `3263` (#3263's chip-width check, which presses every word in turn) now expects each press to
+turn its opposite off rather than keep every earlier word. Engine `test.ts`: the pairs are the owner's four, no word is in two, and each pair sets a shared lever
 differently. Mutations, each failing by name in both studio suites: the opposite turn-off removed
 (`#3976 … picking sharp after soft turns soft off`), and the list sorted to the chips' order again
 (`#3976 … the saved brand keeps the pick order, bold then premium`).
