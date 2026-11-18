@@ -257,6 +257,23 @@ export const run = async (browser: any, o: Opts = {}): Promise<{ failures: strin
   s1 = await state();
   ok(s1.type === 'password' && s1.live === 'Your password is hidden', `Show/Hide: Enter on the button hides the password again (type ${s1.type}, "${s1.live}")`);
   ok(s1.caret === '2,5', `Show/Hide: the caret moved to ${s1.caret}, not 2,5, after pressing Hide (#3921)`);
+  // #3945: the delayed restore must only undo Chromium's reset. A value or a caret written after the press, in the
+  // same task and so before the delayed restore runs, is kept. On a busy page that restore can run late, after a later
+  // fill and selection, and an upgrading <p3-password-field> then adopted its stale 0,0.
+  const later = (sel: number[], value: string | null) => page.evaluate(([q, b, s, v]: any[]) => {
+    const i = document.querySelector(`${q} input`) as HTMLInputElement;
+    (document.querySelector(b) as HTMLButtonElement).click();
+    if (v !== null) i.value = v;
+    i.setSelectionRange(s[0], s[1]);
+  }, [f, btn, sel, value]);
+  await later([1, 4], 'typed early');
+  await page.waitForTimeout(50);
+  s1 = await state();
+  ok(s1.type === 'text' && s1.caret === '1,4', `Show/Hide: a value and caret 1,4 set after pressing Show were overwritten (type ${s1.type}, caret ${s1.caret}) (#3945)`);
+  await later([3, 6], null);
+  await page.waitForTimeout(50);
+  s1 = await state();
+  ok(s1.type === 'password' && s1.caret === '3,6', `Show/Hide: a caret 3,6 set after pressing Hide was overwritten (type ${s1.type}, caret ${s1.caret}) (#3945)`);
   await page.keyboard.press('Space');
   ok((await state()).type === 'text', 'Show/Hide: Space on the button shows the password');
   await page.click(btn);
