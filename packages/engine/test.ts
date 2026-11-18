@@ -43351,6 +43351,17 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   // `def` is the authored def in every export; the brand's materialization is the `spec`, whose Icon axis follows the map.
   const iconAxis = xdoc.components?.icon?.spec?.axes?.find((x: any) => x.name === 'name');
   ok(!!iconAxis && !iconAxis.values.includes('plus') && iconAxis.values.includes('add'), `#3076 the exported Icon spec's name axis follows the map (got ${JSON.stringify(iconAxis?.values?.slice(-4))})`);
+  // `.ai.json` records the map for an agent reading component docs, which name Prism3 icons; a brand without one carries none.
+  const mappedTheme = brandTheme({ ...base, icons: ICONS } as BrandInput);
+  const aiIcons = (buildAiMetadata(mappedTheme, buildTree(mappedTheme).tree) as any).icons;
+  ok(aiIcons?.map?.plus === 'add' && aiIcons?.map?.['close-filled'] === 'close' && aiIcons.names.includes('checkmark') && !aiIcons.names.includes('check'),
+    `#3076 .ai.json carries the brand's icon map and its icon set (got ${JSON.stringify(aiIcons)?.slice(0, 160)})`);
+  ok(!('icons' in (buildAiMetadata(brandTheme(base), buildTree(brandTheme(base)).tree) as any)), '#3076 .ai.json carries no icons block for a brand without a map');
+  const aiSchema = JSON.parse(readFileSync(resolve(HERE, 'schema', 'ai-metadata.schema.json'), 'utf8'));
+  const aiErrs = validateJsonSchema(aiSchema, buildAiMetadata(mappedTheme, buildTree(mappedTheme).tree));
+  ok(aiErrs.length === 0, `#3076 a mapped brand's .ai.json is valid against ai-metadata.schema.json (${aiErrs.slice(0, 3).join('; ')})`);
+  const xErrs = validateJsonSchema(JSON.parse(readFileSync(resolve(HERE, 'schema', 'component-defs.schema.json'), 'utf8')), JSON.parse(JSON.stringify(xdoc)));
+  ok(xErrs.length === 0, `#3076 a mapped brand's component export is valid against component-defs.schema.json (${xErrs.slice(0, 3).join('; ')})`);
 }
 
 if (pass + fails.length < MIN_ASSERTIONS) {

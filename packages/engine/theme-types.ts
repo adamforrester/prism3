@@ -396,6 +396,8 @@ export type Theme = {
   root: string;                      // 'nbds' | 'prism' (brand root namespace)
   namespace: string;                 // '<root>.core.palette' — the colour PRIMITIVE root (ramps live here; the semantic role layer is emitted under '<root>.color')
   colorFormat: 'rgb' | 'hex';
+  /** The brand icon map, passed through from the input when it sets one (#3076): `.ai.json` records it for agents. */
+  icons?: BrandIcons;
   modes: ModeName[];                 // the appearance modes to generate (light always present; customs appended last)
   // User-added custom modes (C1) — each `{ name, base }` clones a customizable built-in (light/dark)
   // under a new slug-safe name that LIVE-INHERITS the base's derivation each build, then deviates via

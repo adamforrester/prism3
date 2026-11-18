@@ -17,7 +17,7 @@
   ],
   "properties": {
     "format": {
-      "const": "prism3-component-defs/1.4",
+      "const": "prism3-component-defs/1.5",
       "description": "The shape this file follows. Equal to this schema's `$id`; minor for a field added, major for one removed or renamed."
     },
     "generated": {
