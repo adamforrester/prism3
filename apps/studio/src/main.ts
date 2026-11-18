@@ -84,7 +84,7 @@ import {
 import {
   BRANDS, brandState, provenance, bootProvenance, theme, lastGoodInput, rp, currentMode, lastError, page,
   firstRun, ensureThemeFresh, loadInput, clearOrigin, setPage,
-  subscribe, invalidate, noteBrandWords, sessionBrandWords,
+  subscribe, invalidate, postedInput, sessionBrandWords,
   type Mode,
 } from './state/store';
 import { brandWords, mergeWords } from './state/report';
@@ -1337,7 +1337,7 @@ const download = (filename: string, text: string, mime: string): void => {
 // number; `.trim()` on a number throws and crashes BOTH exports. Coerce to string first.
 /** The brand a post to the host carries: `lastGoodInput`, its words added to the session's first (#3883). A rename
  *  skips `rebuild()` (`syncIdentity`), so a post is the one moment the brand an Activity line will name is known. */
-const posted = (): BrandInput => { noteBrandWords(lastGoodInput); return lastGoodInput; };
+const posted = postedInput;   // the note is the store's (`postedInput`), where `test-report.ts` runs it
 const slug = (): string => String(lastGoodInput.id || 'brand').trim().replace(/\s+/g, '-') || 'brand';
 
 // Both exports run off the LAST-GOOD state, never the live one (M-15). Previously tokens.json
@@ -2287,9 +2287,9 @@ const reportLend: ReportLend = {
       stamp: PRISM3_BUILD, engine: ENGINE_VERSION, host: commit.isFigma ? 'figma' : 'web',
       activity: (Object.keys(r.ops) as (keyof typeof r.ops)[]).map((k) => ({ title: OP_TITLE[k], verdict: r.ops[k].verdict, lines: r.ops[k].lines ?? (r.ops[k].summary ? [r.ops[k].summary!] : []), agent: r.ops[k].agent })),
       // #3883: after a failed restore the brand to include is the file's (`briefInput`, as Export design.md reads it), not
-      // the boot demo's. The scrub list is every brand the session held, plus the live one and the failed restore's.
+      // the boot demo's. The scrub list is every brand the session held, plus the live one, the failed restore's and a held one.
       brand: briefInput() as unknown as Record<string, unknown> | null,
-      seen: mergeWords(sessionBrandWords(), ...[brandState, restoreFailure?.brand].map((b) => brandWords(b as unknown as Record<string, unknown> | null))),
+      seen: mergeWords(sessionBrandWords(), ...[brandState, restoreFailure?.brand, heldRestore].map((b) => brandWords(b as unknown as Record<string, unknown> | null))),
     };
   },
   openUrl: (url) => commit.openIssue(url),

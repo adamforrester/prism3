@@ -14,6 +14,10 @@ A technical call worth a reviewer's eye: with the box ticked, an EARLIER brand's
 
 `test-report.ts` gains eight `#3883` arms. Three build the activity under a fictional client and the report under the harbor example: off, on, and the included brand keeping its own words, which is a control. One holds `mergeWords`. Two drive the real store (start on the client, rename the root through a rebuild, load an example), then check the session list and a report built from it. Two read `main.ts` as source, because it touches the DOM at import: no post carries a bare `lastGoodInput`, and the report reads the session list and `briefInput()`. On main's three source files 7 of the 8 fail by name. Mutations, each failing by name: drop the note in `resolve` (the store arm), ignore `seen` in `buildReport` (three leak arms), post Apply's bare `lastGoodInput` (the source arm). The floor rises from 71 to 109.
 
+### Review follow-up (#3961)
+
+The rename path was held by nothing that ran it: `posted()` lived in `main.ts`, which tests read only as source, so its body could stop noting and every test still passed. The note-then-return is now the store's `postedInput()`, and `main.ts` aliases it (`const posted = postedInput`). Three arms join: rename the root through `syncIdentity`, post, load an example, and the renamed root is still on the list; `initSession` notes the starting brand with no rebuild after it; and a source arm holds the alias and a held restore's brand (`heldRestore`, #3697 R9) on the scrub list, which errs on the privacy side while the host works from the file's brand. Mutations, each failing by name: `postedInput` stops noting, `posted` returns a bare `lastGoodInput` in `main.ts`, `initSession` stops noting, `heldRestore` dropped. The floor rises from 109 to 112.
+
 ### Its limit
 
 An agent run that posts a brand the studio never held is outside this list. Its lines reach the report only as the plugin posts them, scrubbed by the patterns and the session's words.

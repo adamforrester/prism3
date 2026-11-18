@@ -88,6 +88,10 @@ export const noteBrandWords = (b: BrandInput | null | undefined): void => {
 };
 /** Every brand word the session has held, longest first. */
 export const sessionBrandWords = (): readonly BrandWord[] => seenWords;
+/** The brand a post to the host carries: `lastGoodInput`, its words added to the session's first. A rename skips
+ *  `rebuild()` (`syncIdentity`), so a post is the one moment the root an Activity line will name is known. Here, not in
+ *  `main.ts`, so `test-report.ts` runs it: rename, post, load another brand, and the renamed root is still scrubbed. */
+export const postedInput = (): BrandInput => { noteBrandWords(lastGoodInput); return lastGoodInput; };
 export let rp: ResolvedPreview;
 export let currentMode: Mode;
 export let lastError: string | null = null;

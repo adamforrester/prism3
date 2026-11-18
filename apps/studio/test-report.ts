@@ -461,6 +461,21 @@ ok(!isIssueUrl('https://example.com/collect?d=1') && !isIssueUrl('https://github
   const viaStore = buildReport({ ...BASE, brand: store.lastGoodInput as unknown as Record<string, unknown>, seen, activity: [{ ...RUN, verdict: '✓ applied', lines: ['wrote acme/color/text/primary', 'wrote acmeco/color/text/primary', 'typefaces unavailable (Quillmark Sans Pro)'] }] });
   ok(leaks(viaStore).length === 0, `#3883: a report built from the store's session list leaks no earlier brand's words (leaked: ${JSON.stringify(leaks(viaStore))})`);
 
+  // A rename skips `rebuild()`, so the post records its words (`postedInput`, review of #3961): rename the root the way
+  // Brand › Identity does (`syncIdentity`), post, then load another brand. The renamed root must still be on the list.
+  const postedInput = (store as { postedInput?: () => BrandInput }).postedInput ?? (() => store.lastGoodInput);
+  store.initSession(structuredClone(client) as unknown as BrandInput, { kind: 'file' });
+  store.brandState.root = 'acmezed';
+  store.syncIdentity();
+  const carried = postedInput();
+  store.loadInput(structuredClone((EXAMPLE_BRANDS_JSON as Record<string, unknown>).aurora) as BrandInput, { kind: 'example', id: 'aurora' });
+  ok(carried.root === 'acmezed' && (sessionBrandWords() as ReturnType<typeof brandWords>).some((x) => (typeof x === 'string' ? x : x.whole) === 'acmezed'),
+    '#3883: a renamed root that was posted without a rebuild stays on the session list after another brand loads');
+  // The brand the session starts on is noted by `initSession` itself, with no rebuild after it.
+  store.initSession(structuredClone(client) as unknown as BrandInput, { kind: 'file' });
+  ok((sessionBrandWords() as ReturnType<typeof brandWords>).some((x) => (typeof x === 'string' ? x : x.whole).toLowerCase() === 'quillmark sans pro'),
+    '#3883: initSession puts the starting brand\'s words on the session list before any rebuild');
+
   // main.ts touches the DOM at import, so its wiring is read as source: every post that carries the brand records it
   // first (a rename skips the rebuild, so a post is the one moment its words are known), and the report reads the list.
   const main = readFileSync(new URL('./src/main.ts', import.meta.url), 'utf8');
@@ -469,6 +484,8 @@ ok(!isIssueUrl('https://example.com/collect?d=1') && !isIssueUrl('https://github
     `#3883: no post to the host carries lastGoodInput without adding its words to the session (${bare.length} bare)`);
   ok(/seen: mergeWords\(sessionBrandWords\(\)/.test(main) && /brand: briefInput\(\)/.test(main),
     '#3883: the report reads the session list, and includes the failed restore\'s brand, not the boot demo');
+  ok(/const posted = postedInput;/.test(main) && /restoreFailure\?\.brand, heldRestore\]/.test(main),
+    '#3883: every post goes through the store\'s postedInput, and the scrub list takes a held restore\'s brand');
 }
 
 console.log(`${failed ? `\n✗ ${failed} check(s) failed` : '\n✓ report: all checks passed'} — ${executed} assertions executed`);
