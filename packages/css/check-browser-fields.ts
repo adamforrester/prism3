@@ -15,7 +15,8 @@
  * 4. THE SHOW/HIDE BUTTON: hidden before the script runs; then "Show password", and pressing it (click, Enter, Space)
  *    switches the input's type, renames the button, keeps focus and the caret, announces the change, and never sets
  *    aria-pressed (the caret is read on an input that has had focus, after the task in which Chromium resets it,
- *    #3921); a form submit puts the field back to hidden; a disabled field's button does nothing.
+ *    #3921, and a caret set after the press is kept, #3945); a form submit puts the field back to hidden; a
+ *    disabled field's button does nothing.
  * 5. GEOMETRY. The button's hit area is at least 24×24 at small and 44×44 at medium and large, and never reaches into
  *    the input box; the box is at least 44px tall at every size; the message's glyph centers on its first line. All
  *    held to this file's own px literals (docs/34).

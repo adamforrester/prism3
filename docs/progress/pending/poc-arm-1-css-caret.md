@@ -8,3 +8,6 @@ this (#3926). Engine output doesn't move, so there is no change note.
 - **`check-browser-fields.ts`** now focuses the field before selecting, the case its old untouched input hid. It
   reads the caret after Show and after Hide; both read `0,0` before the fix.
 - **A new self-test mutant**, "the caret put back only in the same task", fails by name.
+- **The delayed restore only undoes Chromium's reset** (#3945): it runs only while the caret is still at `0,0`.
+  Unconditionally, it could run late and overwrite a caret set since. That broke the element's upgrade check in CI.
+  A check that writes a caret right after the press fails by name without the guard.

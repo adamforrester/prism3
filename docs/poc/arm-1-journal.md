@@ -1374,3 +1374,36 @@ No user-facing wording changed. No owner decision was needed.
 **Local gate record** (`npm run verify`'s 114 gates, with `GITHUB_BASE_REF=poc/arm-1`, after `regen`, in 5 chunks
 under 10 minutes): 111 PASS, 0 FAIL, and 3 not run locally, left to CI as before: `chrome`, `chrome-shards` and
 `plugin-test`.
+
+### The CI hold, and the fix to the fix (#3945)
+
+**Correction.** The entry above says `wc-browser` passes. It didn't: CI's `studio` job failed it on this head, and
+it fails here too (3 of 3 runs). The upgrade check reported `upgrade: focus and the caret did not carry over: … sel:[0,0]`.
+On `poc/arm-1`'s script, the same check passed 3 of 3. It wasn't a flake. The new delayed restore caused it.
+
+**The cause.** The restore ran unconditionally, with the caret captured at the press. In the upgrade check, the
+script toggles an empty input twice, so the second press captures `0,0`. Its delayed restore then ran late, after
+Playwright's `fill` and `setSelectionRange(1, 4)`. A probe that logged each timer showed that order. So the caret
+went back to `0,0`, and the element adopted that on upgrade. A zero-delay timeout is not guaranteed to run before
+the page's next task.
+
+**The fix.** The delayed restore only undoes Chromium's reset, which leaves the caret at `0,0`, measured on a
+focused input after Show and after Hide. A caret anywhere else was set since, so the restore leaves it alone.
+
+**The test.** `packages/css/check-browser-fields.ts` presses the button and, in the same task, writes a caret.
+First it writes a value and `1,4` after Show, then `3,6` after Hide. On the unconditional restore, both fail by name:
+- `Show/Hide: a value and caret 1,4 set after pressing Show were overwritten (type text, caret 2,5) (#3945)`;
+- `Show/Hide: a caret 3,6 set after pressing Hide was overwritten (type password, caret 2,5) (#3945)`.
+
+Unlike the upgrade check, this one doesn't depend on timing: the caret is written before the delayed restore can
+run.
+
+**Runs.** After the fix, `wc-browser`'s fields check passed 5 of 5, and the css fields check passed 4 of 4 with all
+eight mutants failing by name. A hand mutation that makes the guard always true (`|| true`) fails both new checks by
+name, and the wc upgrade check, after a commit, restored with `git show`.
+
+**Learning.** A deferred fix-up must check that what it undoes is still there. "One task later" is the earliest it
+runs, not the latest.
+
+**Not fixed here:** `<p3-password-field>`'s own toggle (`p3-password-field.js`) has the same unconditional delayed
+restore. It is filed separately rather than fixed in this PR.
