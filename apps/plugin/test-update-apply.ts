@@ -1028,6 +1028,26 @@ section('calm — a miss on a member with kept hand edits is its own line, never
   ok(o.misses.some((x) => x.startsWith(`${NAME}.asBuilt -> NOT RECORDED`)) && !(o.editedMisses ?? []).some((x) => x.includes('NOT RECORDED')) && !applyVerdict(res).ok,
     `calm/not recorded: a hand-edited member whose record could not be written stays a miss, and the run is not a ✓ (${JSON.stringify(o.misses.filter((x) => x.includes('NOT RECORDED')))}; ${applyVerdict(res).headline})`);
 }
+{
+  // ACCEPT TAKES THE SAME PATH (#2956 Q1 A; review of #3915): the owner's rule "Accept skips too" makes Accept a
+  // first-class choice, so the split is pinned under it as well, not only under Keep. Same world as `calm/split`, the
+  // update confirmed with Accept. Expected values typed here. Mutation: the split limited to Keep (`handEdits === 'keep'`)
+  // → `calm/accept`.
+  const NAME = 'type=select, selection=unselected, size=medium, state=rest';
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['color/keep/changed'] });
+  const content = childNamed(membersOf(w.set()).find((m) => m.name === NAME)!, 'content');
+  (content.setBoundVariable as (f: string, v: null) => void)('paddingLeft', null);
+  content.paddingLeft = 3;
+  const next = w.plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; q.root.paints = { ...(q.root.paints ?? {}), fills: 'color/keep/changed' }; return q; });
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: next }]);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre), { choices: { handEdits: 'accept' } });
+  const o = res.outcomes[0];
+  const v = applyVerdict(res);
+  const line = v.lines.find((l) => l.startsWith('tag: not written because the member is hand-edited — footprint -> '));
+  ok(o.misses.length === 0 && (o.editedMisses ?? []).length > 0 && (o.editedMisses ?? []).every((x) => x.startsWith('footprint -> ') && x.includes(NAME))
+    && v.ok && v.headline.startsWith('✓ ') && !!line && !v.lines.some((l) => /not written as planned/.test(l)),
+    `calm/accept: under Accept the kept padding's misses are listed apart too, and the run reads ✓ (${v.headline}; ${JSON.stringify(o.misses).slice(0, 120)}; ${(o.editedMisses ?? []).length} apart)`);
+}
 
 /* ── keep, reported (#3086) ──────────────────────────────────────────────────────────────────────────── */
 section('keep, reported — a kept hand edit on a bound size is a hand edit kept, never a part not written (#3086)');

@@ -8,16 +8,16 @@ edit can show up as a miss on another node or a sibling. Measured in the shim: o
 unbound and set to 3 by hand, then an Update with Keep, gives four `footprint -> …` misses naming that member, and the
 run read "⚠ Updated 1 set · 1 to check".
 
-**The change, Q1 A (owner decision pending).** In `applySet` (`update-apply.ts`), under Keep and Accept, a miss that
+**The change, Q1 A (owner-decided 2026-11-17).** In `applySet` (`update-apply.ts`), under Keep and Accept, a miss that
 names a member the run kept hand edits on (`namesMember`, as the skipped members' misses are already set apart) moves
 to `editedMisses`. The verdict lists them on their own line, "<set>: not written because the member is hand-edited —
 …" (DRAFT wording, Q1 A's), and they are not counted as a set to check. A member whose as-built record could not be
 written (`NOT RECORDED`) stays a miss: that is a write the update could not finish, kept edits or not. Under Overwrite
 nothing is kept, so nothing moves.
 
-**OWNER DECISION: #2956 Q1 is open.** Its A (recommended) is built here. B (only a miss on a kept node's parent or child
-moves) and C (leave it ⚠ until item 2) would each change only the filter.
+**#2956 Q1 is settled: A.** B (only a miss on a kept node's parent or child moves) and C (leave it ⚠ until item 2),
+both declined, would each have changed only the filter.
 
 **Measured.** `test-update-apply.ts` `calm/*`: on the base `calm/split`, `calm/verdict` and `calm/line` fail; on the fix
-all pass, and `calm/not recorded` holds the not-finished member as a miss. `kept report/real discard` (#3086) still
+all pass, `calm/accept` pins the same split under Accept, and `calm/not recorded` holds the not-finished member as a miss. `kept report/real discard` (#3086) still
 holds a binding dropped on a node no one edited as a part not written.
