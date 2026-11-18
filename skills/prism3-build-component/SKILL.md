@@ -162,8 +162,12 @@ maintainer channels, a part's `note` included, is also in the plugin bundle a de
 - US English, and `docs/voice-standard.md` — its banned words, and the recessive voice;
 - a WCAG criterion the gates do not check is stated as intent ("targets SC 2.5.5"), never as a
   guarantee;
-- no code spans: write a prop, a value, an attribute or a token path as plain text (inverse,
-  color.text.primary);
+- code in backticks, and only code (owner Q-UG2b A, #3552): an element (`<button>`), an attribute or
+  prop with its value (`type="number"`, `surface=inverse`), an ARIA attribute, a selector, a prop name
+  (`htmlFor`), a token path or a literal value, so the usage panel draws it in the code style. An English
+  word stays plain, even one that is also code (the role button, required, checked). `summary`,
+  `description` and prop descriptions carry no span: the summary is the Figma description, which prints
+  backticks as they are;
 - Button's implementation `do` items are held as they are (owner Q362); the register gate exempts
   them by name until the owner decides where they belong.
 
@@ -173,7 +177,8 @@ the common case. On its own only when …". The host named is a registered compo
 
 `packages/engine/test.ts` (`component-refs`, `component-names`, `component-prose`), `lint-us-english`
 and `lint-voice` catch Prism 2, dangling names, en-GB spellings and banned words. The `#2714 component
-register` block in `packages/engine/test.ts` refuses code spans, all-caps words outside its acronym list, "brief §N",
+register` block in `packages/engine/test.ts` refuses a code span that does not hold code (and any span in `summary`,
+`description` or a prop description), all-caps words outside its acronym list, "brief §N",
 "def" and issue numbers in the consumer fields (summary, description, prop descriptions, accessibility,
 content, docs and ai's three decision fields), and `#2714 child-only whenToUse` holds the two templates.
 Motion and a part's `note` ship too but are not gated yet (#2773), so hold them to the same rules by hand.
@@ -892,7 +897,7 @@ one until that arc builds it.
    brand setting declares its `kind`, and a structural one has the owner's explicit OK in that wireframe.
 2. The def is authored from its KB brief: the header cites it exactly once, `category` is the brief's,
    and every brief section has landed in its field (§0) or is recorded as an omission in `notes`.
-3. Shipped fields are written for people — no brief sections, issue numbers, "def", all-caps, code spans or Prism 2 —
+3. Shipped fields are written for people — no brief sections, issue numbers, "def", all-caps, a code span around anything but code, or Prism 2 —
    and `summary` is one line under 100 characters. Provenance lives in `notes`, `codeOnly` and comments.
 4. `composesWith` equals what the anatomy nests; hosts and slot content are in `ai.commonPartners`;
    siblings differ in keywords, `ai.avoidWhen` and priority; `status` is `draft`.

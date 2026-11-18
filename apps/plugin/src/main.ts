@@ -19,7 +19,7 @@
  * `document`/`window` reference is a COMPILE error — the two-context split is enforced by types.
  */
 import { applyHeadline, APPLY_FAILED_HEADLINE, failureDetail, conflictHeadline, componentHeadline, staleNote, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
-import { ENGINE_VERSION, serializeBrandInput, resolveAllModes, brandTheme, type BrandInput } from '@prism3/engine';
+import { ENGINE_VERSION, formerDefIds, serializeBrandInput, resolveAllModes, brandTheme, type BrandInput } from '@prism3/engine';
 import { appendBuildNote, buildNote, parseBuildId } from '../../studio/src/build-identity';
 import { isIssueUrl } from '../../studio/src/state/report';
 import { onUiMessage, postToUi } from './bridge-main';
@@ -65,7 +65,7 @@ import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot 
 import { clearOrphanSpecPanels, drawSpecPanel, specItems, specTargets, type SpecApi, type SpecOutcome } from './spec-panel';
 import { COVER_OFF, readDocSettings, writeDocSettings } from './doc-settings';
 import { livePanels, livePanelsOf, panelLeadsOf, paneledOf, panelsCleanCount, removeUneditedPanels, unpaneledOf, type CensusRoot } from './panel-census';
-import { DOC_PANEL_KEY, DOC_PANEL_NS, clearOrphanPanels, docPanelReach, drawDocPanel, findDocBlock, leadsPanel, PANEL_FORMAT, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
+import { DOC_PANEL_KEY, DOC_PANEL_NS, clearOrphanPanels, docPanelReach, drawDocPanel, findDocBlock, lastChangedKey, leadsPanel, PANEL_FORMAT, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
 import { type AnatomyPlan, checkAnatomySet, figmaAnatomyMembers, figmaAnatomySet, button, componentDefs, type ComponentDef } from '@prism3/engine/components';
 import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './build-telemetry';
@@ -76,7 +76,7 @@ import { planOverride, overrideVerdict, overrideData, wholeRunRefusal, type Over
 import { declaredModesOf, failedChecks, seedSummary } from './seed-modes';
 import { PACE_MS, pacer } from './pace';
 import { materializeForBrand, materializerFor } from './brand-def';
-import { dueOf, entryFor, needsPrint, printOf, printSteps, quietOf, readLedger, recordSets, type DueReason, type Ledger, type LedgerEntry, type PlanPrint } from './as-built-ledger';
+import { dueOf, entryFor, formerEntry, needsPrint, printOf, printSteps, quietOf, readLedger, recordSets, type DueReason, type Ledger, type LedgerEntry, type PlanPrint } from './as-built-ledger';
 import { clearQueued, readQueue, setQueued, staleOf, visibleOf, type QueueRoot } from './add-queue';
 import { presentNames, prebuildDependencies, alsoBuiltItem, DependencyBuildError, SWAP_TARGET, labelAfterBuilds } from './build-deps';
 import type { DepHost } from './build-deps';
@@ -1273,7 +1273,11 @@ const readPresent = (onPage?: (done: number, total: number) => void): Promise<Fi
     // #3301: the names as each page's turn read them, so naming every component in a full library is not one more turn.
     const recs = found.nodes.map((_, i) => ({ type: found.kinds[i], name: found.names[i] }));
     const names = presentNames({ root: { findAllWithCriteria: (c: { types: readonly string[] }) => recs.filter((r) => c.types.includes(r.type)) } } as unknown as Parameters<typeof presentNames>[0]);
-    const ids = componentDefs.filter((d) => d.figmaProperties && (names.has(d.id) || (!!d.figmaProperties.emitAsComponents && [...names].some((n) => n.startsWith(`${d.id}/`))))).map((d) => d.id);
+    // #3770: a set the file holds under an id its def was renamed from (#2759, #3148) is present too, under the current
+    // id: the update finds it there (`locateSets`, `readSingleView`) and renames it. Else it read as absent, so it was
+    // offered to add beside the one the file holds, and a set nesting it was blocked for want of it.
+    const holds = (d: (typeof componentDefs)[number], id: string): boolean => names.has(id) || (!!d.figmaProperties?.emitAsComponents && [...names].some((n) => n.startsWith(`${id}/`)));
+    const ids = componentDefs.filter((d) => d.figmaProperties && [d.id, ...formerDefIds(d.id)].some((id) => holds(d, id))).map((d) => d.id);
     // #3137 Q3137.3 A: with every page loaded, the panels census, one search, kept beside the sets so a recount reads
     // both with no page load, whichever way Documentation's switch is turned meanwhile.
     const paneled = panelCensus(found, frames);
@@ -1630,7 +1634,8 @@ const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
  *  no page loaded, so it is `partial` (`ledgerSets` says what it cannot see). Shared by `ledgerSets` and `context`. */
 const ledgerDue = async (time: <T>(stage: string, fn: () => T | Promise<T>) => Promise<T> = async (_s, fn) => fn()) => {
   const ledger = await time('ledger read', () => readLedger(figma.root));
-  const present = componentDefs.filter((d) => d.figmaProperties && ledger[d.id]).map((d) => d.id);
+  // #3770: an entry under an id the def was renamed from names the set too (`formerEntry`); `dueOf` reads it due.
+  const present = componentDefs.filter((d) => d.figmaProperties && (ledger[d.id] || formerEntry(ledger, d.id))).map((d) => d.id);
   // #3096 into #3090: the ledger's read prints too, as `fileSets` does, against the same stored brand: without a print
   // a printed set under a moved engine reads `unrecorded`, and the panel's first answer would disagree with the full
   // read on what is due. Printing projects the plans in memory and loads no page, a set at a time with the thread
@@ -2693,7 +2698,8 @@ onUiMessage((msg: UiToMain) => {
  *  usage panels on for this file, the sets whose update checks a panel (`updateTargets`' `doc`); nothing on any other.
  *  The file's switch is read once per call. Defined here, at the end, so the lines public guides cite above stay put;
  *  it is called only once the module has loaded. */
-const panelFormatOf = (): ((def: string) => { panel?: number }) => {
+const panelFormatOf = (): ((def: string) => { panel?: number; changed?: string }) => {
   const on = readDocSettings(figma.root).panels;
-  return (id) => (on && leadsPanel(id) ? { panel: PANEL_FORMAT } : {});
+  // #2889: and the text of its "Last changed in" block, so a fold that moves it makes the set due (owner decision A).
+  return (id) => (on && leadsPanel(id) ? { panel: PANEL_FORMAT, changed: lastChangedKey(id) } : {});
 };

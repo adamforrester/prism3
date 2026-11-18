@@ -15,7 +15,7 @@ The first time the studio opens, a start window offers three ways in. <!-- src: 
 | **Explore an example** | Opens one of the example brands, fully built. <!-- src: apps/studio/src/shell/start.ts:202 --> |
 | **Import a design.md** | Loads a whole brand from a `design.md` brief. Paste it into the box and choose **Import**, or choose **Upload…** to pick a file. <!-- src: apps/studio/src/shell/start.ts:218-230 --> |
 
-To come back to these later, open the brand menu at the left of the top bar and choose **New brand**. The same menu lists the examples and has **Import design.md…**. <!-- src: apps/studio/src/shell/bar.ts:233-237 -->
+To come back to these later, open the brand menu at the left of the top bar and choose **New brand**. The same menu lists the examples and has **Import design.md…**. <!-- src: apps/studio/src/shell/bar.ts:232-236 -->
 
 *[Screenshot placeholder: the start window with its three cards.]*
 
@@ -55,7 +55,7 @@ A contrast miss is reported, never blocked. On **Foreground fills**, for example
 ## Where your work is kept
 
 - On the web, the studio keeps your working brand in this browser and reopens it next time. <!-- src: apps/studio/src/persist-local.ts:39-78#7bd91f4c -->
-- In the Figma plugin, the brand is kept in the Figma file each time Update file writes the theme, and the plugin restores it when the file opens again. <!-- src: apps/plugin/src/apply-theme.ts:190-192#ede61fb0 --> <!-- src: apps/plugin/src/main.ts:2174-2181#e56247fc -->
+- In the Figma plugin, the brand is kept in the Figma file each time Update file writes the theme, and the plugin restores it when the file opens again. <!-- src: apps/plugin/src/apply-theme.ts:190-192#ede61fb0 --> <!-- src: apps/plugin/src/main.ts:2179-2186#e56247fc -->
 
 If a stored brand can't be opened, the web studio offers it as a `design.md` download instead of discarding it. <!-- src: apps/studio/src/entry.ts:129-158 -->
 
@@ -64,7 +64,7 @@ If a stored brand can't be opened, the web studio offers it as a `design.md` dow
 A `design.md` is a brand written as a short document: settings at the top, prose below. <!-- src: packages/engine/mcp.ts:335 -->
 The studio reads both the Prism3 form and the standard design.md form, <!-- src: apps/studio/src/state/start-input.ts:176-190#569bb71c --> which lists colors as a flat `colors:` map. <!-- src: packages/engine/standard-design-md.ts:109-110 -->
 
-- Import: **Import design.md…** in the brand menu, then paste the brief and choose **Load**, or choose **Upload .md**. The **Import a design.md** card in the start window works the same way. <!-- src: apps/studio/src/shell/bar.ts:237-293 -->
+- Import: **Import design.md…** in the brand menu, then paste the brief and choose **Load**, or choose **Upload .md**. The **Import a design.md** card in the start window works the same way. <!-- src: apps/studio/src/shell/bar.ts:236-292 -->
 - Export: open **Export** in the rail, choose **Brand brief**, then **Download brief**. The file is named `<brand>.design.md`. The brief has no settings: "Nothing to set — the brief is written one way." <!-- src: apps/studio/src/export-settings.ts:114 --> <!-- src: apps/studio/src/main.ts:1478-1503 -->
 
 A brief is the way to hand a brand to someone else, or to an agent: importing it rebuilds the same brand. For token files, see [Export tokens](export-tokens.md).

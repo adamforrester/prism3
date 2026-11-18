@@ -294,7 +294,7 @@ export const link: ComponentDef = {
   },
 
   accessibility: {
-    role: 'link (a real <a href>, with the label text inside the anchor)',
+    role: 'link (a real `<a href>`, with the label text inside the anchor)',
     wcag: [
       '1.4.1 Use of Color (an inline link is underlined at every state, never told apart by color alone)',
       '2.4.4 Link Purpose (the link text names the destination)',
@@ -307,7 +307,7 @@ export const link: ComponentDef = {
       '2.4.1 Bypass Blocks (the skip link)',
     ],
     keyboard: 'Tab moves to the link; Enter follows it. Space does not activate a link: it scrolls the page.',
-    focus: 'The shared focus ring at :focus-visible, so a mouse click leaves no ring behind.',
+    focus: 'The shared focus ring at `:focus-visible`, so a mouse click leaves no ring behind.',
     aria: 'Usually none: the anchor and its text carry the role and the name. aria-current="page" marks the current page in a navigation, set by current; the bar shows it. A link that opens a new tab adds visually hidden "(opens in new tab)" text; the icons are aria-hidden. Where space forces generic text such as "Read more", an aria-label names the destination. The hidden text and any aria-label are translated; in right-to-left text the trailing icon moves to the leading edge and directional icons mirror.',
   },
 
@@ -337,9 +337,9 @@ export const link: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'Navigate from text to a URL, a fragment or a file, rendered as a real <a href>.',
+    primaryPurpose: 'Navigate from text to a URL, a fragment or a file, rendered as a real `<a href>`.',
     whenToUse: 'The interaction changes the address or the place on the page: a page, an in-page anchor, a document, another site. Standalone for a link on its own line (below a form, in a footer, beside a control); inline for a link that sits in body copy.',
-    avoidWhen: 'The interaction acts in place without changing the address: submit, open a dialog, toggle, show a password (use Button, or Button.Neutral for a light look). A navigation that needs a button\'s weight, such as "Continue to checkout", is a Button given an href, which renders an <a>. Switching panels in place is Tabs.',
+    avoidWhen: 'The interaction acts in place without changing the address: submit, open a dialog, toggle, show a password (use Button, or Button.Neutral for a light look). A navigation that needs a button\'s weight, such as "Continue to checkout", is a Button given an `href`, which renders an `<a>`. Switching panels in place is Tabs.',
     commonPartners: ['icon', 'button', 'text-field', 'breadcrumbs', 'page-nav'],
     triggerKeywords: ['link', 'text link', 'hyperlink', 'anchor', 'inline link', 'standalone link', 'skip link', 'external link', 'current page link', 'navigation link'],
     generationPriority: 2,
@@ -348,7 +348,7 @@ export const link: ComponentDef = {
   composition: {
     composesWith: ['focus-ring'],
     alternativeTo: ['button', 'breadcrumbs'],
-    replacesPatterns: ['a click handler on a div or span styled as a link', 'an <a> with no href, href="#" or javascript:void(0)', 'a[role=button] used for navigation'],
+    replacesPatterns: ['a click handler on a div or span styled as a link', 'an `<a>` with no `href`, `href="#"` or `javascript:void(0)`', '`a[role=button]` used for navigation'],
     supersededBy: [],
     planned: ['menu'],
   },

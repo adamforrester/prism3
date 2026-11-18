@@ -739,7 +739,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
   },
 
   accessibility: {
-    role: 'button (native <button>; never div[role=button] — it inherits Space/Enter activation, focus, and high-contrast affordances for free)',
+    role: 'button (native `<button>`; never `div[role=button]` — it inherits Space/Enter activation, focus, and high-contrast affordances for free)',
     // #1697 — every entry carries its reason, and 2.5.5 is stated as intent: `lint-hit-target.ts` gates the
     // 44px floor at the default size on comfortable and spacious densities, and names a small button and
     // compact density as the two exceptions, so "meets 44×44" would be a claim the engine does not make.
@@ -754,8 +754,8 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       '2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)',
       '4.1.2 Name/Role/Value (native <button>: the label is the name, the role is button, and state rides aria-disabled and aria-busy, plus aria-pressed on a toggle button only)',
     ],
-    keyboard: 'Native <button>: Enter activates on keydown, Space on keyup. (This asymmetry vs a link — which activates on Enter only, Space scrolls — is exactly why a navigating "button" must be a real link.)',
-    focus: 'A :focus-visible ring (color.border.focus) with an outline-offset so a sliver of background separates ring from border — it does not blend into the button\'s own fill (WCAG 1.4.11, target 3:1). Never suppressed. Focus is retained through pending and inactive (aria-disabled, not native disabled).',
+    keyboard: 'Native `<button>`: Enter activates on keydown, Space on keyup. (This asymmetry vs a link — which activates on Enter only, Space scrolls — is exactly why a navigating "button" must be a real link.)',
+    focus: 'A `:focus-visible` ring (`color.border.focus`) with an `outline-offset` so a sliver of background separates ring from border — it does not blend into the button\'s own fill (WCAG 1.4.11, target 3:1). Never suppressed. Focus is retained through pending and inactive (`aria-disabled`, not native disabled).',
     aria: 'State attributes are distinct, not interchangeable: aria-pressed only for a toggle-button; aria-expanded (+ aria-haspopup) for a menu/disclosure trigger; aria-checked only for the switch role. Do not conflate them. Busy: while isPending, set aria-busy and announce via a polite live region ("Saving…"), and set aria-hidden="true" on the embedded spinner, which otherwise announces its own "Loading" status (a double announcement); keep the control focusable so the busy state is discoverable. isInactive/isPending use aria-disabled (not native disabled) so focus and the explanatory name/description stay reachable. Localization: the label wraps rather than truncating and has no fixed English width, the row mirrors under RTL through logical properties, and only directional glyphs flip.',
   },
 
@@ -773,7 +773,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     do: [
       'Lead with a verb, name the object ("Publish post", not "Submit")',
       'Keep exactly one filled button per view; demote the rest to outline / text, so a view of three actions is three buttons at three appearances rather than three fills competing',
-      'Set surface=inverse for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground',
+      'Set `surface=inverse` for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground',
       // THE BRAND'S BUTTON SETTINGS (#1667), stated for the agent that builds this component in code: the
       // def is brand-agnostic, so the settings travel as brand input (`buttonIcons`,
       // `buttonMinWidthMultiplier`, `buttonContentSize`, and #1752's `buttonLabelWeight`) and these lines
@@ -796,8 +796,8 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       ...sibling.do,
     ],
     dont: [
-      'Set inset=flush on a filled or outline button — their visible edge needs its padding; flush is for appearance=text',
-      'Use a button with no href for navigation to a URL — use Link, or give the button an href so it renders an <a>',
+      'Set `inset=flush` on a filled or outline button — their visible edge needs its padding; flush is for `appearance=text`',
+      'Use a button with no `href` for navigation to a URL — use Link, or give the button an `href` so it renders an `<a>`',
       'Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills',
       'Use native disabled on a relevant-but-blocked control (a dead end for keyboard and screen reader users)',
       'Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual\'s place, or overlays a label held at zero opacity',
@@ -809,7 +809,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // #3555 Q-MD14 A: one line per sibling, in the imperative register every def's primaryPurpose takes.
     primaryPurpose: { primary: 'Trigger an action in place, in the brand\'s primary style.', destructive: 'Trigger an action in place that deletes or removes something.', neutral: 'Trigger an action in place that carries no brand emphasis.' }[family],
     whenToUse: 'The user needs to act on this surface — submit, confirm, open, apply, or start async work.',
-    avoidWhen: `The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use ${ICON_BUTTON_OF[family]} (the accessible name is required there at the type level). ${sibling.avoidWhen}`,
+    avoidWhen: `The target is a different location/URL → use Link (or give the button an \`href\`, which renders an \`<a>\`, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use ${ICON_BUTTON_OF[family]} (the accessible name is required there at the type level). ${sibling.avoidWhen}`,
     // #1697 — `spinner` (the pending state swaps it in, #1670) and `focus-ring` (every focus-visible member
     // nests it) are the two components this one always builds with, beside the icon in its slots.
     commonPartners: ['icon', 'spinner', 'focus-ring', 'button-group'],
@@ -825,7 +825,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // icon-only alternative is the destructive icon-button rather than the primary one.
     alternativeTo: [family === 'primary' ? 'icon-button' : `icon-button-${family}`, 'switch-row', ...(family === 'primary' ? ['tag', 'link'] : [])],
     planned: ['tooltip', 'menu', 'popover', 'toggle-button', 'split-button'],
-    replacesPatterns: ['input[type=button|submit]', 'div[role=button]'],
+    replacesPatterns: ['input[type=button|submit]', '`div[role=button]`'],
   },
 
   motion: {
