@@ -69,7 +69,7 @@ Use a Dialog when the user must make a decision or finish a short task before go
 
 - **Keyboard:** Tab and Shift+Tab cycle through the controls inside the dialog. Escape closes it (an alertdialog as Cancel). Enter and Space act on the focused button.
 - **Focus:** Moves into the dialog on open (the first control, the title for long content, or Cancel in an alertdialog), stays inside while it is open, and returns to the control that opened it.
-- **Screen readers:** role="dialog" with aria-modal="true", or role="alertdialog" for a confirmation that needs an answer. A native \<dialog> opened with showModal() provides the dialog role, the modal state, the top layer and an inert page.
+- **Screen readers:** `role="dialog"` with `aria-modal="true"`, or `role="alertdialog"` for a confirmation that needs an answer. A native `<dialog>` opened with `showModal()` provides the dialog role, the modal state, the top layer and an inert page.
 
   aria-modal="true"; aria-labelledby pointing at the title; aria-describedby pointing at the description when there is one. The close button's accessible name is "Close". Hide the dividers from assistive technology.
 

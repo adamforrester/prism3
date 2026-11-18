@@ -230,7 +230,7 @@ export const veil: ComponentDef = {
   },
 
   accessibility: {
-    role: 'none — a presentational overlay. The veil conveys no information of its own; it is a wash behind text, so it is aria-hidden and the text on top carries the accessible content.',
+    role: 'none — a presentational overlay. The veil conveys no information of its own; it is a wash behind text, so it is `aria-hidden` and the text on top carries the accessible content.',
     wcag: [
       '1.4.3 Contrast (Minimum) — the veil exists to help text on an image clear 4.5:1 (or 3:1 for large text), but it cannot guarantee it: the result depends on the photo, so the contrast is verified against the real image, not assumed from the wash',
       '1.4.11 Non-text Contrast — where content on the veil is itself a UI boundary, the same per-image verification applies',
