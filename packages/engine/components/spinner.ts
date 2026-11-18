@@ -59,7 +59,8 @@ export const spinner: ComponentDef = {
   // owner-decided 2026-09-26), which keys on the id, not on this.
   category: 'foundations',
   status: 'draft',
-  summary: 'Indeterminate loading indicator on the icon ladder. Announces "Loading" unless its host hides it.',
+  // The owner approved this wording on 2026-11-18 (#2092 A), replacing "on the icon ladder": visible copy says sizes, not ladder.
+  summary: 'Indeterminate loading indicator in the icon sizes. Announces "Loading" unless its host hides it.',
   description:
     'A rotating arc over a faint full ring, showing that work is in progress with no known end. Sized on the icon ladder (16 / 20 / 24 / 32) and inked from the surrounding text or icon color, so it drops into any icon slot — a button\'s leading visual, a field\'s trailing slot. On its own it announces a polite "Loading", or a more specific label, through a status region that is already on the page; inside a host that announces its own busy state, the host hides it with aria-hidden. It has no value, so it never stands in for a determinate progress bar.',
 

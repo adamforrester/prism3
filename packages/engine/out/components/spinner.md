@@ -1,6 +1,6 @@
 # Spinner
 
-> Indeterminate loading indicator on the icon ladder. Announces "Loading" unless its host hides it.
+> Indeterminate loading indicator in the icon sizes. Announces "Loading" unless its host hides it.
 
 - **ID:** `spinner`
 - **Category:** foundations

@@ -137,7 +137,10 @@ export const tag: ComponentDef = {
   id: 'tag',
   name: 'Tag',
   aliases: ['chip', 'filter-tag', 'filter-chip', 'input-tag', 'input-chip', 'removable-tag', 'dismissible-tag', 'selectable-tag', 'choice-chip', 'interaction-tag', 'checkable-tag', 'facet'],
-  category: 'foundations',
+  // Not the brief's `foundations`: the owner moved Tag out of it to match the Figma file, which places it under
+  // Components beside Badge (#2092 A, 2026-11-18). `form` is the DRAFT value, held for the owner in the PR; `test.ts`
+  // admits the departure from the brief by name (`OWNER_CATEGORY`).
+  category: 'form',
   status: 'draft',
   summary: 'An interactive token a user toggles or removes. A static label is a badge.',
   description:

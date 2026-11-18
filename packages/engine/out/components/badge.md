@@ -3,7 +3,7 @@
 > A static status label, count or dot. Nothing to click; color is not meant to be the only signal.
 
 - **ID:** `badge`
-- **Category:** foundations
+- **Category:** feedback
 - **Status:** draft
 - **Also known as:** status-badge, counter-badge, notification-badge, notification-dot, presence-badge, label, counter, state-label
 
