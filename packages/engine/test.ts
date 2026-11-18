@@ -21694,6 +21694,32 @@ arm: {
   // VALUE plus slot and are unchanged by the rename, which is why this assertion reads the same literals.)
   ok(([['error', 'danger'], ['warning', 'warning'], ['success', 'success']] as const).every(([status, role]) => fieldMessage.tokens[`${status}.label`] === `color.text.${role}` && fieldMessage.tokens[`${status}.icon`] === `color.icon.${role}`), 'component: FieldMessage statuses bind text.<role> + icon.<role> (icon + text, never colour-only)');
   ok(fieldMessage.states.length === 0 && JSON.stringify(fieldMessage.variants.status) === JSON.stringify(['default', 'error', 'warning', 'success']), 'component: FieldMessage is presentational with a status axis (renamed from `tone` in #1334)');
+  // #1712 (owner decision 2026-11-18, A): NO FIELD-LEVEL LIVE REGION. The brief (inline-message §6, §11, §12)
+  // has the field announce through aria-invalid + aria-describedby while focus moves to it or to the error
+  // summary; a live region on the field fires during that move and reads the error twice. Only the form's
+  // error summary announces. The def told the host the opposite in three places until #1712, so every
+  // shipped string of field-message is scanned for advice that PUTS a region on the field, and the positive
+  // model is asserted present, so deleting the guidance outright fails too. TextField's aria carried the same
+  // advice as "announce politely" and is scanned with it. The patterns are hand-written, not read from the def.
+  {
+    const fmProse: Array<[string, string]> = [
+      ['accessibility.aria', fieldMessage.accessibility.aria ?? ''],
+      ...(fieldMessage.accessibility.wcag ?? []).map((w, i): [string, string] => [`accessibility.wcag[${i}]`, w]),
+      ...(fieldMessage.anatomy?.codeOnly ?? []).map((c, i): [string, string] => [`anatomy.codeOnly[${i}]`, c.description]),
+      ...(fieldMessage.docs.do ?? []).map((d, i): [string, string] => [`docs.do[${i}]`, d]),
+      ...(fieldMessage.docs.dont ?? []).map((d, i): [string, string] => [`docs.dont[${i}]`, d]),
+      ['docs.usage', fieldMessage.docs.usage ?? ''],
+      ['textField.accessibility.aria', textField.accessibility.aria ?? ''],
+    ];
+    const FIELD_REGION_ADVICE = [/polite live region/i, /\b(host|field) wraps\b/i, /self-announcing/i, /aria-live/i, /role="status"/i, /announce politely/i, /role="alert"/i, /assertive/i];
+    const offenders = fmProse.filter(([, t]) => FIELD_REGION_ADVICE.some((re) => re.test(t))).map(([where]) => where);
+    ok(offenders.length === 0,
+      `#1712 field-message and TextField give no field-level live-region advice — the form's error summary is the only region that announces (offending: ${offenders.join(', ') || 'none'})`);
+    const aria = fieldMessage.accessibility.aria ?? '';
+    const missing = ['aria-invalid="true"', 'aria-describedby', 'focus moves to the invalid field or to the form\'s error summary', 'never a live region'].filter((needle) => !aria.includes(needle));
+    ok(missing.length === 0,
+      `#1712 field-message's aria states the brief's model: aria-invalid="true", aria-describedby, focus to the field or the error summary, never a live region (missing: ${missing.join(', ') || 'none'})`);
+  }
   // #1242/#1333 — the text property is `message` (lowercase), not `children`. Checked BOTH as the declared
   // prop and as the PROJECTED Figma property name (built from the set, compared against a hand-written
   // literal), so the sweep off the React-ism is caught here by name on this def too — not only on Button
