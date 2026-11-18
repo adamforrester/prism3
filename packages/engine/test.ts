@@ -3517,6 +3517,22 @@ for (const b of brands) {
       `#1220 a body composite that disagrees with its rung-mates fails the build by name, instead of the line box following composite order (${threw || 'no throw'})`);
   }
 
+  // ---- #1182 stage 5: a rung with no body line box gets no `label-inset`, and the build still runs ---------
+  // `tree.ts` reads the option row's body line box per control rung and bakes `label-inset` only where that
+  // box exists. No corpus brand drops a body rung, so only a theme bent by hand reaches the branch: the #3918
+  // review found it turned into a throw under a `must`. Proven here on a copy of the minimal brand's theme
+  // with every `body.xs` composite removed, which is the `sm` control's row label rung.
+  arm: {
+    const th = brandTheme(MINIMAL_BRAND);
+    const noXs: Theme = { ...th, typography: { ...th.typography, composites: th.typography.composites.filter((c) => !(c.group === 'body' && c.path.split('.')[1] === 'xs')) } };
+    ok(noXs.typography.composites.length < th.typography.composites.length, '#1182 reachable: the minimal theme has body.xs composites to remove');
+    let threw = '';
+    let sm: Record<string, unknown> | undefined;
+    try { sm = (buildTree(noXs).tree as any).prism.control?.size?.sm; } catch (e) { threw = (e as Error).message; }
+    ok(!threw && sm !== undefined && !('label-inset' in sm) && 'height' in sm,
+      `#1182 a theme with no body.xs line box builds, and control.size.sm carries no label-inset while keeping its other fields (${threw ? `threw: ${threw}` : `sm has ${Object.keys(sm ?? {}).sort().join(', ')}`})`);
+  }
+
   // ---- #2586: the LABEL line box is one line of the emitted label type ----------------------------
   // `type.label.{rung}.line-box` (owner Q275.1 B) bakes `fontSize × lineHeight` of `type.label.{rung}.*`, because
   // Figma variables cannot multiply. The EXPECTED px here comes from the emitted label composites, resolved

@@ -39,6 +39,7 @@ import { readFileSync, existsSync, statSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
+import { ruleArms } from './rule-no-custom-code.mjs';
 import { buildPlatforms, platformsConfig, sourcesFor, PLATFORM_FILES, OUT_ROOT } from './sd.platforms.mjs';
 import { outcomesFor, readPlatform, readDeclarations, norm, worst, PLATFORMS, TYPES } from './platform-outcomes.mjs';
 
@@ -53,6 +54,9 @@ const cfg = readFileSync(resolve(here, 'sd.platforms.mjs'), 'utf8').replace(/\/\
 for (const banned of ['preprocessors', 'hooks', 'transforms:', 'registerTransform', 'registerPreprocessor', 'registerFormat', 'registerTransformGroup', 'registerParser', 'parsers']) {
   ok(!cfg.includes(banned), `[RULE] the platform config declares no \`${banned}\` — built-in transform groups and formats only`);
 }
+// The names above are the ones that bit first; the structural arms are the rule itself (#3879). A string-named
+// hook (`actions: ['custom-step']`) survives the JSON round trip below, so only the key allowlist sees it.
+ruleArms('platform config', resolve(here, 'sd.platforms.mjs'), ok);
 // A source scan reads names; a function-valued option needs no banned name (`filter: (t) => true`).
 // JSON drops a function and `undefined` and turns a RegExp into `{}`, so plain data is exactly what
 // survives the round trip.
