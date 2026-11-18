@@ -607,11 +607,11 @@ npx tsx packages/engine/lint-figma-destination.ts   # a leaf's OWN claim about w
                                                     # and needs redesigning, not patching. The re-check
                                                     # is in the gate's header and returns ZERO when the
                                                     # property holds; the `grep -n prism3` this line used
-                                                    # to prescribe returns 24. Harbor emits no out/figma/, so its
-                                                    # emission is BUILT IN MEMORY rather than skipped —
-                                                    # a quarter of the subject, whose layout `mode` claims
-                                                    # are brand-derived (shape 15); a brand in neither
-                                                    # out/figma/ nor COMPUTED_ORACLE FAILS, never skips
+                                                    # to prescribe returns 24. A brand with a token tree
+                                                    # and no out/figma/ has its emission BUILT IN MEMORY
+                                                    # rather than skipped (shape 15; none since #1119
+                                                    # committed harbor's); a brand in neither out/figma/
+                                                    # nor COMPUTED_ORACLE FAILS, never skips
 npx tsx packages/engine/lint-stranded-collections.ts # no collection ships that nothing writes, and
                                                     # nothing writes one that does not ship (#1152). The
                                                     # orphan report (#479) is produced BY an executor
@@ -1183,8 +1183,10 @@ npx tsx packages/engine/lint-figma-descriptions.ts  # every Figma variable + sty
                                                     # plugin register (#1623 sign-off): within a ceiling
                                                     # DERIVED from docs/voice-standard.md (~90 + 10), and
                                                     # no backtick, dotted path, all-caps emphasis, issue
-                                                    # ref or Prism 2. Committed brands + harbor built in
-                                                    # memory; every Figma file kind represented. Also: no
+                                                    # ref or Prism 2. ≥5 committed brands, every example
+                                                    # brand read (committed, or built in memory if it
+                                                    # has no emission); every Figma file kind
+                                                    # represented. Also: no
                                                     # DTCG description names Prism 2 or an issue.
 npx tsx packages/engine/lint-tool-neutral-prose.ts  # consumer prose names no tool (#2411, owner Q167):
                                                     # DTCG $description (token, group, per mode),

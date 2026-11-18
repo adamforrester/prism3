@@ -110,6 +110,8 @@ Two smaller traps worth inheriting rather than rediscovering:
   set the preview's mode selector (`MODE_ROWS`, `src/state/brand-input.ts`).
 - ✅ **Export**, a rail area since #2909, offers **Design tokens**, **Brand brief** (the
   `design.md`, which imports back into Studio) and **Component specs** (`src/export-settings.ts`).
+  The last downloads `<brand>.component-contracts.json`, the brand's component contracts (#1325), the same
+  file as `<brand>.component-defs.json` for one release, and the Specs projection; the web Studio draws it off.
   Design tokens are the consumer set, since #2552: `<brand>.base.tokens.json` plus one
   `<brand>.<mode>.overlay.tokens.json` per mode, with no `$extensions`. *Include build metadata*,
   off by default, keeps them. Studio never offers the single-file tree, because it holds the
