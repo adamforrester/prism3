@@ -23,6 +23,7 @@
     "@rolldown/pluginutils": "1.0.1",
     "ws": "8.22.1",
     "@babel/runtime": "7.29.10",
-    "@testing-library/user-event": "14.6.8"
+    "@testing-library/user-event": "14.6.8",
+    "axe-core": "4.14.0"
   }
 }

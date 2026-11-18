@@ -5,8 +5,8 @@
  *   npm run -w @prism3/storybook build          (first: writes storybook-static/)
  *   npx tsx apps/storybook/check-build.ts
  *
- * 1. THE INDEX. `storybook-static/index.json` lists exactly the stories `EXPECTED` names below: for each component,
- *    each delivery form, each case. `EXPECTED` is written here by hand, never read from the stories, so a story
+ * 1. THE INDEX. `storybook-static/index.json` lists exactly the stories `EXPECTED` (`expected-stories.ts`) names: for
+ *    each component, each delivery form, each case. `EXPECTED` is written by hand, never read from the stories, so a story
  *    dropped from one form, or added to only one, fails here by its id (`docs/34`).
  * 2. EACH STORY RENDERS. The static build is served locally and each story's iframe is opened: no page error, and a
  *    `.p3-button` in the story root. In the element form it sits inside `<p3-button>`; in the HTML form it doesn't.
@@ -35,24 +35,13 @@ import { createServer } from 'node:http';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve, dirname, extname, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { EXPECTED } from './expected-stories.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const STATIC = resolve(HERE, 'storybook-static');
 if (!existsSync(resolve(STATIC, 'index.json'))) { console.error('FAIL setup: apps/storybook/storybook-static/index.json is missing. Run: npm run -w @prism3/storybook build'); process.exit(1); }
 
 /** Every story the build must hold: `components-<component>-<form>--<case>`. */
-const EXPECTED: Record<string, { forms: string[]; cases: string[] }> = {
-  button: {
-    forms: ['element', 'html'],
-    cases: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'inactive', 'pending', 'filled', 'outline', 'text',
-      'text-flush', 'small', 'medium', 'large', 'inverse', 'inverse-outline', 'with-visuals', 'full-width'],
-  },
-};
-// The fields' cases (`stories/fields.js`), written again here by hand.
-const FIELD_CASES = ['rest', 'filled', 'hover', 'focus-visible', 'error', 'warning', 'success', 'disabled', 'read-only',
-  'pending', 'required', 'small', 'medium', 'large', 'with-icons'];
-EXPECTED['text-field'] = { forms: ['element', 'html'], cases: FIELD_CASES };
-EXPECTED['password-field'] = { forms: ['element', 'html'], cases: [...FIELD_CASES, 'shown', 'shown-error'] };
 const FIELDS = new Set(['text-field', 'password-field']);
 /** The validation status each field case is at, by hand: the error wiring is checked against it. */
 const STATUS: Record<string, string> = { error: 'error', warning: 'warning', success: 'success', 'shown-error': 'error' };
@@ -70,7 +59,7 @@ const entries = JSON.parse(readFileSync(resolve(STATIC, 'index.json'), 'utf8')).
 const built = new Set(Object.keys(entries).filter((k) => entries[k].type === 'story'));
 const want = new Set(Object.entries(EXPECTED).flatMap(([comp, e]) => e.forms.flatMap((f) => e.cases.map((c) => id(comp, f, c)))));
 for (const w of want) ok(built.has(w), `index: story ${w} is missing from the build`);
-for (const b of built) ok(want.has(b), `index: story ${b} is in the build but not in check-build.ts's EXPECTED`);
+for (const b of built) ok(want.has(b), `index: story ${b} is in the build but not in expected-stories.ts's EXPECTED`);
 
 // 2–4. render each story
 const TYPES: Record<string, string> = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.css': 'text/css', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
