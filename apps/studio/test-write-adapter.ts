@@ -63,6 +63,11 @@ accepts('component-update-result with a malformed publish description', { type: 
 // #3711 (Q-UF3 A): an applied update that went through every set says so; anything but `true` reads false.
 accepts('component-update-result that completed with sets to check', { type: 'component-update-result', ok: false, completed: true, headline: '⚠ Updated 47 sets · 2 to check', summary: 's', lines: ['s'] },
   { kind: 'component-update-result', ok: false, headline: '⚠ Updated 47 sets · 2 to check', summary: 's', lines: ['s'], publish: null, causes: null, completed: true });
+// #4067: the applied update's count of sets written to, the run line's number; a value that is not a count is dropped.
+accepts('component-update-result with its sets count', { type: 'component-update-result', ok: false, completed: true, headline: '⚠ Updated 37 sets · 1 to check', summary: 's', lines: ['s'], sets: 37 },
+  { kind: 'component-update-result', ok: false, headline: '⚠ Updated 37 sets · 1 to check', summary: 's', lines: ['s'], publish: null, causes: null, completed: true, sets: 37 });
+accepts('component-update-result with a malformed sets count', { type: 'component-update-result', ok: true, headline: 'h', summary: 's', sets: '37' },
+  { kind: 'component-update-result', ok: true, headline: 'h', summary: 's', lines: null, publish: null, causes: null, completed: false });
 accepts('component-update-result with a malformed completed', { type: 'component-update-result', ok: false, completed: 'yes', headline: '✗ x', summary: 's' },
   { kind: 'component-update-result', ok: false, headline: '✗ x', summary: 's', lines: null, publish: null, causes: null, completed: false });
 accepts('component-result that stopped before the set', { type: 'component-result', ok: false, completed: false, headline: '✗ unknown def', summary: 's' },
