@@ -45,22 +45,31 @@ const outDir = resolve(here, 'out');
 // Persist a theme's DTCG tree + AI-metadata sidecar to `outDir`; return the built
 // tree/modes/stats so the caller can print a summary and gate on the contracts.
 export const emitTheme = (theme: Theme, outDir: string, opts: { build?: string } = {}): { tree: any; modes: ModeResult[]; stats: Stats } => {
+  // #3875: every file lands directly in `outDir`. `brandTheme` refuses an id that would leave it; this is the
+  // backstop for a theme that reached here another way, checked before anything is written.
+  const dir = resolve(outDir);
+  const fileIn = (name: string): string => {
+    const at = resolve(dir, name);
+    if (dirname(at) !== dir) throw new Error(`'${name}' would be written outside ${dir}, so nothing was written.`);
+    return at;
+  };
+  const files = { tokens: fileIn(`${theme.id}.tokens.json`), ai: fileIn(`${theme.id}.ai.json`), base: fileIn(`${theme.id}.base.tokens.json`) };
   mkdirSync(outDir, { recursive: true });
   const built = buildTree(theme);
   // #3698 R1: a live build (the CLI on a brief) stamps its build identity beside the engine version, before anything
   // below reads the tree. The committed corpus passes none, so its stamps stay the fold's (`build-identity.ts`).
   if (opts.build && opts.build !== built.tree.$extensions.generator.version) built.tree.$extensions.generator.build = opts.build;
-  writeFileSync(resolve(outDir, `${theme.id}.tokens.json`), JSON.stringify(built.tree, null, 2) + '\n');
+  writeFileSync(files.tokens, JSON.stringify(built.tree, null, 2) + '\n');
   // AI-readable metadata sidecar (agent surface for the semantic layer).
-  writeFileSync(resolve(outDir, `${theme.id}.ai.json`), JSON.stringify(buildAiMetadata(theme, built.tree), null, 2) + '\n');
+  writeFileSync(files.ai, JSON.stringify(buildAiMetadata(theme, built.tree), null, 2) + '\n');
   // The CONFORMING projection (#609), and since #2552 the CONSUMER set itself: base + overlay, composed by the
   // consumer's own multi-source merge, with no `$extensions` anywhere — a token carries `$value`, `$type` and
   // `$description`. The tree above stays the source of truth and keeps every extension (its other modes live
   // there); see `emit-dtcg-overlay.ts` for why overlays and not full per-mode trees, and why the strip is safe here.
   const projected = buildOverlaySet(built.tree);
-  writeFileSync(resolve(outDir, `${theme.id}.base.tokens.json`), JSON.stringify(projected.base, null, 2) + '\n');
+  writeFileSync(files.base, JSON.stringify(projected.base, null, 2) + '\n');
   for (const { mode, tree } of projected.overlays) {
-    writeFileSync(resolve(outDir, `${theme.id}.${mode}.overlay.tokens.json`), JSON.stringify(tree, null, 2) + '\n');
+    writeFileSync(fileIn(`${theme.id}.${mode}.overlay.tokens.json`), JSON.stringify(tree, null, 2) + '\n');
   }
   return built;
 };
