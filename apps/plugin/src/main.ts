@@ -41,6 +41,7 @@ import { emissionOf, themeDue } from './theme-emission';
 import { fieldStyleNote, searchFieldStyleNote } from './field-style-note';
 import { tagStyleNote } from './tag-style-note';
 import { gridSkippedNote } from './write-grid-styles';
+import { styleRenamedNote } from './rename-styles';
 import { applyComponentPlan, partialWriteOf } from './write-components';
 import type { ComponentProgress, CompPageTarget, CompNode, ComponentsApi } from './write-components';
 import { saveBeforeBuild, saveVersion } from './version-title';
@@ -402,7 +403,7 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
       postVerdict({ type: 'apply-result', ok: false, headline: conflictHeadline(guarded.conflicts.length), summary: conflicts, lines: [conflicts], ...collisions }, sink);
       return;
     }
-    const { mig, r, f, s, gs, tv, ts, mv, uc } = guarded.result;
+    const { mig, r, f, s, gs, tv, ts, mv, uc, styleRenames } = guarded.result;
     // `motion` (#2412) — TIMING + EASING through the mixed-type executor; its refusals count with the font ones.
     const motionTotal = mv.collections.reduce((n, c) => n + c.total, 0);
     const motionCreated = mv.collections.reduce((n, c) => n + c.created, 0);
@@ -504,6 +505,8 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
       migrated.length ? `${migrated.length} renamed ${migrated.length === 1 ? 'token' : 'tokens'} migrated in place (bindings kept: ${migrated.slice(0, 3).map((o) => `${o.from}→${o.to}`).join(', ')}${migrated.length > 3 ? '…' : ''})` : '',
       migRefused.length ? `⚠ ${migRefused.length} ${migRefused.length === 1 ? 'rename' : 'renames'} refused (${migRefused.slice(0, 2).map((o) => `${o.from}→${o.to}: ${o.status}`).join(', ')}) — nothing moved for those` : '',
       mig.refusals.length ? `⚠ rename map invalid, no migrations attempted (${mig.refusals[0]})` : '',
+      // #1040 (owner decision A): a style the engine renamed, moved in place by `rename-styles.ts`. Copy DRAFT.
+      styleRenamedNote(styleRenames),
     ];
     // #499: styles whose emitted name was corrected (e.g. `Semi Bold` → `SemiBold`). Worth surfacing
     // rather than silently succeeding — it is the difference between "the guess was right" and "the
