@@ -734,6 +734,7 @@ apps/studio/test-report.ts #3560
 apps/studio/test-report.ts #3561
 apps/studio/test-report.ts #3697
 apps/studio/test-report.ts #3702
+apps/studio/test-report.ts #3883
 apps/studio/test-run-ended.ts #533
 apps/studio/test-run-time.ts #3471
 apps/studio/test-shape-input.ts #2053
@@ -1208,6 +1209,8 @@ packages/engine/test.ts #3842
 packages/engine/test.ts #3843
 packages/engine/test.ts #3845
 packages/engine/test.ts #3863
+packages/engine/test.ts #3871
+packages/engine/test.ts #3872
 packages/engine/test.ts #3873
 packages/engine/test.ts #388
 packages/engine/test.ts #390
