@@ -23,9 +23,11 @@ set reads as blocked for that), no version for it alone, and no ledger entry (`l
 they are, updates off" (DRAFT). The run that turns it on adds "<set>: Updates off. Turned off when an update couldn't
 apply around your edits."
 
-**A trap for whoever re-verifies.** `damage/under a layer skip` runs Keep, Overwrite and Accept over one set in turn. The
-Keep run now turns the set's updates off, so the later choices met a set left whole. The arm clears the mark before each
-choice; the auto turn-on itself is measured in the survival suite.
+**A trap for whoever re-verifies.** `damage/under a layer skip` (`test-update-apply.ts`) and `orphan/under a layer skip`
+(`test-reactions.ts`) run Keep, Overwrite and Accept over one set in turn. The Keep run now turns the set's updates off,
+so the later choices met a set left whole. Both arms clear the mark before each choice; the auto turn-on itself is
+measured in the survival suite. Any future arm that runs several updates over one set whose members are skipped for
+hand edits meets the same thing.
 
 **OWNER DECISIONS (built as recommended, each to confirm):**
 - **Set or member.** The lane is set-level, so one member the update cannot apply around turns the whole set off after
