@@ -577,7 +577,7 @@ const primMeaning = (seg: string[], node?: any): string => {
   if (seg[0] === 'opacity') return 'Opacity scale primitive';
   // Not "grid": 1, 2, 3, 5, 6, 10, 18 and 30px are off the 4px grid (#3555 F6). The tree's own word.
   if (seg[0] === 'dimension') return `${seg[1]}px dimension primitive`;
-  if (seg[0] === 'motion') return seg[1] === 'easing' ? 'Easing curve primitive (cubic-bezier)' : seg[1] === 'spring' ? 'Spring primitive (damping / stiffness)' : seg[1] === 'stagger' ? 'Stagger delay primitive' : 'Motion duration primitive';
+  if (seg[0] === 'motion') return seg[1] === 'easing' ? 'Easing curve primitive (cubic-bezier)' : seg[1] === 'spring' ? 'Spring primitive (damping / stiffness)' : seg[1] === 'spring-easing' ? 'Spring as a CSS linear() curve, for code that cannot run a spring' : seg[1] === 'spring-duration' ? 'Spring settle time — the duration its CSS curve plays over' : seg[1] === 'stagger' ? 'Stagger delay primitive' : 'Motion duration primitive';
   if (seg[0] === 'font') {
     if (seg[1] === 'family') return `Font family stack — ${seg[2]} role`;
     if (seg[1] === 'size') return `Font size primitive — ${seg[2]}px (rem)`;

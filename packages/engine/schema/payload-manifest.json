@@ -39,6 +39,11 @@
       "why": "One overlay per theme mode. Base + overlay is the projection a conforming consumer resolves, and (#2552) it carries no `$extensions`."
     },
     {
+      "kind": "css-only-source",
+      "pattern": "out/{brand}.css-only.json",
+      "why": "The custom-typed leaves whose value is already CSS, today each spring's `linear()` curve (#3510). DTCG has no type for them, so the conforming projection omits them; the shippable token CSS build reads this file as a third source beside the base and an overlay, so it travels with that build. No `$extensions`."
+    },
+    {
       "kind": "agent-metadata",
       "pattern": "out/{brand}.ai.json",
       "why": "Per-brand agent metadata. Travels because an ejected repo has no Prism3 MCP to query (#668)."

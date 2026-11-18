@@ -16,6 +16,10 @@
  * defaults) writes under `:root`; each mode writes under `[data-theme="<mode>"]`. Names keep stock Style
  * Dictionary's root prefix, `--pds3-…` (Q98 A): no `prefix` option, no rename.
  *
+ * A third source rides in every run: `prism3.css-only.json`, the custom-typed leaves whose value is already CSS
+ * (each spring's `linear()` curve, #3510). DTCG has no type for them, so the projection leaves them out (#642);
+ * this build is the one reader that can use them, and it does so with no transform.
+ *
  *   dist/prism3/<mode>.css   one file per block, straight out of Style Dictionary
  *   dist/prism3.css          those files joined in order (`:root` first), so one import carries every mode
  *
@@ -47,6 +51,10 @@ const buildMode = async (mode) => {
     source: [
       resolve(OUT_ROOT, `${BRAND}.base.tokens.json`),
       ...(mode === 'base' ? [] : [resolve(OUT_ROOT, `${BRAND}.${mode}.overlay.tokens.json`)]),
+      // The CSS-only source (#3510): each spring's `linear()` curve, which DTCG has no type for, so the
+      // conforming projection above omits it. Stock Style Dictionary has no transform for its type and writes the
+      // string as it stands. Every mode reads it, so every block defines the names; none of them varies by mode.
+      resolve(OUT_ROOT, `${BRAND}.css-only.json`),
     ],
     usesDtcg: true,
     // The overlay overriding the base is the mechanism working; SD reports each override as a collision.

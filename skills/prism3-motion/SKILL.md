@@ -44,6 +44,8 @@ picks the value.
 | `motion.easing-role.*` | `default`, `enter`, `exit`, `emphasized` | The curve, named by what the change does. |
 | `motion.easing.*` | `linear`, `standard`, `decelerate`, `accelerate`, `expressive`, `calm` | Curve shapes. Reach for a shape only where no role fits, such as `motion.easing.linear` for a constant-speed loop. |
 | `motion.spring.*` | `snappy`, `gentle`, `bouncy` | Physical motion for things a person drags, flicks or releases. |
+| `motion.spring-easing.*` | the same spring names | A spring as a CSS curve, for code that can't run a spring. |
+| `motion.spring-duration.*` | the same spring names | How long that spring takes to settle. Play the curve over it. |
 | `motion.transition.*` | `default`, `enter`, `exit`, `emphasized` | A duration and an easing role already paired. Prefer these when one fits. |
 | `motion.stagger` | — | The interval between siblings that arrive in sequence. |
 
@@ -81,6 +83,8 @@ velocity. Anything the system triggers (an open, a load, a state change) takes a
 `motion.transition.*`. Use `motion.spring.snappy` by default, `motion.spring.gentle` for a large
 surface, and `motion.spring.bouncy` only for a deliberately expressive moment. Keep opacity and color
 off springs: all three springs are spatial, and an effects spring doesn't exist yet (#3481).
+In CSS, which can't run a spring, play `motion.spring-easing.<name>` over `motion.spring-duration.<name>`, with
+the same name on both (#3510). A JavaScript animation library runs the spring itself from `motion.spring.*`.
 *Grounding:* KB `18-motion-foundations`, decision frameworks (spring or curve) and the spatial and
 effects split.
 

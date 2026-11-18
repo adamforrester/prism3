@@ -5,10 +5,11 @@
  *  - NB regression  -> nbds.* / rgb()  (byte-comparable to the real NB tokens)
  *  - Prism product  -> prism.* / hex    (DTCG-aligned, Style-Dictionary-ingestible)
  *
- * Every $type in the CANONICAL tree is a standard DTCG type EXCEPT `spring` (3
- * tokens) — an intentional custom type, since DTCG has no spring type yet. That
+ * Every $type in the CANONICAL tree is a standard DTCG type EXCEPT `spring` and
+ * `linearEasing` (3 tokens each) — intentional custom types, since DTCG has no
+ * spring type yet and no type for a CSS `linear()` curve (#3510). That
  * tree is extension-based and ours, so a type of ours belongs in it. The
- * conforming projection beside it (`buildOverlaySet`) omits `spring` instead: it
+ * conforming projection beside it (`buildOverlaySet`) omits both instead: it
  * exists to make a conformance promise, and a type no consumer can resolve makes
  * the promise false while producing `[object Object]` in the same stroke (#642).
  *
@@ -25,7 +26,7 @@ import { contrast, formatRatio } from './color';
 import { Theme, brandTheme, BrandInput } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes, ModeResult } from './modes';
-import { buildOverlaySet } from './emit-dtcg-overlay';
+import { buildOverlaySet, buildCssOnly } from './emit-dtcg-overlay';
 import { buildAiMetadata } from './ai-metadata';
 import { parseDesignMd } from './design-md';
 import { buildTree, Stats } from './tree';
@@ -71,6 +72,9 @@ export const emitTheme = (theme: Theme, outDir: string, opts: { build?: string }
   for (const { mode, tree } of projected.overlays) {
     writeFileSync(fileIn(`${theme.id}.${mode}.overlay.tokens.json`), JSON.stringify(tree, null, 2) + '\n');
   }
+  // The CSS-only source (#3510): custom-typed leaves whose value is already CSS (the springs' `linear()` curves),
+  // which the conforming projection omits. Only the shippable token CSS build reads it; see `buildCssOnly`.
+  writeFileSync(resolve(outDir, `${theme.id}.css-only.json`), JSON.stringify(buildCssOnly(built.tree), null, 2) + '\n');
   return built;
 };
 
