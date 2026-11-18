@@ -123,6 +123,7 @@ export const run = async (browser: unknown, origin: string, plant: Plant = {}, o
         .filter((x) => x.host.closest('#storybook-root')).map((x) => `<${x.host.localName}>`));
       r.ok(shadows.length === 0, `${s.id}: the component attached a shadow root on ${shadows.join(', ')}; arm 1 is light DOM, and a closed root is ruled out (item 8)`);
       const snap = await snapshot(page, s);
+      r.checked.add(s.id);
       (got[`${s.component}--${s.case}`] ??= {})[s.form] = snap;
       for (const line of HAS(s.component, s.case)) {
         const present = line.startsWith('- ') ? snap.split('\n').some((l) => l.trim() === line || l.trim().startsWith(`${line}:`)) : snap.split('\n').includes(line);

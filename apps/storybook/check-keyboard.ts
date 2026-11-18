@@ -90,6 +90,7 @@ export const run = async (browser: unknown, origin: string, plant: Plant = {}, o
     for (const s of all) {
       try { await at(s); } catch (e) { r.failures.push(`${s.id}: did not settle: ${(e as Error).message.split('\n')[0]}`); continue; }
       const got = await tabStops(page);
+      r.checked.add(s.id);
       (orders[`${s.component}--${s.case}`] ??= {})[s.form] = got;
       const want = DEF_ORDER(s);
       if (KNOWN.applies(s)) {

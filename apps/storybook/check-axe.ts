@@ -59,6 +59,7 @@ export const run = async (browser: unknown, origin: string, plant: Plant = {}, o
       try { await open(page, origin, s, theme, plant); }
       catch (e) { r.failures.push(`${where}: did not settle: ${(e as Error).message.split('\n')[0]}`); continue; }
       const res = await new AxeBuilder({ page }).include('#storybook-root').withTags(TAGS).analyze();
+      r.checked.add(s.id);
       rulesRun = Math.max(rulesRun, res.passes.length + res.violations.length + res.incomplete.length);
       r.ok(res.passes.length > 0, `${where}: axe passed no rule at all, so it did not see the component`);
       let clean = true;

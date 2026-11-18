@@ -3,15 +3,18 @@
  * and `open`, which loads one story and waits until it has settled. `check-axe.ts`, `check-aria.ts` and
  * `check-keyboard.ts` import it; `check-build.ts` keeps its own copy of the server, as it did before them.
  *
- * Every check here runs AFTER `npm run -w @prism3/storybook build`, and leans on `check-build.ts` for completeness:
- * that check holds the built index to its hand-written `EXPECTED`, so the story list read from `index.json` here is
- * the checked one.
+ * Every check here runs AFTER `npm run -w @prism3/storybook build`. `check-build.ts` holds the built index to the
+ * hand-written `EXPECTED` (`expected-stories.ts`); that covers the BUILD, not what these checks ITERATE. So each check
+ * records the stories it actually checked, and `main` runs `represented` on every run: each expected story the run was
+ * meant to visit and did not is a failure by id, and a case checked in one form only is a failure by name (review of
+ * #3971; CLAUDE.md §4, a scope asserts each promised surface is represented, not a count).
  */
 import { createRequire } from 'node:module';
 import { createServer, type Server } from 'node:http';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve, dirname, extname, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { EXPECTED } from './expected-stories.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const STATIC = resolve(HERE, 'storybook-static');
@@ -127,13 +130,34 @@ export const DROPPED = (label: string) => {
   ];
 };
 
-export type Result = { failures: string[]; passed: number; notes: string[]; ok: (cond: boolean, what: string) => void };
+/** `checked`: the ids of the stories this run actually checked, read by `represented`. */
+export type Result = { failures: string[]; passed: number; notes: string[]; checked: Set<string>; ok: (cond: boolean, what: string) => void };
 export const result = (): Result => {
-  const r: Result = { failures: [], passed: 0, notes: [], ok: (cond, what) => { if (cond) r.passed++; else r.failures.push(what); } };
+  const r: Result = { failures: [], passed: 0, notes: [], checked: new Set(), ok: (cond, what) => { if (cond) r.passed++; else r.failures.push(what); } };
   return r;
 };
 
-/** Runs the real check, then each mutant, which must fail by name. Exits 1 on any miss. */
+/** Every story `EXPECTED` names, parsed as `stories()` parses the build's. */
+export const expectedStories = (): Story[] => Object.entries(EXPECTED).flatMap(([component, { forms, cases }]) =>
+  forms.flatMap((form) => cases.map((c) => ({ id: `components-${component}-${form}--${c}`, component, form: form as Story['form'], case: c }))));
+
+/**
+ * Each expected story the run was meant to visit (`only`) is in `r.checked`, or it fails by id; and a case is never
+ * checked in one form only, which would leave the form comparison skipped, or it fails by name.
+ */
+export const represented = (r: Result, label: string, only: (s: Story) => boolean): void => {
+  const want = expectedStories().filter(only);
+  for (const s of want) if (!r.checked.has(s.id)) r.failures.push(`${s.id}: not checked by ${label}`);
+  const byCase = new Map<string, Story[]>();
+  for (const s of want) byCase.set(`${s.component}--${s.case}`, [...(byCase.get(`${s.component}--${s.case}`) ?? []), s]);
+  for (const [key, ss] of byCase) {
+    const done = ss.filter((s) => r.checked.has(s.id));
+    if (ss.length > 1 && done.length === 1) r.failures.push(`${key}: only the ${done[0].form} form was checked by ${label}`);
+  }
+};
+
+/** Runs the real check, then each mutant, which must fail by name. Every run's coverage is held by `represented`.
+ *  Exits 1 on any miss. */
 export const main = async (
   label: string, summary: string,
   run: (browser: unknown, origin: string, plant?: Plant, only?: (s: Story) => boolean) => Promise<Result>,
@@ -145,6 +169,7 @@ export const main = async (
   let bad = 0;
   try {
     const real = await run(browser, origin);
+    represented(real, label, () => true);
     for (const n of real.notes) console.log(`NOTE ${label}: ${n}`);
     if (real.failures.length) {
       bad++;
@@ -153,6 +178,7 @@ export const main = async (
     } else console.log(`OK ${label}: ${real.passed} checks. ${summary}`);
     for (const m of mutants) {
       const r = await run(browser, origin, m.plant, m.only);
+      represented(r, label, m.only);
       if (r.failures.some((x) => m.mustName.test(x))) console.log(`OK self-test: mutant "${m.name}" fails by name`);
       else { bad++; console.error(`FAIL self-test: mutant "${m.name}" was not caught by name (${r.failures[0] ?? 'no failures'})`); }
     }
