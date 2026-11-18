@@ -102,11 +102,15 @@
  *   owner/…         (#3205, the owner's review of 2026-11-13) THE MEASURED RULE (`insideInstance`): Figma drops a width
  *                   written to a layer inside an instance (`resize`, `minWidth`) and keeps its sizing mode and padding,
  *                   so 4–6's FIXED + `resize` + `minWidth` froze each specimen at what it hugged. `owner/accordion`: the
- *                   example 320 wide (typed), its title on one line; `owner/badge`: every label on one line. NOT
- *                   CALIBRATED: the wrap clause (`lines`) reads the host's `runWidth` against the text's own width, which
- *                   leaves out the header's padding and chevron, so at the owner's 120px it still reads "Section title"
- *                   on one line (#3771 review). `owner/accordion` fails that state on WIDTH only, and `owner/badge`, which
- *                   rests on the wrap clause alone, is unverified against Figma until #3774 lands. `collapses`
+ *                   example 320 wide (typed); `owner/accordion wrap`: every title "Section title" on one line and no
+ *                   word broken; `owner/badge`: every label on one line. THE WRAP MODEL, CALIBRATED (#3774): the host
+ *                   lays a member out with the default brand's padding and spacing (`BRAND_PX`, the plan's `bound`
+ *                   variables) and each text at its style's size (`TYPE_PX`), a text with no resize mode auto-width as
+ *                   the executor writes it, and wraps a fixed-width text word by word, breaking a word wider than its
+ *                   line (`wrapOf`). Before it the host gave Accordion's title 92px at 120 and read one line (#3771
+ *                   review). Mutation: 4–6's FIXED + `resize` + `minWidth` sizing restored (the owner's 120px state)
+ *                   → `owner/accordion wrap` (the title on 2 lines, "components" broken) and `owner/accordion` (120).
+ *                   `owner/badge` re-read against it: each Badge label is auto-width, so one line by construction. `collapses`
  *                   adds a text broken inside its longest word, and any width written inside an instance. The
  *                   specimen FILLs its stage and the stage's padding sets its width (`fitSpecimens`). Mutations: the
  *                   FIXED + `resize` + `minWidth` sizing restored → 25 arms, among them `owner/accordion` (120 against
@@ -248,6 +252,48 @@ const TEXT_LINE = 16;
  *  plus 1. A text set to `WIDTH_AND_HEIGHT` takes this width, scaled to its font size, as Figma lays one out. */
 const INTER_14: Record<string, number> = {"0":8.83,"1":5.69,"2":8.54,"3":8.65,"4":9.04,"5":8.51,"6":8.68,"7":7.92,"8":8.66,"9":8.68," ":3.94,"!":4.03,"\"":6.52,"#":8.87,"$":8.98,"%":13.75,"&":9.02,"'":4.2,"(":5.11,")":5.11,"*":7.01,"+":9.26,",":4.03,"-":6.44,".":4.03,"/":5.04,":":4.03,";":4.22,"<":9.26,"=":9.26,">":9.26,"?":7.16,"@":13.52,"A":9.66,"B":9.16,"C":10.23,"D":10.1,"E":8.41,"F":8.27,"G":10.45,"H":10.4,"I":3.76,"J":7.99,"K":9.41,"L":7.92,"M":12.65,"N":10.55,"O":10.71,"P":8.94,"Q":10.71,"R":9.01,"S":8.98,"T":9.04,"U":10.42,"V":9.66,"W":13.79,"X":9.55,"Y":9.5,"Z":8.8,"[":5.11,"\\":5.04,"]":5.11,"^":6.6,"_":6.38,"`":4.52,"a":7.86,"b":8.57,"c":8,"d":8.57,"e":8.16,"f":5.18,"g":8.59,"h":8.28,"i":3.39,"j":3.39,"k":7.68,"l":3.39,"m":12.26,"n":8.27,"o":8.39,"p":8.57,"q":8.57,"r":5.27,"s":7.39,"t":4.58,"u":8.28,"v":7.87,"w":11.46,"x":7.64,"y":7.87,"z":7.73,"{":5.97,"|":4.66,"}":5.97,"~":9.26,"→":13.36,"·":4.03};
 const runWidth = (text: string, size = 14): number => Math.ceil(([...text].reduce((a, ch) => a + (INTER_14[ch] ?? 14), 0) + 1) * size / 14);
+/**
+ * THE WRAP MODEL, CALIBRATED (#3774). Read off the default brand's emission (`out/prism3.tokens.json`) by hand on
+ * 2026-11-17 and typed, never through the engine, so the host lays a member out at the room Figma gives it: each
+ * plan variable a member's padding or spacing names (`bound`), in px, and each text style's font size. Before this the
+ * host read neither, so Accordion's header had no padding, 4px spacing and a 14px title: at the owner's 120px it gave
+ * "Section title" 92px of room and read one line, where the template wrapped it (the #3771 review).
+ */
+const BRAND_PX: Record<string, number> = {
+  'space/0': 0, 'space/025': 2, 'space/050': 4, 'space/075': 6, 'space/100': 8, 'space/150': 12, 'space/200': 16, 'space/250': 20, 'space/300': 24,
+  'border-width/thick': 2, 'control/size/sm/inset': 3, 'control/size/md/inset': 4,
+  'control/size/sm/label-inset': 0, 'control/size/md/label-inset': 0, 'control/size/lg/label-inset': 0,
+};
+/** Each text style's font size in px, by role and size (the weight and link variants share it). */
+const TYPE_PX: Record<string, number> = {
+  'body/xs': 12, 'body/sm': 14, 'body/md': 16, 'body/lg': 18, 'caption/md': 11,
+  'label/sm': 12, 'label/md': 14, 'label/lg': 18, 'title/sm': 20, 'title/md': 24, 'title/2xl': 40,
+};
+/**
+ * HOW FIGMA WRAPS A FIXED-WIDTH TEXT (#3774): word by word, a word that does not fit going to the next line, and a word
+ * wider than the whole line broken inside it, letter by letter, as the template broke "compone / nts". Returns the
+ * line count and each word broken. Measured with `runWidth` at the text's own size.
+ */
+const wrapOf = (text: string, width: number, em = 14): { lines: number; broken: string[] } => {
+  const space = (INTER_14[' '] * em) / 14;
+  const broken: string[] = [];
+  let lines = 1, at = 0;
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    const w = runWidth(word, em);
+    if (w > width + 0.5) {
+      broken.push(word);
+      // The word starts on a line of its own and runs over as many as it needs.
+      if (at > 0) lines++;
+      let run = 0;
+      for (const ch of word) { const c = ((INTER_14[ch] ?? 14) * em) / 14; if (run + c > width + 0.5 && run > 0) { lines++; run = 0; } run += c; }
+      at = run;
+      continue;
+    }
+    if (at > 0 && at + space + w > width + 0.5) { lines++; at = 0; }
+    at += (at > 0 ? space : 0) + w;
+  }
+  return { lines, broken };
+};
 const mk = (type: string, name: string, children: N[] = [], extra: Record<string, unknown> = {}): N => {
   const data = new Map<string, string>();
   const n = {
@@ -532,10 +578,21 @@ const copyLayer = (src: Record<string, unknown>): N => {
   if (type === 'TEXT') { n._w = 48; n._h = 16; }
   // An instance holds its main's padding and spacing as numbers (#2830's redlines read them).
   const bound = (src.boundVariables ?? {}) as Record<string, { value?: unknown } | undefined>;
+  // A projection's plan names its variable (`bound`, #3774): the default brand's px, typed in `BRAND_PX`.
+  const named = (src.bound ?? {}) as Record<string, unknown>;
   for (const k of ['paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom', 'itemSpacing']) {
-    const v = typeof bound[k]?.value === 'number' ? bound[k]!.value : src[k];
+    const token = typeof named[k] === 'string' ? named[k] as string : '';
+    const v = typeof bound[k]?.value === 'number' ? bound[k]!.value : token in BRAND_PX ? BRAND_PX[token] : src[k];
     if (typeof v === 'number') n[k] = v;
   }
+  // A text at its style's size (#3774), typed in `TYPE_PX`; a style the table lacks keeps the host's 14.
+  const style = typeof src.textStyle === 'string' ? src.textStyle.split('/').slice(0, 2).join('/') : '';
+  if (type === 'TEXT' && TYPE_PX[style]) n.fontSize = TYPE_PX[style];
+  // A member's layer copied into an instance keeps the size its main took.
+  else if (type === 'TEXT' && typeof src.fontSize === 'number') n.fontSize = src.fontSize;
+  // A text the plan gives no resize mode is auto-width, one line, as the executor writes it (`write-components.ts`
+  // sets `textAutoResize` to `WIDTH_AND_HEIGHT` unless the plan says otherwise), not a fixed 48px box.
+  if (type === 'TEXT' && typeof src.textAutoResize !== 'string') n.textAutoResize = 'WIDTH_AND_HEIGHT';
   return n;
 };
 /** `sp` as an instance of `member`: its layers copied, and its booleans as the instance's properties, each showing or
@@ -1342,19 +1399,34 @@ for (const d of leads) {
     const panel = panelsOn(p)[0];
     return { panel, specs: panel ? walk(panel).filter((c) => c.name === 'specimen') : [] };
   };
-  const lines = (t: N): number => { const em = typeof t.fontSize === 'number' ? t.fontSize : 14; return t.width! + 0.5 >= runWidth(String(t.characters), em) ? 1 : 2; };
+  // THE WRAP CLAUSE, CALIBRATED (#3774): each wrapping text laid out at the room the host now gives it (the member's
+  // padding and spacing, the text at its style's size), and wrapped as Figma wraps one (`wrapOf`).
   const wrapped = (sp: N) => walk(sp).filter((c) => c.type === 'TEXT' && c.visible !== false && c.textAutoResize === 'HEIGHT');
+  const wrapIn = (t: N) => wrapOf(String(t.characters), t.width!, typeof t.fontSize === 'number' ? t.fontSize : 14);
   const a = await draw('accordion');
   const first = a.specs[0];
-  const title = first ? wrapped(first).find((t) => String(t.characters).length < 40) : undefined;
-  ok(!!first && first.absoluteBoundingBox!.width === 320 && !!title && lines(title) === 1 && collapses(a.panel).length === 0,
-    `owner/accordion: the anatomy example is ${first?.absoluteBoundingBox!.width} wide (320 wanted), its title "${title?.characters}" on ${title ? lines(title) : '?'} line (wrap model not calibrated: width carries this arm), no word broken`,
+  ok(!!first && first.absoluteBoundingBox!.width === 320 && collapses(a.panel).length === 0,
+    `owner/accordion: the anatomy example is ${first?.absoluteBoundingBox!.width} wide (320 wanted), no word broken`,
     collapses(a.panel).slice(0, 3).join('; '));
+  // Typed by hand: every Accordion example's title is "Section title", on one line at 320; its content placeholder,
+  // shown on the expanded example, wraps but breaks no word ("components" whole, as the owner's file did not keep it).
+  const aTexts = a.specs.flatMap((sp) => wrapped(sp));
+  const titles = aTexts.filter((t) => t.characters === 'Section title');
+  const content = aTexts.filter((t) => String(t.characters).includes('components'));
+  const titleLines = Math.max(0, ...titles.map((t) => wrapIn(t).lines));
+  const anatomyTitle = first ? wrapped(first).find((t) => t.characters === 'Section title') : undefined;
+  const broken = [...new Set(aTexts.flatMap((t) => wrapIn(t).broken))];
+  ok(titles.length > 0 && titleLines === 1 && content.length > 0 && !broken.length,
+    `owner/accordion wrap: the anatomy example's title "Section title" on ${anatomyTitle ? wrapIn(anatomyTitle).lines : '?'} line (at most ${titleLines} across ${titles.length} examples), ${content.length} content text holding "components", no word broken (broken: ${broken.map((w) => `"${w}"`).join(', ') || 'none'})`,
+    aTexts.map((t) => `"${String(t.characters).slice(0, 24)}" ${t.width}px ${wrapIn(t).lines} lines`).slice(0, 4).join('; '));
   const b = await draw('badge');
-  const long = b.specs.flatMap((sp) => walk(sp).filter((c) => c.type === 'TEXT' && c.visible !== false && (c.textAutoResize === 'HEIGHT') && lines(c) > 1));
-  ok(b.specs.length > 0 && !long.length && collapses(b.panel).length === 0,
-    `owner/badge: ${b.specs.length} examples, every label on one line (wrap model not calibrated against Figma: Badge unverified), no width written inside an instance`,
-    [...long.map((t) => `"${t.characters}" at ${t.width}px`), ...collapses(b.panel)].slice(0, 3).join('; '));
+  // Re-read against the calibrated host (#3774): every text on every Badge example a short label on one line.
+  // A label is on one line when it is auto-width (Figma never wraps one) or, wrapping, holds one line at its width.
+  const bTexts = b.specs.flatMap((sp) => walk(sp).filter((c) => c.type === 'TEXT' && c.visible !== false));
+  const long = bTexts.filter((c) => c.textAutoResize !== 'WIDTH_AND_HEIGHT' && wrapIn(c).lines > 1);
+  ok(b.specs.length > 0 && bTexts.length > 0 && !long.length && collapses(b.panel).length === 0,
+    `owner/badge: ${b.specs.length} examples, ${bTexts.length} labels (${bTexts.filter((c) => c.textAutoResize === 'WIDTH_AND_HEIGHT').length} auto-width), every one on one line, no width written inside an instance`,
+    [...long.map((t) => `"${t.characters}" at ${t.width}px, ${wrapIn(t).lines} lines`), ...collapses(b.panel)].slice(0, 3).join('; '));
 }
 
 /* ── family: one panel per page, the members' earlier panels replaced ──────────────────────────────────── */
