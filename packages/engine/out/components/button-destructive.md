@@ -13,7 +13,7 @@ In-flow trigger for a destructive action — delete, remove, discard, disconnect
 
 - **Purpose:** Trigger an action in place that deletes or removes something.
 - **Use when:** The user needs to act on this surface — submit, confirm, open, apply, or start async work.
-- **Avoid when:** The target is a different location/URL → use Link (or give the button an href, which renders an \<a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton.Destructive (the accessible name is required there at the type level). The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.
+- **Avoid when:** The target is a different location/URL → use Link (or give the button an `href`, which renders an `<a>`, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton.Destructive (the accessible name is required there at the type level). The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.
 
 ## Anatomy
 
@@ -47,7 +47,7 @@ Use for an immediate action in the current context — submit/save/reset a form,
 
 - Lead with a verb, name the object ("Publish post", not "Submit")
 - Keep exactly one filled button per view; demote the rest to outline / text, so a view of three actions is three buttons at three appearances rather than three fills competing
-- Set surface=inverse for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground
+- Set `surface=inverse` for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground
 - Place the icons the way the brand's `buttonIcons` setting says; `attached` (Attached to label, the default) keeps them beside the label with the group centered
 - Under `buttonIcons: edges` (Locked to edges), position each icon absolutely at the visual padding from its edge, pad that side by the padding + the icon + the gap, and center the label in the space left — a button with only a trailing icon has its label slightly left of center, and a long label still widens the button
 - Give every size a minimum width of its height × the brand's `buttonMinWidthMultiplier` (2.25 by default), rounded up to a multiple of 8px — 88, 104 and 128px at heights of 36, 44 and 56px — in both icon placements, so a short label never makes a stubby button
@@ -63,17 +63,17 @@ Use for an immediate action in the current context — submit/save/reset a form,
 
 ### Don't
 
-- Set inset=flush on a filled or outline button — their visible edge needs its padding; flush is for appearance=text
-- Use a button with no href for navigation to a URL — use Link, or give the button an href so it renders an \<a>
+- Set `inset=flush` on a filled or outline button — their visible edge needs its padding; flush is for `appearance=text`
+- Use a button with no `href` for navigation to a URL — use Link, or give the button an `href` so it renders an `<a>`
 - Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills
 - Use native disabled on a relevant-but-blocked control (a dead end for keyboard and screen reader users)
 - Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual's place, or overlays a label held at zero opacity
 
 ## Accessibility
 
-- **Keyboard:** Native \<button>: Enter activates on keydown, Space on keyup. (This asymmetry vs a link — which activates on Enter only, Space scrolls — is exactly why a navigating "button" must be a real link.)
-- **Focus:** A :focus-visible ring (color.border.focus) with an outline-offset so a sliver of background separates ring from border — it does not blend into the button's own fill (WCAG 1.4.11, target 3:1). Never suppressed. Focus is retained through pending and inactive (aria-disabled, not native disabled).
-- **Screen readers:** button (native \<button>; never div[role=button] — it inherits Space/Enter activation, focus, and high-contrast affordances for free)
+- **Keyboard:** Native `<button>`: Enter activates on keydown, Space on keyup. (This asymmetry vs a link — which activates on Enter only, Space scrolls — is exactly why a navigating "button" must be a real link.)
+- **Focus:** A `:focus-visible` ring (`color.border.focus`) with an `outline-offset` so a sliver of background separates ring from border — it does not blend into the button's own fill (WCAG 1.4.11, target 3:1). Never suppressed. Focus is retained through pending and inactive (`aria-disabled`, not native disabled).
+- **Screen readers:** button (native `<button>`; never `div[role=button]` — it inherits Space/Enter activation, focus, and high-contrast affordances for free)
 
   State attributes are distinct, not interchangeable: aria-pressed only for a toggle-button; aria-expanded (+ aria-haspopup) for a menu/disclosure trigger; aria-checked only for the switch role. Do not conflate them. Busy: while isPending, set aria-busy and announce via a polite live region ("Saving…"), and set aria-hidden="true" on the embedded spinner, which otherwise announces its own "Loading" status (a double announcement); keep the control focusable so the busy state is discoverable. isInactive/isPending use aria-disabled (not native disabled) so focus and the explanatory name/description stay reachable. Localization: the label wraps rather than truncating and has no fixed English width, the row mirrors under RTL through logical properties, and only directional glyphs flip.
 
@@ -108,7 +108,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 - **Often used with:** `icon`, `button-group`
 - **Replaces:**
   - input[type=button\|submit]
-  - div[role=button]
+  - `div[role=button]`
 
 ## Building it in code
 

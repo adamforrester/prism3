@@ -56,12 +56,12 @@ Use for a small whole-number quantity that usually changes by one, such as the i
 - Use it for a large or precise number, such as a price or a measurement; use a number input
 - Use it for a count shown on another element, such as unread messages; use Badge
 - Put the minus and plus buttons in the Tab order; the arrow keys already step the value
-- Hide the minus and plus buttons with aria-hidden; they stay in the accessibility tree for pointer and touch users of assistive technology
+- Hide the minus and plus buttons with `aria-hidden`; they stay in the accessibility tree for pointer and touch users of assistive technology
 - Change the value on a mouse wheel or scroll
 
 ## Accessibility
 
-- **Keyboard:** The counter is one Tab stop: focus lands on the value. Up and Down Arrow change it by one step, Page Up and Page Down by ten steps, Home and End go to min and max. The minus and plus buttons are for pointer and touch and are outside the Tab order (tabindex="-1").
+- **Keyboard:** The counter is one Tab stop: focus lands on the value. Up and Down Arrow change it by one step, Page Up and Page Down by ten steps, Home and End go to min and max. The minus and plus buttons are for pointer and touch and are outside the Tab order (`tabindex="-1"`).
 - **Focus:** While the value has keyboard focus, outline draws the 2px focus edge in place of its edge, in the focus color, from the outer edge at the row's radius, with no ring and no gap, and the row keeps its size; ghost draws the shared focus ring 2px outside the buttons. The buttons never take focus from the keyboard, so they draw no ring of their own.
 - **Screen readers:** spinbutton (the value), with two buttons outside the Tab order
 
@@ -95,9 +95,9 @@ The label is a noun ("Quantity"). Button names are a verb with the object. A lim
 - **Instead, consider:** `select`, `segmented-control`, `text-field`
 - **Often used with:** `button`
 - **Replaces:**
-  - an \<input type="number"> for an item count
+  - an `<input type="number">` for an item count
   - a select of 1 to 10 for a bag quantity
-  - two IconButtons around a \<span> with no spinbutton semantics
+  - two IconButtons around a `<span>` with no spinbutton semantics
 
 ## Building it in code
 

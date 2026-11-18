@@ -345,6 +345,15 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
       continue;
     }
     if (rootReplaced.has(s.member)) { skipped.push({ member: s.member, reason: 'the member itself would need replacing' }); continue; }
+    // AN EDIT THE UPDATE WOULD LOSE (#2673): its layer is removed or replaced, so keeping it by path keeps nothing. Under
+    // Keep and Accept the member is skipped whole, as a layer added by hand is, and named. Overwrite writes the plan, so
+    // it rebuilds the layer as asked. DRAFT wording for the owner.
+    const lost = choice === 'overwrite' ? [] : edits.filter((e) => e.lost).map((e) => e.path.replace(/#\d+$/, ''));
+    if (lost.length) { skipped.push({ member: s.member, reason: `the update rebuilds ${lost.length === 1 ? 'a layer' : 'layers'} edited by hand (${lost.slice(0, 3).join(', ')}${lost.length > 3 ? ', …' : ''})` }); continue; }
+    // A STRUCTURAL UPDATE ON A MEMBER EDITED BY HAND (#2956 point 2, owner decision 2026-10-23): skipped whole and
+    // named, wherever on the member the edits are. Overwrite writes the plan. DRAFT wording for the owner, after the
+    // #2956 wireframe's "hand-edited, and the update changes their structure".
+    if (s.restructured && choice !== 'overwrite') { skipped.push({ member: s.member, reason: 'hand-edited, and the update changes its structure' }); continue; }
     // `overwrite` writes over every edited node; `keep` and `accept` leave them, and differ only in the record.
     const edited = new Set(edits.map((e) => e.path.replace(/#\d+$/, '')));
     const keep = choice === 'overwrite' ? new Set<string>() : edited;

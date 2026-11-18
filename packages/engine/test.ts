@@ -16818,7 +16818,9 @@ arm: {
 
   // COMPONENT REGISTER (#2714, #1717). The build-component skill's "What ships" rules, which were held by hand
   // until here: in the fields a reader acts on, no code spans, no all-caps emphasis, no "brief §N" or "§N",
-  // no "def" as a reader-facing word, no issue numbers. The older defs broke all five and the newer ones none,
+  // no "def" as a reader-facing word, no issue numbers. Since Q-UG2b A (#3552) a span is allowed where a usage
+  // panel draws it as code (accessibility, content, docs, ai's three), and only when it holds code, by the shapes
+  // `isCode` types below. The older defs broke all five and the newer ones none,
   // so a reader moving between pages met two registers. Scope is the seven consumer fields the audit counted
   // (summary, description, prop descriptions, accessibility, content, docs, and ai's three decision fields).
   // Motion and part notes ship too and are not in scope yet (#2773).
@@ -16847,17 +16849,35 @@ arm: {
     // have on main, code spans and all, until the owner decides where those lines belong. A hand-written
     // exemption keyed by def and path, not a loosened pattern: every other string in these three defs is still
     // scanned. It is live: each exempt path must still carry a hit, so the exemption cannot outlive the hold.
+    // Items 5, 8 and 12 left the list with Q-UG2b A (#3552): every span they carry is code, so they pass unexempted.
     const HELD_Q362: Record<string, number[]> = Object.fromEntries(
-      ['button', 'button-destructive', 'button-neutral'].map((id) => [id, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]]));
+      ['button', 'button-destructive', 'button-neutral'].map((id) => [id, [3, 4, 6, 7, 9, 10, 11]]));
     const heldHits = new Set<string>(); const heldKeys: string[] = [];
     for (const [id, idx] of Object.entries(HELD_Q362)) for (const i of idx) heldKeys.push(`${id} docs.do[${i}]`);
+    const CODE_FIELD = /^(?:accessibility|content|docs|ai)\./;
+    const CODE_WORDS = new Set(['href', 'alt', 'tabindex', 'autocomplete', 'true', 'false', 'mixed']);
+    const isCode = (c: string): boolean =>
+      /^<\/?[a-z][A-Za-z0-9]*(?:\s[^<>]*)?>$/.test(c)      // an element: <button>, <hN>, <input type="radio">
+      || /^[a-z][\w-]*=\S/.test(c)                         // an attribute or prop with its value: type="number", surface=inverse
+      || /^[a-z]+\[[^\]]+\]$/.test(c)                       // a selector: div[role=button]
+      || /^::?[a-z][a-z-]*$/.test(c)                        // a pseudo-class or -element: :focus-visible, ::before
+      || /^[a-z]+[A-Z][A-Za-z0-9]*$/.test(c)                // a prop: htmlFor, onChangeEnd
+      || /^[a-z]+(?:\.[a-z][\w-]*){2,}$/.test(c)            // a token path: color.border.focus
+      || /^[.\w:]+\(\d*\)$/.test(c)                         // a call: alert(), .focus(), javascript:void(0)
+      || /^[a-z]+(?:-[a-z]+)+(?::\s?[a-z]+)?$/.test(c)      // a hyphenated name or declaration: aria-hidden, cc-exp, list-style: none
+      || /^-?\d+$/.test(c) || CODE_WORDS.has(c);            // a number, an attribute name or an ARIA value
     const bad: string[] = []; const used = new Set<string>(); let read = 0;
     for (const d of componentDefs) {
       const strs = consumerStrings(d);
       for (const [path, text] of strs) {
         read++;
         const hits: string[] = [];
-        if (/`/.test(text)) hits.push(`${d.id} ${path}: a code span`);
+        // CODE AS CODE (#3552, owner Q-UG2b A): the fields a usage panel draws mark their code in backticks, and the
+        // panel draws each span in the brand's code style. There a span must hold code, by the shapes typed here; a
+        // span holding an English word is still a hit. `summary` (the Figma description), `description` and the prop
+        // descriptions carry no span at all.
+        for (const m of text.matchAll(/`([^`]*)`/g)) if (!CODE_FIELD.test(path) || !isCode(m[1])) hits.push(`${d.id} ${path}: a code span${CODE_FIELD.test(path) ? ` holding "${m[1]}", which is not code` : ''}`);
+        if ((text.match(/`/g) ?? []).length % 2) hits.push(`${d.id} ${path}: an unpaired backtick`);
         for (const w of text.match(/\b[A-Z][A-Z0-9]*[A-Z]s?\b/g) ?? []) { if (ACRONYMS.has(w)) used.add(w); else hits.push(`${d.id} ${path}: all-caps "${w}"`); }
         if (/brief §|§\s?\d/.test(text)) hits.push(`${d.id} ${path}: a brief section reference`);
         if (/\bdefs?\b/i.test(text)) hits.push(`${d.id} ${path}: "def" as a reader-facing word`);
@@ -16876,7 +16896,7 @@ arm: {
     }
     const heldDead = heldKeys.filter((k) => !heldHits.has(k));
     ok(heldDead.length === 0, `#2714 component register: every held Button do item (owner Q362) still carries a hit, so the exemption has not outlived the hold${heldDead.length ? ` — dead: ${heldDead.join(', ')}` : ''}`);
-    ok(bad.length === 0, `#2714 component register: no code spans, all-caps emphasis, brief references, "def" or issue numbers in a component's consumer fields${bad.length ? ` — ${bad.length}: ${bad.slice(0, 12).join(' | ')}` : ''}`);
+    ok(bad.length === 0, `#2714 component register: no code span around anything but code, all-caps emphasis, brief references, "def" or issue numbers in a component's consumer fields${bad.length ? ` — ${bad.length}: ${bad.slice(0, 12).join(' | ')}` : ''}`);
     const stale = [...ACRONYMS].filter((a) => !used.has(a));
     ok(stale.length === 0, `#2714 component register: every allowed acronym is still used by a shipped field (stale: ${stale.join(', ') || 'none'})`);
     ok(read > 1000, `#2714 component register: the scan is live (${read} consumer strings)`);
@@ -39166,7 +39186,7 @@ arm: {
     attr('inputmode') === 'numeric' && propDefault('inputMode') === 'numeric' ? null : `inputmode="${attr('inputmode')}" vs the inputMode prop's default ${String(propDefault('inputMode'))}`,
     propDefault('autoComplete') === 'one-time-code' ? null : `the autoComplete prop defaults to ${String(propDefault('autoComplete'))}`,
     /Never one input per cell/.test(fieldCode) && /one textbox with one name and one value/.test(fieldCode) ? null : 'the contract no longer says one textbox, one value, never one input per cell',
-    /^textbox \(one native <input>\); the cells are aria-hidden$/.test(fieldA11y?.role ?? '') ? null : `field role '${fieldA11y?.role}'`,
+    /^textbox \(one native `<input>`\); the cells are `aria-hidden`$/.test(fieldA11y?.role ?? '') ? null : `field role '${fieldA11y?.role}'`,
     /No aria-label on the input/.test(fieldA11y?.aria ?? '') ? null : 'the field allows an aria-label over the real value',
     /^One Tab stop\./.test(fieldA11y?.keyboard ?? '') && /^Focus stays on the one input\./.test(fieldA11y?.focus ?? '') ? null : 'the field has more than one Tab stop or moves focus',
     /^none: an aria-hidden drawing/.test(cellA11y?.role ?? '') ? null : `cell role '${cellA11y?.role}'`,
@@ -39461,7 +39481,7 @@ arm: {
     `#2455 divider decorative: a boolean code prop, default true — decorative by default, after the brief (got type ${decorative?.type}, default ${JSON.stringify(decorative?.default)})`);
   ok(!('decorative' in (divider.figmaProperties?.booleans ?? {})) && (codeOnlyText(divider.anatomy?.codeOnly) ?? []).some((c) => c.startsWith('decorative — ')),
     '#2455 divider decorative: no Figma property (it changes no pixel), and the codeOnly list says so in an entry that leads with it');
-  ok(/^none with aria-hidden="true" by default\b/.test(divider.accessibility.role) && /decorative=false, separator\b/.test(divider.accessibility.role),
+  ok(/^none with `aria-hidden="true"` by default\b/.test(divider.accessibility.role) && /`decorative=false`, separator\b/.test(divider.accessibility.role),
     `#2455 divider decorative: the code role is none with aria-hidden by default, and separator with decorative=false (got '${divider.accessibility.role}')`);
 }
 
@@ -40882,7 +40902,7 @@ arm: {
     ['role line', line('role'), 'role — `role="dialog"` with `aria-modal="true"` at every placement, an end panel included; the native `<dialog>` opened with `showModal()` provides both. `role: "alertdialog"` is a code prop with no Figma property: set it for a confirmation that interrupts and needs an answer. An alertdialog hides the close button (the Figma `close` toggle shows the result), keeps a backdrop click from closing it, and must hold at least one focusable control.'],
     ['focus held line', line('focus held'), 'focus held — Tab and Shift+Tab cycle inside the dialog at every placement, and the page behind is inert. A modal `<dialog>` makes the page inert natively.'],
     ['backdrop line', line('the backdrop'), 'the backdrop — `color.scrim.default` on `::backdrop`, at every placement but full, an end panel included. It is not part of the component: the Figma page draws it behind each example as canvas furniture.'],
-    ['accessibility.role', dg.accessibility.role, 'role="dialog" with aria-modal="true", or role="alertdialog" for a confirmation that needs an answer. A native <dialog> opened with showModal() provides the dialog role, the modal state, the top layer and an inert page.'],
+    ['accessibility.role', dg.accessibility.role, '`role="dialog"` with `aria-modal="true"`, or `role="alertdialog"` for a confirmation that needs an answer. A native `<dialog>` opened with `showModal()` provides the dialog role, the modal state, the top layer and an inert page.'],
     ['accessibility.aria', dg.accessibility.aria, 'aria-modal="true"; aria-labelledby pointing at the title; aria-describedby pointing at the description when there is one. The close button\'s accessible name is "Close". Hide the dividers from assistive technology.'],
   ];
   const moved = pinned.filter(([, actual, expected]) => actual !== expected).map(([name]) => name);
