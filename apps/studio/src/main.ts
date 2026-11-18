@@ -84,9 +84,10 @@ import {
 import {
   BRANDS, brandState, provenance, bootProvenance, theme, lastGoodInput, rp, currentMode, lastError, page,
   firstRun, ensureThemeFresh, loadInput, clearOrigin, setPage,
-  subscribe, invalidate,
+  subscribe, invalidate, postedInput, sessionBrandWords,
   type Mode,
 } from './state/store';
+import { brandWords, mergeWords } from './state/report';
 
 // The session starts in `entry.ts` (#896): it reads the web's persisted brand, picks the origin, and
 // hands both to the store's `initSession` before anything renders. `firstRun`, the start screen's
@@ -1334,6 +1335,9 @@ const download = (filename: string, text: string, mime: string): void => {
 
 // L-11: a design.md pasted with a bare numeric `id:` (e.g. `id: 2026`) parses `id` as a
 // number; `.trim()` on a number throws and crashes BOTH exports. Coerce to string first.
+/** The brand a post to the host carries: `lastGoodInput`, its words added to the session's first (#3883). A rename
+ *  skips `rebuild()` (`syncIdentity`), so a post is the one moment the brand an Activity line will name is known. */
+const posted = postedInput;   // the note is the store's (`postedInput`), where `test-report.ts` runs it
 const slug = (): string => String(lastGoodInput.id || 'brand').trim().replace(/\s+/g, '-') || 'brand';
 
 // Both exports run off the LAST-GOOD state, never the live one (M-15). Previously tokens.json
@@ -1596,7 +1600,7 @@ const deletePrune = (): void => {
   if (restoreFailure) return;
   // #3697 R6: the Delete echoes its preview's hash, so the host removes exactly the list the designer read.
   const previewHash = host.prunePreview?.previewHash ?? '';
-  setHost({ pruneBusy: 'delete', prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, true, previewHash);
+  setHost({ pruneBusy: 'delete', prunePreview: null }); hostChanged(); commit.postPrune(posted(), true, previewHash);
 };
 
 
@@ -1891,7 +1895,7 @@ const RESTORE_OFF_HINT = "Off until a brand loads. This file's saved brand didn'
  *  the state. */
 const runApply = (): void => {
   if (applyBusy()) return;
-  setHost({ applyState: 'pending', openDetail: null, collisions: null, collisionsChosen: null }); hostChanged(); commit.postTheme(lastGoodInput);
+  setHost({ applyState: 'pending', openDetail: null, collisions: null, collisionsChosen: null }); hostChanged(); commit.postTheme(posted());
 };
 /** #1909 (Q112 A): the collision choice. Apply runs Apply Theme again with a choice for every collision the refusal
  *  named; Cancel closes the list and the refusal stands. Nothing is kept: the choices ride this one post. */
@@ -1901,7 +1905,7 @@ const collisionsLend: CollisionsLend = {
     if (applyBusy()) return;
     // The review of #3518: with the choices this attempt already used, so a renamed name someone else holds asks only once.
     const all = withEarlier(host.collisionsChosen, choices);
-    setHost({ applyState: 'pending', openDetail: null, collisions: null, collisionsChosen: null }); hostChanged(); commit.postTheme(lastGoodInput, all);
+    setHost({ applyState: 'pending', openDetail: null, collisions: null, collisionsChosen: null }); hostChanged(); commit.postTheme(posted(), all);
   },
   cancel: () => { setHost({ collisions: null, collisionsChosen: null }); hostChanged(); },
 };
@@ -1910,7 +1914,7 @@ const runPrune = (): void => {
   // #2909: never after a failed restore either, when the brand on screen is the demo's, not the file's (#1989).
   if (pruneBlocked() || restoreFailure) return;
   clearStripLine();
-  setHost({ pruneBusy: 'preview', pruneVerdict: null, prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, false);
+  setHost({ pruneBusy: 'preview', pruneVerdict: null, prunePreview: null }); hostChanged(); commit.postPrune(posted(), false);
 };
 /** Set up file (#1558). `openDetail` is cleared for the reason the build clears it: the previous run's
  *  detail is stale the instant a new one starts. */
@@ -2093,7 +2097,7 @@ const inPlaceOf = (step: StepKey | null): NonNullable<UpdateRun['update']> | nul
 /** The brand Update file measures against (Q699 A, #3023 Q701 B): the one the panel holds (Apply's own
  *  `lastGoodInput`) when Theme is ticked, as the run's Theme step applies it; with Theme unticked, none, so the host
  *  measures against the brand the file keeps (`brandFor`). The due read, the check and the update agree either way. */
-const panelBrand = (theme: boolean): BrandInput | undefined => brandFor(theme, lastGoodInput);
+const panelBrand = (theme: boolean): BrandInput | undefined => brandFor(theme, posted());
 /** Whether the run out (or the one that just ended, `steps`) writes the theme. */
 const runTheme = (steps: readonly StepKey[] | undefined): boolean => !!steps?.includes('theme');
 const postUpdate = (u: NonNullable<UpdateRun['update']>, previewHash: string): void => {
@@ -2223,7 +2227,7 @@ const recountDue = (): void => {
   dueTimer = setTimeout(() => {
     dueTimer = null;
     if (!liveShown()) return;
-    commit.requestDue(lastGoodInput, ++dueSeq);
+    commit.requestDue(posted(), ++dueSeq);
   }, DUE_DEBOUNCE_MS);
 };
 subscribe('brand', recountDue);
@@ -2282,7 +2286,10 @@ const reportLend: ReportLend = {
     return {
       stamp: PRISM3_BUILD, engine: ENGINE_VERSION, host: commit.isFigma ? 'figma' : 'web',
       activity: (Object.keys(r.ops) as (keyof typeof r.ops)[]).map((k) => ({ title: OP_TITLE[k], verdict: r.ops[k].verdict, lines: r.ops[k].lines ?? (r.ops[k].summary ? [r.ops[k].summary!] : []), agent: r.ops[k].agent })),
-      brand: lastGoodInput as unknown as Record<string, unknown>,
+      // #3883: after a failed restore the brand to include is the file's (`briefInput`, as Export design.md reads it), not
+      // the boot demo's. The scrub list is every brand the session held, plus the live one, the failed restore's and a held one.
+      brand: briefInput() as unknown as Record<string, unknown> | null,
+      seen: mergeWords(sessionBrandWords(), ...[brandState, restoreFailure?.brand, heldRestore].map((b) => brandWords(b as unknown as Record<string, unknown> | null))),
     };
   },
   openUrl: (url) => commit.openIssue(url),
