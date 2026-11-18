@@ -14813,11 +14813,13 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 // today, not to assert that they must.
 // Both hosts, both chrome themes, at two widths:
 //   · 1280, the #3115 shape: the row held at its `max-content` width, read once with no word pressed (prism3 opens with
-//     none), then each word pressed in turn, every pressed word kept pressed;
+//     none), then each word pressed in turn, every pressed word kept pressed but the one its press's opposite turns off
+//     (#3976: soft/sharp, dense/generous, calm/energetic, bold/restrained);
 //   · 380, the row at its real narrow width, wrapped over several rows, pressed the same way.
 // After each press the chips' rows (distinct tops) and each chip's own width are read. EXPECTED (literal rules, typed
 // here): every chip as wide as it was with no word pressed, whatever is pressed; one row count for every press (one row
-// at 1280); no chip draws a glyph. Then the state cue, as rendered, read with every word pressed but the last:
+// at 1280); no chip draws a glyph. Then the state cue, as rendered, read after every press but the last (so both states
+// are drawn: at most one word of each pair is on):
 //   · the pressed chip's edge against an unpressed chip's edge, at least 3:1 (WCAG 1.4.11), and the label ink the same
 //     on both, so the edge is the cue;
 //   · under forced colors (CDP `forced-colors: active`), the pressed chip filled `Highlight` and its neighbor not.
@@ -14836,6 +14838,8 @@ if (runs('3263')) {
 console.log(`\nA pressed Personality chip keeps its width (#3263)\n${'='.repeat(78)}`);
 const ROW_3263 = '[data-p3="levers-pane"] [data-p3="lever-personality"] [data-p3="personality-words"]';
 const CHIP_3263 = '[data-p3="personality-word"]';
+/** The owner's four opposite pairs (#3976, Q-PW1 A), typed here and never read from the engine. */
+const OPPOSITES_3263 = [['soft', 'sharp'], ['dense', 'generous'], ['calm', 'energetic'], ['bold', 'restrained']];
 const lum3263 = (hx) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; const n = (i) => parseInt(hx.slice(i, i + 2), 16); return 0.2126 * f(n(1)) + 0.7152 * f(n(3)) + 0.0722 * f(n(5)); };
 const ratio3263 = (a, b) => { if (!a || !b) return NaN; const [x, y] = [lum3263(a), lum3263(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
 for (const { w, h, hold } of [{ w: 1280, h: 900, hold: true }, { w: 380, h: 420, hold: false }]) for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
@@ -14877,8 +14881,17 @@ for (const { w, h, hold } of [{ w: 1280, h: 900, hold: true }, { w: 380, h: 420,
       await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
       reads.push({ word, r: await read(hold ? base.px : null) });
     }
-    const pressedAll = reads.every(({ word, r }, i) => r?.pressed?.includes(word) && r.pressed.length === i + 1);
-    ok(pressedAll, `${where}: each press adds its word and keeps the earlier ones — ${reads.map(({ word, r }) => `${word}: ${JSON.stringify(r?.pressed)}`).join('; ')}`);
+    // #3976: a press turns its word's direct opposite off, so the expected set is built press by press: drop the word's
+    // opposite (the owner's four pairs, typed here), then add the word. Compared as sets, since `pressed` reads in chip order.
+    const expected = [];
+    let held = [];
+    for (const { word } of reads) {
+      const opposite = OPPOSITES_3263.find((p) => p.includes(word))?.find((x) => x !== word);
+      held = [...held.filter((x) => x !== opposite), word];
+      expected.push([...held].sort());
+    }
+    const pressedAsExpected = reads.every(({ r }, i) => JSON.stringify([...(r?.pressed ?? [])].sort()) === JSON.stringify(expected[i]));
+    ok(pressedAsExpected, `${where}: each press adds its word, keeps the earlier ones and turns its opposite off — ${reads.map(({ word, r }, i) => `${word}: ${JSON.stringify(r?.pressed)}${JSON.stringify([...(r?.pressed ?? [])].sort()) === JSON.stringify(expected[i]) ? '' : ` (expected ${JSON.stringify(expected[i])})`}`).join('; ')}`);
     const counts = reads.map(({ r }) => r?.rows);
     ok(counts.every((n) => n === base?.rows) && (!hold || base?.rows === 1),
       `${where}: the Personality row keeps ${hold ? `one row at its max-content width (${base?.px}px)` : `its ${base?.rows} rows`} whatever is pressed — none pressed ${base?.rows}, then ${counts.join(', ')}`);
@@ -14887,8 +14900,10 @@ for (const { w, h, hold } of [{ w: 1280, h: 900, hold: true }, { w: 380, h: 420,
       `${where}: each Personality chip keeps its unpressed width whatever is pressed — ${words.map((c) => `${c} ${widthsOf(c).join('/')}`).join(', ')}`);
     ok(base?.glyphs?.length === 0 && reads.every(({ r }) => r?.glyphs?.length === 0),
       `${where}: no Personality chip draws a check, pressed or not — none pressed ${JSON.stringify(base?.glyphs)}, then ${reads.map(({ word, r }) => `${word}: ${JSON.stringify(r?.glyphs)}`).join(', ')}`);
-    // The cue, read with every word pressed but the last, so both states are drawn side by side.
+    // The cue, read after every press but the last, so both states are drawn side by side.
     const cue = reads[reads.length - 2]?.r ?? {};
+    ok(cue.pressed?.length > 0 && cue.pressed.length < words.length,
+      `${where}: premise, the cue read draws both states, a pressed and an unpressed Personality chip — ${cue.pressed?.length} of ${words.length} pressed`);
     const [eOn, eOff, iOn, iOff] = [cue.edgeOn, cue.edgeOff, cue.inkOn, cue.inkOff].map(hexOfRgb);
     const edgeRatio = ratio3263(eOn, eOff);
     ok(edgeRatio >= 3, `${where}: a pressed Personality chip's edge reads at least 3:1 against an unpressed chip's — ${eOn} against ${eOff}, ${Number.isFinite(edgeRatio) ? `${(Math.floor(edgeRatio * 100) / 100).toFixed(2)}:1` : 'unreadable'}`);
