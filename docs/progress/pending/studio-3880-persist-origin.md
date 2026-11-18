@@ -16,6 +16,7 @@ Owner decision A (2026-11-18): persist the origin and baseline beside the brand 
   - the next load is guarded (`needsOverwriteConfirm`);
   - the baseline is the example as shipped;
   - each fallback restores as before.
+  - a slider drag, stored once on release (`holdPersist` … `releasePersist`), still counts after the reload (review follow-up).
 - `test-smoke.mjs` §C commits the issue's own reproduction against the built studio: edit, reload, pick another example. The confirm shows and names the example at risk, and the stored brand is still the edited one.
 - On main's source, the state test fails: there is no origin entry to read.
 - Mutations, each failing by name:
@@ -23,5 +24,6 @@ Owner decision A (2026-11-18): persist the origin and baseline beside the brand 
   - `persistInput` not writing the origin entry: `#3880 reload: the edit still counts`, and the guard and baseline arms.
   - `initSession` ignoring the restored baseline: the same three arms.
   - `restoreSession` skipping the fingerprint: `#3880 reload: an origin entry written beside another brand is not read`.
+  - `releasePersist` pairing the brand with `bootProvenance`: `#3880 reload: a dragged edit still counts`.
 
 **Guide.** "Theme a brand" says a reload keeps what the brand started from, so choosing another brand still asks first. The two `persist-local.ts` citations were re-read and re-stamped.
