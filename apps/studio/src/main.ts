@@ -24,6 +24,7 @@ import { componentSpecsExporter } from './state/component-specs-export';
 import { hostCommit, type CheckedSetView, type HostCommit } from './write-adapter';
 import { AGENT_OP, initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type OpKey } from './state/host-session';
 import type { HostFonts } from './ui/fonts';
+import { choice } from './ui/lever-kit';
 import { emToPercentLabel } from './em-percent';
 import { mountFrame, type Frame } from './shell/frame';
 import { isNewPage, pageOfTab } from './shell/pages';
@@ -829,13 +830,12 @@ const renderPreviewTokens = (host: HTMLElement, repaint: () => void): void => {
     showSel.onchange = () => { tokShow = showSel.value as typeof tokShow; repaint(); };
     bar.append(pfield('Show', showSel));
 
-    const pseg = el('div', 'seg');
-    for (const [k, label] of [['full', 'Full'], ['short', 'Short']] as Array<['full' | 'short', string]>) {
-      const b = hook(el('button', 'seg-b' + (tokPath === k ? ' on' : ''), label), `token-path-${k}`) as HTMLButtonElement;
-      b.onclick = () => { if (tokPath !== k) { tokPath = k; repaint(); } };
-      pseg.append(b);
-    }
-    bar.append(pfield('Alias path', pseg));
+    // #3911: the shared segmented control (lever-kit `choice`), not the legacy `.seg`, whose selected segment drew an underline.
+    const pseg = choice('Alias path', 'token-path', [{ v: 'full', l: 'Full' }, { v: 'short', l: 'Short' }] as const, (v) => {
+      if (tokPath !== v) { tokPath = v; repaint(); }
+    });
+    pseg.set(tokPath);
+    bar.append(pfield('Alias path', pseg.el));
   }
   const catSel = selectEl();
   catSel.append(new Option('All categories', ''));
