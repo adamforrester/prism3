@@ -39,11 +39,21 @@
   };
 
   const inputOf = (button) => document.getElementById(button.getAttribute('aria-controls') || '');
+  // Chromium resets the caret of an input that has had focus one task after its type changes while it is blurred (a
+  // click on the button blurs it), overwriting a restore made in the same task. So the caret is put back now, and
+  // again after that task (#3921; `<p3-password-field>` does the same). The second restore only undoes that reset, which
+  // leaves the caret at 0,0: a caret anywhere else was set since and is left alone, because a busy page can run the
+  // restore late, after a later edit (#3945).
   const set = (button, input, shown) => {
     const start = input.selectionStart;
     const end = input.selectionEnd;
     input.type = shown ? 'text' : 'password';
-    if (start !== null && end !== null) input.setSelectionRange(start, end);
+    if (start !== null && end !== null) {
+      input.setSelectionRange(start, end);
+      setTimeout(() => {
+        if (input.selectionStart === 0 && input.selectionEnd === 0) input.setSelectionRange(start, end);
+      }, 0);
+    }
     const text = button.querySelector('.p3-password-field__toggle-text');
     if (text) text.textContent = say(button, shown ? 'hide' : 'show');
   };
