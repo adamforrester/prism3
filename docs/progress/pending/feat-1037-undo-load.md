@@ -30,3 +30,6 @@ built web bundle (7 assertions): offered after Replace brand, the edit back on U
 asks, and an edit ends a new offer. On `main`'s build the smoke arm fails `Undo load is offered after Replace brand`
 by name. Five `wip:` mutations each fail by name: a fresh provenance on restore (store and smoke), a stash kept over an
 untouched brand, an offer that survives edits, and the edit subscription dropped.
+`apps/plugin/test-start-screen.mjs` holds the scope's exclusion: right after `#3697 R9 confirm-replace` (the file's
+own brand arriving over unsaved edits), `#1037 the file's own brand arriving offers no Undo load`. Mutation, failing
+it by name: `loadReplacing` for every origin (`undo-load drawn: 1`).
