@@ -19172,7 +19172,10 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 if (runs('3129')) {
 console.log(`\n#3129 — the add queue: Components' boxes, Update file's To add and Due\n${'='.repeat(78)}`);
 const S_PRESENT = ['icon', 'focus-ring', 'button', 'button-destructive', 'button-neutral', 'button-group', 'field-label', 'field-message', 'text-field', 'select',
-  'checkbox-control', 'checkbox-row', 'checkbox-group', 'badge', 'tag', 'divider', 'spinner', 'veil'];
+  'checkbox-control', 'checkbox-row', 'checkbox-group', 'badge', 'tag', 'tag-group', 'divider', 'spinner', 'veil'];
+// #1739: Tag.Group joined Tag's family, so the sample file holds both, keeping Tag a family the file holds whole (the
+// `sec=tags` in-file box below). A file holding Tag alone keeps an active Tag box (#3439 Q-IF.3 A, `boxOfSets`); the
+// Radio arm below holds that rule, and `test-component-groups.ts` holds the Tag case by name.
 const S_DUE = { ...Object.fromEntries(S_PRESENT.map((id) => [id, { state: 'current' }])), button: { state: 'due', reason: 'engine' }, 'text-field': { state: 'due', reason: 'definition' }, tag: { state: 'due', reason: 'definition' } };
 // Queued in an order that is not the list's, so the list order is read, not echoed.
 const S_QUEUED = ['radio-control', 'banner', '_accordion-indicator', 'search-field', 'accordion', 'dialog', 'password-field'];

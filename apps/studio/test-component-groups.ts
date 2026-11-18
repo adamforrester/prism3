@@ -35,7 +35,7 @@
  *     .6 an on box taking out every set it could add (`toggleSets` without its chosen filter) → `Q3306.6 A: …`.
  *   · #3439 (Q-IF.1–3 A, section 2c): `inFileOf` false when the file holds every set (`&& false`) → `Q-IF.1 A: a set the
  *     file holds …`; true while the family can still add a set (its `addableOf` test dropped) → `Q-IF.3 A: a family
- *     partly in the file keeps an active box …`.
+ *     partly in the file keeps an active box …` and `#1739, Q-IF.3 A: a file holding Tag without Tag.Group …`.
  *   · search keeping a family only on its own label → `search: a family stays while any of its sets matches`.
  *   · Stop ending the run at once (before the current set's result) → `call 16: Stop waits for the set being built…`.
  *   · "Also builds" by component name again (`displayNameOf` bypassed) → `idea 7: the sets a build makes first…`.
@@ -361,6 +361,14 @@ ok(!inFileOf(catalog, radio, ['radio-control']) && boxOfSets(catalog, radio, new
   && JSON.stringify(toggleSets(catalog, radio, new Set(), ['radio-control'])) === JSON.stringify({ ids: ['radio-group', 'radio-row'], on: true }),
   'Q-IF.3 A: a family partly in the file keeps an active box, and its tick adds only the missing sets');
 ok(inFileOf(catalog, radio, radio), 'Q-IF.3 A: once every set of a family is in the file, its box is checked and disabled');
+// #1739: Tag.Group joined Tag's family (typed here, not read from SETTING_SECTIONS), so a file that holds Tag alone,
+// as every file built before Tag.Group does, keeps an active Tag box whose tick adds only the group; once the file holds
+// both, the box is checked and disabled. Studio's chrome 3129 arm holds the drawn box over a file holding both.
+const tagFamily = ['tag', 'tag-group'];
+ok(!inFileOf(catalog, tagFamily, ['tag']) && boxOfSets(catalog, tagFamily, new Set(), ['tag']) === 'off'
+  && JSON.stringify(toggleSets(catalog, tagFamily, new Set(), ['tag'])) === JSON.stringify({ ids: ['tag-group'], on: true })
+  && inFileOf(catalog, tagFamily, tagFamily),
+  '#1739, Q-IF.3 A: a file holding Tag without Tag.Group keeps an active Tag box that adds only the group; holding both, it is in the file');
 ok(!inFileOf(withOff, ['planted-off'], []) && !inFileOf(catalog, ['badge'], []), 'Q3129.6 A kept: a box over no set the file holds or could add is no box');
 ok(GROUPS_COPY.inFile === 'In file' && GROUPS_COPY.inFileName('Badge') === 'Badge is in this file',
   'Q-IF.1 A, Q-IF.2 A: the tag reads In file; the box\'s name reads "{name} is in this file" (DRAFT)');
