@@ -23082,7 +23082,9 @@ if (runs('3911')) {
 // MUTATIONS (each after a `wip:` commit, on both rebuilt bundles):
 //   · the two dropdowns put back on `selectEl()` (main before #3938) → `#3938 … the token list's dropdowns are the shared
 //     select` and `#3938 … every caption in the token list's control row sits on one line`;
-//   · `.tok-ctrls .p3-select{min-height:40px}` added to styles.css → `#3938 … every caption … sits on one line`.
+//   · `.tok-ctrls .p3-select { min-height: var(--p3-ctl-h); }` dropped from chrome.css (owner decision A, 2026-11-18:
+//     the selects take the segmented control's height) → `#3938 … every caption … sits on one line, offset 0` (3.00px);
+//   · that rule at `--p3-ctl-h-sm` → the same arm, by name.
 if (runs('3938')) {
   console.log(`\nThe token list's dropdowns are the shared select, and its captions line up (#3938)\n${'='.repeat(78)}`);
   const readRow = (page) => page.evaluate(() => {
@@ -23112,8 +23114,9 @@ if (runs('3938')) {
           `#3938 ${where} / ${tier}: the token list's dropdowns are the shared select (.p3-select, not .select): ${JSON.stringify(row?.selects)}`);
         const tops = (row?.caps ?? []).map((c) => c.top);
         const spread = tops.length ? Math.max(...tops) - Math.min(...tops) : NaN;
-        ok(tops.length === (tier === 'semantic' ? 3 : 1) && spread <= 0.5,
-          `#3938 ${where} / ${tier}: every caption in the token list's control row sits on one line (spread ${Number.isNaN(spread) ? 'none' : spread.toFixed(2)}px over ${JSON.stringify(row?.caps)})`);
+        // Owner decision A (2026-11-18): the offset is held at 0, read to the hundredth of a pixel.
+        ok(tops.length === (tier === 'semantic' ? 3 : 1) && spread === 0,
+          `#3938 ${where} / ${tier}: every caption in the token list's control row sits on one line, offset 0 (spread ${Number.isNaN(spread) ? 'none' : spread.toFixed(2)}px over ${JSON.stringify(row?.caps)})`);
         if (tier === 'semantic') {
           step = 'Category: color';
           await page.locator('[data-p3="token-category"]').selectOption('color');
