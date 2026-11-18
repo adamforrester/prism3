@@ -71,6 +71,7 @@ import { ABOUT_NAME, aboutIsWork, aboutLine, drawAbout, type AboutApi, type Abou
 import { publishDescription } from './library-about';
 import type { Cause } from './messages';
 import { cause, runCause, mergeCauses, CAUSE_WHAT } from './causes';
+import { UPDATES_OFF_COPY, writeUpdatesOff, type UpdatesOff } from './updates-off';
 import { COVER_NAME, coverIsWork, coverLine, coverPageOnlyLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
 
 /** The set's record of the members an update kept and marked deprecated (Q2): a JSON list of member names. */
@@ -138,6 +139,16 @@ export type SetOutcome = {
   deprecated: string[];
   /** Members left as they are, each with its reason. */
   skipped: { member: string; reason: string }[];
+  /** #2956 — of `skipped`, the members skipped because the update could not apply around their hand edits (a layer added
+   *  or removed by hand, a layer the update rebuilds that was edited by hand, a structural update on a hand-edited
+   *  member). Any one turns the set's updates off (`updates-off.ts`). Absent when none. */
+  aroundEdits?: string[];
+  /** #2956 (owner decisions 2026-11-17) — the set's updates are off, so this run left it as it is: who turned them off.
+   *  Reported calmly, never ⚠ and never "not updated". Absent otherwise. */
+  off?: UpdatesOff;
+  /** #2956 — this run turned the set's updates off by itself: it skipped a member whose hand edits the update could not
+   *  apply around (`aroundEdits`). The rest of the set was written as usual. Absent otherwise. */
+  turnedOff?: true;
   /** Members updated with no as-built record, so with no hand-edit check (`choices.noBaseline`, default `update`). */
   unrecorded: string[];
   /** Of `unrecorded`, those whose record was from an earlier format (#2379 review). */
@@ -310,11 +321,13 @@ export { nestedFirst };
 const preflight = (p: SetPreview): string | null => (p.blockers.length ? p.blockers.join('; ') : null);
 
 /** Which members this update configures, which it leaves, and why, from the dry run alone. */
-const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): { members: Map<string, { keep: Set<string>; accept?: boolean; edited?: Set<string> }>; skipped: { member: string; reason: string }[]; kept: { member: string; path: string }[]; unrecorded: string[]; restamp: string[]; earlierRecord: string[] } => {
+const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): { members: Map<string, { keep: Set<string>; accept?: boolean; edited?: Set<string> }>; skipped: SetOutcome['skipped']; around: string[]; kept: { member: string; path: string }[]; unrecorded: string[]; restamp: string[]; earlierRecord: string[] } => {
   const byMember = new Map<string, SetPreview['handEdits']>();
   for (const h of p.handEdits) byMember.set(h.member, [...(byMember.get(h.member) ?? []), h]);
   const members = new Map<string, { keep: Set<string>; accept?: boolean; edited?: Set<string> }>();
-  const skipped: { member: string; reason: string }[] = [];
+  const skipped: SetOutcome['skipped'] = [];
+  /** #2956: the skips below the update could not apply around hand edits for. */
+  const around: string[] = [];
   const kept: { member: string; path: string }[] = [];
   const unrecorded: string[] = [];
   const restamp: string[] = [];
@@ -346,6 +359,7 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
       skipped.push({ member: s.member, reason: 'a layer was added or removed by hand'
         + (d.length ? `, and it draws other than its plan (${d.slice(0, 3).join('; ')}${d.length > 3 ? '; …' : ''})` : '')
         + (s.dangling ? `, and its ${REACTIONS} point at a member no longer in the set` : '') });
+      around.push(s.member);
       continue;
     }
     if (rootReplaced.has(s.member)) { skipped.push({ member: s.member, reason: 'the member itself would need replacing' }); continue; }
@@ -353,11 +367,11 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
     // Keep and Accept the member is skipped whole, as a layer added by hand is, and named. Overwrite writes the plan, so
     // it rebuilds the layer as asked. DRAFT wording for the owner.
     const lost = choice === 'overwrite' ? [] : edits.filter((e) => e.lost).map((e) => e.path.replace(/#\d+$/, ''));
-    if (lost.length) { skipped.push({ member: s.member, reason: `the update rebuilds ${lost.length === 1 ? 'a layer' : 'layers'} edited by hand (${lost.slice(0, 3).join(', ')}${lost.length > 3 ? ', …' : ''})` }); continue; }
+    if (lost.length) { skipped.push({ member: s.member, reason: `the update rebuilds ${lost.length === 1 ? 'a layer' : 'layers'} edited by hand (${lost.slice(0, 3).join(', ')}${lost.length > 3 ? ', …' : ''})` }); around.push(s.member); continue; }
     // A STRUCTURAL UPDATE ON A MEMBER EDITED BY HAND (#2956 point 2, owner decision 2026-10-23): skipped whole and
     // named, wherever on the member the edits are. Overwrite writes the plan. DRAFT wording for the owner, after the
     // #2956 wireframe's "hand-edited, and the update changes their structure".
-    if (s.restructured && choice !== 'overwrite') { skipped.push({ member: s.member, reason: 'hand-edited, and the update changes its structure' }); continue; }
+    if (s.restructured && choice !== 'overwrite') { skipped.push({ member: s.member, reason: 'hand-edited, and the update changes its structure' }); around.push(s.member); continue; }
     // `overwrite` writes over every edited node; `keep` and `accept` leave them, and differ only in the record.
     const edited = new Set(edits.map((e) => e.path.replace(/#\d+$/, '')));
     const keep = choice === 'overwrite' ? new Set<string>() : edited;
@@ -368,7 +382,7 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
   // Every member the dry run read as not built by Prism3 is named, the ones off the plan too (a designer's own icon
   // under the def's prefix, #2296): the update never writes them, and the verdict says so rather than leaving them out.
   for (const u of p.unstamped) if (!skipped.some((x) => x.member === u)) skipped.push({ member: u, reason: 'not built by Prism3' });
-  return { members, skipped, kept, unrecorded, restamp, earlierRecord };
+  return { members, skipped, around, kept, unrecorded, restamp, earlierRecord };
 };
 
 /** THE LEDGER AFTER AN APPLY (#2909 Q2909.8 A; #3421, owner decision Q39 A): each set the apply acted on, recorded as
@@ -384,7 +398,8 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
  *  left to keep. A run that keeps edits on other members than the held ones still lists the set: it can over-report a
  *  kept set; it never reads one current while its edits keep the plan out. */
 export const ledgerAfter = (outcomes: readonly SetOutcome[], entryOf: (def: string) => LedgerEntry | null, was: Ledger = {}): Record<string, LedgerEntry> =>
-  Object.fromEntries(outcomes.filter((o) => !o.refused && !o.stopped).flatMap((o) => {
+  // #2956: a set left because its updates are off was not written, so its entry stands.
+  Object.fromEntries(outcomes.filter((o) => !o.refused && !o.stopped && !o.off).flatMap((o) => {
     const e = entryOf(o.def);
     if (!e) return [];
     const { held: _now, ...rest } = e;
@@ -543,6 +558,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, pr
   const out: SetOutcome = { def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: opts.handEdits, identity: [], content: [], misses: [] };
   const work = plan(p, opts.handEdits, opts.noBaseline);
   out.skipped = work.skipped;
+  if (work.around.length) out.aroundEdits = work.around;
   out.unrecorded = work.unrecorded;
   if (work.earlierRecord.length) out.earlierRecord = work.earlierRecord;
   out.kept = work.kept;
@@ -852,7 +868,8 @@ const liveSets = async (host: ApplyHost, targets: readonly UpdateTarget[], previ
     const p = preview.sets.find((s) => s.set === (t.plans[0]?.component ?? t.def));
     const set = p ? await liveFor(host, t, p.set, opts.ledger) : undefined;
     if (!p || !set) continue;
-    live.push({ name: p.set, set, blocked: p.blockers.length > 0 || res.outcomes.some((o) => o.set === p.set && !!o.refused), lead: !!t.doc });
+    // #2956: a set whose updates are off holds its place, as a blocked one does.
+    live.push({ name: p.set, set, blocked: p.blockers.length > 0 || !!p.updatesOff || res.outcomes.some((o) => o.set === p.set && !!o.refused), lead: !!t.doc });
   }
   return live;
 };
@@ -1006,6 +1023,9 @@ export const applyUpdate = async (
     const p = preview.sets.find((s) => s.set === (t.plans[0]?.component ?? t.def));
     const live = p ? await liveFor(host, t, p.set, opts.ledger) : undefined;
     if (!p || !live) continue;
+    // UPDATES OFF (#2956, skip-and-report): left as it is, whatever its plan or its blockers say, and reported calmly.
+    // Nothing on it is written, so every hand edit on it stays where the designer left it.
+    if (p.updatesOff) { res.outcomes.push({ def: t.def, set: p.set, off: p.updatesOff, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [] }); continue; }
     const why = preflight(p);
     if (why) { res.outcomes.push({ def: t.def, set: p.set, refused: why, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [] }); continue; }
     // Nothing for the build's pass to do. `noBaseline` counts (#2364): a set whose members all lack a record reads no
@@ -1164,6 +1184,12 @@ export const applyUpdate = async (
     const o = carryOnly ? { def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [] } as SetOutcome : await applySet(host, api, t, p, fresh, { description: opts.descriptionOf?.(t.def), yieldTo: opts.yieldTo, chunk: opts.chunk, handEdits: choiceFor(opts.choices, p.set), noBaseline: noRecordFor(opts.choices, p.set), ledger: opts.ledger });
     // Kept as soon as the set's write returns (#3697 L1), so a throw in its fill below still reports what was written.
     res.outcomes.push(o);
+    // UPDATES OFF, BY ITSELF (#2956, owner decision 2026-11-17): only when this update could not apply around the set's
+    // hand edits, so it skipped a member whole for them. The rest of the set is written as usual; the mark stops later
+    // runs. A refused or stopped set is not marked: its next run meets the same members and decides then.
+    if (!t.single && !o.refused && !o.stopped && o.aroundEdits?.length) {
+      try { writeUpdatesOff(fresh, 'auto'); o.turnedOff = true; } catch { /* the host refused plugin data: the skips are reported as before */ }
+    }
     if (unkept.length) o.unkept = unkept;
     if (p.furniture && !o.refused && !o.stopped) o.furniture = p.furniture;
     // #2831: the confirm names what it broke for library consumers, as the check listed it.
@@ -1300,11 +1326,14 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
   const relocated = r.relocated?.length ?? 0;
   const tablesMoved = r.relocatedTables?.length ?? 0;
   const headers = r.headers?.length ?? 0;
+  const offLeft = r.outcomes.filter((o) => o.off).length;
   const lines: string[] = [];
   // #3326 PR 1 (Q3326.1 A): why the run is not clean, per set, from the same facts its `ok` reads: a set stopped, one
   // not verified, one not updated. Each reason is the clause its line already prints after the set's name.
   const causes: Cause[] = [];
   for (const o of r.outcomes) {
+    // #2956: a set whose updates are off was left as it is, and says so calmly: no cause, never ⚠.
+    if (o.off) { lines.push(UPDATES_OFF_COPY.left(o.set)); continue; }
     if (o.refused) { lines.push(`${o.set}: not updated. ${o.refused}.`); causes.push(cause('bad', o.def, CAUSE_WHAT.notUpdated, [`${o.refused}.`])); continue; }
     // #3796 review B1 (DRAFT wording): a slot carry this run could not keep on the set, so it carried it in memory only.
     for (const u of o.unkept ?? []) lines.push(unkeptLine(o.set, u));
@@ -1334,6 +1363,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
     lines.push(parts.length ? `${o.set}: ${parts.join(', ')}.` : o.asPreviewed && !o.asPreviewed.upToDate ? o.asPreviewed.line : `${o.set}: already up to date.`);
     // #3421 (Q39 A; DRAFT wording, Q3421.2): the changes kept hand edits held back, by set, member count and change.
     if (o.held) lines.push(heldLine(o.set, o.held));
+    // #2956: this run turned the set's updates off by itself, with the approved reason.
+    if (o.turnedOff) lines.push(UPDATES_OFF_COPY.turnedOff(o.set));
     if (isIdle(o)) causes.push(cause('bad', o.def, CAUSE_WHAT.notUpdated, o.skipped.map((x) => `${x.member}: ${x.reason}`)));
     // DRAFT wording for the owner (#2649): the placed instances whose rows became slot items.
     if (o.carriedText) lines.push(`${o.set}: ${n(o.carriedText.instances, 'instance')} carried: ${n(o.carriedText.moved, 'body', 'bodies')} moved into the text property, ${o.carriedText.rich} kept in the slot, ${o.carriedText.emptied} left empty.`);
@@ -1383,7 +1414,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
   const completed = !stopped && !r.halted && !refused;
   // #3711 (Q-UF3 A, DRAFT wording): every set written, some left to check. The count is the sets the run wrote,
   // those to check among them; each one's lines above name what differs.
-  const written = r.outcomes.filter((o) => !o.refused && !o.stopped && !isIdle(o)).length;
+  const written = r.outcomes.filter((o) => !o.refused && !o.stopped && !o.off && !isIdle(o)).length;
   const headline = stopped ? `✗ update stopped at ${stopped.set}`
     : r.halted ? haltedHeadline(r.halted)
     // A set not updated stops the run, so it heads the verdict over any set to check beside it.
@@ -1409,7 +1440,9 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
                         // DRAFT wording for the owner (#2858): a run whose only work was the About frame.
                         : r.about?.drawn ? `✓ ${ABOUT_NAME} drawn`
                           // DRAFT wording for the owner (#2859): a run whose only work was the cover.
-                          : coverDid(r.cover) ? `✓ ${COVER_NAME} ${r.cover!.did === 'drawn' ? 'drawn' : 'updated'}` : r.outcomes.some((o) => o.asPreviewed && !o.asPreviewed.upToDate) ? '✓ No changes found' : '✓ already up to date';
+                          : coverDid(r.cover) ? `✓ ${COVER_NAME} ${r.cover!.did === 'drawn' ? 'drawn' : 'updated'}` : r.outcomes.some((o) => o.asPreviewed && !o.asPreviewed.upToDate) ? '✓ No changes found'
+                            // DRAFT wording for the owner (#2956): a run whose every set was left because its updates are off.
+                            : offLeft ? `✓ ${n(offLeft, 'set')} left as ${offLeft === 1 ? 'it is' : 'they are'}, updates off` : '✓ already up to date';
   // #3421: Keep is a choice, so the run goes on; the headline says how many sets hold changes back, never a bare ✓.
   const held = r.outcomes.filter((o) => o.held).length;
   // #3697 L1: a run that threw says so first, in the headline the caller's own catch uses, over what it did before the throw.

@@ -97,6 +97,26 @@
  *                  two hex values; the engine stores no ratio for the pair, so arm A has nothing to
  *                  hold, and B's confession is keyed apart so one pair cannot excuse the other.
  *
+ * ── `against: 'self'` COVERS TWO CASES, AND THIS GATE CHECKS NEITHER (#1045) ────────────────────
+ *
+ * Arms A, B, C and E skip a role whose `against` is `'self'` (`ratio: 1`, `min: 0`). Only arm F runs
+ * before that skip. The one declaration means two different things, and the skip is right only for
+ * the first:
+ *
+ *   1. NO CONTRAST PAIR. A fill nothing is measured on: the `putSurf` surfaces, `scrim.default`, the
+ *      glass fills, and each veil polarity's `clear` end. There is no claim, so the skip loses nothing.
+ *   2. A REAL CONTRACT AGAINST A GROUND THE VOCABULARY CANNOT NAME. The media veil's rungs,
+ *      `color.veil.<polarity>.<subtle|medium|strong>`: each alpha is the least emitted step clearing
+ *      3, 4.5 or 7:1 over the worst pixel of an unknown photograph (sRGB white under a dark veil,
+ *      black under a light one). `against` has no name for that pixel, so these roles declare `'self'`
+ *      too (`modes.ts`, "WHY THESE ROLES RECORD NO RATIO").
+ *
+ * Case 2's contract is held in `test.ts` §9c ("THE MEDIA VEIL"), not here. Its arm A re-derives each
+ * rung's alpha from WCAG's floors and asserts the step below fails. So a `'self'` role passing this gate
+ * means "no claim checked here", not "no claim". A new role in case 2 needs its own arm beside §9c,
+ * because this gate will skip it. The owner chose this note over a new `against` vocabulary or a third
+ * `model` (#1045, option C).
+ *
  * Run: `npx tsx packages/engine/lint-ratio-truth.ts`
  */
 import { brandTheme, BrandInput } from './theme';
