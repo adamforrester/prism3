@@ -305,6 +305,12 @@
 .p3-search-input:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 .p3-search-status { flex: none; color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap; }
 .p3-search-status:empty { display: none; }
+/* #3620 (owner decision 2026-11-18, A): at the narrow tier the status takes its own line under the field, so the field keeps
+   the row's width and the status is never cut off. In the row, "No setting on this page matches" (nowrap, `flex: none`)
+   left the plugin's 380 field about 17px of text. The magnifier is placed on the field's line, which is the first. */
+.p3-frame[data-w="narrow"] .p3-search[data-open="true"] .p3-search-box { flex-wrap: wrap; row-gap: var(--p3-space-050); }
+.p3-frame[data-w="narrow"] .p3-search-status { order: 1; flex: 1 0 100%; white-space: normal; }
+.p3-frame[data-w="narrow"] .p3-search-box > .p3-ico { top: calc(var(--p3-ctl-h-sm) / 2); transform: translateY(-50%); }
 
 /* Color's sub-pages, and the Depth & motion switch: a segmented tablist. Its track is the top bar's step,
    so it reads on the gray tab row in both themes, and the selected segment's edge is measured against
@@ -1110,8 +1116,9 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-rhythm-la
 .p3-text-input:disabled {
   background: var(--p3-disabled-fill); border-color: var(--p3-disabled-edge); color: var(--p3-disabled-ink); cursor: not-allowed;
 }
-/* Personality: the engine's words as chips; a chosen one takes the selected edge and shows its check. A single-select
-   `chipChoice` chip draws no check (#3117, Q3117.1 B): its edge alone shows it is pressed, so a pick keeps its width. */
+/* Personality: the engine's words as chips; a chosen one takes the selected edge. No chip draws a check, single-select
+   `chipChoice` (#3117, Q3117.1 B) or Personality's `toggleChip` (#3263): the edge shows it is pressed, so a press keeps
+   the chip's width and the row's wrap. */
 .p3-chips { display: flex; flex-wrap: wrap; gap: var(--p3-space-100); }
 /* #3553 Q-UI2 A: a single choice whose options do not fit one row is a list, one option to a row, the width of the
    column (`stackWhenWrapped` in `lever-kit.ts` sets `data-stack`), never a wrap with an orphan on its last row. */
@@ -1119,9 +1126,7 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-rhythm-la
 .p3-choice[data-stack="true"] > .p3-seg-tab { flex: none; }
 .p3-chips-one[data-stack="true"] > .p3-btn.p3-chip { justify-content: flex-start; }
 .p3-btn.p3-chip { min-height: var(--p3-ctl-h-xs); padding: 0 var(--p3-space-150); gap: var(--p3-space-050); font-weight: var(--p3-fw-default); }
-.p3-btn.p3-chip > .p3-ico { display: none; }
 .p3-btn.p3-chip[aria-pressed="true"] { border-color: var(--p3-ctl-edge); }
-.p3-btn.p3-chip[aria-pressed="true"] > .p3-ico { display: inline-block; color: var(--p3-text); }
 /* Modes: a check per mode, its name and its note on one line (concept v6). The row is the control and its
    target; the box is the drawn edge (field-edge on the page, B1), so the row itself shows an edge only on hover.
    Light is a fixed row, not a control: its box is dashed, as v6 draws a check that cannot change. */
