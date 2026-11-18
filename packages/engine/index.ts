@@ -38,7 +38,7 @@ export {
 } from './theme';
 export type {
   BrandInput, FacePin, GlassRoleInput, GradientInput, LayoutAxis, OutlineHoverFill, OutlineWash, PerModeSizeGroup,
-  RaisedSurface, ResolvedGradient, ScrimStrength, Theme, TypeComposite, TypographyInput,
+  RaisedSurface, ResolvedGradient, ScrimStrength, InteractiveGround, Theme, TypeComposite, TypographyInput,
 } from './theme';
 export {
   ACHROMATIC_C, composite, contrast, floorRatio, formatRatio, hex, hexToRgb, oklchToRgb, rgbToOklch, storedOklch,

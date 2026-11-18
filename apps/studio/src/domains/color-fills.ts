@@ -45,7 +45,7 @@ import {
   BORDER_ROWS, FIELD_ROWS, FILL_ROWS, FOCUS_ROLES, floorAutoFollows, floorAutoLabel, floorAutoShortLabel, FOREGROUND_ROWS, ICON_ROWS, PAIR_ICONS_CONFIRM, TEXT_ROWS, addGradient, addStop, bandOf, bandPalettes, editGradient, gradStopHex,
   iconOverrideCount, iconsPaired, lockedTo, overrideOf, pageKeyOf, pageSteps, pairIcons, paletteOf, readGradients, removeGradient, removeStop, renameGradient, rolesIn,
   setBandPalette, setBandStep, setCenter, setGradientsOn, setRowOverride, setStopPalette, setStopPosition, setStopStep,
-  SCRIM_ROLE, SURFACE_TOKENS, brandScrimStrength, setScrimStrength, clearFloorReset, floorResetNotice, setInverseTier, setSurfaceBase, setSurfaceFloor, setSurfaceTier, floorGroundSteps, floorGroups, stepHex, stepOfPath, stepsOf, surfaceSourceOf, tierOf, unpairIcons, washReadOf,
+  SCRIM_ROLE, SURFACE_TOKENS, brandScrimStrength, setScrimStrength, brandInteractiveGround, setInteractiveGround, clearFloorReset, floorResetNotice, setInverseTier, setSurfaceBase, setSurfaceFloor, setSurfaceTier, floorGroundSteps, floorGroups, stepHex, stepOfPath, stepsOf, surfaceSourceOf, tierOf, unpairIcons, washReadOf,
   type FillRow, type InverseTier, type PageTier,
 } from '../state/fills-input';
 import { floorNoneText } from '../state/floor-refusal';
@@ -366,6 +366,18 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const box = hook(h('div', 'p3-fillrows'), 'scrim-rows');
     box.append(b.el, raised.el);
     return [{ el: box, said: '', key: 'scrim-rows' }, item, raised];
+  };
+
+  /** #3339 (owner C): the darkest ground the brand's controls may sit on, `interactiveGround`, as two chips under the
+   *  contrast floor it narrows. Marked advanced in the manifest. The label, option names and description are DRAFTS. */
+  const controlGround = (): Item[] => {
+    const b = leverBlock('interactiveGround', { group: true });
+    const L = leverOf('interactiveGround');
+    const opts = (L?.options ?? []).map((o) => ({ v: String(o.value) as ReturnType<typeof brandInteractiveGround>, l: o.label }));
+    const c = choice(L?.label ?? 'Controls sit on', 'interactive-ground-choice', opts, (v) => edit('interactiveGround', () => setInteractiveGround(v)));
+    c.set(brandInteractiveGround());
+    b.ctl.append(c.el);
+    return [{ el: b.el, said: `${b.said} controls interactive ground page floor`, key: 'interactiveGround', block: b }];
   };
 
   /** #3093: the panel over the scrim, `foreground.raised`, read-only: a fill row's swatch, name and role, and in place
@@ -906,7 +918,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     return [{ el: b.el, said: `${b.said} stops`, key: 'gradients', block: b }];
   };
 
-  const ROWS: Record<string, () => Item[]> = { surfaces, scrim, glass, foreground, fills, text, border, icon, fields, gradients };
+  const ROWS: Record<string, () => Item[]> = { surfaces, controlGround, scrim, glass, foreground, fills, text, border, icon, fields, gradients };
 
   // ── the page ──────────────────────────────────────────────────────────────────────────────────
   const section = (s: Section, i: number): { el: HTMLElement; items: Item[] } => {
