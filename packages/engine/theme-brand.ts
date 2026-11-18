@@ -159,11 +159,12 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     const lev = input.modeLevers![m]!;
     if (lev.radius !== undefined && (!Number.isFinite(lev.radius) || lev.radius < 0 || lev.radius > 2))
       throw new Error(`modeLevers: mode '${m}' radius ${lev.radius} is out of range — must be a finite number in [0, 2]`);
-    // Per-mode weight values must be a valid font-weight (finite, [100, 900]). Role ordering is NOT
+    // Per-mode weight values must be a valid font-weight (a whole number in [100, 900]; whole because the value keys
+    // a primitive, #3871). Role ordering is NOT
     // enforced here (the UI owns that) — the engine accepts any valid weight per role.
     for (const [role, w] of Object.entries(lev.weights ?? {})) {
-      if (w !== undefined && (!Number.isFinite(w) || w < 100 || w > 900))
-        throw new Error(`modeLevers: mode '${m}' weight '${role}' ${w} is out of range — must be a finite number in [100, 900]`);
+      if (w !== undefined && (!Number.isInteger(w) || w < 100 || w > 900))
+        throw new Error(`modeLevers: mode '${m}' weight '${role}' ${w} is out of range — must be a whole number in [100, 900]`);
     }
     // #296 — per-mode leading/tracking name a RUNG on both sides (source key → target key). Both must
     // be real rungs; a NUMBER here is the old pre-#296 shape and is rejected with a pointer, because
@@ -300,6 +301,13 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     if (value === undefined) continue;
     if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max)
       throw new Error(`${path}: ${JSON.stringify(value)} is out of range — must be a finite number in [${min}, ${max}]`);
+  }
+  // #3871 — a weight role keys a primitive (`core.font.weight.<value>`), and a DTCG alias reads a `.` as a path
+  // separator, so a fractional weight (450.5) emits an alias that resolves nowhere. DTCG also limits fontWeight to
+  // [1, 1000], so a weight outside it ships a value the spec rejects. Same reject-not-clamp policy as rangeLevers.
+  for (const [role, w] of Object.entries(input.typography?.weightRoles ?? {})) {
+    if (w !== undefined && (typeof w !== 'number' || !Number.isInteger(w) || w < 1 || w > 1000))
+      throw new Error(`typography.weightRoles: '${role}' ${JSON.stringify(w)} is not a font weight — must be a whole number in [1, 1000]`);
   }
 
   if (root !== 'prism') notes.push(`namespace: tokens emit under '${root}.*' instead of the default 'prism.*'.`);

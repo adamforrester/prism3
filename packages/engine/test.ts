@@ -42996,6 +42996,31 @@ const MIN_ASSERTIONS = 1800;
   }
 }
 
+// #3871 — a weight role keys a primitive (`core.font.weight.<value>`), so a fractional weight emits an alias that
+// resolves nowhere (`{…weight.450.5}` reads `.5` as a child), and a weight outside DTCG's [1, 1000] ships a fontWeight
+// the spec rejects. brandTheme refuses both, globally and per mode; a whole weight in range still builds clean.
+{
+  const base = { id: 'w3871', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 } } as unknown as BrandInput;
+  const refusal = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const withRoles = (weightRoles: Record<string, unknown>) => ({ ...base, typography: { weightRoles } }) as unknown as BrandInput;
+  const frac = refusal(() => brandTheme(withRoles({ default: 450.5 })));
+  ok(frac.includes('typography.weightRoles') && frac.includes("'default'") && frac.includes('450.5'),
+    `#3871 a fractional weight role (default 450.5) is refused by name (got ${JSON.stringify(frac)})`);
+  for (const [role, w] of [['max', 0], ['strong', 2000], ['subtle', -100], ['emphasis', Number.NaN]] as const) {
+    const msg = refusal(() => brandTheme(withRoles({ [role]: w })));
+    ok(msg.includes('typography.weightRoles') && msg.includes(`'${role}'`), `#3871 a weight role outside [1, 1000] (${role} ${w}) is refused by name (got ${JSON.stringify(msg)})`);
+  }
+  const perMode = refusal(() => brandTheme({ ...base, modeLevers: { dark: { weights: { default: 450.5 } } } } as unknown as BrandInput));
+  ok(perMode.includes("mode 'dark' weight 'default'"), `#3871 a fractional per-mode weight (dark default 450.5) is refused by name (got ${JSON.stringify(perMode)})`);
+  // The accept side: whole weights at the edges of DTCG's range build, and every alias resolves.
+  const edge = buildTree(brandTheme(withRoles({ subtle: 1, default: 450, max: 1000 })));
+  ok(edge.stats.broken.length === 0, `#3871 whole weights 1/450/1000 build with every alias resolving (broken: ${edge.stats.broken.slice(0, 3).map((b: any) => b.ref).join(', ')})`);
+  // The schema says the same, so a file-driven brief fails at the schema before the engine.
+  const schemaErrs = validateBrandInput(withRoles({ default: 450.5, strong: 2000 }));
+  ok(schemaErrs.some((e) => e.includes('weightRoles.default') && e.includes('not an integer')) && schemaErrs.some((e) => e.includes('weightRoles.strong')),
+    `#3871 the schema refuses a fractional and an out-of-range weight role (errors: ${JSON.stringify(schemaErrs)})`);
+}
+
 // (imports hoist; kept beside the arms so no line a guide cites moves)
 import { seedFromFacts, seedDesignMd } from './file-seed';
 import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
