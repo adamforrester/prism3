@@ -1530,3 +1530,210 @@ runs, not the latest.
 
 **Not fixed here:** `<p3-password-field>`'s own toggle (`p3-password-field.js`) has the same unconditional delayed
 restore. It is filed separately rather than fixed in this PR.
+
+
+---
+
+## S5 proper — axe, the ARIA snapshots and the keyboard suite, over the Storybook
+
+Started about 13:05 UTC on 2026-11-18, from `poc/arm-1` at `62a34be3`. This is the accessibility and keyboard pass
+the plan keeps in S5 (arm 1 architecture item 8; Q144 A: axe-core in phase 5). The Storybook it runs over is
+#3895 and #3942.
+
+### The audit: what S5 lacked
+
+| Plan item | Before this PR | Now |
+|---|---|---|
+| Storybook, every component in every state, both forms | Done (#3895, #3942): 100 stories | Unchanged |
+| axe (`@axe-core/playwright`) | **Missing.** The brief for this lane said "axe checks exist in the css/wc browser checks". They don't: `packages/css/check-browser.ts` says `@axe-core/playwright` is not a dependency and the pass was held for S5 | `check-axe.ts`, every story, light and dark |
+| Playwright ARIA snapshots, both forms the same tree | Missing. `check-build.ts` checks the #1712 A wiring attribute by attribute, not the computed tree | `check-aria.ts` |
+| Scripted keyboard: Tab order, Space/Enter, Show/Hide, focus-visible on keyboard only | Partly. `@prism3/css`'s and `@prism3/web-components`' browser checks press Enter on Show/Hide on their own demo pages. Tab order and keyboard-only focus-visible were checked nowhere | `check-keyboard.ts`, over the Storybook, both forms |
+| No closed shadow roots | Held by design (light DOM), asserted nowhere | `check-aria.ts` fails any shadow root in a story |
+
+### What was built
+
+All of it is in `apps/storybook`, run by one script, `check:a11y`, after `build`. Shared setup is in
+`a11y-harness.ts`: the static server, the story list from `index.json` (which `check-build.ts` already holds to its
+hand-written list), and `open`, which loads a story and waits until it has settled.
+
+- **`check-axe.ts`:** axe on every story's root, in light and dark (200 runs).
+  - The rules are axe's WCAG 2.0, 2.1 and 2.2 A and AA tags. The `best-practice` rules are left out: they judge a
+    whole page (landmarks, a main heading), and a story root is one component.
+  - **"Needs review" fails.** axe leaves a node it can't decide as `incomplete`. That counts as a failure here, so a
+    contrast axe can't read can't pass by silence. The allowance list for it is empty.
+  - **One accepted violation, by rule, owner decision #1456.** See Surprises.
+- **`check-aria.ts`:** each case's two forms build the same accessibility tree, and it's the accepted one.
+  - **The snapshot.** It is Playwright's ARIA snapshot of the story root. Added to it, from Chromium's own tree
+    (CDP), are each control's description and states (focusable, disabled, invalid, required, read-only, busy). The
+    ARIA snapshot leaves those out, and `aria-describedby` is how #1712 A ties a message to its field. A story that
+    presses Show adds the live region's text.
+  - **Three comparisons, three failure names:**
+    1. the two forms against each other;
+    2. both against `aria-snapshots.json`, the reviewed record, which only `--accept` writes (`accept:aria`);
+    3. a `HAS` table written by hand from the defs and the demo copy. `--accept` refuses to write while a row fails.
+  - The second comparison catches a defect both forms share. They come from one contract, so they would agree on it.
+  - **No shadow roots.** The harness records every `attachShadow` before the page's scripts run, because a closed
+    root can't be seen afterwards. Any root inside a story fails.
+- **`check-keyboard.ts`:** real key presses in Chromium, both forms.
+  1. **Tab order in every story.** The expected order is written from each def's keyboard line and prop
+     descriptions. A disabled control is no stop. An inactive or pending button is one. Read-only and pending fields
+     are stops. The glyphs never are. Both forms of a case must give the same order.
+  2. **Space and Enter on the button.** Each press runs the action once. On an inactive or pending `<p3-button>`,
+     neither runs it, and focus stays.
+  3. **Show/Hide by keyboard.** Space shows and renames the button "Hide password"; Enter hides it again. Focus
+     stays on the button.
+  4. **Focus-visible on keyboard only.** Reached by Tab, the button and the Show/Hide button draw their ring, and the
+     field's box draws its focus edge. Focused by a click, the two buttons draw no ring.
+- **Wiring:** one CI step in the `studio` job, after `check:build`, with a 15-minute limit. It's mirrored in
+  `verify.ts` (`storybook-a11y`), CONTRIBUTING §3, CLAUDE.md §4 and the PR template. `lint-doc-gates` is clean.
+
+### Dependencies (pinned exactly, each release at least two weeks old on 2026-11-18)
+
+| Package | Version | Released | Note |
+|---|---|---|---|
+| `@axe-core/playwright` | 4.14.0 | 2026-10-15 | A devDependency of `@prism3/storybook`. |
+| `axe-core` | 4.14.0 | 2026-10-05 | Held by a root `overrides` entry: `@axe-core/playwright` asks for `~4.14.0`, which resolved to 4.14.1, released 2026-11-16. |
+
+Two packages were added. No existing lockfile entry changed.
+
+### Decisions
+
+Followed: Q144 A (axe in phase 5), arm 1 architecture item 8 (ARIA snapshots, `@axe-core/playwright`, scripted
+keyboard, no closed shadow roots), owner decision #1456 (hover and pressed are exempt from the on-fill ink contract)
+and #1712 A (the error wiring the snapshots hold).
+
+**OWNER DECISION: the password field's Tab order (#3967, filed here).** The def says "Tab reaches the input, then
+the Show/Hide button", and also "Tab order follows the visual order". Q301.2 B put the button on the label row,
+above the box. Both forms follow that layout, so Tab reaches the button first. The def contradicts itself once the
+button sits above the box. Options are in #3967:
+- A. Change the keyboard contract to "button, then input", which follows the visual order.
+- B. Move the button after the input in the DOM and keep it on the label row with CSS. That risks the DOM order no
+  longer matching the visual order.
+- C. Move the button into the box's trailing slot, reversing Q301.2 B.
+
+**Recommendation: A**, since it is the order the eye reads. The check holds today's order as a named exception: it
+asserts the current order and fails by name once the order changes (a mutant proves it). So deciding #3967 means
+deleting `KNOWN`.
+
+**Not built here, and still open with the owner (from #3942):** an error with no message, and what the root entry
+registers.
+
+**Technical calls (mine):**
+- **Playwright over the static build, not `addon-a11y` and `addon-vitest`.** The plan names both addons for
+  Storybook (item 5) and Playwright for the tests (item 8). Running from Playwright keeps one browser stack with the
+  existing checks and needs no Vitest. The addons would add axe inside Storybook's UI. They are listed as still
+  missing below.
+- **Light and dark only.** The token CSS also has `hc-light` and `hc-dark`, but the Storybook's toolbar offers two
+  themes, so axe runs on the two it can show.
+
+### What was checked, and how
+
+- **`check:a11y`: 3 minutes 25 seconds locally.** The three checks run first, then each one's planted mutants.
+  - **axe:** 400 checks, 4 mutants.
+  - **aria:** 736 checks, 5 mutants.
+  - **keyboard:** 194 checks, 6 mutants.
+- **The mutants, each failing by name:**
+
+  | Check | Mutant | Fails by name |
+  |---|---|---|
+  | axe | the password label's `for` removed | `components-password-field-html--rest (light): axe label — …` |
+  | axe | a rest button's label at 1.9:1 | `components-button-element--rest (light): axe color-contrast — …` |
+  | axe | a hover label under #1456's 2.0:1 floor | `components-button-html--hover (dark): axe color-contrast — …` |
+  | axe | `aria-describedby` naming a missing id | `components-password-field-element--error (light): axe aria-valid-attr-value needs review, which is not a pass` |
+  | aria | a closed shadow root on `<p3-button>` | `components-button-element--rest: the component attached a shadow root on <p3-button>` |
+  | aria | the HTML form drops `aria-invalid` at error | `text-field--error: the two forms differ` |
+  | aria | `aria-describedby` dropped from both forms | `password-field--rest (element): differs from the accepted snapshot` |
+  | aria | the toggle's hidden " password" removed | `…--rest: the accessibility tree lacks «- button "Show password"»` |
+  | aria | an inactive button loses `aria-disabled` | `…--inactive: the accessibility tree lacks «- button "Save changes" [disabled]»` |
+  | keyboard | Show/Hide given `tabindex="-1"` | `…password-field-…--rest: Tab stops are textbox "Password"; the def wants …` |
+  | keyboard | Space swallowed on every button | `…button-…--rest: Space on the button ran the action 0 times in all, want 1` |
+  | keyboard | the ring drawn on any focus | `…button-…--rest: a mouse click drew the focus ring on the button` |
+  | keyboard | Show/Hide moving focus to the input | `…--rest: after Space, focus left the Show/Hide button` |
+  | keyboard | the field reordered to the def | `…--rest: Tab stops now match the def …, so the known exception #3967 no longer holds` |
+  | keyboard | a disabled button left focusable | `…button-…--disabled: Tab stops are button "Save changes"; the def wants (none)` |
+
+- **Hand mutations on disk**, each after a `wip:` commit, restored with `git show HEAD:<path> > <path>`, with the
+  Storybook rebuilt:
+
+  | Mutation | Fails by name |
+  |---|---|
+  | `stories/fields.js`: the HTML form writes no `aria-invalid` | 15 failures: `HAS` rows (`lacks «- textbox "Password" [invalid]»`), `password-field--error: the two forms differ`, and `differs from the accepted snapshot` |
+  | `packages/css/password-field.js`: Show/Hide focuses the input | `components-password-field-html--rest: after Space, focus left the Show/Hide button …`, plus the Tab order and the ring on a mouse click |
+
+### Surprises and learnings
+
+- **The brief said axe checks existed. They didn't.** `check-browser.ts`'s header holds the axe pass for S5. Checking
+  the claim against the code first saved building on it.
+- **axe flags the dark theme's hover and pressed button labels, by design.** The white label measures 3.25:1 on the
+  hover fill and 2.36:1 on pressed. Owner decision #1456 makes the on-fill ink contract rest-only, and `modes.ts` says
+  so. The check accepts exactly that: color-contrast, the button's label, the hover and pressed stories, at or above
+  #1456's 2.0:1 floor. Each acceptance prints its ratio. A mutant under the floor still fails.
+- **axe accepts a placeholder as a field's name.** With its label unbound, the text field still passed axe's `label`
+  rule through its placeholder. Only the password field, which has none, failed. `check-build.ts`'s "the label names
+  the input" and the ARIA snapshot's `textbox "Email address"` cover what axe doesn't.
+- **Playwright's ARIA snapshot leaves out descriptions and some states.** The snapshot showed no `aria-describedby`
+  message and no required, read-only or busy states. So required, read-only, pending and rest fields looked the same.
+  They come from Chromium's tree now. CDP spells them three ways: `true`, `"true"` and `1` for busy.
+- **Storybook's preview forces every shadow root open.** It wraps `attachShadow` for its pseudo-states addon, on top
+  of the harness's recorder. A closed root therefore can't be told from an open one inside Storybook. The check fails
+  on any root, which is the stronger rule for light-DOM components.
+- **Read after a key press only once the page has settled.** The mutant that moves focus in a zero-delay timeout
+  passed at first, because focus was read in the same task as the press. The suite now waits two frames after each
+  press. It's the same lesson as #3945: "one task later" is the earliest a deferred effect runs.
+- **A Tab walk must start from the top.** The second hand mutation showed a `Shown` story starting its walk with focus
+  already on the input, so it found no stops. The walk now blurs first.
+
+### Effort
+
+- **Wall clock:** about 13:05 to 13:55 UTC for the audit, the three checks, the wiring, the mutations and this
+  entry; then the gate run.
+- **Steps:** about 45 tool calls:
+  - reading the plan, the journal, the existing checks and the defs: about 10;
+  - probes: 6;
+  - writing 4 files and wiring 6: about 10;
+  - running, fixing and mutating: about 20.
+- **Hand edits:** all of it. `aria-snapshots.json` is written by `--accept` and reviewed.
+- **Errors hit:** 7.
+  1. axe wants `browser.newContext()`, not `browser.newPage()`.
+  2. Three first mutants named the wrong thing: the placeholder fallback, a 1:1 contrast that axe leaves for review,
+     and a broken idref that axe also leaves for review.
+  3. CDP's `"true"` and `1` (above).
+  4. The read-after-press timing (above).
+  5. The Tab walk's start (above).
+  6. Storybook's forced-open shadow roots (above).
+  7. A probe script run as CommonJS, which rejects top-level await.
+
+**Local gate record** (`npm run verify`'s 115 gates, with `GITHUB_BASE_REF=poc/arm-1`, after `regen`, in chunks under
+10 minutes):
+- 110 PASS, 0 FAIL, and 3 not run locally, left to CI as before: `chrome`, `chrome-shards` and `plugin-test`.
+- The 2 derived rows, `drift-coverage` and `plugin-no-node-builtins`, are read from gates that passed.
+- `build-plugin-release` refuses locally ("the checkout is 39 commits behind origin/main"). `poc/arm-1` is never at
+  `main`'s tip, and the check is strict only outside CI, so it was run with `CI=true`, as CI runs it. It passed.
+- `storybook-a11y` took 220 seconds.
+
+### S5: complete and still missing
+
+**Complete:**
+- Storybook with every component in every state, in both forms (#3895, #3942).
+- axe over every story, in light and dark.
+- ARIA snapshots for each component and state, in both forms: the two forms agree with each other and with the
+  accepted record.
+- The scripted keyboard suite: Tab order, Space and Enter, the Show/Hide toggle, and focus-visible on keyboard only.
+- No shadow roots, closed or open.
+- Every check self-tests with mutants that fail by name, and runs in CI.
+
+**Still missing:**
+- **#3967 (OWNER DECISION):** the password field's Tab order against its def. It is held as a named exception.
+- **The two #3942 owner decisions:** an error with no message, and what the root entry registers. Neither is built.
+- **`addon-a11y` and `addon-vitest`** (item 5): axe inside Storybook's UI. The checks run from Playwright instead.
+- **A form-level focus move on submit, to the field or an error summary (#1712 A).** It is page behavior, and no
+  story has a form or an error summary.
+- **The HTML button's click suppression while inactive or pending.** The `@prism3/css` README leaves it to the page,
+  so only the element is held to it. That's documented, not a defect, but a client copying the HTML gets no
+  suppression.
+- **Right-to-left Tab order.** The password field's def asks for it, and there is no RTL story.
+- **Non-text contrast:** the focus ring, and the hover and pressed fills against the page. axe checks text contrast
+  only.
+- **The `hc-light` and `hc-dark` themes.** The toolbar shows light and dark only.
+- **Other browsers and real assistive tech.** Every check is Chromium. No WebKit or Firefox runs here, and no screen
+  reader pass (VoiceOver, NVDA).

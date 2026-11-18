@@ -1772,6 +1772,10 @@ npm run check:build -w @prism3/storybook   # needs Chromium; run AFTER the Story
                                           # holds exactly the check's own story list, each story
                                           # renders its component and forced state, and the element
                                           # and HTML stories of one case compute the same styles
+npm run check:a11y -w @prism3/storybook    # needs Chromium; run AFTER the Storybook build. axe on
+                                          # every story in light and dark; both forms' accessibility
+                                          # trees equal each other and aria-snapshots.json; the
+                                          # keyboard suite. Each check runs mutants that fail by name
 npx tsx packages/engine/lint-us-english.ts # run AFTER the web AND plugin builds — its scope is both
                                           # built bundles: apps/studio/dist/*.js and, since #937,
                                           # apps/plugin/dist (main.js + ui.html), where the component
