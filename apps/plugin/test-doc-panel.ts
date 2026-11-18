@@ -22,7 +22,10 @@
  *                   `legacy/family members`, `legacy/family edited`; the text check dropped → `legacy/edited`,
  *                   `legacy/family edited`, `family/kept`. Tabs' panel with its legend as drawn before #3265 ("4  Tab ×2")
  *                   is replaced too. Mutation: the labels before #3265 dropped from `writtenTexts` (the
- *                   `labelsBefore3265` line) → `legacy/merged legend`.
+ *                   `labelsBefore3265` line) → `legacy/merged legend`. Tabs' and Code input's panels with their entries as
+ *                   drawn before #2927 Q2927-R1 A (no disc, "4  Tabs 2–3", "4  Cells 1–6") are replaced too. Mutation:
+ *                   the numbered entry labels dropped from `writtenTexts` (the `${b.n}  ${b.label}` line) →
+ *                   `legacy/numbered tabs`, `legacy/numbered code-input`.
  *   replace/…       a second draw of an unedited panel replaces it: one panel, the earlier removed.
  *   hand edit/…     a panel whose text a designer changed is kept: renamed "(edited)", tagged kept, its edit intact, below
  *                   the fresh panel and clear of it, and named in the run's clauses; a third draw keeps it once and draws
@@ -1698,6 +1701,29 @@ section('legacy/… — a panel printed the old way, its set rebuilt since: repl
     const r3 = await drawDocPanel(ta, ts, tabs, { names });
     ok(swapped.length === 3 && texts(oldPanel).includes('4  Tab \u00d72') && r3.replaced === 1 && r3.kept.length === 0 && panelsOn(t).length === 1,
       `legacy/merged legend: an old-print panel whose legend reads "4  Tab \u00d72" is replaced, not kept (lines swapped ${swapped.length} of 3, replaced ${r3.replaced}, kept ${r3.kept.length})`);
+  }
+
+  // A PANEL DRAWN BEFORE #2927 (Q2927-R1 A): each anatomy entry was its Field alone, no disc, its label carrying the
+  // number ("4  Tabs 2\u20133", "4  Cells 1\u20136"). The repeats are the case only the numbered form in `writtenTexts` covers:
+  // a part's plain `n  name` line never reads "4  Tabs 2\u20133". Each entry is turned back into that form here, printed
+  // the old way, its set rebuilt: the panel still reads as Prism3's own text, so it is replaced, not kept aside.
+  for (const [id, want] of [['tabs', '4  Tabs 2\u20133'], ['code-input', '4  Cells 1\u20136']] as const) {
+    const d = componentDefs.find((x) => x.id === id)!;
+    const t = page(`\u21b3 ${id} legacy numbered`);
+    const ts = fakeSet(t, id);
+    const ta = host([t]);
+    await drawDocPanel(ta, ts, d, { names });
+    const oldPanel = panelsOn(t)[0];
+    const entries = partEntries(oldPanel);
+    for (const e of entries) {
+      e.row.children.splice(e.row.children.indexOf(e.disc), 1);
+      walk(e.row).find((c) => c.type === 'TEXT' && c.name === 'label')!.characters = `${e.num}  ${e.label}`;
+    }
+    await printOld(oldPanel);
+    rebuild(t, id);
+    const r4 = await drawDocPanel(ta, ts, d, { names });
+    ok(entries.length === 5 && texts(oldPanel).includes(want) && !partEntries(oldPanel).length && r4.replaced === 1 && r4.kept.length === 0 && panelsOn(t).length === 1,
+      `legacy/numbered ${id}: an old-print panel whose entries read "${want}", no disc, is replaced, not kept (entries ${entries.length}, replaced ${r4.replaced}, kept ${r4.kept.length})`);
   }
 
   // THE BUTTONS PAGE (#2968): four sets, laid out before one panel per family, each with its own panel printed the
