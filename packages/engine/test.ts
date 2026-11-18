@@ -2912,6 +2912,28 @@ for (const b of brands) {
     ok(JSON.stringify(defKeys) === '["interactive.primary.subtle-fill.selected"]' && defModes.every((m) => !!m.roles['interactive.primary.subtle-fill.selected']) && tintSame,
       `#288 the default (overlay-neutral) emits exactly one subtle fill, interactive.primary.subtle-fill.selected, in every mode, equal to the solid-tint value (got [${defKeys.join(', ')}], same as solid-tint: ${tintSame})`);
 
+    // #1182 — THE TOP OF THE LADDER. A fill the wash cannot make visible on any ground (here each mode's primary fill
+    // overridden to its own page step) walks hover's visibility climb to opacity.100. Pressed and selected then sit
+    // "at least one step above hover", which is past the end of the ladder: before #1182 that read `steps[11]` and
+    // wrote `alpha: NaN`, `tint.opacity: undefined` and "opacity.undefined" into both roles. Found by
+    // `noUncheckedIndexedAccess`; pressed now stays on the top step, the clamp the opaque-fill branch already takes.
+    {
+      const inp: any = { id: 'tint-top', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, outlineInteraction: 'solid-tint', modes: ['light', 'dark'] };
+      const base = brandTheme(inp);
+      const ns = base.palettes.find((p: any) => p.palette === base.roleToPalette.neutral)!.steps as Array<{ key: string }>;
+      const overrides: any = {};
+      for (const m of resolveAllModes(base)) {
+        const [pal, step] = m.roles['background.primary'].path.split('.').slice(-2);
+        overrides[m.mode] = { 'interactive.primary.fill.rest': { palette: 'neutral', step: pal === 'neutral' ? step : ns[0].key } };
+      }
+      const top = resolveAllModes(brandTheme({ ...inp, overrides }));
+      const cells = top.flatMap((m) => ['hover', 'pressed', 'selected'].map((st) => ({ at: `${m.mode} ${st}`, r: m.roles[`interactive.primary.subtle-fill.${st}`] })));
+      const hoverTop = top.every((m) => m.roles['interactive.primary.subtle-fill.hover']?.tint?.opacity === 100);
+      const bad = cells.filter(({ r }) => !r || !Number.isFinite(r.alpha) || typeof r.tint?.opacity !== 'number' || r.description.includes('undefined')).map(({ at, r }) => `${at}: alpha ${r?.alpha}, opacity ${r?.tint?.opacity}`);
+      ok(hoverTop && bad.length === 0,
+        `#1182 a wash invisible at every step: hover climbs to opacity.100 (${hoverTop}) and every subtle fill still carries a real step — [${bad.join('; ')}]`);
+    }
+
     // #898 — the inverse/dark-band surface may name a NON-neutral palette (a brand-navy hero), not just
     // a neutral step. Bare number / white / black stay NEUTRAL (back-compat); `{ palette, step }` names
     // a declared non-status palette. Status palettes are rejected. All read off the real resolution.
