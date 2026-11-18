@@ -346,6 +346,37 @@ ok(store.getPath(o, 'a.b.c') === 3 && store.getPath(o, 'a.x.c') === undefined, '
     '#3880 reload: the next load is guarded — replacing the brand asks first, as before the reload');
   ok(same(store.provenance.baseline, aurora), '#3880 reload: the restored baseline is the example as shipped, not the edited brand');
 
+  // A slider drag stores its edit once, on release (`holdPersist` … `releasePersist`, #2487 B1): that write must pair the
+  // brand with the provenance of the load it edits, not the boot's (#4049 review). The session boots on a file first, so
+  // the boot's provenance and the example's differ, then loads the example and drags.
+  // Mutation that fails here BY NAME: `releasePersist` writing `bootProvenance` → `#3880 reload: a dragged edit still counts`.
+  map.clear();
+  store.initSession(structuredClone(aurora), { kind: 'file' });
+  store.setPersist((input, prov) => persistInput(local, input, prov));
+  store.loadInput(structuredClone(aurora), { kind: 'example', id: 'aurora' });
+  const dragH = (aurora.primary.h + 80) % 360;
+  store.holdPersist();
+  store.brandState.primary.h = dragH;
+  store.rebuild();
+  const held = JSON.parse(map.get(BRAND_KEY) ?? 'null')?.input?.primary?.h;
+  store.releasePersist();
+  const released = JSON.parse(map.get(BRAND_KEY) ?? 'null')?.input?.primary?.h;
+  store.setPersist(null);
+  ok(store.lastError === null && held === aurora.primary.h && released === dragH,
+    `#3880 premise: a held drag stores nothing until its release, then stores the dragged brand (held h ${held}, released h ${released}, dragged h ${dragH})`);
+  reload();
+  ok(store.brandState.primary.h === dragH && same(store.provenance.origin, { kind: 'example', id: 'aurora' })
+    && same(store.provenance.baseline, aurora) && editCount(store.brandState, store.provenance.baseline) === 1
+    && needsOverwriteConfirm(store.brandState, store.provenance),
+    `#3880 reload: a dragged edit still counts — stored on release beside the example's origin and baseline, 1 edit, the next load guarded (origin ${JSON.stringify(store.provenance.origin)}, edits ${editCount(store.brandState, store.provenance.baseline)})`);
+  // Put back the stored state the arms below start from: the aurora example with the one edit above.
+  map.clear();
+  store.setPersist((input, prov) => persistInput(local, input, prov));
+  store.loadInput(structuredClone(aurora), { kind: 'example', id: 'aurora' });
+  store.brandState.primary.h = h;
+  store.rebuild();
+  store.setPersist(null);
+
   // Storage written before #3880 holds the brand alone: it restores as it always did.
   map.delete(ORIGIN_KEY);
   reload();
