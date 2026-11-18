@@ -162,7 +162,7 @@ const boundIdOf = (n: HostNode, prop: string): string | null => {
   // (all four present) as satisfying the check, resolving through any one side — they name one variable.
   // A partial per-side binding is NOT accepted: that is a genuine miss the reader must still report.
   if (prop === 'strokeWeight' && STROKE_WEIGHT_SIDES.every((k) => typeof bv?.[k]?.id === 'string'))
-    return bv![STROKE_WEIGHT_SIDES[0]].id as string;
+    return bv?.[STROKE_WEIGHT_SIDES[0]]?.id as string; // every side's id is a string, checked just above
   return null;
 };
 
@@ -535,7 +535,7 @@ export const FIELDS: Record<string, FieldCheck> = {
       const par = n.parent as { width?: unknown; height?: unknown } | null | undefined;
       const [pw, ph, x, y, w, h] = [par?.width, par?.height, n.x, n.y, n.width, n.height];
       if (![pw, ph, x, y, w, h].every((v) => typeof v === 'number')) return 'no parent box / x / y / size to measure the inset on';
-      const [PW, PH, X, Y, W, H] = [pw, ph, x, y, w, h] as number[];
+      const [PW, PH, X, Y, W, H] = [pw, ph, x, y, w, h] as [number, number, number, number, number, number];
       const ok = (a: number, b: number): boolean => Math.abs(a - b) < 0.01;
       return ok(W, PW * s) && ok(H, PH * s) && ok(X, (PW - W) / 2) && ok(Y, (PH - H) / 2)
         ? null
@@ -754,9 +754,10 @@ export const FIELDS: Record<string, FieldCheck> = {
       if (!props || typeof props !== 'object') return `componentProperties=${str(props)} — the instance holds no component properties to override`;
       const bad: string[] = [];
       for (const o of p as readonly NestOverride[]) {
-        const keys = Object.keys(props).filter((k) => k.split('#')[0] === o.property && props[k].type === o.type);
-        if (keys.length !== 1) { bad.push(`${o.property}: ${keys.length} ${o.type} properties of that name`); continue; }
-        const v = props[keys[0]].value;
+        const hits = Object.entries(props).filter(([k, d]) => k.split('#')[0] === o.property && d.type === o.type);
+        const [hit] = hits;
+        if (hits.length !== 1 || !hit) { bad.push(`${o.property}: ${hits.length} ${o.type} properties of that name`); continue; }
+        const v = hit[1].value;
         if (o.type === 'TEXT') { if (v !== o.value) bad.push(`${o.property}=${str(v)}`); continue; }
         if (!ports.componentById) { bad.push(`${o.property}: unreadable (no component-by-id port)`); continue; }
         const name = ports.componentById(String(v));
@@ -775,9 +776,9 @@ export const FIELDS: Record<string, FieldCheck> = {
       const props = (n.componentProperties ?? {}) as Record<string, { type?: unknown; value?: unknown }>;
       const bad: string[] = [];
       for (const [prop, want] of Object.entries(p as Record<string, string>)) {
-        const key = Object.keys(props).find((k) => k.split('#')[0] === prop && props[k].type === 'TEXT');
-        if (!key) bad.push(`${prop}→NO TEXT PROPERTY`);
-        else if (props[key].value !== want) bad.push(`${prop}=${str(props[key].value)}`);
+        const hit = Object.entries(props).find(([k, d]) => k.split('#')[0] === prop && d.type === 'TEXT');
+        if (!hit) bad.push(`${prop}→NO TEXT PROPERTY`);
+        else if (hit[1].value !== want) bad.push(`${prop}=${str(hit[1].value)}`);
       }
       return bad.length ? bad.join(', ') : null;
     },
@@ -879,6 +880,7 @@ export const FIELDS: Record<string, FieldCheck> = {
       const bad: string[] = [];
       want.stops.forEach((s, i) => {
         const g = got[i];
+        if (!g) { bad.push(`stop ${i} missing`); return; } // `got` has as many stops as `want`, so only a null entry lands here
         if (g.position !== s.position) bad.push(`stop ${i} at ${str(g.position)}`);
         const id = g.boundVariables?.color?.id;
         if (typeof id !== 'string') { bad.push(`stop ${i} NOT BOUND`); return; }

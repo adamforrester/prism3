@@ -54,7 +54,7 @@ Use tabs to switch between peer sections of related content in one place, one at
 ## Accessibility
 
 - **Keyboard:** Tab moves into the list, landing on the selected tab, and the next Tab moves into the panel. Left and Right move between tabs (Up and Down when vertical), wrapping at the ends; Home and End go to the first and last. With automatic activation, moving focus selects; with manual activation, Enter or Space selects.
-- **Focus:** Focus stays on the tab after it is selected, so arrowing continues. The panel takes focus as a whole (tabindex="0").
+- **Focus:** Focus stays on the tab after it is selected, so arrowing continues. The panel takes focus as a whole (`tabindex="0"`).
 - **Screen readers:** tablist containing tabs, each tab controlling one tabpanel
 
   role="tablist" with an aria-label or aria-labelledby; aria-selected on every tab; aria-controls from each tab to its panel and aria-labelledby back. Never use tabs to change the page: a route change is a navigation of links with aria-current.
@@ -87,7 +87,7 @@ One or two words per tab, nouns, sentence case.
 - **Often used with:** `badge`, `icon`
 - **Replaces:**
   - show and hide divs with no tab semantics
-  - role="tab" on links that change the route
+  - `role="tab"` on links that change the route
 
 ## Building it in code
 
