@@ -52,7 +52,8 @@
  *      became a caption (#3610, owner Q-UG1 A), no Anatomy line without one (`UNCAPTIONED PART`), with role and
  *      ARIA under one Screen readers row (`SCREEN READERS`); F5 the
  *      maintainer record's `docGaps` names every section not drawn and every part note held back.
- *   G  THE COMPONENT-DEFS EXPORT (#3425). `out/components/component-defs.json` validates against the AUTHORED
+ *   G  THE COMPONENT-DEFS EXPORT (#3425). `out/components/component-contracts.json` (#1325) is byte-identical to its
+ *      compatibility copy `component-defs.json` (`DEFS TWIN`), which validates against the AUTHORED
  *      `schema/component-defs.schema.json`, its `format` names the schema's `$id`, its two version stamps are
  *      `version.ts`'s, and it holds every registered def and no other; each entry's `def` IS its `components.ai.json`
  *      entry and its `spec` IS its `specs.json` entry, and its `digest` is the FNV-1a of the two, recomputed here
@@ -104,7 +105,7 @@ import { docSections } from './component-doc-sections';
 import { componentDefs } from './components/index';
 import { validate } from './json-schema-lite';
 import { codeOnlyText, DISPOSITION_NAMES } from './code-only-register';
-import { exportComponentDefs } from './component-defs-export';
+import { componentDefsFileNames, exportComponentDefs } from './component-defs-export';
 import { buildIdentity } from './build-identity';
 import type { BrandInput } from './theme';
 import { CONTRACT_VERSION, ENGINE_VERSION } from './version';
@@ -783,6 +784,14 @@ const DEFS_FILE = uncommitted('component-defs.json');
 const DEFS_SCHEMA = JSON.parse(readFileSync(resolve(here, 'schema', 'component-defs.schema.json'), 'utf8'));
 const fnv = (str: string): string => { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); };
 let defsChecked = 0;
+// #1325 (owner decision Q-CC1 A): the export is published under its contract name, `component-contracts.json`, and
+// `component-defs.json` stays beside it as a compatibility copy for one release. The copy must be the SAME BYTES, so every
+// check below, made on the old name, holds for the new one; a twin that drifted would be a second export nothing checks.
+// The name is read from the exporter's own constant, the one thing the owner may still rename; the bytes are compared.
+const CONTRACTS_FILE = uncommitted(componentDefsFileNames(null).contracts);
+if (!CONTRACTS_FILE || !existsSync(CONTRACTS_FILE)) note(`DEFS TWIN: the rendered ${componentDefsFileNames(null).contracts} does not exist — the export's contract-named file (#1325)`);
+else if (existsSync(DEFS_FILE) && readFileSync(CONTRACTS_FILE, 'utf8') !== readFileSync(DEFS_FILE, 'utf8'))
+  note(`DEFS TWIN: ${componentDefsFileNames(null).contracts} and its compatibility copy component-defs.json differ — they must be the same bytes (#1325)`);
 if (!existsSync(DEFS_FILE)) note('DEFS EXPORT: the rendered component-defs.json does not exist');
 else {
   const defsText = readFileSync(DEFS_FILE, 'utf8');

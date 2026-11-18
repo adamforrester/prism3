@@ -83,6 +83,7 @@ apps/plugin/test-canvas-furniture.ts #2723
 apps/plugin/test-canvas-furniture.ts #2803
 apps/plugin/test-canvas-furniture.ts #2828
 apps/plugin/test-canvas-furniture.ts #3467
+apps/plugin/test-component-specs-export.ts #1325
 apps/plugin/test-doc-panel.ts #2858
 apps/plugin/test-doc-panel.ts #2889
 apps/plugin/test-doc-panel.ts #2916
@@ -444,6 +445,7 @@ apps/plugin/test-write-preflight.ts #3556
 apps/plugin/test-write-preflight.ts #3557
 apps/plugin/test-write-preflight.ts #3558
 apps/plugin/test-write-preflight.ts #506
+apps/plugin/test-write-typography.ts #1090
 apps/plugin/test-write-typography.ts #1296
 apps/plugin/test-write-typography.ts #1485
 apps/plugin/test-write-typography.ts #1789
@@ -591,6 +593,7 @@ apps/studio/test-chrome.mjs #3170
 apps/studio/test-chrome.mjs #3177
 apps/studio/test-chrome.mjs #3199
 apps/studio/test-chrome.mjs #3245
+apps/studio/test-chrome.mjs #3263
 apps/studio/test-chrome.mjs #3298
 apps/studio/test-chrome.mjs #3302
 apps/studio/test-chrome.mjs #3305
@@ -851,6 +854,7 @@ packages/engine/test.ts #1089
 packages/engine/test.ts #1097
 packages/engine/test.ts #1102
 packages/engine/test.ts #1108
+packages/engine/test.ts #1119
 packages/engine/test.ts #1134
 packages/engine/test.ts #1140
 packages/engine/test.ts #1142
@@ -892,6 +896,7 @@ packages/engine/test.ts #1305
 packages/engine/test.ts #1316
 packages/engine/test.ts #1317
 packages/engine/test.ts #1318
+packages/engine/test.ts #1325
 packages/engine/test.ts #1330
 packages/engine/test.ts #1331
 packages/engine/test.ts #1333
