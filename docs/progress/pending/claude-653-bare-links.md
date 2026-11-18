@@ -14,8 +14,10 @@ and nothing needed narrowing. The real run has a floor of 50 bare links, so an e
 broken, not clean.
 
 **Not claims.** A URL (any `scheme:`), a fragment-only `#anchor`, a placeholder, a link inside a fence, and link syntax
-quoted in a code span. That last one is an example of a link. `./` and `../` targets stay arm A's. Reference-style
-definitions (`[x]: path`) are not read, and none of the scanned documents uses one.
+quoted in a code span. That last one is an example of a link. `./` and `../` targets stay arm A's. The target is
+percent-decoded before it resolves, as a renderer does, so a correct `%20` link to a tracked path with a space passes.
+Three forms are not read, a stated false-negative limit in the header: reference-style definitions (`[x]: path`), a
+target with a title (`[x](path "t")`) and an angle-bracket target. None of the scanned documents uses any of them.
 
 **Checked.**
 - Before and after: a bare `[the dashboard](web/)` appended to `CONTRIBUTING.md`, with an untracked `web/` on disk. Main's
@@ -25,5 +27,9 @@ definitions (`[x]: path`) are not read, and none of the scanned documents uses o
 - Mutations, each failing the self-check by name: resolving from the repo root instead of the document's directory
   ("arm D resolves a bare link from the repo root…"), and not stripping code spans ("arm D reads a non-claim as a bare
   link: web/").
+- Review fix: before, a root-relative `%20` link to the tracked `reference/` directory with a space in its name failed as
+  dead. After, it passes. The self-check gains a percent-encoded fixture. Dropping the decode fails it as "arm D flags a
+  correct percent-encoded link (false positive)". Decoding without the `try` throws `URIError` on the malformed-escape
+  fixture.
 
 Gate only, so no `changes/` note.

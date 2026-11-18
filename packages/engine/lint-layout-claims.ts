@@ -60,8 +60,14 @@
  *    root, so that is how this arm resolves them. Measured when it landed: 112 bare links across the
  *    scanned documents, 0 dead, so it went green on day one with no noise to narrow away. A URL
  *    (any `scheme:`), a fragment-only `#anchor`, a placeholder and anything inside a code span are not
- *    claims: a code span that quotes link syntax is an example of a link, not a link. Reference-style
- *    definitions (`[x]: path`) are not read; none of the scanned documents uses one.
+ *    claims: a code span that quotes link syntax is an example of a link, not a link. The target is
+ *    percent-decoded before it resolves, as a renderer does, so a correct link to a tracked path with
+ *    a space (`two%20words/`) passes. An image (`![alt](path)`) is read the same way: a dead image is a
+ *    dead path claim.
+ *    STATED LIMIT — three link forms are not read, so a dead target in one passes silently (a false
+ *    negative, never a false positive): reference-style definitions (`[x]: path`), a target followed by
+ *    a title (`[x](path "title")`), and an angle-bracket target (`[x](<a b.md>)`). None of the scanned
+ *    documents uses any of the three when this was written.
  *
  * ── SCOPE IS DECLARED, NOT INFERRED ─────────────────────────────────────────────────────────────
  *
@@ -259,8 +265,10 @@ export const bareLinkClaims = (text: string, docDir: string): Claim[] => {
       const tok = m[1].trim();
       if (SCHEME.test(tok) || tok.startsWith('#') || tok.startsWith('./') || tok.startsWith('../')) continue;
       if (PLACEHOLDER.test(tok)) continue;
-      const path = stripFragment(tok);
+      let path = stripFragment(tok);
       if (!path) continue;
+      // A renderer percent-decodes a link target, so `two%20words/` claims the path `two words/`.
+      try { path = decodeURIComponent(path); } catch { /* a malformed escape stays raw */ }
       const r = path.startsWith('/') ? resolveWithin('', path) : resolveWithin(docDir, path);
       if (r !== null) out.push({ line: i + 1, ref: tok, resolved: r });
     }
@@ -365,6 +373,7 @@ const FIXTURE_TRACKED = trackedFrom([
   'packages/engine/README.md', 'packages/engine/write-plan.ts', 'packages/engine/schema/theme.json',
   'packages/tokens/README.md',
   'docs/09-architecture-and-repos.md', 'skills/prism3-theme/SKILL.md', 'reference/nb/core.json',
+  'reference/two words/core.json',
   '.github/workflows/ci.yml',
 ]);
 const FIXTURE_SUBJECTS = layoutSubjects(FIXTURE_TRACKED, ['apps/*', 'packages/*']);
@@ -497,6 +506,17 @@ if (resolveWithin('', '../../packages/engine') !== null) selfFails.push('a ref e
   if (live.length !== 4) selfFails.push(`arm D extracted ${live.length} of 4 bare links from the live fixture — the extractor drops a form`);
   if (deadClaims(FIXTURE_TRACKED, live).length) {
     selfFails.push(`arm D flags a live bare link (false positive): ${deadClaims(FIXTURE_TRACKED, live).map((c) => c.ref).join(', ')}`);
+  }
+  // A tracked path with a space is written `%20` in a correct link, and a renderer decodes it. Reading
+  // the target raw asks git for a literal `%20` path and flags a correct link (the CHANGES verdict on
+  // #3989). A malformed escape is kept raw rather than thrown on.
+  const spaced = bareLinkClaims('a [spaced](/reference/two%20words/) and [file](reference/two%20words/core.json#top)\n', '');
+  if (spaced.length !== 2) selfFails.push(`arm D extracted ${spaced.length} of 2 percent-encoded links`);
+  if (deadClaims(FIXTURE_TRACKED, spaced).length) {
+    selfFails.push(`arm D flags a correct percent-encoded link (false positive): ${deadClaims(FIXTURE_TRACKED, spaced).map((c) => c.resolved).join(', ')}`);
+  }
+  if (!bareLinkClaims('a [bad](web%ZZ/)\n', '').some((c) => c.resolved === 'web%ZZ')) {
+    selfFails.push('arm D drops or throws on a malformed percent escape instead of keeping it raw');
   }
   const notClaims = bareLinkClaims([
     'a [site](https://example.com/web/) and [mail](mailto:a@b.c) and [here](#web)',
