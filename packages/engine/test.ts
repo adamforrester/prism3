@@ -41129,8 +41129,8 @@ arm: {
   const unbacked = withMirrors(breadcrumbSep, { chevronGlyph: 'never' });
   const toRow = withMirrors(breadcrumbSep, { frame: 'reverses' });
   ok(disagreements(breadcrumbSep).length === 0 && disagreements(toRow).some((b) => /states row/.test(b))
-    && disagreements(unbacked).some((b) => /prose states flip/.test(b)) && disagreements(flipped).length === 0,
-    '#3986: the arm names a part stating what the prose does not (row) and prose no part states (flip)');
+    && disagreements(unbacked).some((b) => /prose states flip/.test(b)) && disagreements(flipped).some((b) => /prose states hold/.test(b)),
+    '#3986: the arm names a part stating what the prose does not (row) and prose no part states (flip; hold)');
 
   // The icon set's per-glyph list: every name a glyph the set has, and both kinds present, so `per-glyph` means both.
   const notGlyphs = [...RTL_MIRRORED_GLYPHS].filter((g) => !(g in ICON_SOURCES));
