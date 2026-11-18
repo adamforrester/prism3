@@ -196,10 +196,13 @@ if (!import.meta.url.endsWith('?cov')) {
       const unexecuted: string[] = [];
       const source = readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n');
       // #3985: a span this run SKIPPED (by its label, recorded at runtime by `skip`) is exempt, every site in it
-      // counted as skipped, never as ran. Its markers must each occur once, in order.
+      // counted as skipped, never as ran. So is a span whose premise FAILED by name (`failSpan`): the run already
+      // fails for that, and its sites are reported as not run, not as a second, unnamed failure. Its markers must
+      // each occur once, in order.
       const skippedNow = ((globalThis as Record<string, unknown>).__prism3SkippedSpans ?? new Map()) as Map<string, string>;
+      const failedNow = ((globalThis as Record<string, unknown>).__prism3FailedSpans ?? new Map()) as Map<string, string>;
       const skippedLines = new Map<number, string>();
-      for (const label of skippedNow.keys()) {
+      for (const label of new Set([...skippedNow.keys(), ...failedNow.keys()])) {
         const at = (edge: string) => source.flatMap((l, i) => (l.trim() === `// #1268 SKIPPABLE SPAN ${label} ${edge}` ? [i] : []));
         const [b, e] = [at('BEGIN'), at('END')];
         if (b.length !== 1 || e.length !== 1 || e[0] < b[0]) { siteFails.push(`the skipped span '${label}' has ${b.length} BEGIN and ${e.length} END marker(s) — it must have one of each, in order, or nothing can be exempted`); continue; }
@@ -223,7 +226,9 @@ if (!import.meta.url.endsWith('?cov')) {
           if (n === 0) unexecuted.push(`test.ts:${i + 1}  ${t.slice(0, 110)}`);
         }
       });
-      for (const [label, n] of skippedSites) console.log(`  ⊘ assertion sites (#1268): ${n} site(s) in '${label}' SKIPPED, not run and not passed — ${skippedNow.get(label)}`);
+      for (const [label, n] of skippedSites) console.log(skippedNow.has(label)
+        ? `  ⊘ assertion sites (#1268): ${n} site(s) in '${label}' SKIPPED, not run and not passed — ${skippedNow.get(label)}`
+        : `  ⊘ assertion sites (#1268): ${n} site(s) in '${label}' not run, because its premise FAILED by name above — ${failedNow.get(label)}`);
       if (unexecuted.length) siteFails.push(`${unexecuted.length} assertion site(s) never ran — a section went quiet and its arms passed by not asking. If a site can only fire on failure, make its first argument the literal \`false\`, inside the branch that detects it:\n      ${unexecuted.slice(0, 25).join('\n      ')}${unexecuted.length > 25 ? `\n      … and ${unexecuted.length - 25} more` : ''}`);
       if (!sites) siteFails.push('the scan found no `ok` call sites at all — the scan is broken, not the suite');
       if (controls && !controlZeros) siteFails.push(`none of the ${controls} failure-only sites (first argument the literal \`false\`) reads as unexecuted — on a green run that means the coverage probe cannot see a zero, and every site above "ran" by construction`);
@@ -244,8 +249,14 @@ const ok = (cond: boolean, msg: string) => { if (cond) pass++; else fails.push(m
 // exempts them only when THIS run recorded that label; the arm that skips asserts by count that its span recorded
 // no assertion (coverage cannot see that zero, #3987). The map is on
 // `globalThis` because the `?cov` instance that records a skip is not the outer instance that reads coverage.
+//   A skip still EXITS 0, so `verify.ts` reads this suite as PASS and the skip shows only in this suite's own
+// output. That includes a local prism3 checkout without `GITHUB_REPOSITORY`: a shallow clone of prism3 skips
+// there rather than failing. CI guards it (`fetch-depth: 0` plus `GITHUB_REPOSITORY`, where a broken premise
+// FAILS by name and `failSpan` records the span as not run, so the #1268 probe adds no second, unnamed failure).
 const skippedSpans = ((globalThis as Record<string, unknown>).__prism3SkippedSpans ??= new Map<string, string>()) as Map<string, string>;
 const skip = (label: string, why: string): void => { skippedSpans.set(label, why); };
+const failedSpans = ((globalThis as Record<string, unknown>).__prism3FailedSpans ??= new Map<string, string>()) as Map<string, string>;
+const failSpan = (label: string, why: string): void => { failedSpans.set(label, why); };
 // A THROW NOTHING CAUGHT STILL NAMES WHAT FAILED BEFORE IT (#1814 review). Without this, an arm that records
 // a failure and a later line that throws print only the stack: the review's mutation that let the chunk
 // packer empty a chunk failed `#1814 settleChunks` by name, then crashed the first `planSetChunks` call
@@ -38432,7 +38443,10 @@ arm: {
         if (unset.length) premiseBroken.push(`no single-parent commit in the history of ${at} sets ${unset.slice(0, 5).join(', ')}${unset.length > 5 ? ` and ${unset.length - 5} more` : ''}, so the folds the tree's release notes name are not in it`);
       }
       const inPrism3 = process.env.GITHUB_REPOSITORY === 'adamforrester/prism3';
-      if (premiseBroken.length && inPrism3) for (const b of premiseBroken) ok(false, `#3985 integration replay: in prism3's own CI its premise must hold, and it does not — ${b}`);
+      if (premiseBroken.length && inPrism3) {
+        for (const b of premiseBroken) ok(false, `#3985 integration replay: in prism3's own CI its premise must hold, and it does not — ${b}`);
+        failSpan('integration-replay', premiseBroken.join('; '));
+      }
       else if (premiseBroken.length) skip('integration-replay', `#3833/#3863: the replays of prism3's own history cannot run here: ${premiseBroken.join('; ')}`);
     }
     const assertedBefore = pass + fails.length;
@@ -38531,7 +38545,7 @@ arm: {
     }
     // #1268 SKIPPABLE SPAN integration-replay END
     }
-    if (skippedSpans.has('integration-replay') && pass + fails.length !== assertedBefore)
+    if ((skippedSpans.has('integration-replay') || failedSpans.has('integration-replay')) && pass + fails.length !== assertedBefore)
       ok(false, `#3985 integration replay: the span was skipped and still recorded ${pass + fails.length - assertedBefore} assertion(s) — a skip that asserts is not a skip`);
   } finally {
     rmSync(work, { recursive: true, force: true });
