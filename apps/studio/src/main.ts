@@ -393,6 +393,9 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   advanceUpdate(m, prev);
   // #3081 Q810 A: a write's verdict, or a fresh read of the file's sets, may change what Update file would change.
   if (DUE_AFTER.has(m.kind)) recountDue();
+  // #2956: "Turn off updates" / "Turn updates back on" answered, written or not: Update file reads the file again, against
+  // the brand its Theme tick picked when asked, and its checklist redraws in place from that answer.
+  if (m.kind === 'updates-off') commit.requestFileSets(panelBrand(updatesOffTheme));
   const effect = brandEffectFor(m, prev, host);
   // #3697 R9: a Theme write that landed stores the panel's brand in the file, so the held one is no longer the file's.
   if (heldRestore && m.kind === 'apply-result' && m.ok) {
@@ -2255,7 +2258,7 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
 let dueSeq = 0;
 let dueTimer: ReturnType<typeof setTimeout> | null = null;
 // #3137: and Documentation's answer (the panels switch moves the Usage panels item) and Clean up's panels removal.
-const DUE_AFTER: ReadonlySet<string> = new Set(['file-sets', 'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'agent-finished', 'doc-settings', 'panels-clean-result']);
+const DUE_AFTER: ReadonlySet<string> = new Set(['file-sets', 'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'agent-finished', 'doc-settings', 'panels-clean-result', 'updates-off']);
 /** Whether the panel holds a brand of its own to count against: one is chosen, and it resolved. */
 const liveShown = (): boolean => !restoreFailure && !firstRun() && provenance !== bootProvenance;
 const recountDue = (): void => {
@@ -2331,6 +2334,9 @@ const reportLend: ReportLend = {
   },
   openUrl: (url) => commit.openIssue(url),
 };
+/** #2956: whether Theme was ticked when Update file last turned a set's updates off or back on: the read that follows
+ *  measures against the brand that tick picks, as the checklist's own reads do. */
+let updatesOffTheme = false;
 const updateFileLend: UpdateFileLend = {
   read: () => ({
     fileSets: host.fileSets, liveDue: liveShown() ? host.liveDue : null, catalog: componentCatalog(), run: updateRun, stopped: updateStopped, off: writeOff(),
@@ -2338,8 +2344,9 @@ const updateFileLend: UpdateFileLend = {
     retired: host.styleGuideRetired, cleanupBusy: host.styleGuideCleanup === 'pending' || host.styleGuideState === 'pending' || agentRunning('styleguide'),
     handEdits: host.handEdits, updateCheck: host.updateCheck, updateProgress: host.updateProgress, queue: host.addQueue, panels: host.docSettings?.panels !== false,
     rowState: (id) => rowState(stripRun, id), stopLabel: () => { const v = statusLend.read(); return v.kind === 'running' ? v.stop.label : null; },
-    panelsOff: host.docSettings?.panels === false, panelsClean: host.panelsClean,
+    panelsOff: host.docSettings?.panels === false, panelsClean: host.panelsClean, updatesOffError: host.updatesOffError,
   }),
+  setUpdatesOff: (def, off, theme) => { if (!commit.isFigma) return; updatesOffTheme = theme; commit.postUpdatesOff(def, off); },
   panelsClean: (confirm) => panelsClean(confirm),
   queueSets,
   check: (theme) => commit.requestFileSets(panelBrand(theme)),

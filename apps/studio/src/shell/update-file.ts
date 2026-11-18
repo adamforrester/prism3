@@ -51,7 +51,7 @@
 import { subscribe } from '../state/store';
 import type { Catalog } from '../state/component-catalog';
 import { displayNameOf, groupsOf, GROUPS_COPY, sentenceCase } from '../state/component-groups';
-import { alsoAddsOf, awaitingRead, compsOpensOf, badgeParts, blockedDueOf, blockedReason, goWhyOf, checkScopeOf, defaultTicks, dueSetsOf, themeDueOf, themeMatchesOf, newSetsOf, panelSetsOf, keptChoicesOf, keptSetsOf, libraryChangesOf, queuedOf, recheckFirst, runOrderOf, setupOfferedOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
+import { offReasonOf, offSetsOf, alsoAddsOf, awaitingRead, compsOpensOf, badgeParts, blockedDueOf, blockedReason, goWhyOf, checkScopeOf, defaultTicks, dueSetsOf, themeDueOf, themeMatchesOf, newSetsOf, panelSetsOf, keptChoicesOf, keptSetsOf, libraryChangesOf, queuedOf, recheckFirst, runOrderOf, setupOfferedOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
 import type { CheckedSetView } from '../write-adapter';
 import type { UpdateProgress } from '../state/host-session';
 import { armEnter, entering, focusables, glyph, h, hook, leave, pendingLabel, setBusy, trapTab } from './dom';
@@ -95,7 +95,12 @@ export type UpdateFileLend = {
     /** #3137 Q3137.7 A: Documentation has the usage panels off, as the host last said; and Clean up's panels item. */
     readonly panelsOff: boolean;
     readonly panelsClean: { readonly busy: false | 'count' | 'remove'; readonly count: { readonly drawn: number; readonly removable: number } | null };
+    /** #2956: the last "Turn off updates" / "Turn updates back on" the host could not write, and why; null otherwise. */
+    readonly updatesOffError: { readonly def: string; readonly off: boolean; readonly error: string } | null;
   };
+  /** #2956 (owner decisions 2026-11-17): turn the set's updates off (`off`) or back on (`updates-off`); `theme` is Theme's
+   *  tick, which picks the brand the read that follows measures against. */
+  readonly setUpdatesOff: (def: string, off: boolean, theme: boolean) => void;
   /** #3137 Q3137.7 A: count the drawn usage panels (`confirm` false), or remove the unedited ones (`panels-clean`). */
   readonly panelsClean: (confirm: boolean) => void;
   /** #3129: queue `ids` in the file (`on`), or take them out (`add-queue`). */
@@ -324,6 +329,19 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     const panelSets = panelSetsOf(r.catalog, f, r.queue);
     // #3421 (Q39 A): the sets whose last update kept hand edits over changes the plan makes.
     const keptSets = keptSetsOf(r.catalog, f);
+    // #2956: the sets whose updates are off; never due, never in the check.
+    const offSets = offSetsOf(r.catalog, f);
+    /** #2956: turn a set's updates off or back on. The file is read again, as a Theme toggle reads it (#3713 4 of 4): the
+     *  checklist stays as drawn meanwhile, and the answer ticks the due sets afresh, so a set turned off leaves Due and one
+     *  turned back on that is due joins it, ticked. */
+    const setOff = (id: string, off: boolean): void => {
+      rechecking = true;
+      asked = f;
+      checkedFor = null;
+      seen.clear();
+      lend.setUpdatesOff(id, off, t.theme);
+      paint();
+    };
     // The full check, over the due sets (and, #3137 Q3137.2 A, the panel sets while ticked), once per opening, as soon as
     // the ledger's answer is in.
     const scope = checkScopeOf(due, t, panelSets, keptSets);
@@ -425,6 +443,13 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
         if (entering(`update-line=${id}`)) line.dataset.land = 'true';
         if (!shown && chk === 'pending') pending.add(id);
         row.append(box, line);
+        // #2956 (OWNER DECISION: where it sits; built as recommended): a quiet ghost action after the row's line. Not offered
+        // on a single-component def, which has no set node to carry the mark.
+        if (r.catalog.find((e) => e.id === id)?.unit !== 'components') {
+          const off = btn('p3-btn p3-btn-ghost p3-upd-turnoff', 'update-turn-off', `turn-off=${id}`, UPDATE_COPY.turnOff, () => setOff(id, true));
+          off.setAttribute('aria-label', UPDATE_COPY.turnOffName(nameOf(id)));
+          row.append(off);
+        }
         list.append(row);
         // #2831: on a published set, what the update breaks for library consumers, beside the set.
         if (shown?.breaks && !shown.blocked) list.append(hook(h('p', 'p3-sub p3-upd-setline p3-upd-breaks', shown.breaks), 'update-set-breaks'));
@@ -544,13 +569,38 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       grp.append(list);
       comps.append(grp);
     }
+    // #2956 (owner decisions 2026-11-17): Updates off, the last subtitle: each set Update file leaves as it is, its tag, the
+    // quiet reason line only when the update turned it off by itself, and "Turn updates back on". Nothing to tick.
+    if (offSets.length) {
+      const { grp } = inset('update-group-off', UPDATE_COPY.off);
+      grp.append(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.offSub(offSets.length)), 'update-off-line'));
+      const list = hook(h('div', 'p3-upd-sets'), 'update-off-sets');
+      for (const id of offSets) {
+        const row = hook(h('div', 'p3-upd-setrow p3-upd-krow'), 'update-off-row');
+        row.dataset.id = id;
+        const head = h('div', 'p3-upd-kname');
+        const text = h('span', 'p3-check-text p3-upd-checktext');
+        text.append(h('span', 'p3-upd-setname', nameOf(id)), hook(h('span', 'p3-sg-tag', UPDATE_COPY.off), 'update-off-tag'));
+        head.append(text);
+        const why = offReasonOf(f.due[id]);
+        if (why) head.append(hook(h('p', 'p3-sub p3-upd-setline', why), 'update-off-reason'));
+        const on = btn('p3-btn p3-btn-page', 'update-turn-on', `turn-on=${id}`, UPDATE_COPY.turnOn, () => setOff(id, false));
+        on.setAttribute('aria-label', UPDATE_COPY.turnOnName(nameOf(id)));
+        row.append(head, on);
+        list.append(row);
+      }
+      grp.append(list);
+      comps.append(grp);
+    }
+    // #2956: a turn off or back on the host could not write says so, in the check's own error ink. DRAFT.
+    if (r.updatesOffError) comps.append(hook(h('p', 'p3-sg-error', `${r.updatesOffError.off ? UPDATE_COPY.turnOff : UPDATE_COPY.turnOn}: ${r.updatesOffError.error}.`), 'update-off-error'));
     // The section's last line (#3137): a version is saved before the update, Due and the panels alike.
     if (ticked.length || (t.panels && panelSets.length) || keptSets.some((id) => (t.kept.get(id) ?? 'keep') !== 'keep')) comps.append(hook(h('p', 'p3-sub p3-upd-saves', UPDATE_COPY.saves), 'update-saves'));
     if (comps.children.length > 1) {
       // #3712 (Q-UD2, direction C): Components folds to its head row, its chip saying what is folded. Q-UD3 A: it opens by
       // itself only while it holds a blocked or due set, and the person's fold or open holds for the opening.
       const open = compsOpen ?? compsOpensOf({ blocked: blocked.length, due: updating.length });
-      const chip = hook(h('span', 'p3-sg-tag', UPDATE_COPY.compsChip({ add: queue.length, due: updating.length, blocked: blocked.length, kept: keptSets.length, panels: panelSets.length && t.panels ? panelSets.length : 0 })), 'update-components-chip');
+      const chip = hook(h('span', 'p3-sg-tag', UPDATE_COPY.compsChip({ add: queue.length, due: updating.length, blocked: blocked.length, kept: keptSets.length, panels: panelSets.length && t.panels ? panelSets.length : 0, off: offSets.length })), 'update-components-chip');
       const fold = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon p3-upd-fold'), 'update-components-fold');
       fold.type = 'button';
       fold.dataset.key = 'fold=components';
