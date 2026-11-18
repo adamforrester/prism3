@@ -3,7 +3,7 @@
 **What changed.** On the code POC's integration branch `poc/arm-1`, every S5 check now opens each story twice: left
 to right, and under `dir="rtl"`, in both delivery forms. Engine output doesn't move, so there is no change note.
 
-- **A direction toolbar** in the Storybook. It puts `dir` on the story frame. Its wording is DRAFT, for the owner.
+- **A direction toolbar** in the Storybook. It puts `dir` on the story frame. Its wording is owner decision A (2026-11-18).
 - **axe, the ARIA snapshot and the keyboard suite run right to left** against the same expectations. The
   right-to-left accessibility tree must equal the left-to-right one.
 - **`check-rtl.ts` measures the layout.** The leading and trailing visuals, the required indicator and the status
@@ -15,3 +15,5 @@ to right, and under `dir="rtl"`, in both delivery forms. Engine output doesn't m
 - **24 new mutants fail by name, plus 2 hand mutations.**
 - **Filed, held as named exceptions:** #4052 (a directional arrow doesn't flip) and #4051 (the text field's input
   lacks `dir="auto"`).
+- **Not built: the image snapshots** #3986 item 2 names. Layout is measured by boxes, not compared as images. Filed as
+  #4079, with the owner's choice between building them and accepting box measurement.

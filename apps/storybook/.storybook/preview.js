@@ -42,7 +42,7 @@ export default {
       description: 'Theme',
       toolbar: { title: 'Theme', items: ['light', 'dark'], dynamicTitle: true },
     },
-    // DRAFT wording (#3986, an owner decision): the toolbar's title and item labels.
+    // The toolbar's title and item labels: owner decision A, 2026-11-18, on #4059 (#3986).
     dir: {
       description: 'Direction',
       toolbar: { title: 'Direction', items: [{ value: 'ltr', title: 'Left to right' }, { value: 'rtl', title: 'Right to left' }], dynamicTitle: true },

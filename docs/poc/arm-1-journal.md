@@ -1926,14 +1926,13 @@ All four checks pass, with every mutant failing by name:
 
 ### Decisions
 
-**OWNER DECISION: the direction toolbar's wording.** Built as a draft: title "Direction", items "Left to right" and
-"Right to left".
-- A (recommended): keep it.
-- B: "LTR" and "RTL", shorter, as developers say it.
+**The direction toolbar's wording: owner decision A (2026-11-18, on #4059).** Title "Direction", items "Left to
+right" and "Right to left", approved as built. (B was "LTR" and "RTL".)
 
 ### S5: still missing, after this
 
 Removed from the list: **right-to-left Tab order.** Added: #4051 and #4052, held as exceptions. Still open:
 - the snapshots are Chromium's only;
 - RTL text (an Arabic or Hebrew label) isn't in any story, so bidi inside the label isn't exercised;
-- the "visual snapshots" the issue names. The layout is measured by boxes, not compared as images.
+- the "visual snapshots" the issue names. The layout is measured by boxes, not compared as images. Filed as #4079,
+  with the owner's choice between building image snapshots and accepting box measurement.
