@@ -1312,3 +1312,65 @@ The CI steps aren't new: `check:parity` and `test:browser` chain the fields' che
   entry and the progress entry.
 - **Errors hit:** 6: the missing `node_modules`, the probe's `??`, `getByLabel`'s marker, the caret reset, the
   refocus order, and the self-test anchor collision (above).
+
+
+---
+
+## Fix #3921 — `@prism3/css`'s Show/Hide script keeps the caret on an input that has had focus
+
+Started about 02:15 UTC on 2026-11-18, from `poc/arm-1` at `f563a3f1`. It's S4's caret finding, fixed in the
+plain-HTML form. S4 fixed it in `<p3-password-field>`; this brings the second delivery form level with it.
+
+### The defect
+
+**Chromium resets a blurred input's caret one task after its `type` changes, once the input has had focus.**
+Pressing Show blurs the input. `password-field.js` restored the selection in the same task, and that restore was
+then overwritten. So the common case lost the caret: type a password, then press Show.
+
+S3's check missed it because its input was never focused: it set the selection on an untouched field, and Chromium
+leaves that caret alone.
+
+### The fix
+
+- **`password-field.js`** puts the selection back again after that task (`setTimeout(…, 0)`), as the element does.
+- **`check-browser-fields.ts`** now clicks into the field, selects 2–5, then presses Show. It reads the caret 50 ms
+  later, after Chromium's reset task, and again after Hide (Enter). Before the fix both read `0,0`.
+- **A new self-test mutant:** "the caret put back only in the same task (#3921)". It drops the script's delayed
+  restore by refusing zero-delay timeouts that call `setSelectionRange`. That makes eight mutants.
+
+No user-facing wording changed. No owner decision was needed.
+
+### What was checked, and how
+
+- **The test fails before the fix.** The test was committed first, on the unfixed script. That run failed by name:
+  - `Show/Hide: the caret moved to 0,0, not 2,5, after pressing Show on an input that had focus (#3921)`;
+  - `Show/Hide: the caret moved to 0,0, not 2,5, after pressing Hide (#3921)`.
+- **It passes after the fix:** 132 checks, and all eight mutants fail by name.
+- **A hand mutation on disk**, after a `wip:` commit, restored with `git show HEAD:<path> > <path>`:
+
+  | Mutation | Fails by name |
+  |---|---|
+  | The `setTimeout` restore line deleted from `password-field.js` | `Show/Hide: the caret moved to 0,0, not 2,5, after pressing Show on an input that had focus (#3921)`, and the same for Hide |
+
+- **The checks that load the script still pass:**
+  - `css-parity`, `css-browser`, `css-raw-values` and `css-generated`;
+  - `wc-parity` and `wc-browser`, whose second stage runs the script before the element upgrades;
+  - `storybook-build` and `storybook-check`.
+
+### Surprises and learnings
+
+- **A check's input should be touched the way a person touches it.** S3's caret check set the selection on a field
+  nothing had focused. That is the one state where Chromium keeps the caret, so the defect was invisible. It's the
+  same lesson as S4's.
+
+### Effort
+
+- **Wall clock:** about 02:15 to 02:35 UTC for the test, the fix, the mutants and this entry; then the gate run.
+- **Steps:** about 12 tool calls: reading the issue, the element's fix and the check (3); writing the test, fix and
+  mutant (3); running, mutating and restoring (6).
+- **Hand edits:** 2 files plus this entry and the progress entry. Nothing generated changed.
+- **Errors hit:** 0.
+
+**Local gate record** (`npm run verify`'s 114 gates, with `GITHUB_BASE_REF=poc/arm-1`, after `regen`, in 5 chunks
+under 10 minutes): 111 PASS, 0 FAIL, and 3 not run locally, left to CI as before: `chrome`, `chrome-shards` and
+`plugin-test`.

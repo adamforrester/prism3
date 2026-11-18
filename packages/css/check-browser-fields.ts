@@ -14,12 +14,13 @@
  *    `aria-invalid` reads as invalid at error, `required` as required.
  * 4. THE SHOW/HIDE BUTTON: hidden before the script runs; then "Show password", and pressing it (click, Enter, Space)
  *    switches the input's type, renames the button, keeps focus and the caret, announces the change, and never sets
- *    aria-pressed; a form submit puts the field back to hidden; a disabled field's button does nothing.
+ *    aria-pressed (the caret is read on an input that has had focus, after the task in which Chromium resets it,
+ *    #3921); a form submit puts the field back to hidden; a disabled field's button does nothing.
  * 5. GEOMETRY. The button's hit area is at least 24×24 at small and 44×44 at medium and large, and never reaches into
  *    the input box; the box is at least 44px tall at every size; the message's glyph centers on its first line. All
  *    held to this file's own px literals (docs/34).
  *
- * SELF-TEST: seven mutants, each must fail by name.
+ * SELF-TEST: eight mutants, each must fail by name.
  */
 import { createRequire } from 'node:module';
 import { existsSync, readFileSync } from 'node:fs';
@@ -233,22 +234,29 @@ export const run = async (browser: any, o: Opts = {}): Promise<{ failures: strin
   const state = () => page.evaluate(([q, b]: string[]) => {
     const i = document.querySelector(`${q} input`) as HTMLInputElement;
     const t = document.querySelector(b) as HTMLButtonElement;
-    return { type: i.type, focus: document.activeElement === t, pressed: t.getAttribute('aria-pressed'), hidden: t.hidden, caret: i.selectionStart, live: document.querySelector('[data-p3-announcer]')?.textContent ?? '' };
+    return { type: i.type, focus: document.activeElement === t, pressed: t.getAttribute('aria-pressed'), hidden: t.hidden, caret: `${i.selectionStart},${i.selectionEnd}`, live: document.querySelector('[data-p3-announcer]')?.textContent ?? '' };
   }, [f, btn]);
   const name = async () => (await ax(btn)).name;
   ok(!(await state()).hidden && (await name()) === 'Show password', `Show/Hide: after the script, the button should show, named "Show password" (${await name()})`);
-  await page.evaluate((q: string) => { const i = document.querySelector(q) as HTMLInputElement; i.setSelectionRange(3, 3); }, `${f} input`);
+  // #3921: the common case, so the input has had focus. Chromium resets a blurred input's caret one task after its
+  // type changes, but only once the input has been focused; an untouched input keeps it and hid the defect. The
+  // person clicks into the field, selects 2–5, then presses Show (which blurs the input), and the caret is read
+  // after that task has run.
+  await page.click(`${f} input`);
+  await page.evaluate((q: string) => { const i = document.querySelector(q) as HTMLInputElement; i.setSelectionRange(2, 5); }, `${f} input`);
   await page.click(btn);
   await page.waitForTimeout(50);
   let s1 = await state();
   ok(s1.type === 'text' && (await name()) === 'Hide password', `Show/Hide: pressing Show should show the password and rename the button "Hide password" (type ${s1.type}, ${await name()})`);
-  ok(s1.focus && s1.caret === 3, `Show/Hide: focus stays on the button and the caret where it was (focus ${s1.focus}, caret ${s1.caret})`);
+  ok(s1.focus, `Show/Hide: focus stays on the button (focus ${s1.focus})`);
+  ok(s1.caret === '2,5', `Show/Hide: the caret moved to ${s1.caret}, not 2,5, after pressing Show on an input that had focus (#3921)`);
   ok(s1.live === 'Your password is shown', `Show/Hide: the change is announced politely ("${s1.live}")`);
   ok(s1.pressed === null, 'Show/Hide: the button never carries aria-pressed (its name is the state)');
   await page.keyboard.press('Enter');
   await page.waitForTimeout(50);
   s1 = await state();
   ok(s1.type === 'password' && s1.live === 'Your password is hidden', `Show/Hide: Enter on the button hides the password again (type ${s1.type}, "${s1.live}")`);
+  ok(s1.caret === '2,5', `Show/Hide: the caret moved to ${s1.caret}, not 2,5, after pressing Hide (#3921)`);
   await page.keyboard.press('Space');
   ok((await state()).type === 'text', 'Show/Hide: Space on the button shows the password');
   await page.click(btn);
@@ -302,6 +310,9 @@ const MUTANTS: { name: string; opts: Opts; mustName: RegExp }[] = [
   { name: 'aria-describedby dropped from every input',
     opts: { after: 'document.querySelectorAll("input[aria-describedby]").forEach((i) => i.removeAttribute("aria-describedby"))' },
     mustName: /error field: the input's description should be its message/ },
+  { name: 'the caret put back only in the same task (#3921)',
+    opts: { init: 'const st = window.setTimeout; window.setTimeout = (fn, ms, ...a) => (ms === 0 && String(fn).includes("setSelectionRange") ? 0 : st(fn, ms, ...a));' },
+    mustName: /Show\/Hide: the caret moved to 0,0, not 2,5, after pressing Show on an input that had focus/ },
 ];
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
