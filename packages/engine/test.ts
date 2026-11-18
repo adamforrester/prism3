@@ -7699,9 +7699,15 @@ arm: {
       const tagSelect = (codeOnlyText(tagDef?.anatomy?.codeOnly) ?? []).find((l) => l.startsWith('The select tag in code')) ?? '';
       const tagText = JSON.stringify([tagDef?.accessibility, tagSelect]);
       const tagStray = [...new Set([...tagText.matchAll(/listbox|radiogroup|role=\\?"checkbox\\?"|aria-checked|aria-selected|single-choice|single choice|move and select/g)].map((m) => m[0].replace(/\\/g, '')))];
+      // A denylist alone lets a new contradiction through (review of #3949, should-fix 1: "arrows move to the next tag
+      // and toggle it" passed), so the keyboard sentences also carry the decision's positive literals: one tab stop, and
+      // arrows that move focus without toggling, on Tag's select sentence and on Tag.Group's keyboard field.
+      const tagKbdSelect = (tagDef?.accessibility.keyboard ?? '').split(/(?<=\.)\s+(?=Dismissible:)/)[0];
+      const tagKbdOk = /one tab stop/i.test(tagKbdSelect) && /arrows move focus between tags without toggling/.test(tagKbdSelect);
+      const groupKbdOk = /one tab stop/i.test(tg.accessibility.keyboard) && /arrows move focus between tags without toggling/.test(tg.accessibility.keyboard);
       ok(!!tagDef && tagStray.length === 0 && /aria-pressed/.test(tagDef.accessibility.role) && /role="toolbar"/.test(tagDef.accessibility.role)
-        && /aria-pressed/.test(tagSelect) && /role="toolbar"/.test(tagSelect),
-        `#3949 tag select contract: Tag's role, keyboard, aria and select code entry match Tag.Group's toolbar of pressed buttons (stray: ${tagStray.join(', ') || 'none'}; role ${tagDef?.accessibility.role.slice(0, 70)})`);
+        && /aria-pressed/.test(tagSelect) && /role="toolbar"/.test(tagSelect) && tagKbdOk && groupKbdOk,
+        `#3949 tag select contract: Tag's role, keyboard, aria and select code entry match Tag.Group's toolbar of pressed buttons (stray: ${tagStray.join(', ') || 'none'}; Tag keyboard ${tagKbdOk ? 'ok' : `"${tagKbdSelect.slice(0, 120)}"`}; Tag.Group keyboard ${groupKbdOk ? 'ok' : `"${tg.accessibility.keyboard.slice(0, 120)}"`}; role ${tagDef?.accessibility.role.slice(0, 70)})`);
       const shipped = JSON.stringify([tg.summary, tg.description, tg.docs, tg.ai, tg.accessibility, tg.props]);
       const overflow = (codeOnlyText(tg.anatomy?.codeOnly) ?? []).find((l) => l.startsWith('Overflow')) ?? '';
       ok(!/\+N more|\+\d+ more/i.test(shipped) && /flex-wrap: wrap/.test(overflow),

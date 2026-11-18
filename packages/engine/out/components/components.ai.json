@@ -7875,7 +7875,7 @@
           "2.4.3 Focus Order (after a removal, focus moves to the next tag, the previous one or the group, never to the top of the page)",
           "4.1.2 Name, Role, Value (each select tag exposes its pressed state; each remove control is named)"
         ],
-        "keyboard": "One Tab stop enters the group. Left and Right arrows move between tags, and Up and Down move across wrapped lines. Space or Enter toggles a select tag; Delete or Backspace removes the focused dismissible tag.",
+        "keyboard": "One Tab stop enters the group. Left and Right arrows move focus between tags without toggling them, and Up and Down move across wrapped lines. Space or Enter toggles a select tag; Delete or Backspace removes the focused dismissible tag.",
         "focus": "The focus ring is on the focused tag; the group itself draws none. After a removal, focus moves to the next tag, else the previous one, else the group or the input that owns it, and never to `<body>`.",
         "aria": "Name the group for the decision its tags answer (\"Filter by color\"). Each select tag exposes its state with `aria-pressed`, set from the group's value. Each remove control is named \"Remove\" followed by the tag's label. Every name is translatable, and the row and the arrow keys mirror under right-to-left layout."
       },

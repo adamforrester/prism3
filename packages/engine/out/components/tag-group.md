@@ -51,7 +51,7 @@ Use a tag group for a set of tags the user toggles or removes in place: filters 
 
 ## Accessibility
 
-- **Keyboard:** One Tab stop enters the group. Left and Right arrows move between tags, and Up and Down move across wrapped lines. Space or Enter toggles a select tag; Delete or Backspace removes the focused dismissible tag.
+- **Keyboard:** One Tab stop enters the group. Left and Right arrows move focus between tags without toggling them, and Up and Down move across wrapped lines. Space or Enter toggles a select tag; Delete or Backspace removes the focused dismissible tag.
 - **Focus:** The focus ring is on the focused tag; the group itself draws none. After a removal, focus moves to the next tag, else the previous one, else the group or the input that owns it, and never to `<body>`.
 - **Screen readers:** A group of select tags is `role="toolbar"`, named by `aria-label` or `aria-labelledby`, holding the tags in order. Each select tag is a `<button>` with `aria-pressed`, and any number may be pressed. A group of dismissible tags whose × slot alone is the target is `role="grid"`: each tag a row, its label one gridcell and its remove control a second.
 
