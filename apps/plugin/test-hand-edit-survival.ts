@@ -30,7 +30,7 @@
  *   · the apply's skip of a member with a layer added or removed by hand dropped (`update-apply.ts`, `plan`) →
  *     `survival/layer added …`, `/layer removed …` (4);
  *   · #3076's icon swap: the instance's main left out of the as-built signature (`sig.main = null`, `member-baseline.ts`)
- *     → every `survival/icon swap …` assertion (9); the nested instance's `!kept` re-point guard dropped
+ *     → every `survival/icon swap …` assertion (12); the nested instance's `!kept` re-point guard dropped
  *     (`write-components.ts`) → `/icon swap …` and `/icon swap inset …`, root and overlap (4); the slot's `!kept` guard
  *     dropped → `/icon swap slot root`, `/icon swap slot overlap` (2); `slotRepoints` unwired (`update-plan.ts`) →
  *     `/icon swap slot root conflict` and `/icon swap slot overlap conflict`.

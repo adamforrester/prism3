@@ -17,12 +17,18 @@ side of), so nothing marked the slot as touched, although the apply does move th
 `slotRepoints` in `update-plan.ts`: a slot whose instance is not the component the plan names is touched. It feeds the
 conflict flag only. Like every conflict where the plan moved, it can over-report; it never hides one.
 
+**A swapped icon reads as a conflict on every later update of its member** (review on #4056). The dry run compares the
+file's icon with the plan's, not the plan's with the previous plan's, so a swapped icon differs from every plan. Any
+update that moves anything on that member lists the swap as a conflict, even one that leaves the icon alone (the
+"root" plan). That was already true of the Tag and Checkbox glyphs on main; `slotRepoints` brings the slot in line.
+Keep still holds the swap. The three arms now assert the conflict reading under both plans (`… root conflict`).
+
 **Independence (docs/34).** The expected main component is typed in the test, and the read-back is the shim node's own
 `mainComponent`. Four mutations, each measured, each failing arms by name:
-- the instance's main left out of the as-built signature (`member-baseline.ts`) fails all 9 icon-swap assertions;
+- the instance's main left out of the as-built signature (`member-baseline.ts`) fails all 12 icon-swap assertions;
 - the nested instance's `kept` guard dropped (`write-components.ts`) fails `icon swap` and `icon swap inset`, root and overlap;
 - the slot's `kept` guard dropped fails `icon swap slot`, root and overlap;
-- `slotRepoints` unwired fails `icon swap slot overlap conflict`.
+- `slotRepoints` unwired fails `icon swap slot root conflict` and `icon swap slot overlap conflict`.
 
 **Open, for the owner.** The shim does not model Figma re-pointing a set's bound instances when the apply edits an
 INSTANCE_SWAP property's default. If the host does that, a designer's swap in a slot would be overwritten whatever Keep
