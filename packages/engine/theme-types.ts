@@ -4,6 +4,7 @@
  *
  *  Split out of `theme.ts` (#3698 R5), which re-exports its public names unchanged.
  */
+import type { BrandIcons } from './icon-map';
 import type { Step } from './ramp';
 import type { SpaceStep, RadiusStep, SizeStep, Density, ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle, CurrentIndicator, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, IconSizeStep, ControlSizeStep, RadioDotShare } from './scale';
 import type { ModeName, BuiltinModeName, ModeOverrides } from './modes';
@@ -796,6 +797,7 @@ export type BrandInput = {
   tagStyle?: TagStyle;               // 'pill' (default) | 'underline' — the shape every tag draws (#2887)
   dialogTitleSize?: DialogTitleSize; // 'large' (default) | 'medium' | 'small' — the title size of every dialog (#2958)
   bannerStyle?: BannerStyle;         // 'tinted' (default) | 'outlined' — the surface every banner draws (#2924)
+  icons?: BrandIcons; // which brand icon stands in for each Prism3 icon, and the brand's art (#3076, `icon-map.ts`)
   currentIndicator?: CurrentIndicator; // 'partial' (default, Q10 B) | 'full' — the current page's 2px bar: the title's width, or half of it centered (#3345)
   /** RETIRED (#2053, owner 2026-10-04). `radius.hairline` (1px) is always emitted, so this changes nothing.
    *  Still ACCEPTED, so brand files that set it keep loading; a note says it is ignored. It was the opt-in

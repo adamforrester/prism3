@@ -23,6 +23,7 @@ import { groundsOf } from './grounds';
 import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
 import { isInverseRole } from './inverse-roles';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
+import { applyIconMap } from './icon-map';
 import { parseStandardDesignMd, standardToBrandInput, applyXPrism3, isStandardDesignMd } from './standard-design-md';
 import { classifyColors } from './classify-colors';
 import { SLIDER_STOPS, TRAITS, resolveVocabulary } from './vocabulary';
@@ -31781,7 +31782,7 @@ arm: {
   ok(cs.files.size === 2 && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json'),
     `export_theme: include:[componentSpecs] writes exactly the export and its Specs projection (${[...cs.files.keys()].join(', ')})`);
   const csDoc = JSON.parse(cs.files.get('./cs/component-defs.json') ?? '{}');
-  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.4' && Object.keys(csDoc.components ?? {}).length >= 40,
+  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.5' && Object.keys(csDoc.components ?? {}).length >= 40,
     `export_theme: the component-defs export is the brand's (${csDoc.brand?.id}), in its format, with every component (${Object.keys(csDoc.components ?? {}).length})`);
 
   // A bad brand must fail BEFORE anything is written — a partial export is worse than none.
@@ -43276,6 +43277,80 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   // The accept side: rising floors, a fractional one among them, still build.
   const rising = refusal(() => brandTheme(withBps([0, 768.5, 1024])));
   ok(rising === '', `#3872 rising breakpoints [0, 768.5, 1024] still build (got ${JSON.stringify(rising)})`);
+}
+
+// #3076 — THE BRAND ICON MAP (owner decision 2026-11-18, A, both; Q1–Q8 at their recommendations). A brand names which of
+// its own icons stands in for each Prism3 icon and carries the art; `applyIconMap` rewrites every def before projection.
+// EXPECTED is typed here from #3076's own table of where the core icons are used (plus the counter, the proposal's
+// finding 2) and from the rules the proposal lists; ACTUAL is the projected plans and `brandTheme`'s refusals. Neither
+// is read from `icon-map.ts` (docs/34).
+{
+  const MAP = { plus: 'add', 'plus-filled': 'add', minus: 'subtract', 'minus-filled': 'subtract', check: 'checkmark', 'close-filled': 'close' };
+  const ADD = 'M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7z';
+  const GLYPHS = { add: { path: ADD }, subtract: { path: 'M4 11h16v2H4z' }, checkmark: { path: 'M9.5 15.6 5.4 11.5 4 12.9l5.5 5.5L20 7.9l-1.4-1.4z' }, close: { path: 'M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6L19 6.4 17.6 5 12 10.6z', fillRule: 'evenodd' as const } };
+  const ICONS = { map: MAP, glyphs: GLYPHS };
+  const refs = (defs: readonly ComponentDef[]): Map<string, Set<string>> => {
+    const out = new Map<string, Set<string>>();
+    const walk = (id: string, n: any): void => {
+      for (const t of [n.nestTarget, n.swapTarget, ...(n.nestOverrides ?? []).map((o: any) => o.value)])
+        if (typeof t === 'string' && t.startsWith('icon/')) { if (!out.has(t)) out.set(t, new Set()); out.get(t)!.add(id); }
+      for (const c of n.children ?? []) walk(id, c);
+    };
+    for (const d of defs) for (const p of figmaAnatomySet(d, {})) walk(d.id, p.root);
+    return out;
+  };
+  const mapped = componentDefs.map((d) => applyIconMap(d, ICONS));
+  const got = refs(mapped);
+  // No generated component instances a mapped Prism3 icon, through a glyph, a slot's default or an override.
+  for (const core of ['plus', 'plus-filled', 'minus', 'minus-filled', 'check', 'close-filled'])
+    ok(!got.has(`icon/${core}`), `#3076 no generated component instances icon/${core} once it is mapped (found in ${[...(got.get(`icon/${core}`) ?? [])].join(', ')})`);
+  // Each place #3076 lists now instances the brand's icon there.
+  const WANT: [string, string][] = [
+    ['_accordion-indicator', 'icon/add'], ['_accordion-indicator', 'icon/subtract'],
+    ['checkbox-control', 'icon/checkmark'], ['checkbox-control', 'icon/subtract'],
+    ['list-item', 'icon/checkmark'], ['search-field', 'icon/close'], ['switch-control', 'icon/checkmark'], ['tag', 'icon/checkmark'],
+    ['counter', 'icon/add'], ['counter', 'icon/subtract'],
+  ];
+  for (const [id, target] of WANT) ok(got.get(target)?.has(id) === true, `#3076 ${id} instances ${target} under the map`);
+  // The icon set: each mapped name gone, each brand glyph built from the brand's art, a redrawn Prism3 name kept (Q5 A).
+  const iconPlans = figmaAnatomySet(mapped.find((d) => d.id === 'icon')!, {});
+  const memberOf = (n: string) => iconPlans.find((p) => planComponentName(p) === `name=${n}`);
+  for (const core of Object.keys(MAP)) ok(!memberOf(core), `#3076 the icon set builds no icon/${core} once it is mapped`);
+  ok(JSON.stringify(memberOf('add') ?? null).includes(ADD), '#3076 the icon set builds icon/add from the brand\'s art');
+  const closeDoc = JSON.stringify(memberOf('close') ?? null);
+  ok(closeDoc.includes(GLYPHS.close.path) && closeDoc.includes('evenodd'), '#3076 a brand glyph named close redraws icon/close with the brand\'s art and its fill rule (Q5 A)');
+  ok(iconPlans.length === 46 - 6 + 3, `#3076 the icon set is Prism3's 46 less the 6 mapped plus the 3 new brand names (got ${iconPlans.length})`);
+  // No map, no change: every def comes back as the same object, so every plan is the one component-surface.json pins.
+  const same = componentDefs.filter((d) => applyIconMap(d, undefined) !== d || applyIconMap(d, {}) !== d || applyIconMap(d, { map: {}, glyphs: {} }) !== d).map((d) => d.id);
+  ok(same.length === 0, `#3076 a brand with no icon map leaves every def as authored (rewrote ${same.join(', ')})`);
+  // The rules, each refused by name at the choke point every entry path passes through.
+  const base = { id: 'icons3076', primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 } } as unknown as BrandInput;
+  const refusal = (icons: unknown): string => { try { brandTheme({ ...base, icons } as unknown as BrandInput); return ''; } catch (e) { return (e as Error).message; } };
+  ok(refusal(ICONS) === '', `#3076 a valid map with art builds (got ${JSON.stringify(refusal(ICONS))})`);
+  const RULES: [string, unknown, string][] = [
+    ['a key that is not a Prism3 icon', { map: { plsu: 'add' }, glyphs: GLYPHS }, 'icons.map.plsu'],
+    ['a chain', { map: { plus: 'minus', minus: 'subtract' }, glyphs: GLYPHS }, 'icons.map.plus'],
+    ['a self-map', { map: { check: 'check' } }, 'icons.map.check'],
+    ['a target with no art', { map: { check: 'tick' } }, 'icons.map.check'],
+    ['art for a mapped name', { map: { plus: 'add' }, glyphs: { ...GLYPHS, plus: { path: ADD } } }, 'icons.glyphs.plus'],
+    ['art that is not one path', { glyphs: { add: { path: '<path d="M0 0"/>' } } }, 'icons.glyphs.add.path'],
+    ['a glyph name in the wrong shape', { glyphs: { Add_Icon: { path: ADD } } }, 'icons.glyphs.Add_Icon'],
+  ];
+  for (const [what, icons, names] of RULES) ok(refusal(icons).includes(names), `#3076 ${what} is refused, naming ${names} (got ${JSON.stringify(refusal(icons))})`);
+  // The contract describes the block: a valid one passes the schema, an unknown key in it does not.
+  ok(validateBrandInput({ ...base, icons: ICONS }).length === 0, `#3076 theme-schema.json accepts the icons block (${validateBrandInput({ ...base, icons: ICONS }).join('; ')})`);
+  ok(validateBrandInput({ ...base, icons: { maps: MAP } }).some((e) => e.includes('icons.maps')), '#3076 theme-schema.json refuses an unknown key in the icons block');
+  // The design.md round trip (#3984's rule, for this block): three round trips keep it deep-equal, art and all.
+  let rt: any = { ...base, icons: ICONS };
+  for (let i = 0; i < 3; i++) rt = parseDesignMd(toDesignMd(rt)).input;
+  ok(JSON.stringify(rt.icons) === JSON.stringify(ICONS), `#3076 three design.md round trips keep the icons block (got ${JSON.stringify(rt.icons)})`);
+  // The brand's component export carries the map for a code consumer, and is still valid against its schema.
+  const xdoc = exportComponentDefs(componentDefs, { brand: { ...base, icons: ICONS } as BrandInput }) as any;
+  ok(JSON.stringify(xdoc.brand?.settings?.icons) === JSON.stringify(ICONS), '#3076 the brand\'s component export carries settings.icons');
+  ok(!('icons' in (exportComponentDefs(componentDefs, { brand: base }) as any).brand.settings), '#3076 a brand without a map exports no settings.icons');
+  // `def` is the authored def in every export; the brand's materialization is the `spec`, whose Icon axis follows the map.
+  const iconAxis = xdoc.components?.icon?.spec?.axes?.find((x: any) => x.name === 'name');
+  ok(!!iconAxis && !iconAxis.values.includes('plus') && iconAxis.values.includes('add'), `#3076 the exported Icon spec's name axis follows the map (got ${JSON.stringify(iconAxis?.values?.slice(-4))})`);
 }
 
 if (pass + fails.length < MIN_ASSERTIONS) {
