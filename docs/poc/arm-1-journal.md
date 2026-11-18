@@ -1754,6 +1754,8 @@ registers.
   | `stories/fields.js`: the HTML form writes no `aria-invalid` | 15 failures: `HAS` rows (`lacks «- textbox "Password" [invalid]»`), `password-field--error: the two forms differ`, and `differs from the accepted snapshot` |
   | `packages/css/password-field.js`: Show/Hide focuses the input | `components-password-field-html--rest: after Space, focus left the Show/Hide button …`, plus the Tab order and the ring on a mouse click |
   | `a11y-harness.ts` `stories()` skips `components-text-field-html--error` (review of this PR) | axe and keyboard: `components-text-field-html--error: not checked by …` and `text-field--error: only the element form was checked by …`. Before the represented check, both passed with only their counts moving |
+  | `a11y-harness.ts` `main` no longer calls `represented`, and `check-axe.ts` skips `components-button-element--disabled` (delta review of this PR, R2) | `mutant "a story dropped from the suite" was not caught by name` and the same for `"a case left in one form only"`, exit 1. Before one `held` run, this passed with `OK axe: 396 checks`, exit 0 |
+  | `a11y-harness.ts` `main`: the real run calls `run` directly, past `held` | `FAIL axe: 1 check(s) failed` → `the real axe run's coverage was not held by represented` |
 
 - **Every story is represented, not counted (review of this PR).** `stories()` only checked that each component and
   form had one story, so a story dropped from the enumeration passed axe and keyboard silently. A case missing from one
@@ -1761,6 +1763,11 @@ registers.
   checked, and `a11y-harness.ts` `represented` holds them, on every run (mutants included), to the hand-written
   `EXPECTED`. That list moved from `check-build.ts` into `expected-stories.ts` so both read one list. The subject here
   is the iteration, not the list, so the comparison stays independent (`docs/34`).
+- **The real run is held by the same call the mutants prove (delta review of this PR).** The `DROPPED` mutants called
+  `represented` on their own line, so they proved `represented` worked, not that the real run went through it. Now
+  `main` runs the real check and every mutant through one function, `held`, which runs and then applies
+  `represented`. Deleting that call fails the `DROPPED` mutants by name, and a real run that skips `held` fails by
+  name too.
 
 ### Surprises and learnings
 

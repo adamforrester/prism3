@@ -14,8 +14,9 @@ no change note.
   toggle by keyboard, and the focus ring on keyboard focus only.
 - **Each check proves every story is represented.** It records what it checked against the hand-written
   `expected-stories.ts` and fails by id on a story it skipped, or by name on a case checked in one form only (review
-  of this PR: before, a story dropped from the enumeration passed with only the counts moving).
-- **21 mutants fail by name, plus 3 hand mutations.** It runs as one CI step and one `verify.ts` gate,
+  of this PR: before, a story dropped from the enumeration passed with only the counts moving). The real run and
+  every mutant go through one `held` run, so the mutants prove the wiring the real run uses.
+- **21 mutants fail by name, plus 5 hand mutations.** It runs as one CI step and one `verify.ts` gate,
   `storybook-a11y`.
 - **Filed: #3967 (an owner decision).** Tab reaches the password field's Show/Hide button before the input, in both
   forms, against its def. The suite holds that as a named exception that fails once the order changes.
