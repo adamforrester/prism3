@@ -263,6 +263,8 @@ export interface HostSession {
   /** #3129 Q833 A: the file's add queue, as the host last read it (`file-sets`, `file-due`, or a queue write's answer),
    *  or as the panel last wrote it while that write's answer is out. `null` until the host has said (and on the web). */
   readonly addQueue: readonly string[] | null;
+  /** #2956: the last "Turn off updates" / "Turn updates back on" the host could not write, and why; null otherwise. */
+  readonly updatesOffError: { readonly def: string; readonly off: boolean; readonly error: string } | null;
   /** #2909 Q2909.8 A: the background hand-edit pass after load, each set's answer as it lands, and whether it is out
    *  (`running`, set by the panel as it asks), `done`, or not asked yet (`idle`). */
   readonly handEdits: ReadonlyMap<string, { readonly members: number; readonly edited: number }>;
@@ -315,6 +317,7 @@ export const initialHostSession = (): HostSession => ({
   liveDue: null,
   panelsClean: { busy: false, count: null, verdict: null },
   addQueue: null,
+  updatesOffError: null,
   handEdits: new Map(),
   handPass: 'idle',
   updateCheck: null,
@@ -496,6 +499,9 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     case 'add-queue':
       // #3129: the queue after the panel's write, the teammates' writes since included.
       return { ...s, addQueue: m.queued };
+    case 'updates-off':
+      // #2956: the panel asks the file again on every answer (`main.ts`); a refusal is kept to say so in Update file.
+      return { ...s, updatesOffError: m.error ? { def: m.def, off: m.off, error: m.error } : null };
     case 'panels-clean-result':
       // #3137 Q3137.7 A: a count, or a removal's outcome with the count after it.
       return { ...s, panelsClean: { busy: false, count: m.error && !m.applied ? s.panelsClean.count : { drawn: m.drawn, removable: m.removable },
@@ -581,6 +587,7 @@ export const topicsFor = (m: HostMessage, prev: HostSession, next: HostSession):
     case 'file-sets': return ['host:update', 'host:components'];
     case 'file-due': return next === prev ? [] : JSON.stringify(next.addQueue) === JSON.stringify(prev.addQueue) ? ['host:update'] : ['host:update', 'host:components'];
     case 'add-queue': return ['host:update', 'host:components'];
+    case 'updates-off': return ['host:update', 'host:components'];
     // #3137: Clean up's panels item, and Documentation's off line, which names how many are drawn.
     case 'panels-clean-result': return ['host:update', 'host:docs'];
     // Q2909.8 A: the statuses fill in on Components' list and in the checklist as each set's answer lands.
