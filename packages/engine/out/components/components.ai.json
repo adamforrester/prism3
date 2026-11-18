@@ -7867,7 +7867,7 @@
         }
       },
       "accessibility": {
-        "role": "A labeled container, named by `aria-label` or `aria-labelledby`, holding the tags in order. Each select tag is a `<button>` with `aria-pressed`, and any number may be pressed. A group of dismissible tags whose × slot alone is the target is `role=\"grid\"`: each tag a row, its label one gridcell and its remove control a second.",
+        "role": "A group of select tags is `role=\"toolbar\"`, named by `aria-label` or `aria-labelledby`, holding the tags in order. Each select tag is a `<button>` with `aria-pressed`, and any number may be pressed. A group of dismissible tags whose × slot alone is the target is `role=\"grid\"`: each tag a row, its label one gridcell and its remove control a second.",
         "wcag": [
           "1.3.1 Info and Relationships (the group's name ties its tags to the decision they answer)",
           "1.4.10 Reflow (the row wraps rather than scrolling sideways, so every tag stays visible in a narrow column)",

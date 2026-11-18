@@ -14,14 +14,14 @@ the projector writes it as `bound.counterAxisSpacing`. Both executors already bi
 `layoutWrap`, so neither changed, and `lint-executor-revision` agrees (no `EXECUTOR_REVISION` bump). The shim builds and
 reads it back; a real host is unverified (`notes.unverified`).
 
-**Held for the owner (OWNER DECISION on the PR).** The container role of a select group. The brief gives the selection
-genres no grid ("no embedded remove, so no grid"), so with pressed buttons `role="grid"` is not the evident pattern:
-(A) `role="group"`, each tag a Tab stop; (B) `role="toolbar"`, one Tab stop and arrow keys over toggle buttons, which
-keeps Tag's keyboard contract as recorded; (C) `role="grid"`, as for dismissible tags. Recommended B. The shipped
-`accessibility` fields name no container role for a select group until it is decided. Also held: the `size` axis, no
-visible heading (`label` is the accessible name), the prop list, `generationPriority` 2, the 320px placement width, the
-Tag page in the file taxonomy, and the new shipped prose (DRAFT under `docs/voice-standard.md`). No wireframe was shown
-before this build; the PR asks for that review against the projected set.
+**Decided by the owner (Q-TG1 B + confirm, 2026-11-18).** A select group is `role="toolbar"`: one Tab stop with arrow
+keys across the toggle tags, keeping Tag's keyboard contract as recorded. A dismissible group keeps `role="grid"`. The
+other options were `role="group"` (each tag a Tab stop) and `role="grid"` for both types. Confirmed as built: the `size`
+axis, no visible heading (`label` is the accessible name), the prop list, no group-level `disabled`, three identical
+unselected default tags, and the Tag page. The `accessibility` role, the `codeOnly` semantics entry and the notes now
+name the toolbar, and `test.ts` `#3949 tag-group role` holds both roles against literals from the decision. Still held:
+`generationPriority` 2, the 320px placement width, and the shipped prose (DRAFT under `docs/voice-standard.md`). The
+visual review of the projected set is in the #3928 QA round, not before the merge.
 
 **Measured.** `test.ts` `#1739` holds each decision against a literal: the `value` prop is `string[]` and the role names
 `aria-pressed` and no listbox or radiogroup; nothing shipped offers "+N more" and the Overflow line says

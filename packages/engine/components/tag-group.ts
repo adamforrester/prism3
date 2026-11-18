@@ -15,15 +15,19 @@
  *
  * The keyboard, removal and focus-after-removal contract is Tag's `codeOnly`, carried here unchanged. The brief's own
  * line — "the selection genres take different roles (no embedded remove, so no grid)" — means a group of pressed
- * buttons is not a grid, so the container role of a select group is HELD for the owner (`notes.contested` and the PR),
- * and the shipped `accessibility` fields state only what holds under every option.
+ * buttons is not a grid. The owner decided the container role (#3949, 2026-11-18, Q-TG1 B): a select group is
+ * `role="toolbar"`, one Tab stop with arrow keys across the toggle tags; a dismissible group keeps `role="grid"`.
+ * `test.ts` holds both roles against literals from the decision.
  *
- * ── WHAT IS NOT DECIDED, AND IS HELD RATHER THAN PICKED ──────────────────────────────────────────────────────────
+ * ── CONFIRMED AS BUILT (Q-TG1 confirm) ─────────────────────────────────────────────────────────────────────────────
  *
- *   · the container role of a select group (group, toolbar or grid);
  *   · the `size` axis (carried, as Checkbox.Group carries it, so the group scales its tags by `follow`);
  *   · no visible heading (the `label` prop is the accessible name only), and the prop list itself;
- *   · `generationPriority` 2 (Button.Group's tier), the 320px placement width, and the page it sits on (Tag's).
+ *   · no group-level `disabled`; three identical unselected default tags; the Tag page.
+ *
+ * ── STILL HELD ──────────────────────────────────────────────────────────────────────────────────────────────────────
+ *
+ *   · `generationPriority` 2 (Button.Group's tier) and the 320px placement width; all shipped prose is DRAFT.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -115,7 +119,7 @@ export const tagGroup: ComponentDef = {
         class: 'semantics',
         disposition: 'refused',
         description:
-          'The group element — a container named by `aria-label` (the `label` prop) or `aria-labelledby`, holding each select tag as a `<button type="button" aria-pressed>`. The container role of a select group is held for the owner (#1739): `role="group"` with each tag its own Tab stop, `role="toolbar"` with one Tab stop and arrow keys, or `role="grid"` as for dismissible tags. The brief gives the selection genres no grid, because they carry no embedded remove control.',
+          'The group element — a container named by `aria-label` (the `label` prop) or `aria-labelledby`, holding each select tag as a `<button type="button" aria-pressed>`. A select group is `role="toolbar"` (owner, #3949, Q-TG1 B): one Tab stop with arrow keys across the toggle tags, Tag\'s recorded keyboard contract. Not `role="group"`, which would make each tag its own Tab stop, and not `role="grid"`, which the brief keeps for the dismissible genre, since a select tag carries no embedded remove control.',
       },
       {
         class: 'composition',
@@ -173,7 +177,7 @@ export const tagGroup: ComponentDef = {
   },
 
   accessibility: {
-    role: 'A labeled container, named by `aria-label` or `aria-labelledby`, holding the tags in order. Each select tag is a `<button>` with `aria-pressed`, and any number may be pressed. A group of dismissible tags whose × slot alone is the target is `role="grid"`: each tag a row, its label one gridcell and its remove control a second.',
+    role: 'A group of select tags is `role="toolbar"`, named by `aria-label` or `aria-labelledby`, holding the tags in order. Each select tag is a `<button>` with `aria-pressed`, and any number may be pressed. A group of dismissible tags whose × slot alone is the target is `role="grid"`: each tag a row, its label one gridcell and its remove control a second.',
     wcag: [
       '1.3.1 Info and Relationships (the group\'s name ties its tags to the decision they answer)',
       '1.4.10 Reflow (the row wraps rather than scrolling sideways, so every tag stays visible in a narrow column)',
@@ -237,11 +241,7 @@ export const tagGroup: ComponentDef = {
 
   notes: {
     contested: [
-      'OWNER DECISION — the container role of a group of select tags. The brief gives the selection genres no grid ("no embedded remove, so no grid"), and the owner chose pressed toggle buttons, so `role="grid"` is not the evident pattern for a select group. Options: (A) `role="group"` with each tag its own Tab stop, the native default and Checkbox.Group\'s model, which drops the one-Tab-stop contract; (B) `role="toolbar"`, the ARIA pattern for one Tab stop with arrow keys over a set of buttons, toggle buttons included, which keeps Tag\'s keyboard contract as recorded; (C) `role="grid"` as for dismissible tags, which keeps one pattern for both types at the cost of rows and gridcells around plain buttons. Recommended: B. The shipped fields name no container role for a select group until this is decided.',
-      'The `size` axis is carried, as Checkbox.Group carries it, so the group scales its tags by `follow` (3 members). A single-size group whose tags are sized one by one is the alternative. Held for the owner.',
-      'No visible heading: `label` is the accessible name only. Checkbox.Group nests a FieldLabel; a tag group sits above a list or inside a field, where the page names it. Held for the owner, with the prop list.',
-      '`generationPriority` 2 (a top-level component placed on its own, Button.Group\'s tier), the 320px placement width (Checkbox.Group\'s), and the Tag page in the file taxonomy. Held for the owner.',
-      'A group-level `disabled` is not built: the brief says to hide a group whose every tag is inoperable rather than dim it. Each tag keeps its own `disabled`.',
+      '`generationPriority` 2 (a top-level component placed on its own, Button.Group\'s tier) and the 320px placement width (Checkbox.Group\'s). Held for the owner.',
     ],
     unverified: [
       'The line gap (`rowGap`, bound as `counterAxisSpacing`) is new to the projection. The shim builds it and reads it back; whether a real host keeps a variable bound to the line gap of a wrapping native slot is not checked. The symptom: a second line of tags touching the first.',
@@ -249,6 +249,8 @@ export const tagGroup: ComponentDef = {
     ],
     evolution: [
       'Owner, 2026-11-18 (#1739, A, A, A): multiple selection as pressed toggle buttons, wrap overflow, and a Figma set holding a row of three nested tags with the gap bound to `space.100`. Until then the group was code-only, its contract carried in Tag\'s `codeOnly` and its gap bound on Tag as `group-gap`.',
+      'Owner, 2026-11-18 (#3949, Q-TG1 B): a select group is `role="toolbar"`, one Tab stop with arrow keys across the toggle tags, keeping Tag\'s recorded keyboard contract; a dismissible group keeps `role="grid"`. The options weighed were (A) `role="group"`, each tag its own Tab stop, and (C) `role="grid"` for both types. Until then the shipped fields named no container role for a select group.',
+      'Owner, 2026-11-18 (#3949, Q-TG1 confirm), confirmed as built: the `size` axis carried as Checkbox.Group carries it, so the group scales its tags by `follow`; no visible heading, `label` the accessible name only, and the prop list `label`, `items`, `value`, `defaultValue`, `onChange`, `onRemove`, `size`; no group-level `disabled` (the brief hides a group whose every tag is inoperable rather than dim it; each tag keeps its own `disabled`); three identical unselected default tags; the Tag page in the file taxonomy.',
     ],
   },
 };

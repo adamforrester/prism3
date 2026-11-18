@@ -7672,6 +7672,20 @@ arm: {
       ok(valueProp?.type === 'string[]' && /aria-pressed/.test(tg.accessibility.role) && !/listbox|radiogroup|aria-multiselectable/.test(tg.accessibility.role)
         && !/aria-selected|aria-checked/.test(aria),
         `#1739 tag-group selection: many pressed values (value: string[]), each select tag aria-pressed, no listbox or radiogroup (value ${valueProp?.type}; role ${tg.accessibility.role.slice(0, 80)})`);
+      // The container role (owner, #3949, 2026-11-18, Q-TG1 B): a select group is `role="toolbar"`, one Tab stop with
+      // arrow keys across the toggle tags; a dismissible group keeps `role="grid"`. Literals from the decision, read
+      // against the shipped role sentence and the code-tier semantics entry, never against each other.
+      const roleText = tg.accessibility.role;
+      const roleSentences = roleText.split(/(?<=\.)\s+/);
+      const selectRole = roleSentences.find((x) => /select tags/i.test(x)) ?? '';
+      const dismissRole = roleSentences.find((x) => /dismissible tags/i.test(x)) ?? '';
+      const declared = [...roleText.matchAll(/role="([a-z]+)"/g)].map((m) => m[1]).sort().join(',');
+      const semantics = (codeOnlyText(tg.anatomy?.codeOnly) ?? []).find((l) => l.startsWith('The group element')) ?? '';
+      ok(/role="toolbar"/.test(selectRole) && !/role="(group|grid|listbox|radiogroup)"/.test(selectRole)
+        && /role="grid"/.test(dismissRole) && declared === 'grid,toolbar'
+        && /One Tab stop/.test(tg.accessibility.keyboard) && /arrows/.test(tg.accessibility.keyboard)
+        && /A select group is `role="toolbar"`/.test(semantics),
+        `#3949 tag-group role: a select group is role="toolbar" with one Tab stop and arrow keys, a dismissible group role="grid" (select: ${selectRole.slice(0, 60) || 'none'}; roles ${declared || 'none'}; codeOnly ${/role="toolbar"/.test(semantics) ? 'toolbar' : 'missing'})`);
       const shipped = JSON.stringify([tg.summary, tg.description, tg.docs, tg.ai, tg.accessibility, tg.props]);
       const overflow = (codeOnlyText(tg.anatomy?.codeOnly) ?? []).find((l) => l.startsWith('Overflow')) ?? '';
       ok(!/\+N more|\+\d+ more/i.test(shipped) && /flex-wrap: wrap/.test(overflow),
