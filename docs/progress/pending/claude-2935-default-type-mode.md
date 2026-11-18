@@ -13,8 +13,8 @@ uses desktop for its widest breakpoint". The 2026-11-18 decision does not repeat
 built, a two-breakpoint 0/768 brand gets `sm` mobile and `md` mobile, which differs from Q565 A's guidance for that
 brand (`md` = desktop). The PR body asks which applies. The two description and preview strings are drafts.
 
-**Measured.** `test.ts` #2935 TYPE MODE: on main the arms fail (`defaultTypeMode` does not exist, and no breakpoint
-description names a type mode). With the change they pass: seven floors typed literally (0 to 1920, across the
+**Measured.** `test.ts` #2935 TYPE MODE: on main the arms cannot pass (`defaultTypeMode` does not exist, and no
+breakpoint description names a type mode). With the change they pass: seven floors typed literally (0 to 1920, across the
 1023/1024 edge), the default five brand's descriptions (sm, md mobile; lg, xl, 2xl desktop), a 0/768 brand, and a
 static-type brand naming none. Mutation: `<` → `<=` in `defaultTypeMode` fails "#2935 TYPE MODE: a 1024px breakpoint
 defaults to desktop type". Regen moves only the four fluid brands' `out/figma/<brand>/layout.*.json` descriptions.
