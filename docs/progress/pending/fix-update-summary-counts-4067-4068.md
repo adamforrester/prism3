@@ -36,7 +36,7 @@ the font it still holds), so no count pairs face misses with fallback misses. If
 every face miss stays a miss. A miss is never hidden. A fallback can at worst read as a miss, as before.
 
 **Not changed.** Build's own verdict still lists a fallback among its misses. It reads the executor's misses directly
-and is a separate surface; filed as its own issue.
+and is a separate surface: #4075.
 
 **Measured.** `test-update-apply.ts` `fallback` (Sign-in button on the shim, Google Sans refused by the host after the
 build: 36 labels hold Roboto Medium, one fallback reported, no font miss, the line, no font cause; both faces refused:
