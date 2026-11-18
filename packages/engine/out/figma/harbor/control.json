@@ -1,0 +1,429 @@
+{
+  "$collection": "control",
+  "$mode": "Default",
+  "variables": [
+    {
+      "name": "hds/control/size/sm/height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Checkbox / radio box — 16px square",
+      "value": 16,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/16"
+      }
+    },
+    {
+      "name": "hds/control/size/sm/width",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Switch track width — 48px (twice the 24px track height)",
+      "value": 48,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/48"
+      }
+    },
+    {
+      "name": "hds/control/size/sm/dot",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Radio dot — 8px (half the 16px box)",
+      "value": 8,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/8"
+      }
+    },
+    {
+      "name": "hds/control/size/sm/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Label line height (body sm, 21px) — the control centers on the label's first line.",
+      "value": 21,
+      "alias": null
+    },
+    {
+      "name": "hds/control/size/sm/inset",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Switch thumb inset — 3px ((24px track − 18px thumb) ÷ 2). Switches only.",
+      "value": 3,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/3"
+      }
+    },
+    {
+      "name": "hds/control/size/sm/radius",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "Checkbox/radio corner — 2px, clamped to the 16px box (does not follow the radius scale).",
+      "value": 2,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/2"
+      }
+    },
+    {
+      "name": "hds/control/size/sm/track",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Switch track height — 24px. Switches only.",
+      "value": 24,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/24"
+      }
+    },
+    {
+      "name": "hds/control/size/sm/thumb",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Switch thumb — 18px (0.75 × the 24px track). Switches only.",
+      "value": 18,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/18"
+      }
+    },
+    {
+      "name": "hds/control/size/sm/label-inset",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Option row label inset — 0px, so the label's first line centers on the 16px box.",
+      "value": 0,
+      "alias": null
+    },
+    {
+      "name": "hds/control/size/md/height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Checkbox / radio box — 20px square",
+      "value": 20,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/20"
+      }
+    },
+    {
+      "name": "hds/control/size/md/width",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Switch track width — 64px (twice the 32px track height)",
+      "value": 64,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/64"
+      }
+    },
+    {
+      "name": "hds/control/size/md/dot",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Radio dot — 10px (half the 20px box)",
+      "value": 10,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/10"
+      }
+    },
+    {
+      "name": "hds/control/size/md/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Label line height (body md, 24px) — the control centers on the label's first line.",
+      "value": 24,
+      "alias": null
+    },
+    {
+      "name": "hds/control/size/md/inset",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Switch thumb inset — 4px ((32px track − 24px thumb) ÷ 2). Switches only.",
+      "value": 4,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/4"
+      }
+    },
+    {
+      "name": "hds/control/size/md/radius",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "Checkbox/radio corner — 2px, clamped to the 20px box (does not follow the radius scale).",
+      "value": 2,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/2"
+      }
+    },
+    {
+      "name": "hds/control/size/md/track",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Switch track height — 32px. Switches only.",
+      "value": 32,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/32"
+      }
+    },
+    {
+      "name": "hds/control/size/md/thumb",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Switch thumb — 24px (0.75 × the 32px track). Switches only.",
+      "value": 24,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/24"
+      }
+    },
+    {
+      "name": "hds/control/size/md/label-inset",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Option row label inset — 0px, so the label's first line centers on the 20px box.",
+      "value": 0,
+      "alias": null
+    },
+    {
+      "name": "hds/control/size/lg/height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Checkbox / radio box — 24px square",
+      "value": 24,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/24"
+      }
+    },
+    {
+      "name": "hds/control/size/lg/width",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Switch track width — 80px (twice the 40px track height)",
+      "value": 80,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/80"
+      }
+    },
+    {
+      "name": "hds/control/size/lg/dot",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Radio dot — 12px (half the 24px box)",
+      "value": 12,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/12"
+      }
+    },
+    {
+      "name": "hds/control/size/lg/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Label line height (body lg, 27px) — the control centers on the label's first line.",
+      "value": 27,
+      "alias": null
+    },
+    {
+      "name": "hds/control/size/lg/inset",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Switch thumb inset — 5px ((40px track − 30px thumb) ÷ 2). Switches only.",
+      "value": 5,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/5"
+      }
+    },
+    {
+      "name": "hds/control/size/lg/radius",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "Checkbox/radio corner — 2px, clamped to the 24px box (does not follow the radius scale).",
+      "value": 2,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/2"
+      }
+    },
+    {
+      "name": "hds/control/size/lg/track",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Switch track height — 40px. Switches only.",
+      "value": 40,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/40"
+      }
+    },
+    {
+      "name": "hds/control/size/lg/thumb",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Switch thumb — 30px (0.75 × the 40px track). Switches only.",
+      "value": 30,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/30"
+      }
+    },
+    {
+      "name": "hds/control/size/lg/label-inset",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Option row label inset — 0px, so the label's first line centers on the 24px box.",
+      "value": 0,
+      "alias": null
+    },
+    {
+      "name": "hds/type/label/sm/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Title line height (label sm, 14px) — a glyph centers on the title's first line.",
+      "value": 14,
+      "alias": null
+    },
+    {
+      "name": "hds/type/label/md/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Title line height (label md, 16px) — a glyph centers on the title's first line.",
+      "value": 16,
+      "alias": null
+    },
+    {
+      "name": "hds/type/label/lg/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Title line height (label lg, 21px) — a glyph centers on the title's first line.",
+      "value": 21,
+      "alias": null
+    },
+    {
+      "name": "hds/type/body/xs/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Label line height (body xs, 18px) — an option row's control stays on the label's first line.",
+      "value": 18,
+      "alias": null
+    },
+    {
+      "name": "hds/type/body/sm/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Label line height (body sm, 21px) — an option row's control stays on the label's first line.",
+      "value": 21,
+      "alias": null
+    },
+    {
+      "name": "hds/type/body/md/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Label line height (body md, 24px) — an option row's control stays on the label's first line.",
+      "value": 24,
+      "alias": null
+    },
+    {
+      "name": "hds/type/body/lg/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Label line height (body lg, 27px) — an option row's control stays on the label's first line.",
+      "value": 27,
+      "alias": null
+    },
+    {
+      "name": "hds/type/caption/md/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Caption line height (caption md, 15px) — a mark centers on the caption's first line.",
+      "value": 15,
+      "alias": null
+    },
+    {
+      "name": "hds/type/caption/lg/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Caption line height (caption lg, 17px) — a mark centers on the caption's first line.",
+      "value": 17,
+      "alias": null
+    }
+  ]
+}
