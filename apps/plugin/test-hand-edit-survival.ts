@@ -34,11 +34,16 @@
  * The mark is read by its namespace and key typed here. Mutations: the auto write dropped → `/off auto`, `/off reopen`;
  * turning on for any kept edit → `/off plain edit`; the apply's skip of such a set dropped → `/off skip`, `/off report`,
  * `/off back on`. On main every arm but `/off plain edit` fails by name; that one guards against turning on too eagerly.
+ * The other side of "only" (#3948 review B2): `/off no record`, `/off unstamped` and `/off root replaced`, a member
+ * skipped for a reason that is not a hand edit leaves updates on. Mutations: `around` pushed on the no-record skip →
+ * `/off no record`; on the not-built-by-Prism3 skip → `/off unstamped`; on the would-need-replacing skip →
+ * `/off root replaced`.
  */
 import { makeShim, type Node, type Page } from './component-shim';
-import { componentDefs, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan } from '@prism3/engine/components';
+import { componentDefs, figmaAnatomySet, planBoundVars, planComponentName, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan } from '@prism3/engine/components';
 import { SWAP_TARGET } from './src/build-deps';
-import { applyComponentPlan } from './src/write-components';
+import { applyComponentPlan, STAMP_KEY } from './src/write-components';
+import { BASELINE_KEY } from './src/member-baseline';
 import { previewUpdate, type UpdateTarget } from './src/update-plan';
 import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost } from './src/update-apply';
 
@@ -197,6 +202,32 @@ const run = async (w: World, def: string, plans: AnatomyPlan[]) => {
   const { res } = await run(w, 'tag', rootChanged(plans));
   ok(MARK(w.set()) === '' && res.outcomes[0].updated.includes(TAG_MEMBER) && !res.outcomes[0].turnedOff,
     `survival/off plain edit: an edit the update applies around never turns updates off (${JSON.stringify(MARK(w.set()))}; updated ${res.outcomes[0].updated.includes(TAG_MEMBER)})`);
+}
+// NOT ON A SKIP THAT IS NOT ABOUT HAND EDITS (#3948 review B2): the owner's rule turns updates off ONLY when an update
+// cannot apply around hand edits. Three skips leave a member for another reason, and each must leave the mark unset:
+// a member with no as-built record under `noBaseline: 'skip'`, a member not built by Prism3 (its stamp cleared), and a
+// member whose root would need replacing (its plan's root typed TEXT, so the host's COMPONENT reads as a type change).
+// Each arm first checks the member WAS skipped for that reason, so a fixture that stops producing the skip fails here
+// rather than passing vacuously.
+for (const c of [
+  { name: 'no record', reason: 'no as-built record', noBaseline: 'skip' as const,
+    prep: (m: Node, plans: AnatomyPlan[]) => { (m.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', BASELINE_KEY, ''); return rootChanged(plans); } },
+  { name: 'unstamped', reason: 'not built by Prism3', noBaseline: undefined,
+    prep: (m: Node, plans: AnatomyPlan[]) => { (m.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', STAMP_KEY, ''); return rootChanged(plans); } },
+  { name: 'root replaced', reason: 'the member itself would need replacing', noBaseline: undefined,
+    prep: (_m: Node, plans: AnatomyPlan[]) => rootChanged(plans).map((q) => (planComponentName(q) === TAG_MEMBER ? { ...q, root: { ...q.root, type: 'TEXT' as AnatomyPlan['root']['type'] } } : q)) },
+]) {
+  const plans = plansOf('tag');
+  const w = await world('tag', plans, ['color/keep/changed', 'space/999']);
+  const member = (): Node => (w.set().children as Node[]).find((m) => m.name === TAG_MEMBER)!;
+  const next = c.prep(member(), plans);
+  const targets: UpdateTarget[] = [{ def: 'tag', plans: next }];
+  const pre = await previewUpdate(w.host, targets);
+  const res = await applyUpdate(w.host, w.api as any, targets, previewHashOf(pre), { choices: { handEdits: 'keep', ...(c.noBaseline ? { noBaseline: c.noBaseline } : {}) } });
+  const o = res.outcomes[0];
+  const why = o.skipped.find((x) => x.member === TAG_MEMBER)?.reason ?? null;
+  ok(why === c.reason && MARK(w.set()) === '' && !o.turnedOff && !(o.aroundEdits ?? []).length && o.updated.length > 0,
+    `survival/off ${c.name}: a member skipped as "${c.reason}" leaves updates on (skipped as ${JSON.stringify(why)}; mark ${JSON.stringify(MARK(w.set()))}; ${o.updated.length} updated)`);
 }
 {
   // SKIP AND REPORT, then BACK ON. The designer turned the set's updates off; the plan changes every member's root fill.
