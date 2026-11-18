@@ -24,7 +24,9 @@
  *
  * 6. A STATUS ALWAYS WRITES ITS MESSAGE (Q-POC2 A, #1712 A). At error, warning and success, with `showMessage` off,
  *    each element writes its message, shown, with `validationMessage` as its text, and names it in the input's
- *    `aria-describedby`. A status set live writes it; back at default, `showMessage` off writes none.
+ *    `aria-describedby`. A status set live writes it; back at default, `showMessage` off writes none. The plain form
+ *    (`@prism3/css`'s markup) is held the same way at each status with `showMessage` off, and a field pre-rendered at
+ *    error adopts with `showMessage` off, so set back to default it writes no message.
  *
  * SELF-TEST: six mutants must each fail by name: the submit handler removed, adoption dropping a typed value, the
  * toggle moving focus to the input, the caret put back only once (Chromium resets it a task later), `@prism3/css`'s
@@ -270,6 +272,48 @@ export const run = async (browser: any, src: Sources): Promise<{ failures: strin
     ok(err.linked && err.shown && err.invalid === 'true', `Q-POC2: <p3-text-field> set to error live renders no linked, shown message (${say(err)})`);
     const back = await live('default');
     ok(back.text === null && back.describedBy === null && back.invalid === null, `Q-POC2: <p3-text-field> set back to default with showMessage off keeps a message (${say(back)})`);
+    await page.close();
+  }
+
+  // 6b. the plain form (@prism3/css's markup) at each status with showMessage off: the message written, shown and
+  // named in aria-describedby. demo.html builds every status field with its message on, so this is the one place the
+  // plain form is read with it off.
+  {
+    const page = await browser.newPage();
+    const STATUSES = ['error', 'warning', 'success'];
+    await page.setContent(page_(KINDS.flatMap((k) => STATUSES.map((st) => plain({ kind: k, id: `plain-${k}-${st}`, size: 'medium', status: st, state: 'rest', icons: false, message: false }))).join('')));
+    for (const k of KINDS) for (const st of STATUSES) {
+      const x = await page.evaluate(`(() => {
+        const input = document.getElementById('plain-${k}-${st}');
+        const ids = (input.getAttribute('aria-describedby') || '').split(' ').filter(Boolean);
+        const msg = input.closest('.p3-${k}').querySelector('.p3-field-message');
+        const box = msg ? msg.getBoundingClientRect() : null;
+        return { linked: !!msg && ids.includes(msg.id) && document.getElementById(msg.id) === msg,
+          shown: !!msg && getComputedStyle(msg).display !== 'none' && !msg.closest('[hidden]') && box.width > 0 && box.height > 0,
+          text: msg ? msg.textContent.trim() : null, describedBy: input.getAttribute('aria-describedby') };
+      })()`);
+      ok(x.linked && x.shown && !!x.text, `Q-POC2: the plain ${k} at ${st} with showMessage off renders no linked, shown message (aria-describedby ${JSON.stringify(x.describedBy)}, message ${x.text === null ? 'absent' : x.shown ? 'shown' : 'not shown'})`);
+    }
+    await page.close();
+  }
+
+  // 6c. upgrade at a status (Q-POC2 A): a message pre-rendered at error was required, not chosen, so adoption leaves
+  // showMessage off, and the field set live back to default writes no message.
+  {
+    const page = await browser.newPage();
+    const pre = fieldHtml({ kind: 'text-field', id: 'pre-error', demo: 'pre-error', size: 'medium', status: 'error', state: 'rest', icons: false, message: true });
+    await page.setContent(page_(`<p3-text-field>${pre}</p3-text-field>`));
+    await load(page);
+    const up = await page.evaluate(`(async () => {
+      const el = document.querySelector('p3-text-field');
+      const at = { showMessage: el.showMessage, validation: el.validation, validationMessage: el.validationMessage };
+      el.validation = 'default';
+      await el.updateComplete;
+      const input = el.querySelector('.p3-text-field__entry');
+      return { ...at, after: { message: !!el.querySelector('.p3-field-message'), describedBy: input.getAttribute('aria-describedby'), invalid: input.getAttribute('aria-invalid') } };
+    })()`);
+    ok(up.validation === 'error' && !!up.validationMessage, `upgrade at error: the element did not adopt the status and its message: ${JSON.stringify(up)}`);
+    ok(!up.showMessage && !up.after.message && up.after.describedBy === null && up.after.invalid === null, `Q-POC2: <p3-text-field> pre-rendered at error, upgraded and set back to default keeps its message (showMessage ${JSON.stringify(up.showMessage)}, message ${up.after.message ? 'written' : 'absent'}, aria-describedby ${JSON.stringify(up.after.describedBy)})`);
     await page.close();
   }
   return { failures, passed };
