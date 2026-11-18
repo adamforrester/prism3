@@ -135,6 +135,16 @@
  * (`parseYamlSubset`), so a limit dropped from `ci.yml` fails here by name. The register is authored here and never
  * derived from `ci.yml`, or a step that lost its limit would leave the register with it (`docs/34` shape 1).
  *
+ * ARM 10 — NO GATE STEP THAT CANNOT FAIL (#3881). Arms 1-5 hold a step's `run:` to the docs and `verify.ts`, and
+ * refuse `|| true` inside it. Two step keys neuter a gate the same way and live outside `run:`:
+ * `continue-on-error: true` (GitHub then reports the step's own conclusion as `success`, #888) and a step-level
+ * `if:` (`if: false` never runs it). With either, the gate stays listed, documented and run by `verify.ts`, and CI is
+ * green whatever it says. So, from the parsed tree: no step with a `run:` carries `continue-on-error` other than a
+ * literal `false`, or any `if:`; and no job holding such a step carries `continue-on-error` other than `false`. A
+ * job-level `if:` is not this arm's: `all-gates.sh` fails a skipped job by name unless the docs-only exemption
+ * (arm above, `exemptionGaps`) lists it. Today the rule holds at zero; a step that genuinely needs either key is
+ * #888's route, a separate non-required job, and an allowlist for it would be added here in that PR.
+ *
  * WHY IMPORTING `verify.ts` IS SAFE: it runs its gates only under a main-module guard, so importing
  * `GATES` costs nothing. It does run its own self-checks at import time, which is deliberate — this
  * gate then fails if the runner's checks are broken, rather than reporting on a list produced by a
@@ -682,6 +692,26 @@ export const stepTimeoutGaps = (tree: YamlValue, required: readonly { job: strin
     if (!st) { problems.push(`\`${job}\` has no step "${step}", so its time limit could not be checked`); continue; }
     const t = st['timeout-minutes'];
     if (!/^[1-9]\d*$/.test(String(t ?? ''))) problems.push(`"${step}" (\`${job}\`) has no \`timeout-minutes\` (${t === undefined ? 'none' : JSON.stringify(t)}), so a hang holds the job for GitHub's six-hour default`);
+  }
+  return problems;
+};
+
+/** ARM 10 (#3881): every step with a `run:` that could not fail its job, and every job holding one that could not fail
+ *  the run, by job and `- name:`. A `continue-on-error` is sound only as a literal `false`; a step-level `if:` is never
+ *  sound on a step that runs a command. Empty when every gate step can fail. */
+export const neuteredStepGaps = (tree: YamlValue): string[] => {
+  const jobs = (tree as { jobs?: Record<string, Record<string, YamlValue> & { steps?: Record<string, YamlValue>[] }> }).jobs ?? {};
+  const problems: string[] = [];
+  const soundCoe = (v: YamlValue | undefined): boolean => v === undefined || String(v).trim() === 'false';
+  for (const [k, j] of Object.entries(jobs)) {
+    const gateSteps = (j.steps ?? []).filter((st) => typeof st.run === 'string' && st.run.trim());
+    if (gateSteps.length && !soundCoe(j['continue-on-error']))
+      problems.push(`job \`${k}\` carries \`continue-on-error: ${String(j['continue-on-error'])}\`, so its ${gateSteps.length} gate step(s) cannot fail the run`);
+    for (const st of gateSteps) {
+      const name = typeof st.name === 'string' ? st.name : '(unnamed)';
+      if (!soundCoe(st['continue-on-error'])) problems.push(`"${name}" (\`${k}\`) carries \`continue-on-error: ${String(st['continue-on-error'])}\`, so GitHub reports it as \`success\` when the gate fails`);
+      if ('if' in st) problems.push(`"${name}" (\`${k}\`) carries a step-level \`if: ${String(st.if)}\`, so the gate runs only when that holds`);
+    }
   }
   return problems;
 };
@@ -1444,6 +1474,27 @@ jobs:
   if (!gaps(T.replace('Sample suite', 'Renamed suite')).some((p) => p.includes('has no step "Sample suite"'))) selfFails.push('arm 9 misses a registered step that is no longer there');
 }
 
+// 6c. ARM 10 (#3881) — a plain gate step is clean; `continue-on-error`, a step `if:`, or a job `continue-on-error` is named.
+{
+  const T = `
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sample gate
+        run: npx tsx sample.ts
+`;
+  const gaps = (yaml: string): string[] => neuteredStepGaps(parseYamlSubset(yaml));
+  const step = (key: string): string => T.replace('        run: npx tsx sample.ts', `        ${key}\n        run: npx tsx sample.ts`);
+  if (gaps(T).length) selfFails.push(`arm 10 flags a plain gate step: ${gaps(T).join('; ')}`);
+  if (gaps(step('continue-on-error: false')).length) selfFails.push('arm 10 flags `continue-on-error: false`, which neuters nothing');
+  if (!gaps(step('continue-on-error: true')).some((p) => p.includes('"Sample gate"') && p.includes('continue-on-error'))) selfFails.push('arm 10 misses a gate step with `continue-on-error: true` (it cannot fail)');
+  if (!gaps(step("continue-on-error: ${{ github.event_name == 'push' }}")).some((p) => p.includes('"Sample gate"'))) selfFails.push('arm 10 misses a gate step with an expression `continue-on-error`');
+  if (!gaps(step('if: false')).some((p) => p.includes('"Sample gate"') && p.includes('if: false'))) selfFails.push('arm 10 misses a gate step with `if: false`');
+  if (!gaps(T.replace('    runs-on: ubuntu-latest', '    runs-on: ubuntu-latest\n    continue-on-error: true')).some((p) => p.includes('job `engine`'))) selfFails.push('arm 10 misses a job-level `continue-on-error: true` over gate steps');
+}
+
 // 7. ARM 6 — a retired gate's token is found in a place, and a place without it is clean.
 {
   const R = [{ token: 'audit:Sample', retired: 'the sample audit' }];
@@ -1635,6 +1686,18 @@ const realSteps = parseSteps(readFileSync(CI_PATH, 'utf8'));
     for (const p of problems) console.error(`    ${p}`);
     console.error('\n  A step that hangs without one holds its job for six hours, and its log cannot be read until it ends.');
     console.error('  Give the step a `timeout-minutes` above its slowest healthy run, or retire its row in STEP_TIME_LIMITS.');
+    process.exit(1);
+  }
+}
+// ARM 10 (#3881), on the real file: no gate step that cannot fail.
+{
+  const problems = neuteredStepGaps(ciTree);
+  console.log('    neutered steps: every job and every step with a `run:` checked for `continue-on-error` and a step `if:`');
+  if (problems.length) {
+    console.error(`\n❌ ${problems.length} gate step(s) or job(s) in ci.yml cannot fail (#3881):\n`);
+    for (const p of problems) console.error(`    ${p}`);
+    console.error('\n  The gate is still listed, documented and run by verify.ts, so every check here agrees while CI stays green');
+    console.error('  whatever it says. Remove the key. A step that must not block a merge goes in its own non-required job (#888).');
     process.exit(1);
   }
 }
