@@ -20610,6 +20610,12 @@ for (const theme of ['light', 'dark']) {
 //   `isOpen` reading a leaving menu as open → `… reads as closed`; an exit rule dropped → `#3150 DECLARED: … declares no
 //   motion` and its LIVE exit arm; the drawer's exit unscoped from `data-closing` (#3217) → `#3150 LIVE … at boot the closed drawer plays no exit` and
 //   `… a narrow → wide resize under the closed drawer plays no exit`.
+//   #3245 (owner decision 2026-11-18, A), the agent link's pairing prompt, measured 2026-11-18: main's `chrome.css` (the
+//   prompt hidden with no exit) → the three `#3150 DECLARED: … .p3-menu.p3-agent-pair …` arms, `#3245 #3150 LIVE … the
+//   pairing prompt, hidden, stays drawn and leaves as the menus' fade … (display none; read [])` and both REDUCED exit
+//   arms; the reduced block's `.p3-popwrap > .p3-menu.p3-agent-pair` rule alone dropped (the menus' reduced line then
+//   drops `display`, so the fade ends at once) → `#3150 DECLARED: reduced …`, `#3245 #3150 REDUCED … stays drawn through
+//   its exit under reduced motion (display none)` and `… #3245 the pairing prompt leaving: it crossfades on 100ms`.
 // =============================================================================================
 if (runs('3150')) {
 console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n${'='.repeat(78)}`);
@@ -20635,6 +20641,8 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
     ['rule', '.p3-drawer-bar .p3-status-dot[data-leaving="true"]'],
     // Shift: a menu.
     ['rule', '.p3-menu'], ['start', '.p3-menu'], ['rule', '.p3-menu[data-leaving="true"]'],
+    // #3245: the agent link's pairing prompt, a menu's surface that is hidden rather than removed, with the menu's exit fade.
+    ['rule', '.p3-menu.p3-agent-pair'], ['rule', '.p3-menu.p3-agent-pair[hidden]'],
     // Fade: a tooltip; the error strip and the notices row it sits in; the Update file rows that land.
     ['rule', '.p3-tile-tip'], ['start', '.p3-tile:is(:hover, :focus-visible):not([aria-expanded="true"]) > .p3-tile-tip'],
     ['rule', '.p3-notices'], ['rule', '.p3-errstrip'], ['rule', '.p3-errstrip[hidden]'], ['start', '.p3-errstrip'],
@@ -20653,6 +20661,7 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
     ['reduced-start', '.p3-drawer-body'],
     ['reduced', ':is(.p3-drawer-body, .p3-errstrip, .p3-errstrip[hidden])'],
     ['reduced', ':is(.p3-frame[data-w="narrow"] .p3-drawer, .p3-drawer-bar .p3-status-dot[data-state="unread"], .p3-menu, .p3-tile-tip, .p3-upd [data-land="true"], :is(.p3-bardlg-scrim, .p3-scrim), :is(.p3-advbody, .p3-op-body, .p3-op-history > ul, .p3-op-entry > :not(summary), .p3-sg-titles-body))'],
+    ['reduced', '.p3-popwrap > .p3-menu.p3-agent-pair'],
   ];
   /** Every rule in the chrome's stylesheet that declares a transition or an animation, with its context. */
   const declared = (page) => page.evaluate(() => {
@@ -20891,6 +20900,33 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       await page.keyboard.press('Escape');
       await settleAll(page, cdp);
       ok(await goneNow(page, '[data-p3="inspect-menu"]'), `${where}: settled, the Inspect menu is removed once its exit ends`);
+
+      // #3245 (owner decision 2026-11-18, A): the agent link's pairing prompt. Drawn as a menu, it shifts in as one, and it is
+      // hidden (`hidden`), not removed, so it has its own exit: the menu's fade, drawn through it. Driven directly, as the
+      // error strip is: the bridge that asks for a code is not in the page.
+      step = 'the pairing prompt';
+      const PAIR = '[data-p3="bar-agent"] [data-p3="agent-pair"]';
+      ok(await page.evaluate((s) => document.querySelector(s)?.hidden === true, PAIR), `#3245 ${where}: premise, the pairing prompt is in the bar's agent slot, hidden (${PAIR})`);
+      await slow();
+      await change(page, (s) => { document.querySelector(s).hidden = false; }, PAIR);
+      const pIn = await movesOf(page, PAIR);
+      if (!reduced) {
+        const o = one(pIn, 'opacity'), t = one(pIn, 'translate');
+        ok(!!o && !!t && o.dur === SMALL && t.dur === SMALL && o.ease === ENTER && t.ease === ENTER, `#3245 ${where}: the pairing prompt shifts in as a menu does, opacity and a short offset on ${SMALL}ms, the enter curve (read ${fmt(pIn)})`);
+      } else reducedOk(pIn?.filter((a) => a.name !== 'display'), '#3245 the pairing prompt appearing');
+      await settleAll(page, cdp);
+      ok(atRest(await restOf(page, PAIR)), `#3245 ${where}: settled, the pairing prompt sits at rest (${fmt(await restOf(page, PAIR))})`);
+      await slow();
+      const pDrawn = await change(page, (s) => { const p = document.querySelector(s); p.hidden = true; return getComputedStyle(p).display; }, PAIR);
+      const pOut = (await movesOf(page, PAIR))?.filter((a) => a.name !== 'display');
+      if (!reduced) ok(pDrawn !== 'none' && !!pOut && one(pOut, 'opacity')?.dur === OUT && one(pOut, 'opacity')?.ease === EXIT && pOut.every((a) => a.moves.length === 0),
+        `#3245 ${where}: the pairing prompt, hidden, stays drawn and leaves as the menus' fade, opacity on ${OUT}ms, the exit curve, moving nothing (display ${pDrawn}; read ${fmt(pOut)})`);
+      else {
+        ok(pDrawn !== 'none', `#3245 ${where}: the pairing prompt, hidden, stays drawn through its exit under reduced motion (display ${pDrawn})`);
+        reducedOk(pOut, '#3245 the pairing prompt leaving');
+      }
+      await settleAll(page, cdp);
+      ok((await restOf(page, PAIR))?.display === 'none', `#3245 ${where}: settled, the pairing prompt is undrawn`);
 
       // A dialog: Scale in; a repaint of the open dialog does not scale it again; the checklist fades in when it lands.
       step = 'the Update file dialog';
