@@ -164,7 +164,11 @@
  *                   left column's landings typed by hand (`leftColumns`). Mutation: the slide along the edge removed →
  *                   `markers/left slides`. `markers/blind`: every marker a child of the panel, the set unchanged by the
  *                   draw, the panel unedited after it. Mutations: the marker group appended to its specimen →
- *                   `markers/blind`; the dot's ink bound to a token → every `markers/<def>`.
+ *                   `markers/blind`; the dot's ink bound to a token → every `markers/<def>`. `markers/no crossing`
+ *                   (Q-BK4 A): no container's leader, on any lead, crosses another shown part; `markers/accordion trailing
+ *                   indicator`: the owner's case takes a top or bottom leader; `markers/side …`: `containerSides` typed
+ *                   by hand. Mutations: every container led from the left → `markers/no crossing`, `markers/accordion
+ *                   trailing indicator`; the clear-side fallback removed → `markers/side clear`.
  *   family/related  (#2970 Q5 A) Checkbox's and Buttons' Related lists typed from the approved wireframe; a family named
  *                   twice in one list once. Mutations: the own-family drop removed → `family/related`, `family/related
  *                   buttons`; the de-duplication removed → `family/related once`. `related/…` (#3552 Q-UG3 A): Dialog's and
@@ -184,7 +188,7 @@ import { componentDefs, docSections, MAINTAINER_REGISTER, NAMES_A_TOOL, type Com
 import { applyComponentPlan } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { fixHostMethods, makeShim, type Node } from './component-shim';
-import { anatomyEntry, anatomyMarks, clearOrphanPanels, leftColumns, panelUnedited, codeRuns, docPanelReach, docPanelReaches, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, printV2, PANEL_FORMAT, type PanelApi, type PNode } from './src/doc-panel';
+import { anatomyEntry, anatomyMarks, clearOrphanPanels, containerSides, leftColumns, panelUnedited, codeRuns, docPanelReach, docPanelReaches, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, printV2, PANEL_FORMAT, type PanelApi, type PNode } from './src/doc-panel';
 import { dueOf, entryFor, readLedger, recordSets, type LedgerEntry } from './src/as-built-ledger';
 import { checkedSetOf } from './src/update-plan';
 import { TAXONOMY } from './src/file-taxonomy';
@@ -958,6 +962,10 @@ section('markers/… — every listed number on a specimen, on its part, by one 
 {
   /** _Label's ink, typed here (#3773, owner decision B), and the end dot's size across. */
   const INK = '#9747FF', DOT = 4;
+  /** Every container leader that runs over another part (#3773, Q-BK4 A), across every check below. */
+  const crossed: string[] = [];
+  /** Every container marked from the top or bottom gutter rather than the left (#3773, Q-BK4 A). */
+  const offLeft: string[] = [];
   const hexOf = (n: N): string => {
     const f = ((n.fills ?? []) as { color?: { r: number; g: number; b: number }; boundVariables?: unknown }[])[0];
     if (!f?.color || f.boundVariables) return 'no literal fill';
@@ -1034,9 +1042,19 @@ section('markers/… — every listed number on a specimen, on its part, by one 
       const B = hit.absoluteBoundingBox!;
       const ex = E.x + E.width / 2, ey = E.y + E.height / 2;
       const within = (v: number, lo: number, hi: number) => v >= lo - 0.5 && v <= hi + 0.5;
-      const into = L.x < B.x + B.width - 0.5 && L.x + L.width > B.x + 0.5 && L.y < B.y + B.height - 0.5 && L.y + L.height > B.y + 0.5;
-      if (into) wrong.push(`${num} ${part.id}: its leader runs over the part`);
-      if (container(part.id)) {
+      const over = (b: { x: number; y: number; width: number; height: number }) => L.x < b.x + b.width - 0.5 && L.x + L.width > b.x + 0.5 && L.y < b.y + b.height - 0.5 && L.y + L.height > b.y + 0.5;
+      if (over(B)) wrong.push(`${num} ${part.id}: its leader runs over the part`);
+      // THE OTHER PARTS ON THIS SPECIMEN (#3773, Q-BK4 A), read off the def's tree: every shown listed part that is neither
+      // this one nor one that holds it (a leader must enter those) nor one it holds.
+      const others = walk(spec).filter((c) => c !== hit && c !== spec && listed.has(c.name) && c.name !== part.id && shown(c, spec)
+        && !ancestors(part.id).includes(c.name) && !below(part.id).includes(c.name));
+      // A container leads in from the left gutter, or, where that would cross the row (Accordion's trailing indicator),
+      // by a short top or bottom leader to its near edge, as a part's: read off where its disc is, and held to the
+      // part's rules below. That no container leader crosses another part is `markers/no crossing`.
+      const fromLeft = container(part.id) && marker.x + marker.width <= spec.absoluteBoundingBox!.x + 0.5;
+      if (container(part.id) && !fromLeft) offLeft.push(`${def.id} ${part.id}`);
+      if (container(part.id)) for (const c of others) if (over(c.absoluteBoundingBox!)) crossed.push(`${def.id} ${num} ${part.id}: its leader crosses ${c.name}`);
+      if (fromLeft) {
         // In from the left gutter to its left edge: the outermost near its bottom corner, an inner one at its middle.
         const outer = !marksOn(spec).some((o) => o !== part.id && container(o) && ancestors(part.id).includes(o));
         const wantY = outer ? B.y + B.height - Math.min(8, B.height / 2) : B.y + B.height / 2;
@@ -1114,6 +1132,11 @@ section('markers/… — every listed number on a specimen, on its part, by one 
     const specs = walk(panelsOn(q)[0]).filter((c) => c.name === 'specimen');
     ok(specs.length >= 3, `markers/extra specimens: Tag's parts take ${specs.length} specimens in its Anatomy and Theming`);
   }
+  ok(!crossed.length, `markers/no crossing: no container's leader, on any lead, crosses another part (#3773, Q-BK4 A)`, crossed.slice(0, 4).join('; '));
+  // The owner's case (Q-BK4 A, point 2): Accordion's trailing indicator, its title to its left, takes a short top or
+  // bottom leader; its header and title row, nothing to their left, still lead in from the left gutter.
+  ok(offLeft.includes('accordion trailingIndicator') && !offLeft.some((x) => /^accordion (container|header|titleRow)$/.test(x)),
+    `markers/accordion trailing indicator: marked from the top or bottom, the containers at the left edge from the left`, offLeft.filter((x) => x.startsWith('accordion ')).join(', '));
 }
 
 /* ── markers: the left gutter, and blind to the set ───────────────────────────────────────────────────── */
@@ -1129,6 +1152,33 @@ section('markers/left and blind — containers share the left column where their
   const dlg = leftColumns([{ path: [], top: 0, height: 156 }, { path: ['header'], top: 0, height: 36 }, { path: ['footer'], top: 132, height: 24 }]);
   ok(show(dlg) === '120@0 18@0 12@0', `markers/left slides: Dialog's root gives way to its footer along its own edge, all in one column (${show(dlg)})`);
   ok(show(leftColumns([{ path: [], top: 0, height: 10 }])) === '5@0', 'markers/left short root: a root under 16 high lands at its middle');
+
+  // WHERE A CONTAINER'S LEADER COMES FROM (#3773, Q-BK4 A), boxes typed by hand. An Accordion-shaped header row: the
+  // title row and header at the left edge lead in from the left; the trailing indicator, its title to its left, from
+  // the top (its middle is in the specimen's top half). A Banner-shaped column: a container with a part to its left and
+  // the title above it in its column takes the bottom, though its middle is in the top half; with a part below it too,
+  // neither side is clear and it keeps the near one.
+  const bx = (x: number, y: number, width: number, height: number) => ({ x, y, width, height });
+  const P = bx(0, 0, 320, 88);
+  const sides = (items: { path: string[]; container: boolean; box: ReturnType<typeof bx> }[], at = P) => containerSides(items, at).map((v) => v ?? '-').join(' ');
+  const row = [
+    { path: [], container: true, box: P }, { path: ['header'], container: true, box: bx(0, 0, 320, 24) },
+    { path: ['header', 'titleRow'], container: true, box: bx(0, 0, 292, 24) },
+    { path: ['header', 'titleRow', 'title'], container: false, box: bx(0, 4, 264, 16) },
+    { path: ['header', 'titleRow', 'trailing'], container: true, box: bx(268, 0, 24, 24) },
+    { path: ['header', 'titleRow', 'trailing', 'glyph'], container: false, box: bx(272, 4, 16, 16) },
+  ];
+  ok(sides(row) === 'left left left - top -', `markers/side row: the root, header and title row from the left, the trailing indicator from the top (${sides(row)})`);
+  const col = (below: boolean) => [
+    { path: ['glyph'], container: false, box: bx(0, 0, 24, 32) },
+    { path: ['content', 'title'], container: false, box: bx(28, 0, 292, 16) },
+    { path: ['content', 'body'], container: true, box: bx(28, 18, 292, 16) },
+    { path: ['content', 'body', 'text'], container: false, box: bx(28, 18, 292, 16) },
+    ...(below ? [{ path: ['content', 'rich'], container: false, box: bx(28, 40, 292, 24) }] : []),
+  ];
+  // The glyph (0–32) spans the body's landing band (at 26), so its leader can't come from the left; the specimen is 88 high.
+  ok(sides(col(false)) === '- - bottom -', `markers/side clear: the title above it in its column, the body takes the bottom gutter (${sides(col(false))})`);
+  ok(sides(col(true)) === '- - top - -', `markers/side neither clear: blocked above and below, the body keeps its near side, the top (${sides(col(true))})`);
 
   // BLIND TO THE SET (#3773): the markers, their leaders and dots are the panel's own children, never inside the set or a
   // specimen, so the set's hand-edit check and its as-built record, which read the set, never see them; and the panel

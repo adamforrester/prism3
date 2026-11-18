@@ -5,7 +5,9 @@ decision was first recorded as C (B's geometry plus a white halo and a white rin
 **B, with no halo and no ring**. This builds the revised B:
 - one leader per part, containers included, in `_Label`'s literal #9747FF, ending in a 4px dot on the part's edge;
 - a container's leader comes in from the left gutter to its left edge, the outermost 8px above its bottom corner and an
-  inner one at its middle;
+  inner one at its middle. A container with a part to its left where that leader would land (Accordion's title box and
+  trailing indicator) takes a short top or bottom leader to its edge instead, so no leader crosses the row (owner
+  decision Q-BK4 A, point 2; `containerSides`, held by `markers/no crossing`);
 - each marker is a filled #9747FF disc with a white numeral (Inter Semi Bold 12), drawn by the panel itself, not a Badge
   instance;
 - `PANEL_FORMAT` 7 → 8, so each drawn panel is due once on the next Update.
@@ -26,8 +28,10 @@ leading indicator, which share one left edge.
 check and its as-built record never read them. Every fill is a literal, so the panel's print reads them as drawn.
 `markers/blind` holds this.
 
-**Open.** These are for the owner (on the PR):
-- an inner container away from the left edge has a leader that crosses the content to its left (Accordion's trailing
-  indicator);
-- whether Anatomy ever goes on a dark stage, and the numeral on a #E0C7FF disc if it does. No Anatomy specimen pins a
-  mode today, so no dark ink is built.
+**Owner decisions (Q-BK4 A, 2026-11-17).** B is confirmed, with no halo and no ring. An inner container away from the
+left edge takes a short top or bottom leader (built). Nested containers on one edge keep a column each. The unused
+Part-marker variant is kept. The miss line "Inter Semi Bold unavailable for the part markers: used Inter Regular" is
+APPROVED.
+
+**Deferred (Q-BK4 A, point 4).** A dark stage, and the numeral on a #E0C7FF disc, wait until an Anatomy specimen can
+land on one. None pins a mode today, so no dark ink is built.

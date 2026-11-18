@@ -1008,15 +1008,47 @@ export const leftColumns = (items: readonly { path: readonly string[]; top: numb
   }
   return out;
 };
-/** How many left columns a member's containers take (`leftColumns`), read off its layers as the host lays them out. */
-const leftColumnsOf = (member: PNode, marks: readonly AnatomyMark[]): number => {
-  const M = boxOn(member);
-  const items = marks.filter((m) => m.container).flatMap((m) => {
-    const n = locate(member, m.path);
-    if (!n) return [];
-    const B = n === member ? M : boxOn(n);
-    return [{ path: m.path, top: B.y - M.y, height: B.height }];
+/**
+ * WHERE EACH CONTAINER'S LEADER COMES FROM (#3773, owner decision Q-BK4 A, point 2). `items` are the listed parts the
+ * specimen shows, marked on it or not, with their boxes. A container's leader comes in from the left gutter only when no
+ * other part sits to its left where the leader lands (from its middle down to `MARK_CORNER` above its bottom, the band
+ * `leftColumns` lands in), apart from the containers that hold it: those the leader must enter. Otherwise, as Accordion's trailing indicator with its title to its left, a leader from the gutter would cross the row,
+ * so the container is marked as a part is, by a short leader from the top or bottom gutter to its near edge at its middle
+ * across: the side its middle is nearer (`P`, the specimen's box), unless a part between it and that gutter would be
+ * crossed and the other side is clear. Pure on the boxes, so the width rule and the draw decide alike. Returns, in the
+ * order given, each container's side, and null for a part that holds no other.
+ */
+export const containerSides = (items: readonly { path: readonly string[]; container: boolean; box: Box }[], P: Box): ('left' | 'top' | 'bottom' | null)[] => {
+  const holds = (o: readonly string[], l: readonly string[]): boolean => o.length < l.length && o.every((s, i) => l[i] === s);
+  return items.map((it) => {
+    if (!it.container) return null;
+    const B = it.box;
+    const others = items.filter((o) => o !== it && !holds(o.path, it.path) && !holds(it.path, o.path));
+    const lo = B.y + B.height / 2, hi = Math.max(lo, B.y + B.height - Math.min(MARK_CORNER, B.height / 2));
+    if (!others.some((o) => o.box.x < B.x - 0.5 && o.box.y < hi + LEADER / 2 && o.box.y + o.box.height > lo - LEADER / 2)) return 'left';
+    const cx = B.x + B.width / 2;
+    const inColumn = others.filter((o) => o.box.x < cx + LEADER / 2 - 0.01 && o.box.x + o.box.width > cx - LEADER / 2 + 0.01);
+    const clear = { top: !inColumn.some((o) => o.box.y < B.y - 0.5), bottom: !inColumn.some((o) => o.box.y + o.box.height > B.y + B.height + 0.5) };
+    const near: 'top' | 'bottom' = B.y + B.height / 2 <= P.y + P.height / 2 ? 'top' : 'bottom';
+    const far: 'top' | 'bottom' = near === 'top' ? 'bottom' : 'top';
+    return clear[near] || !clear[far] ? near : far;
   });
+};
+/** The listed parts a specimen (or its member) shows, with their boxes: each marked here, and each other mark whose part
+ *  is shown, the parts a leader could cross (`containerSides`). */
+const shownParts = (root: PNode, here: readonly AnatomyMark[], every: readonly AnatomyMark[]): { mark: AnatomyMark; here: boolean; layer: PNode; box: Box }[] =>
+  every.flatMap((m) => {
+    const n = locate(root, m.path);
+    const on = here.includes(m);
+    if (!n || (!on && !chain(n, root).every((q) => q.visible !== false))) return [];
+    return [{ mark: m, here: on, layer: n, box: boxOn(n) }];
+  });
+/** How many left columns a member's containers take (`leftColumns`), read off its layers as the host lays them out. */
+const leftColumnsOf = (member: PNode, marks: readonly AnatomyMark[], every: readonly AnatomyMark[] = marks): number => {
+  const M = boxOn(member);
+  const found = shownParts(member, marks, every);
+  const sides = containerSides(found.map((f) => ({ path: f.mark.path, container: f.mark.container, box: f.box })), M);
+  const items = found.filter((f, k) => f.here && sides[k] === 'left').map((f) => ({ path: f.mark.path, top: f.box.y - M.y, height: f.box.height }));
   return items.length ? Math.max(...leftColumns(items).map((c) => c.column)) + 1 : 0;
 };
 /** The stage a specimen `w` wide needs: its padding on the right, and on the left its padding or, when the specimen
@@ -1060,7 +1092,7 @@ export const panelLayout = (set: PNode, def: ComponentDef | undefined = componen
   const w0 = (set.children ?? [])[0]?.width ?? 0;
   const anatomy = def?.anatomy ? docSections(def).sections.find((s) => s.id === 'anatomy') : undefined;
   const marks = anatomy && anatomy.id === 'anatomy' ? anatomyMarks(def!, anatomy.parts.map((p) => p.id)) : [];
-  const stages = anatomyMembers(set, marks).map((a) => stageFor(a.member.width ?? 0, leftColumnsOf(a.member, a.marks)));
+  const stages = anatomyMembers(set, marks).map((a) => stageFor(a.member.width ?? 0, leftColumnsOf(a.member, a.marks, marks)));
   const row = 2 * stageFor(w0, 0) + MODE_GAP;
   const stack = row + 2 * PANEL_PAD >= THEMING_ROW_MAX;
   return { width: Math.ceil(Math.max(PANEL_WIDTH - 2 * PANEL_PAD, stageFor(w0, 0), ...stages, stack ? 0 : row) + 2 * PANEL_PAD), stack };
@@ -1366,8 +1398,9 @@ export const drawDocPanel = async (
    * top or bottom gutter: above when its middle is in the specimen's top half, else below, at its middle across, the
    * leader stopping at its near edge. A container (a part that holds another marked part, the root among them) is marked
    * in the left gutter, its leader coming in to its left edge: the outermost near its bottom corner (`MARK_CORNER`), an
-   * inner one at its middle. No brackets. A marker that would touch another on the same side moves one tier out, and the
-   * stage's padding grows to hold every tier.
+   * inner one at its middle; one with a marked part to its left across its height is marked from the top or bottom
+   * gutter as a part is, so no leader crosses the row (`leadsLeft`, Q-BK4 A). No brackets. A marker that would touch
+   * another on the same side moves one tier out, and the stage's padding grows to hold every tier.
    *
    * Each marker and its lines are one frame, `part <n>`, a child of the panel: never inside the set or a specimen, so the
    * set's hand-edit check and its as-built record never read it, and the panel's print reads it as drawn, every fill a
@@ -1375,7 +1408,8 @@ export const drawDocPanel = async (
    */
   const drawMarkers = async (): Promise<number> => {
     const rect = boxOn;
-    // The numeral's face: Inter Semi Bold, else Regular. A host with neither draws each disc without its numeral.
+    // The numeral's face: Inter Semi Bold, else Regular. A host with neither draws each disc without its numeral. The
+    // miss line's wording is APPROVED (owner decision Q-BK4 A, 2026-11-17).
     let face: { family: string; style: string } | null = null;
     const discs = anatomy.reduce((k, a) => k + a.marks.length, 0);
     if (discs) {
@@ -1439,14 +1473,18 @@ export const drawDocPanel = async (
           if (!row.some(([a, b]) => lo < b + MARK_SEP && a < hi + MARK_SEP)) { row.push([lo, hi]); return t; }
         }
       };
-      // The containers in the left gutter (`leftColumns`), placed as the width rule placed them.
-      const boxes = laid.filter((x) => x.mark.container);
+      // The containers in the left gutter (`leadsLeft`, `leftColumns`), placed as the width rule placed them. A container
+      // with a marked part to its left is marked from the top or bottom, as a part is (#3773, Q-BK4 A).
+      const seen = shownParts(spec, laid.map((l) => l.mark), every.map((l) => l.mark));
+      const sides = containerSides(seen.map((f) => ({ path: f.mark.path, container: f.mark.container, box: f.box })), P);
+      const sideOf = (l: Laid) => sides[seen.findIndex((f) => f.mark === l.mark)] ?? null;
+      const boxes = laid.filter((l) => sideOf(l) === 'left');
       leftColumns(boxes.map((l) => { const B = l.part === spec ? P : rect(l.part); return { path: l.mark.path, top: B.y - P.y, height: B.height }; }), mh)
         .forEach((c, k) => { boxes[k].side = 'left'; boxes[k].dy = c.dy; boxes[k].tier = c.column; });
-      for (const l of laid.filter((x) => !x.mark.container)) {
+      for (const l of laid.filter((x) => sideOf(x) !== 'left')) {
         const B = rect(l.part);
         const cx = B.x + B.width / 2;
-        l.side = B.y + B.height / 2 <= P.y + P.height / 2 ? 'top' : 'bottom';
+        l.side = sideOf(l) ?? (B.y + B.height / 2 <= P.y + P.height / 2 ? 'top' : 'bottom');
         l.tier = tier(l.side, cx - mw / 2, cx + mw / 2);
       }
       if (!stage) continue;
