@@ -1,8 +1,8 @@
-## (2026-11-17) — Register the three #2087 test arms main went red on
+## (2026-11-18) — Turn on the restore auto-stash hook (#1050)
 
-Main's `engine` job failed `lint-test-arms` after two PRs crossed. The #2087 PR added named arms to
-`apps/plugin/test-agent-link.ts`, `apps/studio/test-host-session.ts` and
-`apps/studio/test-write-adapter.ts`, and the test-arms registry (#3905) landed beside it without them.
-Each PR passed against its own base, so neither run could see the other's arms. The fix is the
-gate's own `--accept`: it adds the three lines to `packages/engine/test-arms.txt` and removes
-nothing. No test, suite or engine behavior changes.
+#3970 shipped `.claude/hooks/pre-tool-use-restore-autostash.mjs` and its mutation battery, but agents never edit
+`.claude/settings.json`, so the hook wasn't wired. The owner adds its entry here, to the `hooks` array of the existing
+`PreToolUse` → `Bash` entry, after the `git push` drift check. From then on, a restore of a path with uncommitted
+work (`git checkout -- <path>`, `git checkout <ref> -- <path>`, `git restore`) first saves that work to a named stash
+entry and reports it, then proceeds. A clean restore passes through untouched. The #923 stash-pop guard joins the same
+array when it lands; the two react to disjoint commands.
