@@ -14833,7 +14833,11 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 //     none pressed 3, then 3, 4, 4, …`; plus section 39's `#3263: a Personality chip draws no check`;
 //   · the glyph line alone restored, the rules left removed → 8 of 72, `… no Personality chip draws a check, pressed or
 //     not — none pressed ["energetic", …]`: the glyph then draws on every chip, so the widths hold and only this arm
-//     sees it.
+//     sees it;
+//   · #3976's opposite turn-off removed from `setPersonality` → 8 of 8, every host, theme and width: `#3263 web light
+//     1280: each press adds its word, keeps the earlier ones and turns its opposite off — … calm: ["energetic","calm"]
+//     (expected ["calm"])`; and this arm's expected set not dropping the opposite → the same 8, `… calm: ["calm"]
+//     (expected ["calm","energetic"])` (measured 2026-11-18).
 if (runs('3263')) {
 console.log(`\nA pressed Personality chip keeps its width (#3263)\n${'='.repeat(78)}`);
 const ROW_3263 = '[data-p3="levers-pane"] [data-p3="lever-personality"] [data-p3="personality-words"]';
