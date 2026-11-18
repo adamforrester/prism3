@@ -13,9 +13,12 @@ listed. This finishes the second half:
 - **The header records the decision.** The surfaces' `src/` stays outside the scan.
 
 **Measured.** With the site as on main, the widened gate fails `LOCALE ORDER:
-skills/prism3-rebind/consistency-audit.js:369`. A new `test-consistency-audit.ts` arm builds two desktop pages,
-`Ébène` and `Fig`, listed in English collation order. It fails before the fix (`["Ébène / Desktop","Fig / Desktop"]`)
-and passes after: `É` sorts after every ASCII letter by code unit. Mutation: dropping the `skills/` clause from the
+skills/prism3-rebind/consistency-audit.js:369`. A new `test-consistency-audit.ts` arm builds three desktop pages,
+`apple`, `Ébène` and `Fig`, listed in English collation order. It fails before the fix
+(`["apple / Desktop","Ébène / Desktop","Fig / Desktop"]`) and passes after (`apple`, `Fig`, `Ébène`): `É` sorts after
+every ASCII letter by code unit, and `apple` sorts before `Fig` only once case is folded. Mutations: dropping the case
+fold from the audit's comparator fails the same arm (`["Fig / Desktop","apple / Desktop","Ébène / Desktop"]`; review
+on #4054); dropping the `skills/` clause from the
 scope fails `REPRESENTED: skills/prism3-rebind/consistency-audit.js was not scanned (#3701)`.
 
 **Left as they are, by the decision.** `apps/plugin/src/style-guide.ts`, `doc-panel.ts`, `list-fonts.ts` and
