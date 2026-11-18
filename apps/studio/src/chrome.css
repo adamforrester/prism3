@@ -307,6 +307,12 @@
 .p3-search-input:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 .p3-search-status { flex: none; color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap; }
 .p3-search-status:empty { display: none; }
+/* #3620 (owner decision 2026-11-18, A): at the narrow tier the status takes its own line under the field, so the field keeps
+   the row's width and the status is never cut off. In the row, "No setting on this page matches" (nowrap, `flex: none`)
+   left the plugin's 380 field about 17px of text. The magnifier is placed on the field's line, which is the first. */
+.p3-frame[data-w="narrow"] .p3-search[data-open="true"] .p3-search-box { flex-wrap: wrap; row-gap: var(--p3-space-050); }
+.p3-frame[data-w="narrow"] .p3-search-status { order: 1; flex: 1 0 100%; white-space: normal; }
+.p3-frame[data-w="narrow"] .p3-search-box > .p3-ico { top: calc(var(--p3-ctl-h-sm) / 2); transform: translateY(-50%); }
 
 /* Color's sub-pages, and the Depth & motion switch: a segmented tablist. Its track is the top bar's step,
    so it reads on the gray tab row in both themes, and the selected segment's edge is measured against
