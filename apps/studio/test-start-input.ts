@@ -190,5 +190,15 @@ for (const hx of ['#808080', '#333333']) {
     `#2241 starting from a real color (#3366cc), the neutral still leans to its hue (got ${JSON.stringify(seed.neutral)}, primary hue ${seed.primary.h})`);
 }
 
+// #3076 — a brief with a brand icon map imports whole: Studio has no control for it yet (Q7 A), so the import must not drop
+// it on the way to the plugin, which builds with it.
+{
+  const brief = '---\nid: icons3076\nprimary: { l: 0.55, c: 0.15, h: 260 }\nneutral: { hue: 260, chroma: 0.01 }\n' +
+    'icons: { map: { plus: add, check: checkmark }, glyphs: { add: { path: "M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7z" }, checkmark: { path: "M9.5 15.6 5.4 11.5 4 12.9l5.5 5.5L20 7.9z" } } }\n---\n';
+  const imp = S.validateDesignMd(brief) as { input?: BrandInput; error?: unknown };
+  ok(imp.input?.icons?.map?.plus === 'add' && imp.input?.icons?.glyphs?.add?.path === 'M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7z',
+    `#3076 a design.md with an icon map imports with the map and its art (got ${JSON.stringify(imp.input?.icons ?? imp.error)})`);
+}
+
 console.log(`\n${executed - failed}/${executed} passed.`);
 if (failed) process.exit(1);
