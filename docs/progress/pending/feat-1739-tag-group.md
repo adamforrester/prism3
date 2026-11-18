@@ -19,7 +19,11 @@ keys across the toggle tags, keeping Tag's keyboard contract as recorded. A dism
 other options were `role="group"` (each tag a Tab stop) and `role="grid"` for both types. Confirmed as built: the `size`
 axis, no visible heading (`label` is the accessible name), the prop list, no group-level `disabled`, three identical
 unselected default tags, and the Tag page. The `accessibility` role, the `codeOnly` semantics entry and the notes now
-name the toolbar, and `test.ts` `#3949 tag-group role` holds both roles against literals from the decision. Still held:
+name the toolbar, and `test.ts` `#3949 tag-group role` holds both roles against literals from the decision. Two more
+arms: `#3949 tag-group roving tabindex` holds the code-tier keyboard entry's one Tab stop (the last-focused tag
+`tabindex="0"`, every other `-1`), which only the surface digest held before; and `#3949 tag select contract` holds
+Tag's own role, keyboard, `aria` and select `codeOnly` entry to the decision. Tag had still said a group's select tags
+were checkboxes, listbox options or a radiogroup, and that arrows select. Still held:
 `generationPriority` 2, the 320px placement width, and the shipped prose (DRAFT under `docs/voice-standard.md`). The
 visual review of the projected set is in the #3928 QA round, not before the merge.
 
