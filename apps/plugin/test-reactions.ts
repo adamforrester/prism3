@@ -311,6 +311,9 @@ section('orphan — a destination the host still resolves, to a node with no par
     ok(st?.state === 'handEdited' && st.dangling === true && p.counts.update === 0 && p.counts.handEdited === 1,
       `orphan/under a layer dry run: the dangling Rest member with a layer added counts as edited by hand, not to update (${JSON.stringify(st)}; ${JSON.stringify(p.counts)})`);
     for (const choice of ['keep', 'overwrite', 'accept'] as const) {
+      // #2956: each choice meets the set with its updates on. The skip turns them off by itself (`test-hand-edit-survival.ts`
+      // `survival/off auto`), which would leave the next choice's run with no member to skip.
+      for (const n of w.page.children) if (n.type === 'COMPONENT_SET') (n.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', 'updatesOff', '');
       const { res } = await confirm(w, TAG, { handEdits: choice });
       const why = res.outcomes[0]?.skipped.find((x) => x.member === T('rest'))?.reason ?? '';
       ok(why === 'a layer was added or removed by hand, and its prototype reactions point at a member no longer in the set' && dumpOf(rest) === before,
