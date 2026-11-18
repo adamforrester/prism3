@@ -9,7 +9,8 @@
   "properties": {
     "id": {
       "type": "string",
-      "description": "Brand identifier (e.g. 'aurora'). Host-supplied identity; the emit namespace is set separately by `root`."
+      "pattern": "^[^/\\\\]+$",
+      "description": "Brand identifier (e.g. 'aurora'). Host-supplied identity; the emit namespace is set separately by `root`. It names the emitted files, so it holds no slash or backslash and is not empty."
     },
     "name": {
       "type": "string",
