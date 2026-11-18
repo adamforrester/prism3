@@ -88,7 +88,7 @@ store.rebuild();
 ok(T.addLibraryFace('roboto') === 'Roboto is already in the library.', 'addLibraryFace("roboto") refuses once Roboto is staged: "Roboto is already in the library."');
 ok(T.inLibrary('ROBOTO') && !T.inLibrary('Inter'), 'inLibrary matches by slug, and a bound-only face is not in the authored library');
 T.removeLibraryFace('roboto');
-ok(ty() === with3({ typefaceLibrary: [] }), `removeLibraryFace(roboto) leaves typefaceLibrary [] (the legacy bytes, not unset) (${ty()})`);
+ok(ty() === with3({}), `#3878: removeLibraryFace(roboto) on the last face unsets typefaceLibrary, not []: the typography as loaded (${ty()})`);
 
 console.log('\n3. Weights: the role numbers per mode, and each category\'s shipped roles with their locks');
 reset();
@@ -157,7 +157,8 @@ ok(ty() === with3({ links: ['title'] }), `a second link toggle reads the set the
   ok(ty() === with3({ italicDefault: ['display', 'title', 'body'], italics: undefined }) && !('italics' in JSON.parse(ty())) && takes(),
     `setItalicStyle(body, only) clears body's italic first (italics UNSET, #2006), then makes it italic only (${ty()})`);
   T.setItalicStyle('body', 'both', ...sets());
-  ok(ty() === with3({ italicDefault: ['display', 'title'], italics: ['body'] }) && takes(),
+  // A clear deletes `italics` (#3878), so the write after it appends the key: the order moves, the value does not.
+  ok(ty() === JSON.stringify({ ...JSON.parse(with3({ italicDefault: ['display', 'title'], italics: undefined })), italics: ['body'] }) && takes(),
     `setItalicStyle(body, both) from Italic only puts body back in italics and out of italicDefault (${ty()})`);
   reset();
   T.setItalicStyle('display', 'upright', ...sets());
@@ -234,7 +235,7 @@ T.setShift('body', 'leadingShift', 1);
 ok(ty() === with3({ leadingShift: { body: 1 } }) && takes(), `setShift(body, leading, +1) writes typography.leadingShift.body 1 (${ty()})`);
 ok(engine().composites.filter((c) => c.group === 'body').every((c) => c.lineHeight === 'relaxed'), 'the engine lands every body style on relaxed');
 T.setShift('body', 'leadingShift', 0);
-ok(ty() === with3({ leadingShift: {} }), `setShift(body, leading, 0) unsets the category, leaving leadingShift {} (the legacy bytes) (${ty()})`);
+ok(ty() === with3({}), `#3878: setShift(body, leading, 0) unsets the category and the leadingShift it emptied: the typography as loaded (${ty()})`);
 
 console.log('\n6. Cut pins: the family fixed to the bound face, a blank style deletes the slot and prunes');
 reset();

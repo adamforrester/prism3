@@ -617,6 +617,7 @@ apps/studio/test-chrome.mjs #3700
 apps/studio/test-chrome.mjs #3711
 apps/studio/test-chrome.mjs #3712
 apps/studio/test-chrome.mjs #3713
+apps/studio/test-chrome.mjs #3878
 apps/studio/test-chrome.mjs #3910
 apps/studio/test-chrome.mjs #3911
 apps/studio/test-chrome.mjs #533
@@ -708,6 +709,7 @@ apps/studio/test-layout-input.ts #2146
 apps/studio/test-layout-input.ts #2482
 apps/studio/test-layout-input.ts #2513
 apps/studio/test-layout-input.ts #3052
+apps/studio/test-layout-input.ts #3878
 apps/studio/test-lever-controls.ts #1835
 apps/studio/test-lever-controls.ts #3365
 apps/studio/test-outline-roles.ts #1629
@@ -786,6 +788,7 @@ apps/studio/test-start-input.ts #3553
 apps/studio/test-status-strip.ts #3170
 apps/studio/test-status-strip.ts #3177
 apps/studio/test-store.ts #2487
+apps/studio/test-store.ts #3878
 apps/studio/test-style-guides.ts #2372
 apps/studio/test-type-input.ts #1071
 apps/studio/test-type-input.ts #1727
@@ -795,6 +798,7 @@ apps/studio/test-type-input.ts #2194
 apps/studio/test-type-input.ts #2225
 apps/studio/test-type-input.ts #2324
 apps/studio/test-type-input.ts #3077
+apps/studio/test-type-input.ts #3878
 apps/studio/test-type-input.ts #831
 apps/studio/test-update-file.ts #1234
 apps/studio/test-update-file.ts #1780
