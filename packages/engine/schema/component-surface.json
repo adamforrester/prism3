@@ -476,7 +476,7 @@
     },
     "tag": {
       "members": 45,
-      "sha256": "2186703f692d2b6c020064ad98a3386223b34d95751fac7f8d15a00a5b34f486",
+      "sha256": "fa53bac75c53bb65fc4699e45dee03f803b52020b436cc81db619ee10d66023b",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -485,7 +485,7 @@
     },
     "tag@outline-solid-tint": {
       "members": 45,
-      "sha256": "afd256a2f33afe8895fd6c586516b9299df940fefba3544548cea7d0cef31fab",
+      "sha256": "f914c0832d5bc202cd61700b20044c3587993527080be440db82b5ac488a2aec",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -494,7 +494,7 @@
     },
     "tag@outline-none": {
       "members": 45,
-      "sha256": "b31ec50228cf74e5830076135551bee932bcffe5f3e18ec1364ca2082570b3b3",
+      "sha256": "c1ce7c1936035226b85b70acb850793f028a1c0c389c8bdf0f978fc1de98e7ee",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -503,7 +503,7 @@
     },
     "tag@button-label-default": {
       "members": 45,
-      "sha256": "dba85c0a127932dd6554ee1a9dba7a9c6c32fc984bdbfd11e3f61e110bc4a0e1",
+      "sha256": "3aef594525c4d8c24c5393b7fc1082f3ebbf3041d8f9a27f32527ee05fec2a66",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -512,7 +512,7 @@
     },
     "tag@button-smaller-label-default": {
       "members": 45,
-      "sha256": "dba85c0a127932dd6554ee1a9dba7a9c6c32fc984bdbfd11e3f61e110bc4a0e1",
+      "sha256": "3aef594525c4d8c24c5393b7fc1082f3ebbf3041d8f9a27f32527ee05fec2a66",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -521,7 +521,7 @@
     },
     "tag@button-text-fill-label-default": {
       "members": 45,
-      "sha256": "dba85c0a127932dd6554ee1a9dba7a9c6c32fc984bdbfd11e3f61e110bc4a0e1",
+      "sha256": "3aef594525c4d8c24c5393b7fc1082f3ebbf3041d8f9a27f32527ee05fec2a66",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -530,7 +530,7 @@
     },
     "tag@tag-underline": {
       "members": 45,
-      "sha256": "e35aa2db75b5136968f8d865cbf804a78f38c4aaf0d5100e0e30513ceea469b6",
+      "sha256": "f85fda203eaaa518a0b0e5e2c7685f20edbf6befa5e8cffe6c42cbcd6e6c8b3d",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
