@@ -22378,6 +22378,32 @@ arm: {
         && itemDef.accessibility.aria.includes('"Show full path"') && trailDef.accessibility.aria.includes('aria-label="Breadcrumb"') && trailDef.accessibility.aria.includes('aria-current="page"'),
         `#2666 breadcrumbs/code-props: collapse above 5 keeping 1 and 2, expand in place, the small-screen switch on, the nav named "Breadcrumb", the overflow "Show full path", and the approved names and summaries (maxItems ${prop('maxItems')?.default}, before ${prop('itemsBeforeCollapse')?.default}, after ${prop('itemsAfterCollapse')?.default})`);
 
+      // ── #2922 THE COLLAPSE (the wireframe's Q1–Q5 all A, approved 2026-11-18). EXPECTED is typed here from the
+      // wireframe; ACTUAL is the def's code contract and its shipped docs. Q1 A: count now, width with the menu. Q2 A:
+      // expand now, menu the default once it ships (so `collapse` still offers expand alone). Q3 A: "Show full path" in
+      // both modes, no aria-expanded in expand mode. Q4 A: the parent path below 480px, the collapse only at 480px and
+      // wider. Q5 A: the built Figma model, the collapsed and expanded trails written out, one line in the description.
+      {
+        const co = codeOnlyText(trailDef.anatomy!.codeOnly);
+        const collapseLine = co.find((e) => e.startsWith('Collapsing a long trail — ')) ?? '';
+        const expandLine = co.find((e) => e.startsWith('Expanding in place — ')) ?? '';
+        ok(/Collapse by count only, for now: a width-measuring collapse \(ResizeObserver\) arrives with the menu/.test(collapseLine)
+          && /hides middle steps one at a time, from the root side, down to the root, the overflow button, the parent and the current page/.test(collapseLine),
+          `#2922 breadcrumbs/collapse Q1 A: count now; a width collapse arrives with the menu, hiding middle steps from the root side down to root, overflow, parent and current (got ${collapseLine.slice(0, 120)})`);
+        ok(JSON.stringify(prop('collapse')?.values) === '["expand"]' && /a new collapse value, menu, which becomes the default then/.test(expandLine),
+          `#2922 breadcrumbs/collapse Q2 A: expand in place now; menu is a later collapse value that becomes the default (got ${JSON.stringify(prop('collapse')?.values)})`);
+        ok(/no aria-haspopup and no aria-expanded: the button is removed once pressed/.test(expandLine) && /The button is named "Show full path" in both modes/.test(expandLine)
+          && itemDef.accessibility.aria.includes('"Show full path"'),
+          '#2922 breadcrumbs/collapse Q3 A: "Show full path" in both modes, and no aria-expanded in expand mode because the button is removed');
+        ok(/The collapse runs only at 480px and wider; below that the parent path takes over and the collapse never runs/.test(collapseLine) && prop('responsive')?.default === true,
+          '#2922 breadcrumbs/collapse Q4 A: the parent path below 480px, the collapse only at 480px and wider');
+        ok(trailDef.description.includes('To show a collapsed trail, set a middle item to overflow.')
+          && trailDef.docs.do.includes('Show a collapsed trail in a design by setting a middle item to overflow and removing the steps it stands for')
+          && /A trail of six steps collapses to four: Home, the overflow button, the parent and the current page\. Pressing the button shows all six in place/.test(trailDef.docs.usage ?? '')
+          && JSON.stringify(trailDef.variants.path) === '["full","parent"]' && JSON.stringify(itemDef.variants.kind) === '["ancestor","current","overflow"]',
+          '#2922 breadcrumbs/collapse Q5 A: the built Figma model (no new member), the collapse line in the description, and the collapsed and expanded trails written out in the docs');
+      }
+
       // CONTRAST over every committed brand × mode (proposal §5): the roles the projection paints, measured from the
       // committed emission. Link ink is Link's `text.link.*` (the nested instance), held here at 4.5:1 on both page grounds
       // because a crumb is navigation text the page relies on; the current page 4.5:1 on both; the back chevron 3:1 on
