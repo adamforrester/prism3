@@ -1291,7 +1291,7 @@ section('agent-run — a command that writes the file is announced: busy on the 
 
   // READS AND PREVIEWS: status, a read-back and a prune preview are not announced and leave the bar idle.
   notices.length = 0; posted.length = 0;
-  for (const [cmd, args] of [['status', {}], ['readback', {}], ['prune', { input: brand }]] as const) {
+  for (const [cmd, args] of [['status', {}], ['readback', {}], ['prune', { input: brand, confirm: false }]] as const) {
     const s = await send(cmd, args);
     await tick();
     await read(s.id);
