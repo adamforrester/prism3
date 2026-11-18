@@ -52,7 +52,7 @@ import { figmaArtifacts } from './emit-figma';
 import { scoreConsumption, scoreContractCompliance, UsedPair } from './eval';
 import { parseDesignMd } from './design-md';
 import { ENGINE_VERSION } from './version';
-import { exportComponentDefs, toSpecsComponents } from './component-defs-export';
+import { componentDefsFileNames, exportComponentDefs, toSpecsComponents } from './component-defs-export';
 import { componentDefs } from './components/index';
 import { BUILD_IDENTITY } from './build-identity';
 
@@ -347,7 +347,7 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'export_theme',
     title: 'Write the token system to disk',
-    description: 'Generate a brand and WRITE its artifacts to a directory, returning a manifest of what was written — never the content. Use this instead of theme_brand include:["tokens"] whenever you want the actual files: the DTCG tree alone is roughly 890,000 characters for a four-mode brand, which no tool result should carry. Writes tokens.json (DTCG), ai-metadata.json, and a figma/ directory of Figma collection files; add "componentSpecs" to `include` for component-defs.json (every component definition with the brand\'s settings resolved) and component-defs.specs.json (the same in the Specs format). Arguments: { brand, outDir, include }. `outDir` must be a RELATIVE path. Requires a host that granted filesystem access; returns an error if not.',
+    description: 'Generate a brand and WRITE its artifacts to a directory, returning a manifest of what was written — never the content. Use this instead of theme_brand include:["tokens"] whenever you want the actual files: the DTCG tree alone is roughly 890,000 characters for a four-mode brand, which no tool result should carry. Writes tokens.json (DTCG), ai-metadata.json, and a figma/ directory of Figma collection files; add "componentSpecs" to `include` for component-contracts.json (every component contract, with the brand\'s settings resolved), component-defs.json (the same file under its old name, kept for one release) and component-defs.specs.json (the same in the Specs format). Arguments: { brand, outDir, include }. `outDir` must be a RELATIVE path. Requires a host that granted filesystem access; returns an error if not.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -577,7 +577,11 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     // #3425 — the component-defs export, from the same function `regen` writes the brand-neutral one with.
     if (want.includes('componentSpecs')) {
       const doc = exportComponentDefs(componentDefs, { brand: brand as BrandInput, build: BUILD_IDENTITY });
-      files.push({ path: 'component-defs.json', content: JSON.stringify(doc, null, 2) + '\n' });
+      // #1325 (Q-CC1 A): under its contract name, and under its old name for one release. Unprefixed, as before.
+      const names = componentDefsFileNames(null);
+      const text = JSON.stringify(doc, null, 2) + '\n';
+      files.push({ path: names.contracts, content: text });
+      files.push({ path: names.defs, content: text });
       files.push({ path: 'component-defs.specs.json', content: JSON.stringify(toSpecsComponents(doc), null, 2) + '\n' });
     }
 

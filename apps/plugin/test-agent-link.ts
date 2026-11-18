@@ -1870,5 +1870,63 @@ section('strip-relaunch — a new launch puts the first Minimize on the spot thi
   g.figma = host;
 }
 
+// #2956 (owner decisions 2026-11-17): UPDATES OFF, through the panel's own message and the file's own read. The set's
+// mark is read off the fake node by the namespace and key TYPED HERE. Mutations: the `updates-off` case dropped from the
+// switch → `updates-off/turn off`, `/back on`; `offOf` not read into the due read → `updates-off/read`; the
+// single-component refusal dropped → `updates-off/single`; the set found by any of its ids rather than by `locateSets`
+// (the current id first) → `updates-off/current id`.
+{
+  g.figma = host;
+  const marks = new Map<string, string>();
+  const set = { name: 'tag', type: 'COMPONENT_SET', id: 'S:tag', children: [] as unknown[],
+    getSharedPluginData: (ns: string, key: string) => marks.get(`${ns}|${key}`) ?? '',
+    setSharedPluginData: (ns: string, key: string, v: string) => { marks.set(`${ns}|${key}`, v); } };
+  const find = (c?: { types?: readonly string[] }) => ((c?.types ?? []).includes('COMPONENT_SET') ? [set] : []);
+  const r0 = root as Record<string, unknown>;
+  const saved = { find: r0.findAllWithCriteria, kids: root.children };
+  r0.findAllWithCriteria = find;
+  root.children = [{ type: 'PAGE', name: 'Tag', children: [set], findAllWithCriteria: find }];
+  const answer = () => posted.find((m) => m.type === 'updates-off');
+  // The answer to this request, not a host read after open (`atOpen`, which an earlier arm's relaunch can still post).
+  const mine = (m: any): boolean => m.type === 'file-sets' && !m.atOpen;
+  const read = async () => { posted.length = 0; await toUi({ type: 'file-sets-request' }); for (let i = 0; i < 5000 && !posted.some(mine); i++) { if (i % 50 === 49) for (const fn of [...timers.values()]) fn(); await settle(); } return posted.find(mine); };
+  posted.length = 0;
+  await toUi({ type: 'updates-off', def: 'tag', off: true });
+  const a1 = answer();
+  ok(marks.get('prism3|updatesOff') === 'designer' && a1?.ok === true && a1.def === 'tag' && a1.off === true,
+    `updates-off/turn off: "Turn off updates" writes the designer's mark on the set and answers ok (${JSON.stringify(marks.get('prism3|updatesOff'))}; ${JSON.stringify(a1)})`);
+  const f1 = await read();
+  ok(f1?.due?.tag?.state === 'off' && f1.due.tag.by === 'designer',
+    `updates-off/read: the file's read says the set's updates are off, and who turned them off (${JSON.stringify(f1?.due?.tag)}; ${JSON.stringify(f1 ?? null).slice(0, 200)})`);
+  posted.length = 0;
+  await toUi({ type: 'updates-off', def: 'tag', off: false });
+  const a2 = answer();
+  const f2 = await read();
+  ok(marks.get('prism3|updatesOff') === '' && a2?.ok === true && a2.off === false && f2?.due?.tag?.state !== 'off',
+    `updates-off/back on: "Turn updates back on" clears the mark, and the next read gives the set its own state again (${JSON.stringify(marks.get('prism3|updatesOff'))}; ${JSON.stringify(f2?.due?.tag)})`);
+  posted.length = 0;
+  await toUi({ type: 'updates-off', def: 'icon', off: true });
+  const a3 = answer();
+  ok(a3?.ok === false && /icon has no component set/.test(String(a3?.error)),
+    `updates-off/single: a single-component def has no set to carry the mark, and says so (${JSON.stringify(a3)})`);
+  // A FILE HOLDING A SET UNDER THE CURRENT ID AND ONE UNDER A FORMER ID (#3948 review nit): the mark goes on the set
+  // the update check reads, the current id's (`locateSets`: the current id first, a former one only when it is absent),
+  // even when the host lists the former set first. `tab` became `tab-item` in #2759; both ids are typed here.
+  const marksOf = (m: Map<string, string>) => ({ get: (ns: string, key: string) => m.get(`${ns}|${key}`) ?? '', set: (ns: string, key: string, v: string) => { m.set(`${ns}|${key}`, v); } });
+  const oldMarks = new Map<string, string>(); const newMarks = new Map<string, string>();
+  const oldSet = { name: 'tab', type: 'COMPONENT_SET', id: 'S:tab', children: [] as unknown[], getSharedPluginData: marksOf(oldMarks).get, setSharedPluginData: marksOf(oldMarks).set };
+  const newSet = { name: 'tab-item', type: 'COMPONENT_SET', id: 'S:tab-item', children: [] as unknown[], getSharedPluginData: marksOf(newMarks).get, setSharedPluginData: marksOf(newMarks).set };
+  const both = (c?: { types?: readonly string[] }) => ((c?.types ?? []).includes('COMPONENT_SET') ? [oldSet, newSet] : []);
+  r0.findAllWithCriteria = both;
+  root.children = [{ type: 'PAGE', name: 'Tabs', children: [oldSet, newSet], findAllWithCriteria: both }];
+  posted.length = 0;
+  await toUi({ type: 'updates-off', def: 'tab-item', off: true });
+  const a4 = answer();
+  ok(a4?.ok === true && newMarks.get('prism3|updatesOff') === 'designer' && (oldMarks.get('prism3|updatesOff') ?? '') === '',
+    `updates-off/current id: with sets under both the current and a former id, the mark goes on the current id's set, the one the update reads (current ${JSON.stringify(newMarks.get('prism3|updatesOff') ?? '')}; former ${JSON.stringify(oldMarks.get('prism3|updatesOff') ?? '')}; ${JSON.stringify(a4)})`);
+  r0.findAllWithCriteria = saved.find;
+  root.children = saved.kids;
+}
+
 console.log(`\n${failed === 0 ? '✅ ALL PASS' : `❌ ${failed} FAILED`} — ${executed} assertions executed`);
 process.exit(failed === 0 ? 0 : 1);

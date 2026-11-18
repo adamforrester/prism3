@@ -393,6 +393,9 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   advanceUpdate(m, prev);
   // #3081 Q810 A: a write's verdict, or a fresh read of the file's sets, may change what Update file would change.
   if (DUE_AFTER.has(m.kind)) recountDue();
+  // #2956: "Turn off updates" / "Turn updates back on" answered, written or not: Update file reads the file again, against
+  // the brand its Theme tick picked when asked, and its checklist redraws in place from that answer.
+  if (m.kind === 'updates-off') commit.requestFileSets(panelBrand(updatesOffTheme));
   const effect = brandEffectFor(m, prev, host);
   // #3697 R9: a Theme write that landed stores the panel's brand in the file, so the held one is no longer the file's.
   if (heldRestore && m.kind === 'apply-result' && m.ok) {
@@ -1578,7 +1581,7 @@ const exportView = (): ExportView => {
     none: settings.length ? null : exportArtifact === 'component-specs' ? SPECS_NO_SETTINGS : 'Nothing to set — the brief is written one way.',
     right,
     // #3553 Q-UI8 A: the word alone; the bar draws the vendored download icon before it.
-    go: { text: exportArtifact === 'design-md' ? 'Download brief' : exportArtifact === 'component-specs' ? 'Download component specs' : 'Download tokens', off },
+    go: { text: exportArtifact === 'design-md' ? 'Download brief' : exportArtifact === 'component-specs' ? 'Download component contracts' : 'Download tokens', off },
   };
 };
 
@@ -1914,10 +1917,10 @@ const failedBrandOf = (input: unknown): BrandInput | null => {
 const BRIEF_IS_FAILED = "This is the file's saved brand, which didn't open, not the demo brand on screen.";
 const BRIEF_NONE = "Nothing to export: this file's saved brand couldn't be read.";
 const TOKENS_NONE = "Off after a failed restore: these tokens would be the demo brand's, not this file's.";
-/** #3425 (DRAFT wording for the owner, Q3425.1). */
-const SPECS_NONE = "Off after a failed restore: these specs would be the demo brand's, not this file's.";
-const SPECS_NO_SETTINGS = "Nothing to set — the specs follow this brand's component settings.";
-const SPECS_WEB_OFF = 'In the Figma plugin: the specs are built from the component definitions, which the web Studio leaves out.';
+/** #3425 (DRAFT wording for the owner, Q3425.1); "component contracts" since #1325 (Q-CC1 A, DRAFT). */
+const SPECS_NONE = "Off after a failed restore: these component contracts would be the demo brand's, not this file's.";
+const SPECS_NO_SETTINGS = "Nothing to set — the component contracts follow this brand's component settings.";
+const SPECS_WEB_OFF = 'In the Figma plugin: the component contracts are built from the component definitions, which the web Studio leaves out.';
 /** The error bar after a failed restore, by kind (owner, 2026-10-02). `unresolved` says "resolves" because a
  *  rebuild that resolves also ends it; the other two end only when a brand loads. */
 const RESTORE_BAR: Record<RestoreFailure['kind'], (reason: string) => string> = {
@@ -2255,7 +2258,7 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
 let dueSeq = 0;
 let dueTimer: ReturnType<typeof setTimeout> | null = null;
 // #3137: and Documentation's answer (the panels switch moves the Usage panels item) and Clean up's panels removal.
-const DUE_AFTER: ReadonlySet<string> = new Set(['file-sets', 'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'agent-finished', 'doc-settings', 'panels-clean-result']);
+const DUE_AFTER: ReadonlySet<string> = new Set(['file-sets', 'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'agent-finished', 'doc-settings', 'panels-clean-result', 'updates-off']);
 /** Whether the panel holds a brand of its own to count against: one is chosen, and it resolved. */
 const liveShown = (): boolean => !restoreFailure && !firstRun() && provenance !== bootProvenance;
 const recountDue = (): void => {
@@ -2331,6 +2334,9 @@ const reportLend: ReportLend = {
   },
   openUrl: (url) => commit.openIssue(url),
 };
+/** #2956: whether Theme was ticked when Update file last turned a set's updates off or back on: the read that follows
+ *  measures against the brand that tick picks, as the checklist's own reads do. */
+let updatesOffTheme = false;
 const updateFileLend: UpdateFileLend = {
   read: () => ({
     fileSets: host.fileSets, liveDue: liveShown() ? host.liveDue : null, catalog: componentCatalog(), run: updateRun, stopped: updateStopped, off: writeOff(),
@@ -2338,8 +2344,9 @@ const updateFileLend: UpdateFileLend = {
     retired: host.styleGuideRetired, cleanupBusy: host.styleGuideCleanup === 'pending' || host.styleGuideState === 'pending' || agentRunning('styleguide'),
     handEdits: host.handEdits, updateCheck: host.updateCheck, updateProgress: host.updateProgress, queue: host.addQueue, panels: host.docSettings?.panels !== false,
     rowState: (id) => rowState(stripRun, id), stopLabel: () => { const v = statusLend.read(); return v.kind === 'running' ? v.stop.label : null; },
-    panelsOff: host.docSettings?.panels === false, panelsClean: host.panelsClean,
+    panelsOff: host.docSettings?.panels === false, panelsClean: host.panelsClean, updatesOffError: host.updatesOffError,
   }),
+  setUpdatesOff: (def, off, theme) => { if (!commit.isFigma) return; updatesOffTheme = theme; commit.postUpdatesOff(def, off); },
   panelsClean: (confirm) => panelsClean(confirm),
   queueSets,
   check: (theme) => commit.requestFileSets(panelBrand(theme)),
