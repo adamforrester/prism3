@@ -205,6 +205,12 @@
  *                  every glyph's vectors fit its frame, read by the test off the shim's nodes (#2379). Mutations: the
  *                  paint base left black, or its alpha dropped → `drawn/paints`; the fresh glyph import not scaled to
  *                  its frame → `drawn/glyphs`.
+ *   updates off/… a set whose updates are off (#2956): the mark is in the check's hash (`/hash`), the apply leaves the
+ *                  set whole with no version (`/skip`) and says so calmly (`/report`), records no ledger entry
+ *                  (`/ledger`), and once cleared the set is re-planned and written (`/back on`); the due read gives `off`
+ *                  over current, due and kept edits (`/due`). Mutations: the mark out of the dry run's body and hash →
+ *                  `/hash`, `/skip`, `/report`, `/ledger`, `/back on`; `dueOf`'s off loop dropped → `/due`;
+ *                  `ledgerAfter`'s filter dropped → `/ledger`.
  *   damage/under a layer …  a member that draws wrong AND has a layer added by hand: the dry run counts it edited by
  *                  hand, never "to update", its paint still listed; the apply skips it under every choice, named with
  *                  the layer and the damage, and leaves it exactly (#2413). Mutations: the dry run's damage read before

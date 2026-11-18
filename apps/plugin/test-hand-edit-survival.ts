@@ -26,6 +26,14 @@
  *   · #2956 point 1's wiring guard dropped → `survival/link root`, `/link overlap`;
  *   · the apply's skip of a member with a layer added or removed by hand dropped (`update-apply.ts`, `plan`) →
  *     `survival/layer added …`, `/layer removed …` (4).
+ *
+ * UPDATES OFF (#2956, owner decisions 2026-11-17): `survival/off auto` (an update that cannot apply around a hand edit
+ * turns the set's updates off by itself, the rest still written), `/off reopen` (a fresh check reads the mark off the
+ * set), `/off plain edit` (an edit the update applies around never turns it on), `/off skip` and `/off report` (a set
+ * whose updates are off is left whole and reported calmly), `/off back on` (cleared, the next Update writes it again).
+ * The mark is read by its namespace and key typed here. Mutations: the auto write dropped → `/off auto`, `/off reopen`;
+ * turning on for any kept edit → `/off plain edit`; the apply's skip of such a set dropped → `/off skip`, `/off report`,
+ * `/off back on`. On main every arm but `/off plain edit` fails by name; that one guards against turning on too eagerly.
  */
 import { makeShim, type Node, type Page } from './component-shim';
 import { componentDefs, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan } from '@prism3/engine/components';
