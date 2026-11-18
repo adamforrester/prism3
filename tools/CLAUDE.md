@@ -365,6 +365,21 @@ reason is the subject:** the question is which path to build on, the owner answe
 interpreter's own behavior *is* gated, in `test.ts`'s `#2075 seed` arms. **The one rule to keep:** external reports
 name a client's pages, styles and components, so they and their keys stay off the repo, and only verdicts come back.
 
+## `tools/restore-autostash/`
+
+`mutations.sh` — the mutation battery for `.claude/hooks/pre-tool-use-restore-autostash.mjs` (#1050, owner decision
+2026-11-18, A). Before a Bash command restores a path that has uncommitted work (`git checkout -- <path>`,
+`git checkout <ref> -- <path>`, `git checkout <path>`, `git restore`), the hook saves the tree's uncommitted tracked
+work to a **named** stash entry (`auto-before-restore-<UTC stamp>`), reports the entry's commit, and lets the command
+run unchanged. It never denies a restore, with one exception: the work is dirty and the stash could not be written.
+The battery builds a fresh repo in `$TMPDIR` per arm, with no remote and no network. Positive arms cover each restore
+form, and P12 pins that the restore's result is the one it would have had with no hook (`git stash create`, never
+`push`). Negative arms cover clean paths, branch switches and look-alikes. F1 is the fail-closed arm. Seven mutants of
+the hook, each in a `$TMPDIR` copy, must each fail one named arm for one named reason. **It asserts and exits non-zero,
+so it is gate-shaped, but it is not wired into `ci.yml`:** #1050 asked for the hook and its battery, and wiring it the
+way #1123 wired `claude-md-freshness/` is a separate decision. The hook itself is live only once the owner adds its
+entry to `.claude/settings.json`; agents never edit that file.
+
 ## `tools/component-roundtrip/`
 
 This is the real-host component round trip (#1218, owner decision of 2026-11-18, B). `roundtrip.ts scripts` writes
