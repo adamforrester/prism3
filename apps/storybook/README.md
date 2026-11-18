@@ -61,6 +61,11 @@ ARIA snapshots and the keyboard suite run from Playwright over the static build 
 The accessibility pass (#3408 S5), three checks over the same static build, shared setup in `a11y-harness.ts`. Each
 runs its own mutants, which must fail by name.
 
+Each check also proves what it covered. It records the stories it actually checked, and every story in
+`expected-stories.ts` (the hand-written list `check-build.ts` also reads) must be among them, or the check fails by id
+(`<id>: not checked by axe`). A case checked in one form only fails too (`<component>--<case>: only the element form
+was checked by aria`), because its form comparison would otherwise be skipped. Two mutants per check hold this.
+
 - **`check-axe.ts`:** axe (`@axe-core/playwright`) on every story, in light and dark, with the WCAG 2.0–2.2 A and AA
   rules. An undecided "needs review" result fails too. One violation is accepted, by rule: a button label's contrast
   on the forced hover and pressed fills, which owner decision #1456 exempts (rest carries the contract), above its

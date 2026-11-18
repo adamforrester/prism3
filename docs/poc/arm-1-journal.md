@@ -1721,9 +1721,9 @@ registers.
 ### What was checked, and how
 
 - **`check:a11y`: 3 minutes 25 seconds locally.** The three checks run first, then each one's planted mutants.
-  - **axe:** 400 checks, 4 mutants.
-  - **aria:** 736 checks, 5 mutants.
-  - **keyboard:** 194 checks, 6 mutants.
+  - **axe:** 400 checks, 6 mutants.
+  - **aria:** 736 checks, 7 mutants.
+  - **keyboard:** 194 checks, 8 mutants.
 - **The mutants, each failing by name:**
 
   | Check | Mutant | Fails by name |
@@ -1743,6 +1743,8 @@ registers.
   | keyboard | Show/Hide moving focus to the input | `…--rest: after Space, focus left the Show/Hide button` |
   | keyboard | the field reordered to the def | `…--rest: Tab stops now match the def …, so the known exception #3967 no longer holds` |
   | keyboard | a disabled button left focusable | `…button-…--disabled: Tab stops are button "Save changes"; the def wants (none)` |
+  | each of the three | a story dropped from the suite's enumeration | `components-text-field-html--error: not checked by <check>` |
+  | each of the three | the same, read as a case left in one form | `text-field--error: only the element form was checked by <check>` |
 
 - **Hand mutations on disk**, each after a `wip:` commit, restored with `git show HEAD:<path> > <path>`, with the
   Storybook rebuilt:
@@ -1751,6 +1753,14 @@ registers.
   |---|---|
   | `stories/fields.js`: the HTML form writes no `aria-invalid` | 15 failures: `HAS` rows (`lacks «- textbox "Password" [invalid]»`), `password-field--error: the two forms differ`, and `differs from the accepted snapshot` |
   | `packages/css/password-field.js`: Show/Hide focuses the input | `components-password-field-html--rest: after Space, focus left the Show/Hide button …`, plus the Tab order and the ring on a mouse click |
+  | `a11y-harness.ts` `stories()` skips `components-text-field-html--error` (review of this PR) | axe and keyboard: `components-text-field-html--error: not checked by …` and `text-field--error: only the element form was checked by …`. Before the represented check, both passed with only their counts moving |
+
+- **Every story is represented, not counted (review of this PR).** `stories()` only checked that each component and
+  form had one story, so a story dropped from the enumeration passed axe and keyboard silently. A case missing from one
+  form passed too, because the form comparisons skip a pair with a side missing. Now each check records the ids it
+  checked, and `a11y-harness.ts` `represented` holds them, on every run (mutants included), to the hand-written
+  `EXPECTED`. That list moved from `check-build.ts` into `expected-stories.ts` so both read one list. The subject here
+  is the iteration, not the list, so the comparison stays independent (`docs/34`).
 
 ### Surprises and learnings
 
