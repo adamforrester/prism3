@@ -170,7 +170,8 @@ th { color: var(--text-2); font-weight: 600; }
   <h2 id="change">What the page proposes</h2>
   <ul class="tight">
     <li><strong>The group moves up, directly under Fill</strong>, so the filled button's hover and pressed and the outline and text buttons' hover and pressed read as one block.</li>
-    <li><strong>The group shows under every method</strong>, always with the same title. It holds pickers under Solid fill, the wash swatches (read-only, with where to change them) under a wash, and one line under No hover fill. Today's separate "Overlay wash" and "Tinted wash" groups fold into it. The owner's A doesn't settle this, so it is open: <a class="qtag" href="#q3116-3">Q3116.3</a>.</li>
+    <li><strong>The group is set up like every other color group in the card</strong> (owner direction, 2026-11-18): a Rest row, with Hover and Pressed as inset rows under it. Each row has its swatch, its name and token path, and an "Auto · &lt;step&gt;" picker with its contrast ratio, as in Fill, Text and Border. There is no separate two-picker row and no separate read-only layout.</li>
+    <li><strong>The group shows under every method</strong>, always with the same title. Under Solid fill the rows show the picked fills. Under a wash the same rows show the wash values, with a line saying where the method and opacity change. Under No hover fill it shows one line. Today's separate "Overlay wash" and "Tinted wash" groups fold into it. The owner's A doesn't settle this, so it is open: <a class="qtag" href="#q3116-3">Q3116.3</a>.</li>
     <li>The method chooser and Wash opacity stay in Interactive settings, because they apply to every button set. Their form is <a class="qtag" href="#q3116-2">Q3116.2</a>.</li>
     <li>Nothing in the engine changes for the placement: same levers, same tokens, same writes. It is a Studio layout change only.</li>
   </ul>
@@ -215,9 +216,9 @@ th { color: var(--text-2); font-weight: 600; }
     <h3><span class="qtag">Q3116.1</span> Which parts of outline and text buttons can a brand change for hover and pressed?</h3>
     <p>Today a brand can pick the fill (under Solid fill). The label and border have hover and pressed rows too, but those colors are shared with tabs, tags, pagination, segmented controls, switches and checkboxes. So changing the outline button's hover border today also changes those.</p>
     <ol>
-      <li class="rec"><strong>A (rec).</strong> The fill only, as built. The group holds Hover and Pressed fill pickers. The label and border keep their own rows in Text and Border. The label still moves itself where it needs to, to stay legible on the fill you pick.</li>
+      <li class="rec"><strong>A (rec).</strong> The fill only, as built. The group holds the fill's rows: Rest, with Hover and Pressed inset. The label and border keep their own rows in Text and Border. The label still moves itself where it needs to, to stay legible on the fill you pick.</li>
       <li><strong>B.</strong> The fill, plus a label and border color that belong to outline and text buttons only, for hover and pressed. Changing them would not touch tabs or tags. This adds new colors to every button set in every mode, so it needs engine work and new tokens.</li>
-      <li><strong>C.</strong> The fill, and the group also shows the existing Text and Border hover and pressed rows, moved in from their groups. Same colors as today. A line says which other controls they also change.</li>
+      <li><strong>C.</strong> The fill, and the group also shows the existing Text and Border hover and pressed rows, moved in from their groups, inset under a Text and a Border row as they are today. Same colors as today. A line says which other controls they also change.</li>
     </ol>
     <div class="minis" id="mini-q1"></div>
     <p class="why"><strong>Why A:</strong> it needs nothing new, and nothing on the page changes colors you didn't expect. B is the only option where the outline button's label and border change without moving tabs and tags. It is worth building if testing shows the shared colors get in the way.</p>
@@ -240,7 +241,7 @@ th { color: var(--text-2); font-weight: 600; }
     <h3><span class="qtag">Q3116.3</span> Does the group show under every method, with the wash groups folded into it?</h3>
     <p>The owner's A puts these colors beside Fill. It doesn't say what the card shows under the other three methods. Today the "Outline &amp; text hover" group shows only under Solid fill. Under a wash, the card shows a separate read-only "Overlay wash" or "Tinted wash" group instead, and under No hover fill it shows nothing. The "after" frames draw A.</p>
     <ol>
-      <li class="rec"><strong>A (rec).</strong> One group under every method, as drawn. It is always titled "Outline &amp; text hover" and always sits directly under Fill. It holds pickers under Solid fill, the wash swatches (read-only, with where to change them) under a wash, and one line under No hover fill. The "Overlay wash" and "Tinted wash" groups fold into it.</li>
+      <li class="rec"><strong>A (rec).</strong> One group under every method, as drawn. It is always titled "Outline &amp; text hover" and always sits directly under Fill. It holds the same rows as Fill under Solid fill and under a wash (showing the wash values), and one line under No hover fill. The "Overlay wash" and "Tinted wash" groups fold into it.</li>
       <li><strong>B.</strong> The group under Solid fill only, as today. The "Overlay wash" and "Tinted wash" read-outs stay as they are, with their own titles, but move up beside Fill too. Under No hover fill, nothing shows.</li>
       <li><strong>C.</strong> The two wash groups kept separate and where they are today, after Border · inverse. Only the Solid fill group moves up beside Fill.</li>
     </ol>
@@ -329,11 +330,18 @@ const hoverPaint = (R, st) => {
 };
 
 const sw = (paint) => `<span class="sw"><i style="background:${paint}"></i></span>`;
-const row = (R, key, label, nest, pageBg) => {
-  const [hex, path, r] = R[key];
-  return `<div class="row${nest ? ' nest' : ''}">${sw(hex)}<span class="nm"><span>${label}</span><code>interactive.primary.${key}</code></span>
-    <span class="sel">Auto · ${esc(stepName(path))}${r == null ? '' : `<span class="r">${fmt(r)}</span>`}</span></div>`;
+/** A step's name as the picker shows it; a wash of a palette step names its opacity. */
+const pickName = (path, a) => (a !== undefined && !/alpha/.test(path) ? `${stepName(path)} at ${Math.round(a * 100)}%` : stepName(path));
+/** The card's one color-row pattern: swatch, name and token path, and an "Auto · <step>" picker with its ratio. */
+const row = (R, key, label, nest, pageBg, tokenPath) => {
+  const [hex, path, r, a] = R[key];
+  return `<div class="row${nest ? ' nest' : ''}">${sw(a !== undefined ? rgba(hex, a) : hex)}<span class="nm"><span>${label}</span><code>${esc(tokenPath || `interactive.primary.${key}`)}</code></span>
+    <span class="sel">Auto · ${esc(pickName(path, a))}${r == null ? '' : `<span class="r">${fmt(r)}</span>`}</span></div>`;
 };
+/** The hover fill's Rest row: outline and text buttons have no fill at rest. DRAFT. */
+const restNone = () => `<div class="row">${sw('transparent')}<span class="nm"><span>Rest</span><code>no fill at rest</code></span><span class="sel off">None</span></div>`;
+/** The hover group's rows, the same pattern as Fill: Rest, then Hover and Pressed inset. */
+const hoverRows = (R, part, pageBg) => `${restNone()}${row(R, `${part}.hover`, 'Hover', true, pageBg)}${row(R, `${part}.pressed`, 'Pressed', true, pageBg)}`;
 const fullGroup = (R, part, title, pageBg) => `<div class="grp"><b>${title}</b>${row(R, `${part}.rest`, 'Rest', false, pageBg)}${row(R, `${part}.hover`, 'Hover', true, pageBg)}${row(R, `${part}.pressed`, 'Pressed', true, pageBg)}</div>`;
 const folded = (title) => `<div class="grp"><b>${title}</b><span class="collapsed">Rest · Hover · Pressed <em>(folded in this wireframe, unchanged)</em></span></div>`;
 const readout = (R, key, label) => { const [h, path, , a] = R[key]; const name = a !== undefined && !/alpha/.test(path) ? `${stepName(path)} at ${Math.round(a * 100)}%` : stepName(path);
@@ -353,12 +361,12 @@ const hoverGroupBefore = (R, m) => {
   const part = m === 'solid-tint' ? 'subtle-fill' : 'overlay';
   return `<div class="grp"><b>${m === 'solid-tint' ? 'Tinted wash' : 'Overlay wash'}</b>${readout(R, `${part}.hover`, 'Hover')}${readout(R, `${part}.pressed`, 'Pressed')}</div>`;
 };
-/** After: one group under Fill, the same title under every method. */
-const hoverGroupAfter = (R, m, wide) => {
+/** After: one group under Fill, the same title under every method, set up like every other color group (owner, 2026-11-18). */
+const hoverGroupAfter = (R, m, pageBg) => {
   let body;
-  if (m === 'opaque-fill') body = solidPickers(R, wide);
+  if (m === 'opaque-fill') body = `${hoverRows(R, 'hover-fill', pageBg)}${worstLine(R)}`;
   else if (m === 'none') body = `<p class="hint">${esc(AFTER_COPY.none)}</p>`;
-  else { const part = m === 'solid-tint' ? 'subtle-fill' : 'overlay'; body = `${readout(R, `${part}.hover`, 'Hover')}${readout(R, `${part}.pressed`, 'Pressed')}<p class="hint">${esc(AFTER_COPY.wash(m))}</p>`; }
+  else { const part = m === 'solid-tint' ? 'subtle-fill' : 'overlay'; body = `${hoverRows(R, part, pageBg)}<p class="hint">${esc(AFTER_COPY.wash(m))}</p>`; }
   return `<div class="grp mark"><span class="badge">moved</span><b>${esc(AFTER_COPY.title)}</b>${body}</div>`;
 };
 
@@ -378,7 +386,7 @@ const primaryCard = (R, m, after, wide, scheme) => {
   // Before draws Text and Border in full, so the distance from Fill to the hover group reads as it does today.
   const groups = [
     fullGroup(R, 'fill', 'Fill', page),
-    after ? hoverGroupAfter(R, m, wide) : '',
+    after ? hoverGroupAfter(R, m, page) : '',
     folded('Fill · inverse'),
     after ? folded('Text') : fullGroup(R, 'text', 'Text', page),
     folded('Text · inverse'),
@@ -436,13 +444,17 @@ const block = (width, schemes, m) => {
 const mini = (scheme, title, body) => `<div class="mini"><div class="frame" style="${vars(scheme, ROLES[`opaque-fill:${scheme}`])}"><span class="cap2">${esc(title)}</span>${body}</div></div>`;
 const q1 = (scheme) => {
   const R = ROLES[`opaque-fill:${scheme}`];
+  const page = CHROME[scheme].page;
   const head = `<b style="display:block;font-weight:600;margin-bottom:6px">Outline &amp; text hover</b>`;
-  const pick = (l, v, off) => `<div><span class="fl">${l}</span><span class="sel${off ? ' off' : ''}">${esc(v)}</span></div>`;
-  const fills = `<div class="pickrow">${pick('Hover fill', `Auto · ${stepName(R['hover-fill.hover'][1])}`)}${pick('Pressed fill', `Auto · ${stepName(R['hover-fill.pressed'][1])}`, true)}</div>`;
+  const sub = (t) => `<b style="display:block;font-weight:600;margin:12px 0 4px">${t}</b>`;
+  const fills = hoverRows(R, 'hover-fill', page);
+  // B's label and border rows are new, button-only tokens (DRAFT paths); before a brand picks, they start at today's shared values.
+  const own = (part, title, tok) => `${sub(title)}${row(R, `${part}.rest`, 'Rest', false, page)}${row(R, `${part}.hover`, 'Hover', true, page, `interactive.primary.${tok}.hover`)}${row(R, `${part}.pressed`, 'Pressed', true, page, `interactive.primary.${tok}.pressed`)}`;
+  const shared = (part, title) => `${sub(title)}${row(R, `${part}.rest`, 'Rest', false, page)}${row(R, `${part}.hover`, 'Hover', true, page)}${row(R, `${part}.pressed`, 'Pressed', true, page)}`;
   return [
     mini(scheme, 'A (rec) · fill only', `${head}${fills}<p class="hint">Label and border: in Text and Border.</p>`),
-    mini(scheme, 'B · fill, plus button-only label and border', `${head}${fills}<div class="pickrow">${pick('Hover label', `Auto · ${stepName(R['text.hover'][1])}`)}${pick('Pressed label', `Auto · ${stepName(R['text.pressed'][1])}`)}</div><div class="pickrow">${pick('Hover border', `Auto · ${stepName(R['border.hover'][1])}`)}${pick('Pressed border', `Auto · ${stepName(R['border.pressed'][1])}`)}</div><p class="hint">Outline and text buttons only. New colors.</p>`),
-    mini(scheme, 'C · fill, plus the shared rows moved in', `${head}${fills}${row(R, 'text.hover', 'Text · Hover', false, CHROME[scheme].page)}${row(R, 'border.hover', 'Border · Hover', false, CHROME[scheme].page)}<p class="hint">Also changes tabs, tags, pagination, segmented controls, switches and checkboxes.</p>`),
+    mini(scheme, 'B · fill, plus button-only label and border', `${head}${fills}${own('text', 'Label', 'outline-label')}${own('border', 'Border', 'outline-border')}<p class="hint">Outline and text buttons only. New colors.</p>`),
+    mini(scheme, 'C · fill, plus the shared rows moved in', `${head}${fills}${shared('text', 'Text')}${shared('border', 'Border')}<p class="hint">Also changes tabs, tags, pagination, segmented controls, switches and checkboxes.</p>`),
   ].join('');
 };
 const q2 = (scheme) => {

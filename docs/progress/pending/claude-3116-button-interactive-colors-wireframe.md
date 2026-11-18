@@ -10,8 +10,10 @@ owner still met was distance and inconsistency:
 - the group sits seventh in the card, after Text and Border, about 1,600px below Fill at 1280;
 - it shows only under Solid fill, and under a wash the same slot carries a differently named read-only group.
 
-The proposal moves one group, always titled "Outline & text hover", directly under Fill, under every method. It holds
-pickers, the wash read-out or one line under No hover fill. The method and Wash opacity stay in Interactive settings,
+The proposal moves one group, always titled "Outline & text hover", directly under Fill, under every method. Per the
+owner's direction on the first draft (2026-11-18), it is set up like every other color group in the card: a Rest row
+with Hover and Pressed inset, each with its swatch, name, token path and an "Auto · <step>" picker with its ratio.
+Under a wash the same rows show the wash values; under No hover fill it is one line. The method and Wash opacity stay in Interactive settings,
 since the method is brand-wide (Q3335.6 A). The placement is a layout change only: same levers, tokens and writes.
 The owner's A settles "beside Fill", not the always-shown group or the folded wash groups, so those are Q3116.3.
 
