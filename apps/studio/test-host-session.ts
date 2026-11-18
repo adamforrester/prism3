@@ -48,7 +48,7 @@ const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFo
 const KINDS = [
   'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'style-guide-result', 'component-progress', 'style-guide-progress',
   'prune-result', 'seed-info', 'restore-input', 'restore-input-empty', 'restore-input-reading', 'restore-input-library', 'restore-input-error', 'font-list', 'doc-settings', 'file-sets',
-  'hand-edits', 'hand-edits-done', 'update-check', 'update-check-progress', 'file-due', 'add-queue', 'panels-clean-result',
+  'hand-edits', 'hand-edits-done', 'update-check', 'update-check-progress', 'file-due', 'add-queue', 'updates-off', 'panels-clean-result',
   'agent-started', 'agent-progress', 'agent-finished', 'refused',
   'style-guide-catalog', 'style-guide-tables', 'style-guide-table', 'style-guide-cleanup-result',
 ] as const;
@@ -69,7 +69,7 @@ const init = initialHostSession();
 ok(same(plain(init), {
   seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, collisions: null, collisionsChosen: null, componentState: null, componentUpdate: null, componentLatest: null, specsState: null, overrideState: null,
   fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, styleGuideCatalog: null, styleGuideRun: null, styleGuideRetired: [], styleGuideCleanup: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
-  pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], hostFontStyleNames: [], agentRun: null, refused: null, docSettings: null, fileSets: null, liveDue: null, panelsClean: { busy: false, count: null, verdict: null }, addQueue: null,
+  pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], hostFontStyleNames: [], agentRun: null, refused: null, docSettings: null, fileSets: null, liveDue: null, panelsClean: { busy: false, count: null, verdict: null }, addQueue: null, updatesOffError: null,
   handEdits: [], handPass: 'idle', updateCheck: null, updateProgress: null,
 }), 'initial session: every slot empty');
 
@@ -480,6 +480,12 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
   ok(same(fq.next.addQueue, ['tag']), `#3129: file-sets carries the add queue into its slot (${JSON.stringify(fq.next.addQueue)})`);
   const aq = step(fq.next, { kind: 'add-queue', queued: ['tag', 'badge'], error: null });
   ok(same(aq.next.addQueue, ['tag', 'badge']) && same(aq.topics, ['host:update', 'host:components']), `#3129: a queue write's answer replaces the queue and invalidates host:update and host:components (${JSON.stringify(aq.topics)})`);
+  // #2956: a turn off that could not be written is kept to say so; the next answer that was written clears it. Both
+  // repaint the overlay and Components (the set's status tag).
+  const uo = step(aq.next, { kind: 'updates-off', def: 'tag', off: true, error: 'this file has no tag set' });
+  const uo2 = step(uo.next, { kind: 'updates-off', def: 'tag', off: false, error: null });
+  ok(same(uo.next.updatesOffError, { def: 'tag', off: true, error: 'this file has no tag set' }) && uo2.next.updatesOffError === null && same(uo.topics, ['host:update', 'host:components']),
+    `#2956 updates-off: a refused write is kept, a written one clears it, and both repaint Update file and Components (${JSON.stringify(uo.next.updatesOffError)})`);
   const lq = step(aq.next, { kind: 'file-due', seq: 9, present: ['button'], theme: false, error: null, due: {}, queued: ['badge'] });
   ok(same(lq.next.addQueue, ['badge']) && same(lq.topics, ['host:update', 'host:components']), '#3129: the live recount carries the queue too, and a queue it moves repaints Components');
   const lq2 = step(lq.next, { kind: 'file-due', seq: 10, present: ['button'], theme: false, error: null, due: {}, queued: ['badge'] });

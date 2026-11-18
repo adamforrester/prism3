@@ -26,13 +26,26 @@
  *   · #2956 point 1's wiring guard dropped → `survival/link root`, `/link overlap`;
  *   · the apply's skip of a member with a layer added or removed by hand dropped (`update-apply.ts`, `plan`) →
  *     `survival/layer added …`, `/layer removed …` (4).
+ *
+ * UPDATES OFF (#2956, owner decisions 2026-11-17): `survival/off auto` (an update that cannot apply around a hand edit
+ * turns the set's updates off by itself, the rest still written), `/off reopen` (a fresh check reads the mark off the
+ * set), `/off plain edit` (an edit the update applies around never turns it on), `/off skip` and `/off report` (a set
+ * whose updates are off is left whole and reported calmly), `/off back on` (cleared, the next Update writes it again).
+ * The mark is read by its namespace and key typed here. Mutations: the auto write dropped → `/off auto`, `/off reopen`;
+ * turning on for any kept edit → `/off plain edit`; the apply's skip of such a set dropped → `/off skip`, `/off report`,
+ * `/off back on`. On main every arm but `/off plain edit` fails by name; that one guards against turning on too eagerly.
+ * The other side of "only" (#3948 review B2): `/off no record`, `/off unstamped` and `/off root replaced`, a member
+ * skipped for a reason that is not a hand edit leaves updates on. Mutations: `around` pushed on the no-record skip →
+ * `/off no record`; on the not-built-by-Prism3 skip → `/off unstamped`; on the would-need-replacing skip →
+ * `/off root replaced`.
  */
 import { makeShim, type Node, type Page } from './component-shim';
-import { componentDefs, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan } from '@prism3/engine/components';
+import { componentDefs, figmaAnatomySet, planBoundVars, planComponentName, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan } from '@prism3/engine/components';
 import { SWAP_TARGET } from './src/build-deps';
-import { applyComponentPlan } from './src/write-components';
+import { applyComponentPlan, STAMP_KEY } from './src/write-components';
+import { BASELINE_KEY } from './src/member-baseline';
 import { previewUpdate, type UpdateTarget } from './src/update-plan';
-import { applyUpdate, previewHashOf, type ApplyHost } from './src/update-apply';
+import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost } from './src/update-apply';
 
 let failed = 0;
 let executed = 0;
@@ -146,6 +159,98 @@ for (const k of KINDS) for (const plan of ['root', 'overlap'] as const) {
   const acted = k.skipped ? o.skipped.some((x) => x.member === k.member) && !o.updated.includes(k.member) : o.updated.includes(k.member);
   ok(listed.includes(k.edits) && acted && now === JSON.stringify(k.want),
     `survival/${k.kind} ${plan}: the edit on ${k.edits} reads as the designer left it (${now}; listed ${JSON.stringify(listed)}; ${k.skipped ? 'skipped' : 'updated'} ${acted})`);
+}
+
+// ── UPDATES OFF (#2956, owner decisions 2026-11-17) ─────────────────────────────────────────────────────────────────
+// The mark is read off the shim's own set node, by its namespace and key TYPED HERE ('prism3' / 'updatesOff'), never
+// through `updates-off.ts`; the approved reason is typed here too. Each arm runs Update with Keep as `main.ts` runs it.
+console.log('\nUpdates off (#2956) — turned on by itself only when an update cannot apply around hand edits; a set with it is left as it is\n');
+const MARK = (n: Node): string => (n.getSharedPluginData as (a: string, b: string) => string)('prism3', 'updatesOff');
+const SETMARK = (n: Node, v: string): void => (n.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', 'updatesOff', v);
+const REASON = 'Turned off when an update couldn’t apply around your edits.';
+const rootChanged = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; q.root.paints = { ...(q.root.paints ?? {}), fills: 'color/keep/changed' }; return q; });
+const OTHER = 'type=select, selection=selected, size=medium, state=rest';
+const fillVar = (n: Node): string | null => ((n.fills as { boundVariables?: { color?: { id: string } } }[] | undefined)?.[0]?.boundVariables?.color?.id) ?? null;
+const run = async (w: World, def: string, plans: AnatomyPlan[]) => {
+  const targets: UpdateTarget[] = [{ def, plans }];
+  const pre = await previewUpdate(w.host, targets);
+  const res = await applyUpdate(w.host, w.api as any, targets, previewHashOf(pre), { choices: { handEdits: 'keep' } });
+  return { pre, res, v: applyVerdict(res) };
+};
+{
+  // AUTOMATIC: a layer added by hand, which no update can apply around, so the member is skipped whole and the set's
+  // updates turn off by themselves. The rest of the set is still written in that run.
+  const plans = plansOf('tag');
+  const w = await world('tag', plans, ['color/keep/changed', 'space/999']);
+  const member = (): Node => (w.set().children as Node[]).find((m) => m.name === TAG_MEMBER)!;
+  const f = w.api.createFrame() as Node; f.name = 'note'; (kid(member(), 'content').appendChild as (c: Node) => void)(f);
+  const before = MARK(w.set());
+  const { res, v } = await run(w, 'tag', rootChanged(plans));
+  const o = res.outcomes[0];
+  ok(before === '' && MARK(w.set()) === 'auto' && o.skipped.some((x) => x.member === TAG_MEMBER) && o.updated.length > 0 && v.lines.some((l) => l.includes(REASON)),
+    `survival/off auto: a member the update cannot apply around turns the set's updates off by itself, the rest written (${JSON.stringify(before)} → ${JSON.stringify(MARK(w.set()))}; ${o.updated.length} updated; ${JSON.stringify(v.lines.filter((l) => l.includes('Updates off')))})`);
+  // REOPEN: the mark lives on the set node, so a fresh check of the file (the next opening) reads it there.
+  const again = await previewUpdate(w.host, [{ def: 'tag', plans: rootChanged(plans) }]);
+  ok(again.sets[0]?.updatesOff === 'auto', `survival/off reopen: a fresh check reads the set's updates as off, turned off by the update (${JSON.stringify(again.sets[0]?.updatesOff)})`);
+}
+{
+  // NOT ON AN ORDINARY HAND EDIT: a recolor the update applies around stays Hand-edited, and the set keeps updating.
+  const plans = plansOf('tag');
+  const w = await world('tag', plans, ['color/keep/changed', 'space/999']);
+  const member = (): Node => (w.set().children as Node[]).find((m) => m.name === TAG_MEMBER)!;
+  kid(member(), 'content/labelCheck').fills = JSON.parse(JSON.stringify(RED));
+  const { res } = await run(w, 'tag', rootChanged(plans));
+  ok(MARK(w.set()) === '' && res.outcomes[0].updated.includes(TAG_MEMBER) && !res.outcomes[0].turnedOff,
+    `survival/off plain edit: an edit the update applies around never turns updates off (${JSON.stringify(MARK(w.set()))}; updated ${res.outcomes[0].updated.includes(TAG_MEMBER)})`);
+}
+// NOT ON A SKIP THAT IS NOT ABOUT HAND EDITS (#3948 review B2): the owner's rule turns updates off ONLY when an update
+// cannot apply around hand edits. Three skips leave a member for another reason, and each must leave the mark unset:
+// a member with no as-built record under `noBaseline: 'skip'`, a member not built by Prism3 (its stamp cleared), and a
+// member whose root would need replacing (its plan's root typed TEXT, so the host's COMPONENT reads as a type change).
+// Each arm first checks the member WAS skipped for that reason, so a fixture that stops producing the skip fails here
+// rather than passing vacuously.
+for (const c of [
+  { name: 'no record', reason: 'no as-built record', noBaseline: 'skip' as const,
+    prep: (m: Node, plans: AnatomyPlan[]) => { (m.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', BASELINE_KEY, ''); return rootChanged(plans); } },
+  { name: 'unstamped', reason: 'not built by Prism3', noBaseline: undefined,
+    prep: (m: Node, plans: AnatomyPlan[]) => { (m.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', STAMP_KEY, ''); return rootChanged(plans); } },
+  { name: 'root replaced', reason: 'the member itself would need replacing', noBaseline: undefined,
+    prep: (_m: Node, plans: AnatomyPlan[]) => rootChanged(plans).map((q) => (planComponentName(q) === TAG_MEMBER ? { ...q, root: { ...q.root, type: 'TEXT' as AnatomyPlan['root']['type'] } } : q)) },
+]) {
+  const plans = plansOf('tag');
+  const w = await world('tag', plans, ['color/keep/changed', 'space/999']);
+  const member = (): Node => (w.set().children as Node[]).find((m) => m.name === TAG_MEMBER)!;
+  const next = c.prep(member(), plans);
+  const targets: UpdateTarget[] = [{ def: 'tag', plans: next }];
+  const pre = await previewUpdate(w.host, targets);
+  const res = await applyUpdate(w.host, w.api as any, targets, previewHashOf(pre), { choices: { handEdits: 'keep', ...(c.noBaseline ? { noBaseline: c.noBaseline } : {}) } });
+  const o = res.outcomes[0];
+  const why = o.skipped.find((x) => x.member === TAG_MEMBER)?.reason ?? null;
+  ok(why === c.reason && MARK(w.set()) === '' && !o.turnedOff && !(o.aroundEdits ?? []).length && o.updated.length > 0,
+    `survival/off ${c.name}: a member skipped as "${c.reason}" leaves updates on (skipped as ${JSON.stringify(why)}; mark ${JSON.stringify(MARK(w.set()))}; ${o.updated.length} updated)`);
+}
+{
+  // SKIP AND REPORT, then BACK ON. The designer turned the set's updates off; the plan changes every member's root fill.
+  const plans = plansOf('tag');
+  const w = await world('tag', plans, ['color/keep/changed', 'space/999']);
+  const set = w.set();
+  const member = (): Node => (set.children as Node[]).find((m) => m.name === TAG_MEMBER)!;
+  const other = (): Node => (set.children as Node[]).find((m) => m.name === OTHER)!;
+  kid(member(), 'content/labelCheck').fills = JSON.parse(JSON.stringify(RED));
+  const otherFill = fillVar(other());
+  SETMARK(set, 'designer');
+  const { res, v } = await run(w, 'tag', rootChanged(plans));
+  const o = res.outcomes[0];
+  ok(o.off === 'designer' && o.updated.length === 0 && fillVar(other()) === otherFill && JSON.stringify(kid(member(), 'content/labelCheck').fills) === JSON.stringify(RED) && MARK(set) === 'designer',
+    `survival/off skip: a set whose updates are off is left whole, its hand edit as the designer left it (off ${o.off}; ${o.updated.length} updated; other fill ${fillVar(other())} was ${otherFill})`);
+  ok(v.ok && !v.headline.startsWith('⚠') && !v.headline.startsWith('✗') && v.lines.includes(`${o.set}: left as it is. Updates off.`) && !v.causes.length,
+    `survival/off report: the run reports it calmly, never ⚠ (${v.headline}; ${JSON.stringify(v.lines)})`);
+  // BACK ON: the mark removed, the next Update re-plans the set normally, and Keep still holds the edit.
+  SETMARK(set, '');
+  const back = await run(w, 'tag', rootChanged(plans));
+  const ob = back.res.outcomes[0];
+  ok(!ob.off && ob.updated.includes(OTHER) && fillVar(other()) !== otherFill && JSON.stringify(kid(member(), 'content/labelCheck').fills) === JSON.stringify(RED),
+    `survival/off back on: turned back on, the next Update writes the set again and keeps the edit (${ob.updated.length} updated; other fill ${fillVar(other())})`);
 }
 
 console.log(failed ? `\n❌ ${failed} FAILED — ${executed} assertions executed` : `\n✓ all passed — ${executed} assertions executed`);

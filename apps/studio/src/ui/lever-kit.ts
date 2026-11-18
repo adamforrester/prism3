@@ -602,13 +602,14 @@ export const checkRow = (id: string, role: string, name: string, onToggle: (on: 
   };
 };
 
-/** A word that is on or off: a button with `aria-pressed`, the check glyph showing when it is on (concept
- *  v6's chips). */
+/** A word that is on or off: a button with `aria-pressed` (concept v6's chips). It draws no check glyph (#3263, owner
+ *  decision 2026-11-18 A, following Q3117.1 B): the pressed chip shows its state by its edge, and by the `Highlight`
+ *  fill under forced colors, so pressing a word never changes its width or moves the row's wrap. */
 export const toggleChip = (role: string, word: string, onToggle: (on: boolean) => void): { el: HTMLButtonElement; set: (on: boolean) => void } => {
   const el = hook(h('button', 'p3-btn p3-btn-page p3-chip'), role);
   el.type = 'button';
   el.dataset.word = word;
-  el.append(glyph('check'), h('span', 'p3-btn-label', word));
+  el.append(h('span', 'p3-btn-label', word));
   el.onclick = () => onToggle(el.getAttribute('aria-pressed') !== 'true');
   return { el, set: (on) => { if (el.getAttribute('aria-pressed') !== String(on)) el.setAttribute('aria-pressed', String(on)); } };
 };

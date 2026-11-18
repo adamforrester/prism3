@@ -205,6 +205,12 @@
  *                  every glyph's vectors fit its frame, read by the test off the shim's nodes (#2379). Mutations: the
  *                  paint base left black, or its alpha dropped → `drawn/paints`; the fresh glyph import not scaled to
  *                  its frame → `drawn/glyphs`.
+ *   updates off/… a set whose updates are off (#2956): the mark is in the check's hash (`/hash`), the apply leaves the
+ *                  set whole with no version (`/skip`) and says so calmly (`/report`), records no ledger entry
+ *                  (`/ledger`), and once cleared the set is re-planned and written (`/back on`); the due read gives `off`
+ *                  over current, due and kept edits (`/due`). Mutations: the mark out of the dry run's body and hash →
+ *                  `/hash`, `/skip`, `/report`, `/ledger`, `/back on`; `dueOf`'s off loop dropped → `/due`;
+ *                  `ledgerAfter`'s filter dropped → `/ledger`.
  *   damage/under a layer …  a member that draws wrong AND has a layer added by hand: the dry run counts it edited by
  *                  hand, never "to update", its paint still listed; the apply skips it under every choice, named with
  *                  the layer and the damage, and leaves it exactly (#2413). Mutations: the dry run's damage read before
@@ -280,6 +286,7 @@ import { ENGINE_VERSION, parseDesignMd, type BrandInput } from '@prism3/engine';
 import { adoptions, applyComponentPlan, memberStamp, respaceSets, snugSets, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
+import { dueOf } from './src/as-built-ledger';
 import { EXECUTOR_REACH, reaches } from './src/executor-reach';
 import { EXECUTOR_REVISION } from './src/executor-revision';
 import { materializeForBrand } from './src/brand-def';
@@ -288,7 +295,7 @@ import { figmaInstances, fixHostMethods, makeShim, STYLE_FONT, type Node, type P
 import { adoptMembers, breakingClause, breakingLine, breakingOf, consumerLines, breakingSection, breakingSummary, captureBaselines, checkedSetOf, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type Breaking, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
-import { applyUpdate, applyVerdict as applyVerdictOf, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
+import { applyUpdate, applyVerdict as applyVerdictOf, ledgerAfter, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
 import { headerFor } from './src/page-header';
 import { readFileSync } from 'node:fs';
 
@@ -4533,6 +4540,9 @@ section('damage under a record — a member drawn wrong reads "to update" whatev
   ok(st === 'handEdited' && p.counts.update === 0 && p.counts.handEdited === 1 && !!black && previewLine(p) === `${TAG}: 45 members. 1 member edited by hand.`,
     `damage/under a layer dry run: the member counts as edited by hand, not to update, and its paint is still listed (${st}; ${JSON.stringify(p.counts)}; ${black ? `${black.part}.${black.field}: ${black.from}` : 'no paint line'}; ${previewLine(p)})`);
   for (const choice of ['keep', 'overwrite', 'accept'] as const) {
+    // #2956: each choice meets the set with its updates on. The skip turns them off by itself (`updates off/…` and the
+    // survival suite cover that), which would leave the next choice's run with no member to skip.
+    (w.set().setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', 'updatesOff', '');
     const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(await previewUpdate(w.host, [{ def: TAG, plans: w.plans }])), { choices: { handEdits: choice } });
     const why = res.outcomes[0]?.skipped.find((x) => x.member === String(m.name))?.reason ?? '';
     ok(why.startsWith('a layer was added or removed by hand, and it draws other than its plan (') && why.includes(String(m.name)) && why.includes(`${hit}: stored #000000`) && dumpOf(m) === before,
@@ -7232,6 +7242,49 @@ section('tint — SignInButton\'s white glyph on a dark fill reads current, and 
   const tint = o.content.filter((x) => x.includes('literalTint'));
   ok(o.updated.length === 96 && tint.length === 0,
     `glyph tint/verify: all 96 updated, and no tinted glyph reads as differing from the plan (${o.updated.length} updated; ${tint.length} tint lines${tint.length ? `: ${tint[0]}` : ''})`);
+}
+
+/* ── updates off (#2956) ──────────────────────────────────────────────────────────────────────────────── */
+section('updates off — a set whose updates are off is left as it is, reported calmly; the mark is in the check\'s hash and the due read');
+{
+  // The mark is written and read by its namespace and key TYPED HERE, never through `updates-off.ts`.
+  const mark = (n: Node, v: string): void => (n.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', 'updatesOff', v);
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const next = moveGap(w.plans);
+  const targets: UpdateTarget[] = [{ def: TAG, plans: next }];
+  // DESIGNER TOGGLE, OFF: a check taken before the designer turned updates off no longer matches the file.
+  const before = await previewUpdate(w.host, targets);
+  mark(w.set(), 'designer');
+  const stale = await applyUpdate(w.host, w.api as any, targets, previewHashOf(before));
+  ok(!!stale.refusedAll && w.set().getSharedPluginData('prism3', 'updatesOff') === 'designer',
+    `updates off/hash: turning updates off between the check and the confirm refuses the confirm (${stale.refusedAll})`);
+  // SKIP AND REPORT: confirmed against a fresh check, the set is left as it is, every member keeping its gap.
+  const gap = (): string[] => membersOf(w.set()).map((m) => String((childNamed(m, 'content').boundVariables as Record<string, { id: string }> | undefined)?.itemSpacing?.id ?? ''));
+  const gaps = JSON.stringify(gap());
+  const { pre, res } = await confirm(w, targets);
+  const v = applyVerdict(res);
+  ok(pre.sets[0]?.updatesOff === 'designer' && res.outcomes[0]?.off === 'designer' && JSON.stringify(gap()) === gaps && !res.version,
+    `updates off/skip: the set is left as it is, no version saved (${JSON.stringify(res.outcomes[0]?.off)}; gaps unchanged ${JSON.stringify(gap()) === gaps}; version ${res.version})`);
+  ok(v.ok && v.completed && v.headline === '✓ 1 set left as it is, updates off' && v.lines.includes('tag: left as it is. Updates off.') && !v.causes.length,
+    `updates off/report: the verdict is calm and says so (${v.headline}; ${JSON.stringify(v.lines)})`);
+  // The ledger records nothing for it: it was not written, so its entry stands and it is not read as current.
+  const after = ledgerAfter(res.outcomes, () => ({ engine: 'x', def: 'y', rev: 1 } as never));
+  ok(!(TAG in after), `updates off/ledger: a set left for its mark records no entry (${JSON.stringify(Object.keys(after))})`);
+  // DESIGNER TOGGLE, BACK ON: the mark cleared, the next check reads the set as any other and the update writes it.
+  mark(w.set(), '');
+  const back = await confirm(w, targets);
+  ok(!back.pre.sets[0]?.updatesOff && !back.res.outcomes[0]?.off && back.res.outcomes[0]?.updated.length === 45 && gap().every((g) => g === 'V:space/999'),
+    `updates off/back on: turned back on, the set is re-planned and every member updated (${back.res.outcomes[0]?.updated.length})`);
+}
+{
+  // THE DUE READ: an Updates off set reads `off` over due, kept edits and current, so the badge never counts it.
+  const e = { engine: 'e1', def: 'd1', rev: 1 } as never;
+  const ledger = { a: e, b: { engine: 'e1', def: 'old', rev: 1 }, c: { engine: 'e1', def: 'd1', rev: 1, held: { members: 1, changes: ['x'] } } } as never;
+  const due = dueOf(ledger, ['a', 'b', 'c', 'd'], () => e, undefined, { a: 'designer', b: 'auto', c: 'auto' });
+  const plain = dueOf(ledger, ['a', 'b', 'c', 'd'], () => e);
+  ok(JSON.stringify(due) === JSON.stringify({ a: { state: 'off', by: 'designer' }, b: { state: 'off', by: 'auto' }, c: { state: 'off', by: 'auto' }, d: { state: 'unrecorded' } })
+    && plain.b.state === 'due' && plain.c.state === 'kept',
+    `updates off/due: the mark reads over current, due and kept edits, and nothing else moves (${JSON.stringify(due)})`);
 }
 
 // #3326 PR 1 review S2: THE INVARIANT, over every verdict this suite read. A verdict that is not ok says why: at least one

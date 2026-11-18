@@ -73,7 +73,11 @@ const validateOrExit = (input: unknown, designPath: string) => {
 
 // Shared emit + gate + report. Returns nothing; exits non-zero on a failed gate.
 const emitAndGate = (theme: Theme, resolvedOut: string, designPath: string, source: string) => {
-  const { stats } = emitTheme(theme, resolvedOut, { build });
+  // #3875: a write that fails (the backstop above, or the file system) is a readable failure, not a stack trace.
+  let emitted: ReturnType<typeof emitTheme>;
+  try { emitted = emitTheme(theme, resolvedOut, { build }); }
+  catch (e) { return fail(`could not write '${theme.id}' to ${resolvedOut}: ${(e as Error).message}`); }
+  const { stats } = emitted;
   console.log(`\n[${theme.id}] ${theme.root}.* / ${theme.colorFormat}  ←  ${designPath} (${source})`);
   for (const n of theme.notes) console.log(`   · ${n}`);
   console.log(`  palettes: ${theme.palettes.map((p) => p.palette).join(', ')} (danger ← ${theme.roleToPalette.danger})`);
