@@ -47,6 +47,9 @@ export type BarView = {
    *  "Library file" badge or "No brand", and carries no brand control: no brand switcher and no Update file, since there
    *  is no brand in the file to switch or write. Null for the studio. */
   readonly home: { readonly name: string; readonly badge: string | null } | null;
+  /** #1037: Undo load, offered after a load replaced unsaved edits, until the next edit or load. `hint` names the
+   *  brand it puts back. Null when there is nothing to undo. */
+  readonly undo: { readonly hint: string } | null;
 };
 
 /** One block of the export dialog's right column, in order. */
@@ -84,6 +87,8 @@ export type BarActions = {
   readonly importFile: (file: File) => void;
   readonly replace: () => void;
   readonly cancelReplace: () => void;
+  /** #1037: put back the brand the last load replaced. */
+  readonly undoLoad: () => void;
   readonly toggleExport: () => void;
   readonly closeExport: () => void;
   readonly artifact: (id: string) => void;
@@ -141,6 +146,13 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
   const homeBadge = hook(h('span', 'p3-homename-badge'), 'home-badge');
   homeName.append(homeNameText, homeBadge);
 
+  // #1037: Undo load, beside the switcher while it is offered. A button that stays until the next edit, not a toast that
+  // times out and can vanish before it is reached. "Undo load" is APPROVED wording (owner decision Q-BK2 A).
+  const undo = hook(h('button', 'p3-btn p3-btn-page'), 'undo-load');
+  undo.type = 'button';
+  undo.textContent = 'Undo load';
+  undo.onclick = () => act.undoLoad();
+
   // ── paint ──────────────────────────────────────────────────────────────────────────────────────
   let wasOpen = false;
   /** The Export area's content as built, and what it was built from (A10). */
@@ -171,7 +183,8 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     // #2909 (round 4): the brand, then the Agent tile and Update file, the one global action, in the plugin. Q731
     // (2026-10-26): Agent took Minimize's place here, and Minimize Agent's at the rail's foot. #2879: a home keeps Agent,
     // which needs no brand. The shell's nodes are placed, never re-minted, so one that holds focus keeps it.
-    const order: (HTMLElement | null)[] = v.home ? [homeName, spacer, placed.agent] : [brandWrap, spacer, placed.agent, placed.update];
+    if (v.undo && undo.title !== v.undo.hint) { undo.title = v.undo.hint; undo.setAttribute('aria-label', `Undo load. ${v.undo.hint}`); }
+    const order: (HTMLElement | null)[] = v.home ? [homeName, spacer, placed.agent] : [brandWrap, v.undo ? undo : null, spacer, placed.agent, placed.update];
     const want = order.filter((n): n is HTMLElement => !!n);
     if (want.length !== root.children.length || want.some((n, i) => root.children[i] !== n)) root.replaceChildren(...want);
 
