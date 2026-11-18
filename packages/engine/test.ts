@@ -6028,6 +6028,14 @@ arm: {
     '#3845: accentPalette equal to the resolved action palette is rejected under both spellings (actionPalette, roleColors.action)');
   ok(!throws3845({ actionPalette: 'accent', accentPalette: 'primary' }) && !throws3845({ roleColors: { action: 'accent' }, accentPalette: 'primary' }),
     '#3845: accentPalette primary is allowed once action resolves to accent, under both spellings');
+  // #3845 (owner-decided Q-BK1 A, option A) — the action note is worded from the palette action RESOLVES to, so
+  // `roleColors.action` (the schema's alias of `actionPalette`) reads the line the lever does, never "by default".
+  const n3845 = { id: 'n3845', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 },
+    brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1, h: 200 } }] };
+  const actionNote = (extra: object): string[] => brandTheme({ ...n3845, ...extra } as unknown as BrandInput).notes.filter((n) => n.startsWith('action: ') && !n.startsWith('action: anchored') && !n.startsWith('action: pinned'));
+  const viaLever = actionNote({ actionPalette: 'accent' }), viaRole = actionNote({ roleColors: { action: 'accent' } });
+  ok(JSON.stringify(viaRole) === JSON.stringify(["action: uses the 'accent' palette instead of primary, as the brand sets."]) && JSON.stringify(viaRole) === JSON.stringify(viaLever),
+    `#3845: roleColors.action 'accent' gives the action note actionPalette 'accent' does, not "by default" (lever ${JSON.stringify(viaLever)}, roleColors ${JSON.stringify(viaRole)})`);
 }
 
 // ------------------------------------- the iconContrast DEFAULT is pinned, not merely documented
@@ -10335,8 +10343,12 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(notesOf('rv-gamut-ok', { primary: { l: 0.2, c: 0.0805, h: 14 }, neutral: { hue: 14, chroma: 0.01 } }).every((n) => !n.startsWith("anchor 'primary'")),
     "#1883 review row 9: following the gamut note's remedy (0.081 − 0.0005) clears the warning");
   // Row 15: the default-action note claims only what the branch knows — links and roleColors.action may differ.
-  const act = notesOf('rv-act', { brandColors: acc, linkPalette: 'accent', roleColors: { action: 'accent' } });
-  ok(act.includes('action: the primary palette, by default — actionPalette is not set.') && !act.some((n) => /buttons and links/.test(n)),
+  // #3845 (owner-decided Q-BK1 A, option A): a `roleColors.action` rebase is no longer the default branch — the
+  // line names the rebased palette — so the default line is held on a brand that rebases links only, and the
+  // rebased brand is held to the same property: no action line claims a palette for links.
+  const act = notesOf('rv-act', { brandColors: acc, linkPalette: 'accent' });
+  const actRe = notesOf('rv-act-re', { brandColors: acc, linkPalette: 'accent', roleColors: { action: 'accent' } });
+  ok(act.includes('action: the primary palette, by default — actionPalette is not set.') && ![...act, ...actRe].some((n) => /buttons and links/.test(n)),
     '#1883 review row 15: the default-action note claims no palette for links or a rebased action');
   // Row 45: the anchor is gated at the non-text floor against background.secondary and tertiary, not AA on the page.
   ok(notesOf('rv-anch', { brandColors: acc, actionPalette: 'accent' }).includes("action: anchored at 'accent' step 450, the brand's own shade — moved only if it misses 3:1 (7:1 in high contrast) against the contrast floor or background.tertiary."),
