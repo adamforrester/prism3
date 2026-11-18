@@ -19,7 +19,7 @@ export { verifyFloatReadback, verifyReadback, verifyStylesReadback } from './rea
 export type { DeclaredModesInput, ReadValue, ReadbackSnapshot, ReadbackVerdict } from './read-back';
 export {
   COLLECTION_RENAMES, composeVariableRenames, deriveVariableRenames, isRefusal, openMigration, planCollectionRenames,
-  renameCollections, renameMap, renameVariables, validateRenameMap,
+  renameCollections, renameMap, renameVariables, sliceGroupOf, validateRenameMap,
 } from './rename-map';
 export type { MaterializationStep, Migration, RenameMap } from './rename-map';
 export { MATERIALIZATION_RENAMES, STYLE_RENAMES, planStyleRenames } from './materialization-renames';

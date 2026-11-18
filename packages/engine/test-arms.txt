@@ -147,6 +147,7 @@ apps/plugin/test-readback-parity.ts #3422
 apps/plugin/test-readback.ts #109
 apps/plugin/test-readback.ts #1097
 apps/plugin/test-rename-parity.ts #1024
+apps/plugin/test-rename-parity.ts #3857
 apps/plugin/test-report-redaction.ts #3697
 apps/plugin/test-report-redaction.ts #3702
 apps/plugin/test-roundtrip.ts #1318
