@@ -12,11 +12,22 @@ follow as `<p3-text-field>` and `<p3-password-field>`.
   that file. Change the def and run `npm run -w @prism3/web-components generate`.
 - **Plain ES modules.** `p3-button.js` imports `lit` by name, so a page needs a bundler or an import map. There is
   no build step.
+- **One entry per element** (owner decision Q-POC3 B). `import '@prism3/web-components'` registers nothing and
+  exports nothing. Each element registers from its own entry, so a page defines only what it imports:
+
+  | Entry | Registers |
+  |---|---|
+  | `@prism3/web-components` | nothing |
+  | `@prism3/web-components/button` | `<p3-button>` |
+  | `@prism3/web-components/text-field` | `<p3-text-field>` |
+  | `@prism3/web-components/password-field` | `<p3-password-field>` |
+
+  `custom-elements.json` is an entry too, for tools.
 
 ```html
 <link rel="stylesheet" href="@prism3/tokens/prism3.css">
 <link rel="stylesheet" href="@prism3/css/button.css">
-<script type="module">import '@prism3/web-components';</script>
+<script type="module">import '@prism3/web-components/button';</script>
 
 <p3-button data-prop-appearance="outline" data-prop-size="large">
   <svg slot="leadingVisual" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">…</svg>
@@ -73,6 +84,10 @@ the label names the input and `aria-describedby` reaches the message with no scr
 `field-message.css` and the field's own stylesheet; the password field also needs `button.css`.
 
 ```html
+<script type="module">
+  import '@prism3/web-components/text-field';
+  import '@prism3/web-components/password-field';
+</script>
 <p3-text-field data-prop-label="Email address" data-prop-type="email" data-prop-autocomplete="email"
                data-prop-showmessage="true" data-prop-helptext="We send the receipt to this address."></p3-text-field>
 <p3-password-field data-prop-label="Password" data-prop-autocomplete="current-password"></p3-password-field>
@@ -120,6 +135,6 @@ the label names the input and `aria-describedby` reaches the message with no scr
 |---|---|
 | `npm run -w @prism3/web-components check:generated` | `p3-button.js`, `p3-text-field.js` and `p3-password-field.js` are what `generate.ts` writes from the emission, and `custom-elements.json` is what the analyzer writes from them. |
 | `npm run -w @prism3/web-components check:parity` | The element, read from `custom-elements.json` and live in Chromium, has exactly the def's props, values and defaults, and each prop value renders the contract's markup. Six mutants must fail by name. `check-parity-fields.ts` does the same for the fields, and checks that the label names the input, `aria-describedby` reaches the message and the button controls the input. Eight mutants must fail by name. |
-| `npm run -w @prism3/web-components test:browser` | With the real token CSS, the element and plain HTML from the `@prism3/css` contract compute equal styles on light and dark. Click, keyboard, form, link, slot and focus behavior. Three mutants must fail by name. `check-browser-fields.ts` does the same for the fields across every size, status and state. It finds each input by its label, drives the Show/Hide button by mouse and keyboard, and checks submit, the upgrade over pre-written markup, `value` and `onChange`. Five mutants must fail by name. |
+| `npm run -w @prism3/web-components test:browser` | With the real token CSS, the element and plain HTML from the `@prism3/css` contract compute equal styles on light and dark. Click, keyboard, form, link, slot and focus behavior. Three mutants must fail by name. `check-browser-fields.ts` does the same for the fields across every size, status and state. It finds each input by its label, drives the Show/Hide button by mouse and keyboard, and checks submit, the upgrade over pre-written markup, `value` and `onChange`. Five mutants must fail by name. `check-entries.ts` holds the entries: the root registers no element and each entry registers exactly its own, bundled alone through the exports map and resolved as a consumer resolves it. Four mutants must fail by name. |
 
 The browser test needs the token CSS built first: its script runs `npm run -w @prism3/tokens build`.
