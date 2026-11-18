@@ -1278,6 +1278,13 @@ export const GATES: Gate[] = [
     cmd: engine('lint-locale-order.ts'),
   },
   {
+    // #3984, owner Q-DM2 A — reads theme-schema.json and runs design-md.ts's serializer and parser in memory; needs no
+    // build and no `after`.
+    id: 'lint-design-md-round-trip',
+    ciStep: 'design.md carries every brand setting the schema allows (#3984)',
+    cmd: engine('lint-design-md-round-trip.ts'),
+  },
+  {
     // #3698 F4, R5 item 3 — reads the surfaces' and the engine's tracked source text and the engine's package.json;
     // needs no build and no `after`.
     id: 'lint-engine-facade',
