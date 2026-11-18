@@ -4732,6 +4732,41 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   await ctx.close();
 }
 
+// E — SAVE BEFORE REPLACING, AND ASK BEFORE LEAVING (#3982, owner decision Q-WS1 A). The replace confirm offers the
+// Export area's two downloads, and neither closes it or loads: the designer saves, then answers. The browser's
+// leave-page prompt is armed while the brand has unsaved edits and disarmed when it has none, read by dispatching a
+// cancelable `beforeunload` (an armed page cancels it). EXPECTED typed here: the filenames' shapes and the armed state
+// at each step. Mutations that fail here BY NAME: the leave guard never synced (the `origin` subscription dropped) →
+// `#3982 after Replace brand loads an untouched example, leaving no longer asks`; a download that also cancels
+// (`saveTokens` calling `cancelReplace`) → `#3982 Download tokens leaves the confirm open`.
+{
+  const [atRisk, arriving] = BRANDS;
+  const { ctx, page, drain } = await openBrand(atRisk);
+  const leaveAsks = () => page.evaluate(() => { const e = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(e); return e.defaultPrevented; });
+  const confirm = '[data-p3="brand-menu"] [data-p3="overwrite-confirm"]';
+  ok(await leaveAsks() === false, '#3982 leaving a just-opened example does not ask');
+  await tabClick(page, 'brand');
+  await page.fill('[data-p3="brand-name"]', 'renamed-in-smoke');
+  ok(await leaveAsks() === true, '#3982 leaving after an edit asks first');
+  await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-example"]');
+  await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-example"]').filter({ hasText: arriving }).first());
+  await hooks.need(page, confirm);
+  const [brief] = await Promise.all([page.waitForEvent('download', { timeout: 5000 }).catch(() => null), hooks.click(page.locator('[data-p3="overwrite-save-brief"]'))]);
+  ok(!!brief && brief.suggestedFilename().endsWith('.design.md'), `#3982 Download design.md writes the brief (${brief?.suggestedFilename() ?? 'no download'})`);
+  ok(await page.locator(confirm).count() === 1, '#3982 Download design.md leaves the confirm open');
+  const [tokens] = await Promise.all([page.waitForEvent('download', { timeout: 5000 }).catch(() => null), hooks.click(page.locator('[data-p3="overwrite-save-tokens"]'))]);
+  ok(!!tokens && tokens.suggestedFilename().endsWith('.json'), `#3982 Download tokens writes the token set (${tokens?.suggestedFilename() ?? 'no download'})`);
+  ok(await page.locator(confirm).count() === 1, '#3982 Download tokens leaves the confirm open');
+  ok(await leaveAsks() === true, '#3982 with the confirm still open after the downloads, leaving still asks (nothing loaded)');
+  await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="overwrite-replace"]'));
+  await page.waitForSelector(confirm, { state: 'detached', timeout: 5000 }).catch(() => {});
+  ok(await leaveAsks() === false, '#3982 after Replace brand loads an untouched example, leaving no longer asks');
+  const errs = drain();
+  ok(errs.length === 0, `#3982 save before replacing: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+
 // C — RETIRED IN UI REDESIGN S3. It held the Examples `.cur` marker live while the menu's Name field was typed
 // into (#1075): the field patched the bar without re-rendering the menu, so a render-time marker went stale in
 // the open popover. S3 moved the Name field to Brand › Identity, so no field in the menu writes the name any
