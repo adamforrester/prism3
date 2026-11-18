@@ -379,3 +379,23 @@ the hook, each in a `$TMPDIR` copy, must each fail one named arm for one named r
 so it is gate-shaped, but it is not wired into `ci.yml`:** #1050 asked for the hook and its battery, and wiring it the
 way #1123 wired `claude-md-freshness/` is a separate decision. The hook itself is live only once the owner adds its
 entry to `.claude/settings.json`; agents never edit that file.
+
+## `tools/component-roundtrip/`
+
+This is the real-host component round trip (#1218, owner decision of 2026-11-18, B). `roundtrip.ts scripts` writes
+the scripts the Mac passes to the Desktop Bridge, one per call. They build the projected defs into a named scratch
+file with the plugin's own `applyComponentPlan`, read them back, and diff them with `diffAnatomy` in the host.
+`roundtrip.ts report` prints one line per def and each divergence by name. The plan is the offline round trip's
+(`figmaAnatomySet(def, { swapTarget })`, hashed, so `report` refuses a result from other plans). The in-host half,
+`host-roundtrip.ts`, enforces the Mac rules itself:
+- it refuses unless the open file is the one named by `--scratch-file`;
+- it saves a version before writes;
+- import-by-key throws, through a facade, never a `Proxy` over `figma` (#3209);
+- it writes only to a page it creates, and reports any page that went missing.
+
+`selftest.ts` runs the same scripts against the component shim dressed as a file. It plants #866's accept-and-discard
+and expects a `field-label · … · propertyRef` line by name, and it fails each safety rule in its own arm. **No gate
+sibling, and the reason is the subject:** the question is what a live Figma host keeps, CI has no host, and the
+offline gate (`apps/plugin/test-roundtrip.ts`) already covers what a shim can. `field-label` is its first named case
+and #866's permanent guard. It has not yet run against real Figma; its README's "Not yet verified live" lists what is
+unconfirmed.
