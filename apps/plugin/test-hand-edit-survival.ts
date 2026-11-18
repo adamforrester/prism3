@@ -57,7 +57,7 @@ const world = async (id: string, plans: AnatomyPlan[], extraVars: string[]): Pro
     vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0', ...extraVars])],
     styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
     effects: [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))],
-    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...plans.flatMap((p) => planComps(p.root))])],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', BRAND_ICON, OTHER_CORE_ICON, ...plans.flatMap((p) => planComps(p.root))])],
     page, liveRoot: true, identities: true, scaleConstrained: true,
   }) as any;
   const built = await applyComponentPlan(plans, api);
@@ -82,6 +82,27 @@ const TAG_MEMBER = 'type=select, selection=unselected, size=medium, state=rest';
 const tagNode = (q: AnatomyPlan, path: string): PlanNode => path.split('/').reduce((a: PlanNode, s) => a.children!.find((c) => c.name === s)!, q.root);
 const rebindGap = (q: AnatomyPlan): void => { (tagNode(q, 'content').bound as Record<string, string>).itemSpacing = 'space/999'; };
 const repaintLabelBox = (q: AnatomyPlan): void => { tagNode(q, 'content/labelCheck').paints = { ...(tagNode(q, 'content/labelCheck').paints ?? {}), fills: 'color/keep/changed' }; };
+/** The brand's own icon, which the brand built and Prism3 did not (#3076): a plain component in the file, unstamped. */
+const BRAND_ICON = 'icon/checkmark';
+/** The core icon an "overlap" plan re-points the swapped node at, so the plan changes what the designer changed. */
+const OTHER_CORE_ICON = 'icon/check-circle';
+const TAG_SELECTED = 'type=select, selection=selected, size=medium, state=rest';
+const CHECKED = 'selection=checked, status=default, size=medium, state=rest';
+const SEARCH_MEMBER = 'status=default, size=medium, state=rest';
+const mainName = (n: Node): string | null => (n.mainComponent as { name?: string } | undefined)?.name ?? null;
+/** Swap the instance at `path` to the brand's icon, as a designer does in Figma's instance menu. */
+const swapTo = (path: string) => (m: Node, w: World): void => {
+  const brand = (w.api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as Node[]).find((c) => c.name === BRAND_ICON);
+  if (!brand) throw new Error(`premise: the file holds no ${BRAND_ICON} to swap to`);
+  (kid(m, path).swapComponent as (c: Node) => void)(brand);
+};
+/** The plan re-points `path` at another core icon: as a glyph (`nestTarget`) or as a slot's default (`swapTarget`). */
+const retarget = (path: string) => (q: AnatomyPlan): void => {
+  // Every member of the set gets the same rewrite; a member that draws no node at `path` (a dismissible tag) has none.
+  const n = path.split('/').reduce((a: PlanNode | undefined, s) => a?.children?.find((c) => c.name === s), q.root);
+  if (!n) return;
+  if (n.nestTarget) n.nestTarget = OTHER_CORE_ICON; else n.swapTarget = OTHER_CORE_ICON;
+};
 const KINDS: Kind[] = [
   { kind: 'paint', def: 'tag', member: TAG_MEMBER, edits: 'content/labelCheck', edit: (m) => { kid(m, 'content/labelCheck').fills = JSON.parse(JSON.stringify(RED)); },
     read: (m) => kid(m, 'content/labelCheck').fills, want: RED, overlap: repaintLabelBox },
@@ -116,6 +137,17 @@ const KINDS: Kind[] = [
     edit: (m) => { for (const c of CORNERS) { unbind(kid(m, 'focusRing'), c); kid(m, 'focusRing')[c] = 0; } },
     read: (m) => CORNERS.map((c) => [kid(m, 'focusRing')[c], bound(kid(m, 'focusRing'), c)]), want: [[0, null], [0, null], [0, null], [0, null]],
     overlap: (q) => { const r = q.root.children!.find((c) => c.name === 'focusRing'); if (r) r.paints = { ...(r.paints ?? {}), strokes: 'color/keep/changed' }; } },
+  // A DESIGNER'S ICON SWAP (#3076, owner decision 2026-11-18 A, both): the icon inside a generated component swapped by
+  // hand to the brand's own icon, which Prism3 never built. One arm per shape a component holds an icon in: a glyph
+  // that is a nested instance (Tag's check), a glyph inset in a frame (Checkbox's check), and a slot whose default a
+  // property names (Search field's clear). "overlap" re-points the same node at another core icon, the case of an
+  // engine that changes the glyph it draws there, so the swap is a conflict.
+  { kind: 'icon swap', def: 'tag', member: TAG_SELECTED, edits: 'content/labelCheck/checkGlyph', edit: swapTo('content/labelCheck/checkGlyph'),
+    read: (m) => mainName(kid(m, 'content/labelCheck/checkGlyph')), want: BRAND_ICON, overlap: retarget('content/labelCheck/checkGlyph') },
+  { kind: 'icon swap inset', def: 'checkbox-control', member: CHECKED, edits: 'checkGlyph/glyph', edit: swapTo('checkGlyph/glyph'),
+    read: (m) => mainName(kid(m, 'checkGlyph/glyph')), want: BRAND_ICON, overlap: retarget('checkGlyph/glyph') },
+  { kind: 'icon swap slot', def: 'search-field', member: SEARCH_MEMBER, edits: 'control/trailingVisual', edit: swapTo('control/trailingVisual'),
+    read: (m) => mainName(kid(m, 'control/trailingVisual')), want: BRAND_ICON, overlap: retarget('control/trailingVisual') },
 ];
 
 console.log('hand-edit survival (#2956 point 6) — every kind of hand edit, Update with Keep, read back byte-identical\n');
