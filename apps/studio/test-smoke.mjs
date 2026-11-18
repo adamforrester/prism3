@@ -4698,6 +4698,38 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   ok(errs.length === 0, `Undo load (start window): 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
 }
+// D, a lever edit (review of f78d64b0). "Until the next edit" (Q319.2, Q-BK2 A) is wired by two subscriptions in
+// main.ts: `brand` for every lever edit, `identity` for the name and namespace. The first case ends its offer with a
+// rename, which holds only the `identity` one. Here the offer is ended by a lever: a click on the Control shape option
+// the loaded brand does not hold. Mutation that fails here BY NAME: `subscribe('brand', endUndoOnEdit)` dropped →
+// `#1037 a lever edit to the loaded brand ends the Undo load offer`.
+{
+  const [atRisk, arriving] = BRANDS;
+  const { ctx, page, drain } = await openBrand(atRisk);
+  const undo = '[data-p3="bar-main"] [data-p3="undo-load"]';
+  await tabClick(page, 'brand');
+  await page.fill('[data-p3="brand-name"]', 'renamed-in-smoke');
+  await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-example"]');
+  await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-example"]').filter({ hasText: arriving }).first());
+  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="overwrite-confirm"]');
+  await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="overwrite-replace"]'));
+  await page.waitForSelector(undo, { timeout: 5000 }).catch(() => {});
+  const offered = await page.locator(undo).count();
+  ok(offered === 1, `#1037 premise: Undo load is offered after Replace brand, before the lever edit (undo-load drawn ${offered})`);
+  await gotoComponents(page);
+  const other = page.locator('[data-p3="lever-control-shape"] button[role="radio"][aria-checked="false"]').first();
+  const shape = await other.getAttribute('data-value');
+  await hooks.click(other);
+  await page.waitForFunction((v) => document.querySelector('[data-p3="lever-control-shape"] button[aria-checked="true"]')?.dataset.value === v, shape, { timeout: 5000 }).catch(() => {});
+  const moved = await page.evaluate(() => document.querySelector('[data-p3="lever-control-shape"] button[aria-checked="true"]')?.dataset.value ?? null);
+  await page.waitForSelector(undo, { state: 'detached', timeout: 5000 }).catch(() => {});
+  const left = await page.locator(undo).count();
+  ok(moved === shape && left === 0, `#1037 a lever edit to the loaded brand ends the Undo load offer (Control shape → ${shape}, now ${moved}; undo-load drawn ${left})`);
+  const errs = drain();
+  ok(errs.length === 0, `Undo load (lever edit): 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
 
 // C — RETIRED IN UI REDESIGN S3. It held the Examples `.cur` marker live while the menu's Name field was typed
 // into (#1075): the field patched the bar without re-rendering the menu, so a render-time marker went stale in
