@@ -87,7 +87,11 @@ const hasIcons = (icons: BrandIcons | undefined): icons is BrandIcons =>
 export const applyIconMap = (def: ComponentDef, icons: BrandIcons | undefined): ComponentDef => {
   if (!hasIcons(icons)) return def;
   const m = (n: string): string => mappedIcon(icons, n);
+  const glyphs = icons.glyphs ?? {};
   const a = def.anatomy;
+  // Every icon name the def holds after the rewrite, and whether any part moved.
+  const named: string[] = [];
+  let moved = false;
   let parts: Record<string, PartDef> | undefined;
   if (a) {
     parts = {};
@@ -95,13 +99,21 @@ export const applyIconMap = (def: ComponentDef, icons: BrandIcons | undefined): 
       // A part names an icon in one of three fields; each is rewritten through the map, everything else kept.
       const glyph = p.kind === 'vector' && p.glyph !== undefined && !p.glyph.includes('{') ? { glyph: m(p.glyph) } : {};
       const swapDefault = p.kind === 'slot' && p.swapDefault !== undefined && !p.fixedPaint ? { swapDefault: m(p.swapDefault) } : {};
-      const overrides = p.overrides?.swaps ? { overrides: { ...p.overrides, swaps: Object.fromEntries(Object.entries(p.overrides.swaps).map(([k, v]) => [k, m(v)])) } } : {};
+      const swaps = p.overrides?.swaps ? Object.fromEntries(Object.entries(p.overrides.swaps).map(([k, v]) => [k, m(v)])) : undefined;
+      const overrides = swaps && p.overrides ? { overrides: { ...p.overrides, swaps } } : {};
+      named.push(...Object.values(glyph), ...Object.values(swapDefault), ...Object.values(swaps ?? {}));
+      if ((p.kind === 'vector' && 'glyph' in glyph && glyph.glyph !== p.glyph) || (p.kind === 'slot' && 'swapDefault' in swapDefault && swapDefault.swapDefault !== p.swapDefault)
+        || (swaps && Object.entries(swaps).some(([k, v]) => p.overrides?.swaps?.[k] !== v))) moved = true;
       parts[name] = { ...p, ...glyph, ...swapDefault, ...overrides } as PartDef;
     }
   }
-  const out: ComponentDef = { ...def, ...(a && parts ? { anatomy: { ...a, parts } } : {}) };
-  if (Object.keys(icons.glyphs ?? {}).length) out.brandGlyphs = { ...icons.glyphs };
-  if (def.id === 'icon' && def.variants?.name) {
+  const isIconSet = def.id === 'icon' && !!def.variants?.name;
+  // The art rides only where the projector draws or names a brand glyph: the icon set, and a def that names one.
+  const needsArt = Object.keys(glyphs).length > 0 && (isIconSet || named.some((n) => n in glyphs));
+  if (!moved && !needsArt && !isIconSet) return def;
+  const out: ComponentDef = { ...def, ...(a && parts && moved ? { anatomy: { ...a, parts } } : {}) };
+  if (needsArt) out.brandGlyphs = { ...glyphs };
+  if (isIconSet && def.variants?.name) {
     const names = brandIconNames(icons);
     out.variants = { ...def.variants, name: names };
     out.props = def.props.map((p) => (p.name === 'name' && p.values ? { ...p, values: names } : p));
