@@ -779,6 +779,7 @@ apps/studio/test-smoke.mjs #2550
 apps/studio/test-smoke.mjs #2585
 apps/studio/test-smoke.mjs #2812
 apps/studio/test-smoke.mjs #2915
+apps/studio/test-smoke.mjs #2935
 apps/studio/test-smoke.mjs #2942
 apps/studio/test-smoke.mjs #330
 apps/studio/test-smoke.mjs #3335
