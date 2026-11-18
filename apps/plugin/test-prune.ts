@@ -647,11 +647,11 @@ ok(crossMatched.length === 0,
 // applied carries whatever the committed emission said when it was applied. The #1623 sign-off moved the
 // grid, effect and text style descriptions into the short Figma register, and this arm is the proof the
 // recognizer moved with them: every style row in `out/figma/<brand>/*-styles.json` is recognized by its
-// own kind's signature. It also reaches wendys, which the in-memory sweep does not build.
+// own kind's signature. It also reaches wendys, which the in-memory sweep does not build, and harbor (#1119).
 const committedKinds: Record<StyleKind, string> = { grid: 'grid-styles', effect: 'shadow-styles', text: 'text-styles', paint: 'gradient-styles' };
 let committedSwept = 0;
 const committedMissed: string[] = [];
-for (const brand of ['nb', 'aurora', 'wendys']) {
+for (const brand of ['nb', 'aurora', 'harbor', 'wendys']) {
   for (const kind of STYLE_KINDS) {
     const url = new URL(`../../packages/engine/out/figma/${brand}/${committedKinds[kind]}.json`, import.meta.url);
     if (!existsSync(url)) continue;                 // a brand with no gradients commits no gradient file
@@ -663,7 +663,7 @@ for (const brand of ['nb', 'aurora', 'wendys']) {
   }
 }
 ok(committedSwept > 150 && committedMissed.length === 0,
-  `style provenance: every one of the ${committedSwept} COMMITTED style descriptions (nb/aurora/wendys) is recognized${committedMissed.length ? ` — MISSED ${committedMissed.slice(0, 3).join('; ')}` : ''}`);
+  `style provenance: every one of the ${committedSwept} COMMITTED style descriptions (nb/aurora/harbor/wendys) is recognized${committedMissed.length ? ` — MISSED ${committedMissed.slice(0, 3).join('; ')}` : ''}`);
 
 // THE LEGACY WORDS (#1623 sign-off). A client file applied before the Figma register moved still holds
 // styles described in the engine's OLD words, and a stranded one of those is exactly what this arm prunes.

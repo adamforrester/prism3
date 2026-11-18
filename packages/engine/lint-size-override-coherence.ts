@@ -75,7 +75,7 @@ const OUT_FIGMA = join(import.meta.dirname, 'out', 'figma');
 /** Brands whose emitted fluid ramp must be coherent. docs/34: a scoped gate asserts each promised surface
  *  is REPRESENTED, never merely counts — if one stops emitting a fluid ramp, this fails rather than
  *  passing over a smaller set. Discovered brands are checked too; these are the floor. */
-const MUST_COVER = ['aurora', 'nb', 'wendys'];
+const MUST_COVER = ['aurora', 'harbor', 'nb', 'wendys'];
 
 /** A font-fluid variable name: `<root>/font-fluid/<group>/<variant>[/<weight…>]`. The GROUP and VARIANT
  *  segments are what pins a rung; every weight/modifier of one rung shares its size, so the first two
