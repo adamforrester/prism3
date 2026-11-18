@@ -746,6 +746,7 @@ apps/studio/test-run-ended.ts #533
 apps/studio/test-run-time.ts #3471
 apps/studio/test-shape-input.ts #2053
 apps/studio/test-shell-imports.ts #2700
+apps/studio/test-shell-imports.ts #3429
 apps/studio/test-smoke.mjs #1031
 apps/studio/test-smoke.mjs #1033
 apps/studio/test-smoke.mjs #1037
@@ -785,6 +786,7 @@ apps/studio/test-smoke.mjs #2915
 apps/studio/test-smoke.mjs #2942
 apps/studio/test-smoke.mjs #330
 apps/studio/test-smoke.mjs #3335
+apps/studio/test-smoke.mjs #3429
 apps/studio/test-smoke.mjs #388
 apps/studio/test-smoke.mjs #3880
 apps/studio/test-smoke.mjs #576

@@ -20,7 +20,7 @@
  * combination is caught and surfaced with the last-good render preserved.
  */
 import { brandTheme, type BrandInput, formatRatio, hex, oklchToRgb, resolveAllModes, toDesignMd, buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode, ENGINE_VERSION } from '@prism3/engine';
-import { componentSpecsExporter } from './state/component-specs-export';
+import { componentSpecsFileNames, loadComponentSpecsExporter } from './state/component-specs-export';
 import { hostCommit, type CheckedSetView, type HostCommit } from './write-adapter';
 import { AGENT_OP, initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type OpKey } from './state/host-session';
 import type { HostFonts } from './ui/fonts';
@@ -1409,12 +1409,17 @@ const exportTokens = (): void => {
 
 /** #3425 — Export component specs: the component-defs export for the brand on screen (its component settings resolved)
  *  and the same as a Specs components set, from the engine function `regen` and the CLI write theirs with, through the
- *  exporter the plugin provides (`state/component-specs-export.ts`; the web has none). Off the last-good input, like the
- *  tokens, so a failing edit cannot reach it. Two files, two downloads, as the token set. */
-const exportComponentSpecs = (): void => {
-  const exporter = componentSpecsExporter();
+ *  exporter the host provides (`state/component-specs-export.ts`): the plugin's at once, the web's from its chunk,
+ *  loaded on this click (#3429). Off the last-good input, like the tokens, so a failing edit cannot reach it, and that
+ *  input and the slug are read at the click, so an edit made while the chunk loads does not change what downloads.
+ *  One download per file, as the token set (three since #1325). A chunk that fails to load downloads nothing and is
+ *  logged; the dialog has no words for it yet (#3429, held for the owner). */
+const exportComponentSpecs = async (): Promise<void> => {
+  const input = lastGoodInput, name = slug();
+  let exporter;
+  try { exporter = await loadComponentSpecsExporter(); } catch (e) { console.error('component specs: the chunk did not load', e); return; }
   if (!exporter) return;
-  for (const f of exporter.files(lastGoodInput, slug())) download(f.name, f.text, 'application/json');
+  for (const f of exporter.files(input, name)) download(f.name, f.text, 'application/json');
 };
 
 // design.md import (#160): the check, the file reader and the picker's types live in `state/start-input.ts` (S12), so
@@ -1547,9 +1552,8 @@ const exportView = (): ExportView => {
     const prev = exportPreview(tree, slug(), exportSettings, exportMetadata);
     right.push({ kind: 'previews', files: prev.map((f) => ({ name: prev.length > 1 ? f.name : null, text: f.text })) });
   } else if (exportArtifact === 'component-specs') {
-    const exporter = componentSpecsExporter();
-    if (exporter) {
-      const names = exporter.fileNames(slug());
+    const names = componentSpecsFileNames(slug());
+    if (names) {
       right.push({ kind: 'cap', text: `You get ${names.length} files` });
       right.push({ kind: 'files', text: names.join('\n') });
     } else right.push({ kind: 'note', text: SPECS_WEB_OFF });
@@ -1565,7 +1569,7 @@ const exportView = (): ExportView => {
   }
   // Owner (#2007): after a failed restore the tokens on hand are the DEMO's, so that download is off too.
   const off = exportArtifact === 'design-md' && !briefInput() ? BRIEF_NONE : exportArtifact === 'dtcg' && restoreFailure ? TOKENS_NONE
-    : exportArtifact === 'component-specs' && !componentSpecsExporter() ? SPECS_WEB_OFF
+    : exportArtifact === 'component-specs' && !componentSpecsFileNames(slug()) ? SPECS_WEB_OFF
     : exportArtifact === 'component-specs' && restoreFailure ? SPECS_NONE : null;
   return {
     artifacts: ARTIFACTS.map((a) => ({ id: a.id, label: a.label, on: a.id === exportArtifact })),
@@ -1630,7 +1634,7 @@ const barActions: BarActions = {
   download: () => {
     // The Export area stays drawn (`exportOpen` in `barRead`, #2909).
     exportMenuOpen = false; barChanged();
-    if (exportArtifact === 'design-md') exportDesignMd(); else if (exportArtifact === 'component-specs') exportComponentSpecs(); else exportTokens();
+    if (exportArtifact === 'design-md') exportDesignMd(); else if (exportArtifact === 'component-specs') void exportComponentSpecs(); else exportTokens();
   },
 };
 
