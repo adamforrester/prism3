@@ -156,8 +156,13 @@ export const represented = (r: Result, label: string, only: (s: Story) => boolea
   }
 };
 
-/** Runs the real check, then each mutant, which must fail by name. Every run's coverage is held by `represented`.
- *  Exits 1 on any miss. */
+/**
+ * Runs the real check, then each mutant, which must fail by name. Exits 1 on any miss.
+ *
+ * The real run and every mutant go through ONE function, `held`, which runs the check and then holds its coverage with
+ * `represented`. So the `DROPPED` mutants prove the wiring the real run uses, not a copy of it: delete the
+ * `represented` call and they fail by name (delta review of #3971, R2). `run` is only reachable through `held`.
+ */
 export const main = async (
   label: string, summary: string,
   run: (browser: unknown, origin: string, plant?: Plant, only?: (s: Story) => boolean) => Promise<Result>,
@@ -166,10 +171,14 @@ export const main = async (
   const { chromium } = require('playwright');
   const browser = await chromium.launch();
   const { server, origin } = await serve();
+  const held = async (plant?: Plant, only: (s: Story) => boolean = () => true): Promise<Result> => {
+    const r = await run(browser, origin, plant, only);
+    represented(r, label, only);
+    return r;
+  };
   let bad = 0;
   try {
-    const real = await run(browser, origin);
-    represented(real, label, () => true);
+    const real = await held();
     for (const n of real.notes) console.log(`NOTE ${label}: ${n}`);
     if (real.failures.length) {
       bad++;
@@ -177,8 +186,7 @@ export const main = async (
       for (const x of real.failures) console.error(`  - ${x}`);
     } else console.log(`OK ${label}: ${real.passed} checks. ${summary}`);
     for (const m of mutants) {
-      const r = await run(browser, origin, m.plant, m.only);
-      represented(r, label, m.only);
+      const r = await held(m.plant, m.only);
       if (r.failures.some((x) => m.mustName.test(x))) console.log(`OK self-test: mutant "${m.name}" fails by name`);
       else { bad++; console.error(`FAIL self-test: mutant "${m.name}" was not caught by name (${r.failures[0] ?? 'no failures'})`); }
     }
