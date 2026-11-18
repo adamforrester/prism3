@@ -445,6 +445,7 @@ apps/plugin/test-write-preflight.ts #3556
 apps/plugin/test-write-preflight.ts #3557
 apps/plugin/test-write-preflight.ts #3558
 apps/plugin/test-write-preflight.ts #506
+apps/plugin/test-write-typography.ts #1090
 apps/plugin/test-write-typography.ts #1296
 apps/plugin/test-write-typography.ts #1485
 apps/plugin/test-write-typography.ts #1789
