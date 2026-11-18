@@ -657,7 +657,7 @@ export const select: ComponentDef = {
 
   accessibility: {
     // The TRIGGER's role and the POPUP's, split (#1699): the def models the trigger; the popup is the platform's.
-    role: 'Trigger: a native <select>, or a custom button or role="combobox" (ARIA 1.2) with aria-haspopup="listbox", aria-expanded and aria-controls. Popup: role="listbox" with role="option" children carrying aria-selected — the platform\'s or a listbox component\'s, not modeled here.',
+    role: 'Trigger: a native `<select>`, or a custom button or `role="combobox"` (ARIA 1.2) with `aria-haspopup="listbox"`, `aria-expanded` and `aria-controls`. Popup: `role="listbox"` with `role="option"` children carrying `aria-selected` — the platform\'s or a listbox component\'s, not modeled here.',
     // 1.4.13 Content on Hover or Focus and 2.1.1 Keyboard are the brief's two OVERLAY criteria (§6). They are
     // not claimed here because this def models the CLOSED control; the open list that must meet them is the
     // platform's or a listbox component's. See `keyboard`.
@@ -669,7 +669,7 @@ export const select: ComponentDef = {
       '4.1.2 Name/Role/Value (role, and the expanded state of the popup) / 2.5.8 Target Size',
     ],
     keyboard: 'The closed control is one Tab stop; Space / Enter / Down open it. Inside the open list (not modeled here) arrows move, typeahead jumps, Enter commits, Escape closes and returns focus to the control. SC 1.4.13 (the list stays open while hovered and Escape dismisses it) and SC 2.1.1 (every option, including scrolled ones, is reachable without a pointer) apply to that open list, which the platform or a listbox component owns, so this closed control does not claim them.',
-    focus: ':focus-visible draws the 2px focus edge on the control in place of its border: from the outer edge, at the control\'s own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border\'s color), boundary ≥3:1 (1.4.11 / 2.4.13). The control is the focus target; forwardRef reaches it so a form can focus the first invalid field on submit.',
+    focus: '`:focus-visible` draws the 2px focus edge on the control in place of its border: from the outer edge, at the control\'s own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border\'s color), boundary ≥3:1 (1.4.11 / 2.4.13). The control is the focus target; `forwardRef` reaches it so a form can focus the first invalid field on submit.',
     aria: 'The host generates ids, ties the label to the control and the message into aria-describedby, and sets aria-invalid on error. The placeholder is not the accessible name. A custom control mirrors the native listbox contract (aria-expanded, aria-activedescendant); prefer the native <select> where its OS menu is acceptable, because it is correct for free.',
   },
 
@@ -679,7 +679,7 @@ export const select: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use to choose one value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage\'s status from the validation state. The open menu is the platform\'s — prefer a native <select> where its OS menu is acceptable. The select band is 8 to about 15 familiar options: at 7 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.',
+    usage: 'Use to choose one value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage\'s status from the validation state. The open menu is the platform\'s — prefer a native `<select>` where its OS menu is acceptable. The select band is 8 to about 15 familiar options: at 7 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.',
     do: [
       'Render a visible, associated label (FieldLabel) above the control',
       'Show a muted placeholder as a prompt, never as the label or a real option',
@@ -710,7 +710,7 @@ export const select: ComponentDef = {
     // What the anatomy nests (#1700). The leading glyph and the chevron are partners, not parts.
     composesWith: ['field-label', 'field-message'],
     alternativeTo: ['text-field', 'radio-group', 'checkbox-group', 'segmented-control', 'textarea', 'radio-row', 'tabs', 'counter'],
-    replacesPatterns: ['a bare <select> with no label wiring', 'placeholder-as-label'],
+    replacesPatterns: ['a bare `<select>` with no label wiring', 'placeholder-as-label'],
     // Nothing supersedes the select — combobox / radio / text-field are sibling alternatives chosen by
     // intent and scale, not replacements.
     supersededBy: [],

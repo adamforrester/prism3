@@ -69,7 +69,7 @@ Use a Banner for an important message the user should see and may need to act on
 
 - **Keyboard:** The action or the inline link, then the close button, are ordinary Tab stops in reading order. The banner itself takes no focus.
 - **Focus:** No focus of its own. After a dismiss, focus moves to the control that caused the banner or to the page heading, never to the page body.
-- **Screen readers:** A banner present when the page loads is a region (\<section aria-labelledby> pointing at the title) and has no live role. A banner inserted after an action is announced through the page's live region: role="alert" for danger, role="status" for the other tones.
+- **Screen readers:** A banner present when the page loads is a region (`<section aria-labelledby>` pointing at the title) and has no live role. A banner inserted after an action is announced through the page's live region: `role="alert"` for danger, `role="status"` for the other tones.
 
   The glyph is aria-hidden. The inline link is a real link inside the body paragraph, read as part of the sentence. A banner present at load: a section with aria-labelledby pointing at the title, and no role="alert". An inserted banner: announced through a live region that already exists, role="alert" for danger and role="status" otherwise. The close button's accessible name names what it dismisses ("Dismiss error message"), and is translated.
 
@@ -104,7 +104,7 @@ Titles are short, specific and in sentence case, with no period. The body states
 - **Instead, consider:** `dialog`, `field-message`, `badge`, `toast`
 - **Often used with:** `list`, `button-neutral`
 - **Replaces:**
-  - a colored div with an icon and role="alert" on a message present at load
+  - a colored div with an icon and `role="alert"` on a message present at load
   - an error shown as a toast that disappears
 
 ## Building it in code

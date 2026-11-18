@@ -424,7 +424,7 @@ export const dialog: ComponentDef = {
   },
 
   accessibility: {
-    role: 'role="dialog" with aria-modal="true", or role="alertdialog" for a confirmation that needs an answer. A native <dialog> opened with showModal() provides the dialog role, the modal state, the top layer and an inert page.',
+    role: '`role="dialog"` with `aria-modal="true"`, or `role="alertdialog"` for a confirmation that needs an answer. A native `<dialog>` opened with `showModal()` provides the dialog role, the modal state, the top layer and an inert page.',
     wcag: [
       '1.3.1 Info and Relationships (the title is a heading and labels the dialog; the description describes it)',
       '2.1.1 Keyboard (every action, the close button included, works from the keyboard)',
