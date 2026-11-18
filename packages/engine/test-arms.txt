@@ -616,6 +616,7 @@ apps/studio/test-chrome.mjs #3471
 apps/studio/test-chrome.mjs #3524
 apps/studio/test-chrome.mjs #3553
 apps/studio/test-chrome.mjs #3608
+apps/studio/test-chrome.mjs #3620
 apps/studio/test-chrome.mjs #3697
 apps/studio/test-chrome.mjs #3700
 apps/studio/test-chrome.mjs #3711
