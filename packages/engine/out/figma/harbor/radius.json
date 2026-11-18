@@ -1,0 +1,133 @@
+{
+  "$collection": "radius",
+  "$mode": "Default",
+  "variables": [
+    {
+      "name": "hds/radius/none",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "No corner radius — 0px",
+      "value": 0,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/0"
+      }
+    },
+    {
+      "name": "hds/radius/sm",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "2px corner radius",
+      "value": 2,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/2"
+      }
+    },
+    {
+      "name": "hds/radius/md",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "4px corner radius",
+      "value": 4,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/4"
+      }
+    },
+    {
+      "name": "hds/radius/lg",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "6px corner radius",
+      "value": 6,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/6"
+      }
+    },
+    {
+      "name": "hds/radius/xl",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "8px corner radius",
+      "value": 8,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/8"
+      }
+    },
+    {
+      "name": "hds/radius/2xl",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "12px corner radius",
+      "value": 12,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/12"
+      }
+    },
+    {
+      "name": "hds/radius/3xl",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "16px corner radius",
+      "value": 16,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/16"
+      }
+    },
+    {
+      "name": "hds/radius/round",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "128px corner radius (pill)",
+      "value": 128,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/128"
+      }
+    },
+    {
+      "name": "hds/radius/capsule",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "999px corner radius",
+      "value": 999,
+      "alias": null
+    },
+    {
+      "name": "hds/radius/hairline",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "1px corner radius",
+      "value": 1,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/1"
+      }
+    }
+  ]
+}
