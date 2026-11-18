@@ -33100,8 +33100,16 @@ arm: {
       // size. A coordinate the set lacks at that size is read at the first size where it exists.
       const excludedAt = (c: Record<string, string>, z: string | undefined) => isExcludedCoordinate(def, { ...c, ...(z === undefined ? {} : { size: z }) });
       const sizeFor = (c: Record<string, string>) => (excludedAt(c, size) ? sizes.find((z) => !excludedAt(c, z)) ?? size : size);
-      const has = (coord: Record<string, string>): boolean =>
-        planPartNames(figmaAnatomyPlan(def, sizeFor(coord), coord as never).root).includes(name);
+      // #3058: a `hiddenWhenAbsent` box stays in the tree where its gate fails, built hidden, so for it "in the tree"
+      // reads as SHOWN: present and not `visible: false`. The excluded values still read absent from view, and the
+      // node's being there at all is the #3058 accordion arm's to pin.
+      type VN = { name: string; visible?: boolean; children?: VN[] };
+      const nodeOf = (n: VN): VN | undefined => (n.name === name ? n : (n.children ?? []).map(nodeOf).find(Boolean));
+      const soft = part.kind === 'box' && part.hiddenWhenAbsent === true;
+      const has = (coord: Record<string, string>): boolean => {
+        const root = figmaAnatomyPlan(def, sizeFor(coord), coord as never).root;
+        return soft ? nodeOf(root as unknown as VN)?.visible !== false && planPartNames(root).includes(name) : planPartNames(root).includes(name);
+      };
       // A SPARSE GRID (`excludeCoordinates`, 2026-09-28) may not have the pinned coordinate at every value of
       // the gated axis — badge has no `type=count, emphasis=subtle` — and the projector refuses a coordinate
       // the set does not have. So each value is read at the FIRST coordinate the set does have, walking the
@@ -39972,6 +39980,14 @@ arm: {
   const panels = plans.map((p) => ({ c: coord(p), panel: find(p.root as PN, 'content') }));
   ok(panels.every(({ c, panel }) => panel?.type === 'CONTENT_SLOT' && (c.expansion === 'expanded' ? panel.visible !== false : panel.visible === false)),
     `#3058 accordion panel: a native slot on every member, shown while expanded and built hidden while collapsed, never left out (got ${panels.filter(({ c, panel }) => !(panel?.type === 'CONTENT_SLOT' && (c.expansion === 'expanded' ? panel.visible !== false : panel.visible === false))).slice(0, 3).map(({ c, panel }) => `${c.expansion}/${c.size}: ${panel ? `${panel.type} visible=${String(panel.visible)}` : 'ABSENT'}`).join('; ') || 'all as expected'})`);
+  // #3058: the flag softens a VARIANT gate, so on a part with none it is refused by name, and the shipped panel is clean.
+  {
+    const parts = acc.anatomy!.parts;
+    const noGate = { ...acc, anatomy: { ...acc.anatomy!, parts: { ...parts, content: { ...parts.content, presentWhen: undefined } as PartDef } } } as ComponentDef;
+    const errs = validateComponentDef(noGate).errors;
+    ok(errs.some((e) => e.includes("part 'content'") && e.includes("'hiddenWhenAbsent' without a variant gate")) && !validateComponentDef(acc).errors.some((e) => e.includes('hiddenWhenAbsent')),
+      `#3058 hiddenWhenAbsent with no variant gate to soften is refused by name, and the shipped accordion panel is not (got ${errs.filter((e) => e.includes('hiddenWhenAbsent')).join(' | ') || 'no hiddenWhenAbsent error'})`);
+  }
   const open = plans.find((p) => coord(p).expansion === 'expanded' && coord(p).size === 'medium')!;
   const panel = find(open.root as PN, 'content')!, ph = find(open.root as PN, 'placeholder')!;
   ok(panel.bound?.paddingTop === 'space/0' && panel.bound?.paddingBottom === 'space/200' && ph.paints?.fills === 'color/text/primary' && !!ph.characters,
@@ -42898,6 +42914,7 @@ const MIN_ASSERTIONS = 1800;
     when: { kinds: ['overlay', 'absolute'], value: 'pressed' },
     children: { kinds: ['box'], value: ['probeChild'] },
     type: { kinds: ['text'], value: 'type.label.{size}.default' },
+    hiddenWhenAbsent: { kinds: ['box'], value: true },
   };
   const KINDS = ['box', 'text', 'slot', 'overlay', 'absolute', 'nest', 'vector'];
   const firstOf = (k: string): [ComponentDef, string] | undefined => {
