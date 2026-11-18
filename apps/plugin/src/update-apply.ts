@@ -147,6 +147,10 @@ export type SetOutcome = {
   /** #3086 — the plan's bindings the build found absent on a node kept as a hand edit, by member, part and field: the
    *  edit kept, as asked, never a miss. Absent when none. */
   keptBound?: { member: string; part: string; field: string }[];
+  /** #2956 point 4 (Q1 A, held for the owner) — the build's misses that name a member this run kept hand edits on: not
+   *  written because the member is hand-edited, so listed apart from the misses and never read as a part to check. A
+   *  member that could not be finished stays a miss. Absent when none, and under Overwrite. */
+  editedMisses?: string[];
   handEdits: HandEditChoice;
   /** #3421 (owner decision Q39 A) — under `keep`, the hand edits the plan would also have changed (the dry run's
    *  `conflict`): the members that hold them, and each change the update left out, as `part field`. The verdict names
@@ -345,6 +349,15 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
       continue;
     }
     if (rootReplaced.has(s.member)) { skipped.push({ member: s.member, reason: 'the member itself would need replacing' }); continue; }
+    // AN EDIT THE UPDATE WOULD LOSE (#2673): its layer is removed or replaced, so keeping it by path keeps nothing. Under
+    // Keep and Accept the member is skipped whole, as a layer added by hand is, and named. Overwrite writes the plan, so
+    // it rebuilds the layer as asked. DRAFT wording for the owner.
+    const lost = choice === 'overwrite' ? [] : edits.filter((e) => e.lost).map((e) => e.path.replace(/#\d+$/, ''));
+    if (lost.length) { skipped.push({ member: s.member, reason: `the update rebuilds ${lost.length === 1 ? 'a layer' : 'layers'} edited by hand (${lost.slice(0, 3).join(', ')}${lost.length > 3 ? ', …' : ''})` }); continue; }
+    // A STRUCTURAL UPDATE ON A MEMBER EDITED BY HAND (#2956 point 2, owner decision 2026-10-23): skipped whole and
+    // named, wherever on the member the edits are. Overwrite writes the plan. DRAFT wording for the owner, after the
+    // #2956 wireframe's "hand-edited, and the update changes their structure".
+    if (s.restructured && choice !== 'overwrite') { skipped.push({ member: s.member, reason: 'hand-edited, and the update changes its structure' }); continue; }
     // `overwrite` writes over every edited node; `keep` and `accept` leave them, and differ only in the record.
     const edited = new Set(edits.map((e) => e.path.replace(/#\d+$/, '')));
     const keep = choice === 'overwrite' ? new Set<string>() : edited;
@@ -722,6 +735,22 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, pr
     return !k;
   });
   if (keptBound.length) out.keptBound = keptBound;
+  // A MISS ON A MEMBER WITH KEPT HAND EDITS IS NOT A PART TO CHECK (#2956 point 4, Q1 A; owner decision pending). The
+  // build measures and reads back around the nodes it left: a designer's unbound padding on one member reads as that
+  // member's footprint differing from its siblings'. Under Keep and Accept, a miss that names a member this run kept
+  // edits on moves to its own line, "not written because the member is hand-edited". A member not finished (its record
+  // not written) stays a miss whatever else it holds.
+  const handMembers = [...work.members].filter(([, e]) => e.keep.size > 0).map(([name]) => name);
+  if (opts.handEdits !== 'overwrite' && handMembers.length) {
+    const named = [...known, ...handMembers];
+    const editedMisses: string[] = [];
+    out.misses = out.misses.filter((x) => {
+      const hit = !x.includes(NOT_RECORDED) && handMembers.some((m) => namesMember(x, m, named));
+      if (hit) editedMisses.push(x);
+      return !hit;
+    });
+    if (editedMisses.length) out.editedMisses = editedMisses;
+  }
 
   // ── VERIFY (a): IDENTITY, OFF THE HOST ─────────────────────────────────────────────────────────────────────
   const now = t.single ? (await liveFor(host, t, p.set)) ?? live
@@ -1320,6 +1349,9 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
         : `${o.set}: ${members.length} members not finished — ${members.join(', ')} (their as-built records could not be written). They still read as out of date; run the update again to finish them.`);
     }
     // DRAFT wording for the owner (#2477): any other miss the build's pass reported, with its own reason.
+    // #2956 point 4 (Q1 A, DRAFT wording for the owner): what the build left because the member is hand-edited, apart
+    // from the misses and never ⚠.
+    if (o.editedMisses?.length) lines.push(`${o.set}: not written because the member is hand-edited — ${o.editedMisses.slice(0, 3).join('; ')}${o.editedMisses.length > 3 ? '; …' : ''}.`);
     if (others.length) lines.push(`${o.set}: ${n(others.length, 'part')} not written as planned — ${others.slice(0, 3).join('; ')}${others.length > 3 ? '; …' : ''}.`);
     // The set is not verified by exactly the lines above (identity, content, a member not finished, a part not written).
     if (o.identity.length || o.content.length || o.misses.length) {

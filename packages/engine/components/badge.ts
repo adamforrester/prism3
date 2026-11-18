@@ -480,7 +480,7 @@ export const badge: ComponentDef = {
   },
 
   accessibility: {
-    role: 'none. A status label is plain text and announces itself; a count or dot is aria-hidden and its meaning is in the host\'s accessible name.',
+    role: 'none. A status label is plain text and announces itself; a count or dot is `aria-hidden` and its meaning is in the host\'s accessible name.',
     wcag: [
       '1.4.1 Use of Color, as intent (the text carries the meaning, so a tone or a dot is not the only signal)',
       '1.4.3 Contrast (the label ink clears 4.5:1 on its own fill, measured in every mode of the example brands; an inline label clears 4.5:1 against the page and card surfaces)',

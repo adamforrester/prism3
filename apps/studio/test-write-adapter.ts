@@ -161,6 +161,8 @@ drops('agent-link-state (the panel\'s own listener reads it)', wire({ type: 'age
 drops('agent-result', wire({ type: 'agent-result', result: { id: 'a' } }));
 // UI redesign S11: the agent's runs, which the Activity drawer shows.
 accepts('agent-started', { type: 'agent-started', id: 'a1', cmd: 'apply-theme' }, { kind: 'agent-started', id: 'a1', cmd: 'apply-theme' });
+accepts('agent-started naming its set (#2087)', { type: 'agent-started', id: 'b1', cmd: 'build-components', def: 'tag' }, { kind: 'agent-started', id: 'b1', cmd: 'build-components', def: 'tag' });
+accepts('agent-started with an unusable set id, the id dropped (#2087)', { type: 'agent-started', id: 'b1', cmd: 'build-components', def: 7 }, { kind: 'agent-started', id: 'b1', cmd: 'build-components' });
 accepts('agent-finished', { type: 'agent-finished', id: 'a1', cmd: 'apply-theme' }, { kind: 'agent-finished', id: 'a1' });
 accepts('agent-progress', { type: 'agent-progress', id: 'b1', progress: { phase: 'build', done: 24.6, total: 648, chunkMs: 40 } },
   { kind: 'agent-progress', id: 'b1', phase: 'build', done: 24, total: 648 });

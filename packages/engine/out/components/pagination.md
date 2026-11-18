@@ -68,7 +68,7 @@ Use Pagination below a long list, a grid of results or a table, to move between 
 
 - **Keyboard:** Tab moves through previous, each page and next; every control is its own Tab stop. Enter opens a page, and Space also does when it is a button. Arrow keys do not move between pages.
 - **Focus:** Stays in the normal Tab order. After a page changes in place, focus moves to the top of the results. At an end, the inactive previous or next cell keeps focus.
-- **Screen readers:** navigation: a \<nav> landmark named "Pagination", holding a list of links or buttons
+- **Screen readers:** navigation: a `<nav>` landmark named "Pagination", holding a list of links or buttons
 
   aria-label="Pagination" on the \<nav>; give two on one page the same name or a name each. aria-current="page" on the current page. aria-hidden="true" on each ellipsis. aria-disabled="true" on previous at the first page and next at the last. Accessible names "Previous page", "Next page" and "Page 4". A polite live region says "Page 5 of 10" after an in-place change. Names are translated.
 
@@ -106,7 +106,7 @@ Use Pagination below a long list, a grid of results or a table, to move between 
 - **Instead, consider:** `tabs`
 - **Often used with:** `list`
 - **Replaces:**
-  - page links built from \<a href="#"> and click handlers
+  - page links built from `<a href="#">` and click handlers
   - a disabled next button that drops focus at the last page
   - infinite scroll on a page with a footer
 

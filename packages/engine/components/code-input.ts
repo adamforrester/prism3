@@ -317,7 +317,7 @@ export const codeInputCell: ComponentDef = {
 // THE DEFAULT CELLS (owner decision Q329 A): six, each following the field's size and status (Q-CC1 A), its character
 // set by override and its state set from the field's state, so each member opens on a picture of that state. A designer then sets each
 // placed cell themselves; the field's status and state never reach a placed instance's cells (the accepted trade-off).
-const CODE = ['4', '8', '1', '9', '0', '2'];
+const CODE = '481902';
 const cell = (n: number) => {
   // focus-visible: the first cell active. focus-visible-filled: three characters in, the fourth cell active.
   const partial = n < 3 ? 'filled' : n === 3 ? 'focus-visible' : 'rest';
@@ -340,7 +340,7 @@ const cell = (n: number) => {
         },
       },
     },
-    overrides: { texts: { digit: CODE[n] } },
+    overrides: { texts: { digit: CODE.charAt(n) } },
     note: `Cell ${n + 1} of the default six.`,
   };
 };
@@ -537,7 +537,7 @@ export const codeInput: ComponentDef = {
   },
 
   accessibility: {
-    role: 'textbox (one native <input>); the cells are aria-hidden',
+    role: 'textbox (one native `<input>`); the cells are `aria-hidden`',
     wcag: [
       '1.3.1 Info and Relationships (one labeled input, the helper and error in aria-describedby)',
       '1.3.5 Identify Input Purpose (autocomplete one-time-code)',
@@ -561,7 +561,7 @@ export const codeInput: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use for a short, fixed-length code sent by text message, email or an authenticator app. Say in the helper text how many characters the code has and where it was sent. For a code of variable length, use TextField with one-time-code autocomplete.',
+    usage: 'Use for a short, fixed-length code sent by text message, email or an authenticator app. Say in the helper text how many characters the code has and where it was sent. For a code of variable length, use TextField with `one-time-code` `autocomplete`.',
     do: [
       'Accept a pasted or autofilled code in full, ignoring spaces and hyphens',
       'Say which error it is: too few digits, wrong code or expired code',
@@ -578,7 +578,7 @@ export const codeInput: ComponentDef = {
   ai: {
     primaryPurpose: 'Capture a short one-time code in one input, drawn as a row of cells.',
     whenToUse: 'A step whose job is a fixed-length code of four to eight characters sent by text message, email or an authenticator app.',
-    avoidWhen: 'The code length is unknown or the code sits inside a longer form (TextField with one-time-code autocomplete), the value is a password or a kept PIN (PasswordField), or it is a quantity (Counter).',
+    avoidWhen: 'The code length is unknown or the code sits inside a longer form (TextField with `one-time-code` `autocomplete`), the value is a password or a kept PIN (PasswordField), or it is a quantity (Counter).',
     commonPartners: ['code-input-cell', 'field-label', 'field-message', 'button', 'link'],
     triggerKeywords: ['code input', 'otp input', 'one-time code', 'verification code', 'pin input', '2fa code'],
     generationPriority: 2,

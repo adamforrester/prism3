@@ -24,7 +24,7 @@ MCP (Model Context Protocol) is the standard way an AI agent connects to a tool 
 2. Turn on the **Agent** switch in the top bar, beside Update file. <!-- src: apps/plugin/src/agent-link-ui.ts:230-233 -->
 3. Tell the agent the link is on. It sends a status request first, to confirm the plugin answers.
 
-To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:233 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:2498#13449644 -->
+To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:233 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:2507#13449644 -->
 
 The Activity drawer's bar shows the link's state in a word: "Listening · bridge" or "Listening · mailbox" while it waits, "Listening · mailbox only" in Prism3 Studio Offline, and "Error" or "Not listening" when something is wrong. Point at the word to read the full status. <!-- src: apps/plugin/src/agent-link-ui.ts:124-127 -->
 
@@ -63,7 +63,7 @@ Every write an agent asks for passes the same checks as Update file, and is refu
 - **While it is off, the plugin ignores the agent entirely.** A request waiting in the file does nothing, and the plugin holds no connection to the bridge. <!-- src: apps/plugin/src/agent-link.ts:6-8#efefb571 --> <!-- src: apps/plugin/src/agent-link-ui.ts:342-343#76ccd888 -->
 - **Old requests are not replayed.** A request already waiting when you turn the link on is answered "stale" and not run; the agent has to send it again. <!-- src: apps/plugin/src/agent-link.ts:146-158 -->
 - **One request at a time.** The plugin runs requests in the order sent, never two at once, and never while the same write is running from Update file. <!-- src: apps/plugin/src/agent-link.ts:14-18#10971a60 -->
-- **No code from the agent.** In the released plugin, a request names one of the actions above and nothing in it is run as code. A development build, used by maintainers, adds one more request, `run-code`; the release build leaves it out. <!-- src: apps/plugin/src/agent-protocol.ts:46-49 --> <!-- src: apps/plugin/src/agent-dispatch.ts:281 -->
+- **No code from the agent.** In the released plugin, a request names one of the actions above and nothing in it is run as code. A development build, used by maintainers, adds one more request, `run-code`; the release build leaves it out. <!-- src: apps/plugin/src/agent-protocol.ts:46-49 --> <!-- src: apps/plugin/src/agent-dispatch.ts:282 -->
 - **The bridge proves itself.** Before the plugin takes a request from the desktop bridge, the bridge has to prove it holds your pairing. Another program listening on that port can't send one. <!-- src: apps/plugin/src/agent-bridge-relay.ts:29-34#a87764f6 -->
 - **A pairing that fails asks for a new code.** If the bridge doesn't confirm the pairing within a quarter of a second, or the connection closes first, the plugin forgets the code and asks for another. Ask your agent for a new code rather than entering the same one again: another program on that port may have seen it. <!-- src: apps/plugin/src/agent-bridge-relay.ts:153-156#3bbe1f55 --> <!-- src: apps/plugin/src/agent-bridge-relay.ts:208-215#06d260c3 -->
 - **Deletes and updates need a confirm.** A clean-up or a component update runs as a preview first, and the agent has to send a separate confirm. Ask it to show you the preview before it confirms. <!-- src: apps/plugin/src/agent-protocol.ts:61-70#eb54486c -->

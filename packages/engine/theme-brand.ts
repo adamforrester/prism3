@@ -17,6 +17,13 @@ import { buildShadow, type ShadowAxis, type ShadowStep, type ShadowLayer } from 
 import { buildLayout, gridGapNotes } from './theme-layout';
 import { buildGradient } from './theme-gradient';
 
+/** A value the caller has established is present (an in-range index, a key just written); a named throw, not a
+ *  silent `undefined` (#1182, `noUncheckedIndexedAccess`). */
+const must = <T>(x: T | undefined, what: string): T => {
+  if (x === undefined) throw new Error(`theme-brand: ${what} is missing`);
+  return x;
+};
+
 /** Per-mode NO-DIFF suppression, shared by the JSON-comparable lever axes (radius / families /
  *  weight-roles / line-heights / letter-spacings): assign `cand` to `map[mode]` ONLY when it differs
  *  from the global baseline, so a mode re-declaring the global value stays byte-identical. Returns
@@ -518,7 +525,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // whenever anything still points at it (e.g. actionPalette/an interactive column aimed at a status).
   const usedPalettes = new Set<string>([...Object.values(roleToPalette), ...interactivePalettes.map((p) => p.palette)]);
   for (let i = palettes.length - 1; i >= 0; i--) {
-    const p = palettes[i];
+    const p = must(palettes[i], `palette ${i}`);
     if ((p.palette === 'success' || p.palette === 'warning' || p.palette === 'info') && !usedPalettes.has(p.palette)) {
       notes.push(`${p.palette}: rebased by roleColors, so the ${p.palette} ramp is dropped — no role uses it.`);
       palettes.splice(i, 1);
@@ -638,9 +645,10 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   }
   if (Object.keys(shadowByMode).length) shadow.shadowByMode = shadowByMode;
   const gradient = buildGradient(input.gradients, palettes, root);
-  if (gradient.gradients.length) {
+  const [firstGradient] = gradient.gradients;
+  if (firstGradient) {
     // Kind, angle and interpolation sit in $extensions because DTCG has no field for them (#101).
-    notes.push(`gradient: ${gradient.gradients.length} brand gradient(s) — ${gradient.gradients.map((g) => `${g.name} (${g.kind}${g.kind === 'linear' ? ` ${g.angle}°` : ''}, ${g.stops.length} stops)`).join(', ')}. Stops alias the color ramps and blend in ${gradient.gradients[0].interpolation}; a tool that blends only in sRGB gets a ${gradient.gradients[0].sampled.length}-stop sRGB version. Contrast for text on a gradient is computed at its worst-contrast stop.`);
+    notes.push(`gradient: ${gradient.gradients.length} brand gradient(s) — ${gradient.gradients.map((g) => `${g.name} (${g.kind}${g.kind === 'linear' ? ` ${g.angle}°` : ''}, ${g.stops.length} stops)`).join(', ')}. Stops alias the color ramps and blend in ${firstGradient.interpolation}; a tool that blends only in sRGB gets a ${firstGradient.sampled.length}-stop sRGB version. Contrast for text on a gradient is computed at its worst-contrast stop.`);
   } else {
     notes.push('gradient: none — the brand declares no gradients, and none are added by default.');
   }
@@ -745,10 +753,14 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // No snapping and no nearest-match, so a request can never be quantised away — it either names a
   // different rung (and applies) or is a self-map (dropped above).
   for (const c of typography.composites) {
-    for (const [m, map] of Object.entries(lineHeightRepointByMode))
-      if (map[c.lineHeight]) (c.lineHeightByMode ??= {})[m] = map[c.lineHeight];
-    for (const [m, map] of Object.entries(letterSpacingRepointByMode))
-      if (map[c.tracking]) (c.trackingByMode ??= {})[m] = map[c.tracking];
+    for (const [m, map] of Object.entries(lineHeightRepointByMode)) {
+      const to = map[c.lineHeight];
+      if (to) (c.lineHeightByMode ??= {})[m] = to;
+    }
+    for (const [m, map] of Object.entries(letterSpacingRepointByMode)) {
+      const to = map[c.tracking];
+      if (to) (c.trackingByMode ??= {})[m] = to;
+    }
   }
   // #328 — per-mode rung SIZES. Same re-point SHAPE as leading/tracking above, with one difference
   // that is easy to miss and silently wrong: a re-sized rung must recompute its OWN mobile endpoint.
@@ -782,9 +794,11 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
       // Checked on the MERGED ramp, not the overrides alone — re-sizing one rung is exactly how you
       // collide with an untouched neighbour, and that is the case a per-override check would miss.
       const merged = known.map((v) => ({ v, px: (rungs as Record<string, number>)[v] ?? baseSize.get(v)! }));
-      for (let i = 1; i < merged.length; i++)
-        if (merged[i].px <= merged[i - 1].px)
-          throw new Error(`modeLevers.${m}.typeSizes.${g}: ${merged[i].v} resolves to ${merged[i].px}px, which is not larger than ${merged[i - 1].v} (${merged[i - 1].px}px) — a mode's ramp must be strictly increasing, same as the brand's. Merged ramp: ${merged.map((x) => `${x.v}=${x.px}`).join(' ')}.`);
+      for (const [i, cur] of merged.entries()) {
+        const prev = merged[i - 1];
+        if (prev && cur.px <= prev.px)
+          throw new Error(`modeLevers.${m}.typeSizes.${g}: ${cur.v} resolves to ${cur.px}px, which is not larger than ${prev.v} (${prev.px}px) — a mode's ramp must be strictly increasing, same as the brand's. Merged ramp: ${merged.map((x) => `${x.v}=${x.px}`).join(' ')}.`);
+      }
       // Drop self-sizes: an override equal to the brand size is inert, the same suppression the other
       // axes use, so a no-diff declaration can't create a mode entry or a spurious composite variant.
       const diff = Object.entries(rungs ?? {}).filter(([v, px]) => baseSize.get(v) !== px);
@@ -815,7 +829,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // The mobile shrink follows the fluid-display curve researched for the type ladder (docs record the
   // source); the line-height ratio and its Figma px materialization are format facts, not decisions,
   // so the note leaves them out.
-  notes.push(`typography: ${typography.sizesPx.length}-step size ladder (${n2(typography.sizesPx[0])}–${n2(typography.sizesPx[typography.sizesPx.length - 1])}px), a fixed set rather than a ratio; weights ${typography.weightRoles.map((w) => w.role).join('/')} → ${typography.weightRoles.map((w) => w.value).join('/')}; families ${typography.families.map((f) => `${f.group} ${f.stack[0]}`).join(', ')}${varFams.length ? ` (variable: ${varFams.join('/')})` : ''}; '${typography.typeScale}' type scale. ${typography.composites.length} text styles: title and display sizes follow the type scale, display tops out at '${reqCeiling}' (${n2(effCap)}px), title.2xs is ${(input.typography?.titleFloor ?? 18) === 16 ? 'included' : 'left out'}${(input.typography?.captionFloor ?? 11) === 10 || (input.typography?.sizeFloor ?? 10) === 8 ? `, caption adds ${[(input.typography?.sizeFloor ?? 10) === 8 ? 'caption.xs (8px)' : '', (input.typography?.captionFloor ?? 11) === 10 ? 'caption.sm (10px)' : ''].filter(Boolean).join(' and ')}` : ''}${capNote}. ${typography.fluid ? `${typography.composites.filter((c) => c.sizeMinPx !== c.sizePx).length} styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from ${n2(typography.minViewport)} to ${n2(typography.maxViewport)}px and in desktop and mobile modes.` : 'Sizes are fixed at every viewport.'}`);
+  notes.push(`typography: ${typography.sizesPx.length}-step size ladder (${n2(must(typography.sizesPx[0], 'the first type size'))}–${n2(must(typography.sizesPx[typography.sizesPx.length - 1], 'the last type size'))}px), a fixed set rather than a ratio; weights ${typography.weightRoles.map((w) => w.role).join('/')} → ${typography.weightRoles.map((w) => w.value).join('/')}; families ${typography.families.map((f) => `${f.group} ${f.stack[0]}`).join(', ')}${varFams.length ? ` (variable: ${varFams.join('/')})` : ''}; '${typography.typeScale}' type scale. ${typography.composites.length} text styles: title and display sizes follow the type scale, display tops out at '${reqCeiling}' (${n2(effCap)}px), title.2xs is ${(input.typography?.titleFloor ?? 18) === 16 ? 'included' : 'left out'}${(input.typography?.captionFloor ?? 11) === 10 || (input.typography?.sizeFloor ?? 10) === 8 ? `, caption adds ${[(input.typography?.sizeFloor ?? 10) === 8 ? 'caption.xs (8px)' : '', (input.typography?.captionFloor ?? 11) === 10 ? 'caption.sm (10px)' : ''].filter(Boolean).join(' and ')}` : ''}${capNote}. ${typography.fluid ? `${typography.composites.filter((c) => c.sizeMinPx !== c.sizePx).length} styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from ${n2(typography.minViewport)} to ${n2(typography.maxViewport)}px and in desktop and mobile modes.` : 'Sizes are fixed at every viewport.'}`);
   // #3077 — the two opt-in levers say what they set, so a reader of the notes knows the caption and tracking
   // values are the brand's choice rather than the derived ones.
   const capSizes = Object.entries(input.typography?.sizes?.caption ?? {});
@@ -963,7 +977,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // `typography.links` underlined-link roles lever. No corpus brand trips this (every one's action palette
   // is chromatic, ΔE ≥ ~17 vs neutral), so an unset `linkPalette` adds no note and moves no artifact.
   const rampSteps = (name: string) => palettes.find((p) => p.palette === name)!.steps;
-  const midStep = (steps: Step[]) => (steps.find((s) => s.num === 500) ?? steps[Math.floor(steps.length / 2)]).rgb;
+  const midStep = (steps: Step[]) => (steps.find((s) => s.num === 500) ?? must(steps[Math.floor(steps.length / 2)], 'a middle step')).rgb;
   const linkColorDistinct = deltaE2000(midStep(rampSteps(linkPalette)), midStep(rampSteps(roleToPalette.neutral))) >= 7;
   if (!linkColorDistinct)
     // The studio's link advisory reads this note by its `WCAG 1.4.1` (apps/studio/src/main.ts), so the

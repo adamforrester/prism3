@@ -58,7 +58,7 @@ Use a divider to separate groups of related content when spacing alone does not 
 ## Accessibility
 
 - **Focus:** None. A divider is not focusable and takes no place in the tab order.
-- **Screen readers:** none with aria-hidden="true" by default, because a divider is decorative unless set otherwise; with decorative=false, separator (native \<hr> for a horizontal rule, role="separator" with aria-orientation="vertical" for a vertical one); a labeled divider takes no role, its two lines hidden and its label read as plain text
+- **Screen readers:** none with `aria-hidden="true"` by default, because a divider is decorative unless set otherwise; with `decorative=false`, separator (native `<hr>` for a horizontal rule, `role="separator"` with `aria-orientation="vertical"` for a vertical one); a labeled divider takes no role, its two lines hidden and its label read as plain text
 
   By default the rule sets aria-hidden="true", so a screen reader does not announce a break that means nothing. With decorative=false, an \<hr> needs no attributes, and a vertical rule sets role="separator" and aria-orientation="vertical". A labeled divider sets no role: a separator hides its own text, so the label would not be read. Its two lines set aria-hidden="true", and the label is plain text in the reading order, read as Or between the two groups. Pass the translated word.
 

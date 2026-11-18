@@ -91,7 +91,7 @@ import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-gl
 import { PROVIDER_LOGO_BOXES, PROVIDER_LOGO_DOCUMENTS } from './provider-logo-glyphs';
 import { makeTextField } from './components/text-field';
 import { canonicalShape, GlyphPathError } from './glyph-shape';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { readListing } from './files-listing';
@@ -111,7 +111,7 @@ const planIconComps = (n: { nestTarget?: string; children?: readonly unknown[] }
 
 import { Session as InspectorSession } from 'node:inspector/promises';
 import { componentSpec, specMaterialize } from './component-specs';
-import { renderUncommitted } from './regen';
+import { renderUncommitted } from './regen'; import * as regenModule from './regen'; // the namespace: #2029 reads restoreTree off it, so main (without it) fails an arm by name, not the import
 import { localeFreeCompare } from './locale-free-order';
 
 // ---- #1268 EVERY ASSERTION SITE RAN — a section going quiet is a failure, not a smaller pass ----------
@@ -9659,6 +9659,66 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     ok(guard !== -1 && dispatch > guard,
       '[#349] regen.ts guards its CLI dispatch behind an entry-point check — importing it for the ARTIFACTS constants must not regenerate');
   }
+  // #2029 — `regen --check` puts `out/` back IN PLACE. It used to `rmSync(out)` and copy its snapshot back, and a
+  // Studio or plugin build reading `out/` inside that window failed with "cannot load the default theme". Two
+  // halves: `restoreTree` on a fixture (fast, every case named), and a real `--check` over this tree, which holds
+  // the property where the race lives. A directory deleted and recreated gets a NEW inode, so "same inode before
+  // and after" is the deterministic signature of "never deleted"; a race test that polls for a missing file is not.
+  {
+    const restoreTree = (regenModule as Record<string, unknown>).restoreTree as ((snap: string, live: string) => void) | undefined;
+    ok(typeof restoreTree === 'function', '#2029: regen.ts exports restoreTree, the in-place restore --check uses');
+    if (typeof restoreTree === 'function') {
+      const root = mkdtempSync(join(tmpdir(), 'prism3-2029-'));
+      try {
+        const snap = join(root, 'snap'), live = join(root, 'live');
+        const put = (dir: string, rel: string, body: string, mtimeS: number) => {
+          mkdirSync(dirname(join(dir, rel)), { recursive: true });
+          writeFileSync(join(dir, rel), body);
+          utimesSync(join(dir, rel), mtimeS, mtimeS);
+        };
+        // The snapshot: an unchanged file, a file regen rewrites, a nested file regen deletes, an on-demand-style file.
+        for (const dir of [snap, live]) {
+          put(dir, 'keep.json', '{"keep":1}\n', 1_000_000);
+          put(dir, 'changed.json', '{"v":1}\n', 1_000_100);
+          put(dir, 'figma/nb/gone.json', '{"gone":1}\n', 1_000_200);
+          put(dir, 'figma/nb/stays.json', '{"stays":1}\n', 1_000_300);
+        }
+        // What a regen leaves: a rewrite, a same-bytes rewrite with a fresh mtime, an added file in an added
+        // directory, an added file beside the committed ones, and a deleted file.
+        put(live, 'changed.json', '{"v":2}\n', 2_000_000);
+        put(live, 'figma/nb/stays.json', '{"stays":1}\n', 2_000_000);
+        put(live, 'figma/new/added.json', '{}\n', 2_000_000);
+        put(live, 'added.json', '{}\n', 2_000_000);
+        rmSync(join(live, 'figma/nb/gone.json'));
+        const liveIno = statSync(live).ino, keepIno = statSync(join(live, 'keep.json')).ino, nbIno = statSync(join(live, 'figma/nb')).ino;
+        const changedIno = statSync(join(live, 'changed.json')).ino;
+        restoreTree(snap, live);
+        const list = (d: string): string[] => readdirSync(d, { recursive: true }).map(String).sort();
+        const sameTree = JSON.stringify(list(live)) === JSON.stringify(list(snap))
+          && list(snap).every((f) => statSync(join(snap, f)).isDirectory() || readFileSync(join(snap, f)).equals(readFileSync(join(live, f))));
+        ok(sameTree, `#2029: restoreTree leaves the live tree byte-identical to the snapshot — added files and directories gone, the deleted file back (live ${JSON.stringify(list(live))})`);
+        const mtimeOff = list(snap).filter((f) => !statSync(join(snap, f)).isDirectory() && Math.floor(statSync(join(live, f)).mtimeMs) !== Math.floor(statSync(join(snap, f)).mtimeMs));
+        ok(mtimeOff.length === 0, `#2029: restoreTree gives every file its snapshot timestamp back (#2067) (off: ${JSON.stringify(mtimeOff)})`);
+        ok(statSync(live).ino === liveIno && statSync(join(live, 'figma/nb')).ino === nbIno && statSync(join(live, 'keep.json')).ino === keepIno,
+          '#2029: restoreTree never deletes the live directory, a directory it keeps, or a file whose bytes did not change (same inodes)');
+        // A file whose bytes differ is written to a hidden sibling and renamed over the original, so a reader sees the old
+        // bytes or the new, never a half-written file. A rename gives the file a NEW inode; copying straight over it keeps
+        // the old one, so "the inode changed" is the deterministic signature of the rename (review of 0c7c1c0c).
+        ok(statSync(join(live, 'changed.json')).ino !== changedIno && !readdirSync(live).some((f) => f.includes('.restore-')),
+          '#2029: restoreTree replaces a file whose bytes differ by renaming a full copy over it, never by writing into it (new inode, no sibling left)');
+      } finally { rmSync(root, { recursive: true, force: true }); }
+    }
+    // The real gate, over this tree. Its exit status is not asserted: a tree with local edits drifts. The property
+    // asserted holds either way because it is read on DIRECTORIES (`out/` and `out/figma`), whose inodes the restore
+    // keeps whatever drifted. A drifted FILE is renamed over, by design, and gets a new inode, so a file's inode would
+    // blame the restore for a stale tree (review of 0c7c1c0c). A crash (no status) is a failure.
+    const outDir = new URL('./out/', import.meta.url).pathname, figmaDir = join(outDir, 'figma');
+    const outIno = statSync(outDir).ino, figmaIno = statSync(figmaDir).ino;
+    const run = spawnSync('npx', ['tsx', new URL('./regen.ts', import.meta.url).pathname, '--check'], { encoding: 'utf8' });
+    const figmaKept = existsSync(figmaDir) && statSync(figmaDir).ino === figmaIno;
+    ok((run.status === 0 || run.status === 1) && statSync(outDir).ino === outIno && figmaKept,
+      `#2029: regen --check leaves packages/engine/out and out/figma in place — never deleted and recopied, so a build reading them meanwhile finds them (status ${run.status}; out inode ${statSync(outDir).ino === outIno ? 'kept' : 'CHANGED'}; out/figma inode ${figmaKept ? 'kept' : 'CHANGED'})`);
+  }
   // #988 — THE SAME RULE, GENERALISED, because the arm above is pinned to one filename and that is
   // exactly why it could not see the next instance.
   //
@@ -16830,7 +16890,9 @@ arm: {
 
   // COMPONENT REGISTER (#2714, #1717). The build-component skill's "What ships" rules, which were held by hand
   // until here: in the fields a reader acts on, no code spans, no all-caps emphasis, no "brief §N" or "§N",
-  // no "def" as a reader-facing word, no issue numbers. The older defs broke all five and the newer ones none,
+  // no "def" as a reader-facing word, no issue numbers. Since Q-UG2b A (#3552) a span is allowed where a usage
+  // panel draws it as code (accessibility, content, docs, ai's three), and only when it holds code, by the shapes
+  // `isCode` types below. The older defs broke all five and the newer ones none,
   // so a reader moving between pages met two registers. Scope is the seven consumer fields the audit counted
   // (summary, description, prop descriptions, accessibility, content, docs, and ai's three decision fields).
   // Motion and part notes ship too and are not in scope yet (#2773).
@@ -16859,17 +16921,35 @@ arm: {
     // have on main, code spans and all, until the owner decides where those lines belong. A hand-written
     // exemption keyed by def and path, not a loosened pattern: every other string in these three defs is still
     // scanned. It is live: each exempt path must still carry a hit, so the exemption cannot outlive the hold.
+    // Items 5, 8 and 12 left the list with Q-UG2b A (#3552): every span they carry is code, so they pass unexempted.
     const HELD_Q362: Record<string, number[]> = Object.fromEntries(
-      ['button', 'button-destructive', 'button-neutral'].map((id) => [id, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]]));
+      ['button', 'button-destructive', 'button-neutral'].map((id) => [id, [3, 4, 6, 7, 9, 10, 11]]));
     const heldHits = new Set<string>(); const heldKeys: string[] = [];
     for (const [id, idx] of Object.entries(HELD_Q362)) for (const i of idx) heldKeys.push(`${id} docs.do[${i}]`);
+    const CODE_FIELD = /^(?:accessibility|content|docs|ai)\./;
+    const CODE_WORDS = new Set(['href', 'alt', 'tabindex', 'autocomplete', 'true', 'false', 'mixed']);
+    const isCode = (c: string): boolean =>
+      /^<\/?[a-z][A-Za-z0-9]*(?:\s[^<>]*)?>$/.test(c)      // an element: <button>, <hN>, <input type="radio">
+      || /^[a-z][\w-]*=\S/.test(c)                         // an attribute or prop with its value: type="number", surface=inverse
+      || /^[a-z]+\[[^\]]+\]$/.test(c)                       // a selector: div[role=button]
+      || /^::?[a-z][a-z-]*$/.test(c)                        // a pseudo-class or -element: :focus-visible, ::before
+      || /^[a-z]+[A-Z][A-Za-z0-9]*$/.test(c)                // a prop: htmlFor, onChangeEnd
+      || /^[a-z]+(?:\.[a-z][\w-]*){2,}$/.test(c)            // a token path: color.border.focus
+      || /^[.\w:]+\(\d*\)$/.test(c)                         // a call: alert(), .focus(), javascript:void(0)
+      || /^[a-z]+(?:-[a-z]+)+(?::\s?[a-z]+)?$/.test(c)      // a hyphenated name or declaration: aria-hidden, cc-exp, list-style: none
+      || /^-?\d+$/.test(c) || CODE_WORDS.has(c);            // a number, an attribute name or an ARIA value
     const bad: string[] = []; const used = new Set<string>(); let read = 0;
     for (const d of componentDefs) {
       const strs = consumerStrings(d);
       for (const [path, text] of strs) {
         read++;
         const hits: string[] = [];
-        if (/`/.test(text)) hits.push(`${d.id} ${path}: a code span`);
+        // CODE AS CODE (#3552, owner Q-UG2b A): the fields a usage panel draws mark their code in backticks, and the
+        // panel draws each span in the brand's code style. There a span must hold code, by the shapes typed here; a
+        // span holding an English word is still a hit. `summary` (the Figma description), `description` and the prop
+        // descriptions carry no span at all.
+        for (const m of text.matchAll(/`([^`]*)`/g)) if (!CODE_FIELD.test(path) || !isCode(m[1])) hits.push(`${d.id} ${path}: a code span${CODE_FIELD.test(path) ? ` holding "${m[1]}", which is not code` : ''}`);
+        if ((text.match(/`/g) ?? []).length % 2) hits.push(`${d.id} ${path}: an unpaired backtick`);
         for (const w of text.match(/\b[A-Z][A-Z0-9]*[A-Z]s?\b/g) ?? []) { if (ACRONYMS.has(w)) used.add(w); else hits.push(`${d.id} ${path}: all-caps "${w}"`); }
         if (/brief §|§\s?\d/.test(text)) hits.push(`${d.id} ${path}: a brief section reference`);
         if (/\bdefs?\b/i.test(text)) hits.push(`${d.id} ${path}: "def" as a reader-facing word`);
@@ -16888,7 +16968,7 @@ arm: {
     }
     const heldDead = heldKeys.filter((k) => !heldHits.has(k));
     ok(heldDead.length === 0, `#2714 component register: every held Button do item (owner Q362) still carries a hit, so the exemption has not outlived the hold${heldDead.length ? ` — dead: ${heldDead.join(', ')}` : ''}`);
-    ok(bad.length === 0, `#2714 component register: no code spans, all-caps emphasis, brief references, "def" or issue numbers in a component's consumer fields${bad.length ? ` — ${bad.length}: ${bad.slice(0, 12).join(' | ')}` : ''}`);
+    ok(bad.length === 0, `#2714 component register: no code span around anything but code, all-caps emphasis, brief references, "def" or issue numbers in a component's consumer fields${bad.length ? ` — ${bad.length}: ${bad.slice(0, 12).join(' | ')}` : ''}`);
     const stale = [...ACRONYMS].filter((a) => !used.has(a));
     ok(stale.length === 0, `#2714 component register: every allowed acronym is still used by a shipped field (stale: ${stale.join(', ') || 'none'})`);
     ok(read > 1000, `#2714 component register: the scan is live (${read} consumer strings)`);
@@ -39178,7 +39258,7 @@ arm: {
     attr('inputmode') === 'numeric' && propDefault('inputMode') === 'numeric' ? null : `inputmode="${attr('inputmode')}" vs the inputMode prop's default ${String(propDefault('inputMode'))}`,
     propDefault('autoComplete') === 'one-time-code' ? null : `the autoComplete prop defaults to ${String(propDefault('autoComplete'))}`,
     /Never one input per cell/.test(fieldCode) && /one textbox with one name and one value/.test(fieldCode) ? null : 'the contract no longer says one textbox, one value, never one input per cell',
-    /^textbox \(one native <input>\); the cells are aria-hidden$/.test(fieldA11y?.role ?? '') ? null : `field role '${fieldA11y?.role}'`,
+    /^textbox \(one native `<input>`\); the cells are `aria-hidden`$/.test(fieldA11y?.role ?? '') ? null : `field role '${fieldA11y?.role}'`,
     /No aria-label on the input/.test(fieldA11y?.aria ?? '') ? null : 'the field allows an aria-label over the real value',
     /^One Tab stop\./.test(fieldA11y?.keyboard ?? '') && /^Focus stays on the one input\./.test(fieldA11y?.focus ?? '') ? null : 'the field has more than one Tab stop or moves focus',
     /^none: an aria-hidden drawing/.test(cellA11y?.role ?? '') ? null : `cell role '${cellA11y?.role}'`,
@@ -39473,7 +39553,7 @@ arm: {
     `#2455 divider decorative: a boolean code prop, default true — decorative by default, after the brief (got type ${decorative?.type}, default ${JSON.stringify(decorative?.default)})`);
   ok(!('decorative' in (divider.figmaProperties?.booleans ?? {})) && (codeOnlyText(divider.anatomy?.codeOnly) ?? []).some((c) => c.startsWith('decorative — ')),
     '#2455 divider decorative: no Figma property (it changes no pixel), and the codeOnly list says so in an entry that leads with it');
-  ok(/^none with aria-hidden="true" by default\b/.test(divider.accessibility.role) && /decorative=false, separator\b/.test(divider.accessibility.role),
+  ok(/^none with `aria-hidden="true"` by default\b/.test(divider.accessibility.role) && /`decorative=false`, separator\b/.test(divider.accessibility.role),
     `#2455 divider decorative: the code role is none with aria-hidden by default, and separator with decorative=false (got '${divider.accessibility.role}')`);
 }
 
@@ -40894,7 +40974,7 @@ arm: {
     ['role line', line('role'), 'role — `role="dialog"` with `aria-modal="true"` at every placement, an end panel included; the native `<dialog>` opened with `showModal()` provides both. `role: "alertdialog"` is a code prop with no Figma property: set it for a confirmation that interrupts and needs an answer. An alertdialog hides the close button (the Figma `close` toggle shows the result), keeps a backdrop click from closing it, and must hold at least one focusable control.'],
     ['focus held line', line('focus held'), 'focus held — Tab and Shift+Tab cycle inside the dialog at every placement, and the page behind is inert. A modal `<dialog>` makes the page inert natively.'],
     ['backdrop line', line('the backdrop'), 'the backdrop — `color.scrim.default` on `::backdrop`, at every placement but full, an end panel included. It is not part of the component: the Figma page draws it behind each example as canvas furniture.'],
-    ['accessibility.role', dg.accessibility.role, 'role="dialog" with aria-modal="true", or role="alertdialog" for a confirmation that needs an answer. A native <dialog> opened with showModal() provides the dialog role, the modal state, the top layer and an inert page.'],
+    ['accessibility.role', dg.accessibility.role, '`role="dialog"` with `aria-modal="true"`, or `role="alertdialog"` for a confirmation that needs an answer. A native `<dialog>` opened with `showModal()` provides the dialog role, the modal state, the top layer and an inert page.'],
     ['accessibility.aria', dg.accessibility.aria, 'aria-modal="true"; aria-labelledby pointing at the title; aria-describedby pointing at the description when there is one. The close button\'s accessible name is "Close". Hide the dividers from assistive technology.'],
   ];
   const moved = pinned.filter(([, actual, expected]) => actual !== expected).map(([name]) => name);
@@ -42395,6 +42475,37 @@ arm: {
   const pPlain = (shim.styles.text as any[]).filter((x) => !x.name.endsWith('-link') && ('textDecorationThickness' in x || 'textDecorationOffset' in x));
   ok(pasted.skipped.length === 0 && pLinks.length === 18 && pOff.length === 0 && pPlain.length === 0,
     `#2942 underline, paste path: the reference brand's 18 pasted -link styles read PERCENT 5 / 25, and no plain style has either field (${pLinks.length} links; ${pOff.length} off; ${pPlain.length} plain touched)`);
+}
+
+// ---- #3408 Q146 A: BUTTON'S STATE TRANSITION AND PRESS BIND MOTION TOKENS ----
+//
+// The brief's ~100–150ms state change and the 0.98 press were prose (Q-MD4 A), so nothing could read or gate them. The
+// three Button defs now bind them in `tokens`. EXPECTED is typed here: the five bindings, and prism3-motion R6's rule
+// that a control's state change takes `instant` or `fast` (a literal set, not read from the skill or the ramp). ACTUAL
+// is each def's own `tokens`, and every bound path must resolve in every committed brand's emitted tree.
+{
+  const WANT: Record<string, string> = {
+    'motion.state': 'motion.duration.fast', 'motion.state-easing': 'motion.easing-role.default',
+    'motion.state-reduced': 'motion.duration-reduced.fast',
+    'motion.press': 'motion.duration.fast', 'motion.press-easing': 'motion.easing-role.default',
+  };
+  const R6 = new Set(['motion.duration.instant', 'motion.duration.fast']);
+  const trees = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f) && !f.includes('.base.'))
+    .map((f) => ({ f, t: JSON.parse(readFileSync(resolve(HERE, 'out', f), 'utf8')) }));
+  for (const id of ['button', 'button-destructive', 'button-neutral']) {
+    const tok = componentDefs.find((d) => d.id === id)?.tokens ?? {};
+    const got = Object.fromEntries(Object.entries(tok).filter(([k]) => k.startsWith('motion.')));
+    ok(JSON.stringify(got) === JSON.stringify(WANT), `#3408 Q146 A ${id}: binds the state transition and the press to motion tokens (${JSON.stringify(got)})`);
+    const slow = ['motion.state', 'motion.press'].filter((k) => !R6.has(tok[k]));
+    ok(slow.length === 0, `#3408 Q146 A ${id}: the state change and the press are R6-quick, instant or fast (${slow.map((k) => `${k} → ${tok[k]}`).join(', ') || 'both'})`);
+    ok(tok['motion.state-reduced'] === tok['motion.state']?.replace('motion.duration.', 'motion.duration-reduced.'),
+      `#3408 Q146 A ${id}: the reduced state change is the reduced twin of its duration (${tok['motion.state-reduced']} for ${tok['motion.state']})`);
+    const unresolved = trees.flatMap(({ f, t }) => {
+      const root = Object.keys(t)[0];
+      return Object.values(got).filter((ref) => ref.split('.').reduce((n: any, k) => n?.[k], t[root])?.$value === undefined).map((ref) => `${ref} in ${f}`);
+    });
+    ok(trees.length >= 4 && unresolved.length === 0, `#3408 Q146 A ${id}: every motion binding resolves in all ${trees.length} brands${unresolved.length ? ` — not: ${unresolved.slice(0, 3).join('; ')}` : ''}`);
+  }
 }
 
 // ---- #3346 (owner Q1 revised A, E1 A, E3 A; 2026-11-03): THE SELECTION MARK, `interactive.<c>.indicator.*` ----
