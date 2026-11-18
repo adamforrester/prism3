@@ -157,6 +157,12 @@
  *                   font; Related's links, past a code-bearing entry (Tag's Badge typed as code here), land on the linked
  *                   names. Mutations: the font failure no longer clears the style → `code/no font`; the link offsets
  *                   counted in the planned text → `code/related links`.
+ *                   (#3552 Q-UG2b A) the defs mark their code: over each named lead's planned lines, the issue's
+ *                   identifiers and a sample of its code syntax, typed by hand (`htmlFor` on Field label, `<button>` on
+ *                   Button …), sit inside a code span wherever they appear (`code/marked <def>`); and over every lead,
+ *                   no planned line outside the anatomy carries a typed code shape (a tag, an ARIA attribute, a quoted
+ *                   attribute, a selector, a focus pseudo-class, a named prop) outside a span (`code/unmarked`).
+ *                   Mutations: Field label's backticks removed → `code/marked field-label`, `code/unmarked`.
  *   markers/…       (#2916, #3773 owner decision B) each part has one leader, one 4px end dot and one disc, all
  *                   #9747FF (typed here), the numeral white, no bracket, tick or Badge instance: a part's dot lies on its
  *                   near top or bottom edge at its middle, a container's (the root, or a part holding a listed part, read
@@ -1494,7 +1500,7 @@ section('family/… — one panel per taxonomy page, beside its lead; the member
   ok(docPanelDue(api, row, plan) === 0, 'family/current: not due once drawn');
   // Do and Don't merged over the family (Q2 A): the lead's first, each once; the count line counts the merged lists.
   const usage = (id: string) => { const u = docSections(componentDefs.find((d) => d.id === id)!).sections.find((x) => x.id === 'usage'); return u && u.id === 'usage' ? u : { do: [] as string[], dont: [] as string[] }; };
-  const want = [...new Set(['checkbox-row', 'checkbox-control', 'checkbox-group'].flatMap((id) => usage(id).do.map((t) => t.replace(/`/g, '').replace(/\s+/g, ' ').trim())))];
+  const want = [...new Set(['checkbox-row', 'checkbox-control', 'checkbox-group'].flatMap((id) => usage(id).do.map((t) => t.replace(/\s+/g, ' ').trim())))];
   const dd = plan.sections.flatMap((x) => x.blocks).find((b) => b.type === 'Do-Dont');
   const shown = texts(live[0]);
   ok(!!dd && dd.type === 'Do-Dont' && dd.do.join('|') === want.slice(0, 4).join('|') && (want.length <= 4 || shown.some((t) => t.includes(`of ${want.length} Do items`))),
@@ -2268,6 +2274,47 @@ section('code/… — a code span is written without its backticks and drawn in 
   // The split, typed: a pair is a span, a backtick with no partner is dropped.
   const cr = codeRuns('Use `type="number"` or `step` (3`)');
   ok(cr.text === 'Use type="number" or step (3)' && JSON.stringify(cr.runs) === '[[4,17],[21,25]]', `code/runs: spans by pairs, an unpaired backtick dropped (${JSON.stringify(cr)})`);
+
+  // CODE THE DEFS MARK (#3552 Q-UG2b A): the def prose wraps its code in backticks, so the panel draws it as code. Every
+  // line a lead's panel plans (its anatomy aside: a note with a code span is held back from the caption), as written.
+  const written = (def: ComponentDef): { text: string; runs: [number, number][] }[] => {
+    const plan = planDocPanel(def, { modes: ['light', 'dark'], names });
+    const strs = (v: unknown): string[] => (typeof v === 'string' ? [v] : Array.isArray(v) ? v.flatMap(strs) : v && typeof v === 'object' ? Object.values(v).flatMap(strs) : []);
+    return [plan.lede, ...(plan.family ?? []).map((f) => f.note ?? ''), ...plan.sections.filter((s) => s.id !== 'anatomy').flatMap((s) => strs(s.blocks))].map(codeRuns);
+  };
+  const inRun = (runs: [number, number][], s: number, e: number): boolean => runs.some(([a, b]) => a <= s && e <= b);
+  // The issue's named identifiers (N5) and a sample of its code syntax, typed by hand with the lead whose panel draws each.
+  const MARKED: [string, string][] = [
+    ['field-label', 'htmlFor'], ['radio-row', 'onChange'], ['text-field', 'readOnly'], ['textarea', 'maxRows'],
+    ['password-field', 'autoComplete'], ['card-number-field', 'brandName'], ['card-number-field', 'renderInput'],
+    ['slider', 'onChangeEnd'], ['icon-button', 'isInactive'], ['button', 'buttonIcons'],
+    ['button', '<button>'], ['icon-button', 'div[role=button]'], ['text-field', 'type="number"'],
+    ['checkbox-row', '<input type="checkbox">'], ['checkbox-row', 'aria-checked'], ['switch-row', 'aria-pressed'],
+  ];
+  for (const [id, code] of MARKED) {
+    const lines = written(componentDefs.find((d) => d.id === id)!);
+    const at = lines.flatMap((l) => [...l.text.matchAll(new RegExp(code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'))].map((m) => ({ l, s: m.index!, e: m.index! + code.length })));
+    const bare = at.filter((x) => !inRun(x.l.runs, x.s, x.e));
+    ok(at.length > 0 && bare.length === 0, `code/marked ${id}: ${code} is drawn as code on every line of its panel that names it`,
+      at.length ? `plain in: ${bare.map((x) => x.l.text.slice(0, 80)).join(' / ')}` : 'not on the panel');
+  }
+  // Over every lead, no planned line carries one of these code shapes outside a code span. The shapes are typed here,
+  // not read from any def: an HTML tag, an ARIA attribute, an attribute with a quoted value, an attribute selector, the
+  // focus pseudo-classes, and the component props N5 named.
+  const SHAPES: [string, RegExp][] = [
+    ['tag', /<\/?[a-z][a-z0-9]*(?:\s[^<>]*)?>/g], ['aria', /\baria-[a-z]+/g], ['attr', /\b[a-z][\w-]*="[^"]*"/g],
+    ['selector', /\b[a-z]+\[[^\]]+\]/g], ['pseudo', /::?(?:focus-visible|focus|before)\b/g],
+    ['prop', /\b(?:htmlFor|onChange|onChangeEnd|readOnly|maxRows|autoComplete|brandName|renderInput|isInactive|buttonIcons|forwardRef|submitOnEnter|showStateLabel)\b/g],
+  ];
+  // Left plain on purpose: the Markdown page escapes a `|` inside a code span (`mdEscape`, for table cells), which a
+  // list item would print as a backslash.
+  const PLAIN = ['input[type=button|submit]'];
+  const unmarked: string[] = [];
+  for (const def of leads)
+    for (const l of written(def))
+      for (const [k, re] of SHAPES)
+        for (const m of l.text.matchAll(re)) if (!PLAIN.includes(m[0]) && !inRun(l.runs, m.index!, m.index! + m[0].length)) unmarked.push(`${def.id} ${k} "${m[0]}": ${l.text.slice(0, 70)}`);
+  ok(unmarked.length === 0, `code/unmarked: no planned line in ${leads.length} panels carries a typed code shape outside a code span`, `${unmarked.length}: ${unmarked.slice(0, 4).join('; ')}`);
 }
 
 section('qa/… — usage panels QA round 1 (#2970): titles, the space above Do and Don\'t, Related as linked lists');

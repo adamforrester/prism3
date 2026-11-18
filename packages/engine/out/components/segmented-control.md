@@ -54,8 +54,8 @@ Use a segmented control for a choice between two to five short options that chan
 ## Accessibility
 
 - **Keyboard:** view behavior: Tab moves to each option and Enter or Space selects it. form behavior: Tab enters at the selected option, arrow keys move to the next or previous option and select it, wrapping at the ends, and Tab leaves.
-- **Focus:** A focus ring around the focused option's indicator on :focus-visible.
-- **Screen readers:** view behavior: role="group" of buttons, the selected one with aria-current="true". form behavior: a radio group (a fieldset with a legend, or role="radiogroup"), native radios inside. Never role="tablist".
+- **Focus:** A focus ring around the focused option's indicator on `:focus-visible`.
+- **Screen readers:** view behavior: `role="group"` of buttons, the selected one with `aria-current="true"`. form behavior: a radio group (a fieldset with a legend, or `role="radiogroup"`), native radios inside. Never `role="tablist"`.
 
   The label names the group (aria-labelledby, or a legend in the form behavior); without it a screen reader announces options with no subject. Some screen readers do not announce aria-current on a button, so test the view behavior. Every name is translatable, and the row mirrors right to left.
 

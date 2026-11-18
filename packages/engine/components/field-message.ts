@@ -420,7 +420,7 @@ export const fieldMessage: ComponentDef = {
   },
 
   accessibility: {
-    role: 'none (rendered text; the host associates it via aria-describedby)',
+    role: 'none (rendered text; the host associates it via `aria-describedby`)',
     wcag: [
       '1.4.1 Use of Color (status is carried by icon + text, never color alone)',
       '3.3.1 Error Identification / 3.3.3 Error Suggestion (the error status names the problem and the fix — wired by the host)',
@@ -439,11 +439,11 @@ export const fieldMessage: ComponentDef = {
   },
 
   docs: {
-    usage: 'Place directly below a field to carry persistent helper guidance (default status) or a validation result (error / warning / success). Reuse the same component under every field control so the icon-plus-text, gated-contrast contract holds everywhere. The field wires it into aria-describedby.',
+    usage: 'Place directly below a field to carry persistent helper guidance (default status) or a validation result (error / warning / success). Reuse the same component under every field control so the icon-plus-text, gated-contrast contract holds everywhere. The field wires it into `aria-describedby`.',
     do: [
       'Show the format/constraint in the default status before the user can fail',
       'Pair the status with an icon so it is never color-only',
-      'Let the host own aria-describedby + aria-invalid; keep this node presentational',
+      'Let the host own `aria-describedby` + `aria-invalid`; keep this node presentational',
     ],
     dont: [
       'Signal error with color alone (fails SC 1.4.1)',

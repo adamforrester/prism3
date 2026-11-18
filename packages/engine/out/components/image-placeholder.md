@@ -36,7 +36,7 @@ Use an image placeholder wherever a layout reserves space for a photograph befor
 
 - Pick the ratio from the media the frame will hold, and let the lock keep it while the size flexes
 - Drop the photograph on as an image fill — the frame is the container, not a swappable slot — and turn the marker property off once it is in
-- Give an informative image an accessible name and a decorative one an empty alt; keep the empty-state marker decorative and aria-hidden
+- Give an informative image an accessible name and a decorative one an empty `alt`; keep the empty-state marker decorative and `aria-hidden`
 - Let the frame clip — a photo cropped to the ratio reads better than one that overflows the layout
 
 ### Don't
@@ -50,7 +50,7 @@ Use an image placeholder wherever a layout reserves space for a photograph befor
 ## Accessibility
 
 - **Focus:** None of its own — the frame is not focusable as an empty placeholder. If it becomes an interactive media element (a button that opens a picker), that control carries its own focus; the placeholder frame does not invent one.
-- **Screen readers:** img once it holds an image: with a descriptive accessible name when the image is informative, or an empty alt (alt="") when it is decorative, which removes it from the accessibility tree. The empty frame is presentational. The "no image" marker inside it is decorative and aria-hidden; it is a visual affordance, not the accessible content.
+- **Screen readers:** img once it holds an image: with a descriptive accessible name when the image is informative, or an empty `alt` (`alt=""`) when it is decorative, which removes it from the accessibility tree. The empty frame is presentational. The "no image" marker inside it is decorative and `aria-hidden`; it is a visual affordance, not the accessible content.
 
   Once the frame holds a real image, decide whether the image is informative or decorative. Informative: an img role and an accessible name that describes its function, not the picture. Decorative: an empty alt (alt=""), never an omitted one — some screen readers announce the file name when alt is missing. Mark the "no image" marker aria-hidden — it is a decorative affordance, and announcing it would add nothing. Do not rely on the marker as the accessible description of the eventual image.
 
