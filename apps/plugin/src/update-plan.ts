@@ -211,7 +211,12 @@ export type SetPreview = {
     damaged?: string[];
     /** #2674 — the same member, its prototype reactions pointing at a member no longer in the set: the apply skips it,
      *  so they are left dangling, and its skip says so. Absent otherwise. */
-    dangling?: true }[];
+    dangling?: true;
+    /** #2956 point 2 (owner decision 2026-10-23) — a member edited by hand whose update changes its structure: a layer
+     *  the plan adds, removes, replaces or moves into a new frame. Under Keep and Accept the apply skips it whole and
+     *  names it; Overwrite writes it. Absent otherwise, and on a member whose layer was added or removed by hand, which
+     *  every choice skips. */
+    restructured?: true }[];
   /** #2188 Q173 — the members an update moves to their place in the grid, by name (`gridMoves`). Absent when none. */
   positions?: string[];
   /** #2542 (owner decision Q245.2 A) — the WHOLE SET moves on its page, to where a fresh build would place it
@@ -622,6 +627,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       ...(damaged.length ? { damaged: damaged.map((f) => faultLine(m.name, f)) } : {}),
       ...(rxv.dangling ? { dangling: true as const } : {}),
     } : {};
+    const at = states.length;
     if (state !== 'current') states.push({ member: m.name, state, ...(earlier ? { earlierRecord: true as const } : {}), ...hurt });
     if (state === 'current' || state === 'revisionUnknown') continue;
 
@@ -723,6 +729,12 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       if (c.sample.length < 3) c.sample.push(m.name);
       changes.set(k, c);
     }
+    // A STRUCTURAL UPDATE ON A MEMBER EDITED BY HAND (#2956 point 2, owner decision 2026-10-23: skip the member and
+    // report it). Structural: a planned layer the member lacks, a layer whose type changes, one moved into a frame the
+    // plan inserts, or one the plan no longer has. Its edits could not be trusted to survive the new structure, so the
+    // update leaves the whole member, as it does one with a layer added by hand.
+    if (state === 'handEdited' && !structural && (placed.some(({ d, part }) => d.field === 'children' || (d.field === 'type' && part !== '.')) || moves.length > 0 || extras.some((x) => !movedFrom.has(x))))
+      states[at] = { ...states[at], restructured: true };
     if (state === 'update' && placed.length === 0 && moves.length === 0 && extras.length === 0 && dropped.length === 0 && !(m.drawn ?? []).length && !rxv.differs && !nested.length) {
       counts.reapplied++;
       const k = '.\u0000stamp\u0000\u0000';

@@ -185,7 +185,7 @@ export const tabs: ComponentDef = {
       '2.4.13 Focus Appearance',
     ],
     keyboard: 'Tab moves into the list, landing on the selected tab, and the next Tab moves into the panel. Left and Right move between tabs (Up and Down when vertical), wrapping at the ends; Home and End go to the first and last. With automatic activation, moving focus selects; with manual activation, Enter or Space selects.',
-    focus: 'Focus stays on the tab after it is selected, so arrowing continues. The panel takes focus as a whole (tabindex="0").',
+    focus: 'Focus stays on the tab after it is selected, so arrowing continues. The panel takes focus as a whole (`tabindex="0"`).',
     aria: 'role="tablist" with an aria-label or aria-labelledby; aria-selected on every tab; aria-controls from each tab to its panel and aria-labelledby back. Never use tabs to change the page: a route change is a navigation of links with aria-current.',
   },
 
@@ -222,7 +222,7 @@ export const tabs: ComponentDef = {
   composition: {
     composesWith: ['tab-item'],
     alternativeTo: ['select', 'accordion', 'segmented-control', 'page-nav', 'breadcrumbs', 'pagination'],
-    replacesPatterns: ['show and hide divs with no tab semantics', 'role="tab" on links that change the route'],
+    replacesPatterns: ['show and hide divs with no tab semantics', '`role="tab"` on links that change the route'],
     supersededBy: [],
     planned: [],
   },

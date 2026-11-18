@@ -47,7 +47,7 @@
  * empty, never a throw: every set is then `unrecorded`.
  */
 import type { AnatomyPlan, FigmaNodePlan, ComponentDef } from '@prism3/engine/components';
-import { ENGINE_VERSION } from '@prism3/engine';
+import { ENGINE_VERSION, formerDefIds } from '@prism3/engine';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { reaches } from './executor-reach';
 
@@ -216,6 +216,12 @@ export type SetDue = { readonly state: 'current' | 'unrecorded' }
   | { readonly state: 'due'; readonly reason: 'definition' | 'executor' | 'panel' }
   | { readonly state: 'due'; readonly reason: 'engine'; readonly moved?: Moved };
 
+/** #3770: the entry a set has under an id its def was renamed from, nearest first; null when it has none. */
+export const formerEntry = (ledger: Ledger, id: string): LedgerEntry | null => {
+  for (const from of formerDefIds(id)) if (ledger[from]) return ledger[from];
+  return null;
+};
+
 /** The sets whose read needs their plans printed now: the engine moved past an entry that carries a print, and the
  *  revision did not move by one that reaches the set. The caller prints only these (projecting a set is the costly part), then calls `dueOf`. */
 export const needsPrint = (ledger: Ledger, present: readonly string[], now: (def: string) => LedgerEntry | null): string[] =>
@@ -234,6 +240,11 @@ export const dueOf = (ledger: Ledger, present: readonly string[], now: (def: str
   for (const id of present) {
     const was = ledger[id];
     const is = now(id);
+    // A SET RECORDED ONLY UNDER AN EARLIER ID (#3770): built before its def was renamed (#2759, #3148), so the file still
+    // holds it under that id, and nothing has updated it since (an update records it under the current one). Its rename
+    // is a change the update makes, so it is due whatever else moved; read as unrecorded, it was never in Update file's
+    // check, and a set nesting it read "this file doesn't have" a set the file holds.
+    if (!was && is && formerEntry(ledger, id)) { out[id] = { state: 'due', reason: 'engine', moved: { parts: [], added: [], dropped: [], set: false } }; continue; }
     if (!was || !is) { out[id] = { state: 'unrecorded' }; continue; }
     if (reaches(id, was.rev, is.rev)) { out[id] = { state: 'due', reason: 'executor' }; continue; }
     if (was.engine === is.engine) { out[id] = was.def === is.def ? { state: 'current' } : { state: 'due', reason: 'definition' }; continue; }
