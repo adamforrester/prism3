@@ -14,9 +14,9 @@
 import type { BrandInput } from '@prism3/engine';
 
 export type ComponentSpecsExporter = {
-  /** The two files' names for a brand slug, before anything is computed (the dialog lists them). */
+  /** The files' names for a brand slug, before anything is computed (the dialog lists them). */
   fileNames: (slug: string) => string[];
-  /** The two files for the brand on screen: the export, then its Specs projection. */
+  /** The files for the brand on screen: the component contracts, their compatibility copy (#1325), then the Specs projection. */
   files: (input: BrandInput, slug: string) => { name: string; text: string }[];
 };
 

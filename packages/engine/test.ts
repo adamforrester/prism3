@@ -312,6 +312,7 @@ const BRAND_ROOTS: Record<string, string> = {
   nb: NB_ROOT,
   prism3: exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))?.root ?? unloadedRoot('prism3'),
   aurora: exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput))?.root ?? unloadedRoot('aurora'),
+  harbor: exampleTheme('harbor', () => brandTheme(exampleBrands()['harbor'] as BrandInput))?.root ?? unloadedRoot('harbor'),
   wendys: exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))?.root ?? unloadedRoot('wendys'),
 };
 const rootOfBrand = (brand: string): string => {
@@ -5873,8 +5874,8 @@ arm: {
     // onto `color`, so the stem is `color.<mode>.json` — one file per appearance mode, the shape the
     // value tier always had, under the short name. The floor arm on the next line is the only thing
     // between a fifth such move and a green suite — it is not decoration.
-    const figmaBrands = ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.light.json`)));
-    ok(figmaBrands.length >= 3, `color: the emission covers ${figmaBrands.length} brands (floor 3) — a dropped brand must not read as a clean pass`);
+    const figmaBrands = ['nb', 'aurora', 'harbor', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.light.json`)));
+    ok(figmaBrands.length >= 4, `color: the emission covers ${figmaBrands.length} brands (floor 4) — a dropped brand must not read as a clean pass`);
     for (const brand of figmaBrands) {
       const dir = resolve(HERE, `./out/figma/${brand}`);
 
@@ -9879,8 +9880,8 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
       if (!k.endsWith('-link') && !(meta?.avoid_when ?? '').includes('`type.caption.lg`')) bad.push(`${where}: .ai.json avoid_when does not send standalone small print to caption.lg ("${meta?.avoid_when}")`);
     }
   }
-  // The Figma text styles of the four brands that ship them: body/xs is not for running text.
-  for (const b of ['aurora', 'nb', 'prism3', 'wendys']) {
+  // The Figma text styles of the five brands that ship them: body/xs is not for running text.
+  for (const b of ['aurora', 'harbor', 'nb', 'prism3', 'wendys']) {
     const styles = JSON.parse(readFileSync(resolve(HERE, `out/figma/${b}/text-styles.json`), 'utf8')).styles as { name: string; description: string }[];
     const xs = styles.filter((st) => st.name.startsWith('body/xs/'));
     if (!xs.length) bad.push(`${b}: no body/xs Figma text style`);
@@ -30547,12 +30548,32 @@ arm: {
   }
 }
 
+// #1119 (owner decision 2026-11-18, A) — EVERY BRAND A DESIGNER CAN PICK HAS A COMMITTED FIGMA EMISSION. The studio and
+// the plugin offer the example brands (`schema/example-brands.json`); harbor was one of them with no `out/figma/harbor/`,
+// so every Figma-side gate that walks that directory ran without it and nothing could check a harbor build. The list
+// read here is the picker's, not `emit-figma.ts`'s, so dropping a brand from the emitter fails rather than shrinking the
+// set; and each directory must hold the reference brand's whole file set, so a partial emission fails too.
+{
+  const picker = Object.keys(JSON.parse(readFileSync(resolve(HERE, './schema/example-brands.json'), 'utf8')));
+  const filesOf = (b: string): string[] => existsSync(resolve(HERE, `./out/figma/${b}`))
+    ? readdirSync(resolve(HERE, `./out/figma/${b}`)).filter((f) => f.endsWith('.json')).sort() : [];
+  const reference = filesOf('nb');
+  ok(picker.includes('harbor') && reference.length >= 25,
+    `#1119 reachable: the picker offers harbor (${picker.join(', ')}) and the reference emission holds ${reference.length} files`);
+  for (const b of picker) {
+    const have = filesOf(b);
+    const missing = reference.filter((f) => !have.includes(f));
+    ok(have.length > 0 && missing.length === 0,
+      `#1119 ${b}: out/figma/${b}/ holds every Figma file the reference brand ships${have.length ? (missing.length ? ` — missing ${missing.slice(0, 4).join(', ')}` : '') : ' — the directory is absent'}`);
+  }
+}
+
 // #1786 — EVERY BRAND THE PLUGIN CAN EMIT, inside the `figma_execute` ceiling, and the chunked
 // `color-aliases` pass EXECUTED rather than only measured.
 //
-// THE BRAND SET IS AUTHORED, BY NAME (docs/34: represented, not counted). The four committed
-// `out/figma/<brand>/` trees are read from disk, because those are the bytes the CLI prints. harbor and
-// nb-redesign are `examples/*.design.md` briefs the plugin emits but no committed tree holds, so they are
+// THE BRAND SET IS AUTHORED, BY NAME (docs/34: represented, not counted). The five committed
+// `out/figma/<brand>/` trees are read from disk, because those are the bytes the CLI prints (harbor's since
+// #1119). nb-redesign is an `examples/*.design.md` brief the plugin emits but no committed tree holds, so they are
 // compiled here (the dialect route cli.ts takes) and registered in memory; every pass then runs on them
 // unchanged. Both directions are checked against the directories, so a new brief or a new committed
 // tree that nobody lists here fails by name rather than going unmeasured. That is how prism3 and wendys
@@ -30569,7 +30590,7 @@ arm: {
     { id: 'prism3', tree: 'committed' },
     { id: 'aurora', tree: 'committed' },
     { id: 'wendys', tree: 'committed' },
-    { id: 'harbor', tree: 'brief' },
+    { id: 'harbor', tree: 'committed' },
     { id: 'nb-redesign', tree: 'brief' },
   ];
   const figmaDirs = readdirSync(resolve(HERE, './out/figma')).sort();
@@ -31305,6 +31326,14 @@ arm: {
       const cliDefs = defFile ? JSON.parse(readFileSync(join(cliOut, defFile), 'utf8')) : {};
       ok(r.status === 0 && !!tokFile && !!defFile && cliTree.$extensions?.generator?.build === want && cliDefs.build === want,
         `version: cli.ts stamps the build identity on the tree and the defs export it writes (#3698 R1) — expected ${want}, got tree ${cliTree.$extensions?.generator?.build} / defs ${cliDefs.build} (exit ${r.status}${r.status ? `: ${r.stderr.slice(-300)}` : ''})`);
+      // #1325: the CLI writes the export under its contract name too, the same bytes as the compatibility copy. The name is
+      // derived here from the defs file found on disk, not from `componentDefsFileNames`, so the arm reads what cli.ts wrote.
+      // BY-NAME MUTATION: drop the `names.contracts` writeFileSync in cli.ts, or write it different bytes → this arm fails.
+      const conFile = defFile ? defFile.replace('.component-defs.json', '.component-contracts.json') : undefined;
+      const conText = conFile && readdirSync(cliOut).includes(conFile) ? readFileSync(join(cliOut, conFile), 'utf8') : undefined;
+      const defText = defFile ? readFileSync(join(cliOut, defFile), 'utf8') : undefined;
+      ok(r.status === 0 && conText !== undefined && defText !== undefined && conText === defText,
+        `#1325 cli.ts --component-specs: <id>.component-contracts.json is written and byte-identical to <id>.component-defs.json — got ${conText === undefined ? `no ${conFile ?? '<id>.component-contracts.json'}` : conText === defText ? 'equal' : `${conText.length} vs ${defText?.length} bytes, differing`}`);
     } finally { rmSync(cliOut, { recursive: true, force: true }); }
   }
   const stamped = buildTree(brandTheme(MINIMAL_BRAND)).tree as any;
@@ -31760,8 +31789,9 @@ arm: {
   ok(![...f.files.keys()].some((k) => k.includes('component-defs')), 'export_theme: the default call writes no component-defs export (opt-in)');
   const cs = mkFake();
   ok(!mcpCallTool('export_theme', { brand: xbrand, outDir: './cs', include: ['componentSpecs'] }, undefined, cs.io).isError, 'export_theme: include:[componentSpecs] writes');
-  ok(cs.files.size === 2 && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json'),
-    `export_theme: include:[componentSpecs] writes exactly the export and its Specs projection (${[...cs.files.keys()].join(', ')})`);
+  ok(cs.files.size === 3 && cs.files.has('./cs/component-contracts.json') && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json')
+    && cs.files.get('./cs/component-contracts.json') === cs.files.get('./cs/component-defs.json'),
+    `#1325 export_theme: include:[componentSpecs] writes exactly the component contracts, their compatibility copy (the same bytes) and the Specs projection (${[...cs.files.keys()].join(', ')})`);
   const csDoc = JSON.parse(cs.files.get('./cs/component-defs.json') ?? '{}');
   ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.4' && Object.keys(csDoc.components ?? {}).length >= 40,
     `export_theme: the component-defs export is the brand's (${csDoc.brand?.id}), in its format, with every component (${Object.keys(csDoc.components ?? {}).length})`);
@@ -39450,8 +39480,9 @@ arm: {
       if (r < floor) low.push(`${b}/${mode}: ${ink} on ${ground} ${r.toFixed(2)} < ${floor}`);
     }
   }
-  ok(BRANDS.join(',') === 'aurora,nb,prism3,wendys' && measured === 16 * PAIRS.length && low.length === 0,
-    `#2428 code-input contrast: the character clears 4.5:1 on both page grounds and every cell border 3:1 against the page in all 16 brand × mode cells (${measured} pairs measured over ${BRANDS.join(', ')}, lowest ${lowest.toFixed(2)}:1${low.length ? ` — ${low.slice(0, 6).join('; ')}` : ''})`);
+  // harbor joined the set when #1119 committed its emission: 5 brands × 4 modes.
+  ok(BRANDS.join(',') === 'aurora,harbor,nb,prism3,wendys' && measured === 20 * PAIRS.length && low.length === 0,
+    `#2428 code-input contrast: the character clears 4.5:1 on both page grounds and every cell border 3:1 against the page in all 20 brand × mode cells (${measured} pairs measured over ${BRANDS.join(', ')}, lowest ${lowest.toFixed(2)}:1${low.length ? ` — ${low.slice(0, 6).join('; ')}` : ''})`);
 }
 
 // ---- Figma's default member is the code default, on every axis (#2752, owner decision Q347 A) ----
