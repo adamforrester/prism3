@@ -9,7 +9,10 @@
  * BUILT FROM PRISM3'S OWN COMPONENTS AND SEMANTIC TOKENS, so the panel follows the brand the file is themed with. That
  * is the one way this template differs from the furniture templates, whose literal colors annotate the brand and must
  * not move with it:
- *   - Part-marker is an instance of Badge (count, bold, neutral); Chips holds Tag instances (select, unselected,
+ *   - Part-marker is an instance of Badge (count, bold, neutral), which the panel no longer draws: since #3773 (owner
+ *     decision B) each anatomy marker is a disc in `_Label`'s literal ink that the panel draws itself (`doc-panel.ts`
+ *     `drawMarkers`), so it never reads as the Badge it may mark. The variant stays so a template already in a file
+ *     needs no repair; Chips holds Tag instances (select, unselected,
  *     small); each Do / Don't column holds List.Item instances (unordered, at the block's size); Divider is an
  *     instance of Divider (horizontal, none);
  *   - every fill binds a semantic color variable (`color/text/primary`, `color/text/secondary`,
