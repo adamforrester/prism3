@@ -137,9 +137,12 @@ export type SetOutcome = {
   added: number;
   renamed: number;
   deprecated: string[];
-  /** Members left as they are, each with its reason. `aroundEdits` (#2956): skipped because the update could not apply
-   *  around the member's hand edits, which turns the set's updates off (`updates-off.ts`). */
-  skipped: { member: string; reason: string; aroundEdits?: true }[];
+  /** Members left as they are, each with its reason. */
+  skipped: { member: string; reason: string }[];
+  /** #2956 — of `skipped`, the members skipped because the update could not apply around their hand edits (a layer added
+   *  or removed by hand, a layer the update rebuilds that was edited by hand, a structural update on a hand-edited
+   *  member). Any one turns the set's updates off (`updates-off.ts`). Absent when none. */
+  aroundEdits?: string[];
   /** #2956 (owner decisions 2026-11-17) — the set's updates are off, so this run left it as it is: who turned them off.
    *  Reported calmly, never ⚠ and never "not updated". Absent otherwise. */
   off?: UpdatesOff;
@@ -318,11 +321,13 @@ export { nestedFirst };
 const preflight = (p: SetPreview): string | null => (p.blockers.length ? p.blockers.join('; ') : null);
 
 /** Which members this update configures, which it leaves, and why, from the dry run alone. */
-const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): { members: Map<string, { keep: Set<string>; accept?: boolean; edited?: Set<string> }>; skipped: SetOutcome['skipped']; kept: { member: string; path: string }[]; unrecorded: string[]; restamp: string[]; earlierRecord: string[] } => {
+const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): { members: Map<string, { keep: Set<string>; accept?: boolean; edited?: Set<string> }>; skipped: SetOutcome['skipped']; around: string[]; kept: { member: string; path: string }[]; unrecorded: string[]; restamp: string[]; earlierRecord: string[] } => {
   const byMember = new Map<string, SetPreview['handEdits']>();
   for (const h of p.handEdits) byMember.set(h.member, [...(byMember.get(h.member) ?? []), h]);
   const members = new Map<string, { keep: Set<string>; accept?: boolean; edited?: Set<string> }>();
   const skipped: SetOutcome['skipped'] = [];
+  /** #2956: the skips below the update could not apply around hand edits for. */
+  const around: string[] = [];
   const kept: { member: string; path: string }[] = [];
   const unrecorded: string[] = [];
   const restamp: string[] = [];
@@ -353,7 +358,8 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
       const d = s.damaged ?? [];
       skipped.push({ member: s.member, reason: 'a layer was added or removed by hand'
         + (d.length ? `, and it draws other than its plan (${d.slice(0, 3).join('; ')}${d.length > 3 ? '; …' : ''})` : '')
-        + (s.dangling ? `, and its ${REACTIONS} point at a member no longer in the set` : ''), aroundEdits: true });
+        + (s.dangling ? `, and its ${REACTIONS} point at a member no longer in the set` : '')});
+      around.push(s.member);
       continue;
     }
     if (rootReplaced.has(s.member)) { skipped.push({ member: s.member, reason: 'the member itself would need replacing' }); continue; }
@@ -361,11 +367,11 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
     // Keep and Accept the member is skipped whole, as a layer added by hand is, and named. Overwrite writes the plan, so
     // it rebuilds the layer as asked. DRAFT wording for the owner.
     const lost = choice === 'overwrite' ? [] : edits.filter((e) => e.lost).map((e) => e.path.replace(/#\d+$/, ''));
-    if (lost.length) { skipped.push({ member: s.member, reason: `the update rebuilds ${lost.length === 1 ? 'a layer' : 'layers'} edited by hand (${lost.slice(0, 3).join(', ')}${lost.length > 3 ? ', …' : ''})`, aroundEdits: true }); continue; }
+    if (lost.length) { skipped.push({ member: s.member, reason: `the update rebuilds ${lost.length === 1 ? 'a layer' : 'layers'} edited by hand (${lost.slice(0, 3).join(', ')}${lost.length > 3 ? ', …' : ''})` }); around.push(s.member); continue; }
     // A STRUCTURAL UPDATE ON A MEMBER EDITED BY HAND (#2956 point 2, owner decision 2026-10-23): skipped whole and
     // named, wherever on the member the edits are. Overwrite writes the plan. DRAFT wording for the owner, after the
     // #2956 wireframe's "hand-edited, and the update changes their structure".
-    if (s.restructured && choice !== 'overwrite') { skipped.push({ member: s.member, reason: 'hand-edited, and the update changes its structure', aroundEdits: true }); continue; }
+    if (s.restructured && choice !== 'overwrite') { skipped.push({ member: s.member, reason: 'hand-edited, and the update changes its structure' }); around.push(s.member); continue; }
     // `overwrite` writes over every edited node; `keep` and `accept` leave them, and differ only in the record.
     const edited = new Set(edits.map((e) => e.path.replace(/#\d+$/, '')));
     const keep = choice === 'overwrite' ? new Set<string>() : edited;
@@ -376,7 +382,7 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
   // Every member the dry run read as not built by Prism3 is named, the ones off the plan too (a designer's own icon
   // under the def's prefix, #2296): the update never writes them, and the verdict says so rather than leaving them out.
   for (const u of p.unstamped) if (!skipped.some((x) => x.member === u)) skipped.push({ member: u, reason: 'not built by Prism3' });
-  return { members, skipped, kept, unrecorded, restamp, earlierRecord };
+  return { members, skipped, around, kept, unrecorded, restamp, earlierRecord };
 };
 
 /** THE LEDGER AFTER AN APPLY (#2909 Q2909.8 A; #3421, owner decision Q39 A): each set the apply acted on, recorded as
@@ -552,6 +558,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, pr
   const out: SetOutcome = { def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: opts.handEdits, identity: [], content: [], misses: [] };
   const work = plan(p, opts.handEdits, opts.noBaseline);
   out.skipped = work.skipped;
+  if (work.around.length) out.aroundEdits = work.around;
   out.unrecorded = work.unrecorded;
   if (work.earlierRecord.length) out.earlierRecord = work.earlierRecord;
   out.kept = work.kept;
@@ -1180,7 +1187,7 @@ export const applyUpdate = async (
     // UPDATES OFF, BY ITSELF (#2956, owner decision 2026-11-17): only when this update could not apply around the set's
     // hand edits, so it skipped a member whole for them. The rest of the set is written as usual; the mark stops later
     // runs. A refused or stopped set is not marked: its next run meets the same members and decides then.
-    if (!t.single && !o.refused && !o.stopped && o.skipped.some((x) => x.aroundEdits)) {
+    if (!t.single && !o.refused && !o.stopped && o.aroundEdits?.length) {
       try { writeUpdatesOff(fresh, 'auto'); o.turnedOff = true; } catch { /* the host refused plugin data: the skips are reported as before */ }
     }
     if (unkept.length) o.unkept = unkept;
