@@ -3190,7 +3190,7 @@
         {
           "class": "semantics",
           "disposition": "REFUSED",
-          "description": "The select tag in code — a <button> with aria-pressed, or a role=\"checkbox\" or listbox option when a group owns the selection (a radiogroup for single choice). The label weight is the same selected and unselected. The check mark follows showCheck; with it off, the tint and the 2px outline carry the state."
+          "description": "The select tag in code — a <button type=\"button\"> with aria-pressed, alone or inside Tag.Group, whose select group is a role=\"toolbar\" of these pressed buttons with any number pressed (`tag-group.ts`, #1739, Q-TG1 B). The label weight is the same selected and unselected. The check mark follows showCheck; with it off, the tint and the 2px outline carry the state."
         },
         {
           "class": "deferred",

@@ -428,7 +428,7 @@ export const tag: ComponentDef = {
         class: 'semantics',
         disposition: 'refused',
         description:
-          'The select tag in code — a <button> with aria-pressed, or a role="checkbox" or listbox option when a group owns the selection (a radiogroup for single choice). The label weight is the same selected and unselected. The check mark follows showCheck; with it off, the tint and the 2px outline carry the state.',
+          'The select tag in code — a <button type="button"> with aria-pressed, alone or inside Tag.Group, whose select group is a role="toolbar" of these pressed buttons with any number pressed (`tag-group.ts`, #1739, Q-TG1 B). The label weight is the same selected and unselected. The check mark follows showCheck; with it off, the tint and the 2px outline carry the state.',
       },
       {
         class: 'deferred',
@@ -538,7 +538,7 @@ export const tag: ComponentDef = {
   },
 
   accessibility: {
-    role: 'By type. Select: a `<button>` with `aria-pressed`, or a `role="checkbox"` or listbox option when a group owns the selection (a radiogroup for single choice). Dismissible: the remove control is a real button named "Remove" followed by the label; in a group of dismissible tags it sits in a `role="grid"` row.',
+    role: 'By type. Select: a `<button>` with `aria-pressed`; in a group of select tags (Tag.Group) it is one of the pressed buttons in a `role="toolbar"`, and any number may be pressed. Dismissible: the remove control is a real button named "Remove" followed by the label; in a group of dismissible tags it sits in a `role="grid"` row.',
     wcag: [
       '1.4.1 Use of Color (a selected tag adds a 2px outline and, by default, a check mark to its tint, never color alone)',
       '1.4.3 Contrast (the label ink clears 4.5:1 on the tag at rest in every mode, on the page unselected and on the tint selected)',
@@ -551,9 +551,9 @@ export const tag: ComponentDef = {
       '2.5.5 Target Size (Enhanced) (44×44, as intent — under Tag style Pill a medium tag and its × slot clear 44px on comfortable and spacious density and miss it at compact (36px), and a small tag reaches 44 only at spacious density; elsewhere, and at every size under Underline, a code-side hit area reaches it)',
       '1.1.1 Non-text Content / 4.1.2 Name, Role, Value (the remove control is named "Remove" followed by the label, and a select tag exposes its state)',
     ],
-    keyboard: 'Select: Space or Enter toggles. In a single-choice group, arrows move and select, as radios do. Dismissible: Enter or Space on the remove control removes the tag; in a group, one tab stop enters the group, Left and Right arrows move between tags, and Delete or Backspace removes the focused tag.',
+    keyboard: 'Select: Space or Enter toggles. In a group, one tab stop enters the group and Left and Right arrows move focus between tags without toggling them. Dismissible: Enter or Space on the remove control removes the tag; in a group, one tab stop enters the group, Left and Right arrows move between tags, and Delete or Backspace removes the focused tag.',
     focus: 'A focus ring around the whole tag on `:focus-visible`. In a group of dismissible tags, focus moves to the next tag after a removal, else the previous one, else the group or its input, and never to `<body>`.',
-    aria: 'Name the remove control "Remove" followed by the label ("Remove Marketing"), or aria-label="Remove" plus aria-labelledby pointing at the label. Never a bare "Remove" or "×". A select tag exposes its state with aria-pressed, aria-checked or aria-selected, matching the role its group gives it. The check mark and a leading icon are aria-hidden. Every name is translatable, and the row mirrors under right-to-left layout.',
+    aria: 'Name the remove control "Remove" followed by the label ("Remove Marketing"), or aria-label="Remove" plus aria-labelledby pointing at the label. Never a bare "Remove" or "×". A select tag exposes its state with aria-pressed, alone or in a group. The check mark and a leading icon are aria-hidden. Every name is translatable, and the row mirrors under right-to-left layout.',
   },
 
   content: {
