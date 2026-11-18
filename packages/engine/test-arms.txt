@@ -621,6 +621,7 @@ apps/studio/test-chrome.mjs #3713
 apps/studio/test-chrome.mjs #3878
 apps/studio/test-chrome.mjs #3910
 apps/studio/test-chrome.mjs #3911
+apps/studio/test-chrome.mjs #3977
 apps/studio/test-chrome.mjs #533
 apps/studio/test-chrome.mjs #574
 apps/studio/test-chrome.mjs #831
@@ -1218,6 +1219,7 @@ packages/engine/test.ts #3876
 packages/engine/test.ts #388
 packages/engine/test.ts #390
 packages/engine/test.ts #391
+packages/engine/test.ts #3977
 packages/engine/test.ts #415
 packages/engine/test.ts #479
 packages/engine/test.ts #480
