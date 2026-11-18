@@ -4736,9 +4736,10 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
 // Export area's two downloads, and neither closes it or loads: the designer saves, then answers. The browser's
 // leave-page prompt is armed while the brand has unsaved edits and disarmed when it has none, read by dispatching a
 // cancelable `beforeunload` (an armed page cancels it). EXPECTED typed here: the filenames' shapes and the armed state
-// at each step. Mutations that fail here BY NAME: the leave guard never synced (the `origin` subscription dropped) →
-// `#3982 after Replace brand loads an untouched example, leaving no longer asks`; a download that also cancels
-// (`saveTokens` calling `cancelReplace`) → `#3982 Download tokens leaves the confirm open`.
+// at each step. Mutations that fail here BY NAME (measured): a guard that arms but never disarms (`syncLeaving` calling
+// `sync(true)` only when dirty) → `#3982 after Replace brand loads an untouched example, leaving no longer asks`; a
+// download that also drops the staged load (`saveTokens` clearing `pendingLoad`) → `#3982 Download tokens leaves the
+// confirm open`. On main's source the arm fails `#3982 leaving after an edit asks first`.
 {
   const [atRisk, arriving] = BRANDS;
   const { ctx, page, drain } = await openBrand(atRisk);
