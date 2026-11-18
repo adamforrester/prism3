@@ -1,4 +1,6 @@
-## (2026-11-18) — Style guides: a dimension title that repeats a color title names its collection (#2729)
+## (2026-11-18) — Plugin: an agent's write is announced on the bar and the canvas, and a dimension title that repeats a color title names its collection (#2368, #2729)
+
+### #2729: a dimension title that repeats a color title
 
 Owner decision A on #2729: when a phase-2 table (dimension, font variable) would carry the same title as a color table on the same page, it takes its collection in parentheses, the form two phase-2 tables that share a title already took ("Font size (core)"). A semantic dimension collection named `border` now draws "Border (border)" beside the border colors' "Border".
 
