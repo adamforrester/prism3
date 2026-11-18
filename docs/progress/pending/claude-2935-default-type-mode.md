@@ -17,4 +17,4 @@ brand (`md` = desktop). The PR body asks which applies. The two description and 
 breakpoint description names a type mode). With the change they pass: seven floors typed literally (0 to 1920, across the
 1023/1024 edge), the default five brand's descriptions (sm, md mobile; lg, xl, 2xl desktop), a 0/768 brand, and a
 static-type brand naming none. Mutation: `<` → `<=` in `defaultTypeMode` fails "#2935 TYPE MODE: a 1024px breakpoint
-defaults to desktop type". Regen moves only the four fluid brands' `out/figma/<brand>/layout.*.json` descriptions.
+defaults to desktop type". Regen moves only the five fluid brands' `out/figma/<brand>/layout.*.json` descriptions.
