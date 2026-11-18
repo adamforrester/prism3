@@ -30,7 +30,7 @@ node, edge, feature and status against `origin/main` at `4cda6917` and against `
 - **"Updates off" (#3948)** merged with its own `updates-off` feature row, so this PR adds none.
 - **Report a problem** stays in the gate's `PLUMBING` list. #2069 classed it as panel chrome, and changing that is the
   owner's call.
-- **The real-host round-trip tool (#1218)** has no place in the model. A check has no status field, so a planned
-  check cannot be drawn.
+- **The real-host round-trip tool (#1218)** landed on main (#3973) as a tool you run from a Mac, not a CI gate, and
+  it has not yet run against real Figma. The diagram leaves it out until it has.
 - **TokenPress gradients (#731) and the motion skill** were already covered: TokenPress's node says "variables and
   styles", and `load-skills` already lists `prism3-motion`.
