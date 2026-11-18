@@ -887,6 +887,14 @@
 .p3-frame[data-w="wide"][data-bar-fit] .p3-agent-switch-label { display: none; }
 .p3-frame[data-w="narrow"] .p3-agent-switch-label > .p3-ico { display: block; }
 .p3-frame[data-w="narrow"] .p3-agent-switch-word { display: none; }
+/* #2368 (owner decision A): the busy mark beside the Agent switch while an agent's command that writes the file runs.
+   The chrome's spinner, in the bar's secondary ink, and "Running", which drops at the narrow tier with the switch's word.
+   DRAFT look for the owner. */
+.p3-agent-busy { display: inline-flex; align-items: center; gap: var(--p3-space-075); color: var(--p3-text-2);
+  font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); white-space: nowrap; }
+.p3-agent-busy[hidden] { display: none; }
+.p3-agent-busy .p3-spin::before { border-top-color: var(--p3-text-2); }
+.p3-frame[data-w="narrow"] .p3-agent-busy-word { display: none; }
 .p3-frame[data-w="narrow"] .p3-switch.p3-agent-switch { min-height: var(--p3-ctl-h-xs); }
 /* Minimize (#2949, the owner's Q600 A): a tile at the rail's foot (Q731; on the top bar under #2909), drawn whether the
    agent link is on or off. */

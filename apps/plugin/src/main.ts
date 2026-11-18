@@ -28,6 +28,7 @@ import { restorePlacement, stripPlacement } from './window-place';
 import type { Point, WindowAt } from './window-place';
 import type { MainToUi, UiToMain, StyleGuideOptions, RunProgressKind } from './messages';
 import { createRunGuard, guardFor, writes, busyMessage } from './run-guard';
+import { announces, agentStartLine, agentDoneNotice } from './agent-run-notice';
 import type { WriteCmd } from './run-guard';
 import { strandedCollections, ownedModeIds } from './write-figma';
 import { classifyFile, libraryFileOf, outcomeOf, probeFile, type FileKindApi } from './file-kind';
@@ -2444,6 +2445,8 @@ export const ACTIONS: AgentActions = {
  */
 /** #3309: the agent command running now, so the activity log can name what an agent's forwarded verdict answered. */
 let agentCmd: string | null = null;
+/** #2368: the announced agent run, with its start notice, until the link publishes its result. */
+let announced: { id: string; cmd: string; notice: NotificationHandler | null } | null = null;
 const dispatch = createDispatcher({
   actions: ACTIONS,
   // Streamed to the panel, which forwards them to the desktop bridge for the commands it delivered.
@@ -2451,9 +2454,19 @@ const dispatch = createDispatcher({
   onLog: (id, line) => postToUi({ type: 'agent-log', id, line }),
   // The Activity drawer's agent rows (UI redesign S11): when a command starts, and when it has ended.
   // #2087: a build names its set (no def builds Button, as `buildComponents` does), so the Components page records its verdict.
-  onStart: (id, cmd, apply, def) => {
+  // #2368 (owner decision A): a command that writes the file is announced. The panel's bar shows it busy, and a host
+  // notice says it is running and that closing Prism3 stops it; the notice stays up until its result is written.
+  onStart: (id, cmd, apply, def, confirm) => {
     agentCmd = cmd;
-    postToUi({ type: 'agent-started', id, cmd, ...(apply ? { apply: true as const } : {}), ...(cmd === 'build-components' ? { def: def ?? button.id } : {}) });
+    const busy = announces(cmd, confirm === true);
+    postToUi({ type: 'agent-started', id, cmd, ...(apply ? { apply: true as const } : {}), ...(cmd === 'build-components' ? { def: def ?? button.id } : {}),
+      ...(busy ? { busy: true as const } : {}) });
+    if (busy) {
+      try { announced?.notice?.cancel(); } catch { /* a notice; never fails the command */ }
+      let notice: NotificationHandler | null = null;
+      try { notice = figma.notify(agentStartLine(cmd), { timeout: Infinity }); } catch { /* a notice; see above */ }
+      announced = { id, cmd, notice };
+    }
   },
   onFinish: (id, cmd) => { agentCmd = null; postToUi({ type: 'agent-finished', id, cmd }); },
   // #1957, #3697 R7: an agent's write is declined before it starts while any write holds the file.
@@ -2541,7 +2554,16 @@ export const agentLink = createAgentLink({
   build: PRISM3_BUILD,
   schedule: (fn, ms) => setTimeout(fn, ms),
   cancel: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
-  onState: (state) => postToUi({ type: 'agent-link-state', state }),
+  onState: (state) => {
+    postToUi({ type: 'agent-link-state', state });
+    // #2368: the announced run's result is written once the link publishes it as its last command: its start notice
+    // gives way to the finish notice, with the command's headline.
+    const done = agentDoneNotice(announced, state.lastCommand);
+    if (!done || !announced) return;
+    try { announced.notice?.cancel(); } catch { /* a notice; never fails the command */ }
+    announced = null;
+    try { figma.notify(done.message, { timeout: done.timeout }); } catch { /* a notice; see above */ }
+  },
 });
 // Closing the plugin ends the session, so the link record says so — an agent reading `link` then knows
 // nobody is listening rather than waiting on a poll that will never come.
