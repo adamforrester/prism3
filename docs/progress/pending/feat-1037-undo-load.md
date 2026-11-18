@@ -29,7 +29,7 @@
 built web bundle (7 assertions): offered after Replace brand, the edit back on Undo, offered once, a next load still
 asks, and an edit ends a new offer. On `main`'s build the smoke arm fails `Undo load is offered after Replace brand`
 by name. Five `wip:` mutations each fail by name: a fresh provenance on restore (store and smoke), a stash kept over an
-untouched brand, an offer that survives edits, and the edit subscription dropped.
+untouched brand, an offer that survives edits, and the `identity` subscription dropped (the rename).
 `apps/plugin/test-start-screen.mjs` holds the scope's exclusion: right after `#3697 R9 confirm-replace` (the file's
 own brand arriving over unsaved edits), `#1037 the file's own brand arriving offers no Undo load`. Mutation, failing
 it by name: `loadReplacing` for every origin (`undo-load drawn: 1`).
@@ -37,3 +37,7 @@ it by name: `loadReplacing` for every origin (`undo-load drawn: 1`).
 brand** and an example picked in the start window, through its guard, draws Undo load, and Undo puts the edit back.
 Mutation, failing it by name: the start window's `load` calling `loadBrand` in place of `loadReplacing` (`main.ts`) →
 `#1037 Undo load is offered after a start-window load (New brand › aurora) — got undefined`.
+`test-smoke.mjs` §5 D also ends an offer with a lever edit (review of f78d64b0): after Replace brand over edits, a
+click on the Control shape option the loaded brand does not hold. It holds main.ts's `brand` subscription, which the
+rename case does not. Mutation, failing it by name: `subscribe('brand', endUndoOnEdit)` dropped → `#1037 a lever edit
+to the loaded brand ends the Undo load offer (… undo-load drawn 1)`.

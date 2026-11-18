@@ -4630,7 +4630,8 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
 // load's offer is ended by the first edit to the loaded brand. EXPECTED typed here: the rename, the hook and the button's
 // words. Mutations that fail here BY NAME: never offering it → `Undo load is offered after Replace brand`; restoring with
 // a fresh provenance (`loadBrand` in place of `restoreInput`) → `after Undo load, a next example load still asks first`;
-// dropping the edit subscription → `the first edit to the loaded brand ends the Undo load offer`.
+// dropping the `identity` subscription (this case's edit is a rename) → `the first edit to the loaded brand ends the
+// Undo load offer`; the `brand` subscription is held by the lever-edit case below.
 {
   const [atRisk, arriving] = BRANDS;
   const { ctx, page, drain } = await openBrand(atRisk);
