@@ -11,6 +11,9 @@
  *
  * Twice per kind: under a plan that changes only the member root's fill ("root"), so the edit conflicts with nothing,
  * and under one that also rewrites what the edited node holds ("overlap"), so the edit is a conflict. Keep holds both.
+ * The exception is #3076's icon swaps: the dry run compares the file's icon with the plan's, not the plan's with the
+ * previous plan's, so a swapped icon differs from EVERY plan and reads as a conflict under "root" too, on any update
+ * that moves anything on its member. Those arms assert that reading under both plans (`… root conflict`).
  *
  * INDEPENDENCE (docs/34). Every expected value is TYPED HERE, as the designer left it, never read from the plan, the dry
  * run or the apply's report. The edit is read off the shim's node after the run. Each arm also asserts the member was
@@ -30,7 +33,7 @@
  *     → every `survival/icon swap …` assertion (9); the nested instance's `!kept` re-point guard dropped
  *     (`write-components.ts`) → `/icon swap …` and `/icon swap inset …`, root and overlap (4); the slot's `!kept` guard
  *     dropped → `/icon swap slot root`, `/icon swap slot overlap` (2); `slotRepoints` unwired (`update-plan.ts`) →
- *     `/icon swap slot overlap conflict`.
+ *     `/icon swap slot root conflict` and `/icon swap slot overlap conflict`.
  *
  * UPDATES OFF (#2956, owner decisions 2026-11-17): `survival/off auto` (an update that cannot apply around a hand edit
  * turns the set's updates off by itself, the rest still written), `/off reopen` (a fresh check reads the mark off the
@@ -95,7 +98,10 @@ const CORNERS = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomR
  *  the dry run must list for it. `skipped`: a layer added or removed by hand, which every choice skips whole. */
 type Kind = { kind: string; def: string; member: string; edits: string; edit: (m: Node, w: World) => void | Promise<void>; read: (m: Node) => unknown; want: unknown; skipped?: true;
   /** What the "overlap" plan also changes on the edited node, so the edit is a conflict there. */
-  overlap: (q: AnatomyPlan) => void };
+  overlap: (q: AnatomyPlan) => void;
+  /** The conflict flag the dry run must give the edit under "root", typed, for a kind whose edit differs from every
+   *  plan rather than from the previous one (#3076's icon swaps), so a change to that reading fails by name. */
+  rootConflict?: boolean };
 const TAG_MEMBER = 'type=select, selection=unselected, size=medium, state=rest';
 const tagNode = (q: AnatomyPlan, path: string): PlanNode => path.split('/').reduce((a: PlanNode, s) => a.children!.find((c) => c.name === s)!, q.root);
 const rebindGap = (q: AnatomyPlan): void => { (tagNode(q, 'content').bound as Record<string, string>).itemSpacing = 'space/999'; };
@@ -159,13 +165,14 @@ const KINDS: Kind[] = [
   // hand to the brand's own icon, which Prism3 never built. One arm per shape a component holds an icon in: a glyph
   // that is a nested instance (Tag's check), a glyph inset in a frame (Checkbox's check), and a slot whose default a
   // property names (Search field's clear). "overlap" re-points the same node at another core icon, the case of an
-  // engine that changes the glyph it draws there, so the swap is a conflict.
+  // engine that changes the glyph it draws there, so the swap is a conflict. Under "root" it is a conflict as well: the
+  // swapped icon differs from what every plan names, and that plan moves the member (`rootConflict`).
   { kind: 'icon swap (#3076)', def: 'tag', member: TAG_SELECTED, edits: 'content/labelCheck/checkGlyph', edit: swapTo('content/labelCheck/checkGlyph'),
-    read: (m) => mainName(kid(m, 'content/labelCheck/checkGlyph')), want: BRAND_ICON, overlap: retarget('content/labelCheck/checkGlyph') },
+    read: (m) => mainName(kid(m, 'content/labelCheck/checkGlyph')), want: BRAND_ICON, overlap: retarget('content/labelCheck/checkGlyph'), rootConflict: true },
   { kind: 'icon swap inset (#3076)', def: 'checkbox-control', member: CHECKED, edits: 'checkGlyph/glyph', edit: swapTo('checkGlyph/glyph'),
-    read: (m) => mainName(kid(m, 'checkGlyph/glyph')), want: BRAND_ICON, overlap: retarget('checkGlyph/glyph') },
+    read: (m) => mainName(kid(m, 'checkGlyph/glyph')), want: BRAND_ICON, overlap: retarget('checkGlyph/glyph'), rootConflict: true },
   { kind: 'icon swap slot (#3076)', def: 'search-field', member: SEARCH_MEMBER, edits: 'control/trailingVisual', edit: swapTo('control/trailingVisual'),
-    read: (m) => mainName(kid(m, 'control/trailingVisual')), want: BRAND_ICON, overlap: retarget('control/trailingVisual') },
+    read: (m) => mainName(kid(m, 'control/trailingVisual')), want: BRAND_ICON, overlap: retarget('control/trailingVisual'), rootConflict: true },
 ];
 
 console.log('hand-edit survival (#2956 point 6) — every kind of hand edit, Update with Keep, read back byte-identical\n');
@@ -188,6 +195,11 @@ for (const k of KINDS) for (const plan of ['root', 'overlap'] as const) {
   if (plan === 'overlap' && !k.skipped) {
     const h = pre.sets[0].handEdits.find((x) => x.member === k.member && x.path === k.edits);
     ok(h?.conflict === true, `survival/${k.kind} overlap conflict: the dry run reads the edit as a conflict (${JSON.stringify(h)})`);
+  }
+  if (plan === 'root' && k.rootConflict !== undefined) {
+    const h = pre.sets[0].handEdits.find((x) => x.member === k.member && x.path === k.edits);
+    ok(h?.conflict === k.rootConflict,
+      `survival/${k.kind} root conflict: the dry run reads the edit as ${k.rootConflict ? 'a conflict, since the icon differs from what every plan names' : 'no conflict'} (${JSON.stringify(h)})`);
   }
   const res = await applyUpdate(w.host, w.api as any, targets, previewHashOf(pre), { choices: { handEdits: 'keep' } });
   const o = res.outcomes[0];
