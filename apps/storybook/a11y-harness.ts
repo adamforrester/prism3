@@ -161,7 +161,8 @@ export const represented = (r: Result, label: string, only: (s: Story) => boolea
  *
  * The real run and every mutant go through ONE function, `held`, which runs the check and then holds its coverage with
  * `represented`. So the `DROPPED` mutants prove the wiring the real run uses, not a copy of it: delete the
- * `represented` call and they fail by name (delta review of #3971, R2). `run` is only reachable through `held`.
+ * `represented` call and they fail by name (delta review of #3971, R2). A real run that calls `run` directly, past
+ * `held`, fails by name too.
  */
 export const main = async (
   label: string, summary: string,
@@ -171,14 +172,17 @@ export const main = async (
   const { chromium } = require('playwright');
   const browser = await chromium.launch();
   const { server, origin } = await serve();
+  const wasHeld = new WeakSet<Result>();
   const held = async (plant?: Plant, only: (s: Story) => boolean = () => true): Promise<Result> => {
     const r = await run(browser, origin, plant, only);
     represented(r, label, only);
+    wasHeld.add(r);
     return r;
   };
   let bad = 0;
   try {
     const real = await held();
+    if (!wasHeld.has(real)) real.failures.push(`the real ${label} run's coverage was not held by represented`);
     for (const n of real.notes) console.log(`NOTE ${label}: ${n}`);
     if (real.failures.length) {
       bad++;
