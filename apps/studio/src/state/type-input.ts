@@ -69,7 +69,8 @@ export const addLibraryFace = (raw: string, typefaces: Typography['typefaces'] =
 };
 /** Remove an unbound face from the authored library, by slug. */
 export const removeLibraryFace = (slug: string): void => {
-  setPath(brandState, 'typography.typefaceLibrary', libraryFaces().filter((n) => typefaceSlug(n) !== slug));
+  const next = libraryFaces().filter((n) => typefaceSlug(n) !== slug);
+  setPath(brandState, 'typography.typefaceLibrary', next.length ? next : undefined);
 };
 /** A category's face. In Light: a face name writes `typography.families.<cat>`, `null` writes "no code
  *  styles" (only `code` offers it), and an empty string writes nothing. In another mode: a face writes
