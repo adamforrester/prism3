@@ -115,6 +115,8 @@ export type HostMessage =
   | { kind: 'panels-clean-result'; applied: boolean; drawn: number; removable: number; removed: number; kept: number; error: string | null }
   // #3129 Q833 A — the answer to a queue write: the add queue after it.
   | { kind: 'add-queue'; queued: readonly string[]; error: string | null }
+  // #2956 — the answer to "Turn off updates" / "Turn updates back on": the set, what was asked, and why it failed.
+  | { kind: 'updates-off'; def: string; off: boolean; error: string | null }
   // #2909 Q2909.8 A — one set's hand edits from the background pass after load, or its end.
   | { kind: 'hand-edits'; def: string; members: number; edited: number }
   | { kind: 'hand-edits-done' }
@@ -127,7 +129,9 @@ export type HostMessage =
 export type SetDueView = { readonly state: 'current' | 'unrecorded' } | { readonly state: 'due'; readonly reason: 'definition' | 'executor' | 'panel' }
   /** #3421 (Q39 A): its last update kept hand edits over changes the plan makes: how many members, and each change. */
   | { readonly state: 'kept'; readonly held: { readonly members: number; readonly changes: readonly string[] } }
-  | { readonly state: 'due'; readonly reason: 'engine'; readonly moved?: MovedView };
+  | { readonly state: 'due'; readonly reason: 'engine'; readonly moved?: MovedView }
+  /** #2956 (owner decisions 2026-11-17): its updates are off, turned off by the update itself (`auto`) or the designer. */
+  | { readonly state: 'off'; readonly by: 'auto' | 'designer' };
 /** What an engine update moved in a set's plans (#3082 Q811 A, `Moved` in `as-built-ledger.ts`), for its reason line. */
 export type MovedView = {
   readonly parts: readonly { readonly part: string; readonly facets: readonly FacetView[] }[];
@@ -229,6 +233,8 @@ export interface HostCommit {
   /** #3129 Q833 A: queue `ids` in the file's add queue (`on`), or take them out (`add-queue`). Figma only; inert on the
    *  web. */
   postAddQueue(ids: readonly string[], on: boolean): void;
+  /** #2956: turn the set's updates off (`off`) or back on (`updates-off`). Figma only; inert on the web. */
+  postUpdatesOff(def: string, off: boolean): void;
   /** #3309: the panel's own summary of a run of several writes (`activity-note`), kept by the main thread for the agent
    *  link's `activity` command. Figma only; inert on the web. */
   noteActivity(op: 'components' | 'update', ok: boolean, headline: string, lines: readonly string[]): void;
@@ -381,6 +387,8 @@ const dueOf = (x: unknown): Record<string, SetDueView> => {
     const d = v as { state?: unknown; reason?: unknown } | null;
     if (!d || typeof d !== 'object') continue;
     if (d.state === 'current' || d.state === 'unrecorded') out[id] = { state: d.state };
+    // #2956: an Updates off entry that names nobody who turned it off is left out, as any other malformed entry.
+    else if (d.state === 'off') { const by = (d as { by?: unknown }).by; if (by === 'auto' || by === 'designer') out[id] = { state: 'off', by }; }
     else if (d.state === 'kept') {
       const k = (d as { held?: { members?: unknown; changes?: unknown } }).held;
       const members = count(k?.members);
@@ -627,6 +635,8 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   },
   // #3129 Q833 A. An answer with no queue list is dropped: the panel's own `add-queue` request shares the type and carries
   // none. Ids that are not strings are dropped.
+  // #2956. An answer with no set is dropped; one that is not ok carries its reason, or a fixed one.
+  'updates-off': (m) => (isId(m.def) ? { kind: 'updates-off', def: m.def, off: m.off === true, error: m.ok === true ? null : str(m.error) && m.error ? m.error : 'not written' } : null),
   'add-queue': (m) => (Array.isArray(m.queued) ? { kind: 'add-queue', queued: idsOf(m.queued), error: str(m.error) && m.error ? m.error : null } : null),
   // #2909 Q2909.8 A. A reading with a field of the wrong type is dropped: a guessed count would be a status nobody read.
   'hand-edits': (m) => {
@@ -731,6 +741,9 @@ const figmaCommit = (): HostCommit => ({
   postAddQueue(ids, on) {
     post({ type: 'add-queue', ids: [...ids], on });
   },
+  postUpdatesOff(def, off) {
+    post({ type: 'updates-off', def, off });
+  },
   noteActivity(op, ok, headline, lines) {
     post({ type: 'activity-note', op, ok, headline, lines: [...lines] });
   },
@@ -788,6 +801,7 @@ const webCommit = (): HostCommit => ({
   requestDue() {/* no file on web (#3081) */},
   requestHandEdits() {/* no file on web (#2909) */},
   postAddQueue() {/* no file on web (#3129 Q3129.12 A) */},
+  postUpdatesOff() {/* no file on web */},
   noteActivity() {/* no main thread on web (#3309) */},
   noteRunEnded() {/* no main thread on web (#533) */},
   requestUpdateCheck() {/* no file on web (#2909) */},

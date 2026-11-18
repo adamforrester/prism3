@@ -1507,6 +1507,25 @@
       }
     },
     {
+      "id": "updates-off",
+      "label": "Updates off",
+      "group": "Write to Figma",
+      "lanes": {
+        "figma": {
+          "status": "shipped",
+          "via": "Update file: Turn off updates on a due set, and Turn updates back on under Updates off. A set whose updates are off is left as it is and reported calmly; updates turn off by themselves only when an update can't apply around the set's hand edits. Kept as plugin data on the set",
+          "sources": [
+            "apps/plugin/src/updates-off.ts",
+            "apps/plugin/src/update-apply.ts",
+            "apps/studio/src/shell/update-file.ts"
+          ],
+          "messages": [
+            "updates-off"
+          ]
+        }
+      }
+    },
+    {
       "id": "capture-baseline",
       "label": "Record sets as built",
       "group": "Write to Figma",
