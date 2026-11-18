@@ -27,3 +27,7 @@ passes `styleRenames` into `renameNotes`. Before this change the suite cannot im
 failing by name: drop the call from `main.ts` ("#1040 summary: the Apply Theme summary includes the style rename line"),
 and count unapplied outcomes ("#1040 Apply Theme: the summary line counts the applied renames only", plus two literal
 arms). The executor is untouched, so `EXECUTOR_REVISION` stays.
+
+**Guide citations.** The three lines added to `main.ts` move 12 line citations in five guides under `docs/public/guides/`
+by +3. `lint-guide-claims.ts` named each one and where its block now sits. Only the line numbers changed: each fingerprint
+still matches, and each quoted string is still in its cited line.
