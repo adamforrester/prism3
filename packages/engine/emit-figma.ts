@@ -275,13 +275,16 @@ if (isMain) {
   // spellings; AURORA proves the alias-driven Paint Style path (it opts into gradients and
   // sets `action = accent`, so its colour axis exercises a decoupled action
   // palette); WENDYS proves the standard-dialect front door (parseStandard +
-  // classifier + brandTheme → the same emit-figma shell). All four write to
+  // classifier + brandTheme → the same emit-figma shell); HARBOR is the fifth (#1119). All write to
   // out/figma/<id>/. No new adapter code — the axes are already brand-agnostic;
   // this is where that claim gets exercised.
   const brands: Array<{ id: string; theme: Theme }> = [
     { id: 'nb', theme: nbTheme() },
     { id: 'prism3', theme: compileNative('prism3.design.md') },
     { id: 'aurora', theme: compileNative('aurora.design.md') },
+    // HARBOR (#1119, owner decision 2026-11-18 A): the plugin's brand picker offers it, so its Figma emission is
+    // committed too, and every Figma-side gate that reads out/figma/<brand>/ covers what a designer can build.
+    { id: 'harbor', theme: compileNative('harbor.design.md') },
     { id: 'wendys', theme: compileStandard('wendys.design.md') },
   ];
   for (const { id, theme } of brands) {
