@@ -69,7 +69,6 @@ export type ExportView = {
   readonly none: string | null;
   readonly right: readonly ExportBlock[];
   readonly go: { readonly text: string; readonly off: string | null };
-  readonly imports: readonly { readonly label: string; readonly desc: string }[];
 };
 
 /** What the old controls ran, each ending in the store's `bar` topic. */
@@ -300,7 +299,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
 
   // ── the Export area ────────────────────────────────────────────────────────────────────────────
   /** The Export area's page (#723; the export dialog's content until #2909, without its scrim, Close, Cancel and modal
-   *  trap): the artifact, its settings, then the files and a preview, the action, the import slot. */
+   *  trap): the artifact, its settings, then the files and a preview, and the action (no import since #3910). */
   const exportPage = (x: ExportView, v: BarView): HTMLElement => {
     const dlg = hook(h('section', 'p3-bardlg p3-export-page'), 'export-page');
     dlg.setAttribute('aria-labelledby', 'p3-export-page-h');
@@ -399,21 +398,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     go.onclick = act.download;
     foot.append(go);
     dlg.append(foot);
-    // Import, a slot: the same conversation as export (#723).
-    if (x.imports.length) {
-      const imp = h('div', 'p3-bardlg-import');
-      imp.append(h('div', 'p3-menu-cap', 'Import'));
-      for (const slot of x.imports) {
-        const b = hook(h('button', 'p3-menu-item'), 'export-import');
-        b.append(glyph('upload'), h('span', 'p3-menu-label', `${slot.label}…`));
-        b.type = 'button';
-        b.setAttribute('aria-expanded', String(v.importOpen));
-        b.onclick = () => act.toggleImport();
-        imp.append(b, h('p', 'p3-bardlg-note', slot.desc));
-      }
-      if (v.importOpen) imp.append(importBox(v));
-      dlg.append(imp);
-    }
+    // No Import here (#3910, owner direction 2026-11-17): importing a brief is the brand menu's, not Export's.
     return dlg;
   };
 
