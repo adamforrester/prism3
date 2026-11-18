@@ -1616,4 +1616,10 @@ class.
   (6); running, mutating and restoring (about 11).
 - **Hand edits:** `package.json`, `index.js`, the check, the preview, two READMEs' worth of prose and `CONTRIBUTING.md`.
   Nothing generated changed.
-- **Errors hit:** 2: the recorder installed with `addInitScript` never ran, and the Storybook mutation's timeout.
+- **Errors hit:** 3: the recorder installed with `addInitScript` never ran; the Storybook mutation's wait; and
+  `lint-layout-claims` read this entry's dot-slash entry names as paths relative to `docs/poc/`, so they're
+  written as full specifiers.
+
+**Local gate record** (`npm run verify`'s 114 gates, with `GITHUB_BASE_REF=poc/arm-1`, after `regen`, in 5 chunks
+under 10 minutes): 111 PASS, 0 FAIL after that fix, and 3 not run locally, left to CI as before: `chrome`,
+`chrome-shards` and `plugin-test`.
