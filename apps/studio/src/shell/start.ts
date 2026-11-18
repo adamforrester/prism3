@@ -20,7 +20,7 @@
  * loaded or created. With unsaved edits a choice asks first, in a second window on top of this one (S4):
  * Cancel returns to the start, focus starts on Cancel, and Discard wears Prism3's destructive button (S5).
  */
-import { hex, oklchToRgb, type BrandInput } from '@prism3/engine';
+import { EXAMPLE_DESCRIPTIONS, hex, oklchToRgb, type BrandInput } from '@prism3/engine';
 import type { Origin } from '../provenance';
 import { BRANDS, brandState } from '../state/store';
 import {
@@ -208,7 +208,14 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
     dot.style.background = hex(oklchToRgb(BRANDS[name].primary));
     chip.append(dot, h('span', undefined, name));
     chip.onclick = () => pick({ input: BRANDS[name], origin: { kind: 'example', id: name } }, chip);
-    chips.append(chip);
+    // #3977 (Q-EB1 A): a few muted words under each example, so a designer knows what it is before opening it. The
+    // line is the engine's (`example-registry.ts`), beside the example's id, and describes the chip to a screen reader.
+    const desc = hook(h('span', 'p3-start-desc', EXAMPLE_DESCRIPTIONS[name] ?? ''), 'start-example-desc');
+    desc.id = `p3-start-ex-${name}`;
+    chip.setAttribute('aria-describedby', desc.id);
+    const ex = h('div', 'p3-start-ex');
+    ex.append(chip, desc);
+    chips.append(ex);
   }
   c2.el.append(chips);
 
