@@ -28,7 +28,6 @@ import { currentMode, lastError, rebuild, rp, searchQuery, setCurrentMode, setPa
 import {
   MODE_NAME, MODE_ROWS, PERSONALITY_WORDS, ROOT_RE, addCustomMode, currentRoot, customModes, hcDarkLocked, modesOn, namespaceNote,
   personality, planModeOff, removeCustomMode, renameCustomMode, renameNamespace, setCustomBase, setModeOff, setModeOn, setName, setPersonality, shownName,
-  customModesBasedOn,
   traitLevers, modeDrops,
 } from '../state/brand-input';
 import { verdictOf } from '../state/verdict';
@@ -190,7 +189,7 @@ export const mountBrandLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const rows = MODE_ROWS.map((r) => {
       const c = checkRow(`p3-mode-on-${r.mode}`, `mode-on-${r.mode}`, r.name, (on) => {
         if (on) { edit('modes', () => setModeOn(r.mode)); return; }
-        if (planModeOff(r.mode).confirm || customModesBasedOn(r.mode).length) { confirm = { kind: 'modeoff', mode: r.mode }; render(); return; }
+        if (planModeOff(r.mode).confirm) { confirm = { kind: 'modeoff', mode: r.mode }; render(); return; }
         turnOff(r.mode);
       });
       list.append(c.el);
@@ -268,12 +267,8 @@ export const mountBrandLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       for (const d of plan.drops) ul.append(h('li', undefined, d));
       body.push(ul);
     } else body.push(plan.off.length > 1 ? 'No overrides are set in either mode.' : 'No overrides are set in this mode.');
-    // A custom mode based on this one makes the engine refuse the change, so the confirm says so first
-    // (orchestrator review of #1939). Confirming anyway is refused whole, and the brand stays as it was.
-    const based = customModesBasedOn(mode);
-    if (based.length) {
-      body.push(hook(h('p', 'p3-confirm-line', `${based.length === 1 ? 'Custom mode' : 'Custom modes'} ${based.join(', ')} ${based.length === 1 ? 'is' : 'are'} based on ${MODE_NAME[mode]}, so turning ${MODE_NAME[mode]} off is refused until ${based.length === 1 ? 'it is' : 'they are'} based on Light or removed.`), 'mode-off-based'));
-    }
+    // A custom mode based on this one no longer stops the change (#1946): it is a snapshot carrying its own copy of
+    // the mode's per-mode input, so the confirm has nothing to say about it.
     body.push(`Turning ${MODE_NAME[mode]} on again starts from Auto.`);
     return inlineConfirm('mode-off-confirm', {
       // Every item the list names counts: role overrides, per-mode settings, anchors and surfaces.

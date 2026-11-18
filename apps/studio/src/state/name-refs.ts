@@ -325,8 +325,17 @@ export const COLUMN_REFS: readonly NameRef[] = [
 
 // ── mode rows ───────────────────────────────────────────────────────────────────────────────────
 
+/** A mode row: a field keyed by mode, which a custom mode's creation also copies (#1946). */
+type ModeRef = NameRef & {
+  /** Copy `from`'s entry to `to`, deep, so the two never share an object afterward. Nothing to copy, nothing written. */
+  readonly copy: (b: BrandInput, from: string, to: string) => void;
+};
 /** A field keyed by mode: a rename moves the key, a removal drops it, and a container it empties is pruned. */
-const byMode = (field: 'overrides' | 'modeLevers' | 'modeAnchors' | 'surfaces' | 'outlineHoverFill', line: (k: string, v: unknown) => string[]): NameRef => ({
+const byMode = (field: 'overrides' | 'modeLevers' | 'modeAnchors' | 'surfaces' | 'outlineHoverFill', line: (k: string, v: unknown) => string[]): ModeRef => ({
+  copy: (b, from, to) => {
+    const o = bag(b)[field] as Rec | undefined;
+    if (o && isObj(o) && from in o) o[to] = structuredClone(o[from]);
+  },
   field: `${field}.<mode>`, kind: 'mode',
   rename: (b, p, n) => { const o = bag(b)[field] as Rec | undefined; if (o && p in o) { o[n] = o[p]; delete o[p]; } },
   remove: (b, x) => {
@@ -342,7 +351,7 @@ const leaves = (o: unknown, p: string): string[] => (isObj(o)
   ? Object.entries(o).flatMap(([k, v]) => leaves(v, `${p}${p ? '.' : ''}${k}`))
   : [`${p} = ${String(o)}`]);
 
-export const MODE_REFS: readonly NameRef[] = [
+export const MODE_REFS: readonly ModeRef[] = [
   byMode('overrides', (r) => [`Role override: ${r}`]),
   byMode('modeLevers', (k, v) => leaves(v, k).map((l) => `Setting: ${l}`)),
   byMode('modeAnchors', (c, v) => [`Anchor: ${c} at ${String(v)}`]),
@@ -380,6 +389,9 @@ export const paletteRemovalEffects = (b: BrandInput, name: string): string[] => 
 export const removeColumn = (b: BrandInput, col: string): void => { for (const r of COLUMN_REFS) r.remove(b, col); };
 export const renameMode = (b: BrandInput, prev: string, next: string): void => { for (const r of MODE_REFS) r.rename(b, prev, next); };
 export const removeMode = (b: BrandInput, mode: string): void => { for (const r of MODE_REFS) r.remove(b, mode); };
+/** Custom mode `to` takes a snapshot of mode `from`'s per-mode input (#1946, owner decision 2026-11-18 A): every mode
+ *  row's entry, copied deep. Afterward the two are unlinked: an edit to either reaches only that one. */
+export const copyMode = (b: BrandInput, from: string, to: string): void => { for (const r of MODE_REFS) r.copy(b, from, to); };
 export const modeRemovalEffects = (b: BrandInput, mode: string): string[] => MODE_REFS.flatMap((r) => r.effects(b, mode));
 
 // ── the atomic commit ───────────────────────────────────────────────────────────────────────────

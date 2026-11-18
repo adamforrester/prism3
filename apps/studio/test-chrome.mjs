@@ -4977,9 +4977,6 @@ const NS_WARN = { pds3: 'pds3 is the default theme’s placeholder. Set your bra
   prism: 'prism is reserved for the shipped catalog. Set your brand’s namespace before you export.' };
 /** Q3 (v4 review 3, v5): the confirm's sentence for the default theme, 239 gated pairs per mode (Health's literal). */
 const DARK_OFF_TITLE = 'Turn off Dark and high contrast dark';
-/** The Dark-off confirm's line when a custom mode is based on dark (orchestrator review of #1939), the reviewer's
- *  decision in the words chosen for it, typed here. */
-const BASED_ON_DARK = 'Custom mode custom-1 is based on Dark, so turning Dark off is refused until it is based on Light or removed.';
 const DARK_OFF_LINE = 'High contrast dark follows dark, so it turns off too. The two modes’ 478 pairs leave the verdict (956 becomes 478).';
 const persisted = (page) => page.evaluate(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input ?? null; } catch { return null; } });
 const modeRadios = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]')].map((b) => b.dataset.mode));
@@ -5123,20 +5120,25 @@ for (const host of ['web', 'figma']) {
   await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="custom-1"]'));
   const cm = await page.evaluate(() => ({ name: document.querySelector('[data-p3="custom-mode-name"]')?.value, focus: document.activeElement?.getAttribute('data-p3') }));
   ok(cm.name === 'custom-1' && cm.focus === 'custom-mode-name', `custom modes: Add custom mode adds custom-1, previewable, its name focused (${JSON.stringify(cm)})`);
-  // A custom mode based on Dark makes the engine refuse Dark off (orchestrator review of #1939): the confirm says
-  // so first, and confirming anyway is refused whole, the brand and the saved brand exactly as they were.
+  // A custom mode based on Dark no longer stops Dark off (#1946, owner decision 2026-11-18 A: a custom mode is a
+  // snapshot). The confirm carries no refusal line, confirming turns Dark off, and the custom mode stays, still
+  // previewable and still recording Dark as where it started. Dark here drops nothing and takes no other mode (high
+  // contrast dark is already off), so it turns off at once, with no confirm: before #1946 the custom mode alone forced
+  // one, to say the change would be refused. Dark then comes back on for the rest of the case.
   await page.locator('[data-p3="custom-mode-base"]').selectOption('dark');
   await page.waitForFunction(() => document.querySelector('[data-p3="custom-mode-base"]')?.value === 'dark');
-  const savedBefore = JSON.stringify(await persisted(page));
   await hooks.click(page.locator('[data-p3="mode-on-dark"]'));
-  await hooks.need(page, '[data-p3="mode-off-confirm"]');
-  const based = await page.evaluate(() => document.querySelector('[data-p3="mode-off-based"]')?.textContent ?? null);
-  ok(based === BASED_ON_DARK, `Q3: the Dark-off confirm names the custom mode based on dark — says ${JSON.stringify(based)}`);
-  await hooks.click(page.locator('[data-p3="mode-off-confirm-go"]'));
-  const refusedNow = await page.evaluate(() => ({ refused: document.querySelector('[data-p3="lever-modes"]')?.dataset.refused ?? null, dark: document.querySelector('[data-p3="mode-on-dark"]')?.getAttribute('aria-checked') }));
-  ok(refusedNow.refused === 'true' && refusedNow.dark === 'true' && JSON.stringify(await modeRadios(page)) === '["light","dark","hc-light","custom-1"]',
-    `Q3: a refused Dark off marks Modes refused and leaves dark on (${JSON.stringify(refusedNow)}, modes ${await modeRadios(page)})`);
-  ok(JSON.stringify(await persisted(page)) === savedBefore, 'Q3: a refused Dark off leaves the saved brand exactly as it was');
+  const offDone = await page.waitForFunction(() => document.querySelector('[data-p3="mode-on-dark"]')?.getAttribute('aria-checked') === 'false', null, { timeout: 5000 }).then(() => true, () => false);
+  const afterOff = await page.evaluate(() => ({ refused: document.querySelector('[data-p3="lever-modes"]')?.dataset.refused ?? null, base: document.querySelector('[data-p3="custom-mode-base"]')?.value ?? null }));
+  const savedOff = await persisted(page);
+  const askedFirst = await page.evaluate(() => !!document.querySelector('[data-p3="mode-off-confirm"]'));
+  ok(!askedFirst, '#1946: a custom mode based on dark no longer brings up the Dark-off confirm by itself');
+  ok(offDone && afterOff.refused !== 'true' && JSON.stringify(await modeRadios(page)) === '["light","hc-light","custom-1"]',
+    `#1946: Dark off is taken with a custom mode based on dark, and the custom mode stays previewable (${JSON.stringify(afterOff)}, modes ${await modeRadios(page)})`);
+  ok(afterOff.base === 'dark' && JSON.stringify(savedOff?.customModes) === '[{"name":"custom-1","base":"dark"}]',
+    `#1946: the custom mode keeps the record of where it started, on screen and saved (${afterOff.base}, ${JSON.stringify(savedOff?.customModes)})`);
+  await hooks.click(page.locator('[data-p3="mode-on-dark"]'));
+  await page.waitForFunction(() => document.querySelector('[data-p3="mode-on-dark"]')?.getAttribute('aria-checked') === 'true');
   await hooks.click(page.locator('[data-p3="custom-mode-remove"]'));
   // D10 (#2487 PR 5): a bounded wait whose result is the assertion, so a regression fails here by name instead of
   // timing out into the catch and skipping the rest of the Brand case.

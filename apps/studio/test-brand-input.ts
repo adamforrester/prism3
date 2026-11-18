@@ -11,7 +11,7 @@
  * reserved names are the decision's (T2: `prism`, `pds3`); the mode sets are the owner's Q3, typed here; and
  * "the engine takes it" is the engine's own `brandTheme`, never the module's opinion of itself.
  */
-import { brandTheme, type BrandInput } from '@prism3/engine';
+import { brandTheme, resolveAllModes, type BrandInput } from '@prism3/engine';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as store from './src/state/store';
 import * as B from './src/state/brand-input';
@@ -76,33 +76,60 @@ const withDrop = B.planModeOff('dark');
 ok(withDrop.drops.includes('Setting: density = compact'), `turning dark off lists the dark setting it drops (${JSON.stringify(withDrop.drops)})`);
 ok(B.setModeOff('dark') === null && store.brandState.modeLevers === undefined && takes(), 'and drops it, so the engine takes the result');
 
-console.log('\n3b. A refused Dark off loses nothing (orchestrator review of #1939)');
-// The exact path: a custom mode based on dark, dark's own data, Dark off confirmed, the engine refuses, then Dark
-// on. The brand, and what was saved, must be the original byte for byte. The legacy toggle kept everything on a
-// refusal; the first S3 cut dropped dark's data before it asked the engine.
+console.log('\n3b. Dark off with a custom mode based on dark (#1946: a custom mode is a snapshot)');
+// Before #1946 the engine refused this whole change. A custom mode now carries its own copy of its source's per-mode
+// input, so Dark off is taken, dark's own data goes with it, and the custom mode keeps its copy and resolves as before.
 reset();
-let saved: string | null = null;
-store.setPersist((input) => { saved = JSON.stringify(input); });
 const b0 = store.brandState as unknown as Record<string, unknown>;
 b0.customModes = [{ name: 'promo', base: 'dark' }];
 b0.modeLevers = { dark: { density: 'compact' }, promo: { density: 'spacious' } };
 // A step the engine's own primary ramp carries, read from the resolved theme rather than guessed.
 const pstep = store.theme.palettes.find((p) => p.palette === 'primary')!.steps[4];
-b0.overrides = { dark: { 'text.link.default': { palette: 'primary', step: pstep.key } } };
+b0.overrides = { dark: { 'text.link.default': { palette: 'primary', step: pstep.key } }, promo: { 'text.link.default': { palette: 'primary', step: pstep.key } } };
 b0.modeAnchors = { dark: { primary: 400 } };
-b0.surfaces = { light: { base: 100 }, dark: { base: 950 } };
+b0.surfaces = { light: { base: 100 }, dark: { base: 950 }, promo: { base: 900 } };
 store.rebuild();
-ok(store.lastError === null && saved !== null, `the setup resolves and is saved (${store.lastError ?? 'no error'})`);
-const original = JSON.stringify(store.brandState);
-const savedBefore = saved;
-ok(JSON.stringify(B.customModesBasedOn('dark')) === '["promo"]', 'the confirm can name the custom mode based on dark');
-const refusal = B.setModeOff('dark');
-ok(refusal !== null && /promo/.test(refusal), `turning dark off is refused by the engine, naming promo (${refusal})`);
-ok(JSON.stringify(store.brandState) === original, 'a refused Dark off leaves the brand byte-identical (dark data, modes and HC dark kept)');
-B.setModeOn('dark');
+ok(store.lastError === null, `the setup resolves (${store.lastError ?? 'no error'})`);
+const promoOf = (): string => JSON.stringify(resolveAllModes(brandTheme(structuredClone(store.brandState))).find((r) => r.mode === 'promo')?.roles ?? null);
+const promoBefore = promoOf();
+const promoInput = JSON.stringify(['overrides', 'modeLevers', 'modeAnchors', 'surfaces'].map((k) => (b0[k] as Record<string, unknown> | undefined)?.promo ?? null));
+ok(B.setModeOff('dark') === null, 'turning dark off is taken while a custom mode is based on dark');
+const b1 = store.brandState as unknown as Record<string, Record<string, unknown> | undefined>;
+ok(JSON.stringify(store.brandState.modes) === '["light","hc-light"]' && ['overrides', 'modeLevers', 'modeAnchors', 'surfaces'].every((k) => !b1[k] || !('dark' in b1[k]!)),
+  `dark and its own data are gone (modes ${JSON.stringify(store.brandState.modes)})`);
+ok(JSON.stringify(store.brandState.customModes) === '[{"name":"promo","base":"dark"}]'
+  && JSON.stringify(['overrides', 'modeLevers', 'modeAnchors', 'surfaces'].map((k) => b1[k]?.promo ?? null)) === promoInput,
+  'the custom mode stays, with the record of where it started and its own per-mode input untouched');
 store.rebuild();
-ok(JSON.stringify(store.brandState) === original && saved === savedBefore, `then Dark on: the saved brand equals the original (${saved === savedBefore ? 'same' : 'differs'})`);
-store.setPersist(null);
+ok(store.lastError === null && promoOf() === promoBefore, `the custom mode resolves exactly as before dark went (${store.lastError ?? 'same roles'})`);
+
+console.log('\n3c. Adding a custom mode takes a snapshot of light (#1946)');
+reset();
+const b2 = store.brandState as unknown as Record<string, Record<string, unknown> | undefined>;
+const lstep = store.theme.palettes.find((p) => p.palette === 'primary')!.steps[5];
+b2.overrides = { light: { 'text.link.default': { palette: 'primary', step: lstep.key } } };
+// No modeLevers.light: light's non-color levers are the brand-wide ones, which every mode shares (the engine refuses
+// modeLevers.light), so there is nothing per-mode of light's to copy there.
+b2.modeAnchors = { light: { primary: 600 } };
+b2.surfaces = { light: { base: 50 } };
+store.rebuild();
+ok(store.lastError === null, `light carries per-mode input of its own (${store.lastError ?? 'no error'})`);
+const lightInput = JSON.stringify(['overrides', 'modeLevers', 'modeAnchors', 'surfaces'].map((k) => b2[k]?.light ?? null));
+const added = B.addCustomMode();
+const copied = (): string => JSON.stringify(['overrides', 'modeLevers', 'modeAnchors', 'surfaces'].map((k) => b2[k]?.[added] ?? null));
+ok(copied() === lightInput, `the new custom mode holds a copy of light's per-mode input (${copied()})`);
+ok(JSON.stringify(store.brandState.customModes) === `[{"name":"${added}","base":"light"}]`, 'and keeps the record of the mode it started from');
+store.rebuild();
+const modeRoles = (m: string): string => JSON.stringify(resolveAllModes(brandTheme(structuredClone(store.brandState))).find((r) => r.mode === m)?.roles ?? null);
+const addedBefore = modeRoles(added);
+ok(store.lastError === null && addedBefore === modeRoles('light'), 'at creation it resolves exactly as light does');
+// Edit light afterward, every per-mode field it has: the copy is deep, so none of it reaches the custom mode.
+(b2.overrides!.light as Record<string, unknown>)['text.link.default'] = { palette: 'primary', step: lstep.key === pstep.key ? store.theme.palettes.find((p) => p.palette === 'primary')!.steps[6].key : pstep.key };
+(b2.modeAnchors!.light as Record<string, unknown>).primary = 300;
+(b2.surfaces!.light as Record<string, unknown>).base = 150;
+store.rebuild();
+ok(store.lastError === null && modeRoles('light') !== addedBefore, `light's edits are real: light moved (${store.lastError ?? 'resolved'})`);
+ok(copied() === lightInput && modeRoles(added) === addedBefore, 'a later edit to light leaves the custom mode, and what it resolves to, as they were');
 
 console.log('\n4. Custom modes and personality');
 reset();
