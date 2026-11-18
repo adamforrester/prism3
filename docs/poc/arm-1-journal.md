@@ -1535,7 +1535,7 @@ restore. It is filed separately rather than fixed in this PR.
 
 ## Q-POC3 B — one entry per element; the package root registers nothing
 
-Started about 15:05 UTC on 2026-11-18, from `poc/arm-1` at `62a34be3`. It builds the owner's answer to the #1712 A
+Started about 14:00 UTC on 2026-11-18, from `poc/arm-1` at `62a34be3`. It builds the owner's answer to the #1712 A
 audit's second flag (Q-POC3 → B, 2026-11-18, on #3408). `import '@prism3/web-components'` registers nothing, and
 each element registers from its own entry, the button included.
 
@@ -1596,7 +1596,7 @@ class.
   | Mutation | Result |
   |---|---|
   | `package.json` put back to `poc/arm-1`'s | Fails by name, 11 failures, among them `root (@prism3/web-components): registered <p3-button>, expected nothing` and `resolve: "@prism3/web-components/button" from apps/storybook resolves to unresolved (Package subpath './button' is not defined by "exports" …)` |
-  | The preview's `import '@prism3/web-components/button'` deleted | `storybook-check` **timed out** (over 280 s) rather than failing by name. The S5 field-stories entry saw the same with unregistered elements. Filed separately. |
+  | The preview's `import '@prism3/web-components/button'` deleted | `storybook-check` hadn't reported after 280 s, when the run was stopped. Each element story waits 15 s for its element, so the failure comes late if at all. The S5 field-stories entry saw the same. Filed as #3969. |
 
 - `storybook-build` and `storybook-check` pass on the new preview (100 stories, 868 checks). `wc-generated` passes,
   so the manifest is unchanged.
@@ -1605,12 +1605,12 @@ class.
 
 - **Playwright's `setContent` runs no init scripts,** so the `customElements.define` recorder is evaluated after the
   page is set and before the entry's script.
-- **A missing registration shows up in the Storybook as a timeout, not a name.** `check-entries.ts` now names it
+- **A missing registration shows up in the Storybook as a 15 s wait per story, not a name** (#3969). `check-entries.ts` now names it
   first, in seconds.
 
 ### Effort
 
-- **Wall clock:** about 15:05 to 15:30 UTC for the entries, the check, the mutations and this entry; then the gate
+- **Wall clock:** about 14:00 to 14:15 UTC for the entries, the check, the mutations and this entry; then the gate
   run.
 - **Steps:** about 20 tool calls: finding every entry reference (3); writing `index.js`, the check and the edits
   (6); running, mutating and restoring (about 11).
