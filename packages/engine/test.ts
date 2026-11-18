@@ -1078,6 +1078,16 @@ for (const hx of ['#000000', '#333333', '#7f7f7f', '#808080', '#ffffff']) {
   for (const n of ['eval.ts', 'ai-metadata.ts'])
     ok(engineSrc.includes(n) && /\bfloorRatio\b/.test(readFileSync(resolve(HERE, n), 'utf8')), `#3759 packages/engine/${n} is in the ratio scan and stores its ratios through floorRatio`);
   ok(/\bfloorRatio\b/.test(readFileSync(resolve(APPS, 'plugin/src/set-override.ts'), 'utf8')), '#3759 apps/plugin/src/set-override.ts stores its data ratios through floorRatio');
+  // #3693: a confirm is refused as changes-moved or brand-moved (`confirmMoved`). The committed agent reference names
+  // both, so an agent reading it learns a confirm with other changes is refused on its own, not only a moved brand.
+  {
+    const ref = JSON.parse(readFileSync(resolve(HERE, '../../docs/public/reference/commands.json'), 'utf8')) as { agentLink: { commands: Array<{ name: string; writes?: string }> } };
+    const writes = ref.agentLink.commands.find((c) => c.name === 'set-override')?.writes ?? '';
+    const reasons = [...readFileSync(resolve(APPS, 'plugin/src/set-override.ts'), 'utf8').matchAll(/export const confirmMoved = [^:]*: ([^=]*)=>/g)].flatMap((m) => m[1].match(/'[a-z-]+'/g) ?? []);
+    const named: Record<string, string> = { "'changes-moved'": 'the changes sent are not the ones previewed', "'brand-moved'": "the file's brand moved after the preview" };
+    ok(reasons.length === 2 && reasons.every((r) => named[r]), `#3693 confirmMoved's reasons are changes-moved and brand-moved (got ${reasons.join(', ')})`);
+    for (const r of reasons) ok(writes.includes(named[r] ?? r), `#3693 the agent reference's set-override names the ${r} refusal ("${named[r]}"; got "${writes}")`);
+  }
   // The values, driven at the review's case. Studio's contracts table: the preview stores the RAW ratio, so its floored
   // print is 4.49 beside the failing dot. An eval failure and a stored floor never round up onto the 4.5 they miss.
   ok(floorRatio(4.496) === 4.49 && floorRatio(4.4999) === 4.49 && floorRatio(4.5) === 4.5 && formatRatio(4.496, { bare: true }) === '4.49',
