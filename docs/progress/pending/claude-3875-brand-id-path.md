@@ -7,7 +7,9 @@ wrote `.tokens.json` and its siblings as hidden dotfiles. Treated as a security 
 
 - `brandTheme` refuses an id that is empty or blank, holds a slash, a backslash or a NUL, or is `.` or `..`. It is the
   choke point every entry path passes through (CLI, MCP, the studio, the plugin). The schema gains the matching
-  `pattern` (`^[^/\\]+$`), so a file-driven brief stops there first.
+  `pattern` (`^(?!\.{1,2}$)(?=[\s\S]*\S)[^/\\\u0000]+$`), so a file-driven brief stops there first. Review of
+  `12ce358d` found the first pattern (`^[^/\\]+$`) let `.`, `..`, a blank id and NUL through; the two layers now
+  refuse the same ids.
 - `emitTheme` resolves every file name it will write and refuses, before it writes anything, if one would land outside
   its directory. This holds whatever reaches it, including a theme that skipped `brandTheme`.
 - The CLI reports a failed write through `fail()`, not as a stack trace.
@@ -22,4 +24,6 @@ refuses only what makes an id unsafe as a file name; whether to go further is he
 pass, and `Has Space` still builds. Mutations, each failing by name: the `brandTheme` check disabled fails the six id
 arms; the `emitTheme` containment check disabled fails "#3875 emitTheme refuses an id that would write outside its
 directory"; the CLI's `try` removed fails "#3875 the CLI reports a failed write through fail(), with no stack trace".
-Every committed artifact regenerates unchanged.
+The schema/engine agreement arms (12 ids, both ways): on the first pattern 7 fail; with the fix all pass. Dropping the
+`.`/`..` lookahead fails the `.` and `..` arms, dropping NUL fails the two NUL arms, and refusing any leading dot fails
+the `...` and `.hidden` accept arms, each by name. Every committed artifact regenerates unchanged.
