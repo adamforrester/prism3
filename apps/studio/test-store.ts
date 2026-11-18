@@ -22,7 +22,7 @@
  * `brandState` instead of `lastGoodInput` → `a refused edit never reaches storage, even through
  * syncIdentity` (#1846).
  */
-import { type BrandInput, brandTheme } from '@prism3/engine';
+import { type BrandInput, brandTheme, typefaceSlug } from '@prism3/engine';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as store from './src/state/store';
 import { isDirty, needsOverwriteConfirm } from './src/provenance';
@@ -263,6 +263,50 @@ ok(store.getPath(o, 'a.b.c') === 3 && store.getPath(o, 'a.x.c') === undefined, '
   ok(persisted[persisted.length - 1]?.name === 'mine' && persisted[persisted.length - 1]?.actionPalette === undefined,
     `#1037 restoreInput over a failing edit: the persisted copy is the user's last good brand, so a reload opens it (${persisted[persisted.length - 1]?.name})`);
   store.setPersist(null);
+}
+
+// ---- #3878: a clear is a clear — set, then back to Auto, leaves the brand byte-identical ----------------
+// Each writer below clears with `undefined` (or an emptied list or map). Before #3878, `setPath` materialized
+// every parent on the way down, so the clear left `typography: {}` (or `shadow: {}`, `surfaces: { light: {} }`,
+// `layout: {}`, `typefaceLibrary: []`), and `isDirty` read the untouched brand as edited. EXPECTED is the brand
+// as loaded (the provenance baseline, a clone taken before any write); ACTUAL is the live `brandState`.
+{
+  const { isDirty, editCount } = await import('./src/provenance');
+  const { BLANK_BRAND } = await import('./src/state/start-input');
+  const type = await import('./src/state/type-input');
+  const depth = await import('./src/state/depth-motion-input');
+  const fills = await import('./src/state/fills-input');
+  const layout = await import('./src/state/layout-input');
+  const blank = (): void => store.initSession(BLANK_BRAND(), { kind: 'new' });
+  const example = (): void => store.initSession(structuredClone((exampleBrands as Record<string, BrandInput>).prism3), { kind: 'example', id: 'prism3' });
+  const cases: Array<[string, () => void, () => void, () => void]> = [
+    ['setTitleFloor on, then off', blank, () => type.setTitleFloor(true), () => type.setTitleFloor(false)],
+    ['setCaptionFloor 10, then 11', blank, () => type.setCaptionFloor(10), () => type.setCaptionFloor(11)],
+    ["setShadowSoftness('light') 0.5, then Auto", blank, () => depth.setShadowSoftness('light', 0.5), () => depth.setShadowSoftness('light', undefined)],
+    ["setTempo('light') snappy, then Auto", blank, () => depth.setTempo('light', 'snappy'), () => depth.setTempo('light', undefined)],
+    ["setSurfaceFloor('light') a step, then Auto", blank, () => fills.setSurfaceFloor('light', '100'), () => fills.setSurfaceFloor('light', '')],
+    ["setBandPalette('dark') primary, then neutral (prism3 example)", example,
+      () => fills.setBandPalette('dark', fills.bandPalettes()[1] ?? 'NO-SECOND-BAND-PALETTE'),
+      () => fills.setBandPalette('dark', store.theme.roleToPalette.neutral)],
+    ['addLibraryFace, then removeLibraryFace (prism3 example)', example, () => { type.addLibraryFace('Lora'); }, () => type.removeLibraryFace(typefaceSlug('Lora'))],
+    ['setColumnOverride 2, then Auto', blank, () => layout.setColumnOverride('md', 2), () => layout.setColumnOverride('md', undefined)],
+  ];
+  for (const [name, init, set, clear] of cases) {
+    init();
+    const before = JSON.stringify(store.brandState);
+    set();
+    const moved = JSON.stringify(store.brandState) !== before;
+    clear();
+    ok(moved && same(store.brandState, store.provenance.baseline) && !isDirty(store.brandState, store.provenance)
+      && editCount(store.brandState, store.provenance.baseline) === 0,
+      `#3878: ${name} leaves the brand byte-identical and not dirty${moved ? '' : ' (FIXTURE: the set wrote nothing)'}`);
+  }
+  const o: any = { keep: { arr: [1] }, a: { b: { c: 1 } } };
+  store.setPath(o, 'a.b.c', undefined);
+  store.setPath(o, 'x.y', undefined);
+  ok(same(o, { keep: { arr: [1] } }), '#3878: setPath(undefined) prunes every parent it empties and creates none');
+  store.setPath(o, 'keep.arr.0', undefined);
+  ok(Array.isArray(o.keep.arr) && 'keep' in o, '#3878: setPath(undefined) never prunes an array, nor its owner through it');
 }
 
 console.log(`\n${executed - failed}/${executed} passed`);

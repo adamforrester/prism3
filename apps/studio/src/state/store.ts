@@ -323,9 +323,28 @@ export const setSearchHits = (n: number | null): void => { searchHits = n; inval
 // ---- paths into the input --------------------------------------------------------------------------
 
 export const getPath = (o: any, p: string): any => p.split('.').reduce((a, k) => (a == null ? undefined : a[k]), o);
+/** Write `v` at the dot path `p`, creating missing parents. `undefined` is a clear (#3878): it deletes the key,
+ *  creates nothing, and prunes each parent object it leaves empty, so a value set and then put back to Auto
+ *  leaves the brand byte-identical to one never edited (the rule `clearSurface` and `pruneModeLevers` hold).
+ *  An array is never pruned, and neither is `o` itself. `null` is a value, not a clear. */
 export const setPath = (o: any, p: string, v: unknown): void => {
   const ks = p.split('.');
   const last = ks.pop()!;
+  if (v === undefined) {
+    const chain: any[] = [o];
+    for (const k of ks) {
+      const next = chain[chain.length - 1][k];
+      if (next == null || typeof next !== 'object') return;
+      chain.push(next);
+    }
+    delete chain[ks.length][last];
+    for (let i = ks.length; i > 0; i--) {
+      const node = chain[i];
+      if (Array.isArray(node) || Object.keys(node).length) break;
+      delete chain[i - 1][ks[i - 1]!];
+    }
+    return;
+  }
   let cur = o;
   for (const k of ks) { if (cur[k] == null || typeof cur[k] !== 'object') cur[k] = {}; cur = cur[k]; }
   cur[last] = v;

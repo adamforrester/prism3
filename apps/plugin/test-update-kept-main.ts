@@ -30,7 +30,9 @@
  *     `main/held survives a second Keep`, `main/kept after a second Keep`;
  *   · `ledgerAfter` recording a set the apply stopped inside (#3424) → `main/stopped stays due`;
  *   · `panelFormatOf` writing `{ panel: PANEL_FORMAT }` without `changed` (#2889) → `main/changed recorded`;
- *   · `panelFormatOf` writing `{ changed }` without `panel` (#3937) → `main/panel recorded`.
+ *   · `panelFormatOf` writing `{ changed }` without `panel` (#3937) → `main/panel recorded`;
+ *   · `updateComponents` building its ledger entries by reading Documentation's panels switch again after the apply,
+ *     not the value `updateTargets` read (#3870) → `main/panel read once per run`.
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
@@ -38,7 +40,7 @@ import { componentDefs, figmaAnatomySet, planBoundVars, planPaintVars, planTextS
 import { SWAP_TARGET } from './src/build-deps';
 import { materializeForBrand } from './src/brand-def';
 import { applyComponentPlan } from './src/write-components';
-import { entryFor, readLedger, recordSets } from './src/as-built-ledger';
+import { entryFor, readLedger, recordSets, LEDGER_KEY } from './src/as-built-ledger';
 import { recheckHolds } from '../studio/src/state/update-file';
 import { lastChangedKey, leadsPanel, PANEL_FORMAT } from './src/doc-panel';
 
@@ -266,6 +268,33 @@ const ringBound = checked.filter((m) => JSON.stringify((m as any).strokes ?? [])
 ok(u2?.ok === true && f2?.due?.['radio-control']?.state === 'current' && ringBound === 12,
 
   `main/overwrite chosen: Overwrite chosen for the kept set alone replaces its edits: the 12 rings the plan binds to the indicator hold it, and the set reads current (${JSON.stringify({ headline: u2?.headline, state: f2?.due?.['radio-control']?.state, ringBound })})`);
+
+// 6. #3870 — THE PANELS SWITCH TURNED ON MID-RUN: Documentation's usage panels off, tag checked and updated, and the
+// switch turned on while the update runs (`doc-settings-save` is never guarded). The run drew no panel for tag, so the
+// entry it writes must not claim today's panel format: tag reads due for its panel, as it does when the switch turns on
+// after the run. Before the fix, `ledgerNow` read the switch a second time, after the apply, and recorded `panel`.
+// The world: tag's entry carries no panel stamp yet, as a set recorded before its panel was ever checked (the run above
+// stamped one, which `recordSets` keeps through a later run that records none). Written to the root directly: the
+// fixture's state, not a record under test.
+const stored = JSON.parse(pluginData.get(LEDGER_KEY) ?? '{}') as { sets?: Record<string, { panel?: unknown; changed?: unknown }> };
+if (stored.sets?.tag) { delete stored.sets.tag.panel; delete stored.sets.tag.changed; }
+pluginData.set(LEDGER_KEY, JSON.stringify(stored));
+ok(readLedger(root as never).tag?.panel === undefined, 'fixture: tag recorded with no panel format before the run');
+const post = (m: unknown): void => (shim.ui as { onmessage: (m: unknown) => void }).onmessage(m);
+post({ type: 'doc-settings-save', settings: { panels: false, cover: true, styleGuide: null } });
+const cOff = await send({ type: 'update-check-request', defs: ['tag'] }, ['update-check']);
+posted.length = 0;
+post({ type: 'update-sets', defs: ['tag'], previewHash: cOff?.previewHash, handEdits: 'overwrite' });
+await new Promise((res) => realTimeout(res, 0));
+const midRun = !posted.some((m) => m?.type === 'component-update-result');
+post({ type: 'doc-settings-save', settings: { panels: true, cover: true, styleGuide: null } });
+let uOff: any = null;
+for (const t0 = Date.now(); !uOff && Date.now() - t0 < 120_000; await new Promise((res) => realTimeout(res, 2))) uOff = posted.find((m) => m?.type === 'component-update-result');
+ok(midRun && uOff?.ok === true, `premise: the switch turned on while tag's update ran, and the update answered ok (${JSON.stringify({ midRun, headline: uOff?.headline })})`);
+const tagOff = (readLedger(root as never) as Record<string, { panel?: unknown; changed?: unknown }>).tag;
+const fOff = await send({ type: 'file-sets-request' }, ['file-sets']);
+ok(tagOff?.panel === undefined && tagOff?.changed === undefined && fOff?.due?.tag?.state === 'due' && fOff?.due?.tag?.reason === 'panel',
+  `main/panel read once per run: an update that drew no panel records no panel format, so tag reads due for its panel (${JSON.stringify({ panel: tagOff?.panel, changed: tagOff?.changed, due: fOff?.due?.tag })})`);
 
 console.log(`${failed ? `\n${failed} failed` : '\nall passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);
