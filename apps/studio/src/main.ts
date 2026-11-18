@@ -24,7 +24,7 @@ import { componentSpecsExporter } from './state/component-specs-export';
 import { hostCommit, type CheckedSetView, type HostCommit } from './write-adapter';
 import { AGENT_OP, initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type OpKey } from './state/host-session';
 import type { HostFonts } from './ui/fonts';
-import { choice } from './ui/lever-kit';
+import { choice, selectField } from './ui/lever-kit';
 import { emToPercentLabel } from './em-percent';
 import { mountFrame, type Frame } from './shell/frame';
 import { isNewPage, pageOfTab } from './shell/pages';
@@ -822,12 +822,11 @@ const renderPreviewTokens = (host: HTMLElement, repaint: () => void): void => {
 
   const bar = el('div', 'tok-ctrls');
   if (tokTier === 'semantic') {
-    const showSel = selectEl();
-    for (const [v, label] of [['both', 'Alias and value'], ['alias', 'Alias only'], ['value', 'Value only']])
-      showSel.append(new Option(label, v));
-    showSel.value = tokShow;
-    showSel.onchange = () => { tokShow = showSel.value as typeof tokShow; repaint(); };
-    bar.append(pfield('Show', showSel));
+    // #3938 (Q-BK1 A): the chrome's shared select (lever-kit `selectField`, `.p3-select`), not the legacy `.select`,
+    // whose taller box dropped its caption below the Alias path control's.
+    const showSel = selectField('p3-token-show', 'Show', 'token-show', (v) => { tokShow = v as typeof tokShow; repaint(); });
+    showSel.set([{ v: 'both', l: 'Alias and value' }, { v: 'alias', l: 'Alias only' }, { v: 'value', l: 'Value only' }], tokShow);
+    bar.append(pfield('Show', showSel.el));
 
     // #3911: the shared segmented control (lever-kit `choice`), not the legacy `.seg`, whose selected segment drew an underline.
     const pseg = choice('Alias path', 'token-path', [{ v: 'full', l: 'Full' }, { v: 'short', l: 'Short' }] as const, (v) => {
@@ -836,12 +835,10 @@ const renderPreviewTokens = (host: HTMLElement, repaint: () => void): void => {
     pseg.set(tokPath);
     bar.append(pfield('Alias path', pseg.el));
   }
-  const catSel = selectEl();
-  catSel.append(new Option('All categories', ''));
-  for (const s of sections) catSel.append(new Option(`${s.cat} (${s.leaves.length})`, s.cat));
-  catSel.value = sections.some((s) => s.cat === tokCat) ? tokCat : (tokCat = '');
-  catSel.onchange = () => { tokCat = catSel.value; repaint(); };
-  bar.append(pfield('Category', catSel));
+  const catSel = selectField('p3-token-category', 'Category', 'token-category', (v) => { tokCat = v; repaint(); });
+  catSel.set([{ v: '', l: 'All categories' }, ...sections.map((s) => ({ v: s.cat, l: `${s.cat} (${s.leaves.length})` }))],
+    sections.some((s) => s.cat === tokCat) ? tokCat : (tokCat = ''));
+  bar.append(pfield('Category', catSel.el));
   host.append(bar);
 
   // ---- sections ----
