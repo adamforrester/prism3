@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Floating Layers Wireframe</title>
+<style>
+/* Wireframe for the Menu, Popover and Tooltip proposals (#4001). Grey boxes, not a design.
+   Every value here is a stand-in for the token named beside it in the proposal; nothing is final. */
+:root{
+  --page:#f4f4f5; --raised:#ffffff; --ink:#18181b; --ink-2:#52525b; --ink-3:#a1a1aa;
+  --line:#d4d4d8; --hover:rgba(24,24,27,.06); --press:rgba(24,24,27,.12);
+  --inverse:#27272a; --inverse-ink:#fafafa; --danger:#b91c1c; --focus:#2563eb;
+  --shadow:0 8px 24px rgba(0,0,0,.14),0 2px 6px rgba(0,0,0,.08);
+  --note:#7c3aed; --decide:#b45309;
+  --enter:200ms; --exit:100ms; --ease-enter:cubic-bezier(0,0,.2,1); --ease-exit:cubic-bezier(.4,0,1,1);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --page:#111113; --raised:#232327; --ink:#f4f4f5; --ink-2:#a1a1aa; --ink-3:#71717a;
+  --line:#3f3f46; --hover:rgba(255,255,255,.07); --press:rgba(255,255,255,.13);
+  --inverse:#f4f4f5; --inverse-ink:#18181b; --danger:#f87171; --focus:#60a5fa;
+  --shadow:0 8px 24px rgba(0,0,0,.5); --note:#a78bfa; --decide:#fbbf24; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --page:#111113; --raised:#232327; --ink:#f4f4f5; --ink-2:#a1a1aa; --ink-3:#71717a;
+  --line:#3f3f46; --hover:rgba(255,255,255,.07); --press:rgba(255,255,255,.13);
+  --inverse:#f4f4f5; --inverse-ink:#18181b; --danger:#f87171; --focus:#60a5fa;
+  --shadow:0 8px 24px rgba(0,0,0,.5); --note:#a78bfa; --decide:#fbbf24; color-scheme:dark;}
+@media (prefers-reduced-motion:reduce){:root{--enter:50ms;--exit:50ms}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1080px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:22px;margin:0 0 4px} h2{font-size:17px;margin:40px 0 4px} h3{font-size:14px;margin:20px 0 8px}
+p{margin:4px 0 8px;max-width:72ch} .sub{color:var(--ink-2)}
+code{font:12px ui-monospace,Menlo,monospace;background:var(--hover);padding:1px 4px;border-radius:4px}
+.row{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+.card{background:transparent;border:1px dashed var(--line);border-radius:10px;padding:16px;min-width:0}
+.cap{font-size:12px;color:var(--ink-2);margin-top:8px}
+.od{color:var(--decide);font-weight:600}
+.tag{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:99px;padding:0 6px;color:var(--ink-2);margin-left:4px}
+button.trig{font:inherit;border:1px solid var(--line);background:var(--raised);color:var(--ink);border-radius:8px;height:36px;padding:0 14px;cursor:pointer}
+button.trig:focus-visible,.mi:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+
+/* shared floating surface */
+.surface{background:var(--raised);box-shadow:var(--shadow);border:1px solid var(--line);border-radius:10px}
+.anim{transform-origin:var(--origin,top left);animation:in var(--enter) var(--ease-enter) both}
+.anim.out{animation:out var(--exit) var(--ease-exit) both}
+@keyframes in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+@keyframes out{from{opacity:1}to{opacity:0}}
+@media (prefers-reduced-motion:reduce){@keyframes in{from{opacity:0}to{opacity:1}}}
+
+/* menu */
+.menu{width:240px;padding:4px;display:flex;flex-direction:column}
+.mi{display:flex;align-items:center;gap:8px;min-height:36px;padding:0 8px;border-radius:6px;color:var(--ink);cursor:default;outline:none}
+.mi:hover,.mi.hl{background:var(--hover)} .mi:active{background:var(--press)}
+.mi .ind{width:16px;flex:none;text-align:center;font-size:12px}
+.mi .ic{width:16px;height:16px;flex:none;border:1.5px solid currentColor;border-radius:4px;opacity:.7}
+.mi .lb{flex:1;min-width:0} .mi .lb small{display:block;color:var(--ink-2);font-size:12px;line-height:1.3}
+.mi .sc{color:var(--ink-2);font-size:12px} .mi .chev{color:var(--ink-2)}
+.mi.danger{color:var(--danger)} .mi.dis{color:var(--ink-3)} .mi.dis:hover{background:none}
+.sep{height:1px;background:var(--line);margin:4px -4px}
+.gh{font-size:12px;font-weight:600;color:var(--ink-2);padding:8px 8px 4px}
+.grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;font-size:12px}
+.grid .mi{min-height:32px;background:var(--raised);border:1px solid var(--line)}
+.grid .h{color:var(--ink-2);font-size:11px;align-self:end}
+
+/* popover */
+.pop{width:300px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.pop .hd{display:flex;gap:8px;align-items:flex-start} .pop .hd b{flex:1}
+.pop .x{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;color:var(--ink-2)}
+.slot{border:1.5px dashed var(--note);border-radius:6px;padding:12px;color:var(--note);font-size:12px}
+.pop .ft{display:flex;justify-content:flex-end;gap:8px}
+.btn{height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--line);display:inline-grid;place-items:center;font-size:13px}
+.btn.p{background:var(--ink);color:var(--page);border-color:var(--ink)}
+
+/* tooltip */
+.tt{position:relative;display:inline-block;background:var(--inverse);color:var(--inverse-ink);font-size:12px;line-height:16px;padding:4px 8px;border-radius:6px;max-width:240px}
+.tt::after{content:"";position:absolute;width:8px;height:8px;background:inherit;transform:rotate(45deg)}
+.tt.top::after{left:calc(50% - 4px);bottom:-4px} .tt.bottom::after{left:calc(50% - 4px);top:-4px}
+.tt.start::after{top:calc(50% - 4px);right:-4px} .tt.end::after{top:calc(50% - 4px);left:-4px}
+[dir=rtl] .tt.start::after{right:auto;left:-4px} [dir=rtl] .tt.end::after{left:auto;right:-4px}
+.tt.noarrow::after{display:none}
+.stage{position:relative;height:150px;display:grid;place-items:center}
+.float{position:absolute;z-index:2}
+
+/* relations diagram */
+.rel{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.rel .card{font-size:13px}
+.layer{border:1px solid var(--line);border-radius:8px;padding:8px;margin:6px 0;background:var(--raised)}
+.layer.shared{border-color:var(--note);color:var(--note)}
+@media (max-width:720px){.rel{grid-template-columns:1fr}.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<main>
+<h1>Menu, Popover and Tooltip: wireframe</h1>
+<p class="sub">For the three proposals filed from #4001. Grey boxes to show parts, axes and members, not a visual design. Each <span class="od">OD</span> marker points at an owner decision in that component's proposal; the wireframe draws the <em>recommended</em> option and nothing here is decided.</p>
+<div class="toolbar">
+  <button class="trig" id="themeBtn" type="button">Toggle theme</button>
+  <button class="trig" id="dirBtn" type="button">Toggle RTL</button>
+  <span class="cap">Motion uses stand-ins for <code>motion.transition.enter</code> / <code>exit</code>; reduced motion fades only.</span>
+</div>
+
+<h2>0 · How the three relate</h2>
+<p>Recommended (<span class="od">OD-X1</span>): no shared Figma component. Menu and Popover bind the <em>same</em> raised-surface roles, held equal by a test; Tooltip is on the inverse surface. In code, one floating layer (anchor, placement, collision, dismissal, top layer) serves all three, and later Select's listbox.</p>
+<div class="rel">
+  <div class="card"><b>Menu</b> <span class="tag">tier 2</span>
+    <div class="layer shared">raised surface · <code>color.foreground.raised</code> · <code>shadow.lg</code> · <code>radius.lg</code></div>
+    <div class="layer">items slot → Menu.Item <span class="tag">tier 1</span>, Menu.Group, Divider</div>
+    <div class="layer">role=menu · roving focus · typeahead</div></div>
+  <div class="card"><b>Popover</b> <span class="tag">tier 2</span>
+    <div class="layer shared">raised surface · same roles as Menu</div>
+    <div class="layer">header (title, close) · body slot · footer (Button group)</div>
+    <div class="layer">non-modal role=dialog · focus moves in</div></div>
+  <div class="card"><b>Tooltip</b> <span class="tag">tier 1</span>
+    <div class="layer">inverse surface · <code>color.inverse.background.primary</code> (as Toast)</div>
+    <div class="layer">label · arrow</div>
+    <div class="layer">role=tooltip · never focused · show delay</div></div>
+</div>
+<p class="cap">Shared code layer (all three): anchor + placement (<code>top | bottom | start | end</code> × align <code>start | center | end</code>), flip and shift on collision, Escape, outside press, focus return, top layer. Not drawn in Figma.</p>
+
+<h2>1 · Menu</h2>
+<div class="row">
+  <div class="card">
+    <div class="toolbar"><button class="trig" id="menuBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="demoMenu">Actions ▾</button><span class="cap">Enter, Space or Arrow Down opens; arrows, Home, End, type a letter; Escape closes.</span></div>
+    <div style="position:relative;height:420px">
+      <div class="surface menu float anim" id="demoMenu" role="menu" aria-label="Actions" hidden style="--origin:top left">
+        <div class="mi" role="menuitem" tabindex="-1"><span class="ic"></span><span class="lb">Edit</span><span class="sc">Ctrl E</span></div>
+        <div class="mi" role="menuitem" tabindex="-1"><span class="ic"></span><span class="lb">Duplicate<small>Makes a copy in this folder</small></span></div>
+        <div class="mi" role="menuitem" tabindex="-1" aria-haspopup="menu" aria-expanded="false"><span class="ic"></span><span class="lb">Move to</span><span class="chev">›</span></div>
+        <div class="sep" role="separator"></div>
+        <div role="group" aria-labelledby="gh1"><div class="gh" id="gh1">View</div>
+          <div class="mi" role="menuitemcheckbox" aria-checked="true" tabindex="-1"><span class="ind">✓</span><span class="lb">Show grid</span></div>
+          <div class="mi" role="menuitemcheckbox" aria-checked="false" tabindex="-1"><span class="ind"></span><span class="lb">Show rulers</span></div></div>
+        <div class="sep" role="separator"></div>
+        <div role="group" aria-labelledby="gh2"><div class="gh" id="gh2">Sort by</div>
+          <div class="mi" role="menuitemradio" aria-checked="true" tabindex="-1"><span class="ind">●</span><span class="lb">Name</span></div>
+          <div class="mi" role="menuitemradio" aria-checked="false" tabindex="-1"><span class="ind"></span><span class="lb">Date</span></div></div>
+        <div class="sep" role="separator"></div>
+        <div class="mi dis" role="menuitem" aria-disabled="true" tabindex="-1"><span class="ic"></span><span class="lb">Archive</span></div>
+        <div class="mi danger" role="menuitem" tabindex="-1"><span class="ic"></span><span class="lb">Delete</span></div>
+      </div>
+    </div>
+    <p class="cap">Parts: panel (raised surface) · items slot · Menu.Item (indicator column, leading icon, label, description, shortcut, submenu chevron) · Menu.Group (heading + items) · Divider as separator. Indicator column reserved on every item once one item is checkable (<span class="od">OD-M5</span>). Inset highlight (<span class="od">OD-M6</span>).</p>
+  </div>
+  <div class="card" style="flex:1;min-width:280px">
+    <h3>Menu.Item set (recommended, <span class="od">OD-M3</span>): <code>type</code> × <code>state</code></h3>
+    <div class="grid">
+      <div class="h">rest</div><div class="h">hover</div><div class="h">pressed</div><div class="h">focus-visible</div><div class="h">disabled</div>
+      <div class="mi"><span class="lb">action</span></div><div class="mi hl"><span class="lb">action</span></div><div class="mi" style="background:var(--press)"><span class="lb">action</span></div><div class="mi hl" style="outline:2px solid var(--focus);outline-offset:-2px"><span class="lb">action</span></div><div class="mi dis"><span class="lb">action</span></div>
+      <div class="mi danger"><span class="lb">destructive</span></div><div class="mi danger hl"><span class="lb">destructive</span></div><div class="mi danger" style="background:var(--press)"><span class="lb">destructive</span></div><div class="mi danger hl" style="outline:2px solid var(--focus);outline-offset:-2px"><span class="lb">destructive</span></div><div class="mi dis"><span class="lb">destructive</span></div>
+      <div class="mi"><span class="ind">✓</span><span class="lb">checkable</span></div><div class="mi hl"><span class="ind">✓</span><span class="lb">checkable</span></div><div class="mi" style="background:var(--press)"><span class="ind">✓</span><span class="lb">checkable</span></div><div class="mi hl" style="outline:2px solid var(--focus);outline-offset:-2px"><span class="ind">✓</span><span class="lb">checkable</span></div><div class="mi dis"><span class="ind">✓</span><span class="lb">checkable</span></div>
+      <div class="mi"><span class="lb">submenu</span><span class="chev">›</span></div><div class="mi hl"><span class="lb">submenu</span><span class="chev">›</span></div><div class="mi" style="background:var(--press)"><span class="lb">submenu</span><span class="chev">›</span></div><div class="mi hl" style="outline:2px solid var(--focus);outline-offset:-2px"><span class="lb">submenu</span><span class="chev">›</span></div><div class="mi dis"><span class="lb">submenu</span><span class="chev">›</span></div>
+    </div>
+    <p class="cap">4 types (<code>action</code>, <code>destructive</code> as an intent of action, <code>checkable</code>, <code>submenu</code>) × 5 states = 20 members, one size. The check is a boolean (<code>checked</code>), not an axis: it shows or hides one node. Booleans: <code>leading icon</code>, <code>description</code>, <code>shortcut</code>. Menu itself: 1 member, no axes.</p>
+  </div>
+</div>
+
+<h2>2 · Popover</h2>
+<div class="row">
+  <div class="card">
+    <div class="toolbar"><button class="trig" id="popBtn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="demoPop">Share settings</button></div>
+    <div style="position:relative;height:250px">
+      <div class="surface pop float anim" id="demoPop" role="dialog" aria-labelledby="popT" hidden style="--origin:top left">
+        <div class="hd"><b id="popT">Share settings</b><span class="x" aria-hidden="true">✕</span></div>
+        <div class="slot">body · native slot (any content: text, a short form, a link)</div>
+        <div class="ft"><span class="btn">Cancel</span><span class="btn p">Save</span></div>
+      </div>
+    </div>
+    <p class="cap">Parts: panel · header (title, close: FlushIconButton.Neutral) · body slot · footer (Button group). Booleans: <code>title</code>, <code>close</code>, <code>footer</code>. No arrow (<span class="od">OD-P2</span>), so 1 member. Width: hugs, between a min and a max (<span class="od">OD-P4</span>).</p>
+  </div>
+  <div class="card">
+    <h3>If the owner wants an arrow (<span class="od">OD-P2</span> option B)</h3>
+    <p class="cap">A <code>placement</code> axis (<code>bottom | top | start | end</code>) moves the arrow: 4 members.</p>
+    <div class="row" style="gap:12px">
+      <div class="surface" style="padding:10px 14px;position:relative">bottom<span style="position:absolute;top:-5px;left:24px;width:8px;height:8px;background:var(--raised);border-left:1px solid var(--line);border-top:1px solid var(--line);transform:rotate(45deg)"></span></div>
+      <div class="surface" style="padding:10px 14px;position:relative">top<span style="position:absolute;bottom:-5px;left:24px;width:8px;height:8px;background:var(--raised);border-right:1px solid var(--line);border-bottom:1px solid var(--line);transform:rotate(45deg)"></span></div>
+    </div>
+  </div>
+</div>
+
+<h2>3 · Tooltip</h2>
+<div class="row">
+  <div class="card">
+    <div class="stage">
+      <button class="trig" id="ttBtn" type="button" aria-label="Edit" aria-describedby="demoTip">✎</button>
+      <div class="tt top float" id="demoTip" role="tooltip" hidden style="bottom:calc(50% + 26px)">Edit</div>
+    </div>
+    <div class="toolbar"><label class="cap"><input type="checkbox" id="delayChk" checked> show delay (stand-in for the gap #3486)</label></div>
+    <p class="cap">Hover or focus the button. Shows after the delay on hover, at once on keyboard focus (<span class="od">OD-T4</span>); Escape hides it without moving focus; the pointer can move onto it (WCAG 1.4.13).</p>
+  </div>
+  <div class="card">
+    <h3>Set (recommended, <span class="od">OD-T2</span>): <code>placement</code> × 4</h3>
+    <div class="row" style="gap:20px;padding:8px">
+      <span class="tt top">top</span><span class="tt bottom">bottom</span><span class="tt start">start</span><span class="tt end">end</span>
+    </div>
+    <p class="cap">One boolean, <code>arrow</code>, over four gated arrow parts (Switch.Control's <code>state icon</code> pattern). Start and end are logical sides, so they swap under RTL. Arrow centered in Figma; <code>align</code> is a code prop (<span class="od">OD-T3</span>). Max width (<span class="od">OD-T6</span>).</p>
+    <span class="tt noarrow">arrow off</span>
+  </div>
+</div>
+</main>
+<script>
+(function(){
+  var root=document.documentElement;
+  document.getElementById('themeBtn').onclick=function(){
+    var dark=root.dataset.theme? root.dataset.theme==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme=dark?'light':'dark';};
+  document.getElementById('dirBtn').onclick=function(){root.dir=root.dir==='rtl'?'ltr':'rtl';};
+
+  function hide(el,trig,refocus){ if(el.hidden) return; el.classList.add('out');
+    setTimeout(function(){el.hidden=true;el.classList.remove('out');},120);
+    if(trig) trig.setAttribute('aria-expanded','false'); if(refocus&&trig) trig.focus(); }
+  function show(el,trig){ el.hidden=false; el.classList.remove('out'); void el.offsetWidth;
+    if(trig) trig.setAttribute('aria-expanded','true'); }
+
+  // Menu: menu button + roving focus (APG menu button pattern), stand-in only.
+  var mb=document.getElementById('menuBtn'), m=document.getElementById('demoMenu');
+  function items(){return Array.prototype.slice.call(m.querySelectorAll('.mi:not([aria-disabled=true]), .mi[aria-disabled=true]'));}
+  function focusAt(i){var it=items(); if(!it.length) return; i=(i+it.length)%it.length; it[i].focus();}
+  function openMenu(last){show(m,mb); focusAt(last?-1:0);}
+  mb.addEventListener('click',function(){m.hidden?openMenu(false):hide(m,mb,true);});
+  mb.addEventListener('keydown',function(e){
+    if(e.key==='ArrowDown'){e.preventDefault();openMenu(false);} if(e.key==='ArrowUp'){e.preventDefault();openMenu(true);} });
+  m.addEventListener('keydown',function(e){
+    var it=items(), i=it.indexOf(document.activeElement);
+    if(e.key==='ArrowDown'){e.preventDefault();focusAt(i+1);}
+    else if(e.key==='ArrowUp'){e.preventDefault();focusAt(i-1);}
+    else if(e.key==='Home'){e.preventDefault();focusAt(0);}
+    else if(e.key==='End'){e.preventDefault();focusAt(-1);}
+    else if(e.key==='Escape'){e.preventDefault();hide(m,mb,true);}
+    else if(e.key==='Tab'){hide(m,mb,false);}
+    else if(e.key==='Enter'||e.key===' '){e.preventDefault(); var t=document.activeElement;
+      if(t.getAttribute('aria-disabled')==='true') return;
+      var r=t.getAttribute('role');
+      if(r==='menuitemcheckbox'){var c=t.getAttribute('aria-checked')==='true';t.setAttribute('aria-checked',String(!c));t.querySelector('.ind').textContent=c?'':'✓';}
+      else if(r==='menuitemradio'){t.parentNode.querySelectorAll('[role=menuitemradio]').forEach(function(x){x.setAttribute('aria-checked','false');x.querySelector('.ind').textContent='';});t.setAttribute('aria-checked','true');t.querySelector('.ind').textContent='●';}
+      else if(!t.hasAttribute('aria-haspopup')) hide(m,mb,true);}
+    else if(e.key.length===1){var k=e.key.toLowerCase();
+      for(var j=1;j<=it.length;j++){var n=it[(i+j)%it.length]; if(n.querySelector('.lb').textContent.trim().toLowerCase().indexOf(k)===0){n.focus();break;}}}
+  });
+  m.addEventListener('mousemove',function(e){var t=e.target.closest('.mi'); if(t&&t!==document.activeElement) t.focus();});
+
+  // Popover: non-modal dialog, focus moves in, Escape and outside press close.
+  var pb=document.getElementById('popBtn'), p=document.getElementById('demoPop');
+  pb.addEventListener('click',function(){ if(p.hidden){show(p,pb);p.setAttribute('tabindex','-1');p.focus();} else hide(p,pb,true);});
+  p.addEventListener('keydown',function(e){if(e.key==='Escape'){e.preventDefault();hide(p,pb,true);}});
+
+  document.addEventListener('pointerdown',function(e){
+    if(!m.hidden&&!m.contains(e.target)&&e.target!==mb) hide(m,mb,false);
+    if(!p.hidden&&!p.contains(e.target)&&e.target!==pb) hide(p,pb,false);});
+
+  // Tooltip: delayed on hover, immediate on keyboard focus, hoverable, Escape dismisses.
+  var tb=document.getElementById('ttBtn'), tt=document.getElementById('demoTip'), timer=null, hideT=null;
+  function tShow(now){clearTimeout(hideT); clearTimeout(timer);
+    var d=(now||!document.getElementById('delayChk').checked)?0:500; timer=setTimeout(function(){show(tt);tt.classList.add('anim');},d);}
+  function tHide(){clearTimeout(timer); hideT=setTimeout(function(){hide(tt);},100);}
+  tb.addEventListener('pointerenter',function(){tShow(false);}); tb.addEventListener('pointerleave',tHide);
+  tt.addEventListener('pointerenter',function(){clearTimeout(hideT);}); tt.addEventListener('pointerleave',tHide);
+  tb.addEventListener('focus',function(){ if(tb.matches(':focus-visible')) tShow(true);}); tb.addEventListener('blur',tHide);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!tt.hidden){hide(tt);}});
+})();
+</script>
+</body>
+</html>
