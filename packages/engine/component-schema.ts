@@ -358,6 +358,12 @@ export type PartFields = {
   layout?: LayoutDef;
   padding?: PaddingDef;
   gap?: string;
+  /** THE SPACE BETWEEN WRAPPED LINES (#1739): the binding key for a wrapping row's line gap, CSS `row-gap`. A row that
+   *  wraps (`layout.wrap`) otherwise takes the host's default between its lines, which is none, so wrapped items would
+   *  touch. PROJECTS `bound.counterAxisSpacing`; both executors bind `bound` after the layout and the wrap, so it needs
+   *  no executor change. `box` only, and refused on a box whose layout does not wrap: Figma reads the line gap on a
+   *  wrapping frame only. Tag.Group binds it to the same step as `gap`, so tags sit as far apart down as across. */
+  rowGap?: string;
   height?: string;
   /** The binding key for the four corner radii. `box` only (#3698 Q-PU1 A): the projector binds it only in the box
    *  branch. Refused on every other kind (a vector's corners are `tileEdge.radius`). */
@@ -1467,7 +1473,7 @@ type PartOf<K extends PartKind, F extends Exclude<keyof PartFields, 'kind' | Par
 /** The fields a box admits — the one kind that lays out, paints a surface and becomes a frame. */
 export type BoxKey =
   | 'innerTarget' | 'children' | 'size' | 'presentWhen' | 'positionWhen' | 'height' | 'crossAxisFill' | 'grow' | 'literal'
-  | 'radius' | 'layout' | 'padding' | 'gap' | 'strokeWidth' | 'strokeEdges' | 'width' | 'paddingTop' | 'firstLine'
+  | 'radius' | 'layout' | 'padding' | 'gap' | 'rowGap' | 'strokeWidth' | 'strokeEdges' | 'width' | 'paddingTop' | 'firstLine'
   | 'contentSlot' | 'slotSettings' | 'preferred' | 'preferredWhenBuilt' | 'paintSlots' | 'paintGroup' | 'gradient'
   | 'clipsContent' | 'scroll' | 'minWidth' | 'placementWidth' | 'placementHeight' | 'directionWhen' | 'sizingWhen'
   | 'builtSize' | 'elevation' | 'radiusEdges' | 'minHeight' | 'minWidthKey' | 'minWidthRatio' | 'flush' | 'center'
@@ -4686,7 +4692,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
   const bindingKeys = (p: PartFields): string[] =>
-    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.tileEdge?.radius, p.tileEdge?.strokeWidth, p.strokeEdges?.top, p.strokeEdges?.right, p.strokeEdges?.bottom, p.strokeEdges?.left, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key, p.firstLine?.glyph, p.nestPaddingBlock]
+    [p.gap, p.rowGap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.tileEdge?.radius, p.tileEdge?.strokeWidth, p.strokeEdges?.top, p.strokeEdges?.right, p.strokeEdges?.bottom, p.strokeEdges?.left, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key, p.firstLine?.glyph, p.nestPaddingBlock]
       .filter((k): k is string => typeof k === 'string');
   // A TYPE KEY MAY ALSO NAME `{state}` (#2580): a standalone Link sets its label in the underlined style at hover,
   // pressed and focus-visible and the plain one at rest, so its text style moves with the interaction state while
@@ -5060,8 +5066,11 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // from the child's side; stated here too, because a track may bind a width for its own sake.
     if (p.kind === 'box' && p.width && p.layout && p.layout.sizing.x !== 'fixed')
       e.push(`anatomy part '${n}' binds 'width' but its main-axis sizing is '${p.layout.sizing.x}' — a bound dimension needs 'fixed': with 'hug' the content decides the length, and with 'fill' the parent does, so either way the binding is overridden`);
-    if (p.kind !== 'box' && (p.layout || p.padding || p.gap !== undefined))
+    if (p.kind !== 'box' && (p.layout || p.padding || p.gap !== undefined || p.rowGap !== undefined))
       e.push(`anatomy part '${n}' is kind '${p.kind}' but carries layout/padding/gap — only a 'box' lays out`);
+    // THE LINE GAP (#1739) needs lines: Figma reads `counterAxisSpacing` on a wrapping frame only.
+    if (p.kind === 'box' && p.rowGap !== undefined && !p.layout?.wrap)
+      e.push(`anatomy part '${n}' binds 'rowGap' but its layout does not wrap — the space between lines exists only on a row that wraps (layout.wrap)`);
     // ---- THE WRAPPING LABEL (#1424) ----
     // `wrap` fills the parent's main axis and reflows (`layoutGrow: 1` + `textAutoResize: 'HEIGHT'`), which
     // is a TEXT-only capability — a box sizes with `sizing`, a slot/vector by its artboard.

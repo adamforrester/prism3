@@ -476,7 +476,7 @@
     },
     "tag": {
       "members": 45,
-      "sha256": "ed5c56d7108c8e62efd0efcffb50bf78f39f4bd542eec1c2b9ab30692f9b1aee",
+      "sha256": "2186703f692d2b6c020064ad98a3386223b34d95751fac7f8d15a00a5b34f486",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -485,7 +485,7 @@
     },
     "tag@outline-solid-tint": {
       "members": 45,
-      "sha256": "3f307649da89c4a70ceb1acdf9aa1526ebb6cb38be962b9a83363708aedfa3f0",
+      "sha256": "afd256a2f33afe8895fd6c586516b9299df940fefba3544548cea7d0cef31fab",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -494,7 +494,7 @@
     },
     "tag@outline-none": {
       "members": 45,
-      "sha256": "7f1abac61d9a25afda815565187f026cfcde085a6ac59e51f32db70c85b0e83a",
+      "sha256": "b31ec50228cf74e5830076135551bee932bcffe5f3e18ec1364ca2082570b3b3",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -503,7 +503,7 @@
     },
     "tag@button-label-default": {
       "members": 45,
-      "sha256": "33b67a8d0cc652d452e31b6a30471e46f87c10267f7f25d7f8fd138817b0fa70",
+      "sha256": "dba85c0a127932dd6554ee1a9dba7a9c6c32fc984bdbfd11e3f61e110bc4a0e1",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -512,7 +512,7 @@
     },
     "tag@button-smaller-label-default": {
       "members": 45,
-      "sha256": "33b67a8d0cc652d452e31b6a30471e46f87c10267f7f25d7f8fd138817b0fa70",
+      "sha256": "dba85c0a127932dd6554ee1a9dba7a9c6c32fc984bdbfd11e3f61e110bc4a0e1",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -521,7 +521,7 @@
     },
     "tag@button-text-fill-label-default": {
       "members": 45,
-      "sha256": "33b67a8d0cc652d452e31b6a30471e46f87c10267f7f25d7f8fd138817b0fa70",
+      "sha256": "dba85c0a127932dd6554ee1a9dba7a9c6c32fc984bdbfd11e3f61e110bc4a0e1",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -530,11 +530,18 @@
     },
     "tag@tag-underline": {
       "members": 45,
-      "sha256": "c0b2be87d93a67c013d3488f02da2cc74b68ffd07011644cbd8982b0174b4132",
+      "sha256": "e35aa2db75b5136968f8d865cbf804a78f38c4aaf0d5100e0e30513ceea469b6",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
         "leading icon:BOOLEAN"
+      ]
+    },
+    "tag-group": {
+      "members": 3,
+      "sha256": "d1ec0e73bb1da54605a4f565e7b664f05806cb327b5a097867f0fcca7810d269",
+      "properties": [
+        "items:SLOT"
       ]
     },
     "tab-item": {

@@ -11194,8 +11194,8 @@ for (const host of ['web', 'figma']) {
       ok(!!r.rO && r.rO.title === 'Radio options' && r.rO.desc === 'How big the dot in a selected radio is.' && JSON.stringify(r.rO.chips) === JSON.stringify(['Default', '60%', '70%', '80%']),
         `#3086: ${host} ${w}: Radio options: its drafted title and description, and Radio dot size's chips, Default to 80% (${JSON.stringify(r.rO)})`);
       const T = r.tags;
-      ok(!!T && JSON.stringify(T.ids) === JSON.stringify(['tag']) && T.folds + T.families === 0,
-        `#2931 Q579 A: ${host} ${w}: the Tag section lists Tag as a row, with no family row and no fold (${JSON.stringify({ ids: T?.ids, folds: T?.folds, families: T?.families })})`);
+      ok(!!T && JSON.stringify(T.ids) === JSON.stringify(['tag', 'tag-group']) && T.folds + T.families === 0,
+        `#2931 Q579 A, #1739: ${host} ${w}: the Tag section lists the Tag page's two sets, Tag and Tag.Group, in one row, with no family row and no fold (${JSON.stringify({ ids: T?.ids, folds: T?.folds, families: T?.families })})`);
       ok(!!r.to && r.to.title === 'Tag options' && r.to.desc === 'How tags draw their shape.' && JSON.stringify(r.to.chips) === JSON.stringify(['Pill', 'Underline']),
         `#2931 Q579 A, #2905 Q10 A: ${host} ${w}: Tag options: its drafted title and description, and Tag style's chips (${JSON.stringify(r.to)})`);
       const B = r.buttons, F = r.fields;

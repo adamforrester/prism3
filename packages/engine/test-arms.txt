@@ -478,6 +478,7 @@ apps/studio/test-chrome-shards.mjs #2898
 apps/studio/test-chrome.mjs #1031
 apps/studio/test-chrome.mjs #1196
 apps/studio/test-chrome.mjs #12345
+apps/studio/test-chrome.mjs #1739
 apps/studio/test-chrome.mjs #1770
 apps/studio/test-chrome.mjs #1821
 apps/studio/test-chrome.mjs #1855
@@ -625,6 +626,7 @@ apps/studio/test-collisions.ts #1909
 apps/studio/test-collisions.ts #3518
 apps/studio/test-component-catalog.ts #1623
 apps/studio/test-component-catalog.ts #2350
+apps/studio/test-component-groups.ts #1739
 apps/studio/test-component-groups.ts #2343
 apps/studio/test-component-groups.ts #2427
 apps/studio/test-component-groups.ts #2428
@@ -966,6 +968,7 @@ packages/engine/test.ts #1710
 packages/engine/test.ts #1718
 packages/engine/test.ts #1720
 packages/engine/test.ts #1726
+packages/engine/test.ts #1739
 packages/engine/test.ts #1743
 packages/engine/test.ts #1745
 packages/engine/test.ts #1746
