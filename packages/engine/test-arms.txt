@@ -344,6 +344,7 @@ apps/plugin/test-update-kept-run.ts #3421
 apps/plugin/test-update-kept-run.ts #3712
 apps/plugin/test-update-owner-run.ts #3308
 apps/plugin/test-update-owner-run.ts #3467
+apps/plugin/test-update-renamed-main.ts #3770
 apps/plugin/test-version-title.ts #3697
 apps/plugin/test-write-components.ts #1007
 apps/plugin/test-write-components.ts #1009
@@ -994,9 +995,11 @@ packages/engine/test.ts #1895
 packages/engine/test.ts #1896
 packages/engine/test.ts #1973
 packages/engine/test.ts #1985
+packages/engine/test.ts #2029
 packages/engine/test.ts #2033
 packages/engine/test.ts #2053
 packages/engine/test.ts #2062
+packages/engine/test.ts #2067
 packages/engine/test.ts #2068
 packages/engine/test.ts #2132
 packages/engine/test.ts #2137

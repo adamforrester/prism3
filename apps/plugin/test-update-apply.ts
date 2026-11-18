@@ -980,6 +980,75 @@ section('structure — an update that changes a hand-edited member\'s structure 
   }
 }
 
+/* ── calm reporting (#2956 point 4) ─────────────────────────────────────────────────────────────────────── */
+section('calm — a miss on a member with kept hand edits is its own line, never a part to check (#2956 point 4, Q1 A)');
+{
+  // A designer set one Tag member's content padding by hand (unbound, 3). Under Keep the update leaves it, and the build's
+  // footprint check then reads that member as measuring differently from its state siblings: a miss caused by the kept
+  // edit, which read "⚠ … to check". Q1 A (held for the owner): such a miss moves to "not written because the member is
+  // hand-edited", and the run reads ✓. Expected values typed here. Mutations: the split dropped → `calm/verdict`,
+  // `calm/line`; the split taking a member's not-recorded miss → `calm/not recorded`. A miss on a node no one edited
+  // stays one (`kept report/real discard`).
+  const NAME = 'type=select, selection=unselected, size=medium, state=rest';
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['color/keep/changed'] });
+  const content = childNamed(membersOf(w.set()).find((m) => m.name === NAME)!, 'content');
+  (content.setBoundVariable as (f: string, v: null) => void)('paddingLeft', null);
+  content.paddingLeft = 3;
+  const next = w.plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; q.root.paints = { ...(q.root.paints ?? {}), fills: 'color/keep/changed' }; return q; });
+  const { res } = await confirm(w, [{ def: TAG, plans: next }]);
+  const o = res.outcomes[0];
+  const v = applyVerdict(res);
+  ok(o.misses.length === 0 && (o.editedMisses ?? []).length > 0 && (o.editedMisses ?? []).every((x) => x.startsWith('footprint -> ') && x.includes(NAME)),
+    `calm/split: the footprint misses the kept padding causes are listed apart, none left a miss (${JSON.stringify(o.misses).slice(0, 160)}; ${(o.editedMisses ?? []).length} apart)`);
+  ok(v.ok && v.headline.startsWith('✓ updated 45 in place'), `calm/verdict: the run reads ✓ (${v.headline})`);
+  const line = v.lines.find((l) => l.startsWith('tag: not written because the member is hand-edited — footprint -> '));
+  ok(!!line && !v.lines.some((l) => /not written as planned/.test(l)), `calm/line: the line names what was not written, and no part reads "not written as planned" (${(line ?? v.lines.join(' | ')).slice(0, 200)})`);
+  ok(String(content.paddingLeft) === '3' && !((content.boundVariables as Record<string, unknown> | undefined)?.paddingLeft), `calm/kept: the padding is as the designer left it (${String(content.paddingLeft)})`);
+}
+{
+  // A MEMBER NOT FINISHED STAYS A MISS, kept edits or not (#2477): the same hand-edited member, its as-built record
+  // refused by the host. That is a write the update could not finish, never "not written because the member is
+  // hand-edited", so the run is not a ✓. Typed here, as `recordfail/set member` types it.
+  const NAME = 'type=select, selection=unselected, size=medium, state=rest';
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['color/keep/changed'] });
+  const hit = membersOf(w.set()).find((m) => m.name === NAME)!;
+  const content = childNamed(hit, 'content');
+  (content.setBoundVariable as (f: string, v: null) => void)('paddingLeft', null);
+  content.paddingLeft = 3;
+  const next = w.plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; q.root.paints = { ...(q.root.paints ?? {}), fills: 'color/keep/changed' }; return q; });
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: next }]);
+  const real = hit.setSharedPluginData as (a: string, b: string, c: string) => void;
+  hit.setSharedPluginData = (ns: string, k: string, v: string): void => {
+    if (ns === NS && k === BASELINE_KEY) throw new Error('the host refused the write');
+    real.call(hit, ns, k, v);
+  };
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre));
+  hit.setSharedPluginData = real;
+  const o = res.outcomes[0];
+  ok(o.misses.some((x) => x.startsWith(`${NAME}.asBuilt -> NOT RECORDED`)) && !(o.editedMisses ?? []).some((x) => x.includes('NOT RECORDED')) && !applyVerdict(res).ok,
+    `calm/not recorded: a hand-edited member whose record could not be written stays a miss, and the run is not a ✓ (${JSON.stringify(o.misses.filter((x) => x.includes('NOT RECORDED')))}; ${applyVerdict(res).headline})`);
+}
+{
+  // ACCEPT TAKES THE SAME PATH (#2956 Q1 A; review of #3915): the owner's rule "Accept skips too" makes Accept a
+  // first-class choice, so the split is pinned under it as well, not only under Keep. Same world as `calm/split`, the
+  // update confirmed with Accept. Expected values typed here. Mutation: the split limited to Keep (`handEdits === 'keep'`)
+  // → `calm/accept`.
+  const NAME = 'type=select, selection=unselected, size=medium, state=rest';
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['color/keep/changed'] });
+  const content = childNamed(membersOf(w.set()).find((m) => m.name === NAME)!, 'content');
+  (content.setBoundVariable as (f: string, v: null) => void)('paddingLeft', null);
+  content.paddingLeft = 3;
+  const next = w.plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; q.root.paints = { ...(q.root.paints ?? {}), fills: 'color/keep/changed' }; return q; });
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: next }]);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre), { choices: { handEdits: 'accept' } });
+  const o = res.outcomes[0];
+  const v = applyVerdict(res);
+  const line = v.lines.find((l) => l.startsWith('tag: not written because the member is hand-edited — footprint -> '));
+  ok(o.misses.length === 0 && (o.editedMisses ?? []).length > 0 && (o.editedMisses ?? []).every((x) => x.startsWith('footprint -> ') && x.includes(NAME))
+    && v.ok && v.headline.startsWith('✓ ') && !!line && !v.lines.some((l) => /not written as planned/.test(l)),
+    `calm/accept: under Accept the kept padding's misses are listed apart too, and the run reads ✓ (${v.headline}; ${JSON.stringify(o.misses).slice(0, 120)}; ${(o.editedMisses ?? []).length} apart)`);
+}
+
 /* ── keep, reported (#3086) ──────────────────────────────────────────────────────────────────────────── */
 section('keep, reported — a kept hand edit on a bound size is a hand edit kept, never a part not written (#3086)');
 {
