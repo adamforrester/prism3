@@ -45,13 +45,6 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const resolved = resolveVocabulary(brandInput);
   const input = resolved.input as BrandInput;
   notes.push(...resolved.notes);
-  // #3875: the id names every file the CLI writes (`<id>.tokens.json` and the rest, `emit-dtcg.ts`), so a separator in
-  // it wrote outside --out ('../escaped') or failed mid-write ('a/b'), and an empty id wrote hidden dotfiles. Refused
-  // here, the choke point every entry path passes through. Only what makes an id unsafe as a file name is refused:
-  // a full slug rule could refuse ids hosts already store, and is held for the owner on #3875. DRAFT wording.
-  const id: unknown = input.id;
-  if (typeof id !== 'string' || id.trim() === '' || /[/\\\0]/.test(id) || id === '.' || id === '..')
-    throw new Error(`id: ${JSON.stringify(id)} can't name the brand's files. Use a name with no slash or backslash, such as 'aurora'.`);
   const root = input.root ?? 'prism';
   // Single lowercase segment — enforce the "no two-segment namespaces" contract here
   // too (not only in the schema), since brandTheme is also called with in-memory

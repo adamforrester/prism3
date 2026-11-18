@@ -9,8 +9,7 @@
   "properties": {
     "id": {
       "type": "string",
-      "pattern": "^(?!\\.{1,2}$)(?=[\\s\\S]*\\S)[^/\\\\\\u0000]+$",
-      "description": "Brand identifier (e.g. 'aurora'). Host-supplied identity; the emit namespace is set separately by `root`. It names the emitted files, so it holds no slash, backslash or NUL, is not blank, and is not `.` or `..`."
+      "description": "Brand identifier (e.g. 'aurora'). Host-supplied identity; the emit namespace is set separately by `root`."
     },
     "name": {
       "type": "string",
