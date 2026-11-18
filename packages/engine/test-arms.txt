@@ -94,7 +94,6 @@ apps/plugin/test-doc-panel.ts #3205
 apps/plugin/test-doc-panel.ts #3265
 apps/plugin/test-doc-panel.ts #3303
 apps/plugin/test-doc-panel.ts #3552
-apps/plugin/test-doc-panel.ts #3773
 apps/plugin/test-doc-panel.ts #848
 apps/plugin/test-file-components.ts #1600
 apps/plugin/test-file-components.ts #1713
@@ -1201,6 +1200,7 @@ packages/engine/test.ts #3842
 packages/engine/test.ts #3843
 packages/engine/test.ts #3845
 packages/engine/test.ts #3863
+packages/engine/test.ts #3871
 packages/engine/test.ts #388
 packages/engine/test.ts #390
 packages/engine/test.ts #391
