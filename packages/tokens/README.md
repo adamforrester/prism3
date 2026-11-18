@@ -75,8 +75,10 @@ clean enough that a user needs no pile of transforms to use it.* It draws itself
 | a preprocessor reading `$extensions.prism3.modes` | ❌ **forbidden** | code every consumer inherits forever |
 
 **The rule is enforced structurally, not by discipline.** `check-consumability.mjs` reads
-`sd.consumer.mjs` as source and asserts it declares no `preprocessors` / `hooks` / `transforms` /
-`register*`. That check exists because mutation testing showed the counting assertions are *blind* to a
+`sd.consumer.mjs` and `sd.ship.mjs` as source, and `check-platforms.mjs` reads `sd.platforms.mjs`. Each
+config makes no `register…(` call of any kind, touches no `StyleDictionary.` member, and uses only object keys
+on an allowed list of stock options (`rule-no-custom-code.mjs`, #3879). So a hook named by a string, like
+`actions: ['custom-step']`, fails too. That check exists because mutation testing showed the counting assertions are *blind* to a
 preprocessor being added — it rewrites values and leaves every count identical. Without it, the
 cheapest way to make a future failure disappear would be the exact move that destroys the gate's
 meaning.

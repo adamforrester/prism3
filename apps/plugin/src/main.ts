@@ -1475,8 +1475,8 @@ const brandOf = (panel: BrandInput | undefined): BrandInput | null => {
 /** The ledger entry each def would get if it were built now, against `input`'s brand (#2909 Q2909.8 A, `brandOf`). The
  *  brand's theme is built once for every def (`materializerFor`); a def the engine cannot plan has none, and reads
  *  unrecorded. */
-const ledgerNow = (input?: BrandInput): ((def: string) => LedgerEntry | null) => {
-  const mat = materializerFor(brandOf(input)), panel = panelFormatOf(); // #3205: on a lead set, today's panel format
+const ledgerNow = (input?: BrandInput, panels?: boolean): ((def: string) => LedgerEntry | null) => {
+  const mat = materializerFor(brandOf(input)), panel = panelFormatOf(panels); // #3205: on a lead set, today's panel format
   // #3301: each def's entry worked out once per read (`needsPrint` and `dueOf` both ask for every set's).
   const memo = new Map<string, LedgerEntry | null>();
   return (id) => {
@@ -1808,13 +1808,13 @@ const seatSet = async (setId: string, defId: string): Promise<void> => {
   } catch { /* the set stays where the executor placed it */ }
 };
 
-const updateTargets = (defId: string | readonly string[] | undefined, input?: BrandInput): { targets: UpdateTarget[]; unknown: string | null; refused: { def: string; reason: string }[] } => {
+const updateTargets = (defId: string | readonly string[] | undefined, input?: BrandInput): { targets: UpdateTarget[]; unknown: string | null; refused: { def: string; reason: string }[]; panels: boolean } => {
   const brandInput = brandOf(input);
   // #2909: the panel's Update file names a list, the sets its checklist ticked, in catalog order.
   const ids = typeof defId === 'string' ? [defId] : defId;
   const defs = ids === undefined ? componentDefs.filter((d) => d.figmaProperties) : componentDefs.filter((d) => ids.includes(d.id));
   const unknownId = ids?.find((id) => !componentDefs.some((d) => d.id === id));
-  if (unknownId !== undefined) return { targets: [], unknown: unknownId, refused: [] };
+  if (unknownId !== undefined) return { targets: [], unknown: unknownId, refused: [], panels: false };
   const targets: UpdateTarget[] = [];
   const refused: { def: string; reason: string }[] = [];
   // #2909: a set's usage panel rides its update only while Documentation has the panels on for this file.
@@ -1824,7 +1824,7 @@ const updateTargets = (defId: string | readonly string[] | undefined, input?: Br
     try { targets.push({ def: d.id, plans: figmaAnatomySet(materializeForBrand(d, brandInput), { swapTarget: SWAP_TARGET }), ...(d.figmaProperties?.emitAsComponents ? { single: true } : {}), ...(panels && leadsPanel(d.id) ? { doc: { def: d, names: defName } } : {}) }); }
     catch (e) { refused.push({ def: d.id, reason: `the engine could not plan it (${failureDetail(e)})` }); }
   }
-  return { targets, unknown: null, refused };
+  return { targets, unknown: null, refused, panels };
 };
 const breathe = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
 /** #3421: the per-set hand-edit choices an `update-sets` carries, each a known choice, as `UpdateChoices.sets`; undefined
@@ -1841,7 +1841,7 @@ const unknownDef = (defId: string, sink: ActionSink): void => {
 
 const updateComponents = async (defId: string | readonly string[] | undefined, previewHash: string | null, choices: UpdateChoices | undefined, input: BrandInput | undefined, sink: ActionSink): Promise<void> => {
   try {
-    const { targets, unknown, refused } = updateTargets(defId, input);
+    const { targets, unknown, refused, panels } = updateTargets(defId, input);
     if (unknown !== null) return unknownDef(unknown, sink);
     // #3177: the check and the apply each load and search the file a page per turn, once, for every set they read.
     if (previewHash === null) {
@@ -1881,7 +1881,7 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
     // brand its plans were laid from (the panel's, which the run's Theme step applied). A refused set, or an apply
     // refused whole (the file moved since the check), records nothing. CAUGHT, as the build's is.
     // #3082 Q811 A: with the print of the plans the apply laid, the target's own.
-    const now = ledgerNow(input);
+    const now = ledgerNow(input, panels); // #3870: the switch `updateTargets` read, never read again: it can move mid-run
     // #3421 (Q39 A): a set whose kept hand edits held changes back carries them (`held`), so it is listed under Kept edits.
     // #3436: the ledger before the run, so a later Keep run over a kept set keeps the `held` its entry carried.
     let was: Ledger = {};
@@ -2741,10 +2741,10 @@ onUiMessage((msg: UiToMain) => {
 
 /** THE PANEL FORMAT A SET'S ENTRY CARRIES (#3205): `PANEL_FORMAT` on a family's lead set while Documentation has the
  *  usage panels on for this file, the sets whose update checks a panel (`updateTargets`' `doc`); nothing on any other.
- *  The file's switch is read once per call. Defined here, at the end, so the lines public guides cite above stay put;
- *  it is called only once the module has loaded. */
-const panelFormatOf = (): ((def: string) => { panel?: number; changed?: string }) => {
-  const on = readDocSettings(figma.root).panels;
+ *  The file's switch is read once per call, unless the caller hands in the value its run already read (#3870). Defined
+ *  here, at the end, so the lines public guides cite above stay put; it is called only once the module has loaded. */
+const panelFormatOf = (panels?: boolean): ((def: string) => { panel?: number; changed?: string }) => {
+  const on = panels ?? readDocSettings(figma.root).panels;
   // #2889: and the text of its "Last changed in" block, so a fold that moves it makes the set due (owner decision A).
   return (id) => (on && leadsPanel(id) ? { panel: PANEL_FORMAT, changed: lastChangedKey(id) } : {});
 };

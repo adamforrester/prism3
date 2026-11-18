@@ -83,11 +83,11 @@
             "additionalProperties": false,
             "description": "OPTIONAL. Per-mode font WEIGHT per weight-role — a different NUMERIC value the role resolves to (e.g. dark's `strong` = 600 not 700). Never changes WHICH roles exist; only their number. Only a role whose numeric differs from light carries a per-mode override on the `font.weight-role.<role>` primitive. Role ordering is NOT enforced (the UI owns that).",
             "properties": {
-              "subtle": { "type": "number", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `subtle` weight-role." },
-              "default": { "type": "number", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `default` weight-role." },
-              "emphasis": { "type": "number", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `emphasis` weight-role." },
-              "strong": { "type": "number", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `strong` weight-role." },
-              "max": { "type": "number", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `max` weight-role." }
+              "subtle": { "type": "integer", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `subtle` weight-role." },
+              "default": { "type": "integer", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `default` weight-role." },
+              "emphasis": { "type": "integer", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `emphasis` weight-role." },
+              "strong": { "type": "integer", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `strong` weight-role." },
+              "max": { "type": "integer", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `max` weight-role." }
             }
           },
           "lineHeights": {
@@ -411,11 +411,11 @@
           "additionalProperties": false,
           "description": "Function-named weight roles → the brand's numeric weights (the white-label-stable weight model). Omit any to use the defaults (subtle 300 / default 400 / emphasis 600 / strong 700 / max 900).",
           "properties": {
-            "subtle": { "type": "number", "description": "Lighter-than-body weight (optional use)." },
-            "default": { "type": "number", "description": "Resting body / UI weight." },
-            "emphasis": { "type": "number", "description": "Mild lift — strong inline text, active states." },
-            "strong": { "type": "number", "description": "Headings, primary actions." },
-            "max": { "type": "number", "description": "Heaviest slot — black/display hero weight (optional use)." }
+            "subtle": { "type": "integer", "minimum": 1, "maximum": 1000, "description": "Lighter-than-body weight (optional use)." },
+            "default": { "type": "integer", "minimum": 1, "maximum": 1000, "description": "Resting body / UI weight." },
+            "emphasis": { "type": "integer", "minimum": 1, "maximum": 1000, "description": "Mild lift — strong inline text, active states." },
+            "strong": { "type": "integer", "minimum": 1, "maximum": 1000, "description": "Headings, primary actions." },
+            "max": { "type": "integer", "minimum": 1, "maximum": 1000, "description": "Heaviest slot — black/display hero weight (optional use)." }
           }
         },
         "typeScale": {

@@ -3517,6 +3517,22 @@ for (const b of brands) {
       `#1220 a body composite that disagrees with its rung-mates fails the build by name, instead of the line box following composite order (${threw || 'no throw'})`);
   }
 
+  // ---- #1182 stage 5: a rung with no body line box gets no `label-inset`, and the build still runs ---------
+  // `tree.ts` reads the option row's body line box per control rung and bakes `label-inset` only where that
+  // box exists. No corpus brand drops a body rung, so only a theme bent by hand reaches the branch: the #3918
+  // review found it turned into a throw under a `must`. Proven here on a copy of the minimal brand's theme
+  // with every `body.xs` composite removed, which is the `sm` control's row label rung.
+  arm: {
+    const th = brandTheme(MINIMAL_BRAND);
+    const noXs: Theme = { ...th, typography: { ...th.typography, composites: th.typography.composites.filter((c) => !(c.group === 'body' && c.path.split('.')[1] === 'xs')) } };
+    ok(noXs.typography.composites.length < th.typography.composites.length, '#1182 reachable: the minimal theme has body.xs composites to remove');
+    let threw = '';
+    let sm: Record<string, unknown> | undefined;
+    try { sm = (buildTree(noXs).tree as any).prism.control?.size?.sm; } catch (e) { threw = (e as Error).message; }
+    ok(!threw && sm !== undefined && !('label-inset' in sm) && 'height' in sm,
+      `#1182 a theme with no body.xs line box builds, and control.size.sm carries no label-inset while keeping its other fields (${threw ? `threw: ${threw}` : `sm has ${Object.keys(sm ?? {}).sort().join(', ')}`})`);
+  }
+
   // ---- #2586: the LABEL line box is one line of the emitted label type ----------------------------
   // `type.label.{rung}.line-box` (owner Q275.1 B) bakes `fontSize × lineHeight` of `type.label.{rung}.*`, because
   // Figma variables cannot multiply. The EXPECTED px here comes from the emitted label composites, resolved
@@ -42980,6 +42996,31 @@ const MIN_ASSERTIONS = 1800;
   }
 }
 
+// #3871 — a weight role keys a primitive (`core.font.weight.<value>`), so a fractional weight emits an alias that
+// resolves nowhere (`{…weight.450.5}` reads `.5` as a child), and a weight outside DTCG's [1, 1000] ships a fontWeight
+// the spec rejects. brandTheme refuses both, globally and per mode; a whole weight in range still builds clean.
+{
+  const base = { id: 'w3871', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 } } as unknown as BrandInput;
+  const refusal = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const withRoles = (weightRoles: Record<string, unknown>) => ({ ...base, typography: { weightRoles } }) as unknown as BrandInput;
+  const frac = refusal(() => brandTheme(withRoles({ default: 450.5 })));
+  ok(frac.includes('typography.weightRoles') && frac.includes("'default'") && frac.includes('450.5'),
+    `#3871 a fractional weight role (default 450.5) is refused by name (got ${JSON.stringify(frac)})`);
+  for (const [role, w] of [['max', 0], ['strong', 2000], ['subtle', -100], ['emphasis', Number.NaN]] as const) {
+    const msg = refusal(() => brandTheme(withRoles({ [role]: w })));
+    ok(msg.includes('typography.weightRoles') && msg.includes(`'${role}'`), `#3871 a weight role outside [1, 1000] (${role} ${w}) is refused by name (got ${JSON.stringify(msg)})`);
+  }
+  const perMode = refusal(() => brandTheme({ ...base, modeLevers: { dark: { weights: { default: 450.5 } } } } as unknown as BrandInput));
+  ok(perMode.includes("mode 'dark' weight 'default'"), `#3871 a fractional per-mode weight (dark default 450.5) is refused by name (got ${JSON.stringify(perMode)})`);
+  // The accept side: whole weights at the edges of DTCG's range build, and every alias resolves.
+  const edge = buildTree(brandTheme(withRoles({ subtle: 1, default: 450, max: 1000 })));
+  ok(edge.stats.broken.length === 0, `#3871 whole weights 1/450/1000 build with every alias resolving (broken: ${edge.stats.broken.slice(0, 3).map((b: any) => b.ref).join(', ')})`);
+  // The schema says the same, so a file-driven brief fails at the schema before the engine.
+  const schemaErrs = validateBrandInput(withRoles({ default: 450.5, strong: 2000 }));
+  ok(schemaErrs.some((e) => e.includes('weightRoles.default') && e.includes('not an integer')) && schemaErrs.some((e) => e.includes('weightRoles.strong')),
+    `#3871 the schema refuses a fractional and an out-of-range weight role (errors: ${JSON.stringify(schemaErrs)})`);
+}
+
 // (imports hoist; kept beside the arms so no line a guide cites moves)
 import { seedFromFacts, seedDesignMd } from './file-seed';
 import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
@@ -43129,6 +43170,24 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
       `#2075 seed: the ${label} seed's design.md parses back to its input, validates and builds (errors ${JSON.stringify(errors)}, built ${built})`);
   }
   ok(JSON.stringify(seedFromFacts(p2)) === JSON.stringify(s), '#2075 seed: the same report seeds the same bytes');
+}
+
+// #3872 — breakpoints are mobile-first min-width floors, so each must be above the one before. Out of order
+// ([0, 1024, 768]) emitted lg below md, a repeat named one floor twice, and a negative floor sat below the first;
+// each built cleanly (and a null floor, which no JSON brief can hold as a number, crashed on `.toFixed`). brandTheme
+// now refuses them, naming the floor and the one it follows.
+{
+  const base = { id: 'bp3872', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 } } as unknown as BrandInput;
+  const refusal = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const withBps = (breakpoints: number[]) => ({ ...base, layout: { breakpoints } }) as unknown as BrandInput;
+  for (const [bps, at, before] of [[[0, 1024, 768], '768', '1024'], [[0, 768, 768], '768', '768'], [[0, -5, 768], '-5', '0'], [[0, 768, null], 'null', '768']] as const) {
+    const msg = refusal(() => brandTheme(withBps([...bps] as number[])));
+    ok(msg.startsWith('Breakpoints must rise') && msg.includes(`${at}px follows ${before}px`),
+      `#3872 breakpoints [${bps.join(', ')}] are refused, naming ${at}px after ${before}px (got ${JSON.stringify(msg)})`);
+  }
+  // The accept side: rising floors, a fractional one among them, still build.
+  const rising = refusal(() => brandTheme(withBps([0, 768.5, 1024])));
+  ok(rising === '', `#3872 rising breakpoints [0, 768.5, 1024] still build (got ${JSON.stringify(rising)})`);
 }
 
 if (pass + fails.length < MIN_ASSERTIONS) {
