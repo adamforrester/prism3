@@ -1064,7 +1064,7 @@ section('markers/… — every listed number on a specimen, on its part, by one 
     const ancestors = (id: string): string[] => Object.keys(tree).filter((k) => below(k).includes(id));
     const marked = new Map<N, string[]>();
     const marksOn = (sp: N): string[] => marked.get(sp) ?? [];
-    const left: { spec: N; x: number; box: { x: number; y: number; width: number; height: number } }[] = [];
+    const left: { num: string; spec: N; x: number; box: { x: number; y: number; width: number; height: number } }[] = [];
     const slid: { num: string; id: string; spec: N; at: { x: number; y: number; width: number; height: number }; outer: boolean }[] = [];
     for (const num of nums) {
       const label = labelOf(num);
@@ -1119,7 +1119,7 @@ section('markers/… — every listed number on a specimen, on its part, by one 
         // Off its place only when a disc there would touch another in the column (checked once every disc is read).
         if (Math.abs(ey - wantY) > 0.5) slid.push({ num, id: part.id, spec, at: { ...marker, y: wantY - marker.height / 2 }, outer });
         if (L.height > 1.01 || Math.abs(L.x + L.width - B.x) > 0.5 || marker.x + marker.width > spec.absoluteBoundingBox!.x) wrong.push(`${num} ${part.id}: a container's leader does not come in from the left gutter`);
-        left.push({ spec, x: marker.x, box: marker });
+        left.push({ num, spec, x: marker.x, box: marker });
       } else {
         if (isRoot) wrong.push(`${num} ${part.id}: the root is marked as a part, not a container`);
         const down = marker.y < B.y;
@@ -1137,7 +1137,8 @@ section('markers/… — every listed number on a specimen, on its part, by one 
     if (coveredIds.join() !== parts.map((pt) => pt.id).join()) wrong.push(`the entries cover ${coveredIds.join(',')}, the def lists ${parts.map((pt) => pt.id).join(',')}`);
     for (const sl of slid) {
       const grown = { x: sl.at.x - 4, y: sl.at.y - 4, width: sl.at.width + 8, height: sl.at.height + 8 };
-      if (!left.some((o) => o.spec === sl.spec && o.box !== undefined && Math.abs(o.box.y - (sl.at.y)) > 0.01 && overlapsBox(grown, o.box)))
+      // Another disc, by number: one at the same height as the wanted place blocks it as much as any (#3773).
+      if (!left.some((o) => o.num !== sl.num && o.spec === sl.spec && overlapsBox(grown, o.box)))
         wrong.push(`${sl.num} ${sl.id}: its dot is off its ${sl.outer ? 'bottom corner' : 'middle'} though that place is free`);
     }
     const badges = panel.children.filter((c) => c.name.startsWith('part ')).map((g) => walk(g).find((c) => c.name === 'marker')!.absoluteBoundingBox!);
