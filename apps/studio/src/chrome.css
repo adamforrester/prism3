@@ -391,13 +391,9 @@
   display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--p3-space-100); padding: var(--p3-space-150) var(--p3-space-300);
   border-top: var(--p3-bw-hairline) solid var(--p3-line-1);
 }
-.p3-bardlg-import { display: grid; gap: var(--p3-space-075); padding: var(--p3-space-150) var(--p3-space-300); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
-.p3-bardlg-import > .p3-menu-item { justify-self: start; }
-/* #3553 M9: Export draws its captions and its Import action with the menu's classes, so they kept the menu's inner
-   padding and sat a space-150 right of the files, the code and the notes they label. Here a caption starts at the
-   column's edge, and the action's label does too: the button keeps its own padding and hover fill, moved out by it. */
-:is(.p3-export-out, .p3-bardlg-import) > .p3-menu-cap { padding-inline: 0; }
-.p3-bardlg-import > .p3-menu-item { margin-inline-start: calc(-1 * var(--p3-space-150)); }
+/* #3553 M9: Export draws its captions with the menu's class, so they kept the menu's inner padding and sat a
+   space-150 right of the files, the code and the notes they label. Here a caption starts at the column's edge. */
+.p3-export-out > .p3-menu-cap { padding-inline: 0; }
 
 /* ── the two panes (shown from the first moved page, S2) ─────────────────────────────────── */
 /* The tab row and the preview's title row share ONE grid row (Q2), so the two dividers sit at one y
@@ -572,7 +568,7 @@
    strip is the window's own content, in a body that scrolls, so the cap would only scroll its two buttons out of sight. */
 .p3-frame[data-w="narrow"] .p3-start .p3-errstrip { max-height: none; overflow-y: visible; }
 .p3-frame[data-w="narrow"] .p3-bardlg-scrim { padding: var(--p3-space-150); }
-.p3-frame[data-w="narrow"] :is(.p3-bardlg-head, .p3-bardlg-col, .p3-bardlg-foot, .p3-bardlg-import) { padding-left: var(--p3-space-150); padding-right: var(--p3-space-150); }
+.p3-frame[data-w="narrow"] :is(.p3-bardlg-head, .p3-bardlg-col, .p3-bardlg-foot) { padding-left: var(--p3-space-150); padding-right: var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-bardlg-body { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
 .p3-frame[data-w="narrow"] .p3-bardlg-col { overflow: visible; }
 .p3-frame[data-w="narrow"] .p3-export-out { border-left: 0; border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
