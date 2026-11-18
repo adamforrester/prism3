@@ -13027,7 +13027,7 @@ for (const host of ['web', 'figma']) {
 // its appearance's Prism3 disabled roles. Counted, with a floor, so a sweep that found no disabled button fails.
 const DERIVED_OFF_FLOOR = 100;
 /** #2366: the held segmented choices the sweep must read, a floor under the count measured when it was written. */
-const DERIVED_CHOICE_FLOOR = 10;
+const DERIVED_CHOICE_FLOOR = 20;
 for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
     const where = `X4 A derived: ${host} ${theme}`;
