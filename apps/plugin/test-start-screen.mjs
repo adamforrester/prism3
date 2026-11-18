@@ -350,10 +350,6 @@ console.log('\n3b. a late restore-input after the designer acted is offered, not
     const gone = await strip(page);
     ok((after.brandSel ?? '').includes('restored-brand') && !gone.shown && gone.action === null,
       `#3697 R9 confirm-replace: Replace brand loads the file's brand and the strip clears — brand "${after.brandSel}", ${JSON.stringify(gone)}`);
-    // Undo load's scope (#1037 Q-BK2 A): every load the designer chooses, NOT the file's own brand arriving. This is
-    // that arrival, over unsaved edits, so it must offer nothing. Mutation: `loadReplacing` for every origin fails it.
-    { const u = await page.locator('[data-p3="undo-load"]').count();
-      ok(u === 0, `#1037 the file's own brand arriving offers no Undo load (undo-load drawn: ${u})`); }
     ok(errors.length === 0, `no console errors (${errors.slice(0, 1).join('') || 'none'})`);
     await page.close();
   }

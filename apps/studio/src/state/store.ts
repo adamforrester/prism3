@@ -28,7 +28,6 @@
  */
 import { brandTheme, type BrandInput, type Theme, resolvePreview, type ResolvedPreview } from '@prism3/engine';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
-import { stashBefore, type UndoLoad } from './undo-load';
 import { provenanceOf, noOrigin, type Origin, type Provenance } from '../provenance';
 import type { PageKey } from '../shell/pages';
 import { studioMessage } from './floor-refusal';
@@ -281,37 +280,6 @@ export const loadInput = (input: BrandInput, origin: Origin): void => {
   // ONE BATCH, IN THE ORDER RESOLVE, MODE, PAGE (#2487 A13). Every fact is set before anyone is told, so no subscriber
   // paints the new page against the old theme, and each topic is told once.
   resolve();
-  currentMode = rp.modes[0];
-  page = 'palettes';
-  invalidate('origin');
-  invalidate('brand');
-  invalidate('mode');
-  invalidate('page');
-};
-
-/** What Undo load keeps before a load replaces the working brand (#1037): the live input, its provenance, and the
- *  last-good input behind it, which differs from the live one when the live one holds a refused edit. Here rather than
- *  at the call site so the argument choice is tested (review of f3cca512): `main.ts`'s `loadReplacing` calls this. */
-export const stashForLoad = (name: string): UndoLoad | null => stashBefore(brandState, provenance, name, lastGoodInput);
-
-/** Put back a brand a load replaced, WITH ITS PROVENANCE (#1037, Undo load): the same reset as `loadInput`, except that
- *  the origin and baseline are the ones it had, not new ones from `input`. So unsaved edits come back still unsaved, and
- *  the overwrite confirm still guards them. `loadInput` would make them the baseline and the confirm would stop asking. */
-export const restoreInput = (input: BrandInput, prov: Provenance, lastGood: BrandInput): void => {
-  brandState = structuredClone(input);
-  provenance = prov;
-  resolve();
-  // The brand may have held a refused edit when the load replaced it (review of 6e73dba1): then the resolve above fails
-  // and would leave the LOADED example's theme, last-good input and persisted copy in place. Resolve the last-good brand
-  // it had instead, so the theme, what Apply posts and what a web reload opens are the user's again; `lastError` keeps the
-  // refusal, so the field still flags the edit, as it did before the load.
-  if (lastError !== null) {
-    theme = brandTheme(lastGood);
-    rp = resolvePreview(theme);
-    lastGoodInput = structuredClone(lastGood);
-    if (persistHolds) persistOwed = true;
-    else persist?.(lastGoodInput);
-  }
   currentMode = rp.modes[0];
   page = 'palettes';
   invalidate('origin');
