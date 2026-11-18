@@ -1764,7 +1764,9 @@ npm run check:parity -w @prism3/web-components # needs Chromium. components.ai.j
 npm run test:browser -w @prism3/web-components # needs Chromium; builds @prism3/tokens first.
                                           # The element and plain HTML from the @prism3/css contract
                                           # compute equal styles on light and dark; pending and
-                                          # inactive suppress the action and keep focus and name
+                                          # inactive suppress the action and keep focus and name;
+                                          # check-entries.ts: the root entry registers no element,
+                                          # each element's entry exactly its own (Q-POC3 B)
 npm run build -w @prism3/storybook         # #3408 S5 (thin): Storybook 10 on web-components-vite,
                                           # the button in both delivery forms, one story per state;
                                           # builds @prism3/tokens first

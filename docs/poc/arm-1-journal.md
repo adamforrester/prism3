@@ -1530,3 +1530,90 @@ runs, not the latest.
 
 **Not fixed here:** `<p3-password-field>`'s own toggle (`p3-password-field.js`) has the same unconditional delayed
 restore. It is filed separately rather than fixed in this PR.
+
+---
+
+## Q-POC3 B — one entry per element; the package root registers nothing
+
+Started about 15:05 UTC on 2026-11-18, from `poc/arm-1` at `62a34be3`. It builds the owner's answer to the #1712 A
+audit's second flag (Q-POC3 → B, 2026-11-18, on #3408). `import '@prism3/web-components'` registers nothing, and
+each element registers from its own entry, the button included.
+
+### What was built
+
+- **`package.json`'s exports:**
+
+  | Entry | File | Registers |
+  |---|---|---|
+  | `.` | `index.js` (new) | nothing |
+  | `./button` | `p3-button.js` | `<p3-button>` |
+  | `./text-field` | `p3-text-field.js` | `<p3-text-field>` |
+  | `./password-field` | `p3-password-field.js` | `<p3-password-field>` |
+
+  `main` and `module` name `index.js`, and `files` ships it. The old `./p3-*.js` subpaths are gone, so each element
+  has one entry name. `custom-elements.json` and `package.json` stay as data entries.
+- **`index.js`** is hand-written and exports nothing. Its comment points at the three entries.
+- **The elements and `custom-elements.json` don't change.** The analyzer reads the same three files, and their module
+  paths are the files, not the entry names.
+- **The Storybook preview** imports the three entries. The element README's examples import the entry they use, and it
+  has a table of the entries. `CONTRIBUTING.md`'s note on `test:browser` names the new check.
+
+### Decisions
+
+Followed: Q-POC3 B.
+
+Taken as technical calls (reversible): the root's file name, `index.js`; and dropping the `./p3-*.js` subpaths rather
+than keeping them as second names. The package is private and unpublished, and the Storybook preview was their only
+consumer.
+
+**OWNER DECISION: what the root exports.** It registers nothing, as decided. Options:
+- **A. Nothing (built).** It's an empty module, so importing it does nothing.
+- B. The element classes, without registering them. Each element file would then split into a class module and a
+  registering entry, a change to the generator.
+- C. A `define()` helper that registers on request.
+
+**Recommendation: A** for the POC. B or C only if a client needs to register under another tag name or extend a
+class.
+
+### What was checked, and how
+
+- **`check-entries.ts`** (new, chained into `test:browser`, so `wc-browser` runs it). Its expected entries and tags are
+  written by hand from the owner decision, not read from the package:
+  1. **The exports map.** The script entries are exactly `.`, `./button`, `./text-field` and `./password-field`.
+     `main` and `module` name the root's file, and every entry's file is in `files`.
+  2. **A consumer resolves them.** From `apps/storybook`, Node resolves each entry to the file the map names.
+  3. **What each entry registers.** Each entry is bundled alone through the map (esbuild) and loaded into a fresh
+     Chromium page whose `customElements.define` is recorded. The calls must be exactly the expected tags, and
+     `customElements.get` must answer for those only.
+
+  29 checks. **Four self-test mutants fail by name:**
+  - the root importing the button: `root (@prism3/web-components): registered <p3-button>, expected nothing`;
+  - the text field's entry also registering the button: `./text-field: registered <p3-button>, <p3-text-field>, expected exactly <p3-text-field>`;
+  - the button's entry pointing at the text field: `./button: registered <p3-text-field>, expected exactly <p3-button>`;
+  - an old `./p3-button.js` entry kept: `exports: "./p3-button.js" is not an expected entry (…)`.
+- **Hand mutations on disk**, each after a commit, restored with `git show HEAD:<path> > <path>`:
+
+  | Mutation | Result |
+  |---|---|
+  | `package.json` put back to `poc/arm-1`'s | Fails by name, 11 failures, among them `root (@prism3/web-components): registered <p3-button>, expected nothing` and `resolve: "@prism3/web-components/button" from apps/storybook resolves to unresolved (Package subpath './button' is not defined by "exports" …)` |
+  | The preview's `import '@prism3/web-components/button'` deleted | `storybook-check` **timed out** (over 280 s) rather than failing by name. The S5 field-stories entry saw the same with unregistered elements. Filed separately. |
+
+- `storybook-build` and `storybook-check` pass on the new preview (100 stories, 868 checks). `wc-generated` passes,
+  so the manifest is unchanged.
+
+### Surprises and learnings
+
+- **Playwright's `setContent` runs no init scripts,** so the `customElements.define` recorder is evaluated after the
+  page is set and before the entry's script.
+- **A missing registration shows up in the Storybook as a timeout, not a name.** `check-entries.ts` now names it
+  first, in seconds.
+
+### Effort
+
+- **Wall clock:** about 15:05 to 15:30 UTC for the entries, the check, the mutations and this entry; then the gate
+  run.
+- **Steps:** about 20 tool calls: finding every entry reference (3); writing `index.js`, the check and the edits
+  (6); running, mutating and restoring (about 11).
+- **Hand edits:** `package.json`, `index.js`, the check, the preview, two READMEs' worth of prose and `CONTRIBUTING.md`.
+  Nothing generated changed.
+- **Errors hit:** 2: the recorder installed with `addInitScript` never ran, and the Storybook mutation's timeout.
