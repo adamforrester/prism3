@@ -20,13 +20,13 @@ There are two ways to get token files out, and they start from different places:
 |---|---|
 | **Token names** | `color.on-fill` or `color.on_fill` <!-- src: apps/studio/src/export-settings.ts:183-189 --> |
 | **Grouping** | **Nested groups** or **One flat level** <!-- src: apps/studio/src/export-settings.ts:196-201 --> |
-| **Files** | **One per mode** or **One per group** <!-- src: apps/studio/src/export-settings.ts:213-220 --> |
-| **Formatting** | **Indented** or **Compact** <!-- src: apps/studio/src/export-settings.ts:228-233 --> |
+| **Files** | **One per mode** or **One per group** <!-- src: apps/studio/src/export-settings.ts:209-216 --> |
+| **Formatting** | **Indented** or **Compact** <!-- src: apps/studio/src/export-settings.ts:224-229 --> |
 | **Include build metadata** | **Off** by default. "For internal use. Adds how each token was built, and what built the file. A consumer's build never reads it, so the handoff leaves it out." <!-- src: apps/studio/src/export-settings.ts:644-652 --> |
 
 ### What you get
 
-With **One per mode** <!-- src: apps/studio/src/export-settings.ts:218 -->, the download is a base file plus one overlay file per extra mode: <!-- src: packages/engine/emit-dtcg-overlay.ts:10-13#cb75b242 -->
+With **One per mode** <!-- src: apps/studio/src/export-settings.ts:214 -->, the download is a base file plus one overlay file per extra mode: <!-- src: packages/engine/emit-dtcg-overlay.ts:10-13#cb75b242 -->
 
 - `<brand>.base.tokens.json` holds every token at its default-mode value.
 - `<brand>.<mode>.overlay.tokens.json`, for example `<brand>.dark.overlay.tokens.json`, holds only the tokens whose value changes in that mode.

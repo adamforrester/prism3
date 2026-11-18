@@ -8,15 +8,12 @@ import { componentDefs, componentDefsFileNames, exportComponentDefs, toSpecsComp
 import { provideComponentSpecsExporter } from '../../../studio/src/state/component-specs-export';
 
 provideComponentSpecsExporter({
-  // #1325 (Q-CC1 A): the contract-named file first, then its compatibility copy under the old name, for one release.
-  fileNames: (slug) => { const n = componentDefsFileNames(slug); return [n.contracts, n.defs, n.specs]; },
+  fileNames: (slug) => { const n = componentDefsFileNames(slug); return [n.defs, n.specs]; },
   files: (input, slug) => {
     const doc = exportComponentDefs(componentDefs, { brand: input });
     const n = componentDefsFileNames(slug);
-    const text = JSON.stringify(doc, null, 2) + '\n';
     return [
-      { name: n.contracts, text },
-      { name: n.defs, text },
+      { name: n.defs, text: JSON.stringify(doc, null, 2) + '\n' },
       { name: n.specs, text: JSON.stringify(toSpecsComponents(doc), null, 2) + '\n' },
     ];
   },

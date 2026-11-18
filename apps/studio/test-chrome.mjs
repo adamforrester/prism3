@@ -143,7 +143,7 @@
  *   · ONE HOME PER PAGE (V1): every place names its literal home view and title (`EXPECT_HOME`), visited in
  *     two orders; scrolling the page and focusing its controls never changes it; nothing offers "Keep this
  *     view" (V12).
- *   · INSPECT (F1): the verdict reads the decided count (956; 884 until #3346) and opens Inspect › Contrast over the legacy
+ *   · INSPECT (F1): the verdict reads the decided count (964; 956 until #2750, 884 until #3346) and opens Inspect › Contrast over the legacy
  *     frame, with Health first and its literal lines; Tokens redraws in place from its own controls (the Decisions
  *     log, its third view, was cut by #2909 Q2909.7 A; its two unique notes are on their levers); Back and Escape close it to the page, its scroll
  *     and the opener's focus; a tab change closes it. Measured at every width, both themes, both hosts.
@@ -330,8 +330,8 @@
  *   · v5 answer 4: Brand name and Token namespace side by side at 1280, 640 and 380, both hosts.
  *   · T2: the placeholder (`pds3`) and the reserved (`prism`) namespaces warn in v6's words; a draft reaches
  *     nothing until Rename namespace and its confirm; Escape closes the confirm back to the field.
- *   · Q3: dark off asks first, naming high contrast dark and the verdict's new count (478 of 956, from Health's
- *     literal 239 per mode); Cancel keeps it; confirming drops both; high contrast dark stays locked off with
+ *   · Q3: dark off asks first, naming high contrast dark and the verdict's new count (482 of 964, from Health's
+ *     literal 241 per mode); Cancel keeps it; confirming drops both; high contrast dark stays locked off with
  *     its reason until dark is back, and dark back does not bring it back.
  *   · The name reaches the bar per keystroke (the `identity` topic) and the persisted brand; personality and the
  *     custom modes reach the brand; the Style guide's own select redraws it inside the preview (the lent repaint).
@@ -2755,11 +2755,11 @@ if (runs('7')) for (const host of ['web', 'figma']) {
 // =============================================================================================
 if (runs('8')) console.log(`\nInspect — the verdict opens Contrast, with Health first\n${'='.repeat(78)}`);
 /** The verdict, as the owner decided it (v4 review Q2, v5 Q2) and concept v6 words it: literals. */
-const VERDICT_LINE = 'All 956 pairs at or above floor';   // 884 until #3346 added the 18 selection-mark roles per mode
+const VERDICT_LINE = 'All 964 pairs at or above floor';   // 956 until #2750 rated disabled.border and its inverse; 884 until #3346 added the 18 selection-mark roles per mode
 // #3366 (owner decision Q3366.3 A): Health says "minimum" for a pair's own ratio; the bar keeps "floor".
-const HEALTH_LINE = 'All 956 pairs at or above their minimum.';
+const HEALTH_LINE = 'All 964 pairs at or above their minimum.';
 const HEALTH_FLOOR_LINE = 'Most text, icon and fill colors are checked against the contrast floor: neutral 050 in Light, neutral 900 in Dark.';
-const HEALTH_MODES = ['Light: 239 of 239 at or above', 'Dark: 239 of 239 at or above', 'High contrast light: 239 of 239 at or above', 'High contrast dark: 239 of 239 at or above'];
+const HEALTH_MODES = ['Light: 241 of 241 at or above', 'Dark: 241 of 241 at or above', 'High contrast light: 241 of 241 at or above', 'High contrast dark: 241 of 241 at or above'];
 /** #2909 Q2909.7 A: the Decisions log, Inspect's third view, is cut; its two notes no lever said are on their levers
  *  (section "IA v2 phase 2" holds them). The notes still ship: the committed default theme still records them. */
 const INSPECT_TABS = ['Contrast', 'Tokens'];
@@ -4975,12 +4975,12 @@ const SOFT_SETS = [['radiusScale', 'soft'], ['shadow.softness', 'soft']];
 /** T2 (v4 review) in concept v6's words: the namespace warning for each reserved or placeholder value. */
 const NS_WARN = { pds3: 'pds3 is the default theme’s placeholder. Set your brand’s namespace before you export.',
   prism: 'prism is reserved for the shipped catalog. Set your brand’s namespace before you export.' };
-/** Q3 (v4 review 3, v5): the confirm's sentence for the default theme, 239 gated pairs per mode (Health's literal). */
+/** Q3 (v4 review 3, v5): the confirm's sentence for the default theme, 241 gated pairs per mode (Health's literal). */
 const DARK_OFF_TITLE = 'Turn off Dark and high contrast dark';
 /** The Dark-off confirm's line when a custom mode is based on dark (orchestrator review of #1939), the reviewer's
  *  decision in the words chosen for it, typed here. */
 const BASED_ON_DARK = 'Custom mode custom-1 is based on Dark, so turning Dark off is refused until it is based on Light or removed.';
-const DARK_OFF_LINE = 'High contrast dark follows dark, so it turns off too. The two modes’ 478 pairs leave the verdict (956 becomes 478).';
+const DARK_OFF_LINE = 'High contrast dark follows dark, so it turns off too. The two modes’ 482 pairs leave the verdict (964 becomes 482).';
 const persisted = (page) => page.evaluate(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input ?? null; } catch { return null; } });
 const modeRadios = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]')].map((b) => b.dataset.mode));
 const checkState = (page, sel) => page.evaluate((x) => { const b = document.querySelector(x); return b ? { checked: b.getAttribute('aria-checked'), locked: b.getAttribute('aria-disabled') === 'true', note: b.querySelector('.p3-check-note')?.textContent } : null; }, sel);
@@ -5101,7 +5101,7 @@ for (const host of ['web', 'figma']) {
   await page.waitForFunction(() => document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]').length === 2);
   const hcd = await checkState(page, '[data-p3="mode-on-hc-dark"]');
   const verdictNow = await page.evaluate(() => document.querySelector('[data-p3="verdict-tip"]')?.textContent);
-  ok(JSON.stringify(await modeRadios(page)) === '["light","hc-light"]' && verdictNow === 'All 478 pairs at or above floor', `Q3: confirming turns off dark and high contrast dark (modes ${await modeRadios(page)}, verdict "${verdictNow}")`);
+  ok(JSON.stringify(await modeRadios(page)) === '["light","hc-light"]' && verdictNow === 'All 482 pairs at or above floor', `Q3: confirming turns off dark and high contrast dark (modes ${await modeRadios(page)}, verdict "${verdictNow}")`);
   ok(hcd?.checked === 'false' && hcd.locked && hcd.note === 'Off while dark is off: it follows dark.', `Q3: high contrast dark stays off and locked while dark is off, and says why (${JSON.stringify(hcd)})`);
   // A locked check keeps its focus stop (aria-disabled), so it is activated the way a keyboard user would:
   // Playwright refuses a click on an aria-disabled element, which is itself the pointer half of the claim.
@@ -5631,9 +5631,9 @@ for (const host of ['web', 'figma']) {
   // issue's measured table: 47 roles in six groups, typed here, never read off the module (docs/34 shape 1).
   const WANT_FLOOR = {
     head: 'Contrast floor', label: 'Measured on', sub: 'A setting, not a token', info: false,
-    line: 'The background 47 text, icon and fill colors are checked against for contrast. A step further from the page moves them further from it too. Auto uses background.secondary.',
+    line: 'The background 48 text, icon and fill colors are checked against for contrast. A step further from the page moves them further from it too. Auto uses background.secondary.',
     groups: [['links', 'Links (10)', true], ['status', 'Brand and status text, icons (10)', true], ['secondary', 'Secondary and tertiary text, placeholder (5)', true],
-      ['disabled', 'Disabled text and icon (2)', true], ['bold', 'Bold fills (5)', true], ['buttons', 'Button fills (15)', true]],
+      ['disabled', 'Disabled text, icon and border (3)', true], ['bold', 'Bold fills (5)', true], ['buttons', 'Button fills (15)', true]],
     not: 'Field borders, button borders and the focus ring are not checked against it.',
   };
   ok(JSON.stringify(copy.floor) === JSON.stringify(WANT_FLOOR),
@@ -9849,7 +9849,9 @@ for (const host of ['web', 'figma']) {
       ok(d.scheme === theme && first?.disabled === true && got.fill === want.fill && got.edge === want.edge && got.style === 'solid' && got.ink === want.ink,
         `F1 A: Layout: ${host} ${theme}: the fixed first breakpoint field draws Prism3's disabled text field: fill color.disabled.fill ${want.fill}, a solid edge color.disabled.border ${want.edge}, value color.disabled.on-fill ${want.ink} — drew ${JSON.stringify(got)} (disabled ${first?.disabled}, chrome ${d.scheme})`);
       const rest = d.fields.slice(1).map(skin);
-      ok(d.fields.length === 5 && d.fields.slice(1).every((f) => !f.disabled) && rest.every((x) => x.fill !== want.fill && x.edge !== want.edge && x.ink !== want.ink),
+      // The edge is not compared (#2750): the disabled levers now set `color.disabled.border`'s contrast, and at the default
+      // theme's floor it lands on the same step as an editable field's rest edge. The skin still differs by fill and value.
+      ok(d.fields.length === 5 && d.fields.slice(1).every((f) => !f.disabled) && rest.every((x) => x.fill !== want.fill && x.ink !== want.ink),
         `F1 A: Layout: ${host} ${theme}: no editable breakpoint field takes the disabled skin — ${JSON.stringify(rest)}`);
       if (SHOTS) await page.locator('[data-p3="levers-pane"] [data-p3="bp-list"]').screenshot({ path: join(SHOTS, `f1-${host === 'web' ? 'web' : 'plugin'}-${theme}.png`) });
       ok(errors.length === 0, `F1 A Layout ${host} ${theme}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
@@ -11775,7 +11777,7 @@ for (const { w, h } of WIDTHS) {
 // 29b. The owner's "A · Menu bar" (2026-10-05), three behaviors held directly, both hosts, both themes:
 //   · CONTRAST'S MARK FOLLOWS THE VERDICT: a check and no count while every pair passes; a warning glyph and the
 //     count below floor once an edit puts pairs below it. The web's edit is test-verdict-count.ts's two-mode
-//     fixture, whose count is derived by hand there: 2 of 956, 2 modes. The plugin's is a restore of a one-mode
+//     fixture, whose count is derived by hand there: 2 of 964, 2 modes. The plugin's is a restore of a one-mode
 //     brand with the same Light override; its count is read from its own line.
 //   · THE PLUGIN'S THEME MENU: Match Figma, Light and Dark, in that order, Match Figma checked by default and the
 //     chrome on Figma's theme; a choice applies, is posted to the main thread as `set-theme-pref`, and, after a
@@ -11825,7 +11827,7 @@ for (const host of ['web', 'figma']) {
         await page.waitForFunction(() => document.querySelector('[data-p3="verdict"]')?.dataset.state === 'fail', null, { timeout: 5000 }).catch(() => {});
         const c1 = await page.evaluate(CONTRAST_PROBE);
         const lead = /^(\d+) of \d+ below floor, \d+ modes?$/.exec(c1.tip ?? '');
-        ok(c1.state === 'fail' && c1.warn && !c1.check && (host === 'web' ? c1.tip === '2 of 956 below floor, 2 modes' && c1.count === '2' : !!lead && c1.count === lead[1]),
+        ok(c1.state === 'fail' && c1.warn && !c1.check && (host === 'web' ? c1.tip === '2 of 964 below floor, 2 modes' && c1.count === '2' : !!lead && c1.count === lead[1]),
           `${where}: Contrast: pairs below floor, so its mark is the warning glyph and the count below floor (${JSON.stringify(c1)})`);
         ok(c1.name === `Verdict: ${c1.tip}. Open Inspect, Contrast`, `${where}: Contrast keeps its name, the full line ("${c1.name}")`);
 
@@ -14804,121 +14806,6 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 } // 3117
 
 // =============================================================================================
-// #3263 (owner decision 2026-11-18, A): a pressed Personality chip (`toggleChip`, Brand) draws no check glyph, and shows
-// it is pressed through its edge, and its `Highlight` fill under forced colors, so a press never changes the chip's
-// width. Before, the pressed chip drew a 16px check plus its 4px gap, 20px wider than unpressed, and the words are
-// multi-select in a wrapping row: the row's width grew with each word pressed, so a press where the row only just fitted
-// could push the last word onto a new row (the #3117 shape, on the chips that decision did not cover).
-// Single- vs multi-select is a separate owner question: this section presses several words because the chips allow it
-// today, not to assert that they must.
-// Both hosts, both chrome themes, at two widths:
-//   · 1280, the #3115 shape: the row held at its `max-content` width, read once with no word pressed (prism3 opens with
-//     none), then each word pressed in turn, every pressed word kept pressed;
-//   · 380, the row at its real narrow width, wrapped over several rows, pressed the same way.
-// After each press the chips' rows (distinct tops) and each chip's own width are read. EXPECTED (literal rules, typed
-// here): every chip as wide as it was with no word pressed, whatever is pressed; one row count for every press (one row
-// at 1280); no chip draws a glyph. Then the state cue, as rendered, read with every word pressed but the last:
-//   · the pressed chip's edge against an unpressed chip's edge, at least 3:1 (WCAG 1.4.11), and the label ink the same
-//     on both, so the edge is the cue;
-//   · under forced colors (CDP `forced-colors: active`), the pressed chip filled `Highlight` and its neighbor not.
-// ACTUAL: the drawn chips.
-// Mutations, failing here by name (measured 2026-11-18):
-//   · main before the fix restored (`toggleChip` appends `glyph('check')` again, with the two `.p3-btn.p3-chip … >
-//     .p3-ico` rules that hid it unpressed and showed it pressed) → 24 of 72, every host, theme and width: `#3263 web
-//     light 1280: each Personality chip keeps its unpressed width whatever is pressed — energetic 80/100/100/…, calm
-//     54/54/74/…`, `… no Personality chip draws a check, pressed or not`, and the row arm, at 1280 `… keeps one row at its
-//     max-content width (653px) … none pressed 1, then 2, 2, …` and at 380 the bug as filed, `… keeps its 3 rows …
-//     none pressed 3, then 3, 4, 4, …`; plus section 39's `#3263: a Personality chip draws no check`;
-//   · the glyph line alone restored, the rules left removed → 8 of 72, `… no Personality chip draws a check, pressed or
-//     not — none pressed ["energetic", …]`: the glyph then draws on every chip, so the widths hold and only this arm
-//     sees it.
-if (runs('3263')) {
-console.log(`\nA pressed Personality chip keeps its width (#3263)\n${'='.repeat(78)}`);
-const ROW_3263 = '[data-p3="levers-pane"] [data-p3="lever-personality"] [data-p3="personality-words"]';
-const CHIP_3263 = '[data-p3="personality-word"]';
-const lum3263 = (hx) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; const n = (i) => parseInt(hx.slice(i, i + 2), 16); return 0.2126 * f(n(1)) + 0.7152 * f(n(3)) + 0.0722 * f(n(5)); };
-const ratio3263 = (a, b) => { if (!a || !b) return NaN; const [x, y] = [lum3263(a), lum3263(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
-for (const { w, h, hold } of [{ w: 1280, h: 900, hold: true }, { w: 380, h: 420, hold: false }]) for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
-  const where = `#3263 ${host} ${theme} ${w}`;
-  const { ctx, page, errors } = await open({ host, theme, w, h });
-  try {
-    await goPlace(page, 'brand');
-    await hooks.need(page, ROW_3263);
-    /** One read of the row: rows, each chip's width and pressed state, the glyphs drawn, the edges and inks. */
-    const read = (px) => page.evaluate(([s, c, px]) => {
-      const g = document.querySelector(s);
-      if (!g) return null;
-      if (px === 'max-content') { g.style.width = 'max-content'; px = g.getBoundingClientRect().width; }
-      if (typeof px === 'number') g.style.width = `${px}px`;
-      const chips = [...g.querySelectorAll(c)];
-      const on = chips.filter((b) => b.getAttribute('aria-pressed') === 'true'), off = chips.filter((b) => b.getAttribute('aria-pressed') !== 'true');
-      const label = (b) => b?.querySelector('.p3-btn-label');
-      return {
-        px: typeof px === 'number' ? px : null,
-        pressed: on.map((b) => b.dataset.word),
-        rows: new Set(chips.map((b) => Math.round(b.getBoundingClientRect().top))).size,
-        widths: Object.fromEntries(chips.map((b) => [b.dataset.word, Math.round(b.getBoundingClientRect().width * 10) / 10])),
-        glyphs: chips.filter((b) => [...b.querySelectorAll('svg, .p3-ico')].some((i) => i.getClientRects().length > 0 && getComputedStyle(i).display !== 'none')).map((b) => b.dataset.word),
-        edgeOn: on[0] && getComputedStyle(on[0]).borderTopColor, edgeOff: off[0] && getComputedStyle(off[0]).borderTopColor,
-        inkOn: label(on[0]) && getComputedStyle(label(on[0])).color, inkOff: label(off[0]) && getComputedStyle(label(off[0])).color,
-      };
-    }, [ROW_3263, CHIP_3263, px]);
-    const base = await read(hold ? 'max-content' : null);
-    const words = Object.keys(base?.widths ?? {});
-    ok(!!base && base.pressed.length === 0 && words.length === PERSONALITY.length,
-      `${where}: the Personality row opens with no word pressed and draws every word (${words.length} of ${PERSONALITY.length}) — pressed ${JSON.stringify(base?.pressed)}`);
-    const reads = [];
-    for (const word of words) {
-      const chip = `${ROW_3263} ${CHIP_3263}[data-word="${word}"]`;
-      await page.locator(chip).scrollIntoViewIfNeeded();
-      await hooks.click(page.locator(chip));
-      // A press redraws the row's state, so the chip reading pressed is the redraw having landed.
-      await page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-pressed') === 'true', chip, { timeout: 5000 }).catch(() => {});
-      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
-      reads.push({ word, r: await read(hold ? base.px : null) });
-    }
-    const pressedAll = reads.every(({ word, r }, i) => r?.pressed?.includes(word) && r.pressed.length === i + 1);
-    ok(pressedAll, `${where}: each press adds its word and keeps the earlier ones — ${reads.map(({ word, r }) => `${word}: ${JSON.stringify(r?.pressed)}`).join('; ')}`);
-    const counts = reads.map(({ r }) => r?.rows);
-    ok(counts.every((n) => n === base?.rows) && (!hold || base?.rows === 1),
-      `${where}: the Personality row keeps ${hold ? `one row at its max-content width (${base?.px}px)` : `its ${base?.rows} rows`} whatever is pressed — none pressed ${base?.rows}, then ${counts.join(', ')}`);
-    const widthsOf = (c) => [base?.widths?.[c], ...reads.map(({ r }) => r?.widths?.[c])];
-    ok(words.every((c) => { const ws = widthsOf(c); return ws.every((x) => typeof x === 'number' && Math.abs(x - ws[0]) < 0.5); }),
-      `${where}: each Personality chip keeps its unpressed width whatever is pressed — ${words.map((c) => `${c} ${widthsOf(c).join('/')}`).join(', ')}`);
-    ok(base?.glyphs?.length === 0 && reads.every(({ r }) => r?.glyphs?.length === 0),
-      `${where}: no Personality chip draws a check, pressed or not — none pressed ${JSON.stringify(base?.glyphs)}, then ${reads.map(({ word, r }) => `${word}: ${JSON.stringify(r?.glyphs)}`).join(', ')}`);
-    // The cue, read with every word pressed but the last, so both states are drawn side by side.
-    const cue = reads[reads.length - 2]?.r ?? {};
-    const [eOn, eOff, iOn, iOff] = [cue.edgeOn, cue.edgeOff, cue.inkOn, cue.inkOff].map(hexOfRgb);
-    const edgeRatio = ratio3263(eOn, eOff);
-    ok(edgeRatio >= 3, `${where}: a pressed Personality chip's edge reads at least 3:1 against an unpressed chip's — ${eOn} against ${eOff}, ${Number.isFinite(edgeRatio) ? `${(Math.floor(edgeRatio * 100) / 100).toFixed(2)}:1` : 'unreadable'}`);
-    ok(!!iOn && iOn === iOff, `${where}: the pressed and unpressed Personality chips' labels share one ink, so the edge is the cue — ${iOn} and ${iOff}`);
-    // Unpress the last word, then forced colors: the pressed chip filled Highlight, its neighbor not.
-    const lastChip = `${ROW_3263} ${CHIP_3263}[data-word="${words[words.length - 1]}"]`;
-    await hooks.click(page.locator(lastChip));
-    await page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-pressed') === 'false', lastChip, { timeout: 5000 }).catch(() => {});
-    const cdp = await ctx.newCDPSession(page);
-    await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'forced-colors', value: 'active' }] });
-    const fc = await page.evaluate(([s, c]) => {
-      const g = document.querySelector(s);
-      const probe = document.createElement('div');
-      probe.style.cssText = 'position:absolute;width:1px;height:1px;background-color:Highlight;forced-color-adjust:none';
-      document.body.append(probe);
-      const highlight = getComputedStyle(probe).backgroundColor;
-      probe.remove();
-      const on = g?.querySelector(`${c}[aria-pressed="true"]`), off = g?.querySelector(`${c}[aria-pressed="false"]`);
-      return { active: matchMedia('(forced-colors: active)').matches, highlight, on: on && getComputedStyle(on).backgroundColor, off: off && getComputedStyle(off).backgroundColor };
-    }, [ROW_3263, CHIP_3263]);
-    ok(fc.active && fc.on === fc.highlight && fc.off !== fc.highlight,
-      `${where}: under forced colors a pressed Personality chip is filled Highlight and an unpressed one is not — active ${fc.active}, Highlight ${fc.highlight}, pressed ${fc.on}, unpressed ${fc.off}`);
-    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
-  } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
-  } finally { await ctx.close(); }
-}
-} // 3263
-
-// =============================================================================================
 // #2232: a click on blank space inside the S12 start window keeps focus in the window, and Tab and Shift+Tab then stay
 //        inside it. Both hosts, 1280. The window traps Tab with a keydown listener on its scrim, so a focus that falls
 //        to <body> (outside the scrim) is a focus the trap never hears. EXPECTED, read from the DOM: after the click,
@@ -16760,9 +16647,7 @@ for (const host of ['web', 'figma']) {
       const cOn = await page.evaluate(FC_LOOK, chipOn), cOff = await page.evaluate(FC_LOOK, chipOff);
       selected(cOn, cOff, 'a Personality chip');
       await drawn(chipOn, 'a Personality chip');
-      // #3263 (owner decision 2026-11-18 A): a Personality chip draws no check, pressed or not; the Highlight fill above
-      // is what shows it pressed here (section 3263 holds the width).
-      ok(cOn?.glyph === null && cOff?.glyph === null, `${where}: #3263: a Personality chip draws no check, pressed or not (pressed read ${cOn?.glyph}, unpressed read ${cOff?.glyph})`);
+      ok(cOn?.glyph === HT, `${where}: a pressed chip's check draws in HighlightText ${HT} (read ${cOn?.glyph})`);
       ran.add('chip');
       const modeHooks = ['mode-on-dark', 'mode-on-hc-light', 'mode-on-hc-dark', 'mode-on-wireframe'];
       const boxes = await page.evaluate((hs) => hs.map((hk) => { const n = document.querySelector(`[data-p3="${hk}"]`); const b = n?.querySelector('.p3-check-box');

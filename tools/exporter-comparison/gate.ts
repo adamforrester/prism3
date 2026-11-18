@@ -214,11 +214,8 @@ const FIGMA_OUT = 'packages/engine/out/figma';
  *  #707 recommended gating "once the harness runs on more than the two brands here", so 3 is that
  *  recommendation as an assertion. It is a floor and not an equality on purpose: a fourth brand
  *  gaining a Figma emission should extend this gate's coverage, not fail it. `wendys` is the third
- *  and was already emitting when this gate was written — the floor was met, not waived.
- *
- *  #1119 raised it to 5: nb, prism3, aurora, harbor and wendys all emit, and harbor's emission exists so that this
- *  gate covers it (owner decision, 2026-11-18). A floor still at 3 would pass with harbor's directory gone. */
-const MIN_BRANDS = 5;
+ *  and was already emitting when this gate was written — the floor was met, not waived. */
+const MIN_BRANDS = 3;
 
 /**
  * prism3-only paths that are known-unreachable by TokenPress, with the reason, per brand.

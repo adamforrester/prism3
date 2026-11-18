@@ -1581,7 +1581,7 @@ const exportView = (): ExportView => {
     none: settings.length ? null : exportArtifact === 'component-specs' ? SPECS_NO_SETTINGS : 'Nothing to set — the brief is written one way.',
     right,
     // #3553 Q-UI8 A: the word alone; the bar draws the vendored download icon before it.
-    go: { text: exportArtifact === 'design-md' ? 'Download brief' : exportArtifact === 'component-specs' ? 'Download component contracts' : 'Download tokens', off },
+    go: { text: exportArtifact === 'design-md' ? 'Download brief' : exportArtifact === 'component-specs' ? 'Download component specs' : 'Download tokens', off },
   };
 };
 
@@ -1917,10 +1917,10 @@ const failedBrandOf = (input: unknown): BrandInput | null => {
 const BRIEF_IS_FAILED = "This is the file's saved brand, which didn't open, not the demo brand on screen.";
 const BRIEF_NONE = "Nothing to export: this file's saved brand couldn't be read.";
 const TOKENS_NONE = "Off after a failed restore: these tokens would be the demo brand's, not this file's.";
-/** #3425 (DRAFT wording for the owner, Q3425.1); "component contracts" since #1325 (Q-CC1 A, DRAFT). */
-const SPECS_NONE = "Off after a failed restore: these component contracts would be the demo brand's, not this file's.";
-const SPECS_NO_SETTINGS = "Nothing to set — the component contracts follow this brand's component settings.";
-const SPECS_WEB_OFF = 'In the Figma plugin: the component contracts are built from the component definitions, which the web Studio leaves out.';
+/** #3425 (DRAFT wording for the owner, Q3425.1). */
+const SPECS_NONE = "Off after a failed restore: these specs would be the demo brand's, not this file's.";
+const SPECS_NO_SETTINGS = "Nothing to set — the specs follow this brand's component settings.";
+const SPECS_WEB_OFF = 'In the Figma plugin: the specs are built from the component definitions, which the web Studio leaves out.';
 /** The error bar after a failed restore, by kind (owner, 2026-10-02). `unresolved` says "resolves" because a
  *  rebuild that resolves also ends it; the other two end only when a brand loads. */
 const RESTORE_BAR: Record<RestoreFailure['kind'], (reason: string) => string> = {

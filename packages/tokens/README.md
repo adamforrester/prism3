@@ -59,32 +59,6 @@ reversed `cubic-bezier( )` or reordered shadow layers fail it. Each per-mode fil
 (`prism3/<mode>.css`) gets the same checks on its own, not only the joined file (#3877). A non-DTCG type (today the three `spring` tokens) isn't in the
 projection, so it isn't in the CSS (#642).
 
-### What a typography style's `font` shorthand leaves out (#3507)
-
-Each `type.*` style is written as one `font` shorthand: font style, weight, size / line height, family. The style
-in the DTCG tree carries two more fields, and the shorthand has no place for either, so neither is in
-the CSS value:
-
-| Field | Which styles carry it | Set it beside the `font` |
-|---|---|---|
-| `letterSpacing` | every `type.*` style, as an alias of a `core.font.letter-spacing-role.*` | `letter-spacing: calc(var(--pds3-core-font-letter-spacing-role-<role>) * 1em)` — the role is a multiplier of the font size ([Letter spacing](#letter-spacing-a-multiplier-of-the-font-size-2434)) |
-| `textDecoration` | every `*-link` style, body, label and caption (`type.body.md.default-link`, `type.label.md.default-link`, `type.caption.md.default-link` and their siblings), as `underline` | `text-decoration-line: underline` |
-
-```css
-.text-button {
-  font: var(--pds3-type-label-md-default-link);
-  letter-spacing: calc(var(--pds3-core-font-letter-spacing-role-normal) * 1em);
-  text-decoration-line: underline;
-}
-```
-
-Which role a style uses is in the DTCG tree, not in the CSS: the comment after each `type.*` style
-names its tracking and its underline in words. The exception is `type.body.xs.*`: its comment is
-authored, so it names the underline but not the tracking, and the role is only in the DTCG tree.
-This package stays stock Style Dictionary with no custom transform (owner decision on #3507), so it
-writes no per-style `-letter-spacing` or `-text-decoration` property. A component package reads both fields from the DTCG tree and writes the
-two declarations itself.
-
 ## The rule
 
 > **NO CUSTOM CODE.** No preprocessors, no custom transforms, no custom formats. Standard Style

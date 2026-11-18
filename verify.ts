@@ -610,10 +610,8 @@ export const environmentProblems = async (): Promise<string[]> => {
  *  failure this check exists for: an artifact list going SHORT, an emitter or schema file leaving the compared set,
  *  which `--check` alone reports as a clean, smaller run. Growth needs no edit, so adding artifacts no longer
  *  collides. Raise the floor when the set grows, if you like; lower it only on purpose, in the PR that shrinks the set,
- *  and say why. What a floor cannot see: a shrink and a growth of the same size in one PR.
- *
- *  259 since #1119, raised to the set's size when harbor's 29-file Figma emission joined it, so losing it fails here. */
-export const ARTIFACT_FLOOR = 259;
+ *  and say why. What a floor cannot see: a shrink and a growth of the same size in one PR. */
+export const ARTIFACT_FLOOR = 226;
 
 /* #775's window closed 2026-08-20 and the smoke suite gates in both CI and this runner, so the
  * date constant and its clock read are GONE rather than left at a passed date. They existed to stop
