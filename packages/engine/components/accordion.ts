@@ -337,7 +337,7 @@ export const accordion: ComponentDef = {
   },
 
   accessibility: {
-    role: 'A native <button> with aria-expanded and aria-controls, inside an <hN>; the panel is role="region" with aria-labelledby pointing at the button. Native <details> and <summary> are the alternative where their styling and animation support are enough.',
+    role: 'A native `<button>` with `aria-expanded` and `aria-controls`, inside an `<hN>`; the panel is `role="region"` with `aria-labelledby` pointing at the button. Native `<details>` and `<summary>` are the alternative where their styling and animation support are enough.',
     wcag: [
       '4.1.2 Name, Role, Value (a button that exposes aria-expanded)',
       '1.3.1 Info and Relationships (each header is a heading at the level the page outline needs)',
@@ -349,7 +349,7 @@ export const accordion: ComponentDef = {
       '2.5.5 Target Size (Enhanced), as intent (the whole header is the target, at least 44px tall on comfortable and spacious density)',
     ],
     keyboard: 'Tab moves from header to header, and into an open panel\'s content. Enter or Space opens and closes the focused header. There is no roving tab index. Up and Down between headers, and Home and End, are optional extras and must not trap focus.',
-    focus: 'A focus ring around the header row on :focus-visible. Opening a section does not move focus.',
+    focus: 'A focus ring around the header row on `:focus-visible`. Opening a section does not move focus.',
     aria: 'Hide the indicator glyph from assistive technology (aria-hidden="true"); the button\'s aria-expanded carries the state. Do not put role="tab" or a tablist on an accordion.',
   },
 
@@ -387,7 +387,7 @@ export const accordion: ComponentDef = {
   composition: {
     composesWith: ['_accordion-indicator', 'focus-ring', 'divider'],
     alternativeTo: ['tabs', 'dialog'],
-    replacesPatterns: ['a show/hide div with no aria-expanded or heading', 'a tablist used for vertical sections that open together'],
+    replacesPatterns: ['a show/hide div with no `aria-expanded` or heading', 'a tablist used for vertical sections that open together'],
     supersededBy: [],
     planned: ['tree'],
   },
