@@ -569,7 +569,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
   },
 
   accessibility: {
-    role: 'button (native <button>)',
+    role: 'button (native `<button>`)',
     // #1697 — reasons on every entry, 2.4.13 added (Button carries it and the ring is the same one), 1.4.13
     // scoped to a tooltip as the brief scopes it, and 2.5.5 stated as intent (see `button.ts`).
     wcag: [
@@ -582,8 +582,8 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
       '2.5.8 Target Size (Minimum) (24×24 — the small square is 36px, 28px at compact density)',
       '2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); icon-only controls are the likeliest to miss it, so reaching 44 elsewhere is a code-side hit-area expansion)',
     ],
-    keyboard: 'Native <button> — Enter on keydown, Space on keyup. Identical to Button.',
-    focus: 'Same offset :focus-visible ring as Button; retained through pending/inactive.',
+    keyboard: 'Native `<button>` — Enter on keydown, Space on keyup. Identical to Button.',
+    focus: 'Same offset `:focus-visible` ring as Button; retained through pending/inactive.',
     aria: 'aria-label is the accessible name (required). If it triggers a menu, add aria-haspopup + aria-expanded; aria-pressed only if it is a toggle. While isPending, set aria-busy, keep it focusable, and announce the busy state through a polite live region ("Saving…"), and set aria-hidden="true" on the embedded spinner, which otherwise announces its own "Loading" status (a double announcement). Do not put a tooltip on a natively-disabled icon button (unreachable) — use isInactive so the reason stays reachable. Under RTL, only a directional glyph flips (a back chevron).',
   },
 
@@ -602,7 +602,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     dont: [
       'Ship it without an accessible name ("button, unlabeled")',
       'Use it for an unfamiliar action a user cannot infer from the glyph — use a labeled Button',
-      "Tooltip a natively-disabled icon button (the tooltip can't be reached) — use isInactive",
+      "Tooltip a natively-disabled icon button (the tooltip can't be reached) — use `isInactive`",
     ],
     // #1697 — carried from `content.labelPattern`, which has no reader (see `ComponentDef.content`).
     contentGuidelines: 'The accessible name is a verb naming the action ("Close", "More actions"), never the glyph\'s shape ("X", "three dots"). A tooltip, where one is attached, shows the same words as the accessible name.',
@@ -625,7 +625,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     composesWith: ['focus-ring', 'spinner'],
     alternativeTo: [inheritsFrom, family === 'primary' ? 'flush-icon-button' : `flush-icon-button-${family}`],
     planned: ['tooltip', 'menu', 'popover'],
-    replacesPatterns: ['div[role=button] wrapping an icon', 'a <button> holding only an <svg> and no accessible name'],
+    replacesPatterns: ['`div[role=button]` wrapping an icon', 'a `<button>` holding only an `<svg>` and no accessible name'],
   },
 
   // #1697 — Button's reduce-motion rule (button brief §8), carried rather than inherited.

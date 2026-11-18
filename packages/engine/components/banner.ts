@@ -409,7 +409,7 @@ export const banner: ComponentDef = {
   },
 
   accessibility: {
-    role: 'A banner present when the page loads is a region (<section aria-labelledby> pointing at the title) and has no live role. A banner inserted after an action is announced through the page\'s live region: role="alert" for danger, role="status" for the other tones.',
+    role: 'A banner present when the page loads is a region (`<section aria-labelledby>` pointing at the title) and has no live role. A banner inserted after an action is announced through the page\'s live region: `role="alert"` for danger, `role="status"` for the other tones.',
     wcag: [
       '4.1.3 Status Messages (a banner inserted after an action is announced without moving focus)',
       '1.3.1 Info and Relationships (the title is a heading at the level the page outline needs, and it labels the region)',
@@ -465,7 +465,7 @@ export const banner: ComponentDef = {
   composition: {
     composesWith: ['button', 'flush-icon-button-neutral', 'link'],
     alternativeTo: ['dialog', 'field-message', 'badge', 'toast'],
-    replacesPatterns: ['a colored div with an icon and role="alert" on a message present at load', 'an error shown as a toast that disappears'],
+    replacesPatterns: ['a colored div with an icon and `role="alert"` on a message present at load', 'an error shown as a toast that disappears'],
     supersededBy: [],
     planned: [],
   },
