@@ -39965,8 +39965,13 @@ arm: {
     const g = c.iconPosition === 'leading' ? start : end, other = c.iconPosition === 'leading' ? end : start;
     return !!g && !other && g.nestTarget === '_accordion-indicator' && g.nestVariant?.indicator === c.indicator && g.nestVariant?.expansion === c.expansion && g.nestVariant?.size === c.size && !g.nestExpose;
   }), `#2417 accordion indicator: one nested _accordion-indicator per member, at its position, following the member's indicator (#2878), expansion and size, and not exposed`);
-  ok(plans.every((p) => { const c = coord(p); const panel = find(p.root as PN, 'content'); return c.expansion === 'expanded' ? panel?.type === 'CONTENT_SLOT' : !panel; }),
-    `#2417 accordion panel: a native slot on every expanded member and on no collapsed one (Q182)`);
+  // #3058 (owner decision 2026-11-18 A, superseding Q182's "no panel while collapsed"): a collapsed member keeps the
+  // panel as the SAME native slot, built hidden, so what a designer put in it survives a switch to collapsed and back
+  // (Figma carries an instance's slot content across a variant switch by the slot's name). Shown on every expanded
+  // member, hidden on every collapsed one, and never absent: a collapsed member with no `content` node fails here.
+  const panels = plans.map((p) => ({ c: coord(p), panel: find(p.root as PN, 'content') }));
+  ok(panels.every(({ c, panel }) => panel?.type === 'CONTENT_SLOT' && (c.expansion === 'expanded' ? panel.visible !== false : panel.visible === false)),
+    `#3058 accordion panel: a native slot on every member, shown while expanded and built hidden while collapsed, never left out (got ${panels.filter(({ c, panel }) => !(panel?.type === 'CONTENT_SLOT' && (c.expansion === 'expanded' ? panel.visible !== false : panel.visible === false))).slice(0, 3).map(({ c, panel }) => `${c.expansion}/${c.size}: ${panel ? `${panel.type} visible=${String(panel.visible)}` : 'ABSENT'}`).join('; ') || 'all as expected'})`);
   const open = plans.find((p) => coord(p).expansion === 'expanded' && coord(p).size === 'medium')!;
   const panel = find(open.root as PN, 'content')!, ph = find(open.root as PN, 'placeholder')!;
   ok(panel.bound?.paddingTop === 'space/0' && panel.bound?.paddingBottom === 'space/200' && ph.paints?.fills === 'color/text/primary' && !!ph.characters,
