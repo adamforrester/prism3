@@ -14,4 +14,4 @@ already on main, so this PR leaves `agent-link.md` alone.
 - **Not changed:** the badge-name sentence near the top still lists only ", theme" among the extra
   parts. #3137 also adds ", usage panels" there. That is filed separately, not fixed here.
 
-`lint-guide-claims` passes. A mutation of the quoted disclosure text fails it by name under CITE.
+`lint-guide-claims` passes. Mutating the quoted Clean up count line ("had panels on" to "had them on") fails it by name under CITE. A mutation of the row's disclosure quote does not fail, because the row's bold labels still anchor its claim. That is the gate's documented one-anchor rule, not a gap this PR opens.
