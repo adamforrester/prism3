@@ -5079,7 +5079,7 @@ for (const host of ['web', 'figma']) {
   const soft = page.locator('[data-p3="personality-word"][data-word="soft"]');
   await hooks.click(soft);
   const want = `soft: ${SOFT_SETS.map(([k, v]) => `${labelOf(k)} → ${v}`).join(', ')}.`;
-  const ps = await page.evaluate(() => ({ pressed: document.querySelector('[data-p3="personality-word"][data-word="soft"]')?.getAttribute('aria-pressed'), sub: document.querySelector('[data-p3="lever-personality"] .p3-sub')?.textContent }));
+  const ps = await page.evaluate(() => ({ pressed: document.querySelector('[data-p3="personality-word"][data-word="soft"]')?.getAttribute('aria-pressed'), sub: document.querySelector('[data-p3="lever-personality"] [data-p3="personality-fills"]')?.textContent }));
   ok(ps.pressed === 'true' && ps.sub === want, `personality: choosing soft presses it and says "${want}" (${JSON.stringify(ps)})`);
   ok(JSON.stringify((await persisted(page))?.personality) === '["soft"]', `personality: soft reaches the brand (${JSON.stringify((await persisted(page))?.personality)})`);
   await hooks.click(soft);
@@ -22956,6 +22956,71 @@ if (runs('3911')) {
     } finally { await ctx.close(); }
   }
 } // 3911
+// #3976 (owner decision 2026-11-18, Q-PW1 A): OPPOSITE PERSONALITY WORDS CANCEL EACH OTHER, AND THE ORDER RULE IS SAID.
+// The engine reads `personality` first-listed-wins, so the order Studio stores decides any setting two words share, and
+// of a direct opposite pair only one can take effect. Held on both hosts, both themes, at 1280, on Brand › Personality:
+//   · one quiet line under the chips says the order rule, in the chrome's secondary ink (a `.p3-sub` probe's);
+//   · for each of the owner's four pairs, typed here and never read from the engine, picking one word and then its
+//     opposite leaves only the second pressed: the two are never on together;
+//   · the words on are kept in the order they were picked, against the chips' own order: bold, then premium (premium is
+//     the earlier chip) reads back bold first, in the words-on line on both hosts and, on the web, in the saved brand.
+// Mutations, each failing by name: the opposite turn-off removed → `#3976 … picking sharp after soft turns soft off`;
+// the stored list sorted to the chips' order again → `#3976 … keeps the pick order`.
+const ORDER_LINE = 'Where two words fill the same setting, the first one picked wins.';
+const OPPOSITE_PAIRS = [['soft', 'sharp'], ['dense', 'generous'], ['calm', 'energetic'], ['bold', 'restrained']];
+if (runs('3976')) {
+  console.log(`\nOpposite personality words cancel each other, and the first pick wins (#3976)\n${'='.repeat(78)}`);
+  const chipState = (page) => page.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-p3="personality-word"]')]
+    .map((c) => [c.dataset.word, c.getAttribute('aria-pressed') === 'true'])));
+  const fills = (page) => page.evaluate(() => document.querySelector('[data-p3="lever-personality"] [data-p3="personality-fills"]')?.textContent ?? null);
+  const word = (page, w) => page.locator(`[data-p3="personality-word"][data-word="${w}"]`);
+  for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+    const where = `3976 ${host} ${theme} 1280`;
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    let step = 'brand';
+    try {
+      await goPlace(page, 'brand');
+      await hooks.need(page, '[data-p3="personality-order"]');
+      const line = await page.evaluate(() => {
+        const n = document.querySelector('[data-p3="lever-personality"] [data-p3="personality-order"]');
+        const chips = document.querySelector('[data-p3="personality-words"]');
+        if (!n || !chips) return null;
+        const probe = document.createElement('p');
+        probe.className = 'p3-sub';
+        n.parentElement.append(probe);
+        const secondary = getComputedStyle(probe).color;
+        probe.remove();
+        return { text: n.textContent, below: n.getBoundingClientRect().top >= chips.getBoundingClientRect().bottom - 0.5, shown: n.getClientRects().length > 0, ink: getComputedStyle(n).color, secondary };
+      });
+      ok(!!line && line.shown && line.text === ORDER_LINE, `#3976 ${where}: one line under the words says "${ORDER_LINE}" — ${JSON.stringify(line)}`);
+      ok(!!line && line.below && line.ink === line.secondary, `#3976 ${where}: the order line sits under the chips, in the secondary ink (${line?.secondary}) — ${JSON.stringify(line)}`);
+      for (const [a, b] of OPPOSITE_PAIRS) {
+        for (const [first, second] of [[a, b], [b, a]]) {
+          step = `${first} then ${second}`;
+          await hooks.click(word(page, first));
+          await hooks.click(word(page, second));
+          const st = await chipState(page);
+          ok(st[second] === true && st[first] === false, `#3976 ${where}: picking ${second} after ${first} turns ${first} off — ${first} ${st[first] ? 'on' : 'off'}, ${second} ${st[second] ? 'on' : 'off'}`);
+          const both = OPPOSITE_PAIRS.filter(([x, y]) => st[x] && st[y]).map((p) => p.join('/'));
+          ok(both.length === 0, `#3976 ${where}: after ${first} then ${second}, no opposite pair is on together${both.length ? ` — on together: ${both.join(', ')}` : ''}`);
+          await hooks.click(word(page, second));
+        }
+      }
+      step = 'pick order';
+      await hooks.click(word(page, 'bold'));
+      await hooks.click(word(page, 'premium'));
+      const f = await fills(page);
+      ok(!!f && f.startsWith('bold: ') && f.includes('. premium: '), `#3976 ${where}: the words on are listed in the pick order, bold then premium, not the chips' order — "${f}"`);
+      if (host === 'web') {
+        const saved = (await persisted(page))?.personality;
+        ok(JSON.stringify(saved) === '["bold","premium"]', `#3976 ${where}: the saved brand keeps the pick order, bold then premium — ${JSON.stringify(saved)}`);
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3976
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
