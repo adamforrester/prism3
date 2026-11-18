@@ -6477,6 +6477,18 @@ arm: {
     '#1946: design.md round trip keeps the custom mode, its provenance and its copied per-mode input, and it resolves the same');
   const schemaErrs = validateBrandInput(snap);
   ok(schemaErrs.length === 0, `#1946: the schema takes surfaces keyed by a custom mode (${schemaErrs.join('; ') || 'valid'})`);
+  // The schema takes any `surfaces` key now, so brandTheme refuses one no mode reads, naming it: a typo, a derived
+  // mode, or a custom mode with no customModes entry. A declared custom mode's key is still taken (above).
+  const surfErr = (surfaces: Record<string, unknown>, customModes?: unknown): string => {
+    try { brandTheme({ ...base, ...(customModes ? { customModes } : {}), surfaces } as unknown as BrandInput); return ''; } catch (e) { return (e as Error).message; }
+  };
+  for (const [key, cms] of [['drak', undefined], ['hc-light', undefined], ['wireframe', undefined], ['custom-1', [{ name: 'promo', base: 'dark' }]]] as const) {
+    const msg = surfErr({ [key]: { base: 900 } }, cms);
+    ok(msg.startsWith(`surfaces.${key}: '${key}' is not light, dark or a custom mode of this brand`),
+      `#1946: a surfaces key no mode reads (${key}) is refused, naming it (${msg || 'taken'})`);
+  }
+  ok(surfErr({ promo: { base: 900 } }, [{ name: 'promo', base: 'dark' }]) === '' && surfErr({ light: { base: 50 }, dark: { base: 900 } }) === '',
+    '#1946: surfaces keyed by light, dark or a declared custom mode are taken');
 }
 
 // PER-MODE RADIUS LEVER (Phase D) — a customizable mode overrides the `radius` scale; the engine

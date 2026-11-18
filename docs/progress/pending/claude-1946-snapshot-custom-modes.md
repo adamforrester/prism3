@@ -11,7 +11,9 @@ frozen at creation, with no live link afterward; provenance records where it sta
   was refused while a custom mode started from Dark), and `modeConfigs` resolved surfaces per *family*, so a
   dark-based custom mode followed `surfaces.dark` live and ignored a `surfaces.<name>` of its own (which the schema
   also refused). Both are gone: the base may be off, and a custom mode resolves its own `surfaces.<name>` against its
-  family's defaults. `base` stays, as provenance and as the appearance the mode derives with. ENGINE minor; no
+  family's defaults. A `surfaces` key that is neither light, dark nor a declared custom mode is refused by name,
+  since the schema now takes any key. Studio's Background fills reads a custom mode's own `surfaces.<name>`, and
+  its floor-refusal reader takes `surfaces.<custom>.floorStep`. `base` stays, as provenance and as the appearance the mode derives with. ENGINE minor; no
   CONTRACT bump, because no emitted name moves.
 - **Studio.** `addCustomMode` copied nothing. It now takes a deep copy of light's per-mode input under the new name
   (`copyMode`, a `copy` on each mode row of `name-refs.ts`, the table the rename and removal already read). The
@@ -25,8 +27,10 @@ frozen at creation, with no live link afterward; provenance records where it sta
 
 - **Changing a custom mode's base after creation.** Studio's add starts every custom mode from Light; the Base select
   then changes `base`. It now changes only the record and the appearance, and does not re-copy the new source's
-  per-mode input, because a re-copy would overwrite the designer's edits. So a "copy of Dark" is today a copy of
-  Light's input with Dark's appearance. Whether the select should re-take the snapshot (and with what warning), or
+  per-mode input, because a re-copy would overwrite the designer's edits. So setting the select to Dark on a new
+  custom mode yields a light page in a dark-appearance mode (Light's copied page and overrides, drawn with Dark's
+  contrast rules: contrast passes, so nothing flags it), or, where Light's copied `floorStep` is on no dark ground,
+  a refusal of `surfaces.<name>.floorStep`. Whether the select should re-take the snapshot (and with what warning), or
   creation should offer the source up front, is a UI decision.
 - **Brand-wide levers.** Light has no per-mode non-color levers (`modeLevers.light` is refused: light's are the
   brand-wide ones), and every mode shares the palettes and globals. Those still flow into a custom mode, read as
@@ -36,8 +40,12 @@ frozen at creation, with no live link afterward; provenance records where it sta
   pages change on load: they now read only their own `surfaces.<name>`, which they do not have. No migration was
   written; Studio's saved brand carries no format version to run one against. The rule that would keep each such
   mode as it looked is to copy `surfaces[base]` to `surfaces[name]` once, where absent.
+- **Editing a custom mode's surfaces in Studio.** Background fills now shows a custom mode's own `surfaces.<name>`
+  (what the engine renders), read-only as before. Whether those controls become editable is held.
 - **Copy.** The DECISIONS LOG note (`custom modes: … (started from dark) — each keeps the copy …`) and the schema
-  descriptions of `customModes`, `customModes[].base` and `surfaces` are DRAFT.
+  descriptions of `customModes`, `customModes[].base` and `surfaces` are DRAFT, as are the `surfaces.<key>` refusal
+  (`… is not light, dark or a custom mode of this brand …`) and Background fills' line for a custom mode (`Custom
+  modes keep the surfaces they were given when they were made.`).
 
 ### Verification
 
@@ -45,7 +53,10 @@ frozen at creation, with no live link afterward; provenance records where it sta
 leaves the custom mode's resolved roles as they were; Dark off with dark's data dropped builds, and the custom mode
 resolves identically; dark's surface does not reach the custom mode, its own does; `base` survives the build; the
 design.md round trip keeps the custom mode, its provenance and its copied input, and resolves the same; the schema
-takes `surfaces.<custom>`. `test-brand-input.ts` 3b/3c: Studio's Dark off is taken and keeps the custom mode's copy;
+takes `surfaces.<custom>`, and `brandTheme` refuses a `surfaces` key no mode reads (`drak`, `hc-light`, an undeclared
+custom mode), naming it. `test-fills-input.ts` §2: after light's page moves, Background fills for a new custom mode
+shows its copied page and swatch, not light's new one; a refused `surfaces.<custom>.floorStep` reads in the studio's
+words. `test-brand-input.ts` 3b/3c: Studio's Dark off is taken and keeps the custom mode's copy;
 add copies light deep, and a later light edit reaches neither the copy nor what it resolves to. `test-chrome.mjs`:
 Dark off with a dark-based custom mode is taken in the browser, with no confirm, and the record stays. `npm run verify`'s list ran in chunks under ten minutes, the
 plugin suites one by one with `run-suites.ts`'s verdict, and the Chrome suite in fifteen smaller shards (a local

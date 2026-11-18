@@ -901,6 +901,13 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     }
     throw new Error(`surfaces.${where}: ${JSON.stringify(value)} is not ${noun}. Use ${alts}${ramp}.`);
   };
+  // A `surfaces` key names light, dark or a declared custom mode (#1946). The schema takes any key since a custom mode
+  // carries its own `surfaces.<name>`, and in-memory input skips the schema, so a typo (`drak`), a derived mode
+  // (`hc-light`) or an undeclared custom mode would otherwise be read by no mode and silently ignored.
+  for (const mode of Object.keys(input.surfaces ?? {})) {
+    if (mode !== 'light' && mode !== 'dark' && !customNames.includes(mode))
+      throw new Error(`surfaces.${mode}: '${mode}' is not light, dark or a custom mode of this brand${customNames.length ? ` (custom modes: ${customNames.join(', ')})` : ''}, so no mode reads these surfaces. Use light, dark or a name in customModes.`);
+  }
   for (const [mode, sf] of Object.entries(input.surfaces ?? {})) {
     for (const key of ['base', 'secondary', 'tertiary'] as const) {
       if (sf?.[key] != null && typeof sf[key] === 'object') {

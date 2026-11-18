@@ -10,10 +10,14 @@
  */
 import { brandTheme, type BrandInput, resolveAllModes } from '@prism3/engine';
 
-export type FloorMode = 'light' | 'dark';
-const FLOOR_MODES: readonly FloorMode[] = ['light', 'dark'];
+/** A mode that can carry a `floorStep`: Light, Dark, or a custom mode by its name (#1946: a custom mode holds its own
+ *  `surfaces.<name>`, and the engine refuses its floor under that key). */
+export type FloorMode = string;
+/** The modes whose `surfaces.<mode>.floorStep` the engine reads: light, dark and every declared custom mode. */
+const floorModesOf = (input: BrandInput): FloorMode[] => ['light', 'dark', ...(input.customModes ?? []).map((c) => c.name)];
 const GROUND_ROLES = ['background.primary', 'background.secondary', 'background.tertiary'] as const;
-const label = (mode: FloorMode): string => (mode === 'dark' ? 'Dark' : 'Light');
+/** Light and Dark by their labels; a custom mode by its own name, as the mode controls show it. */
+const label = (mode: FloorMode): string => (mode === 'dark' ? 'Dark' : mode === 'light' ? 'Light' : mode);
 
 /** The neutral steps `mode`'s page grounds sit on, by key (`'050'`), in ramp order, read off `input` built with
  *  EVERY mode's `floorStep` removed (Auto is never refused, and a floor never moves a ground, so that build is the one
@@ -22,7 +26,7 @@ const label = (mode: FloorMode): string => (mode === 'dark' ? 'Dark' : 'Light');
  *  that build fails for another reason. */
 export const groundStepsOf = (input: BrandInput, mode: FloorMode): { palette: string; steps: string[] } | null => {
   const b = structuredClone(input);
-  for (const m of FLOOR_MODES) delete (b.surfaces?.[m] as { floorStep?: number } | undefined)?.floorStep;
+  for (const m of floorModesOf(b)) delete (b.surfaces?.[m] as { floorStep?: number } | undefined)?.floorStep;
   try {
     const t = brandTheme(b);
     const nPal = t.roleToPalette.neutral;
@@ -61,7 +65,7 @@ export const floorResetText = (mode: FloorMode, palette: string, step: string): 
 
 /** The first mode whose set `floorStep` is on none of its grounds, with its valid steps, or null. */
 export const floorOffGround = (input: BrandInput): { mode: FloorMode; step: number; palette: string; steps: string[] } | null => {
-  for (const mode of FLOOR_MODES) {
+  for (const mode of floorModesOf(input)) {
     const step = input.surfaces?.[mode]?.floorStep;
     if (step == null) continue;
     const g = groundStepsOf(input, mode);
@@ -73,7 +77,7 @@ export const floorOffGround = (input: BrandInput): { mode: FloorMode; step: numb
 /** What the studio says for an engine message about `input`: the plain sentence for a floor refusal, the engine's own
  *  words for anything else. */
 export const studioMessage = (message: string, input: BrandInput, where: RefusalWhere = 'studio'): string => {
-  const kind = /^surfaces\.(light|dark)\.floorStep:/.exec(message);
+  const kind = /^surfaces\.([a-z0-9][a-z0-9-]*)\.floorStep:/.exec(message);
   if (!kind) return message;
   const off = floorOffGround(input);
   return off && off.mode === kind[1] ? floorRefusalText(off.mode, off.steps, where) : message;
