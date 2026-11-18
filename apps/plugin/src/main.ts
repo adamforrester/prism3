@@ -72,6 +72,7 @@ import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './b
 import { readFigmaVariables } from './read-figma';
 import { listFamilyStyleNames } from './list-fonts';
 import { restoreInput, holdsInput, canon } from './persist-figma';
+import { readUpdatesOff, writeUpdatesOff, type UpdatesOff } from './updates-off';
 import { planOverride, overrideVerdict, overrideData, wholeRunRefusal, type OverrideChange, type OverrideRefusal } from './set-override';
 import { declaredModesOf, failedChecks, seedSummary } from './seed-modes';
 import { PACE_MS, pacer } from './pace';
@@ -1281,9 +1282,11 @@ const readPresent = (onPage?: (done: number, total: number) => void): Promise<Fi
     // #3137 Q3137.3 A: with every page loaded, the panels census, one search, kept beside the sets so a recount reads
     // both with no page load, whichever way Documentation's switch is turned meanwhile.
     const paneled = panelCensus(found, frames);
-    if (gen === presentGen) { presentCache = ids; panelCache = paneled; }
+    // #2956: the sets whose updates are off, read off each set node the search found, by def id.
+    const off = offOf(found, ids);
+    if (gen === presentGen) { presentCache = ids; panelCache = paneled; offCache = off; }
     watchSets();
-    return { ids, nodes: found.nodes, kinds: found.kinds, paneled };
+    return { ids, nodes: found.nodes, kinds: found.kinds, paneled, off };
   })();
   presentRead = read;
   const clear = (): void => { if (presentRead === read) presentRead = null; };
@@ -1291,7 +1294,20 @@ const readPresent = (onPage?: (done: number, total: number) => void): Promise<Fi
   return read;
 };
 /** `kinds[i]` is `nodes[i]`'s type, read once, in the turn its page was searched (#3301). */
-type FileRead = { ids: string[]; nodes: readonly SearchNode[]; kinds: readonly string[]; paneled: string[] };
+type FileRead = { ids: string[]; nodes: readonly SearchNode[]; kinds: readonly string[]; paneled: string[]; off: Record<string, UpdatesOff> };
+/** #2956: each present def whose set carries the "Updates off" mark (`updates-off.ts`), from the read's own nodes: a set
+ *  under its def id or an id the def was renamed from. A single-component def has no set node, so never reads off. */
+const offOf = (found: Pick<Found, 'nodes' | 'kinds' | 'names'>, ids: readonly string[]): Record<string, UpdatesOff> => {
+  const sets = new Map<string, SearchNode>();
+  found.nodes.forEach((n, i) => { if (found.kinds[i] === 'COMPONENT_SET' && !sets.has(found.names[i])) sets.set(found.names[i], n); });
+  const out: Record<string, UpdatesOff> = {};
+  for (const id of ids) {
+    const node = [id, ...formerDefIds(id)].map((x) => sets.get(x)).find((x) => x !== undefined);
+    const v = node ? readUpdatesOff(node) : null;
+    if (v) out[id] = v;
+  }
+  return out;
+};
 /** What a page-by-page search found, each node's type and name read in its page's turn. */
 type Found = { nodes: SearchNode[]; kinds: string[]; names: string[] };
 type SearchNode = { readonly type?: string; readonly name?: string };
@@ -1360,6 +1376,8 @@ let presentCache: string[] | null = null;
 /** #3137 Q3137.3 A: the leads whose usage panel the last census found drawn (`panel-census.ts`), beside `presentCache` and
  *  cleared with it, so the badge's recount reads the panels with no page load. Null until a read has run the census. */
 let panelCache: string[] | null = null;
+/** #2956: the sets the last read found with their updates off, beside `presentCache` and cleared with it. */
+let offCache: Record<string, UpdatesOff> | null = null;
 /** #3137: the census, from a read's own searches: the panel frames it collected a page at a time, read against the set ids
  *  it found (`readPresent` keeps it as `panelCache`). Never throws: an unreadable frame reads as no panel. */
 const panelCensus = (found: Found, frames: readonly SearchNode[]): string[] => {
@@ -1412,7 +1430,7 @@ const watchSets = (): void => {
       // #3313: a change to any component or set, or any style, has the next Update check read every set again (`member-views.ts`).
       dropViewsFor(e.documentChanges as Parameters<typeof dropViewsFor>[0]);
       if (presentCache === null || !movesSets(e.documentChanges as readonly SetChange[])) return;
-      presentCache = null; panelCache = null; presentRead = null; presentGen++;
+      presentCache = null; panelCache = null; offCache = null; presentRead = null; presentGen++;
     });
     watchingSets = true;
     watchViews(true);
@@ -1610,7 +1628,7 @@ const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
     const print = printNow(input);
     await nowYielding(now, present);
     await printYielding(print, needsPrint(ledger, present, now));
-    const due = await timed('due (file)', () => dueOf(ledger, present, now, print));
+    const due = await timed('due (file)', () => dueOf(ledger, present, now, print, read.off));
     // #3308 (Q3308.3 A): what Update file's run would build first for the usage panels, read from the same search.
     const docBlockLacks = findDocBlock({ root: rootOver(read) } as unknown as PanelApi) ? null : DOC_BLOCK_DEFS.filter((id) => !present.includes(id));
     // #3467 (Q3 A, Q4 A): what Set up file owns and the file lacks, beside `setUp`, which is unchanged (P8). Update file
@@ -1674,8 +1692,8 @@ const emissionNow = (input: BrandInput): string => {
 const themeDiffers = (input: BrandInput | undefined): boolean => !!input && themeDue(figma.root, input, () => emissionNow(input));
 const fileDue = async (input: BrandInput | undefined, seq: number): Promise<void> => {
   try {
-    const cached = presentCache !== null && panelCache !== null ? { ids: presentCache, paneled: panelCache } : null;
-    const { ids: present, paneled } = cached ?? await readPresent();
+    const cached = presentCache !== null && panelCache !== null && offCache !== null ? { ids: presentCache, paneled: panelCache, off: offCache } : null;
+    const { ids: present, paneled, off } = cached ?? await readPresent();
     // #3137 Q3137.3 A: the panels switch is read each time (one root read), so turning it on recounts with no page load;
     // the census is the last read's (`panelCache`), kept beside its sets.
     const unpaneled = unpaneledNow(present, paneled);
@@ -1686,7 +1704,7 @@ const fileDue = async (input: BrandInput | undefined, seq: number): Promise<void
     const print = printNow(input);
     await nowYielding(now, present);
     await printYielding(print, needsPrint(ledger, present, now));
-    postToUi({ type: 'file-due', seq, present, theme: themeDiffers(input), due: dueOf(ledger, present, now, print), queued: queuedFor(present), ...unpaneled });
+    postToUi({ type: 'file-due', seq, present, theme: themeDiffers(input), due: dueOf(ledger, present, now, print, off), queued: queuedFor(present), ...unpaneled });
   } catch (e) {
     postToUi({ type: 'file-due', seq, present: [], theme: false, due: {}, queued: [], error: (e as Error)?.message ?? String(e) });
   }
@@ -2278,8 +2296,8 @@ const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<vo
     if (holder) { sink.post(refusal(cmd, sink !== uiSink, holder)); return Promise.resolve(); }
     // #3081: a write may add or remove sets, so the live recount reads the file again after it (`presentCache`). It is
     // cleared as the write starts too: the write's verdict posts before the write's promise settles.
-    presentCache = null; panelCache = null; presentRead = null; presentGen++; dropViews();
-    return guard.run(cmd, () => fn(...a)).finally(() => { presentCache = null; panelCache = null; presentRead = null; presentGen++; dropViews(); if (handPassOwed) void handEditsPass(); }); // #3804: a hand-edit pass this write ended runs again, over the file it left.
+    presentCache = null; panelCache = null; offCache = null; presentRead = null; presentGen++; dropViews();
+    return guard.run(cmd, () => fn(...a)).finally(() => { presentCache = null; panelCache = null; offCache = null; presentRead = null; presentGen++; dropViews(); if (handPassOwed) void handEditsPass(); }); // #3804: a hand-edit pass this write ended runs again, over the file it left.
   };
 
 /**
@@ -2378,6 +2396,29 @@ const setOverride = async (changes: readonly OverrideChange[], previewHash: stri
   const v = overrideVerdict(plan, true);
   sink.post({ type: 'override-result', ok: true, preview: false, applied: true, headline: v.headline, summary: v.lines.join('; '), lines: v.lines });
 };
+
+/**
+ * #2956 (owner decisions 2026-11-17): "TURN OFF UPDATES" AND "TURN UPDATES BACK ON", from Update file. Writes the set's
+ * mark only (`updates-off.ts`): no member, no version, no Activity verdict. Turning off marks it the designer's
+ * (`designer`, so no reason line); turning back on clears whichever mark it holds, and the next check re-plans the set
+ * normally. Guarded as a component write, so it never lands inside an Update run, whose check hashes the mark. Answered
+ * with one `updates-off`. The panel only, for now: no agent command reaches it (OWNER DECISION in the PR).
+ */
+const setUpdatesOff = async (def: string, off: boolean, sink: ActionSink): Promise<void> => {
+  try {
+    const d = componentDefs.find((x) => x.id === def);
+    if (!d?.figmaProperties || d.figmaProperties.emitAsComponents) throw new Error(`${def} has no component set to carry it`);
+    await loadPagesYielding();
+    const names = [def, ...formerDefIds(def)];
+    const set = figma.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }).find((n) => names.includes(n.name));
+    if (!set) throw new Error(`this file has no ${def} set`);
+    writeUpdatesOff(set, off ? 'designer' : null);
+    sink.post({ type: 'updates-off', def, off, ok: true });
+  } catch (e) {
+    sink.post({ type: 'updates-off', def, off, ok: false, error: (e as Error)?.message ?? String(e) });
+  }
+};
+const setUpdatesOffGuarded = guarded('build-components', setUpdatesOff);
 
 export const ACTIONS: AgentActions = {
   applyTheme: guarded('apply-theme', thenRestamp(applyTheme)),
@@ -2554,6 +2595,10 @@ onUiMessage((msg: UiToMain) => {
     case 'add-queue':
       // #3129 Q833 A: Components' boxes and Update file's Remove, Remove all and Add all. Writes no layer: never guarded.
       void addQueue(Array.isArray(msg.ids) ? msg.ids.filter((x): x is string => typeof x === 'string') : [], msg.on === true);
+      return;
+    case 'updates-off':
+      // #2956: Update file's "Turn off updates" / "Turn updates back on". A write of plugin data on the set: guarded.
+      if (typeof msg.def === 'string') void setUpdatesOffGuarded(msg.def, msg.off === true, uiSink);
       return;
     case 'activity-note':
       // #3309: the panel's summary of a run of several writes, for the agent link's `activity`. Writes nothing.

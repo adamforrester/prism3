@@ -214,7 +214,10 @@ export type SetDue = { readonly state: 'current' | 'unrecorded' }
    *  under Kept edits until an update overwrites them or accepts them as the baseline. */
   | { readonly state: 'kept'; readonly held: Held }
   | { readonly state: 'due'; readonly reason: 'definition' | 'executor' | 'panel' }
-  | { readonly state: 'due'; readonly reason: 'engine'; readonly moved?: Moved };
+  | { readonly state: 'due'; readonly reason: 'engine'; readonly moved?: Moved }
+  /** #2956 (owner decisions 2026-11-17): the set's updates are off (`updates-off.ts`), and who turned them off. Update
+   *  file leaves it as it is, so it is never due, and the badge never counts it, whatever its entry says. */
+  | { readonly state: 'off'; readonly by: 'auto' | 'designer' };
 
 /** #3770: the entry a set has under an id its def was renamed from, nearest first; null when it has none. */
 export const formerEntry = (ledger: Ledger, id: string): LedgerEntry | null => {
@@ -235,7 +238,9 @@ export const needsPrint = (ledger: Ledger, present: readonly string[], now: (def
  * Each of `present`'s sets, read against the ledger. `now` is the entry a set built now would get, without its print;
  * `print` is the print of the plans it would be drawn from now, asked only for the sets `needsPrint` names.
  */
-export const dueOf = (ledger: Ledger, present: readonly string[], now: (def: string) => LedgerEntry | null, print: (def: string) => PlanPrint | null = () => null): Record<string, SetDue> => {
+export const dueOf = (ledger: Ledger, present: readonly string[], now: (def: string) => LedgerEntry | null, print: (def: string) => PlanPrint | null = () => null,
+  /** #2956: the present sets whose updates are off, read off each set node (`updates-off.ts`), by def id. */
+  off: Readonly<Record<string, 'auto' | 'designer'>> = {}): Record<string, SetDue> => {
   const out: Record<string, SetDue> = {};
   for (const id of present) {
     const was = ledger[id];
@@ -272,6 +277,9 @@ export const dueOf = (ledger: Ledger, present: readonly string[], now: (def: str
     const held = ledger[id]?.held;
     if (out[id].state === 'current' && held) out[id] = { state: 'kept', held };
   }
+  // UPDATES OFF (#2956): read over every other state. The update leaves such a set as it is, so neither its due reason
+  // nor its kept edits are work for this run; once updates are back on, the next read gives it its own state again.
+  for (const id of present) if (off[id]) out[id] = { state: 'off', by: off[id] };
   return out;
 };
 
