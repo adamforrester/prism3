@@ -22420,6 +22420,14 @@ if (runs('3553-shell')) {
 // `.p3-nav:has(.p3-search[data-open="true"]) :is(.p3-tabs, .p3-preview-title)` rule dropped → `#3553 M1 … the tab row hides while Search is open`
 // and `… the field shows at least 80px of text`; the open field's `flex: 1 1 auto` put back to `0 1 50%` → `… the status and
 // Close stay inside the levers column`.
+// #3620 (owner decision 2026-11-18, A): at the narrow tier the no-match status moves to its own line under the field, so
+// the field's 80px floor now holds at 380 too, and the status is drawn whole at every width. MUTATIONS (measured
+// 2026-11-18, each after a `wip:` commit): main's `chrome.css` (no narrow rules) → 28 of 448, `#3620 3553-m1 figma light
+// 380 brand: the field shows at least 80px of text … (17.0, whole false)` and `… the status sits on its own line under
+// the field (status top 94.0, field bottom 119.0)`, on all seven places, both themes; the status ellipsized at a floor
+// instead (option B's shape: `nowrap; overflow: hidden; text-overflow: ellipsis` and a max width) → `#3620 … the no-match
+// status "No setting on this page matches" is drawn whole … (whole false …)`; the magnifier's narrow `top` rule dropped →
+// `#3620 … the magnifier stays centered on the field's line (glyph 114.0, field 103.0)`.
 /** The field's floor: about ten characters of the chrome's 14px text, where the wide tier left about 52px. */
 const M1_FIELD_MIN = 80;
 if (runs('3553-m1')) {
@@ -22442,8 +22450,15 @@ if (runs('3553-m1')) {
           const r = (sel) => { const n = document.querySelector(sel); if (!n || !n.getClientRects().length) return null; const b = n.getBoundingClientRect(); return { l: b.left, r: b.right, w: b.width }; };
           const input = document.querySelector('[data-p3="search-input"]');
           const cs = input ? getComputedStyle(input) : null;
+          const st = document.querySelector('[data-p3="search-status"]');
+          const box = (n) => { if (!n || !n.getClientRects().length) return null; const b = n.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
+          // #3620: the status's own text, as drawn: a range over its words, so text cut by its box shows past it.
+          const textBox = (() => { if (!st || !st.firstChild) return null; const g = document.createRange(); g.selectNodeContents(st); const b = g.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; })();
           return {
             nav: r('[data-p3="tab-row"]'), status: r('[data-p3="search-status"]'), close: r('[data-p3="search-close"]'),
+            navBox: box(document.querySelector('[data-p3="tab-row"]')), statusBox: box(st), textBox, inputBox: box(input),
+            glyphBox: box(document.querySelector('[data-p3="search"] .p3-search-box > .p3-ico')),
+            statusWhole: st ? st.scrollWidth <= st.clientWidth + 0.5 && st.scrollHeight <= st.clientHeight + 0.5 : false,
             tabs: [...document.querySelectorAll('[data-p3="tab-row"] :is(.p3-tabs, .p3-preview-title)')].filter((t) => t.getClientRects().length > 0).length,
             whole: input ? input.scrollWidth <= input.clientWidth : false,
             field: input ? input.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) : null,
@@ -22453,9 +22468,22 @@ if (runs('3553-m1')) {
         const at = `${where} ${place}`;
         ok(m.statusText !== '' && !!m.nav && !!m.status && !!m.close, `${at}: premise, the no-match status and Close are drawn in the tab row (${JSON.stringify(m)})`);
         ok(m.tabs === 0, `#3553 M1 ${at}: the tab row hides while Search is open, and Components' title with it (${m.tabs} drawn)`);
-        // The floor is M1's, the wide tier's. At the plugin's 380 the no-match status leaves the field 17px on `main` too:
-        // filed as #3620, not fixed here.
-        if (w >= 1024) ok(m.field !== null && m.field >= M1_FIELD_MIN && m.whole, `#3553 M1 ${at}: the field shows at least ${M1_FIELD_MIN}px of text, the typed query whole (${m.field?.toFixed(1)}, whole ${m.whole})`);
+        // The floor is M1's, held at every width since #3620: at the plugin's 380 the no-match status used to take the row and
+        // leave the field 17px.
+        ok(m.field !== null && m.field >= M1_FIELD_MIN && m.whole, `${w < 600 ? '#3620' : '#3553 M1'} ${at}: the field shows at least ${M1_FIELD_MIN}px of text, the typed query whole (${m.field?.toFixed(1)}, whole ${m.whole})`);
+        // #3620 (owner decision 2026-11-18, A): the no-match status is never cut off. At every width its text sits inside its
+        // own box and the tab row; at the narrow tier it has its own line under the field, and the magnifier stays on the
+        // field's line.
+        const inside = (a, b) => !!a && !!b && a.l >= b.l - ALIGN_TOLERANCE && a.r <= b.r + ALIGN_TOLERANCE && a.t >= b.t - ALIGN_TOLERANCE && a.b <= b.b + ALIGN_TOLERANCE;
+        ok(m.statusWhole && inside(m.textBox, m.statusBox) && inside(m.statusBox, m.navBox),
+          `#3620 ${at}: the no-match status "${m.statusText}" is drawn whole, inside its box and the tab row (whole ${m.statusWhole}, text ${JSON.stringify(m.textBox)}, box ${JSON.stringify(m.statusBox)}, row ${JSON.stringify(m.navBox)})`);
+        if (w < 600) {
+          ok(!!m.statusBox && !!m.inputBox && m.statusBox.t >= m.inputBox.b - ALIGN_TOLERANCE,
+            `#3620 ${at}: at the narrow tier the status sits on its own line under the field (status top ${m.statusBox?.t.toFixed(1)}, field bottom ${m.inputBox?.b.toFixed(1)})`);
+          const mid = (b) => (b.t + b.b) / 2;
+          ok(!!m.glyphBox && !!m.inputBox && Math.abs(mid(m.glyphBox) - mid(m.inputBox)) <= 1,
+            `#3620 ${at}: the magnifier stays centered on the field's line (glyph ${m.glyphBox && mid(m.glyphBox).toFixed(1)}, field ${m.inputBox && mid(m.inputBox).toFixed(1)})`);
+        }
         if (m.nav && m.status && m.close) ok(m.status.r <= m.nav.r + ALIGN_TOLERANCE && m.close.r <= m.nav.r + ALIGN_TOLERANCE,
           `#3553 M1 ${at}: the status and Close stay inside the levers column (status ${m.status.r.toFixed(1)}, Close ${m.close.r.toFixed(1)}, column ${m.nav.r.toFixed(1)})`);
         if (SHOTS && theme === 'light' && place === 'depth') await page.screenshot({ path: join(SHOTS, `s3553-m1-${host}-${w}-${place}.png`) });

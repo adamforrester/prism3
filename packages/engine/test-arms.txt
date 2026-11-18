@@ -83,6 +83,7 @@ apps/plugin/test-canvas-furniture.ts #2723
 apps/plugin/test-canvas-furniture.ts #2803
 apps/plugin/test-canvas-furniture.ts #2828
 apps/plugin/test-canvas-furniture.ts #3467
+apps/plugin/test-component-specs-export.ts #1325
 apps/plugin/test-doc-panel.ts #2858
 apps/plugin/test-doc-panel.ts #2889
 apps/plugin/test-doc-panel.ts #2916
@@ -444,6 +445,7 @@ apps/plugin/test-write-preflight.ts #3556
 apps/plugin/test-write-preflight.ts #3557
 apps/plugin/test-write-preflight.ts #3558
 apps/plugin/test-write-preflight.ts #506
+apps/plugin/test-write-typography.ts #1090
 apps/plugin/test-write-typography.ts #1296
 apps/plugin/test-write-typography.ts #1485
 apps/plugin/test-write-typography.ts #1789
@@ -615,6 +617,7 @@ apps/studio/test-chrome.mjs #3471
 apps/studio/test-chrome.mjs #3524
 apps/studio/test-chrome.mjs #3553
 apps/studio/test-chrome.mjs #3608
+apps/studio/test-chrome.mjs #3620
 apps/studio/test-chrome.mjs #3697
 apps/studio/test-chrome.mjs #3700
 apps/studio/test-chrome.mjs #3711
@@ -805,6 +808,7 @@ apps/studio/test-type-input.ts #2194
 apps/studio/test-type-input.ts #2225
 apps/studio/test-type-input.ts #2324
 apps/studio/test-type-input.ts #3077
+apps/studio/test-type-input.ts #3707
 apps/studio/test-type-input.ts #3878
 apps/studio/test-type-input.ts #831
 apps/studio/test-update-file.ts #1234
@@ -895,6 +899,7 @@ packages/engine/test.ts #1305
 packages/engine/test.ts #1316
 packages/engine/test.ts #1317
 packages/engine/test.ts #1318
+packages/engine/test.ts #1325
 packages/engine/test.ts #1330
 packages/engine/test.ts #1331
 packages/engine/test.ts #1333
@@ -1208,6 +1213,7 @@ packages/engine/test.ts #3595
 packages/engine/test.ts #3603
 packages/engine/test.ts #3697
 packages/engine/test.ts #3698
+packages/engine/test.ts #3707
 packages/engine/test.ts #3759
 packages/engine/test.ts #377
 packages/engine/test.ts #3779

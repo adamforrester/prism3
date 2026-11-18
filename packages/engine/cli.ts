@@ -23,9 +23,11 @@
  * generated system (§11.3). No token logic lives here; the parser, classifier, core,
  * and report builder are all imported. This is the I/O shell: file read + argv + exit.
  *
- * `--component-specs` (#3425) also writes the brand's component-defs export: `<id>.component-defs.json` (every
- * component definition with the brand's component settings resolved) and `<id>.component-defs.specs.json` (the same
- * as a Specs components set). The brand-neutral pair is written under `out/components/` by `regen`, and not committed (#3698 R3).
+ * `--component-specs` (#3425) also writes the brand's component contracts: `<id>.component-contracts.json` (every
+ * component definition with the brand's component settings resolved, #1325), its compatibility copy
+ * `<id>.component-defs.json` (the same bytes, for one release), and `<id>.component-defs.specs.json` (the same as a
+ * Specs components set). The brand-neutral export is written under `out/components/` by `regen` (the same three files,
+ * without the `<id>.` prefix, plus the catalog-wide `specs.json`), and not committed (#3698 R3).
  *
  * Exit codes: 0 = clean; 1 = schema violation, a broken alias, or a failed mode
  * contrast contract (so it fails CI). Errors print a readable diagnosis.
@@ -47,13 +49,17 @@ import { BUILD_IDENTITY } from './build-identity';
 // regen passes that flag for the one committed artifact it writes through this CLI (wendys), whose stamp is the fold's.
 let build: string | undefined = BUILD_IDENTITY;
 
-/** `--component-specs` (#3425): the brand's component-defs export and its Specs projection, beside its tokens. */
+/** `--component-specs` (#3425): the brand's component contracts and their Specs projection, beside its tokens. The export
+ *  is written under its contract name and, for one release, under its old name too (#1325, Q-CC1 A). */
 const writeComponentSpecs = (input: BrandInput, resolvedOut: string) => {
   const doc = exportComponentDefs(componentDefs, { brand: input, build });
   const names = componentDefsFileNames(doc.brand!.id);
-  writeFileSync(resolve(resolvedOut, names.defs), JSON.stringify(doc, null, 2) + '\n');
+  const text = JSON.stringify(doc, null, 2) + '\n';
+  writeFileSync(resolve(resolvedOut, names.contracts), text);
+  writeFileSync(resolve(resolvedOut, names.defs), text);
   writeFileSync(resolve(resolvedOut, names.specs), JSON.stringify(toSpecsComponents(doc), null, 2) + '\n');
-  console.log(`  [written] ${resolve(resolvedOut, names.defs)}  (${Object.keys(doc.components).length} components)`);
+  console.log(`  [written] ${resolve(resolvedOut, names.contracts)}  (${Object.keys(doc.components).length} components)`);
+  console.log(`  [written] ${resolve(resolvedOut, names.defs)}  (the same file under its old name, for one release)`);
   console.log(`  [written] ${resolve(resolvedOut, names.specs)}`);
 };
 
@@ -114,7 +120,7 @@ const main = () => {
     else if (a === '--component-specs') componentSpecs = true;
     else if (a === '--committed') build = undefined;
     else if (a === '--help' || a === '-h') {
-      console.log('Usage: tsx cli.ts <design.md> [--out <dir>] [--fidelity] [--component-specs] [--committed]\n\n  <design.md>   a brand brief with YAML frontmatter — engine-native (examples/*.design.md)\n                OR a standard brand-skills / google-labs design.md (flat colors + x-prism3)\n  --out <dir>   output directory for <id>.tokens.json + <id>.ai.json (default: engine/out)\n  --fidelity    (standard dialect) also write <id>-fidelity-report.md — the observed-vs-generated diff\n  --component-specs  also write <id>.component-defs.json + <id>.component-defs.specs.json — every component\n                definition with this brand\'s component settings resolved, and the same as a Specs components set\n  --committed   stamp the engine version only, never the build identity: for an artifact the repo commits (regen)');
+      console.log('Usage: tsx cli.ts <design.md> [--out <dir>] [--fidelity] [--component-specs] [--committed]\n\n  <design.md>   a brand brief with YAML frontmatter — engine-native (examples/*.design.md)\n                OR a standard brand-skills / google-labs design.md (flat colors + x-prism3)\n  --out <dir>   output directory for <id>.tokens.json + <id>.ai.json (default: engine/out)\n  --fidelity    (standard dialect) also write <id>-fidelity-report.md — the observed-vs-generated diff\n  --component-specs  also write <id>.component-contracts.json + <id>.component-defs.specs.json — every component\n                contract with this brand\'s component settings resolved, and the same as a Specs components set\n                (and <id>.component-defs.json, the same contracts under their old name, for one release)\n  --committed   stamp the engine version only, never the build identity: for an artifact the repo commits (regen)');
       process.exit(0);
     }
     else if (a.startsWith('-')) fail(`unknown flag: ${a}`);
