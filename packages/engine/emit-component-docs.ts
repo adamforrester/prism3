@@ -184,6 +184,8 @@ export const renderMarkdown = (def: ComponentDef): string => {
         break;
       case 'usage':
         para(s.usage);
+        // #3986: generated from the parts' `mirror` fields. DRAFT wording.
+        if (s.rtl) out.push(`**In RTL.** ${s.rtl}`, '');
         if (s.do.length) { out.push('### Do', ''); bullets(s.do); }
         if (s.dont.length) { out.push("### Don't", ''); bullets(s.dont); }
         break;

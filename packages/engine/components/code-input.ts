@@ -416,7 +416,7 @@ export const codeInput: ComponentDef = {
       },
       // THE ITEMS SLOT (owner decision Q329 A, #2649's pattern): a native slot of cells, six by default, four to eight.
       items: {
-        kind: 'box',
+        kind: 'box', mirror: 'never',
         role: 'target',
         contentSlot: true,
         slotSettings: { minChildren: 4, maxChildren: 8, allowPreferredValuesOnly: true },

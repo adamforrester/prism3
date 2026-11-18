@@ -27,6 +27,7 @@
  */
 import { ComponentDef } from '../component-schema';
 import { FOCUS_EDGE_DEFAULT_NOTE, FOCUS_EDGE_STATUS_NOTE, makeTextField } from './text-field';
+import { withMirrors } from '../rtl-mirror';
 
 const built: ComponentDef = makeTextField({
   id: 'search-field',
@@ -222,4 +223,5 @@ const built: ComponentDef = makeTextField({
 
 /** The message is off by default (owner decision on #2926, item 1). #2929 moved the factory's `showMessage` boolean and
  *  the message note to off for every field, so this field takes both from the factory and states neither itself. */
-export const searchField: ComponentDef = built;
+// #3986: in right-to-left text the row mirrors and the search glyph is not flipped (the def's right-to-left entry).
+export const searchField: ComponentDef = withMirrors(built, { content: 'reverses', leadingVisual: 'never' });

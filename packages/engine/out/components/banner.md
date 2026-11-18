@@ -46,6 +46,8 @@ Shown on the default member: tone `info`, edge `contained`.
 
 Use a Banner for an important message the user should see and may need to act on, and that has to stay until it is resolved: a page-level error, a service notice, or the result of a process. Use the neutral tone for a message with no status, such as an announcement or a membership offer. Contain it inside the section it is about, or run it full width at the top of the page for a message about the whole app. Show one banner at a time in a region, the most serious one. Give it one action at most: an inline link at the end of a one-line message that goes somewhere, or a text button under a longer message, or one that does something ("Retry"). The brand's Banner style sets the surface for every banner: Tinted fills it with the tone's tint, Outlined with the page color, and both keep the edge in the tone. It is a brand setting, not a prop.
 
+**In RTL.** The layout mirrors: the start edge is on the right. The info, success, warning and danger glyphs do not mirror.
+
 ### Do
 
 - Match the tone to how serious the message is

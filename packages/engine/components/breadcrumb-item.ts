@@ -92,7 +92,7 @@ export const breadcrumbItem: ComponentDef = {
     root: 'container',
     parts: {
       container: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         // `target` because the schema requires exactly one — NOT an interaction claim: the targets are the nested
         // Link and flush icon button.
         role: 'target',

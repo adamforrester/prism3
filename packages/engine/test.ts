@@ -57,6 +57,9 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
+import { rtlNote, withMirrors } from './rtl-mirror';
+import { RTL_MIRRORED_GLYPHS, ICON_SOURCES } from './icon-set';
+import { docSections } from './component-doc-sections';
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef, type PartDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyCurrentIndicator, fieldStyleFor, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
@@ -41052,6 +41055,103 @@ arm: {
   ok(/An end panel is full height and 480px wide, at most `100vw − 48px`/.test(line('per-breakpoint placement, no automatic switch'))
     && /an end panel slides in from the end edge/.test(line('motion')) && /An end panel sits at the left edge/.test(line('right-to-left')),
     '#2877 dialog end in code: full height, 480px wide, at most 100vw − 48px, sliding in from the end edge, at the left edge in right-to-left text');
+}
+
+// ------------------------------------------------------------------- #3986: right-to-left as part of the contract
+// Owner decision Q-RTL1 A: each part's `mirror` field states what it does in right-to-left text, filled from the def's
+// right-to-left prose, and this arm fails a def BY NAME when the two disagree. The prose is read here with this arm's
+// own phrase list, never through `rtl-mirror.ts`, so the field is held to something it was not derived from
+// (`docs/34` shape 1). Three claims, each read off both sides:
+//   row  — the prose says the row or layout mirrors; a part says `reverses`.
+//   flip — the prose says a glyph flips, mirrors or points the other way; a part says `mirrors` or `per-glyph`.
+//   hold — the prose says something does not mirror, stays as drawn or stays left to right; a part says `never` or
+//          `per-glyph` (an icon's glyph flips or holds by which glyph it is).
+// What a def's own parts state, its prose must say; what its prose says, its own parts or the defs it nests must state
+// (a Breadcrumbs trail's slash is its separator's part). A def with prose declares something; one without declares
+// nothing.
+{
+  type Claim = 'row' | 'flip' | 'hold';
+  const HOLD = /\b(?:do(?:es)?\s+not|doesn't|never)\s+(?:mirror|flip)|\bmust not\b|\bnot (?:mirrored|flipped)\b|\bnever flipped\b|\bstays? as drawn\b|\bno glyph mirrors\b|\bnothing (?:of its own )?to mirror\b|\bmirrors nothing\b|\bunmirrored\b|dir="ltr"|\bstays? left to right\b|\bstays? clockwise\b|\bno\b[^.;]*\bflips?\b/i;
+  const ROW_WITH = /\bmirrors? with the (?:row|document)\b/i;
+  const FLIP = /\bflips?\b|\bpoints? (?:left|right)\b|\bmirrors, so it points\b|\b(?:glyphs?|chevrons?|arrow|icon)\b[^.;()]*?\bmirror\b|\bcounterclockwise\b/i;
+  const ROW = /\blogical properties\b|\b(?:row|layout|header|group)\s+(?:mirrors|reverses)\b|\bmirrors? with the (?:row|document)\b|\bmirror the row\b|\bswap (?:edges|sides|ends)\b|\bfollows? the reading direction\b|\bsits (?:at the )?(?:right|left)most\b|\bsits at the (?:right|left)\b|\bgrows (?:leftward|from the inline-start)\b|\bposition mirror\b/i;
+  const proseClaims = (text: string): Set<Claim> => {
+    const out = new Set<Claim>();
+    // A parenthetical is its own clause, and the sentence around it reads without it.
+    const asides = [...text.matchAll(/\(([^)]*)\)/g)].map((m) => m[1]);
+    for (const clause of [text.replace(/\([^)]*\)/g, ' '), ...asides].flatMap((t) => t.split(/[.;—:]|,?\s+and\s+/i))) {
+      if (HOLD.test(clause)) out.add('hold');
+      else if (FLIP.test(clause) && !ROW_WITH.test(clause)) out.add('flip');
+      if (ROW.test(clause)) out.add('row');
+    }
+    return out;
+  };
+  const rtlProse = (d: ComponentDef): string => (d.anatomy?.codeOnly ?? []).filter((e) => e.class === 'right-to-left').map((e) => e.description).join(' ');
+  const ownClaims = (d: ComponentDef): Set<Claim> => {
+    const out = new Set<Claim>();
+    for (const p of Object.values(d.anatomy?.parts ?? {})) {
+      if (p.mirror === 'reverses') out.add('row');
+      if (p.mirror === 'mirrors' || p.mirror === 'per-glyph') out.add('flip');
+      if (p.mirror === 'never' || p.mirror === 'per-glyph') out.add('hold');
+    }
+    return out;
+  };
+  const rtlById = new Map(componentDefs.map((d) => [d.id, d]));
+  const deepClaims = (d: ComponentDef, seen = new Set<string>()): Set<Claim> => {
+    const out = ownClaims(d);
+    seen.add(d.id);
+    for (const p of Object.values(d.anatomy?.parts ?? {})) {
+      const n = typeof p.nests === 'string' ? rtlById.get(p.nests) : undefined;
+      if (n && !seen.has(n.id)) for (const c of deepClaims(n, seen)) out.add(c);
+    }
+    return out;
+  };
+  const disagreements = (d: ComponentDef): string[] => {
+    const prose = rtlProse(d), pc = proseClaims(prose), oc = ownClaims(d), dc = deepClaims(d);
+    const bad: string[] = [];
+    if (!prose && oc.size) bad.push('declares mirror fields and has no right-to-left prose');
+    if (prose && !dc.size) bad.push('has right-to-left prose and no mirror field, in its parts or the defs it nests');
+    for (const c of oc) if (!pc.has(c)) bad.push(`a part states ${c} and the prose does not`);
+    for (const c of pc) if (!dc.has(c)) bad.push(`the prose states ${c} and no part does`);
+    return bad;
+  };
+  const rtlDefs = componentDefs.filter((d) => rtlProse(d));
+  const rtlBad = componentDefs.map((d) => [d.id, disagreements(d)] as const).filter(([, b]) => b.length);
+  ok(rtlBad.length === 0,
+    `#3986: every def's mirror fields and right-to-left prose agree (${rtlDefs.length} defs with prose)${rtlBad.length ? ` — ${rtlBad.slice(0, 4).map(([id, b]) => `${id}: ${b.join('; ')}`).join(' | ')}` : ''}`);
+  // Floors (docs/34 shape 9): the arm reads the corpus it was written against, and each claim fires somewhere.
+  const fired = new Set(rtlDefs.flatMap((d) => [...proseClaims(rtlProse(d))]));
+  ok(rtlDefs.length >= 40 && fired.size === 3,
+    `#3986: the right-to-left arm reads at least 40 defs and every claim fires on both sides (${rtlDefs.length} defs; prose claims seen: ${[...fired].join(', ')})`);
+  // The arm bites (a self-check, per claim): a def with a field the prose does not state, or prose a field does not back.
+  const breadcrumbSep = rtlById.get('_breadcrumb-separator')!;
+  const flipped = withMirrors(breadcrumbSep, { slashGlyph: 'mirrors' });
+  const unbacked = withMirrors(breadcrumbSep, { chevronGlyph: 'never' });
+  const toRow = withMirrors(breadcrumbSep, { frame: 'reverses' });
+  ok(disagreements(breadcrumbSep).length === 0 && disagreements(toRow).some((b) => /states row/.test(b))
+    && disagreements(unbacked).some((b) => /prose states flip/.test(b)) && disagreements(flipped).length === 0,
+    '#3986: the arm names a part stating what the prose does not (row) and prose no part states (flip)');
+
+  // The icon set's per-glyph list: every name a glyph the set has, and both kinds present, so `per-glyph` means both.
+  const notGlyphs = [...RTL_MIRRORED_GLYPHS].filter((g) => !(g in ICON_SOURCES));
+  ok(notGlyphs.length === 0 && RTL_MIRRORED_GLYPHS.size > 0 && Object.keys(ICON_SOURCES).some((g) => !RTL_MIRRORED_GLYPHS.has(g)),
+    `#3986: RTL_MIRRORED_GLYPHS names ${RTL_MIRRORED_GLYPHS.size} glyphs of the icon set, and the set has glyphs that do not mirror${notGlyphs.length ? ` — not glyphs: ${notGlyphs.join(', ')}` : ''}`);
+  ok(['chevron-left', 'chevron-right', 'arrow-left', 'arrow-right'].every((g) => RTL_MIRRORED_GLYPHS.has(g)) && !['chevron-down', 'check', 'close', 'search'].some((g) => RTL_MIRRORED_GLYPHS.has(g)),
+    '#3986: back and forward glyphs mirror; down, check, close and search do not (the Icon def\'s right-to-left prose)');
+
+  // Part 3: the "In RTL" note is generated from the fields, and the usage section carries it to the panel and the page.
+  const withNote = componentDefs.filter((d) => Object.values(d.anatomy?.parts ?? {}).some((p) => p.mirror));
+  const missing = withNote.filter((d) => {
+    const u = docSections(d).sections.find((s) => s.id === 'usage');
+    return !rtlNote(d) || !u || u.id !== 'usage' || u.rtl !== rtlNote(d);
+  });
+  ok(missing.length === 0 && withNote.length > 0,
+    `#3986: every def with a mirror field has an "In RTL" note in its usage section (${withNote.length})${missing.length ? ` — missing: ${missing.map((d) => d.id).join(', ')}` : ''}`);
+  ok(rtlNote(breadcrumbSep) === 'The chevron glyph flips to point the other way. The slash glyph does not mirror.'
+    && rtlNote(rtlById.get('tabs')!) === 'The layout mirrors: the start edge is on the right.',
+    `#3986: the note says each value in words (separator: "${rtlNote(breadcrumbSep)}")`);
+  ok(componentDefs.filter((d) => !Object.values(d.anatomy?.parts ?? {}).some((p) => p.mirror)).every((d) => rtlNote(d) === undefined),
+    '#3986: a def with no mirror field gets no note');
 }
 
 // ------------------------------------------------------------------- #2661: the Button group

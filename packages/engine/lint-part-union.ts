@@ -150,6 +150,9 @@ const ADMITS: Readonly<Record<string, readonly Kind[]>> = {
   scaleWithParent: ['vector'],
   stackCentered: ['vector'],
   note: ALL,
+  // #3986: every kind may say what it does in right-to-left text; `anatomyErrors` refuses a VALUE on a kind it cannot
+  // describe (`reverses` off a box, `mirrors` on a box or a text), never the field.
+  mirror: ALL,
 };
 
 const legal = (kind: string, body: string[]): Probe => ({ kind, legal: true, field: '', body });

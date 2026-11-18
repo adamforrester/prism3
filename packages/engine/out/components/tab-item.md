@@ -45,6 +45,8 @@ Shown on the default member: selection `unselected`, size `medium`.
 
 Use inside Tabs only. A tab names one panel of related content; selecting it shows that panel in place.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Keep labels short, parallel nouns
