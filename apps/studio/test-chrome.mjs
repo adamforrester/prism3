@@ -10572,6 +10572,8 @@ if (runs('26')) {
 console.log(`\nComponents (S8.2)\n${'='.repeat(78)}`);
 /** The lever keys pages.ts places on Components (G6 A), by hook. Literal. */
 const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'lever-button-label-weight', 'lever-button-text-hover', 'lever-button-min-width-multiplier',
+  // #576: Outline button border, the Button block's sixth option.
+  'lever-button-border-weight',
   // #2905 (Q3 B, Q578 B): Field options draws Field style, its one control; its home is Components › Field. Tag options
   // draws Tag style the same way (#2931 Q579 A), its home Components › Tag, and Search options Search field style (#2952,
   // #2905 Q5 A), its home Components › Search.
@@ -11011,8 +11013,9 @@ for (const host of ['web', 'figma']) {
       const r2 = await read();
       ok(r2.expanded === 'true' && r2.controls && r2.n === 1 && r2.shown,
         `#2844: ${host} ${w}: the line is a disclosure: aria-expanded flips and aria-controls names the block (${JSON.stringify(r2)})`);
-      ok(r2.lineBelowSets && r2.blockBelowLine && r2.levers === 5,
-        `#2844: ${host} ${w}: open, the settings sit below the line and the line below the sets, five Button options (${JSON.stringify(r2)})`);
+      // Six since #576 added Outline button border.
+      ok(r2.lineBelowSets && r2.blockBelowLine && r2.levers === 6,
+        `#2844: ${host} ${w}: open, the settings sit below the line and the line below the sets, six Button options (${JSON.stringify(r2)})`);
       ok(r2.active === 'cp-opts-toggle' && r2.title === 'Buttons', `#2844: ${host} ${w}: opening keeps the focus on the line and the preview shows Buttons (${r2.active}, ${r2.title})`);
       // Keyboard: Tab goes from the line to the first option, Shift+Tab back; Enter and Space close and open.
       await page.keyboard.press('Tab');
