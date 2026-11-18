@@ -301,19 +301,20 @@ export const run = async (browser: any, src: Sources): Promise<{ failures: strin
   // showMessage off, and the field set live back to default writes no message.
   {
     const page = await browser.newPage();
-    const pre = fieldHtml({ kind: 'text-field', id: 'pre-error', demo: 'pre-error', size: 'medium', status: 'error', state: 'rest', icons: false, message: true });
-    await page.setContent(page_(`<p3-text-field>${pre}</p3-text-field>`));
+    await page.setContent(page_(KINDS.map((k) => `<p3-${k}>${fieldHtml({ kind: k, id: `pre-error-${k}`, demo: `pre-error-${k}`, size: 'medium', status: 'error', state: 'rest', icons: false, message: true })}</p3-${k}>`).join('')));
     await load(page);
-    const up = await page.evaluate(`(async () => {
-      const el = document.querySelector('p3-text-field');
-      const at = { showMessage: el.showMessage, validation: el.validation, validationMessage: el.validationMessage };
-      el.validation = 'default';
-      await el.updateComplete;
-      const input = el.querySelector('.p3-text-field__entry');
-      return { ...at, after: { message: !!el.querySelector('.p3-field-message'), describedBy: input.getAttribute('aria-describedby'), invalid: input.getAttribute('aria-invalid') } };
-    })()`);
-    ok(up.validation === 'error' && !!up.validationMessage, `upgrade at error: the element did not adopt the status and its message: ${JSON.stringify(up)}`);
-    ok(!up.showMessage && !up.after.message && up.after.describedBy === null && up.after.invalid === null, `Q-POC2: <p3-text-field> pre-rendered at error, upgraded and set back to default keeps its message (showMessage ${JSON.stringify(up.showMessage)}, message ${up.after.message ? 'written' : 'absent'}, aria-describedby ${JSON.stringify(up.after.describedBy)})`);
+    for (const k of KINDS) {
+      const up = await page.evaluate(`(async () => {
+        const el = document.querySelector('p3-${k}');
+        const at = { showMessage: el.showMessage, validation: el.validation, validationMessage: el.validationMessage };
+        el.validation = 'default';
+        await el.updateComplete;
+        const input = el.querySelector('.p3-${k}__entry');
+        return { ...at, after: { message: !!el.querySelector('.p3-field-message'), describedBy: input.getAttribute('aria-describedby'), invalid: input.getAttribute('aria-invalid') } };
+      })()`);
+      ok(up.validation === 'error' && !!up.validationMessage, `upgrade at error: <p3-${k}> did not adopt the status and its message: ${JSON.stringify(up)}`);
+      ok(!up.showMessage && !up.after.message && up.after.describedBy === null && up.after.invalid === null, `Q-POC2: <p3-${k}> pre-rendered at error, upgraded and set back to default keeps its message (showMessage ${JSON.stringify(up.showMessage)}, message ${up.after.message ? 'written' : 'absent'}, aria-describedby ${JSON.stringify(up.after.describedBy)})`);
+    }
     await page.close();
   }
   return { failures, passed };
