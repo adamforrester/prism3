@@ -872,7 +872,8 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     if (STATUS_ROLE_SET.has(pb.role)) throw new Error(`surfaces.${where}: palette '${spec.palette}' is a STATUS palette (role '${pb.role}') — a page band in a semantic status color would use it decoratively, which #898 excludes. Use neutral, the brand, or a custom palette.`);
   };
   // A value that must name a step on `pal`'s ramp, refused by name otherwise. A finite number off the ramp
-  // names the nearest real step; anything else is not a `noun`. `alts` is what else the key accepts.
+  // names the nearest real step; anything else is not a `noun`. `alts` is what else the key accepts. `where` is
+  // the input path the message opens with (the surfaces below, and the interactive anchors after them, #3873).
   const neutralPal = palettes.find((p) => p.role === 'neutral');
   const requireStep = (where: string, value: unknown, num: unknown, pal: typeof neutralPal, noun: string, alts: string): void => {
     const steps = (pal?.steps ?? []).map((st) => st.num);
@@ -880,9 +881,9 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     const ramp = `a step on the ${pal?.palette ?? 'neutral'} ramp (${steps.join(', ')})`;
     if (typeof num === 'number' && Number.isFinite(num) && steps.length) {
       const nearest = steps.reduce((a, b) => (Math.abs(b - num) < Math.abs(a - num) ? b : a));
-      throw new Error(`surfaces.${where}: ${JSON.stringify(value)} is not on the ${pal!.palette} ramp; the nearest step is ${nearest}. Use ${alts}${ramp}.`);
+      throw new Error(`${where}: ${JSON.stringify(value)} is not on the ${pal!.palette} ramp; the nearest step is ${nearest}. Use ${alts}${ramp}.`);
     }
-    throw new Error(`surfaces.${where}: ${JSON.stringify(value)} is not ${noun}. Use ${alts}${ramp}.`);
+    throw new Error(`${where}: ${JSON.stringify(value)} is not ${noun}. Use ${alts}${ramp}.`);
   };
   for (const [mode, sf] of Object.entries(input.surfaces ?? {})) {
     for (const key of ['base', 'secondary', 'tertiary'] as const) {
@@ -901,13 +902,13 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
       if (spec == null || spec === 'white' || spec === 'black') continue;
       const pal = typeof spec === 'object' ? palettes.find((p) => p.palette === (spec as SurfaceStep).palette) : neutralPal;
       const num = typeof spec === 'object' ? (spec as SurfaceStep).step : spec;
-      requireStep(`${mode}.${key}`, spec, num, pal, 'a surface', "'white', 'black', or ");
+      requireStep(`surfaces.${mode}.${key}`, spec, num, pal, 'a surface', "'white', 'black', or ");
     }
     // `floorStep` is held to the same rule (#2033, owner go-ahead 2026-10-04): it decides what every
     // floor-gated role is measured against, and `modeConfigs` resolves it with `n()`, which snaps, so `333`
     // used to become neutral.350 with no error. It always indexes the NEUTRAL ramp, whatever the page or the
     // inverse band is on, and it has no white/black form.
-    if (sf?.floorStep != null) requireStep(`${mode}.floorStep`, sf.floorStep, sf.floorStep, neutralPal, 'a step number', '');
+    if (sf?.floorStep != null) requireStep(`surfaces.${mode}.floorStep`, sf.floorStep, sf.floorStep, neutralPal, 'a step number', '');
     if (sf?.secondary !== undefined) {
       notes.push(`surfaces: the ${mode} second tier is ${surfaceLabel(sf.secondary)}, not the default — ${sf.floorStep !== undefined ? `the contrast floor stays at neutral.${sf.floorStep}` : 'the contrast floor moves with it'}.`);
     }
@@ -920,6 +921,30 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     // surface it so the author sees the band and its knock-on contrast, same as `base` above.
     if (typeof sf?.inverseBase === 'object') {
       notes.push(`surfaces: the ${mode} inverse band is a brand color (${surfaceLabel(sf.inverseBase)}) — every role on it is re-derived, and any that miss its contrast floor are flagged.`);
+    }
+  }
+
+  // #3873: an AUTHORED interactive anchor names a step on its column's ramp, the rule the surfaces above already
+  // hold. Each is applied exactly (`modes.ts` `pickBrand`, `exact`, #331), and `pickBrand` used to swap an off-ramp
+  // step for 500 without a word, so a typo became a different, uncorrected color, and the build failed contrast on a
+  // step nobody chose. A `modeAnchors` column must be one the engine reads: primary, destructive, or a declared
+  // interactive column; any other key was ignored. Wording: DRAFT for the owner.
+  const paletteOf = (name: string) => palettes.find((p) => p.palette === name);
+  if (input.actionAnchorStep !== undefined)
+    requireStep('actionAnchorStep', input.actionAnchorStep, input.actionAnchorStep, paletteOf(roleToPalette.action), 'a step number', '');
+  if (input.destructiveAnchorStep !== undefined)
+    requireStep('destructiveAnchorStep', input.destructiveAnchorStep, input.destructiveAnchorStep, paletteOf(roleToPalette.danger), 'a step number', '');
+  for (const [i, e] of (input.interactivePalettes ?? []).entries()) {
+    if (e.anchorStep !== undefined)
+      requireStep(`interactivePalettes[${i}].anchorStep`, e.anchorStep, e.anchorStep, paletteOf(e.palette), 'a step number', '');
+  }
+  const anchorColumns = new Map<string, string>([['primary', roleToPalette.action], ['destructive', roleToPalette.danger], ...interactivePalettes.map((e) => [e.name, e.palette] as [string, string])]);
+  for (const [mode, cols] of Object.entries(input.modeAnchors ?? {})) {
+    for (const [col, step] of Object.entries(cols ?? {})) {
+      const palette = anchorColumns.get(col);
+      if (palette === undefined)
+        throw new Error(`modeAnchors.${mode}: '${col}' is not an interactive column. Use ${[...anchorColumns.keys()].join(', ')}.`);
+      requireStep(`modeAnchors.${mode}.${col}`, step, step, paletteOf(palette), 'a step number', '');
     }
   }
 
