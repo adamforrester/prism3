@@ -1,6 +1,7 @@
 /**
  * THE AXE CHECK (#3408 S5; arm 1 architecture item 8; Q144 A): `@axe-core/playwright` over EVERY story in the built
- * Storybook, in BOTH themes, scoped to the story root. Fails by name: the story, the theme, the axe rule and the node.
+ * Storybook, in BOTH themes and BOTH directions (left to right, and right to left: #3986 part 2), scoped to the story
+ * root. Fails by name: the story, the theme (with ", rtl" right to left), the axe rule and the node.
  *
  *   npm run -w @prism3/storybook build          (first: writes storybook-static/)
  *   npx tsx apps/storybook/check-axe.ts
@@ -21,7 +22,7 @@
  */
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { context, DROPPED, main, open, require, result, stories, type Plant, type Story, type Result } from './a11y-harness.ts';
+import { at, context, dirsFor, DROPPED, main, open, require, result, stories, type Plant, type Story, type Result } from './a11y-harness.ts';
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'];
 const THEMES = ['light', 'dark'] as const;
@@ -54,12 +55,12 @@ export const run = async (browser: unknown, origin: string, plant: Plant = {}, o
   const page = await ctx.newPage();
   let rulesRun = 0;
   try {
-    for (const s of stories(plant).filter(only)) for (const theme of THEMES) {
-      const where = `${s.id} (${theme})`;
-      try { await open(page, origin, s, theme, plant); }
+    for (const s of stories(plant).filter(only)) for (const dir of dirsFor(s, plant)) for (const theme of THEMES) {
+      const where = `${s.id} (${theme}${dir === 'rtl' ? ', rtl' : ''})`;
+      try { await open(page, origin, s, theme, plant, dir); }
       catch (e) { r.failures.push(`${where}: did not settle: ${(e as Error).message.split('\n')[0]}`); continue; }
       const res = await new AxeBuilder({ page }).include('#storybook-root').withTags(TAGS).analyze();
-      r.checked.add(s.id);
+      r.checked.add(at(s, dir));
       rulesRun = Math.max(rulesRun, res.passes.length + res.violations.length + res.incomplete.length);
       r.ok(res.passes.length > 0, `${where}: axe passed no rule at all, so it did not see the component`);
       let clean = true;
@@ -84,6 +85,8 @@ export const run = async (browser: unknown, origin: string, plant: Plant = {}, o
 };
 
 const field = (s: Story) => s.component !== 'button';
+/** A plant's script that runs right to left only: the frame's `dir` decides, so the left-to-right run stays clean. */
+const rtlOnly = (js: string) => `if (document.querySelector('[data-story-frame]')?.dir === 'rtl') { ${js} }`;
 const MUTANTS = [
   {
     name: "the field label's for= unbound, so the input has no name",
@@ -113,8 +116,14 @@ const MUTANTS = [
     // axe leaves a broken idref for review, which this check fails
     mustName: /components-password-field-(element|html)--error \(light\): axe aria-valid-attr-value( needs review)?/,
   },
+  {
+    name: "the field label's for= unbound right to left only",
+    plant: { after: rtlOnly('document.querySelectorAll("#storybook-root label[for]").forEach((l) => l.removeAttribute("for"))') },
+    only: (s: Story) => s.component === 'password-field' && s.case === 'rest',
+    mustName: /components-password-field-(element|html)--rest \(light, rtl\): axe label —/,
+  },
 ];
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  await main('axe', 'Every story, in light and dark, has no axe violation and nothing left for review (WCAG 2.0–2.2 A and AA).', run as never, [...MUTANTS, ...DROPPED('axe')]);
+  await main('axe', 'Every story, in light and dark, left to right and right to left, has no axe violation and nothing left for review (WCAG 2.0–2.2 A and AA).', run as never, [...MUTANTS, ...DROPPED('axe')]);
 }

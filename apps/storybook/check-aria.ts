@@ -22,17 +22,22 @@
  *  3. "lacks": `HAS` below, written by hand from the defs and `@prism3/css`'s demo copy: the role, name, states and
  *     description each case must expose. It is what `--accept` can't launder: it refuses to write while a row fails.
  *
+ * RIGHT TO LEFT (#3986 part 2): every story is also snapshotted under `dir="rtl"`. Direction moves the layout, never the
+ * tree, so the right-to-left snapshot must equal the left-to-right one of the same form ("the right-to-left tree
+ * differs"), and also passes 1 to 3 on its own, each failure named with "rtl". `--accept` writes the left-to-right
+ * tree only, and refuses while a right-to-left one differs from it.
+ *
  * 4. NO SHADOW ROOTS (arm 1 architecture items 1 and 8): no element in a story root attaches one, open or closed.
  *    `a11y-harness.ts` records every `attachShadow` before the page's scripts run, since a closed root can't be seen
  *    afterwards. Any root fails, open or closed: Storybook's preview wraps `attachShadow` and forces every root open
  *    (for its pseudo-states addon), so the mode a component asked for can't be read here, only that it made one.
  *
- * SELF-TEST: five mutants, each must fail by name.
+ * SELF-TEST: seven mutants, each must fail by name.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { context, DROPPED, main, open, require, result, stories, type Plant, type Story, type Result } from './a11y-harness.ts';
+import { at, context, dirsFor, DROPPED, main, open, require, result, stories, type Dir, type Plant, type Story, type Result } from './a11y-harness.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BASELINE = resolve(HERE, 'aria-snapshots.json');
@@ -113,35 +118,41 @@ export const run = async (browser: unknown, origin: string, plant: Plant = {}, o
   const accepted: Record<string, string> = existsSync(BASELINE) ? JSON.parse(readFileSync(BASELINE, 'utf8')) : {};
   const ctx = await context(browser, plant);
   const page = await ctx.newPage();
-  const got: Record<string, Partial<Record<Story['form'], string>>> = {};
+  const byDir: Record<Dir, Record<string, Partial<Record<Story['form'], string>>>> = { ltr: {}, rtl: {} };
+  const got = byDir.ltr;
   const all = stories(plant);
   try {
-    for (const s of all.filter(only)) {
-      try { await open(page, origin, s, 'light', plant); }
-      catch (e) { r.failures.push(`${s.id}: did not settle: ${(e as Error).message.split('\n')[0]}`); continue; }
+    for (const s of all.filter(only)) for (const dir of dirsFor(s, plant)) {
+      const where = at(s, dir);
+      try { await open(page, origin, s, 'light', plant, dir); }
+      catch (e) { r.failures.push(`${where}: did not settle: ${(e as Error).message.split('\n')[0]}`); continue; }
       const shadows: string[] = await page.evaluate(() => (window as unknown as { p3Shadows: { host: Element; mode: string }[] }).p3Shadows
         .filter((x) => x.host.closest('#storybook-root')).map((x) => `<${x.host.localName}>`));
-      r.ok(shadows.length === 0, `${s.id}: the component attached a shadow root on ${shadows.join(', ')}; arm 1 is light DOM, and a closed root is ruled out (item 8)`);
+      r.ok(shadows.length === 0, `${where}: the component attached a shadow root on ${shadows.join(', ')}; arm 1 is light DOM, and a closed root is ruled out (item 8)`);
       const snap = await snapshot(page, s);
-      r.checked.add(s.id);
-      (got[`${s.component}--${s.case}`] ??= {})[s.form] = snap;
+      r.checked.add(where);
+      (byDir[dir][`${s.component}--${s.case}`] ??= {})[s.form] = snap;
       for (const line of HAS(s.component, s.case)) {
         const present = line.startsWith('- ') ? snap.split('\n').some((l) => l.trim() === line || l.trim().startsWith(`${line}:`)) : snap.split('\n').includes(line);
-        r.ok(present, `${s.id}: the accessibility tree lacks «${line}» (HAS, written from the def)`);
+        r.ok(present, `${where}: the accessibility tree lacks «${line}» (HAS, written from the def)`);
       }
     }
   } finally {
     await ctx.close();
   }
-  for (const [key, forms] of Object.entries(got)) {
+  for (const dir of ['ltr', 'rtl'] as const) for (const [key, forms] of Object.entries(byDir[dir])) {
+    const rtl = dir === 'rtl' ? ', rtl' : '';
     const { element, html } = forms;
     if (element !== undefined && html !== undefined) {
-      r.ok(element === html, `${key}: the two forms differ — element:\n${element}\n  html:\n${html}`);
+      r.ok(element === html, `${key}${dir === 'rtl' ? ' (rtl)' : ''}: the two forms differ — element:\n${element}\n  html:\n${html}`);
     }
     for (const [form, snap] of Object.entries(forms)) {
+      // right to left against left to right, same form: a direct comparison, which --accept can't skip
+      const ltr = byDir.ltr[key]?.[form as Story['form']];
+      if (dir === 'rtl' && ltr !== undefined) r.ok(snap === ltr, `${key} (${form}, rtl): the right-to-left tree differs from the left-to-right tree — rtl:\n${snap}\n  ltr:\n${ltr}`);
       if (ACCEPT) continue;
-      r.ok(accepted[key] !== undefined, `${key} (${form}): no accepted snapshot in aria-snapshots.json. Run with --accept and review the diff`);
-      if (accepted[key] !== undefined) r.ok(snap === accepted[key], `${key} (${form}): differs from the accepted snapshot in aria-snapshots.json — got:\n${snap}\n  accepted:\n${accepted[key]}`);
+      r.ok(accepted[key] !== undefined, `${key} (${form}${rtl}): no accepted snapshot in aria-snapshots.json. Run with --accept and review the diff`);
+      if (accepted[key] !== undefined) r.ok(snap === accepted[key], `${key} (${form}${rtl}): differs from the accepted snapshot in aria-snapshots.json — got:\n${snap}\n  accepted:\n${accepted[key]}`);
     }
   }
   if (!ACCEPT && Object.keys(got).length === new Set(all.map((s) => `${s.component}--${s.case}`)).size) {
@@ -189,8 +200,20 @@ const MUTANTS = [
     only: (s: Story) => s.component === 'button' && s.case === 'inactive',
     mustName: /components-button-(element|html)--inactive: the accessibility tree lacks «- button "Save changes" \[disabled\]»/,
   },
+  {
+    name: 'the Show/Hide button hidden right to left only (both forms)',
+    plant: { css: '#storybook-root [dir="rtl"] .p3-password-field__toggle { display: none !important; }' },
+    only: (s: Story) => s.component === 'password-field' && s.case === 'rest',
+    mustName: /^password-field--rest \((element|html), rtl\): the right-to-left tree differs from the left-to-right tree/,
+  },
+  {
+    name: 'the HTML form drops aria-invalid at error, right to left only',
+    plant: { after: htmlOnly('if (document.querySelector("[data-story-frame]")?.dir === "rtl") document.querySelectorAll("#storybook-root [aria-invalid]").forEach((i) => i.removeAttribute("aria-invalid"))') },
+    only: (s: Story) => s.component === 'text-field' && s.case === 'error',
+    mustName: /^text-field--error \(rtl\): the two forms differ/,
+  },
 ];
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  await main('aria', 'Each case\'s element and HTML forms build the same accessibility tree (ARIA snapshot plus descriptions), equal to the accepted aria-snapshots.json, with every HAS row present.', run as never, ACCEPT ? [] : [...MUTANTS, ...DROPPED('aria')]);
+  await main('aria', 'Each case\'s element and HTML forms build the same accessibility tree (ARIA snapshot plus descriptions), equal to the accepted aria-snapshots.json, with every HAS row present, left to right and right to left (the same tree in both).', run as never, ACCEPT ? [] : [...MUTANTS, ...DROPPED('aria')]);
 }
