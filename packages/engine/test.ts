@@ -43187,6 +43187,15 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(refusal(() => brandTheme({ ...base, id: 'Has Space' } as unknown as BrandInput)) === '', '#3875 an id that is a safe file name but not a slug (Has Space) still builds');
   const schemaErrs = validateBrandInput({ ...base, id: '../escaped' } as unknown as BrandInput);
   ok(schemaErrs.some((e) => e.includes('id')), `#3875 the schema refuses the id "../escaped" (errors: ${JSON.stringify(schemaErrs)})`);
+  // Review of 12ce358d: the schema's pattern let `.`, `..`, a blank id and NUL through while brandTheme refused them, so
+  // a file-driven brief passed the schema and failed later. The two layers now agree, both ways, over the same ids.
+  for (const [id, refused] of [['.', true], ['..', true], ['   ', true], ['\t', true], [' ', true], ['\0', true], ['a\0b', true],
+    ['Has Space', false], ['...', false], [' ..', false], ['.hidden', false], ['aurora', false]] as const) {
+    const errs = validateBrandInput({ ...base, id } as unknown as BrandInput).filter((e) => e.startsWith('id:'));
+    const engine = refusal(() => brandTheme({ ...base, id } as unknown as BrandInput)) !== '';
+    ok(engine === refused && (errs.length > 0) === refused,
+      `#3875 the schema and brandTheme agree on the id ${JSON.stringify(id)}: ${refused ? 'both refuse it' : 'both accept it'} (brandTheme ${engine ? 'refused' : 'accepted'}; schema ${JSON.stringify(errs)})`);
+  }
 
   const dir = mkdtempSync(join(tmpdir(), 'p3-3875-'));
   try {
