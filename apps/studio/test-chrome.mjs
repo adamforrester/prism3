@@ -14812,6 +14812,121 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 } // 3117
 
 // =============================================================================================
+// #3263 (owner decision 2026-11-18, A): a pressed Personality chip (`toggleChip`, Brand) draws no check glyph, and shows
+// it is pressed through its edge, and its `Highlight` fill under forced colors, so a press never changes the chip's
+// width. Before, the pressed chip drew a 16px check plus its 4px gap, 20px wider than unpressed, and the words are
+// multi-select in a wrapping row: the row's width grew with each word pressed, so a press where the row only just fitted
+// could push the last word onto a new row (the #3117 shape, on the chips that decision did not cover).
+// Single- vs multi-select is a separate owner question: this section presses several words because the chips allow it
+// today, not to assert that they must.
+// Both hosts, both chrome themes, at two widths:
+//   · 1280, the #3115 shape: the row held at its `max-content` width, read once with no word pressed (prism3 opens with
+//     none), then each word pressed in turn, every pressed word kept pressed;
+//   · 380, the row at its real narrow width, wrapped over several rows, pressed the same way.
+// After each press the chips' rows (distinct tops) and each chip's own width are read. EXPECTED (literal rules, typed
+// here): every chip as wide as it was with no word pressed, whatever is pressed; one row count for every press (one row
+// at 1280); no chip draws a glyph. Then the state cue, as rendered, read with every word pressed but the last:
+//   · the pressed chip's edge against an unpressed chip's edge, at least 3:1 (WCAG 1.4.11), and the label ink the same
+//     on both, so the edge is the cue;
+//   · under forced colors (CDP `forced-colors: active`), the pressed chip filled `Highlight` and its neighbor not.
+// ACTUAL: the drawn chips.
+// Mutations, failing here by name (measured 2026-11-18):
+//   · main before the fix restored (`toggleChip` appends `glyph('check')` again, with the two `.p3-btn.p3-chip … >
+//     .p3-ico` rules that hid it unpressed and showed it pressed) → 24 of 72, every host, theme and width: `#3263 web
+//     light 1280: each Personality chip keeps its unpressed width whatever is pressed — energetic 80/100/100/…, calm
+//     54/54/74/…`, `… no Personality chip draws a check, pressed or not`, and the row arm, at 1280 `… keeps one row at its
+//     max-content width (653px) … none pressed 1, then 2, 2, …` and at 380 the bug as filed, `… keeps its 3 rows …
+//     none pressed 3, then 3, 4, 4, …`; plus section 39's `#3263: a Personality chip draws no check`;
+//   · the glyph line alone restored, the rules left removed → 8 of 72, `… no Personality chip draws a check, pressed or
+//     not — none pressed ["energetic", …]`: the glyph then draws on every chip, so the widths hold and only this arm
+//     sees it.
+if (runs('3263')) {
+console.log(`\nA pressed Personality chip keeps its width (#3263)\n${'='.repeat(78)}`);
+const ROW_3263 = '[data-p3="levers-pane"] [data-p3="lever-personality"] [data-p3="personality-words"]';
+const CHIP_3263 = '[data-p3="personality-word"]';
+const lum3263 = (hx) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; const n = (i) => parseInt(hx.slice(i, i + 2), 16); return 0.2126 * f(n(1)) + 0.7152 * f(n(3)) + 0.0722 * f(n(5)); };
+const ratio3263 = (a, b) => { if (!a || !b) return NaN; const [x, y] = [lum3263(a), lum3263(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+for (const { w, h, hold } of [{ w: 1280, h: 900, hold: true }, { w: 380, h: 420, hold: false }]) for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+  const where = `#3263 ${host} ${theme} ${w}`;
+  const { ctx, page, errors } = await open({ host, theme, w, h });
+  try {
+    await goPlace(page, 'brand');
+    await hooks.need(page, ROW_3263);
+    /** One read of the row: rows, each chip's width and pressed state, the glyphs drawn, the edges and inks. */
+    const read = (px) => page.evaluate(([s, c, px]) => {
+      const g = document.querySelector(s);
+      if (!g) return null;
+      if (px === 'max-content') { g.style.width = 'max-content'; px = g.getBoundingClientRect().width; }
+      if (typeof px === 'number') g.style.width = `${px}px`;
+      const chips = [...g.querySelectorAll(c)];
+      const on = chips.filter((b) => b.getAttribute('aria-pressed') === 'true'), off = chips.filter((b) => b.getAttribute('aria-pressed') !== 'true');
+      const label = (b) => b?.querySelector('.p3-btn-label');
+      return {
+        px: typeof px === 'number' ? px : null,
+        pressed: on.map((b) => b.dataset.word),
+        rows: new Set(chips.map((b) => Math.round(b.getBoundingClientRect().top))).size,
+        widths: Object.fromEntries(chips.map((b) => [b.dataset.word, Math.round(b.getBoundingClientRect().width * 10) / 10])),
+        glyphs: chips.filter((b) => [...b.querySelectorAll('svg, .p3-ico')].some((i) => i.getClientRects().length > 0 && getComputedStyle(i).display !== 'none')).map((b) => b.dataset.word),
+        edgeOn: on[0] && getComputedStyle(on[0]).borderTopColor, edgeOff: off[0] && getComputedStyle(off[0]).borderTopColor,
+        inkOn: label(on[0]) && getComputedStyle(label(on[0])).color, inkOff: label(off[0]) && getComputedStyle(label(off[0])).color,
+      };
+    }, [ROW_3263, CHIP_3263, px]);
+    const base = await read(hold ? 'max-content' : null);
+    const words = Object.keys(base?.widths ?? {});
+    ok(!!base && base.pressed.length === 0 && words.length === PERSONALITY.length,
+      `${where}: the Personality row opens with no word pressed and draws every word (${words.length} of ${PERSONALITY.length}) — pressed ${JSON.stringify(base?.pressed)}`);
+    const reads = [];
+    for (const word of words) {
+      const chip = `${ROW_3263} ${CHIP_3263}[data-word="${word}"]`;
+      await page.locator(chip).scrollIntoViewIfNeeded();
+      await hooks.click(page.locator(chip));
+      // A press redraws the row's state, so the chip reading pressed is the redraw having landed.
+      await page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-pressed') === 'true', chip, { timeout: 5000 }).catch(() => {});
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+      reads.push({ word, r: await read(hold ? base.px : null) });
+    }
+    const pressedAll = reads.every(({ word, r }, i) => r?.pressed?.includes(word) && r.pressed.length === i + 1);
+    ok(pressedAll, `${where}: each press adds its word and keeps the earlier ones — ${reads.map(({ word, r }) => `${word}: ${JSON.stringify(r?.pressed)}`).join('; ')}`);
+    const counts = reads.map(({ r }) => r?.rows);
+    ok(counts.every((n) => n === base?.rows) && (!hold || base?.rows === 1),
+      `${where}: the Personality row keeps ${hold ? `one row at its max-content width (${base?.px}px)` : `its ${base?.rows} rows`} whatever is pressed — none pressed ${base?.rows}, then ${counts.join(', ')}`);
+    const widthsOf = (c) => [base?.widths?.[c], ...reads.map(({ r }) => r?.widths?.[c])];
+    ok(words.every((c) => { const ws = widthsOf(c); return ws.every((x) => typeof x === 'number' && Math.abs(x - ws[0]) < 0.5); }),
+      `${where}: each Personality chip keeps its unpressed width whatever is pressed — ${words.map((c) => `${c} ${widthsOf(c).join('/')}`).join(', ')}`);
+    ok(base?.glyphs?.length === 0 && reads.every(({ r }) => r?.glyphs?.length === 0),
+      `${where}: no Personality chip draws a check, pressed or not — none pressed ${JSON.stringify(base?.glyphs)}, then ${reads.map(({ word, r }) => `${word}: ${JSON.stringify(r?.glyphs)}`).join(', ')}`);
+    // The cue, read with every word pressed but the last, so both states are drawn side by side.
+    const cue = reads[reads.length - 2]?.r ?? {};
+    const [eOn, eOff, iOn, iOff] = [cue.edgeOn, cue.edgeOff, cue.inkOn, cue.inkOff].map(hexOfRgb);
+    const edgeRatio = ratio3263(eOn, eOff);
+    ok(edgeRatio >= 3, `${where}: a pressed Personality chip's edge reads at least 3:1 against an unpressed chip's — ${eOn} against ${eOff}, ${Number.isFinite(edgeRatio) ? `${(Math.floor(edgeRatio * 100) / 100).toFixed(2)}:1` : 'unreadable'}`);
+    ok(!!iOn && iOn === iOff, `${where}: the pressed and unpressed Personality chips' labels share one ink, so the edge is the cue — ${iOn} and ${iOff}`);
+    // Unpress the last word, then forced colors: the pressed chip filled Highlight, its neighbor not.
+    const lastChip = `${ROW_3263} ${CHIP_3263}[data-word="${words[words.length - 1]}"]`;
+    await hooks.click(page.locator(lastChip));
+    await page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-pressed') === 'false', lastChip, { timeout: 5000 }).catch(() => {});
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'forced-colors', value: 'active' }] });
+    const fc = await page.evaluate(([s, c]) => {
+      const g = document.querySelector(s);
+      const probe = document.createElement('div');
+      probe.style.cssText = 'position:absolute;width:1px;height:1px;background-color:Highlight;forced-color-adjust:none';
+      document.body.append(probe);
+      const highlight = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      const on = g?.querySelector(`${c}[aria-pressed="true"]`), off = g?.querySelector(`${c}[aria-pressed="false"]`);
+      return { active: matchMedia('(forced-colors: active)').matches, highlight, on: on && getComputedStyle(on).backgroundColor, off: off && getComputedStyle(off).backgroundColor };
+    }, [ROW_3263, CHIP_3263]);
+    ok(fc.active && fc.on === fc.highlight && fc.off !== fc.highlight,
+      `${where}: under forced colors a pressed Personality chip is filled Highlight and an unpressed one is not — active ${fc.active}, Highlight ${fc.highlight}, pressed ${fc.on}, unpressed ${fc.off}`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+} // 3263
+
+// =============================================================================================
 // #2232: a click on blank space inside the S12 start window keeps focus in the window, and Tab and Shift+Tab then stay
 //        inside it. Both hosts, 1280. The window traps Tab with a keydown listener on its scrim, so a focus that falls
 //        to <body> (outside the scrim) is a focus the trap never hears. EXPECTED, read from the DOM: after the click,
@@ -16653,7 +16768,9 @@ for (const host of ['web', 'figma']) {
       const cOn = await page.evaluate(FC_LOOK, chipOn), cOff = await page.evaluate(FC_LOOK, chipOff);
       selected(cOn, cOff, 'a Personality chip');
       await drawn(chipOn, 'a Personality chip');
-      ok(cOn?.glyph === HT, `${where}: a pressed chip's check draws in HighlightText ${HT} (read ${cOn?.glyph})`);
+      // #3263 (owner decision 2026-11-18 A): a Personality chip draws no check, pressed or not; the Highlight fill above
+      // is what shows it pressed here (section 3263 holds the width).
+      ok(cOn?.glyph === null && cOff?.glyph === null, `${where}: #3263: a Personality chip draws no check, pressed or not (pressed read ${cOn?.glyph}, unpressed read ${cOff?.glyph})`);
       ran.add('chip');
       const modeHooks = ['mode-on-dark', 'mode-on-hc-light', 'mode-on-hc-dark', 'mode-on-wireframe'];
       const boxes = await page.evaluate((hs) => hs.map((hk) => { const n = document.querySelector(`[data-p3="${hk}"]`); const b = n?.querySelector('.p3-check-box');
