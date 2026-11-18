@@ -37,7 +37,7 @@ import type { FigmaCollectionFile } from './emit-figma';
 import { MOTION_FIGMA_COVERAGE, springBounce } from './emit-figma-dims';
 import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount, DTCG_TYPES } from './emit-dtcg-overlay';
 import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
-import { buildTree, validateBrandInput, readExampleBrand, contractReportRow } from './emit-dtcg';
+import { buildTree, validateBrandInput, readExampleBrand, contractReportRow, emitTheme } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { validate as validateJsonSchema } from './json-schema-lite';
 import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
@@ -43172,6 +43172,53 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
       `#2075 seed: the ${label} seed's design.md parses back to its input, validates and builds (errors ${JSON.stringify(errors)}, built ${built})`);
   }
   ok(JSON.stringify(seedFromFacts(p2)) === JSON.stringify(s), '#2075 seed: the same report seeds the same bytes');
+}
+
+// #3875 — the brand id names every file the CLI writes (`<id>.tokens.json` and five more), and nothing checked it:
+// `id: "../escaped"` wrote six files one level above --out, `"a/b"` crashed mid-write with a raw stack, and `""` wrote
+// hidden dotfiles. Three layers now hold: brandTheme refuses an id with a separator or nothing in it (and the schema
+// says the same), emitTheme refuses to write outside its directory whatever the id, and the CLI reports a failed
+// write through fail() rather than a stack trace. An id that is not a slug but is a safe file name still builds.
+{
+  const base = { id: 'ok', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 } } as unknown as BrandInput;
+  const refusal = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  for (const id of ['../escaped', 'Has Space/Slash', 'a\\b', '', '   ', '..']) {
+    const msg = refusal(() => brandTheme({ ...base, id } as unknown as BrandInput));
+    ok(msg.startsWith(`id: ${JSON.stringify(id)} can't name the brand's files`), `#3875 brandTheme refuses the id ${JSON.stringify(id)} by name (got ${JSON.stringify(msg)})`);
+  }
+  ok(refusal(() => brandTheme({ ...base, id: 'Has Space' } as unknown as BrandInput)) === '', '#3875 an id that is a safe file name but not a slug (Has Space) still builds');
+  const schemaErrs = validateBrandInput({ ...base, id: '../escaped' } as unknown as BrandInput);
+  ok(schemaErrs.some((e) => e.includes('id')), `#3875 the schema refuses the id "../escaped" (errors: ${JSON.stringify(schemaErrs)})`);
+  // Review of 12ce358d: the schema's pattern let `.`, `..`, a blank id and NUL through while brandTheme refused them, so
+  // a file-driven brief passed the schema and failed later. The two layers now agree, both ways, over the same ids.
+  for (const [id, refused] of [['.', true], ['..', true], ['   ', true], ['\t', true], [' ', true], ['\0', true], ['a\0b', true],
+    ['Has Space', false], ['...', false], [' ..', false], ['.hidden', false], ['aurora', false]] as const) {
+    const errs = validateBrandInput({ ...base, id } as unknown as BrandInput).filter((e) => e.startsWith('id:'));
+    const engine = refusal(() => brandTheme({ ...base, id } as unknown as BrandInput)) !== '';
+    ok(engine === refused && (errs.length > 0) === refused,
+      `#3875 the schema and brandTheme agree on the id ${JSON.stringify(id)}: ${refused ? 'both refuse it' : 'both accept it'} (brandTheme ${engine ? 'refused' : 'accepted'}; schema ${JSON.stringify(errs)})`);
+  }
+
+  const dir = mkdtempSync(join(tmpdir(), 'p3-3875-'));
+  try {
+    // The backstop: a theme that reaches emitTheme with an escaping id (a caller that skipped brandTheme's check).
+    const out = join(dir, 'out');
+    const theme = brandTheme(base); (theme as any).id = '../escaped';
+    const wrote = refusal(() => emitTheme(theme, out));
+    ok(wrote.includes('would be written outside') && !existsSync(join(dir, 'escaped.tokens.json')) && !existsSync(out),
+      `#3875 emitTheme refuses an id that would write outside its directory, before writing anything (got ${JSON.stringify(wrote)}; above --out: ${readdirSync(dir).join(', ')})`);
+    // The CLI: a write that fails (here, --out names a file) is reported through fail(), not as a stack trace.
+    const brief = join(dir, 'b.design.md');
+    writeFileSync(brief, '---\nid: clean\nprimary: { l: 0.55, c: 0.15, h: 260 }\nneutral: { hue: 260, chroma: 0.01 }\n---\n');
+    const notADir = join(dir, 'a-file');
+    writeFileSync(notADir, 'x');
+    const r = spawnSync('npx', ['tsx', resolve(HERE, 'cli.ts'), brief, '--out', notADir], { cwd: HERE, encoding: 'utf8' });
+    const err = r.stderr ?? '';
+    ok(r.status === 1 && err.includes("✖ could not write 'clean'") && !/\n\s+at /.test(err),
+      `#3875 the CLI reports a failed write through fail(), with no stack trace (exit ${r.status}; stderr ${JSON.stringify(err.slice(0, 300))})`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 // #3876 — the serializer wrote a quote in a double-quoted scalar as `\"`, and the parser never decoded it: every
