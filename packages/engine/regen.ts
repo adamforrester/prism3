@@ -83,7 +83,9 @@ export const renderOnDemand = (): { files: string[] } | { error: string } => {
 // `emit-component-docs.ts --uncommitted --out`. Like `ON_DEMAND_OUT`, both `out/` walks here skip the names, so a
 // local copy never changes the count; unlike it, regen must still WRITE each one, and `check()` fails by name when
 // it stops, or when git tracks one. They are in `.gitignore`.
-export const UNCOMMITTED_OUT = ['components/component-defs.json', 'components/component-defs.specs.json', 'components/specs.json'];
+// `component-contracts.json` is the export's contract-named twin (#1325, Q-CC1 A) and `component-defs.json` its compatibility
+// copy for one release. Appended LAST: `renderUncommitted`'s readers take files by position.
+export const UNCOMMITTED_OUT = ['components/component-defs.json', 'components/component-defs.specs.json', 'components/specs.json', 'components/component-contracts.json'];
 
 /** A fresh copy of every `UNCOMMITTED_OUT` file, written into a temp dir for a reader that must not depend on what a
  *  local `out/` holds (CI holds none). Returns the files in `UNCOMMITTED_OUT` order, or an error the caller reports as
