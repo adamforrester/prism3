@@ -1627,3 +1627,7 @@ renderer's new branch. The S5 lane is editing the Storybook in parallel; a story
   regenerated.
 - **Errors hit:** 3: a mutant that removed every error message crashed an earlier geometry step (retargeted to one
   field), and the two check weaknesses above.
+
+**Local gate record** (`npm run verify`'s 114 gates, with `GITHUB_BASE_REF=poc/arm-1`, after `regen`, in 5 chunks
+under 10 minutes): 111 PASS, 0 FAIL, and 3 not run locally, left to CI as before: `chrome`, `chrome-shards` and
+`plugin-test`.
