@@ -64,7 +64,7 @@ Use a status label to show a state or attribute next to what it describes, such 
 
 - **Keyboard:** None. A badge takes no focus and has no action. A count on an icon button is reached through the button.
 - **Focus:** Never focusable, and no focus ring. The host carries focus.
-- **Screen readers:** none. A status label is plain text and announces itself; a count or dot is aria-hidden and its meaning is in the host's accessible name.
+- **Screen readers:** none. A status label is plain text and announces itself; a count or dot is `aria-hidden` and its meaning is in the host's accessible name.
 
   Status label: not aria-hidden, and no role of its own. It reads as text in place, so it must not be given role="status". Inline style: the dot is aria-hidden="true", with no role and no accessible name, and the label reads as plain text in place, with no role="status". Count and dot: aria-hidden="true", and the host composes the meaning into its accessible name, as in "Inbox, 3 unread messages" or "Maya, online". A dot needs that text in the host name. Never describe it by color, as in "red dot". A count that changes while the page is open is announced through one shared polite live region.
 
