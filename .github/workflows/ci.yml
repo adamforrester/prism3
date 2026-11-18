@@ -1188,6 +1188,15 @@ jobs:
         timeout-minutes: 10
         run: npm run -w @prism3/storybook check:build
 
+      # The accessibility pass (#3408 S5, arm 1 architecture item 8, Q144 A), over the same built
+      # Storybook: axe on every story in light and dark; the element and HTML forms' accessibility
+      # trees equal to each other and to the accepted aria-snapshots.json; and the scripted keyboard
+      # suite (Tab order, Space/Enter, Show/Hide, focus-visible on keyboard only). Each check runs its
+      # own mutants, which must fail by name.
+      - name: "@prism3/storybook passes axe, the ARIA snapshots and the keyboard suite (#3408 S5)"
+        timeout-minutes: 15
+        run: npm run -w @prism3/storybook check:a11y
+
   plugin:
     # #3698 R4: skipped on a docs-only pull request, by the named exemption (`changes`, then `gates`).
     needs: [changes]

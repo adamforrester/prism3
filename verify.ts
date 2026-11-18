@@ -1414,6 +1414,15 @@ export const GATES: Gate[] = [
     why: 'it reads apps/storybook/storybook-static, which the build writes',
     precondition: chromiumPrecondition,
   },
+  {
+    // #3408 S5 — axe, the ARIA snapshots of both forms, and the keyboard suite, over storybook-static.
+    id: 'storybook-a11y',
+    ciStep: '@prism3/storybook passes axe, the ARIA snapshots and the keyboard suite (#3408 S5)',
+    cmd: ws('@prism3/storybook', 'check:a11y'),
+    after: ['storybook-build'],
+    why: 'it reads apps/storybook/storybook-static, which the build writes',
+    precondition: chromiumPrecondition,
+  },
 ];
 
 // ---- ORPHAN CHECK: a gate file that exists and is named in nothing --------------------------------
