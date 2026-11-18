@@ -32,13 +32,11 @@ import { BrandInput } from './theme';
 export type DesignMd = { input: BrandInput; prose: string };
 
 // --- scalar typing: bare YAML scalar string → typed JS value ------------------
-// A double-quoted scalar takes YAML's two escapes the serializer writes, `\\` and `\"` (#3876): without decoding
-// them, each export → import added a backslash before every quote in a brand name. Any other backslash is kept as
-// written. A single-quoted scalar has no escapes here.
 const unquote = (s: string): string => {
   const t = s.trim();
-  if (t.length >= 2 && t[0] === '"' && t[t.length - 1] === '"') return t.slice(1, -1).replace(/\\(["\\])/g, '$1');
-  if (t.length >= 2 && t[0] === "'" && t[t.length - 1] === "'") return t.slice(1, -1);
+  if (t.length >= 2 && ((t[0] === '"' && t[t.length - 1] === '"') || (t[0] === "'" && t[t.length - 1] === "'"))) {
+    return t.slice(1, -1);
+  }
   return t;
 };
 const isQuoted = (s: string): boolean => {
@@ -68,7 +66,7 @@ const parseFlow = (src: string): unknown => {
     let depth = 0, q = '';
     while (i < src.length) {
       const c = src.charAt(i);
-      if (q) { if (q === '"' && c === '\\') i++; else if (c === q) q = ''; i++; continue; }   // `\"` stays inside
+      if (q) { if (c === q) q = ''; i++; continue; }
       if (c === '"' || c === "'") { q = c; i++; continue; }
       if (c === '{' || c === '[') { depth++; i++; continue; }
       if (c === '}' || c === ']') { if (depth === 0) break; depth--; i++; continue; }
@@ -123,7 +121,7 @@ const stripComment = (line: string): string => {
   let q = '', depth = 0;
   for (let i = 0; i < line.length; i++) {
     const c = line[i];
-    if (q) { if (q === '"' && c === '\\') i++; else if (c === q) q = ''; continue; }   // `\"` stays inside
+    if (q) { if (c === q) q = ''; continue; }
     if (c === '"' || c === "'") { q = c; continue; }
     if (c === '{' || c === '[') depth++;
     else if (c === '}' || c === ']') depth = Math.max(0, depth - 1);
@@ -140,7 +138,7 @@ const colonSplit = (s: string): number => {              // top-level `key:` col
   let q = '', depth = 0;
   for (let i = 0; i < s.length; i++) {
     const c = s[i];
-    if (q) { if (q === '"' && c === '\\') i++; else if (c === q) q = ''; continue; }   // `\"` stays inside
+    if (q) { if (c === q) q = ''; continue; }
     if (c === '"' || c === "'") { q = c; continue; }
     else if (c === '{' || c === '[') depth++;
     else if (c === '}' || c === ']') depth = Math.max(0, depth - 1);
@@ -267,20 +265,18 @@ export const parseDesignMd = (text: string): DesignMd => {
 const bareOk = (s: string): boolean =>
   s.length > 0 && s.trim() === s && !/[,{}[\]:#"']/.test(s) &&
   !/^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(s) && !['true', 'false', 'null', '~'].includes(s);
-// Double-quoted with both escapes `unquote` decodes, backslash first (#3876).
-const dq = (s: string): string => `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 const serScalar = (v: unknown): string => {
   if (v === null) return 'null';
   if (typeof v === 'number' || typeof v === 'boolean') return String(v);
   const s = String(v);
-  return bareOk(s) ? s : dq(s);
+  return bareOk(s) ? s : `"${s.replace(/"/g, '\\"')}"`;
 };
 const serValue = (v: unknown): string => {
   if (Array.isArray(v)) return `[${v.map(serValue).join(', ')}]`;
   if (v && typeof v === 'object') {
     const body = Object.entries(v as Record<string, unknown>)
       .filter(([, x]) => x !== undefined)
-      .map(([k, x]) => `${bareOk(k) ? k : dq(k)}: ${serValue(x)}`)
+      .map(([k, x]) => `${bareOk(k) ? k : `"${k}"`}: ${serValue(x)}`)
       .join(', ');
     return `{ ${body} }`;
   }
