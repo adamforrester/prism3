@@ -75,7 +75,7 @@ import {
   type Origin,
 } from './provenance';
 import {
-  ARTIFACTS, METADATA_OPTION, defaultSettings, visibleSettings, exportDtcg, exportFileNames, exportPreview, availableImportSlots,
+  ARTIFACTS, METADATA_OPTION, defaultSettings, visibleSettings, exportDtcg, exportFileNames, exportPreview,
   type ArtifactId, type SettingsState, type ExportSource,
 } from './export-settings';
 // The BrandInput session — the working input, the resolved theme, the last-good rule, the viewed mode
@@ -1575,9 +1575,6 @@ const exportView = (): ExportView => {
     right,
     // #3553 Q-UI8 A: the word alone; the bar draws the vendored download icon before it.
     go: { text: exportArtifact === 'design-md' ? 'Download brief' : exportArtifact === 'component-specs' ? 'Download component specs' : 'Download tokens', off },
-    // The Figma-file path (#677) is absent rather than disabled: `availableImportSlots()` narrows to the copy-bearing
-    // variant, so there is no string to render for a path whose behavior is undecided.
-    imports: availableImportSlots().map((slot) => ({ label: slot.label, desc: slot.desc })),
   };
 };
 

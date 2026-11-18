@@ -37,7 +37,7 @@
  * the minimal slice of `figma.variables` the executor touches, so the whole pass sequence is
  * unit-testable against an in-memory shim (see `apps/plugin/test-write.mjs`) with no real Figma.
  */
-import { type WritePlan, type Rgba, type FloatCollectionPlan, type VarCollectionPlan, renameMap, openMigration, renameCollections, renameVariables, type RenameMap, type MaterializationStep, type Migration, MATERIALIZATION_RENAMES, CORE_COLLECTION, UNSCOPED_TYPES, type FigmaEasing, coreGroupOf, ownedCoreGroup, rootOf, composeVariableRenames } from '@prism3/engine/figma';
+import { type WritePlan, type Rgba, type FloatCollectionPlan, type VarCollectionPlan, renameMap, openMigration, renameCollections, renameVariables, type RenameMap, type MaterializationStep, type Migration, MATERIALIZATION_RENAMES, CORE_COLLECTION, UNSCOPED_TYPES, type FigmaEasing, coreGroupOf, ownedCoreGroup, rootOf, sliceGroupOf as sliceGroupOfRules } from '@prism3/engine/figma';
 import { bindingTargets } from './binding-targets';
 
 /** The minimal `figma.variables` surface the executor needs. Declaring it as a port (rather than
@@ -454,18 +454,13 @@ export const beginMigration = async (
 };
 
 /**
- * The `core` group a variable belongs to for SLICE membership (#1109): its own group when it has one, else
- * the group of the name the materialization rules carry it to. A pre-#1097 `palette/x` is in no group as
- * spelled, and the #1097 rule takes it to `<root>/core/palette/x`, so it belongs to the palette slice. With
- * no pass, no root, or a refused map (whose rules `openMigration` disarms), a variable with no group of its
- * own stays in none, which is what `unownedCore` then reports.
+ * The `core` group a variable belongs to for SLICE membership (#1109): the engine's `sliceGroupOf`
+ * (`rename-map.ts`), which the paste payload ships too (#3857), read with this pass's rules. With no pass, or
+ * a refused map (whose rules `openMigration` disarms), a variable with no group of its own stays in none,
+ * which is what `unownedCore` then reports.
  */
-const sliceGroupOf = (collection: string, name: string, root: string, pass?: Migration): string | null => {
-  const own = coreGroupOf(name);
-  if (own !== null || !pass || !root) return own;
-  const [row] = composeVariableRenames(collection, [name], [], pass.rules, root);
-  return row ? coreGroupOf(row.to) : null;
-};
+const sliceGroupOf = (collection: string, name: string, root: string, pass?: Migration): string | null =>
+  sliceGroupOfRules(collection, name, root, pass?.rules ?? [], coreGroupOf);
 
 /**
  * The `core` variables NO plan's slice owns (#1109) — **reported, never deleted**.
