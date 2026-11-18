@@ -89,7 +89,7 @@ the label names the input and `aria-describedby` reaches the message with no scr
 | `helpText` | `helpText` | `data-prop-helptext` | The message's text at the default status. |
 | `validation` | `validation` | `data-prop-validation` | `data-prop-validation` on the field; at `error`, `aria-invalid="true"` on the input. |
 | `validationMessage` | `validationMessage` | `data-prop-validationmessage` | The message's text at a validation status (the help text when unset). |
-| `showMessage` | `showMessage` | `data-prop-showmessage` | Writes the message and names its id in the input's `aria-describedby`. |
+| `showMessage` | `showMessage` | `data-prop-showmessage` | Writes the message and names its id in the input's `aria-describedby`. At `error`, `warning` or `success` the message is written whatever this says (Q-POC2 A, #1712 A). |
 | `required`, `disabled`, `readOnly` | same | `data-prop-required`, `-disabled`, `-readonly` | The input's `required`, `disabled`, `readonly`. Disabled also disables the Show/Hide button; read-only leaves it live. |
 | `autoComplete` | `autoComplete` | `data-prop-autocomplete` | The input's `autocomplete`. |
 | `inputMode` (text field) | `inputMode` | `data-prop-inputmode` | The input's `inputmode`. |

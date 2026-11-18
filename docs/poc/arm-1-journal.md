@@ -1530,3 +1530,100 @@ runs, not the latest.
 
 **Not fixed here:** `<p3-password-field>`'s own toggle (`p3-password-field.js`) has the same unconditional delayed
 restore. It is filed separately rather than fixed in this PR.
+
+---
+
+## Q-POC2 A — a field at a validation status always writes and names its message
+
+Started about 13:15 UTC on 2026-11-18, from `poc/arm-1` at `62a34be3`. It builds the owner's answer to the #1712 A
+audit's first flag (Q-POC2 → A, 2026-11-18, on #3408): at `error`, `warning` or `success`, the field always writes
+and shows its message, so `aria-invalid` never stands without an `aria-describedby` target. It applies to both
+delivery forms.
+
+### What was built
+
+- **`<p3-text-field>` and `<p3-password-field>`** (`generate-fields.ts`, regenerated): at any status but `default`,
+  the element writes the `<p class="p3-field-message">` and names it in `aria-describedby`, whatever `showMessage`
+  says. Its text is `validationMessage`, or `helpText` when that's unset, as before. `showMessage` now decides only
+  at the default status. A status set live writes the message; back at default with `showMessage` off, it's gone.
+- **Adoption on upgrade** reads a pre-rendered message as `showMessage` only at the default status. At a status the
+  message was required, not chosen, so taking it as `showMessage` would keep an empty message once the status
+  clears. A technical call, the fallout of the rule.
+- **`@prism3/css`:** the README's fields contract says it in prose and in the `validation` and `showMessage` rows of
+  both tables. `demo-fields.ts`, the code that writes the contract's markup, follows it. The demo's output doesn't
+  change, because every demo field at a status already had its message.
+- **The Storybook's HTML renderer** (`stories/fields.js`) follows the same rule. Its stories don't change: every
+  status story already sets `showMessage`.
+
+`password-field.js`, `@prism3/css`'s only script, writes no message and no `aria-describedby`; the markup carries
+both. So the script had nothing to change (OWNER DECISION 2 below).
+
+### Decisions
+
+Followed: Q-POC2 A and #1712 A. The def's `showMessage` description ("never hides a message the field needs") is
+unchanged; the engine def lives on `main`.
+
+**OWNER DECISIONS** (none built beyond today's behavior; each is flagged, with a recommendation):
+
+1. **OWNER DECISION: a status with no text.** At `error` with neither `validationMessage` nor `helpText`, the field
+   writes an empty message: the glyph shows, but the description is empty. Options:
+   - **A. Write it empty (built).** The link holds; the text is the page's job.
+   - B. Warn in the console when a status has no text.
+   - C. Fall back to a default string. That's new copy, the owner's.
+
+   **Recommendation: B** in the element, as a developer aid, with A's markup.
+2. **OWNER DECISION: a runtime repair in `@prism3/css`.** The HTML form relies on the author writing the message.
+   Options: **A. the contract only (built)**, held by the README and the checks; or B. a script that links an
+   unlinked message, or reveals a hidden one, at a status. A script can't write missing text.
+   **Recommendation: A.** B adds a script to every text field for a markup error the checks already catch.
+
+### What was checked, and how
+
+- **`wc-browser` (`check-browser-fields.ts`), new section 6.** For each element at error, warning and success with
+  `showMessage` off, the message is written, shown (displayed, with a box) and named in `aria-describedby`, and its
+  text is `validationMessage`. A live status change writes it; back at default, it's gone. Section 1 gains a sample
+  at error with `showMessage` off, so the plain and element forms are compared there too.
+- **`css-browser` (`check-browser-fields.ts`), new section 6.** Every demo field at a status (at least 36) has its
+  message written, shown and named.
+- **`wc-parity`'s contract** now says `validation` at a status sets `aria-describedby` to the message, with
+  `showMessage` off. **A weakness fixed:** `@message` resolved to `null` when no message was written, so a missing
+  link compared equal to "absent". It now needs a message.
+- **New self-test mutants, each failing by name:**
+  - wc: "the message written only when showMessage is on (Q-POC2 A)" →
+    `Q-POC2: <p3-text-field> at error with showMessage off renders no linked, shown message (aria-describedby null, message absent)`;
+  - css: "the message left out of an error field" → `Q-POC2: light/text-field/medium/error/filled at error renders no linked, shown message (aria-describedby "…", message absent)`;
+  - css: "the message hidden at warning" → `Q-POC2: light/password-field/medium/warning/filled at warning renders no linked, shown message (…message not shown)`.
+- **Hand mutations on disk**, each after a commit, restored with `git show HEAD:<path> > <path>`:
+
+  | Mutation | Fails by name |
+  |---|---|
+  | `generate-fields.ts`: `writeMessage = this.showMessage`, regenerated | `wc-browser`: 13 failures, e.g. `Q-POC2: <p3-password-field> at success with showMessage off renders no linked, shown message`; `wc-parity`: `text-field validation=error: .p3-text-field__entry aria-describedby is null, the contract says "(no message written)"`, for all three statuses, both fields |
+  | `demo-fields.ts`: `withMessage = o.message` | `wc-browser`: `light text-field-error-no-showmessage: .p3-field-message is in the element only` |
+
+- **A second weakness fixed:** `wc-browser` built its mutants while loading, so a hand mutation that moved a
+  mutant's anchor crashed the check before the real run reported anything. Mutants are now built after the real
+  run, and a moved anchor fails its own self-test by name.
+- `storybook-build` and `storybook-check` still pass (100 stories, 868 checks). `css-generated`, `css-parity`,
+  `wc-generated` and `custom-elements.json` agree.
+
+**Not covered:** no Storybook story sets a status without `showMessage`, so `storybook-check` doesn't hold the
+renderer's new branch. The S5 lane is editing the Storybook in parallel; a story can follow.
+
+### Surprises and learnings
+
+- **"Absent equals absent" is a pass that proves nothing.** The parity contract's `@message` placeholder resolved to
+  the message's id, or `null` with no message, so a field that dropped both the message and the link passed. A
+  placeholder for a link must require the thing it links to.
+- **A self-test that builds its mutants at load hides the real run.** That's the order to check whenever a hand
+  mutation crashes a check instead of failing it.
+
+### Effort
+
+- **Wall clock:** about 13:15 to 13:40 UTC for the change, the checks, the mutations and this entry; then the gate
+  run.
+- **Steps:** about 40 tool calls: reading the decision, journal and code (about 12); editing 9 files (about 10);
+  running, mutating and restoring (about 18).
+- **Hand edits:** the generator, two markup writers, two READMEs and three checks. The two elements were
+  regenerated.
+- **Errors hit:** 3: a mutant that removed every error message crashed an earlier geometry step (retargeted to one
+  field), and the two check weaknesses above.

@@ -54,7 +54,8 @@ const contract = (id: Id): Record<string, Row> => ({
   ...(id === 'text-field' ? { type: { attr: 'data-prop-type', inner: (v: string) => ({ [IN(id)]: { type: v } }) } } : {}),
   placeholder: { attr: 'data-prop-placeholder', samples: ['name@example.com'], inner: (v) => ({ [IN(id)]: { placeholder: v } }) },
   helpText: { attr: 'data-prop-helptext', samples: ['We send the receipt here.'], text: `${MSG}__label`, with: { 'data-prop-showmessage': 'true' } },
-  validation: { attr: 'data-prop-validation', inner: (v) => ({ [ROOT(id)]: { 'data-prop-validation': v }, [IN(id)]: { 'aria-invalid': v === 'error' ? 'true' : null } }) },
+  // Q-POC2 A (#1712 A): at a validation status the message is written and named whatever showMessage says (off here).
+  validation: { attr: 'data-prop-validation', inner: (v) => ({ [ROOT(id)]: { 'data-prop-validation': v }, [IN(id)]: { 'aria-invalid': v === 'error' ? 'true' : null, 'aria-describedby': v === 'default' ? null : '@message' } }) },
   validationMessage: { attr: 'data-prop-validationmessage', samples: ['Enter an email address.'], text: `${MSG}__label`, with: { 'data-prop-showmessage': 'true', 'data-prop-validation': 'error' } },
   showMessage: { attr: 'data-prop-showmessage', inner: (v) => ({ [IN(id)]: { 'aria-describedby': v === 'true' ? '@message' : null } }) },
   required: { attr: 'data-prop-required', inner: (v) => ({ [IN(id)]: { required: flagAttr(v) } }) },
@@ -230,7 +231,8 @@ const liveFailures = async (browser: any, id: Id, source: string): Promise<strin
       for (const [sel, attrs] of Object.entries(row.inner?.(o.value) ?? {})) {
         if (!o.inner[sel]) { f.push(`${at}: no ${sel} in the markup`); continue; }
         for (const [k, want] of Object.entries(attrs)) {
-          const w = want === '@message' ? o.messageId : want;
+          // `@message` needs a message written: with none, the contract's link is missing, never "absent equals absent".
+          const w = want === '@message' ? (o.messageId ?? '(no message written)') : want;
           if (o.inner[sel][k] !== w) f.push(`${at}: ${sel} ${k} is ${JSON.stringify(o.inner[sel][k])}, the contract says ${JSON.stringify(w)}`);
         }
       }
@@ -254,7 +256,7 @@ const TF = SOURCE['text-field'];
 const PF = SOURCE['password-field'];
 const MUTANTS: { name: string; id: Id; source?: string; manifest?: string; mustName: RegExp }[] = [
   { name: 'error without aria-invalid', id: 'text-field', source: swap(TF, "aria-invalid=${status === 'error' ? 'true' : nothing}", 'aria-invalid=${nothing}', 'aria-invalid'), mustName: /text-field validation=error: \.p3-text-field__entry aria-invalid is null/ },
-  { name: 'the message not named in aria-describedby', id: 'text-field', source: swap(TF, 'aria-describedby=${this.showMessage ? messageId : nothing}', 'aria-describedby=${nothing}', 'describedby'), mustName: /text-field: showMessage=true: the input's aria-describedby does not name the message/ },
+  { name: 'the message not named in aria-describedby', id: 'text-field', source: swap(TF, 'aria-describedby=${writeMessage ? messageId : nothing}', 'aria-describedby=${nothing}', 'describedby'), mustName: /text-field: showMessage=true: the input's aria-describedby does not name the message/ },
   { name: 'the label not naming the input', id: 'password-field', source: swap(PF, 'for=${inputId}', 'for=${this.id ?? nothing}', 'label for'), mustName: /password-field: the label's for is null, the input's id "p3-password-field-\d+" \(the label does not name the input\)/ },
   { name: 'a dropped prop (readOnly)', id: 'password-field', source: swap(PF, /\n\s*readOnly: \{[^\n]*\},/, '', 'dropped prop'), mustName: /password-field prop readOnly: <p3-password-field> has no reactive property readOnly/ },
   { name: 'an invented prop (reveal)', id: 'password-field', source: swap(PF, '  static properties = {\n', '  static properties = {\n    reveal: { type: String, attribute: "data-prop-reveal", reflect: true },\n', 'invented'), mustName: /password-field element property reveal: not a prop of password-field \(invented\)/ },
