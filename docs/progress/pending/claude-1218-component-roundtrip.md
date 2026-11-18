@@ -30,20 +30,25 @@ is still there.
 **A drift found, filed as #3972.** `test-roundtrip.ts` restates `SWAP_TARGET` as `'FPO-default-icon'` and says it is
 the plugin's constant. The plugin's is `'icon/FPO-default-icon'` (`build-deps.ts`). This tool imports the plugin's.
 
-**Measured.** `npx tsx tools/component-roundtrip/selftest.ts` passes 20 of 20 arms, running the exact scripts against
+**Measured.** `npx tsx tools/component-roundtrip/selftest.ts` passes 23 of 23 arms, running the exact scripts against
 the component shim dressed as a file:
 - **clean:** field-label 24/24, 0 divergences.
 - **planted:** a TEXT node that discards its property references is reported in 48 lines, as `field-label · <member> ·
   container/label · propertyRef: expected characters ← label, got characters → DISCARDED`.
 - **one arm each** for not-scratch, no-version, import-by-key, page-deleted, staging-lost and other-plans.
+- **import-by-key-run:** an executor planted to ask its host for `importComponentByKeyAsync` is refused, never reaches
+  the raw host, and is reported as `✗ SAFETY: the build asked to import by key`. This proves `run()` hands the executor
+  the guarded host, which the `import-by-key` arm (the guard alone) could not (review S1).
 - **static checks:** no import-by-key call site in the bundle, and every script within the ceiling.
 
-Six mutants of the subject each failed their own arm:
+Eight mutants of the subject each failed their own arm:
 - M1, the diff dropped → `planted`;
 - M2, the scratch check dropped → `not-scratch`;
 - M3, the guard as a Proxy over `figma` → `clean`, `planted` and `import-by-key` (#3209's error, verbatim);
 - M4, the page check dropped → `page-deleted`;
 - M5, the run carries on when no version was saved → `no-version`;
-- M6, `report`'s plan-hash check dropped → `other-plans`.
+- M6, `report`'s plan-hash check dropped → `other-plans`;
+- M7, `run()` hands the executor the raw host (review R1) → all three `import-by-key-run` lines;
+- M8, the refused-import violation never recorded → `import-by-key-run`'s violation and SAFETY lines.
 
 It has not run against real Figma. That is the Mac job.

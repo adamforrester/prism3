@@ -108,6 +108,8 @@ This runs the exact scripts against `apps/plugin/component-shim.ts`, dressed as 
 - a **planted** accept-and-discard of a TEXT node's property references (#866's shape), which must be reported by
   name as `field-label · <member> · <path> · propertyRef: expected characters ← …, got characters → DISCARDED`;
 - each safety rule, failing in its own arm;
+- a run-level import arm: an executor planted to import by key through the host it is handed is refused and
+  reported as SAFETY, so `run()` is proven to hand the executor the guarded host;
 - lost staging;
 - a result built from other plans;
 - no import-by-key call site in the bundle;
