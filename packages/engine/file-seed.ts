@@ -53,9 +53,9 @@
  *   near-white value (lightness above 0.9) is the ink on the fill or the ground, not the action color, and is
  *   skipped. Each votes its weight (as COLOR above) for the palette its color belongs to: the primary pick's family,
  *   the accent pick's family, or neutral (chroma under 0.05); a color in any other family votes for none. The pick is
- *   the heaviest of the three, `primary` on a tie; confidence = its share of all the votes. With no such role it
- *   is `primary`, the engine default, at confidence 0. The input sets `actionPalette` only when the pick isn't
- *   `primary`.
+ *   the heaviest of the three, `primary` on a tie; confidence = its share of all the votes, a vote for no palette
+ *   counted in the total. With no such role or fill it is `primary`, the engine default, at confidence 0. The input
+ *   sets `actionPalette` only when the pick isn't `primary`.
  *
  *   NEUTRAL (not scored; a compiling input needs it). The chroma-weighted mean hue of the observed grays between
  *   lightness 0.15 and 0.95 with chroma at least 0.004, and their weighted median chroma, capped at 0.03.

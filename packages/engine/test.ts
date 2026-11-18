@@ -42954,6 +42954,15 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(u.picks.families.value.body === 'IBM Plex Sans' && u.picks.families.value.display === 'IBM Plex Sans',
     `#2075 seed: one used family is body and display both, the icon font dropped (got ${JSON.stringify(u.picks.families.value)})`);
 
+  // A file with no variables whose buttons fill near-black, with white labels: the usage fills alone vote, so the
+  // action palette is neutral, the near-white fill skipped as ink (the header's ACTION PALETTE rule, usage half).
+  const rawButtons = seedFromFacts(report({
+    paints: [{ role: 'button-like', color: '#151415', layers: 10 }, { role: 'button-like', color: '#ffffff', layers: 10 }, { role: 'icon', color: '#0a7d4f', layers: 30 }, { role: 'text', color: '#1f2933', layers: 200 }],
+  }));
+  ok(rawButtons.picks.actionPalette.value === 'neutral' && rawButtons.picks.actionPalette.confidence === 1 && rawButtons.input.actionPalette === 'neutral'
+    && rawButtons.picks.actionPalette.evidence.length === 1 && rawButtons.picks.actionPalette.evidence[0].from === 'usage',
+    `#2075 seed: with no variables, button-like fills on a near-black set the neutral action palette at confidence 1, the white fill skipped as ink (got ${JSON.stringify(rawButtons.picks.actionPalette)})`);
+
   // No button corner: the md rung is read, never the selection control's `md` corner that sorts ahead of it.
   const noButton = seedFromFacts(report({ vars: [v('control/md/radius', 'FLOAT', 2, [], ['CORNER_RADIUS']), v('radius/md', 'FLOAT', 8, [], ['CORNER_RADIUS'])] }));
   ok(noButton.picks.radiusScale.value === 2 && noButton.picks.radiusScale.evidence[0]?.name === 'radius/md',
