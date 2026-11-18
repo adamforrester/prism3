@@ -10028,11 +10028,11 @@
           "description": "The heading that names the task. It is the dialog's accessible name, so make it specific: \"Delete this address?\", not \"Are you sure?\". It wraps rather than truncating."
         },
         {
-          "name": "showTitle",
+          "name": "hideTitle",
           "type": "boolean",
-          "default": true,
+          "default": false,
           "required": false,
-          "description": "Shows the title. Off hides it from view and keeps it as the dialog's accessible name, for a dialog whose tabs or body name the content, such as a full-screen dialog on a small screen. An alertdialog always shows its title. Never display: none."
+          "description": "Hides the title from view and keeps it as the dialog's accessible name, for a dialog whose tabs or body name the content, such as a full-screen dialog on a small screen. An alertdialog always shows its title. Never display: none."
         },
         {
           "name": "description",

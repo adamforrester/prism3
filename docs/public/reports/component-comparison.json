@@ -1685,8 +1685,8 @@
           "name": "title"
         },
         {
-          "name": "showTitle",
-          "default": true
+          "name": "hideTitle",
+          "default": false
         },
         {
           "name": "description"
@@ -7292,6 +7292,12 @@
         "default": false
       }
     ],
+    "hideTitle": [
+      {
+        "id": "dialog",
+        "default": false
+      }
+    ],
     "href": [
       {
         "id": "breadcrumb-item"
@@ -8677,12 +8683,6 @@
       },
       {
         "id": "switch-row",
-        "default": true
-      }
-    ],
-    "showTitle": [
-      {
-        "id": "dialog",
         "default": true
       }
     ],

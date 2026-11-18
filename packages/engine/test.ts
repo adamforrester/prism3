@@ -40463,14 +40463,16 @@ arm: {
     `#2609 dialog properties: title "Dialog title", description text "Supporting text", show title on, description off, close on, dividers off over both rules (got ${JSON.stringify(planSetProperties(plans))})`);
 
   // ── #2895 SHOW TITLE (owner Q692 A; the wireframe's Q1–Q7 all A, approved 2026-11-18). EXPECTED is typed here from the
-  // wireframe; ACTUAL is the projected plans and the def's code contract. Q1 A: Figma `show title`, code `showTitle`,
-  // default on. Q4 A: on every member. Q2 A, Q3 A, Q6 A: nothing else moves (the description, close and divider keep
+  // wireframe; ACTUAL is the projected plans and the def's code contract. Q1 A: Figma `show title`, default on; the code
+  // prop is `hideTitle`, default off (owner decision B, 2026-11-18: Q-CC7 A's one hidden-label convention, `hideLabel`). Q4 A: on every member. Q2 A, Q3 A, Q6 A: nothing else moves (the description, close and divider keep
   // their own toggles, and the title keeps its text property and style binding while hidden). Q5 A and Q7 A: the code
   // contract. Remove the boolean, flip its default, or drop a code line, and the arm it breaks fails by name.
   {
-    const st = dg.props.find((x) => x.name === 'showTitle');
-    ok(st?.type === 'boolean' && st.default === true && st.required === false && dg.props.find((x) => x.name === 'title')?.required === true,
-      `#2895 dialog showTitle: an optional boolean prop, default true, and title stays required as the accessible name (got ${JSON.stringify(st)})`);
+    const st = dg.props.find((x) => x.name === 'hideTitle');
+    const fb = (dg.figmaProperties?.booleans as Record<string, unknown> | undefined)?.showTitle as { figmaName?: string; figmaOnly?: boolean } | undefined;
+    ok(st?.type === 'boolean' && st.default === false && st.required === false && !dg.props.some((x) => x.name === 'showTitle')
+      && fb?.figmaName === 'show title' && fb.figmaOnly === true && dg.props.find((x) => x.name === 'title')?.required === true,
+      `#2895 dialog hideTitle: the code prop is hideTitle, an optional boolean, default false, with no showTitle prop (owner decision B, Q-CC7 A's hideLabel convention); the Figma "show title" switch is figma-only; title stays required as the accessible name (got ${JSON.stringify({ st, fb })})`);
     const titleBad = plans.filter((p) => {
       const t = find(p.root as DN, 'title') as (DN & { visibleProp?: string; visible?: boolean; textStyle?: string; propertyRef?: { prop: string } }) | undefined;
       return !(t && t.visibleProp === 'show title' && t.visible !== false && t.propertyRef?.prop === 'title' && /^label\/(lg|md|sm)\/emphasis$/.test(t.textStyle ?? ''));
@@ -40480,13 +40482,13 @@ arm: {
     const desc = plans.every((p) => (find(p.root as DN, 'description') as { visibleProp?: string } | undefined)?.visibleProp === 'description');
     ok(desc, '#2895 dialog show title Q2 A: the description keeps its own toggle, independent of the title');
     const co = codeOnlyText(dg.anatomy!.codeOnly);
-    ok(co.some((e) => /^labeling — /.test(e) && /`showTitle=\{false\}` the `<h2>` stays in the DOM, visually hidden/.test(e) && /`aria-labelledby` still points at it/.test(e) && /never `display: none`/.test(e)),
+    ok(co.some((e) => /^labeling — /.test(e) && /`hideTitle` the `<h2>` stays in the DOM, visually hidden/.test(e) && /`aria-labelledby` still points at it/.test(e) && /never `display: none`/.test(e)),
       '#2895 dialog show title Q7 A: a hidden title is a visually hidden <h2> that aria-labelledby still points at, never display: none');
-    ok(co.some((e) => /^focus in — /.test(e) && /`showTitle=\{false\}`, never to the hidden title/.test(e) && /first control in the body/.test(e)),
+    ok(co.some((e) => /^focus in — /.test(e) && /`hideTitle`, never to the hidden title/.test(e) && /first control in the body/.test(e)),
       '#2895 dialog show title Q7 A: with the title hidden, focus on open goes to the first body control, never the hidden title');
-    ok(co.some((e) => /^the hidden title on an alertdialog — an alertdialog always shows its title/.test(e) && /ignores `showTitle=\{false\}` with `role="alertdialog"` and warns in development/.test(e))
+    ok(co.some((e) => /^the hidden title on an alertdialog — an alertdialog always shows its title/.test(e) && /ignores `hideTitle` with `role="alertdialog"` and warns in development/.test(e))
       && /An alertdialog always shows its title/.test(st?.description ?? '') && dg.docs.dont.some((x) => /^Hide the title of an alertdialog/.test(x)),
-      '#2895 dialog show title Q5 A: an alertdialog always shows its title; code ignores showTitle={false} there and warns in development, and the prop and docs say so');
+      '#2895 dialog show title Q5 A: an alertdialog always shows its title; code ignores hideTitle there and warns in development, and the prop and docs say so');
     ok(/Turn the title off only when tabs or a heading in the body already name the content, most often in a full-screen dialog or a bottom sheet/.test(dg.docs.usage ?? ''),
       '#2895 dialog show title Q4 A: the docs recommend hiding the title for full and bottom when tabs or a heading name the content');
   }
