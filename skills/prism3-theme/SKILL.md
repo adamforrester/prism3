@@ -89,7 +89,7 @@ minimal — read both, they are the reference; the directory also holds a standa
 | `radiusHairline` | `true` \| `false` | **retired — do not set it.** The fixed 1px `radius.hairline` rung now ships for every brand, so this changes nothing; it is accepted only so older brand files still load. For 1px-cornered controls, use `controlShape: hairline` |
 | `iconContrast` | `text` \| `3:1` | let non-text icons run lighter (WCAG 1.4.11 floor) |
 | `motionPersonality` | `{ tempo: snappy \| standard \| relaxed }` | brand energy → motion pace |
-| `typography` | `{ families, weightRoles, typeScale: compact\|default\|expressive, displayCeiling, titleFloor, captionFloor, sizeFloor, responsive: { fluid, minViewport, maxViewport }, sizes, tracking }` | custom faces / weight remap / fluid type; `families` is keyed by CATEGORY (`display`/`title`/`body`/`label`/`caption`/`eyebrow`/`code`), and **an omitted category takes the engine default (Inter, or JetBrains Mono for `code`), with a system fallback stack appended**. `sizes` and `tracking`: see the note under this table |
+| `typography` | `{ families, weightRoles, typeScale: compact\|default\|expressive, displayCeiling, titleFloor, captionFloor, sizeFloor, responsive: { fluid, minViewport, maxViewport }, sizes, tracking, leading }` | custom faces / weight remap / fluid type; `families` is keyed by CATEGORY (`display`/`title`/`body`/`label`/`caption`/`eyebrow`/`code`), and **an omitted category takes the engine default (Inter, or JetBrains Mono for `code`), with a system fallback stack appended**. `sizes`, `tracking` and `leading`: see the note under this table |
 | `typography.captionFloor` | `11` \| `10` | opt-in (off by default) — `10` adds **caption.sm = 10px**, a fine-print rung (10 is already on the size ladder). Floors caption at 11px otherwise; opt in for dense legal / footer / product-attribute text |
 | `typography.sizeFloor` | `10` \| `8` | opt-in **escape hatch** (off by default) — `8` pushes the size ladder to an **8px floor** and adds **caption.xs = 8px**. 8px sits below the size range the system's contrast ratios were reasoned about, so the engine **flags it in the decisions notes**. Ship it only for genuine fine print that has an accessible alternative |
 | `typography.underline` | `{ thickness, offset }`, each a share of the font size (e.g. `{ thickness: 0.05, offset: 0.25 }`) or `auto` | the brand specifies its link underline. Both default to `auto`, which emits no token and leaves the line to the font. A set value is held to a whole percent and **clamped**, not refused: thickness 1–20%, offset 0–50%. It emits two tokens, core.font.underline.thickness and core.font.underline.offset (`$type: number`), only for a brand that sets them, so they are not in the default tree. It is written as a PERCENT into every `-link` text style in Figma (labels included), and is read in CSS as `calc(var(…) * 1em)` |
@@ -111,6 +111,9 @@ minimal — read both, they are the reference; the directory also holds a standa
   tightest, tighter, tight, snugger, snug, normal, open, wide or wider. It replaces the size-based letter spacing and
   the `trackingShift` nudge for that text type only. Use it when a nudge can't land the value: no nudge reaches open
   (+1%), and display's letter spacing changes at 96px, so a nudge can't make display one value.
+- `leading: { title: cozy }` does the same for line height: every size of the text type uses one of tight, snug,
+  compact, cozy, normal, relaxed or loose, in place of the size-based line height and the `leadingShift` nudge.
+  Title's line height changes with its size, so no nudge can give title one value.
 
 ## How to author
 

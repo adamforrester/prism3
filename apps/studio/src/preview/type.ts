@@ -20,16 +20,15 @@
 import { currentMode, rp, subscribe, theme } from '../state/store';
 import { resolvedModes } from '../state/verdict';
 import { h, hook } from '../shell/dom';
-import { DOMAINS, FACES_DESC, type PageData } from '../shell/pages';
+import { FACES_DESC, SCALE_DESC, SPACING_DESC, WEIGHTS_DESC } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { faceStatus } from '../ui/fonts';
 import type { PageLends } from './brand';
 import { buildingBlocksSection, facesSection, lineSpacingSection, typeSampleSection, typeScaleSection, weightsByFaceSection } from './sections/index';
 import { SG_SURFACES, ground, oppositeOf, sgContext, type SgRole } from './sections/kit';
 
-const PAGE = DOMAINS.find((d) => d.id === 'type') as PageData;
-/** A lever section's heading and description, from the page data the levers draw them from (Q23). */
-const copyOf = (title: string): { title: string; desc: string } => ({ title, desc: PAGE.sections.find((x) => x.title === title)?.desc ?? '' });
+/** The preview's Scale, Weights and styles, and Line height and letter spacing keep their own headings and copy (#3079:
+ *  the levers moved to cards around the text types; the preview did not). */
 /** The read-only Building blocks section (owner decision Q73): its heading (the scope's, Q73) and description
  *  (APPROVED, owner, 2026-10-03). */
 export const BUILDING_BLOCKS = { title: 'Building blocks', desc: 'The fixed size, line height and letter spacing steps every brand shares. Read-only.' };
@@ -56,9 +55,9 @@ export const mountTypePreview = (host: HTMLElement, cleanups: (() => void)[], le
     const secs = [
       typeSampleSection(c, ty, cur, { ink: page.ink }, fonts),
       facesSection(c, ty, cur, { title: 'Font families', desc: FACES_DESC }, (f) => faceStatus(f, fonts), fonts),
-      typeScaleSection(c, ty, cur, copyOf('Scale'), fonts),
-      weightsByFaceSection(ty, cur, copyOf('Weights and styles'), fonts),
-      lineSpacingSection(c, ty, cur, copyOf('Line height and letter spacing')),
+      typeScaleSection(c, ty, cur, { title: 'Scale', desc: SCALE_DESC }, fonts),
+      weightsByFaceSection(ty, cur, { title: 'Weights and styles', desc: WEIGHTS_DESC }, fonts),
+      lineSpacingSection(c, ty, cur, { title: 'Line height and letter spacing', desc: SPACING_DESC }),
       buildingBlocksSection(c, ty, cur, BUILDING_BLOCKS),
     ];
     // Q24: each section's container on the levers panel's gray, as the Color previews' are.

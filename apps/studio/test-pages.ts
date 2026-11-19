@@ -102,7 +102,9 @@ for (const p of PAGES) {
     const lev = manifest.levers.find((l) => l.key === k);
     if (!lev) continue;
     const wantAdv = FIRST_CLASS.includes(p.key) ? false : !!lev.advanced;
-    if (!!s.advanced !== wantAdv) tierWrong.push(`${k}: manifest advanced=${!!lev.advanced}, placed ${s.advanced ? 'advanced' : 'everyday'} in ${p.name} › ${s.title}${FIRST_CLASS.includes(p.key) ? ' (every lever on this page is shown)' : ''}`);
+    // #3079: a row may carry its own tier inside a section that does not (Type's one Show advanced settings switch).
+    const adv = !!(row.advanced ?? s.advanced);
+    if (adv !== wantAdv) tierWrong.push(`${k}: manifest advanced=${!!lev.advanced}, placed ${adv ? 'advanced' : 'everyday'} in ${p.name} › ${s.title}${FIRST_CLASS.includes(p.key) ? ' (every lever on this page is shown)' : ''}`);
   }
 }
 const missing = manifestKeys.filter((k) => !seen.has(k));
