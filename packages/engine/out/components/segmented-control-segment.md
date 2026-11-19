@@ -44,6 +44,8 @@ Shown on the default member: selection `unselected`, size `medium`.
 
 Use inside SegmentedControl only. An option names one value; selecting it changes the current view or the form value in place.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Give every option in a control the same kind of content: all labels, or all labels with icons

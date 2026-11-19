@@ -28,6 +28,7 @@
  */
 import { brandTheme, type BrandInput, type Theme, resolvePreview, type ResolvedPreview } from '@prism3/engine';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
+import { resolvedModes } from './verdict';
 import { stashBefore, type UndoLoad } from './undo-load';
 import { provenanceOf, noOrigin, type Origin, type Provenance } from '../provenance';
 import type { PageKey } from '../shell/pages';
@@ -197,7 +198,7 @@ export const initSession = (input: BrandInput, origin: Origin, baseline?: BrandI
   lastGoodInput = structuredClone(brandState);
   seenWords = [];
   noteBrandWords(lastGoodInput);
-  rp = resolvePreview(theme);
+  rp = resolvePreview(theme, undefined, resolvedModes(theme));
   currentMode = rp.modes[0];
   lastError = null;
 };
@@ -207,7 +208,7 @@ export const initSession = (input: BrandInput, origin: Origin, baseline?: BrandI
 const resolve = (): void => {
   try {
     const t = brandTheme(brandState);
-    rp = resolvePreview(t);
+    rp = resolvePreview(t, undefined, resolvedModes(t));   // the verdict's cached copy: one resolve per edit (#4234)
     theme = t;
     lastGoodInput = structuredClone(brandState);   // M-16: anchor badges read this, not the (maybe failing) live state
     noteBrandWords(lastGoodInput);   // #3883
@@ -311,7 +312,7 @@ export const restoreInput = (input: BrandInput, prov: Provenance, lastGood: Bran
   // refusal, so the field still flags the edit, as it did before the load.
   if (lastError !== null) {
     theme = brandTheme(lastGood);
-    rp = resolvePreview(theme);
+    rp = resolvePreview(theme, undefined, resolvedModes(theme));
     lastGoodInput = structuredClone(lastGood);
     if (persistHolds) persistOwed = true;
     else persist?.(lastGoodInput, provenance);

@@ -593,6 +593,9 @@ console.log('\n12. A brand with no typography key stays byte-identical when a si
     ['a brand-wide size (setSizePin)', () => T.setSizePin(null, 'display', 'md', 60), () => T.setSizePin(null, 'display', 'md', undefined)],
     ['a mobile size (setMobileSize)', () => T.setMobileSize('display', 'md', 40), () => T.setMobileSize('display', 'md', undefined)],
     ['a size released (releasePinnedSizes)', () => T.setSizePin(null, 'display', 'md', 60), () => T.releasePinnedSizes()],
+    // #4208: the two sibling setters #3890 missed.
+    ['a caption size (setCaptionSize)', () => T.setCaptionSize('md', 13), () => T.setCaptionSize('md', undefined)],
+    ['a letter spacing pin (setTrackingPin)', () => T.setTrackingPin('body', 'wide'), () => T.setTrackingPin('body', undefined)],
   ] as const) {
     fresh();
     clear();

@@ -193,7 +193,7 @@ export const codeInputCell: ComponentDef = {
         // style's line box, centered on both axes. Code trims the box to the cap height (`text-box`, in `codeOnly`).
         type: 'size.{size}.type',
         presentWhen: { state: ['filled', 'focus-visible-filled'] },
-        note: 'The character, in its size\'s text style, centered in the cell. Tabular figures in code, so every digit is one width.',
+        note: 'The character, in its size\'s text style, centered in the cell. Tabular lining figures in code, so every digit is one width and stands at cap height.',
       },
     },
     codeOnly: [
@@ -219,7 +219,7 @@ export const codeInputCell: ComponentDef = {
         class: 'visual-treatment',
         disposition: 'unsupported',
         description:
-          'tabular figures — the character sets `font-variant-numeric: tabular-nums`, so every digit is one width and the code does not shimmer as it fills.',
+          'tabular lining figures — the character sets `font-variant-numeric: tabular-nums lining-nums`, so every digit is one width and the code does not shimmer as it fills, and every digit stands at cap height, so the cell centers it whatever figures the brand font draws by default. In Figma the cell shows the font\'s default figures: a plugin cannot turn on an OpenType feature.',
       },
       {
         class: 'live-geometry',
@@ -419,7 +419,7 @@ export const codeInput: ComponentDef = {
       },
       // THE ITEMS SLOT (owner decision Q329 A, #2649's pattern): a native slot of cells, six by default, four to eight.
       items: {
-        kind: 'box',
+        kind: 'box', mirror: 'never',
         role: 'target',
         contentSlot: true,
         slotSettings: { minChildren: 4, maxChildren: 8, allowPreferredValuesOnly: true },
@@ -452,7 +452,7 @@ export const codeInput: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'code delivery pending: behavior layer (#2454). The entries below are a framework-neutral behavior contract.',
+          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
       },
       {
         class: 'semantics',

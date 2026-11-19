@@ -39,6 +39,8 @@ Shown on the default member: size `medium`, selection `unchecked`, status `defau
 
 Do not place this on its own. It is the circle Radio.Row nests, so a fix to its border weight or its dot geometry reaches the row without being copied. Build it before the row that nests it (the nest resolves by name against the live file). A standalone use is only for a control with an external label and its own aria wiring.
 
+**In RTL.** The control does not mirror.
+
 ### Do
 
 - Nest this from Radio.Row rather than redrawing the circle per host

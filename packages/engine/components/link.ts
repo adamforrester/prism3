@@ -163,7 +163,7 @@ export const link: ComponentDef = {
     root: 'container',
     parts: {
       container: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'target',
         children: ['label', 'trailingVisual', 'bar', 'focusRing'],
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
@@ -176,7 +176,7 @@ export const link: ComponentDef = {
         note: 'The link text in the link color. Standalone: plain at rest, underlined at hover, pressed and focus. Inline: underlined at every state. The current page stays plain at every state: the bar is its line.',
       },
       trailingVisual: {
-        kind: 'slot',
+        kind: 'slot', mirror: 'mirrors',
         optional: true,
         presentWhen: { style: ['standalone'] },
         size: 'size.{size}.icon',
@@ -207,7 +207,7 @@ export const link: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
+          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
       },
       {
         class: 'semantics',
