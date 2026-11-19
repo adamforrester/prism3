@@ -333,7 +333,7 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'theme_from_brief',
     title: 'Generate from a markdown brief',
-    description: 'Generate a token system from a design.md brief — YAML frontmatter plus prose — instead of a hand-assembled BrandInput. The natural entry point when working from a written brand description rather than known numbers: it parses the brief in either dialect (engine-native frontmatter, or the standard shape: a flat colors: hex map, typography tokens and an optional x-prism3: block), reports the dialect and the BrandInput it derived, and returns the same verification payload as theme_brand (with the same opt-in `include`). For a standard brief it also returns how each color was classified, and the x-prism3 keys it applied (xApplied) and skipped (xWarnings). Call theme_brand directly when you already hold exact values.',
+    description: 'Generate a token system from a design.md brief — YAML frontmatter plus prose — instead of a hand-assembled BrandInput. The natural entry point when working from a written brand description rather than known numbers: it parses the brief in either dialect (engine-native frontmatter, or the standard shape: a flat colors: hex map, typography tokens and an optional x-prism3: block), reports the BrandInput it derived, and returns the same verification payload as theme_brand (with the same opt-in `include`). For a standard brief it also returns dialect: "standard", how each color was classified (classification), and the x-prism3 keys it applied (xApplied) and skipped (xWarnings). Call theme_brand directly when you already hold exact values.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -687,8 +687,10 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
         input = converted;
         report = { dialect: 'standard', classification: classification.log, xApplied, xWarnings };
       } else {
+        // No report keys here: an engine-native brief returns exactly theme_brand's sections plus
+        // `derivedBrandInput` (#1868 holds the two key sets equal).
         input = parseDesignMd(args.brief).input;
-        report = { dialect: 'engine-native' };
+        report = {};
       }
     }
     catch (e) { return text({ error: `could not parse the design.md brief: ${(e as Error).message}` }, true); }

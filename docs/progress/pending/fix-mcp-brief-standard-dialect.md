@@ -4,7 +4,7 @@
 one `skills/prism3-theme` tells an author to keep — was read as a BrandInput and refused with errors that sent the
 agent the wrong way (`missing required 'id'`, `colors: unknown property`). The CLI has detected the dialect since
 #556. The tool now runs the same detection (`parseStandardDesignMd` → `isStandardDesignMd` → `standardToBrandInput`)
-and reports `dialect`, the classification log, `xApplied` and `xWarnings` beside `derivedBrandInput`. This
+and reports `dialect: "standard"`, the classification log, `xApplied` and `xWarnings` beside `derivedBrandInput`. An engine-native brief returns the same keys as before, so `theme_from_brief` and `theme_brand` still return the same sections (#1868). This
 supersedes #4200 Q2 (the owner chose accepting both dialects over a description-only fix).
 
 - **Test:** `mcp-test.ts` journey ⑦ sends the issue's standard brief over real stdio (6 `#4118` arms). On `main`:

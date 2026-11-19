@@ -485,7 +485,8 @@ await new Promise((r) => setTimeout(r, 3000));
     '#4118 theme_from_brief names the x-prism3 key it skipped in xWarnings, as the CLI does');
   ok(Array.isArray(std.payload?.classification) && std.payload.classification.length > 0,
     '#4118 theme_from_brief returns the color classification, so a misread swatch is visible');
-  ok(gen.payload.dialect === 'engine-native', '#4118 theme_from_brief reports the engine-native dialect for an engine-native brief');
+  ok(gen.payload.dialect === undefined && gen.payload.xWarnings === undefined,
+    '#4118 theme_from_brief keeps an engine-native brief off the standard converter');
 }
 
 server.stop();
