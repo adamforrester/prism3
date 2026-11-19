@@ -341,6 +341,25 @@ await new Promise((r) => setTimeout(r, 3000));
   ok(!bare.isError, '#4122 theme_brand still accepts a bare BrandInput, the one named exception (#4120)');
   const none = await server.callJson('theme_brand', { brand: B, include: [] });
   ok(!none.isError && none.payload.omitted?.length === 3, '#4122 theme_brand still accepts an empty include');
+  // A present `include` that is not an array (#4277 review): it fell through to the default sections with no error, and
+  // export_theme threw `want.filter is not a function` (#4281). EXPECTED: an isError result naming the argument.
+  // BY-NAME MUTATION: drop the array-type check from mcp.ts `argumentErrors` → each of these fails.
+  for (const [tool, args] of [
+    ['theme_brand', { brand: B, include: 'tokens' }],
+    ['theme_brand', { brand: B, include: null }],
+    ['theme_from_brief', { brief, include: 'aiMetadata' }],
+    ['export_theme', { brand: B, outDir: 'packages/engine/.mcp-test-4122-out', include: 'tokenz' }],
+  ] as const) {
+    let seen: string;
+    let refused = false;
+    try {
+      const r = await server.callJson(tool, args);
+      seen = JSON.stringify(r.payload ?? r).slice(0, 200);
+      refused = r.isError === true && seen.includes('include must be an array');
+    } catch (err) { seen = `threw: ${(err as Error).message.slice(0, 160)}`; }
+    ok(refused, `#4122 ${tool} refuses include ${JSON.stringify(args.include)} as not an array instead of answering with the default sections (got ${seen})`);
+  }
+  rmSync(resolve(HERE, '.mcp-test-4122-out'), { recursive: true, force: true });
 }
 
 // ---------------------------------- #4151: a tool that returns structuredContent declares an outputSchema it meets

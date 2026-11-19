@@ -585,7 +585,9 @@ export const unsafeOutDir = (dir: string): string | undefined => {
 
 /** #4122: one argument check for every tool. Each inputSchema says `additionalProperties: false`, and `include` is an
  *  enum, but only `export_theme` enforced either, so a typo such as `include: ["tokenz"]` quietly returned less. Read
- *  from the declared schemas, so a new argument needs no second list here. The one named exception is theme_brand's
+ *  from the declared schemas, so a new argument needs no second list here. It refuses undeclared keys, a present
+ *  array argument that is not an array, and a value outside an array argument's `items.enum` (no top-level scalar
+ *  `enum` is declared today, so none is checked). The one named exception is theme_brand's
  *  bare-BrandInput call (no `brand` key, #4120), whose keys are the brand's and are the schema validator's to judge.
  *  Wording is DRAFT; the include message is the one `export_theme` already used. */
 let declaredInputs: Map<string, any> | undefined;
@@ -601,6 +603,13 @@ export const argumentErrors = (name: string, args: unknown): string[] => {
   if (unknown.length) errors.push(`unknown argument(s): ${unknown.join(', ')}. Valid: ${Object.keys(props).join(', ')}`);
   for (const [k, p] of Object.entries(props)) {
     const allowed = p?.items?.enum, given = (args as Record<string, unknown>)[k];
+    // A present argument declared `type: 'array'` that is not one is refused too (#4277 review): `include: "tokens"`
+    // or `include: null` otherwise fell through to the default sections with no error, the #4122 shape, and reached
+    // export_theme's `want.filter` as a throw (#4281).
+    if (p?.type === 'array' && Object.hasOwn(args, k) && !Array.isArray(given)) {
+      errors.push(`${k} must be an array (got ${given === null ? 'null' : typeof given})`);
+      continue;
+    }
     if (!Array.isArray(allowed) || !Array.isArray(given)) continue;
     const bad = given.filter((v) => !allowed.includes(v));
     if (bad.length) errors.push(`unknown ${k} section(s): ${bad.join(', ')}. Valid: ${allowed.join(', ')}`);
