@@ -848,6 +848,17 @@
       "properties": [
         "items:SLOT"
       ]
+    },
+    "popover": {
+      "members": 1,
+      "sha256": "6544156bf05f55ed4ff8edf21157497a1a954f2a22cb43e0c1f4f01fc77075af",
+      "properties": [
+        "body:SLOT",
+        "close:BOOLEAN",
+        "footer:BOOLEAN",
+        "title text:TEXT",
+        "title:BOOLEAN"
+      ]
     }
   }
 }
