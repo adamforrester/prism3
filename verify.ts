@@ -913,6 +913,21 @@ export const GATES: Gate[] = [
     precondition: chromiumPrecondition,
   },
   {
+    // #2997 gate 1 — renders the shadcn projection itself and measures it in Chromium (hence the precondition and
+    // the studio job, where CI installs the browser). Reads no bundle, so no `after`.
+    id: 'lint-shadcn-contrast',
+    ciStep: 'The shadcn theme clears its contrast floors in Chromium (#2997)',
+    cmd: engine('lint-shadcn-contrast.ts'),
+    precondition: chromiumPrecondition,
+  },
+  {
+    // #2997 gate 2 — the same render, each oklch() parsed by Chromium back to the emitted color.
+    id: 'lint-shadcn-roundtrip',
+    ciStep: 'Every shadcn oklch() is the emitted color, through Chromium (#2997)',
+    cmd: engine('lint-shadcn-roundtrip.ts'),
+    precondition: chromiumPrecondition,
+  },
+  {
     // The FOURTH component-tier suite, and the only one whose ACTUAL comes from the HOST rather than
     // from the plan. `plugin-test` drives the executor and asserts what the executor reports;
     // this reads the built tree back and diffs it against the plan, which is the direction that
@@ -1330,6 +1345,19 @@ export const GATES: Gate[] = [
     id: 'lint-test-arms',
     ciStep: 'A registered test arm is still in its suite (#1834)',
     cmd: engine('lint-test-arms.ts'),
+  },
+  {
+    // #2997 gate 3 — reads the role map and the pinned shadcn variable set; needs no build and no `after`.
+    id: 'shadcn-vars',
+    ciStep: 'The shadcn map covers the pinned shadcn variable set (#2997)',
+    cmd: engine('shadcn-vars.ts', '--check'),
+  },
+  {
+    // #2997 gate 4 — renders the uncommitted component-contract export itself and reads the token contract; needs
+    // no build and no `after`.
+    id: 'lint-shadcn-contract',
+    ciStep: 'The shadcn map follows the component contract (#2997)',
+    cmd: engine('lint-shadcn-contract.ts'),
   },
   {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR

@@ -1372,6 +1372,20 @@ npx tsx packages/engine/lint-test-arms.ts           # a registered test arm is s
                                                     # held to the authored test-arms.txt. A merge that
                                                     # drops an arm fails ARM GONE by name; a new arm
                                                     # fails UNREGISTERED until --accept adds it (sorted).
+npx tsx packages/engine/shadcn-vars.ts --check      # the shadcn map covers the pinned shadcn variable set
+                                                    # (#2997): every pinned name mapped, every extra
+                                                    # declared, the map version equal to the pin's; only
+                                                    # --accept moves the pin, after a version raise.
+npx tsx packages/engine/lint-shadcn-contract.ts     # the shadcn map follows the component contract (#2997):
+                                                    # each anchored variable maps to the role Button, Text
+                                                    # Field, Select or Focus Ring binds; every row anchored
+                                                    # or declared unanchored; every mapped role guaranteed.
+npx tsx packages/engine/lint-shadcn-contrast.ts     # the shadcn theme clears its contrast floors (#2997),
+                                                    # measured in Chromium on the emitted CSS: a typed pair
+                                                    # list, each floor the higher of WCAG and the engine's
+                                                    # own min. Needs Chromium (CI: the studio job).
+npx tsx packages/engine/lint-shadcn-roundtrip.ts    # every shadcn oklch() lands on its emitted 8-bit color
+                                                    # (#2997), parsed by Chromium, against the full tree.
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR but one
