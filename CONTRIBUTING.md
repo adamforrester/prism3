@@ -1375,7 +1375,9 @@ npx tsx packages/engine/lint-test-arms.ts           # a registered test arm is s
 npx tsx packages/engine/shadcn-vars.ts --check      # the shadcn map covers the pinned shadcn variable set
                                                     # (#2997): every pinned name mapped, every extra
                                                     # declared, the map version equal to the pin's; only
-                                                    # --accept moves the pin, after a version raise.
+                                                    # --accept moves the pin, after a version raise, and
+                                                    # the pin is held to the base's pin from git (a name
+                                                    # added needs MINOR, dropped MAJOR). Per target.
 npx tsx packages/engine/lint-shadcn-contract.ts     # the shadcn map follows the component contract (#2997):
                                                     # each anchored variable maps to the role Button, Text
                                                     # Field, Select or Focus Ring binds; every row anchored

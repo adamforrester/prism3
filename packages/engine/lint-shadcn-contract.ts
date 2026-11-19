@@ -24,6 +24,10 @@
  * consumer reads, not from the def source. The guaranteed set is the committed baseline only `token-contract.ts
  * --accept` writes.
  *
+ * PER TARGET (Q2997.6 B). The gate iterates `projections/targets.ts`; the anchors are typed per target in
+ * `ANCHORS_BY_TARGET`, and the two lists are held to each other both ways (`NO ANCHORS FOR TARGET`, `ANCHORS FOR UNKNOWN
+ * TARGET`). With one target the failure names are unprefixed; with more, each is prefixed with its target's id.
+ *
  * MUTATIONS, each failing by name: map `primary` → `color.foreground.brand` fails `primary: color.foreground.brand ≠
  * Button filled.fill (color.interactive.primary.fill.rest)`; map `accent` → `color.interactive.neutral.overlay.hover`
  * fails `NOT GUARANTEED accent → color.interactive.neutral.overlay.hover`.
@@ -31,7 +35,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SHADCN_THEME_VARS, SHADCN_UNANCHORED, SHADCN_VARS } from './projections/shadcn.ts';
+import { PROJECTION_TARGETS } from './projections/targets.ts';
 import { renderUncommitted, UNCOMMITTED_OUT } from './regen.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -56,6 +60,20 @@ export const ANCHORS: Readonly<Record<string, readonly Anchor[]>> = {
   ],
   'ring': [{ def: 'focus-ring', where: { surface: 'default' }, part: 'ring', channel: 'stroke', label: 'Focus Ring stroke' }],
 };
+
+/**
+ * Q2997.6 B: the anchors per projection target, typed here and never read from the target registry. Every target in
+ * `projections/targets.ts` must have an entry (`NO ANCHORS FOR TARGET`), and every entry a target (`ANCHORS FOR UNKNOWN
+ * TARGET`), so a second target cannot join the projection with nothing holding it to the contract.
+ */
+export const ANCHORS_BY_TARGET: Readonly<Record<string, Readonly<Record<string, readonly Anchor[]>>>> = { shadcn: ANCHORS };
+
+/** The target registry against the anchors, both ways. */
+export const targetFailures = (targetIds: readonly string[], anchorsBy = ANCHORS_BY_TARGET): string[] => [
+  ...(targetIds.length ? [] : ['NO TARGETS in projections/targets.ts — the gate would check nothing']),
+  ...targetIds.filter((id) => !(id in anchorsBy)).map((id) => `NO ANCHORS FOR TARGET ${id}`),
+  ...Object.keys(anchorsBy).filter((id) => !targetIds.includes(id)).map((id) => `ANCHORS FOR UNKNOWN TARGET ${id}`),
+];
 
 type ColorRow = { where: Record<string, string>; parts: Array<{ part: string } & Partial<Record<Channel, string>>> };
 type Contract = { components: Record<string, { spec?: { colors?: ColorRow[] } }> };
@@ -104,16 +122,26 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const file = r.files[UNCOMMITTED_OUT.indexOf('components/component-contracts.json')]!;
   const contract = JSON.parse(readFileSync(file, 'utf8')) as Contract;
   const guaranteed = new Set(Object.keys((JSON.parse(readFileSync(resolve(here, 'schema', 'token-contract.json'), 'utf8')) as { guaranteed: Record<string, string> }).guaranteed));
-  const failures = contractFailures(contract, SHADCN_VARS, SHADCN_THEME_VARS, SHADCN_UNANCHORED, guaranteed);
+  const ids = PROJECTION_TARGETS.map((t) => t.id);
+  const failures = targetFailures(ids);
+  const lines: string[] = [];
+  for (const t of PROJECTION_TARGETS) {
+    const anchors = ANCHORS_BY_TARGET[t.id];
+    if (!anchors) continue;
+    const own = contractFailures(contract, t.vars, t.themeVars, t.unanchored, guaranteed, anchors);
+    failures.push(...own.map((f) => (ids.length > 1 ? `${t.id}: ${f}` : f)));
+    const bindings = Object.values(anchors).flat().length;
+    const roles = Object.keys(t.vars).length + Object.keys(t.themeVars).length;
+    lines.push(`${t.id}: ${Object.keys(anchors).length} anchored variables held to ${bindings} contract bindings, ` +
+      `${t.unanchored.length} declared unanchored, ${roles} mapped roles all guaranteed`);
+  }
   if (failures.length) {
-    console.error(`✗ shadcn map vs the component contract: ${failures.length} failure(s)`);
+    console.error(`✗ projection maps vs the component contract: ${failures.length} failure(s)`);
     for (const f of failures) console.error(`    ${f}`);
-    console.error('\n  Fix: the map follows the contract — remap the row in projections/shadcn.ts to the binding named, or, when the');
+    console.error('\n  Fix: the map follows the contract — remap the row in projections/<target>.ts to the binding named, or, when the');
     console.error('  contract moved on purpose, follow it here too. A role outside the guaranteed set is not emitted by every brand.');
     process.exit(1);
   }
-  const bindings = Object.values(ANCHORS).flat().length;
-  const roles = Object.keys(SHADCN_VARS).length + Object.keys(SHADCN_THEME_VARS).length;
-  console.log(`✓ shadcn map vs the component contract — ${Object.keys(ANCHORS).length} anchored variables held to ${bindings} contract bindings, ` +
-    `${SHADCN_UNANCHORED.length} declared unanchored, ${roles} mapped roles all guaranteed.`);
+  console.log(`✓ projection maps vs the component contract — ${ids.length} target(s)`);
+  for (const l of lines) console.log(`    ${l}`);
 }
