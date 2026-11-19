@@ -62,6 +62,7 @@ export const brandButtonLayout = (input: BrandInput | null): ButtonLayout => ({
   minWidthMultiplier: input?.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
   labelWeight: input?.buttonLabelWeight ?? DEFAULT_BUTTON_LAYOUT.labelWeight,
   textHover: input?.buttonTextHover ?? DEFAULT_BUTTON_LAYOUT.textHover,
+  borderWeight: input?.buttonBorderWeight ?? DEFAULT_BUTTON_LAYOUT.borderWeight,
 });
 
 /** `def` resolved against the brand: corner shape, then the field style (#2695 — after the corner, which it squares
