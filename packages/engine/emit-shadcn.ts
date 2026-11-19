@@ -122,13 +122,13 @@ const colorValue = (h: Handoff, role: string, mode: ShadcnMode): string => {
   return toOklchCss(value);
 };
 
-const dimensionValue = (h: Handoff, role: string): string => {
+export const dimensionValue = (h: Handoff, role: string): string => {
   const { type, value } = resolveRole(h, role, 'light');
   if (type !== 'dimension' || typeof value !== 'string') throw new Error(`${h.brand}: ${role} is not a dimension (${type})`);
   return value;
 };
 
-const fontValue = (h: Handoff, key: string, role: string): string => {
+export const fontValue = (h: Handoff, key: string, role: string): string => {
   const { type, value } = resolveRole(h, role, 'light');
   const families = (Array.isArray(value) ? value : [value]).map(String);
   if (type !== 'fontFamily' || !families.length) throw new Error(`${h.brand}: ${role} is not a font family (${type})`);

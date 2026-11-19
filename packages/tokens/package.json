@@ -19,11 +19,14 @@
     "check:package": "node check-package.mjs",
     "build": "node sd.ship.mjs",
     "prepack": "node sd.ship.mjs",
-    "build:consumer": "node sd.consumer.mjs"
+    "build:consumer": "node sd.consumer.mjs",
+    "check:shadcn": "node check-shadcn.mjs"
   },
   "devDependencies": {
     "@directededges/specs-schema": "0.39.0",
+    "@tailwindcss/cli": "4.3.3",
     "ajv": "8.20.0",
-    "style-dictionary": "^5.5.0"
+    "style-dictionary": "^5.5.0",
+    "tailwindcss": "4.3.3"
   }
 }

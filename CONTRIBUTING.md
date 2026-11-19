@@ -1772,6 +1772,12 @@ npm run check:package -w @prism3/tokens       # #3408 S1, docs/35 §9.3: the SHI
                                           # mode, read from out/prism3.tokens.json, which the
                                           # build never reads. [OWN FILE] (#3877): each per-mode
                                           # file (prism3/<mode>.css) runs the same arms itself
+npm run check:shadcn -w @prism3/tokens        # #2997 gate 5: the engine's Tailwind v4 theme, compiled
+                                          # by the stock Tailwind CLI pinned in this package against
+                                          # a typed fixture (bg-primary, text-muted-foreground,
+                                          # outline-ring, shadow-md, rounded-lg, p-2, font-sans);
+                                          # each utility resolves to the brand's own value, and
+                                          # each color and shadow is set in :root and .dark.
 npx tsx packages/engine/lint-us-english.ts # run AFTER the web AND plugin builds — its scope is both
                                           # built bundles: apps/studio/dist/*.js and, since #937,
                                           # apps/plugin/dist (main.js + ui.html), where the component
