@@ -28,5 +28,7 @@ The executor's own searches (`write-components.ts:1956, 1974, 3807`) are left al
 
 **Held by counts, not timings** (`apps/plugin/test-main-thread.ts`): `treeBuilds()` moves by one per `themePlans`; the
 shared plans equal the plans built apart, byte for byte; a component search sees the flag on, an instance search sees
-it off, and a throw puts it back; `updateTargets` takes the materializer once and awaits a tick in its loop. Times are
+it off, and a throw puts it back; `updateTargets` awaits a tick in its loop. The brand's theme is built once per Update
+check and twice per apply over the 50-set stand-in, never once a set: `brandLeverBuilds()`, arm `update/levers-once` in
+`test-open-large-file.ts` (a source-text arm alone let `materializerFor(brandInput)(d)` in the loop pass). Times are
 printed, not asserted.
