@@ -832,7 +832,7 @@
     },
     "code-input-cell": {
       "members": 48,
-      "sha256": "1d4306a7cb8f25c8b25ec5e13d96466d61e7cddcbc5435be3879295ecfe7cc0c",
+      "sha256": "5e167da17299b91fb721d2f9736445ee87d9135dba7ba83cdfd92b8d3b22a26b",
       "properties": [
         "digit:TEXT"
       ]
