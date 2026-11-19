@@ -18,8 +18,9 @@ export type StripAction = { readonly label: string; readonly run: () => void; re
 export type ErrorStrip = {
   /** The strip, mounted where `main.ts` declares the `error` surface. Hook `error-bar`, as before. */
   readonly node: HTMLElement;
-  /** Show `text`, or hide the strip on null. `action`, when given, draws a button beside the line; a pair draws two. */
-  readonly show: (text: string | null, action?: StripAction | readonly [StripAction, StripAction] | null) => void;
+  /** Show `text`, or hide the strip on null. `action`, when given, draws a button beside the line; a pair draws two.
+   *  `detail` (#4222), when given, is drawn under the line behind a closed Details disclosure. */
+  readonly show: (text: string | null, action?: StripAction | readonly [StripAction, StripAction] | null, detail?: string | null) => void;
 };
 
 export const errorStrip = (): ErrorStrip => {
@@ -34,16 +35,30 @@ export const errorStrip = (): ErrorStrip => {
     return b;
   };
   const buttons = [button(), button()];
-  node.append(glyph('warn'), line);
+  // #4222 (owner decision A): the text a designer can't act on (the engine's refusal, written for whoever edits the
+  // design.md) sits under the line behind Details, closed. A closed disclosure's content is not read, so the alert
+  // announces the line alone. In the strip only while there is a detail, as the buttons are.
+  const msg = h('div', 'p3-errstrip-msg');
+  const detail = hook(h('details', 'p3-errstrip-detail'), 'error-detail') as HTMLDetailsElement;
+  const detailText = hook(h('p', 'p3-errstrip-detail-text'), 'error-detail-text');
+  detail.append(h('summary', undefined, 'Details'), detailText);
+  msg.append(line);
+  node.append(glyph('warn'), msg);
   node.hidden = true;
   return {
     node,
     // The strip is `role="alert"`, and `main.ts` calls `show` after every rebuild. So the text is written only when it
     // changes: rewriting the same words would announce a standing error again on each edit (#2124 review, finding 4).
-    show: (text, action = null) => {
+    show: (text, action = null, more = null) => {
       node.hidden = text === null;
       const next = text ?? '';
       if (line.textContent !== next) line.textContent = next;
+      const extra = text === null ? null : more;
+      if (extra === null) { if (detail.isConnected) detail.remove(); detail.open = false; }
+      else {
+        if (detailText.textContent !== extra) { detailText.textContent = extra; detail.open = false; }
+        if (!detail.isConnected) msg.append(detail);
+      }
       const acts: readonly StripAction[] = text === null || action === null ? [] : 'label' in action ? [action] : action;
       buttons.forEach((b, i) => {
         const act = acts[i];

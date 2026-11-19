@@ -123,7 +123,9 @@ const syncErrorBar = (): void => {
   // The strip hides with `hidden`, not an inline `display`: the chrome carries no runtime inline values (`test:chrome`).
   // A refused RESTORE is not a change that didn't apply, and what is on screen is not the designer's last
   // theme but the boot demo (#1989). So it says whose brand failed, and why the two writes are off.
-  if (restoreFailure) globalErr.show(RESTORE_BAR[restoreFailure.kind](restoreFailure.reason));
+  // #4222 (owner A): an engine refusal is written for whoever edits the design.md, so the line is the strip's own frame
+  // and the refusal sits behind Details; the host's own words for an unreadable blob stay on the line.
+  if (restoreFailure) globalErr.show(RESTORE_BAR[restoreFailure.kind](restoreFailure.reason), null, restoreFailure.kind === 'unreadable' ? null : restoreFailure.reason);
   // Owner Q189 A (#2146): a brand that arrives starting above 0px gets a one-click fix beside the line.
   else if (lastError) globalErr.show(`That change didn't apply: ${lastError} — you are seeing the last theme that resolved.`,
     firstBreakpointFix(lastError));
@@ -381,14 +383,12 @@ const setHost = (patch: Partial<HostSession>): void => { host = { ...host, ...pa
 // lose a case silently, and `apps/plugin/test-build-verdict.mjs` now reads every topic's surface back.
 /** The host's fonts, for a renderer whose own `host` names its element (#3138: the Style guide's type sample). */
 const hostFonts = (): HostFonts => host;
-export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m) => {
+export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (raw) => {
   // #4206 (owner A): a brand stored before a validation tightened is migrated to the shape the engine takes now, before
   // `reduce` checks it, and the strip says what changed once it loads. A current brand comes through untouched.
-  let migrated: string | null = null;
-  if (m.kind === 'restore-input') {
-    const mg = migrateStoredInput(m.input);
-    if (mg.notes.length) { m = { ...m, input: mg.input }; migrated = migratedLine(mg.notes); }
-  }
+  const mg = raw.kind === 'restore-input' ? migrateStoredInput(raw.input) : null;
+  const migrated = mg?.notes.length ? migratedLine(mg.notes) : null;
+  const m: typeof raw = mg && migrated && raw.kind === 'restore-input' ? { ...raw, input: mg.input } : raw;
   const prev = host;
   host = reduce(prev, m);
   // #2879: any answer to the restore ends "Reading this file"; the library answer opens its home below.
@@ -1945,8 +1945,8 @@ const SPECS_WEB_OFF = 'In the Figma plugin: the component contracts are built fr
 /** The error bar after a failed restore, by kind (owner, 2026-10-02). `unresolved` says "resolves" because a
  *  rebuild that resolves also ends it; the other two end only when a brand loads. */
 const RESTORE_BAR: Record<RestoreFailure['kind'], (reason: string) => string> = {
-  unresolved: (r) => `This file's saved brand didn't resolve: ${r} Update file and Clean up are off until a brand resolves. Load an example or import a design.md to continue.`,
-  rejected: (r) => `This file's saved brand didn't resolve: ${r} Update file and Clean up are off until a brand loads. Load an example or import a design.md to continue.`,
+  unresolved: () => "This file's saved brand didn't resolve. Update file and Clean up are off until a brand resolves. Load an example or import a design.md to continue.",
+  rejected: () => "This file's saved brand didn't resolve. Update file and Clean up are off until a brand loads. Load an example or import a design.md to continue.",
   unreadable: (r) => `This file's saved brand couldn't be read: ${r} Update file and Clean up are off until a brand loads. Load an example or import a design.md to continue.`,
 };
 /** The tooltip on every write that is off after a failed restore: one wording for every kind (owner). */
