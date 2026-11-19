@@ -7603,6 +7603,36 @@ arm: {
   }
 }
 
+// ---- BADGE'S ACCESSIBILITY PROSE CITES THE #1745 CONTRACTS (#1775, owner decision A) ------------------------------
+// The block above holds that the engine CONTRACTS the three neutral pairs. This holds that Badge's shipped WCAG lines
+// SAY so, and that they still call the bold TONE fills' page separation a measurement: that pair is not contracted
+// against the page (each tone fill's contract is against the mode's floor ground). Both halves are literals typed
+// from the decision, so the prose cannot drift into claiming a contract for the tones, or back into calling the
+// neutral pairs merely measured. The roles named here are the ones the #1745 arm above reads from resolved modes.
+{
+  const def = componentDefs.find((d) => d.id === 'badge')!;
+  const wcag = def?.accessibility?.wcag ?? [];
+  const line = (sc: string): string => wcag.find((w) => w.startsWith(`${sc} `)) ?? '';
+  const l143 = line('1.4.3'), l1411 = line('1.4.11');
+  // 1.4.3: the bold neutral label pair is a contract at 4.5:1; the general label claim stays measured.
+  const miss143: string[] = [];
+  if (!l143.includes('`color.inverse.text.primary` on `color.inverse.foreground.tertiary`, is also a mode contract at 4.5:1')) miss143.push('the bold neutral label contract');
+  if (!l143.includes('checks it for every brand in every mode')) miss143.push('every brand, every mode');
+  if (!l143.includes('measured in every mode of the example brands')) miss143.push('the measured general claim');
+  ok(l143 !== '' && miss143.length === 0, `#1775 badge 1.4.3 cites the bold neutral label's 4.5:1 mode contract and keeps the rest measured${miss143.length ? ` — MISSING: ${miss143.join('; ')}` : ''}`);
+  // 1.4.11: the neutral fill and the neutral edge are contracts; the tone fills are measured, NOT contracted.
+  const miss1411: string[] = [];
+  if (!l1411.includes('`color.inverse.foreground.tertiary`, is a mode contract against the page at the non-text bar, 3:1 and 4.5:1 in high contrast')) miss1411.push('the neutral fill contract');
+  if (!l1411.includes('`color.border.tertiary`, is a mode contract at the same bar')) miss1411.push('the neutral edge contract');
+  if (!l1411.includes('clear 3:1 against the page as measured in every mode of the example brands; that is a measurement, not a contract')) miss1411.push('the tone dots measured, not contracted');
+  if (!l1411.includes('The bold tone fills clear 3:1 against the page in the same measurement, not by contract')) miss1411.push('the tone fills measured, not contracted');
+  // No sentence may call a TONE fill contracted: a "contract" sentence must name a neutral role.
+  const toneContract = l1411.split(/(?<=\.) /).filter((x) => /\btone\b/.test(x) && /contract/.test(x) && !/not (a|by) contract/.test(x));
+  if (toneContract.length) miss1411.push(`a tone sentence claims a contract: "${toneContract[0]}"`);
+  ok(l1411 !== '' && miss1411.length === 0, `#1775 badge 1.4.11 cites the neutral fill and edge contracts and keeps the tone fills measured, not contracted${miss1411.length ? ` — WRONG: ${miss1411.join('; ')}` : ''}`);
+}
+
+
 // ---- TAG — the owner's decisions of 2026-09-27 and 2026-09-28, held here with literal expectations ---------
 // Written from the decisions, not read back from the def: interactive only (the five projected states), two
 // types on a `type` axis and prop with the literal values select | dismissible, no nested remove button (the ×
@@ -31629,6 +31659,22 @@ arm: {
     }
   }
 
+  // ---- no trait targets a schema-required lever (#1863, owner decision option 1 / A) ----
+  // A required lever is set in every valid input, so `resolveVocabulary` always declines a trait's setting for it
+  // ("kept … (set explicitly)"): a dead target the trait still advertises. `restrained` carried `neutral.chroma`
+  // until #1863. The oracle is the SCHEMA's `required` lists, read here from `theme-schema.json` (top level, and
+  // each object property's own `required`, as dotted keys), never `levers.ts`'s `required` flag or TRAITS itself.
+  const schemaRequired = new Set<string>([
+    ...((schema.required ?? []) as string[]),
+    ...Object.entries(schema.properties as Record<string, { required?: string[] }>)
+      .flatMap(([k, v]) => (v?.required ?? []).map((r) => `${k}.${r}`)),
+  ]);
+  ok(schemaRequired.has('neutral.chroma') && schemaRequired.has('neutral.hue'),
+    `vocabulary: the schema-required oracle is live — it reads neutral.hue and neutral.chroma as required (got ${[...schemaRequired].join(', ')})`);
+  const deadTargets = Object.entries(TRAITS).flatMap(([name, t]) => Object.keys(t.levers).filter((k) => schemaRequired.has(k)).map((k) => `${name} → ${k}`));
+  ok(deadTargets.length === 0,
+    `#1863 vocabulary: no trait targets a schema-required lever, which every valid input pre-empts${deadTargets.length ? ` — DEAD: ${deadTargets.join(', ')}` : ''}`);
+
   // ---- every trait is attested in a committed brief, verbatim (#1685), and the note names none (#1824) ----
   // #1685 made every `why` quote a brief, so an uncited mapping could not ship. #1824 moved the quotes
   // OUT of `why`: it ships in `theme.notes`, and some example briefs are real brands' briefs, so a
@@ -41722,6 +41768,50 @@ arm: {
     }
   }
   ok(emitBad.length === 0, `#3050 committed emission: the reference brand's scrim is 80 / 80 / 90 / 90, every other brand's 40 / 60 / 60 / 70${emitBad.length ? ` — WRONG: ${emitBad.slice(0, 4).join('; ')}` : ''}`);
+}
+
+// ------------------------------------------------------------------- #1043: the scrim's steps are declared taste
+// Owner decision B (2026-11-18, on #1043): keep 40 / 60 / 60 / 70, declared as taste, with the provenance written at
+// the `modes.ts` call site and in `docs/20` §8. Three things are held, each against a literal typed from the decision:
+//   1. the declaration is THERE, in both homes: "chosen, not derived", Spectrum 2 and Radix for light/dark, and the
+//      high-contrast step-up named as this system's deliberate choice;
+//   2. the steps each home WRITES are the decision's steps (so a value edited in one place and not the other fails);
+//   3. the steps the engine RESOLVES for a brand that leaves `scrimStrength` unset are the same (ACTUAL from
+//      `resolveAllModes`, never `SCRIM_STEPS`; the #3050 arm above holds every brand and the emission).
+{
+  const DECIDED = { light: 40, dark: 60, 'hc-light': 60, 'hc-dark': 70 } as const;
+  const modesSrc = readFileSync(resolve(HERE, 'modes.ts'), 'utf8');
+  const decl = modesSrc.match(/PROVENANCE OF THE `standard` STEPS \(#1043[\s\S]*?\*\//)?.[0] ?? '';
+  const doc20 = readFileSync(resolve(HERE, '../../docs/20-interactive-color-system.md'), 'utf8');
+  const sec = doc20.match(/### 8\.3 Decided \(2026-11-18, #1043\)[\s\S]*?(?=\n## |\n### )/)?.[0] ?? '';
+  const PHRASES: [string, string, string][] = [
+    ['modes.ts', decl, 'chosen, not derived'], ['modes.ts', decl, 'after Spectrum 2 and Radix Themes'],
+    ['modes.ts', decl, 'the high-contrast step-up is a deliberate choice of this system'],
+    ['docs/20 §8.3', sec, 'Chosen, not derived.'], ['docs/20 §8.3', sec, 'after Spectrum 2 and Radix Themes'],
+    ['docs/20 §8.3', sec, 'is a deliberate choice of this system'],
+  ];
+  const missing = PHRASES.filter(([, txt, ph]) => !txt.includes(ph)).map(([where, , ph]) => `${where}: "${ph}"`);
+  ok(decl !== '' && sec !== '' && missing.length === 0,
+    `#1043 scrim provenance is declared at SCRIM_STEPS and in docs/20 §8.3: chosen, not derived; light/dark after Spectrum 2 and Radix; the HC step-up deliberate${decl === '' ? ' — NO modes.ts declaration' : ''}${sec === '' ? ' — NO docs/20 §8.3' : ''}${missing.length ? ` — MISSING: ${missing.join('; ')}` : ''}`);
+  // What each home writes, read back as numbers.
+  const declSteps = {
+    light: Number(decl.match(/light (\d+), dark \d+/)?.[1]), dark: Number(decl.match(/light \d+, dark (\d+)/)?.[1]),
+    'hc-light': Number(decl.match(/hc-light (\d+), hc-dark \d+/)?.[1]), 'hc-dark': Number(decl.match(/hc-light \d+, hc-dark (\d+)/)?.[1]),
+  };
+  const secSteps = sec.match(/\*\*(\d+) \/ (\d+) \/ (\d+) \/ (\d+)\*\*/)?.slice(1).map(Number) ?? [];
+  const written = JSON.stringify(declSteps) === JSON.stringify(DECIDED)
+    && JSON.stringify(secSteps) === JSON.stringify([DECIDED.light, DECIDED.dark, DECIDED['hc-light'], DECIDED['hc-dark']]);
+  ok(written, `#1043 the declared scrim steps are the decision's 40 / 60 / 60 / 70 in both homes (modes.ts ${JSON.stringify(declSteps)}, docs/20 ${JSON.stringify(secSteps)})`);
+  // What the engine resolves, for a brand with the lever unset.
+  const bi = { ...(exampleBrands()['prism3'] as BrandInput) } as BrandInput & { scrimStrength?: string };
+  delete bi.scrimStrength;
+  const got: Record<string, number | undefined> = {};
+  for (const M of resolveAllModes(brandTheme(bi))) {
+    const r = (M.roles as Record<string, { alpha?: number } | undefined>)['scrim.default'];
+    if (M.mode in DECIDED) got[M.mode] = r?.alpha === undefined ? undefined : Math.round(r.alpha * 100);
+  }
+  ok(JSON.stringify(got) === JSON.stringify(DECIDED),
+    `#1043 the engine resolves the declared scrim steps 40 / 60 / 60 / 70 for a brand that leaves scrimStrength unset (got ${JSON.stringify(got)})`);
 }
 
 // ------------------------------------------------------------------- #3073: brand glass roles
