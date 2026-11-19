@@ -56,7 +56,7 @@ const migrateV2 = (input: BrandInput): BrandInput => {
   const next: Record<string, unknown> = { ...surfaces };
   let moved = false;
   for (const c of input.customModes) {
-    if (!c || typeof c.name !== 'string' || c.name in next || surfaces[c.base] === undefined) continue;
+    if (!c || typeof c.name !== 'string' || Object.prototype.hasOwnProperty.call(next, c.name) || surfaces[c.base] === undefined) continue;
     next[c.name] = JSON.parse(JSON.stringify(surfaces[c.base]));
     moved = true;
   }

@@ -6571,6 +6571,23 @@ arm: {
   ok(JSON.stringify(v3?.surfaces) === '{"light":{"base":50},"dark":{"base":900}}', `#1946: a v3 brand's custom mode with no surfaces of its own is not given its base's on load (${JSON.stringify(v3?.surfaces)})`);
   const own2 = deserializeBrandInput(JSON.stringify({ v: 2, input: { ...saved, surfaces: { ...saved.surfaces, promo: { base: 800 } } } })) as any;
   ok(JSON.stringify(own2?.surfaces?.promo) === '{"base":800}', '#1946: a saved custom mode that has surfaces of its own keeps them (the copy is only where absent)');
+  // #4072 delta review S1 (a): a v2 brand whose custom mode's base has no surfaces of its own (every example sets only
+  // surfaces.light) loads, copying nothing, so that mode draws its base's defaults as the pre-#1946 engine did.
+  let lightOnly: any = null, lightOnlyErr = '';
+  try { lightOnly = deserializeBrandInput(JSON.stringify({ v: 2, input: { ...saved, customModes: [{ name: 'promo', base: 'dark' }], surfaces: { light: { base: 50 } } } })); }
+  catch (e) { lightOnlyErr = `${(e as Error).name}: ${(e as Error).message}`; }
+  ok(lightOnly !== null && JSON.stringify(lightOnly.surfaces) === '{"light":{"base":50}}',
+    `#1946: a saved custom mode whose base has no surfaces loads, and nothing is copied to it (${lightOnlyErr || JSON.stringify(lightOnly?.surfaces)})`);
+  // (b): the copy is the custom mode's own. An in-session edit writes the loaded object in place (setPath), so a copy
+  // shared by reference would bring the live link #1946 removed back until the next save.
+  const edited = deserializeBrandInput(v2) as any;
+  edited.surfaces.dark.base = 800;
+  ok(JSON.stringify(edited.surfaces.promo) === '{"base":900}',
+    `#1946: after a migrated read, an edit to the base's surfaces does not reach the custom mode's copy (${JSON.stringify(edited.surfaces.promo)})`);
+  // Nit N1: a custom-mode name that is also an Object.prototype key ('constructor' fits the name pattern) migrates too.
+  const proto = deserializeBrandInput(JSON.stringify({ v: 2, input: { ...saved, customModes: [{ name: 'constructor', base: 'dark' }] } })) as any;
+  ok(Object.prototype.hasOwnProperty.call(proto?.surfaces ?? {}, 'constructor') && JSON.stringify(proto.surfaces.constructor) === '{"base":900}',
+    `#1946: a saved custom mode named like a prototype key ('constructor') is migrated too (${JSON.stringify(proto?.surfaces)})`);
 }
 
 // PER-MODE RADIUS LEVER (Phase D) — a customizable mode overrides the `radius` scale; the engine
