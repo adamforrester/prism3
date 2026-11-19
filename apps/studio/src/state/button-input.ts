@@ -19,7 +19,7 @@
  *     2.25 to 3 writes 2.5, 2.75 and 3 in turn. `setButtonMinWidth` is called once per step by the caller; it does
  *     not debounce, and a caller that wrote on release only would persist fewer states.
  */
-import { DEFAULT_MIN_WIDTH_MULTIPLIER, ICON_SIZES, type ButtonContentSize, type ButtonIcons, type ButtonLabelWeight, type ButtonTextHover, type Theme } from '@prism3/engine';
+import { DEFAULT_MIN_WIDTH_MULTIPLIER, ICON_SIZES, type ButtonBorderWeight, type ButtonContentSize, type ButtonIcons, type ButtonLabelWeight, type ButtonTextHover, type Theme } from '@prism3/engine';
 import { brandState, getPath, setPath } from './store';
 
 /** Button icons: `attached` (the default, written when chosen) or `edges`. */
@@ -30,6 +30,8 @@ export const setButtonContentSize = (v: ButtonContentSize): void => { setPath(br
 export const setButtonLabelWeight = (v: ButtonLabelWeight): void => { setPath(brandState, 'buttonLabelWeight', v); };
 /** Text button hover (#2324): `text` (the default, "Text & icon only", written when chosen) or `fill`. */
 export const setButtonTextHover = (v: ButtonTextHover): void => { setPath(brandState, 'buttonTextHover', v); };
+/** Outline button border (#576; name DRAFT): `hairline` (the default, written when chosen) or `thick`, every button set at once. */
+export const setButtonBorderWeight = (v: ButtonBorderWeight): void => { setPath(brandState, 'buttonBorderWeight', v); };
 /** Button minimum width, as a multiple of the button's height. One call per slider step (see the header). */
 export const setButtonMinWidth = (v: number): void => { setPath(brandState, 'buttonMinWidthMultiplier', v); };
 
