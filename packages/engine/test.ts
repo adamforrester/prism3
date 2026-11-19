@@ -20695,7 +20695,7 @@ arm: {
       'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, 'card-number-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
       'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, progress: 3, veil: 3, 'image-placeholder': 3,
-      // Tooltip (#4009, OD-TB4 A pending): supports another component, as Badge does.
+      // Tooltip (#4009, generation priority 3, decided in Q-FL2): supports another component, as Badge does.
       tooltip: 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
       'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
@@ -41210,7 +41210,7 @@ arm: {
     && td.props.find((p) => p.name === 'placement')?.default === 'top' && td.props.find((p) => p.name === 'align')?.default === 'center',
     `#4009 tooltip: placement [top, bottom, start, end] only, top the code default, align center in code, no state axis (got ${JSON.stringify(td.variants)})`);
   ok(td.name === 'Tooltip' && td.category === 'overlay' && JSON.stringify(td.aliases) === JSON.stringify(['hint', 'infotip', 'info-tip']) && td.ai.generationPriority === 3,
-    `#4009 tooltip: named Tooltip, category overlay, aliases hint, infotip and info-tip, tier 3 (got ${td.name}, ${td.category}, ${JSON.stringify(td.aliases)}, ${td.ai.generationPriority})`);
+    `#4009 tooltip: named Tooltip, category overlay, aliases hint, infotip and info-tip, generation priority 3 (got ${td.name}, ${td.category}, ${JSON.stringify(td.aliases)}, ${td.ai.generationPriority})`);
 
   // THE BUBBLE (OD-X1, OD-T6): the inverse surface, radius md, padding 4 / 8, no border, no shadow.
   const bubbleBad = plans.filter((p) => {

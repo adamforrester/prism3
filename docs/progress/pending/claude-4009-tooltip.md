@@ -7,9 +7,9 @@ swap in right-to-left text with no rename; `placement` was already a `VARIANT_AX
 `arrow` boolean, on by default (OD-T2 A), drives four placement-gated glyph parts, one per member, the Switch.Control
 `state icon` pattern. The bubble is the inverse surface, as Toast's card (OD-X1); the arrow takes the same `fill` key, so
 the two cannot drift. The label is `type.body.sm.default`, padding 4/8 at comfortable (OD-T6). `align` is code only
-(OD-T3 A). Tier 3, category overlay, `states: []`.
+(OD-T3 A). Generation priority 3 (as Badge; decided in Q-FL2), category overlay, `states: []`.
 
-**The owner's three KB-conflict calls, as built.**
+**The owner's three KB-conflict calls, as built (K7 since reopened; see below).**
 - K6 B: `kind="label"` on an icon-only control makes the tooltip the control's name (`aria-labelledby`, no
   `aria-label`); `description` stays the default.
 - K7 B: a fade plus a scale from 0.95, `motion.duration.fast` / `easing-role.enter`; the hide a fade on `instant` /
@@ -42,11 +42,13 @@ shape: a surface), and the canvas furniture switch, the page taxonomy and the st
 - **OD-TB2, the arrow's depth.** A (built): 8px base, 4px right-angled tip. B: 8 by 8.
 - **OD-TB3, the page.** A (built): its own Tooltip page under Components. B: an Overlays page shared with Menu and
   Popover.
-- **OD-TB4, the tier.** A (built): 3, as Badge. B: 2.
+- **K7, the show motion (reopened after Q-FL2).** A KB change may make the brief default to a fade alone. B (built): a
+  fade plus a scale from 0.95. A: a fade alone, which changes the `codeOnly` motion entry, `motion.enter` and
+  `motion.reduceMotion`, and the `#4009 tooltip code-side contract` arm's `a scale from 0.95 to 1`.
 - **New strings are DRAFT** (voice standard): every shipped field of the def, the build-ui skill's worked example.
 
 **Follow-up, not in this PR.** IconButton's `aria` line still reads "aria-label is the accessible name (required)",
 which K6 B qualifies on an icon-only control with a label-mode tooltip; filed as #4250.
 
 **Trap.** `packages/engine/test.ts`'s #3833 replay needs full history: in a shallow clone it throws ("Could not read
-<sha>") and every arm after it goes unrun with "0 failed" printed. `git fetch --unshallow` first.
+<sha>") and every arm after it goes unrun with "0 failed" printed. `git fetch --unshallow` first. Filed as #4202.
