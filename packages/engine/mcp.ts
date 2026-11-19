@@ -611,8 +611,10 @@ export const unsafeOutDir = (dir: string): string | undefined => {
  *  enum, but only `export_theme` enforced either, so a typo such as `include: ["tokenz"]` quietly returned less. Read
  *  from the declared schemas, so a new argument needs no second list here. It refuses undeclared keys, a present
  *  array argument that is not an array, and a value outside an array argument's `items.enum` (no top-level scalar
- *  `enum` is declared today, so none is checked). The one named exception is theme_brand's
- *  bare-BrandInput call (no `brand` key, #4120), whose keys are the brand's and are the schema validator's to judge.
+ *  `enum` is declared today, so none is checked). The one named exception is a call with no `brand` key to a tool
+ *  whose schema requires one (#4120): theme_brand and validate_brand read it as a bare BrandInput for one release,
+ *  whose keys are the brand's and the schema validator's to judge, and export_theme and score_consumption name the
+ *  missing `brand` (`missingBrand`) rather than the keys that were sent in its place.
  *  Wording is DRAFT; the include message is the one `export_theme` already used. */
 let declaredInputs: Map<string, any> | undefined;
 export const argumentErrors = (name: string, args: unknown): string[] => {
@@ -620,7 +622,7 @@ export const argumentErrors = (name: string, args: unknown): string[] => {
   const schema = declaredInputs.get(name);
   if (!schema || schema.additionalProperties !== false || !schema.properties || args == null) return [];
   if (typeof args !== 'object' || Array.isArray(args)) return [`${name} takes an object of arguments`];
-  if (name === 'theme_brand' && !('brand' in args)) return [];
+  if (!('brand' in args) && schema.required?.includes('brand')) return [];
   const props = schema.properties as Record<string, any>;
   const errors: string[] = [];
   const unknown = Object.keys(args).filter((k) => !Object.hasOwn(props, k));

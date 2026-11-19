@@ -319,7 +319,8 @@ await new Promise((r) => setTimeout(r, 3000));
 // ------------------------------------------- #4122: every tool refuses an argument its schema does not declare
 // All six tools declare `additionalProperties: false`, and `include` is an enum, but only `export_theme` checked either:
 // a typo in `include` quietly shrank the answer. EXPECTED is typed here per tool, never read from the schemas. The one
-// named exception is theme_brand's bare-BrandInput call (#4120), which has no `brand` key. BY-NAME MUTATION: turn the
+// named exception is a call with no `brand` key to a tool that requires one (#4120), such as theme_brand's bare
+// BrandInput; test.ts's #4120 block holds the missing-`brand` message. BY-NAME MUTATION: turn the
 // shared argument check off in mcp.ts → every refusal arm below fails.
 {
   const B = { id: 'args', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };

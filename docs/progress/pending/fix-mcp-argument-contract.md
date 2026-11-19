@@ -8,8 +8,9 @@ The MCP tools declared more than they enforced. Both fixes close the same gap.
   new argument needs no second list. It reports unknown keys, unknown `include` values, and a present `include`
   that is not an array (review of #4277: `include: "tokens"` or `null` fell through to the default sections, and
   made `export_theme` throw `want.filter is not a function`, #4281), by name. The one named exception
-  is `theme_brand`'s bare-BrandInput call (no `brand` key, #4120), whose keys are the schema validator's to judge.
-  `validate_brand` has no `additionalProperties: false` (its argument IS the brand), so it is untouched.
+  is a call with no `brand` key to a tool that requires one (#4120): `theme_brand` and `validate_brand` read it as a
+  bare BrandInput for one release, whose keys are the schema validator's to judge, and `export_theme` and
+  `score_consumption` name the missing `brand`. (Widened from `theme_brand` alone when #4288 landed both.)
 - **#4151.** `theme_brand` and `theme_from_brief` returned `structuredContent` but declared no `outputSchema`, so
   `docs/public/reference/commands.json` said they returned none. Both now declare an open schema (no
   `additionalProperties: false`, so a later field does not break older clients), and the reference is regenerated.
