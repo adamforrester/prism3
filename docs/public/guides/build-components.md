@@ -2,21 +2,21 @@
 
 <!-- DRAFT for owner review (#2637, lane 4; corrected to the Components area and Update file for #3264). -->
 
-Prism3 defines its components once, and the plugin builds each one as a Figma component set bound to the brand's variables. <!-- src: packages/engine/components/index.ts:109-284#33c83dbf -->
-The engine currently defines 63 component sets, from Button and Checkbox to Tabs, Accordion and List. <!-- src: packages/engine/components/index.ts:109-284#33c83dbf -->
+Prism3 defines its components once, and the plugin builds each one as a Figma component set bound to the brand's variables. <!-- src: packages/engine/components/index.ts:111-287#d2cb9b32 -->
+The engine currently defines 64 component sets, from Button and Checkbox to Tabs, Accordion and List. <!-- src: packages/engine/components/index.ts:111-287#d2cb9b32 -->
 
 You choose sets in the **Components** area of the rail, and **Update file** builds them. <!-- src: apps/studio/src/state/update-file.ts:330 -->
 Building needs the Figma plugin. On the web, the Components area lists the same sets and says "Building sets needs the Figma plugin." <!-- src: apps/studio/src/preview/sections/component-sets.ts:29 -->
 
 ## Choose the sets to add
 
-1. Open **Components** in the rail. The list reads "Tick a set or a family to add it to this file; sets it needs come with it. Update file adds them." <!-- src: apps/studio/src/state/component-groups.ts:136 -->
-2. Tick each family or set you want. A tier's caption has **Select all**, or **Deselect all** once anything in it is ticked. <!-- src: apps/studio/src/state/component-groups.ts:139-140 -->
+1. Open **Components** in the rail. The list reads "Tick a set or a family to add it to this file; sets it needs come with it. Update file adds them." <!-- src: apps/studio/src/state/component-groups.ts:137 -->
+2. Tick each family or set you want. A tier's caption has **Select all**, or **Deselect all** once anything in it is ticked. <!-- src: apps/studio/src/state/component-groups.ts:140-141 -->
 3. Choose **Update file** in the top bar. The ticked sets are listed under **Components** › **To add**. <!-- src: apps/studio/src/state/update-file.ts:349-350 -->
 4. Choose **Update file** in the dialog to build them. <!-- src: apps/studio/src/state/update-file.ts:426 -->
 
 Each set in the list carries its state in this file: **To add**, **Needed**, **Not in file**, **Due**, **Kept edits**, **Updates off**, **Hand-edited**, **Not checked yet** or **Up to date**. <!-- src: apps/studio/src/state/update-file.ts:409 -->
-A set already in the file has a checked box you can't change, and **In file** comes first among its states. A family partly in the file can still be ticked, to add the sets it lacks. <!-- src: apps/studio/src/state/component-groups.ts:148 -->
+A set already in the file has a checked box you can't change, and **In file** comes first among its states. A family partly in the file can still be ticked, to add the sets it lacks. <!-- src: apps/studio/src/state/component-groups.ts:149 -->
 
 The sets you tick are kept in the file, not in the panel, so a teammate who opens Update file sees the same list. A set leaves the list once it is built whole; one that fails or is stopped stays on it. <!-- src: apps/plugin/src/add-queue.ts:1-11#32cbe7e4 -->
 

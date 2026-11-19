@@ -124,7 +124,8 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Badge', defs: ['badge'] },
         // Tag — under Components beside Badge, owner-decided 2026-10-04 (S8 scope, O1). It nests
         // IconButton.Neutral, whose page is earlier in this list, so the nest resolves when the file is built in order.
-        { page: 'Tag', defs: ['tag'] },
+        // Tag.Group (#1739) beside Tag, built after it so its nested tags resolve on the same page. Held for the owner.
+        { page: 'Tag', defs: ['tag', 'tag-group'], lead: 'tag' },
         // Tabs — its own page under Components, owner-decided 2026-10-09 (#2416 Q177.14: no navigation grouping,
         // no new section). Tab builds first, so the list's nested tabs resolve against it on the same page.
         { page: 'Tabs', defs: ['tab-item', 'tabs'], lead: 'tabs' },

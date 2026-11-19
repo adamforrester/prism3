@@ -3125,7 +3125,7 @@ Type: dimension. Bound by 20 component(s).
 
 ### `space.100`
 
-Type: dimension. Bound by 35 component(s).
+Type: dimension. Bound by 36 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3179,6 +3179,7 @@ Type: dimension. Bound by 35 component(s).
 | tab-item | `size.large.gap`, `size.medium.gap` | content | size: large, medium (20 of 30) |
 | tag | `group-gap` (not drawn), `size.large.check-gap`, `size.large.dismissible.visible-gap` (not drawn), `size.large.underline.inset` (not drawn), `size.medium.dismissible.visible-gap` (not drawn), `size.medium.select.gap`, `size.small.padding-x`, `size.small.select.padding-end` | content | size: medium, small (25 of 45) |
 |  |  | labelCheck | size: large (15 of 45) |
+| tag-group | `group-gap` | items | every member (3 of 3) |
 | text-field | `root-gap`, `size.large.gap`, `size.large.pad-y`, `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | container | every member (84 of 84) |
 |  |  | content | every member (84 of 84) |
 |  |  | control | every member (84 of 84) |
@@ -4195,6 +4196,12 @@ Declared, not drawn: `color.border.focus`
 `border-width.hairline`, `border-width.thick`, `color.border.focus`, `color.disabled.border`, `color.disabled.icon`, `color.disabled.text`, `color.interactive.neutral.border.hover`, `color.interactive.neutral.border.pressed`, `color.interactive.neutral.border.rest`, `color.interactive.neutral.icon.hover`, `color.interactive.neutral.icon.pressed`, `color.interactive.neutral.icon.rest`, `color.interactive.neutral.overlay.hover`, `color.interactive.neutral.overlay.pressed`, `color.interactive.neutral.text.hover`, `color.interactive.neutral.text.pressed`, `color.interactive.neutral.text.rest`, `color.interactive.primary.indicator.hover`, `color.interactive.primary.indicator.pressed`, `color.interactive.primary.indicator.rest`, `color.interactive.primary.subtle-fill.selected`, `focus.ring.offset`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `radius.round`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.025`, `space.050`, `space.075`, `space.100`, `space.150`, `space.200`, `type.label.lg.emphasis`, `type.label.md.emphasis`, `type.label.sm.emphasis`
 
 Declared, not drawn: `color.border.focus`
+
+### tag-group
+
+1 token(s); 3 design-file member(s).
+
+`space.100`
 
 ### text-field
 
