@@ -3220,6 +3220,11 @@ const writeComponentSet = async (
         if (prior?.own?.[p] !== undefined) now.own = { ...(now.own ?? {}), [p]: prior.own[p] };
         else if (now.own?.[p] !== undefined) { const { [p]: _gone, ...rest } = now.own; now.own = Object.keys(rest).length ? rest : undefined; }
       }
+      // And an instance's own properties (#4070), for the same reason: compared in place of its own part.
+      if (!entry.accept) for (const p of entry.keep) {
+        if (prior?.inst?.[p] !== undefined) now.inst = { ...(now.inst ?? {}), [p]: prior.inst[p] };
+        else if (now.inst?.[p] !== undefined) { const { [p]: _gone, ...rest } = now.inst; now.inst = Object.keys(rest).length ? rest : undefined; }
+      }
       // And a node's hash without its bound paints' opacity (#3527), for the same reason: compared in place of the node's.
       if (!entry.accept) for (const p of entry.keep) {
         if (prior?.tint?.[p] !== undefined) now.tint = { ...(now.tint ?? {}), [p]: prior.tint[p] };

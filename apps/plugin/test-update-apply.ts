@@ -827,6 +827,83 @@ for (const earlier of [false, true]) {
     `#3474 kept/${tag}: the next dry run still reports the ring edit (${JSON.stringify(post.handEdits)})`);
 }
 
+/* ── #4070: a change to a nested set's properties is not a hand edit on the members that nest it ─────────────────── */
+// The owner's Update file run on the template file (2026-11-18) reported 36 hand edits on List, which nobody had edited:
+// List.Item's text property had been renamed in place (#3623), and the `own` part of every List member's record (#3474)
+// held List.Item's whole property list, by full name. List.Item and List are built here with the host's instance model
+// (`figmaInstances`, the main's definitions read live), then the NESTED set alone changes: a property added, one
+// renamed, one given a new default. Nobody touches List, so its check must list no hand edit and read every member
+// current. The paths and counts expected are typed here. Mutations: `instSignature` returning `own` unchanged (props
+// by full name, defaults and all) → `#4070 nested/added`, `/renamed`, `/default`; the `inst` branch of `baselineDiff`
+// dropped → the same three; `finishUpdated`'s `inst` keep dropped → `#4070 nested/kept still reported`.
+section('#4070 nested — a nested set\'s property added, renamed or re-defaulted is not a hand edit on the members that nest it');
+const nestedWorld = async () => {
+  const item = plansOf('list-item'), list = plansOf('list');
+  const page: Page = { children: [] };
+  const api = makeShim({
+    vars: [...new Set([...item, ...list].flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]).concat('space/999'))],
+    styles: [...new Set([...item, ...list].flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set([...item, ...list].flatMap((p) => planEffectStyles(p.root)))],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...[...item, ...list].flatMap((p) => planComps(p.root))])].filter((c) => c !== 'list-item'),
+    page, liveRoot: true, identities: true, scaleConstrained: true, wrapNode: figmaInstances(page),
+  }) as any;
+  const misses = [...(await applyComponentPlan(item, api)).misses, ...(await applyComponentPlan(list, api)).misses];
+  const file = { ...api, root: { ...api.root, findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)) } } as unknown as ApplyHost;
+  const setOf = (name: string) => page.children.find((n) => n.type === 'COMPONENT_SET' && n.name === name) as Node;
+  return { api, file, list, misses, items: setOf('list-item'), lists: setOf('list') };
+};
+const textProp = (set: Node): string => Object.entries(set.componentPropertyDefinitions as Record<string, { type: string }>).find(([, d]) => d.type === 'TEXT')![0];
+for (const [tag, change] of [
+  ['added', (s: Node) => { (s.addComponentProperty as (n: string, t: string, d: string) => string)('note', 'TEXT', 'A note'); }],
+  ['renamed', (s: Node) => { (s.editComponentProperty as (k: string, v: { name: string }) => string)(textProp(s), { name: 'caption' }); }],
+  ['default', (s: Node) => { (s.editComponentProperty as (k: string, v: { defaultValue: string }) => string)(textProp(s), { defaultValue: 'A new default' }); }],
+] as const) {
+  const w = await nestedWorld();
+  const before = (await previewUpdate(w.file, [{ def: 'list', plans: w.list }])).sets[0];
+  ok(w.misses.length === 0 && before.counts.current === 12 && before.handEdits.length === 0,
+    `#4070 nested premise (${tag}): List.Item and List build clean, and List reads 12 current with no hand edit (${w.misses[0] ?? ''}; ${JSON.stringify(before.counts)})`);
+  change(w.items);
+  const after = (await previewUpdate(w.file, [{ def: 'list', plans: w.list }])).sets[0];
+  ok(after.handEdits.length === 0 && after.counts.handEdited === 0 && after.counts.current === 12,
+    `#4070 nested/${tag}: a property ${tag} on List.Item alone leaves every List member current, with no hand edit (${JSON.stringify(after.counts)}; ${JSON.stringify([...new Set(after.handEdits.map((h) => h.path))])})`);
+}
+{
+  // THE STATED LIMIT (#4088 review): `inst` is read only where BOTH records hold it, so every record written before this
+  // build (an `own` part, no `inst`: what main wrote until now) is still compared through `own`, and a nested rename still
+  // reads as a hand edit on every member. The progress entry's "What this cannot fix" rests on this; if a change ever
+  // reads such a record another way, this arm fails and that statement must move with it. Mutation: `baselineDiff` reads
+  // `inst` where only the live side holds it → `#4070 nested/written before`.
+  const w = await nestedWorld();
+  for (const m of membersOf(w.lists)) {
+    const { inst: _inst, ...earlier } = JSON.parse(pdOfMember(m, BASELINE_KEY)) as Record<string, unknown>;
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, JSON.stringify(earlier));
+  }
+  (w.items.editComponentProperty as (k: string, v: { name: string }) => string)(textProp(w.items), { name: 'caption' });
+  const after = (await previewUpdate(w.file, [{ def: 'list', plans: w.list }])).sets[0];
+  ok(after.counts.handEdited === 12 && after.counts.current === 0,
+    `#4070 nested/written before: a record with \`own\` and no \`inst\` is still compared through \`own\`, so a rename on List.Item reads on all 12 List members (${JSON.stringify(after.counts)})`);
+}
+{
+  // A REAL EDIT IS STILL ONE: a value set by hand on one nested item reads as a hand edit there, and only there; kept by
+  // an update, it is still reported on the next check.
+  const w = await nestedWorld();
+  const m = membersOf(w.lists)[0];
+  const item2 = childNamed(childNamed(m, 'items'), 'item2');
+  const numberKey = Object.keys(item2.componentProperties as Record<string, unknown>).find((k) => k.startsWith('number#'))!;
+  (item2.setProperties as (p: Record<string, string>) => void)({ [numberKey]: '9.' });
+  const pre = await previewUpdate(w.file, [{ def: 'list', plans: w.list }]);
+  const edits = pre.sets[0].handEdits.map((h) => `${h.member}:${h.path}`);
+  ok(edits.length === 1 && edits[0] === `${m.name}:items/item2`, `#4070 nested/real edit: a value set by hand on one nested item is a hand edit there, and only there (${JSON.stringify(edits)})`);
+  // A plan change on every member, so the update rewrites this one around its kept edit: the root's gap moved.
+  const next = w.list.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root.bound as Record<string, string>).itemSpacing = 'space/999'; return q; });
+  const targets = [{ def: 'list', plans: next }];
+  const pre2 = await previewUpdate(w.file, targets);
+  const res = await applyUpdate(w.file, w.api, targets, previewHashOf(pre2));
+  const post = (await previewUpdate(w.file, targets)).sets[0];
+  ok(res.outcomes[0]?.updated.includes(String(m.name)) && post.handEdits.length === 1 && post.handEdits[0].member === m.name && post.handEdits[0].path === 'items/item2',
+    `#4070 nested/kept still reported: kept by an update that rewrote the member, the edit is still reported (${JSON.stringify(post.handEdits)})`);
+}
+
 /* ── choices ─────────────────────────────────────────────────────────────────────────────────────────── */
 section('choices — a hand edit overwritten, or accepted as built, when the confirm says so (design note §5)');
 for (const choice of ['overwrite', 'accept'] as const) {
