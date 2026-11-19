@@ -31,5 +31,9 @@ gates, rebinding the neutral line and lengthening it failed `surface/step-item` 
 Dropping a default step failed `surface/steps`.
 
 **Held for the owner** (PR body): the neutral line's color, a complete step without `href` (Figma always draws the
-Link), the Figma page section, the DRAFT copy ("Step name", the four hidden words, "Step 2 of 3: Payment"), and the
-DRAFT spacing.
+Link), the Figma page section, the DRAFT copy ("Step name", the four hidden words, "Step 2 of 3: Payment"), the
+DRAFT spacing, the default last step's trailing line (nested overrides take no booleans), StepItem's aliases, the
+`responsive` prop, and the Q438 sentence's reach to orientation.
+
+**After review:** the default Steps numbers its second and third items "2" and "3" in Figma (`nestTexts`, #2317);
+StepItem's own default is "1", so an inserted Steps read 1, 1 before. `#3055 steps/slot` asserts the numbers.
