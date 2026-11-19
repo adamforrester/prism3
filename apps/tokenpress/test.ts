@@ -106,7 +106,7 @@ const ADDED: Record<string, number> = {
   'tests/unit/gradient-paint-styles.test.ts': 6,
   // prism3 #4166 — an alias to a team-library variable exports as a reference by the target's name, marked
   // `$extensions.figma.externalAlias`, instead of a `{VariableID:…}` the validator called broken.
-  'tests/unit/external-library-alias.test.ts': 5,
+  'tests/unit/external-library-alias.test.ts': 8,
 };
 
 // ---- the harness checks itself first -------------------------------------------------------

@@ -12,11 +12,13 @@
  * broken-alias behavior.
  */
 
+import JSZip from 'jszip';
 import { describe, test, expect } from '../../test-harness';
 import { TokenExporter } from '../../src/plugin/exporter';
 import { TokenScanner } from '../../src/plugin/scanner';
 import { TokenValidator } from '../../src/plugin/validator';
 import { RawFigmaExporter } from '../../src/plugin/format-exporters/raw-figma-exporter';
+import { MultiFormatTokenExporter } from '../../src/plugin/multi-format-exporter';
 
 const MODE = '1:0';
 
@@ -47,6 +49,20 @@ const local = makeVariable({
   name: 'button/fill',
   valuesByMode: { [MODE]: { type: 'VARIABLE_ALIAS', id: remote.id } },
 });
+// A library variable that is itself an alias to another library variable: a two-hop remote chain.
+const remoteChain = makeVariable({
+  id: 'VariableID:abc124/7:2',
+  name: 'brand/accent',
+  key: 'abc124',
+  remote: true,
+  variableCollectionId: 'VariableCollectionId:lib/1:0',
+  valuesByMode: { [MODE]: { type: 'VARIABLE_ALIAS', id: remote.id } },
+});
+const localChain = makeVariable({
+  id: 'VariableID:2:3',
+  name: 'button/accent',
+  valuesByMode: { [MODE]: { type: 'VARIABLE_ALIAS', id: remoteChain.id } },
+});
 const dangling = makeVariable({
   id: 'VariableID:2:2',
   name: 'button/stroke',
@@ -60,13 +76,48 @@ function installFigma(): { lookups: string[] } {
     variables: {
       getVariableByIdAsync: (id: string) => {
         lookups.push(id);
-        return Promise.resolve(id === remote.id ? remote : null);
+        return Promise.resolve([remote, remoteChain].find(v => v.id === id) || null);
       },
       getVariableCollectionByIdAsync: (id: string) =>
         Promise.resolve(id === remote.variableCollectionId ? { id, name: 'Brand library', remote: true } : null),
+      // The slice the real export path (`scanAll`) reads: one local collection holding the local variables.
+      getLocalVariableCollectionsAsync: () =>
+        Promise.resolve([
+          {
+            id: 'VariableCollectionId:local',
+            name: 'core',
+            defaultModeId: MODE,
+            modes: [{ modeId: MODE, name: 'Default' }],
+          },
+        ]),
+      getLocalVariablesAsync: () => Promise.resolve([local, localChain]),
     },
+    getLocalTextStylesAsync: () => Promise.resolve([]),
+    getLocalEffectStylesAsync: () => Promise.resolve([]),
+    getLocalPaintStylesAsync: () => Promise.resolve([]),
   };
   return { lookups };
+}
+
+/** Every JSON token tree `exportToZip` wrote, by file name. */
+async function exportFiles(): Promise<Record<string, any>> {
+  const exporter = new TokenExporter({ tokenNameCase: 'preserve' } as never);
+  const zip = await JSZip.loadAsync(await exporter.exportToZip());
+  const files: Record<string, any> = {};
+  for (const name of Object.keys(zip.files)) {
+    if (!zip.files[name].dir && name.endsWith('.json')) files[name] = JSON.parse(await zip.files[name].async('string'));
+  }
+  return files;
+}
+
+/** The token at `path` in whichever exported file holds it. */
+function findToken(files: Record<string, any>, path: string[]): any {
+  for (const name of Object.keys(files)) {
+    let node = files[name];
+    for (const key of path) node = node && typeof node === 'object' ? node[key] : undefined;
+    if (node && node.$value !== undefined) return node;
+  }
+  return undefined;
 }
 
 describe('team-library alias (#4166)', () => {
@@ -125,6 +176,37 @@ describe('team-library alias (#4166)', () => {
     const variableMap = new Map([local].concat(found.variables).map(v => [v.id, v]));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const raw = (new RawFigmaExporter() as any).formatVariable(local, MODE, variableMap);
+    expect(raw.alias.name).toBe('brand/primary');
+  });
+
+  test('the scanner follows a library alias chain past the first hop', async () => {
+    installFigma();
+    const found = await new TokenScanner().resolveExternalAliasTargets([localChain]);
+    expect(found.variables.map(v => v.id)).toEqual([remoteChain.id, remote.id]);
+  });
+
+  test('the real export (exportToZip) writes a library alias as a reference by name, marked external', async () => {
+    installFigma();
+    const files = await exportFiles();
+    const fill = findToken(files, ['button', 'fill']);
+    expect(fill && fill.$value).toBe('{brand.primary}');
+    expect(fill && fill.$extensions && fill.$extensions.figma.externalAlias).toEqual({
+      variableId: remote.id,
+      variableKey: 'abc123',
+      collection: 'Brand library',
+    });
+    const accent = findToken(files, ['button', 'accent']);
+    expect(accent && accent.$value).toBe('{brand.accent}');
+  });
+
+  test('the multi-format raw-figma data maps a library alias target, so it is not "Unknown"', async () => {
+    installFigma();
+    const exporter = new MultiFormatTokenExporter({ tokenNameCase: 'preserve', formats: [] } as never);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawData = await (exporter as any).getRawFigmaData();
+    expect(rawData.variableMap.has(remote.id)).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw = (new RawFigmaExporter() as any).formatVariable(local, MODE, rawData.variableMap);
     expect(raw.alias.name).toBe('brand/primary');
   });
 });
