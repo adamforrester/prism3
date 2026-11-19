@@ -36,6 +36,12 @@ export type ComponentRename =
    *  deprecated (owner decision Q85 A, §10 Q2); the entry says the removal was meant. With `axis` and no
    *  `value` the whole axis is gone; with neither, the whole def. */
   | { readonly def: string; readonly kind: 'drop'; readonly axis?: string; readonly value?: string; readonly issue: number }
+  /** #3392 — A WHOLE AXIS GONE, ITS MEMBERS MERGED INTO ONE VALUE'S. Where an axis changed nothing but what a container
+   *  can set (Dialog's width-only `size`), its members collapse onto shared coordinates once it goes. The member on
+   *  `into` takes the coordinate in place, keeping its id; each member on another value of the axis MERGES into it: an
+   *  update swaps every instance of it placed in the file onto the surviving member at the width it had, then removes
+   *  it, so the set keeps no deprecated member on the old axis and no two members on one coordinate. */
+  | { readonly def: string; readonly kind: 'merge'; readonly axis: string; readonly into: string; readonly issue: number }
   /** Repeating rows behind Figma-only BOOLEAN properties replaced by one native SLOT property (#2649, owner decision
    *  Q307 A). `booleans` are the removed properties' panel names; `rows` are the old row layers, in their order in the
    *  member, as direct children of the layer that held them (`from`). An update moves each placed instance's VISIBLE
@@ -164,6 +170,10 @@ export const COMPONENT_RENAMES: readonly ComponentRename[] = [
   // first, so a member built at `width=full` lands on `edge=full-bleed` and keeps its id and every placed instance.
   { def: 'banner', kind: 'axis', from: 'width', to: 'edge', issue: 3392 },
   { def: 'banner', kind: 'value', axis: 'edge', from: 'full', to: 'full-bleed', issue: 3392 },
+  // #3392 A (owner, 2026-11-18): Dialog's `size` axis is no variant. It only set the centered panel's width, so the
+  // `medium` members (the default, built at 560) take each coordinate in place, keeping their ids and every placed
+  // instance, and the `small` and `large` members merge into them (see the `merge` kind).
+  { def: 'dialog', kind: 'merge', axis: 'size', into: 'medium', issue: 3392 },
   // #3554 (owner decisions 2026-11-11). Q-CC2 A: Code input's fourth rung is spelled `x-large`, hyphenated like every
   // other off-ladder rung (`x-small`), so a member built at `size=xlarge` lands on `size=x-large` and keeps its id. Q-CC6 A:
   // Slider's message toggle is `message`, as on every other field, so a placed slider keeps whether its message shows.
@@ -352,8 +362,8 @@ export const unaccounted = (before: AxesBaseline, after: AxesBaseline, ledger: r
       const axisMove = mine.find((r) => r.kind === 'axis' && r.from === axis) as { to: string } | undefined;
       const axisNow = axisMove ? axisMove.to : axis;
       if (!a.axes[axisNow]) {
-        if (!mine.some((r) => r.kind === 'drop' && r.axis === axis && r.value === undefined))
-          bad.push(`${def}: axis '${axis}' is gone — needs { kind: 'axis', from: '${axis}', to } or { kind: 'drop', axis: '${axis}' }`);
+        if (!mine.some((r) => (r.kind === 'drop' && r.axis === axis && r.value === undefined) || (r.kind === 'merge' && r.axis === axis && values.includes(r.into))))
+          bad.push(`${def}: axis '${axis}' is gone — needs { kind: 'axis', from: '${axis}', to }, { kind: 'drop', axis: '${axis}' } or { kind: 'merge', axis: '${axis}', into }`);
         continue;
       }
       for (const v of values) {
@@ -409,6 +419,8 @@ export const danglingTargets = (after: AxesBaseline, ledger: readonly ComponentR
   for (const r of ledger) {
     if (!Number.isInteger(r.issue) || r.issue <= 0) bad.push(`${r.def}: entry ${JSON.stringify(r)} names no issue`);
     if (r.kind === 'drop' || r.kind === 'property' || r.kind === 'part') continue;
+    // A merge's successor is the axis's absence: the axis must be gone from the tree's projection.
+    if (r.kind === 'merge') { if (after[r.def]?.axes[r.axis]) bad.push(`${r.def}: the merge of '${r.axis}' into ${r.into} names an axis the def still projects`); continue; }
     if (r.kind === 'slot-text') {
       // #3225 — what the update writes must be on the set: the TEXT property, and the two booleans.
       const props = after[r.def]?.properties;

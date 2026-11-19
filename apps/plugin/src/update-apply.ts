@@ -74,6 +74,9 @@ import { cause, runCause, mergeCauses, CAUSE_WHAT } from './causes';
 import { UPDATES_OFF_COPY, writeUpdatesOff, type UpdatesOff } from './updates-off';
 import { COVER_NAME, coverIsWork, coverLine, coverPageOnlyLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
 
+/** #3392 — what a merge reads and writes on a member and its placed instances. */
+type MergeInstance = { width?: unknown; height?: unknown; swapComponent?: (c: unknown) => void; resize?: (w: number, h: number) => void };
+type MergeNode = { name?: string; remove?: () => void; getInstancesAsync?: () => Promise<MergeInstance[]> };
 /** The set's record of the members an update kept and marked deprecated (Q2): a JSON list of member names. */
 export const RETAINED_KEY = 'retained';
 /** What a deprecated member's description starts with (owner decision Q104 A). */
@@ -137,6 +140,9 @@ export type SetOutcome = {
   added: number;
   renamed: number;
   deprecated: string[];
+  /** #3392 — members merged into another (an axis the ledger merges): their placed instances swapped onto the
+   *  surviving member, then the member removed. Each with how many instances moved. Absent when none. */
+  merged?: { member: string; into: string; instances: number }[];
   /** Members left as they are, each with its reason. */
   skipped: { member: string; reason: string }[];
   /** #2956 — of `skipped`, the members skipped because the update could not apply around their hand edits (a layer added
@@ -622,6 +628,25 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, pr
       const coord = toCoord(String(c.name ?? ''));
       if (work.members.has(movedTo.get(coord) ?? coord)) rename(c);
     }
+  }
+
+  // ── MERGES (#3392), before the identity is read and before the renames: a member an axis the ledger merges collapses
+  // onto the coordinate of the member it merges into. Every instance of it placed in the file is swapped onto that
+  // member, at the width it had (the merged axis set only the width, so its overrides carry across), and the member is
+  // removed, so the rename block below never sees two members land on one coordinate.
+  for (const mg of p.merges ?? []) {
+    const kids = kidsOf(live);
+    const gone = kids.find((c) => coordKey(String(c.name ?? '')) === coordKey(mg.member)) as MergeNode | undefined;
+    const into = kids.find((c) => coordKey(String(c.name ?? '')) === coordKey(mg.into)) as MergeNode | undefined;
+    if (!gone || !into) continue;
+    const placed = (await gone.getInstancesAsync?.()) ?? [];
+    for (const i of placed) {
+      const w = Number(i.width), h = Number(i.height);
+      i.swapComponent?.(into);
+      if (Number.isFinite(w) && Math.abs(Number(i.width) - w) > 0.5) i.resize?.(w, Number.isFinite(Number(i.height)) ? Number(i.height) : h);
+    }
+    gone.remove?.();
+    (out.merged ??= []).push({ member: mg.member, into: mg.into, instances: placed.length });
   }
 
   // ── THE IDENTITY BEFORE ─────────────────────────────────────────────────────────────────────────────────
