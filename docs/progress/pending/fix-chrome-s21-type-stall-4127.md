@@ -12,3 +12,4 @@ A measured trap for whoever writes the next frame-stall test: a stub `requestAni
 
 - The new arm in section 21 stops the page's frames and holds `frames()` to a 3s bound. On main's `frames()`: `✗ section 21: no progress for 60s … the last check it reached: none yet` (watchdog at `CHROME_SECTION_LIMIT_S=60`). With the fix: 49/49, the arm included.
 - Mutations, each committed first: `within`'s bound dropped → the same watchdog stall. The step name dropped from `frames`' label → `✗ #4127: a frame wait that never settles fails by name within its bound …`.
+- After review: `within`'s timeout message carries no issue number, so the self-check arm is the only literal `lint-test-arms` reads as `#4127`; deleting that arm now fails `ARM GONE … #4127` by name, where before the registry line stayed green. The self-check replays the frame callbacks it held, so a page guard waiting on one (`data-fit-pending`) is not left stuck.
