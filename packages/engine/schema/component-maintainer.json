@@ -6468,7 +6468,7 @@
         {
           "class": "visual-treatment",
           "disposition": "UNSUPPORTED",
-          "description": "tabular figures — the character sets `font-variant-numeric: tabular-nums`, so every digit is one width and the code does not shimmer as it fills."
+          "description": "tabular lining figures — the character sets `font-variant-numeric: tabular-nums lining-nums`, so every digit is one width and the code does not shimmer as it fills, and every digit stands at cap height, so the cell centers it whatever figures the brand font draws by default. In Figma the cell shows the font's default figures: a plugin cannot turn on an OpenType feature."
         },
         {
           "class": "live-geometry",
