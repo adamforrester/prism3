@@ -43892,6 +43892,22 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(rising === '', `#3872 rising breakpoints [0, 768.5, 1024] still build (got ${JSON.stringify(rising)})`);
 }
 
+// #3984 — a line break in a string setting survives the design.md round trip. The serializer wrote it raw inside the
+// double quotes, so the second line became a frontmatter line of its own and the export would not import again. It is
+// now written as YAML's `\n` escape (and `\r` as `\r`), which the parser decodes; a backslash before an `n` that was
+// typed as text still comes back as text, because the backslash is escaped first. A quoted key was trimmed after it was
+// decoded, so a key that was a line break, or had a space at an end, lost it; the raw text is trimmed instead.
+{
+  const base = { id: 'q3984', primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 } };
+  for (const name of ['Two\nlines', 'Windows\r\nline', 'a typed \\n stays text', '\n', ' a space at each end ']) {
+    let x: any = { ...base, name, meta: { [name]: name } };
+    let err = '';
+    try { for (let i = 0; i < 2; i++) x = parseDesignMd(toDesignMd(x)).input; } catch (e) { err = (e as Error).message.slice(0, 80); }
+    ok(!err && x.name === name && x.meta?.[name] === name,
+      `#3984 two design.md round trips keep ${JSON.stringify(name)} as a name, a value and a key (got ${err ? `a throw: ${err}` : JSON.stringify(x.name)})`);
+  }
+}
+
 // #3707 (owner decision A, 2026-11-18) — `typography.links: []` validated and built, dropping the six guaranteed body
 // and caption link styles and leaving Link binding text styles nothing emitted. The schema now says `minItems: 1` and
 // brandTheme refuses an in-memory empty list in a sentence of its own (DRAFT wording, Q-RF1 A's pattern). A
