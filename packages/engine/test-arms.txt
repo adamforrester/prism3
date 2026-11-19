@@ -156,6 +156,7 @@ apps/plugin/test-rename-parity.ts #1024
 apps/plugin/test-rename-parity.ts #3857
 apps/plugin/test-report-redaction.ts #3697
 apps/plugin/test-report-redaction.ts #3702
+apps/plugin/test-report-redaction.ts #4205
 apps/plugin/test-roundtrip.ts #1318
 apps/plugin/test-roundtrip.ts #1331
 apps/plugin/test-roundtrip.ts #1332
@@ -590,6 +591,7 @@ apps/studio/test-chrome.mjs #3093
 apps/studio/test-chrome.mjs #3106
 apps/studio/test-chrome.mjs #3113
 apps/studio/test-chrome.mjs #3115
+apps/studio/test-chrome.mjs #3116
 apps/studio/test-chrome.mjs #3117
 apps/studio/test-chrome.mjs #3126
 apps/studio/test-chrome.mjs #3128
@@ -757,6 +759,7 @@ apps/studio/test-report.ts #3561
 apps/studio/test-report.ts #3697
 apps/studio/test-report.ts #3702
 apps/studio/test-report.ts #3883
+apps/studio/test-report.ts #4257
 apps/studio/test-run-ended.ts #533
 apps/studio/test-run-time.ts #3471
 apps/studio/test-shape-input.ts #2053
@@ -800,8 +803,8 @@ apps/studio/test-smoke.mjs #2812
 apps/studio/test-smoke.mjs #2915
 apps/studio/test-smoke.mjs #2935
 apps/studio/test-smoke.mjs #2942
+apps/studio/test-smoke.mjs #3116
 apps/studio/test-smoke.mjs #330
-apps/studio/test-smoke.mjs #3335
 apps/studio/test-smoke.mjs #3429
 apps/studio/test-smoke.mjs #388
 apps/studio/test-smoke.mjs #3880
@@ -874,10 +877,12 @@ packages/engine/test.ts #1039
 packages/engine/test.ts #1040
 packages/engine/test.ts #1043
 packages/engine/test.ts #1053
+packages/engine/test.ts #1059
 packages/engine/test.ts #1084
 packages/engine/test.ts #1087
 packages/engine/test.ts #1089
 packages/engine/test.ts #1097
+packages/engine/test.ts #110
 packages/engine/test.ts #1102
 packages/engine/test.ts #1108
 packages/engine/test.ts #1119
@@ -1159,6 +1164,7 @@ packages/engine/test.ts #2887
 packages/engine/test.ts #2888
 packages/engine/test.ts #2892
 packages/engine/test.ts #2894
+packages/engine/test.ts #2895
 packages/engine/test.ts #290
 packages/engine/test.ts #2912
 packages/engine/test.ts #2924
@@ -1225,6 +1231,7 @@ packages/engine/test.ts #3346
 packages/engine/test.ts #3347
 packages/engine/test.ts #3360
 packages/engine/test.ts #3365
+packages/engine/test.ts #3375
 packages/engine/test.ts #3382
 packages/engine/test.ts #3399
 packages/engine/test.ts #3408
@@ -1271,7 +1278,20 @@ packages/engine/test.ts #3985
 packages/engine/test.ts #3986
 packages/engine/test.ts #4019
 packages/engine/test.ts #4045
+packages/engine/test.ts #4120
+packages/engine/test.ts #4130
+packages/engine/test.ts #4136
+packages/engine/test.ts #4139
+packages/engine/test.ts #4141
+packages/engine/test.ts #4143
+packages/engine/test.ts #4144
 packages/engine/test.ts #415
+packages/engine/test.ts #4153
+packages/engine/test.ts #4170
+packages/engine/test.ts #4177
+packages/engine/test.ts #4198
+packages/engine/test.ts #4199
+packages/engine/test.ts #4203
 packages/engine/test.ts #479
 packages/engine/test.ts #480
 packages/engine/test.ts #482
@@ -1288,6 +1308,7 @@ packages/engine/test.ts #656
 packages/engine/test.ts #681
 packages/engine/test.ts #682
 packages/engine/test.ts #708
+packages/engine/test.ts #731
 packages/engine/test.ts #734
 packages/engine/test.ts #740
 packages/engine/test.ts #741
