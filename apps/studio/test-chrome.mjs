@@ -23160,6 +23160,136 @@ if (runs('3911')) {
     } finally { await ctx.close(); }
   }
 } // 3911
+// =============================================================================================
+// 3079. #3079 (owner decision 2026-11-18 A): the Type view laid out around the text types. Light, prism3, at 1280.
+//   · (a) both hosts: one Show advanced settings switch, off on arrival, and no Show advanced fold; the levers' sections
+//     read Typeface library, Font family for each text type, Scale, Text types, and Every text type joins only with the
+//     switch on; one card per text type, in order, each naming its family read-only and holding a Line height and a
+//     Letter spacing menu; with the switch off no card draws advanced rows, with it on every card does (Q3079.1 A, 2 A).
+//   · (b) web: body's Line height menu lists Default and every line height name, each a real value with its token name
+//     (Q808 A); picking 1.65 writes typography.leading.body = relaxed and no leadingShift; Default removes it, and the
+//     brand returns to its bytes (Q3079.4 A).
+//   · (c) web, a stored nudge (the test edit hook): title's leadingShift +1 lands on two values, so the menu reads them
+//     and holds a Current entry, checked (Q3079.5 A); eyebrow's trackingShift -1 lands on one value, so that value is
+//     checked and there is no Current. Picking a value writes the pin and removes the nudge.
+//   · (d) web: Display's Letter spacing reaches +1% (open), which no nudge reaches (Q808 A's "every role reachable").
+//
+// INDEPENDENCE (docs/34). EXPECTED is typed here: the section titles, the card order, the family line's words, the
+// default line height and letter spacing ladders copied by hand from the engine's tables (tight 1.05 … loose 1.75;
+// tightest −4% … wider +5%), the rung each pick must write, and the values a +1 title nudge lands on, worked out by
+// hand from the engine's size rule (title xs–md cozy 1.40, lg–2xl compact 1.25). ACTUAL is the browser's: the drawn
+// DOM and the PERSISTED brand (`prism3:brandInput`). Nothing is read from `type.ts`, `type-input.ts` or `pages.ts`.
+//
+// On main this whole section fails: Type there has two folds, no switch and no cards. Mutations, each after a `wip:`
+// commit, each failing here by name:
+//   · `setSpacing` keeping the nudge (its `dropKey(spec.shift, g)` removed) → `§3079 web: (c) picking 1.50 for title
+//     writes typography.leading.title normal and removes leadingShift.title …`;
+//   · the cards drawn in another order (`TYPE_GROUP_ORDER` reversed in `typesSection`) → `§3079 web: (a) one card per
+//     text type, in order …`.
+// =============================================================================================
+if (runs('3079')) {
+console.log(`\nType around the text types (#3079)\n${'='.repeat(78)}`);
+{
+  const SECTIONS = ['Typeface library', 'Font family for each text type', 'Scale', 'Text types'];
+  const CARDS = ['display', 'title', 'body', 'label', 'caption', 'eyebrow', 'code'];
+  const LH = ['1.05', '1.15', '1.25', '1.40', '1.50', '1.65', '1.75'];
+  const LH_TOK = ['tight', 'snug', 'compact', 'cozy', 'normal', 'relaxed', 'loose'].map((r) => `line-height-role.${r}`);
+  const LS = ['−4%', '−3%', '−2%', '−1.5%', '−1%', '0%', '+1%', '+2%', '+5%'];
+  const BOUND = { timeout: 10000 };
+  const read = (page) => page.evaluate(() => {
+    const pane = document.querySelector('[data-p3="levers-pane"]');
+    return {
+      sw: document.querySelector('[data-p3="type-advanced"]')?.getAttribute('aria-checked') ?? null,
+      folds: pane.querySelectorAll('[data-p3="scale-advanced"], [data-p3="type-sections-advanced"]').length,
+      secs: [...pane.querySelectorAll('[data-p3="lever-section"] .p3-lsec-title')].map((n) => n.textContent),
+      cards: [...pane.querySelectorAll('[data-p3="type-card"]')].map((n) => ({ g: n.dataset.group, fam: n.querySelector('[data-p3="type-card-family"]')?.textContent ?? null,
+        lh: !!n.querySelector('[data-p3="type-lh"]'), ls: !!n.querySelector('[data-p3="type-ls"]'), adv: !!n.querySelector('[data-p3="type-card-advanced"]') })),
+    };
+  });
+  /** The open menu's entries: each value's words and its secondary text, and which is checked. */
+  const menu = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="value-picker"] [data-p3="value-picker-value"]')].map((b) => ({
+    v: b.dataset.value, label: b.querySelector('.p3-vpick-key')?.firstChild?.textContent ?? null, note: b.querySelector('.p3-vpick-note')?.textContent ?? null, on: b.getAttribute('aria-pressed') === 'true' })));
+  const openMenu = async (page, sel) => {
+    if ((await page.locator(sel).getAttribute('aria-expanded')) !== 'true') await hooks.click(page.locator(sel), BOUND);
+    await hooks.need(page, '[data-p3="value-picker"]', BOUND);
+  };
+  const choose = async (page, sel, v) => {
+    await openMenu(page, sel);
+    await hooks.click(page.locator(`[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="${v}"]`), BOUND);
+    await page.waitForFunction((x) => document.querySelector(`[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="${x}"]`)?.getAttribute('aria-pressed') === 'true', String(v), BOUND).catch(() => {});
+    if (await page.locator('[data-p3="value-picker-close"]').count()) await hooks.click(page.locator('[data-p3="value-picker-close"]'), BOUND);
+  };
+  for (const host of ['web', 'figma']) {
+    const where = `§3079 ${host}`;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900, query: host === 'web' ? '?p3-test-hooks' : '' });
+    let step = 'open Type';
+    try {
+      await goPlace(page, 'type');
+      await hooks.need(page, '[data-p3="type-card"]', BOUND);
+      // (a)
+      const off = await read(page);
+      ok(off.sw === 'false' && off.folds === 0, `${where}: (a) one Show advanced settings switch, off on arrival, and no Show advanced fold (switch ${off.sw}, folds ${off.folds})`);
+      ok(JSON.stringify(off.secs) === JSON.stringify(SECTIONS), `${where}: (a) the sections read ${SECTIONS.join(', ')} with the switch off (${JSON.stringify(off.secs)})`);
+      ok(JSON.stringify(off.cards.map((c) => [c.g, c.lh, c.ls])) === JSON.stringify(CARDS.map((g) => [g, true, true])),
+        `${where}: (a) one card per text type, in order ${CARDS.join(', ')}, each with a Line height and a Letter spacing menu (${JSON.stringify(off.cards.map((c) => [c.g, c.lh, c.ls]))})`);
+      ok(off.cards.find((c) => c.g === 'body')?.fam === 'Inter · set in Font family for each text type', `${where}: (a) the Body card names its family read-only ("${off.cards.find((c) => c.g === 'body')?.fam}")`);
+      ok(off.cards.length === CARDS.length && off.cards.every((c) => !c.adv), `${where}: (a) with the switch off, no card draws advanced rows (${off.cards.filter((c) => c.adv).map((c) => c.g).join(', ') || 'none'})`);
+      step = 'switch on';
+      await openTypeAdvanced(page);
+      const on = await read(page);
+      ok(JSON.stringify(on.secs) === JSON.stringify([...SECTIONS, 'Every text type']) && on.cards.length === CARDS.length && on.cards.every((c) => c.adv),
+        `${where}: (a) with the switch on, Every text type joins and every card draws its advanced rows (${JSON.stringify(on.secs)}; advanced ${on.cards.filter((c) => c.adv).length}/${on.cards.length})`);
+      if (host === 'web') {
+        // (b)
+        step = 'body line height menu';
+        const p0 = await persisted(page);
+        await openMenu(page, '[data-p3="type-lh"][data-group="body"]');
+        const m = await menu(page);
+        ok(JSON.stringify(m.map((x) => x.label)) === JSON.stringify(['Default · 1.50', ...LH]) && JSON.stringify(m.slice(1).map((x) => x.note)) === JSON.stringify(LH_TOK) && m[0].on,
+          `${where}: (b) body's Line height menu lists Default (checked) and every line height as a value with its token name (${JSON.stringify(m.map((x) => [x.label, x.note, x.on]))})`);
+        await choose(page, '[data-p3="type-lh"][data-group="body"]', 5);
+        const p1 = await persisted(page);
+        ok(p1?.typography?.leading?.body === 'relaxed' && p1?.typography?.leadingShift === undefined,
+          `${where}: (b) picking 1.65 writes typography.leading.body relaxed and no leadingShift (${JSON.stringify(p1?.typography)})`);
+        await choose(page, '[data-p3="type-lh"][data-group="body"]', -1);
+        ok(JSON.stringify(await persisted(page)) === JSON.stringify(p0), `${where}: (b) Default removes the pin: the brand returns to its bytes (${JSON.stringify((await persisted(page))?.typography)})`);
+        // (c)
+        step = 'stored nudges';
+        await page.evaluate(() => { window.__prism3TestEdit('typography.leadingShift', { title: 1 }); });
+        await page.evaluate(() => { window.__prism3TestEdit('typography.trackingShift', { eyebrow: -1 }); });
+        await page.waitForFunction(() => /1\.40 \/ 1\.25/.test(document.querySelector('[data-p3="type-lh"][data-group="title"]')?.textContent ?? ''), null, BOUND).catch(() => {});
+        const tBtn = await page.evaluate(() => document.querySelector('[data-p3="type-lh"][data-group="title"] .p3-btn-label')?.textContent ?? null);
+        ok(tBtn === '1.40 / 1.25', `${where}: (c) title's +1 nudge lands on two values, and its menu reads them, smallest size first ("${tBtn}")`);
+        await openMenu(page, '[data-p3="type-lh"][data-group="title"]');
+        const tm = await menu(page);
+        ok(tm[0]?.label === 'Current · 1.40 / 1.25' && tm[0]?.on && tm[0]?.note === 'xs–md / lg–2xl. Set as steps from the default; pick a value to replace it.' && tm[1]?.label === 'Default · 1.25 / 1.15' && tm.filter((x) => x.on).length === 1,
+          `${where}: (c) title's menu holds Current, checked, then Default (${JSON.stringify(tm.slice(0, 2))})`);
+        if (await page.locator('[data-p3="value-picker-close"]').count()) await hooks.click(page.locator('[data-p3="value-picker-close"]'), BOUND);
+        await openMenu(page, '[data-p3="type-ls"][data-group="eyebrow"]');
+        const em = await menu(page);
+        ok(!em.some((x) => /^Current/.test(x.label ?? '')) && em.filter((x) => x.on).map((x) => x.label).join() === '+2%',
+          `${where}: (c) eyebrow's -1 nudge lands on one value, +2%, which is checked, with no Current entry (${JSON.stringify(em.filter((x) => x.on))})`);
+        if (await page.locator('[data-p3="value-picker-close"]').count()) await hooks.click(page.locator('[data-p3="value-picker-close"]'), BOUND);
+        await choose(page, '[data-p3="type-lh"][data-group="title"]', 4);
+        const p2 = await persisted(page);
+        ok(p2?.typography?.leading?.title === 'normal' && p2?.typography?.leadingShift === undefined && p2?.typography?.trackingShift?.eyebrow === -1,
+          `${where}: (c) picking 1.50 for title writes typography.leading.title normal and removes leadingShift.title, leaving eyebrow's nudge (${JSON.stringify(p2?.typography)})`);
+        // (d)
+        step = 'display letter spacing';
+        await openMenu(page, '[data-p3="type-ls"][data-group="display"]');
+        const dm = await menu(page);
+        ok(JSON.stringify(dm.slice(1).map((x) => x.label)) === JSON.stringify(LS), `${where}: (d) Display's Letter spacing lists every letter spacing, open's +1% included (${JSON.stringify(dm.map((x) => x.label))})`);
+        if (await page.locator('[data-p3="value-picker-close"]').count()) await hooks.click(page.locator('[data-p3="value-picker-close"]'), BOUND);
+        await choose(page, '[data-p3="type-ls"][data-group="display"]', 6);
+        ok((await persisted(page))?.typography?.tracking?.display === 'open', `${where}: (d) picking +1% writes typography.tracking.display open (${JSON.stringify((await persisted(page))?.typography?.tracking)})`);
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
+} // 3079
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the

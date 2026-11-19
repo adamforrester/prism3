@@ -972,7 +972,8 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     const val = (rung: string): string => {
       if (lh) { const v = ty.lineHeights.find((l) => l.key === rung)?.value; return v === undefined ? rung : v.toFixed(2); }
       const em = ty.letterSpacings.find((l) => l.key === rung)?.em;
-      return em === undefined ? rung : emToPercentLabel(em);
+      // The wireframe's form: a looser letter spacing is signed, "+1%".
+      return em === undefined ? rung : `${em > 0 ? '+' : ''}${emToPercentLabel(em)}`;
     };
     const num = (rung: string): number => (lh ? ty.lineHeights.find((l) => l.key === rung)?.value ?? 1.5 : ty.letterSpacings.find((l) => l.key === rung)?.em ?? 0);
     const vals = (runs: readonly SpacingRun[]): string => runs.map((r) => val(r.rung)).join(' / ');
