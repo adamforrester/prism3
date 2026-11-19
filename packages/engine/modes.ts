@@ -137,7 +137,11 @@ const pickClosest = (cands: Cand[], surface: RGB, target: number, min = 0, alsoC
  */
 const pickBrand = (steps: Step[], ns: string, palette: string, anchorNum: number, surface: RGB, min: number, exact = false, alsoClear: RGB[] = [], avoid: RGB[] = [], alsoMin = min): RatedNum => {
   const cands = steps.map((s) => ({ path: `${ns}.${palette}.${s.key}`, rgb: s.rgb, num: s.num }));
-  const anchor = cands.find((c) => c.num === anchorNum) ?? cands.find((c) => c.num === 500)!;
+  const found = cands.find((c) => c.num === anchorNum);
+  // #3873: an authored anchor off the ramp is refused in `brandTheme`; this is the backstop. Falling back to 500 is a
+  // derivation aid, so it is only defensible for a derived anchor: an exact one would ship 500 uncorrected.
+  if (!found && exact) throw new Error(`An anchor at step ${anchorNum} is not on the ${palette} ramp (${steps.map((s) => s.num).join(', ')}).`);
+  const anchor = found ?? cands.find((c) => c.num === 500)!;
   const avoidHex = new Set(avoid.map(hex));
   const clearsExtra = (rgb: RGB) => alsoClear.every((g) => contrast(rgb, g) >= alsoMin) && !avoidHex.has(hex(rgb));
   // `exact` = the anchor was AUTHORED (a pinned step, not the engine's derived default), so it is
