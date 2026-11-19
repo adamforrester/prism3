@@ -27,7 +27,9 @@
 //
 // WHAT IT SEES. The command is tokenized like a shell would (quotes, escapes, `&&` `||` `;` `|` `&`,
 // newlines, subshell parens), each simple command is read separately, `cd <dir>` and `git -C <dir>` are
-// followed (for the stack it prints), and a `sh -c '<script>'` / `bash -c` is read recursively. The
+// followed (for the stack it prints), and a `sh -c '<script>'` / `bash -c` / `bash -lc` is read recursively.
+// Wrappers (`time`, `env`, `nohup`, …) and `VAR=value` prefixes are skipped, and git is matched by its bare
+// name or by a path to it (`/usr/bin/git`). The
 // tokenizer is a copy of the restore auto-stash hook's, not an import: each hook stays one file its own
 // battery can mutate without moving the other.
 //
@@ -116,11 +118,15 @@ function simpleCommands(tokens) {
 // ── Recognize a bare pop, apply or drop. Returns { dir, sub } or null. ─────────────────────────────
 const WRAPPERS = new Set(['command', 'builtin', 'exec', 'nohup', 'time', 'env', 'sudo']);
 const EXPLICIT = /^(?:(?:refs\/)?stash@\{\d+\}|\d+|[0-9a-f]{7,40})$/i;
+// `git` by its bare name or by a path to it (`/usr/bin/git`).
+const gitWord = (w) => typeof w === 'string' && w.replace(/^.*\//, '') === 'git';
+// A shell's script flag: `-c` alone or combined with others (`-lc`, `-ec`). `--rcfile` and the like are not it.
+const SHELL_C = /^-[A-Za-z]*c[A-Za-z]*$/;
 
 function bareStashOf(words, dir) {
   let k = 0;
   while (k < words.length && (/^[A-Za-z_][A-Za-z0-9_]*=/.test(words[k]) || WRAPPERS.has(words[k]))) k++;
-  if (words[k] !== 'git') return null;
+  if (!gitWord(words[k])) return null;
   k++;
   // git's global options, before the subcommand.
   while (k < words.length && words[k].startsWith('-')) {
@@ -144,7 +150,7 @@ function findBare(command, cwd, depth = 0) {
   for (const words of simpleCommands(tokenize(command))) {
     if (words[0] === 'cd') { dir = resolve(dir, words[1] ?? process.env.HOME ?? '/'); continue; }
     if (depth < 3 && /^(?:\/\S*\/)?(?:ba|z|da)?sh$/.test(words[0])) {
-      const c = words.indexOf('-c');
+      const c = words.findIndex((w, i) => i > 0 && SHELL_C.test(w));
       if (c !== -1 && words[c + 1] !== undefined) found.push(...findBare(words[c + 1], dir, depth + 1));
       continue;
     }
