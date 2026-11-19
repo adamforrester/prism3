@@ -84,7 +84,7 @@ Open **Update file** again to check afresh. <!-- src: apps/studio/src/state/upda
 | A variant the brand dropped | Kept in the set and marked deprecated, with its name recorded. Never deleted. <!-- src: apps/plugin/src/update-apply.ts:20-21#bc79ac24 --> |
 | A variant Prism3 did not build | Skipped. <!-- src: apps/plugin/src/update-apply.ts:23#833d0bf0 --> |
 | A variant whose layer structure was edited | Skipped whole, because its parts can no longer be matched one by one. <!-- src: apps/plugin/src/update-apply.ts:26#488f7db7 --> |
-| A hand edit on a variant, such as a recolor, when the update adds, removes or retypes a layer in that variant | Skipped whole, and the set's updates turn off. The **Overwrite** choice writes it instead. <!-- src: apps/plugin/src/update-apply.ts:375#04ebeceb --> |
+| A hand edit on a variant, such as a recolor, when the update adds, removes or retypes a layer in that variant | Skipped whole, and the set's updates turn off. <!-- src: apps/plugin/src/update-apply.ts:375#04ebeceb --> The **Overwrite** choice writes it instead. <!-- src: apps/studio/src/state/update-file.ts:405 --> |
 | A set that would collapse when an option is removed | Refused, because those variants could not stay in the set, and deleting them is never the default. <!-- src: apps/plugin/src/update-apply.ts:26-27#db53431a --> |
 
 One undo reverts the whole update. If a run stops partway, the finished sets are current and the rest are still due; running Update file again finishes them. <!-- src: apps/plugin/src/update-apply.ts:36-40#04be1a16 -->
