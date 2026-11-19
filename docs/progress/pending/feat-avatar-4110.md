@@ -38,3 +38,5 @@ the wireframe in #4148. Engine {{ENGINE_VERSION}}; `CONTRACT_VERSION` 15.1.0 →
 The x-large token's name (`icon.size.2xl`), the shape words against Icon button's `circular`, the presence tone mapping
 and the dot's starting tone, the x-large initials rung, the glyph sizes, one initial in Figma at the small sizes, the
 page, and the glyph artwork. Each is in the PR body as an OWNER DECISION with options and a recommendation.
+
+After review: the initials-contrast arm in `test.ts` reads the ink and the backdrop off the projected plans (what the def binds), not as typed role names, and measures them in all five emitted brands (wendys added), 20 cells. Rebinding the initials to `color.text.tertiary` now fails `#4110 avatar: the initials' ink clears 4.5:1 on the backdrop the def binds` by name (2.79:1 in prism3 light); before, every `#4110` arm passed and only the paint census, which `--accept` rewrites, moved.
