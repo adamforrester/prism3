@@ -1685,6 +1685,10 @@
           "name": "title"
         },
         {
+          "name": "hideTitle",
+          "default": false
+        },
+        {
           "name": "description"
         },
         {
@@ -7441,6 +7445,12 @@
       },
       {
         "id": "slider",
+        "default": false
+      }
+    ],
+    "hideTitle": [
+      {
+        "id": "dialog",
         "default": false
       }
     ],
