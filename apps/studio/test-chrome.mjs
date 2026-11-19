@@ -11198,8 +11198,8 @@ for (const host of ['web', 'figma']) {
       ok(!!r.rO && r.rO.title === 'Radio options' && r.rO.desc === 'How big the dot in a selected radio is.' && JSON.stringify(r.rO.chips) === JSON.stringify(['Default', '60%', '70%', '80%']),
         `#3086: ${host} ${w}: Radio options: its drafted title and description, and Radio dot size's chips, Default to 80% (${JSON.stringify(r.rO)})`);
       const T = r.tags;
-      ok(!!T && JSON.stringify(T.ids) === JSON.stringify(['tag']) && T.folds + T.families === 0,
-        `#2931 Q579 A: ${host} ${w}: the Tag section lists Tag as a row, with no family row and no fold (${JSON.stringify({ ids: T?.ids, folds: T?.folds, families: T?.families })})`);
+      ok(!!T && JSON.stringify(T.ids) === JSON.stringify(['tag', 'tag-group']) && T.folds + T.families === 0,
+        `#2931 Q579 A, #1739: ${host} ${w}: the Tag section lists the Tag page's two sets, Tag and Tag.Group, in one row, with no family row and no fold (${JSON.stringify({ ids: T?.ids, folds: T?.folds, families: T?.families })})`);
       ok(!!r.to && r.to.title === 'Tag options' && r.to.desc === 'How tags draw their shape.' && JSON.stringify(r.to.chips) === JSON.stringify(['Pill', 'Underline']),
         `#2931 Q579 A, #2905 Q10 A: ${host} ${w}: Tag options: its drafted title and description, and Tag style's chips (${JSON.stringify(r.to)})`);
       const B = r.buttons, F = r.fields;
@@ -19312,7 +19312,10 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 if (runs('3129')) {
 console.log(`\n#3129 — the add queue: Components' boxes, Update file's To add and Due\n${'='.repeat(78)}`);
 const S_PRESENT = ['icon', 'focus-ring', 'button', 'button-destructive', 'button-neutral', 'button-group', 'field-label', 'field-message', 'text-field', 'select',
-  'checkbox-control', 'checkbox-row', 'checkbox-group', 'badge', 'tag', 'divider', 'spinner', 'veil'];
+  'checkbox-control', 'checkbox-row', 'checkbox-group', 'badge', 'tag', 'tag-group', 'divider', 'spinner', 'veil'];
+// #1739: Tag.Group joined Tag's family, so the sample file holds both, keeping Tag a family the file holds whole (the
+// `sec=tags` in-file box below). A file holding Tag alone keeps an active Tag box (#3439 Q-IF.3 A, `boxOfSets`); the
+// Radio arm below holds that rule, and `test-component-groups.ts` holds the Tag case by name.
 const S_DUE = { ...Object.fromEntries(S_PRESENT.map((id) => [id, { state: 'current' }])), button: { state: 'due', reason: 'engine' }, 'text-field': { state: 'due', reason: 'definition' }, tag: { state: 'due', reason: 'definition' } };
 // Queued in an order that is not the list's, so the list order is read, not echoed.
 const S_QUEUED = ['radio-control', 'banner', '_accordion-indicator', 'search-field', 'accordion', 'dialog', 'password-field'];
