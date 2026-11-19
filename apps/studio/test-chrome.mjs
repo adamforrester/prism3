@@ -143,7 +143,7 @@
  *   · ONE HOME PER PAGE (V1): every place names its literal home view and title (`EXPECT_HOME`), visited in
  *     two orders; scrolling the page and focusing its controls never changes it; nothing offers "Keep this
  *     view" (V12).
- *   · INSPECT (F1): the verdict reads the decided count (956; 884 until #3346) and opens Inspect › Contrast over the legacy
+ *   · INSPECT (F1): the verdict reads the decided count (964; 956 until #2750, 884 until #3346) and opens Inspect › Contrast over the legacy
  *     frame, with Health first and its literal lines; Tokens redraws in place from its own controls (the Decisions
  *     log, its third view, was cut by #2909 Q2909.7 A; its two unique notes are on their levers); Back and Escape close it to the page, its scroll
  *     and the opener's focus; a tab change closes it. Measured at every width, both themes, both hosts.
@@ -330,8 +330,8 @@
  *   · v5 answer 4: Brand name and Token namespace side by side at 1280, 640 and 380, both hosts.
  *   · T2: the placeholder (`pds3`) and the reserved (`prism`) namespaces warn in v6's words; a draft reaches
  *     nothing until Rename namespace and its confirm; Escape closes the confirm back to the field.
- *   · Q3: dark off asks first, naming high contrast dark and the verdict's new count (478 of 956, from Health's
- *     literal 239 per mode); Cancel keeps it; confirming drops both; high contrast dark stays locked off with
+ *   · Q3: dark off asks first, naming high contrast dark and the verdict's new count (482 of 964, from Health's
+ *     literal 241 per mode); Cancel keeps it; confirming drops both; high contrast dark stays locked off with
  *     its reason until dark is back, and dark back does not bring it back.
  *   · The name reaches the bar per keystroke (the `identity` topic) and the persisted brand; personality and the
  *     custom modes reach the brand; the Style guide's own select redraws it inside the preview (the lent repaint).
@@ -695,7 +695,8 @@ const DISABLED_APPEARANCE = (o) => {
   const c = new Set(o.cls.split(/\s+/));
   // The preview's mode control, held on Palettes (#2321): a segment takes the skin of what it draws at rest. The one
   // selected draws an edge, so outline; the others draw none, so text (as X4 A maps the outline and ghost buttons).
-  if (c.has('p3-mode')) return o.checked === 'true' ? 'outline' : 'text';
+  // #2366 (owner decision A): every other segmented choice takes the same mapping when a derived mode holds it.
+  if (c.has('p3-mode') || c.has('p3-seg-tab')) return o.checked === 'true' ? 'outline' : 'text';
   if (['p3-btn-primary', 'p3-next', 'p3-btn-danger'].some((k) => c.has(k))) return 'filled';
   if (['p3-btn-ghost', 'p3-check'].some((k) => c.has(k))) return 'text';
   return 'outline';
@@ -2755,11 +2756,11 @@ if (runs('7')) for (const host of ['web', 'figma']) {
 // =============================================================================================
 if (runs('8')) console.log(`\nInspect — the verdict opens Contrast, with Health first\n${'='.repeat(78)}`);
 /** The verdict, as the owner decided it (v4 review Q2, v5 Q2) and concept v6 words it: literals. */
-const VERDICT_LINE = 'All 956 pairs at or above floor';   // 884 until #3346 added the 18 selection-mark roles per mode
+const VERDICT_LINE = 'All 964 pairs at or above floor';   // 956 until #2750 rated disabled.border and its inverse; 884 until #3346 added the 18 selection-mark roles per mode
 // #3366 (owner decision Q3366.3 A): Health says "minimum" for a pair's own ratio; the bar keeps "floor".
-const HEALTH_LINE = 'All 956 pairs at or above their minimum.';
+const HEALTH_LINE = 'All 964 pairs at or above their minimum.';
 const HEALTH_FLOOR_LINE = 'Most text, icon and fill colors are checked against the contrast floor: neutral 050 in Light, neutral 900 in Dark.';
-const HEALTH_MODES = ['Light: 239 of 239 at or above', 'Dark: 239 of 239 at or above', 'High contrast light: 239 of 239 at or above', 'High contrast dark: 239 of 239 at or above'];
+const HEALTH_MODES = ['Light: 241 of 241 at or above', 'Dark: 241 of 241 at or above', 'High contrast light: 241 of 241 at or above', 'High contrast dark: 241 of 241 at or above'];
 /** #2909 Q2909.7 A: the Decisions log, Inspect's third view, is cut; its two notes no lever said are on their levers
  *  (section "IA v2 phase 2" holds them). The notes still ship: the committed default theme still records them. */
 const INSPECT_TABS = ['Contrast', 'Tokens'];
@@ -4975,12 +4976,12 @@ const SOFT_SETS = [['radiusScale', 'soft'], ['shadow.softness', 'soft']];
 /** T2 (v4 review) in concept v6's words: the namespace warning for each reserved or placeholder value. */
 const NS_WARN = { pds3: 'pds3 is the default theme’s placeholder. Set your brand’s namespace before you export.',
   prism: 'prism is reserved for the shipped catalog. Set your brand’s namespace before you export.' };
-/** Q3 (v4 review 3, v5): the confirm's sentence for the default theme, 239 gated pairs per mode (Health's literal). */
+/** Q3 (v4 review 3, v5): the confirm's sentence for the default theme, 241 gated pairs per mode (Health's literal). */
 const DARK_OFF_TITLE = 'Turn off Dark and high contrast dark';
 /** The Dark-off confirm's line when a custom mode is based on dark (orchestrator review of #1939), the reviewer's
  *  decision in the words chosen for it, typed here. */
 const BASED_ON_DARK = 'Custom mode custom-1 is based on Dark, so turning Dark off is refused until it is based on Light or removed.';
-const DARK_OFF_LINE = 'High contrast dark follows dark, so it turns off too. The two modes’ 478 pairs leave the verdict (956 becomes 478).';
+const DARK_OFF_LINE = 'High contrast dark follows dark, so it turns off too. The two modes’ 482 pairs leave the verdict (964 becomes 482).';
 const persisted = (page) => page.evaluate(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input ?? null; } catch { return null; } });
 const modeRadios = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]')].map((b) => b.dataset.mode));
 const checkState = (page, sel) => page.evaluate((x) => { const b = document.querySelector(x); return b ? { checked: b.getAttribute('aria-checked'), locked: b.getAttribute('aria-disabled') === 'true', note: b.querySelector('.p3-check-note')?.textContent } : null; }, sel);
@@ -5101,7 +5102,7 @@ for (const host of ['web', 'figma']) {
   await page.waitForFunction(() => document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]').length === 2);
   const hcd = await checkState(page, '[data-p3="mode-on-hc-dark"]');
   const verdictNow = await page.evaluate(() => document.querySelector('[data-p3="verdict-tip"]')?.textContent);
-  ok(JSON.stringify(await modeRadios(page)) === '["light","hc-light"]' && verdictNow === 'All 478 pairs at or above floor', `Q3: confirming turns off dark and high contrast dark (modes ${await modeRadios(page)}, verdict "${verdictNow}")`);
+  ok(JSON.stringify(await modeRadios(page)) === '["light","hc-light"]' && verdictNow === 'All 482 pairs at or above floor', `Q3: confirming turns off dark and high contrast dark (modes ${await modeRadios(page)}, verdict "${verdictNow}")`);
   ok(hcd?.checked === 'false' && hcd.locked && hcd.note === 'Off while dark is off: it follows dark.', `Q3: high contrast dark stays off and locked while dark is off, and says why (${JSON.stringify(hcd)})`);
   // A locked check keeps its focus stop (aria-disabled), so it is activated the way a keyboard user would:
   // Playwright refuses a click on an aria-disabled element, which is itself the pointer half of the claim.
@@ -5631,9 +5632,9 @@ for (const host of ['web', 'figma']) {
   // issue's measured table: 47 roles in six groups, typed here, never read off the module (docs/34 shape 1).
   const WANT_FLOOR = {
     head: 'Contrast floor', label: 'Measured on', sub: 'A setting, not a token', info: false,
-    line: 'The background 47 text, icon and fill colors are checked against for contrast. A step further from the page moves them further from it too. Auto uses background.secondary.',
+    line: 'The background 48 text, icon and fill colors are checked against for contrast. A step further from the page moves them further from it too. Auto uses background.secondary.',
     groups: [['links', 'Links (10)', true], ['status', 'Brand and status text, icons (10)', true], ['secondary', 'Secondary and tertiary text, placeholder (5)', true],
-      ['disabled', 'Disabled text and icon (2)', true], ['bold', 'Bold fills (5)', true], ['buttons', 'Button fills (15)', true]],
+      ['disabled', 'Disabled text, icon and border (3)', true], ['bold', 'Bold fills (5)', true], ['buttons', 'Button fills (15)', true]],
     not: 'Field borders, button borders and the focus ring are not checked against it.',
   };
   ok(JSON.stringify(copy.floor) === JSON.stringify(WANT_FLOOR),
@@ -9849,7 +9850,9 @@ for (const host of ['web', 'figma']) {
       ok(d.scheme === theme && first?.disabled === true && got.fill === want.fill && got.edge === want.edge && got.style === 'solid' && got.ink === want.ink,
         `F1 A: Layout: ${host} ${theme}: the fixed first breakpoint field draws Prism3's disabled text field: fill color.disabled.fill ${want.fill}, a solid edge color.disabled.border ${want.edge}, value color.disabled.on-fill ${want.ink} — drew ${JSON.stringify(got)} (disabled ${first?.disabled}, chrome ${d.scheme})`);
       const rest = d.fields.slice(1).map(skin);
-      ok(d.fields.length === 5 && d.fields.slice(1).every((f) => !f.disabled) && rest.every((x) => x.fill !== want.fill && x.edge !== want.edge && x.ink !== want.ink),
+      // The edge is not compared (#2750): the disabled levers now set `color.disabled.border`'s contrast, and at the default
+      // theme's floor it lands on the same step as an editable field's rest edge. The skin still differs by fill and value.
+      ok(d.fields.length === 5 && d.fields.slice(1).every((f) => !f.disabled) && rest.every((x) => x.fill !== want.fill && x.ink !== want.ink),
         `F1 A: Layout: ${host} ${theme}: no editable breakpoint field takes the disabled skin — ${JSON.stringify(rest)}`);
       if (SHOTS) await page.locator('[data-p3="levers-pane"] [data-p3="bp-list"]').screenshot({ path: join(SHOTS, `f1-${host === 'web' ? 'web' : 'plugin'}-${theme}.png`) });
       ok(errors.length === 0, `F1 A Layout ${host} ${theme}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
@@ -10572,6 +10575,8 @@ if (runs('26')) {
 console.log(`\nComponents (S8.2)\n${'='.repeat(78)}`);
 /** The lever keys pages.ts places on Components (G6 A), by hook. Literal. */
 const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'lever-button-label-weight', 'lever-button-text-hover', 'lever-button-min-width-multiplier',
+  // #576: Outline button border, the Button block's sixth option.
+  'lever-button-border-weight',
   // #2905 (Q3 B, Q578 B): Field options draws Field style, its one control; its home is Components › Field. Tag options
   // draws Tag style the same way (#2931 Q579 A), its home Components › Tag, and Search options Search field style (#2952,
   // #2905 Q5 A), its home Components › Search.
@@ -11011,8 +11016,9 @@ for (const host of ['web', 'figma']) {
       const r2 = await read();
       ok(r2.expanded === 'true' && r2.controls && r2.n === 1 && r2.shown,
         `#2844: ${host} ${w}: the line is a disclosure: aria-expanded flips and aria-controls names the block (${JSON.stringify(r2)})`);
-      ok(r2.lineBelowSets && r2.blockBelowLine && r2.levers === 5,
-        `#2844: ${host} ${w}: open, the settings sit below the line and the line below the sets, five Button options (${JSON.stringify(r2)})`);
+      // Six since #576 added Outline button border.
+      ok(r2.lineBelowSets && r2.blockBelowLine && r2.levers === 6,
+        `#2844: ${host} ${w}: open, the settings sit below the line and the line below the sets, six Button options (${JSON.stringify(r2)})`);
       ok(r2.active === 'cp-opts-toggle' && r2.title === 'Buttons', `#2844: ${host} ${w}: opening keeps the focus on the line and the preview shows Buttons (${r2.active}, ${r2.title})`);
       // Keyboard: Tab goes from the line to the first option, Shift+Tab back; Enter and Space close and open.
       await page.keyboard.press('Tab');
@@ -11195,8 +11201,8 @@ for (const host of ['web', 'figma']) {
       ok(!!r.rO && r.rO.title === 'Radio options' && r.rO.desc === 'How big the dot in a selected radio is.' && JSON.stringify(r.rO.chips) === JSON.stringify(['Default', '60%', '70%', '80%']),
         `#3086: ${host} ${w}: Radio options: its drafted title and description, and Radio dot size's chips, Default to 80% (${JSON.stringify(r.rO)})`);
       const T = r.tags;
-      ok(!!T && JSON.stringify(T.ids) === JSON.stringify(['tag']) && T.folds + T.families === 0,
-        `#2931 Q579 A: ${host} ${w}: the Tag section lists Tag as a row, with no family row and no fold (${JSON.stringify({ ids: T?.ids, folds: T?.folds, families: T?.families })})`);
+      ok(!!T && JSON.stringify(T.ids) === JSON.stringify(['tag', 'tag-group']) && T.folds + T.families === 0,
+        `#2931 Q579 A, #1739: ${host} ${w}: the Tag section lists the Tag page's two sets, Tag and Tag.Group, in one row, with no family row and no fold (${JSON.stringify({ ids: T?.ids, folds: T?.folds, families: T?.families })})`);
       ok(!!r.to && r.to.title === 'Tag options' && r.to.desc === 'How tags draw their shape.' && JSON.stringify(r.to.chips) === JSON.stringify(['Pill', 'Underline']),
         `#2931 Q579 A, #2905 Q10 A: ${host} ${w}: Tag options: its drafted title and description, and Tag style's chips (${JSON.stringify(r.to)})`);
       const B = r.buttons, F = r.fields;
@@ -11775,7 +11781,7 @@ for (const { w, h } of WIDTHS) {
 // 29b. The owner's "A · Menu bar" (2026-10-05), three behaviors held directly, both hosts, both themes:
 //   · CONTRAST'S MARK FOLLOWS THE VERDICT: a check and no count while every pair passes; a warning glyph and the
 //     count below floor once an edit puts pairs below it. The web's edit is test-verdict-count.ts's two-mode
-//     fixture, whose count is derived by hand there: 2 of 956, 2 modes. The plugin's is a restore of a one-mode
+//     fixture, whose count is derived by hand there: 2 of 964, 2 modes. The plugin's is a restore of a one-mode
 //     brand with the same Light override; its count is read from its own line.
 //   · THE PLUGIN'S THEME MENU: Match Figma, Light and Dark, in that order, Match Figma checked by default and the
 //     chrome on Figma's theme; a choice applies, is posted to the main thread as `set-theme-pref`, and, after a
@@ -11825,7 +11831,7 @@ for (const host of ['web', 'figma']) {
         await page.waitForFunction(() => document.querySelector('[data-p3="verdict"]')?.dataset.state === 'fail', null, { timeout: 5000 }).catch(() => {});
         const c1 = await page.evaluate(CONTRAST_PROBE);
         const lead = /^(\d+) of \d+ below floor, \d+ modes?$/.exec(c1.tip ?? '');
-        ok(c1.state === 'fail' && c1.warn && !c1.check && (host === 'web' ? c1.tip === '2 of 956 below floor, 2 modes' && c1.count === '2' : !!lead && c1.count === lead[1]),
+        ok(c1.state === 'fail' && c1.warn && !c1.check && (host === 'web' ? c1.tip === '2 of 964 below floor, 2 modes' && c1.count === '2' : !!lead && c1.count === lead[1]),
           `${where}: Contrast: pairs below floor, so its mark is the warning glyph and the count below floor (${JSON.stringify(c1)})`);
         ok(c1.name === `Verdict: ${c1.tip}. Open Inspect, Contrast`, `${where}: Contrast keeps its name, the full line ("${c1.name}")`);
 
@@ -13025,6 +13031,8 @@ for (const host of ['web', 'figma']) {
 // edge on any of them (#2155: no chrome control draws a dashed edge to mean disabled), and every disabled button draws
 // its appearance's Prism3 disabled roles. Counted, with a floor, so a sweep that found no disabled button fails.
 const DERIVED_OFF_FLOOR = 100;
+/** #2366: the held segmented choices the sweep must read, a floor under the count measured when it was written. */
+const DERIVED_CHOICE_FLOOR = 20;
 for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
     const where = `X4 A derived: ${host} ${theme}`;
@@ -13036,6 +13044,8 @@ for (const host of ['web', 'figma']) {
       const scheme = await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
       let buttons = 0, controls = 0;
       const bad = [], dashed = [];
+      // #2366: the held segmented choices, each by its hook, against the .p3-mode mapping (checked: outline; others: text).
+      const choices = [], badChoices = [];
       for (const place of ['color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components']) {
         await goPlace(page, place);
         if (place === 'type') await openTypeAdvanced(page).catch(() => {});
@@ -13050,6 +13060,12 @@ for (const host of ['web', 'figma']) {
           if (!r) continue;
           controls++;
           if (r.dashed.length) dashed.push(`${place} ${r.hook ?? r.cls}: ${r.dashed.join(', ')}`);
+          if (/\bp3-seg-tab\b/.test(r.cls) && !/\bp3-mode\b/.test(r.cls)) {
+            choices.push(r.hook);
+            const v = skinVerdict(r, scheme);
+            if (!v.pass) badChoices.push(`${place} ${r.hook ?? r.cls} (${v.appearance}): ${JSON.stringify(v.drew)}`);
+            continue;
+          }
           if (!/\bp3-(btn|vpick)\b/.test(r.cls)) continue;
           buttons++;
           const v = skinVerdict(r, scheme);
@@ -13066,6 +13082,16 @@ for (const host of ['web', 'figma']) {
       console.log(`  ${where}: ${controls} disabled controls read, ${buttons} of them buttons`);
       ok(buttons >= DERIVED_OFF_FLOOR, `${where}: HC light switched off ${buttons} chrome buttons across the places (floor ${DERIVED_OFF_FLOOR})`);
       ok(bad.length === 0, `${where}: every disabled chrome button draws its appearance's Prism3 disabled roles (${buttons} read)${bad.length ? ` — ${bad.slice(0, 4).join(' | ')}` : ''}`);
+      // #2366 (owner decision A): the levers' segmented choices a derived mode holds draw the .p3-mode mapping (#2321): the
+      // checked one Prism3's disabled outline skin, the others its text skin. Named, so Type's scale, Shape's density and
+      // Depth & motion's tempo are each read.
+      const NAMED_CHOICES = ['type-scale-', 'density-choice-', 'tempo-'];
+      const missing = NAMED_CHOICES.filter((p) => !choices.some((h) => (h ?? '').startsWith(p)));
+      console.log(`  ${where}: ${choices.length} held segmented choices read`);
+      ok(choices.length >= DERIVED_CHOICE_FLOOR && missing.length === 0,
+        `#2366 ${where}: HC light holds ${choices.length} segmented choices across the places (floor ${DERIVED_CHOICE_FLOOR}), Type's scale, Shape's density and Depth & motion's tempo among them${missing.length ? ` — not read: ${missing.join(', ')}` : ''}`);
+      ok(badChoices.length === 0,
+        `#2366 ${where}: every held segmented choice draws the .p3-mode mapping: checked, Prism3's disabled outline; the others, its text skin (${choices.length} read)${badChoices.length ? ` — ${badChoices.slice(0, 4).join(' | ')}` : ''}`);
       ok(!!fixed && dashed.length === 0, `${where}: no disabled chrome control, and not the fixed Light row (mode-on-light, read ${!!fixed}), draws a dashed edge (${controls} read)${dashed.length ? ` — ${dashed.slice(0, 4).join(' | ')}` : ''}`);
       // The fixed Light row's box against the emission's disabled check box roles (`PRISM3_DISABLED`, resolved from the
       // committed emission, never from the studio's CSS): fill `disabled.fill`, a solid `disabled.border` edge on all
@@ -14802,6 +14828,121 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
   } finally { await ctx.close(); }
 }
 } // 3117
+
+// =============================================================================================
+// #3263 (owner decision 2026-11-18, A): a pressed Personality chip (`toggleChip`, Brand) draws no check glyph, and shows
+// it is pressed through its edge, and its `Highlight` fill under forced colors, so a press never changes the chip's
+// width. Before, the pressed chip drew a 16px check plus its 4px gap, 20px wider than unpressed, and the words are
+// multi-select in a wrapping row: the row's width grew with each word pressed, so a press where the row only just fitted
+// could push the last word onto a new row (the #3117 shape, on the chips that decision did not cover).
+// Single- vs multi-select is a separate owner question: this section presses several words because the chips allow it
+// today, not to assert that they must.
+// Both hosts, both chrome themes, at two widths:
+//   · 1280, the #3115 shape: the row held at its `max-content` width, read once with no word pressed (prism3 opens with
+//     none), then each word pressed in turn, every pressed word kept pressed;
+//   · 380, the row at its real narrow width, wrapped over several rows, pressed the same way.
+// After each press the chips' rows (distinct tops) and each chip's own width are read. EXPECTED (literal rules, typed
+// here): every chip as wide as it was with no word pressed, whatever is pressed; one row count for every press (one row
+// at 1280); no chip draws a glyph. Then the state cue, as rendered, read with every word pressed but the last:
+//   · the pressed chip's edge against an unpressed chip's edge, at least 3:1 (WCAG 1.4.11), and the label ink the same
+//     on both, so the edge is the cue;
+//   · under forced colors (CDP `forced-colors: active`), the pressed chip filled `Highlight` and its neighbor not.
+// ACTUAL: the drawn chips.
+// Mutations, failing here by name (measured 2026-11-18):
+//   · main before the fix restored (`toggleChip` appends `glyph('check')` again, with the two `.p3-btn.p3-chip … >
+//     .p3-ico` rules that hid it unpressed and showed it pressed) → 24 of 72, every host, theme and width: `#3263 web
+//     light 1280: each Personality chip keeps its unpressed width whatever is pressed — energetic 80/100/100/…, calm
+//     54/54/74/…`, `… no Personality chip draws a check, pressed or not`, and the row arm, at 1280 `… keeps one row at its
+//     max-content width (653px) … none pressed 1, then 2, 2, …` and at 380 the bug as filed, `… keeps its 3 rows …
+//     none pressed 3, then 3, 4, 4, …`; plus section 39's `#3263: a Personality chip draws no check`;
+//   · the glyph line alone restored, the rules left removed → 8 of 72, `… no Personality chip draws a check, pressed or
+//     not — none pressed ["energetic", …]`: the glyph then draws on every chip, so the widths hold and only this arm
+//     sees it.
+if (runs('3263')) {
+console.log(`\nA pressed Personality chip keeps its width (#3263)\n${'='.repeat(78)}`);
+const ROW_3263 = '[data-p3="levers-pane"] [data-p3="lever-personality"] [data-p3="personality-words"]';
+const CHIP_3263 = '[data-p3="personality-word"]';
+const lum3263 = (hx) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; const n = (i) => parseInt(hx.slice(i, i + 2), 16); return 0.2126 * f(n(1)) + 0.7152 * f(n(3)) + 0.0722 * f(n(5)); };
+const ratio3263 = (a, b) => { if (!a || !b) return NaN; const [x, y] = [lum3263(a), lum3263(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+for (const { w, h, hold } of [{ w: 1280, h: 900, hold: true }, { w: 380, h: 420, hold: false }]) for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+  const where = `#3263 ${host} ${theme} ${w}`;
+  const { ctx, page, errors } = await open({ host, theme, w, h });
+  try {
+    await goPlace(page, 'brand');
+    await hooks.need(page, ROW_3263);
+    /** One read of the row: rows, each chip's width and pressed state, the glyphs drawn, the edges and inks. */
+    const read = (px) => page.evaluate(([s, c, px]) => {
+      const g = document.querySelector(s);
+      if (!g) return null;
+      if (px === 'max-content') { g.style.width = 'max-content'; px = g.getBoundingClientRect().width; }
+      if (typeof px === 'number') g.style.width = `${px}px`;
+      const chips = [...g.querySelectorAll(c)];
+      const on = chips.filter((b) => b.getAttribute('aria-pressed') === 'true'), off = chips.filter((b) => b.getAttribute('aria-pressed') !== 'true');
+      const label = (b) => b?.querySelector('.p3-btn-label');
+      return {
+        px: typeof px === 'number' ? px : null,
+        pressed: on.map((b) => b.dataset.word),
+        rows: new Set(chips.map((b) => Math.round(b.getBoundingClientRect().top))).size,
+        widths: Object.fromEntries(chips.map((b) => [b.dataset.word, Math.round(b.getBoundingClientRect().width * 10) / 10])),
+        glyphs: chips.filter((b) => [...b.querySelectorAll('svg, .p3-ico')].some((i) => i.getClientRects().length > 0 && getComputedStyle(i).display !== 'none')).map((b) => b.dataset.word),
+        edgeOn: on[0] && getComputedStyle(on[0]).borderTopColor, edgeOff: off[0] && getComputedStyle(off[0]).borderTopColor,
+        inkOn: label(on[0]) && getComputedStyle(label(on[0])).color, inkOff: label(off[0]) && getComputedStyle(label(off[0])).color,
+      };
+    }, [ROW_3263, CHIP_3263, px]);
+    const base = await read(hold ? 'max-content' : null);
+    const words = Object.keys(base?.widths ?? {});
+    ok(!!base && base.pressed.length === 0 && words.length === PERSONALITY.length,
+      `${where}: the Personality row opens with no word pressed and draws every word (${words.length} of ${PERSONALITY.length}) — pressed ${JSON.stringify(base?.pressed)}`);
+    const reads = [];
+    for (const word of words) {
+      const chip = `${ROW_3263} ${CHIP_3263}[data-word="${word}"]`;
+      await page.locator(chip).scrollIntoViewIfNeeded();
+      await hooks.click(page.locator(chip));
+      // A press redraws the row's state, so the chip reading pressed is the redraw having landed.
+      await page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-pressed') === 'true', chip, { timeout: 5000 }).catch(() => {});
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+      reads.push({ word, r: await read(hold ? base.px : null) });
+    }
+    const pressedAll = reads.every(({ word, r }, i) => r?.pressed?.includes(word) && r.pressed.length === i + 1);
+    ok(pressedAll, `${where}: each press adds its word and keeps the earlier ones — ${reads.map(({ word, r }) => `${word}: ${JSON.stringify(r?.pressed)}`).join('; ')}`);
+    const counts = reads.map(({ r }) => r?.rows);
+    ok(counts.every((n) => n === base?.rows) && (!hold || base?.rows === 1),
+      `${where}: the Personality row keeps ${hold ? `one row at its max-content width (${base?.px}px)` : `its ${base?.rows} rows`} whatever is pressed — none pressed ${base?.rows}, then ${counts.join(', ')}`);
+    const widthsOf = (c) => [base?.widths?.[c], ...reads.map(({ r }) => r?.widths?.[c])];
+    ok(words.every((c) => { const ws = widthsOf(c); return ws.every((x) => typeof x === 'number' && Math.abs(x - ws[0]) < 0.5); }),
+      `${where}: each Personality chip keeps its unpressed width whatever is pressed — ${words.map((c) => `${c} ${widthsOf(c).join('/')}`).join(', ')}`);
+    ok(base?.glyphs?.length === 0 && reads.every(({ r }) => r?.glyphs?.length === 0),
+      `${where}: no Personality chip draws a check, pressed or not — none pressed ${JSON.stringify(base?.glyphs)}, then ${reads.map(({ word, r }) => `${word}: ${JSON.stringify(r?.glyphs)}`).join(', ')}`);
+    // The cue, read with every word pressed but the last, so both states are drawn side by side.
+    const cue = reads[reads.length - 2]?.r ?? {};
+    const [eOn, eOff, iOn, iOff] = [cue.edgeOn, cue.edgeOff, cue.inkOn, cue.inkOff].map(hexOfRgb);
+    const edgeRatio = ratio3263(eOn, eOff);
+    ok(edgeRatio >= 3, `${where}: a pressed Personality chip's edge reads at least 3:1 against an unpressed chip's — ${eOn} against ${eOff}, ${Number.isFinite(edgeRatio) ? `${(Math.floor(edgeRatio * 100) / 100).toFixed(2)}:1` : 'unreadable'}`);
+    ok(!!iOn && iOn === iOff, `${where}: the pressed and unpressed Personality chips' labels share one ink, so the edge is the cue — ${iOn} and ${iOff}`);
+    // Unpress the last word, then forced colors: the pressed chip filled Highlight, its neighbor not.
+    const lastChip = `${ROW_3263} ${CHIP_3263}[data-word="${words[words.length - 1]}"]`;
+    await hooks.click(page.locator(lastChip));
+    await page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-pressed') === 'false', lastChip, { timeout: 5000 }).catch(() => {});
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'forced-colors', value: 'active' }] });
+    const fc = await page.evaluate(([s, c]) => {
+      const g = document.querySelector(s);
+      const probe = document.createElement('div');
+      probe.style.cssText = 'position:absolute;width:1px;height:1px;background-color:Highlight;forced-color-adjust:none';
+      document.body.append(probe);
+      const highlight = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      const on = g?.querySelector(`${c}[aria-pressed="true"]`), off = g?.querySelector(`${c}[aria-pressed="false"]`);
+      return { active: matchMedia('(forced-colors: active)').matches, highlight, on: on && getComputedStyle(on).backgroundColor, off: off && getComputedStyle(off).backgroundColor };
+    }, [ROW_3263, CHIP_3263]);
+    ok(fc.active && fc.on === fc.highlight && fc.off !== fc.highlight,
+      `${where}: under forced colors a pressed Personality chip is filled Highlight and an unpressed one is not — active ${fc.active}, Highlight ${fc.highlight}, pressed ${fc.on}, unpressed ${fc.off}`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+} // 3263
 
 // =============================================================================================
 // #2232: a click on blank space inside the S12 start window keeps focus in the window, and Tab and Shift+Tab then stay
@@ -16645,7 +16786,9 @@ for (const host of ['web', 'figma']) {
       const cOn = await page.evaluate(FC_LOOK, chipOn), cOff = await page.evaluate(FC_LOOK, chipOff);
       selected(cOn, cOff, 'a Personality chip');
       await drawn(chipOn, 'a Personality chip');
-      ok(cOn?.glyph === HT, `${where}: a pressed chip's check draws in HighlightText ${HT} (read ${cOn?.glyph})`);
+      // #3263 (owner decision 2026-11-18 A): a Personality chip draws no check, pressed or not; the Highlight fill above
+      // is what shows it pressed here (section 3263 holds the width).
+      ok(cOn?.glyph === null && cOff?.glyph === null, `${where}: #3263: a Personality chip draws no check, pressed or not (pressed read ${cOn?.glyph}, unpressed read ${cOff?.glyph})`);
       ran.add('chip');
       const modeHooks = ['mode-on-dark', 'mode-on-hc-light', 'mode-on-hc-dark', 'mode-on-wireframe'];
       const boxes = await page.evaluate((hs) => hs.map((hk) => { const n = document.querySelector(`[data-p3="${hk}"]`); const b = n?.querySelector('.p3-check-box');
@@ -19172,7 +19315,10 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 if (runs('3129')) {
 console.log(`\n#3129 — the add queue: Components' boxes, Update file's To add and Due\n${'='.repeat(78)}`);
 const S_PRESENT = ['icon', 'focus-ring', 'button', 'button-destructive', 'button-neutral', 'button-group', 'field-label', 'field-message', 'text-field', 'select',
-  'checkbox-control', 'checkbox-row', 'checkbox-group', 'badge', 'tag', 'divider', 'spinner', 'veil'];
+  'checkbox-control', 'checkbox-row', 'checkbox-group', 'badge', 'tag', 'tag-group', 'divider', 'spinner', 'veil'];
+// #1739: Tag.Group joined Tag's family, so the sample file holds both, keeping Tag a family the file holds whole (the
+// `sec=tags` in-file box below). A file holding Tag alone keeps an active Tag box (#3439 Q-IF.3 A, `boxOfSets`); the
+// Radio arm below holds that rule, and `test-component-groups.ts` holds the Tag case by name.
 const S_DUE = { ...Object.fromEntries(S_PRESENT.map((id) => [id, { state: 'current' }])), button: { state: 'due', reason: 'engine' }, 'text-field': { state: 'due', reason: 'definition' }, tag: { state: 'due', reason: 'definition' } };
 // Queued in an order that is not the list's, so the list order is read, not echoed.
 const S_QUEUED = ['radio-control', 'banner', '_accordion-indicator', 'search-field', 'accordion', 'dialog', 'password-field'];
@@ -20610,6 +20756,12 @@ for (const theme of ['light', 'dark']) {
 //   `isOpen` reading a leaving menu as open → `… reads as closed`; an exit rule dropped → `#3150 DECLARED: … declares no
 //   motion` and its LIVE exit arm; the drawer's exit unscoped from `data-closing` (#3217) → `#3150 LIVE … at boot the closed drawer plays no exit` and
 //   `… a narrow → wide resize under the closed drawer plays no exit`.
+//   #3245 (owner decision 2026-11-18, A), the agent link's pairing prompt, measured 2026-11-18: main's `chrome.css` (the
+//   prompt hidden with no exit) → the three `#3150 DECLARED: … .p3-menu.p3-agent-pair …` arms, `#3245 #3150 LIVE … the
+//   pairing prompt, hidden, stays drawn and leaves as the menus' fade … (display none; read [])` and both REDUCED exit
+//   arms; the reduced block's `.p3-popwrap > .p3-menu.p3-agent-pair` rule alone dropped (the menus' reduced line then
+//   drops `display`, so the fade ends at once) → `#3150 DECLARED: reduced …`, `#3245 #3150 REDUCED … stays drawn through
+//   its exit under reduced motion (display none)` and `… #3245 the pairing prompt leaving: it crossfades on 100ms`.
 // =============================================================================================
 if (runs('3150')) {
 console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n${'='.repeat(78)}`);
@@ -20635,6 +20787,8 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
     ['rule', '.p3-drawer-bar .p3-status-dot[data-leaving="true"]'],
     // Shift: a menu.
     ['rule', '.p3-menu'], ['start', '.p3-menu'], ['rule', '.p3-menu[data-leaving="true"]'],
+    // #3245: the agent link's pairing prompt, a menu's surface that is hidden rather than removed, with the menu's exit fade.
+    ['rule', '.p3-menu.p3-agent-pair'], ['rule', '.p3-menu.p3-agent-pair[hidden]'],
     // Fade: a tooltip; the error strip and the notices row it sits in; the Update file rows that land.
     ['rule', '.p3-tile-tip'], ['start', '.p3-tile:is(:hover, :focus-visible):not([aria-expanded="true"]) > .p3-tile-tip'],
     ['rule', '.p3-notices'], ['rule', '.p3-errstrip'], ['rule', '.p3-errstrip[hidden]'], ['start', '.p3-errstrip'],
@@ -20653,6 +20807,7 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
     ['reduced-start', '.p3-drawer-body'],
     ['reduced', ':is(.p3-drawer-body, .p3-errstrip, .p3-errstrip[hidden])'],
     ['reduced', ':is(.p3-frame[data-w="narrow"] .p3-drawer, .p3-drawer-bar .p3-status-dot[data-state="unread"], .p3-menu, .p3-tile-tip, .p3-upd [data-land="true"], :is(.p3-bardlg-scrim, .p3-scrim), :is(.p3-advbody, .p3-op-body, .p3-op-history > ul, .p3-op-entry > :not(summary), .p3-sg-titles-body))'],
+    ['reduced', '.p3-popwrap > .p3-menu.p3-agent-pair'],
   ];
   /** Every rule in the chrome's stylesheet that declares a transition or an animation, with its context. */
   const declared = (page) => page.evaluate(() => {
@@ -20891,6 +21046,33 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       await page.keyboard.press('Escape');
       await settleAll(page, cdp);
       ok(await goneNow(page, '[data-p3="inspect-menu"]'), `${where}: settled, the Inspect menu is removed once its exit ends`);
+
+      // #3245 (owner decision 2026-11-18, A): the agent link's pairing prompt. Drawn as a menu, it shifts in as one, and it is
+      // hidden (`hidden`), not removed, so it has its own exit: the menu's fade, drawn through it. Driven directly, as the
+      // error strip is: the bridge that asks for a code is not in the page.
+      step = 'the pairing prompt';
+      const PAIR = '[data-p3="bar-agent"] [data-p3="agent-pair"]';
+      ok(await page.evaluate((s) => document.querySelector(s)?.hidden === true, PAIR), `#3245 ${where}: premise, the pairing prompt is in the bar's agent slot, hidden (${PAIR})`);
+      await slow();
+      await change(page, (s) => { document.querySelector(s).hidden = false; }, PAIR);
+      const pIn = await movesOf(page, PAIR);
+      if (!reduced) {
+        const o = one(pIn, 'opacity'), t = one(pIn, 'translate');
+        ok(!!o && !!t && o.dur === SMALL && t.dur === SMALL && o.ease === ENTER && t.ease === ENTER, `#3245 ${where}: the pairing prompt shifts in as a menu does, opacity and a short offset on ${SMALL}ms, the enter curve (read ${fmt(pIn)})`);
+      } else reducedOk(pIn?.filter((a) => a.name !== 'display'), '#3245 the pairing prompt appearing');
+      await settleAll(page, cdp);
+      ok(atRest(await restOf(page, PAIR)), `#3245 ${where}: settled, the pairing prompt sits at rest (${fmt(await restOf(page, PAIR))})`);
+      await slow();
+      const pDrawn = await change(page, (s) => { const p = document.querySelector(s); p.hidden = true; return getComputedStyle(p).display; }, PAIR);
+      const pOut = (await movesOf(page, PAIR))?.filter((a) => a.name !== 'display');
+      if (!reduced) ok(pDrawn !== 'none' && !!pOut && one(pOut, 'opacity')?.dur === OUT && one(pOut, 'opacity')?.ease === EXIT && pOut.every((a) => a.moves.length === 0),
+        `#3245 ${where}: the pairing prompt, hidden, stays drawn and leaves as the menus' fade, opacity on ${OUT}ms, the exit curve, moving nothing (display ${pDrawn}; read ${fmt(pOut)})`);
+      else {
+        ok(pDrawn !== 'none', `#3245 ${where}: the pairing prompt, hidden, stays drawn through its exit under reduced motion (display ${pDrawn})`);
+        reducedOk(pOut, '#3245 the pairing prompt leaving');
+      }
+      await settleAll(page, cdp);
+      ok((await restOf(page, PAIR))?.display === 'none', `#3245 ${where}: settled, the pairing prompt is undrawn`);
 
       // A dialog: Scale in; a repaint of the open dialog does not scale it again; the checklist fades in when it lands.
       step = 'the Update file dialog';
@@ -22295,6 +22477,14 @@ if (runs('3553-shell')) {
 // `.p3-nav:has(.p3-search[data-open="true"]) :is(.p3-tabs, .p3-preview-title)` rule dropped → `#3553 M1 … the tab row hides while Search is open`
 // and `… the field shows at least 80px of text`; the open field's `flex: 1 1 auto` put back to `0 1 50%` → `… the status and
 // Close stay inside the levers column`.
+// #3620 (owner decision 2026-11-18, A): at the narrow tier the no-match status moves to its own line under the field, so
+// the field's 80px floor now holds at 380 too, and the status is drawn whole at every width. MUTATIONS (measured
+// 2026-11-18, each after a `wip:` commit): main's `chrome.css` (no narrow rules) → 28 of 448, `#3620 3553-m1 figma light
+// 380 brand: the field shows at least 80px of text … (17.0, whole false)` and `… the status sits on its own line under
+// the field (status top 94.0, field bottom 119.0)`, on all seven places, both themes; the status ellipsized at a floor
+// instead (option B's shape: `nowrap; overflow: hidden; text-overflow: ellipsis` and a max width) → `#3620 … the no-match
+// status "No setting on this page matches" is drawn whole … (whole false …)`; the magnifier's narrow `top` rule dropped →
+// `#3620 … the magnifier stays centered on the field's line (glyph 114.0, field 103.0)`.
 /** The field's floor: about ten characters of the chrome's 14px text, where the wide tier left about 52px. */
 const M1_FIELD_MIN = 80;
 if (runs('3553-m1')) {
@@ -22317,8 +22507,15 @@ if (runs('3553-m1')) {
           const r = (sel) => { const n = document.querySelector(sel); if (!n || !n.getClientRects().length) return null; const b = n.getBoundingClientRect(); return { l: b.left, r: b.right, w: b.width }; };
           const input = document.querySelector('[data-p3="search-input"]');
           const cs = input ? getComputedStyle(input) : null;
+          const st = document.querySelector('[data-p3="search-status"]');
+          const box = (n) => { if (!n || !n.getClientRects().length) return null; const b = n.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
+          // #3620: the status's own text, as drawn: a range over its words, so text cut by its box shows past it.
+          const textBox = (() => { if (!st || !st.firstChild) return null; const g = document.createRange(); g.selectNodeContents(st); const b = g.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; })();
           return {
             nav: r('[data-p3="tab-row"]'), status: r('[data-p3="search-status"]'), close: r('[data-p3="search-close"]'),
+            navBox: box(document.querySelector('[data-p3="tab-row"]')), statusBox: box(st), textBox, inputBox: box(input),
+            glyphBox: box(document.querySelector('[data-p3="search"] .p3-search-box > .p3-ico')),
+            statusWhole: st ? st.scrollWidth <= st.clientWidth + 0.5 && st.scrollHeight <= st.clientHeight + 0.5 : false,
             tabs: [...document.querySelectorAll('[data-p3="tab-row"] :is(.p3-tabs, .p3-preview-title)')].filter((t) => t.getClientRects().length > 0).length,
             whole: input ? input.scrollWidth <= input.clientWidth : false,
             field: input ? input.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) : null,
@@ -22328,9 +22525,22 @@ if (runs('3553-m1')) {
         const at = `${where} ${place}`;
         ok(m.statusText !== '' && !!m.nav && !!m.status && !!m.close, `${at}: premise, the no-match status and Close are drawn in the tab row (${JSON.stringify(m)})`);
         ok(m.tabs === 0, `#3553 M1 ${at}: the tab row hides while Search is open, and Components' title with it (${m.tabs} drawn)`);
-        // The floor is M1's, the wide tier's. At the plugin's 380 the no-match status leaves the field 17px on `main` too:
-        // filed as #3620, not fixed here.
-        if (w >= 1024) ok(m.field !== null && m.field >= M1_FIELD_MIN && m.whole, `#3553 M1 ${at}: the field shows at least ${M1_FIELD_MIN}px of text, the typed query whole (${m.field?.toFixed(1)}, whole ${m.whole})`);
+        // The floor is M1's, held at every width since #3620: at the plugin's 380 the no-match status used to take the row and
+        // leave the field 17px.
+        ok(m.field !== null && m.field >= M1_FIELD_MIN && m.whole, `${w < 600 ? '#3620' : '#3553 M1'} ${at}: the field shows at least ${M1_FIELD_MIN}px of text, the typed query whole (${m.field?.toFixed(1)}, whole ${m.whole})`);
+        // #3620 (owner decision 2026-11-18, A): the no-match status is never cut off. At every width its text sits inside its
+        // own box and the tab row; at the narrow tier it has its own line under the field, and the magnifier stays on the
+        // field's line.
+        const inside = (a, b) => !!a && !!b && a.l >= b.l - ALIGN_TOLERANCE && a.r <= b.r + ALIGN_TOLERANCE && a.t >= b.t - ALIGN_TOLERANCE && a.b <= b.b + ALIGN_TOLERANCE;
+        ok(m.statusWhole && inside(m.textBox, m.statusBox) && inside(m.statusBox, m.navBox),
+          `#3620 ${at}: the no-match status "${m.statusText}" is drawn whole, inside its box and the tab row (whole ${m.statusWhole}, text ${JSON.stringify(m.textBox)}, box ${JSON.stringify(m.statusBox)}, row ${JSON.stringify(m.navBox)})`);
+        if (w < 600) {
+          ok(!!m.statusBox && !!m.inputBox && m.statusBox.t >= m.inputBox.b - ALIGN_TOLERANCE,
+            `#3620 ${at}: at the narrow tier the status sits on its own line under the field (status top ${m.statusBox?.t.toFixed(1)}, field bottom ${m.inputBox?.b.toFixed(1)})`);
+          const mid = (b) => (b.t + b.b) / 2;
+          ok(!!m.glyphBox && !!m.inputBox && Math.abs(mid(m.glyphBox) - mid(m.inputBox)) <= 1,
+            `#3620 ${at}: the magnifier stays centered on the field's line (glyph ${m.glyphBox && mid(m.glyphBox).toFixed(1)}, field ${m.inputBox && mid(m.inputBox).toFixed(1)})`);
+        }
         if (m.nav && m.status && m.close) ok(m.status.r <= m.nav.r + ALIGN_TOLERANCE && m.close.r <= m.nav.r + ALIGN_TOLERANCE,
           `#3553 M1 ${at}: the status and Close stay inside the levers column (status ${m.status.r.toFixed(1)}, Close ${m.close.r.toFixed(1)}, column ${m.nav.r.toFixed(1)})`);
         if (SHOTS && theme === 'light' && place === 'depth') await page.screenshot({ path: join(SHOTS, `s3553-m1-${host}-${w}-${place}.png`) });
@@ -22956,6 +23166,114 @@ if (runs('3911')) {
     } finally { await ctx.close(); }
   }
 } // 3911
+// ── #3938: the token list's dropdowns are the shared select, and its caption row lines up ───────────────────────
+// The owner's Q-BK1 A (2026-11-17): the token list's Show and Category dropdowns move off the legacy `.select` onto the
+// chrome's `.p3-select` (lever-kit `selectField`). The legacy box was taller than the Alias path segmented control
+// beside it, and `.tok-ctrls` aligns its fields at the bottom, so those two captions sat about 5px below Alias path's.
+// INDEPENDENCE (docs/34): the arm reads where each caption is DRAWN (`getBoundingClientRect`), the row the person sees,
+// and compares the captions with each other; it reads no height, class or rule from the stylesheet that sets them.
+// MUTATIONS (each after a `wip:` commit, on both rebuilt bundles):
+//   · the two dropdowns put back on `selectEl()` (main before #3938) → `#3938 … the token list's dropdowns are the shared
+//     select` and `#3938 … every caption in the token list's control row sits on one line`;
+//   · `.tok-ctrls .p3-select { min-height: var(--p3-ctl-h); }` dropped from chrome.css (owner decision A, 2026-11-18:
+//     the selects take the segmented control's height) → `#3938 … every caption … sits on one line, offset 0` (3.00px);
+//   · that rule at `--p3-ctl-h-sm` → the same arm, by name.
+if (runs('3938')) {
+  console.log(`\nThe token list's dropdowns are the shared select, and its captions line up (#3938)\n${'='.repeat(78)}`);
+  const readRow = (page) => page.evaluate(() => {
+    const bar = document.querySelector('.tok-ctrls');
+    if (!bar) return null;
+    const caps = [...bar.querySelectorAll('.pfield > .pfk')].map((c) => ({ text: c.textContent.trim(), top: Math.round(c.getBoundingClientRect().top * 100) / 100, ctl: Math.round(c.nextElementSibling.getBoundingClientRect().height * 100) / 100, field: Math.round(c.parentElement.getBoundingClientRect().height * 100) / 100 }));
+    const selects = [...bar.querySelectorAll('select')].map((x) => ({ hook: x.getAttribute('data-p3'), cls: x.className }));
+    return { caps, selects };
+  });
+  for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+    const where = `3938 ${host} ${theme} 1280`;
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    let step = 'boot';
+    try {
+      step = 'Inspect › Token list';
+      await goPlace(page, 'brand');
+      await hooks.click(page.locator('[data-p3="inspect-open"]'), WAIT);
+      await hooks.click(page.locator('[data-p3="inspect-option-tokens"]'), WAIT);
+      for (const [tier, tab] of [['semantic', '[data-p3="token-tier-semantic"]'], ['primitive', '[data-p3="token-tier-primitive"]']]) {
+        step = `tier ${tier}`;
+        await hooks.click(page.locator(tab), WAIT);
+        await hooks.need(page, '.tok-ctrls .pfield');
+        await settle(page);
+        const row = await readRow(page);
+        const want = tier === 'semantic' ? ['token-show', 'token-category'] : ['token-category'];
+        ok(!!row && row.selects.length === want.length && row.selects.every((x, i) => x.hook === want[i] && /\bp3-select\b/.test(x.cls) && !/(^|\s)select(\s|$)/.test(x.cls)),
+          `#3938 ${where} / ${tier}: the token list's dropdowns are the shared select (.p3-select, not .select): ${JSON.stringify(row?.selects)}`);
+        const tops = (row?.caps ?? []).map((c) => c.top);
+        const spread = tops.length ? Math.max(...tops) - Math.min(...tops) : NaN;
+        // Owner decision A (2026-11-18): the offset is held at 0, read to the hundredth of a pixel.
+        ok(tops.length === (tier === 'semantic' ? 3 : 1) && spread === 0,
+          `#3938 ${where} / ${tier}: every caption in the token list's control row sits on one line, offset 0 (spread ${Number.isNaN(spread) ? 'none' : spread.toFixed(2)}px over ${JSON.stringify(row?.caps)})`);
+        if (tier === 'semantic') {
+          step = 'Category: color';
+          await page.locator('[data-p3="token-category"]').selectOption('color');
+          await settle(page);
+          const picked = await page.evaluate(() => ({ v: document.querySelector('[data-p3="token-category"]')?.value, sections: document.querySelectorAll('.pv-tscroll').length }));
+          ok(picked.v === 'color' && picked.sections === 1, `#3938 ${where}: choosing a category in the shared select filters the list to it (${JSON.stringify(picked)})`);
+          await page.locator('[data-p3="token-category"]').selectOption('');
+          await settle(page);
+        }
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3938
+if (runs('4235')) {
+  console.log(`\nAn edit's reveal reads layout a frame after the repaint, not in the callback that rebuilt the preview (#4235)\n${'='.repeat(78)}`);
+  // `revealGroup` reads the pane's and the palette's boxes. Read in the frame that just rebuilt the preview, that read
+  // forces a synchronous layout on every edit. The probe counts frames, notes the last frame in which the document
+  // changed (a MutationObserver, plus `takeRecords()` at the read, which returns a change made earlier in the same
+  // callback and not yet delivered), and logs each box read of a palette against both.
+  // EXPECTED (typed here): every read lands in a frame the document has not changed in yet, so its layout is clean.
+  // Mutation that fails here BY NAME: `palettes.ts` calling `revealGroup` straight after `render()` → `#4235 … reads`.
+  const where = '4235 web light 1280, Color › Palettes, a Neutral hue edit';
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  let step = 'boot';
+  try {
+    await goPlace(page, 'color-palettes');
+    await hooks.need(page, '[data-p3="neutral-hue-slider"]');
+    await settle(page);
+    step = 'the probe';
+    const reads = await page.evaluate(async () => {
+      let frame = 0, live = true;
+      const tick = () => { frame++; if (live) requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+      let changed = -1;
+      const mo = new MutationObserver(() => { changed = frame; });
+      mo.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
+      const orig = Element.prototype.getBoundingClientRect;
+      const log = [];
+      Element.prototype.getBoundingClientRect = function () {
+        if (this.matches?.('[data-p3="palette"]')) {
+          if (mo.takeRecords().length) changed = frame;
+          log.push({ changed, at: frame });
+        }
+        return orig.call(this);
+      };
+      try {
+        await new Promise((r) => requestAnimationFrame(() => r()));
+        const sl = document.querySelector('[data-p3="neutral-hue-slider"]');
+        sl.value = String((Number(sl.value) + 20) % 360);
+        sl.dispatchEvent(new Event('input', { bubbles: true }));
+        for (let i = 0; i < 4; i++) await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
+      } finally { Element.prototype.getBoundingClientRect = orig; mo.disconnect(); live = false; }
+      return log;
+    });
+    ok(reads.length > 0 && reads.every((x) => x.changed < x.at),
+      `#4235 ${where}: the reveal reads each palette's box in a frame the document has not changed in, never straight after the repaint (${JSON.stringify(reads)})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+} // 4235
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
