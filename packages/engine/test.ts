@@ -11583,6 +11583,31 @@ arm: {
     ok((r?.min ?? 0) >= 4.5, `#290 disabled: high-contrast escalates '${s}' to >=4.5 (got ${r?.min})`);
   }
 
+  // THE DISABLED EDGE FOLLOWS THE LEVERS (#2750; owner decision lettered A, text = option B, 2026-11-18). `disabled.border` (and its inverse
+  // twin) clears the same floor as the disabled inks, so both levers move it. On main it was the fixed `neutralLow()`
+  // step rated `min: 0`: the same hex at every setting, 1.5–1.8:1 against the page. The expectations are the lever's
+  // own numbers (4.5 for 'full', the dial for 'reduced', >=4.5 in high contrast), never read from `modes.ts`.
+  {
+    const settings: [string, any, number][] = [
+      ['full', { ...seed, disabledStrategy: 'full' }, 4.5],
+      ['reduced 3', { ...seed, disabledStrategy: 'reduced', disabledMin: 3 }, 3],
+      ['reduced 4.5', { ...seed, disabledStrategy: 'reduced', disabledMin: 4.5 }, 4.5],
+    ];
+    const misses: string[] = [];
+    for (const [label, input, want] of settings) for (const m of ['light', 'dark', 'hc-light']) {
+      const floor = m.startsWith('hc') ? Math.max(want, 4.5) : want;
+      const roles = dRoles(input, m) as Record<string, { ratio?: number; min?: number; hex?: string } | undefined>;
+      for (const k of ['disabled.border', 'inverse.disabled.border']) {
+        const r = roles[k];
+        if (!r || r.min !== floor || (r.ratio ?? 0) < floor) misses.push(`${label} ${m} ${k} min ${r?.min} ratio ${r?.ratio}`);
+      }
+    }
+    ok(misses.length === 0, `#2750 disabled.border clears the disabled levers' floor in every setting, mode and context — misses: ${misses.join('; ') || 'none'}`);
+    const hexAt = (input: any) => (dRoles(input, 'light') as Record<string, { hex?: string } | undefined>)['disabled.border']?.hex;
+    const lo = hexAt(settings[1]![1]), hi = hexAt(settings[2]![1]);
+    ok(!!lo && !!hi && lo !== hi, `#2750 disabledMin moves disabled.border (reduced 3 ${lo}, reduced 4.5 ${hi})`);
+  }
+
   // The schema must REJECT a sub-3 floor rather than rely on the engine clamp — the clamp protects
   // the emit, the schema protects the author from thinking 2:1 was accepted.
   const dSchema = JSON.parse(readFileSync(resolve(HERE, './schema/theme-schema.json'), 'utf8'));
@@ -35367,7 +35392,7 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
 //       contract, so (c) can see the floor this migration had to clear.
 //
 // Mutations, each failing here by name:
-//   (1) the fixture's `border.rest` step 400 → 350 → `#3336 light: all 232 contracts pass on the neutral palette (want 232) —
+//   (1) the fixture's `border.rest` step 400 → 350 → `#3336 light: all 234 contracts pass on the neutral palette (want 234 …) —
 //       FAILED: interactive.primary.border.rest 2.81<3`, `#3336 light: interactive.primary.border.rest is neutral.400 #8f8d8d
 //       at 3.30:1 …` and `#3336 light: the action family resolves to the decided neutral step and hex …`
 //   (2) the `brand-neutral` brand color restored to the fixture → `#3336 the reference brand carries no brand-neutral palette …`
@@ -35424,7 +35449,7 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
       ok(stale.length === 0, `#3336 ${m.mode}: no role aliases brand-neutral${stale.length ? ` — ${stale.slice(0, 5).join(', ')}${stale.length > 5 ? ` and ${stale.length - 5} more` : ''}` : ''}`);
       // (c)
       const { checked, broken } = contracts(roles);
-      ok(checked.length === 232 && broken.length === 0, `#3336 ${m.mode}: all ${checked.length} contracts pass on the neutral palette (want 232)${broken.length ? ` — FAILED: ${failed(broken)}` : ''}`);
+      ok(checked.length === 234 && broken.length === 0, `#3336 ${m.mode}: all ${checked.length} contracts pass on the neutral palette (want 234: #2750 rates the two disabled borders)${broken.length ? ` — FAILED: ${failed(broken)}` : ''}`);
       // (d)
       const b = roles['interactive.primary.border.rest'];
       ok(!!b && b.hex === '#8f8d8d' && /\.palette\.neutral\.400$/.test(b.path) && Math.abs(b.ratio - 3.30) < 0.005 && b.min === 3 && b.against === 'background.primary',
