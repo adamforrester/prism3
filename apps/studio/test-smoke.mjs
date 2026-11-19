@@ -4626,6 +4626,35 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   console.log(`  B "${said}"`);
 }
 
+// C — A RELOAD KEEPS THE GUARD (#3880, owner decision A): the origin and baseline are kept beside the brand, so edits
+// made before a reload still count after it. The issue's reproduction: edit an example, reload, pick another example.
+// Before #3880 the reload restored the brand as its own baseline (origin `file`), and the pick replaced it, and the only
+// stored copy, with no confirm. EXPECTED typed here: the rename and the sentence, which names the example at risk.
+// Mutation that fails here BY NAME: `bootBrand` restoring origin `file` with the brand as its baseline, as before
+// (entry.ts) → `#3880 after a reload, an example load over the edits still asks first`.
+{
+  const [atRisk, arriving] = BRANDS;
+  const { ctx, page, drain } = await openBrand(atRisk);
+  await tabClick(page, 'brand');
+  await page.fill('[data-p3="brand-name"]', 'renamed-in-smoke');
+  await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.name === 'renamed-in-smoke'; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
+  await page.reload({ waitUntil: 'networkidle' });
+  await hooks.need(page, '[data-p3="frame"]');
+  await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-example"]');
+  await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-example"]').filter({ hasText: arriving }).first());
+  await page.waitForSelector('[data-p3="brand-menu"] [data-p3="overwrite-confirm"]', { timeout: 5000 }).catch(() => {});
+  const said = ((await page.locator('[data-p3="brand-menu"] [data-p3="overwrite-confirm"]').first().textContent().catch(() => null)) ?? '').trim();
+  const want = `Replace the current brand with the ${arriving} example? Your edits to the ${atRisk} example are not saved anywhere else.`;
+  ok(said === want, `#3880 after a reload, an example load over the edits still asks first, naming the example at risk — got ${JSON.stringify(said)}`);
+  if (said) await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="overwrite-cancel"]'));
+  const kept = await page.evaluate(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.name ?? null; } catch { return null; } });
+  ok(kept === 'renamed-in-smoke', `#3880 after a reload and a cancelled load, the stored brand is still the edited one (${JSON.stringify(kept)})`);
+  const errs = drain();
+  ok(errs.length === 0, `reload guard: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+
 // D — UNDO LOAD (#1037, owner decision Q319.2: "add an Undo load that restores the previous input until the next edit").
 // Load an example over edits, through the confirm; Undo load puts the edited brand back, still guarded; and a second
 // load's offer is ended by the first edit to the loaded brand. EXPECTED typed here: the rename, the hook and the button's
