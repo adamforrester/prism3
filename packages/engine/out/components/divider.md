@@ -38,6 +38,8 @@ Shown on the default member: orientation `horizontal`, inset `none`, labeled `fa
 
 Use a divider to separate groups of related content when spacing alone does not make the groups clear: sections of a page, rows in an accordion or list, or a cluster of controls in a toolbar. Horizontal by default, spanning its container; vertical between items in a row. Inset it from the start to line up with indented content, or from both ends to separate within a section. It is decorative by default; set decorative to false when the rule marks a real break in the content. Give it a label, such as Or, when it sits between two alternative groups of actions, such as social sign-in above and email sign-in below. Vertical, it sits between two groups side by side on a wide layout.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Let the divider span its container, so the break reads as a break between whole groups

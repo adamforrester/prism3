@@ -32,10 +32,10 @@ import { BrandInput } from './theme';
 export type DesignMd = { input: BrandInput; prose: string };
 
 // --- scalar typing: bare YAML scalar string → typed JS value ------------------
-// A double-quoted scalar takes the YAML escapes the serializer writes: `\\` and `\"` (#3876), and for a control
-// character `\n`, `\r`, `\t` or `\uXXXX` (#4213). Without decoding them, each export → import added a backslash
-// before every quote in a brand name, and a raw newline in a name broke the frontmatter. Any other backslash is kept
-// as written. A single-quoted scalar has no escapes here.
+// A double-quoted scalar takes the YAML escapes the serializer writes: `\\` and `\"` (#3876), `\n` and `\r` (#3984),
+// and for any other control character `\t` or `\uXXXX` (#4213). Without decoding them, each export → import added a
+// backslash before every quote in a brand name, and a line break in one ended the frontmatter line. Any other
+// backslash is kept as written. A single-quoted scalar has no escapes here.
 const ESCAPES: Record<string, string> = { '"': '"', '\\': '\\', n: '\n', r: '\r', t: '\t' };
 const unquote = (s: string): string => {
   const t = s.trim();
@@ -103,7 +103,7 @@ const parseFlow = (src: string, line?: number): unknown => {
     if (src[i] === '}') { i++; return o; }
     while (i < src.length) {
       ws();
-      const key = unquote(scanBare(':'));          // unquote trims; a quoted key keeps its own edges (#4213)
+      const key = unquote(scanBare(':'));                // unquote trims the raw text; a quoted key keeps its own spaces (#3984)
       refuseProtoKey(key, line);
       i++;                                                 // skip ':'
       o[key] = value();
@@ -180,7 +180,7 @@ const parseBlock = (lines: Line[]): Record<string, unknown> => {
       const line = cur.content;
       const ci = colonSplit(line);
       if (ci < 0) break;                                   // not a mapping line at this level
-      const key = unquote(line.slice(0, ci));         // unquote trims; a quoted key keeps its own edges (#4213)
+      const key = unquote(line.slice(0, ci));           // unquote trims the raw text; a quoted key keeps its own spaces (#3984)
       const rest = line.slice(ci + 1).trim();
       // L-08: a duplicate key at the same level silently last-wins in plain object
       // assignment — a designer who pastes two `primary:` blocks would lose one without
@@ -283,8 +283,9 @@ export const parseDesignMd = (text: string): DesignMd => {
 const bareOk = (s: string): boolean =>
   s.length > 0 && s.trim() === s && !/[,{}[\]:#"'\u0000-\u001f\u007f]/.test(s) &&
   !/^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(s) && !['true', 'false', 'null', '~'].includes(s);
-// Double-quoted with the escapes `unquote` decodes, backslash first (#3876). A control character is escaped too
-// (#4213): written raw, a newline in a brand name started a new frontmatter line and the file no longer parsed.
+// Double-quoted with the escapes `unquote` decodes, backslash first (#3876), so a typed `\n` stays text. A line break
+// is written as `\n` and a carriage return as `\r`, so the value stays on its one frontmatter line (#3984); any other
+// control character is escaped too, as `\t` or `\uXXXX` (#4213).
 const CTRL: Record<string, string> = { '\n': '\\n', '\r': '\\r', '\t': '\\t' };
 const dq = (s: string): string =>
   `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/[\u0000-\u001f\u007f]/g, (c) => CTRL[c] ?? `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`)}"`;
