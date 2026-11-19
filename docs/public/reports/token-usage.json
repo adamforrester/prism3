@@ -2869,32 +2869,9 @@
         },
         "switch-control": {
           "keys": [
-            "disabled.border",
-            "disabled.icon.on-fill"
+            "disabled.border"
           ],
           "parts": {
-            "offGlyph": {
-              "members": 4,
-              "where": {
-                "selection": [
-                  "off"
-                ],
-                "state": [
-                  "disabled"
-                ]
-              }
-            },
-            "onGlyph": {
-              "members": 4,
-              "where": {
-                "selection": [
-                  "on"
-                ],
-                "state": [
-                  "disabled"
-                ]
-              }
-            },
             "track": {
               "members": 4,
               "where": {
@@ -3258,9 +3235,32 @@
         },
         "switch-control": {
           "keys": [
-            "disabled.fill"
+            "disabled.fill",
+            "disabled.icon.on-fill"
           ],
           "parts": {
+            "offGlyph": {
+              "members": 4,
+              "where": {
+                "selection": [
+                  "off"
+                ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            },
+            "onGlyph": {
+              "members": 4,
+              "where": {
+                "selection": [
+                  "on"
+                ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            },
             "track": {
               "members": 8,
               "where": {

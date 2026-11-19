@@ -211,8 +211,9 @@ Then run the compile loop. Say in the prose which picks the report left open, so
   **The block reads ten keys only**: `root`, `personality`, `radiusScale`, `typeScale`, `density`,
   `motionTempo`, `actionPalette`, `iconContrast`, `surfaces`, `gradients`. Two of them are spelled
   differently from the engine-native field: `typeScale` sets `typography.typeScale` and `motionTempo`
-  sets `motionPersonality.tempo`. **Any other key is dropped without a warning**, so check the
-  applied list the CLI prints. A lever outside these ten needs the engine-native dialect.
+  sets `motionPersonality.tempo`. **Any other key is skipped**, and the CLI names each one it
+  skipped (`x-prism3: ignored unknown setting '<key>'`) while the file still compiles. A lever
+  outside these ten needs the engine-native dialect.
 
 ## If you have the MCP surface
 
