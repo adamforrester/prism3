@@ -359,6 +359,29 @@ carrying axis identity in the export itself is the real fix.
 }
 ```
 
+### Tinted Washes → Colors With Alpha
+
+A color variable can hold a color alias at an opacity: a tinted wash, such as
+a fill at 30%. DTCG cannot put an alpha on an alias, so the wash exports as the
+color the alias resolves to in that mode, with the opacity as its alpha. With
+Figma extensions on, both aliases are kept in `$extensions.figma.aliasOf`, so
+the reference can be rebuilt:
+
+```json
+{
+  "$type": "color",
+  "$value": { "colorSpace": "srgb", "components": [0.2392, 0.4078, 0.9882], "alpha": 0.3 },
+  "$extensions": {
+    "figma": {
+      "aliasOf": { "color": "{color.fill.rest}", "opacity": "{opacity.30}" }
+    }
+  }
+}
+```
+
+An alias into another collection resolves through that collection's default
+mode, as Figma resolves it when no mode is set.
+
 ### Gradient Paint Styles → Gradient Tokens
 
 A paint style whose one visible paint is a gradient exports as a DTCG

@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **A tinted wash exports as a color.** A color variable whose value is an
+  alias at an opacity (a tinted wash: the fill at 30%) now exports as the color
+  the alias resolves to in that mode, with the opacity as its alpha:
+  `{ "colorSpace": "srgb", "components": [0.24, 0.41, 0.99], "alpha": 0.3 }`.
+  With Figma extensions on, both aliases are kept in
+  `$extensions.figma.aliasOf` (`{ "color": "{…}", "opacity": "{…}" }`), so a
+  tool can rebuild the reference. Before, the value exported with `null`
+  components, which is not valid DTCG. An alias into another collection
+  resolves through that collection's default mode, as Figma resolves it.
 - **Gradients are exported.** Gradient paint styles now export to
   `gradients.json` (`shared/gradients.json` in a multi-mode export) as DTCG
   `gradient` tokens: an array of `{ color, position }` stops, with a stop bound
