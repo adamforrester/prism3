@@ -670,13 +670,14 @@
     },
     "dialog": {
       "members": 24,
-      "sha256": "5a8359554509720567c50e9240eeb08825cdd4e7ba60564bd9a2170299ac6f65",
+      "sha256": "529ad20a03c8de6f3621ef34f4f9219e4af1b6873cbbe3aea9c5bd8028e1e14f",
       "properties": [
         "body:SLOT",
         "close:BOOLEAN",
         "description text:TEXT",
         "description:BOOLEAN",
         "dividers:BOOLEAN",
+        "show title:BOOLEAN",
         "title:TEXT"
       ]
     },

@@ -119,6 +119,12 @@ export type ButtonLabelWeight = 'default' | 'emphasis';
  *  its label and icon change color and nothing fills. `fill`: the container also takes the overlay wash, on hover
  *  and pressed only — a text button is never filled at rest. Button family only. See `applyButtonLayout`. */
 export type ButtonTextHover = 'text' | 'fill';
+/** #576 (owner decision 2026-11-18, A) — the border weight of an OUTLINE button: one brand-wide value for every button
+ *  set (button, button-neutral, button-destructive), never one per set; the border's color stays per set. `hairline`
+ *  (the default) binds `border-width.hairline`, today's 1px; `thick` binds `border-width.thick`, 2px. No token is added:
+ *  the rebinding picks an existing rung. Button family only. See `applyButtonLayout`. The key and values are a DRAFT
+ *  for the owner. */
+export type ButtonBorderWeight = 'hairline' | 'thick';
 /** The default `buttonMinWidthMultiplier`: Adobe Spectrum's `button-minimum-width-multiplier`, where a
  *  button's `min-inline-size` is `calc(height × multiplier)` (docs/28 §2.2, "derived, not authored"). */
 export const DEFAULT_MIN_WIDTH_MULTIPLIER = 2.25;
