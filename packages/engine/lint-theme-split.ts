@@ -29,7 +29,7 @@
  * belongs in, which is a judgment, not a rule.
  */
 import { readdirSync, readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -71,8 +71,11 @@ export const importsOf = (src: string): Imp[] => {
   return out;
 };
 
-/** The module a relative specifier names, as a file name in this directory (`./theme-type` → `theme-type.ts`). */
-const fileOf = (spec: string): string => `${spec.replace(/^\.\//, '').replace(/\.ts$/, '')}.ts`;
+/** The module a relative specifier names, as a path from this directory (`./theme-type` → `theme-type.ts`). Resolved,
+ *  not trimmed (#4247): `../engine/theme` and `./theme.js` load `theme.ts` under tsx, and a trimmed spelling read them as
+ *  some other file, so CYCLE missed them. A `.js`/`.mjs`/`.mts` extension names the `.ts` source, as TypeScript's
+ *  resolution reads it. A module outside this directory keeps its `../` and matches nothing here. */
+const fileOf = (spec: string): string => `${relative(here, resolve(here, spec)).replace(/\.(ts|mts|js|mjs)$/, '')}.ts`;
 
 /** Each value-import cycle among `graph`'s modules, as the path that closes it (`a → b → a`). */
 export const valueCycles = (graph: Record<string, string[]>): string[] => {
@@ -119,6 +122,13 @@ export const importsBarrel = (spec: string): boolean => {
   if (got !== '1v,2t,3t,5v,6v,7v,8t,9v') fail('SELF-CHECK', `importsOf read the planted imports as [${got}], not [1v,2t,3t,5v,6v,7v,8t,9v]`);
   if (!importsBarrel('./theme') || !importsBarrel('./theme.ts') || !importsBarrel('./index-figma') || importsBarrel('./theme-types')) {
     fail('SELF-CHECK', 'importsBarrel misreads which specifiers name the barrel or an entry');
+  }
+  // Other spellings of the same file (#4247): each loads `theme.ts` under tsx. A file elsewhere of the same name does not.
+  for (const spec of ['../engine/theme', './theme.js', '../engine/theme.ts', './/theme', './x/../theme', '../engine/index-figma.js']) {
+    if (!importsBarrel(spec)) fail('SELF-CHECK', `importsBarrel does not read '${spec}' as the barrel or an entry, though it resolves to one (#4247)`);
+  }
+  for (const spec of ['../theme', './x/theme', '../studio/theme', './theme-types.js']) {
+    if (importsBarrel(spec)) fail('SELF-CHECK', `importsBarrel reads '${spec}' as the barrel or an entry, though it resolves elsewhere (#4247)`);
   }
   for (const [name, want] of [['theme-type.ts', true], ['theme-foo2.ts', true], ['theme-foo-bar.ts', true], ['theme.ts', false], ['theme-.ts', false], ['theme-Foo.ts', false], ['theme-foo.test.ts', false]] as const) {
     if (MODULE.test(name) !== want) fail('SELF-CHECK', `MODULE ${want ? 'misses' : 'takes'} ${name}, ${want ? '' : 'not '}an axis module by the repo's naming`);
