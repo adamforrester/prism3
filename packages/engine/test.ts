@@ -38782,16 +38782,17 @@ arm: {
   ok(modesLooked >= 40 && flat.length === 0,
     `#2324 Neutral's interactive text, icon and border inks step on hover and pressed in every corpus mode, on the page and on the inverse band (${modesLooked} modes${flat.length ? `; flat: ${flat.slice(0, 3).join(' | ')}` : ''})`);
   // 5. THE EMISSION: every corpus brand's tree carries the three underlined label styles, whatever its
-  //    `typography.links` says, each underlined and otherwise its plain twin; and so does a brand that lists no links.
+  //    `typography.links` says, each underlined and otherwise its plain twin; and so does a brand whose list leaves label
+  //    out. (It was `links: []` until #3707 refused an empty list; `['body']` still names no label.)
   const labelLinks = (t: Theme) => t.typography.composites.filter((c) => c.group === 'label' && c.link).map((c) => c.path).sort();
   const WANT_PATHS = ['label.lg.emphasis-link', 'label.md.emphasis-link', 'label.sm.emphasis-link'];
   const missingLinks = corpus().filter(({ theme }) => !WANT_PATHS.every((x) => labelLinks(theme).includes(x))).map(({ id }) => id);
   ok(corpus().length >= 8 && missingLinks.length === 0, `#2324 every corpus brand mints the three underlined label styles (${missingLinks.join(', ') || 'all'})`);
-  const noLinks = brandTheme({ ...MINIMAL_BRAND, typography: { links: [] } } as BrandInput);
+  const noLinks = brandTheme({ ...MINIMAL_BRAND, typography: { links: ['body'] } } as BrandInput);
   // Six since Q226 A (2026-10-10): every brand also ships the default label weight, and its underlined twin with it.
   const WANT_WITH_DEFAULT = ['label.lg.default-link', 'label.lg.emphasis-link', 'label.md.default-link', 'label.md.emphasis-link', 'label.sm.default-link', 'label.sm.emphasis-link'];
   ok(JSON.stringify(labelLinks(noLinks)) === JSON.stringify(WANT_WITH_DEFAULT),
-    `#2324 the underline is fixed: a brand with typography.links: [] still mints them (${labelLinks(noLinks).join(', ') || 'none'})`);
+    `#2324 the underline is fixed: a brand with typography.links: ['body'] still mints them (${labelLinks(noLinks).join(', ') || 'none'})`);
 }
 
 // ------------------------------------------------------------------- #2350: flush text buttons
@@ -43224,6 +43225,39 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(JSON.stringify(seedFromFacts(p2)) === JSON.stringify(s), '#2075 seed: the same report seeds the same bytes');
 }
 
+// #3873 — an AUTHORED interactive anchor is applied exactly (#331), and `pickBrand` swapped an off-ramp step for 500
+// without a word: `actionAnchorStep: 99999` shipped primary.500 uncorrected and failed 11 high-contrast contracts on a
+// step nobody chose. Each authored anchor must name a step on its column's ramp, refused with the nearest step as the
+// surfaces already are, and a `modeAnchors` column the engine never reads is refused rather than ignored.
+{
+  const base = { id: 'a3873', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 }, brandColors: [{ name: 'teal', oklch: { l: 0.6, c: 0.1, h: 190 } }] } as unknown as BrandInput;
+  const refusal = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const cases: [string, Record<string, unknown>, string][] = [
+    ['actionAnchorStep 99999', { actionAnchorStep: 99999 }, 'actionAnchorStep: 99999 is not on the primary ramp; the nearest step is 950'],
+    ['actionAnchorStep 37', { actionAnchorStep: 37 }, 'actionAnchorStep: 37 is not on the primary ramp; the nearest step is 25'],
+    ['destructiveAnchorStep -1', { destructiveAnchorStep: -1 }, 'destructiveAnchorStep: -1 is not on the danger ramp; the nearest step is 25'],
+    ['modeAnchors.light.primary 37', { modeAnchors: { light: { primary: 37 } } }, 'modeAnchors.light.primary: 37 is not on the primary ramp'],
+    ['interactivePalettes[0].anchorStep 37', { interactivePalettes: [{ name: 'accent', palette: 'teal', anchorStep: 37 }] }, 'interactivePalettes[0].anchorStep: 37 is not on the teal ramp'],
+    ['modeAnchors.dark.accent 37', { interactivePalettes: [{ name: 'accent', palette: 'teal' }], modeAnchors: { dark: { accent: 37 } } }, 'modeAnchors.dark.accent: 37 is not on the teal ramp'],
+    ['modeAnchors.dark.nope', { modeAnchors: { dark: { nope: 500 } } }, "modeAnchors.dark: 'nope' is not an interactive column"],
+  ];
+  for (const [label, extra, want] of cases) {
+    const msg = refusal(() => brandTheme({ ...base, ...extra } as unknown as BrandInput));
+    ok(msg.startsWith(want), `#3873 an off-ramp anchor (${label}) is refused by name (got ${JSON.stringify(msg.slice(0, 160))})`);
+  }
+  // The accept side: an on-ramp pin in each place still builds, and the action pin is the step authored.
+  const pinned = { ...base, actionAnchorStep: 600, destructiveAnchorStep: 550, interactivePalettes: [{ name: 'accent', palette: 'teal', anchorStep: 450 }], modeAnchors: { dark: { primary: 400, destructive: 400, accent: 400 } } } as unknown as BrandInput;
+  const built = refusal(() => brandTheme(pinned));
+  ok(built === '', `#3873 on-ramp anchors (action 600, destructive 550, accent 450, dark 400) still build (got ${JSON.stringify(built.slice(0, 160))})`);
+  const rest = (resolveAllModes(brandTheme(pinned)).find((m) => m.mode === 'light')?.roles as any)?.['interactive.primary.fill.rest']?.path;
+  ok(String(rest).endsWith('.primary.600'), `#3873 the pinned action step is the one applied (interactive.primary.fill.rest → ${rest})`);
+  // The backstop: a theme that reaches the resolver with an off-ramp authored anchor (a caller that skipped
+  // brandTheme's check) is refused in `pickBrand` instead of shipping 500 uncorrected.
+  const bypass = brandTheme(base); (bypass as any).actionAnchorStep = 37;
+  const backstop = refusal(() => resolveAllModes(bypass));
+  ok(backstop.includes('step 37 is not on the primary ramp'), `#3873 pickBrand refuses an exact anchor off the ramp rather than falling back to 500 (got ${JSON.stringify(backstop.slice(0, 160))})`);
+}
+
 // #3875 — the brand id names every file the CLI writes (`<id>.tokens.json` and five more), and nothing checked it:
 // `id: "../escaped"` wrote six files one level above --out, `"a/b"` crashed mid-write with a raw stack, and `""` wrote
 // hidden dotfiles. Three layers now hold: brandTheme refuses an id with a separator or nothing in it (and the schema
@@ -43306,6 +43340,37 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   // The accept side: rising floors, a fractional one among them, still build.
   const rising = refusal(() => brandTheme(withBps([0, 768.5, 1024])));
   ok(rising === '', `#3872 rising breakpoints [0, 768.5, 1024] still build (got ${JSON.stringify(rising)})`);
+}
+
+// #3707 (owner decision A, 2026-11-18) — `typography.links: []` validated and built, dropping the six guaranteed body
+// and caption link styles and leaving Link binding text styles nothing emitted. The schema now says `minItems: 1` and
+// brandTheme refuses an in-memory empty list in a sentence of its own (DRAFT wording, Q-RF1 A's pattern). A
+// one-item list still builds.
+{
+  const base = { id: 'links3707', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 } };
+  const withLinks = (links: string[]) => ({ ...base, typography: { links } }) as unknown as BrandInput;
+  const refusal = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const schemaErrs = validateBrandInput(withLinks([]) as never).map(String);
+  ok(schemaErrs.some((e) => /typography\.links: 0 item\(s\) < minItems 1/.test(e)),
+    `#3707 the schema refuses an empty typography.links (got ${JSON.stringify(schemaErrs)})`);
+  const msg = refusal(() => brandTheme(withLinks([])));
+  ok(msg === 'Link styles must name at least one text type: typography.links is empty.',
+    `#3707 brandTheme refuses an empty typography.links in its own sentence (got ${JSON.stringify(msg)})`);
+  const one = refusal(() => brandTheme(withLinks(['body'])));
+  ok(one === '' && validateBrandInput(withLinks(['body']) as never).length === 0,
+    `#3707 a one-item typography.links still validates and builds (threw ${JSON.stringify(one)})`);
+}
+
+// #3551 — the code input cell's radius ladder (sm, sm, sm, lg) is intended (owner decision A, 2026-11-18): the three
+// smaller cells follow the control corner and the display cell is the exception. So `lint-rung-names` admits the
+// repeat as a DECIDED entry in RUNG_REPEATS citing #3551, and the open-question register no longer holds it. Read from
+// the gate's source, because the gate runs at import and exports nothing.
+{
+  const src = readFileSync(join(import.meta.dirname, 'lint-rung-names.ts'), 'utf8');
+  const body = (name: string): string => src.match(new RegExp(`const ${name}: Record<[^>]*> = \\{([\\s\\S]*?)\\n?\\};`))?.[1] ?? '';
+  const decided = body('RUNG_REPEATS').split('\n').find((l) => l.includes("'code-input-cell'")) ?? '';
+  ok(decided.includes("'radius.*'") && decided.includes('#3551'), `#3551 RUNG_REPEATS admits code-input-cell's radius.* repeat, citing #3551 (got ${JSON.stringify(decided)})`);
+  ok(!body('RUNG_REPEATS_OPEN').includes("'code-input-cell'"), '#3551 RUNG_REPEATS_OPEN no longer holds code-input-cell: the question is answered');
 }
 
 if (pass + fails.length < MIN_ASSERTIONS) {

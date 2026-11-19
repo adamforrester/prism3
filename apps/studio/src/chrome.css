@@ -305,6 +305,12 @@
 .p3-search-input:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 .p3-search-status { flex: none; color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap; }
 .p3-search-status:empty { display: none; }
+/* #3620 (owner decision 2026-11-18, A): at the narrow tier the status takes its own line under the field, so the field keeps
+   the row's width and the status is never cut off. In the row, "No setting on this page matches" (nowrap, `flex: none`)
+   left the plugin's 380 field about 17px of text. The magnifier is placed on the field's line, which is the first. */
+.p3-frame[data-w="narrow"] .p3-search[data-open="true"] .p3-search-box { flex-wrap: wrap; row-gap: var(--p3-space-050); }
+.p3-frame[data-w="narrow"] .p3-search-status { order: 1; flex: 1 0 100%; white-space: normal; }
+.p3-frame[data-w="narrow"] .p3-search-box > .p3-ico { top: calc(var(--p3-ctl-h-sm) / 2); transform: translateY(-50%); }
 
 /* Color's sub-pages, and the Depth & motion switch: a segmented tablist. Its track is the top bar's step,
    so it reads on the gray tab row in both themes, and the selected segment's edge is measured against
@@ -2250,7 +2256,8 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
    theme (`spec.mjs`): a panel enters on `motion-panel`, a small surface on `motion-fast`, and every exit leaves on
    `motion-fast`, on the enter and exit curves only. Transform and opacity move; layout never does.
    · Slide up: the Activity drawer at every width, its chevron turning with it.
-   · Shift: a menu (Theme, Inspect, the brand menu) and the 380 strip, a fade and a short offset toward the anchor.
+   · Shift: a menu (Theme, Inspect, the brand menu, the agent link's pairing prompt) and the 380 strip, a fade and a short
+     offset toward the anchor.
    · Pop: the status dot on the drawer's bar row.
    · Fade: a tooltip, the error strip, and the Update file rows that land after the file is read.
    · Scale in: a dialog (Update file, the start window and its guard), its scrim fading with it.
@@ -2298,6 +2305,11 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 }
 @starting-style { .p3-menu { opacity: 0; translate: 0 calc(-1 * var(--p3-space-050)); } }
 .p3-menu[data-leaving="true"] { opacity: 0; transition-timing-function: var(--p3-ease-exit); }
+/* #3245 (owner decision 2026-11-18, A): the agent link's pairing prompt is a menu's surface that is hidden, not removed, so
+   `data-leaving` never reaches it. It takes the menu's exit fade the way the error strip does: drawn through the fade
+   (`display` with `allow-discrete`), its opacity on the exit curve. */
+.p3-menu.p3-agent-pair { transition-property: opacity, translate, display; transition-behavior: allow-discrete; }
+.p3-menu.p3-agent-pair[hidden] { opacity: 0; transition-timing-function: var(--p3-ease-exit); }
 
 /* Fade. A tooltip fades in and goes at once. */
 .p3-tile-tip { transition: opacity var(--p3-motion-fast) var(--p3-ease-enter); }
@@ -2356,4 +2368,7 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
     :is(.p3-advbody, .p3-op-body, .p3-op-history > ul, .p3-op-entry > :not(summary), .p3-sg-titles-body)) {
     transition-property: opacity; transition-duration: var(--p3-motion-reduced);
   }
+  /* The pairing prompt keeps its exit as a fade (#3245): the menus' line above drops `display`, which would end its fade at
+     once. Placed after it, at the specificity it needs to win. */
+  .p3-popwrap > .p3-menu.p3-agent-pair { transition-property: opacity, display; transition-duration: var(--p3-motion-reduced); transition-behavior: allow-discrete; }
 }
