@@ -634,6 +634,7 @@
     "buttonContentSize": { "type": "string", "enum": ["match", "smaller"], "default": "match", "description": "OPTIONAL. 'smaller': a medium button takes the small label and icon." },
     "buttonLabelWeight": { "type": "string", "enum": ["default", "emphasis"], "default": "emphasis", "description": "OPTIONAL. 'default': buttons bind type.label.*.default." },
     "buttonTextHover": { "type": "string", "enum": ["text", "fill"], "default": "text", "description": "OPTIONAL. A text button on hover and pressed: 'text' changes the label and icon colors only; 'fill' also takes the overlay wash. Never filled at rest." },
+    "buttonBorderWeight": { "type": "string", "enum": ["hairline", "thick"], "default": "hairline", "description": "OPTIONAL. The border of an outline button, in every button set: 'hairline' binds border-width.hairline (1px), 'thick' border-width.thick (2px). Default 'hairline'." },
     "buttonMinWidthMultiplier": { "type": "number", "default": 2.25, "minimum": 1, "maximum": 4, "description": "OPTIONAL. Button min width = height × this, rounded up to 8px." },
     "radiusScale": { "oneOf": [ { "type": "number", "default": 1, "description": "OPTIONAL. Radius softness: 0 = sharp, 1 = default, 2 = soft. Default 1." }, { "type": "string", "enum": ["sharp", "modest", "standard", "soft", "round"], "description": "Named stop — sharp 0 · modest 0.5 · standard 1 · soft 1.5 · round 2." } ] },
     "baseMd": { "type": "number", "default": 4, "description": "OPTIONAL. The radius.md anchor (px) at scale 1. Default 4." },

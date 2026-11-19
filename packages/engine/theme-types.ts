@@ -6,7 +6,7 @@
  */
 import type { BrandIcons } from './icon-map';
 import type { Step } from './ramp';
-import type { SpaceStep, RadiusStep, SizeStep, Density, ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle, CurrentIndicator, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, IconSizeStep, ControlSizeStep, RadioDotShare } from './scale';
+import type { SpaceStep, RadiusStep, SizeStep, Density, ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle, CurrentIndicator, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, ButtonBorderWeight, IconSizeStep, ControlSizeStep, RadioDotShare } from './scale';
 import type { ModeName, BuiltinModeName, ModeOverrides } from './modes';
 import type { MotionAxis, MotionPersonality } from './theme-motion';
 import type { TypeGroup, WeightRoleName, LineHeightKey, LetterSpacingKey, PerModeSizeGroup, Typography, TypographyInput } from './theme-type';
@@ -825,6 +825,10 @@ export type BrandInput = {
    *  (the container also takes the overlay wash on hover and pressed, never at rest). Materialized by
    *  `applyButtonLayout` like the levers above; it emits no token and moves no token name. */
   buttonTextHover?: ButtonTextHover;
+  /** #576 — the outline button's border weight, one value for every button set: 'hairline' (default,
+   *  `border-width.hairline`) | 'thick' (`border-width.thick`). Materialized by `applyButtonLayout` like the levers
+   *  above; it emits no token and moves no token name. Key and values are a DRAFT for the owner. */
+  buttonBorderWeight?: ButtonBorderWeight;
 };
 
 /**
