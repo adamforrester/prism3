@@ -18,6 +18,11 @@ mode, and Tailwind copies a shadow's theme value into `--tw-shadow`. A `.dark` o
 never reach the utility. The theme points `--shadow-md` at `var(--pds3-shadow-md)`, and that variable is set in both
 blocks. Checked in the compiled output: `.shadow-md { --tw-shadow: var(--pds3-shadow-md) }`.
 
+**Values are gate 2's.** Gate 5 checks that a color or shadow utility reads a variable set in both modes, not what the
+variable holds. Gate 2 (`lint-shadcn-roundtrip.ts`) reads the Tailwind theme's `:root` and `.dark` as well as the shadcn
+file, through Chromium, against each role's per-mode value, so a theme with light and dark swapped fails
+`<brand> tailwind light background: …`. No gate compares a shadow variable's value yet.
+
 **Trap.** The Tailwind CLI resolves `@import "tailwindcss"` from the input file's own directory, so an input in a temp
 dir fails with "Can't resolve 'tailwindcss'". The gate imports the resolved `tailwindcss/index.css` path with
 `source(none)` and names its classes with `@source inline(...)`. Without `source(none)`, Tailwind also scans the working
