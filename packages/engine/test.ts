@@ -44171,14 +44171,40 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
 
 // #3551 — the code input cell's radius ladder (sm, sm, sm, lg) is intended (owner decision A, 2026-11-18): the three
 // smaller cells follow the control corner and the display cell is the exception. So `lint-rung-names` admits the
-// repeat as a DECIDED entry in RUNG_REPEATS citing #3551, and the open-question register no longer holds it. Read from
-// the gate's source, because the gate runs at import and exports nothing.
+// repeat as a DECIDED entry in RUNG_REPEATS citing #3551, and the open-question register no longer holds it. The gate
+// runs at import and exports nothing, so each register is read from its source and EVALUATED, never matched as text:
+// a check that the open register "does not include" a string passed when its regex stopped finding the declaration
+// (#4242). Each declaration is found by name alone (any type annotation), must occur exactly once, and its object
+// literal must evaluate, or the arm fails by name. MUTATIONS VERIFIED (#4242, each fails an arm here by name): the
+// open register re-declared with another annotation, holding code-input-cell · the decided entry's `why` without
+// #3551 · the def's x-large corner moved to radius.sm.
 {
   const src = readFileSync(join(import.meta.dirname, 'lint-rung-names.ts'), 'utf8');
-  const body = (name: string): string => src.match(new RegExp(`const ${name}: Record<[^>]*> = \\{([\\s\\S]*?)\\n?\\};`))?.[1] ?? '';
-  const decided = body('RUNG_REPEATS').split('\n').find((l) => l.includes("'code-input-cell'")) ?? '';
-  ok(decided.includes("'radius.*'") && decided.includes('#3551'), `#3551 RUNG_REPEATS admits code-input-cell's radius.* repeat, citing #3551 (got ${JSON.stringify(decided)})`);
-  ok(!body('RUNG_REPEATS_OPEN').includes("'code-input-cell'"), '#3551 RUNG_REPEATS_OPEN no longer holds code-input-cell: the question is answered');
+  const register = (name: string): { value?: Record<string, { families: string[]; why?: string; issue?: string }>; why: string } => {
+    const decls = [...src.matchAll(new RegExp(`\\b(?:const|let|var)\\s+${name}\\b[^=]*=\\s*\\{`, 'g'))];
+    if (decls.length !== 1) return { why: `${decls.length} declarations of ${name}, not one` };
+    const open = decls[0].index! + decls[0][0].length - 1;
+    let depth = 0, end = -1, quote = '';
+    for (let i = open; i < src.length && end < 0; i++) {
+      const c = src[i];
+      if (quote) { if (c === '\\') i++; else if (c === quote) quote = ''; continue; }
+      if (c === "'" || c === '"' || c === '`') quote = c;
+      else if (c === '{') depth++;
+      else if (c === '}' && --depth === 0) end = i;
+    }
+    if (end < 0) return { why: `${name}'s object literal never closes` };
+    try { return { value: new Function(`return (${src.slice(open, end + 1)});`)() as never, why: '' }; }
+    catch (e) { return { why: `${name}'s object literal does not evaluate: ${(e as Error).message}` }; }
+  };
+  const decided = register('RUNG_REPEATS'), pending = register('RUNG_REPEATS_OPEN');
+  ok(!!decided.value && !!pending.value, `#4242 both rung-repeat registers are read from lint-rung-names.ts as values (${decided.why || 'RUNG_REPEATS ok'}; ${pending.why || 'RUNG_REPEATS_OPEN ok'})`);
+  const entry = decided.value?.['code-input-cell'];
+  ok(!!entry && entry.families.includes('radius.*') && /#3551\b/.test(entry.why ?? ''), `#3551 RUNG_REPEATS admits code-input-cell's radius.* repeat, citing #3551 (got ${JSON.stringify(entry)})`);
+  ok(!!pending.value && !('code-input-cell' in pending.value), `#3551 RUNG_REPEATS_OPEN no longer holds code-input-cell: the question is answered (got ${JSON.stringify(pending.value)})`);
+  // The decided behavior itself, from the def: small, medium and large on the control corner, x-large on radius.lg.
+  const cell = componentDefs.find((d) => d.id === 'code-input-cell');
+  const ladder = ['small', 'medium', 'large', 'x-large'].map((s) => (cell?.tokens as Record<string, string> | undefined)?.[`size.${s}.radius`]);
+  ok(JSON.stringify(ladder) === JSON.stringify(['radius.sm', 'radius.sm', 'radius.sm', 'radius.lg']), `#3551 the code input cell's corner ladder is sm, sm, sm, lg, as decided (got ${JSON.stringify(ladder)})`);
 }
 
 // #4120 (owner decision A, 2026-11-19) — every brand-taking MCP tool takes `{ brand }`. validate_brand took the
