@@ -327,13 +327,17 @@ const boom = async (): Promise<never> => { throw new TypeError(HOST_SECRET); };
   const root = figmaShim.root as object;
   const own = Object.getOwnPropertyDescriptor(root, 'children');
   const proto = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(root), 'children');
-  Object.defineProperty(root, 'children', { configurable: true, get: () => { throw new TypeError(HOST_SECRET); } });
   const runs: [string, (sink: unknown) => Promise<void>][] = [
     ['Update check', (sink) => A.updateComponents(undefined, null, undefined, undefined, sink)],
   ];
-  for (const [name, f] of runs) {
-    const posted = (await run(f)).filter((m) => m.type === 'component-update-result');
-    thrown(`#4205 ${name}`, posted, posted[0]?.lines?.[0], TE, 'TypeError');
+  // The four catches post `why` bare, with no head in front, so only `DETAIL`'s class rule cuts them: thrown as an
+  // `…Error` and as a host's `DOMException`, which `DETAIL` admitted only as `…Error` before the #4257 review.
+  for (const cls of ['TypeError', 'DOMException']) {
+    Object.defineProperty(root, 'children', { configurable: true, get: () => { throw Object.assign(new Error(HOST_SECRET), { name: cls }); } });
+    for (const [name, f] of runs) {
+      const posted = (await run(f)).filter((m) => m.type === 'component-update-result');
+      thrown(`#4205 ${name}, a ${cls}`, posted, posted[0]?.lines?.[0], `${cls}: ${HOST_SECRET}`, cls);
+    }
   }
   if (own) Object.defineProperty(root, 'children', own); else delete (root as { children?: unknown }).children;
   ok(!!(own ?? proto) && Array.isArray((root as { children?: unknown }).children), '#4205 premise: the file reads its pages again after 11a');
