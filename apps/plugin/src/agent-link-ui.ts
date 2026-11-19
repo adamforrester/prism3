@@ -404,7 +404,11 @@ export const mountAgentLink = (): void => {
       const t = pairPromptText(pairState);
       const show = !!t && !pairDismissed && !!state?.on;
       const wasHidden = pairBox.hidden;
+      // #4228: hiding the prompt with focus in it (Not now, or the code accepted) would drop focus to <body>; it goes back
+      // to the Agent switch, the control the prompt sits under.
+      const hadFocus = !show && !wasHidden && pairBox.contains(document.activeElement);
       pairBox.hidden = !show;
+      if (hadFocus) chip.focus();
       if (!t) return;
       pairLine.textContent = t.line;
       if (t.error !== null || pairErr.dataset.local !== 'true') { pairErr.textContent = t.error ?? ''; delete pairErr.dataset.local; }
