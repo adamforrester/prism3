@@ -29,7 +29,7 @@ an `engine: minor` change note, plus the component-surface and axes baselines ac
 
 **Measured.** Plugin shim, `test-update-apply.ts` section `dialog size`:
 - Setup: the old def is rebuilt by putting the axis back. Its projection matches origin/main's surface baseline exactly
-  (24 members, sha 5a835955… since #4084; it was 17ff3a9b… before).
+  (24 members, sha 529ad20a… since #4057; it was 5a835955… after #4084 and 17ff3a9b… before).
 - After the update the set holds 16 members, none on `size`, no two on one coordinate, none deprecated. The medium
   member keeps its node, id and key. Two placed small instances and one large one point at the medium member at 400
   and 720. The medium instance is not swapped, and every member reads current after.
