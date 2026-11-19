@@ -3841,6 +3841,38 @@ const writeComponentSet = async (
       misses.push(`property ${p.name}.slotSettings -> NOT KEPT (wrote ${JSON.stringify(slotSettings)} with ${preferredValues.length} preferred; the set holds ${JSON.stringify(gotSettings)} with ${gotKeys.length})`);
   }
 
+  // ---- ICON SWAPS' PREFERRED VALUES (#4164, owner decision A) ----------------------------------------------------
+  // An INSTANCE_SWAP whose target is a core icon (`preferIcons`) offers every icon component the file holds first in its
+  // swap picker: each component whose name shares the target's prefix (`icon/`), in name order, by key. Found fresh, as
+  // the slot pass finds its sets, since a component's key is what Figma stores. No icon in the file, or a name held by
+  // more than one component, is a named miss, and the rest are written. Read back off the set, as a slot's are. The
+  // paste payload's twin is `PAYLOAD_ICON_SWAPS` in `anatomy-figma.ts`.
+  const iconSwaps = readable ? props.filter((p): p is Extract<typeof p, { type: 'INSTANCE_SWAP' }> => p.type === 'INSTANCE_SWAP' && p.preferIcons === true) : [];
+  if (iconSwaps.length) {
+    const all = api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly CompRef[];
+    for (const p of iconSwaps) {
+      const key = propIds.get(p.name);
+      if (!key) continue; // reported as not created, above
+      const prefix = p.swapTarget.slice(0, p.swapTarget.indexOf('/') + 1);
+      const byName = new Map<string, CompRef[]>();
+      for (const c of all) if (c.name.startsWith(prefix)) byName.set(c.name, [...(byName.get(c.name) ?? []), c]);
+      const names = [...byName.keys()].sort();
+      const twiceHeld = names.filter((n) => byName.get(n)!.length > 1);
+      const preferredValues: SlotPreferredValue[] = names.filter((n) => byName.get(n)!.length === 1 && byName.get(n)![0].key).map((n) => ({ type: 'COMPONENT', key: byName.get(n)![0].key! }));
+      if (twiceHeld.length) misses.push(`property ${p.name}.preferred -> ${twiceHeld.length} icon name(s) held by more than one component (${twiceHeld.slice(0, 3).join(', ')}; not offered in the swap. Rename or remove the stale copies, then rebuild)`);
+      if (!preferredValues.length) { misses.push(`property ${p.name}.preferred -> no ${prefix}* component in this file (build the icons first, then rebuild this one; until then the swap lists no icons first)`); continue; }
+      const edit = liveSet().editComponentProperty;
+      if (!edit) { misses.push(`property ${p.name}.preferred -> NOT WRITTEN (this host cannot edit a component property)`); continue; }
+      try { edit.call(liveSet(), key, { preferredValues }); }
+      catch (err) { misses.push(`property ${p.name}.preferred -> REFUSED (${(err as Error)?.message ?? String(err)})`); continue; }
+      let back: { preferredValues?: readonly { key?: unknown }[] } | undefined;
+      try { back = (liveSet().componentPropertyDefinitions ?? {})[key] as typeof back; } catch { back = undefined; }
+      const gotKeys = (back?.preferredValues ?? []).map((v) => String(v.key));
+      if (JSON.stringify(gotKeys) !== JSON.stringify(preferredValues.map((v) => v.key)))
+        misses.push(`property ${p.name}.preferred -> NOT KEPT (wrote ${preferredValues.length} icons; the set holds ${gotKeys.length})`);
+    }
+  }
+
   // WIRE the references, per MEMBER. They do NOT propagate: setting one on the first variant leaves
   // every sibling's `componentPropertyReferences` empty, so a set wired once looks correct on whichever
   // variant a designer inspects and is inert on the other twenty.
