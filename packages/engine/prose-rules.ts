@@ -161,7 +161,8 @@ const NOT_EN_GB = new Set([
   // A JSON `\n` escape runs into the next word, so `\nraises` reads as `nraises` (the 0.238.0 release notes' `.json`,
   // which carries each folded note verbatim, line breaks included). The word after the escape is still checked alone
   // wherever it is not glued to an escape, so these hide no en-GB spelling.
-  'nraises', 'notherwise',
+  'nraises', 'notherwise', 'npairwise',
+  'pairwise', // `-wise` as in `otherwise` and `likewise`, not an `-ise` verb (first shipped in the 0.239.0 release notes)
 ]);
 // The ONE place either regex is applied. `scan()` (real files) and SELF_CHECK (samples) both drive
 // this, and that sharing is load-bearing — the exact opposite of the DRY trap, because here the two
