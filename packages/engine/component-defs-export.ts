@@ -52,7 +52,8 @@ import { CONTRACT_VERSION, ENGINE_VERSION } from './version';
 import { localeFreeCompare } from './locale-free-order';
 
 // 1.5 (#576): `settings.button.borderWeight`, the outline button's border weight.
-export const COMPONENT_DEFS_FORMAT = 'prism3-component-defs/1.5';
+// 1.6 (#3076): `settings.icons`, the brand icon map and its art.
+export const COMPONENT_DEFS_FORMAT = 'prism3-component-defs/1.6';
 /** The Specs schema version the projection is written against, and checked against (`packages/tokens/check-specs.mjs`). */
 export const SPECS_SCHEMA_VERSION = '0.39.0';
 
