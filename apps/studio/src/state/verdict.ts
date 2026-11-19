@@ -32,11 +32,17 @@ export type Verdict = {
 let cache: { theme: Theme; modes: string; v: Verdict } | null = null;
 let resolved: { theme: Theme; all: ReturnType<typeof resolveAllModes> } | null = null;
 
-/** Every mode's resolved roles for `theme`, cached by the theme's identity. The verdict reads it, and so
- *  does any preview that needs a role's resolved color (S2: the Palettes preview reads the page color it
- *  draws its specimens on), so one edit costs one resolve however many readers there are. */
+let runs = 0;
+/** How many times `resolvedModes` has resolved a theme (a cache miss). `test-store.ts` reads it to hold one resolve per
+ *  edit (#4234). */
+export const resolveRuns = (): number => runs;
+/** Every mode's resolved roles for `theme`, cached by the theme's identity. The store's resolve fills it (it hands these
+ *  to `resolvePreview`, #4234), the verdict reads it, and so does any preview that needs a role's resolved color (S2: the
+ *  Palettes preview reads the page color it draws its specimens on), so one edit costs one resolve however many readers
+ *  there are. */
 export const resolvedModes = (theme: Theme): ReturnType<typeof resolveAllModes> => {
   if (resolved && resolved.theme === theme) return resolved.all;
+  runs++;
   resolved = { theme, all: resolveAllModes(theme) };
   return resolved.all;
 };

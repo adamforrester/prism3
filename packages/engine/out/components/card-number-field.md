@@ -44,6 +44,8 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 
 Use for a payment card's number in a checkout or a saved-card form. The field nests FieldLabel above, the input box with the card network's tile at its trailing edge, and FieldMessage below. Set brand from the card-type detection, or from the payment provider's brand event, and `brandName` to the network's name, so the network is stated in text as well as shown. Ask for the expiration date and the security code in their own text fields, with `autocomplete` `cc-exp` and `cc-csc`. When the payment provider hosts the input, pass its mount point with `renderInput` and let the field draw everything around it.
 
+**In RTL.** The layout mirrors: the start edge is on the right. The value and card mark do not mirror.
+
 ### Do
 
 - Let the leading digits set the network, and swap the tile in place
