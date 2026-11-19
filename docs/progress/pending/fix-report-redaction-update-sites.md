@@ -12,6 +12,12 @@ Figma's reason, with the class in front (D3703.1 B), and the report keeps the cl
 `The update failed: `. Without them a class that is not an `…Error` (`DOMException`) after those heads kept its
 message, as #3702's review found for the other heads.
 
+**A bare line (review).** The four `main.ts` catches post the detail as the whole line, with no head, so only the
+report's class rule cuts it, and that rule knew `…Error` names only: a host's `DOMException` kept its message. The rule
+now also takes a `…Exception` name. An ordinary `Word: …` line still stays whole. Section 11a throws the Update check as
+a `DOMException` too, and `apps/studio/test-report.ts` holds the bare line for `DOMException`, `FigmaException` and
+`Exception`.
+
 **Why the gate missed it, and the wider scan.** #3702's arms read `main.ts` and `prune-figma.ts` by name. Section 11 of
 `apps/plugin/test-report-redaction.ts` lists the plugin's source folder instead, and fails by name when any file
 posts a `failureDetail` after a head the report does not cut at, or follows a head the report cuts at with anything
@@ -21,4 +27,4 @@ and version-save lines through the report with a `DOMException`.
 
 **Not covered here.** Other plugin lines still interpolate a raw host message (the build's misses in
 `write-components.ts`, the slot migrations, prune's failed removals, #3865). Whether each reaches the report is
-filed as #4253 rather than fixed in this PR. Plugin-only behavior: no change note, as #3702 had none.
+filed as #4253 rather than fixed in this PR. Plugin and studio behavior only: no change note, as #3702 had none.
