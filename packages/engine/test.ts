@@ -32152,7 +32152,10 @@ arm: {
 
   const g = mkFake();
   mcpCallTool('export_theme', { brand: xbrand, outDir: './t2', include: ['tokens'] }, undefined, g.io);
-  ok(g.files.size === 1 && g.files.has('./t2/tokens.json'), 'export_theme: include:[tokens] writes only the DTCG tree');
+  // #4144: the tokens family is the DTCG tree under the CLI's name, its base + overlay set, and the old unprefixed
+  // name for one release, and nothing from another family.
+  ok([...g.files.keys()].every((k) => /^\.\/t2\/(x\.tokens|x\.base\.tokens|x\.[a-z-]+\.overlay\.tokens|tokens)\.json$/.test(k)) && g.files.has('./t2/x.tokens.json') && g.files.has('./t2/tokens.json'),
+    `export_theme: include:[tokens] writes only the DTCG tree and its projections (${[...g.files.keys()].join(', ')})`);
   ok(mcpCallTool('export_theme', { brand: xbrand, outDir: './t3', include: ['nope'] }, undefined, mkFake().io).isError === true,
     'export_theme: an unknown include section errors rather than silently writing nothing');
   ok(EXPORT_SECTIONS.length === 4, 'export_theme: four artifact families');
@@ -32161,7 +32164,9 @@ arm: {
   ok(![...f.files.keys()].some((k) => k.includes('component-defs')), 'export_theme: the default call writes no component-defs export (opt-in)');
   const cs = mkFake();
   ok(!mcpCallTool('export_theme', { brand: xbrand, outDir: './cs', include: ['componentSpecs'] }, undefined, cs.io).isError, 'export_theme: include:[componentSpecs] writes');
-  ok(cs.files.size === 3 && cs.files.has('./cs/component-contracts.json') && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json')
+  // #4144: each under the brand-prefixed name and, for one release, the unprefixed one.
+  ok(cs.files.size === 6 && cs.files.has('./cs/component-contracts.json') && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json')
+    && cs.files.has('./cs/x.component-contracts.json') && cs.files.has('./cs/x.component-defs.json') && cs.files.has('./cs/x.component-defs.specs.json')
     && cs.files.get('./cs/component-contracts.json') === cs.files.get('./cs/component-defs.json'),
     `#1325 export_theme: include:[componentSpecs] writes exactly the component contracts, their compatibility copy (the same bytes) and the Specs projection (${[...cs.files.keys()].join(', ')})`);
   const csDoc = JSON.parse(cs.files.get('./cs/component-defs.json') ?? '{}');
@@ -44121,6 +44126,66 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   const decided = body('RUNG_REPEATS').split('\n').find((l) => l.includes("'code-input-cell'")) ?? '';
   ok(decided.includes("'radius.*'") && decided.includes('#3551'), `#3551 RUNG_REPEATS admits code-input-cell's radius.* repeat, citing #3551 (got ${JSON.stringify(decided)})`);
   ok(!body('RUNG_REPEATS_OPEN').includes("'code-input-cell'"), '#3551 RUNG_REPEATS_OPEN no longer holds code-input-cell: the question is answered');
+}
+
+// #4120 (owner decision A, 2026-11-19) — every brand-taking MCP tool takes `{ brand }`. validate_brand took the
+// BrandInput bare, so the documented pre-flight (validate_brand, then theme_brand, one object) failed its first call;
+// the bare form is still read for one release. A missing `brand` is named, not reported as "(root): expected object".
+{
+  const b4120 = { id: 'acme', primary: { l: 0.55, c: 0.18, h: 265 }, neutral: { hue: 'cool', chroma: 0.01 } };
+  const vb = (a: unknown) => mcpCallTool('validate_brand', a).structuredContent as { valid: boolean; errors: string[] };
+  const wrapped = vb({ brand: b4120 }), bare = vb(b4120);
+  ok(wrapped.valid === true && wrapped.errors.length === 0, `#4120 validate_brand accepts { brand } (got ${JSON.stringify(wrapped)})`);
+  ok(bare.valid === true, `#4120 validate_brand still accepts a bare BrandInput for one release (got ${JSON.stringify(bare)})`);
+  const vbDef = toolDefs({}).find((t) => t.name === 'validate_brand')!.inputSchema as { required?: string[]; properties?: Record<string, unknown> };
+  ok(JSON.stringify(vbDef.required) === '["brand"]' && 'brand' in (vbDef.properties ?? {}),
+    `#4120 validate_brand's inputSchema declares { brand }, as theme_brand's does (got ${JSON.stringify(vbDef)})`);
+  const io4120 = { mkdir: () => {}, writeFile: () => {} };
+  for (const [tool, a] of [['export_theme', { id: 'acme', outDir: './unw' }], ['score_consumption', { refs: ['color.text.primary'] }]] as const) {
+    const r = mcpCallTool(tool, a, undefined, io4120);
+    const msg = JSON.parse(r.content[0].text).error as string;
+    ok(r.isError === true && msg === `${tool} requires \`brand\`: a BrandInput object`,
+      `#4120 ${tool} with no \`brand\` names the missing argument (got ${JSON.stringify(msg)})`);
+  }
+}
+
+// #4141 (owner decision A, 2026-11-19) — export_theme's `include` REPLACES the default, as theme_brand's does. The
+// description said "add componentSpecs", so an agent that named it alone got no tokens. Semantics are unchanged;
+// the description and the include property say "replaces", and include:["componentSpecs"] still writes no tokens.
+{
+  const et = toolDefs({}).find((t) => t.name === 'export_theme')!;
+  const incDesc = ((et.inputSchema as { properties: { include: { description: string } } }).properties.include.description);
+  ok(/replac/i.test(et.description) && !/add "componentSpecs"/.test(et.description) && /replac/i.test(incDesc),
+    `#4141 export_theme says include replaces the default (description ${JSON.stringify(et.description.slice(0, 80))}…, include ${JSON.stringify(incDesc)})`);
+  const files = new Map<string, string>();
+  mcpCallTool('export_theme', { brand: { id: 'x', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } }, outDir: './c', include: ['componentSpecs'] },
+    undefined, { mkdir: () => {}, writeFile: (q: string, c: string) => { files.set(q, c); } });
+  ok(files.size > 0 && ![...files.keys()].some((k) => /tokens\.json$|ai/.test(k.replace('./c/', ''))),
+    `#4141 include:["componentSpecs"] writes the component files only, as the description now says (${[...files.keys()].join(', ')})`);
+}
+
+// #4144 (owner decision A, 2026-11-19) — export_theme writes the CLI's names: <id>.tokens.json, <id>.ai.json, the base +
+// overlay set, <id>.component-contracts.json; the unprefixed names stay for one release. The prefixed ai.json points at
+// <id>.tokens.json, so it sits beside a CLI tree. The overlay set is byte-identical to what the CLI writes.
+{
+  const brand = { id: 'acme', primary: { l: 0.55, c: 0.18, h: 265 }, neutral: { hue: 262, chroma: 0.01 }, modes: ['light', 'dark'] };
+  const files = new Map<string, string>();
+  const r = mcpCallTool('export_theme', { brand, outDir: './e', include: ['tokens', 'aiMetadata', 'componentSpecs'] },
+    undefined, { mkdir: () => {}, writeFile: (q: string, c: string) => { files.set(q, c); } });
+  ok(!r.isError, `#4144 export_theme writes (got ${r.content[0].text.slice(0, 160)})`);
+  const want = ['acme.tokens.json', 'acme.base.tokens.json', 'acme.dark.overlay.tokens.json', 'acme.ai.json',
+    'acme.component-contracts.json', 'acme.component-defs.json', 'acme.component-defs.specs.json'];
+  const missing = want.filter((n) => !files.has(`./e/${n}`));
+  ok(missing.length === 0, `#4144 export_theme writes the CLI's file names (missing ${missing.join(', ') || 'none'}; wrote ${[...files.keys()].join(', ')})`);
+  const legacy = ['tokens.json', 'ai-metadata.json', 'component-contracts.json', 'component-defs.json', 'component-defs.specs.json'].filter((n) => !files.has(`./e/${n}`));
+  ok(legacy.length === 0, `#4144 the unprefixed names are still written for one release (missing ${legacy.join(', ') || 'none'})`);
+  const ai = JSON.parse(files.get('./e/acme.ai.json') ?? '{}');
+  ok(JSON.stringify(ai).includes('companion to acme.tokens.json') && !JSON.stringify(ai).includes('companion to tokens.json'),
+    `#4144 acme.ai.json names acme.tokens.json as its tree, so it sits beside the CLI's files`);
+  const projected = buildOverlaySet(JSON.parse(files.get('./e/acme.tokens.json') ?? '{}'));
+  ok(files.get('./e/acme.base.tokens.json') === JSON.stringify(projected.base, null, 2) + '\n'
+    && files.get('./e/acme.dark.overlay.tokens.json') === JSON.stringify(projected.overlays.find((o) => o.mode === 'dark')?.tree, null, 2) + '\n',
+    '#4144 the base + overlay files are the projection of the tree written beside them, as the CLI writes it');
 }
 
 if (pass + fails.length < MIN_ASSERTIONS) {
