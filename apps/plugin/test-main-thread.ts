@@ -11,7 +11,8 @@
  *   #4160  A run's read of the file searches for components with `figma.skipInvisibleInstanceChildren` on, read off the
  *          host at the moment each search runs, and puts it back after; a search for anything else runs with it off.
  *   #4237  `updateTargets` works out the brand's levers once per run and hands the thread back as it projects. The
- *          stand-in suite (`test-open-large-file.ts`) prints the stalls, measured: this holds the code that makes them.
+ *          stand-in suite (`test-open-large-file.ts`) prints the stalls, measured, and holds "once per run" by a count
+ *          (`update/levers-once`); this suite's source arms are pointers only.
  *
  * INDEPENDENCE (docs/34). The plans built with the shared tree are compared with the same plans built one emitter at a
  * time, each building its own tree, as on main: the sharing must change no plan. The brands are the committed examples.
