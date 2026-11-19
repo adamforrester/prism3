@@ -386,7 +386,7 @@ export const UPDATE_COPY = {
     accept: 'Accept as baseline: each edit stays and becomes the record, so it is no longer listed.',
   } as Record<HandEditChoice, string>,
   kept: 'Kept edits',
-  keptSub: (n: number): string => `${plural(n)} hold hand edits over changes the plan makes. Each stays here until Overwrite or Accept as baseline is chosen for it.`,
+  keptSub: (n: number): string => `${plural(n)} ${n === 1 ? 'holds' : 'hold'} hand edits over changes the plan makes. Each stays here until Overwrite or Accept as baseline is chosen for it.`,
   keptLine: (h: { readonly members: number; readonly changes: readonly string[] }): string =>
     `${h.members} member${h.members === 1 ? ' keeps' : 's keep'} out ${h.changes.length} of the plan’s values${h.changes.length ? `: ${h.changes.slice(0, 3).join(', ')}${h.changes.length > 3 ? `, ${h.changes.length - 3} more` : ''}` : ''}`,
   keptChoice: (name: string): string => `Hand edits on ${name}`,

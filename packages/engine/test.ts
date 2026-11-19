@@ -7603,6 +7603,36 @@ arm: {
   }
 }
 
+// ---- BADGE'S ACCESSIBILITY PROSE CITES THE #1745 CONTRACTS (#1775, owner decision A) ------------------------------
+// The block above holds that the engine CONTRACTS the three neutral pairs. This holds that Badge's shipped WCAG lines
+// SAY so, and that they still call the bold TONE fills' page separation a measurement: that pair is not contracted
+// against the page (each tone fill's contract is against the mode's floor ground). Both halves are literals typed
+// from the decision, so the prose cannot drift into claiming a contract for the tones, or back into calling the
+// neutral pairs merely measured. The roles named here are the ones the #1745 arm above reads from resolved modes.
+{
+  const def = componentDefs.find((d) => d.id === 'badge')!;
+  const wcag = def?.accessibility?.wcag ?? [];
+  const line = (sc: string): string => wcag.find((w) => w.startsWith(`${sc} `)) ?? '';
+  const l143 = line('1.4.3'), l1411 = line('1.4.11');
+  // 1.4.3: the bold neutral label pair is a contract at 4.5:1; the general label claim stays measured.
+  const miss143: string[] = [];
+  if (!l143.includes('`color.inverse.text.primary` on `color.inverse.foreground.tertiary`, is also a mode contract at 4.5:1')) miss143.push('the bold neutral label contract');
+  if (!l143.includes('checks it for every brand in every mode')) miss143.push('every brand, every mode');
+  if (!l143.includes('measured in every mode of the example brands')) miss143.push('the measured general claim');
+  ok(l143 !== '' && miss143.length === 0, `#1775 badge 1.4.3 cites the bold neutral label's 4.5:1 mode contract and keeps the rest measured${miss143.length ? ` — MISSING: ${miss143.join('; ')}` : ''}`);
+  // 1.4.11: the neutral fill and the neutral edge are contracts; the tone fills are measured, NOT contracted.
+  const miss1411: string[] = [];
+  if (!l1411.includes('`color.inverse.foreground.tertiary`, is a mode contract against the page at the non-text bar, 3:1 and 4.5:1 in high contrast')) miss1411.push('the neutral fill contract');
+  if (!l1411.includes('`color.border.tertiary`, is a mode contract at the same bar')) miss1411.push('the neutral edge contract');
+  if (!l1411.includes('clear 3:1 against the page as measured in every mode of the example brands; that is a measurement, not a contract')) miss1411.push('the tone dots measured, not contracted');
+  if (!l1411.includes('The bold tone fills clear 3:1 against the page in the same measurement, not by contract')) miss1411.push('the tone fills measured, not contracted');
+  // No sentence may call a TONE fill contracted: a "contract" sentence must name a neutral role.
+  const toneContract = l1411.split(/(?<=\.) /).filter((x) => /\btone\b/.test(x) && /contract/.test(x) && !/not (a|by) contract/.test(x));
+  if (toneContract.length) miss1411.push(`a tone sentence claims a contract: "${toneContract[0]}"`);
+  ok(l1411 !== '' && miss1411.length === 0, `#1775 badge 1.4.11 cites the neutral fill and edge contracts and keeps the tone fills measured, not contracted${miss1411.length ? ` — WRONG: ${miss1411.join('; ')}` : ''}`);
+}
+
+
 // ---- TAG — the owner's decisions of 2026-09-27 and 2026-09-28, held here with literal expectations ---------
 // Written from the decisions, not read back from the def: interactive only (the five projected states), two
 // types on a `type` axis and prop with the literal values select | dismissible, no nested remove button (the ×
@@ -7718,6 +7748,88 @@ arm: {
   const narrow = gapPx.filter(([, px]) => px === undefined || px < 8);
   ok(gapPx.length === 7 && narrow.length === 0,
     `tag group spacing is at least 8px in all ${gapPx.length} builds${narrow.length ? ` — ${narrow.map(([b, px]) => `${b} ${px ?? 'unresolved'}`).join('; ')}` : ''}`);
+
+  // TAG.GROUP (#1739, owner 2026-11-18: A, A, A), each decision held against a literal from the decision, never read off
+  // the def. (1) Multiple selection as pressed toggle buttons; (2) overflow wraps, no "+N more"; (3) a set holding a row
+  // of three nested tags, the gap bound to `space.100` across and down, the same step as Tag's `group-gap`.
+  {
+    const tg = componentDefs.find((d) => d.id === 'tag-group');
+    ok(!!tg && tg.name === 'Tag.Group' && tg.category === 'foundations' && validateComponentDef(tg).errors.length === 0,
+      `#1739 tag-group: registered as Tag.Group, category foundations, valid (${tg ? validateComponentDef(tg).errors.join('; ') || 'ok' : 'missing'})`);
+    if (tg) {
+      const aria = JSON.stringify(tg.accessibility);
+      const valueProp = tg.props.find((p) => p.name === 'value');
+      ok(valueProp?.type === 'string[]' && /aria-pressed/.test(tg.accessibility.role) && !/listbox|radiogroup|aria-multiselectable/.test(tg.accessibility.role)
+        && !/aria-selected|aria-checked/.test(aria),
+        `#1739 tag-group selection: many pressed values (value: string[]), each select tag aria-pressed, no listbox or radiogroup (value ${valueProp?.type}; role ${tg.accessibility.role.slice(0, 80)})`);
+      // The container role (owner, #3949, 2026-11-18, Q-TG1 B): a select group is `role="toolbar"`, one Tab stop with
+      // arrow keys across the toggle tags; a dismissible group keeps `role="grid"`. Literals from the decision, read
+      // against the shipped role sentence and the code-tier semantics entry, never against each other.
+      const roleText = tg.accessibility.role;
+      const roleSentences = roleText.split(/(?<=\.)\s+/);
+      const selectRole = roleSentences.find((x) => /select tags/i.test(x)) ?? '';
+      const dismissRole = roleSentences.find((x) => /dismissible tags/i.test(x)) ?? '';
+      const declared = [...roleText.matchAll(/role="([a-z]+)"/g)].map((m) => m[1]).sort().join(',');
+      const semantics = (codeOnlyText(tg.anatomy?.codeOnly) ?? []).find((l) => l.startsWith('The group element')) ?? '';
+      ok(/role="toolbar"/.test(selectRole) && !/role="(group|grid|listbox|radiogroup)"/.test(selectRole)
+        && /role="grid"/.test(dismissRole) && declared === 'grid,toolbar'
+        && /One Tab stop/.test(tg.accessibility.keyboard) && /arrows/.test(tg.accessibility.keyboard)
+        && /A select group is `role="toolbar"`/.test(semantics),
+        `#3949 tag-group role: a select group is role="toolbar" with one Tab stop and arrow keys, a dismissible group role="grid" (select: ${selectRole.slice(0, 60) || 'none'}; roles ${declared || 'none'}; codeOnly ${/role="toolbar"/.test(semantics) ? 'toolbar' : 'missing'})`);
+      // The roving tabindex (review of #3949, S2): the code-tier keyboard entry holds the one-Tab-stop mechanics, so a
+      // re-accepted surface digest cannot quietly lose them. Literals from the decision, read against the shipped entry.
+      const kbd = (codeOnlyText(tg.anatomy?.codeOnly) ?? []).find((l) => l.startsWith('The keyboard')) ?? '';
+      ok(/one Tab stop/i.test(kbd) && /roving tabindex/.test(kbd) && (kbd.match(/tabindex="0"/g) ?? []).length === 1
+        && /the last-focused tag holds `tabindex="0"`/.test(kbd) && /every other `-1`/.test(kbd),
+        `#3949 tag-group roving tabindex: one Tab stop, the last-focused tag tabindex="0" and every other -1 (${kbd.slice(0, 110) || 'no keyboard entry'})`);
+      // Tag's own fields agree with the group contract (review of #3949, S1): Tag.Group owns a select group's selection
+      // as pressed toggle buttons in a role="toolbar" (#1739 A, Q-TG1 B), so Tag never tells a reader to build the group
+      // as a listbox, a radiogroup or checkboxes, or that arrows select. Literals, read against Tag's shipped fields.
+      const tagDef = componentDefs.find((d) => d.id === 'tag');
+      const tagSelect = (codeOnlyText(tagDef?.anatomy?.codeOnly) ?? []).find((l) => l.startsWith('The select tag in code')) ?? '';
+      const tagText = JSON.stringify([tagDef?.accessibility, tagSelect]);
+      const tagStray = [...new Set([...tagText.matchAll(/listbox|radiogroup|role=\\?"checkbox\\?"|aria-checked|aria-selected|single-choice|single choice|move and select/g)].map((m) => m[0].replace(/\\/g, '')))];
+      // A denylist alone lets a new contradiction through (review of #3949, should-fix 1: "arrows move to the next tag
+      // and toggle it" passed), so the keyboard sentences also carry the decision's positive literals: one tab stop, and
+      // arrows that move focus without toggling, on Tag's select sentence and on Tag.Group's keyboard field.
+      const tagKbdSelect = (tagDef?.accessibility.keyboard ?? '').split(/(?<=\.)\s+(?=Dismissible:)/)[0];
+      const tagKbdOk = /one tab stop/i.test(tagKbdSelect) && /arrows move focus between tags without toggling/.test(tagKbdSelect);
+      const groupKbdOk = /one tab stop/i.test(tg.accessibility.keyboard) && /arrows move focus between tags without toggling/.test(tg.accessibility.keyboard);
+      ok(!!tagDef && tagStray.length === 0 && /aria-pressed/.test(tagDef.accessibility.role) && /role="toolbar"/.test(tagDef.accessibility.role)
+        && /aria-pressed/.test(tagSelect) && /role="toolbar"/.test(tagSelect) && tagKbdOk && groupKbdOk,
+        `#3949 tag select contract: Tag's role, keyboard, aria and select code entry match Tag.Group's toolbar of pressed buttons (stray: ${tagStray.join(', ') || 'none'}; Tag keyboard ${tagKbdOk ? 'ok' : `"${tagKbdSelect.slice(0, 120)}"`}; Tag.Group keyboard ${groupKbdOk ? 'ok' : `"${tg.accessibility.keyboard.slice(0, 120)}"`}; role ${tagDef?.accessibility.role.slice(0, 70)})`);
+      const shipped = JSON.stringify([tg.summary, tg.description, tg.docs, tg.ai, tg.accessibility, tg.props]);
+      const overflow = (codeOnlyText(tg.anatomy?.codeOnly) ?? []).find((l) => l.startsWith('Overflow')) ?? '';
+      ok(!/\+N more|\+\d+ more/i.test(shipped) && /flex-wrap: wrap/.test(overflow),
+        `#1739 tag-group overflow: wraps, and nothing shipped offers "+N more" (${overflow.slice(0, 80) || 'no Overflow line'})`);
+      const items = tg.anatomy?.parts['items'];
+      ok(tg.tokens['group-gap'] === 'space.100' && tg.tokens['group-gap'] === tagDef.tokens['group-gap']
+        && items?.kind === 'box' && items.gap === 'group-gap' && items.rowGap === 'group-gap' && items.layout?.wrap === true
+        && !(tg.densitySpacing ?? []).includes('group-gap'),
+        `#1739 tag-group gap: the items row wraps, gap and line gap both bind space.100, Tag's group-gap, and density leaves it alone (${tg.tokens['group-gap']}, gap ${items?.kind === 'box' ? items.gap : '-'}, rowGap ${items?.kind === 'box' ? items.rowGap : '-'})`);
+      // The projected set: one member per size, each an items slot of three nested select tags, wrapping, both gaps bound.
+      const members = figmaAnatomySet(tg) as any[];
+      const findP = (n: any, name: string): any => (n.name === name ? n : (n.children ?? []).map((c: any) => findP(c, name)).find(Boolean));
+      const wrong = members.flatMap((m) => {
+        const it = findP(m.root, 'items');
+        const kids = (it?.children ?? []) as any[];
+        const bad: string[] = [];
+        if (it?.type !== 'CONTENT_SLOT') bad.push(`items is ${it?.type}`);
+        if (it?.layoutWrap !== 'WRAP') bad.push(`layoutWrap ${it?.layoutWrap}`);
+        if (it?.bound?.itemSpacing !== 'space/100' || it?.bound?.counterAxisSpacing !== 'space/100') bad.push(`gaps ${it?.bound?.itemSpacing}/${it?.bound?.counterAxisSpacing}`);
+        if (kids.length !== 3 || kids.some((k) => k.type !== 'NESTED_INSTANCE' || k.nestTarget !== 'tag' || k.nestVariant?.type !== 'select' || k.nestVariant?.size !== m.size))
+          bad.push(`tags ${kids.map((k) => `${k.nestTarget}:${k.nestVariant?.type}/${k.nestVariant?.size}`).join(',')}`);
+        return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
+      });
+      ok(members.length === 3 && wrong.length === 0,
+        `#1739 tag-group set: 3 members, each a wrapping items slot of three select Tags at the member's size, both gaps bound to space/100 (${members.length} members${wrong.length ? ` — ${wrong.join(' | ')}` : ''})`);
+      // The schema field the line gap rides: refused on a row that does not wrap, since Figma has no line gap there.
+      const unwrapped = JSON.parse(JSON.stringify(tg));
+      delete unwrapped.anatomy.parts.items.layout.wrap;
+      ok(validateComponentDef(unwrapped).errors.some((e) => /binds 'rowGap' but its layout does not wrap/.test(e)),
+        `#1739 rowGap: refused on a box whose layout does not wrap`);
+    }
+  }
 
   // THE FIGMA SET, read off the PROJECTED members. 2 types × 2 selections × 3 sizes × 5 states = 60, less the
   // 15 dismissible × selected members = 45, and none of those 15 exists.
@@ -20690,7 +20802,7 @@ arm: {
     const TIER: Record<string, number> = {
       button: 1,
       'button-destructive': 2, 'button-neutral': 2, 'wallet-button': 2, 'sign-in-button': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
-      'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, 'card-number-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
+      'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, 'card-number-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2, 'tag-group': 2,
       'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, progress: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
@@ -31547,6 +31659,22 @@ arm: {
     }
   }
 
+  // ---- no trait targets a schema-required lever (#1863, owner decision option 1 / A) ----
+  // A required lever is set in every valid input, so `resolveVocabulary` always declines a trait's setting for it
+  // ("kept … (set explicitly)"): a dead target the trait still advertises. `restrained` carried `neutral.chroma`
+  // until #1863. The oracle is the SCHEMA's `required` lists, read here from `theme-schema.json` (top level, and
+  // each object property's own `required`, as dotted keys), never `levers.ts`'s `required` flag or TRAITS itself.
+  const schemaRequired = new Set<string>([
+    ...((schema.required ?? []) as string[]),
+    ...Object.entries(schema.properties as Record<string, { required?: string[] }>)
+      .flatMap(([k, v]) => (v?.required ?? []).map((r) => `${k}.${r}`)),
+  ]);
+  ok(schemaRequired.has('neutral.chroma') && schemaRequired.has('neutral.hue'),
+    `vocabulary: the schema-required oracle is live — it reads neutral.hue and neutral.chroma as required (got ${[...schemaRequired].join(', ')})`);
+  const deadTargets = Object.entries(TRAITS).flatMap(([name, t]) => Object.keys(t.levers).filter((k) => schemaRequired.has(k)).map((k) => `${name} → ${k}`));
+  ok(deadTargets.length === 0,
+    `#1863 vocabulary: no trait targets a schema-required lever, which every valid input pre-empts${deadTargets.length ? ` — DEAD: ${deadTargets.join(', ')}` : ''}`);
+
   // ---- every trait is attested in a committed brief, verbatim (#1685), and the note names none (#1824) ----
   // #1685 made every `why` quote a brief, so an uncited mapping could not ship. #1824 moved the quotes
   // OUT of `why`: it ships in `theme.notes`, and some example briefs are real brands' briefs, so a
@@ -35449,6 +35577,22 @@ arm: {
 // fixture, not a path, so the test does not move when that file does. Module scope since #1387's block
 // below reads it too.
 const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
+
+// ---- #2814 (owner, 2026-11-18, A): CODE INPUT'S CELLS SET LINING FIGURES ---------------------------------------------
+// The title family's default figures can be old style, which drop 3, 4, 5, 7 and 9 below the baseline, so a digit sits
+// off center in its cell. The cell's character sets lining figures in code, in the SAME `font-variant-numeric`
+// declaration as its tabular figures: two declarations would let the later one replace the earlier. Figma can't carry
+// it (the plugin API exposes OpenType features read-only), so the entry says so. Literals, not read from the def.
+// Mutation: the entry's value back to `tabular-nums` alone → `#2814 …` fails by name.
+{
+  const cell = componentDefs.find((d) => d.id === 'code-input-cell');
+  const entries = codeOnlyText(cell?.anatomy?.codeOnly ?? []).filter((t) => /font-variant-numeric/.test(t));
+  const decl = entries.map((t) => t.match(/font-variant-numeric:\s*([a-z -]+)/)?.[1]?.trim()).filter(Boolean);
+  ok(entries.length === 1 && decl.length === 1 && /\btabular-nums\b/.test(decl[0]!) && /\blining-nums\b/.test(decl[0]!) && /OpenType/.test(entries[0]!),
+    `#2814 code-input-cell: one codeOnly entry sets font-variant-numeric to tabular and lining figures together, and says Figma can't carry it (got ${JSON.stringify(decl)})`);
+  const note = cell?.anatomy?.parts?.digit?.note ?? '';
+  ok(/lining/.test(note), `#2814 code-input-cell: the digit's caption names lining figures (${note})`);
+}
 
 // ---- #3336 (owner, 2026-11-03, Q3336.1–.4 A): THE REFERENCE BRAND ON ONE NEUTRAL PALETTE ----------------------
 //
@@ -41624,6 +41768,50 @@ arm: {
     }
   }
   ok(emitBad.length === 0, `#3050 committed emission: the reference brand's scrim is 80 / 80 / 90 / 90, every other brand's 40 / 60 / 60 / 70${emitBad.length ? ` — WRONG: ${emitBad.slice(0, 4).join('; ')}` : ''}`);
+}
+
+// ------------------------------------------------------------------- #1043: the scrim's steps are declared taste
+// Owner decision B (2026-11-18, on #1043): keep 40 / 60 / 60 / 70, declared as taste, with the provenance written at
+// the `modes.ts` call site and in `docs/20` §8. Three things are held, each against a literal typed from the decision:
+//   1. the declaration is THERE, in both homes: "chosen, not derived", Spectrum 2 and Radix for light/dark, and the
+//      high-contrast step-up named as this system's deliberate choice;
+//   2. the steps each home WRITES are the decision's steps (so a value edited in one place and not the other fails);
+//   3. the steps the engine RESOLVES for a brand that leaves `scrimStrength` unset are the same (ACTUAL from
+//      `resolveAllModes`, never `SCRIM_STEPS`; the #3050 arm above holds every brand and the emission).
+{
+  const DECIDED = { light: 40, dark: 60, 'hc-light': 60, 'hc-dark': 70 } as const;
+  const modesSrc = readFileSync(resolve(HERE, 'modes.ts'), 'utf8');
+  const decl = modesSrc.match(/PROVENANCE OF THE `standard` STEPS \(#1043[\s\S]*?\*\//)?.[0] ?? '';
+  const doc20 = readFileSync(resolve(HERE, '../../docs/20-interactive-color-system.md'), 'utf8');
+  const sec = doc20.match(/### 8\.3 Decided \(2026-11-18, #1043\)[\s\S]*?(?=\n## |\n### )/)?.[0] ?? '';
+  const PHRASES: [string, string, string][] = [
+    ['modes.ts', decl, 'chosen, not derived'], ['modes.ts', decl, 'after Spectrum 2 and Radix Themes'],
+    ['modes.ts', decl, 'the high-contrast step-up is a deliberate choice of this system'],
+    ['docs/20 §8.3', sec, 'Chosen, not derived.'], ['docs/20 §8.3', sec, 'after Spectrum 2 and Radix Themes'],
+    ['docs/20 §8.3', sec, 'is a deliberate choice of this system'],
+  ];
+  const missing = PHRASES.filter(([, txt, ph]) => !txt.includes(ph)).map(([where, , ph]) => `${where}: "${ph}"`);
+  ok(decl !== '' && sec !== '' && missing.length === 0,
+    `#1043 scrim provenance is declared at SCRIM_STEPS and in docs/20 §8.3: chosen, not derived; light/dark after Spectrum 2 and Radix; the HC step-up deliberate${decl === '' ? ' — NO modes.ts declaration' : ''}${sec === '' ? ' — NO docs/20 §8.3' : ''}${missing.length ? ` — MISSING: ${missing.join('; ')}` : ''}`);
+  // What each home writes, read back as numbers.
+  const declSteps = {
+    light: Number(decl.match(/light (\d+), dark \d+/)?.[1]), dark: Number(decl.match(/light \d+, dark (\d+)/)?.[1]),
+    'hc-light': Number(decl.match(/hc-light (\d+), hc-dark \d+/)?.[1]), 'hc-dark': Number(decl.match(/hc-light \d+, hc-dark (\d+)/)?.[1]),
+  };
+  const secSteps = sec.match(/\*\*(\d+) \/ (\d+) \/ (\d+) \/ (\d+)\*\*/)?.slice(1).map(Number) ?? [];
+  const written = JSON.stringify(declSteps) === JSON.stringify(DECIDED)
+    && JSON.stringify(secSteps) === JSON.stringify([DECIDED.light, DECIDED.dark, DECIDED['hc-light'], DECIDED['hc-dark']]);
+  ok(written, `#1043 the declared scrim steps are the decision's 40 / 60 / 60 / 70 in both homes (modes.ts ${JSON.stringify(declSteps)}, docs/20 ${JSON.stringify(secSteps)})`);
+  // What the engine resolves, for a brand with the lever unset.
+  const bi = { ...(exampleBrands()['prism3'] as BrandInput) } as BrandInput & { scrimStrength?: string };
+  delete bi.scrimStrength;
+  const got: Record<string, number | undefined> = {};
+  for (const M of resolveAllModes(brandTheme(bi))) {
+    const r = (M.roles as Record<string, { alpha?: number } | undefined>)['scrim.default'];
+    if (M.mode in DECIDED) got[M.mode] = r?.alpha === undefined ? undefined : Math.round(r.alpha * 100);
+  }
+  ok(JSON.stringify(got) === JSON.stringify(DECIDED),
+    `#1043 the engine resolves the declared scrim steps 40 / 60 / 60 / 70 for a brand that leaves scrimStrength unset (got ${JSON.stringify(got)})`);
 }
 
 // ------------------------------------------------------------------- #3073: brand glass roles

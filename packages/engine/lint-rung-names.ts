@@ -490,6 +490,7 @@ const DEFAULT_FIRST: Record<string, string> = {
   'switch-control': Q1B,
   'switch-row': Q1B,
   tag: Q1B,
+  'tag-group': Q1B,
   'tab-item': Q1B,
   tabs: Q1B,
   '_accordion-indicator': Q1B,
@@ -522,6 +523,7 @@ const DEFAULT_FIRST: Record<string, string> = {
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
   'checkbox-group': 'its inter-row gap is 0px (`space.0`, the rows self-space — #1623 sign-off), so the size axis binds nothing of its own and reaches the nested field-label and checkbox rows by `follow`',
+  'tag-group': 'its one gap is `space.100` at every size (Tag\'s group gap, held at no less than 8px), so the size axis binds nothing of its own and reaches the nested tags by `follow` (#1739)',
   'radio-group': 'mirrors checkbox-group — a 0px inter-row gap (`space.0`, #1623 sign-off), so the size axis reaches the nested field-label and radio rows by `follow` only',
   'tabs': 'the tab list binds no size.* key of its own — its gap is 0px (`space.0`, each tab carries its own padding) and the baseline is a fixed 1px hairline — so the size axis reaches the six nested tabs by `follow` only (#2416)',
   'code-input': 'the field binds no size.* key of its own — its gaps are fixed `space.100` steps — so the size axis reaches the six nested cells by `follow` only; the label keeps one size (#2428)',
@@ -556,7 +558,7 @@ const MUST_COVER = [
   'button', 'button-destructive', 'button-neutral', 'wallet-button', 'sign-in-button',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
-  'field-label', 'text-field', 'textarea', 'select', 'tag', 'counter', 'slider', '_slider-thumb',
+  'field-label', 'text-field', 'textarea', 'select', 'tag', 'tag-group', 'counter', 'slider', '_slider-thumb',
   'badge',
   'tab-item', 'tabs',
   'checkbox-control', 'checkbox-row', 'checkbox-group',
