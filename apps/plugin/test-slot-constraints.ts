@@ -203,5 +203,36 @@ console.log('\na host that cannot take them');
     `constraints/refusal named: a host that refuses the edit is named, not passed (${JSON.stringify(res.misses.filter((m) => /slotSettings/.test(m)))})`);
 }
 
+console.log('\nicon swaps prefer every core icon (#4164)');
+{
+  // Owner decision A: an INSTANCE_SWAP whose target is a core icon offers every `icon/` component the file holds first in
+  // its picker, by key in name order. Tag's leading icon swap, built by the batch executor with three icons and a
+  // provider logo in the file. Expected values are literals: the icon names typed here, each component's key read off the
+  // host's own nodes. Mutation: the executor's ICON SWAPS pass dropped → `#4164 icon swaps/written`, `/updated`.
+  const tag = componentDefs.find((d) => d.id === 'tag')!;
+  // The plugin's own placeholder (`build-deps.ts`), a core icon; this file's `SWAP_TARGET` is not one.
+  const ICON_TARGET = 'icon/FPO-default-icon';
+  const plans = figmaAnatomySet(tag, { swapTarget: ICON_TARGET });
+  const ICONS = ['icon/check', 'icon/close', ICON_TARGET];
+  const { page, api } = host(plans, { comps: [...new Set([...plans.flatMap((p) => planComps(p.root)), ...ICONS, 'provider-logo/payment/generic'])] });
+  const res = await applyComponentPlan(plans, api, {});
+  const keyOf = new Map((api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as { name: string; key?: string }[]).map((c) => [c.name, c.key]));
+  const want = JSON.stringify([...ICONS].sort().map((n) => ({ type: 'COMPONENT', key: keyOf.get(n) })));
+  const swaps = () => Object.values(((setOf(page) as any).componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>).filter((d) => d.type === 'INSTANCE_SWAP');
+  ok(ICONS.every((n) => keyOf.get(n)) && swaps().length > 0 && swaps().every((d) => JSON.stringify(d.preferredValues) === want) && !res.misses.some((m) => /\.preferred ->/.test(m)),
+    `#4164 icon swaps/written: every icon swap on Tag prefers the three icons by key, in name order, and not the provider logo (${JSON.stringify(swaps().map((d) => d.preferredValues))}${res.misses.length ? `; ${res.misses.filter((m) => /preferred/.test(m)).slice(0, 2).join(' | ')}` : ''})`);
+  // An update in place writes the list again, so a set built before #4164 gains it.
+  for (const d of swaps()) delete d.preferredValues;
+  const members = new Map(((setOf(page).children as Node[])).map((m) => [String(m.name), { keep: new Set<string>() }]));
+  await applyComponentPlan(plans, api, { update: { members, retained: new Set() } });
+  ok(swaps().every((d) => JSON.stringify(d.preferredValues) === want), `#4164 icon swaps/updated: an update in place writes the preferred icons onto an existing swap (${JSON.stringify(swaps().map((d) => d.preferredValues))})`);
+  // A swap whose target is no icon (the same def, projected with a target outside `icon/`) is left open.
+  const plain = figmaAnatomySet(tag, { swapTarget: 'FPO-default-icon' });
+  const h2 = host(plain);
+  await applyComponentPlan(plain, h2.api, {});
+  const open = Object.values(((setOf(h2.page) as any).componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>).filter((d) => d.type === 'INSTANCE_SWAP');
+  ok(open.length > 0 && open.every((d) => d.preferredValues === undefined), `#4164 icon swaps/open: a swap whose target is not a core icon is written no preferred value (${JSON.stringify(open.map((d) => d.preferredValues))})`);
+}
+
 console.log(`\n${executed - failed}/${executed} slot-constraint assertions passed.`);
 if (failed) process.exit(1);
