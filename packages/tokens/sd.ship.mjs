@@ -10,14 +10,20 @@
  *   NO CUSTOM CODE. No preprocessors, no custom transforms, no custom formats. Stock Style Dictionary v5,
  *   standard config options only.
  *
- * What it builds: the house brand, `prism3`, from the conforming projection the engine emits
- * (`prism3.base.tokens.json` plus one `prism3.<mode>.overlay.tokens.json` per theme mode), one stock
+ * What it builds: the house brand, `prism3`, from the projection the engine emits for the web
+ * (`prism3.base.web.tokens.json` plus one `prism3.<mode>.overlay.tokens.json` per theme mode), one stock
  * Style Dictionary run per mode — the shape the consumer build already proves. The base run (the light
  * defaults) writes under `:root`; each mode writes under `[data-theme="<mode>"]`. Names keep stock Style
  * Dictionary's root prefix, `--pds3-…` (Q98 A): no `prefix` option, no rename.
  *
  *   dist/prism3/<mode>.css   one file per block, straight out of Style Dictionary
  *   dist/prism3.css          those files joined in order (`:root` first), so one import carries every mode
+ *
+ * The base is the WEB flavor (#4155, owner decision B): the conforming base with each typeface's fallback stack
+ * as its DTCG array `$value`, so `--pds3-core-font-typeface-inter` reads `Inter, system-ui, …, sans-serif` and a
+ * face that fails to load falls back to its kind rather than the browser default. Stock Style Dictionary writes
+ * the array as a comma list. The platform-neutral base (`prism3.base.tokens.json`) stays single-family for every
+ * other platform, and typefaces don't vary by mode, so the overlays are the shared ones.
  *
  * Joining finished files is file plumbing after Style Dictionary has run, not a format: no client runs it.
  * Modes are discovered from the engine's `out/`, so a new overlay ships the day it is emitted;
@@ -45,7 +51,7 @@ export const discoverModes = () => [
 const buildMode = async (mode) => {
   const sd = new StyleDictionary({
     source: [
-      resolve(OUT_ROOT, `${BRAND}.base.tokens.json`),
+      resolve(OUT_ROOT, `${BRAND}.base.web.tokens.json`),
       ...(mode === 'base' ? [] : [resolve(OUT_ROOT, `${BRAND}.${mode}.overlay.tokens.json`)]),
     ],
     usesDtcg: true,
