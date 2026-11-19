@@ -16,6 +16,7 @@
 import { isInverseRole, type Theme } from '@prism3/engine';
 import { outlineStateRoles } from '../../outline-roles';
 import { el, hook, legibleInkOn, palSection, specimen, specimenPair, type SgCtx } from './kit';
+import { must } from '../../must';
 
 export type InteractiveSectionOptions = {
   /** The brand's outline hover method (`theme.outlineInteraction`). */
@@ -133,9 +134,9 @@ export const interactiveSection = (ctx: SgCtx, o: InteractiveSectionOptions): HT
     // The footer pill names the REST edge — the state whose ground is the row's own, and the one a
     // reader is looking at when they read the label.
     const obd = obdFor('rest');
-    const outline = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), paint(cur, obdFor(s)), s, otxt(s), `text.${s}`, undefined, { fill: rolesFor(s).fill, ink: otxt(s), edge: obdFor(s) }));
+    const outline = STATES.map((s) => bcol(must(bgFor[s], `the ${s} ground`), paint(cur, otxt(s)), paint(cur, obdFor(s)), s, otxt(s), `text.${s}`, undefined, { fill: rolesFor(s).fill, ink: otxt(s), edge: obdFor(s) }));
     // The text button: the Outline row's wash and ink, no edge (`bd` null leaves `.sg-btn`'s transparent one).
-    const text = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), null, s, otxt(s), `text.${s}`, undefined, { fill: rolesFor(s).fill, ink: otxt(s) }));
+    const text = STATES.map((s) => bcol(must(bgFor[s], `the ${s} ground`), paint(cur, otxt(s)), null, s, otxt(s), `text.${s}`, undefined, { fill: rolesFor(s).fill, ink: otxt(s) }));
     const inv = STATES.map((s) => bcol(paint(cur, `inverse.interactive.${c}.fill.${s}`), paint(cur, `inverse.interactive.${c}.on-fill`), null, s, `inverse.interactive.${c}.fill.${s}`, `fill.${s}`,
       [`inverse.interactive.${c}.on-fill`, `inverse.interactive.${c}.fill.${s}`], { fill: `inverse.interactive.${c}.fill.${s}`, ink: `inverse.interactive.${c}.on-fill` }));
     // #2907 (owner decisions Q2907.1 A, Q2907.2 A): the outline and text buttons on the inverse band, each on its own band

@@ -242,41 +242,17 @@ export const unregistered = (
 export const unbacked = (registry: readonly unknown[], exported: ReadonlySet<unknown>): unknown[] =>
   registry.filter((d) => !exported.has(d));
 
-/** THE `noUncheckedIndexedAccess` CLEAN LIST (#1182). The flag is not on in `packages/engine/tsconfig.json` yet — the
- *  rollout is staged, and the import graph still carries errors in files no stage has reached. Each
- *  stage makes some files clean; without this list nothing holds them clean, because the gate's main
- *  run uses the tsconfig as written, where the flag is off. Measured on #3893: one unguarded index
- *  reintroduced into `component-schema.ts` failed `tsc --noUncheckedIndexedAccess` by line (TS2532)
- *  and passed this gate's main run with 0 errors.
+/** `noUncheckedIndexedAccess` IN THE ENGINE TSCONFIG (#1182, stage 6). The flag is on in
+ *  `packages/engine/tsconfig.json` itself, so this gate's main run holds every file of that graph, and the
+ *  engine's clean list (`NUIA_CLEAN`, stages 1 to 3: #3893, #3900, #3903) is gone with its second run. What
+ *  replaces the list's memory is one assertion: tsc's OWN resolved view of the tsconfig has the flag on, as
+ *  `noEmit` is asserted below. Without it, deleting the line from the tsconfig would pass every gate, and the
+ *  whole class would come back unguarded with nothing red (the #3893 measurement, the other way round).
  *
- *  So this arm runs tsc a SECOND time over the same tsconfig with the flag forced on the command line,
- *  and fails on any diagnostic in a listed file. Errors elsewhere are the rollout's remaining work and
- *  are not this arm's business. A stage that cleans a file APPENDS it here, in the same PR, so the
- *  file is held from the moment it is clean (stage 2, #3900: `modes.ts` and `ramp.ts`; stage 3, #3903: the
- *  other twelve files of the tsconfig's graph). The stage that
- *  turns the flag on in that tsconfig deletes this list and this arm: from then on the main run holds
- *  every file.
- *
- *  The oracle is tsc's own diagnostics, matched by the exact `<path>(` prefix tsc prints when run with
+ *  The clean-list arm below stays for the tsconfigs where the flag is not on yet (`NUIA_CLEAN_BY_TSCONFIG`).
+ *  Its oracle is tsc's own diagnostics, matched by the exact `<path>(` prefix tsc prints when run with
  *  `cwd: repo` — never a grep of the source for `[`, which would be a second, weaker type checker.
  *  Repo-relative paths. */
-export const NUIA_CLEAN: readonly string[] = [
-  'packages/engine/component-schema.ts',
-  'packages/engine/components/card-number-field.ts',
-  'packages/engine/components/code-input.ts',
-  'packages/engine/components/provider-logo.ts',
-  'packages/engine/components/sign-in-button.ts',
-  'packages/engine/figma-description.ts',
-  'packages/engine/modes.ts',
-  'packages/engine/ramp.ts',
-  'packages/engine/scale.ts',
-  'packages/engine/theme-brand.ts',
-  'packages/engine/theme-gradient.ts',
-  'packages/engine/theme-layout.ts',
-  'packages/engine/theme-shadow.ts',
-  'packages/engine/theme-type.ts',
-  'packages/engine/vocabulary.ts',
-];
 
 /** The diagnostics that land in a clean-listed file. The `(` in the prefix is load-bearing: without it,
  *  `modes.ts` would also claim `modes.tsx` and `modes.ts.orig`. */
@@ -288,14 +264,15 @@ export const nuiaRegressions = (diagnostics: string[], clean: readonly string[])
 export const unplacedDiagnostics = (diagnostics: string[]): string[] =>
   diagnostics.filter((d) => !/^[^\s(]+\(\d+,\d+\): error TS\d+/.test(d));
 
-/** THE CLEAN LISTS BY TSCONFIG (#1182, stages 4 and 5). `NUIA_CLEAN` above is held through the engine
- *  tsconfig, but that config reads only `component-schema.ts`, `components/**` and their imports: the
+/** THE CLEAN LISTS BY TSCONFIG (#1182, stages 4 and 5). The engine tsconfig, where the flag is now on,
+ *  reads only `component-schema.ts`, `components/**` and their imports: the
  *  Figma-side engine modules (`anatomy-figma.ts`, `anatomy-readback.ts`, `tree.ts`, …) are not in its
  *  graph, so listing one there fails the "not read by tsc" guard (measured on #3913). The plugin's
  *  main-thread tsconfig reads them, so a stage that cleans one lists it under that config here. Each
  *  entry is its own run with the same three conditions (flag on in tsc's resolved view, no unplaced
  *  diagnostic, every listed file read), plus `noEmit` resolved on, because a second config is a second
- *  chance to build. The stage that turns the flag on in a tsconfig deletes that tsconfig's entry. */
+ *  chance to build. The stage that turns the flag on in a tsconfig deletes that tsconfig's entry. The studio's
+ *  tsconfig joined in stage 6: its graph reaches engine sources too, but its entry lists only studio files. */
 export const NUIA_CLEAN_BY_TSCONFIG: readonly { tsconfig: string; clean: readonly string[] }[] = [
   { tsconfig: 'apps/plugin/tsconfig.main.json', clean: [
     'packages/engine/anatomy-figma.ts',
@@ -303,6 +280,32 @@ export const NUIA_CLEAN_BY_TSCONFIG: readonly { tsconfig: string; clean: readonl
     'packages/engine/design-md.ts',
     'packages/engine/emit-figma-color.ts',
     'packages/engine/tree.ts',
+  ] },
+  // Stage 6: the studio's first batch, its 22 files with one or two errors each, and the guard they share.
+  { tsconfig: 'apps/studio/tsconfig.json', clean: [
+    'apps/studio/src/build-identity.ts',
+    'apps/studio/src/domains/button-options.ts',
+    'apps/studio/src/domains/layout.ts',
+    'apps/studio/src/entry.ts',
+    'apps/studio/src/must.ts',
+    'apps/studio/src/preview/depth.ts',
+    'apps/studio/src/preview/layout.ts',
+    'apps/studio/src/preview/sections/button-layout.ts',
+    'apps/studio/src/preview/sections/interactive.ts',
+    'apps/studio/src/preview/sections/motion-transitions.ts',
+    'apps/studio/src/preview/sections/radius.ts',
+    'apps/studio/src/preview/sections/weights-by-face.ts',
+    'apps/studio/src/preview/shape.ts',
+    'apps/studio/src/shell/activity.ts',
+    'apps/studio/src/shell/bar.ts',
+    'apps/studio/src/shell/pages.ts',
+    'apps/studio/src/shell/rail.ts',
+    'apps/studio/src/shell/theme.ts',
+    'apps/studio/src/state/collisions.ts',
+    'apps/studio/src/state/component-groups.ts',
+    'apps/studio/src/state/interactive-input.ts',
+    'apps/studio/src/state/palette-input.ts',
+    'apps/studio/src/state/type-input.ts',
   ] },
 ];
 
@@ -536,10 +539,16 @@ if (tsc.status !== 0 && !diagnostics.length) {
 // parse of the JSON — so a `noEmit` deleted, overridden or shadowed by an `extends` fails here.
 const shown = spawnSync(process.execPath, [tscBin, '-p', TSCONFIG, '--showConfig'], { cwd: repo, encoding: 'utf8' });
 let noEmit: unknown;
+// #1182 stage 6: the flag, read the same way. Its line in the tsconfig is the only thing holding the engine's
+// graph clean now, so deleting it must fail here by name rather than pass with every index unguarded.
+let nuiaOn: unknown;
 try {
-  noEmit = JSON.parse(shown.stdout).compilerOptions?.noEmit;
+  const opts = JSON.parse(shown.stdout).compilerOptions;
+  noEmit = opts?.noEmit;
+  nuiaOn = opts?.noUncheckedIndexedAccess;
 } catch {
   noEmit = undefined;
+  nuiaOn = undefined;
 }
 // And the consequence: nothing emitted. `docs/34` shape 8 — assert what someone would report as the
 // bug (the engine grew a build step), not only the mechanism that prevents it.
@@ -582,11 +591,10 @@ const nuiaRun = (tsconfig: string, clean: readonly string[]): NuiaRun => {
     hits: nuiaRegressions(diagnostics, clean),
   };
 };
-// The engine tsconfig's list first, then one run per further tsconfig. A missing config is a failure by
-// name below, never a skipped run.
+// One run per tsconfig whose flag is not on yet. A missing config is a failure by name below, never a
+// skipped run.
 const nuiaMissing = NUIA_CLEAN_BY_TSCONFIG.filter((e) => !existsSync(resolve(repo, e.tsconfig))).map((e) => e.tsconfig);
 const nuiaRuns: NuiaRun[] = [
-  nuiaRun(TSCONFIG, NUIA_CLEAN),
   ...NUIA_CLEAN_BY_TSCONFIG.filter((e) => !nuiaMissing.includes(e.tsconfig)).map((e) => nuiaRun(e.tsconfig, e.clean)),
 ];
 
@@ -646,6 +654,7 @@ for (const r of nuiaRuns) {
   if (r.hits.length) failures.push(`${r.hits.length} noUncheckedIndexedAccess error(s) in a clean-listed file (#1182) through ${r.tsconfig}`);
 }
 if (noEmit !== true) failures.push(`${TSCONFIG} does not resolve to noEmit: true — the engine stays buildless`);
+if (nuiaOn !== true) failures.push(`${TSCONFIG} does not resolve to noUncheckedIndexedAccess: true — #1182 turned it on, and it is the only thing holding the engine's index reads guarded`);
 if (emitted.length) failures.push(`${emitted.length} emitted file(s) in packages/engine/ — this gate must not build`);
 
 if (failures.length) {
@@ -675,7 +684,7 @@ if (failures.length) {
     }
     if (r.unread.length) {
       console.error(`\n  on the noUncheckedIndexedAccess clean list for ${r.tsconfig} but NOT read by tsc — clean because nothing looked.`);
-      console.error('  Repoint or remove the entry (NUIA_CLEAN for the engine tsconfig, NUIA_CLEAN_BY_TSCONFIG otherwise):');
+      console.error('  Repoint or remove the entry in NUIA_CLEAN_BY_TSCONFIG:');
       for (const u of r.unread) console.error(`    ${u}`);
     }
     if (r.hits.length) {

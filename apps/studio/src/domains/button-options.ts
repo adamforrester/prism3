@@ -33,6 +33,7 @@ import { pageOfTab } from '../shell/pages';
 import { glyph, h, hook } from '../shell/dom';
 import { choice, leverBlock, leverOf, slider, sliderReadout, stateLine, keepFocus, type LeverBlock } from '../ui/lever-kit';
 import { homeLine } from '../ui/home-line';
+import { must } from '../must';
 
 /** The options' copy (S8.2). DRAFT, pending the owner (the S8.2 PR's "Copy for owner approval" block). */
 export const BUTTON_OPTIONS_COPY = {
@@ -120,7 +121,7 @@ export const mountButtonOptions = (hostEl: HTMLElement, cleanups: (() => void)[]
     const b = leverBlock(key, { group: true });
     const opts = (L?.options ?? []).map((o) => ({ v: String(o.value), l: o.label }));
     const role = `${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}-choice`;
-    const c = choice(L?.label ?? key, role, opts, (v) => edit(key, () => WRITES[key](v)));
+    const c = choice(L?.label ?? key, role, opts, (v) => edit(key, () => must(WRITES[key], `the ${key} write`)(v)));
     const v = String(getPath(brandState, key) ?? L?.default ?? '');
     c.set(v);
     b.ctl.append(c.el);
@@ -165,7 +166,7 @@ export const mountButtonOptions = (hostEl: HTMLElement, cleanups: (() => void)[]
     parts.push(densityLink(), ...BUTTON_OPTION_KEYS.flatMap((k) => [chips(k), ...(k === 'buttonLabelWeight' ? [weightsLine()] : k === 'buttonTextHover' ? [outlineLine()] : [])]), minWidth());
     root.replaceChildren(...parts);
     if (derived) {
-      const note = parts[0];
+      const note = must(parts[0], 'the derived note');
       note.append(glyph('warn'), h('span', 'p3-sg-warn-text', BUTTON_OPTIONS_COPY.derived(modeName(currentMode))));
       // Held as the frame holds the levers panel (N-3 A): native controls disabled, any other widget aria-disabled and
       // out of the tab order. Help (the ⓘ) and the way to Shape stay live (RX1 A: neither edits anything).

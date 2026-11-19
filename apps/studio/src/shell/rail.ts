@@ -26,6 +26,7 @@
  */
 import type { AreaId, RailArea } from './pages';
 import { glyph, h, hook, tile } from './dom';
+import { must } from '../must';
 
 export type Rail = {
   readonly node: HTMLElement;
@@ -78,8 +79,9 @@ export const mountRail = (opts: { readonly logo: HTMLElement; readonly areas: re
   new ResizeObserver(fit).observe(node);
   const paint = (area: AreaId | null): void => {
     RAIL_AREAS.forEach((a, i) => {
-      if (a.id === area) tiles[i].setAttribute('aria-current', 'page');
-      else tiles[i].removeAttribute('aria-current');
+      const tile = must(tiles[i], `the ${a.id} tile`);
+      if (a.id === area) tile.setAttribute('aria-current', 'page');
+      else tile.removeAttribute('aria-current');
     });
   };
   return { node, paint };

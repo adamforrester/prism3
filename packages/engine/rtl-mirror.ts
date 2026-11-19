@@ -36,7 +36,7 @@ const subject = (def: ComponentDef, ids: string[]): { text: string; plural: bool
   const rest = ids.filter((id) => !glyphs.includes(id));
   const g = glyphs.length ? `${list(glyphs.map((id) => words(id).replace(/ glyph$/, '')))} ${glyphs.length > 1 ? 'glyphs' : 'glyph'}` : '';
   // A lone part named for many (`items`, a code's cells) reads as plural.
-  return { text: list([...rest.map(words), ...(g ? [g] : [])]), plural: ids.length > 1 || (glyphs.length === 0 && /s$/.test(ids[0])) };
+  return { text: list([...rest.map(words), ...(g ? [g] : [])]), plural: ids.length > 1 || (glyphs.length === 0 && /s$/.test(ids[0] ?? '')) };
 };
 
 /**

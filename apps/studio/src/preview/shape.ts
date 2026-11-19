@@ -27,6 +27,7 @@ import type { PageLends } from './brand';
 import { controlHeightsSection, radiusSection, shapeBuildingBlocksSection, spacingSection, SHAPE_BUILDING_BLOCKS, SPACING_PREVIEW } from './sections/index';
 import { heightsIn } from './sections/control-heights';
 import { SG_SURFACES, ground, oppositeOf, sgContext, type SgRole } from './sections/kit';
+import { must } from '../must';
 
 const PAGE = DOMAINS.find((d) => d.id === 'shape') as PageData;
 /** A lever section's heading and description, from the page data the levers draw them from (Q23). */
@@ -45,7 +46,7 @@ export const mountShapePreview = (host: HTMLElement, cleanups: (() => void)[], _
   const paint = (): void => {
     const all = resolvedModes(theme);
     const rolesByMode = new Map<string, Record<string, SgRole | undefined>>(all.map((x) => [x.mode as string, x.roles as Record<string, SgRole | undefined>]));
-    const cur: string = rolesByMode.has(currentMode) ? currentMode : rp.modes[0];
+    const cur: string = rolesByMode.has(currentMode) ? currentMode : must(rp.modes[0], 'the first mode');
     const c = sgContext({
       rolesByMode, cur, opp: oppositeOf(cur, rp.modes, (m) => rolesByMode.has(m)), namespace: theme.namespace, modeLabel, badges: false,
       paletteHex: (p, s) => theme.palettes.find((x) => x.palette === p)?.steps.find((x) => x.key === s)?.hex ?? null,

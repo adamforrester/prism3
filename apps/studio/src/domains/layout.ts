@@ -43,6 +43,7 @@ import type { StripAction } from '../shell/notices';
 import { addRowButton, leverBlock, leverOf, promoteLever, slider, sliderReadout, stateLine, textField, tokenLabel, type LeverBlock, keepFocus } from '../ui/lever-kit';
 import { noteSectionEdit } from '../preview/follow-edit';
 import { valuePicker, type PickerValue, type ValuePickerOpts } from '../ui/value-picker';
+import { must } from '../must';
 
 const PAGE = DOMAINS.find((d) => d.id === 'layout') as PageData;
 
@@ -208,10 +209,11 @@ export const mountLayoutLevers = (host: HTMLElement, cleanups: (() => void)[]): 
     const names = namesFor(bps);
     const list = hook(h('div', 'p3-bplist'), 'bp-list');
     bps.forEach((px, j) => {
+      const name = must(names[j], `breakpoint ${j}'s name`);
       const row = hook(h('div', 'p3-bprow'), 'bp-row');
-      row.dataset.bp = names[j];
+      row.dataset.bp = name;
       const id = `p3-bp-${j}`;
-      const t = textField(id, 'bp-input', { label: `${names[j]}, px`,
+      const t = textField(id, 'bp-input', { label: `${name}, px`,
         // A value that is not a width (empty, not a number, below 0) is put back rather than written: the legacy
         // clean-up would drop the breakpoint, and with it its settings. So is an edit the state refuses (at two
         // breakpoints, one onto the other's width, which would leave one: D13's two to seven).
@@ -226,7 +228,7 @@ export const mountLayoutLevers = (host: HTMLElement, cleanups: (() => void)[]): 
       t.el.inputMode = 'numeric';
       t.set(String(px));
       const unit = h('span', 'p3-bp-unit', 'px');
-      row.append(tokenLabel(`breakpoint.${names[j]}`, names[j], id), t.el, unit);
+      row.append(tokenLabel(`breakpoint.${name}`, name, id), t.el, unit);
       if (j === 0) {
         // D13: the first breakpoint is fixed at 0px.
         t.el.disabled = true;
@@ -235,8 +237,8 @@ export const mountLayoutLevers = (host: HTMLElement, cleanups: (() => void)[]): 
       } else if (bps.length > MIN_BREAKPOINTS) {
         const rm = hook(h('button', 'p3-btn p3-btn-page'), 'bp-remove');
         rm.type = 'button';
-        rm.dataset.bp = names[j];
-        rm.append(h('span', 'p3-btn-label', LAYOUT_COPY.remove(names[j])));
+        rm.dataset.bp = name;
+        rm.append(h('span', 'p3-btn-label', LAYOUT_COPY.remove(name)));
         rm.onclick = () => bpEdit(() => removeBreakpoint(j));
         row.append(rm);
       }
