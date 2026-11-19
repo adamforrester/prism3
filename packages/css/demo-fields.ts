@@ -54,6 +54,8 @@ export const fieldHtml = (o: FieldOpts): string => {
   const c = COPY[o.kind];
   const P = `p3-${o.kind}`;
   const msgId = `${o.id}-message`;
+  // Q-POC2 A (#1712 A): a field at a validation status always writes its message and names it in aria-describedby.
+  const withMessage = o.message || o.status !== 'default';
   const filled = o.state !== 'rest' && o.state !== 'disabled';
   const input = [
     `<input class="${P}__entry" id="${o.id}"`,
@@ -61,7 +63,7 @@ export const fieldHtml = (o: FieldOpts): string => {
     ` name="${o.kind === 'password-field' ? 'password' : 'email'}"`,
     c.placeholder ? ` placeholder="${c.placeholder}"` : '',
     filled ? ` value="${c.value}"` : '',
-    o.message ? ` aria-describedby="${msgId}"` : '',
+    withMessage ? ` aria-describedby="${msgId}"` : '',
     o.status === 'error' ? ' aria-invalid="true"' : '',
     o.required ? ' required' : '',
     o.state === 'disabled' ? ' disabled' : '',
@@ -85,7 +87,7 @@ export const fieldHtml = (o: FieldOpts): string => {
     + `<span class="${P}__spinner" aria-hidden="true">${SPINNER}</span>`
     + (o.icons && o.kind === 'text-field' ? `<span class="${P}__trailing-visual" aria-hidden="true">${ICON.trailing}</span>` : '')
     + '</div>';
-  const message = o.message
+  const message = withMessage
     ? `<p class="p3-field-message" data-component="field-message" id="${msgId}">`
       + `<span class="p3-field-message__glyph-cell" aria-hidden="true"><span class="p3-field-message__error-glyph">${ICON.error}</span><span class="p3-field-message__warning-glyph">${ICON.warning}</span><span class="p3-field-message__success-glyph">${ICON.success}</span></span>`
       + `<span class="p3-field-message__caption-cell"><span class="p3-field-message__label">${c.message[o.status]}</span></span></p>`

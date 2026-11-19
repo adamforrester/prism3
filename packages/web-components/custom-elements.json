@@ -398,6 +398,15 @@
             },
             {
               "kind": "field",
+              "name": "#warnedStatus",
+              "privacy": "private",
+              "type": {
+                "text": "null"
+              },
+              "default": "null"
+            },
+            {
+              "kind": "field",
               "name": "#inputId",
               "privacy": "private",
               "readonly": true
@@ -946,6 +955,15 @@
             {
               "kind": "field",
               "name": "#refocus",
+              "privacy": "private",
+              "type": {
+                "text": "null"
+              },
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "#warnedStatus",
               "privacy": "private",
               "type": {
                 "text": "null"

@@ -21,7 +21,10 @@
  *    the input box; the box is at least 44px tall at every size; the message's glyph centers on its first line. All
  *    held to this file's own px literals (docs/34).
  *
- * SELF-TEST: eight mutants, each must fail by name.
+ * 6. A STATUS ALWAYS WRITES ITS MESSAGE (Q-POC2 A, #1712 A). Every demo field at error, warning or success has its
+ *    message written, shown and named in the input's `aria-describedby`.
+ *
+ * SELF-TEST: ten mutants, each must fail by name.
  */
 import { createRequire } from 'node:module';
 import { existsSync, readFileSync } from 'node:fs';
@@ -228,6 +231,24 @@ export const run = async (browser: any, o: Opts = {}): Promise<{ failures: strin
     const inv = await page.evaluate((q: string) => document.querySelector(q)!.getAttribute('aria-invalid'), `[data-demo="${field}"] input`);
     if (inv !== 'true') { failures.push(`${field}: an error field's input should carry aria-invalid="true"`); break; }
   }
+  // Q-POC2 A (#1712 A): every field at a validation status writes its message, shows it, and names it.
+  const statusFields = await page.evaluate(() => [...document.querySelectorAll('.p3-text-field, .p3-password-field')]
+    .filter((f) => !['default', null].includes(f.getAttribute('data-prop-validation'))).map((f) => {
+      const input = f.querySelector('input')!;
+      const ids = (input.getAttribute('aria-describedby') || '').split(' ').filter(Boolean);
+      const msg = f.querySelector('.p3-field-message') as HTMLElement | null;
+      const box = msg?.getBoundingClientRect();
+      return {
+        demo: (f as HTMLElement).dataset.demo!, status: f.getAttribute('data-prop-validation'), describedBy: input.getAttribute('aria-describedby'),
+        linked: !!msg && ids.includes(msg.id) && document.getElementById(msg.id) === msg,
+        shown: !!msg && getComputedStyle(msg).display !== 'none' && !msg.closest('[hidden]') && !!box && box.width > 0 && box.height > 0,
+        text: msg?.textContent?.trim() ?? null,
+      };
+    }));
+  ok(statusFields.length >= 2 * 2 * 3 * 3, `Q-POC2: only ${statusFields.length} status fields in the demo, at least 36 expected (two kinds, two themes, three sizes, three statuses)`);
+  for (const x of statusFields) {
+    ok(x.linked && x.shown && !!x.text, `Q-POC2: ${x.demo} at ${x.status} renders no linked, shown message (aria-describedby ${JSON.stringify(x.describedBy)}, message ${x.text === null ? 'absent' : x.shown ? JSON.stringify(x.text) : 'not shown'})`);
+  }
 
   // 4. the Show/Hide button
   const f = '[data-demo="light/password-field/medium/default/filled"]';
@@ -328,6 +349,12 @@ const MUTANTS: { name: string; opts: Opts; mustName: RegExp }[] = [
   { name: 'aria-describedby dropped from every input',
     opts: { after: 'document.querySelectorAll("input[aria-describedby]").forEach((i) => i.removeAttribute("aria-describedby"))' },
     mustName: /error field: the input's description should be its message/ },
+  { name: 'the message left out of an error field (Q-POC2 A)',
+    opts: { after: 'document.querySelector(\'[data-demo="light/text-field/medium/error/filled"] > .p3-field-message\').remove()' },
+    mustName: /^Q-POC2: light\/text-field\/medium\/error\/filled at error renders no linked, shown message \(aria-describedby "[^"]+", message absent\)/ },
+  { name: 'the message hidden at warning (Q-POC2 A)',
+    opts: { css: '[data-demo="light/password-field/medium/warning/filled"] > .p3-field-message { display: none !important; }' },
+    mustName: /^Q-POC2: light\/password-field\/medium\/warning\/filled at warning renders no linked, shown message .*message not shown/ },
   { name: 'the caret put back only in the same task (#3921)',
     opts: { init: 'const st = window.setTimeout; window.setTimeout = (fn, ms, ...a) => (ms === 0 && String(fn).includes("setSelectionRange") ? 0 : st(fn, ms, ...a));' },
     mustName: /Show\/Hide: the caret moved to 0,0, not 2,5, after pressing Show on an input that had focus/ },

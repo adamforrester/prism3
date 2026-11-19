@@ -98,11 +98,13 @@ export const markup = (kind, c, id) => {
   const P = `p3-${kind}`;
   const status = p.validation ?? 'default';
   const msgId = `${id}-message`;
+  // Q-POC2 A (#1712 A): at a validation status the message is written and named whatever showMessage says.
+  const withMessage = p.showMessage || status !== 'default';
   const attr = (name, v) => (v === undefined || v === null || v === false ? '' : v === true ? ` ${name}` : ` ${name}="${esc(v)}"`);
   const input = `<input class="${P}__entry"${attr('id', id)}${attr('type', kind === 'password-field' ? 'password' : p.type)}`
     + `${attr('name', p.name)}${attr('autocomplete', p.autoComplete)}${kind === 'password-field' ? ' spellcheck="false" autocapitalize="none"' : ''}`
     + `${attr('placeholder', p.placeholder)}${attr('value', p.defaultValue)}`
-    + `${attr('aria-describedby', p.showMessage ? msgId : undefined)}${attr('aria-invalid', status === 'error' ? 'true' : undefined)}`
+    + `${attr('aria-describedby', withMessage ? msgId : undefined)}${attr('aria-invalid', status === 'error' ? 'true' : undefined)}`
     + `${attr('required', p.required)}${attr('disabled', p.disabled)}${attr('readonly', p.readOnly)}${attr('aria-busy', p.isPending ? 'true' : undefined)}>`;
   const label = `<label class="p3-field-label" data-component="field-label" for="${id}"><span class="p3-field-label__label">${esc(p.label)}</span><span class="p3-field-label__indicator" aria-hidden="true">*</span></label>`;
   const toggle = `<button type="button" class="p3-button p3-password-field__toggle" data-component="button" data-prop-appearance="text" data-prop-size="small" data-prop-inset="flush" aria-controls="${id}" hidden${p.disabled ? ' disabled' : ''}>`
@@ -114,7 +116,7 @@ export const markup = (kind, c, id) => {
     + (c.trailing ? `<span class="${P}__trailing-visual" aria-hidden="true">${ICON.trailing}</span>` : '')
     + '</div>';
   const text = status === 'default' ? p.helpText : (p.validationMessage ?? p.helpText);
-  const message = p.showMessage
+  const message = withMessage
     ? `<p class="p3-field-message" data-component="field-message" id="${msgId}"><span class="p3-field-message__glyph-cell" aria-hidden="true">`
       + `<span class="p3-field-message__error-glyph">${ICON.error}</span><span class="p3-field-message__warning-glyph">${ICON.warning}</span><span class="p3-field-message__success-glyph">${ICON.success}</span></span>`
       + `<span class="p3-field-message__caption-cell"><span class="p3-field-message__label">${esc(text ?? '')}</span></span></p>`

@@ -22,9 +22,18 @@
  * 5. VALUE AND onChange. Typing calls `onChange` once per input event and updates `value`; setting `value` sets the
  *    input; the typed value is never written into an attribute.
  *
- * SELF-TEST: five mutants must each fail by name: the submit handler removed, adoption dropping a typed value, the
- * toggle moving focus to the input, the caret put back only once (Chromium resets it a task later), and `@prism3/css`'s
- * script no longer standing aside.
+ * 6. A STATUS ALWAYS WRITES ITS MESSAGE (Q-POC2 A, #1712 A). At error, warning and success, with `showMessage` off,
+ *    each element writes its message, shown, with `validationMessage` as its text, and names it in the input's
+ *    `aria-describedby`. A status set live writes it; back at default, `showMessage` off writes none. The plain form
+ *    (`@prism3/css`'s markup) is held the same way at each status with `showMessage` off, and a field pre-rendered at
+ *    error adopts with `showMessage` off, so set back to default it writes no message.
+ *    A status with neither `validationMessage` nor `helpText` logs one console warning naming the element and its
+ *    status (OWNER DECISION 1 B, #3968); a field with either text, or at default, logs none.
+ *
+ * SELF-TEST: seven mutants must each fail by name: the submit handler removed, adoption dropping a typed value, the
+ * toggle moving focus to the input, the caret put back only once (Chromium resets it a task later), `@prism3/css`'s
+ * script no longer standing aside, the message written only when `showMessage` is on (Q-POC2 A), and the empty-status console warning removed
+ * (OWNER DECISION 1 B).
  */
 import { createRequire } from 'node:module';
 import { existsSync, readFileSync } from 'node:fs';
@@ -53,6 +62,8 @@ const samples = (kind: Kind): Sample[] => [
   ...['filled', 'disabled', 'read-only', 'pending'].map((state) => ({ kind, id: `${kind}-${state}`, size: 'medium', status: 'default', state, icons: false, message: true })),
   { kind, id: `${kind}-icons`, size: 'large', status: 'error', state: 'rest', icons: true, message: true },
   { kind, id: `${kind}-required`, size: 'small', status: 'default', state: 'rest', icons: false, message: false, required: true },
+  // showMessage off at error: both forms still write the message (Q-POC2 A)
+  { kind, id: `${kind}-error-no-showmessage`, size: 'medium', status: 'error', state: 'rest', icons: false, message: false },
 ];
 /** The plain form: `@prism3/css`'s demo markup, with the Show/Hide button as its script leaves it (shown). */
 const plain = (s: Sample) => `<span data-form="plain">${fieldHtml({ ...s, demo: s.id }).replace(/(class="p3-button p3-password-field__toggle"[^>]*?) hidden/, '$1')}</span>`;
@@ -68,7 +79,8 @@ const element = (s: Sample) => {
   if (s.kind === 'text-field') a['data-prop-type'] = 'email';
   if (c.placeholder) a['data-prop-placeholder'] = c.placeholder;
   if (filled) a['data-prop-defaultvalue'] = c.value;
-  if (s.message) { a['data-prop-showmessage'] = 'true'; a[s.status === 'default' ? 'data-prop-helptext' : 'data-prop-validationmessage'] = c.message[s.status]; }
+  if (s.message) a['data-prop-showmessage'] = 'true';
+  if (s.message || s.status !== 'default') a[s.status === 'default' ? 'data-prop-helptext' : 'data-prop-validationmessage'] = c.message[s.status];
   if (s.required) a['data-prop-required'] = 'true';
   if (s.state === 'disabled') a['data-prop-disabled'] = 'true';
   if (s.state === 'read-only') a['data-prop-readonly'] = 'true';
@@ -230,6 +242,110 @@ export const run = async (browser: any, src: Sources): Promise<{ failures: strin
     ok(r.attrs.length === 0, `value: the value was written into an attribute: ${JSON.stringify(r.attrs)}`);
     await page.close();
   }
+
+  // 6. a status always writes its message (Q-POC2 A, #1712 A), with showMessage left off
+  {
+    const page = await browser.newPage();
+    const STATUSES = ['error', 'warning', 'success'];
+    const read = `(id) => {
+      const input = document.getElementById(id);
+      const f = input.closest('.p3-text-field, .p3-password-field');
+      const ids = (input.getAttribute('aria-describedby') || '').split(' ').filter(Boolean);
+      const msg = f.querySelector('.p3-field-message');
+      const linked = !!msg && ids.includes(msg.id) && document.getElementById(msg.id) === msg;
+      const box = msg ? msg.getBoundingClientRect() : null;
+      const shown = !!msg && getComputedStyle(msg).display !== 'none' && !msg.closest('[hidden]') && box.width > 0 && box.height > 0;
+      return { linked, shown, text: msg ? msg.textContent.trim() : null, invalid: input.getAttribute('aria-invalid'), describedBy: input.getAttribute('aria-describedby') };
+    }`;
+    const say = (x: any) => `aria-describedby ${JSON.stringify(x.describedBy)}, message ${x.text === null ? 'absent' : x.shown ? 'shown' : 'not shown'}`;
+    await page.setContent(page_(KINDS.flatMap((k) => STATUSES.map((st) => `<p3-${k} data-prop-label="L" data-prop-id="${k}-${st}" data-prop-validation="${st}" data-prop-validationmessage="Message at ${st}."${k === 'password-field' ? ' data-prop-autocomplete="current-password"' : ''}></p3-${k}>`)).join('')
+      + `<p3-text-field data-prop-label="Live" data-prop-id="live"></p3-text-field>`));
+    await load(page);
+    for (const k of KINDS) for (const st of STATUSES) {
+      const x = await page.evaluate(`(${read})('${k}-${st}')`);
+      ok(x.linked && x.shown, `Q-POC2: <p3-${k}> at ${st} with showMessage off renders no linked, shown message (${say(x)})`);
+      ok(x.text === `Message at ${st}.`, `Q-POC2: <p3-${k}> at ${st} with showMessage off writes ${JSON.stringify(x.text)}, not its validationMessage`);
+      if (st === 'error') ok(x.invalid === 'true', `Q-POC2: <p3-${k}> at error does not set aria-invalid`);
+    }
+    // A status set live writes the message; back at default, showMessage off writes none.
+    const live = async (st: string) => page.evaluate(`(async () => { const el = document.querySelector('p3-text-field:has(#live)'); el.validation = '${st}'; el.validationMessage = 'Live ${st}.'; await el.updateComplete; return (${read})('live'); })()`);
+    const before = await page.evaluate(`(${read})('live')`);
+    ok(before.text === null && before.describedBy === null, `Q-POC2: <p3-text-field> at default with showMessage off writes a message (${say(before)})`);
+    const err = await live('error');
+    ok(err.linked && err.shown && err.invalid === 'true', `Q-POC2: <p3-text-field> set to error live renders no linked, shown message (${say(err)})`);
+    const back = await live('default');
+    ok(back.text === null && back.describedBy === null && back.invalid === null, `Q-POC2: <p3-text-field> set back to default with showMessage off keeps a message (${say(back)})`);
+    await page.close();
+  }
+
+  // 6b. the plain form (@prism3/css's markup) at each status with showMessage off: the message written, shown and
+  // named in aria-describedby. demo.html builds every status field with its message on, so this is the one place the
+  // plain form is read with it off.
+  {
+    const page = await browser.newPage();
+    const STATUSES = ['error', 'warning', 'success'];
+    await page.setContent(page_(KINDS.flatMap((k) => STATUSES.map((st) => plain({ kind: k, id: `plain-${k}-${st}`, size: 'medium', status: st, state: 'rest', icons: false, message: false }))).join('')));
+    for (const k of KINDS) for (const st of STATUSES) {
+      const x = await page.evaluate(`(() => {
+        const input = document.getElementById('plain-${k}-${st}');
+        const ids = (input.getAttribute('aria-describedby') || '').split(' ').filter(Boolean);
+        const msg = input.closest('.p3-${k}').querySelector('.p3-field-message');
+        const box = msg ? msg.getBoundingClientRect() : null;
+        return { linked: !!msg && ids.includes(msg.id) && document.getElementById(msg.id) === msg,
+          shown: !!msg && getComputedStyle(msg).display !== 'none' && !msg.closest('[hidden]') && box.width > 0 && box.height > 0,
+          text: msg ? msg.textContent.trim() : null, describedBy: input.getAttribute('aria-describedby') };
+      })()`);
+      ok(x.linked && x.shown && !!x.text, `Q-POC2: the plain ${k} at ${st} with showMessage off renders no linked, shown message (aria-describedby ${JSON.stringify(x.describedBy)}, message ${x.text === null ? 'absent' : x.shown ? 'shown' : 'not shown'})`);
+    }
+    await page.close();
+  }
+
+  // 6c. upgrade at a status (Q-POC2 A): a message pre-rendered at error was required, not chosen, so adoption leaves
+  // showMessage off, and the field set live back to default writes no message.
+  {
+    const page = await browser.newPage();
+    await page.setContent(page_(KINDS.map((k) => `<p3-${k}>${fieldHtml({ kind: k, id: `pre-error-${k}`, demo: `pre-error-${k}`, size: 'medium', status: 'error', state: 'rest', icons: false, message: true })}</p3-${k}>`).join('')));
+    await load(page);
+    for (const k of KINDS) {
+      const up = await page.evaluate(`(async () => {
+        const el = document.querySelector('p3-${k}');
+        const at = { showMessage: el.showMessage, validation: el.validation, validationMessage: el.validationMessage };
+        el.validation = 'default';
+        await el.updateComplete;
+        const input = el.querySelector('.p3-${k}__entry');
+        return { ...at, after: { message: !!el.querySelector('.p3-field-message'), describedBy: input.getAttribute('aria-describedby'), invalid: input.getAttribute('aria-invalid') } };
+      })()`);
+      ok(up.validation === 'error' && !!up.validationMessage, `upgrade at error: <p3-${k}> did not adopt the status and its message: ${JSON.stringify(up)}`);
+      ok(!up.showMessage && !up.after.message && up.after.describedBy === null && up.after.invalid === null, `Q-POC2: <p3-${k}> pre-rendered at error, upgraded and set back to default keeps its message (showMessage ${JSON.stringify(up.showMessage)}, message ${up.after.message ? 'written' : 'absent'}, aria-describedby ${JSON.stringify(up.after.describedBy)})`);
+    }
+    await page.close();
+  }
+
+  // 6d. a status with no text warns the developer (OWNER DECISION 1 B, #3968). At error, warning or success with
+  // neither validationMessage nor helpText, each element logs one console warning that names it and its status. A
+  // field with either text, or at default, logs none, and a status set live warns once, not on every render.
+  {
+    const page = await browser.newPage();
+    const warnings: string[] = [];
+    page.on('console', (m: any) => { if (m.type() === 'warning') warnings.push(m.text()); });
+    const STATUSES = ['error', 'warning', 'success'];
+    const auto = (k: Kind) => (k === 'password-field' ? ' data-prop-autocomplete="current-password"' : '');
+    await page.setContent(page_(KINDS.flatMap((k) => [
+      ...STATUSES.map((st) => `<p3-${k} data-prop-label="L" data-prop-id="empty-${k}-${st}" data-prop-validation="${st}"${auto(k)}></p3-${k}>`),
+      `<p3-${k} data-prop-label="L" data-prop-id="vm-${k}" data-prop-validation="error" data-prop-validationmessage="Why."${auto(k)}></p3-${k}>`,
+      `<p3-${k} data-prop-label="L" data-prop-id="ht-${k}" data-prop-validation="warning" data-prop-helptext="Help."${auto(k)}></p3-${k}>`,
+      `<p3-${k} data-prop-label="L" data-prop-id="def-${k}"${auto(k)}></p3-${k}>`,
+    ]).join('') + `<p3-text-field data-prop-label="Live" data-prop-id="live-empty"></p3-text-field>`));
+    await load(page);
+    const named = (k: string, st: string) => warnings.filter((w) => w.includes(`<p3-${k}>`) && w.includes(`validation="${st}"`) && /no validationMessage or helpText/.test(w));
+    for (const k of KINDS) for (const st of STATUSES)
+      ok(named(k, st).length === 1, `OWNER DECISION 1 B: <p3-${k}> at ${st} with neither validationMessage nor helpText logs ${named(k, st).length} console warnings naming it, not 1 (${JSON.stringify(warnings.slice(0, 3))})`);
+    ok(warnings.length === KINDS.length * STATUSES.length, `OWNER DECISION 1 B: the page logs ${warnings.length} console warnings, not ${KINDS.length * STATUSES.length}: one per empty-status field, none for a field with a validationMessage, a helpText, or at default (${JSON.stringify(warnings)})`);
+    const before = warnings.length;
+    await page.evaluate(`(async () => { const el = document.querySelector('p3-text-field:has(#live-empty)'); el.validation = 'error'; await el.updateComplete; el.label = 'Live 2'; await el.updateComplete; })()`);
+    ok(warnings.length - before === 1, `OWNER DECISION 1 B: <p3-text-field> set live to error with no text logs ${warnings.length - before} console warnings over two renders, not 1`);
+    await page.close();
+  }
   return { failures, passed };
 };
 
@@ -241,12 +357,16 @@ const swap = (text: string, from: string | RegExp, to: string, what: string): st
 };
 const REAL: Sources = { elements: SOURCE, cssScript: CSS_SCRIPT };
 const PF = SOURCE['password-field'];
-const MUTANTS: { name: string; src: Sources; mustName: RegExp }[] = [
-  { name: 'the submit handler removed', src: { ...REAL, elements: { ...SOURCE, 'password-field': swap(PF, "document.addEventListener('submit', this.#onSubmit, true);", '', 'submit') } }, mustName: /^submit: the input was text when the form submitted/ },
-  { name: 'adoption dropping a typed value', src: { ...REAL, elements: { ...SOURCE, 'password-field': swap(PF, 'if (input.value !== (input.getAttribute(\'value\') ?? \'\')) this.value = input.value;', '', 'adopt value') } }, mustName: /^upgrade: the value typed before the upgrade is ""/ },
-  { name: 'the toggle moving focus to the input', src: { ...REAL, elements: { ...SOURCE, 'password-field': swap(PF, 'this.requestUpdate();\n    announce(', 'input.focus();\n    this.requestUpdate();\n    announce(', 'focus') } }, mustName: /^toggle click: focus went to "p3-password-field__entry"/ },
-  { name: 'the caret put back once only, not after Chromium\'s reset', src: { ...REAL, elements: { ...SOURCE, 'password-field': swap(PF, '      setTimeout(() => input.setSelectionRange(start, end), 0);\n', '', 'caret') } }, mustName: /^toggle click: the caret moved to 0,0, not 2,5/ },
-  { name: '@prism3/css\'s script no longer standing aside', src: { ...REAL, cssScript: swap(CSS_SCRIPT, "const owned = (button) => !!button.closest('p3-password-field:defined');", 'const owned = () => false;', 'owned') }, mustName: /^upgrade: with both scripts, one click did not show the value once/ },
+// Each mutant's source is built when it runs, after the real run, so a hand mutation that moves an anchor still gets
+// the real run's failures by name, and the moved anchor fails its own self-test.
+const MUTANTS: { name: string; src: () => Sources; mustName: RegExp }[] = [
+  { name: 'the submit handler removed', src: () => ({ ...REAL, elements: { ...SOURCE, 'password-field': swap(PF, "document.addEventListener('submit', this.#onSubmit, true);", '', 'submit') }}), mustName: /^submit: the input was text when the form submitted/ },
+  { name: 'adoption dropping a typed value', src: () => ({ ...REAL, elements: { ...SOURCE, 'password-field': swap(PF, 'if (input.value !== (input.getAttribute(\'value\') ?? \'\')) this.value = input.value;', '', 'adopt value') }}), mustName: /^upgrade: the value typed before the upgrade is ""/ },
+  { name: 'the toggle moving focus to the input', src: () => ({ ...REAL, elements: { ...SOURCE, 'password-field': swap(PF, 'this.requestUpdate();\n    announce(', 'input.focus();\n    this.requestUpdate();\n    announce(', 'focus') }}), mustName: /^toggle click: focus went to "p3-password-field__entry"/ },
+  { name: 'the caret put back once only, not after Chromium\'s reset', src: () => ({ ...REAL, elements: { ...SOURCE, 'password-field': swap(PF, '      setTimeout(() => input.setSelectionRange(start, end), 0);\n', '', 'caret') }}), mustName: /^toggle click: the caret moved to 0,0, not 2,5/ },
+  { name: 'the message written only when showMessage is on (Q-POC2 A)', src: () => ({ ...REAL, elements: { ...SOURCE, 'text-field': swap(SOURCE['text-field'], "const writeMessage = this.showMessage || status !== 'default';", 'const writeMessage = this.showMessage;', 'writeMessage') }}), mustName: /^Q-POC2: <p3-text-field> at error with showMessage off renders no linked, shown message/ },
+  { name: 'the empty-status console warning removed (OWNER DECISION 1 B)', src: () => ({ ...REAL, elements: { ...SOURCE, 'text-field': swap(SOURCE['text-field'], /\n\s*if \(empty && this\.#warnedStatus !== status\) console\.warn\([^\n]*/, '', 'empty-status warning') }}), mustName: /^OWNER DECISION 1 B: <p3-text-field> at error with neither validationMessage nor helpText logs 0 console warnings/ },
+  { name: '@prism3/css\'s script no longer standing aside', src: () => ({ ...REAL, cssScript: swap(CSS_SCRIPT, "const owned = (button) => !!button.closest('p3-password-field:defined');", 'const owned = () => false;', 'owned')}), mustName: /^upgrade: with both scripts, one click did not show the value once/ },
 ];
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -260,7 +380,9 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       for (const x of real.failures) console.error(`  - ${x}`);
     } else console.log(`OK browser (fields): ${real.passed} checks pass: both delivery forms match on both themes, the associations hold by role, and the Show/Hide button, the upgrade and the value behave as the defs say`);
     for (const m of MUTANTS) {
-      const r = await run(browser, m.src);
+      let src: Sources;
+      try { src = m.src(); } catch (e) { fail++; console.error(`FAIL self-test: "${m.name}": ${(e as Error).message}`); continue; }
+      const r = await run(browser, src);
       if (r.failures.some((x) => m.mustName.test(x))) console.log(`OK self-test: "${m.name}" fails by name`);
       else { fail++; console.error(`FAIL self-test: "${m.name}" was not reported by name (${r.failures.slice(0, 4).join('; ') || 'nothing'})`); }
     }
