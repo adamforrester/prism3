@@ -212,13 +212,13 @@ const REFUSALS: Refusal[] = [
   // #3698 R2: two to seven breakpoints. The schema's `minItems: 2` refuses fewer, before the build path runs;
   // `buildLayout` refuses an eighth (#2198), since the schema states no maximum.
   ...ALL_BRANDS.flatMap((brand): Refusal[] => [
-    ...[[], [0]].map((value): Refusal => ({ brand, lever: 'layout.breakpoints', value, message: new RegExp(`^schema: layout\\.breakpoints: ${value.length} item\\(s\\) < minItems 2$`),
+    ...[[], [0]].map((value): Refusal => ({ brand, lever: 'layout.breakpoints', value, message: new RegExp(`^schema: layout\\.breakpoints has ${value.length} item\\(s\\); it takes at least 2$`),
       reason: 'fewer than two breakpoints: one floor drops the guaranteed `md` tier (#3698 F3)' })),
     { brand, lever: 'layout.breakpoints', value: [...SEVEN_FLOORS, 2560], message: /^The brand can have at most seven breakpoints\. This brand has 8\.$/,
       reason: 'an eighth breakpoint has no t-shirt name (#2198)' },
   ]),
   // #3707 (owner decision A): the schema's `minItems: 1` refuses an empty `typography.links` before the build path runs.
-  ...ALL_BRANDS.map((brand): Refusal => ({ brand, lever: 'typography.links', value: [], message: /^schema: typography\.links: 0 item\(s\) < minItems 1$/,
+  ...ALL_BRANDS.map((brand): Refusal => ({ brand, lever: 'typography.links', value: [], message: /^schema: typography\.links has 0 item\(s\); it takes at least 1$/,
     reason: 'an empty list ships no body or caption link style, which the contract guarantees and Link binds (#3707)' })),
 ];
 
