@@ -20794,6 +20794,69 @@ arm: {
     const whereMissed = whereCases.filter(([, d, re]) => !errs(d).some((e) => re.test(e))).map(([why]) => why);
     ok(whereMissed.length === 0, `#2343 PR 5 variantWhere: the validator refuses each unsafe joint mapping by name (missed: ${whereMissed.join(', ') || 'none'})`);
   }
+  // #4110 — AVATAR, each owner decision held against a literal from the approved proposal (OD-A1 to OD-A8, all A).
+  // EXPECTED is typed here from the proposal; ACTUAL is read off the projected plans and the emitted trees, never off the
+  // def's own tables (docs/34).
+  {
+    const av = componentDefs.find((d) => d.id === 'avatar')!;
+    const plans = figmaAnatomySet(av) as any[];
+    const kid = (n: any, name: string): any => (n.children ?? []).find((c: any) => c.name === name);
+    const find = (n: any, name: string): any => n.name === name ? n : (n.children ?? []).map((c: any) => find(c, name)).find(Boolean);
+    // The set: 5 sizes × 2 shapes × 3 types, the wireframe's 30 members.
+    ok(plans.length === 30, `#4110 avatar: the Figma set is 30 members, 5 sizes × 2 shapes × 3 types (got ${plans.length})`);
+    // OD-A3 A: 20 / 24 / 32 / 40 / 64px, the first four on the icon ladder and x-large on the one minted step.
+    const BOX: Record<string, [string, number]> = { 'x-small': ['icon/size/sm', 20], small: ['icon/size/md', 24], medium: ['icon/size/lg', 32], large: ['icon/size/xl', 40], 'x-large': ['icon/size/2xl', 64] };
+    const wrongBox = plans.filter((p) => p.root.bound?.width !== BOX[p.size]?.[0] || p.root.bound?.height !== BOX[p.size]?.[0]
+      || kid(p.root, 'mask')?.bound?.width !== BOX[p.size]?.[0]);
+    ok(wrongBox.length === 0, `#4110 avatar OD-A3 A: the container and the mask bind the icon ladder at four sizes and icon.size.2xl at x-large${wrongBox.length ? ` — ${wrongBox.slice(0, 3).map((p) => `${p.size} ${p.root.bound?.width}`).join(', ')}` : ''}`);
+    const pxRows = (['prism3', 'aurora', 'harbor'] as const).map((b) => {
+      const th = exampleTheme(b, () => brandTheme(exampleBrands()[b] as BrandInput));
+      const t = th && (buildTree(th).tree as any);
+      const root = t && t[Object.keys(t)[0]];
+      return [b, Object.fromEntries(Object.entries(BOX).map(([z, [v]]) => [z, root?.icon?.size?.[v.split('/')[2]]?.$extensions?.prism3?.px]))] as [string, Record<string, number>];
+    });
+    const offPx = pxRows.filter(([, r]) => Object.entries(BOX).some(([z, [, px]]) => r[z] !== px));
+    ok(pxRows.length === 3 && offPx.length === 0, `#4110 avatar OD-A3 A: the five sizes resolve to 20/24/32/40/64px in every example brand${offPx.length ? ` — ${offPx.map(([b, r]) => `${b} ${JSON.stringify(r)}`).join('; ')}` : ''}`);
+    // OD-A2 A: a circle is round at every size; a square takes radius.sm below medium and radius.md from medium up.
+    const CORNER = (shape: string, size: string) => shape === 'circle' ? 'radius/round' : ['x-small', 'small'].includes(size) ? 'radius/sm' : 'radius/md';
+    const wrongCorner = plans.filter((p) => ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].some((c) => kid(p.root, 'mask')?.bound?.[c] !== CORNER(p.coord.shape, p.size)));
+    ok(wrongCorner.length === 0, `#4110 avatar OD-A2 A: the mask's corner is round on a circle, radius.sm on a square below medium and radius.md from medium up${wrongCorner.length ? ` — ${wrongCorner.slice(0, 3).map((p) => `${p.size}/${p.coord.shape} ${kid(p.root, 'mask')?.bound?.topLeftRadius}`).join(', ')}` : ''}`);
+    // The structural decision: only the mask clips, and the presence ring sits outside it, pinned to the container's corner.
+    const wrongClip = plans.filter((p) => p.root.clipsContent === true || kid(p.root, 'mask')?.clipsContent !== true
+      || !kid(p.root, 'presenceRing') || find(kid(p.root, 'mask'), 'presenceRing') || kid(p.root, 'presenceRing')?.cornerInset !== 'space/0');
+    ok(wrongClip.length === 0, `#4110 avatar: the container clips nothing, the mask clips, and the presence ring is the container's child pinned into its corner at space/0, outside the mask (${wrongClip.length} wrong)`);
+    // OD-A7 A: presence nests Badge at type=dot, its tone exposed, off by default.
+    const wrongDot = plans.filter((p) => { const d = find(p.root, 'presenceDot'); const r = kid(p.root, 'presenceRing');
+      return d?.nestTarget !== 'badge' || d?.nestVariant?.type !== 'dot' || JSON.stringify(d?.nestExpose) !== '["tone"]' || r?.visible !== false || r?.paints?.fills !== 'color/background/primary'; });
+    ok(wrongDot.length === 0, `#4110 avatar OD-A7 A: presence is a Badge at type=dot with its tone exposed, in a ring of color/background/primary, hidden by default (${wrongDot.length} wrong)`);
+    // OD-A6 A: the glyph follows the shape, at the icon member only; the initials show at the initials member only.
+    const wrongContent = plans.filter((p) => {
+      const m = kid(p.root, 'mask'); const names = (m?.children ?? []).map((c: any) => c.name).join(',');
+      const want = p.coord.type === 'initials' ? 'initials' : p.coord.type === 'icon' ? (p.coord.shape === 'circle' ? 'personGlyph' : 'organizationGlyph') : '';
+      const glyph = find(p.root, want);
+      return names !== want || (p.coord.type === 'icon' && glyph?.nestTarget !== (p.coord.shape === 'circle' ? 'icon/person' : 'icon/organization'));
+    });
+    ok(wrongContent.length === 0, `#4110 avatar OD-A6 A: the mask holds the initials at type=initials, the person glyph in a circle and the organization glyph in a square at type=icon, and nothing at type=image${wrongContent.length ? ` — ${wrongContent.slice(0, 3).map((p) => `${p.size}/${JSON.stringify(p.coord)}`).join(', ')}` : ''}`);
+    // OD-A5 A: one neutral backdrop, and the initials clear 4.5:1 on it in every brand and mode.
+    const wrongPaint = plans.filter((p) => kid(p.root, 'mask')?.paints?.fills !== 'color/background/tertiary');
+    ok(wrongPaint.length === 0, `#4110 avatar OD-A5 A: every member's backdrop is color/background/tertiary (${wrongPaint.length} wrong)`);
+    const avThemes: [string, any][] = loadedRows([
+      ['prism3', exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))],
+      ['nb', nbTheme()],
+      ['aurora', exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput))],
+      ['harbor', exampleTheme('harbor', () => brandTheme(exampleBrands()['harbor'] as BrandInput))],
+    ]);
+    const low: string[] = []; let cells = 0;
+    for (const [b, th] of avThemes) for (const m of resolveAllModes(th)) {
+      const x = m.roles['text.primary'], y = m.roles['background.tertiary'];
+      if (!x?.hex || !y?.hex) { low.push(`${b}/${m.mode}: missing`); continue; }
+      cells++;
+      const r = contrast(hexToRgb(x.hex), hexToRgb(y.hex));
+      if (r < 4.5) low.push(`${b}/${m.mode} ${r.toFixed(2)}`);
+    }
+    ok(cells === 16 && low.length === 0, `#4110 avatar: the initials (text.primary) clear 4.5:1 on the backdrop (background.tertiary) in all ${cells} of 16 brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
+  }
+
   // #2713 — `ai.generationPriority` follows the build-component skill's written scale. Before it, each def's
   // number was set alone, so parts an agent must never generate on their own ranked from 2 to 9 and the
   // focus ring sat level with Text field. The tier of each def is a HAND-WRITTEN literal here, not read
