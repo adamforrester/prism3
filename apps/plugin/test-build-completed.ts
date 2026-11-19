@@ -1053,7 +1053,7 @@ ok(JSON.stringify(specDefs()) === JSON.stringify([LEVER_DEF]) && !!drew && /^. d
   const threw = (await runAction((sink) => ACTIONS.drawSpecs(undefined, 'file', sink as never))).posts.find((m) => m?.type === 'component-update-result');
   root.findAllWithCriteria = find;
   ok(threw?.ok === false && threw?.headline === '✗ draw specs failed'
-    && JSON.stringify(threw?.causes) === JSON.stringify([{ kind: 'bad', subject: null, what: 'draw specs failed', reasons: ['the file could not be read'] }]),
+    && JSON.stringify(threw?.causes) === JSON.stringify([{ kind: 'bad', subject: null, what: 'draw specs failed', reasons: ['Error: the file could not be read'] }]), // #4205: `failureDetail`'s class in front
     `causes/draw specs threw: a run that threw is a failure, as its ✗ headline, the error its reason (${JSON.stringify({ headline: threw?.headline, causes: threw?.causes })})`);
 }
 
