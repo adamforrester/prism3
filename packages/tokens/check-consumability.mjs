@@ -62,6 +62,7 @@
  * JSON, variables from parsing the EMITTED CSS. Two artifacts, two readers. Deriving one from the
  * other would make the 1:1 collapse undetectable, which is the single thing this gate exists to see.
  */
+import { ruleArms } from './rule-no-custom-code.mjs';
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -179,6 +180,8 @@ for (const [label, file] of [['consumer config', CONFIG], ['shippable build', SH
     ok(!cfg.includes(banned),
       `[RULE] the ${label} declares no \`${banned}\` — no custom code a consumer would have to run`);
   }
+  // The names above are the ones that bit first; the structural arms are the rule itself (#3879).
+  ruleArms(label, file, ok);
 }
 
 // ---- SCOPE: representation, not a count (#635) ----
@@ -186,6 +189,17 @@ const brands = discoverBrands();
 console.log(`\n  brands discovered: ${brands.join(', ')}\n`);
 for (const [name, why] of Object.entries(PROMISED)) {
   ok(brands.includes(name), `[SCOPE] \`${name}\` is measured — ${why}`);
+}
+// [SCOPE-DOC] (#4134): the README ships in the tarball and tells a consumer what this gate covers. Its
+// scope table named four brands while PROMISED held five, so each promised brand must have a row there,
+// and the table may name no brand PROMISED does not.
+{
+  const readme = readFileSync(fileURLToPath(new URL('./README.md', import.meta.url)), 'utf8');
+  const section = readme.split(/^## /m).find((s) => s.startsWith('Scope')) ?? '';
+  const rows = [...section.matchAll(/^\| `([\w-]+)` \|/gm)].map((m) => m[1]);
+  for (const name of Object.keys(PROMISED)) ok(rows.includes(name), `[SCOPE-DOC] the README's scope table has a row for \`${name}\``);
+  const extra = rows.filter((r) => !(r in PROMISED));
+  ok(rows.length > 0 && extra.length === 0, `[SCOPE-DOC] the README's scope table names only promised brands (${rows.length} row(s)${extra.length ? `; not promised: ${extra.join(', ')}` : ''})`);
 }
 
 /**

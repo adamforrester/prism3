@@ -34,7 +34,8 @@
  * ── THE BASE ────────────────────────────────────────────────────────────────────────────────────────────────────────
  *
  * The merge base of HEAD and the base branch (`GITHUB_BASE_REF`, else `origin/main`, else `main`); on the base branch
- * itself, HEAD's first parent (`packages/engine/comparison-base.ts`, #2556). No base is a failure, not a pass.
+ * itself, HEAD's first parent (`packages/engine/comparison-base.ts`, #2556); on a PR that merges `main` into another
+ * base branch, the newest `main` it carries (`integrationBase`, #3833). No base is a failure, not a pass.
  * The exported base tree gets one symlink, `node_modules/@prism3/engine` → this tree's engine, so its executor draws
  * this tree's plans: it is a scratch directory, not a worktree, and no package manager touches it.
  *
@@ -46,8 +47,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync }
 import { availableParallelism, tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { componentDefs } from '@prism3/engine/components/index';
-import { comparisonBase } from '../../packages/engine/comparison-base';
+import { componentDefs } from '@prism3/engine/components';
+import { comparisonBase, integrationBase } from '@prism3/engine/harness';
 import type { ReachTable } from './src/executor-reach';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -83,7 +84,9 @@ const baseRef = candidates.find((c) => git('rev-parse', '--verify', '--quiet', `
 if (!baseRef) die([`no base ref — this check CANNOT RUN, which is not the same as finding nothing to check.`, `    tried: ${candidates.join(', ')}`]);
 const mb = git('merge-base', 'HEAD', baseRef!);
 if (!mb.ok || !mb.out.trim()) die([`no merge base between HEAD and ${baseRef} — this check CANNOT RUN.`, `    ${mb.err}`]);
-const { base, label } = comparisonBase(git, mb.out.trim(), die);
+// A PR that merges `main` into another base branch is read from the newest `main` it carries (#3833): `main`'s
+// own revisions were each measured by their own runs, and measured again here as one span they are not.
+const { base, label } = integrationBase(git, baseRef!, mb.out.trim()) ?? comparisonBase(git, mb.out.trim(), die);
 const show = (p: string): string | null => {
   const listed = git('ls-tree', '--name-only', base, '--', p);
   if (!listed.ok) die([`could not list ${p} at ${base.slice(0, 8)} — this check CANNOT RUN.`, `    ${listed.err}`]);

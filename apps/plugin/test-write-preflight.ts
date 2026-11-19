@@ -28,18 +28,17 @@
  *     styles with no ownership mark) re-applies unchanged, and leaves every style marked.
  *   · PRE-#1581 — no stamps and no marks, the persisted brand on the root: re-applies, and leaves both.
  *   · EDITED DESCRIPTION — a designer rewrote a marked style's description: still Prism3's, still applies.
+ *   · BINDING SCOPE (#1904) — a stranded same-named copy of every variable takes no text-style, gradient-stop, glass
+ *     blur or wash binding on a re-apply: each binds inside a collection the apply writes.
  *
  * The shim's `setValueForMode` enforces the variable's type the way Figma does (it throws), which is the
  * failure the floor exists for. Writes are recorded through a Proxy `set` trap on every file object plus
  * each mutating method, so a write the list below does not anticipate is still counted.
  */
-import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import {
-  buildWritePlan, buildFloatWritePlan, buildFontVarPlan, buildMotionVarPlan, buildStylesPlan, buildGridStylePlan, buildTextStylePlan,
-} from '@prism3/engine/write-plan';
-import { brandTheme, nbThemeFrom, type BrandInput } from '@prism3/engine/theme';
-import nbMeasured from '@prism3/engine/schema/nb-measured.json';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { buildFigmaColor, buildWritePlan, buildFloatWritePlan, buildFontVarPlan, buildMotionVarPlan, buildStylesPlan, buildGridStylePlan, buildTextStylePlan, rootOf } from '@prism3/engine/figma';
+import { brandTheme, nbThemeFrom, type BrandInput } from '@prism3/engine';
+import { NB_MEASURED_JSON as nbMeasured } from '@prism3/engine/harness';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration } from './src/write-figma';
 import { applyStylesPlan } from './src/write-styles';
 import { applyGridStylePlan, gridSkippedNote } from './src/write-grid-styles';
@@ -49,10 +48,11 @@ import { runApplyTheme } from './src/apply-theme';
 import { conflictKey, choiceNote, renamedOf, type CollisionChoices } from './src/collision-choice';
 import { computePrunePlan, type PruneInput } from './src/prune-figma';
 import { ownedModeIds } from './src/write-figma';
-import { rootOf } from '@prism3/engine/figma-names';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -147,7 +147,8 @@ class FileShim {
     const s = {
       name, description, effects: [], paints: [], layoutGrids: [], bound: {} as Record<string, string>,
       data: new Map<string, string>(),
-      setBoundVariable(field: string, v: { name: string } | null): void { if (v) this.bound[field] = v.name; },
+      setBoundVariable(field: string, v: { name: string; id?: string } | null): void { if (v) { this.bound[field] = v.name; this.boundIds[field] = v.id ?? ''; } },
+      boundIds: {} as Record<string, string>,   // #1904: which variable, not only which name
       // Shared plugin data, as Figma's BaseStyle has it (#1884's ownership mark lives here).
       getSharedPluginData(ns: string, k: string): string { return this.data.get(`${ns}/${k}`) ?? ''; },
       setSharedPluginData(ns: string, k: string, v: string): void { shim.writes.push(`mark ${kind} style ${this.name}`); this.data.set(`${ns}/${k}`, v); },
@@ -338,7 +339,7 @@ for (const [id, theme] of themes) {
 // read off the plan, so a plan or summary that moves fails by name instead of agreeing with itself.
 const PRISM3 = (exampleBrands as Record<string, BrandInput>).prism3;
 const STYLE_COUNT = 102;         // prism3: 15 effect (14 shadow + glass, #2869) + 2 paint + 5 grid + 80 text (63 + body/xs's 8, #2266, + the 3 underlined labels, #2324, + the 6 default-weight labels and their underlined twins, Q226 A)
-const COLLECTION_COUNT = 14;     // core, color, space, radius, size, icon, control, border-width, focus, opacity, blur (#2869), layout, motion (#2394), type-sets
+const COLLECTION_COUNT = 15;     // core, color, space, radius, size, icon, control, border-width, focus, opacity, blur (#2869), text-spacing (#2423), layout, motion (#2394), type-sets
 const apply = async (f: FileShim) => {
   try { return (await runApplyTheme(PRISM3, f as any)).guarded; }
   catch (e) { return { ok: false as const, conflicts: [], threw: (e as Error).message }; }
@@ -792,5 +793,30 @@ for (const c of ['skip', 'rename'] as const) {
     `#3556 rename opacity variable: ${WASH} stays a wash in every mode, its opacity alias on ${renamedOf(ropName)} (${gr2.ok ? show(rvModes) + ' on ' + JSON.stringify(rvModes.map((x) => opVarOf(rv, x)?.name)) : 'refused'})`);
 }
 
-console.log(failed ? `\n✗ ${failed} check(s) failed` : '\n✓ apply pre-flight: all checks passed');
+// ── A BINDING LANDS WHERE THE PRE-FLIGHT LOOKED (#1904) ──
+// A Prism3 file, then a collection no plan writes (a stranded one from an earlier version, stamped) holding a same-named,
+// same-typed copy of EVERY variable, listed after the originals. Re-applied through `runApplyTheme`: every text-style
+// binding, gradient stop, glass blur radius and wash opacity must still name a variable in a collection the apply
+// writes. File-wide by-name lookups, last listed winning, bind each to the stranded copy instead. Same type, so nothing
+// throws and the pre-flight passes: the defect is a silent stale binding, which is why each kind is counted by name.
+{
+  const f = new FileShim();
+  const first = await apply(f);
+  const stranded = f.addCollection('stranded-1904', 'stamp');
+  for (const v of [...f.vars]) f.addVar(v.name, stranded, v.resolvedType);
+  const strandedIds = new Set(f.vars.filter((v) => v.variableCollectionId === stranded.id).map((v) => v.id));
+  const again = await apply(f);
+  const textIds = f.styles.text.flatMap((x) => Object.values(x.boundIds as Record<string, string>));
+  const stopIds = f.styles.paint.flatMap((x) => x.paints.flatMap((p: any) => (p.gradientStops ?? []).map((st: any) => st.boundVariables?.color?.id).filter(Boolean)));
+  const blurIds = f.styles.effect.flatMap((x) => x.effects.map((e: any) => e.boundVariables?.radius?.id).filter(Boolean));
+  const washIds = f.vars.flatMap((v) => Object.values(v.valuesByMode).map((x: any) => x?.opacity?.id).filter(Boolean));
+  const into = (ids: string[]): number => ids.filter((id) => strandedIds.has(id)).length;
+  ok(first.ok && again.ok, `#1904 premise: a Prism3 file with a stranded same-named copy of every variable re-applies (${first.ok}, ${again.ok})`);
+  ok(textIds.length > 0 && into(textIds) === 0, `#1904 text styles: ${into(textIds)} of ${textIds.length} font bindings landed in the stranded collection`);
+  ok(stopIds.length > 0 && into(stopIds) === 0, `#1904 gradient stops: ${into(stopIds)} of ${stopIds.length} stop bindings landed in the stranded collection`);
+  ok(blurIds.length > 0 && into(blurIds) === 0, `#1904 glass blur: ${into(blurIds)} of ${blurIds.length} radius bindings landed in the stranded collection`);
+  ok(washIds.length > 0 && into(washIds) === 0, `#1904 wash opacity: ${into(washIds)} of ${washIds.length} opacity aliases landed in the stranded collection`);
+}
+
+console.log(`${failed ? `\n✗ ${failed} check(s) failed` : '\n✓ apply pre-flight: all checks passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

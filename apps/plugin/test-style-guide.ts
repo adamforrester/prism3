@@ -330,16 +330,16 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { ensureStyleGuideCells } from './src/style-guide-cells';
 import type { CellsApi } from './src/style-guide-cells';
-import { STYLE_GUIDE_GROUPS, styleGuideGroupOf } from '@prism3/engine/style-guide-groups';
+import { STYLE_GUIDE_GROUPS, styleGuideGroupOf } from '@prism3/engine/figma';
 import { planStyleGuide, runStyleGuide, removeRetiredTables, styleGuideSummary, contrastText, humanizeName, varKind, sizeByPadding, catalogFor, isSetUp, tableMovesDue, relocateTables } from './src/style-guide';
 import { createRunGuard, busyMessage } from './src/run-guard';
 import type { StyleGuideApi, SgCatalog, SgTable, TableOutcome, StyleGuideResult, StyleGuideRun, StyleGuideOptions, StyleGuideProgress } from './src/style-guide';
-import { parseDesignMd } from '@prism3/engine/design-md';
-import { brandTheme } from '@prism3/engine/theme';
-import { resolveAllModes } from '@prism3/engine/modes';
+import { parseDesignMd, brandTheme, resolveAllModes } from '@prism3/engine';
 
 let failures = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (!cond) { failures++; console.error(`  ✗ ${label}`); }
   else console.log(`  ✓ ${label}`);
 };
@@ -2232,7 +2232,7 @@ const main = async (): Promise<void> => {
     // second run is asked for through the same guard.
     const guard = createRunGuard();
     const request = <T>(fn: () => Promise<T>): Promise<{ ran: true; value: T } | { ran: false; message: string }> => {
-      if (guard.busy('style-guide')) return Promise.resolve({ ran: false, message: busyMessage('style-guide') });
+      if (guard.busy()) return Promise.resolve({ ran: false, message: busyMessage('style-guide') });
       let value!: T;
       return guard.run('style-guide', async () => { value = await fn(); }).then(() => ({ ran: true as const, value }));
     };
@@ -2245,7 +2245,7 @@ const main = async (): Promise<void> => {
     };
     const first = await request(() => draw(f15.api, contract, {}, { yieldTo }));
     const second = await hold.second;
-    ok(first.ran && second?.ran === false && second.message === 'Update file is already running. Try again when it finishes.',
+    ok(first.ran && second?.ran === false && second.message === 'Style guides is already running. Try again when it finishes.',
       `15: a run asked for while another is mid-yield is refused, in the guard's words (${JSON.stringify(second && (second.ran ? 'ran' : second.message))})`);
     const wraps = [...tablesOn(f15.prim), ...tablesOn(f15.sem)];
     const keys = new Set(wraps.map((w) => w.pluginData['prism3-style-guide']));
@@ -2292,7 +2292,7 @@ const main = async (): Promise<void> => {
     ok(textIn(cellAt(sg, r050, 2)) === '4px | ↗ | pds3/core/dimension/4' && textIn(cellAt(sg, r050, 3)) === '0.25rem',
       `16: its value cell reads px with its alias, and the REM column beside it REM at a 16px base: "${textIn(cellAt(sg, r050, 2))}" ‖ "${textIn(cellAt(sg, r050, 3))}"`);
     ok(textIn(cellAt(sg, rowOf(sg, '1200'), 2)) === '96px | ↗ | pds3/core/dimension/96' && textIn(cellAt(sg, rowOf(sg, '1200'), 3)) === '6rem', `16: space/1200 reads "96px", and "6rem" in its REM column (${textIn(cellAt(sg, rowOf(sg, '1200'), 2))} ‖ ${textIn(cellAt(sg, rowOf(sg, '1200'), 3))})`);
-    ok(JSON.stringify(sg.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn)) === JSON.stringify(['0', '025', '050', '075', '100', '150', '200', '250', '300', '400', '500', '600', '700', '800', '900', '1000', '1100', '1200'].map((st) => `pds3/space/${st}`)),
+    ok(JSON.stringify(sg.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn)) === JSON.stringify(['0', '025', '050', '075', '100', '150', '200', '250', '300', '400', '500', '550', '600', '700', '800', '900', '1000', '1100', '1200'].map((st) => `pds3/space/${st}`)),
       '16: the space scale in ramp order, 1000 after 900');
     // NUMERIC SORT: the metrics ramp is stored 16, 4, 100, 2.
     const step = gridOf(tableFrame(p2.prim, 'Step')!);
@@ -2615,15 +2615,15 @@ const main = async (): Promise<void> => {
     let rr: StyleGuideResult;
     try { rr = await draw(rz.api, contract, { tables: ['Space'] }); } finally { refuseBinding = false; }
     const rs = styleGuideSummary(rr);
-    // 17 of the 18: space/0 draws nothing, so it binds nothing (owner decision, live QA of 0.210.0).
-    ok(rr.tables[0]?.status === 'created' && rr.unbound === 17 && rs.summary.includes('17 display=filled spacing specimens are not bound to their variable') && rs.headline === '⚠ 17 specimens unbound',
+    // 18 of the 19 (`space/550` joined in #3408): space/0 draws nothing, so it binds nothing (owner decision, live QA of 0.210.0).
+    ok(rr.tables[0]?.status === 'created' && rr.unbound === 18 && rs.summary.includes('18 display=filled spacing specimens are not bound to their variable') && rs.headline === '⚠ 18 specimens unbound',
       `21: a padding bind the host refuses is counted and named, and the run completes: ${rr.unbound} — "${rs.headline}"`);
     const ig = await phase2File();
     ignorePadding = (n) => n.name === 'spacing-filled-example' && insideInstance(n);
     let ri: StyleGuideResult;
     try { ri = await draw(ig.api, contract, { tables: ['Space'] }); } finally { ignorePadding = null; }
-    // 17, not 18: space/0 draws nothing (owner decision, live QA of 0.210.0). The other 17 stay at the member's 0.01.
-    ok(ri.unbound === 17 && ri.misses.includes("17 display=filled spacing specimens are not sized to their value: bound by their left padding, the layer did not take the value's width (Space: 025, 050, 075 and 14 more)"),
+    // 18, not 19: space/0 draws nothing (owner decision, live QA of 0.210.0). The other 18 stay at the member's 0.01.
+    ok(ri.unbound === 18 && ri.misses.includes("18 display=filled spacing specimens are not sized to their value: bound by their left padding, the layer did not take the value's width (Space: 025, 050, 075 and 15 more)"),
       `21: a padding bind the width does not follow is read back, counted and named: ${ri.unbound} unbound`);
 
     // (3) + (4) FONTS, LOADED BEFORE THEY ARE BOUND, IN THE MODE PINNED FIRST. A family that varies by mode, whose
@@ -3829,6 +3829,33 @@ const main = async (): Promise<void> => {
     ok(now.length === 1 && now[0] === was && was.name === 'Style guide — Icon size' && wasTitle.characters === 'Icon size' && was.pluginData['prism3-style-guide-title'] === 'Icon size'
       && again.tables.find((t) => t.key === KEY)?.status === 'updated' && again.deleted.length === 0 && again.stale.length === 0 && again.replaced.length === 0,
       `35e: a rerun retitles the earlier "Icon" table in place to "Icon size", same frame, same key, nothing deleted (${now.length} frame(s); "${was.name}"; "${wasTitle.characters}"; deleted ${again.deleted.join(', ') || 'none'})`);
+
+    // #2729 (owner decision A): A DIMENSION COLLECTION NAMED LIKE A COLOR FAMILY. The semantic `space` collection renamed
+    // `border`, beside the color tables: its table would be titled "Border", the border colors' title on the same page.
+    // It takes its collection in parentheses, "Border (border)", the way two phase-2 tables that share a title do; the
+    // color table keeps "Border". Expected titles typed here.
+    const clashCols = f.cols.map((c) => c.id === 'VariableCollectionId:space' ? { ...c, name: 'border' } : c);
+    const clash = planStyleGuide({ collections: [...palCols, ...clashCols], variables: [...palVars, ...f.vars], textStyles: f.styles }, contract);
+    const spaceT = clash.tables.find((t) => t.collectionId === 'VariableCollectionId:space' && t.type === 'dimension');
+    const borderColor = clash.tables.filter((t) => t.type === 'color' && t.page === SEM && t.title === 'Border');
+    const clashTitles = clash.tables.filter((t) => t.page === SEM).map((t) => t.title);
+    const clashDupes = clashTitles.filter((t, i) => clashTitles.indexOf(t) !== i);
+    ok(spaceT?.title === 'Border (border)' && spaceT.page === SEM && borderColor.length === 1 && clashDupes.length === 0,
+      `#2729: a semantic dimension collection named "border" is titled "Border (border)" beside the border colors' "Border", every Semantic tokens title unique (${spaceT?.title}; ${borderColor.length} color "Border"; repeated: ${clashDupes.join(', ') || 'none'})`);
+    // The table filter matches a title: "Border" now draws only the colors, "Border (border)" only the dimensions.
+    const onlyColor = planStyleGuide({ collections: [...palCols, ...clashCols], variables: [...palVars, ...f.vars], textStyles: f.styles }, contract, { tables: ['Border'] } as StyleGuideOptions);
+    ok(onlyColor.tables.length > 0 && onlyColor.tables.every((t) => t.type === 'color'),
+      `#2729: a tables filter for "Border" draws the border colors only, not the dimension table (${onlyColor.tables.map((t) => `${t.type}:${t.title}`).join(', ') || 'none'})`);
+    // PER PAGE: the clash is a title a color table ON THE SAME PAGE has. A primitive dimension table titled "Border",
+    // drawn on Primitive tokens, is not beside the border colors (Semantic tokens), so it keeps its plain title.
+    const rawCol = { id: 'VariableCollectionId:rawborder', name: 'outline', modes: [{ modeId: 'rawborder:0', name: 'Default' }], defaultModeId: 'rawborder:0' };
+    const rawVars = [['sm', 1], ['md', 2]].map(([s, n], i) => ({ id: `VariableID:rawborder:${i}`, name: `border/${s}`, variableCollectionId: rawCol.id,
+      resolvedType: 'FLOAT', description: '', scopes: ['GAP'], valuesByMode: { 'rawborder:0': n } }));
+    const apartPlan = planStyleGuide({ collections: [...palCols, ...f.cols, rawCol], variables: [...palVars, ...f.vars, ...rawVars], textStyles: f.styles } as Parameters<typeof planStyleGuide>[0], contract);
+    const rawT = apartPlan.tables.find((t) => t.collectionId === rawCol.id && t.type === 'dimension');
+    const semBorder = apartPlan.tables.filter((t) => t.type === 'color' && t.page === SEM && t.title === 'Border');
+    ok(rawT?.title === 'Border' && rawT.page === PRIM && semBorder.length === 1,
+      `#2729 per page: a primitive dimension table titled "Border" on Primitive tokens keeps its title beside the border colors on Semantic tokens (${rawT?.title}, ${rawT?.page}; ${semBorder.length} color "Border" on Semantic tokens)`);
   }
 
   console.log('36. batch 2a (#2353): the effect styles and the gradient paint styles, each a table with its specimen bound to the style');
@@ -4692,8 +4719,9 @@ const main = async (): Promise<void> => {
         }
       });
       ok(wrong.length === 0, `43b ${who}: every gutter and margin prints the variable's value and the link its alias resolves through: a space step, a core dimension off the space scale, or unlinked (${wrong.slice(0, 3).join('; ') || 'all match'})`);
-      // The fixture exercises the off-scale arm where the emission has one: the reference brand's md margin, 44 (#3052).
-      ok(JSON.stringify(offScale) === JSON.stringify(dir === REF[0] ? ['md margin'] : []), `43b ${who}: off the space scale exactly where the catalog says (${offScale.join(', ') || 'none'})`);
+      // The off-scale arm had one witness, the reference brand's md margin, 44 (#3052). Since `space.550` (#3408 Q-HT1 A)
+      // 44 is a spacing step, so no committed brand has an off-scale gutter or margin and the arm is unwitnessed.
+      ok(JSON.stringify(offScale) === JSON.stringify([]), `43b ${who}: off the space scale exactly where the catalog says (${offScale.join(', ') || 'none'})`);
       // (c) NO MISMATCH CHIP where the emitted styles copy the variables (the engine's G1 holds).
       ok(!!gt && gt.rows.every((r) => !(r.extra ?? []).some((x) => (x.alias ?? '').includes('⚠ style'))), `43c ${who}: no mismatch chip where every grid style copies its variables`);
       // (d) THE CONTAINER TABLE on Grids & layouts, in Containers, its key unchanged; nothing of it on Primitive tokens; no
@@ -4882,7 +4910,7 @@ const main = async (): Promise<void> => {
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
-  console.log('\nstyle guide: all checks pass');
+  console.log(`\nstyle guide: all checks pass — ${executed} assertions executed`);
 };
 
 void main();

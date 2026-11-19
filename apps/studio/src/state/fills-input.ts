@@ -34,9 +34,7 @@
  * writes are surface writes, like the Page's and the band's, never `setRoleOverride`: `setSurfaceTier` (the
  * page's type) and `setInverseTier` (the band's type). Auto clears the input, pruning as an override clears.
  */
-import { brandTheme, type GradientInput, type ScrimStrength } from '@prism3/engine/theme';
-import { leverManifest } from '@prism3/engine/levers';
-import { BUILTIN_MODES, resolveAllModes } from '@prism3/engine/modes';
+import { brandTheme, type GradientInput, type ScrimStrength, leverManifest, BUILTIN_MODES, resolveAllModes } from '@prism3/engine';
 import { brandState, getPath, setPath, theme } from './store';
 import { resolvedModes } from './verdict';
 import { STATUS_ROLES } from './palette-input';
@@ -220,7 +218,7 @@ export const FLOOR_GROUPS: ReadonlyArray<{ id: string; label: string; takes: (ro
   { id: 'links', label: 'Links', takes: (r) => /^(text|icon)\.link\./.test(r) },
   { id: 'status', label: 'Brand and status text, icons', takes: (r) => /^(text|icon)\.(brand|success|warning|danger|info)$/.test(r) },
   { id: 'secondary', label: 'Secondary and tertiary text, placeholder', takes: (r) => /^(text|icon)\.(secondary|tertiary)$/.test(r) || r === 'field.placeholder' },
-  { id: 'disabled', label: 'Disabled text and icon', takes: (r) => /^disabled\.(text|icon)$/.test(r) },
+  { id: 'disabled', label: 'Disabled text, icon and border', takes: (r) => /^disabled\.(text|icon|border)$/.test(r) },
   { id: 'bold', label: 'Bold fills', takes: (r) => /^foreground\./.test(r) },
   { id: 'buttons', label: 'Button fills', takes: (r) => /^interactive\.[^.]+\.fill\./.test(r) },
 ];

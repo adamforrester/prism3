@@ -365,7 +365,7 @@ Group order/labels: `levers.ts:219-227`. `id`/`root` are host-supplied identity,
 |---|---|---|
 | `frame.ts` (924) | Top bar, tab row + Color sub-row, two panes, menu page, narrow mode; mounts `NEW_PAGES` | `frame.ts:1-21,87-110` |
 | `pages.ts` (420) | IA as data (`DOMAINS`, `VIEWS`, `INSPECT`, `MENU_PAGES`) + shared section copy | `pages.ts:94-99,123,345` |
-| `bar.ts` (508) | Brand switcher + menu (examples, "+ New brand", "↑ Import design.md…"), Export tile + dialog, plugin Apply Theme, prune review | `bar.ts:1-20,157-166,288` |
+| `bar.ts` (508) | Brand switcher + menu (examples, "New brand", "Import design.md…"), Export tile + dialog, plugin Apply Theme, prune review | `bar.ts:1-20,157-166,288` |
 | `preview.ts` (329) | Preview header: mode radio group, Inspect menu (Contrast/Tokens/Decisions log), verdict; build stamp at foot of Inspect menu | `preview.ts:1-16,243-251` |
 | `activity.ts` (696) | Activity drawer: one row per operation (Apply Theme, Build set, Set up file, Style guides, Prune stale, Read-back) | `activity.ts:5-9` |
 | `figma.ts` (109) | Figma menu (plugin only): Prune stale, Set up file, Build sets…, Build style guides… | `figma.ts:1-13`; `apps/studio/src/main.ts:1778-1786` |
@@ -385,8 +385,8 @@ Export is a top-bar tile opening a modal dialog: artifact segmented control → 
 
 | Artifact (label) | id | Format / MIME | File names | Button | Source |
 |---|---|---|---|---|---|
-| Design tokens | `dtcg` | DTCG JSON, `application/json` | default: `<slug>.base.tokens.json` + `<slug>.<mode>.overlay.tokens.json` per mode; with Files=per-group: `<slug>.<layer>.<group>.tokens.json`. Never the single-file `<slug>.tokens.json`. Several files = several browser downloads, not zipped. | "↓ Download tokens" | `export-settings.ts:101-110,392-418,527-533,577-589`; `main.ts:1283-1297,1447` |
-| Brand brief | `design-md` | Markdown (`toDesignMd`), `text/markdown` | `<slug>.design.md` | "↓ Download brief" | `export-settings.ts:111-115`; `main.ts:1278,1447` |
+| Design tokens | `dtcg` | DTCG JSON, `application/json` | default: `<slug>.base.tokens.json` + `<slug>.<mode>.overlay.tokens.json` per mode; with Files=per-group: `<slug>.<layer>.<group>.tokens.json`. Never the single-file `<slug>.tokens.json`. Several files = several browser downloads, not zipped. | "Download tokens" | `export-settings.ts:101-110,392-418,527-533,577-589`; `main.ts:1283-1297,1447` |
+| Brand brief | `design-md` | Markdown (`toDesignMd`), `text/markdown` | `<slug>.design.md` | "Download brief" | `export-settings.ts:111-115`; `main.ts:1278,1447` |
 | (refused-brand rescue) | — | Markdown | `<id or saved-brand>.design.md` | notice on boot when stored brand is refused | `apps/studio/src/entry.ts:137-166` |
 
 DTCG settings (all `sources: ['generated']`), `export-settings.ts:169-231`:

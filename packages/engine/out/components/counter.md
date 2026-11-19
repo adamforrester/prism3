@@ -44,6 +44,8 @@ Shown on the default member: appearance `outline`, size `medium`.
 
 Use for a small whole-number quantity that usually changes by one, such as the item count on a product card or in a bag. Set min and max where they apply, and say why a limit applies in the message. Use ghost where the counter stands on its own beside product text; use outline where it should read as a field. For a number the user types, such as a price or a measurement, use a number input.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Set max when stock or a per-order limit exists, and state the limit in the message
@@ -54,14 +56,14 @@ Use for a small whole-number quantity that usually changes by one, such as the i
 ### Don't
 
 - Use it for a large or precise number, such as a price or a measurement; use a number input
-- Use it for a count shown on another element, such as unread messages; use a badge
+- Use it for a count shown on another element, such as unread messages; use Badge
 - Put the minus and plus buttons in the Tab order; the arrow keys already step the value
-- Hide the minus and plus buttons with aria-hidden; they stay in the accessibility tree for pointer and touch users of assistive technology
+- Hide the minus and plus buttons with `aria-hidden`; they stay in the accessibility tree for pointer and touch users of assistive technology
 - Change the value on a mouse wheel or scroll
 
 ## Accessibility
 
-- **Keyboard:** The counter is one Tab stop: focus lands on the value. Up and Down Arrow change it by one step, Page Up and Page Down by ten steps, Home and End go to min and max. The minus and plus buttons are for pointer and touch and are outside the Tab order (tabindex="-1").
+- **Keyboard:** The counter is one Tab stop: focus lands on the value. Up and Down Arrow change it by one step, Page Up and Page Down by ten steps, Home and End go to min and max. The minus and plus buttons are for pointer and touch and are outside the Tab order (`tabindex="-1"`).
 - **Focus:** While the value has keyboard focus, outline draws the 2px focus edge in place of its edge, in the focus color, from the outer edge at the row's radius, with no ring and no gap, and the row keeps its size; ghost draws the shared focus ring 2px outside the buttons. The buttons never take focus from the keyboard, so they draw no ring of their own.
 - **Screen readers:** spinbutton (the value), with two buttons outside the Tab order
 
@@ -95,9 +97,9 @@ The label is a noun ("Quantity"). Button names are a verb with the object. A lim
 - **Instead, consider:** `select`, `segmented-control`, `text-field`
 - **Often used with:** `button`
 - **Replaces:**
-  - an \<input type="number"> for an item count
+  - an `<input type="number">` for an item count
   - a select of 1 to 10 for a bag quantity
-  - two IconButtons around a \<span> with no spinbutton semantics
+  - two IconButtons around a `<span>` with no spinbutton semantics
 
 ## Building it in code
 
@@ -105,8 +107,8 @@ The label is a noun ("Quantity"). Button names are a verb with the object. A lim
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `label` | string | — | yes | What is counted, such as "Quantity". The accessible name of the value, always present in code; shown above the counter only with showLabel. |
-| `showLabel` | boolean | `false` | no | Shows the label above the counter. Off by default: a counter on a product card or a bag line is usually explained by what sits around it, and the label stays its accessible name either way. |
+| `label` | string \| node | — | yes | What is counted, such as "Quantity". The accessible name of the value, always present in code; shown above the counter unless hideLabel is set. |
+| `hideLabel` | boolean | `true` | no | Hides the label visually and keeps it in the accessibility tree, so the value keeps its name. On by default: a counter on a product card or a bag line is usually explained by what sits around it. Set it to false to show the label above the counter. Never display: none. |
 | `value` | number | — | no | Controlled value; pair it with onChange. |
 | `defaultValue` | number | — | no | The starting value when the counter manages its own state. Defaults to min. |
 | `onChange` | function | — | no | Called with the new number after each step. Never called with a value outside min and max. |
@@ -115,8 +117,8 @@ The label is a noun ("Quantity"). Button names are a verb with the object. A lim
 | `step` | number | `1` | no | How much one press or one arrow key changes the value. |
 | `appearance` | enum: 'outline' \| 'ghost' | `outline` | no | outline draws the field edge around the row, with the minus and plus glyphs inside it. ghost draws no box, and the minus and plus are light circles at each end. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The row height (36, 44 or 56px), the value type (14, 16 or 18px) and the glyph (20, 20 or 24px). Each button keeps a hit area of at least 44×44px in code at every size. |
-| `message` | string | — | no | Text below the counter, such as the reason for a limit ("Limit 5 per order"). Added to the value's description. |
-| `showMessage` | boolean | `false` | no | Shows the message below the counter. Off by default. |
+| `helpText` | string \| node | — | no | Text below the counter, such as the reason for a limit ("Limit 5 per order"). Added to the value's description. |
+| `showMessage` | boolean | `false` | no | Shows the help text below the counter. Off by default. |
 | `decrementLabel` | string | — | no | The minus button's accessible name. Defaults to "Decrease" followed by the label, such as "Decrease quantity". In a list of line items, include the item: "Decrease quantity, Trail runner". |
 | `incrementLabel` | string | — | no | The plus button's accessible name. Defaults to "Increase" followed by the label. In a list of line items, include the item. |
 | `name` | string | — | no | The form field name: a hidden input carries the value when the counter sits in a form. |
@@ -144,54 +146,150 @@ Generated from the plan that builds the design-file component: 18 members. Value
 
 Padding reads top / right / bottom / left when its sides differ.
 
-Keyed by `size`, `appearance`.
+Keyed by `size`, `appearance`, `state`.
 
-**size=medium, appearance=outline**
+**size=medium, appearance=outline, state=rest**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | — |
-| `container/control` | `space.0` / `space.150` / `space.0` / `space.150` | — | `size.md.height` | — | — | — |
+| `container/control` | `space.0` / `space.150` / `space.0` / `space.150` | — | `size.md.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
 | `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
 
-**size=small, appearance=outline**
+**size=medium, appearance=outline, state=focus-visible**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | — |
-| `container/control` | `space.0` / `space.150` / `space.0` / `space.150` | — | `size.sm.height` | — | — | — |
+| `container/control` | `space.0` / `space.150` / `space.0` / `space.150` | — | `size.md.height` | — | — | radius `radius.sm`; stroke `focus.ring.width` |
 | `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
 
-**size=large, appearance=outline**
+**size=medium, appearance=outline, state=disabled**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | — |
-| `container/control` | `space.0` / `space.200` / `space.0` / `space.200` | — | `size.lg.height` | — | — | — |
+| `container/control` | `space.0` / `space.150` / `space.0` / `space.150` | — | `size.md.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=small, appearance=outline, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` / `space.150` / `space.0` / `space.150` | — | `size.sm.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=small, appearance=outline, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` / `space.150` / `space.0` / `space.150` | — | `size.sm.height` | — | — | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=small, appearance=outline, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` / `space.150` / `space.0` / `space.150` | — | `size.sm.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=large, appearance=outline, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` / `space.200` / `space.0` / `space.200` | — | `size.lg.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
 | `container/control/entry` | `space.0` / `space.100` / `space.0` / `space.100` | — | — | — | 32px (literal) | — |
 
-**size=medium, appearance=ghost**
+**size=large, appearance=outline, state=focus-visible**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | — |
-| `container/control` | `space.0` | — | `size.md.height` | — | — | — |
+| `container/control` | `space.0` / `space.200` / `space.0` / `space.200` | — | `size.lg.height` | — | — | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/entry` | `space.0` / `space.100` / `space.0` / `space.100` | — | — | — | 32px (literal) | — |
+
+**size=large, appearance=outline, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` / `space.200` / `space.0` / `space.200` | — | `size.lg.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/entry` | `space.0` / `space.100` / `space.0` / `space.100` | — | — | — | 32px (literal) | — |
+
+**size=medium, appearance=ghost, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` | — | `size.md.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
 | `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
 
-**size=small, appearance=ghost**
+**size=medium, appearance=ghost, state=focus-visible**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | — |
-| `container/control` | `space.0` | — | `size.sm.height` | — | — | — |
+| `container/control` | `space.0` | — | `size.md.height` | — | — | radius `radius.sm`; stroke `focus.ring.width` |
 | `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
 
-**size=large, appearance=ghost**
+**size=medium, appearance=ghost, state=disabled**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | — |
-| `container/control` | `space.0` | — | `size.lg.height` | — | — | — |
+| `container/control` | `space.0` | — | `size.md.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=small, appearance=ghost, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` | — | `size.sm.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=small, appearance=ghost, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` | — | `size.sm.height` | — | — | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=small, appearance=ghost, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` | — | `size.sm.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=large, appearance=ghost, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` | — | `size.lg.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/entry` | `space.0` / `space.100` / `space.0` / `space.100` | — | — | — | 32px (literal) | — |
+
+**size=large, appearance=ghost, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` | — | `size.lg.height` | — | — | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/entry` | `space.0` / `space.100` / `space.0` / `space.100` | — | — | — | 32px (literal) | — |
+
+**size=large, appearance=ghost, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` | — | `size.lg.height` | — | — | radius `radius.sm`; stroke `border-width.hairline` |
 | `container/control/entry` | `space.0` / `space.100` / `space.0` / `space.100` | — | — | — | 32px (literal) | — |
 
 ### Type
@@ -226,8 +324,10 @@ Keyed by `appearance`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/control` | — | `color.disabled.border` | — | — |
-| `container/control/entry/value` | — | — | `color.disabled.text` | — |
+| `container/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/control/decrement` | — | — | — | `color.disabled.on-fill` |
+| `container/control/entry/value` | — | — | `color.disabled.on-fill` | — |
+| `container/control/increment` | — | — | — | `color.disabled.on-fill` |
 
 **appearance=ghost, state=rest**
 

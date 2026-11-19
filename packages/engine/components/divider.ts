@@ -2,7 +2,8 @@
  * Divider — a 1px rule that separates content (#2455). Pulled forward by the owner so Accordion (#2417) can
  * nest it as its item rule from day one; Tabs' baseline, lists and cards can nest it later.
  *
- * KB brief: `components/divider.md` — category `foundations`, as the brief files it. The brief's one
+ * KB brief: `components/divider.md` — the brief files it under `foundations`; the owner moved it to `layout`
+ * (#4045 A), to match the Figma file, which places it under Components. The brief's one
  * load-bearing call is the semantics bit, and this def follows it (owner Q190.1 A): DECORATIVE BY DEFAULT.
  * The `decorative` prop defaults to true (`aria-hidden="true"` / `role="none"`); `decorative=false` makes the
  * rule a separator (`<hr>` where native, `role="separator"` otherwise).
@@ -135,8 +136,9 @@ export const divider: ComponentDef = {
   id: 'divider',
   name: 'Divider',
   aliases: ['separator', 'rule', 'hr'],
-  // `foundations` (#1700) — the brief's own category.
-  category: 'foundations',
+  // Not the brief's `foundations`: the owner moved Divider out of it to match the Figma file, which places it under
+  // Components (#4045 A, 2026-11-18). `test.ts` admits the departure from the brief by name (`OWNER_CATEGORY`).
+  category: 'layout',
   status: 'draft',
   summary: 'A thin rule between groups of content. Horizontal or vertical, or broken by a short centered label.',
   description:
@@ -246,7 +248,7 @@ export const divider: ComponentDef = {
     root: 'container',
     parts: {
       container: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'presentation',
         children: ['rule', 'leadingRule', 'label', 'trailingRule'],
         // A layout so a host can stretch the nested instance (`nestSizingOf` reads it); both axes FIXED,
@@ -399,7 +401,7 @@ export const divider: ComponentDef = {
   },
 
   accessibility: {
-    role: 'none with aria-hidden="true" by default, because a divider is decorative unless set otherwise; with decorative=false, separator (native <hr> for a horizontal rule, role="separator" with aria-orientation="vertical" for a vertical one); a labeled divider takes no role, its two lines hidden and its label read as plain text',
+    role: 'none with `aria-hidden="true"` by default, because a divider is decorative unless set otherwise; with `decorative=false`, separator (native `<hr>` for a horizontal rule, `role="separator"` with `aria-orientation="vertical"` for a vertical one); a labeled divider takes no role, its two lines hidden and its label read as plain text',
     wcag: [
       '1.3.1 Info and Relationships — a rule that marks a real break in content is a separator, so assistive technology hears the break a sighted reader sees',
       // The tinted-surface limit (owner Q208 A) is closed by #2569 (Q259 3A): a separator binds `border.tertiary`,

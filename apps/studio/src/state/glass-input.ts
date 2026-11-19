@@ -10,7 +10,7 @@
  * mode (the Q54 rule). Removing the last role removes the key, so a brand that adds none is byte-identical to one
  * that never had the lever.
  */
-import { GLASS_ROLE_NAME, SHIPPED_GLASS_ROLE, type GlassRoleInput } from '@prism3/engine/theme';
+import { GLASS_ROLE_NAME, SHIPPED_GLASS_ROLE, type GlassRoleInput } from '@prism3/engine';
 import { brandState, getPath, setPath } from './store';
 
 /** The sources the page offers, DRAFT labels for the owner (#3073). Each is `role:<path>` or `palette:<color>`. */

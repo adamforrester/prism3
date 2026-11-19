@@ -37,9 +37,8 @@
  * the contrast column measures against; and rows sorted as text (10, 11, 112, 12) — here primitive steps sort
  * numerically.
  */
-import { contrast, composite } from '@prism3/engine/color';
-import { STYLE_GUIDE_GROUPS, styleGuideGroup, styleGuideGroupOf } from '@prism3/engine/style-guide-groups';
-import type { RGB } from '@prism3/engine/color';
+import { contrast, composite, formatRatio, type RGB } from '@prism3/engine';
+import { STYLE_GUIDE_GROUPS, styleGuideGroup, styleGuideGroupOf } from '@prism3/engine/figma';
 import { SECTION_HEADER_SET, isTemplateSet } from './file-components';
 import { HEADER_VARIANT } from './page-header';
 import { FORMER_TABLE_PAGES, TAXONOMY, allLeaves, leafPageName, movesClause } from './file-taxonomy';
@@ -334,8 +333,9 @@ export const formatColor = (c: RGBA, format: ValueFormat): string => {
   return a < 1 ? `${h} · ${pct(a)}` : h;
 };
 
-/** A ratio as the table prints it: floored to two places, so a 4.499 never reads "4.50" beside a 4.5 floor. */
-export const formatRatio = (ratio: number): string => `${(Math.floor(ratio * 100) / 100).toFixed(2)}:1`;
+/** A ratio as the table prints it: the engine's one formatter (#3697 L3), floored to two places, so a 4.499 never reads
+ *  "4.50" beside a 4.5 floor. Re-exported under the name this module's readers import. */
+export { formatRatio } from '@prism3/engine';
 
 /** The contrast cell's words — the ratio, the floor and the verdict, then the ground on a second line. */
 export const contrastText = (c: SgContrast | null): string => {
@@ -572,9 +572,13 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
   // PHASE 2 TITLES ARE UNIQUE (proposed, owner to confirm): two collections can both hold a font-size table (`core`
   // and `type-sets`), so a title two phase-2 tables share names its collection, "Font size (core)". The tables filter
   // matches a title, so a shared one would draw both. Color titles are phase 1's and unchanged.
+  // A PHASE-2 TITLE THAT A COLOR TABLE ON THE SAME PAGE ALREADY HAS takes its collection the same way (#2729, owner
+  // decision A): a dimension collection named like a color family (`border`) is "Border (border)" beside the border
+  // colors' "Border".
   const phase2 = tables.filter((t) => t.type !== 'color');
+  const colorTitles = new Set(tables.filter((t) => t.type === 'color').map((t) => `${t.page}\n${t.title}`));
   const shared = new Set(phase2.filter((t) => phase2.filter((u) => u.title === t.title).length > 1).map((t) => t.title));
-  for (const t of phase2) if (shared.has(t.title)) {
+  for (const t of phase2) if (shared.has(t.title) || colorTitles.has(`${t.page}\n${t.title}`)) {
     const col = catalog.collections.find((c) => c.id === t.collectionId);
     if (col) t.title = `${t.title} (${col.name})`;
   }

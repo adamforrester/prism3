@@ -3,7 +3,7 @@
 > Wash over media so text stays legible, solid or fading from one edge. Verify contrast.
 
 - **ID:** `veil`
-- **Category:** foundations
+- **Category:** overlay
 - **Status:** draft
 - **Also known as:** wash, photo-wash, image-overlay, image-scrim, media-wash, photo-overlay
 
@@ -51,7 +51,7 @@ Place a veil between a photograph (or video) and the text set over it, so the te
 ## Accessibility
 
 - **Focus:** None — the veil is not focusable and takes no place in the tab order. It is a decorative layer behind content; the interactive elements sit on top of it and own their own focus.
-- **Screen readers:** none — a presentational overlay. The veil conveys no information of its own; it is a wash behind text, so it is aria-hidden and the text on top carries the accessible content.
+- **Screen readers:** none — a presentational overlay. The veil conveys no information of its own; it is a wash behind text, so it is `aria-hidden` and the text on top carries the accessible content.
 
   Mark the veil aria-hidden — it is presentational and announcing it would add nothing to the text it sits behind. Never place text inside the veil node as its only home; the veil is a background layer, and the text is a sibling on top so assistive tech reads the text directly. The veil is a legibility aid, not a substitute for verified contrast: check the text against the actual image, because the wash cannot promise a ratio over an unknown photo.
 

@@ -9,20 +9,20 @@
 
 ## Overview
 
-A slider picks an approximate value, or a range between two values, by moving a thumb along a track: a price filter, a text size, a volume. It suits a value where the position within the range matters more than the exact number. One thumb sets a single value; two thumbs set a minimum and a maximum. The current value shows as text above the track. For an exact number, turn on the paired inputs, or use a text field.
+A slider picks an approximate value, or a range between two values, by moving a thumb along a track: a price filter, a text size, a volume. It suits a value where the position within the range matters more than the exact number. One thumb sets a single value; two thumbs set a minimum and a maximum. The current value shows as text above the track. For an exact number, turn on the paired inputs, or use TextField.
 
 - **Purpose:** Choose an approximate value, or a minimum and maximum, by moving a thumb along a track.
 - **Use when:** An approximate value where the position within the range matters more than the exact number, such as a volume, a text size or a price filter window.
-- **Avoid when:** The user knows the exact number (use a text field, or turn on the paired inputs), there are a few named options (use a segmented control or a radio group), it is on or off (use a switch), or the range is too wide for the track to reach each value.
+- **Avoid when:** The user knows the exact number (use TextField, or turn on the paired inputs), there are a few named options (use SegmentedControl or Radio.Group), it is on or off (use Switch.Row), or the range is too wide for the track to reach each value.
 
 ## Anatomy
 
 Shown on the default member: size `medium`, type `single`.
 
 1. **Container** — The slider: the field (label, value, track and milestones), then the optional inputs and message. It fills its column.
-2. **Field**
+2. **Field** — The header, the track and the milestones, with no space between them.
 3. **Header** — The label at the start and the value text at the end.
-4. **Label** (optional) — The visible label, naming the dimension being set; it fills the room the value leaves.
+4. **Label** (optional) — The visible label, naming the dimension being set; it fills the room the value leaves. Its label text, required marker, emphasis and weight surface on the slider. Starts primary and regular, and follows the slider's size.
 5. **Value single** (optional) — The current value, formatted as the thumb announces it.
 6. **Value range** (optional) — The current range, the minimum and the maximum, formatted as the thumbs announce them.
 7. **Control** — The hit area around the track, as tall as the hit target. A click anywhere on it moves the nearer thumb there.
@@ -32,9 +32,9 @@ Shown on the default member: size `medium`, type `single`.
 11. **Bar** — The selected part of the track, in ink at the track's own thickness: from the start to the thumb, or between the two thumbs of a range. Square-ended, so it meets the disc with no gap.
 12. **Thumb** — The thumb of a single value, or the maximum thumb of a range. It shows the state.
 13. **Space end** — The track after the thumb, outside the selected value or range. Paints nothing: the track shows through.
-14. **Milestones** (optional)
+14. **Milestones** (optional) — Labels under the track for the minimum, a value between and the maximum, evenly spaced; off by default, with no tick marks.
 15. **Min label** — The minimum value, under the start of the track.
-16. **Milestone**
+16. **Milestone** — A milestone between the ends, halfway along the track.
 17. **Max label** — The maximum value, under the end of the track.
 18. **Inputs** (optional) — Paired number inputs for exact entry: one for a single value, two for a range. Off by default.
 19. **Input single** — The number input of a single value.
@@ -55,14 +55,16 @@ Shown on the default member: size `medium`, type `single`.
 
 ## Usage guidelines
 
-Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use a text field, or turn on the paired inputs. Don't use a slider for a few named options (use a segmented control or a radio group) or for on and off (use a switch).
+Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use TextField, or turn on the paired inputs. Don't use a slider for a few named options (use SegmentedControl or Radio.Group) or for on and off (use Switch.Row).
+
+**In RTL.** The layout mirrors: the start edge is on the right.
 
 ### Do
 
 - Name the dimension with a visible label
-- Format the value with its unit or currency, and use the same text for aria-valuetext
+- Format the value with its unit or currency, and use the same text for `aria-valuetext`
 - Turn on the paired inputs when an exact value matters
-- Bind costly work, such as a network filter, to onChangeEnd
+- Bind costly work, such as a network filter, to `onChangeEnd`
 
 ### Don't
 
@@ -74,10 +76,10 @@ Use a slider for an approximate value, or a range, where seeing the position wit
 ## Accessibility
 
 - **Keyboard:** Right and Up raise one step; Left and Down lower one step; Page Up and Page Down move ten steps; Home and End go to the minimum and maximum, or for a range thumb to the other thumb. Tab moves from the minimum thumb to the maximum thumb. In right-to-left text, Right lowers and Left raises.
-- **Focus:** A focus ring around the focused thumb on :focus-visible, never around the track.
-- **Screen readers:** slider, once per thumb, from a visually hidden native \<input type="range">; a range is two sliders in a group named by the label
+- **Focus:** A focus ring around the focused thumb on `:focus-visible`, never around the track.
+- **Screen readers:** slider, once per thumb, from a visually hidden native `<input type="range">`; a range is two sliders in a group named by the label
 
-  Each thumb carries aria-valuenow, aria-valuemin, aria-valuemax and, for a formatted value, aria-valuetext from the same formatter as the visible text. A range names its thumbs "Minimum {label}" and "Maximum {label}", which are translatable. Help and error text join aria-describedby; an error sets aria-invalid on each thumb. The layout mirrors right to left.
+  Each thumb carries aria-valuenow, aria-valuemin, aria-valuemax and, for a formatted value, aria-valuetext from the same formatter as the visible text. A range names its thumbs "Minimum {label}" and "Maximum {label}", which are translatable. Help and error text join aria-describedby, and an error sets aria-invalid on each thumb. A required slider adds "required" to each thumb's accessible name, such as "Price range, required", and sets no aria-required, which the slider role does not support. The layout mirrors right to left.
 
 ### WCAG
 
@@ -106,9 +108,9 @@ The label names the dimension. The value text shows the value with its unit; a r
 ## Related components
 
 - **Built from:** `field-label`, `_slider-thumb`, `text-field`, `field-message`
-- **Instead, consider:** `text-field`, `segmented-control`, `radio-group`, `switch-row`
+- **Instead, consider:** `segmented-control`, `radio-group`, `switch-row`
 - **Replaces:**
-  - a native \<input type="range"> styled per browser engine
+  - a native `<input type="range">` styled per browser engine
   - a drag-only custom slider with no keyboard support
   - two separate sliders for a minimum and a maximum
 
@@ -118,7 +120,8 @@ The label names the dimension. The value text shows the value with its unit; a r
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `label` | string | — | yes | Names the dimension being set, such as "Price" or "Volume". Shown above the track, and the accessible name of a single thumb. |
+| `label` | string \| node | — | yes | Names the dimension being set, such as "Price" or "Volume". Shown above the track, and the accessible name of a single thumb. |
+| `hideLabel` | boolean | `false` | no | Hides the label visually and keeps it in the accessibility tree, so the slider keeps its name. For a slider whose purpose is plain from where it sits. Never display: none. |
 | `value` | number \| [number, number] | — | no | The value. A number sets one thumb; a pair of numbers, such as [40, 120], sets a range with two thumbs. Controlled; pair it with onChange. |
 | `defaultValue` | number \| [number, number] | — | no | The starting value when the slider manages its own state. A pair starts a range. |
 | `onChange` | function | — | no | Called on every change while dragging or stepping, for a live preview. |
@@ -129,16 +132,18 @@ The label names the dimension. The value text shows the value with its unit; a r
 | `largeStep` | number | — | no | The amount Page Up and Page Down move. Ten steps when not set. |
 | `minStepsBetweenThumbs` | number | `0` | no | For a range, how many steps the two thumbs must stay apart. A thumb stops there and never crosses the other. |
 | `formatOptions` | Intl.NumberFormatOptions | — | no | How the value reads: a currency, a percent, a unit. Drives the visible value text and each thumb's aria-valuetext from one formatter, so what is seen and what is heard match. |
-| `thumbLabels` | [string, string] | — | no | For a range, the two thumb names. "Minimum {label}" and "Maximum {label}" when not set. |
+| `thumbLabels` | [string, string] | — | no | For a range, the two thumb names, "Minimum {label}" and "Maximum {label}" when not set, with ", required" added when the slider is required. |
 | `type` | enum: 'single' \| 'range' | `single` | no | Read from value: a number is single, a pair is range. Not set on its own; listed so the two looks have a name. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The thumb and the track: an 18px thumb on a 2px track, 24 on 4, or 30 on 6. The label, the value text and the 44px hit area stay the same at every size. |
 | `showValue` | boolean | `true` | no | Shows the value text above the track. Turn it off only when the paired inputs show the value instead. |
 | `showMilestones` | boolean | `false` | no | Shows labeled milestones under the track: the minimum and the maximum at its ends, and any values in milestones between them, each under its own position. |
 | `milestones` | Array\<number \| { value: number; label: string }> | — | no | The values labeled under the track when showMilestones is on, such as [500, 1000]. A plain number is formatted like the value text; an object gives its own label. The minimum and the maximum are always labeled. |
 | `showInputs` | boolean | `false` | no | Shows paired number inputs under the track: one for a single value, "Minimum" and "Maximum" for a range. Typing moves the thumb; dragging updates the input. With inputs on, turn the value text off. |
-| `helpText` | string | — | no | Guidance under the slider, in a field message. |
+| `helpText` | string \| node | — | no | Guidance under the slider, in a field message. |
+| `showMessage` | boolean | `false` | no | Whether the field message is shown under the slider. Off by default; turn it on to show the help or error text. Never hides a message the slider needs: turn it on wherever there is help text or an error. |
 | `validation` | enum: 'default' \| 'error' | `default` | no | error marks the slider invalid: the field message shows the error status and each thumb carries aria-invalid. A slider's own value is always in range, so an error comes from a paired input or from validation elsewhere in the form. |
 | `validationMessage` | string | — | no | The error text, shown in the field message and added to aria-describedby. Say what is wrong and how to fix it. |
+| `required` | boolean | `false` | no | Turns on the FieldLabel's required marker and adds "required" to each thumb's accessible name, such as "Price range, required". Sets no aria-required, which the slider role does not support. |
 | `disabled` | boolean | `false` | no | Takes the slider out of interaction and out of the form payload, and dims it. |
 | `readOnly` | boolean | `false` | no | The thumbs stay focusable and the value is still submitted, but it cannot change. Looks like rest. |
 | `name` | string | — | no | The form field name. A range submits two values. |
@@ -187,7 +192,7 @@ Keyed by `size`.
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
 | `container/field` | — | `space.0` | — | — | — | — |
 | `container/field/control` | — | — | `size.md.min-height` | — | — | — |
-| `container/field/control/track` | — | — | `border-width.heavy` | — | — | — |
+| `container/field/control/track` | — | — | `border-width.heavy` | — | — | radius `radius.round` |
 | `container/field/control/track/bar` | — | — | `border-width.heavy` | — | — | — |
 | `container/field/control/track/spaceEnd` | — | — | `border-width.heavy` | — | — | — |
 | `container/inputs` | — | `space.150` | — | — | — | — |
@@ -200,7 +205,7 @@ Keyed by `size`.
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
 | `container/field` | — | `space.0` | — | — | — | — |
 | `container/field/control` | — | — | `size.md.min-height` | — | — | — |
-| `container/field/control/track` | — | — | `border-width.thick` | — | — | — |
+| `container/field/control/track` | — | — | `border-width.thick` | — | — | radius `radius.round` |
 | `container/field/control/track/bar` | — | — | `border-width.thick` | — | — | — |
 | `container/field/control/track/spaceEnd` | — | — | `border-width.thick` | — | — | — |
 | `container/inputs` | — | `space.150` | — | — | — | — |
@@ -213,7 +218,7 @@ Keyed by `size`.
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
 | `container/field` | — | `space.0` | — | — | — | — |
 | `container/field/control` | — | — | `size.md.min-height` | — | — | — |
-| `container/field/control/track` | — | — | `border-width.x-heavy` | — | — | — |
+| `container/field/control/track` | — | — | `border-width.x-heavy` | — | — | radius `radius.round` |
 | `container/field/control/track/bar` | — | — | `border-width.x-heavy` | — | — | — |
 | `container/field/control/track/spaceEnd` | — | — | `border-width.x-heavy` | — | — | — |
 | `container/inputs` | — | `space.150` | — | — | — | — |
@@ -357,7 +362,7 @@ Keyed by `type`, `state`.
 
 ### Nesting and properties
 
-- `container/field/header/label` nests `field-label` at `size=medium, emphasis=primary, weight=bold, state=rest`; `state=disabled` takes `state=disabled`
+- `container/field/header/label` nests `field-label` at `size=medium, emphasis=primary, weight=regular, state=rest`; `state=disabled` takes `state=disabled`; follows `size`; exposes `emphasis`, `weight`
 - `container/field/control/track/thumb` nests `_slider-thumb` at `size=medium, state=rest`; `state=hover` takes `state=hover`, `state=pressed` takes `state=pressed`, `state=focus-visible` takes `state=focus-visible`, `state=disabled` takes `state=disabled`; follows `size`
 - `container/inputs/inputSingle` nests `text-field` at `size=medium, status=default, state=filled`; `state=disabled` takes `state=disabled`
 - `container/message` nests `field-message` at `status=default`
@@ -376,7 +381,7 @@ Keyed by `type`, `state`.
 | `value` | boolean | `true` |
 | `milestones` | boolean | `false` |
 | `inputs` | boolean | `false` |
-| `helper` | boolean | `false` |
+| `message` | boolean | `false` |
 
 ---
 

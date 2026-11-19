@@ -49,6 +49,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { adaptBrand, assertAdaptable, type Adapted } from './adapt-figma-emission.ts';
+import { localeFreeCompare } from '../../packages/engine/locale-free-order.ts';
 import { runTokenPress, DEFAULT_DTCG_OPTIONS, type TokenPressOutput } from './run-tokenpress.ts';
 import {
   AXIS_MODEL,
@@ -320,6 +321,9 @@ const semantic = (
         const d = semantic('dimension', o[k]);
         n.push(...(d?.n ?? []));
       }
+      // `inset` decides inner vs drop shadow, so it is part of the value (#3603). Without it here an
+      // inner shadow emitted with no `inset: true` compared equal to TokenPress's INNER_SHADOW export.
+      n.push(o.inset === true ? 1 : 0);
     }
     return { n, str: `${layers.length} layer(s)` };
   }
@@ -823,8 +827,8 @@ const explainViaModeOverlay = (
 const NOT_IN_EMISSION = [
   // Narrowed from `motion.` by #2412: durations, curves, roles and springs are Figma variables now.
   { prefix: 'motion.transition.', why: 'a transition is a composite and Figma has no composite variable (owner Q291 4): its duration and easing role are emitted, the transition is not' },
-  { prefix: 'core.font.line-height', why: 'line-height reaches Figma only inside a text style, never as its own variable' },
-  { prefix: 'core.font.letter-spacing', why: 'letter-spacing reaches Figma only inside a text style, never as its own variable' },
+  // `core.font.line-height` and `core.font.letter-spacing` were here until #2423 emitted them as the `text-spacing`
+  // collection: both ladders and their roles now round-trip by path.
   { prefix: 'core.font.typeface.', why: 'the typeface primitive tier is collapsed: the emission writes the resolved face onto `<root>/core/font/family/*`' },
   // `container.fluid` (`100%`) was here until #2434 dropped it from the token layer.
   {
@@ -1262,7 +1266,7 @@ export const analyze = async (brand: string): Promise<BrandReport> => {
       tokenpressRootKeys: [...tpRootKeys].sort(),
       tokenpressRootGroups: [...tpRootTypes]
         .map(([key, types]) => ({ key, types: [...types].sort() }))
-        .sort((a, b) => a.key.localeCompare(b.key)),
+        .sort((a, b) => localeFreeCompare(a.key, b.key)),
       prism3Files: [
         `${brand}.tokens.json (canonical)`,
         `${brand}.base.tokens.json`,
@@ -1349,7 +1353,7 @@ const VERDICTS: Verdict[] = [
     category: 1,
     verdict: 'EXPECTED',
     claim:
-      'the Figma round-trip is LOSSY BY CONSTRUCTION, and the loss is a property of Figma\'s variable model, not of either exporter: motion, line-height and letter-spacing roles, the typeface tier and `focus.ring.style` (a keyword) have no variable representation, so no exporter reading a Figma file can recover them',
+      'the Figma round-trip is LOSSY BY CONSTRUCTION, and the loss is a property of Figma\'s variable model, not of either exporter: motion transitions, the typeface tier and `focus.ring.style` (a keyword) have no variable representation, so no exporter reading a Figma file can recover them',
     source: '#696 scoped the emission to what Figma can hold; #703 §portability restated it',
     when: (r) => r.paths.explained.some((e) => e.reason.startsWith('NOT IN THE FIGMA EMISSION')),
   },
@@ -1389,15 +1393,7 @@ const VERDICTS: Verdict[] = [
     category: 1,
     verdict: 'EXPECTED',
     claim:
-      'aurora\'s 2 gradients are unreachable: Figma paint styles are neither variables nor effect styles and TokenPress\'s scanner has no call that returns them (W3). The only genuinely unpaired paths in either brand',
-    source: '#703 named gradients as outside the scanner\'s reach',
-    when: (r) => r.paths.unpairedPrism3.some((p) => p.startsWith('gradient.')),
-  },
-  {
-    category: 1,
-    verdict: 'EXPECTED',
-    claim:
-      'once renames, axis collapse and the emission\'s own gaps are accounted for, NOTHING is missing in either direction (aurora keeps only the 2 gradients). The two exporters cover the same token surface',
+      'once renames, axis collapse and the emission\'s own gaps are accounted for, NOTHING is missing in either direction (the gradients pair since #731 gave TokenPress a paint-style channel). The two exporters cover the same token surface',
     source: '#697 hoped for this; this is the first measurement of it',
     when: (r) => r.paths.unpairedTokenPress.length === 0 && r.paths.unpairedPrism3.length <= 2,
   },
@@ -1523,7 +1519,7 @@ const VERDICTS: Verdict[] = [
     category: 5,
     verdict: 'SURPRISING',
     claim:
-      'the scopes-gated handling never opens its gate: NO variable in either brand carries `LINE_HEIGHT`, so `lineHeightOutput` has no input, and the 12 `OPACITY`-scoped variables agree on TYPE — as they always did, since #709 was a VALUE disagreement and this gate does not touch values (it is now fixed, and the VALUES section no longer reports it). THIS IS AN ARTIFACT OF THE INPUT, NOT A PROPERTY OF THE SETTING: the measurement cannot determine whether these settings are destructive in general, only that they are INERT AGAINST THIS INPUT. The reason is not missing scope metadata — every one of the 994 nb / 1049 aurora adapted variables carries scopes. It is that prism3 emits no line-height variable for the gate to reach at all: line-height and letter-spacing exist only inside text styles, the same root cause as the unpaired-path findings in category 1',
+      'the scopes-gated handling never opens its gate: NO variable in either brand carries `LINE_HEIGHT`, so `lineHeightOutput` has no input, and the 12 `OPACITY`-scoped variables agree on TYPE — as they always did, since #709 was a VALUE disagreement and this gate does not touch values (it is now fixed, and the VALUES section no longer reports it). THIS IS AN ARTIFACT OF THE INPUT, NOT A PROPERTY OF THE SETTING: the measurement cannot determine whether these settings are destructive in general, only that they are INERT AGAINST THIS INPUT. The reason is not missing scope metadata — every one of the 994 nb / 1049 aurora adapted variables carries scopes. It is that no prism3 variable carries a LINE_HEIGHT scope: the line-height and letter-spacing multipliers in `text-spacing` (#2423) are unscoped on purpose, since Figma binds those fields as pixels, and they type by path instead',
     source: 'not predicted — #703 assumed the gates would fire and reasoned about their behavior',
     when: (r) => bucket(r, 'lineHeightOutput')?.verdict === 'inert',
   },
@@ -1587,6 +1583,7 @@ const printReport = (r: BrandReport): void => {
     console.log(`       ${s.collection.padEnd(16)} ${String(s.count).padStart(3)} -> ${s.channel}`);
   }
   console.log(`  W4 text-style bindings split in two     : ${r.adapted.textStyleBindingsSplit} (unresolved: ${r.adapted.textStyleBindingsUnresolved.length})`);
+  console.log(`     gradient stops left unbound          : ${r.adapted.gradientStopBindingsUnresolved.length}`);
 
   console.log(`\nCOUNTS:`);
   console.log(`  prism3 base leaves        : ${r.counts.prism3Base}`);

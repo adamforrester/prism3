@@ -19,7 +19,7 @@ A small vector glyph standing in for a concept, drawn on a square base-4/base-8 
 
 Shown on the default member: name `arrow-down`, tone `inherit`.
 
-1. **Glyph**
+1. **Glyph** — The glyph's outline, drawn on a square and scaled to the box it is placed in.
 
 ## Styles
 
@@ -31,6 +31,8 @@ Shown on the default member: name `arrow-down`, tone `inherit`.
 ## Usage guidelines
 
 Use to reinforce meaning, speed scanning, or mark an action beside text. Few icons are universally understood, so a glyph beside a visible label helps returning users find their way; it does not replace the words. Pick a size, leave tone at inherit unless the glyph must keep its own color, and decide one question: is this glyph meaningful (give it a label) or decorative (leave label empty)? For an icon-only action, use Button or IconButton and leave the glyph inside it unnamed.
+
+**In RTL.** The glyph flips only if it points a direction, such as an arrow.
 
 ### Do
 
@@ -76,6 +78,7 @@ Name a meaningful icon for the concept or the action it fires, in a word or two,
 
 ## Related components
 
+- **Instead, consider:** `provider-logo`
 - **Often used with:** `button`, `icon-button`, `text-field`, `field-message`, `select`, `tag`, `link`
 - **Replaces:**
   - legacy icon fonts

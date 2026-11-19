@@ -247,7 +247,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
-import { ENGINE_ARTIFACTS, ON_DEMAND_OUT, REPORT_ARTIFACTS, REPORTS_DIR, SCHEMA_ARTIFACTS, renderOnDemand } from './regen';
+import { ENGINE_ARTIFACTS, ON_DEMAND_OUT, UNCOMMITTED_OUT, renderUncommitted, REPORT_ARTIFACTS, REPORTS_DIR, SCHEMA_ARTIFACTS, renderOnDemand } from './regen';
 import { brandTheme } from './theme';
 
 // ---- the RULES, imported (#1117) -------------------------------------------------------------
@@ -259,6 +259,7 @@ import { brandTheme } from './theme';
 // imported `voiceHits`.
 import { voiceHits, enGb } from './prose-rules.ts';
 import type { RawHit } from './prose-rules.ts';
+import { printListing } from './files-listing.ts';
 // The MCP tools/list as served (#1806): acquisition only, see the block below `gatedHits`.
 import { servedToolsList, servedStrings, servedBridgeInstructions } from './mcp-served';
 
@@ -295,22 +296,67 @@ const normativeHits = (txt: string): RawHit[] => [...txt.matchAll(NORMATIVE)].ma
 
 // ---- The payload channel's one carve-out. A requirement is exempt only as the sentence its own entry
 // defines; the patterns are this gate's, written independently of `ai-metadata.ts`.
-const REQ_PLAIN = /^MUST clear (\d+(?:\.\d+)?:1) against `([^`]+)` in every mode\.$/;
-const REQ_COMPOSITE = /^MUST keep `([^`]+)` at (\d+(?:\.\d+)?:1) or more on `([^`]+)` composited over `([^`]+)`, in every mode\.$/;
+// #1779: where the modes hold different floors the sentence names each one ("… in light and dark modes, and 4.5:1
+// in hc-light and hc-dark modes."), and a role's OWN pair (`contrast_with[0]`) is held to the floors the token tree beside
+// the sidecar records (`$extensions.prism3.min`, and `.modes.<id>.min`). So "in every mode" is refused where the
+// tree's floors differ, and a per-mode sentence is refused unless it states exactly the tree's floors. A second
+// pair (`alsoAgainst`, from either end) has no per-mode floor in the tree, so only its light floor and its shape are
+// checked; on a role with no floor of its own in the tree, `contrast_with[0]` is such a pair.
+const REQ_RATIO = String.raw`\d+(?:\.\d+)?:1`;
+const REQ_PLAIN = new RegExp(String.raw`^MUST clear (${REQ_RATIO}) against \`([^\`]+)\`( in every mode| in .+)\.$`);
+const REQ_COMPOSITE = new RegExp(String.raw`^MUST keep \`([^\`]+)\` at (${REQ_RATIO}) or more on \`([^\`]+)\` composited over \`([^\`]+)\`(, in every mode| in .+)\.$`);
+type Floors = Record<string, string>;
+/** The floors a requirement's mode clause states, by mode id — or 'every' — or null when it does not parse.
+ *  `first` is the head's floor; each later group restates its own ("4.5:1 in …", composite "at 7:1 or more in …"). */
+const statedFloors = (clause: string, first: string, composite: boolean): Floors | 'every' | null => {
+  if (/^,? in every mode$/.test(clause)) return 'every';
+  const groups = clause.replace(/^ in /, '').split(/, (?:and )?(?=(?:at )?\d)/);
+  const out: Floors = {};
+  for (const [i, g] of groups.entries()) {
+    const m = i === 0 ? [g, first, g] : g.match(composite ? new RegExp(String.raw`^at (${REQ_RATIO}) or more in (.+)$`) : new RegExp(String.raw`^(${REQ_RATIO}) in (.+)$`));
+    if (!m) return null;
+    const named = m[2].match(/^(.+?) modes?$/);
+    if (!named) return null;
+    const modes = named[1].split(/, | and /);
+    if (modes.some((x) => !/^[a-z0-9-]+$/.test(x) || x in out)) return null;
+    for (const x of modes) out[x] = i === 0 ? first : m[1];
+  }
+  return groups.length > 1 && new Set(Object.values(out)).size === groups.length ? out : null;
+};
+/** A role's per-mode floors as the token tree records them, `light` being the tree's own (base) value. */
+type TreeFloors = (role: string) => Floors | undefined;
+const treeFloorsOf = (tree: any): TreeFloors => {
+  const root = Object.keys(tree ?? {}).find((k) => !k.startsWith('$'));
+  return (role) => {
+    const ext = role.split('.').reduce((o: any, k) => o?.[k], tree?.[root!]?.color)?.$extensions?.prism3;
+    if (!ext || !(ext.min > 0)) return undefined;
+    const out: Floors = { light: `${ext.min}:1` };
+    for (const [m, v] of Object.entries<any>(ext.modes ?? {})) if (v?.min > 0) out[m] = `${v.min}:1`;
+    return out;
+  };
+};
+const sameFloors = (a: Floors, b: Floors) => Object.keys(a).length === Object.keys(b).length && Object.entries(a).every(([k, v]) => b[k] === v);
 const isPayloadSidecar = (abs: string) => /\/packages\/engine\/out\/[^/]+\.ai\.json$/.test(abs);
 let channelExempted = 0, channelFiles = 0;
 /** The sidecar text with every valid contract requirement blanked, re-serialized the way the emitter
  *  writes it (2-space JSON), so line numbers on a remaining hit still point at the committed file. */
-const carvePayload = (raw: string): { text: string; exempted: number } => {
+const carvePayload = (raw: string, floorsOf: TreeFloors): { text: string; exempted: number } => {
   const doc = JSON.parse(raw);
   let exempted = 0;
-  for (const [role, e] of Object.entries<any>(doc.color ?? {})) for (const cw of e?.contrast_with ?? []) {
+  for (const [role, e] of Object.entries<any>(doc.color ?? {})) for (const [i, cw] of (e?.contrast_with ?? []).entries()) {
     const r = String(cw?.requirement ?? '');
     const m = cw?.composited_over ? r.match(REQ_COMPOSITE) : r.match(REQ_PLAIN);
     const own = m && (cw.composited_over
       ? m[1] === cw.token && m[2] === cw.min && m[3] === role && m[4] === cw.composited_over
       : m[1] === cw.min && m[2] === cw.token);
-    if (own) { cw.requirement = ''; exempted++; }
+    if (!own) continue;
+    const stated = statedFloors(m[cw.composited_over ? 5 : 3], cw.min, !!cw.composited_over);
+    if (!stated) continue;
+    // The role's own pair is `contrast_with[0]` on a role the tree records a floor for. A role with no floor of its
+    // own (a ground listed for the ink measured on it, `hover-fill`, `foreground.tertiary`) carries only second pairs.
+    const tree = i === 0 ? floorsOf(role) : undefined;
+    if (tree && !(stated === 'every' ? Object.values(tree).every((v) => v === cw.min) : sameFloors(stated, tree))) continue;
+    cw.requirement = ''; exempted++;
   }
   return { text: JSON.stringify(doc, null, 2) + '\n', exempted };
 };
@@ -327,6 +373,13 @@ const onDemand = new Map<string, string>();
   const r = renderOnDemand();
   if ('error' in r) blind.push(`packages/engine/out/${ON_DEMAND_OUT.join(', ')} — the on-demand page did not render (${r.error})`);
   else r.files.forEach((abs, i) => onDemand.set(abs, `packages/engine/out/${ON_DEMAND_OUT[i]} (rendered on demand)`));
+}
+// The same for the exports regen writes and git does not track (#3698 R3): shipped prose, so still scanned, from a
+// fresh render rather than whatever `out/` holds. They share the on-demand map, so findings name their `out/` path.
+{
+  const r = renderUncommitted();
+  if ('error' in r) blind.push(`packages/engine/out/${UNCOMMITTED_OUT.join(', ')} — the uncommitted exports did not render (${r.error})`);
+  else r.files.forEach((abs, i) => onDemand.set(abs, `packages/engine/out/${UNCOMMITTED_OUT[i]} (rendered, not committed)`));
 }
 const shown = (abs: string): string => onDemand.get(abs) ?? relative(repo, abs);
 
@@ -406,7 +459,7 @@ const scanText = (abs: string, read: string): Hit[] | { error: string } => {
   // requirements (header: the payload channel). An unparseable sidecar is a surface this gate cannot see.
   let normText = txt;
   if (isPayloadSidecar(abs)) {
-    try { const c = carvePayload(raw); normText = c.text; channelExempted += c.exempted; channelFiles++; } catch (e) {
+    try { const c = carvePayload(raw, treeFloorsOf(JSON.parse(readFileSync(abs.replace(/\.ai\.json$/, '.tokens.json'), 'utf8')))); normText = c.text; channelExempted += c.exempted; channelFiles++; } catch (e) {
       blind.push(`${relative(repo, abs)} — payload sidecar did not parse (${(e as Error).message})`);
       return [];
     }
@@ -441,7 +494,7 @@ const walkRequired = (dir: string, why: string): string[] => {
 // regen.ts exports so a new emitted artifact is covered here automatically too.
 const gated: string[] = [
   ...walkRequired(join(repo, 'packages/engine/out'), 'no emitted artifacts found — run `npx tsx packages/engine/regen.ts`')
-    .filter((f) => !ON_DEMAND_OUT.includes(relative(join(repo, 'packages/engine/out'), f))),
+    .filter((f) => !ON_DEMAND_OUT.includes(relative(join(repo, 'packages/engine/out'), f)) && !UNCOMMITTED_OUT.includes(relative(join(repo, 'packages/engine/out'), f))),
   // The on-demand preview page (Q319.6), rendered fresh above rather than read from `out/`.
   ...onDemand.keys(),
   ...SCHEMA_ARTIFACTS.map((f) => join(repo, 'packages/engine/schema', f)),
@@ -482,6 +535,7 @@ const gated: string[] = [
   // field in it carries a `description` an agent reads to learn `out/components/components.ai.json`.
   join(repo, 'packages/engine/schema/component-docs.schema.json'),
   join(repo, 'packages/engine/schema/component-defs.schema.json'),   // #3425: the component-defs export's authored schema
+  join(repo, 'packages/engine/schema/file-facts.schema.json'),   // #2075: the file facts report's authored schema; every field carries a `description`
   // Shipped skills — prose an agent reads and follows, named by hand for the same reason.
   ...walk(join(repo, 'skills')).filter((f) => f.endsWith('.md')),
   // The designer guides (#2637): published docs a designer reads, served by the studio and readable on GitHub,
@@ -501,6 +555,31 @@ const gated: string[] = [
   ...walkRequired(join(repo, 'packages/engine/changes'), 'the change-notes directory is missing').filter((f) => f.endsWith('.md')),
 ];
 
+// The BUNDLES, named per file (#948's reasoning: a directory predicate stays satisfied by either file
+// alone). RAW text — no comment stripping, unlike the voice rules: a comment inside an expression survives
+// into an unminified bundle (header: CLIENT NAMES), and a client name there is a leak like one in a string.
+// The source map is out of scope on purpose; the header says why.
+const CLIENT_BUNDLES = ['apps/studio/dist/main.js', 'apps/plugin/dist/main.js', 'apps/plugin/dist/ui.html'];
+// ---- `--files`: the scanned set, printed (#1117) ----------------------------------------------
+// The scope crossing noted in the header claims "no design-record docs/ file is in this gate's scope". A grep over
+// this source cannot check that claim — it matches the comment making it. This prints the set the
+// gate actually walks, so the claim is decided by the gate rather than by prose about it:
+//
+//   npx tsx packages/engine/lint-voice.ts --files | grep '^docs/' | grep -vc '^docs/public/'    # must be 0
+//
+// Exits before any scanning, so it is cheap and cannot be confused with a verdict. It also exits before the surface
+// and self checks (#3698 R4), so it lists the walked set in a tree with no build, as `test-docs-only.sh`'s
+// `scope/…` cases read it in CI's engine job: an unbuilt bundle lists no file, and every bundle is under `apps/`.
+// Printed through `printListing`, never `console.log` and `process.exit`: exiting drops whatever the reader had not yet
+// taken, and still exits 0. That cut every schema file off this list in CI five times in a day (#3843).
+if (process.argv.includes('--files')) {
+  await printListing([
+    ...gated.map(shown),
+    // The client-name arm's bundles, where the voice rules do not already walk them.
+    ...CLIENT_BUNDLES.filter((b) => !gated.includes(join(repo, b))),
+  ]);
+}
+
 // ---- SELF-CHECK: does the scanner still detect what it claims to? ----
 // One true-positive sample per rule, the stated "just" exception, and three code-context samples
 // pulled from patterns that actually occur in apps/studio/dist/main.js today — so this doubles as the
@@ -516,13 +595,15 @@ const SELF_CHECK: { sample: string; expectRule: string | null }[] = [
   { sample: 'Built just now', expectRule: null },                             // the time sense (S8.2), a moment ago
   { sample: 'Please note the derived value.', expectRule: 'filler' },
   { sample: 'Note that this is derived from the ramp.', expectRule: 'filler' },
+  { sample: 'The ramp moves; note that the floor holds.', expectRule: 'filler' },  // mid-sentence imperative
+  { sample: 'the skill drops its note that the def still dropped the fade', expectRule: null }, // "note", a noun
+  { sample: 'A part note that cites an owner decision', expectRule: null },          // "note", a noun
+  { sample: 'bound to the theme the run just wrote', expectRule: null },             // the time sense, a moment ago
   // Q181 A (#3574): "note" as a NOUN after a determiner is not the filler; a sentence or line start still is.
   { sample: 'the skill drops its note that the def still drops it', expectRule: null },
-  { sample: 'A part note that cites an owner decision', expectRule: null },
   { sample: 'It moves the ramp. Note that it moves.', expectRule: 'filler' },
   { sample: 'the ramp\nnote that it moves', expectRule: 'filler' },
   { sample: 'Read the guide Note that it moves.', expectRule: 'filler' },   // a capital `Note` opens a run-in sentence
-  { sample: 'bound to the theme the run just wrote', expectRule: null },     // the time sense, a moment before (Q181 A)
   { sample: 'Oops, something went wrong.', expectRule: 'apology' },
   { sample: 'Sorry, we could not complete this.', expectRule: 'apology' },
   { sample: 'Applied — 88 variables written!', expectRule: 'exclamation' },
@@ -614,17 +695,30 @@ const LINE_SAMPLE = [
   ];
   for (const { sample, want } of cases) if ((normativeHits(sample).length > 0) !== want) selfFails.push(`normative: "${sample}" should${want ? '' : ' NOT'} be flagged`);
   const sidecar = (cw: object, extra: object = {}) => JSON.stringify({ color: { 'text.primary': { avoid_when: 'Do not use on fills.', contrast_with: [cw], ...extra } } });
+  // The tree beside the fixture: text.primary holds 7:1 in every mode; border.brand 3:1 in light and dark, 4.5:1 in HC.
+  const FLOORS: Record<string, Floors> = { 'text.primary': { light: '7:1', dark: '7:1' }, 'border.brand': { light: '3:1', dark: '3:1', 'hc-light': '4.5:1', 'hc-dark': '4.5:1' },
+    'scrim.wash': { light: '4.5:1', dark: '4.5:1', 'hc-light': '7:1', 'hc-dark': '7:1' }, 'scrim.even': { light: '4.5:1', dark: '4.5:1' } };
+  const floorsOf: TreeFloors = (r) => FLOORS[r];
   const own = { token: 'background.secondary', min: '7:1', requirement: 'MUST clear 7:1 against `background.secondary` in every mode.' };
-  const comp = { token: 'text.primary', min: '4.5:1', composited_over: 'background.primary', requirement: 'MUST keep `text.primary` at 4.5:1 or more on `text.primary` composited over `background.primary`, in every mode.' };
+  const brandSidecar = (requirement: string) => JSON.stringify({ color: { 'border.brand': { contrast_with: [{ token: 'background.primary', min: '3:1', requirement }] } } });
+  const comp = { token: 'text.primary', min: '4.5:1', composited_over: 'background.primary', requirement: 'MUST keep `text.primary` at 4.5:1 or more on `scrim.wash` composited over `background.primary`, in every mode.' };
+  const compSidecar = (cw: object, role = 'scrim.wash') => JSON.stringify({ color: { [role]: { contrast_with: [cw] } } });
   const channel: { name: string; raw: string; want: number }[] = [
     { name: 'its own requirement', raw: sidecar(own), want: 0 },
-    { name: 'its own composite requirement', raw: sidecar(comp), want: 0 },
+    { name: 'its own composite requirement', raw: compSidecar({ ...comp, requirement: comp.requirement.replace('scrim.wash', 'scrim.even') }, 'scrim.even'), want: 0 },
+    { name: 'a composite "in every mode" where the tree\'s floors differ', raw: compSidecar(comp), want: 1 },
+    { name: 'a per-mode composite requirement stating the tree\'s floors', raw: compSidecar({ ...comp, requirement: 'MUST keep `text.primary` at 4.5:1 or more on `scrim.wash` composited over `background.primary` in light and dark modes, and at 7:1 or more in hc-light and hc-dark modes.' }), want: 0 },
     { name: 'a requirement naming another token', raw: sidecar({ ...own, token: 'background.primary' }), want: 1 },
     { name: 'a requirement stating another floor', raw: sidecar({ ...own, min: '4.5:1' }), want: 1 },
     { name: 'a MUST on a usage sentence', raw: sidecar(own, { avoid_when: 'MUST not be used on fills.' }), want: 1 },
+    // #1779: per-mode floors, against the tree's.
+    { name: 'a per-mode requirement stating the tree\'s floors', raw: brandSidecar('MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes.'), want: 0 },
+    { name: '"in every mode" where the tree\'s floors differ', raw: brandSidecar('MUST clear 3:1 against `background.primary` in every mode.'), want: 1 },
+    { name: 'a per-mode requirement stating the wrong high-contrast floor', raw: brandSidecar('MUST clear 3:1 against `background.primary` in light and dark modes, and 7:1 in hc-light and hc-dark modes.'), want: 1 },
+    { name: 'a per-mode requirement leaving a mode out', raw: brandSidecar('MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light mode.'), want: 1 },
   ];
   for (const { name, raw, want } of channel) {
-    const n = normativeHits(carvePayload(raw).text).length;
+    const n = normativeHits(carvePayload(raw, floorsOf).text).length;
     if (n !== want) selfFails.push(`payload channel: ${name} gave ${n} normative hit(s), expected ${want}`);
   }
 }
@@ -714,31 +808,11 @@ if (selfFails.length) {
   for (const f of selfFails) console.error(`    ${f}`);
   process.exit(1);
 }
-// The BUNDLES, named per file (#948's reasoning: a directory predicate stays satisfied by either file
-// alone). RAW text — no comment stripping, unlike the voice rules: a comment inside an expression survives
-// into an unminified bundle (header: CLIENT NAMES), and a client name there is a leak like one in a string.
-// The source map is out of scope on purpose; the header says why.
-const CLIENT_BUNDLES = ['apps/studio/dist/main.js', 'apps/plugin/dist/main.js', 'apps/plugin/dist/ui.html'];
 // What proves a bundle is one that carries the personality vocabulary, so a clean scan of it means the
 // trait notes were in what was read. The resolver's own refusal message: a string of the subject, and
 // that is the point of a representation probe — if the vocabulary leaves a bundle, this fails loudly
 // rather than scanning a bundle the issue no longer concerns and calling it clean.
 const VOCABULARY_MARKER = 'unknown personality trait';
-
-// ---- `--files`: the scanned set, printed (#1117) ----------------------------------------------
-// The scope crossing noted in the header claims "no design-record docs/ file is in this gate's scope". A grep over
-// this source cannot check that claim — it matches the comment making it. This prints the set the
-// gate actually walks, so the claim is decided by the gate rather than by prose about it:
-//
-//   npx tsx packages/engine/lint-voice.ts --files | grep '^docs/' | grep -vc '^docs/public/'    # must be 0
-//
-// Exits before any scanning, so it is cheap and cannot be confused with a verdict.
-if (process.argv.includes('--files')) {
-  for (const f of gated) console.log(shown(f));
-  // The client-name arm's bundles, where the voice rules do not already walk them.
-  for (const b of CLIENT_BUNDLES) if (!gated.includes(join(repo, b))) console.log(b);
-  process.exit(0);
-}
 
 const gatedHits = gated.flatMap(scan);
 
@@ -812,7 +886,7 @@ const NOTE_SWEEP: [string, Record<string, unknown>][] = [
   ['outline hover fill under the wash', { outlineHoverFill: { light: { hover: 'neutral.050' } } }],
   // #3335: the wash's opacity set under No hover fill is kept and ignored, with a note.
   ['outline wash under no hover fill', { outlineInteraction: 'none', outlineWash: { hover: 5 } }],
-  ['grid margins off the spacing scale (#3052)', { layout: { marginOverrides: { md: 44, lg: 45 } } }],
+  ['grid margins off the spacing scale (#3052; md was 44 until space.550, #3408)', { layout: { marginOverrides: { md: 36, lg: 45 } } }],
   ['caption sizes and letter spacing pins (#3077)', { typography: { sizes: { caption: { md: 10 } }, tracking: { display: 'open', label: 'open' } } }],
   ['a trait pre-empted by another', { personality: ['soft', 'sharp'] }],
   // Every trait the schema advertises, so each trait's approved `why` is scanned too.
@@ -912,8 +986,8 @@ const PRODUCERS: Producer[] = [
 const NOTES_UNREACHABLE = ['typography: empty display tier (the "below the usual 15–25" clause)'];
 // The push sites, counted in the SOURCE (comments dropped), as a tripwire for a new producer the sweep
 // never reaches: one the sweep reaches is an unclaimed note already. A literal per file, written here.
-// theme.ts: 45 note pushes (#3052 added the grid-link notes' spread) + the one that copies vocabulary.ts's notes in. vocabulary.ts: 2.
-const NOTE_PUSH_SITES: Record<string, number> = { 'packages/engine/theme.ts': 51, 'packages/engine/vocabulary.ts': 2 };
+// theme-brand.ts (`brandTheme`, in theme.ts until #3698 R5 split it per axis): 45 note pushes (#3052 added the grid-link notes' spread) + the one that copies vocabulary.ts's notes in. vocabulary.ts: 2.
+const NOTE_PUSH_SITES: Record<string, number> = { 'packages/engine/theme-brand.ts': 51, 'packages/engine/vocabulary.ts': 2 };
 // The rules a NOTE must also pass, beyond §2 and `normative`. Each is a thing an engine note has carried.
 const ALLCAPS_OK = new Set(['AA', 'AAA', 'WCAG', 'OKLCH', 'HC']);
 const NOTE_RULES: { rule: string; re: RegExp }[] = [

@@ -28,14 +28,14 @@ import type { PagesApi, PageLike } from './src/file-setup';
 import { TAXONOMY, NEST_PREFIX, assertCoverage, assertPartPages, consumersOf, EXCLUDED_DEFS } from './src/file-taxonomy';
 import { applyComponentPlan } from './src/write-components';
 import type { CompPageTarget, CompNode } from './src/write-components';
-import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
-import { fieldLabel } from '@prism3/engine/components/field-label';
-import { componentDefs } from '@prism3/engine/components/index';
+import { figmaAnatomySet, fieldLabel, componentDefs } from '@prism3/engine/components';
 import { emptiedLine, pageMovesDue, relocateSets } from './src/page-moves';
 import { makeShim } from './component-shim';
 
 let failures = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (!cond) { failures++; console.error(`  ✗ ${label}`); }
   else console.log(`  ✓ ${label}`);
 };
@@ -718,5 +718,5 @@ console.log('8. relocateSets: single components move as one, under their earlier
   ok(r.emptied.length === 0, `logos/theirs-page: Brand marks still holds the designer's components, so it is not reported as safe to delete (${JSON.stringify(r.emptied)})`);
 }
 
-console.log(failures === 0 ? '\nfile-setup: all assertions pass' : `\nfile-setup: ${failures} FAILED`);
+console.log(`${failures === 0 ? '\nfile-setup: all assertions pass' : `\nfile-setup: ${failures} FAILED`} — ${executed} assertions executed`);
 if (failures > 0) process.exit(1);

@@ -112,7 +112,9 @@ export const TRAITS: Record<string, Trait> = {
     why: 'Larger headings, crisp shadows, a subtle neutral fill — hierarchy from type, not effects.',
   },
   restrained: {
-    levers: { neutralEmphasis: 'subtle', 'neutral.chroma': 'subtle', 'shadow.softness': 'crisp' },
+    // No `neutral.chroma` (#1863): the schema requires it, so every valid input sets it and a trait's value for it
+    // could never apply. `test.ts` fails any trait that targets a schema-required lever.
+    levers: { neutralEmphasis: 'subtle', 'shadow.softness': 'crisp' },
     why: 'Crisp shadows and a subtle neutral fill — less visual weight on interface elements.',
   },
   bold: {
@@ -147,9 +149,10 @@ const getPath = (obj: any, path: string): unknown => {
 
 const setPath = (obj: any, path: string, value: unknown): void => {
   const segs = path.split('.');
+  const leaf = segs.pop() ?? ''; // `split` returns at least one segment, so `pop` always has one to give
   let node = obj;
-  for (const seg of segs.slice(0, -1)) { if (node[seg] == null || typeof node[seg] !== 'object') node[seg] = {}; node = node[seg]; }
-  node[segs[segs.length - 1]] = value;
+  for (const seg of segs) { if (node[seg] == null || typeof node[seg] !== 'object') node[seg] = {}; node = node[seg]; }
+  node[leaf] = value;
 };
 
 /** Resolve a stop NAME on a lever, or throw naming what was valid. Numbers pass straight through. */

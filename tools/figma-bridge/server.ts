@@ -23,8 +23,8 @@
  *
  * WIRE between this server and the plugin (JSON text frames):
  *   server → plugin   { type: 'command', command: AgentCommand }
- *   server → plugin   { type: 'challenge', v: 1, nonce } (first, on every connection) · { type: 'paired', token } · { type: 'welcome' }
- *   plugin → server   { type: 'pair', proof } · { type: 'hello', state, held?, proof } · { type: 'state', state } · { type: 'result', result }
+ *   server → plugin   { type: 'challenge', v: 1, nonce } (first, on every connection) · { type: 'paired', token, proof } · { type: 'welcome', proof }
+ *   plugin → server   { type: 'pair', proof, clientNonce } · { type: 'hello', state, held?, proof, clientNonce } · { type: 'state', state } · { type: 'result', result }
  *                     { type: 'progress', id, progress } · { type: 'log', id, line }
  *
  * PAIRING (#3204, the owner's Q3204.1 A; the flow and the hash: `apps/plugin/src/bridge-auth.ts`). A connection is not
@@ -35,6 +35,12 @@
  * demand, from a `figma_status` call while no plugin is connected or a `--pair` start, and lives 10 minutes (Q3204.5 A,
  * `createPairing`). It is printed on stderr and `figma_status` names it, since an MCP host may not show stderr. The
  * plugin asks for it the first time it connects on a machine and keeps the token it is given in `figma.clientStorage`.
+ *
+ * THE SERVER PROVES ITSELF TOO (#3697 R8, the owner's A). The plugin sends its own `clientNonce` with its pair and its
+ * hello; the `paired` answer carries an HMAC of it keyed by the code just spent, and the `welcome` one keyed by the token
+ * (`welcomeProof`, `pairedProof` in `bridge-auth.ts`, computed here with `node:crypto`). The plugin hears neither without
+ * a proof that verifies, so a process squatting on the port cannot drive the open file. A hello or pair without a
+ * well-formed `clientNonce` is refused like a wrong proof: the plugin that sends it would refuse the answer anyway.
  *
  * One plugin connection at a time (a newer PAIRED one replaces the older), one command in flight at a time.
  *
@@ -69,7 +75,7 @@ import { dirname, join, resolve } from 'node:path';
 import { PROTOCOL_VERSIONS, META, negotiateHandshakeVersion } from '../../packages/engine/mcp';
 import { AGENT_PROTOCOL_VERSION, AGENT_COMMANDS } from '../../apps/plugin/src/agent-protocol';
 import { BRIDGE_PORT } from '../../apps/plugin/src/agent-bridge-relay';
-import { CODE_ALPHABET, CODE_LENGTH, CLOSE, HELLO_LABEL, PAIR_LABEL, TOKEN_LABEL, formatCode } from '../../apps/plugin/src/bridge-auth';
+import { CLIENT_NONCE_RE, CODE_ALPHABET, CODE_LENGTH, CLOSE, HELLO_LABEL, PAIR_LABEL, PAIRED_LABEL, TOKEN_LABEL, WELCOME_LABEL, formatCode } from '../../apps/plugin/src/bridge-auth';
 import type { AgentCommand, AgentResult, AgentLinkState, AgentProgress } from '../../apps/plugin/src/agent-protocol';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 
@@ -345,18 +351,21 @@ export const createPairing = (secret: Buffer, say: (s: string) => void = () => u
     settle: (): void => { code = null; },
     nonce: (): string => randomBytes(32).toString('hex'),
     helloOk: (nonce: string, proof: unknown): boolean => sameHex(hmac(token, HELLO_LABEL + nonce), proof),
+    /** #3697 R8: the welcome's proof, over the plugin's own nonce. */
+    welcomeProof: (clientNonce: string): string => hmac(token, WELCOME_LABEL + clientNonce).toString('hex'),
     /** A pairing attempt. A right code is spent; after `MAX_PAIR_FAILS` wrong ones the code is retired for a new one,
-     *  and after `MAX_RETIREMENTS` retirements for none. */
-    pairOk: (nonce: string, proof: unknown): boolean => {
+     *  and after `MAX_RETIREMENTS` retirements for none. #3697 R8: a right code answers the `paired` proof, keyed by the
+     *  code just spent over the plugin's nonce and the token; a wrong one answers null. */
+    pairOk: (nonce: string, proof: unknown, clientNonce: string): string | null => {
       const c = live();
-      if (c === null) return false;
-      if (sameHex(hmac(c, PAIR_LABEL + nonce), proof)) { code = null; say('paired: the code is spent'); return true; }
+      if (c === null) return null;
+      if (sameHex(hmac(c, PAIR_LABEL + nonce), proof)) { code = null; say('paired: the code is spent'); return hmac(c, `${PAIRED_LABEL}${clientNonce}:${token}`).toString('hex'); }
       if (++fails >= MAX_PAIR_FAILS) {
         say(`${MAX_PAIR_FAILS} wrong pairing codes: that code is retired`);
         if (++retired >= MAX_RETIREMENTS) { code = null; say(`${MAX_RETIREMENTS} codes retired: pairing is closed until figma_status asks for a code or the bridge starts with --pair`); }
         else issue();
       }
-      return false;
+      return null;
     },
   };
 };
@@ -448,16 +457,18 @@ export const createBridge = (opts: { pairing: Pairing; now?: () => Date; log?: (
   /** One text message from a connection. Before its hello proves the token, only `pair` and `hello` are heard; anything
    *  else, or a wrong proof, closes it (#3204). */
   const onMessage = (conn: Conn, text: string) => {
-    let m: { type?: string; state?: AgentLinkState; held?: unknown; result?: AgentResult; id?: string; progress?: AgentProgress; line?: string; proof?: unknown; yield?: unknown };
+    let m: { type?: string; state?: AgentLinkState; held?: unknown; result?: AgentResult; id?: string; progress?: AgentProgress; line?: string; proof?: unknown; yield?: unknown; clientNonce?: unknown };
     try { m = JSON.parse(text); } catch { m = {}; }
     if (!conn.authed) {
+      const clientNonce = typeof m.clientNonce === 'string' && CLIENT_NONCE_RE.test(m.clientNonce) ? m.clientNonce : null;
       if (m.type === 'pair') {
-        if (!pairing.pairOk(conn.nonce!, m.proof)) { record(null, 'bridge', 'a wrong pairing code: refused'); conn.close(CLOSE.wrongCode, 'wrong pairing code'); return; }
+        const proof = clientNonce === null ? null : pairing.pairOk(conn.nonce!, m.proof, clientNonce);
+        if (proof === null) { record(null, 'bridge', 'a wrong pairing code: refused'); conn.close(CLOSE.wrongCode, 'wrong pairing code'); return; }
         record(null, 'bridge', 'a plugin paired');
-        conn.send({ type: 'paired', token: pairing.token });
+        conn.send({ type: 'paired', token: pairing.token, proof });
         return;
       }
-      if (m.type === 'hello' && pairing.helloOk(conn.nonce!, m.proof)) {
+      if (m.type === 'hello' && clientNonce !== null && pairing.helloOk(conn.nonce!, m.proof)) {
         pairing.settle();
         if (conn.authTimer) { clearTimeout(conn.authTimer); conn.authTimer = undefined; }
         if (m.yield === true && plugin && plugin !== conn) {
@@ -467,7 +478,7 @@ export const createBridge = (opts: { pairing: Pairing; now?: () => Date; log?: (
         }
         conn.authed = true;
         attach(conn);
-        conn.send({ type: 'welcome' });
+        conn.send({ type: 'welcome', proof: pairing.welcomeProof(clientNonce) });
       } else {
         record(null, 'bridge', 'a connection without the pairing token: refused');
         conn.close(CLOSE.notPaired, 'not paired');
@@ -623,6 +634,32 @@ export const listen = async (bridge: Bridge, port: number): Promise<{ port: numb
 type Rpc = { jsonrpc?: string; id?: number | string | null; method: string; params?: any };
 type RpcOut = { jsonrpc: '2.0'; id: number | string | null; result?: unknown; error?: { code: number; message: string; data?: unknown } };
 
+/**
+ * #2639: `figma_run`'s `args` description, one entry per command, read from the source rather than typed here. It was
+ * hand-typed and named 4 of the commands, telling an agent to send `{}` to commands that take arguments. Each command's
+ * args are its `AgentArgs` member in `agent-protocol.ts`, as written (the same one-line form `emit-agent-reference.ts`
+ * reads); the command list is `AGENT_COMMANDS`. A command with no one-line member fails the load, by name, so the
+ * description can never skip one. Gated by `test-agent-bridge.ts` arm `mcp/args`.
+ */
+const PROTOCOL_SRC = 'apps/plugin/src/agent-protocol.ts';
+export const argsByCommand = (src: string): Record<string, string> => {
+  const lines = src.split('\n');
+  const start = lines.findIndex((l) => /^export type AgentArgs = \{/.test(l));
+  const end = lines.findIndex((l, i) => i > start && /^\};/.test(l));
+  const out: Record<string, string> = {};
+  for (const cmd of AGENT_COMMANDS) {
+    const re = new RegExp(`^\\s*(?:'${cmd}'|${cmd.replace(/-/g, '\\-')}): (.+);\\s*$`);
+    const hit = start < 0 ? undefined : lines.slice(start + 1, end).map((l) => re.exec(l)).find(Boolean);
+    if (!hit) throw new Error(`figma-bridge: AgentArgs in ${PROTOCOL_SRC} has no one-line member for '${cmd}'`);
+    out[cmd] = hit[1];
+  }
+  return out;
+};
+const ARGS = argsByCommand(readFileSync(join(REPO_ROOT, PROTOCOL_SRC), 'utf8'));
+/** The `args` description for a command list: each command and its args type, then where the field docs live. */
+export const argsDescription = (cmds: readonly string[]): string =>
+  `${cmds.map((c) => `${c}: ${ARGS[c]}`).join('; ')}. Record<string, never> means send {}. Each field's meaning: docs/public/reference/commands.json.`;
+
 export const TOOLS = [
   {
     name: 'figma_status',
@@ -631,12 +668,12 @@ export const TOOLS = [
   },
   {
     name: 'figma_run',
-    description: `Run one agent-link command in the connected plugin and return its result envelope (v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result {verdict, data, logs} | error, progress). Commands: ${AGENT_COMMANDS.join(', ')}. The plugin runs it through the same handler the panel's button reaches. 'prune' with confirm: true deletes — preview with confirm: false first.`,
+    description: `Run one agent-link command in the connected plugin and return its result envelope (v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result {verdict, data, logs} | error, progress). Commands: ${AGENT_COMMANDS.join(', ')}. The plugin runs it through the same handler the panel's button reaches. 'prune' with confirm: true deletes — preview with confirm: false first, and echo its previewHash.`,
     inputSchema: {
       type: 'object',
       properties: {
         cmd: { type: 'string', enum: [...AGENT_COMMANDS] },
-        args: { type: 'object', description: "apply-theme: {input: BrandInput}; build-components: {def?}; prune: {input, confirm}; others: {}" },
+        args: { type: 'object', description: argsDescription(AGENT_COMMANDS) },
         timeoutMs: { type: 'number', description: 'Default 600000 (a full catalog build takes minutes).' },
       },
       required: ['cmd'],
@@ -681,7 +718,7 @@ export const toolsFor = (arm: BridgeArm) => {
   return TOOLS.map((t) => t.name !== 'figma_run' ? t : {
     ...t,
     description: t.description.replace(`Commands: ${AGENT_COMMANDS.join(', ')}.`, `Commands: ${cmds.join(', ')}.`),
-    inputSchema: { ...t.inputSchema, properties: { ...t.inputSchema.properties, cmd: { type: 'string', enum: [...cmds] } } },
+    inputSchema: { ...t.inputSchema, properties: { ...t.inputSchema.properties, cmd: { type: 'string', enum: [...cmds] }, args: { type: 'object', description: argsDescription(cmds) } } },
   });
 };
 

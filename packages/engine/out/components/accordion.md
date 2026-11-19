@@ -28,7 +28,7 @@ Shown on the default member: expansion `collapsed`, iconPosition `leading`, indi
 7. **Label** — The section title. It fills the row and wraps onto more lines rather than truncating.
 8. **Trailing indicator** — The indicator after the title: as tall as the title row, with the glyph at its top, beside the title's first line.
 9. **Trailing glyph** — The open and closed glyph, after the title.
-10. **Focus ring**
+10. **Focus ring** — The shared focus ring, drawn inside the header row's edge on keyboard focus, so it never overlaps the divider or gets clipped.
 11. **Content** — The panel, present only while the section is open: a slot that holds whatever content the section needs. Its inline inset matches the header.
 12. **Placeholder** — Placeholder content. Replace it with the text or components the section holds.
 13. **Divider** (optional) — The rule under the section, separating it from the next. It spans the section's width.
@@ -50,6 +50,8 @@ Shown on the default member: expansion `collapsed`, iconPosition `leading`, indi
 
 Use an Accordion to compress a set of independent sections into scannable headers, such as FAQs, settings groups, filter panels or product details, or on its own for one optional block of detail, such as a promo code field. Let several be open at once unless space is very tight.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Make the whole header row the button, so the hit target is the full width
@@ -61,15 +63,15 @@ Use an Accordion to compress a set of independent sections into scannable header
 ### Don't
 
 - Hide content most users need. Show it instead.
-- Force one section to stay open. If one view must always show, use tabs.
+- Force one section to stay open. If one view must always show, use Tabs.
 - Put an accordion inside an accordion. For more than one level, use a tree.
 - Truncate a title with an ellipsis
 
 ## Accessibility
 
 - **Keyboard:** Tab moves from header to header, and into an open panel's content. Enter or Space opens and closes the focused header. There is no roving tab index. Up and Down between headers, and Home and End, are optional extras and must not trap focus.
-- **Focus:** A focus ring around the header row on :focus-visible. Opening a section does not move focus.
-- **Screen readers:** A native \<button> with aria-expanded and aria-controls, inside an \<hN>; the panel is role="region" with aria-labelledby pointing at the button. Native \<details> and \<summary> are the alternative where their styling and animation support are enough.
+- **Focus:** A focus ring around the header row on `:focus-visible`. Opening a section does not move focus.
+- **Screen readers:** A native `<button>` with `aria-expanded` and `aria-controls`, inside an `<hN>`; the panel is `role="region"` with `aria-labelledby` pointing at the button. Native `<details>` and `<summary>` are the alternative where their styling and animation support are enough.
 
   Hide the indicator glyph from assistive technology (aria-hidden="true"); the button's aria-expanded carries the state. Do not put role="tab" or a tablist on an accordion.
 
@@ -88,7 +90,7 @@ Use an Accordion to compress a set of independent sections into scannable header
 
 - **Enter:** The panel eases open to its content height (motion.transition.enter), and the indicator turns to its open glyph.
 - **Exit:** The panel eases closed (motion.transition.exit), and the indicator turns back.
-- **Reduced motion:** Under prefers-reduced-motion the panel opens and closes at the reduced duration, since the change is the information and the height movement is not.
+- **Reduced motion:** Under prefers-reduced-motion the height changes at once, and the panel's fade stays, on motion.duration-reduced.normal to open and to close. The indicator swaps without turning. A fade is not movement, and it keeps the cue that the panel opened or closed.
 
 ## Content guidelines
 
@@ -99,10 +101,10 @@ Titles are short, parallel noun phrases or questions, in sentence case, with no 
 ## Related components
 
 - **Built from:** `_accordion-indicator`, `focus-ring`, `divider`
-- **Instead, consider:** `tabs`
-- **Often used with:** `tabs`, `icon`, `button`, `text-field`
+- **Instead, consider:** `tabs`, `dialog`
+- **Often used with:** `icon`, `button`, `text-field`
 - **Replaces:**
-  - a show/hide div with no aria-expanded or heading
+  - a show/hide div with no `aria-expanded` or heading
   - a tablist used for vertical sections that open together
 
 ## Building it in code

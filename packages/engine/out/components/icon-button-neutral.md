@@ -12,7 +12,7 @@
 
 An icon-only trigger that carries no brand weight — a toolbar control, a dense table-row action, a close affordance — in the neutral color, which is where most icon-only actions sit. Reach for it when the control genuinely has no brand emphasis to carry, not merely because it is secondary in rank (rank is the appearance axis). Same anatomy as IconButton; the accessible name is still mandatory.
 
-- **Purpose:** Trigger an action with an icon alone, no visible label.
+- **Purpose:** With an icon alone and no visible label, trigger an action that carries no brand emphasis.
 - **Use when:** A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).
 - **Avoid when:** The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. The action carries the brand → use IconButton. It deletes or removes something → use IconButton.Destructive.
 
@@ -20,9 +20,9 @@ An icon-only trigger that carries no brand weight — a toolbar control, a dense
 
 Shown on the default member: appearance `ghost`, size `medium`, shape `square`, surface `default`.
 
-1. **Icon**
-2. **Spinner**
-3. **Focus ring**
+1. **Icon** — The one icon and the whole content, hidden from screen readers because the button carries the name; it matches a standalone icon at the same size.
+2. **Spinner** — Takes the icon's place while the button is busy, at the icon's size, so the button keeps its size.
+3. **Focus ring** — The shared focus ring, shown on keyboard focus; it sits outside the button and moves nothing in its layout.
 
 ## Styles
 
@@ -41,6 +41,8 @@ Shown on the default member: appearance `ghost`, size `medium`, shape `square`, 
 
 Use for a self-evident action where space is tight and a text label would be redundant or not fit — toolbar actions, a close affordance, row-level edit/delete. Color is the component (IconButton / IconButton.Destructive / IconButton.Neutral — pick by semantics); rank actions within a view by appearance (filled > outline > ghost). Always provide the accessible name; pair with a tooltip (not built yet) for the visible name on hover/focus.
 
+**In RTL.** The icon flips only if it points a direction, such as an arrow.
+
 ### Do
 
 - Always give it an accessible name (a verb)
@@ -51,13 +53,13 @@ Use for a self-evident action where space is tight and a text label would be red
 
 - Ship it without an accessible name ("button, unlabeled")
 - Use it for an unfamiliar action a user cannot infer from the glyph — use a labeled Button
-- Tooltip a natively-disabled icon button (the tooltip can't be reached) — use isInactive
+- Tooltip a natively-disabled icon button (the tooltip can't be reached) — use `isInactive`
 
 ## Accessibility
 
-- **Keyboard:** Native \<button> — Enter on keydown, Space on keyup. Identical to Button.
-- **Focus:** Same offset :focus-visible ring as Button; retained through pending/inactive.
-- **Screen readers:** button (native \<button>)
+- **Keyboard:** Native `<button>` — Enter on keydown, Space on keyup. Identical to Button.
+- **Focus:** Same offset `:focus-visible` ring as Button; retained through pending/inactive.
+- **Screen readers:** button (native `<button>`)
 
   aria-label is the accessible name (required). If it triggers a menu, add aria-haspopup + aria-expanded; aria-pressed only if it is a toggle. While isPending, set aria-busy, keep it focusable, and announce the busy state through a polite live region ("Saving…"), and set aria-hidden="true" on the embedded spinner, which otherwise announces its own "Loading" status (a double announcement). Do not put a tooltip on a natively-disabled icon button (unreachable) — use isInactive so the reason stays reachable. Under RTL, only a directional glyph flips (a back chevron).
 
@@ -67,7 +69,7 @@ Use for a self-evident action where space is tight and a text label would be red
 - 2.5.3 Label in Name (a visible tooltip and the aria-label carry the same words)
 - 1.4.11 Non-text Contrast (focus ring at 3:1, and the icon glyph itself at 3:1 against its background)
 - 2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)
-- 2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)
+- 2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)
 - 1.4.13 Content on Hover or Focus (only where a tooltip is attached: dismissible, hoverable and persistent)
 - 2.5.8 Target Size (Minimum) (24×24 — the small square is 36px, 28px at compact density)
 - 2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); icon-only controls are the likeliest to miss it, so reaching 44 elsewhere is a code-side hit-area expansion)
@@ -76,7 +78,7 @@ Use for a self-evident action where space is tight and a text label would be red
 
 - **Enter:** none (present on mount)
 - **Exit:** none
-- **Reduced motion:** State transitions (background, border) are meant to run ~100–150ms through the brand's motion tokens; this component binds none yet, so the timing is code-side. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.
+- **Reduced motion:** State transitions (background, border) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98), as on Button, gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.
 
 ## Content guidelines
 
@@ -87,11 +89,11 @@ The accessible name is a verb naming the action ("Close", "More actions"), never
 ## Related components
 
 - **Built from:** `focus-ring`, `spinner`
-- **Instead, consider:** `button-neutral`
+- **Instead, consider:** `button-neutral`, `flush-icon-button-neutral`
 - **Often used with:** `icon`
 - **Replaces:**
-  - div[role=button] wrapping an icon
-  - a \<button> holding only an \<svg> and no accessible name
+  - `div[role=button]` wrapping an icon
+  - a `<button>` holding only an `<svg>` and no accessible name
 
 ## Building it in code
 
@@ -109,7 +111,7 @@ The accessible name is a verb naming the action ("Close", "More actions"), never
 | `surface` | enum: 'default' \| 'inverse' | `default` | no | The ground the icon button sits on, as on Button. default for a normal page; inverse for a dark or brand-filled band, where the control binds its color.inverse counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. An inverse icon button takes the shared white-inverse treatment with the icon as the ink: a white fill and a per-family icon ink derived to clear AA on white. A host that cannot know its ground picks default, and the designer sets inverse on the instance — the same answer the nested focus ring gives. |
 | `isPending` | boolean | `false` | no | Swaps the icon for a spinner after a short delay, keeps focus (aria-disabled, not native disabled), suppresses re-fire, and announces busy through a polite live region. The square keeps its size. |
 | `isInactive` | boolean | `false` | no | Focusable disabled for relevant-but-blocked actions — retains tab order and surfaces the blockage reason on focus. |
-| `disabled` | boolean | `false` | no | Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the a11y tree. |
+| `disabled` | boolean | `false` | no | Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the accessibility tree. |
 
 ## Specs
 
@@ -130,29 +132,53 @@ Code-only states, with no design-file member: `inactive`.
 
 Padding reads top / right / bottom / left when its sides differ.
 
-Keyed by `size`.
+Keyed by `size`, `shape`.
 
-**size=medium**
+**size=medium, shape=square**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.md.height` | `size.md.height` | — | — |
+| `container` | — | — | `size.md.height` | `size.md.height` | — | radius `radius.md`; stroke `border-width.hairline` |
 | `container/icon` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/spinner` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 
-**size=small**
+**size=small, shape=square**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.sm.height` | `size.sm.height` | — | — |
+| `container` | — | — | `size.sm.height` | `size.sm.height` | — | radius `radius.md`; stroke `border-width.hairline` |
 | `container/icon` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/spinner` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
-**size=large**
+**size=large, shape=square**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.lg.height` | `size.lg.height` | — | — |
+| `container` | — | — | `size.lg.height` | `size.lg.height` | — | radius `radius.md`; stroke `border-width.hairline` |
+| `container/icon` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
+| `container/spinner` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
+
+**size=medium, shape=circular**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.md.height` | `size.md.height` | — | radius `radius.round`; stroke `border-width.hairline` |
+| `container/icon` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/spinner` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+**size=small, shape=circular**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.sm.height` | `size.sm.height` | — | radius `radius.round`; stroke `border-width.hairline` |
+| `container/icon` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/spinner` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, shape=circular**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.lg.height` | `size.lg.height` | — | radius `radius.round`; stroke `border-width.hairline` |
 | `container/icon` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
 | `container/spinner` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
 
@@ -352,7 +378,7 @@ Keyed by `appearance`, `shape`, `surface`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.disabled.fill` | — | — | — |
-| `container/icon` | — | — | — | `color.disabled.icon` |
+| `container/icon` | — | — | — | `color.disabled.on-fill` |
 
 **appearance=filled, shape=square, surface=inverse, state=rest**
 
@@ -394,7 +420,7 @@ Keyed by `appearance`, `shape`, `surface`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.inverse.disabled.fill` | — | — | — |
-| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+| `container/icon` | — | — | — | `color.inverse.disabled.on-fill` |
 
 **appearance=filled, shape=circular, surface=default, state=rest**
 
@@ -436,7 +462,7 @@ Keyed by `appearance`, `shape`, `surface`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.disabled.fill` | — | — | — |
-| `container/icon` | — | — | — | `color.disabled.icon` |
+| `container/icon` | — | — | — | `color.disabled.on-fill` |
 
 **appearance=filled, shape=circular, surface=inverse, state=rest**
 
@@ -478,7 +504,7 @@ Keyed by `appearance`, `shape`, `surface`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.inverse.disabled.fill` | — | — | — |
-| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+| `container/icon` | — | — | — | `color.inverse.disabled.on-fill` |
 
 **appearance=outline, shape=square, surface=default, state=rest**
 

@@ -140,7 +140,7 @@ export const tab: ComponentDef = {
         note: 'The tab body: a fixed-height column holding the label row above the underline. It hugs its label and paints nothing itself: no wash at hover or pressed.',
       },
       content: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'presentation',
         children: ['leadingVisual', 'labelBox', 'count'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fill' } },
@@ -175,7 +175,9 @@ export const tab: ComponentDef = {
       labelReserve: {
         kind: 'text',
         type: 'size.{size}.type.selected',
-        note: 'The label again, in the selected weight, never seen: it holds every tab at its bold width (Q226 A).',
+        // Maintainer detail, out of the reader caption (#3610): The label again, in the selected weight, never seen:
+        // it holds every tab at its bold width (Q226 A).
+        note: 'A hidden copy of the label in the selected weight, which holds each tab at its selected width so the tabs don\'t shift when the selection moves.',
       },
       label: {
         kind: 'text',
@@ -218,7 +220,7 @@ export const tab: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'code delivery pending: behavior layer (#2454). The owner built the Figma components first (Q178.3); the entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
+          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
       },
       {
         class: 'semantics',
@@ -309,7 +311,7 @@ export const tab: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'One trigger inside Tabs that shows its panel in place when selected.',
+    primaryPurpose: 'Show one panel in place when selected, as one trigger inside Tabs.',
     whenToUse: 'Only as a child of Tabs. Generate Tabs, which places one tab per panel and sets which one is selected.',
     avoidWhen: 'Changing the page or the address (a PageNav.Item inside PageNav), or switching a value within the current view (SegmentedControl).',
     commonPartners: ['tabs', 'icon', 'badge'],
@@ -328,7 +330,7 @@ export const tab: ComponentDef = {
   motion: {
     enter: 'None. On selection the underline slides from the previous tab to this one, on motion.transition.default.',
     exit: 'None.',
-    reduceMotion: 'The underline snaps to the selected tab; the panel swaps with no transition.',
+    reduceMotion: 'Under prefers-reduced-motion the underline snaps to the selected tab, and the incoming panel fades in on motion.duration-reduced.fast.',
   },
 
   notes: {

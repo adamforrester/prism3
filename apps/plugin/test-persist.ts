@@ -15,9 +15,8 @@
  * landing on defaults. Mirrors test-write.ts's `ok(...)` style; exits non-zero on any failure.
  */
 import { persistInput, restoreInput, NS, KEY, type SharedDataPort } from './src/persist-figma';
-import { serializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from '@prism3/engine/persist-input';
-import { exampleBrands } from '@prism3/engine/emit-brandinput';
-import type { BrandInput } from '@prism3/engine/theme';
+import { serializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError, type BrandInput } from '@prism3/engine';
+import { exampleBrands } from '@prism3/engine/harness';
 
 /** Assert `fn` throws an `UnrecognizedPersistedInputError`; returns its message for further checks. */
 const throwsUnrecognized = (fn: () => unknown): string | null => {
@@ -30,7 +29,9 @@ const throwsUnrecognized = (fn: () => unknown): string | null => {
 };
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -87,5 +88,5 @@ ok(!!oldShapeMsg && /schema v1/.test(oldShapeMsg) && /re-theme|re-import/.test(o
 // refuses UNRECOGNIZED versions, not the one this build actually writes.
 ok(JSON.parse(serializeBrandInput(brand)).v === PERSIST_VERSION, `persist: serializeBrandInput stamps the current PERSIST_VERSION (${PERSIST_VERSION})`);
 
-console.log(`\nPlugin persist test: ${failed === 0 ? 'all passed' : failed + ' FAILED'}`);
+console.log(`\nPlugin persist test: ${failed === 0 ? 'all passed' : failed + ' FAILED'} — ${executed} assertions executed`);
 if (failed) process.exitCode = 1;

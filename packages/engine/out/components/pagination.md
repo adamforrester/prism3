@@ -13,7 +13,7 @@ Moves between the pages of a long, ordered list or set of results, and shows whi
 
 - **Purpose:** Move between the pages of a long, ordered set of results and show which page is open.
 - **Use when:** Search results, a catalog or a table split into pages, where the user benefits from the count and from jumping to a page; or previous and next through an article.
-- **Avoid when:** A feed with no useful end (a load more Button), a few fixed views (tabs or a segmented control), the slides of a carousel, or rows per page and a "Go to page" field (the table pager, not yet built).
+- **Avoid when:** A feed with no useful end (a load more Button), a few fixed views (Tabs or SegmentedControl), the slides of a carousel, or rows per page and a "Go to page" field (the table pager, not yet built).
 
 ## Anatomy
 
@@ -21,7 +21,7 @@ Shown on the default member: type `numbered`, style `border`, size `medium`.
 
 1. **Container** — The navigation landmark: one row of controls. It hugs its row; a simple pagination is built wider so its two cells sit at opposite ends.
 2. **Row** — The previous cell, the pages or the "Page 5 of 10" text, and the next cell, 4px apart.
-3. **Previous**
+3. **Previous** — The previous cell, a left chevron the size of the page cells; on the first page it stays in place and does nothing.
 4. **Items** — The pages: a slot of page cells, 4px apart, showing page 5 of 10 by default: 1, an ellipsis, 4, 5 (current), 6, an ellipsis, 10.
 5. **Item1** — The first page, 1.
 6. **Item2** — An ellipsis for pages 2 and 3.
@@ -31,10 +31,10 @@ Shown on the default member: type `numbered`, style `border`, size `medium`.
 10. **Item6** — An ellipsis for pages 7 to 9.
 11. **Item7** — The last page, 10.
 12. **Status** — The position, "Page 5 of 10", between the previous and next buttons.
-13. **Next**
+13. **Next** — The next cell, a right chevron; on the last page it stays in place and does nothing.
 14. **Simple row** — The simple row: Previous at the start and Next at the end.
-15. **Previous button**
-16. **Next button**
+15. **Previous button** — Previous: a left chevron and the word "Previous".
+16. **Next button** — Next: the word "Next" and a right chevron.
 
 ## Styles
 
@@ -47,6 +47,8 @@ Shown on the default member: type `numbered`, style `border`, size `medium`.
 ## Usage guidelines
 
 Use Pagination below a long list, a grid of results or a table, to move between pages and show which one is open. numbered when the user benefits from seeing the count and jumping to a page; compact in a narrow container, and numbered switches to it there on its own; simple for previous and next through an article or a short sequence. Center it under a list or a grid; end-align it under a table. Give every page an address whenever the page has one.
+
+**In RTL.** The layout mirrors: the start edge is on the right.
 
 ### Do
 
@@ -68,7 +70,7 @@ Use Pagination below a long list, a grid of results or a table, to move between 
 
 - **Keyboard:** Tab moves through previous, each page and next; every control is its own Tab stop. Enter opens a page, and Space also does when it is a button. Arrow keys do not move between pages.
 - **Focus:** Stays in the normal Tab order. After a page changes in place, focus moves to the top of the results. At an end, the inactive previous or next cell keeps focus.
-- **Screen readers:** navigation: a \<nav> landmark named "Pagination", holding a list of links or buttons
+- **Screen readers:** navigation: a `<nav>` landmark named "Pagination", holding a list of links or buttons
 
   aria-label="Pagination" on the \<nav>; give two on one page the same name or a name each. aria-current="page" on the current page. aria-hidden="true" on each ellipsis. aria-disabled="true" on previous at the first page and next at the last. Accessible names "Previous page", "Next page" and "Page 4". A polite live region says "Page 5 of 10" after an in-place change. Names are translated.
 
@@ -106,7 +108,7 @@ Use Pagination below a long list, a grid of results or a table, to move between 
 - **Instead, consider:** `tabs`
 - **Often used with:** `list`
 - **Replaces:**
-  - page links built from \<a href="#"> and click handlers
+  - page links built from `<a href="#">` and click handlers
   - a disabled next button that drops focus at the last page
   - infinite scroll on a page with a footer
 

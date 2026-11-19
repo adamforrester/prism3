@@ -17,30 +17,32 @@ One cell of a code input: a box that shows one character of the code. It is draw
 
 ## Anatomy
 
-Shown on the default member: size `medium`.
+Shown on the default member: size `medium`, style `outline`, status `default`.
 
 1. **Container** — The cell: one box per character, as wide and tall as its size sets. Set to fill, it shares the row with the other cells and stops at 32px wide.
 2. **Content** — Centers the character, or the caret on the active empty cell.
 3. **Caret** — The insertion point on the active empty cell, in the character ink, as tall as the character.
-4. **Digit** — The character, in its size's text style, centered in the cell. Tabular figures in code, so every digit is one width.
+4. **Digit** — The character, in its size's text style, centered in the cell. Tabular lining figures in code, so every digit is one width and stands at cap height.
 
 ## Styles
 
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
-| `size` | `medium`, `small`, `large`, `xlarge` | once, when authored | The cell size and its character size. Set by the code input. |
+| `size` | `medium`, `small`, `large`, `x-large` | once, when authored | The cell size and its character size. Set by the code input. |
+| `style` | `outline` | once, when authored | — |
+| `status` | `default`, `error` | at runtime | — |
 
 ### States
 
-`rest`, `hover`, `filled`, `focus-visible`, `focus-visible-filled`, `disabled`, `error`
+`rest`, `hover`, `filled`, `focus-visible`, `focus-visible-filled`, `disabled`
 
 ## Usage guidelines
 
-Use inside CodeInput only, one cell per character of the code. In a design, add or remove cells in the code input's cell slot and set each cell's state to match the field: error cells when the field is in error, disabled cells when it is disabled. In code, the code input sets every cell.
+Use inside CodeInput only, one cell per character of the code. In a design, add or remove cells in the code input's cell slot and set each cell to match the field: its status to error when the field is in error, its state to disabled when the field is disabled. In code, the code input sets every cell.
 
 ### Do
 
-- Set every cell to error when the code input is in error
+- Set every cell's status to error when the code input is in error
 - Set every cell to disabled when the code input is disabled
 
 ### Don't
@@ -85,14 +87,14 @@ One character per cell.
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `digit` | string | — | no | The character this cell shows: one digit, or one letter in a code that allows letters. Empty until the user reaches it. |
-| `size` | enum: 'small' \| 'medium' \| 'large' \| 'xlarge' | `medium` | no | The cell size and its character size. Set by the code input. |
+| `size` | enum: 'small' \| 'medium' \| 'large' \| 'x-large' | `medium` | no | The cell size and its character size. Set by the code input. |
 | `isActive` | boolean | `false` | no | Whether this is the cell the next character goes into while the input has focus. Set by the code input. |
-| `isInvalid` | boolean | `false` | no | Whether the code input is in error. Set by the code input. |
+| `validation` | enum: 'default' \| 'error' | `default` | no | The validation status. error draws the danger border on the cell at every state but disabled; default is neutral. Set by the code input. |
 | `disabled` | boolean | `false` | no | Whether the code input is disabled. Set by the code input. |
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 28 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 48 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
@@ -100,46 +102,186 @@ Generated from the plan that builds the design-file component: 28 members. Value
 | --- | --- | --- |
 | `container` | frame | every member |
 | `container/content` | frame | every member |
-| `container/content/digit` | text | state=filled or focus-visible-filled or error |
+| `container/content/digit` | text | state=filled or focus-visible-filled |
 | `container/content/caret` | frame | state=focus-visible |
 
 ### Spacing and size
 
 Padding reads top / right / bottom / left when its sides differ.
 
-Keyed by `size`.
+Keyed by `size`, `state`.
 
-**size=medium**
+**size=medium, state=rest**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | — | — | 32px (literal) | build width 48px (literal); build height 56px (literal) |
+| `container` | — | — | — | — | 32px (literal) | build width 48px (literal); build height 56px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=medium, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 48px (literal); build height 56px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=medium, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 48px (literal); build height 56px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=medium, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 48px (literal); build height 56px (literal); radius `radius.sm`; stroke `focus.ring.width` |
 | `container/content` | `space.0` | — | — | — | — | — |
 | `container/content/caret` | — | — | `icon.size.sm` | `border-width.hairline` | — | — |
 
-**size=small**
+**size=medium, state=focus-visible-filled**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | — | — | 32px (literal) | build width 44px (literal); build height 44px (literal) |
+| `container` | — | — | — | — | 32px (literal) | build width 48px (literal); build height 56px (literal); radius `radius.sm`; stroke `focus.ring.width` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=medium, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 48px (literal); build height 56px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=small, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 44px (literal); build height 44px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=small, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 44px (literal); build height 44px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=small, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 44px (literal); build height 44px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=small, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 44px (literal); build height 44px (literal); radius `radius.sm`; stroke `focus.ring.width` |
 | `container/content` | `space.0` | — | — | — | — | — |
 | `container/content/caret` | — | — | `icon.size.xs` | `border-width.hairline` | — | — |
 
-**size=large**
+**size=small, state=focus-visible-filled**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | — | — | 32px (literal) | build width 56px (literal); build height 64px (literal) |
+| `container` | — | — | — | — | 32px (literal) | build width 44px (literal); build height 44px (literal); radius `radius.sm`; stroke `focus.ring.width` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=small, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 44px (literal); build height 44px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=large, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 56px (literal); build height 64px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=large, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 56px (literal); build height 64px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=large, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 56px (literal); build height 64px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=large, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 56px (literal); build height 64px (literal); radius `radius.sm`; stroke `focus.ring.width` |
 | `container/content` | `space.0` | — | — | — | — | — |
 | `container/content/caret` | — | — | `icon.size.md` | `border-width.hairline` | — | — |
 
-**size=xlarge**
+**size=large, state=focus-visible-filled**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | — | — | 32px (literal) | build width 68px (literal); build height 72px (literal) |
+| `container` | — | — | — | — | 32px (literal) | build width 56px (literal); build height 64px (literal); radius `radius.sm`; stroke `focus.ring.width` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=large, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 56px (literal); build height 64px (literal); radius `radius.sm`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=x-large, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 68px (literal); build height 72px (literal); radius `radius.lg`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=x-large, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 68px (literal); build height 72px (literal); radius `radius.lg`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=x-large, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 68px (literal); build height 72px (literal); radius `radius.lg`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=x-large, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 68px (literal); build height 72px (literal); radius `radius.lg`; stroke `focus.ring.width` |
 | `container/content` | `space.0` | — | — | — | — | — |
 | `container/content/caret` | — | — | `icon.size.xl` | `border-width.hairline` | — | — |
+
+**size=x-large, state=focus-visible-filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 68px (literal); build height 72px (literal); radius `radius.lg`; stroke `focus.ring.width` |
+| `container/content` | `space.0` | — | — | — | — | — |
+
+**size=x-large, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 32px (literal) | build width 68px (literal); build height 72px (literal); radius `radius.lg`; stroke `border-width.hairline` |
+| `container/content` | `space.0` | — | — | — | — | — |
 
 ### Type
 
@@ -150,57 +292,89 @@ Keyed by `size`.
 | size=medium | `container/content/digit` | `type.title.sm.strong` |
 | size=small | `container/content/digit` | `type.body.md.default` |
 | size=large | `container/content/digit` | `type.title.md.strong` |
-| size=xlarge | `container/content/digit` | `type.title.2xl.strong` |
+| size=x-large | `container/content/digit` | `type.title.2xl.strong` |
 
 ### Color
 
-Keyed by `state`.
+Keyed by `status`, `state`.
 
-**state=rest**
+**status=default, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.field.fill` | `color.field.border.rest` | — | — |
 
-**state=hover**
+**status=default, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.field.fill` | `color.field.border.hover` | — | — |
 
-**state=filled**
+**status=default, state=filled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.field.fill` | `color.field.border.rest` | — | — |
 | `container/content/digit` | — | — | `color.text.primary` | — |
 
-**state=focus-visible**
+**status=default, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.field.fill` | `color.border.focus` | — | — |
 | `container/content/caret` | `color.text.primary` | — | — | — |
 
-**state=focus-visible-filled**
+**status=default, state=focus-visible-filled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.field.fill` | `color.border.focus` | — | — |
 | `container/content/digit` | — | — | `color.text.primary` | — |
 
-**state=disabled**
+**status=default, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.disabled.fill` | `color.disabled.border` | — | — |
 
-**state=error**
+**status=error, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.field.fill` | `color.border.danger` | — | — |
+
+**status=error, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.field.fill` | `color.border.danger` | — | — |
+
+**status=error, state=filled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.field.fill` | `color.border.danger` | — | — |
 | `container/content/digit` | — | — | `color.text.primary` | — |
+
+**status=error, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/content/caret` | `color.text.primary` | — | — | — |
+
+**status=error, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/content/digit` | — | — | `color.text.primary` | — |
+
+**status=error, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.disabled.fill` | `color.disabled.border` | — | — |
 
 ### Nesting and properties
 

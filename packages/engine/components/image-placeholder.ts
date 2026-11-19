@@ -227,7 +227,7 @@ export const imagePlaceholder: ComponentDef = {
   },
 
   accessibility: {
-    role: 'img once it holds an image: with a descriptive accessible name when the image is informative, or an empty alt (alt="") when it is decorative, which removes it from the accessibility tree. The empty frame is presentational. The "no image" marker inside it is decorative and aria-hidden; it is a visual affordance, not the accessible content.',
+    role: 'img once it holds an image: with a descriptive accessible name when the image is informative, or an empty `alt` (`alt=""`) when it is decorative, which removes it from the accessibility tree. The empty frame is presentational. The "no image" marker inside it is decorative and `aria-hidden`; it is a visual affordance, not the accessible content.',
     wcag: [
       '1.1.1 Non-text Content — an image placeholder that ships as a real image needs a text alternative describing it, or an empty alt="" when the image is decorative (an omitted alt and an empty one behave oppositely); the empty-state marker is decorative and is hidden from assistive tech',
       '1.4.11 Non-text Contrast — where the frame edge is a meaningful boundary, verify it against the surface behind it; the neutral fill is a background, not a UI boundary carrying meaning',
@@ -246,7 +246,7 @@ export const imagePlaceholder: ComponentDef = {
     do: [
       'Pick the ratio from the media the frame will hold, and let the lock keep it while the size flexes',
       'Drop the photograph on as an image fill — the frame is the container, not a swappable slot — and turn the marker property off once it is in',
-      'Give an informative image an accessible name and a decorative one an empty alt; keep the empty-state marker decorative and aria-hidden',
+      'Give an informative image an accessible name and a decorative one an empty `alt`; keep the empty-state marker decorative and `aria-hidden`',
       'Let the frame clip — a photo cropped to the ratio reads better than one that overflows the layout',
     ],
     dont: [
@@ -261,7 +261,7 @@ export const imagePlaceholder: ComponentDef = {
 
   ai: {
     primaryPurpose: 'Reserve space for a photograph at a fixed aspect ratio, holding the proportion while the frame flexes to its container, and show a neutral empty state until an image is dropped in.',
-    whenToUse: 'A layout needs a media slot at a known proportion before the image is chosen — a card\'s photo area, a hero, a gallery cell. Pick a ratio from the media it will hold (2:3, 3:4 or 4:5 portrait, 1:1, 4:3, 3:2 or 16:9 landscape); the frame keeps that ratio as it resizes and clips whatever image is dropped onto it. Once an image is supplied, turn the marker property off so the "no image" marker does not draw over it.',
+    whenToUse: 'A layout needs a media slot at a known proportion before the image is chosen — a card\'s photo area, a hero, a gallery cell. Pick a ratio from the media it will hold (2:3, 3:4 or 4:5 portrait, 1:1, 4:3, 3:2 or 16:9 landscape); the frame keeps that ratio as it resizes and clips whatever image is dropped onto it.',
     avoidWhen: 'The surface is a decorative wash over an existing photo (that is the veil component), the image is already present and fixed (place it directly), or the space needs a play button over the media (not built yet — this is the core empty-state frame only) or a legibility scrim over it (the veil component).',
     // `veil` sits over an image this frame holds; it is not nested, so it is a partner, not a part (#1700).
     commonPartners: ['icon', 'veil'],

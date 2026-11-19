@@ -781,7 +781,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "Strongest border / divider",
+      "description": "Strongest border / divider — 3:1 on background/primary",
       "value": {
         "r": 0.43921568989753723,
         "g": 0.4627451002597809,
@@ -2750,14 +2750,14 @@
       ],
       "description": "Disabled control border — muted neutral",
       "value": {
-        "r": 0.20392157137393951,
-        "g": 0.21960784494876862,
-        "b": 0.23529411852359772,
+        "r": 0.38823530077934265,
+        "g": 0.4156862795352936,
+        "b": 0.43529412150382996,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/750"
+        "name": "nbds/core/palette/neutral/550"
       }
     },
     {
@@ -2824,7 +2824,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Media veil — 50% black wash over an image to lift light text. Check contrast on your photo.",
+      "description": "Media veil — 50% black wash over an image to lift light text. Contrast depends on the photo.",
       "value": {
         "r": 0,
         "g": 0,
@@ -2843,7 +2843,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Media veil — 60% black wash over an image to lift light text. Check contrast on your photo.",
+      "description": "Media veil — 60% black wash over an image to lift light text. Contrast depends on the photo.",
       "value": {
         "r": 0,
         "g": 0,
@@ -2862,7 +2862,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Media veil — 70% black wash over an image to lift light text. Check contrast on your photo.",
+      "description": "Media veil — 70% black wash over an image to lift light text. Contrast depends on the photo.",
       "value": {
         "r": 0,
         "g": 0,
@@ -2900,7 +2900,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Media veil — 40% white wash over an image to lift dark text. Check contrast on your photo.",
+      "description": "Media veil — 40% white wash over an image to lift dark text. Contrast depends on the photo.",
       "value": {
         "r": 1,
         "g": 1,
@@ -2919,7 +2919,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Media veil — 50% white wash over an image to lift dark text. Check contrast on your photo.",
+      "description": "Media veil — 50% white wash over an image to lift dark text. Contrast depends on the photo.",
       "value": {
         "r": 1,
         "g": 1,
@@ -2938,7 +2938,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Media veil — 60% white wash over an image to lift dark text. Check contrast on your photo.",
+      "description": "Media veil — 60% white wash over an image to lift dark text. Contrast depends on the photo.",
       "value": {
         "r": 1,
         "g": 1,
@@ -5563,14 +5563,14 @@
       ],
       "description": "Disabled control border — muted neutral",
       "value": {
-        "r": 0.6941176652908325,
-        "g": 0.7058823704719543,
-        "b": 0.7215686440467834,
+        "r": 0.4901960790157318,
+        "g": 0.5137255191802979,
+        "b": 0.529411792755127,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/250"
+        "name": "nbds/core/palette/neutral/450"
       }
     },
     {

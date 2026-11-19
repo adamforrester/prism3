@@ -11,12 +11,13 @@
  * settings are not in the report`; `brandWords` left out of the scrub → `Q116 opt-in: off, the brand's prefix and name
  * are replaced`; the hex rule dropped from `scrub` → `no keys: a long hex run is removed`; the token rule dropped →
  * `no keys: a token-shaped run is removed`; the Figma URL rule dropped → `no file names: a Figma file link is removed`;
- * `issueUrl` not cutting → `link: a long report is cut to fit`; `isIssueUrl` accepting any https URL → `link: the
- * plugin opens nothing but the issue form`.
+ * `isIssueUrl` accepting any https URL → `link: the plugin opens nothing but the issue form`. Since the owner's
+ * 2026-11-17 direction the link carries the title and a paste instruction alone: the report given back to `issueUrl`
+ * as its body → `paste: the issue opens with the title and the instruction alone`.
  *
  * The review at 03d62700 (findings 1, 2, 3, 5, 6), each fixture the reviewer's: short words matched by substring, or
- * not at all → `#3522 R1 …`; the cut not backing off a high surrogate → `#3522 R2 link: a cut inside an emoji …`;
- * `URL_LIMIT` raised past the literal 7000 → `#3522 R3 link: a long report is cut to at most 7000`; `isIssueUrl`'s
+ * not at all → `#3522 R1 …`; `URL_LIMIT` raised past the literal 7000 → `#3522 R3 link: the main thread opens no issue
+ * URL over 7000` (the cut and its #3522 R2 surrogate arm went with the 2026-11-17 change: the link holds no report); `isIssueUrl`'s
  * length bound dropped → `#3522 R3 link: an issue URL over 7000 is not opened`; a scrub rule dropped → its `#3522 R5`
  * arm; the verdict left unscrubbed → `#3522 R6 …`.
  *
@@ -25,16 +26,41 @@
  * `customModes[].name` left out → `#3523 Q147 opt-in: off, a custom mode name is replaced`; either matched by substring
  * instead of as a whole segment → `#3523 Q147 a palette or mode name inside an ordinary word is left`.
  *
- * #3525 review finding 1 (a name next to `,` `:` `;` `(` `)` leaked): `SEGMENT` narrowed back to `/.\\- "'` → each
+ * #3561 (owner decision A: every brand-authored path segment is a brand word): `interactivePalettes[].name`,
+ * `glassRoles` keys or `gradients[].name` left out of `brandWords` → the matching `#3561 A opt-in: off, … is replaced`
+ * arm, and `#3561 A every brand-authored segment the engine emits is replaced … LEAKED <name>`, which finds the authored
+ * segments by building the brand twice with every authored name renamed, not from `brandWords`' own list.
+ *
+ * #3525 review finding 1 (a name next to `,` `:` `;` `(` `)` leaked): `SEGMENT` narrowed to a list like `/.\\- "'` → each
  * `#3525 R1 … bounded by punctuation is replaced (…)` arm; letters added to `SEGMENT` → `#3525 R1 an ordinary word
  * holding a name stays whole next to punctuation` and `#3525 R1 a short root inside an ordinary word stays whole …`.
  * Delta review: curly quotes, the backtick or `{}` dropped, or straight quotes dropped → the matching quote arm of
  * `#3525 R1 … bounded by punctuation is replaced (…)`; `0-9` added → `#3525 R1 an ordinary word holding a name stays whole …`.
+ *
+ * #3697 H4 (every string leaf of the brand input is a brand word, the engine's closed words excepted): a value put in
+ * `ENGINE_VOCABULARY` that the schema does not close → `#3697 H4 every engine word … is a value the schema closes`,
+ * read from `theme-schema.json`, not from the list; typeface families dropped from `brandWords` → `#3697 H4 opt-in:
+ * off, a typeface family is replaced`. The same drop fails `apps/plugin/test-report-redaction.ts` over the plugin's
+ * own lines. D3703.1 B (the drawer keeps the host's message; only the report reduces a `write failed:` or `prune failed:`
+ * line to the error's class): `reduceFailure` dropped from `buildReport` → `#3697 H4 D3703.1 B a thrown write's and
+ * prune's lines keep the error's class, not the host's message`. #3702 (every other line that carries a host's message):
+ * the `DETAIL` rule dropped from `reduceLine` → `#3702 component build: the report keeps the error's class, not the host's
+ * message`, and each other site of the table by name. #3702 review: `HEAD_DETAIL`'s class back to `…Error` → `#3702
+ * review, class DOMException: …` (and `FigmaException`, `invariant`); the refused-writes name back to `[^:()]*` →
+ * `#3702 review, refused writes, a renamed variable: …`. #3702 second review: `HEAD_DETAIL` ending in `.*$` again →
+ * `#3702 second review, U+2028 in a DOMException's message: …` (and CR, U+2029); `DETAIL` ending in `.*$` again → `#3702
+ * second review, U+2028 in a Error's message: …` (and TypeError; CR, U+2029), through its headless `Run stopped (` line.
  */
-import { brandWords, buildReport, isIssueUrl, issueUrl, scrub, ISSUE_BASE, URL_LIMIT, type ReportInput } from './src/state/report';
+import * as reportModule from './src/state/report';
+import { ENGINE_VOCABULARY, brandWords, buildReport, isIssueUrl, issueUrl, scrub, ISSUE_BASE, URL_LIMIT, type ReportInput } from './src/state/report';
+import { brandTheme, type BrandInput, buildTree, EXAMPLE_BRANDS_JSON } from '@prism3/engine';
+import * as store from './src/state/store';
+import { readFileSync } from 'node:fs';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -42,7 +68,7 @@ const ok = (cond: boolean, label: string): void => {
 // A brand with an id, a display name and a token root, as a client's would carry. Fictional.
 const BRAND = { id: 'harbor', name: 'Harbor Fleet', root: 'hbr', primary: 'oklch(0.55 0.2 250)' };
 const BASE: ReportInput = {
-  stamp: '2026-11-07T21:00:00Z tree-a59be505 0899c2d5', engine: '0.237.0', host: 'figma', brand: BRAND, includeBrand: false,
+  stamp: '2026-11-07T21:00:00Z tree-a59be505 0899c2d5', engine: '0.237.0', host: 'figma', brand: BRAND, includeBrand: false, seen: [],
   activity: [
     { title: 'Apply Theme', verdict: '✗ 1 conflict', lines: ['Nothing was written. 1 conflict with existing content: variable "hbr/color/background/primary" is STRING in "color"'], agent: false },
     { title: 'Build', verdict: '✓ built', lines: ['button: 24 members, Harbor Fleet look'], agent: true },
@@ -113,6 +139,242 @@ ok(namedOff.includes('tidewaters and overnight-watchers stay'), '#3523 Q147 a pa
 const namedOn = buildReport({ ...BASE, brand: NAMED, includeBrand: true, activity: [{ title: 'Apply Theme', verdict: '✓ applied, mode night-watch', lines: ['wrote hf/core/palette/tidewater/500'], agent: false }] });
 ok(namedOn.includes('wrote hf/core/palette/tidewater/500') && namedOn.includes('mode night-watch'), '#3523 Q147 opt-in: on, palette and mode names are left in');
 
+// ── #3561 (owner decision A): EVERY brand-authored path segment is a brand word ──
+// The issue's reproduction, word for word: a collision refusal naming an interactive palette's and a glass role's variable.
+const AUTHORED = { id: 'harbor', root: 'hds', brandColors: [{ name: 'tidewater', oklch: { l: 0.6, c: 0.1, h: 200 } }],
+  interactivePalettes: [{ palette: 'tidewater', name: 'seaside' }], glassRoles: { lagoon: { palette: 'tidewater.500', alpha: 40 } },
+  gradients: [{ name: 'sunrise', stops: [{ palette: 'tidewater', step: 300, position: 0 }, { palette: 'primary', step: 600, position: 1 }] }] };
+const collide = 'Nothing was written. 2 conflicts with existing content: variable "hds/color/interactive/seaside/fill/rest" is STRING in "color"; variable "hds/color/glass/lagoon" is FLOAT in "color"; gradient hds/gradient/sunrise';
+const authoredOff = buildReport({ ...BASE, brand: AUTHORED, activity: [{ title: 'Apply Theme', verdict: '✗ 2 conflicts', lines: [collide, 'a seasides lagoons sunrises line stays'], agent: false }] });
+ok(authoredOff.includes('"[brand]/color/interactive/[brand]/fill/rest"') && !/\bseaside\//.test(authoredOff),
+  '#3561 A opt-in: off, an interactive palette name is replaced with [brand] (color/interactive/seaside)');
+ok(authoredOff.includes('"[brand]/color/glass/[brand]"') && !/glass\/lagoon/.test(authoredOff),
+  '#3561 A opt-in: off, a glass role key is replaced with [brand] (color/glass/lagoon)');
+ok(authoredOff.includes('gradient [brand]/gradient/[brand]') && !/gradient\/sunrise/.test(authoredOff),
+  '#3561 A opt-in: off, a gradient name is replaced with [brand] (gradient/sunrise)');
+ok(authoredOff.includes('a seasides lagoons sunrises line stays'), '#3561 A an authored name inside an ordinary word is left: only a whole segment is replaced');
+ok(brandWords({ ...AUTHORED, gradients: true }).every((w) => typeof w === 'string' || w.whole !== 'brand'),
+  '#3561 A `gradients: true` names no gradient: the engine\'s default set adds no brand word');
+const authoredOn = buildReport({ ...BASE, brand: AUTHORED, includeBrand: true, activity: [{ title: 'Apply Theme', verdict: '✗ 2 conflicts', lines: [collide], agent: false }] });
+ok(authoredOn.includes('hds/color/interactive/seaside/fill/rest') && authoredOn.includes('hds/color/glass/lagoon'), '#3561 A opt-in: on, authored names are left in');
+
+// REPRESENTED, NOT LISTED (docs/34): which segments the author named is read from the ENGINE, not from `brandWords`'
+// field list. The same brand is built twice, every authored name renamed and nothing else changed: a key that differs
+// between the two trees can only have come from the author. Every one of them, in every token path the brand emits
+// (and every mode key), must come out of a scrubbed line as [brand].
+{
+  const ALT: Record<string, string> = { tidewater: 'brinewood', 'night-watch': 'dog-watch', seaside: 'shoreline', lagoon: 'estuary', sunrise: 'daybreak' };
+  const mk = (n: (w: string) => string): BrandInput => ({ id: 'harbor', root: 'hds', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 },
+    brandColors: [{ name: n('tidewater'), oklch: { l: 0.6, c: 0.1, h: 200 } }], customModes: [{ name: n('night-watch'), base: 'dark' }],
+    interactivePalettes: [{ palette: n('tidewater'), name: n('seaside') }], glassRoles: { [n('lagoon')]: { palette: `${n('tidewater')}.500`, alpha: 40 } },
+    gradients: [{ name: n('sunrise'), stops: [{ palette: n('tidewater'), step: 300, position: 0 }, { palette: 'primary', step: 600, position: 1 }] }] } as BrandInput);
+  const keysOf = (b: BrandInput): Set<string> => {
+    const out = new Set<string>();
+    const walk = (o: unknown): void => { if (!o || typeof o !== 'object') return; for (const [k, v] of Object.entries(o)) { if (!k.startsWith('$')) out.add(k); walk(v); } };
+    walk(buildTree(brandTheme(b)).tree);
+    return out;
+  };
+  const paths = (b: BrandInput): string[] => {
+    const out: string[] = [];
+    const walk = (o: unknown, at: string[]): void => { if (!o || typeof o !== 'object') return; for (const [k, v] of Object.entries(o)) { if (k.startsWith('$')) continue; if (v && typeof v === 'object' && '$value' in v) out.push([...at, k].join('/')); walk(v, [...at, k]); } };
+    walk(buildTree(brandTheme(b)).tree, []);
+    return out;
+  };
+  const real = mk((w) => w), alt = mk((w) => ALT[w]);
+  const realKeys = keysOf(real), altKeys = keysOf(alt);
+  const authored = [...realKeys].filter((k) => !altKeys.has(k));
+  const realPaths = paths(real);
+  // The diff must find each name the fixture authors, or the arm below would pass on an empty set.
+  ok(Object.keys(ALT).every((w) => authored.includes(w)),
+    `#3561 A the engine emits every authored name as a key (${Object.keys(ALT).filter((w) => !authored.includes(w)).join(', ') || 'all found'}; diff ${JSON.stringify(authored)})`);
+  const words = brandWords(real as unknown as Record<string, unknown>);
+  // A compound key (`tidewater-500-alpha`, a glass role's alpha step) holds the name as a `-` segment: it leaks only if
+  // the key comes back whole. Mode names live under `$extensions`, never in a path, so a mode line carries them.
+  const leaked = authored.filter((seg) => realPaths.some((p) => p.split('/').includes(seg) && scrub(p, words).split('/').includes(seg)))
+    .concat(authored.filter((seg) => scrub(`mode ${seg}`, words).includes(seg)));
+  ok(leaked.length === 0 && realPaths.length > 100,
+    `#3561 A every brand-authored segment the engine emits is replaced with [brand] in every one of ${realPaths.length} token paths${leaked.length ? ` — LEAKED ${[...new Set(leaked)].join(', ')}` : ''}`);
+}
+
+// ── #3697 H4: every string leaf of the brand input, typeface families included ──
+{
+  // The schema's closed values, read from the schema: an engine word the list exempts must be one of them, or an
+  // authored word could pass the scrub. (A value the list misses is only over-redacted: the safe direction.)
+  const closed = new Set<string>();
+  const walk = (n: unknown): void => {
+    if (!n || typeof n !== 'object') return;
+    const o = n as Record<string, unknown>;
+    if (Array.isArray(o.enum)) for (const v of o.enum) if (typeof v === 'string') closed.add(v);
+    if (typeof o.const === 'string') closed.add(o.const);
+    for (const v of Object.values(o)) walk(v);
+  };
+  walk(JSON.parse(readFileSync(new URL('../../packages/engine/schema/theme-schema.json', import.meta.url), 'utf8')));
+  const open = [...ENGINE_VOCABULARY].filter((w) => !closed.has(w));
+  ok(open.length === 0 && closed.size > 50, `#3697 H4 every engine word the scrub keeps is a value the schema closes (${open.join(', ') || `all ${ENGINE_VOCABULARY.size} of ${closed.size}`})`);
+  const TYPED = { id: 'harbor', root: 'hfs', density: 'comfortable',
+    typography: { families: { display: 'Ivar Headline', body: 'Calibre Office' }, weights: { display: ['strong'] }, facePins: { display: { family: 'Ivar Headline', style: 'Hairline' } } } };
+  const typed = buildReport({ ...BASE, brand: TYPED, activity: [{ title: 'Apply Theme', verdict: '✓ applied, 1 skipped',
+    lines: ['⚠ 2 typefaces unavailable (Calibre Office|Regular, Ivar Headline Hairline)', 'type/display/strong, body text, comfortable density'], agent: false }] });
+  ok(typed.includes('⚠ 2 typefaces unavailable ([brand]|Regular, [brand] [brand])') && !/Calibre|Ivar/.test(typed),
+    '#3697 H4 opt-in: off, a typeface family is replaced with [brand], next to the `|` the plugin joins a face with');
+  ok(typed.includes('type/display/strong, body text, comfortable density'), '#3697 H4 the engine\'s own words stay: a closed value names no brand');
+  ok(brandWords({ id: 'harbor', actionPalette: 'primary', gradients: [{ name: 'dawn', stops: [{ palette: 'neutral' }] }] })
+    .every((w) => !['primary', 'neutral'].includes(typeof w === 'string' ? w : w.whole)), '#3697 H4 a reserved palette (primary, neutral) is the engine\'s name, not a brand word');
+}
+
+// ── #3697 H4, D3703.1 B: the drawer shows the host's message; the report keeps only the error's class ──
+// The lines are typed as the plugin posts them (`write failed: <Class>: <message>`), and every expected string is a
+// literal, so a `reduceFailure` dropped from `buildReport`, or one that keeps the message, fails here by name.
+{
+  const failedRep = (includeBrand: boolean): string => buildReport({ ...BASE, includeBrand, activity: [
+    { title: 'Apply Theme', verdict: '✗ write failed', lines: ['write failed: TypeError: cannot write to Checkout Hero / Q3 launch'], agent: false },
+    { title: 'Prune', verdict: '✗ failed', lines: ['prune failed: Error: in remove: node "Unannounced pricing"'], agent: true },
+    { title: 'Build', verdict: '✗ failed', lines: ['write failed: cannot write to Checkout Hero', 'member 3 failed to bind: Checkout Hero'], agent: false },
+  ] });
+  for (const on of [false, true]) {
+    const rep = failedRep(on);
+    ok(rep.includes('  - write failed: TypeError\n') && rep.includes('  - prune failed: Error\n') && !/Q3 launch|Unannounced|in remove/.test(rep),
+      `#3697 H4 D3703.1 B a thrown write's and prune's lines keep the error's class, not the host's message (brand ${on ? 'included' : 'left out'})`);
+  }
+  const rep = failedRep(false);
+  ok(rep.includes('  - write failed: Error\n'), '#3697 H4 D3703.1 B a failure line with no class at its head reads `Error`, never the message');
+  ok(rep.includes('  - member 3 failed to bind: Checkout Hero'), '#3697 H4 D3703.1 B a line that is not a write or prune failure is left as it is');
+}
+
+// ── #3702: every other line that carries a host's message keeps only the error's class in the report ──
+// D3703.1 B again: each line posts `failureDetail` (`<Class>: <message>`), the drawer shows it whole, and the report cuts
+// it to the class. Each line is typed as `main.ts` posts it, one per site #3702 names; each expected line is a literal.
+{
+  const SECRET = 'in appendChild: node "Checkout Hero / Q3 launch" on page "Unannounced"';
+  const cases: readonly [site: string, posted: string, reported: string][] = [
+    ['component build', `component build failed: TypeError: ${SECRET} — 2 nodes had already reached the file; they are parked in the frame 'Q3 launch' on this page`, 'component build failed: TypeError'],
+    ['canvas labels', `No canvas labels for button: Figma refused the write (Error: ${SECRET})`, 'No canvas labels for button: Figma refused the write (Error)'],
+    ['usage panel', `No usage panel for button: Figma refused the write (TypeError: ${SECRET})`, 'No usage panel for button: Figma refused the write (TypeError)'],
+    ['spec panel', `No spec panel for button: Figma refused the write (Error: ${SECRET})`, 'No spec panel for button: Figma refused the write (Error)'],
+    ['cover', `Cover: not drawn, Figma refused the write (Error: ${SECRET}).`, 'Cover: not drawn, Figma refused the write (Error)'],
+    ['engine plan', `button: can't be checked. the engine could not plan it (Error: ${SECRET}).`, 'button: can\'t be checked. the engine could not plan it (Error)'],
+    ['version save', `Sets not moved to their pages: the named version could not be saved (Error: ${SECRET}).`, 'Sets not moved to their pages: the named version could not be saved (Error)'],
+    ['file setup', `file setup failed: Error: ${SECRET}. Built from tree-test0000 at 2026-11-12T00:00:00Z.`, 'file setup failed: Error'],
+    ['style guide', `style guide failed: TypeError: ${SECRET}`, 'style guide failed: TypeError'],
+    ['read-back', `read-back failed: Error: ${SECRET}`, 'read-back failed: Error'],
+    ['cleanup', `Cleanup failed: Error: ${SECRET}`, 'Cleanup failed: Error'],
+    ['prune version', `Nothing removed — the named version could not be saved (Error: ${SECRET}).`, 'Nothing removed — the named version could not be saved (Error)'],
+    ['variable writes', `⚠ 3 variable writes refused by Figma (pds/color/blue: ${SECRET.slice(0, 60)})`, '⚠ 3 variable writes refused by Figma (pds/color/blue)'],
+  ];
+  for (const [site, posted, reported] of cases) {
+    const rep = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Run', verdict: '✗ failed', lines: [posted], agent: false }] });
+    const line = rep.split('\n').find((l) => l.startsWith('  - ')) ?? '';
+    ok(line === `  - ${reported}` && !/Checkout Hero|Q3 launch|Unannounced|appendChild/.test(rep),
+      `#3702 ${site}: the report keeps the error's class, not the host's message (${JSON.stringify(line)})`);
+  }
+  // A line of several, the host's message on one of them (`fileSetup`'s summary): only that line is cut.
+  const multi = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Set up file', verdict: '✓ file set up',
+    lines: [`pages: 2 created (Cover, Docs)\nSets not moved to their pages: the named version could not be saved (Error: ${SECRET}).\nCover: drawn.`], agent: false }] });
+  ok(multi.includes('pages: 2 created (Cover, Docs)\nSets not moved to their pages: the named version could not be saved (Error)\nCover: drawn.') && !/Checkout Hero|Unannounced/.test(multi),
+    `#3702 a multi-line summary: only the line with the host's message is cut (${JSON.stringify(multi.split('Activity').pop())})`);
+  // A line that only mentions an error, with no class-and-message detail, is left as it is.
+  const plain = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Run', verdict: '✓ done', lines: ['Errors: none', 'TypeError counts: 0 (button)'], agent: false }] });
+  ok(plain.includes('  - Errors: none\n') && plain.includes('  - TypeError counts: 0 (button)'), '#3702 a line with no class-and-message detail is left as it is');
+}
+
+// ── #3702 review: a class `errorClass` admits but `DETAIL`'s `…Error` does not, after every head a site posts ──
+// `errorClass` passes any one-word name (`DOMException`, a host's `FigmaException`, a lowercase `invariant`), so each
+// site's line is typed with each, and the report must keep the class alone. Heads typed here as `main.ts` posts them.
+{
+  const SECRET = 'page "SecretPage" is locked';
+  const sites: readonly [posted: (d: string) => string, reported: (c: string) => string][] = [
+    [(d) => `component build failed: ${d}`, (c) => `component build failed: ${c}`],
+    [(d) => `file setup failed: ${d}. Built from tree-test0000 at 2026-11-12T00:00:00Z.`, (c) => `file setup failed: ${c}`],
+    [(d) => `style guide failed: ${d}`, (c) => `style guide failed: ${c}`],
+    [(d) => `read-back failed: ${d}`, (c) => `read-back failed: ${c}`],
+    [(d) => `Cleanup failed: ${d}`, (c) => `Cleanup failed: ${c}`],
+    [(d) => `No canvas labels for button: Figma refused the write (${d})`, (c) => `No canvas labels for button: Figma refused the write (${c})`],
+    [(d) => `Cover: not drawn, Figma refused the write (${d}).`, (c) => `Cover: not drawn, Figma refused the write (${c})`],
+    [(d) => `button: can't be checked. the engine could not plan it (${d}).`, (c) => `button: can't be checked. the engine could not plan it (${c})`],
+    [(d) => `Sets not moved to their pages: the named version could not be saved (${d}).`, (c) => `Sets not moved to their pages: the named version could not be saved (${c})`],
+    [(d) => `Nothing removed — the named version could not be saved (${d}).`, (c) => `Nothing removed — the named version could not be saved (${c})`],
+  ];
+  for (const cls of ['DOMException', 'FigmaException', 'invariant']) {
+    const bad: string[] = [];
+    for (const [posted, reported] of sites) {
+      const rep = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Run', verdict: '✗ failed', lines: [posted(`${cls}: ${SECRET}`)], agent: false }] });
+      const line = rep.split('\n').find((l) => l.startsWith('  - ')) ?? '';
+      if (line !== `  - ${reported(cls)}` || rep.includes('SecretPage')) bad.push(line);
+    }
+    ok(bad.length === 0, `#3702 review, class ${cls}: after each of the ${sites.length} heads the report keeps the class, not the host's message (${JSON.stringify(bad)})`);
+  }
+}
+
+// ── #4257 review: a bare line, no head in front, thrown as a class that is not an `…Error` ──
+// Update file's four `main.ts` catches (the check or apply, Record as built, Adopt, Draw specs) post `failureDetail(e)`
+// as the whole line. With no head, only `DETAIL`'s class rule cuts it, so a host's `…Exception` must be a class there
+// too; an ordinary `Word: …` line is not a class and stays whole.
+{
+  const SECRET = 'in get_name: node "SecretLayer" on page "SecretPage"';
+  const bad: string[] = [];
+  for (const cls of ['DOMException', 'FigmaException', 'Exception', 'TypeError']) {
+    for (const [posted, reported] of [[`${cls}: ${SECRET}`, cls], [`Run stopped (${cls}: ${SECRET})`, `Run stopped (${cls})`]]) {
+      const rep = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Run', verdict: '✗ check failed', lines: [posted], agent: false }] });
+      const line = rep.split('\n').find((l) => l.startsWith('  - ')) ?? '';
+      if (line !== `  - ${reported}` || /Secret/.test(rep)) bad.push(line);
+    }
+  }
+  ok(bad.length === 0, `#4257 review: a bare line thrown as an …Exception keeps the class, not the host's message (${JSON.stringify(bad)})`);
+  const plain = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Run', verdict: '✓ done', lines: ['Note: keep this line', 'Exceptions: none', 'Exception counts: 0 (button)'], agent: false }] });
+  ok(plain.includes('  - Note: keep this line\n') && plain.includes('  - Exceptions: none\n') && plain.includes('  - Exception counts: 0 (button)'),
+    '#4257 review: a line that is not a class and its message is left as it is');
+}
+
+// ── #3702 second review: a line terminator inside a line, after every head a site posts ──
+// JS's `.` matches none of CR, U+2028 or U+2029, so a detail cut with `.*$` stopped short of them and the line went
+// through whole. `failureDetail` collapses them at the source; the report holds the cut whatever the producer does.
+// LF is the report's own line separator (`reduceFailure` splits on it), held at the source by `test-report-redaction.ts`.
+{
+  const SECRET = 'page "SecretPage" is locked';
+  const heads: readonly [posted: (d: string) => string, reported: (c: string) => string][] = [
+    [(d) => `component build failed: ${d}`, (c) => `component build failed: ${c}`],
+    [(d) => `file setup failed: ${d}. Built from tree-test0000 at 2026-11-12T00:00:00Z.`, (c) => `file setup failed: ${c}`],
+    [(d) => `style guide failed: ${d}`, (c) => `style guide failed: ${c}`],
+    [(d) => `read-back failed: ${d}`, (c) => `read-back failed: ${c}`],
+    [(d) => `Cleanup failed: ${d}`, (c) => `Cleanup failed: ${c}`],
+    [(d) => `No canvas labels for button: Figma refused the write (${d})`, (c) => `No canvas labels for button: Figma refused the write (${c})`],
+    [(d) => `button: can't be checked. the engine could not plan it (${d}).`, (c) => `button: can't be checked. the engine could not plan it (${c})`],
+    [(d) => `Sets not moved to their pages: the named version could not be saved (${d}).`, (c) => `Sets not moved to their pages: the named version could not be saved (${c})`],
+    [(d) => `write failed: ${d}`, (c) => `write failed: ${c}`],
+    [(d) => `Run stopped (${d})`, (c) => `Run stopped (${c})`],
+  ];
+  for (const [name, t] of [['CR', '\r'], ['U+2028', '\u2028'], ['U+2029', '\u2029']] as const) {
+    for (const cls of ['Error', 'TypeError', 'DOMException']) {
+      const bad: string[] = [];
+      for (const [i, [posted, reported]] of heads.entries()) {
+        if (i === heads.length - 1 && !cls.endsWith('Error')) continue; // no head: only `DETAIL`'s `…Error` rule applies
+        const rep = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Run', verdict: '✗ failed', lines: [posted(`${cls}: in loadAllPagesAsync: failed${t}${SECRET}`)], agent: false }] });
+        const line = rep.split('\n').find((l) => l.startsWith('  - ')) ?? '';
+        if (line !== `  - ${reported(cls)}` || rep.includes('SecretPage')) bad.push(line);
+      }
+      ok(bad.length === 0, `#3702 second review, ${name} in a ${cls}'s message: the report keeps the class, not the host's message (${JSON.stringify(bad)})`);
+    }
+  }
+}
+
+// ── #3702 review: the refused-writes note, when the variable's name holds `(` or `:` ──
+// A collision Rename writes a variable as `<name> (Prism3)` (#1909), and the host's reason can hold `: ` itself. The
+// report keeps the name, parentheses and all; with no `: ` outside the name's parentheses, it keeps nothing of either.
+{
+  const cases: readonly [label: string, posted: string, reported: string][] = [
+    ['a renamed variable', '⚠ 1 variable writes refused by Figma (hds/color/brand (Prism3): in set_value: SecretPage is locked)', '⚠ 1 variable writes refused by Figma (hds/color/brand (Prism3))'],
+    ['a name with a colon', '⚠ 2 variable writes refused by Figma (hds/ratio/16:9: in set_value: SecretPage is locked)', '⚠ 2 variable writes refused by Figma (hds/ratio/16:9)'],
+    ['an unclosed parenthesis', '⚠ 1 variable writes refused by Figma (hds/odd (x: in set_value: SecretPage is locked)', '⚠ 1 variable writes refused by Figma ([removed])'],
+    ['a clause of the one-line summary', 'applied · ⚠ 3 variable writes refused by Figma (hds/color/brand (Prism3): SecretPage) · 2 fonts', 'applied · ⚠ 3 variable writes refused by Figma (hds/color/brand (Prism3))'],
+  ];
+  for (const [label, posted, reported] of cases) {
+    const rep = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Apply Theme', verdict: '✓ applied', lines: [posted], agent: false }] });
+    const line = rep.split('\n').find((l) => l.startsWith('  - ')) ?? '';
+    ok(line === `  - ${reported}` && !rep.includes('SecretPage'),
+      `#3702 review, refused writes, ${label}: the report keeps at most the variable's name, never the host's reason (${JSON.stringify(line)})`);
+  }
+}
+
 // ── #3525 review finding 1: a name next to prose punctuation is still a whole segment ──
 // Each fixture is the reviewer's, or a plugin line shape it cited (`style-guide.ts` `per mode (…)`, `prune-figma.ts` `→ …;`).
 const PUNCT = brandWords(NAMED);
@@ -155,30 +417,96 @@ ok(scrub('ends hf\nhf starts\tthen hf', ROOT) === 'ends [brand]\n[brand] starts\
 ok(scrub('tidewaters\novernight-watch\tshelf', [...PUNCT, ...ROOT]) === 'tidewaters\novernight-watch\tshelf', '#3560 an ordinary word holding a name stays whole next to a newline or a tab');
 
 // ── the link ──
-const url = issueUrl(off);
-ok(url.startsWith(`${ISSUE_BASE}?title=Problem%20report&body=`) && decodeURIComponent(url.split('&body=')[1]) === off, 'link: the issue form, prefilled with the whole report');
+// The owner (2026-11-17): "prepopulate with the title, but then the body has instructions to paste the rest". The issue
+// opens with the title and a body that only asks for the report, which travels on the clipboard. The expected URL is
+// typed here whole, so a body built from the report, or any change to the title or the instruction, fails by name.
+// MUTATION: `issueUrl` given the report back as its body → `paste: the issue opens with the title and the instruction alone`.
+const PASTE_URL = 'https://github.com/adamforrester/prism3/issues/new?title=Problem%20report&body='
+  + 'Paste%20the%20report%20here%20%E2%80%94%20Prism3%20copies%20it%20to%20your%20clipboard%20as%20it%20opens%20this%20page.'
+  + '%20Copy%20in%20the%20Report%20a%20problem%20dialog%20copies%20it%20again.';
+const url = issueUrl();
+ok(url === PASTE_URL, `paste: the issue opens with the title and the instruction alone (${url})`);
 const long = buildReport({ ...BASE, activity: [{ title: 'Build', verdict: '✗ failed', lines: Array.from({ length: 400 }, (_, i) => `member ${i} failed to bind its fill`), agent: false }] });
-const cut = issueUrl(long);
+ok(!decodeURIComponent(url).includes('### Diagnostics') && !decodeURIComponent(url).includes(long.slice(0, 40)) && url.length < 400,
+  `paste: the link carries nothing from the report, whatever its length (${url.length} characters)`);
 // GitHub refuses a prefilled issue URL past roughly 8 KB (observed; GitHub does not document the figure), so the
 // ceiling is typed here as a literal, 7000, and never read from the module under test (docs/34).
 const GITHUB_SAFE = 7000;
-ok(URL_LIMIT <= GITHUB_SAFE && cut.length <= GITHUB_SAFE, `#3522 R3 link: a long report is cut to at most 7000 characters (${cut.length})`);
-ok(cut.length <= URL_LIMIT && decodeURIComponent(cut.split('&body=')[1]).endsWith('The full report is on your clipboard: paste it here.)'), `link: a long report is cut to fit (${cut.length} ≤ ${URL_LIMIT}) and says where the rest is`);
-ok(isIssueUrl(url) && isIssueUrl(cut), 'link: the plugin opens the issue form it built');
+ok(URL_LIMIT <= GITHUB_SAFE, `#3522 R3 link: the main thread opens no issue URL over 7000 characters (${URL_LIMIT})`);
+ok(isIssueUrl(url), 'link: the plugin opens the issue form it built');
 const over = `${ISSUE_BASE}?body=`.padEnd(7001, 'x');
 const atLimit = `${ISSUE_BASE}?body=`.padEnd(7000, 'x');
 ok(over.length === 7001 && !isIssueUrl(over), '#3522 R3 link: an issue URL over 7000 characters is not opened');
 ok(atLimit.length === 7000 && isIssueUrl(atLimit), '#3522 R3 link: an issue URL of exactly 7000 characters is opened');
-// #3522 review R2: a cut that lands inside an emoji (a surrogate pair) backs off it, and does not throw.
-const emoji = buildReport({ ...BASE, activity: [{ title: 'Build', verdict: '✗ failed', lines: Array.from({ length: 400 }, (_, i) => `member ${i} on page "🎨 Components"`), agent: false }] });
-let emojiCuts = 0;
-let emojiErr = '';
-for (let pad = 0; pad < 12; pad++) {
-  try { const u = issueUrl('x'.repeat(pad) + emoji); decodeURIComponent(u); if (u.length <= 7000) emojiCuts++; } catch (e) { emojiErr = String(e); }
-}
-ok(emojiCuts === 12 && !emojiErr, `#3522 R2 link: a cut inside an emoji backs off it, and the link still opens (${emojiCuts}/12 cut${emojiErr ? `, ${emojiErr}` : ''})`);
 ok(!isIssueUrl('https://example.com/collect?d=1') && !isIssueUrl('https://github.com/someone-else/repo/issues/new?body=x') && !isIssueUrl(`${ISSUE_BASE}x?body=1`) && !isIssueUrl(42),
   'link: the plugin opens nothing but the issue form');
 
-console.log(failed ? `\n✗ ${failed} check(s) failed` : '\n✓ report: all checks passed');
+// ── #3883: the words of every brand the session held, not only the one on screen ──
+// The Activity lines are each operation's latest result, which stays across a brand load, a rename and a failed
+// restore. A fictional client's run, then the report opened on a shipped example: before #3883 the scrub list came
+// from the example alone, and every client word went into the report.
+{
+  // Read through the namespace, so a tree without these (main before #3883) fails the arms by name, not at import.
+  const mergeWords = (reportModule as { mergeWords?: typeof reportModule.mergeWords }).mergeWords ?? ((...l: unknown[][]) => l.flat());
+  const sessionBrandWords = (store as { sessionBrandWords?: () => readonly unknown[] }).sessionBrandWords ?? (() => []);
+  const CLIENT = { id: 'acme', name: 'Acme Corp', root: 'acme', brandColors: [{ name: 'acmeblue', oklch: { l: 0.5, c: 0.1, h: 250 } }], customModes: [{ name: 'acme-night', base: 'dark' }], typography: { families: { body: 'Quillmark Sans Pro' } } };
+  const RUN = { title: 'Apply Theme', verdict: '✓ applied, mode acme-night', lines: ['wrote acme/core/palette/acmeblue/500', 'typefaces unavailable (Quillmark Sans Pro)'], agent: false };
+  const leaks = (t: string): string[] => ['acme', 'Acme', 'acmeblue', 'acme-night', 'Quillmark'].filter((w) => t.includes(w));
+  const example = (EXAMPLE_BRANDS_JSON as Record<string, Record<string, unknown>>).harbor!;
+  const later = buildReport({ ...BASE, brand: example, seen: brandWords(CLIENT), activity: [RUN] });
+  ok(leaks(later).length === 0 && later.includes('mode [brand]') && later.includes('[brand]/core/palette/[brand]/500'),
+    `#3883: a report on another brand scrubs the words of the brand the activity ran on (leaked: ${JSON.stringify(leaks(later))})`);
+  const later_on = buildReport({ ...BASE, brand: example, includeBrand: true, seen: brandWords(CLIENT), activity: [RUN] });
+  ok(leaks(later_on).length === 0 && later_on.includes('"id": "harbor"'),
+    `#3883: including the brand on screen includes it, and still scrubs an earlier brand's words (leaked: ${JSON.stringify(leaks(later_on))})`);
+  const same_on = buildReport({ ...BASE, brand: CLIENT, includeBrand: true, seen: brandWords(CLIENT), activity: [RUN] });
+  ok(same_on.includes('wrote acme/core/palette/acmeblue/500'),
+    '#3883: the included brand keeps its own words in the lines, though the session list holds them');
+  ok(JSON.stringify(mergeWords([{ whole: 'Acme' }], ['acme', 'b'], [{ whole: 'zz' }])) === JSON.stringify(['acme', { whole: 'zz' }, 'b']),
+    '#3883: mergeWords keeps one entry per word ignoring case, a plain string over { whole }, longest first');
+
+  // The session list, as the store collects it: the brand the session started on, a rename that resolved, and a load.
+  // A brand that resolves: the harbor example under the client's identity and typeface.
+  const client = { ...structuredClone(example), id: 'acme', name: 'Acme Corp', root: 'acme' } as Record<string, any>;
+  client.typography = { ...(client.typography ?? {}), families: { ...(client.typography?.families ?? {}), body: 'Quillmark Sans Pro' } };
+  store.initSession(client as unknown as BrandInput, { kind: 'file' });
+  store.brandState.root = 'acmeco';
+  store.rebuild();
+  store.loadInput(structuredClone((EXAMPLE_BRANDS_JSON as Record<string, unknown>).aurora) as BrandInput, { kind: 'example', id: 'aurora' });
+  const seen = sessionBrandWords() as ReturnType<typeof brandWords>;
+  const has = (w: string): boolean => seen.some((x) => (typeof x === 'string' ? x : x.whole).toLowerCase() === w);
+  const want = ['acme', 'acme corp', 'acmeco', 'quillmark sans pro', 'aurora'];
+  ok(want.every(has),
+    `#3883: the store keeps the words of every brand the session resolved: the first, a renamed root, a loaded example (missing: ${want.filter((w) => !has(w)).join(', ') || 'none'})`);
+  const viaStore = buildReport({ ...BASE, brand: store.lastGoodInput as unknown as Record<string, unknown>, seen, activity: [{ ...RUN, verdict: '✓ applied', lines: ['wrote acme/color/text/primary', 'wrote acmeco/color/text/primary', 'typefaces unavailable (Quillmark Sans Pro)'] }] });
+  ok(leaks(viaStore).length === 0, `#3883: a report built from the store's session list leaks no earlier brand's words (leaked: ${JSON.stringify(leaks(viaStore))})`);
+
+  // A rename skips `rebuild()`, so the post records its words (`postedInput`, review of #3961): rename the root the way
+  // Brand › Identity does (`syncIdentity`), post, then load another brand. The renamed root must still be on the list.
+  const postedInput = (store as { postedInput?: () => BrandInput }).postedInput ?? (() => store.lastGoodInput);
+  store.initSession(structuredClone(client) as unknown as BrandInput, { kind: 'file' });
+  store.brandState.root = 'acmezed';
+  store.syncIdentity();
+  const carried = postedInput();
+  store.loadInput(structuredClone((EXAMPLE_BRANDS_JSON as Record<string, unknown>).aurora) as BrandInput, { kind: 'example', id: 'aurora' });
+  ok(carried.root === 'acmezed' && (sessionBrandWords() as ReturnType<typeof brandWords>).some((x) => (typeof x === 'string' ? x : x.whole) === 'acmezed'),
+    '#3883: a renamed root that was posted without a rebuild stays on the session list after another brand loads');
+  // The brand the session starts on is noted by `initSession` itself, with no rebuild after it.
+  store.initSession(structuredClone(client) as unknown as BrandInput, { kind: 'file' });
+  ok((sessionBrandWords() as ReturnType<typeof brandWords>).some((x) => (typeof x === 'string' ? x : x.whole).toLowerCase() === 'quillmark sans pro'),
+    '#3883: initSession puts the starting brand\'s words on the session list before any rebuild');
+
+  // main.ts touches the DOM at import, so its wiring is read as source: every post that carries the brand records it
+  // first (a rename skips the rebuild, so a post is the one moment its words are known), and the report reads the list.
+  const main = readFileSync(new URL('./src/main.ts', import.meta.url), 'utf8');
+  const bare = main.match(/commit\.\w+\(lastGoodInput\b/g) ?? [];
+  ok(bare.length === 0 && /brandFor\(theme, posted\(\)\)/.test(main),
+    `#3883: no post to the host carries lastGoodInput without adding its words to the session (${bare.length} bare)`);
+  ok(/seen: mergeWords\(sessionBrandWords\(\)/.test(main) && /brand: briefInput\(\)/.test(main),
+    '#3883: the report reads the session list, and includes the failed restore\'s brand, not the boot demo');
+  ok(/const posted = postedInput;/.test(main) && /restoreFailure\?\.brand, heldRestore\]/.test(main),
+    '#3883: every post goes through the store\'s postedInput, and the scrub list takes a held restore\'s brand');
+}
+
+console.log(`${failed ? `\n✗ ${failed} check(s) failed` : '\n✓ report: all checks passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

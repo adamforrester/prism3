@@ -100,7 +100,7 @@ Two smaller traps worth inheriting rather than rediscovering:
   Type, Shape, Depth & motion and Layout (`DOMAINS`, `THEME_TABS`). Every lever edit runs the
   engine again, and the preview redraws.
 - ✅ **The brand menu** (`src/shell/bar.ts`) switches between the example brands, starts a
-  **+ New brand**, or opens **↑ Import design.md…**. An import is parsed (`parseDesignMd`) and then
+  **New brand**, or opens **Import design.md…**. An import is parsed (`parseDesignMd`) and then
   built (`brandTheme`) before it loads. If either refuses, the menu shows why and the working brand
   stays as it was (`validateDesignMd`, `src/state/start-input.ts`).
 - ✅ **Theme › Brand** holds the brand's **Identity** (name, and the namespace `root`, checked
@@ -110,6 +110,9 @@ Two smaller traps worth inheriting rather than rediscovering:
   set the preview's mode selector (`MODE_ROWS`, `src/state/brand-input.ts`).
 - ✅ **Export**, a rail area since #2909, offers **Design tokens**, **Brand brief** (the
   `design.md`, which imports back into Studio) and **Component specs** (`src/export-settings.ts`).
+  The last downloads `<brand>.component-contracts.json`, the brand's component contracts (#1325), the same
+  file as `<brand>.component-defs.json` for one release, and the Specs projection. The web Studio builds them from a
+  separate chunk, `dist/component-specs.js`, that it loads only when Download is clicked (#3429).
   Design tokens are the consumer set, since #2552: `<brand>.base.tokens.json` plus one
   `<brand>.<mode>.overlay.tokens.json` per mode, with no `$extensions`. *Include build metadata*,
   off by default, keeps them. Studio never offers the single-file tree, because it holds the

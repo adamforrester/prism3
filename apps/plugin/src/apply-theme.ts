@@ -15,26 +15,24 @@
  *
  * Compiled under `tsconfig.main.json` (plugin-typings, no `dom`).
  */
-import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration } from './write-figma';
+import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration, unownedCore } from './write-figma';
 import { applyStylesPlan } from './write-styles';
 import { applyGridStylePlan } from './write-grid-styles';
 import { applyTextStylePlan } from './write-text-styles';
 import { renameStylesForPlan, renameTextStylesForPlan } from './rename-styles';
-import { guardApply, preflightApply, preflightPlanOf, COLOR_NAMES } from './preflight';
+import { guardApply, preflightApply, preflightPlanOf, bindingCollectionsOf, COLOR_NAMES } from './preflight';
 import { conflictKey, resolveCollisions, type CollisionChoices, type ChoiceTally } from './collision-choice';
 
 /** How many times one apply resolves the person's choices before the guarded pre-flight decides (#1909). Each pass needs
  *  a choice for a collision the last pass made, which only a renamed name already taken does; this bounds it. */
 const RESOLVE_PASSES = 8;
-import { preloadFonts } from './preload-fonts';
+import { preloadFonts, availableStylesByFamily, resolveCutPlan } from './preload-fonts';
 import { persistInput, restoreInput } from './persist-figma';
 import { emissionOf, stampEmission } from './theme-emission';
 import { fontPreloadApiOf, preflightApiOf, textApiOf } from './theme-ports';
 import type { ThemeHost } from './theme-ports';
-import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
-import { brandTheme } from '@prism3/engine/theme';
-import type { BrandInput } from '@prism3/engine/theme';
+import { buildFigmaColor, buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan } from '@prism3/engine/figma';
+import { brandTheme, type BrandInput } from '@prism3/engine';
 
 export type { ThemeHost };
 
@@ -107,6 +105,10 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
   // with harbor's style name, a pair in neither plan), so this reads the file's styles as well as the
   // plan. It never throws: a typeface this Figma genuinely lacks is reported, not fatal.
   const pf = await preloadFonts(textPlan, fontPreloadApiOf(host));
+  // THE CUT VARIABLES IN EACH FAMILY'S OWN SPELLING (#1728), resolved before the variable stage writes them, so no
+  // stage writes a cut the family lacks under that name (Playfair's `SemiBold Italic`, not the engine's `Semi Bold
+  // Italic`). Only the values the variable stage writes change: the pre-flight and the print read the plans as built.
+  const cutPlan = resolveCutPlan(fontPlan, textPlan, await availableStylesByFamily(fontPreloadApiOf(host)));
   // THE BRAND THIS APPLY REPLACES (#2695), read before the write persists the new one, so the report can say when the
   // field style moved (`field-style-note.ts`). An unreadable store reads as none, as every other restore here does.
   let before: BrandInput | null = null;
@@ -122,6 +124,11 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       // THE NAMED VERSION (#2828), after the pre-flight passed and before the first write, so a refused apply saves none.
       // The rename pass below is a write too. A host that refuses throws here and nothing is written.
       await beforeWrite?.();
+      // THE IN-PROGRESS MARK (#3697 M3): the print of what was written is cleared before the first write and stamped again
+      // after the last. A run that throws part-way, or a plugin closed mid-run, leaves new variables under the old stored
+      // brand; with the old print beside it, the recount (`themeDue`) read the file as matching that brand. With no print,
+      // the file reads as due until a whole run stamps it (`theme-emission.ts`: a file with no print reads as differing).
+      stampEmission(host.root, '');
       // ONE rename pass across all four variable executors (#1013). Built here rather than inside each
       // one because the static validation must happen once, before any write, and because a designer
       // reads a single list of what moved — not four. Since #1035 constructing it also RENAMES THE
@@ -133,6 +140,9 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       // `beginMigration` is independent of how many entries the map holds, and a future entry can
       // reintroduce a chain without a change on this line.
       const mig = await beginMigration(host.variables);
+      // THE BINDING TARGETS' COLLECTIONS (#1904): the ones the pre-flight checked, so every style, text-style and wash
+      // binding below resolves where it looked. After the rename pre-pass, so each carries the name the writers find.
+      const bindIn = bindingCollectionsOf(preflightPlanOf(exec, names));
       // FLOAT axes (#146): core/dimension, space/radius/size/border-width/focus/opacity + layout. FIRST, since
       // the tinted wash moved into its variable (#1614, #1646): a wash's color value aliases an `opacity/<n>`
       // variable, so the opacity collection must exist before the color pass binds it. Nothing in the FLOAT
@@ -143,14 +153,14 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       // The pointer-tier executor that used to run next went with the tier (#1148) — there is no second
       // collection to alias into, so the cross-call ordering dependency it existed for is gone too.
       await pace?.stage('color', 1);
-      const r = await applyWritePlan(colorPlan, host.variables, mig, pace?.tick, names);
+      const r = await applyWritePlan(colorPlan, host.variables, mig, pace?.tick, names, bindIn);
       // STYLE axes (shadow/gradient lane): Effect Styles (shadow/* + shadow-dark/*) + Paint Styles
       // (gradients, baked stops). The global `figma` structurally satisfies the StylesApi port.
       await pace?.stage('styles', 2);
       // THE STYLE RENAME PASS (#1040): a style the engine renamed takes its new name in place first, so the writer
       // finds it under that name and the layers using it follow. A no-op while the record is empty.
       const sr = await renameStylesForPlan(stylesPlan, host);
-      const s = await applyStylesPlan(stylesPlan, host, pace?.tick);
+      const s = await applyStylesPlan(stylesPlan, host, pace?.tick, bindIn);
       // GRID STYLES (#1480): one reusable Figma Grid Style per breakpoint (`sm`, …; renamed in place from `Grid / sm`, #2467), sourced from
       // the same layout data as the numeric `layout` collection. STATIC — a grid style cannot mode-switch
       // off a variable — so N breakpoints = N styles, coexisting with the variables (the responsive source
@@ -161,21 +171,28 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       // TYPOGRAPHY (#237): core/font + type-sets variables first (bound targets must exist), then Text
       // Styles.
       await pace?.stage('type-vars', 4);
-      const tv = await applyVarCollectionPlan(fontPlan, host.variables, mig, pace?.tick);
+      const tv = await applyVarCollectionPlan(cutPlan.plans, host.variables, mig, pace?.tick);
       // The Text Style port needs figma's style/font surface + figma.variables' getter (`theme-ports.ts`).
       await pace?.stage('text-styles', 5);
       const tr = await renameTextStylesForPlan(textPlan, textApiOf(host));   // #1040, as for the styles above
-      const ts = await applyTextStylePlan(textPlan, textApiOf(host), pace?.tick);
+      const ts = await applyTextStylePlan(textPlan, textApiOf(host), pace?.tick, bindIn);
       // MOTION (#2412): TIMING durations + EASING curves, roles and springs, through the same mixed-type
       // executor. Independent of every other axis: nothing aliases into or out of `motion`.
       await pace?.stage('motion', 6);
       const mv = await applyVarCollectionPlan(motionPlan, host.variables, mig, pace?.tick);
+      // THE `core` VARIABLES NO SLICE OWNS (#1109), read after the three `core` writers ran: each reports its own slice,
+      // so a variable in a group none of them owns was in no report. Only here are all three slices in scope.
+      const uc = await unownedCore(host.variables, names.core, [
+        colorPlan.palette.map((r) => r.name),
+        ...floatPlan.filter((p) => p.name === names.core).map((p) => p.create.map((r) => r.name)),
+        ...fontPlan.filter((p) => p.name === names.core).map((p) => p.rows.map((r) => r.name)),
+      ], mig);
       // Persist the exact knobs alongside the variables (#131) — so re-opening this file rehydrates
       // the UI to THIS brand, not the default. Only after a real materialisation (inside the try).
       persistInput(host.root, input);
       // #3422 Q44.1 A: and the print of what was written, so the recount can tell an engine update apart (`theme-emission.ts`).
       stampEmission(host.root, emissionOf(plans));
-      return { mig, r, f, s, gs, tv, ts, mv, styleRenames: [...sr, ...tr] };
+      return { mig, r, f, s, gs, tv, ts, mv, uc, styleRenames: [...sr, ...tr] };
     },
   );
   return { plans, pf, guarded, before, chose, exec, names, applied };

@@ -65,6 +65,15 @@
  *   (iii) named by NO tracked file under `apps/` (both surfaces and every bundle entry live there) and not
  *         by `packages/engine/mcp.ts` — a file a shipped surface reads is a file that ships.
  *
+ * CLASSES 1 AND 2 ARE MEASURED, NOT TAKEN ON TRUST (#3698 §5). Class 1 used to be "covered automatically because
+ * both prose gates map over SCHEMA_ARTIFACTS", read off regen's list, and class 2 "hand-named", read off each gate's
+ * source text. Both are the classification's own words about the prose gates, so neither could fail when a prose
+ * gate stopped scanning a file: MEASURED, dropping `...SCHEMA_ARTIFACTS.map(...)` from `lint-voice.ts` left this gate
+ * and `lint-voice.ts` itself green, with three generated schema files unscanned. So the SCANNED arm asks each prose
+ * gate what it actually walks (`--files`, which exits before any scan, #1117) and requires every class 1 and class 2
+ * file in both lists, and every EXEMPT and class 4 file in neither. A commented-out `join(...)` line, which the source
+ * read still counts as naming the file, fails here too.
+ *
  * Class 2 requires BOTH gates, and that is the point rather than a convenience: they share one scope
  * rule, so a file in one and not the other is a DIVERGENCE, and at most one side of it can be right.
  * Requiring both means such a state cannot be reached silently — it has to be argued for by editing
@@ -111,7 +120,8 @@
  * SCOPE — `packages/engine/schema/**` as `git ls-files` reports it. Tracked files only: an untracked
  * file is not shipped, and would make the gate fail on a scratch file mid-work.
  */
-import { execSync } from 'node:child_process';
+import { execSync, spawnSync } from 'node:child_process';
+import { readListing } from './files-listing.ts';
 import { readFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -388,6 +398,37 @@ for (const { file } of MAINTAINER_ONLY) {
   }
 }
 
+// ---- SCANNED: what each prose gate actually walks (see the header) ---------------------------------
+const scannedBy = new Map<string, Set<string>>();
+for (const gate of PROSE_GATES) {
+  const r = spawnSync('npx', ['tsx', gate, '--files'], { cwd: repo, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
+  // A listing that failed or was cut off says so by name (#3843). The gate's count, on stderr, is checked against the
+  // lines that reached us: a cut-off listing once read here as "exited 0 and listed 0 schema file(s)".
+  const listing = readListing(r);
+  if ('fault' in listing) {
+    failures.push(`\`npx tsx ${gate} --files\`: ${listing.fault}`);
+    continue;
+  }
+  const prefix = `${SCHEMA_DIR}/`;
+  const files = new Set(listing.lines.filter((l) => l.startsWith(prefix)).map((l) => l.slice(prefix.length).trim()));
+  // Not looking is not clean: a whole listing that names no schema file is a blind run.
+  if (!files.size) {
+    failures.push(`SCANNED BLIND: \`npx tsx ${gate} --files\` listed ${listing.lines.length} file(s), whole, and none under ${prefix}, so what it scans in schema/ cannot be read.`);
+    continue;
+  }
+  scannedBy.set(gate, files);
+}
+if (scannedBy.size === PROSE_GATES.length) {
+  for (const file of [...classified.regen, ...classified['both-gates']]) {
+    const missing = PROSE_GATES.filter((g) => !scannedBy.get(g)!.has(file));
+    if (missing.length) failures.push(`NOT SCANNED: \`${file}\` is classified as prose-gated (${classified.regen.includes(file) ? 'SCHEMA_ARTIFACTS' : 'hand-named in both gates'}) but ${missing.join(', ')} --files does not list it, so its prose is checked by nobody there. Restore the gate's scan of it.`);
+  }
+  for (const file of [...classified.exempt, ...classified.maintainer]) {
+    const scanning = PROSE_GATES.filter((g) => scannedBy.get(g)!.has(file));
+    if (scanning.length) failures.push(`SCANNED BUT NOT CLASSED SO: \`${file}\` is ${classified.exempt.includes(file) ? 'EXEMPT' : 'maintainer-only'} here but ${scanning.join(', ')} --files lists it. Make the classification and the scan agree.`);
+  }
+}
+
 lines.push(`  ${onDisk.length} tracked file(s) in ${SCHEMA_DIR}, each classified once:`);
 lines.push(`    ${classified.regen.length} generated (SCHEMA_ARTIFACTS, both gates automatically): ${classified.regen.sort().join(' · ')}`);
 lines.push(`    ${classified['both-gates'].length} authored, prose-gated in both: ${classified['both-gates'].sort().join(' · ')}`);
@@ -404,7 +445,8 @@ if (failures.length) {
 }
 
 console.log(
-  '  ✓ clean — every schema file has a decided place, and no list names a file that is gone.\n' +
+  '  ✓ clean — every schema file has a decided place, no list names a file that is gone, and both prose gates scan\n' +
+    `    exactly the ${classified.regen.length + classified['both-gates'].length} files classed prose-gated (measured with --files).\n` +
     '    Note the limit: this proves a human wrote an answer down, not that the answer is right.\n' +
     '    Moving a prose-carrying file to EXEMPT passes. The `why` on each entry is what review reads.',
 );

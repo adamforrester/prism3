@@ -74,7 +74,7 @@
  * (`fileDue`) reading the stored brand whatever the panel sends → `q810/rises`; it reading the file's sets again each time
  * (`presentCache` unused) → `q810/cheap`; `guarded` keeping the sets it caches after a write → `q810/after a write`; its
  * Theme item compared without the keys sorted (`holdsInput`) → `q810/theme`; `guarded` keeping the sets a recount
- * cached mid-write once the write ends (its `.finally` clear dropped) → `q810/mid-write` (section 7); its `catch` posting
+ * cached mid-write once the write ends (its `.finally` clear dropped) → `q810/mid-write` (section 7a); its `catch` posting
  * no `error` (a failed read reaching the panel as a live answer with nothing due) → `q810/error`; #3137's panels census
  * (Q3137.3 A): the search dropped from `readPresent` → `q3137/premise`; `fileDue` reading the file again for it → `q3137/cheap`;
  * the switch not read on the recount → `q3137/off`; nor on the full read (`fileSets`) → `q3137/off read`; `fileDue` calling
@@ -87,11 +87,10 @@
 import { EXECUTOR_REACH } from './src/executor-reach';
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
+import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, componentDefs } from '@prism3/engine/components';
 import { SWAP_TARGET } from './src/build-deps';
-import { componentDefs } from '@prism3/engine/components/index';
-import type { BrandInput } from '@prism3/engine/theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import type { BrandInput } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { materializeForBrand, materializerFor } from './src/brand-def';
 import { entryFor } from './src/as-built-ledger';
 import { PANEL_FORMAT } from './src/doc-panel';
@@ -623,7 +622,7 @@ ok(!!first && /^set '.*refs across \d+ members$/.test(String(first.lines?.[0])) 
 // 5. #2995 (should-fix 2): Documentation's Cover switch, read by Set up file on the main thread (`main.ts` `fileSetup`).
 //    With the file's `prism3:docSettings` at `{"cover":false}` Set up file draws no cover and reports it off; the
 //    expected words are typed here, from #2977. Then the switch on: the cover is attempted, so the arm reads the switch.
-const COVER_OFF_WORDS = 'not drawn, the cover is off in Documentation';
+const COVER_OFF_WORDS = 'not drawn, the cover is off in Docs';
 const coverFrames = () => pages.flatMap((p) => p.children).filter((n) => { try { return !!(n as any).getSharedPluginData?.('prism3', 'cover'); } catch { return false; } });
 // Figma's `createComponent`, as the template builder above was given it: Set up file builds the file's components.
 shim.createComponent = () => shim.createComponentFromNode(shim.createFrame());
@@ -937,30 +936,48 @@ const heldResult = (async () => { for (let j = 0; j < 600; j++) { const r = post
 const duringHold = await ask({ type: 'hand-edits-request' }, 'hand-edits', (m) => m.done === true);
 // `ask` waits up to 6 s for `done`; a pass the guard ends posts neither a set nor `done`.
 ok(!duringHold.some((m) => typeof m.def === 'string'), `hand-edits/guard: while a build holds the guard, the pass reports no set before done (${JSON.stringify(duringHold)})`);
-// #3081 Q810 A: a setting changed during a long write. The write's start cleared the cached sets, so whatever fills the
-// cache now (the live recount asked while the build holds the guard, or the hand-edit pass just above) holds a mid-write
-// list. The write ending must clear it, so the recount after it reads the file once more. Page loads are counted on the
-// host, as in 6c.
-let midLoads = 0;
-const loadAll7 = shim.loadAllPagesAsync;
-shim.loadAllPagesAsync = async () => { midLoads++; return loadAll7?.(); };
-const dMid = (await ask({ type: 'due-request', input: brandB, seq: 8 }, 'file-due'))[0];
-const loadsMid = midLoads;
 shim.setCurrentPageAsync = setPage;
 release();
 await heldResult;
 await settled();
-midLoads = 0;
-const dEnd = (await ask({ type: 'due-request', input: brandB, seq: 9 }, 'file-due'))[0];
-ok(dMid?.seq === 8 && dEnd?.seq === 9 && midLoads === 1,
-  `q810/mid-write: a recount asked during a write answers from the sets cached mid-write, and the write ending clears them, so the recount after reads the file again (${loadsMid} page loads during, ${midLoads} after)`);
-shim.loadAllPagesAsync = loadAll7;
 let afterHold: any[] = [];
 for (let i = 0; i < 100 && !afterHold.some((m) => typeof m.def === 'string'); i++) {
   afterHold = await ask({ type: 'hand-edits-request' }, 'hand-edits', (m) => m.done === true);
   if (!afterHold.some((m) => typeof m.def === 'string')) await new Promise((res) => realTimeout(res, 50));
 }
 ok(afterHold.some((m) => m.def === 'badge') && afterHold.some((m) => m.done === true), `hand-edits/guard control: once the build ends, the same request reads the sets, then ends (${afterHold.length} answers)`);
+
+// 7a. #3081 Q810 A: a setting changed during a long write. The write's start cleared the cached sets, so whatever fills
+//     the cache now (the live recount asked while the build holds the guard) holds a mid-write list. The write ending
+//     must clear it, so the recount after it reads the file once more. Page loads are counted on the host, as in 6c.
+//     A hold of its own, with no hand-edit pass asked during it (#3804): a pass the write ended runs again as it ends and
+//     reads the file afresh, which would refill the cache whether or not the write's end cleared it.
+{
+  let release7a: () => void = () => undefined;
+  shim.setCurrentPageAsync = () => new Promise<void>((res) => { release7a = res; });
+  for (let i = 0; i < 1200; i++) {
+    posted.length = 0;
+    (shim.ui as { onmessage: (m: unknown) => void }).onmessage({ type: 'build-components', def: 'badge' });
+    await new Promise((res) => realTimeout(res, 5));
+    if (posted.some((m) => m?.type === 'refused')) { await new Promise((res) => realTimeout(res, 25)); continue; }
+    break;
+  }
+  const held7a = (async () => { for (let j = 0; j < 600; j++) { const r = posted.find((m) => m?.type === 'component-result'); if (r) return r; await new Promise((res) => realTimeout(res, 10)); } return null; })();
+  let midLoads = 0;
+  const loadAll7 = shim.loadAllPagesAsync;
+  shim.loadAllPagesAsync = async () => { midLoads++; return loadAll7?.(); };
+  const dMid = (await ask({ type: 'due-request', input: brandB, seq: 8 }, 'file-due'))[0];
+  const loadsMid = midLoads;
+  shim.setCurrentPageAsync = setPage;
+  release7a();
+  await held7a;
+  await settled();
+  midLoads = 0;
+  const dEnd = (await ask({ type: 'due-request', input: brandB, seq: 9 }, 'file-due'))[0];
+  ok(dMid?.seq === 8 && dEnd?.seq === 9 && midLoads === 1,
+    `q810/mid-write: a recount asked during a write answers from the sets cached mid-write, and the write ending clears them, so the recount after reads the file again (${loadsMid} page loads during, ${midLoads} after)`);
+  shim.loadAllPagesAsync = loadAll7;
+}
 
 // 8. #2830 Q2830.3 A: Documentation › Specs' Draw specs, the panel's `draw-specs`, through `main.ts`'s own switch and the
 //    real `drawSpecs`. It draws for the sets on the CURRENT page only: the file holds Badge and Switch row (sections 1 and
@@ -1007,7 +1024,7 @@ ok(JSON.stringify(specDefs()) === JSON.stringify([LEVER_DEF]) && !!drew && /^. d
   const refused = await askRun({ type: 'draw-specs' }, 'component-update-result');
   shim.createFrame = realFrame;
   shim.currentPage = shownPage;
-  const want = `No spec panel for ${LEVER_DEF}: Figma refused the write (in createFrame: refused)`;
+  const want = `No spec panel for ${LEVER_DEF}: Figma refused the write (Error: in createFrame: refused)`;
   ok(refused?.ok === false && refused?.headline === '⚠ drew 0 of 1 spec panels'
     && JSON.stringify(refused?.causes) === JSON.stringify([{ kind: 'warn', subject: null, what: 'drew 0 of 1 spec panels', reasons: [want] }]),
     `causes/draw specs refused: a panel the host refused is the verdict's cause, its line the reason (${JSON.stringify({ headline: refused?.headline, causes: refused?.causes })})`);
@@ -1028,7 +1045,7 @@ ok(JSON.stringify(specDefs()) === JSON.stringify([LEVER_DEF]) && !!drew && /^. d
   [host.appendChild, host.insertChild] = [app, ins];
   const parts = (id: string): string => `Parts of the spec panel for ${id} were not written (color/border/secondary; _Doc-block has no Type=Heading, Size=lg variant; _Doc-block has no Type=Paragraph, Size=md variant; …)`;
   const someWant = [{ kind: 'warn', subject: null, what: 'drew 3 of 4 spec panels',
-    reasons: [parts('focus-ring'), parts('switch-row'), 'No spec panel for badge: Figma refused the write (in appendChild: refused)', parts('divider')] }];
+    reasons: [parts('focus-ring'), parts('switch-row'), 'No spec panel for badge: Figma refused the write (Error: in appendChild: refused)', parts('divider')] }];
   ok(some?.ok === false && some?.headline === '⚠ drew 3 of 4 spec panels' && JSON.stringify(some?.causes) === JSON.stringify(someWant),
     `causes/draw specs some: a run that drew some panels is a warning, as its ⚠ headline, its items the reasons (${JSON.stringify({ headline: some?.headline, causes: some?.causes })})`);
   const find = root.findAllWithCriteria;
@@ -1036,7 +1053,7 @@ ok(JSON.stringify(specDefs()) === JSON.stringify([LEVER_DEF]) && !!drew && /^. d
   const threw = (await runAction((sink) => ACTIONS.drawSpecs(undefined, 'file', sink as never))).posts.find((m) => m?.type === 'component-update-result');
   root.findAllWithCriteria = find;
   ok(threw?.ok === false && threw?.headline === '✗ draw specs failed'
-    && JSON.stringify(threw?.causes) === JSON.stringify([{ kind: 'bad', subject: null, what: 'draw specs failed', reasons: ['the file could not be read'] }]),
+    && JSON.stringify(threw?.causes) === JSON.stringify([{ kind: 'bad', subject: null, what: 'draw specs failed', reasons: ['Error: the file could not be read'] }]), // #4205: `failureDetail`'s class in front
     `causes/draw specs threw: a run that threw is a failure, as its ✗ headline, the error its reason (${JSON.stringify({ headline: threw?.headline, causes: threw?.causes })})`);
 }
 

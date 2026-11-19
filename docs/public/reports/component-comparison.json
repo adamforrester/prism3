@@ -1374,7 +1374,7 @@
           "medium",
           "small",
           "large",
-          "xlarge"
+          "x-large"
         ],
         "status": [
           "default",
@@ -1438,7 +1438,7 @@
             "small",
             "medium",
             "large",
-            "xlarge"
+            "x-large"
           ]
         },
         {
@@ -1448,6 +1448,10 @@
             "auto",
             "full"
           ]
+        },
+        {
+          "name": "required",
+          "default": false
         },
         {
           "name": "disabled",
@@ -1468,7 +1472,7 @@
         "medium",
         "small",
         "large",
-        "xlarge"
+        "x-large"
       ],
       "sizeDefault": "medium"
     },
@@ -1482,8 +1486,7 @@
         "filled",
         "focus-visible",
         "focus-visible-filled",
-        "disabled",
-        "error"
+        "disabled"
       ],
       "projectedStates": [
         "rest",
@@ -1491,15 +1494,21 @@
         "filled",
         "focus-visible",
         "focus-visible-filled",
-        "disabled",
-        "error"
+        "disabled"
       ],
       "axes": {
         "size": [
           "medium",
           "small",
           "large",
-          "xlarge"
+          "x-large"
+        ],
+        "style": [
+          "outline"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "props": [
@@ -1513,7 +1522,7 @@
             "small",
             "medium",
             "large",
-            "xlarge"
+            "x-large"
           ]
         },
         {
@@ -1521,8 +1530,12 @@
           "default": false
         },
         {
-          "name": "isInvalid",
-          "default": false
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
         },
         {
           "name": "disabled",
@@ -1533,7 +1546,7 @@
         "medium",
         "small",
         "large",
-        "xlarge"
+        "x-large"
       ],
       "sizeDefault": "medium"
     },
@@ -1567,8 +1580,8 @@
           "name": "label"
         },
         {
-          "name": "showLabel",
-          "default": false
+          "name": "hideLabel",
+          "default": true
         },
         {
           "name": "value"
@@ -1608,7 +1621,7 @@
           ]
         },
         {
-          "name": "message"
+          "name": "helpText"
         },
         {
           "name": "showMessage",
@@ -1672,6 +1685,10 @@
           "name": "title"
         },
         {
+          "name": "hideTitle",
+          "default": false
+        },
+        {
           "name": "description"
         },
         {
@@ -1728,7 +1745,7 @@
     {
       "id": "divider",
       "name": "Divider",
-      "category": "foundations",
+      "category": "layout",
       "states": [],
       "projectedStates": [],
       "axes": {
@@ -1903,7 +1920,8 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled"
+        "disabled",
+        "inactive"
       ],
       "projectedStates": [
         "rest",
@@ -1970,6 +1988,10 @@
             "default",
             "inverse"
           ]
+        },
+        {
+          "name": "isInactive",
+          "default": false
         },
         {
           "name": "disabled",
@@ -1992,7 +2014,8 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled"
+        "disabled",
+        "inactive"
       ],
       "projectedStates": [
         "rest",
@@ -2059,6 +2082,10 @@
             "default",
             "inverse"
           ]
+        },
+        {
+          "name": "isInactive",
+          "default": false
         },
         {
           "name": "disabled",
@@ -2081,7 +2108,8 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled"
+        "disabled",
+        "inactive"
       ],
       "projectedStates": [
         "rest",
@@ -2148,6 +2176,10 @@
             "default",
             "inverse"
           ]
+        },
+        {
+          "name": "isInactive",
+          "default": false
         },
         {
           "name": "disabled",
@@ -3169,7 +3201,7 @@
           "name": "href"
         },
         {
-          "name": "selected",
+          "name": "current",
           "default": false
         },
         {
@@ -4161,6 +4193,9 @@
           "small",
           "large"
         ],
+        "style": [
+          "outline"
+        ],
         "status": [
           "default",
           "error",
@@ -4174,6 +4209,9 @@
         },
         {
           "name": "value"
+        },
+        {
+          "name": "defaultValue"
         },
         {
           "name": "placeholder"
@@ -4220,6 +4258,9 @@
           "default": false
         },
         {
+          "name": "autoComplete"
+        },
+        {
           "name": "isPending",
           "default": false
         },
@@ -4254,7 +4295,9 @@
         "rest",
         "hover",
         "pressed",
-        "focus-visible"
+        "pending",
+        "focus-visible",
+        "disabled"
       ],
       "projectedStates": [
         "rest",
@@ -4323,6 +4366,14 @@
         },
         {
           "name": "onClick"
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
         }
       ],
       "sizes": [
@@ -4364,6 +4415,10 @@
       "props": [
         {
           "name": "label"
+        },
+        {
+          "name": "hideLabel",
+          "default": false
         },
         {
           "name": "value"
@@ -4438,6 +4493,10 @@
           "name": "helpText"
         },
         {
+          "name": "showMessage",
+          "default": false
+        },
+        {
           "name": "validation",
           "default": "default",
           "values": [
@@ -4447,6 +4506,10 @@
         },
         {
           "name": "validationMessage"
+        },
+        {
+          "name": "required",
+          "default": false
         },
         {
           "name": "disabled",
@@ -4878,6 +4941,55 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "tag-group",
+      "name": "Tag.Group",
+      "category": "foundations",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "items"
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "defaultValue"
+        },
+        {
+          "name": "onChange"
+        },
+        {
+          "name": "onRemove"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "text-field",
       "name": "TextField",
       "category": "form",
@@ -5224,7 +5336,7 @@
     {
       "id": "veil",
       "name": "Veil",
-      "category": "foundations",
+      "category": "overlay",
       "states": [],
       "projectedStates": [],
       "axes": {
@@ -5346,7 +5458,7 @@
           ]
         },
         {
-          "name": "type",
+          "name": "wording",
           "default": "plain"
         }
       ],
@@ -5433,7 +5545,8 @@
       "members": [
         "button-group",
         "checkbox-group",
-        "radio-group"
+        "radio-group",
+        "tag-group"
       ],
       "basis": "components whose name ends in .Group"
     },
@@ -5517,6 +5630,7 @@
       "search-field",
       "segmented-control-segment",
       "select",
+      "sign-in-button",
       "slider",
       "switch-control",
       "switch-row",
@@ -5532,9 +5646,6 @@
       "select",
       "text-field",
       "textarea"
-    ],
-    "error": [
-      "code-input-cell"
     ],
     "filled": [
       "card-number-field",
@@ -5629,6 +5740,9 @@
       "button",
       "button-destructive",
       "button-neutral",
+      "flush-icon-button",
+      "flush-icon-button-destructive",
+      "flush-icon-button-neutral",
       "icon-button",
       "icon-button-destructive",
       "icon-button-neutral"
@@ -5645,6 +5759,7 @@
       "password-field",
       "search-field",
       "select",
+      "sign-in-button",
       "switch-row",
       "text-field",
       "textarea"
@@ -6172,6 +6287,7 @@
           "tab-item",
           "tabs",
           "tag",
+          "tag-group",
           "text-field",
           "textarea",
           "wallet-button"
@@ -6212,7 +6328,7 @@
           "large",
           "medium",
           "small",
-          "xlarge"
+          "x-large"
         ],
         "components": [
           "code-input",
@@ -6231,6 +6347,7 @@
           "checkbox-group",
           "checkbox-row",
           "code-input",
+          "code-input-cell",
           "radio-control",
           "radio-group",
           "radio-row",
@@ -6273,8 +6390,10 @@
         ],
         "components": [
           "card-number-field",
+          "code-input-cell",
           "password-field",
           "search-field",
+          "select",
           "text-field",
           "textarea"
         ]
@@ -6694,6 +6813,9 @@
         "id": "search-field"
       },
       {
+        "id": "select"
+      },
+      {
         "id": "text-field"
       }
     ],
@@ -6795,6 +6917,10 @@
       {
         "id": "page-nav-item",
         "default": false
+      },
+      {
+        "id": "pagination-item",
+        "default": false
       }
     ],
     "decorative": [
@@ -6852,10 +6978,16 @@
         "id": "segmented-control"
       },
       {
+        "id": "select"
+      },
+      {
         "id": "slider"
       },
       {
         "id": "tabs"
+      },
+      {
+        "id": "tag-group"
       },
       {
         "id": "text-field"
@@ -6998,6 +7130,10 @@
       },
       {
         "id": "select",
+        "default": false
+      },
+      {
+        "id": "sign-in-button",
         "default": false
       },
       {
@@ -7175,6 +7311,9 @@
         "id": "code-input"
       },
       {
+        "id": "counter"
+      },
+      {
         "id": "password-field"
       },
       {
@@ -7195,7 +7334,21 @@
     ],
     "hideLabel": [
       {
+        "id": "counter",
+        "default": true
+      },
+      {
         "id": "search-field",
+        "default": false
+      },
+      {
+        "id": "slider",
+        "default": false
+      }
+    ],
+    "hideTitle": [
+      {
+        "id": "dialog",
         "default": false
       }
     ],
@@ -7429,6 +7582,18 @@
         "default": false
       },
       {
+        "id": "flush-icon-button",
+        "default": false
+      },
+      {
+        "id": "flush-icon-button-destructive",
+        "default": false
+      },
+      {
+        "id": "flush-icon-button-neutral",
+        "default": false
+      },
+      {
         "id": "icon-button",
         "default": false
       },
@@ -7442,12 +7607,6 @@
       },
       {
         "id": "pagination-item",
-        "default": false
-      }
-    ],
-    "isInvalid": [
-      {
-        "id": "code-input-cell",
         "default": false
       }
     ],
@@ -7497,6 +7656,10 @@
         "default": false
       },
       {
+        "id": "sign-in-button",
+        "default": false
+      },
+      {
         "id": "switch-row",
         "default": false
       },
@@ -7533,6 +7696,9 @@
       },
       {
         "id": "tabs"
+      },
+      {
+        "id": "tag-group"
       }
     ],
     "itemsAfterCollapse": [
@@ -7665,6 +7831,9 @@
         "id": "tag"
       },
       {
+        "id": "tag-group"
+      },
+      {
         "id": "text-field"
       },
       {
@@ -7785,9 +7954,6 @@
       }
     ],
     "message": [
-      {
-        "id": "counter"
-      },
       {
         "id": "field-message"
       },
@@ -8068,6 +8234,9 @@
         "id": "tabs"
       },
       {
+        "id": "tag-group"
+      },
+      {
         "id": "text-field"
       },
       {
@@ -8145,6 +8314,9 @@
     "onRemove": [
       {
         "id": "tag"
+      },
+      {
+        "id": "tag-group"
       }
     ],
     "open": [
@@ -8337,6 +8509,10 @@
         "default": false
       },
       {
+        "id": "code-input",
+        "default": false
+      },
+      {
         "id": "field-label",
         "default": false
       },
@@ -8354,6 +8530,10 @@
       },
       {
         "id": "select",
+        "default": false
+      },
+      {
+        "id": "slider",
         "default": false
       },
       {
@@ -8405,10 +8585,6 @@
       }
     ],
     "selected": [
-      {
-        "id": "pagination-item",
-        "default": false
-      },
       {
         "id": "segmented-control-segment",
         "default": false
@@ -8522,12 +8698,6 @@
         "default": false
       }
     ],
-    "showLabel": [
-      {
-        "id": "counter",
-        "default": false
-      }
-    ],
     "showMessage": [
       {
         "id": "card-number-field",
@@ -8551,6 +8721,10 @@
       },
       {
         "id": "select",
+        "default": false
+      },
+      {
+        "id": "slider",
         "default": false
       },
       {
@@ -8722,7 +8896,7 @@
           "small",
           "medium",
           "large",
-          "xlarge"
+          "x-large"
         ]
       },
       {
@@ -8732,7 +8906,7 @@
           "small",
           "medium",
           "large",
-          "xlarge"
+          "x-large"
         ]
       },
       {
@@ -9043,6 +9217,15 @@
       },
       {
         "id": "tag",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "tag-group",
         "default": "medium",
         "values": [
           "small",
@@ -9529,10 +9712,6 @@
           "search",
           "password"
         ]
-      },
-      {
-        "id": "wallet-button",
-        "default": "plain"
       }
     ],
     "validation": [
@@ -9572,6 +9751,14 @@
       },
       {
         "id": "code-input",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
+        ]
+      },
+      {
+        "id": "code-input-cell",
         "default": "default",
         "values": [
           "default",
@@ -9768,6 +9955,9 @@
         "id": "tabs"
       },
       {
+        "id": "tag-group"
+      },
+      {
         "id": "text-field"
       },
       {
@@ -9827,6 +10017,10 @@
       {
         "id": "sign-in-button",
         "default": "continue"
+      },
+      {
+        "id": "wallet-button",
+        "default": "plain"
       }
     ]
   },
@@ -9838,7 +10032,7 @@
         "code-input",
         "code-input-cell"
       ],
-      "detail": "no state set is shared by most of the group — code-input [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled]; code-input-cell [rest, hover, filled, focus-visible, focus-visible-filled, disabled, error]"
+      "detail": "no state set is shared by most of the group — code-input [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled]; code-input-cell [rest, hover, filled, focus-visible, focus-visible-filled, disabled]"
     },
     {
       "kind": "variant axes",
@@ -9881,7 +10075,7 @@
       "components": [
         "flush-icon-button"
       ],
-      "detail": "flush-icon-button differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending"
+      "detail": "flush-icon-button differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks pending"
     },
     {
       "kind": "state set",
@@ -9889,7 +10083,7 @@
       "components": [
         "flush-icon-button-destructive"
       ],
-      "detail": "flush-icon-button-destructive differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending"
+      "detail": "flush-icon-button-destructive differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks pending"
     },
     {
       "kind": "state set",
@@ -9897,7 +10091,7 @@
       "components": [
         "flush-icon-button-neutral"
       ],
-      "detail": "flush-icon-button-neutral differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending"
+      "detail": "flush-icon-button-neutral differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks pending"
     },
     {
       "kind": "state set",
@@ -9953,6 +10147,30 @@
     },
     {
       "kind": "state not drawn",
+      "subject": "flush-icon-button",
+      "components": [
+        "flush-icon-button"
+      ],
+      "detail": "flush-icon-button declares the state inactive, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "flush-icon-button-destructive",
+      "components": [
+        "flush-icon-button-destructive"
+      ],
+      "detail": "flush-icon-button-destructive declares the state inactive, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "flush-icon-button-neutral",
+      "components": [
+        "flush-icon-button-neutral"
+      ],
+      "detail": "flush-icon-button-neutral declares the state inactive, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
       "subject": "icon-button",
       "components": [
         "icon-button"
@@ -9998,6 +10216,14 @@
         "select"
       ],
       "detail": "select declares the states pending and empty, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "sign-in-button",
+      "components": [
+        "sign-in-button"
+      ],
+      "detail": "sign-in-button declares the states pending and disabled, which the design-file state axis does not draw"
     },
     {
       "kind": "state not drawn",
@@ -10149,11 +10375,12 @@
         "tab-item",
         "tabs",
         "tag",
+        "tag-group",
         "text-field",
         "textarea",
         "wallet-button"
       ],
-      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, xlarge] in code-input, code-input-cell"
+      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, tag-group, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell"
     },
     {
       "kind": "axis values",
@@ -10164,6 +10391,7 @@
         "checkbox-group",
         "checkbox-row",
         "code-input",
+        "code-input-cell",
         "field-message",
         "password-field",
         "progress",
@@ -10177,7 +10405,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, code-input, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in card-number-field, field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress"
+      "detail": "the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, code-input, code-input-cell, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in card-number-field, field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress"
     },
     {
       "kind": "axis values",
@@ -10185,17 +10413,19 @@
       "components": [
         "badge",
         "card-number-field",
+        "code-input-cell",
         "link",
         "pagination",
         "pagination-item",
         "password-field",
         "search-field",
+        "select",
         "sign-in-button",
         "text-field",
         "textarea",
         "wallet-button"
       ],
-      "detail": "the style axis takes 6 value sets — [outline] in card-number-field, password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [any, black, blue, gold, purple, silver, white, white-outline] in wallet-button; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [contained, inline] in badge; [inline, standalone] in link"
+      "detail": "the style axis takes 6 value sets — [outline] in card-number-field, code-input-cell, password-field, search-field, select, text-field, textarea; [border, underline] in pagination, pagination-item; [any, black, blue, gold, purple, silver, white, white-outline] in wallet-button; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [contained, inline] in badge; [inline, standalone] in link"
     },
     {
       "kind": "axis values",
@@ -10342,7 +10572,7 @@
       "components": [
         "code-input"
       ],
-      "detail": "code-input declares its sizes as [medium, small, large, xlarge], not smallest first"
+      "detail": "code-input declares its sizes as [medium, small, large, x-large], not smallest first"
     },
     {
       "kind": "size order",
@@ -10350,7 +10580,7 @@
       "components": [
         "code-input-cell"
       ],
-      "detail": "code-input-cell declares its sizes as [medium, small, large, xlarge], not smallest first"
+      "detail": "code-input-cell declares its sizes as [medium, small, large, x-large], not smallest first"
     },
     {
       "kind": "size order",
@@ -10602,6 +10832,14 @@
     },
     {
       "kind": "size order",
+      "subject": "tag-group",
+      "components": [
+        "tag-group"
+      ],
+      "detail": "tag-group declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "text-field",
       "components": [
         "text-field"
@@ -10630,7 +10868,7 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 50 of 51 sized components default to medium"
+      "detail": "field-label defaults size to small; 51 of 52 sized components default to medium"
     },
     {
       "kind": "prop default",
@@ -10652,6 +10890,16 @@
     },
     {
       "kind": "prop default",
+      "subject": "prop hideLabel",
+      "components": [
+        "counter",
+        "search-field",
+        "slider"
+      ],
+      "detail": "hideLabel defaults differ over the same values — false in search-field, slider; true in counter"
+    },
+    {
+      "kind": "prop default",
       "subject": "prop label",
       "components": [
         "breadcrumbs",
@@ -10669,6 +10917,15 @@
         "slider"
       ],
       "detail": "max defaults differ over the same values — 100 in progress, slider; 99 in badge"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop wording",
+      "components": [
+        "sign-in-button",
+        "wallet-button"
+      ],
+      "detail": "wording defaults differ over the same values — continue in sign-in-button; plain in wallet-button"
     },
     {
       "kind": "axis without prop",
@@ -10749,6 +11006,14 @@
         "code-input"
       ],
       "detail": "code-input has the variant axis status and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "code-input-cell",
+      "components": [
+        "code-input-cell"
+      ],
+      "detail": "code-input-cell has the variant axes style and status and no props of those names"
     },
     {
       "kind": "axis without prop",
@@ -10836,7 +11101,7 @@
       "components": [
         "select"
       ],
-      "detail": "select has the variant axis status and no prop of that name"
+      "detail": "select has the variant axes style and status and no props of those names"
     },
     {
       "kind": "axis without prop",

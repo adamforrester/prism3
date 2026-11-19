@@ -16,12 +16,10 @@
  *  Stamps its root with the shared-section marker (`data-sg-section="radius-sample"`, `kit.ts`'s header).
  *  WHAT IT IS HANDED. The section context, the resolved dimensions, the brand's modes, the mode, the Control shape
  *  and the section's copy. Nothing here reads the session. */
-import type { Theme } from '@prism3/engine/theme';
-import type { ControlShape } from '@prism3/engine/scale';
+import { type Theme, type ControlShape, controlRadius } from '@prism3/engine';
 import { el, hook, palSection, specimen, tokenPillSpan, type SgCtx } from './kit';
 import { radiusIn, shapeRef, shapeSample } from './radius';
 import { heightsIn } from './control-heights';
-import { controlRadius } from '@prism3/engine/scale';
 
 /** The section's copy. DRAFT, pending the owner (S9.2 widened S7's draft, "Radius sample" / "The brand’s radius on a
  *  panel, a field, a button and a tag.", to cover the shadow; #2361 added the checkbox). */

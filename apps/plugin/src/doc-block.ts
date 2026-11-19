@@ -9,12 +9,16 @@
  * BUILT FROM PRISM3'S OWN COMPONENTS AND SEMANTIC TOKENS, so the panel follows the brand the file is themed with. That
  * is the one way this template differs from the furniture templates, whose literal colors annotate the brand and must
  * not move with it:
- *   - Part-marker is an instance of Badge (count, bold, neutral); Chips holds Tag instances (select, unselected,
+ *   - Part-marker is an instance of Badge (count, bold, neutral), which the panel no longer draws: since #3773 (owner
+ *     decision B) each anatomy marker is a disc in `_Label`'s literal ink that the panel draws itself (`doc-panel.ts`
+ *     `drawMarkers`), so it never reads as the Badge it may mark. The variant stays so a template already in a file
+ *     needs no repair; Chips holds Tag instances (select, unselected,
  *     small); each Do / Don't column holds List.Item instances (unordered, at the block's size); Divider is an
  *     instance of Divider (horizontal, none);
  *   - every fill binds a semantic color variable (`color/text/primary`, `color/text/secondary`,
  *     `color/background/secondary`, `color/border/success`, `color/border/danger`), found by its name's tail as
- *     `bindBackdrop` finds its variable, and every text takes a brand text style (`title/…`, `body/…`, `label/…`).
+ *     `bindBackdrop` finds its variable, and every text takes a brand text style (`title/…`, `body/…`, `label/…`), with
+ *     a code span in it drawn in `code/inline/default` (`CODE_STYLE`, #3552 Q-UG2 A).
  * So the template NEEDS those four sets and an applied theme. Without either, Set up file builds nothing and says
  * what is missing (`DocBlockResult.missing`), and the panel's draw reports the missing template once, the furniture's
  * way (`templatesLine`). A text style the file lacks is a miss by name; the text keeps the default face.
@@ -78,6 +82,10 @@ export const BLOCK_COLORS = {
   doRule: 'color/border/success',
   dontRule: 'color/border/danger',
 } as const;
+/** CODE IN THE BLOCKS' PROSE (#3552 Q-UG2 A): a backtick span in any text a block shows is drawn in the brand's inline
+ *  code style, over the block's own style for that range, so `<button>` and `htmlFor` read as code. The panel applies it
+ *  by range (`doc-panel.ts` `codeRuns`); a file without the style keeps the text in the block's face and names the miss. */
+export const CODE_STYLE = 'code/inline/default';
 const STYLE: Record<'heading' | 'body' | 'label' | 'caption', Record<DocBlockSize, string>> = {
   heading: { sm: 'title/xs/strong', md: 'title/sm/strong', lg: 'title/md/strong' },
   body: { sm: 'body/sm/default', md: 'body/md/default', lg: 'body/lg/default' },

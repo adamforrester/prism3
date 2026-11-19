@@ -18,8 +18,8 @@
  * Compiled under `tsconfig.main.json` (plugin-typings, `lib` WITHOUT `dom`), so any accidental
  * `document`/`window` reference is a COMPILE error — the two-context split is enforced by types.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
-import { ENGINE_VERSION } from '@prism3/engine/version';
+import { applyHeadline, APPLY_FAILED_HEADLINE, failureDetail, conflictHeadline, componentHeadline, staleNote, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
+import { ENGINE_VERSION, formerDefIds, serializeBrandInput, resolveAllModes, brandTheme, type BrandInput } from '@prism3/engine';
 import { appendBuildNote, buildNote, parseBuildId } from '../../studio/src/build-identity';
 import { isIssueUrl } from '../../studio/src/state/report';
 import { onUiMessage, postToUi } from './bridge-main';
@@ -28,21 +28,21 @@ import { restorePlacement, stripPlacement } from './window-place';
 import type { Point, WindowAt } from './window-place';
 import type { MainToUi, UiToMain, StyleGuideOptions, RunProgressKind } from './messages';
 import { createRunGuard, guardFor, writes, busyMessage } from './run-guard';
+import { announces, agentStartLine, agentDoneNotice } from './agent-run-notice';
 import type { WriteCmd } from './run-guard';
 import { strandedCollections, ownedModeIds } from './write-figma';
 import { classifyFile, libraryFileOf, outcomeOf, probeFile, type FileKindApi } from './file-kind';
-import { computePrunePlan, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary } from './prune-figma';
-import type { PruneInput, PruneApi } from './prune-figma';
-import { isRefusal } from '@prism3/engine/rename-map';
-import { rootOf } from '@prism3/engine/figma-names';
+import { computePrunePlan, orphanStyles, styleOrphanNote, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary, emptyPruneResult, prunePreviewHashOf, pruneConfirmRefusal, PRUNE_COPY } from './prune-figma';
+import type { PruneInput, PruneApi, FileStyles } from './prune-figma';
+import { isRefusal, rootOf, buildFigmaColor, buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan, verifyReadback } from '@prism3/engine/figma';
 import { conflictSummary } from './preflight';
 import { conflictKey, choiceNote, isChoices, type CollisionChoices } from './collision-choice';
 import { APPLY_STAGES, runApplyTheme, themePlans, type ApplyStage, type ThemePace } from './apply-theme';
 import { emissionOf, themeDue } from './theme-emission';
-import { serializeBrandInput } from '@prism3/engine/persist-input';
 import { fieldStyleNote, searchFieldStyleNote } from './field-style-note';
 import { tagStyleNote } from './tag-style-note';
 import { gridSkippedNote } from './write-grid-styles';
+import { styleRenamedNote } from './rename-styles';
 import { applyComponentPlan, partialWriteOf } from './write-components';
 import type { ComponentProgress, CompPageTarget, CompNode, ComponentsApi } from './write-components';
 import { saveBeforeBuild, saveVersion } from './version-title';
@@ -54,11 +54,10 @@ import { ensureStyleGuideCells } from './style-guide-cells';
 import type { CellsApi } from './style-guide-cells';
 import { runStyleGuide, removeRetiredTables, styleGuideSummary, readCatalog, catalogFor, isSetUp } from './style-guide';
 import type { SgContract } from './style-guide';
-import { resolveAllModes } from '@prism3/engine/modes';
 import { TAXONOMY } from './file-taxonomy';
 import { blockHeadersLines, headerFor, pageHeaderItems, placeBlockHeaders } from './page-header';
 import type { PageHeaderOutcome, HeaderPage } from './page-header';
-import { withPanel, hasFurniture, clearFurniture, drawFurniture, seatNewSet, furnishUpdate, furnitureLayout, furnitureItems, docBlockLine, withFurnitureItems, withTemplateWarning, readTag, staleFurniture, pruneFurniture, furniturePruneText, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
+import { withPanel, hasFurniture, clearFurniture, drawFurniture, seatNewSet, furnishUpdate, furnitureLayout, furnitureItems, docBlockLine, withFurnitureItems, withTemplateWarning, readTag, staleFurniture, pruneFurniture, furniturePruneText, parentIdOf, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
 import type { DocBlockFix, FurnitureApi, FurnitureOutcome, FurnitureParent, FurnitureTag, XNode } from './canvas-furniture';
 import { cause, runCause, CAUSE_WHAT } from './causes';
 import { ensureFurnitureTemplates } from './furniture-templates';
@@ -68,29 +67,22 @@ import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot 
 import { clearOrphanSpecPanels, drawSpecPanel, specItems, specTargets, type SpecApi, type SpecOutcome } from './spec-panel';
 import { COVER_OFF, readDocSettings, writeDocSettings } from './doc-settings';
 import { livePanels, livePanelsOf, panelLeadsOf, paneledOf, panelsCleanCount, removeUneditedPanels, unpaneledOf, type CensusRoot } from './panel-census';
-import { DOC_PANEL_KEY, DOC_PANEL_NS, clearOrphanPanels, docPanelReach, drawDocPanel, findDocBlock, leadsPanel, PANEL_FORMAT, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
+import { DOC_PANEL_KEY, DOC_PANEL_NS, clearOrphanPanels, docPanelReach, drawDocPanel, findDocBlock, lastChangedKey, leadsPanel, PANEL_FORMAT, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
+import { type AnatomyPlan, checkAnatomySet, figmaAnatomyMembers, figmaAnatomySet, button, componentDefs, type ComponentDef } from '@prism3/engine/components';
 import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './build-telemetry';
 import { readFigmaVariables } from './read-figma';
 import { listFamilyStyleNames } from './list-fonts';
-import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
-import { verifyReadback } from '@prism3/engine/read-back';
-import { restoreInput } from './persist-figma';
+import { restoreInput, holdsInput, canon } from './persist-figma';
+import { readUpdatesOff, writeUpdatesOff, type UpdatesOff } from './updates-off';
+import { planOverride, overrideVerdict, overrideData, wholeRunRefusal, type OverrideChange, type OverrideRefusal } from './set-override';
 import { declaredModesOf, failedChecks, seedSummary } from './seed-modes';
-import { brandTheme } from '@prism3/engine/theme';
-import type { BrandInput } from '@prism3/engine/theme';
-import { checkAnatomySet, figmaAnatomyMembers, figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { PACE_MS, pacer } from './pace';
 import { materializeForBrand, materializerFor } from './brand-def';
-import { dueOf, entryFor, needsPrint, printOf, printSteps, quietOf, readLedger, recordSets, type DueReason, type Ledger, type LedgerEntry, type PlanPrint } from './as-built-ledger';
+import { dueOf, entryFor, formerEntry, needsPrint, printOf, printSteps, quietOf, readLedger, recordSets, type DueReason, type Ledger, type LedgerEntry, type PlanPrint } from './as-built-ledger';
 import { clearQueued, readQueue, setQueued, staleOf, visibleOf, type QueueRoot } from './add-queue';
 import { presentNames, prebuildDependencies, alsoBuiltItem, DependencyBuildError, SWAP_TARGET, labelAfterBuilds } from './build-deps';
 import type { DepHost } from './build-deps';
-import { button } from '@prism3/engine/components/button';
-import { componentDefs } from '@prism3/engine/components/index';
-import type { ComponentDef } from '@prism3/engine/component-schema';
 import { createAgentLink } from './agent-link';
 import { createActivityLog, type ActivityProblem } from './activity-log';
 import { runNotice } from './run-notice';
@@ -100,7 +92,7 @@ import type { ActionSink, AgentActions } from './agent-dispatch';
 import { AGENT_COMMANDS, failedResult } from './agent-protocol';
 import { dropFor as dropViewsFor, dropViews, keepView, keptView, noteVariables, variablesPrint, viewEpoch, watchViews } from './member-views';
 import { breakingOf, type CheckProgress } from './update-plan';
-import { previewUpdate, captureBaselines, previewVerdict, captureVerdictText, adoptMembers as adoptAll, adoptVerdictText, handEditsOf, checkedSetOf } from './update-plan';
+import { locateSets, previewUpdate, captureBaselines, previewVerdict, captureVerdictText, adoptMembers as adoptAll, adoptVerdictText, handEditsOf, checkedSetOf } from './update-plan';
 import type { UpdateHost, UpdateTarget } from './update-plan';
 
 // Show the UI iframe. `__html__` is the bundled shared-UI HTML Figma injects from `manifest.ui`
@@ -380,6 +372,15 @@ const themePace = (sink: ActionSink): ThemePace => {
 /** #3170 Q3170.4 A: the panel's "Stop after <set>" (`update-stop`), read by its running update at each set boundary. */
 let updateStopAsked = false;
 
+/** Every local style in the file, per kind, as plain name + description (#1577): what Prune's style arm and Apply
+ *  Theme's orphan-style note (#1737) both read, so the two read the same snapshot. */
+const localStyles = async (): Promise<FileStyles> => ({
+  text: (await figma.getLocalTextStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
+  effect: (await figma.getLocalEffectStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
+  paint: (await figma.getLocalPaintStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
+  grid: (await figma.getLocalGridStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
+});
+
 /**
  * Materialise a brand into `figma.variables` (#108) — the theme now comes LIVE from the shared UI's
  * knobs (a `BrandInput`), not a bundled fixture. Same pure core, same executor: only the source of
@@ -404,7 +405,7 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
       postVerdict({ type: 'apply-result', ok: false, headline: conflictHeadline(guarded.conflicts.length), summary: conflicts, lines: [conflicts], ...collisions }, sink);
       return;
     }
-    const { mig, r, f, s, gs, tv, ts, mv } = guarded.result;
+    const { mig, r, f, s, gs, tv, ts, mv, uc, styleRenames } = guarded.result;
     // `motion` (#2412) — TIMING + EASING through the mixed-type executor; its refusals count with the font ones.
     const motionTotal = mv.collections.reduce((n, c) => n + c.total, 0);
     const motionCreated = mv.collections.reduce((n, c) => n + c.created, 0);
@@ -441,12 +442,26 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
       ...r.orphans,
       ...f.collections.map((c) => ({ name: c.name, names: c.orphans })),
       ...tv.collections.map((c) => ({ name: c.name, names: c.orphans })),
-      ...mv.collections.map((c) => ({ name: c.name, names: c.orphans })),
+      ...mv.collections.map((c) => ({ name: c.name, names: c.orphans })), { name: `${names.core ?? 'core'}/other`, names: uc }, // #1109, DRAFT label
     ].filter((o) => o.names.length);
     const orphanCount = allOrphans.reduce((n, o) => n + o.names.length, 0);
     const orphanNote = orphanCount
       ? `⚠ ${orphanCount} orphaned variables not in the plan (${allOrphans.map((o) => `${o.name}: ${o.names.length}`).join(', ')}) — likely renames; nothing was deleted`
       : '';
+    // ORPHAN STYLES (#1737) — the same drift among styles. A style the plan does not write is never touched, so an earlier
+    // brand's `body/md/emphasis` stays in the picker. Counted with Prune's own rule (`orphanStyles`: inside a group the
+    // plan emits, or carrying the engine's description), so a designer's hand-made group is not named. Planned names are
+    // the plans as built AND as a collision choice wrote them (#1909): neither a skipped collision nor a renamed style is
+    // an orphan here, though Prune, passing the plans only, still offers a renamed one (#3860).
+    // Reported, never deleted: Prune is the delete path.
+    const plannedStyleNames = {
+      text: [...plans.textPlan, ...exec.text].map((x) => x.name),
+      effect: [...plans.stylesPlan.effects, ...exec.styles.effects].map((x) => x.name),
+      paint: [...plans.stylesPlan.paints, ...exec.styles.paints].map((x) => x.name),
+      grid: [...plans.gridPlan, ...exec.grid].map((x) => x.name),
+    };
+    const orphanStyleGroups = orphanStyles(await localStyles(), plannedStyleNames);
+    const orphanStylesNote = styleOrphanNote(orphanStyleGroups);
     // STRANDED COLLECTIONS (#1152) — the level above the orphan report, and the one no executor can
     // reach. `allOrphans` is assembled FROM the executors, so it can only describe collections a plan
     // already owns; a collection nothing plans is never upserted, never indexed, never counted, and
@@ -492,6 +507,8 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
       migrated.length ? `${migrated.length} renamed ${migrated.length === 1 ? 'token' : 'tokens'} migrated in place (bindings kept: ${migrated.slice(0, 3).map((o) => `${o.from}→${o.to}`).join(', ')}${migrated.length > 3 ? '…' : ''})` : '',
       migRefused.length ? `⚠ ${migRefused.length} ${migRefused.length === 1 ? 'rename' : 'renames'} refused (${migRefused.slice(0, 2).map((o) => `${o.from}→${o.to}: ${o.status}`).join(', ')}) — nothing moved for those` : '',
       mig.refusals.length ? `⚠ rename map invalid, no migrations attempted (${mig.refusals[0]})` : '',
+      // #1040 (owner decision A): a style the engine renamed, moved in place by `rename-styles.ts`. Copy DRAFT.
+      styleRenamedNote(styleRenames),
     ];
     // #499: styles whose emitted name was corrected (e.g. `Semi Bold` → `SemiBold`). Worth surfacing
     // rather than silently succeeding — it is the difference between "the guess was right" and "the
@@ -515,12 +532,12 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
       `palette ${r.paletteTotal} (+${r.paletteCreated})`, `color ${r.colorTotal} (+${r.colorCreated})`,
       `dims/layout ${f.collections.length} collections (+${floatCreated})`,
       `styles ${s.effects.total} effects (+${s.effects.created}, ${s.effects.bound} bound) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound) / ${gs.total} grid styles (+${gs.created})`,
-      `type ${pf.loaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created})`,
+      `type ${pf.brandLoaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created})`,
       `motion ${motionTotal} vars (+${motionCreated})`,
       // #2412 (Q293 A): the one deletion Apply makes, so it is always said (wording: Q302).
       motionReplacedItem(mv.replaced.length),
       `${r.bound + f.bound + tv.bound + mv.bound + ts.bound} bindings`, misses ? `${misses} misses` : '',
-      ...renameNotes, orphanNote, strandedNote, resolvedNote, skippedNote, gridSkippedNote(gs.skipped), fontNote, refusedNote,
+      ...renameNotes, orphanNote, orphanStylesNote, strandedNote, resolvedNote, skippedNote, gridSkippedNote(gs.skipped), fontNote, refusedNote,
       // #1909: what the person chose for the collisions this apply met, when it met any (copy DRAFT, `choiceNote`).
       chose ? choiceNote(chose) ?? '' : '',
       // #2888: the search field's own edge, the same way. Before the field style line, which ends the list.
@@ -547,18 +564,19 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
           effects: { total: s.effects.total, created: s.effects.created, bound: s.effects.bound },
           gradients: { total: s.paints.total, created: s.paints.created, stopsBound: s.paints.bound },
           gridStyles: { total: gs.total, created: gs.created, renamed: gs.renamed, skipped: gs.skipped },
-          fontsLoaded: pf.loaded, fontVars: { total: fontVarTotal, created: fontVarCreated },
+          fontsLoaded: pf.brandLoaded, fontVars: { total: fontVarTotal, created: fontVarCreated },
           motion: { total: motionTotal, created: motionCreated, replaced: mv.replaced },
           textStyles: { total: ts.total, created: ts.created }, bindings: r.bound + f.bound + tv.bound + mv.bound + ts.bound,
         },
-        orphans: allOrphans, stranded,
+        orphans: allOrphans, orphanStyles: orphanStyleGroups, stranded,
         renames: { migrated, refused: migRefused, mapRefusals: mig.refusals },
         textStylesSkipped: ts.skipped, fontsUnavailable: pf.unavailable, resolvedStyles: ts.resolvedStyles,
       },
     });
     postVerdict({ type: 'apply-result', ok: misses === 0, headline: applyHeadline(misses, ts.skipped.length), summary, lines }, sink);
   } catch (e) {
-    const failure = `write failed: ${(e as Error).message}`;
+    // #3697 H4 (D3703.1 B): the class, then the host's message; Report a problem keeps only the class.
+    const failure = `write failed: ${failureDetail(e)}`;
     postVerdict({ type: 'apply-result', ok: false, headline: APPLY_FAILED_HEADLINE, summary: failure, lines: [failure] }, sink);
   }
 };
@@ -582,9 +600,17 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
  * `confirm: true` DELETES — recomputes from a fresh read (not from the preview's list, so the delete
  * acts on the file's current orphan set) and runs `applyPrunePlan`.
  *
+ * THE CONFIRM'S THREE GUARDS (#3697 R6, H2), in order, before the first removal: the file must hold `input` as its
+ * brand (the plan is built from the input, which need not have been applied, so an unapplied input could name what
+ * the file's sets still bind); the confirm must echo the `previewHash` its preview returned, and a fresh read must
+ * give the same plan; and a named version is saved, or nothing is removed. Each removal is then tried on its own,
+ * and `counts` runs in place, so a throw past the first removal reports what was removed, not 0.
+ *
  * Never flips into `applyTheme`'s path and writes nothing but deletes: a prune only removes.
  */
-const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Promise<void> => {
+const prune = async (input: BrandInput, confirm: boolean, previewHash: string | null, sink: ActionSink): Promise<void> => {
+  const counts = emptyPruneResult();
+  let removing = false;
   try {
     const theme = brandTheme(input);
     // The plans, exactly as `applyTheme` builds them — the plan is what defines "stale". No write.
@@ -655,12 +681,7 @@ const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Pro
       // `description` as well as `name` (#1577): the engine writes one on every style it emits, so it is
       // what recognizes a style a designer RENAMED out of the plan's group. Reduced to plain data here
       // rather than passed as live nodes, so `computePrunePlan` stays pure over a snapshot.
-      styles: {
-        text: (await figma.getLocalTextStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
-        effect: (await figma.getLocalEffectStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
-        paint: (await figma.getLocalPaintStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
-        grid: (await figma.getLocalGridStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
-      },
+      styles: await localStyles(),
       plannedVariables,
       plannedCollections,
       plannedStyles,
@@ -668,31 +689,42 @@ const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Pro
       root,
     };
     const plan = computePrunePlan(snapshot);
-    // THE CANVAS FURNITURE (#2406, #2188): labels and backdrops whose set is gone, or whose def the pilot no longer
-    // covers. Found by their tag, file-wide; a live set's furniture is the build's to redraw, never prune's.
+    // THE CANVAS FURNITURE (#2406, #2188): labels and backdrops whose set is gone, whose def the pilot no longer
+    // covers, or whose set moved to another parent and left them behind (#2485, Q294 A). Found by their tag,
+    // file-wide; furniture beside its live set is the build's to redraw, never prune's.
     await loadPagesYielding();
     const tagged = (figma.root.findAllWithCriteria({ types: ['INSTANCE'], sharedPluginData: { namespace: FURNITURE_NS, keys: [FURNITURE_KEY] } }) as readonly InstanceNode[])
-      .map((node) => ({ node, tag: readTag(node as unknown as XNode) }))
-      .filter((x): x is { node: InstanceNode; tag: FurnitureTag } => x.tag !== null);
-    const liveSets = new Set<string>();
+      .map((node) => ({ node, tag: readTag(node as unknown as XNode), parent: parentIdOf(node) }))
+      .filter((x): x is { node: InstanceNode; tag: FurnitureTag; parent: string } => x.tag !== null);
+    /** Each live set's parent id, by set id; a set not in the file has no entry. */
+    const liveSets = new Map<string, string>();
+    const checked = new Set<string>();
     for (const t of tagged) {
-      if (liveSets.has(t.tag.set)) continue;
+      if (checked.has(t.tag.set)) continue;
+      checked.add(t.tag.set);
       const n = t.tag.set ? await figma.getNodeByIdAsync(t.tag.set) : null;
-      if (n && n.type === 'COMPONENT_SET' && !n.removed) liveSets.add(t.tag.set);
+      if (n && n.type === 'COMPONENT_SET' && !n.removed) liveSets.set(t.tag.set, parentIdOf(n));
     }
-    const staleFurn = staleFurniture(tagged, (id) => liveSets.has(id));
+    const setParent = (id: string): string | null => liveSets.get(id) ?? null;
+    const staleFurn = staleFurniture(tagged, setParent);
     const furnText = (applied: boolean, n: number): string => {
       const t = furniturePruneText(n, applied);
       return t ? ` ${t}` : '';
     };
 
-    sink.data({ prunePlan: plan, staleFurniture: staleFurn.map((f) => ({ id: f.node.id, ...f.tag })) });
+    const hash = prunePreviewHashOf(plan, staleFurn.map((f) => f.node.id));
+    sink.data({ prunePlan: plan, staleFurniture: staleFurn.map((f) => ({ id: f.node.id, ...f.tag })), previewHash: hash });
     if (!confirm) {
       const n = prunePlanCount(plan);
       const summary = n === 0 && staleFurn.length ? furniturePruneText(staleFurn.length, false) : prunePreviewSummary(plan) + furnText(false, staleFurn.length);
-      sink.post({ type: 'prune-result', ok: true, applied: false, count: n + staleFurn.length, summary });
+      sink.post({ type: 'prune-result', ok: true, applied: false, count: n + staleFurn.length, summary, previewHash: hash });
       return;
     }
+    const refusal = pruneConfirmRefusal({ holdsInput: holdsInput(figma.root, input), previewHash: previewHash ?? '', currentHash: hash });
+    if (refusal) { sink.post({ type: 'prune-result', ok: false, applied: false, count: 0, summary: refusal }); return; }
+    try { await saveVersion(figma, { run: 'prune' }); }
+    catch (e) { sink.post({ type: 'prune-result', ok: false, applied: false, count: 0, summary: PRUNE_COPY.noVersion(failureDetail(e)) }); return; }
+    removing = true;
 
     const pruneApi: PruneApi = {
       getLocalVariableCollectionsAsync: () => figma.variables.getLocalVariableCollectionsAsync(),
@@ -702,15 +734,19 @@ const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Pro
       getLocalPaintStylesAsync: () => figma.getLocalPaintStylesAsync(),
       getLocalGridStylesAsync: () => figma.getLocalGridStylesAsync(),
     };
-    const res = await applyPrunePlan(plan, pruneApi);
-    const furnRemoved = pruneFurniture(tagged.map((t) => t.node as unknown as XNode), (id) => liveSets.has(id));
+    const res = await applyPrunePlan(plan, pruneApi, counts);
+    const furnRemoved = pruneFurniture(tagged.map((t) => t.node as unknown as XNode), setParent, counts.failed);
     const removed = res.variables + res.collections + res.modes + res.styles;
     sink.data({ pruneApplied: { ...res, furniture: furnRemoved } });
-    const summary = removed === 0 && furnRemoved ? furniturePruneText(furnRemoved, true) : pruneAppliedSummary(res) + furnText(true, furnRemoved);
-    sink.post({ type: 'prune-result', ok: res.misses.length === 0, applied: true, count: removed + furnRemoved, summary });
+    const summary = removed === 0 && furnRemoved && !res.failed.length ? furniturePruneText(furnRemoved, true) : pruneAppliedSummary(res) + furnText(true, furnRemoved);
+    sink.post({ type: 'prune-result', ok: res.misses.length === 0 && res.failed.length === 0, applied: true, count: removed + furnRemoved, summary });
   } catch (e) {
-    // A thrown prune reports rather than crashing the UI — same posture as `applyTheme`'s catch.
-    sink.post({ type: 'prune-result', ok: false, applied: confirm, count: 0, summary: `prune failed: ${(e as Error).message}` });
+    // A thrown prune reports rather than crashing the UI — same posture as `applyTheme`'s catch. Once removals began,
+    // with the running counts (#3697 R6): a half-pruned file never reads as 0 removed.
+    const why = failureDetail(e);   // #3697 H4: as `applyTheme`'s
+    if (!removing) { sink.post({ type: 'prune-result', ok: false, applied: false, count: 0, summary: `prune failed: ${why}` }); return; }
+    sink.data({ pruneApplied: counts });
+    sink.post({ type: 'prune-result', ok: false, applied: true, count: counts.variables + counts.collections + counts.modes + counts.styles, summary: PRUNE_COPY.stopped(counts, why) });
   }
 };
 
@@ -1171,7 +1207,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
       postVerdict({
         type: 'component-result', ok: false, completed: false,
         headline: partial ? partialWriteHeadline(partial) : APPLY_FAILED_HEADLINE,
-        ...fromClauses([['', `component build failed: ${(e as Error).message}`], [' — ', partial ? partialWriteItem(partial) : '']]),
+        ...fromClauses([['', `component build failed: ${failureDetail(e)}`], [' — ', partial ? partialWriteItem(partial) : '']]),
         // #3326: the host's own words first, then what the throw left on the canvas, as the summary leads with them.
         causes: [cause('bad', e instanceof DependencyBuildError ? e.dependency : defId ?? button.id, CAUSE_WHAT.failed,
           [(e as Error)?.message ?? String(e), ...(partial ? [partialWriteItem(partial)] : [])])],
@@ -1200,7 +1236,7 @@ const furnishSet = async (defId: string, setId: string, plans: AnatomyPlan[]): P
     if (!set || set.type !== 'COMPONENT_SET') return null;
     return await drawFurniture(figma as unknown as FurnitureApi, set as unknown as XNode, furnitureLayout(plans), defId);
   } catch (e) {
-    return { def: defId, parent: '', columns: 0, rows: 0, backdrops: 0, scrims: 0, cleared: 0, skipped: [`No canvas labels for ${defId}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], fontMisses: [] };
+    return { def: defId, parent: '', columns: 0, rows: 0, backdrops: 0, scrims: 0, cleared: 0, skipped: [`No canvas labels for ${defId}: Figma refused the write (${failureDetail(e)})`], fontMisses: [] };
   }
 };
 
@@ -1214,7 +1250,7 @@ const panelFor = async (set: XNode, defId: string, api: PanelApi = figma as unkn
   const def = componentDefs.find((d) => d.id === defId);
   if (!def) return { def: defId, drawn: false, sections: [], replaced: 0, kept: [], skipped: [], misses: [] };
   try { return await drawDocPanel(api, set as unknown as PNode, def, { names: defName }); }
-  catch (e) { return { def: defId, drawn: false, sections: [], replaced: 0, kept: [], skipped: [`No usage panel for ${defId}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], misses: [] }; }
+  catch (e) { return { def: defId, drawn: false, sections: [], replaced: 0, kept: [], skipped: [`No usage panel for ${defId}: Figma refused the write (${failureDetail(e)})`], misses: [] }; }
 };
 
 /** `panelFor` on a set by id, folded into the set's furniture outcome (the build's path). */
@@ -1242,13 +1278,19 @@ const readPresent = (onPage?: (done: number, total: number) => void): Promise<Fi
     // #3301: the names as each page's turn read them, so naming every component in a full library is not one more turn.
     const recs = found.nodes.map((_, i) => ({ type: found.kinds[i], name: found.names[i] }));
     const names = presentNames({ root: { findAllWithCriteria: (c: { types: readonly string[] }) => recs.filter((r) => c.types.includes(r.type)) } } as unknown as Parameters<typeof presentNames>[0]);
-    const ids = componentDefs.filter((d) => d.figmaProperties && (names.has(d.id) || (!!d.figmaProperties.emitAsComponents && [...names].some((n) => n.startsWith(`${d.id}/`))))).map((d) => d.id);
+    // #3770: a set the file holds under an id its def was renamed from (#2759, #3148) is present too, under the current
+    // id: the update finds it there (`locateSets`, `readSingleView`) and renames it. Else it read as absent, so it was
+    // offered to add beside the one the file holds, and a set nesting it was blocked for want of it.
+    const holds = (d: (typeof componentDefs)[number], id: string): boolean => names.has(id) || (!!d.figmaProperties?.emitAsComponents && [...names].some((n) => n.startsWith(`${id}/`)));
+    const ids = componentDefs.filter((d) => d.figmaProperties && [d.id, ...formerDefIds(d.id)].some((id) => holds(d, id))).map((d) => d.id);
     // #3137 Q3137.3 A: with every page loaded, the panels census, one search, kept beside the sets so a recount reads
     // both with no page load, whichever way Documentation's switch is turned meanwhile.
     const paneled = panelCensus(found, frames);
-    if (gen === presentGen) { presentCache = ids; panelCache = paneled; }
+    // #2956: the sets whose updates are off, read off each set node the search found, by def id.
+    const off = offOf(found, ids);
+    if (gen === presentGen) { presentCache = ids; panelCache = paneled; offCache = off; }
     watchSets();
-    return { ids, nodes: found.nodes, kinds: found.kinds, paneled };
+    return { ids, nodes: found.nodes, kinds: found.kinds, paneled, off };
   })();
   presentRead = read;
   const clear = (): void => { if (presentRead === read) presentRead = null; };
@@ -1256,7 +1298,20 @@ const readPresent = (onPage?: (done: number, total: number) => void): Promise<Fi
   return read;
 };
 /** `kinds[i]` is `nodes[i]`'s type, read once, in the turn its page was searched (#3301). */
-type FileRead = { ids: string[]; nodes: readonly SearchNode[]; kinds: readonly string[]; paneled: string[] };
+type FileRead = { ids: string[]; nodes: readonly SearchNode[]; kinds: readonly string[]; paneled: string[]; off: Record<string, UpdatesOff> };
+/** #2956: each present def whose set carries the "Updates off" mark (`updates-off.ts`), from the read's own nodes: a set
+ *  under its def id or an id the def was renamed from. A single-component def has no set node, so never reads off. */
+const offOf = (found: Pick<Found, 'nodes' | 'kinds' | 'names'>, ids: readonly string[]): Record<string, UpdatesOff> => {
+  const sets = new Map<string, SearchNode>();
+  found.nodes.forEach((n, i) => { if (found.kinds[i] === 'COMPONENT_SET' && !sets.has(found.names[i])) sets.set(found.names[i], n); });
+  const out: Record<string, UpdatesOff> = {};
+  for (const id of ids) {
+    const node = [id, ...formerDefIds(id)].map((x) => sets.get(x)).find((x) => x !== undefined);
+    const v = node ? readUpdatesOff(node) : null;
+    if (v) out[id] = v;
+  }
+  return out;
+};
 /** What a page-by-page search found, each node's type and name read in its page's turn. */
 type Found = { nodes: SearchNode[]; kinds: string[]; names: string[] };
 type SearchNode = { readonly type?: string; readonly name?: string };
@@ -1325,6 +1380,8 @@ let presentCache: string[] | null = null;
 /** #3137 Q3137.3 A: the leads whose usage panel the last census found drawn (`panel-census.ts`), beside `presentCache` and
  *  cleared with it, so the badge's recount reads the panels with no page load. Null until a read has run the census. */
 let panelCache: string[] | null = null;
+/** #2956: the sets the last read found with their updates off, beside `presentCache` and cleared with it. */
+let offCache: Record<string, UpdatesOff> | null = null;
 /** #3137: the census, from a read's own searches: the panel frames it collected a page at a time, read against the set ids
  *  it found (`readPresent` keeps it as `panelCache`). Never throws: an unreadable frame reads as no panel. */
 const panelCensus = (found: Found, frames: readonly SearchNode[]): string[] => {
@@ -1377,7 +1434,7 @@ const watchSets = (): void => {
       // #3313: a change to any component or set, or any style, has the next Update check read every set again (`member-views.ts`).
       dropViewsFor(e.documentChanges as Parameters<typeof dropViewsFor>[0]);
       if (presentCache === null || !movesSets(e.documentChanges as readonly SetChange[])) return;
-      presentCache = null; panelCache = null; presentRead = null; presentGen++;
+      presentCache = null; panelCache = null; offCache = null; presentRead = null; presentGen++;
     });
     watchingSets = true;
     watchViews(true);
@@ -1422,8 +1479,8 @@ const brandOf = (panel: BrandInput | undefined): BrandInput | null => {
 /** The ledger entry each def would get if it were built now, against `input`'s brand (#2909 Q2909.8 A, `brandOf`). The
  *  brand's theme is built once for every def (`materializerFor`); a def the engine cannot plan has none, and reads
  *  unrecorded. */
-const ledgerNow = (input?: BrandInput): ((def: string) => LedgerEntry | null) => {
-  const mat = materializerFor(brandOf(input)), panel = panelFormatOf(); // #3205: on a lead set, today's panel format
+const ledgerNow = (input?: BrandInput, panels?: boolean): ((def: string) => LedgerEntry | null) => {
+  const mat = materializerFor(brandOf(input)), panel = panelFormatOf(panels); // #3205: on a lead set, today's panel format
   // #3301: each def's entry worked out once per read (`needsPrint` and `dueOf` both ask for every set's).
   const memo = new Map<string, LedgerEntry | null>();
   return (id) => {
@@ -1575,7 +1632,7 @@ const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
     const print = printNow(input);
     await nowYielding(now, present);
     await printYielding(print, needsPrint(ledger, present, now));
-    const due = await timed('due (file)', () => dueOf(ledger, present, now, print));
+    const due = await timed('due (file)', () => dueOf(ledger, present, now, print, read.off));
     // #3308 (Q3308.3 A): what Update file's run would build first for the usage panels, read from the same search.
     const docBlockLacks = findDocBlock({ root: rootOver(read) } as unknown as PanelApi) ? null : DOC_BLOCK_DEFS.filter((id) => !present.includes(id));
     // #3467 (Q3 A, Q4 A): what Set up file owns and the file lacks, beside `setUp`, which is unchanged (P8). Update file
@@ -1599,7 +1656,8 @@ const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
  *  no page loaded, so it is `partial` (`ledgerSets` says what it cannot see). Shared by `ledgerSets` and `context`. */
 const ledgerDue = async (time: <T>(stage: string, fn: () => T | Promise<T>) => Promise<T> = async (_s, fn) => fn()) => {
   const ledger = await time('ledger read', () => readLedger(figma.root));
-  const present = componentDefs.filter((d) => d.figmaProperties && ledger[d.id]).map((d) => d.id);
+  // #3770: an entry under an id the def was renamed from names the set too (`formerEntry`); `dueOf` reads it due.
+  const present = componentDefs.filter((d) => d.figmaProperties && (ledger[d.id] || formerEntry(ledger, d.id))).map((d) => d.id);
   // #3096 into #3090: the ledger's read prints too, as `fileSets` does, against the same stored brand: without a print
   // a printed set under a moved engine reads `unrecorded`, and the panel's first answer would disagree with the full
   // read on what is due. Printing projects the plans in memory and loads no page, a set at a time with the thread
@@ -1638,8 +1696,8 @@ const emissionNow = (input: BrandInput): string => {
 const themeDiffers = (input: BrandInput | undefined): boolean => !!input && themeDue(figma.root, input, () => emissionNow(input));
 const fileDue = async (input: BrandInput | undefined, seq: number): Promise<void> => {
   try {
-    const cached = presentCache !== null && panelCache !== null ? { ids: presentCache, paneled: panelCache } : null;
-    const { ids: present, paneled } = cached ?? await readPresent();
+    const cached = presentCache !== null && panelCache !== null && offCache !== null ? { ids: presentCache, paneled: panelCache, off: offCache } : null;
+    const { ids: present, paneled, off } = cached ?? await readPresent();
     // #3137 Q3137.3 A: the panels switch is read each time (one root read), so turning it on recounts with no page load;
     // the census is the last read's (`panelCache`), kept beside its sets.
     const unpaneled = unpaneledNow(present, paneled);
@@ -1650,7 +1708,7 @@ const fileDue = async (input: BrandInput | undefined, seq: number): Promise<void
     const print = printNow(input);
     await nowYielding(now, present);
     await printYielding(print, needsPrint(ledger, present, now));
-    postToUi({ type: 'file-due', seq, present, theme: themeDiffers(input), due: dueOf(ledger, present, now, print), queued: queuedFor(present), ...unpaneled });
+    postToUi({ type: 'file-due', seq, present, theme: themeDiffers(input), due: dueOf(ledger, present, now, print, off), queued: queuedFor(present), ...unpaneled });
   } catch (e) {
     postToUi({ type: 'file-due', seq, present: [], theme: false, due: {}, queued: [], error: (e as Error)?.message ?? String(e) });
   }
@@ -1681,10 +1739,10 @@ const passTarget = async (id: string, tick: () => Promise<void>): Promise<Update
     return { def: d.id, plans: checkAnatomySet(m, plans), single: true };
   } catch { return null; }
 };
-let handPass = 0;
+let handPass = 0, handPassOwed = false; // #3804: a pass a write ended is owed, and the write's end (`guarded`) asks for it again.
 const handEditsPass = async (): Promise<void> => {
-  const mine = ++handPass;
-  const stale = (): boolean => mine !== handPass || (['build-components', 'apply-theme', 'file-setup', 'style-guide'] as const).some((c) => guard.busy(c));
+  const mine = ++handPass; handPassOwed = false;
+  const stale = (): boolean => mine !== handPass || (guard.busy() && (handPassOwed = true)); // #3737: ANY write holding the file (one hold since #3697 R7), prune included; it owes the pass (#3804). A newer pass owes nothing.
   try {
     const read = await readPresent();
     const present = read.ids;
@@ -1754,13 +1812,13 @@ const seatSet = async (setId: string, defId: string): Promise<void> => {
   } catch { /* the set stays where the executor placed it */ }
 };
 
-const updateTargets = (defId: string | readonly string[] | undefined, input?: BrandInput): { targets: UpdateTarget[]; unknown: string | null; refused: { def: string; reason: string }[] } => {
+const updateTargets = (defId: string | readonly string[] | undefined, input?: BrandInput): { targets: UpdateTarget[]; unknown: string | null; refused: { def: string; reason: string }[]; panels: boolean } => {
   const brandInput = brandOf(input);
   // #2909: the panel's Update file names a list, the sets its checklist ticked, in catalog order.
   const ids = typeof defId === 'string' ? [defId] : defId;
   const defs = ids === undefined ? componentDefs.filter((d) => d.figmaProperties) : componentDefs.filter((d) => ids.includes(d.id));
   const unknownId = ids?.find((id) => !componentDefs.some((d) => d.id === id));
-  if (unknownId !== undefined) return { targets: [], unknown: unknownId, refused: [] };
+  if (unknownId !== undefined) return { targets: [], unknown: unknownId, refused: [], panels: false };
   const targets: UpdateTarget[] = [];
   const refused: { def: string; reason: string }[] = [];
   // #2909: a set's usage panel rides its update only while Documentation has the panels on for this file.
@@ -1768,9 +1826,9 @@ const updateTargets = (defId: string | readonly string[] | undefined, input?: Br
   for (const d of defs) {
     // `single` (#2296): an `emitAsComponents` def (the icons, the spinner) is read as single components, not a set.
     try { targets.push({ def: d.id, plans: figmaAnatomySet(materializeForBrand(d, brandInput), { swapTarget: SWAP_TARGET }), ...(d.figmaProperties?.emitAsComponents ? { single: true } : {}), ...(panels && leadsPanel(d.id) ? { doc: { def: d, names: defName } } : {}) }); }
-    catch (e) { refused.push({ def: d.id, reason: `the engine could not plan it (${(e as Error)?.message ?? String(e)})` }); }
+    catch (e) { refused.push({ def: d.id, reason: `the engine could not plan it (${failureDetail(e)})` }); }
   }
-  return { targets, unknown: null, refused };
+  return { targets, unknown: null, refused, panels };
 };
 const breathe = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
 /** #3421: the per-set hand-edit choices an `update-sets` carries, each a known choice, as `UpdateChoices.sets`; undefined
@@ -1787,7 +1845,7 @@ const unknownDef = (defId: string, sink: ActionSink): void => {
 
 const updateComponents = async (defId: string | readonly string[] | undefined, previewHash: string | null, choices: UpdateChoices | undefined, input: BrandInput | undefined, sink: ActionSink): Promise<void> => {
   try {
-    const { targets, unknown, refused } = updateTargets(defId, input);
+    const { targets, unknown, refused, panels } = updateTargets(defId, input);
     if (unknown !== null) return unknownDef(unknown, sink);
     // #3177: the check and the apply each load and search the file a page per turn, once, for every set they read.
     if (previewHash === null) {
@@ -1827,7 +1885,7 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
     // brand its plans were laid from (the panel's, which the run's Theme step applied). A refused set, or an apply
     // refused whole (the file moved since the check), records nothing. CAUGHT, as the build's is.
     // #3082 Q811 A: with the print of the plans the apply laid, the target's own.
-    const now = ledgerNow(input);
+    const now = ledgerNow(input, panels); // #3870: the switch `updateTargets` read, never read again: it can move mid-run
     // #3421 (Q39 A): a set whose kept hand edits held changes back carries them (`held`), so it is listed under Kept edits.
     // #3436: the ledger before the run, so a later Keep run over a kept set keeps the `held` its entry carried.
     let was: Ledger = {};
@@ -1847,7 +1905,7 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
     const items = [...furnitureItems(furniture, 'update'), ...[docBlockLine(furniture, 'update', fix)].filter(Boolean)];
     postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), items), furniture, 'update', fix), ...(r.publish ? { publish: r.publish } : {}) }, sink);
   } catch (e) {
-    const why = (e as Error)?.message ?? String(e);
+    const why = failureDetail(e);
     const headline = previewHash === null ? '✗ check failed' : '✗ update failed';
     postVerdict({ type: 'component-update-result', ok: false, headline, summary: why, lines: [why], causes: [runCause(headline, why)] }, sink);
   }
@@ -1865,7 +1923,7 @@ const captureBaseline = async (defId: string | undefined, sink: ActionSink): Pro
     sink.data({ update: { mode: 'capture', ...r } });
     postVerdict({ type: 'component-update-result', ...captureVerdictText(r) }, sink);
   } catch (e) {
-    const why = (e as Error)?.message ?? String(e);
+    const why = failureDetail(e);
     postVerdict({ type: 'component-update-result', ok: false, headline: '✗ record failed', summary: why, lines: [why] }, sink);
   }
 };
@@ -1882,7 +1940,7 @@ const adoptMembers = async (defId: string | undefined, sink: ActionSink): Promis
     sink.data({ update: { mode: 'adopt', ...r } });
     postVerdict({ type: 'component-update-result', ...adoptVerdictText(r) }, sink);
   } catch (e) {
-    const why = (e as Error)?.message ?? String(e);
+    const why = failureDetail(e);
     postVerdict({ type: 'component-update-result', ok: false, headline: '✗ adopt failed', summary: why, lines: [why] }, sink);
   }
 };
@@ -1906,7 +1964,7 @@ const drawSpecs = async (defId: string | undefined, scope: 'file' | 'page', sink
     for (const { def, set } of targets) {
       let o: SpecOutcome;
       try { o = await drawSpecPanel(api, set, def, { materialize: (d) => materializeForBrand(d, brandInput) }); }
-      catch (e) { o = { def: def.id, drawn: false, sets: [], replaced: 0, kept: [], skipped: [`No spec panel for ${def.id}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], misses: [] }; }
+      catch (e) { o = { def: def.id, drawn: false, sets: [], replaced: 0, kept: [], skipped: [`No spec panel for ${def.id}: Figma refused the write (${failureDetail(e)})`], misses: [] }; }
       if (o.missing?.length) { items.push(`No spec panels: the file has no ${o.missing.join(', ')}. Run Set up file first`); break; }
       if (o.drawn) drawn.push(def.id);
       items.push(...specItems(o));
@@ -1925,7 +1983,7 @@ const drawSpecs = async (defId: string | undefined, scope: 'file' | 'page', sink
     const causes = clean ? [] : [{ ...runCause(headline, ''), reasons: targets.length ? [...items] : [summary] }];
     postVerdict({ type: 'component-update-result', ok: clean, headline, summary, lines: targets.length ? [`Drew ${drawn.length} of ${targets.length}.`, ...items] : [summary], causes }, sink);
   } catch (e) {
-    const why = (e as Error)?.message ?? String(e);
+    const why = failureDetail(e);
     postVerdict({ type: 'component-update-result', ok: false, headline: '✗ draw specs failed', summary: why, lines: [why], causes: [runCause('✗ draw specs failed', why)] }, sink);
   }
 };
@@ -1956,7 +2014,7 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
     if (due.length) {
       let saved = false;
       try { await saveVersion(figma, { run: 'setup', sets: due.map((m) => ({ set: m.set })) }); saved = true; }
-      catch (e) { movesNote = `\nSets not moved to their pages: the named version could not be saved (${(e as Error)?.message ?? String(e)}).`; }
+      catch (e) { movesNote = `\nSets not moved to their pages: the named version could not be saved (${failureDetail(e)}).`; }
       if (saved) {
         relocated = await relocateSets(figma, TAXONOMY);
         // A moved block's header goes with it (#3172), and the page it leaves is named too.
@@ -2006,13 +2064,13 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
     // #2977: unless Documentation has the cover off for this file; then nothing is drawn and the thumbnail is left.
     if (!readDocSettings(figma.root).cover) cover = { did: 'none', skipped: COVER_OFF, fontMisses: [] };
     else try { cover = await drawCover(figma as unknown as CoverApi, figma.root as unknown as CoverRoot); }
-    catch (e) { cover = { did: 'none', skipped: `not drawn, Figma refused the write (${(e as Error)?.message ?? String(e)})`, fontMisses: [] }; }
+    catch (e) { cover = { did: 'none', skipped: `not drawn, Figma refused the write (${failureDetail(e)})`, fontMisses: [] }; }
     const coverNote = coverLine(cover);
     const summary = `pages: ${scaffold.created.length} created${scaffold.created.length ? ` (${scaffold.created.slice(0, 4).join(', ')}${scaffold.created.length > 4 ? '…' : ''})` : ' (all present)'}${assetNote}${movesNote}${coverNote ? `\n${coverNote}` : ''}`;
     sink.data({ fileSetup: { pagesCreated: scaffold.created, fileComponentsPage: page ? true : false, assets, cover, ...(relocated ? { relocated } : {}) } });
     sink.post({ type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: appendBuildNote(summary, PRISM3_BUILD) });
   } catch (e) {
-    sink.post({ type: 'file-setup-result', ok: false, headline: '✗ setup failed', summary: appendBuildNote(`file setup failed: ${(e as Error).message}`, PRISM3_BUILD) });
+    sink.post({ type: 'file-setup-result', ok: false, headline: '✗ setup failed', summary: appendBuildNote(`file setup failed: ${failureDetail(e)}`, PRISM3_BUILD) });
   }
 };
 
@@ -2068,7 +2126,7 @@ const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise
     sink.post({ type: 'style-guide-result', ok: v.ok, headline: v.headline, summary: appendBuildNote(summary, PRISM3_BUILD), lines, ...(result.stopped ? { stopped: result.stopped } : {}),
       ...(result.retired?.length ? { retired: result.retired } : {}) });
   } catch (e) {
-    const failure = `style guide failed: ${(e as Error).message}`;
+    const failure = `style guide failed: ${failureDetail(e)}`;
     sink.post({ type: 'style-guide-result', ok: false, headline: '✗ style guide failed', summary: appendBuildNote(failure, PRISM3_BUILD), lines: withBuildLine([failure]) });
   } finally {
     styleGuideStop = false;
@@ -2120,7 +2178,7 @@ const seedFromFile = async (sink: ActionSink): Promise<void> => {
   } catch (e) {
     // The read itself failed, so presence is UNKNOWN — reported false, since the outcome is an error
     // either way and claiming presence we could not establish would be worse than not claiming it.
-    sink.post({ type: 'seed-info', ok: false, present: false, summary: `read-back failed: ${(e as Error).message}`, failed: 0 });
+    sink.post({ type: 'seed-info', ok: false, present: false, summary: `read-back failed: ${failureDetail(e)}`, failed: 0 });
   }
 };
 
@@ -2220,28 +2278,30 @@ const styleGuideCleanup = async (ids: string[], sink: ActionSink): Promise<void>
     const summary = n ? `${n} table${n === 1 ? '' : 's'} removed: ${removed.join(', ')}` : 'No table removed';
     sink.post({ type: 'style-guide-cleanup-result', ok: left.length === 0, removed: ids.filter((id) => !left.includes(id)), summary: left.length ? `${summary}. ${left.length} left in place: the generator draws ${left.length === 1 ? 'it' : 'them'} again, or ${left.length === 1 ? 'it is' : 'they are'} gone` : summary });
   } catch (e) {
-    sink.post({ type: 'style-guide-cleanup-result', ok: false, removed: [], summary: `Cleanup failed: ${(e as Error).message}` });
+    sink.post({ type: 'style-guide-cleanup-result', ok: false, removed: [], summary: `Cleanup failed: ${failureDetail(e)}` });
   }
 };
 
 /**
- * ONE RUN OF A WRITE AT A TIME, PER OPERATION (#1957; `run-guard.ts`). Each writing entry of the table
- * below goes through `guarded`, so the panel's buttons and the agent link meet the same guard. A second
- * write of a running operation is not run: its caller's sink is sent `refused`, and nothing else is.
+ * ONE WRITE AT A TIME, FILE-WIDE (#3697 R7; `run-guard.ts`). Each writing entry of the table below goes through
+ * `guarded`, so the panel's buttons and the agent link meet the same guard. Any write asked for while another holds the
+ * file is not run: its caller's sink is sent `refused`, naming both, and nothing else is.
  * The agent link asks first, through `refuse` below, so a declined command is never bracketed as running.
  */
 const guard = createRunGuard();
-const refusal = (cmd: WriteCmd, agent: boolean): MainToUi => ({ type: 'refused', code: 'busy', cmd, agent, message: busyMessage(cmd) });
+/** `cmd` is the write asked for; `held`, the one holding the file (#3697 R7: they can differ). */
+const refusal = (cmd: WriteCmd, agent: boolean, held: WriteCmd): MainToUi => ({ type: 'refused', code: 'busy', cmd, agent, message: busyMessage(held), held });
 const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<void>, confirm?: (...a: A) => boolean) =>
   (...a: A): Promise<void> => {
     if (!writes(cmd, confirm ? confirm(...a) : undefined)) return fn(...a);
     // Every action's sink is its last argument.
     const sink = a[a.length - 1] as ActionSink;
-    if (guard.busy(cmd)) { sink.post(refusal(cmd, sink !== uiSink)); return Promise.resolve(); }
+    const holder = guard.held();
+    if (holder) { sink.post(refusal(cmd, sink !== uiSink, holder)); return Promise.resolve(); }
     // #3081: a write may add or remove sets, so the live recount reads the file again after it (`presentCache`). It is
     // cleared as the write starts too: the write's verdict posts before the write's promise settles.
-    presentCache = null; panelCache = null; presentRead = null; presentGen++; dropViews();
-    return guard.run(cmd, () => fn(...a)).finally(() => { presentCache = null; panelCache = null; presentRead = null; presentGen++; dropViews(); });
+    presentCache = null; panelCache = null; offCache = null; presentRead = null; presentGen++; dropViews();
+    return guard.run(cmd, () => fn(...a)).finally(() => { presentCache = null; panelCache = null; offCache = null; presentRead = null; presentGen++; dropViews(); if (handPassOwed) void handEditsPass(); }); // #3804: a hand-edit pass this write ended runs again, over the file it left.
   };
 
 /**
@@ -2279,6 +2339,91 @@ const panelsClean = async (confirm: boolean, sink: ActionSink): Promise<void> =>
   }
 };
 
+/**
+ * #3394 (Q3394.1–.7 all A): THE AGENT LINK'S COLOR OVERRIDES. A preview plans the changes against the brand the file holds
+ * and writes nothing. A confirmed write plans them again, refuses when the plan's hash is not the preview's (the file's
+ * brand moved) or when the panel holds Theme edits the file does not, and then hands the planned brand to
+ * `ACTIONS.applyTheme`, the entry the panel's Apply reaches (so its guard, its saved version and its persist are the
+ * Theme write's own). Its verdict is its own, `override-result`, one Activity row (Q3394.7 A); the Theme write's verdict
+ * is read here and not posted. After a write the panel is sent the brand, so Theme shows what the agent stored.
+ */
+/** The brand the panel last asked the badge's recount or the checklist about: the brand on its screen (#3081). */
+let panelInput: BrandInput | null = null;
+const setOverride = async (changes: readonly OverrideChange[], previewHash: string | null, sink: ActionSink): Promise<void> => {
+  const applied = previewHash !== null;
+  const refused = (r: OverrideRefusal, extra: Record<string, unknown> = {}): void => {
+    sink.data({ refusals: [r], ...extra });
+    sink.post({ type: 'override-result', ok: false, preview: !applied, applied: false, headline: r.line, summary: r.line, lines: [r.line] });
+  };
+  let stored: BrandInput | null;
+  try { stored = restoreInput(figma.root); } catch { refused(wholeRunRefusal('unreadable-brand')); return; }
+  if (!stored) { refused(wholeRunRefusal('no-brand')); return; }
+  // A stored brand the engine refuses to build is one this build can't read, as far as an override is concerned.
+  let plan: ReturnType<typeof planOverride>;
+  try { plan = planOverride(stored, changes); } catch (e) { refused(wholeRunRefusal('unreadable-brand'), { error: (e as Error)?.message ?? String(e) }); return; }
+  if (!plan.ok || !applied) {
+    sink.data(overrideData(plan));
+    const v = overrideVerdict(plan, false);
+    sink.post({ type: 'override-result', ok: v.ok, preview: !applied, applied: false, headline: v.headline, summary: v.lines.join('; '), lines: v.lines });
+    return;
+  }
+  if (plan.previewHash !== previewHash) { refused(wholeRunRefusal('brand-moved'), { previewHash: plan.previewHash }); return; }
+  if (panelInput && !holdsInput(figma.root, panelInput)) { refused(wholeRunRefusal('theme-unsaved')); return; }
+  // The Theme write, through the table: the same function object the panel's Apply reaches, read at call time.
+  const posts: MainToUi[] = [];
+  const inner: ActionSink = { post: (m) => { posts.push(m); }, data: (d) => { sink.data({ theme: d }); } };
+  // The panel's brand as the write starts: an edit the designer makes while it runs must not be reloaded over.
+  const asked = panelInput ? canon(panelInput) : null;
+  let threw: string | null = null;
+  try { await ACTIONS.applyTheme(plan.input, undefined, inner); } catch (e) { threw = (e as Error)?.message ?? String(e); }
+  const busy = posts.find((m) => m.type === 'refused');
+  if (busy) { sink.post(busy); return; }
+  sink.data(overrideData(plan));
+  // The Theme write stores the brand once its variables are written, misses or not, so the panel is sent what the file
+  // holds, unless the panel's brand moved while it ran: then the panel keeps its edits, and Theme counts as due.
+  if (holdsInput(figma.root, plan.input) && (panelInput ? canon(panelInput) : null) === asked) {
+    panelInput = plan.input;
+    postToUi({ type: 'restore-input', input: plan.input });
+  }
+  if (threw !== null) {
+    const failure = `write failed: ${threw}`;
+    sink.post({ type: 'override-result', ok: false, preview: false, applied: holdsInput(figma.root, plan.input), headline: APPLY_FAILED_HEADLINE, summary: failure, lines: [failure] });
+    return;
+  }
+  const res = posts.find((m): m is Extract<MainToUi, { type: 'apply-result' }> => m.type === 'apply-result');
+  if (!res || !res.ok) {
+    // The Theme write's own words: it refused, failed or missed, and the brand it stores is only stored when it ran.
+    const headline = res?.headline ?? APPLY_FAILED_HEADLINE;
+    sink.post({ type: 'override-result', ok: false, preview: false, applied: holdsInput(figma.root, plan.input), headline, summary: res?.summary ?? headline, lines: res?.lines ?? [headline] });
+    return;
+  }
+  const v = overrideVerdict(plan, true);
+  sink.post({ type: 'override-result', ok: true, preview: false, applied: true, headline: v.headline, summary: v.lines.join('; '), lines: v.lines });
+};
+
+/**
+ * #2956 (owner decisions 2026-11-17): "TURN OFF UPDATES" AND "TURN UPDATES BACK ON", from Update file. Writes the set's
+ * mark only (`updates-off.ts`): no member, no version, no Activity verdict. Turning off marks it the designer's
+ * (`designer`, so no reason line); turning back on clears whichever mark it holds, and the next check re-plans the set
+ * normally. Guarded as a component write, so it never lands inside an Update run, whose check hashes the mark. Answered
+ * with one `updates-off`. The panel only, for now: no agent command reaches it (OWNER DECISION in the PR).
+ */
+const setUpdatesOff = async (def: string, off: boolean, sink: ActionSink): Promise<void> => {
+  try {
+    const d = componentDefs.find((x) => x.id === def);
+    if (!d?.figmaProperties || d.figmaProperties.emitAsComponents) throw new Error(`${def} has no component set to carry it`);
+    await loadPagesYielding();
+    // The set the update check reads (`locateSets`): the current id's, or a former id's only when it is absent.
+    const set = locateSets(figma as unknown as UpdateHost, { def, plans: [] }).found[0] as SceneNode | undefined;
+    if (!set) throw new Error(`this file has no ${def} set`);
+    writeUpdatesOff(set, off ? 'designer' : null);
+    sink.post({ type: 'updates-off', def, off, ok: true });
+  } catch (e) {
+    sink.post({ type: 'updates-off', def, off, ok: false, error: (e as Error)?.message ?? String(e) });
+  }
+};
+const setUpdatesOffGuarded = guarded('build-components', setUpdatesOff);
+
 export const ACTIONS: AgentActions = {
   applyTheme: guarded('apply-theme', thenRestamp(applyTheme)),
   buildComponents: guarded('build-components', thenRestamp(buildComponents)),
@@ -2291,6 +2436,8 @@ export const ACTIONS: AgentActions = {
   adoptMembers: guarded('build-components', adoptMembers),
   drawSpecs: guarded('build-components', drawSpecs),
   panelsClean: guarded('prune', panelsClean, (confirm) => confirm),
+  // Not `guarded`: its write is `applyTheme`'s, which is.
+  setOverride,
 };
 
 /**
@@ -2301,19 +2448,38 @@ export const ACTIONS: AgentActions = {
  */
 /** #3309: the agent command running now, so the activity log can name what an agent's forwarded verdict answered. */
 let agentCmd: string | null = null;
+/** #2368: the announced agent run, with its start notice, until the link publishes its result. */
+let announced: { id: string; cmd: string; notice: NotificationHandler | null } | null = null;
 const dispatch = createDispatcher({
   actions: ACTIONS,
   // Streamed to the panel, which forwards them to the desktop bridge for the commands it delivered.
   onProgress: (id, progress) => postToUi({ type: 'agent-progress', id, progress }),
   onLog: (id, line) => postToUi({ type: 'agent-log', id, line }),
   // The Activity drawer's agent rows (UI redesign S11): when a command starts, and when it has ended.
-  onStart: (id, cmd, apply) => { agentCmd = cmd; postToUi({ type: 'agent-started', id, cmd, ...(apply ? { apply: true as const } : {}) }); },
+  // #2087: a build names its set (no def builds Button, as `buildComponents` does), so the Components page records its verdict.
+  // #2368 (owner decision A): a command that writes the file is announced. The panel's bar shows it busy, and a host
+  // notice says it is running and that closing Prism3 stops it; the notice stays up until its result is written.
+  onStart: (id, cmd, apply, def, confirm) => {
+    agentCmd = cmd;
+    const busy = announces(cmd, confirm === true);
+    postToUi({ type: 'agent-started', id, cmd, ...(apply ? { apply: true as const } : {}), ...(cmd === 'build-components' ? { def: def ?? button.id } : {}),
+      ...(busy ? { busy: true as const } : {}) });
+    if (busy) {
+      try { announced?.notice?.cancel(); } catch { /* a notice; never fails the command */ }
+      let notice: NotificationHandler | null = null;
+      try { notice = figma.notify(agentStartLine(cmd), { timeout: Infinity }); } catch { /* a notice; see above */ }
+      announced = { id, cmd, notice };
+    }
+  },
   onFinish: (id, cmd) => { agentCmd = null; postToUi({ type: 'agent-finished', id, cmd }); },
-  // #1957: an agent's write of an operation that is already running is declined before it starts.
+  // #1957, #3697 R7: an agent's write is declined before it starts while any write holds the file.
   refuse: (c) => {
-    const held = guardFor(c.cmd);
-    if (!held || !writes(held, c.cmd === 'prune' ? c.args.confirm : c.cmd === 'panels-clean' ? c.args.confirm === true : undefined) || !guard.busy(held)) return null;
-    return { message: busyMessage(held), post: refusal(held, true) };
+    const asked = guardFor(c.cmd);
+    const holder = guard.held();
+    if (!asked || !holder || !writes(asked, c.cmd === 'prune' ? c.args.confirm : c.cmd === 'panels-clean' ? c.args.confirm === true : undefined)) return null;
+    // #3394: a `set-override` preview reads and writes nothing, so it is never declined.
+    if (c.cmd === 'set-override' && !c.args.confirm) return null;
+    return { message: busyMessage(holder), post: refusal(asked, true, holder) };
   },
   // The panel's pills show an agent's result as they would a button's. An agent's prune PREVIEW goes as a
   // pill only: opened as the confirm dialog, the owner's Confirm would prune against the panel's knobs,
@@ -2391,7 +2557,16 @@ export const agentLink = createAgentLink({
   build: PRISM3_BUILD,
   schedule: (fn, ms) => setTimeout(fn, ms),
   cancel: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
-  onState: (state) => postToUi({ type: 'agent-link-state', state }),
+  onState: (state) => {
+    postToUi({ type: 'agent-link-state', state });
+    // #2368: the announced run's result is written once the link publishes it as its last command: its start notice
+    // gives way to the finish notice, with the command's headline.
+    const done = agentDoneNotice(announced, state.lastCommand);
+    if (!done || !announced) return;
+    try { announced.notice?.cancel(); } catch { /* a notice; never fails the command */ }
+    announced = null;
+    try { figma.notify(done.message, { timeout: done.timeout }); } catch { /* a notice; see above */ }
+  },
 });
 // Closing the plugin ends the session, so the link record says so — an agent reading `link` then knows
 // nobody is listening rather than waiting on a poll that will never come.
@@ -2434,15 +2609,21 @@ onUiMessage((msg: UiToMain) => {
     case 'file-sets-request':
       // #2909: Update file's checklist — which sets the file holds, whether it is set up, and what is due. A read: never
       // guarded.
+      if (msg.input) panelInput = msg.input;   // #3394: the brand on the panel's screen
       void fileSets(msg.input);
       return;
     case 'due-request':
       // #3081 Q810 A: the badge's live recount, against the brand the panel holds. A read: never guarded.
+      if (msg.input) panelInput = msg.input;   // #3394: the brand on the panel's screen
       void fileDue(msg.input, msg.seq);
       return;
     case 'add-queue':
       // #3129 Q833 A: Components' boxes and Update file's Remove, Remove all and Add all. Writes no layer: never guarded.
       void addQueue(Array.isArray(msg.ids) ? msg.ids.filter((x): x is string => typeof x === 'string') : [], msg.on === true);
+      return;
+    case 'updates-off':
+      // #2956: Update file's "Turn off updates" / "Turn updates back on". A write of plugin data on the set: guarded.
+      if (typeof msg.def === 'string') void setUpdatesOffGuarded(msg.def, msg.off === true, uiSink);
       return;
     case 'activity-note':
       // #3309: the panel's summary of a run of several writes, for the agent link's `activity`. Writes nothing.
@@ -2471,7 +2652,7 @@ onUiMessage((msg: UiToMain) => {
       return;
     case 'update-stop':
       // #3170 Q3170.4 A: read by the panel's running update at its next set boundary; nothing running, nothing to stop.
-      if (guard.busy('build-components')) updateStopAsked = true;
+      if (guard.holding('build-components')) updateStopAsked = true;
       return;
     case 'draw-specs':
       // #2830 Q2830.3 A: Documentation › Specs, the panel's Draw specs, for the sets on the current page. The agent's
@@ -2498,7 +2679,7 @@ onUiMessage((msg: UiToMain) => {
       return;
     case 'prune':
       // #1521 — `confirm` decides preview vs delete; both recompute from a fresh read inside `prune`.
-      void ACTIONS.prune(msg.input, msg.confirm, uiSink);
+      void ACTIONS.prune(msg.input, msg.confirm, msg.confirm ? msg.previewHash ?? null : null, uiSink);
       return;
     case 'open-docs':
       // #2637 Q384 — the bar's Docs. A read of nothing and a write to nothing in the file: never guarded.
@@ -2521,8 +2702,8 @@ onUiMessage((msg: UiToMain) => {
       void styleGuideCatalog();
       return;
     case 'style-guide-cleanup':
-      // Q412 A — the confirmed cleanup. A write under the style guide's own guard: never while a run is drawing.
-      if (guard.busy('style-guide')) { uiSink.post(refusal('style-guide', false)); return; }
+      // Q412 A — the confirmed cleanup. A write under the file-wide hold (#3697 R7): never while any write runs.
+      { const holder = guard.held(); if (holder) { uiSink.post(refusal('style-guide', false, holder)); return; } }
       void guard.run('style-guide', () => styleGuideCleanup(Array.isArray(msg.ids) ? msg.ids.filter((x): x is string => typeof x === 'string') : [], uiSink));
       return;
     case 'panels-clean':
@@ -2531,7 +2712,7 @@ onUiMessage((msg: UiToMain) => {
       return;
     case 'style-guide-cancel':
       // S11.2 (P7) — read by the running style guide after its current table; nothing running, nothing to stop.
-      if (guard.busy('style-guide')) styleGuideStop = true;
+      if (guard.holding('style-guide')) styleGuideStop = true;
       return;
     case 'agent-link':
       // The owner's switch — the only way the link turns on. See `agent-link.ts`.
@@ -2585,9 +2766,10 @@ onUiMessage((msg: UiToMain) => {
 
 /** THE PANEL FORMAT A SET'S ENTRY CARRIES (#3205): `PANEL_FORMAT` on a family's lead set while Documentation has the
  *  usage panels on for this file, the sets whose update checks a panel (`updateTargets`' `doc`); nothing on any other.
- *  The file's switch is read once per call. Defined here, at the end, so the lines public guides cite above stay put;
- *  it is called only once the module has loaded. */
-const panelFormatOf = (): ((def: string) => { panel?: number }) => {
-  const on = readDocSettings(figma.root).panels;
-  return (id) => (on && leadsPanel(id) ? { panel: PANEL_FORMAT } : {});
+ *  The file's switch is read once per call, unless the caller hands in the value its run already read (#3870). Defined
+ *  here, at the end, so the lines public guides cite above stay put; it is called only once the module has loaded. */
+const panelFormatOf = (panels?: boolean): ((def: string) => { panel?: number; changed?: string }) => {
+  const on = panels ?? readDocSettings(figma.root).panels;
+  // #2889: and the text of its "Last changed in" block, so a fold that moves it makes the set due (owner decision A).
+  return (id) => (on && leadsPanel(id) ? { panel: PANEL_FORMAT, changed: lastChangedKey(id) } : {});
 };

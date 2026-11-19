@@ -495,7 +495,7 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
       const t = summaryText(c);
       const s = hook(h('span', 'p3-sg-sum'), 'sg-summary');
       if (t) { s.append(h('b', undefined, t.lead)); if (t.rest) s.append(` · ${t.rest}`); }
-      else s.textContent = 'Nothing selected.';
+      else s.textContent = 'Pick a collection or a kind to see the tables Update file will draw.';
       bar.append(s);
     }
     if (settings) return bar;

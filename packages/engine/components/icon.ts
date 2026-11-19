@@ -210,7 +210,7 @@ export const icon: ComponentDef = {
     root: 'glyph',
     parts: {
       glyph: {
-        kind: 'vector',
+        kind: 'vector', mirror: 'per-glyph',
         // `target` in the schema's sense — the single node that owns this component's paint and
         // dimensions — and NOT in the interaction sense, which an icon never has (§5). Worth stating
         // because the two readings diverge here for the first time: every def so far has been a
@@ -222,7 +222,10 @@ export const icon: ComponentDef = {
         // path data — see `PartDef.glyph`: the name is the contract surface `icon.name` already types,
         // so a glyph that leaves the set is a projection failure rather than an invisible gap.
         glyph: '{name}',
-        note: 'The glyph outline itself, drawn on the set\'s square artboard and scaled to whatever box it is instanced into. The geometry comes from the set (`ICON_PATHS`) by name, so this def references the vocabulary without authoring it.',
+        // Maintainer detail, out of the reader caption (#3610): The glyph outline itself, drawn on the set's square
+        // artboard and scaled to whatever box it is instanced into. The geometry comes from the set (`ICON_PATHS`) by
+        // name, so this def references the vocabulary without authoring it.
+        note: 'The glyph\'s outline, drawn on a square and scaled to the box it is placed in.',
       },
     },
     // The ceilings. Every entry is structure the brief states and the Figma leg provably cannot hold.
@@ -374,7 +377,7 @@ export const icon: ComponentDef = {
   composition: {
     // Nests nothing (#1700). The hosts that swap it into a slot are in `ai.commonPartners`.
     composesWith: [],
-    alternativeTo: [],
+    alternativeTo: ['provider-logo'],
     replacesPatterns: ['legacy icon fonts', 'ad-hoc inline SVGs outside the set'],
     // `avatar` from brief §12 (an icon is Avatar's image-load fallback). `tag` left for `ai.commonPartners`
     // when it was built (2026-09-27): its leading slot carries an icon.

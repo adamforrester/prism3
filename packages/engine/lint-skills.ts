@@ -27,6 +27,8 @@
  *        Claude Code session in this repo loads it without being told to (#2677, Q320.2).
  *   9.   RETIRED NAME check — a renamed skill's old name appears nowhere in the repo outside the dated
  *        history, except on a line that also names the new one (a redirect), and no file is named after it (#3412).
+ *   10.  STATED DEFAULT check — each default a lever-table row states is the one `levers.ts` (or, for a non-lever
+ *        row, `theme-schema.json`) declares (#3385).
  *
  * Check 4 is the one that fires on the real defect, and it is deliberately opt-in per skill
  * (`documents: brandInput` in the frontmatter) rather than inferred — the same "declare it, don't
@@ -271,7 +273,7 @@ type Finding = { file: string; kind: string; detail: string };
 
 /** How many times each scan actually RAN. See the wiring floor at the bottom of this file — the
  *  self-check can prove a scan works without proving anything still calls it. */
-const ran = { text: 0, coverage: 0, placed: 0, discovery: 0, leverKind: 0, ownerRule: 0, retiredName: 0 };
+const ran = { text: 0, coverage: 0, placed: 0, discovery: 0, leverKind: 0, leverDefault: 0, ownerRule: 0, retiredName: 0 };
 
 /**
  * Scan one skill's TEXT. Split out from `scanSkill` so the self-check can drive **this** function
@@ -477,6 +479,64 @@ export const leverKindFindings = (text: string, rel: string, levers: readonly Ki
 };
 const CLASSIFIES = /^classifies:\s*levers\s*$/m;
 
+/**
+ * 10. STATED DEFAULTS (#3385). Opt-in with check 4 (`documents: brandInput`): every table row whose first cell
+ * is a backticked setting and that STATES a default must state the one the engine uses. #3380 changed
+ * `currentIndicator`'s default to `partial` while the theme skill's row still said "`full` (default)", and
+ * checks 1-4 passed: they read the row's names and its values, never which value it calls the default.
+ *
+ * The row's own text is one side; the other is `default` on that lever in `levers.ts`, or, for a row that is
+ * not a lever (`root` is an identity field, `secondaryTextGround` is deliberately not a lever), the `default`
+ * on that property in the hand-authored `theme-schema.json`. Neither is derived from the skill, and the skill is
+ * derived from neither (docs/34). A row that states a default where neither source has one fails too: a claim
+ * with nothing to hold it to is the silence this arm exists to end.
+ *
+ * Three ways a row says it, read from the row's text after its first cell:
+ *   - "`x` (default)", and a parenthetical that ENDS in the word: "`match` (Medium, default)",
+ *     "`text` (Text & icon only, the default)". Lowercase only: "`default` (Default)" is the option's UI label.
+ *   - "(default `x`)", as on `root` and `buttonMinWidthMultiplier`.
+ *   - "default(s) to `x`", as on `typography.underline`; an object default must hold `x` in every field.
+ *
+ * WHAT IT CANNOT SEE: a default stated any other way ("off by default" on the caption and size floors names no
+ * value; "Defaults to following the action color" on `linkPalette` names no backticked one), a default stated
+ * outside a table row, and a row whose default is right while its prose about that default is not. The floor
+ * at the bottom of the file holds the count of statements read, so a rephrased mark fails there by name.
+ */
+type DefaultLever = { key: string; default?: unknown };
+const DEFAULT_MARKS: RegExp[] = [
+  /`([^`\n]+)`\s*\((?:[^()\n]*[\s,])?default\)/g,
+  /\(default `([^`\n]+)`\)/g,
+  /\bdefaults? to `([^`\n]+)`/g,
+];
+/** Default statements the arm read from REAL skills (the self-check's samples are not counted). */
+let defaultsRead = 0;
+export const leverDefaultFindings = (text: string, rel: string, levers: readonly DefaultLever[], schema: { properties?: Record<string, unknown> }): Finding[] => {
+  ran.leverDefault++;
+  const out: Finding[] = [];
+  const body = text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
+  for (const row of body.matchAll(/^\|\s*`([A-Za-z]+(?:\.[A-Za-z]+)*)`\s*\|(.*)$/gm)) {
+    const key = row[1];
+    const stated = DEFAULT_MARKS.flatMap((re) => [...row[2].matchAll(re)].map((m) => m[1].trim()));
+    if (!stated.length) continue;
+    if (rel !== 'self-check') defaultsRead += stated.length;
+    const lever = levers.find((l) => l.key === key);
+    const prop = key.split('.').reduce<{ properties?: Record<string, unknown>; default?: unknown } | undefined>(
+      (node, k) => node?.properties?.[k] as { properties?: Record<string, unknown> } | undefined, schema,
+    );
+    const truth = lever ? lever.default : prop?.default;
+    const source = lever ? 'levers.ts' : 'theme-schema.json';
+    if (truth === undefined) {
+      out.push({ file: rel, kind: 'unheld default', detail: `the \`${key}\` row states a default (\`${stated.join('`, `')}\`), but ${lever ? 'its lever in levers.ts declares none' : 'it is not a lever and theme-schema.json declares no default for it'}. Declare the default there, or stop stating one` });
+      continue;
+    }
+    const leaves = truth !== null && typeof truth === 'object' ? Object.values(truth).map(String) : [String(truth)];
+    for (const v of stated) {
+      if (!leaves.every((l) => l === v)) out.push({ file: rel, kind: 'default drift', detail: `the \`${key}\` row says its default is \`${v}\`, but ${source} says ${JSON.stringify(truth)}` });
+    }
+  }
+  return out;
+};
+
 /** Read one skill and run every check over it. Thin on purpose: both scans are exported functions so
  *  the self-check exercises exactly what CI does. */
 const scanSkill = (dir: string, findings: Finding[]): void => {
@@ -486,6 +546,7 @@ const scanSkill = (dir: string, findings: Finding[]): void => {
   const rel = relative(repo, path);
   scanText(text, rel, findings);
   scanCoverage(text, rel, findings);
+  if (/^documents:\s*brandInput\s*$/m.test(text)) findings.push(...leverDefaultFindings(text, rel, leverManifest, JSON.parse(readFileSync(resolve(repo, 'packages/engine/schema/theme-schema.json'), 'utf8'))));
   if (CLASSIFIES.test(text.split(/^---\s*$/m)[1] ?? '')) findings.push(...leverKindFindings(text, rel, leverManifest));
 };
 
@@ -735,6 +796,21 @@ const selfCheck = (): string[] => {
     if (!lk('| `a` | value | |\n| `b` | structural | |\n| `old` | value | |\n').includes('stale lever row')) bad.push('lever kind accepts a row for a retired lever');
     if (!leverKindFindings('| `a` | value | |\n| `b` | structural | |\n', 'fx', fx).some((f) => f.kind === 'lever-kind rule missing')) bad.push('lever kind accepts a table with the rule removed');
   }
+  // STATED DEFAULTS (#3385). Each mark, both ways, through the shipping function with fixture levers and schema.
+  {
+    const fx: DefaultLever[] = [{ key: 'shape', default: 'round' }, { key: 'mult', default: 2.25 }, { key: 'line', default: { a: 'auto', b: 'auto' } }, { key: 'free' }];
+    const sc = { properties: { ident: { default: 'brand' }, nested: { properties: { leaf: { default: 'x' } } } } };
+    const dk = (row: string) => leverDefaultFindings(row, 'self-check', fx, sc).map((f) => f.kind);
+    if (dk('| `shape` | `round` \\| `square` | `round` (default) follows the scale |\n| `mult` | number (default `2.25`) | x |\n| `line` | object | both default to `auto` |\n| `ident` | string (default `brand`) | x |\n| `nested.leaf` | `x` (Leaf, the default) | x |\n').length)
+      bad.push('stated defaults flags rows whose defaults all agree');
+    if (!dk('| `shape` | x | `square` (default) cuts the corner |\n').includes('default drift')) bad.push('stated defaults accepts "`x` (default)" naming the wrong value');
+    if (!dk('| `shape` | x | `square` (Square, default) cuts it |\n').includes('default drift')) bad.push('stated defaults accepts a labelled "(…, default)" naming the wrong value');
+    if (!dk('| `mult` | number (default `2.5`) | x |\n').includes('default drift')) bad.push('stated defaults accepts "(default `x`)" naming the wrong value');
+    if (!dk('| `line` | object | both default to `0.1` |\n').includes('default drift')) bad.push('stated defaults accepts "default to `x`" naming the wrong value');
+    if (!dk('| `ident` | string (default `other`) | x |\n').includes('default drift')) bad.push('stated defaults does not hold a non-lever row to the schema default');
+    if (!dk('| `free` | x | `any` (default) |\n').includes('unheld default')) bad.push('stated defaults accepts a default no source declares');
+    if (dk('| `shape` | x | `square` (Square) cuts; the floor (3–4.5, default 3) |\n').length) bad.push('stated defaults reads a UI label or an unbackticked default as a default mark');
+  }
   return bad;
 };
 
@@ -767,34 +843,85 @@ for (const [w, why] of Object.entries(NOT_DECLARED)) {
 // backticked file name resolves. A name with a `/` resolves from the repo root; a bare one (`verify.ts`,
 // `lint-skills.ts`) must exist in one of the places the command's readers look. Its advice is out of reach
 // here, as the skills' is.
+//
+// Two more shapes since #2794, each found by a mutation that left the scan clean:
+//   - a SCRIPT RUN BY A BACKTICKED COMMAND: in `npx tsx fold.ts`, `tsx x.ts`, `node x.mjs`, `bash x.sh` or
+//     `sh x.sh`, the runner's first operand that is not a flag is a file name, and resolves by the rule above.
+//     `npx tsx folds.ts` failed nothing before. Only the runner's operand: other words in a command
+//     (`npm install <pkg> --prefix <worktree>`, a `git` ref) name nothing that has to exist.
+//   - a BACKTICKED DIRECTORY, a path ending in `/`: with an inner `/` (`docs/public/releases/`) it resolves
+//     from the repo root to a directory git tracks; a bare one (`changes/`, `figma/`) must be the last segment
+//     of SOME tracked directory. The bare rule is looser than the bare-file rule, because the command names
+//     directories by their own name inside a sentence that already gave the parent
+//     ("under `packages/engine/out/` ... `figma/` and `components/`"). It still catches a misspelled one.
+// The directory set is read from `git ls-files`, independent of the command's text (docs/34).
 let commandNamesRead = 0;
-export const commandFileFindings = (text: string, rel: string, exists: (p: string) => boolean): Finding[] => {
+let commandOperandsRead = 0;
+let commandDirsRead = 0;
+const RUNNER = /^(?:npx\s+)?(?:tsx|node|bash|sh)\s+(.*)$/;
+const FILE_NAME = /^[A-Za-z0-9_./-]+\.(?:ts|md|mjs|js|json|sh)$/;
+const DIR_PATH = /^[A-Za-z0-9_-][A-Za-z0-9_.-]*(?:\/[A-Za-z0-9_.-]+)*\/$/;
+export const commandFileFindings = (text: string, rel: string, exists: (p: string) => boolean, trackedDirs: ReadonlySet<string>): Finding[] => {
   const out: Finding[] = [];
   const BARE_HOMES = ['', 'docs/', 'packages/engine/', 'apps/plugin/', 'apps/plugin/src/', 'apps/studio/', '.claude/commands/', 'docs/progress/pending/'];
-  for (const m of text.matchAll(/`([A-Za-z0-9_./-]+\.(?:ts|md|mjs|json))`/g)) {
-    const name = m[1];
-    if (name.startsWith('.')) continue; // an extension named as a kind (`.ai.json`), not a file
-    commandNamesRead++;
+  const fileFinding = (name: string, how: string): void => {
     const ok = name.includes('/') ? exists(name) : BARE_HOMES.some((h) => exists(h + name));
-    if (!ok) out.push({ file: rel, kind: 'missing file', detail: `\`${name}\` does not exist${name.includes('/') ? '' : ` in any of: ${BARE_HOMES.map((h) => h || '(repo root)').join(', ')}`}` });
+    if (!ok) out.push({ file: rel, kind: 'missing file', detail: `\`${name}\`${how} does not exist${name.includes('/') ? '' : ` in any of: ${BARE_HOMES.map((h) => h || '(repo root)').join(', ')}`}` });
+  };
+  // A code span may wrap onto the next line, as Markdown allows (`npm install --no-save` and its flags do): a
+  // span read only within one line pairs the backticks after it the wrong way round and skips a name.
+  for (const m of text.matchAll(/`((?:[^`\n]|\n(?![ \t]*\n))+)`/g)) {
+    const span = m[1].trim().replace(/\s+/g, ' ');
+    if (/^[A-Za-z0-9_./-]+\.(?:ts|md|mjs|json)$/.test(span)) {
+      if (span.startsWith('.')) continue; // an extension named as a kind (`.ai.json`), not a file
+      commandNamesRead++;
+      fileFinding(span, '');
+      continue;
+    }
+    const run = RUNNER.exec(span);
+    if (run) {
+      const operand = run[1].split(/\s+/).find((w) => !w.startsWith('-'));
+      if (operand && FILE_NAME.test(operand) && !operand.startsWith('.')) {
+        commandOperandsRead++;
+        fileFinding(operand, `, the script \`${span}\` runs,`);
+      }
+      continue;
+    }
+    if (DIR_PATH.test(span)) {
+      commandDirsRead++;
+      const dir = span.slice(0, -1);
+      const ok = dir.includes('/') ? trackedDirs.has(dir) : [...trackedDirs].some((d) => d === dir || d.endsWith('/' + dir));
+      if (!ok) out.push({ file: rel, kind: 'missing directory', detail: `\`${span}\` is not a directory git tracks${dir.includes('/') ? ' (resolved from the repo root)' : ', under any parent'}` });
+    }
   }
   return out;
 };
 const COMMAND = '.claude/commands/review-pr.md';
 {
   const real = (p: string) => existsSync(resolve(repo, p));
-  const self = commandFileFindings('`docs/no-such-doc.md` and `no-such-gate.ts` and `verify.ts` and `.ai.json`', 'self-check', real);
-  const before7 = commandNamesRead;
-  if (self.length !== 2 || !self.some((f) => f.detail.includes('docs/no-such-doc.md')) || !self.some((f) => f.detail.includes('no-such-gate.ts'))) {
-    console.error(`\n❌ the review-command file check is broken: expected exactly the two dead names, got ${self.length}: ${self.map((f) => f.detail).join(' | ')}`);
+  const trackedDirs = new Set<string>();
+  for (const f of execFileSync('git', ['ls-files'], { cwd: repo, encoding: 'utf8', maxBuffer: 1 << 28 }).split('\n')) {
+    for (let i = f.indexOf('/'); i > 0; i = f.indexOf('/', i + 1)) trackedDirs.add(f.slice(0, i));
+  }
+  const sample = '`docs/no-such-doc.md` and `no-such-gate.ts` and `verify.ts` and `.ai.json`; run `npx tsx no-such-script.ts --flag`, '
+    + '`npx tsx verify.ts --list`, `node -e`, `npx tsx`; look under `docs/no-such-dir/`, `docs/progress/`, `nosuchdir/` and `pending/`';
+  const self = commandFileFindings(sample, 'self-check', real, trackedDirs);
+  const before7 = { names: commandNamesRead, operands: commandOperandsRead, dirs: commandDirsRead };
+  const want = ['docs/no-such-doc.md', 'no-such-gate.ts', 'no-such-script.ts', 'docs/no-such-dir/', 'nosuchdir/'];
+  if (self.length !== want.length || !want.every((w) => self.some((f) => f.detail.startsWith(`\`${w}\``)))) {
+    console.error(`\n❌ the review-command file check is broken: expected exactly the ${want.length} dead names (${want.join(', ')}), got ${self.length}: ${self.map((f) => f.detail).join(' | ')}`);
     process.exit(1);
   }
   const text = existsSync(resolve(repo, COMMAND)) ? readFileSync(resolve(repo, COMMAND), 'utf8') : '';
   if (!text) findings.push({ file: COMMAND, kind: 'missing file', detail: 'the review command is gone; this check reads nothing' });
-  findings.push(...commandFileFindings(text, COMMAND, real));
-  // A floor, not a count: the command names a dozen-plus files today. Fewer than five read means the pattern
-  // stopped matching the command's backticked names, and every one would then pass by never being looked at.
-  if (text && commandNamesRead - before7 < 5) findings.push({ file: COMMAND, kind: 'scan went dark', detail: `only ${commandNamesRead - before7} backticked file name(s) read from the review command, below the floor of 5` });
+  findings.push(...commandFileFindings(text, COMMAND, real, trackedDirs));
+  // Floors, not counts: the command names a dozen-plus files, eight scripts run by a command and a dozen
+  // directories today. Fewer than five of any means that shape's pattern stopped matching, and every one
+  // would then pass by never being looked at.
+  const read = { names: commandNamesRead - before7.names, operands: commandOperandsRead - before7.operands, dirs: commandDirsRead - before7.dirs };
+  for (const [shape, n] of [['backticked file name', read.names], ['script run by a backticked command', read.operands], ['backticked directory', read.dirs]] as const) {
+    if (text && n < 5) findings.push({ file: COMMAND, kind: 'scan went dark', detail: `only ${n} ${shape}(s) read from the review command, below the floor of 5` });
+  }
 }
 
 // ---- 8. OWNER RULES (#2986) -----------------------------------------------------------------------
@@ -824,6 +951,34 @@ const OWNER_RULES: OwnerRule[] = [
     // "(use `inverse.text.primary`)", so the name alone would match there without the rule.
     must: [/photo/i, /`inverse\.text\.primary`[^.]*underline/i, /`veil\.\*`/],
     resolve: ['inverse.text.primary', 'veil.dark.medium'],
+  },
+  // #3768: in a file that holds Prism3 locally, never import its published twin by key, because local
+  // always wins. A rebind rule with no emitted role, so `roles` and `resolve` are empty and only the skill
+  // is held. Three placements, one rule each, so dropping any one of them fails by its own id.
+  {
+    // Section 8 opens with the local check, ahead of every import-by-key step.
+    id: '#3768 local Prism3 first (section 8)',
+    skills: ['prism3-rebind'],
+    roles: [],
+    must: [/`figma\.variables\.getLocalVariableCollectionsAsync\(\)`/, /never import[^.]*by key/i, /local always wins/i],
+    resolve: [],
+  },
+  {
+    // The trap-table row. One pattern, held to one table row (a table is one block), so a `remote` in one
+    // row and a local twin in another cannot add up to the rule.
+    id: '#3768 reject a remote twin reached through an instance (section 4)',
+    skills: ['prism3-rebind'],
+    roles: [],
+    must: [/^\|[^\n]*`remote`[^\n]*local twin[^\n]*reject[^\n]*local always wins[^\n]*\|[ \t]*$/m],
+    resolve: [],
+  },
+  {
+    // The rogue-binding audit line.
+    id: '#3768 a remote Prism3 key beside a local Prism3 is a finding (section 7)',
+    skills: ['prism3-rebind'],
+    roles: [],
+    must: [/remote Prism3 key in a file that holds Prism3 locally is a finding/i],
+    resolve: [],
   },
 ];
 const blocks = (text: string): string[] => text.split(/\n(?=\s*\n|- |\d+\. )/);
@@ -880,7 +1035,10 @@ export const ownerRuleFindings = (rule: OwnerRule, skillText: (name: string) => 
 // untracked files that are not ignored) and fails on each line that names a retired skill, unless the line also
 // names the skill that replaced it. That line is a redirect ("`new` was named `old` until #N"), which is the one
 // place the old name belongs. The dated history (the progress log, the changelog and their pending entries, the
-// superpowers working notes) keeps the name the skill had on that date, and is not read.
+// superpowers working notes) keeps the name the skill had on that date, and is not read. So does a version's release
+// record (`docs/public/releases/<x.y.z>.md` and `.json`): a fold writes it once, carrying each folded change note
+// verbatim, the same text the changelog holds, and `lint-release-notes.ts` re-derives it from git, so it cannot be
+// edited to the new name. The release index (`index.md`, `index.json`) is not a dated record, and is still read.
 //
 // Independence (docs/34): the old and new names are literals in this register, never read from `skills/`; the
 // subject is the repo's text. The skill directories are checked against the register too: the old one must be
@@ -893,7 +1051,7 @@ export const ownerRuleFindings = (rule: OwnerRule, skillText: (name: string) => 
 // WHAT IT CANNOT SEE: a nickname. "The consume skill" in a comment is not the skill's name, and passes.
 type RetiredSkill = { old: string; now: string; issue: string };
 const RETIRED_SKILLS: RetiredSkill[] = [{ old: 'prism3-consume', now: 'prism3-build-ui', issue: '#3412' }];
-const HISTORY = [/^docs\/00-progress\.md$/, /^docs\/progress\//, /^packages\/engine\/CHANGELOG\.md$/, /^packages\/engine\/changes\//, /^docs\/superpowers\//];
+const HISTORY = [/^docs\/00-progress\.md$/, /^docs\/progress\//, /^packages\/engine\/CHANGELOG\.md$/, /^packages\/engine\/changes\//, /^docs\/superpowers\//, /^docs\/public\/releases\/\d+\.\d+\.\d+\.(?:md|json)$/];
 const nameRe = (name: string): RegExp => new RegExp(`(?<![A-Za-z0-9_-])${name.replace(/[-]/g, '\\-')}(?![A-Za-z0-9_-])`);
 const pathRe = (name: string): RegExp => new RegExp(`(?<![A-Za-z0-9])${name.replace(/[-]/g, '\\-')}(?![A-Za-z0-9])`);
 export const retiredNameFindings = (files: [string, string][], retired: RetiredSkill[], skills: string[]): Finding[] => {
@@ -930,6 +1088,8 @@ let retiredSelfRuns = 0, retiredFilesRead = 0;
     ['the new skill missing', retiredNameFindings([], [R], []), 1],
     ['a file named after it', retiredNameFindings([[`docs/${R.old}-eval.md`, 'ok']], [R], live), 1],
     ['a history file named after it', retiredNameFindings([[`docs/progress/archive/${R.old}.md`, 'ok']], [R], live), 0],
+    ['a release record', retiredNameFindings([['docs/public/releases/0.238.0.md', `Read the ${R.old} skill.`]], [R], live), 0],
+    ['the release index', retiredNameFindings([['docs/public/releases/index.md', `Read the ${R.old} skill.`]], [R], live), 1],
   ];
   retiredSelfRuns = checks.length;
   const broken = checks.filter(([, f, n]) => f.length !== n);
@@ -1004,6 +1164,13 @@ if (ran.discovery - before.discovery !== dirs.length) {
 const classifying = dirs.filter((d) => CLASSIFIES.test(readFileSync(join(skillsDir, d, 'SKILL.md'), 'utf8').split(/^---\s*$/m)[1] ?? ''));
 if (ran.leverKind - before.leverKind !== classifying.length || !classifying.includes('prism3-build-component')) {
   wiring.push(`the lever-kind check ran ${ran.leverKind - before.leverKind}× for ${classifying.length} skill(s) declaring \`classifies: levers\` (${classifying.join(', ') || 'none'}); prism3-build-component must declare it (#2959)`);
+}
+// STATED DEFAULTS (#3385): called once per opted-in skill, and the real rows still read as stating defaults. A
+// literal, counted by hand off prism3-theme when this was written: 19 rows mark one. Raise it when a row gains
+// one; a rephrased mark that no longer reads drops the count and fails here by name.
+const DEFAULTS_FLOOR = 19;
+if (ran.leverDefault - before.leverDefault !== optedIn.length || defaultsRead < DEFAULTS_FLOOR) {
+  wiring.push(`the stated-defaults check ran ${ran.leverDefault - before.leverDefault}× for ${optedIn.length} skill(s) declaring \`documents: brandInput\` and read ${defaultsRead} stated default(s), below the floor of ${DEFAULTS_FLOOR} — a row's default mark no longer reads`);
 }
 if (ran.coverage - before.coverage !== optedIn.length) {
   wiring.push(`the coverage scan engaged ${ran.coverage - before.coverage}× but ${optedIn.length} skill(s) declare \`documents: brandInput\` (${optedIn.join(', ') || 'none'})`);

@@ -18,12 +18,7 @@
  *   · `toSlots` not called after an in-place member build → `slots/gained on update`;
  *   · the miss for a host without `createSlot` dropped → `slots/no host support named`.
  */
-import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
-import { diffAnatomy } from '@prism3/engine/anatomy-readback';
-import type { HostNode, ReadPorts } from '@prism3/engine/anatomy-readback';
-import type { ComponentDef } from '@prism3/engine/component-schema';
+import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, componentDefs, diffAnatomy, type HostNode, type ReadPorts, type ComponentDef, type PartOfKind } from '@prism3/engine/components';
 import { applyComponentPlan } from './src/write-components';
 import { makeShim, type Node, type Page } from './component-shim';
 
@@ -37,7 +32,7 @@ const SWAP_TARGET = 'FPO-default-icon';
 const tag = componentDefs.find((d) => d.id === 'tag')!;
 /** Tag with its dismiss cell declared a native slot, and nothing else changed. */
 const slotted: ComponentDef = { ...tag, anatomy: { ...tag.anatomy!, parts: { ...tag.anatomy!.parts,
-  dismiss: { ...tag.anatomy!.parts.dismiss, contentSlot: true, children: [...(tag.anatomy!.parts.dismiss.children ?? []), 'hint'] },
+  dismiss: { ...(tag.anatomy!.parts.dismiss as PartOfKind<'box'>), contentSlot: true, children: [...(tag.anatomy!.parts.dismiss.children ?? []), 'hint'] },
   // A slot's placeholder TEXT is literal copy (Figma refuses a property reference on a slot sublayer, measured).
   hint: { kind: 'text', type: tag.anatomy!.parts.label.type, characters: 'Drop content here' },
 } } };
@@ -79,7 +74,7 @@ console.log('fresh build');
   const slots = members.flatMap((m) => all(m).filter((n) => n.name === 'dismiss'));
   ok(slots.length === withSlot.length && slots.every((n) => n.type === 'SLOT'),
     `slots/fresh is a SLOT: each member's dismiss cell is Figma's own SLOT node (${slots.length} cells, types ${[...new Set(slots.map((n) => n.type))].join(', ')})`);
-  ok(slots.every((n) => ((n.children as Node[]) ?? []).map((c) => String(c.name)).join() === 'dismissGlyph,hint'),
+  ok(slots.every((n) => ((n.children as Node[]) ?? []).map((c) => String(c.name)).join() === 'closeGlyph,hint'),
     `slots/default content: each slot holds its default content, the dismiss glyph and a placeholder text (${[...new Set(slots.map((n) => ((n.children as Node[]) ?? []).map((c) => String(c.name)).join()))].join(' / ')})`);
   const hints = slots.map((n) => ((n.children as Node[]) ?? []).find((c) => c.name === 'hint'));
   ok(hints.every((t) => t?.type === 'TEXT' && t.characters === 'Drop content here' && !(t.componentPropertyReferences as Record<string, string> | null)?.characters),

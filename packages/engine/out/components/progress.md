@@ -13,7 +13,7 @@ Shows that system work is under way and, when the system can measure it, how far
 
 - **Purpose:** Show that system work is under way and, when it can be measured, how far along it is.
 - **Use when:** An upload, export or batch job that takes more than a few seconds: determinate when the amount is known, indeterminate when it is not. A ring when the space is small, measured or not, for a task that ends in complete or error.
-- **Avoid when:** The wait is short and inside a control (use a spinner), the content is loading for the first time (a placeholder in the layout's shape), the value is a static measurement such as storage used (a meter), it marks a user's place in a multi-step flow (a stepper).
+- **Avoid when:** The wait is short and inside a control (use Spinner), the content is loading for the first time (a placeholder in the layout's shape), the value is a static measurement such as storage used (a meter), it marks a user's place in a multi-step flow (a stepper).
 
 ## Anatomy
 
@@ -51,6 +51,8 @@ Shown on the default member: shape `linear`, type `determinate`, status `active`
 ## Usage guidelines
 
 Use Progress for system work that takes more than a few seconds: a determinate bar when the work can be measured (bytes, items, a known length), an indeterminate bar when it cannot. Use a ring when the space is small, such as a row in a list: determinate when the amount is known, indeterminate when it is not. Choose a ring over a Spinner when the work is a task with an outcome: the ring is named by its label, ends in complete or error with a message, and turns determinate once the amount is known. Use a Spinner for a short wait inside a control, such as a button's pending state, where there is no outcome to report. For a first load of content, use a placeholder in the layout's shape. Use the bar for work the user waits on; for long background work, show a status line, or let the user hide the bar.
+
+**In RTL.** The layout mirrors: the start edge is on the right. The arc glyph flips to point the other way.
 
 ### Do
 
@@ -103,7 +105,7 @@ Label: what is happening, with an active verb ("Uploading photo.jpg"), one label
 
 - **Built from:** `field-message`
 - **Instead, consider:** `spinner`
-- **Often used with:** `button`, `spinner`
+- **Often used with:** `button`
 - **Replaces:**
   - a bar that creeps to 99% while the real amount is unknown
   - a label printed inside the moving fill
@@ -169,7 +171,8 @@ Keyed by `size`, `shape`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.075` | — | — | — | build width 360px (literal) |
 | `container/header` | — | `space.100` | — | — | — | min height `icon.size.md` |
-| `container/track` | — | — | `border-width.heavy` | — | — | — |
+| `container/track` | — | — | `border-width.heavy` | — | — | radius `radius.capsule` |
+| `container/track/fill` | — | — | — | — | — | radius `radius.capsule` |
 | `container/track/dotGlyph` | — | — | `border-width.heavy` | `border-width.heavy` | — | — |
 
 **size=medium, shape=circular**

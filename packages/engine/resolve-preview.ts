@@ -72,8 +72,9 @@ const cssBoxShadow = (layers: Array<Record<string, any>>): string =>
 
 const strip = (p: string) => p.replace(/^color\./, '');
 
-export const resolvePreview = (theme: Theme, spec: PreviewSpec = previewSpec): ResolvedPreview => {
-  const modes = resolveAllModes(theme);
+/** `modes` defaults to resolving `theme`. A caller that already holds them (the studio's per-theme cache, #4234) passes
+ *  them, so one edit resolves every mode once. */
+export const resolvePreview = (theme: Theme, spec: PreviewSpec = previewSpec, modes: ReturnType<typeof resolveAllModes> = resolveAllModes(theme)): ResolvedPreview => {
   const hexOf = (rolePath: string, i: number): string | undefined => modes[i].roles[strip(rolePath)]?.hex;
   // Renderable colour: for a TRANSLUCENT role (overlay washes) fold the alpha into an 8-digit
   // hex so the preview composites the real wash over its surface; opaque roles pass through.
@@ -105,9 +106,10 @@ export const resolvePreview = (theme: Theme, spec: PreviewSpec = previewSpec): R
     modes.forEach((m, i) => {
       const fg = hexOf(ct.fg, i), bg = hexOf(ct.bg, i);
       if (fg && bg) {
-        // CR-01: decide pass on the RAW ratio; round only the displayed value.
+        // CR-01: decide pass on the RAW ratio. It is stored raw (#3759): every reader prints it through `formatRatio`,
+        // which floors, and a ratio rounded here first read 4.496 as "4.50" beside a failing 4.5 contract.
         const raw = contrast(hexToRgb(fg), hexToRgb(bg));
-        byMode[m.mode] = { ratio: Math.round(raw * 100) / 100, pass: raw >= ct.min };
+        byMode[m.mode] = { ratio: raw, pass: raw >= ct.min };
       }
     });
     contracts.push({ component: c.id, variant: v.name, fg: ct.fg, bg: ct.bg, min: ct.min, label: ct.label, byMode });

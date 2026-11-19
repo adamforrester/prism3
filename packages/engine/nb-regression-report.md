@@ -120,17 +120,17 @@ Anchor pinned at `500` (exact). An even-L engine would auto-place this lightness
 |---|---|---|---|
 | red.500 vs white | 4.58 | ≥4.5 (Mid-Tone floor) | ✅ |
 | red.500 vs black | 4.58 | ≥4.5 (Mid-Tone floor) | ✅ |
-| red.550 vs neutral.025 | 5.24 | ≥4.5 (550 on Highlights) | ✅ |
+| red.550 vs neutral.025 | 5.23 | ≥4.5 (550 on Highlights) | ✅ |
 | red.550 vs neutral.050 | 4.62 | ≥4.5 (550 on Highlights) | ✅ |
-| red.550 vs white | 5.62 | ≥4.5 (NB promo text canary) | ✅ |
-| neutral.100 vs white | 1.38 | <4.5 (¼-Tone = borders, not text) | ✅ |
+| red.550 vs white | 5.61 | ≥4.5 (NB promo text canary) | ✅ |
+| neutral.100 vs white | 1.37 | <4.5 (¼-Tone = borders, not text) | ✅ |
 | neutral.250 vs white | 2.08 | <4.5 (¼-Tone = borders, not text) | ✅ |
-| neutral.350 vs white | 2.81 | <4.5 (¼-Tone = borders, not text) | ✅ |
-| neutral.650 vs white | 8.15 | ≥4.5 (text on light) | ✅ |
-| neutral.800 vs white | 13.89 | ≥4.5 (text on light) | ✅ |
+| neutral.350 vs white | 2.80 | <4.5 (¼-Tone = borders, not text) | ✅ |
+| neutral.650 vs white | 8.14 | ≥4.5 (text on light) | ✅ |
+| neutral.800 vs white | 13.88 | ≥4.5 (text on light) | ✅ |
 | neutral.950 vs white | 19.44 | ≥4.5 (text on light) | ✅ |
 
-Canary cross-check — white on **real** NB `red.550`: 5.63:1; on **generated** red.550: 5.62:1.
+Canary cross-check — white on **real** NB `red.550`: 5.62:1; on **generated** red.550: 5.61:1.
 
 ## Dimension axis — generated vs hand-built (exact)
 
@@ -149,6 +149,7 @@ Integer px, so the bar is **exact equality**, not ΔE. Space follows Prism2's nu
 | space.300 | space | Prism2 | 24 | 24 | ✅ |
 | space.400 | space | Prism2 | 32 | 32 | ✅ |
 | space.500 | space | Prism2 | 40 | 40 | ✅ |
+| space.550 | space | — | 44 | (engine addition) | ⊕ |
 | space.600 | space | Prism2 | 48 | 48 | ✅ |
 | space.700 | space | Prism2 | 56 | 56 | ✅ |
 | space.800 | space | Prism2 | 64 | 64 | ✅ |

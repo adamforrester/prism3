@@ -118,7 +118,7 @@ export const radioControl: ComponentDef = {
   aliases: ['radio-circle', 'radio-disc', 'radio-atom'],
   category: 'form',
   status: 'draft',
-  summary: 'Outlined radio ring; dot and brand ring on select. Nested by Radio.Row; no label.',
+  summary: 'Outlined radio ring; dot and brand ring on select. Nested by a radio row; no label.',
   description:
     'The atomic radio control — the painted circle with its inner selection dot and its focus ring, and nothing else. Nested by the labeled Radio.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. A constant-weight outlined ring (no fill) at both selections that recolors on select — a neutral edge when unchecked, the interactive brand edge when checked — with an inner filled circle, half the ring\'s diameter unless the brand sets a larger radio dot, also appearing on select, never a filled disc. Carries the two-value selection axis (unchecked / checked) whose dot is a real part gated on the coordinate, and the 2px control border.',
 
@@ -265,7 +265,7 @@ export const radioControl: ComponentDef = {
       // `radius.round`, the geometric difference from checkbox and the whole visual distinction between the
       // two controls. `paintSlots: ['border']` only — the ring has no fill in the Prism 2 model (#1348).
       control: {
-        kind: 'box',
+        kind: 'box', mirror: 'never',
         role: 'target',
         paintSlots: ['border'],
         size: 'size.{size}.control',
@@ -274,7 +274,14 @@ export const radioControl: ComponentDef = {
         strokeWidth: 'border-width',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         children: ['dot', 'focusRing'],
-        note: 'The outlined ring AND the nominal hit-target marker. The real hit target is the whole labeled ROW, which lives on `radio-row`; this circle is not independently clickable. `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `checkbox-control`\'s `control` carries. No fill: a constant-weight outlined ring at both selections that RECOLORS on select — neutral `field.border.*` when unchecked, the interactive selection mark `interactive.primary.indicator.*` when checked — with the inner dot as an additional selection cue (#1348, #1423).',
+        // Maintainer detail, out of the reader caption (#3610): The outlined ring AND the nominal hit-target marker.
+        // The real hit target is the whole labeled ROW, which lives on `radio-row`; this circle is not independently
+        // clickable. `role: target` is here only because the schema requires exactly one per anatomy — the same
+        // nominal marker `checkbox-control`'s `control` carries. No fill: a constant-weight outlined ring at both
+        // selections that RECOLORS on select — neutral `field.border.*` when unchecked, the interactive selection
+        // mark `interactive.primary.indicator.*` when checked — with the inner dot as an additional selection cue
+        // (#1348, #1423).
+        note: 'The radio\'s outlined ring, which changes color when selected; a person clicks the whole labeled row, not the ring alone.',
       },
       // THE INNER DOT. A `box`, not a `vector`, and sized from its OWN key rather than the control's — a
       // filled shape has no artboard to carry an optical inset, so full-bleed would draw the disc rather
@@ -292,7 +299,12 @@ export const radioControl: ComponentDef = {
         radius: 'radius',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         presentWhen: { selection: ['checked'] },
-        note: 'The inner circle, present only at `checked` — an unchecked radio draws no mark, so this is a gated part rather than a recolored one. Its ink is `checked.indicator` (the brand fill, on the PAGE, since the ring is unfilled), and at `disabled` the page form `disabled.indicator`. Its select micro-motion — a scale-in, and a sibling\'s dot animating OUT — is stated in `motion`; the Figma members are static.',
+        // Maintainer detail, out of the reader caption (#3610): The inner circle, present only at `checked` — an
+        // unchecked radio draws no mark, so this is a gated part rather than a recolored one. Its ink is
+        // `checked.indicator` (the brand fill, on the PAGE, since the ring is unfilled), and at `disabled` the page
+        // form `disabled.indicator`. Its select micro-motion — a scale-in, and a sibling's dot animating OUT — is
+        // stated in `motion`; the Figma members are static.
+        note: 'The inner dot, shown only when the radio is selected.',
       },
       // The ring, on the CONTROL: `focus.ring.offset` (2) is the control offset rather than the field's
       // flush `offset-field` (0). The two insets SUM in the executor, siting the ring at -(2+2) = -4, so
@@ -308,7 +320,11 @@ export const radioControl: ComponentDef = {
         // host coordinate to pass through. A `follow` here would be rejected — it names a host axis and
         // this def declares none.
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
-        note: 'An absolutely-positioned sibling nesting the shared `focus-ring` component, inset from the CONTROL so the ring surrounds the circle. F2 (#1388) derives its radius concentrically off the host, so a full-round host yields a circular ring — verified, not re-derived (#1348).',
+        // Maintainer detail, out of the reader caption (#3610): An absolutely-positioned sibling nesting the shared
+        // `focus-ring` component, inset from the CONTROL so the ring surrounds the circle. F2 (#1388) derives its
+        // radius concentrically off the host, so a full-round host yields a circular ring — verified, not re-derived
+        // (#1348).
+        note: 'The shared focus ring, drawn as a circle around the radio on keyboard focus.',
       },
     },
     codeOnly: [
@@ -323,7 +339,7 @@ export const radioControl: ComponentDef = {
         class: 'motion',
         disposition: 'refused',
         description:
-          'motion — the select micro-motion (a spring/scale-up of the dot at roughly 100-150ms, and — uniquely — a SIBLING\'s dot animating OUT, the only exit animation a radio has, since it can never be deselected on its own). The def states it in `motion`; a Figma variant carries no motion, so the dot is static at every coordinate.',
+          'motion — the select micro-motion (a scale-up of the dot on motion.duration.fast, and — uniquely — a SIBLING\'s dot animating OUT, the only exit animation a radio has, since it can never be deselected on its own). The def states it in `motion`; a Figma variant carries no motion, so the dot is static at every coordinate.',
       },
       {
         class: 'hit-target',
@@ -335,7 +351,7 @@ export const radioControl: ComponentDef = {
         class: 'right-to-left',
         disposition: 'unsupported',
         description:
-          'RTL — the row mirrors (the control moves to the reading-start side through logical properties), and the disc and dot are symmetrical, so this atom has nothing to mirror (brief §9). Figma members are drawn left to right.',
+          'RTL — the disc and dot are symmetrical, so this atom has nothing to mirror; the row it sits in mirrors and moves it to the reading-start side (brief §9). Figma members are drawn left to right.',
       },
     ],
   },
@@ -408,9 +424,9 @@ export const radioControl: ComponentDef = {
   // Brief §8. The select transition is this atom's; the sibling-dot exit is the group's exclusivity made
   // visible, drawn here because the dot is here.
   motion: {
-    enter: 'On select, the inner dot scales in with a border-color crossfade on the ring, about 100-150ms. The focus ring appears instantly — a fade lags rapid arrow navigation through the group.',
-    exit: 'When a sibling is selected, this dot animates out — the one exit a radio has, since it is never deselected on its own.',
-    reduceMotion: 'Under prefers-reduced-motion, the dot snaps in and out through opacity and color only, with no scale.',
+    enter: 'On select, the inner dot scales in from a little under full size with a border-color crossfade on the ring, on motion.duration.fast with motion.easing-role.default. The focus ring appears instantly — a fade lags rapid arrow navigation through the group.',
+    exit: 'When a sibling is selected, this dot scales out on the same timing — the one exit a radio has, since it is never deselected on its own.',
+    reduceMotion: 'Under prefers-reduced-motion, the dot has no scale: it fades in and out with the color change, on motion.duration-reduced.fast.',
   },
 
   notes: {

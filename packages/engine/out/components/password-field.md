@@ -24,11 +24,11 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 3. **Label** — The accessible name, composed rather than re-declared. Its size follows the field's, one step below the input; its label text, required marker, emphasis and weight surface on the field. A fix to FieldLabel still reaches this without a copy. Starts primary and regular. Fills the field's width; a long name wraps at FieldLabel's max width.
 4. **Toggle** — The Show/Hide button: a small flush text Button in the emphasis weight, at the end of the label row, at every field size. It reads "Show" on every member; set it to "Hide" for the shown look. Disabled with the field, live when read-only, never colored by status. It stretches to the row, so the row is as tall as the label.
 5. **Leading visual** (optional) — An optional purpose glyph before the value, aria-hidden. Absent by default; the caller nominates the icon.
-6. **Caret**
+6. **Caret** — The insertion point in a focused, empty field, right before the placeholder, in the value color.
 7. **Caret end** — The insertion point on the focused field that holds a value, immediately after the value, in the value ink. Code draws the native caret where the user is typing.
 8. **Placeholder** — The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. One line; a long one clips at the value row's edge.
-9. **Value**
-10. **Message** (optional)
+9. **Value** — The entered value, on one line: shown when the field is filled or read-only, and a long value scrolls rather than ending in an ellipsis.
+10. **Message** (optional) — Helper or validation text, hidden until the field has something to say; it takes the field's status and width, and a long message wraps.
 
 ## Styles
 
@@ -44,11 +44,13 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 
 ## Usage guidelines
 
-Use for a password, a PIN typed as text, or any other secret a user types. The field nests FieldLabel and a Show/Hide button on the label row, the input box below, and FieldMessage under it. Set autoComplete to current-password on a sign-in form and new-password where the user sets one. Put the rules for a new password in helper text or a list under the field.
+Use for a password, a PIN typed as text, or any other secret a user types. The field nests FieldLabel and a Show/Hide button on the label row, the input box below, and FieldMessage under it. Set `autoComplete` to `current-password` on a sign-in form and `new-password` where the user sets one. Put the rules for a new password in helper text or a list under the field.
+
+**In RTL.** The layout mirrors: the start edge is on the right.
 
 ### Do
 
-- Set autoComplete to current-password or new-password on every password field
+- Set `autoComplete` to `current-password` or `new-password` on every password field
 - Let the user paste, so a password manager can fill the field
 - Return the field to hidden when its form submits
 - State the rules for a new password before the user types
@@ -56,7 +58,7 @@ Use for a password, a PIN typed as text, or any other secret a user types. The f
 ### Don't
 
 - Use an eye icon inside the field instead of the Show/Hide button
-- Add aria-pressed to the button as well as changing its name
+- Add `aria-pressed` to the button as well as changing its name
 - Use this for a one-time code in separate boxes
 - Put the password rules in the placeholder
 
@@ -64,7 +66,7 @@ Use for a password, a PIN typed as text, or any other secret a user types. The f
 
 - **Keyboard:** Tab reaches the input, then the Show/Hide button. Enter or Space on the button shows or hides the password, and focus stays on the button. Tab order follows the visual order in left-to-right and right-to-left layouts.
 - **Focus:** The input takes TextField's 2px focus edge, in place of its border. The button takes Button's own focus ring. Pressing the button never moves focus.
-- **Screen readers:** textbox (native \<input type="password">, switched to type="text" while shown), plus a native \<button type="button">
+- **Screen readers:** textbox (native `<input type="password">`, switched to `type="text"` while shown), plus a native `<button type="button">`
 
   The host wires the label, aria-describedby and aria-invalid as TextField does. The button carries aria-controls naming the input and a name that changes ("Show password" / "Hide password"), not aria-pressed. Each change is announced once through the app's shared polite live region: "Your password is shown" / "Your password is hidden".
 
@@ -101,7 +103,7 @@ Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide",
 - **Replaces:**
   - eye icon inside a password field
   - password field with no way to show the characters
-  - autocomplete="off" on a password
+  - `autocomplete="off"` on a password
 
 ## Building it in code
 
@@ -157,46 +159,244 @@ Code-only states, with no design-file member: `pending`, `empty`.
 
 Padding reads top / right / bottom / left when its sides differ.
 
-Keyed by `size`.
+Keyed by `size`, `state`.
 
-**size=medium**
+**size=medium, state=rest**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
 | `container/labelRow` | — | `space.100` | — | — | — | — |
 | `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
-| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | — |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
 | `container/control/content` | — | `space.100` | — | — | — | — |
 | `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/control/content/entry/caret` | — | — | `control.size.md.line-box` | `border-width.hairline` | — | — |
-| `container/control/content/entry/caretEnd` | — | — | `control.size.md.line-box` | `border-width.hairline` | — | — |
 
-**size=small**
+**size=medium, state=focus-visible-filled**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
 | `container/labelRow` | — | `space.100` | — | — | — | — |
 | `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
-| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | — |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/content/entry/caretEnd` | — | — | `control.size.md.line-box` | `border-width.hairline` | — | — |
+
+**size=medium, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium, state=read-only**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
 | `container/control/content` | — | `space.100` | — | — | — | — |
 | `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/control/content/entry/caret` | — | — | `control.size.sm.line-box` | `border-width.hairline` | — | — |
-| `container/control/content/entry/caretEnd` | — | — | `control.size.sm.line-box` | `border-width.hairline` | — | — |
 
-**size=large**
+**size=small, state=focus-visible-filled**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
 | `container/labelRow` | — | `space.100` | — | — | — | — |
 | `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
-| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | `size.lg.height` | — | 120px (literal) | — |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/content/entry/caretEnd` | — | — | `control.size.sm.line-box` | `border-width.hairline` | — | — |
+
+**size=small, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, state=read-only**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | `size.lg.height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | `size.lg.height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | `size.lg.height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | `size.lg.height` | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
 | `container/control/content` | — | `space.100` | — | — | — | — |
 | `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/control/content/entry/caret` | — | — | `control.size.lg.line-box` | `border-width.hairline` | — | — |
+
+**size=large, state=focus-visible-filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | `size.lg.height` | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/control/content/entry/caretEnd` | — | — | `control.size.lg.line-box` | `border-width.hairline` | — | — |
+
+**size=large, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | `size.lg.height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, state=read-only**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | `size.lg.height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
 ### Type
 

@@ -31,8 +31,12 @@
  *
  * WHAT IT DOES NOT CARRY, deliberately: part notes and `anatomy.codeOnly` prose (#1623 ruled them maintainer-only;
  * a code-only STATE is named, not explained), positions (the plan has bindings, not coordinates — phase 2 measures
- * the placed specimen), focus-ring geometry (owned by the nested `focus-ring`, named here as a nest), radius and
- * stroke width (outside the issue's redline list), and per-mode values (a token name follows the mode).
+ * the placed specimen), and per-mode values (a token name follows the mode).
+ *
+ * WHAT THE PLAN CANNOT CARRY, READ FROM THE DEF (#3506, owner Q142 A on #3408): a code generator reads this file and
+ * `component-defs.json` only, so two bindings the design file does not hold come from the materialized def: `focusRing`
+ * (each part nesting the shared ring: the host's offset token and the ring's own width and style), and `motion` (each
+ * `tokens` binding to a `motion.*` token). The corner (`radius`) and stroke (`strokeWidth`) are redlines, from the plan.
  *
  * Phase 2 (the Figma sheet on the component page, and Generate specs in a separate file) and phase 3 (the docs-site
  * Specs section, #846) read this model; neither exists yet.
@@ -44,8 +48,9 @@ import {
 } from './anatomy-figma';
 import type { AnatomyPlan, FigmaNodePlan } from './anatomy-figma';
 import { componentSizes, sizeRefPx, SPACE_BASE } from './scale';
+import { focusRing as FOCUS_RING } from './components/focus-ring';
 
-export const COMPONENT_SPECS_SCHEMA = 'prism3-component-specs/1.0';
+export const COMPONENT_SPECS_SCHEMA = 'prism3-component-specs/1.1';
 
 /** The swap target the plugin nominates (`apps/plugin/src/main.ts`'s `SWAP_TARGET`). A nomination, not data:
  *  the model never reports it, but projecting without one builds a different plan from the one Apply builds. */
@@ -63,7 +68,11 @@ export type SpecValue =
   | { source: 'computed'; rule: string };
 
 /** The redline properties, in reading order. Figma's bound keys map onto them in `GEOMETRY`. */
-export const SPEC_PROPERTIES = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'gap', 'rowGap', 'height', 'minHeight', 'width', 'minWidth', 'maxWidth', 'buildWidth', 'buildHeight'] as const;
+export const SPEC_PROPERTIES = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'gap', 'rowGap', 'height', 'minHeight', 'width', 'minWidth', 'maxWidth', 'buildWidth', 'buildHeight',
+  // #3506 (owner Q142 A on #3408): the corner and the stroke. One value when every corner (side) binds the same token, else
+  // one per corner (side): a part whose top and bottom corners differ (`radiusEdges`), or whose sides differ (`strokeEdges`).
+  'radius', 'radiusTopLeft', 'radiusTopRight', 'radiusBottomRight', 'radiusBottomLeft',
+  'strokeWidth', 'strokeWidthTop', 'strokeWidthRight', 'strokeWidthBottom', 'strokeWidthLeft'] as const;
 export type SpecProperty = (typeof SPEC_PROPERTIES)[number];
 
 /** A member coordinate restricted to a row's key axes: axis → its one value. `{}` is every member. */
@@ -85,6 +94,10 @@ export type SpecNest =
    *  depends on the member, so every one the set uses is listed, in member order. */
   | { part: string; kind: 'fixed'; components: string[] }
   | { part: string; kind: 'slot'; property?: string; preferred: string[] };
+/** A part that nests the shared focus ring (#3506): where it sits and how it is drawn, as the def binds it. `offset` is
+ *  the host's gap between its edge and the ring (the part's `inset`); `width` and `style` are the ring's own stroke. In the
+ *  design file the offset is frozen to a number at paste (Figma's x/y take no variable), so the plan cannot carry it. */
+export type SpecFocusRing = { part: string; offset: string; width: string; style: string };
 export type SpecComponentProperty = { name: string; type: 'TEXT' | 'BOOLEAN' | 'INSTANCE_SWAP' | 'SLOT'; default?: string | boolean };
 
 export type ComponentSpec = {
@@ -106,6 +119,11 @@ export type ComponentSpec = {
   /** A provider's own values (#2343 PR 5, `ComponentDef.literal`), as the def authors them: the record the code paints
    *  from, since no token carries them. Absent on every def without one, so every other spec is byte-identical. */
   literal?: { key: string; entries: Record<string, unknown> };
+  /** Every part that nests the shared focus ring (#3506). Absent on a def with none. */
+  focusRing?: SpecFocusRing[];
+  /** The def's motion bindings (#3506): each `tokens` key whose token is a `motion.*` one. The design file draws no
+   *  motion, so the plan cannot carry them. Absent on a def with none. */
+  motion?: Record<string, string>;
 };
 
 // ---- names ------------------------------------------------------------------------------------
@@ -115,11 +133,31 @@ export const refOfVar = (name: string): string => name.replace(/\//g, '.');
 /** A plan's text style name → its token ref (`figmaTextStyleName`, inverted). */
 export const refOfStyle = (name: string): string => `type.${name.replace(/\//g, '.')}`;
 
-/** Figma's bound keys → the redline property each one is. Radius and stroke width are out of scope (header). */
+/** Figma's bound keys → the redline property each one is. The corners and stroke sides are `CORNERS` and `SIDES`, below. */
 export const GEOMETRY: Readonly<Record<string, SpecProperty>> = {
   paddingTop: 'paddingTop', paddingRight: 'paddingRight', paddingBottom: 'paddingBottom', paddingLeft: 'paddingLeft',
   itemSpacing: 'gap', counterAxisSpacing: 'rowGap',
   height: 'height', minHeight: 'minHeight', width: 'width', minWidth: 'minWidth', maxWidth: 'maxWidth',
+};
+
+/** Figma's corner keys → the per-corner property; all four on one token collapse to `radius` (#3506). */
+export const CORNERS: Readonly<Record<string, SpecProperty>> = {
+  topLeftRadius: 'radiusTopLeft', topRightRadius: 'radiusTopRight', bottomRightRadius: 'radiusBottomRight', bottomLeftRadius: 'radiusBottomLeft',
+};
+/** Figma's stroke-side keys → the per-side property; all four on one token collapse to `strokeWidth`, as does the scalar
+ *  `strokeWeight` the plan binds for a uniform stroke (#3506). */
+export const SIDES: Readonly<Record<string, SpecProperty>> = {
+  strokeTopWeight: 'strokeWidthTop', strokeRightWeight: 'strokeWidthRight', strokeBottomWeight: 'strokeWidthBottom', strokeLeftWeight: 'strokeWidthLeft',
+};
+
+/** One node's corner and stroke bindings as redline facts: one value when uniform, else one per corner or side. */
+const edgesOf = (bound: Record<string, string>, keys: Readonly<Record<string, SpecProperty>>, uniform: SpecProperty, scalar?: string): [SpecProperty, string][] => {
+  if (scalar && bound[scalar] !== undefined) return [[uniform, refOfVar(bound[scalar])]];
+  const got = Object.keys(keys).filter((k) => bound[k] !== undefined);
+  if (!got.length) return [];
+  const refs = got.map((k) => refOfVar(bound[k]));
+  if (got.length === 4 && refs.every((r) => r === refs[0])) return [[uniform, refs[0]]];
+  return got.map((k, i) => [keys[k], refs[i]]);
 };
 
 // ---- the default materialization --------------------------------------------------------------
@@ -160,7 +198,9 @@ const literalGeometry = (n: FigmaNodePlan, isRoot: boolean, def: ComponentDef, a
   const out: [SpecProperty, SpecValue][] = [];
   if (n.minWidth !== undefined) {
     const ratio = authored.anatomy?.parts[n.name]?.minWidthRatio;
-    out.push(['minWidth', ratio !== undefined ? { px: n.minWidth, source: 'derived', rule: `height × ${ratio}` }
+    // The rounding is part of the rule (#3555 C10): Tag's 44px × 1.5 is 66, and the row shows 64 because `ratioMinWidth`
+    // rounds to the NEAREST 8px, where Button's multiplier rounds UP (`buttonMinWidth`).
+    out.push(['minWidth', ratio !== undefined ? { px: n.minWidth, source: 'derived', rule: `height × ${ratio}, rounded to the nearest 8px` }
       : isRoot && def.anatomy?.derived?.[MIN_WIDTH_DERIVATION] ? { px: n.minWidth, source: 'derived', rule: 'height × multiplier, rounded up to 8px' }
         : { px: n.minWidth, source: 'literal' }]);
   }
@@ -188,6 +228,7 @@ const firstLineRules = (n: FigmaNodePlan, path = ''): [string, SpecValue][] => {
 const geometryOf = (n: FigmaNodePlan, isRoot: boolean, def: ComponentDef, authored: ComponentDef, computedTop?: SpecValue): Map<string, string> => {
   const m = new Map<string, string>();
   for (const [k, v] of Object.entries(n.bound)) if (GEOMETRY[k]) m.set(GEOMETRY[k], JSON.stringify({ token: refOfVar(v) }));
+  for (const [k, v] of [...edgesOf(n.bound, CORNERS, 'radius'), ...edgesOf(n.bound, SIDES, 'strokeWidth', 'strokeWeight')]) m.set(k, JSON.stringify({ token: v }));
   for (const [k, v] of literalGeometry(n, isRoot, def, authored)) m.set(k, JSON.stringify(v));
   if (computedTop) m.set('paddingTop', JSON.stringify(computedTop));
   return m;
@@ -356,6 +397,17 @@ export const componentSpec = (authored: ComponentDef, opts: { def?: ComponentDef
   const properties: SpecComponentProperty[] = planSetProperties(plans).map((p) =>
     p.type === 'TEXT' || p.type === 'BOOLEAN' ? { name: p.name, type: p.type, default: p.default } : { name: p.name, type: p.type });
 
+  // FOCUS RING and MOTION (#3506, owner Q142 A on #3408) — bindings the design file cannot hold, read from the def as
+  // Apply materializes it, so a lever that rebinds them (the underline field adds its ring) shows here too.
+  const ringStroke = FOCUS_RING.tokens;
+  const focusRing: SpecFocusRing[] = nesting.filter((n): n is Extract<SpecNest, { kind: 'instance' }> => n.kind === 'instance' && n.component === FOCUS_RING.id).map((n) => {
+    const partDef = def.anatomy?.parts[n.part.split('/').pop()!];
+    const offset = partDef?.inset === undefined ? undefined : def.tokens[partDef.inset];
+    if (offset === undefined) throw new Error(`componentSpec: ${authored.id}'s '${n.part}' nests the focus ring with no bound inset, so its offset has no token`);
+    return { part: n.part, offset, width: ringStroke.width, style: ringStroke.style };
+  });
+  const motion = Object.fromEntries(Object.entries(def.tokens ?? {}).filter(([, ref]) => ref.startsWith('motion.')));
+
   const projected = new Set(fp.stateAxis?.values ?? []);
   return {
     id: authored.id,
@@ -373,6 +425,8 @@ export const componentSpec = (authored: ComponentDef, opts: { def?: ComponentDef
     nesting,
     properties,
     ...(authored.literal ? { literal: JSON.parse(JSON.stringify(authored.literal)) as { key: string; entries: Record<string, unknown> } } : {}),
+    ...(focusRing.length ? { focusRing } : {}),
+    ...(Object.keys(motion).length ? { motion } : {}),
   };
 };
 
@@ -397,6 +451,8 @@ const LABEL: Record<SpecProperty, string> = {
   paddingTop: 'padding top', paddingRight: 'padding right', paddingBottom: 'padding bottom', paddingLeft: 'padding left',
   gap: 'gap', rowGap: 'row gap', height: 'height', minHeight: 'min height', width: 'width', minWidth: 'min width',
   maxWidth: 'max width', buildWidth: 'build width', buildHeight: 'build height',
+  radius: 'radius', radiusTopLeft: 'top-left radius', radiusTopRight: 'top-right radius', radiusBottomRight: 'bottom-right radius', radiusBottomLeft: 'bottom-left radius',
+  strokeWidth: 'stroke', strokeWidthTop: 'top stroke', strokeWidthRight: 'right stroke', strokeWidthBottom: 'bottom stroke', strokeWidthLeft: 'left stroke',
 };
 
 /** The Specs section of a component page: the model's four blocks as tables. Empty for a def with no design-file set. */
@@ -421,7 +477,7 @@ export const renderSpecsMarkdown = (spec: ComponentSpec | undefined): string[] =
       const cell = (k: SpecProperty) => (v[k] ? valueText(v[k]!) : '—');
       const sides = (['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'] as const).map((k) => (v[k] ? valueText(v[k]!) : '—'));
       const padding = sides.every((x) => x === '—') ? '—' : sides.every((x) => x === sides[0]) ? sides[0] : sides.join(' / ');
-      const other = (['rowGap', 'minHeight', 'maxWidth', 'buildWidth', 'buildHeight'] as const).filter((k) => v[k]).map((k) => `${LABEL[k]} ${valueText(v[k]!)}`).join('; ') || '—';
+      const other = (['rowGap', 'minHeight', 'maxWidth', 'buildWidth', 'buildHeight', 'radius', 'radiusTopLeft', 'radiusTopRight', 'radiusBottomRight', 'radiusBottomLeft', 'strokeWidth', 'strokeWidthTop', 'strokeWidthRight', 'strokeWidthBottom', 'strokeWidthLeft'] as const).filter((k) => v[k]).map((k) => `${LABEL[k]} ${valueText(v[k]!)}`).join('; ') || '—';
       out.push(`| ${code(p.part)} | ${padding} | ${cell('gap')} | ${cell('height')} | ${cell('width')} | ${cell('minWidth')} | ${other} |`);
     }
     out.push('');

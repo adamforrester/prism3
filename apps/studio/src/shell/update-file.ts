@@ -18,7 +18,7 @@
  * alone; each set then says what changes, and the update waits on that answer. One choice covers the hand edits it finds
  * (Keep, the default). A set built before the ledger reads "Not checked yet", with a way to check it. Both reads measure
  * against the panel's brand while Theme is ticked, else the file's stored one (#3023 Q701 B, `brandFor`), so a Theme toggle
- * checks the file again.
+ * checks the file again: in place (#3713), the checklist kept as drawn and "Reading this file…" in the foot.
  *
  * TO ADD (#3129, Q832 A, Q3129.7–10 A; the owner's revisions R6 and R7): the file's add queue, in Components' order and
  * with its names (`queuedOf`, `displayNameOf`). To add and Due are the two subtitles of one section, Components, at
@@ -38,7 +38,8 @@
  * CLEAN UP: Prune stale, moved here with its own preview (Q668 A): the preview runs as the tab opens and writes nothing;
  * its Delete is the confirmed prune. It never rides Update. The style guide's retired tables (Q412 A) are offered here
  * too, after a run that found some. While Documentation has panels off, the usage panels drawn while it had them on are
- * offered too (#3137 Q3137.7 A): counted as the tab opens, removed on Remove, the hand-edited ones kept.
+ * offered too (#3137 Q3137.7 A): counted as the tab opens, removed on Remove, the hand-edited ones kept. Each of those
+ * two removals is its own card's button, at the card's foot (#3712 Q-UD4 A), so the dialog's foot holds Close and Delete.
  *
  * DIALOG: modal (`aria-modal`), focus into it as it opens and back to the button as it closes, by any path; Escape and a
  * click on the scrim close it; Tab stays inside (`trapTab`). A repaint keeps focus on the same control (`data-key`) and
@@ -50,7 +51,7 @@
 import { subscribe } from '../state/store';
 import type { Catalog } from '../state/component-catalog';
 import { displayNameOf, groupsOf, GROUPS_COPY, sentenceCase } from '../state/component-groups';
-import { alsoAddsOf, awaitingRead, badgeParts, checkScopeOf, defaultTicks, dueSetsOf, themeDueOf, themeMatchesOf, newSetsOf, panelSetsOf, keptChoicesOf, keptSetsOf, queuedOf, recheckFirst, runOrderOf, setupOfferedOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
+import { offReasonOf, offSetsOf, alsoAddsOf, awaitingRead, compsOpensOf, badgeParts, blockedDueOf, blockedReason, goWhyOf, checkScopeOf, defaultTicks, dueSetsOf, themeDueOf, themeMatchesOf, newSetsOf, panelSetsOf, keptChoicesOf, keptSetsOf, libraryChangesOf, queuedOf, recheckFirst, runOrderOf, setupOfferedOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
 import type { CheckedSetView } from '../write-adapter';
 import type { UpdateProgress } from '../state/host-session';
 import { armEnter, entering, focusables, glyph, h, hook, leave, pendingLabel, setBusy, trapTab } from './dom';
@@ -94,7 +95,12 @@ export type UpdateFileLend = {
     /** #3137 Q3137.7 A: Documentation has the usage panels off, as the host last said; and Clean up's panels item. */
     readonly panelsOff: boolean;
     readonly panelsClean: { readonly busy: false | 'count' | 'remove'; readonly count: { readonly drawn: number; readonly removable: number } | null };
+    /** #2956: the last "Turn off updates" / "Turn updates back on" the host could not write, and why; null otherwise. */
+    readonly updatesOffError: { readonly def: string; readonly off: boolean; readonly error: string } | null;
   };
+  /** #2956 (owner decisions 2026-11-17): turn the set's updates off (`off`) or back on (`updates-off`); `theme` is Theme's
+   *  tick, which picks the brand the read that follows measures against. */
+  readonly setUpdatesOff: (def: string, off: boolean, theme: boolean) => void;
   /** #3137 Q3137.7 A: count the drawn usage panels (`confirm` false), or remove the unedited ones (`panels-clean`). */
   readonly panelsClean: (confirm: boolean) => void;
   /** #3129: queue `ids` in the file (`on`), or take them out (`add-queue`). */
@@ -155,6 +161,12 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   let shown = false;
   let waited = false;
   let pendingLines = new Set<string>();
+  /** #3713 (4 of 4): the file's reading the checklist last drew, so a Theme toggle's re-read draws it again, in place,
+   *  with the foot's progress, rather than blanking the dialog to "Checking the file…". Cleared as the overlay opens. */
+  let shownFile: FileSets | null = null;
+  /** #3712 (Q-UD2, direction C): Components' card as the person last folded or opened it in this opening; null while it
+   *  follows its own rule (Q-UD3 A: open only while it holds a blocked or due set, `compsOpensOf`). */
+  let compsOpen: boolean | null = null;
 
   const show = (): void => {
     if (open) return;
@@ -165,6 +177,8 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     panelsOpen = false;
     checkedFor = null;
     rechecking = false;
+    shownFile = null;
+    compsOpen = null;
     seen.clear();
     if (!lend.read().run) {
       const r = lend.read();
@@ -209,13 +223,42 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     return b;
   };
 
-  /** An item: its box, title and count on one row, its line under them, and what it holds. */
+  /** #3712 (the owner's Q-UD2 change to the foot): the foot looks the same in every state. Each message (the check's
+   *  progress, why the action is off, the library changes) takes a full-width row above the buttons, and the buttons
+   *  keep one row, never stacked. `lead` is a control that sits before the buttons (the hand-edits choice). */
+  const footOf = (messages: readonly HTMLElement[], buttons: readonly HTMLElement[], lead: HTMLElement | null = null): HTMLElement[] => {
+    const rows = messages.map((m) => { const row = hook(h('div', 'p3-upd-msg'), 'update-foot-msg'); row.append(m); return row; });
+    const actions = hook(h('div', 'p3-upd-actions'), 'update-foot-actions');
+    const btns = hook(h('div', 'p3-upd-btns'), 'update-foot-buttons');
+    btns.append(...buttons);
+    if (lead) actions.append(lead);
+    actions.append(btns);
+    return [...rows, actions];
+  };
+  /** #3712 (Q-UD2, direction C): a step's card on the gray: its head row (the box and title, then its status chip at the
+   *  row's end) and its line under the title's text. A step with nothing inside it has no fold. */
   const item = (key: Exclude<StepKey, 'sets' | 'update'>, on: boolean, title: string, sub: string, toggle: () => void, tag: HTMLElement | null = null): HTMLElement => {
-    const row = hook(h('div', 'p3-upd-item'), `update-item-${key}`);
-    let label: Node = h('b', undefined, title);
-    if (tag) { const text = h('span', 'p3-check-text'); text.append(label, tag); label = text; }
-    row.append(check(`update-check-${key}`, `item=${key}`, on, [label], toggle), h('p', 'p3-sub p3-upd-sub', sub));
-    return row;
+    const card = hook(h('section', 'p3-upd-card'), `update-item-${key}`);
+    card.dataset.on = String(on);
+    const head = h('div', 'p3-upd-cardhead');
+    const box = check(`update-check-${key}`, `item=${key}`, on, [h('b', 'p3-upd-cardtitle', title)], toggle);
+    head.append(box);
+    if (tag) {
+      // The chip sits outside the box, so the box's name stays its title; the chip describes it.
+      tag.id = `p3-upd-chip-${key}`;
+      box.setAttribute('aria-describedby', tag.id);
+      head.append(tag);
+    }
+    card.append(head, h('p', 'p3-sub p3-upd-sub p3-upd-cardline', sub));
+    return card;
+  };
+  /** #3712: a group inside an open card, an inset on the fill gray with Palettes' small-capital title. */
+  const inset = (role: string, title: string): { readonly grp: HTMLElement; readonly head: HTMLElement } => {
+    const grp = hook(h('div', 'p3-upd-group p3-upd-inset'), role);
+    const head = h('div', 'p3-upd-grouphead');
+    head.append(h('span', 'p3-card-title p3-upd-subtitle', title));
+    grp.append(head);
+    return { grp, head };
   };
 
   const updateBody = (): { body: HTMLElement[]; foot: HTMLElement[] } => {
@@ -241,19 +284,27 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       }
       const stop = btn('p3-btn p3-btn-page', 'update-stop', 'stop', r.stopLabel() ?? UPDATE_COPY.stop, () => lend.stop());
       if (run.stopping) stop.disabled = true;
-      return { body, foot: [btn('p3-btn p3-btn-page', 'update-close', 'close', UPDATE_COPY.close, close), stop] };
+      return { body, foot: footOf([], [btn('p3-btn p3-btn-page', 'update-close', 'close', UPDATE_COPY.close, close), stop]) };
     }
-    const f = r.fileSets;
-    if (awaitingRead(f, asked)) return { body: [hook(h('p', 'p3-upd-line', UPDATE_COPY.checking), 'update-checking')], foot: [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close)] };
-    if (!f || f.error) return { body: [hook(h('p', 'p3-sg-error', UPDATE_COPY.readError), 'update-read-error')], foot: [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close)] };
-    asked = undefined;
-    if (rechecking && ticks) { rechecking = false; ticks = { ...ticks, update: new Set(dueSetsOf(r.catalog, f)) }; }
+    // #3713 (4 of 4): a Theme toggle's re-read keeps the checklist as last drawn, its ticks as the person left them, and
+    // says in the foot that it is reading; only the first read of an opening shows "Checking the file…".
+    const rereading = awaitingRead(r.fileSets, asked) && rechecking && !!ticks && !!shownFile;
+    const f = rereading ? shownFile : r.fileSets;
+    if (!rereading && awaitingRead(f, asked)) return { body: [hook(h('p', 'p3-upd-line', UPDATE_COPY.checking), 'update-checking')], foot: footOf([], [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close)]) };
+    if (!f || f.error) return { body: [hook(h('p', 'p3-sg-error', UPDATE_COPY.readError), 'update-read-error')], foot: footOf([], [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close)]) };
+    if (!rereading) { asked = undefined; shownFile = f; }
+    if (!rereading && rechecking && ticks) { rechecking = false; ticks = { ...ticks, update: new Set(dueSetsOf(r.catalog, f)) }; }
     ticks ??= defaultTicks(r.catalog, f, r.queue, liveAtOpen);
     const t = ticks;
     const fresh = !f.setUp;
     const body: HTMLElement[] = [];
     // A run that stopped on a failed step says so here, so a step that refused to start is never silent.
-    if (r.stopped) body.push(hook(h('p', 'p3-sg-error', UPDATE_COPY.stopped(STEP_TITLE[r.stopped.step], r.stopped.headline)), 'update-stopped'));
+    // #3712 (Q-UD2): in the boxed warning, with its glyph, not in danger ink.
+    if (r.stopped) {
+      const warn = hook(h('div', 'p3-sg-note p3-sg-warn p3-upd-warn'), 'update-stopped');
+      warn.append(glyph('warn'), h('span', 'p3-sg-warn-text', UPDATE_COPY.stopped(STEP_TITLE[r.stopped.step], r.stopped.headline)));
+      body.push(warn);
+    }
     body.push(h('p', 'p3-sub p3-upd-lead', fresh ? UPDATE_COPY.leadFresh : UPDATE_COPY.lead));
     // #3467 (Q3 A): offered too on a set-up file that lacks something setup owns, unticked, naming what it lacks.
     if (setupOfferedOf(f)) body.push(item('setup', t.setup, UPDATE_COPY.setup, fresh ? UPDATE_COPY.setupSub : UPDATE_COPY.setupMissing(f.setupIncomplete ?? []), () => { ticks = { ...t, setup: !t.setup }; }));
@@ -278,10 +329,23 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     const panelSets = panelSetsOf(r.catalog, f, r.queue);
     // #3421 (Q39 A): the sets whose last update kept hand edits over changes the plan makes.
     const keptSets = keptSetsOf(r.catalog, f);
+    // #2956: the sets whose updates are off; never due, never in the check.
+    const offSets = offSetsOf(r.catalog, f);
+    /** #2956: turn a set's updates off or back on. The file is read again, as a Theme toggle reads it (#3713 4 of 4): the
+     *  checklist stays as drawn meanwhile, and the answer ticks the due sets afresh, so a set turned off leaves Due and one
+     *  turned back on that is due joins it, ticked. */
+    const setOff = (id: string, off: boolean): void => {
+      rechecking = true;
+      asked = f;
+      checkedFor = null;
+      seen.clear();
+      lend.setUpdatesOff(id, off, t.theme);
+      paint();
+    };
     // The full check, over the due sets (and, #3137 Q3137.2 A, the panel sets while ticked), once per opening, as soon as
     // the ledger's answer is in.
     const scope = checkScopeOf(due, t, panelSets, keptSets);
-    if (scope.length && checkedFor === null) { checkedFor = scope; lend.checkSets(scope, t.theme); }
+    if (!rereading && scope.length && checkedFor === null) { checkedFor = scope; lend.checkSets(scope, t.theme); }
     const chk = r.updateCheck;
     const answered = chk && chk !== 'pending' && checkedFor !== null ? chk : null;
     const checkOf = (id: string): CheckedSetView | undefined => answered?.sets.find((c) => c.def === id);
@@ -297,21 +361,25 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       const add = unrec.filter((id) => { const c = checkOf(id); return c && !c.blocked && !c.upToDate && !t.update.has(id); });
       if (add.length) { ticks = { ...t, update: new Set([...t.update, ...add]) }; return updateBody(); }
     }
-    const updating = [...new Set([...due, ...t.update])];
+    const listed = [...new Set([...due, ...t.update])];
+    // #3713 (2 of 4): a set the check's answer blocks for this run leaves Due for Can't update yet, with no tick. Due's
+    // line, its ticks, the hand-edit count and the saves line count only the sets that can run.
+    const blocked = blockedDueOf(listed, answered, t.theme);
+    const updating = listed.filter((id) => !blocked.includes(id));
+    const ticked = [...t.update].filter((id) => !blocked.includes(id));
     // #3129 R6: To add and Due are the two subtitles of one section, Components, at Theme's level. Where a removal takes
     // the last of To add away, focus goes on to the next control: Due's first tick, else Style guides'.
     const after = updating.length ? `due=${updating[0]}` : 'item=guides';
-    const comps = hook(h('div', 'p3-upd-item'), 'update-item-components');
-    comps.append(hook(h('b', 'p3-upd-title', UPDATE_COPY.components), 'update-components-title'));
+    const comps = hook(h('section', 'p3-upd-card'), 'update-item-components');
+    const compsHead = h('div', 'p3-upd-cardhead');
+    compsHead.append(hook(h('b', 'p3-upd-cardtitle p3-upd-title', UPDATE_COPY.components), 'update-components-title'));
+    comps.append(compsHead);
     // R7: an empty queue shows no To add at all, except on a file that is not set up, which offers Add all (Q3129.9 A,
     // Q3129.10 A, both kept by the revision).
     if (queue.length || (fresh && addable.length)) {
-      const grp = hook(h('div', 'p3-upd-group'), 'update-group-add');
-      const head = h('div', 'p3-upd-grouphead');
-      head.append(h('span', 'p3-upd-subtitle', UPDATE_COPY.toAdd));
+      const { grp, head } = inset('update-group-add', UPDATE_COPY.toAdd);
       // Q3129.8 A: Remove all, a ghost button in the group's head, from two rows up.
       if (queue.length >= 2) head.append(btn('p3-btn p3-btn-ghost p3-upd-removeall', 'update-remove-all', 'remove-all', UPDATE_COPY.removeAll, () => { refocus = after; lend.queueSets(queue, false); }));
-      grp.append(head);
       if (queue.length) {
         grp.append(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.toAddSub(queue.length)), 'update-add-line'));
         const rows = groupsOf(r.catalog).flatMap((sec) => sec.rows);
@@ -347,8 +415,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       }
       comps.append(grp);
     }
-    const sets = hook(h('div', 'p3-upd-group'), 'update-group-due');
-    sets.append(h('span', 'p3-upd-subtitle', UPDATE_COPY.due));
+    const sets = inset('update-group-due', UPDATE_COPY.due).grp;
     let handN = 0;
     if (updating.length) {
       sets.append(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.dueSub(updating.length)), 'update-due-line'));
@@ -370,22 +437,29 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
         box.dataset.id = id;
         const row = h('div', 'p3-upd-setrow');
         const shown = lineOf(id);
-        const line = hook(h('p', 'p3-sub p3-upd-setline', shown ? UPDATE_COPY.checked(shown, t.theme) : prog?.next === id ? UPDATE_COPY.checkingSet : ''), 'update-set-check');
+        const line = hook(h('p', 'p3-sub p3-upd-setline', shown ? UPDATE_COPY.checked(shown, t.theme, nameOf) : prog?.next === id ? UPDATE_COPY.checkingSet : ''), 'update-set-check');
         line.dataset.state = shown ? 'checked' : prog?.next === id ? 'checking' : chk === 'pending' ? 'waiting' : 'none';
         if (shown && pendingLines.has(id)) armEnter(`update-line=${id}`);
         if (entering(`update-line=${id}`)) line.dataset.land = 'true';
         if (!shown && chk === 'pending') pending.add(id);
         row.append(box, line);
+        // #2956 (OWNER DECISION: where it sits; built as recommended): a quiet ghost action after the row's line. Not offered
+        // on a single-component def, which has no set node to carry the mark.
+        if (r.catalog.find((e) => e.id === id)?.unit !== 'components') {
+          const off = btn('p3-btn p3-btn-ghost p3-upd-turnoff', 'update-turn-off', `turn-off=${id}`, UPDATE_COPY.turnOff, () => setOff(id, true));
+          off.setAttribute('aria-label', UPDATE_COPY.turnOffName(nameOf(id)));
+          row.append(off);
+        }
         list.append(row);
         // #2831: on a published set, what the update breaks for library consumers, beside the set.
-        if (shown?.breaks && !shown.blocked) list.append(hook(h('p', 'p3-sub p3-upd-setline', shown.breaks), 'update-set-breaks'));
+        if (shown?.breaks && !shown.blocked) list.append(hook(h('p', 'p3-sub p3-upd-setline p3-upd-breaks', shown.breaks), 'update-set-breaks'));
       }
       sets.append(list);
       pendingLines = pending;
       if (chk && chk !== 'pending' && chk.error) sets.append(hook(h('p', 'p3-sg-error', UPDATE_COPY.checkError), 'update-check-error'));
       // One choice for every hand edit the update meets (the owner's starter-kit posture: Keep, by default). Since #3083
       // (the owner's Q3083.3 A) a compact select in the foot, before Cancel and Update file, built below.
-      handN = [...t.update].reduce((n, id) => n + (checkOf(id)?.handEdited ?? r.handEdits.get(id)?.edited ?? 0), 0);
+      handN = ticked.reduce((n, id) => n + (checkOf(id)?.handEdited ?? r.handEdits.get(id)?.edited ?? 0), 0);
     }
     if (unrec.length && !unrec.every((id) => t.update.has(id) || checkOf(id))) {
       // Built before the ledger: only the full check can say. Checked, each one with changes joins the update, ticked.
@@ -400,10 +474,29 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     // Due is drawn while a set is due or unchecked (the check offered below); a file with neither has no Due group, and
     // with neither group there is no Components section.
     if (updating.length || unrec.length) comps.append(sets);
+    // #3713 (2 of 4): the sets the check blocks, each with its due reason and why it can't update; nothing to tick.
+    if (blocked.length) {
+      const { grp } = inset('update-group-blocked', UPDATE_COPY.blocked);
+      const list = hook(h('div', 'p3-upd-sets'), 'update-blocked-sets');
+      for (const id of blocked) {
+        const d = f.due[id];
+        const row = hook(h('div', 'p3-upd-setrow'), 'update-blocked-row');
+        row.dataset.id = id;
+        // #3712 (Q-UD2): a lock where a due set has its box, so a blocked set reads as its own row, never as a tick.
+        const text = h('span', 'p3-check-text p3-upd-checktext p3-upd-locked');
+        const name = h('span', 'p3-upd-setname');
+        name.append(glyph('lock'), h('b', undefined, nameOf(id)));
+        text.append(name);
+        if (d?.state === 'due') text.append(hook(h('span', 'p3-sg-tag', UPDATE_COPY.dueWhy(d)), 'update-set-due'));
+        row.append(text, hook(h('p', 'p3-sub p3-upd-setline', blockedReason(checkOf(id)?.reasons, t.theme, nameOf)), 'update-blocked-why'));
+        list.append(row);
+      }
+      grp.append(list);
+      comps.append(grp);
+    }
     // #3137 Q3137.1 A: Usage panels, the third subtitle: one tick for the group, then the names (Q3137.5 A).
     if (panelSets.length) {
-      const grp = hook(h('div', 'p3-upd-group'), 'update-group-panels');
-      grp.append(h('span', 'p3-upd-subtitle', UPDATE_COPY.panels));
+      const { grp } = inset('update-group-panels', UPDATE_COPY.panels);
       grp.append(check('update-check-panels', 'item=panels', t.panels, [h('span', undefined, UPDATE_COPY.panelsTick(panelSets.length))], () => {
         ticks = { ...t, panels: !t.panels };
         // The scoped check reads the panel sets only while ticked, so a toggle asks it again over the new scope.
@@ -437,15 +530,15 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     // #3421 (Q39 A): Kept edits, the fourth subtitle: each set whose last update kept hand edits over changes the plan
     // makes, what they hold back, and its own choice: Keep (it stays listed), Overwrite, or Accept as baseline.
     if (keptSets.length) {
-      const grp = hook(h('div', 'p3-upd-group'), 'update-group-kept');
-      grp.append(h('span', 'p3-upd-subtitle', UPDATE_COPY.kept));
+      const { grp } = inset('update-group-kept', UPDATE_COPY.kept);
       grp.append(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.keptSub(keptSets.length)), 'update-kept-line'));
       const list = hook(h('div', 'p3-upd-sets'), 'update-kept-sets');
       for (const id of keptSets) {
         const d = f.due[id];
-        const row = hook(h('div', 'p3-upd-setrow'), 'update-kept-row');
+        // #3712 (Q-UD2): a table row: the name and its lines, then the choice in a column at the row's end (audit A1).
+        const row = hook(h('div', 'p3-upd-setrow p3-upd-krow'), 'update-kept-row');
         row.dataset.id = id;
-        const head = h('div', 'p3-upd-handsel');
+        const head = h('div', 'p3-upd-kname');
         const sel = hook(h('select', 'p3-select'), 'update-kept-choice');
         sel.id = `p3-upd-kept-${id}`;
         sel.dataset.key = `kept=${id}`;
@@ -466,19 +559,61 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
         };
         const sw = h('div', 'p3-selwrap');
         sw.append(sel, glyph('chev'));
-        head.append(h('span', 'p3-upd-setname', nameOf(id)), sw);
-        row.append(head);
-        if (d?.state === 'kept') row.append(hook(h('p', 'p3-sub p3-upd-setline', UPDATE_COPY.keptLine(d.held)), 'update-kept-held'));
+        head.append(h('span', 'p3-upd-setname', nameOf(id)));
+        if (d?.state === 'kept') head.append(hook(h('p', 'p3-sub p3-upd-setline', UPDATE_COPY.keptLine(d.held)), 'update-kept-held'));
         const shownK = (t.kept.get(id) ?? 'keep') !== 'keep' ? lineOf(id) : undefined;
-        if (shownK) row.append(hook(h('p', 'p3-sub p3-upd-setline', UPDATE_COPY.checked(shownK, t.theme)), 'update-set-check'));
+        if (shownK) head.append(hook(h('p', 'p3-sub p3-upd-setline p3-upd-will', UPDATE_COPY.checked(shownK, t.theme, nameOf)), 'update-set-check'));
+        row.append(head, sw);
         list.append(row);
       }
       grp.append(list);
       comps.append(grp);
     }
+    // #2956 (owner decisions 2026-11-17): Updates off, the last subtitle: each set Update file leaves as it is, its tag, the
+    // quiet reason line only when the update turned it off by itself, and "Turn updates back on". Nothing to tick.
+    if (offSets.length) {
+      const { grp } = inset('update-group-off', UPDATE_COPY.off);
+      grp.append(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.offSub(offSets.length)), 'update-off-line'));
+      const list = hook(h('div', 'p3-upd-sets'), 'update-off-sets');
+      for (const id of offSets) {
+        const row = hook(h('div', 'p3-upd-setrow p3-upd-krow'), 'update-off-row');
+        row.dataset.id = id;
+        const head = h('div', 'p3-upd-kname');
+        const text = h('span', 'p3-check-text p3-upd-checktext');
+        text.append(h('span', 'p3-upd-setname', nameOf(id)), hook(h('span', 'p3-sg-tag', UPDATE_COPY.off), 'update-off-tag'));
+        head.append(text);
+        const why = offReasonOf(f.due[id]);
+        if (why) head.append(hook(h('p', 'p3-sub p3-upd-setline', why), 'update-off-reason'));
+        const on = btn('p3-btn p3-btn-page', 'update-turn-on', `turn-on=${id}`, UPDATE_COPY.turnOn, () => setOff(id, false));
+        on.setAttribute('aria-label', UPDATE_COPY.turnOnName(nameOf(id)));
+        row.append(head, on);
+        list.append(row);
+      }
+      grp.append(list);
+      comps.append(grp);
+    }
+    // #2956: a turn off or back on the host could not write says so, in the check's own error ink. DRAFT.
+    if (r.updatesOffError) comps.append(hook(h('p', 'p3-sg-error', `${r.updatesOffError.off ? UPDATE_COPY.turnOff : UPDATE_COPY.turnOn}: ${r.updatesOffError.error}.`), 'update-off-error'));
     // The section's last line (#3137): a version is saved before the update, Due and the panels alike.
-    if (t.update.size || (t.panels && panelSets.length) || keptSets.some((id) => (t.kept.get(id) ?? 'keep') !== 'keep')) comps.append(hook(h('p', 'p3-sub p3-upd-saves', UPDATE_COPY.saves), 'update-saves'));
-    if (comps.children.length > 1) body.push(comps);
+    if (ticked.length || (t.panels && panelSets.length) || keptSets.some((id) => (t.kept.get(id) ?? 'keep') !== 'keep')) comps.append(hook(h('p', 'p3-sub p3-upd-saves', UPDATE_COPY.saves), 'update-saves'));
+    if (comps.children.length > 1) {
+      // #3712 (Q-UD2, direction C): Components folds to its head row, its chip saying what is folded. Q-UD3 A: it opens by
+      // itself only while it holds a blocked or due set, and the person's fold or open holds for the opening.
+      const open = compsOpen ?? compsOpensOf({ blocked: blocked.length, due: updating.length });
+      const chip = hook(h('span', 'p3-sg-tag', UPDATE_COPY.compsChip({ add: queue.length, due: updating.length, blocked: blocked.length, kept: keptSets.length, panels: panelSets.length && t.panels ? panelSets.length : 0, off: offSets.length })), 'update-components-chip');
+      const fold = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon p3-upd-fold'), 'update-components-fold');
+      fold.type = 'button';
+      fold.dataset.key = 'fold=components';
+      fold.setAttribute('aria-expanded', String(open));
+      fold.setAttribute('aria-label', UPDATE_COPY.components);
+      fold.append(glyph('chevr'));
+      fold.onclick = () => { compsOpen = !open; paint(); };
+      if (chip.textContent) compsHead.append(chip);
+      compsHead.append(fold);
+      comps.dataset.open = String(open);
+      if (!open) comps.replaceChildren(compsHead);
+      body.push(comps);
+    }
     body.push(item('guides', t.guides, UPDATE_COPY.guides, UPDATE_COPY.guidesSub, () => { ticks = { ...t, guides: !t.guides }; }));
     const t2 = ticks ?? t;
     // The update waits on the check's answer: its counts are what the person reviews, and its hash what the update echoes.
@@ -486,11 +621,14 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     const steps = stepsOf({ ...t2, update: new Set(updatable) }, f, queue);
     const asks = t2.update.size > 0 || (t2.panels && panelSets.length > 0) || keptSets.some((id) => (t2.kept.get(id) ?? 'keep') !== 'keep');
     const waiting = asks && !answered;
+    // #3711 (Q-UF2 A): the changes this update passes on to files that use the library, named above the button, which
+    // carries their count, so the click is the acknowledgement.
+    const lib = libraryChangesOf(updatable, answered);
     const go = hook(h('button', 'p3-btn p3-btn-primary'), 'update-go');
     go.type = 'button';
     go.dataset.key = 'go';
-    go.textContent = fresh ? UPDATE_COPY.goFresh : UPDATE_COPY.go;
-    go.disabled = steps.length === 0 || !!r.off || waiting;
+    go.textContent = fresh ? UPDATE_COPY.goFresh : lib.count ? UPDATE_COPY.goLibrary(lib.count) : UPDATE_COPY.go;
+    go.disabled = steps.length === 0 || !!r.off || waiting || rereading;
     if (r.off) go.title = r.off;
     go.onclick = () => {
       if (go.disabled || !answered && asks) return;
@@ -500,19 +638,31 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
         updatable.length && answered ? { defs: updatable, previewHash: exact ? answered.previewHash : '', checked: answered.sets, handEdits: t2.handEdits, sets: keptChoicesOf(t2, updatable) } : null);
       close();
     };
-    const foot: HTMLElement[] = [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close), go];
-    if (chk === 'pending' && checkedFor !== null && updating.length) {
+    const buttons: HTMLElement[] = [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close), go];
+    const messages: HTMLElement[] = [];
+    let handRow: HTMLElement | null = null;
+    // #3713 (3 of 4): a disabled Update file says why, beside Cancel and the button, and names it as its description.
+    // A set that can run but is unticked makes it "nothing ticked", not the blocked sets' fault.
+    const why = goWhyOf({ off: r.off, waiting: waiting || rereading, steps: steps.length, blocked: updating.length ? [] : blocked.map(nameOf) });
+    if (why) {
+      const p = hook(h('p', 'p3-sub p3-upd-gowhy', why), 'update-go-why');
+      p.id = 'p3-upd-gowhy';
+      go.setAttribute('aria-describedby', p.id);
+      messages.push(p);
+    }
+    // #3713 (4 of 4): a Theme toggle's re-read of the file shows here too, as "Reading this file…", before the check.
+    if (rereading || (chk === 'pending' && checkedFor !== null && updating.length)) {
       // #3302 Q3302.1 A, Q3302.3 A: the check's progress in the foot, before Cancel: "Reading this file…" with the bar
       // empty until every set is found, then "Checked n of N sets", the chrome's own bar filled by sets. It moves only
       // as a set is checked, never by time (#3150).
-      const text = prog ? UPDATE_COPY.checkedOf(prog.done, prog.total) : UPDATE_COPY.checkReading;
+      const text = prog && !rereading ? UPDATE_COPY.checkedOf(prog.done, prog.total) : UPDATE_COPY.checkReading;
       const wrap = hook(h('div', 'p3-upd-progress'), 'update-check-progress');
       const bar = hook(h('progress', 'p3-op-prog p3-upd-prog'), 'update-check-bar') as HTMLProgressElement;
-      bar.max = prog && prog.total > 0 ? prog.total : 1;
-      bar.value = prog ? prog.done : 0;
+      bar.max = prog && !rereading && prog.total > 0 ? prog.total : 1;
+      bar.value = prog && !rereading ? prog.done : 0;
       bar.setAttribute('aria-label', text);
       wrap.append(bar, hook(h('span', 'p3-sub p3-upd-progtext', text), 'update-check-count'));
-      foot.unshift(wrap);
+      messages.unshift(wrap);
     }
     if (handN > 0) {
       // #3083 (Q3083.3 A, Q3083.4 A): "Hand edits", then the select, its label tied to it; a repaint keeps focus on it.
@@ -532,11 +682,21 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       sel.onchange = () => { ticks = { ...t2, handEdits: sel.value as HandEditChoice }; paint(); };
       sw.append(sel, glyph('chev'));
       wrap.append(lab, sw);
-      foot.unshift(wrap);
+      handRow = wrap;
       // #3421 (Q39 A): what the choice does, in the body's last line, so Keep never reads as resolving anything.
       body.push(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.handHint[t2.handEdits]), 'update-hand-hint'));
     }
-    return { body, foot };
+    // #3711 (Q-UF2 A): the callout directly above the button it qualifies; #3712 (Q-UD2): the foot's last message row,
+    // a boxed warning with its glyph.
+    if (lib.count) {
+      const call = hook(h('div', 'p3-sg-note p3-sg-warn p3-upd-libcall'), 'update-library');
+      const text = h('div', 'p3-sg-warn-text');
+      text.append(hook(h('b', undefined, UPDATE_COPY.library), 'update-library-title'), hook(h('p', 'p3-sub', UPDATE_COPY.librarySub(lib.count)), 'update-library-sub'));
+      for (const line of lib.lines) text.append(hook(h('p', 'p3-sub', line), 'update-library-line'));
+      call.append(glyph('warn'), text);
+      messages.push(call);
+    }
+    return { body, foot: footOf(messages, buttons, handRow) };
   };
 
   const cleanBody = (): { body: HTMLElement[]; foot: HTMLElement[] } => {
@@ -549,30 +709,35 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     const body: HTMLElement[] = [h('p', 'p3-sub p3-upd-lead', UPDATE_COPY.cleanLead)];
     if (r.off) body.push(hook(h('p', 'p3-sg-error', r.off), 'clean-off'));
     const foot: HTMLElement[] = [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.close, close)];
-    if (p.busy) body.push(hook(h('p', 'p3-upd-line', UPDATE_COPY.cleanChecking), 'clean-checking'));
+    // #3712 (Q-UD2): Clean up's items are cards on the same gray as Update's steps.
+    const card = (...nodes: HTMLElement[]): HTMLElement => { const c = h('section', 'p3-upd-card'); c.append(...nodes); return c; };
+    // #3712 (Q-UD4 A): Remove panels and Remove tables are each their card's own action, in a row at the card's foot, so
+    // the dialog's foot keeps two buttons (Close, Delete) on one row at 380.
+    const cardActs = (b: HTMLElement): HTMLElement => { const row = hook(h('div', 'p3-upd-cardacts'), 'clean-card-actions'); row.append(b); return row; };
+    if (p.busy) body.push(card(hook(h('p', 'p3-upd-line', UPDATE_COPY.cleanChecking), 'clean-checking')));
     else if (p.preview) {
-      body.push(hook(h('p', 'p3-upd-summary', p.preview.summary), 'clean-prune-summary'));
+      body.push(card(hook(h('p', 'p3-upd-summary', p.preview.summary), 'clean-prune-summary')));
       const del = btn('p3-btn p3-btn-primary', 'clean-prune-confirm', 'prune', `Delete ${p.preview.count} item${p.preview.count === 1 ? '' : 's'}`, () => lend.pruneDelete());
       if (r.off) { del.disabled = true; del.title = r.off; }
       foot.push(del);
-    } else if (p.verdict) body.push(hook(h('p', 'p3-upd-summary', p.verdict.count === 0 && !p.verdict.applied ? UPDATE_COPY.cleanNone : p.verdict.summary), 'clean-prune-result'));
+    } else if (p.verdict) body.push(card(hook(h('p', 'p3-upd-summary', p.verdict.count === 0 && !p.verdict.applied ? UPDATE_COPY.cleanNone : p.verdict.summary), 'clean-prune-result')));
     // #3137 Q3137.7 A: while Documentation has panels off, the panels drawn while it had them on; edited ones stay.
     // A count already out (Documentation asks when panels turn off) is this opening's: its answer is the one drawn.
     if (r.panelsOff && !panelsAsked) { panelsAsked = true; if (!r.panelsClean.busy) lend.panelsClean(false); }
     const pc = lend.read().panelsClean;
     if (r.panelsOff && pc.count && pc.count.drawn > 0) {
-      const box = hook(h('div', 'p3-upd-item'), 'clean-panels');
+      const box = hook(h('section', 'p3-upd-card'), 'clean-panels');
       box.append(hook(h('p', 'p3-upd-summary', UPDATE_COPY.cleanPanels(pc.count.drawn)), 'clean-panels-summary'), h('p', 'p3-sub', UPDATE_COPY.cleanPanelsKeep));
       body.push(box);
       if (pc.count.removable > 0) {
         const rm = btn('p3-btn p3-btn-primary', 'clean-panels-confirm', 'panels', UPDATE_COPY.removePanels(pc.count.removable), () => lend.panelsClean(true));
         rm.disabled = !!pc.busy || !!r.off;
         if (r.off) rm.title = r.off;
-        foot.push(rm);
+        box.append(cardActs(rm));
       }
     }
     if (r.retired.length) {
-      const box = hook(h('div', 'p3-upd-item'), 'clean-tables');
+      const box = hook(h('section', 'p3-upd-card'), 'clean-tables');
       const ul = h('ul', 'p3-sg-cleanup-list');
       for (const t of r.retired) ul.append(h('li', undefined, t.name));
       box.append(h('p', 'p3-upd-summary', UPDATE_COPY.cleanRetired(r.retired.length)), ul);
@@ -580,9 +745,9 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       const rm = btn('p3-btn p3-btn-primary', 'clean-tables-confirm', 'tables', UPDATE_COPY.removeTables(r.retired.length), () => lend.cleanUp(r.retired.map((t) => t.id)));
       rm.disabled = r.cleanupBusy || !!r.off;
       if (r.off) rm.title = r.off;
-      foot.push(rm);
+      box.append(cardActs(rm));
     }
-    return { body, foot };
+    return { body, foot: footOf([], foot) };
   };
 
   const paint = (): void => {
@@ -650,11 +815,11 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     if (waited && !waiting) armEnter('update-rows');
     if (entering('update-rows')) for (const n of body) n.dataset.land = 'true';
     waited = waiting;
-    const bodyEl = hook(h('div', 'p3-bardlg-col p3-upd-body'), 'update-body');
+    const bodyEl = hook(h('div', 'p3-bardlg-col p3-upd-body p3-upd-deck'), 'update-body');
     bodyEl.setAttribute('role', 'tabpanel');
     bodyEl.dataset.tab = tab;
     bodyEl.append(...body);
-    const footEl = h('div', 'p3-bardlg-foot');
+    const footEl = h('div', 'p3-bardlg-foot p3-upd-foot');
     footEl.append(...foot);
     dlg.append(head, tabs, bodyEl, footEl);
     scrim.onmousedown = (e) => { if (e.target === scrim) { e.preventDefault(); close(); } };

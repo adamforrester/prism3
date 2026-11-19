@@ -23,14 +23,15 @@
  *
  * Mirrors the engine suite's dependency-free `ok(...)` style; exits non-zero on any failure.
  */
-import { buildFloatWritePlan } from '@prism3/engine/write-plan';
-import { brandTheme } from '@prism3/engine/theme';
+import { buildFloatWritePlan } from '@prism3/engine/figma';
+import { brandTheme, type BrandInput } from '@prism3/engine';
 import { applyFloatPlan, ownedModeIds, stampOwnedModes } from './src/write-figma';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import type { BrandInput } from '@prism3/engine/theme';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -323,5 +324,5 @@ ok(['old-sm', 'old-dup', 'old-lg'].every((id) => afterSeed.includes(id)),
   '#1581 …and the seeded ids survive that second stamp — append-only applies to them too');
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-console.log(`\nplugin FLOAT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
+console.log(`\nplugin FLOAT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'} — ${executed} assertions executed`);
 if (failed) process.exit(1);

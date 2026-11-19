@@ -109,7 +109,9 @@ export const listItem: ComponentDef = {
     'size.medium.bullet': 'space.100',
     'size.large.bullet': 'space.100',
 
-    // THE ICON MARKER (owner decision Q280.5 A, noted): the icon ladder at the item's rung, 16/20/24, inside the 21/24/27 line box.
+    // THE ICON MARKER (owner decision #3375 A, 2026-11-18): the icon ladder at the item's rung, 20/24/32
+    // (`icon.size.sm/md/lg`), inside the 21/24/27 line box, so large's 32px icon is taller than its 27px line. Q280.5 A's
+    // note recorded "16/20/24" beside these same bindings; the owner kept the bindings and the note was corrected.
     // The proposal's one-rung-smaller 16/16/20 would be an `ICON_OFFSET_DEFS` exception, which is the owner's to grant.
     'size.x-small.icon': 'icon.size.xs',
     'size.small.icon': 'icon.size.sm',
@@ -131,7 +133,7 @@ export const listItem: ComponentDef = {
       // BUILT AT 320 (`placementWidth`) and filling its column in use, with the fields' 120 floor, as checkbox-row is:
       // the text fills the row and wraps, which needs a bounded row.
       row: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         // `target` because the schema requires exactly one — not an interaction claim (divider's and veil's use).
         role: 'target',
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
@@ -166,10 +168,12 @@ export const listItem: ComponentDef = {
         kind: 'text',
         type: 'size.{size}.text',
         presentWhen: { type: ['ordered'] },
-        note: 'The number, in the item\'s own type and the text color. Typed per item in Figma; counted by the list in code.',
+        // Maintainer detail, out of the reader caption (#3610): The number, in the item's own type and the text
+        // color. Typed per item in Figma; counted by the list in code.
+        note: 'The item\'s number, in the item\'s text style and color; the list counts it.',
       },
       icon: {
-        kind: 'slot',
+        kind: 'slot', mirror: 'never',
         size: 'size.{size}.icon',
         nesting: { kind: 'swap' },
         swapDefault: 'check',
@@ -228,7 +232,7 @@ export const listItem: ComponentDef = {
     variantAxes: ['type', 'size'],
     // The text first, at the top of the panel; the number only on ordered members, the icon swap only on icon members.
     texts: {
-      children: { part: 'label', default: 'List item', figmaName: 'text' },
+      children: { part: 'label', default: 'List item', figmaName: 'label' },
       value: { part: 'number', default: '1.', figmaName: 'number' },
     },
     // A required single icon, with no presence toggle: `swap icon`, with no ↳ (the icon-property canon).
@@ -259,7 +263,7 @@ export const listItem: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'One item inside a List: a marker in a fixed column, then text that wraps under itself.',
+    primaryPurpose: 'Hold one item inside a List: a marker in a fixed column, then text that wraps under itself.',
     whenToUse: 'Only as a child of a List. Generate a List, which places its items and sets their marker type and size.',
     avoidWhen: 'Content a writer edits as normal copy (use a native text list in the text itself), a choice the user makes (a listbox), a command (a menu), or a navigation link (a navigation, not built yet).',
     commonPartners: ['list', 'icon'],

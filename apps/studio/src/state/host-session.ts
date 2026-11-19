@@ -18,8 +18,7 @@
  * The UI's own writes (a button setting a slot to `pending`, a pill toggling `openDetail`) also stay in
  * `main.ts`, as whole-object reassignments of the one `HostSession` value.
  */
-import { brandTheme } from '@prism3/engine/theme';
-import type { BrandInput } from '@prism3/engine/theme';
+import { brandTheme, type BrandInput } from '@prism3/engine';
 import type { CheckedSetView, CollisionChoices, CollisionView, HostMessage, SetDueView } from '../write-adapter';
 import type { Cause, StyleGuideCatalog, StyleGuideTableStatus } from '../../../plugin/src/messages';
 import { joinSeed, withRecovered, type SeedOutcome } from '../provenance';
@@ -47,7 +46,7 @@ export type SgRunTable = { readonly key: string; readonly title: string; readonl
 export type DetailKey = 'apply' | 'components' | 'filesetup' | 'styleguide';
 /** The operations the Activity drawer shows (UI redesign S11): the four writes with a verdict slot, the
  *  prune, the boot read-back, and Draw specs (#2830, owner decision Q713 A: a row of its own, like Style guides). */
-export type OpKey = DetailKey | 'prune' | 'readback' | 'specs';
+export type OpKey = DetailKey | 'prune' | 'readback' | 'specs' | 'override';
 /** The operation an agent command runs, by the command's name. `status` writes nothing and posts no
  *  verdict, so it has none. Keyed by the plugin's `AgentCmd` names, which arrive as strings. */
 export const AGENT_OP: Readonly<Record<string, OpKey>> = {
@@ -58,11 +57,13 @@ export const AGENT_OP: Readonly<Record<string, OpKey>> = {
   'update-components': 'components', 'capture-baseline': 'components', 'adopt-members': 'components',
   // #2830 Q713 A: Draw specs is its own row. It holds the build's guard (`run-guard.ts`), so a refusal names the build.
   'draw-specs': 'specs',
+  // #3394 Q3394.7 A: the agent link's color overrides, a row of their own. Only the agent link sends them.
+  'set-override': 'override',
 };
 /** Which operation's verdict a host message is. */
 const VERDICT_OP: Partial<Record<HostMessage['kind'], OpKey>> = {
   'apply-result': 'apply', 'component-result': 'components', 'component-update-result': 'components', 'file-setup-result': 'filesetup', 'style-guide-result': 'styleguide',
-  'prune-result': 'prune', 'seed-info': 'readback',
+  'prune-result': 'prune', 'seed-info': 'readback', 'override-result': 'override',
 };
 
 /** Every host-fed slot, one per fact: the host sends one kind per fact, and the UI keeps a slot per
@@ -130,6 +131,9 @@ export interface HostSession {
    *  The panel posts no other components write while it is pending (`componentBusy`), so the next one is its own.
    *  An agent's `draw-specs` verdict lands here too, as an agent's style guide lands in `styleGuideState`. */
   readonly specsState: ActionState;
+  /** #3394: the agent link's last `set-override` write this session: its verdict. A preview leaves it. Never `pending`: the
+   *  panel sends none, and an agent's running row is `agentRun`'s. */
+  readonly overrideState: ActionState;
   /** The state of the file-setup scaffold (#1558) — same shape, its own slot, for the same reason
    *  `componentState` is separate from `applyState`: three actions, three buttons, three verdicts. A
    *  file-setup verdict cannot report into the theme or component write's pill without claiming something
@@ -166,10 +170,12 @@ export interface HostSession {
   readonly styleGuideCleanup: 'pending' | { readonly ok: boolean; readonly summary: string } | null;
   /** The set the panel's own pending build is for (UI redesign S8.2), `null` when the panel has no build out. The
    *  wire's `component-result` does not name its set, so the panel remembers the one it posted, and the verdict that
-   *  answers it is recorded against that set in `setBuilds`. */
+   *  answers it is recorded against that set in `setBuilds`. An agent's build names its set on `agent-started`
+   *  instead (`agentRun.def`, #2087). */
   readonly componentDef: string | null;
-  /** Each set's last build result in THIS session (owner decisions G9 A and C1 A, S8.2); a set with no entry was not built from this panel this session. Recorded only for the panel's
-   *  own builds: an agent's build carries no set id over the wire, so it is not attributed (it still lands in the
+  /** Each set's last build result in THIS session (owner decisions G9 A and C1 A, S8.2); a set with no entry was not
+   *  built this session. Recorded for the panel's own builds and for an agent's `build-components`, whose
+   *  `agent-started` names the set (#2087); an agent build that names none is not attributed (it still lands in the
    *  Activity drawer). Never persisted, and never read from the file. */
   readonly setBuilds: ReadonlyMap<string, SetBuild>;
   /** OPT-IN PRUNE (#1521) — Figma-only, and three slots for the same reason `applyState` is not
@@ -178,7 +184,8 @@ export interface HostSession {
    *  button; `prunePreview` holds a ready preview whose confirm dialog is open; `pruneVerdict` is the pill
    *  text after a preview finds nothing stale or after a delete completes. */
   readonly pruneBusy: false | 'preview' | 'delete';
-  readonly prunePreview: { count: number; summary: string } | null;
+  /** `previewHash`: the hash the Delete echoes (#3697 R6). */
+  readonly prunePreview: { count: number; summary: string; previewHash: string } | null;
   readonly pruneVerdict: { ok: boolean; applied: boolean; count: number; summary: string } | null;
   /** WHICH result's full detail is expanded, at most one. Collapsed by default: the headline answers the
    *  question ninety-nine times out of a hundred, and the detail is counts across five or six axes.
@@ -216,7 +223,9 @@ export interface HostSession {
    *  own reading, which the panel's `componentProgress` does not take: that one is accepted only while
    *  the panel's own build is pending. An agent's style guide reads phase `table`, its `done` of `total`
    *  tables (#1778, owner decision Q19 b), which the page row and the drawer show as a panel run's. */
-  readonly agentRun: { readonly id: string; readonly op: OpKey; readonly cmd: string; readonly settled: boolean; readonly progress: { phase: 'build' | 'wire' | 'retry' | 'table'; done: number; total: number } | null } | null;
+  readonly agentRun: { readonly id: string; readonly op: OpKey; readonly cmd: string; readonly settled: boolean; readonly progress: { phase: 'build' | 'wire' | 'retry' | 'table'; done: number; total: number } | null;
+    /** The set a `build-components` run builds, when its start named one (#2087). */
+    readonly def?: string } | null;
   /** The last write the main thread declined because a run of the same operation was already going
    *  (#1957), `null` until one is. `n` counts them, so the drawer can tell a second refusal from the first
    *  when the words are the same. A refusal is not a verdict: it settles no run and fills no verdict slot.
@@ -254,6 +263,8 @@ export interface HostSession {
   /** #3129 Q833 A: the file's add queue, as the host last read it (`file-sets`, `file-due`, or a queue write's answer),
    *  or as the panel last wrote it while that write's answer is out. `null` until the host has said (and on the web). */
   readonly addQueue: readonly string[] | null;
+  /** #2956: the last "Turn off updates" / "Turn updates back on" the host could not write, and why; null otherwise. */
+  readonly updatesOffError: { readonly def: string; readonly off: boolean; readonly error: string } | null;
   /** #2909 Q2909.8 A: the background hand-edit pass after load, each set's answer as it lands, and whether it is out
    *  (`running`, set by the panel as it asks), `done`, or not asked yet (`idle`). */
   readonly handEdits: ReadonlyMap<string, { readonly members: number; readonly edited: number }>;
@@ -281,6 +292,7 @@ export const initialHostSession = (): HostSession => ({
   componentUpdate: null,
   componentLatest: null,
   specsState: null,
+  overrideState: null,
   fileSetupState: null,
   styleGuideState: null,
   componentProgress: null,
@@ -305,6 +317,7 @@ export const initialHostSession = (): HostSession => ({
   liveDue: null,
   panelsClean: { busy: false, count: null, verdict: null },
   addQueue: null,
+  updatesOffError: null,
   handEdits: new Map(),
   handPass: 'idle',
   updateCheck: null,
@@ -324,6 +337,7 @@ const unpend = (op: OpKey, s: HostSession): Partial<HostSession> => {
     case 'readback': return {};
     // A refusal names the build's guard, never Specs; a declined Draw specs gets its result in `refused` itself.
     case 'specs': return {};
+    case 'override': return {};
   }
 };
 
@@ -362,7 +376,8 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     case 'agent-started': {
       const op = AGENT_OP[m.cmd];
       // A confirmed update (#2265 PR 2) keeps its own name, so the drawer can say it is updating, not checking.
-      return op ? { ...s, agentRun: { id: m.id, op, cmd: m.confirmed ? `${m.cmd}:confirmed` : m.cmd, settled: false, progress: null } } : s;
+      const def = m.cmd === 'build-components' && m.def ? { def: m.def } : {};
+      return op ? { ...s, agentRun: { id: m.id, op, cmd: m.confirmed ? `${m.cmd}:confirmed` : m.cmd, settled: false, progress: null, ...def } } : s;
     }
     case 'agent-progress': {
       const r = s.agentRun;
@@ -380,11 +395,14 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       // Draw specs, declined: it gets no verdict, so the host's words are its result.
       const specs = op === 'components' && !m.agent && s.specsState === 'pending' ? { specsState: { ok: false, headline: '✗ not drawn', summary: m.message } } : {};
       const next = { ...s, ...specs, refused: { op, message: m.message, agent: m.agent, n: (s.refused?.n ?? 0) + 1 } };
-      // The panel's own request, declined behind an agent's run: it posted, set `pending`, and will get no
-      // verdict. A panel request declined behind the panel's own run leaves `pending` to that run's verdict.
-      // An agent's Draw specs holds the build's guard, so it declines the panel's components request too.
-      const holds = s.agentRun?.op === 'specs' ? 'components' : s.agentRun?.op;
-      if (m.agent || holds !== op) return next;
+      // The panel's own request, declined: it posted, set `pending`, and will get no verdict. Only a panel request
+      // declined behind the panel's own run OF THE SAME operation leaves `pending` to that run's verdict, which fills
+      // the same slot. Since #3697 R7 one write holds the whole file, so a request is also declined behind a
+      // different operation (`held`), the panel's or an agent's, and that run's verdict never fills this slot.
+      // An agent's Draw specs runs as the build, and its confirmed set-override as Theme (#3394).
+      const agentHolds = s.agentRun?.op === 'specs' ? 'components' : s.agentRun?.op === 'override' ? 'apply' : s.agentRun?.op;
+      const heldOp = AGENT_OP[m.held ?? m.cmd];
+      if (m.agent || (heldOp === op && agentHolds !== op)) return next;
       return { ...next, ...unpend(op, s) };
     }
     case 'restore-input-error':
@@ -399,9 +417,13 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     case 'component-result': {
       // The progress clears with the verdict, so a next build's first render cannot show this run's fraction.
       // S8.2 (G9): the verdict that answers the panel's own pending build is recorded against the set it posted.
+      // #2087: an agent's build, still running before this verdict (`prev`: `settleAgent` has just settled it), is
+      // recorded against the set its start named.
       const own = s.componentState === 'pending' && s.componentDef !== null;
+      const agentDef = prev.agentRun && !prev.agentRun.settled ? prev.agentRun.def : undefined;
+      const set = own ? s.componentDef : agentDef ?? null;
       const result: SetBuild = m.ok ? 'ok' : m.completed ? 'issues' : 'failed';
-      const setBuilds = own ? new Map([...s.setBuilds, [s.componentDef as string, result]]) : s.setBuilds;
+      const setBuilds = set !== null ? new Map([...s.setBuilds, [set, result]]) : s.setBuilds;
       return { ...s, componentState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines, causes: m.causes }, openDetail: m.ok ? null : 'components', componentProgress: null, componentDef: null, setBuilds, componentLatest: 'build' };
     }
     case 'component-update-result':
@@ -410,6 +432,10 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
         return { ...s, specsState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines, causes: m.causes } };
       // The build's slot, its progress and its set record are left alone: a check is not a build.
       return { ...s, componentUpdate: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines, publish: m.publish, causes: m.causes }, componentLatest: 'update' };
+    case 'override-result':
+      // A preview writes nothing and is not an Activity run (#3394): it settles the agent's run and fills no slot.
+      if (m.preview) return s;
+      return { ...s, overrideState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines } };
     case 'file-setup-result':
       return { ...s, fileSetupState: { ok: m.ok, headline: m.headline, summary: m.summary }, openDetail: m.ok ? null : 'filesetup' };
     case 'style-guide-result': {
@@ -455,7 +481,7 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       if (m.applied) return { ...s, pruneBusy: false, pruneVerdict: { ok: m.ok, applied: true, count: m.count, summary: m.summary }, prunePreview: null };
       // An agent's preview: a pill, never the dialog, whose Confirm would prune against this panel's knobs.
       if (m.count > 0 && m.pillOnly) return { ...s, pruneBusy: false, prunePreview: null, pruneVerdict: { ok: m.ok, applied: false, count: m.count, summary: `Agent preview: ${m.summary}` } };
-      if (m.count > 0) return { ...s, pruneBusy: false, prunePreview: { count: m.count, summary: m.summary }, pruneVerdict: null };
+      if (m.count > 0) return { ...s, pruneBusy: false, prunePreview: { count: m.count, summary: m.summary, previewHash: m.previewHash ?? '' }, pruneVerdict: null };
       return { ...s, pruneBusy: false, prunePreview: null, pruneVerdict: { ok: m.ok, applied: false, count: 0, summary: m.summary } };
     case 'doc-settings':
       return { ...s, docSettings: { panels: m.panels, cover: m.cover, styleGuide: m.styleGuide, error: m.error } };
@@ -473,6 +499,9 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     case 'add-queue':
       // #3129: the queue after the panel's write, the teammates' writes since included.
       return { ...s, addQueue: m.queued };
+    case 'updates-off':
+      // #2956: the panel asks the file again on every answer (`main.ts`); a refusal is kept to say so in Update file.
+      return { ...s, updatesOffError: m.error ? { def: m.def, off: m.off, error: m.error } : null };
     case 'panels-clean-result':
       // #3137 Q3137.7 A: a count, or a removal's outcome with the count after it.
       return { ...s, panelsClean: { busy: false, count: m.error && !m.applied ? s.panelsClean.count : { drawn: m.drawn, removable: m.removable },
@@ -542,6 +571,7 @@ export const topicsFor = (m: HostMessage, prev: HostSession, next: HostSession):
     // The drawer's row, and the Build control, which an agent's check held busy until its verdict.
     case 'component-update-result': return ['host', 'host:components'];
     case 'file-setup-result': return ['host', 'host:detail', 'host:filesetup'];
+    case 'override-result': return ['host'];
     case 'style-guide-result': return ['host', 'host:detail', 'host:styleguide'];
     case 'component-progress': return next === prev ? [] : ['host:progress'];
     case 'style-guide-progress': return next === prev ? [] : ['host:progress'];
@@ -557,6 +587,7 @@ export const topicsFor = (m: HostMessage, prev: HostSession, next: HostSession):
     case 'file-sets': return ['host:update', 'host:components'];
     case 'file-due': return next === prev ? [] : JSON.stringify(next.addQueue) === JSON.stringify(prev.addQueue) ? ['host:update'] : ['host:update', 'host:components'];
     case 'add-queue': return ['host:update', 'host:components'];
+    case 'updates-off': return ['host:update', 'host:components'];
     // #3137: Clean up's panels item, and Documentation's off line, which names how many are drawn.
     case 'panels-clean-result': return ['host:update', 'host:docs'];
     // Q2909.8 A: the statuses fill in on Components' list and in the checklist as each set's answer lands.

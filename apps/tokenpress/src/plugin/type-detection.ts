@@ -163,6 +163,42 @@ export class TokenTypeDetector {
     return this.hasFontSegment(variableName, 'weight');
   }
 
+  /**
+   * Determines if a variable is a font line-height or letter-spacing MULTIPLIER, by its path. Matches a
+   * `font` segment followed by `line-height` / `letter-spacing` or a `line-height-…` / `letter-spacing-…`
+   * compound (`font/line-height/105`, `font/letter-spacing-role/tight`). The exporter applies it only to an
+   * UNSCOPED variable (`scopes: []`) whose value passes `isFontSpacingMultiplierValue`, typing it as a unitless
+   * `number` instead of the bare-number breakpoint or `neg-` dimension rules (prism3 #2423). The path alone does
+   * not say multiplier: on Figma's default ALL_SCOPES, or unscoped to hide it, the same name often holds pixels.
+   *
+   * @param variableName Name of the variable to check
+   * @returns True if the path names a line-height or letter-spacing multiplier
+   */
+  isFontSpacingMultiplierVariable(variableName: string): boolean {
+    return this.hasFontSegment(variableName, 'line-height') || this.hasFontSegment(variableName, 'letter-spacing');
+  }
+
+  /**
+   * Whether a value is in a line-height or letter-spacing MULTIPLIER's range, so an unscoped px primitive at the
+   * same path (`font/line-height/24` = 24, `font/letter-spacing/neg-1` = -1) is not read as one. A line height
+   * multiplier is above 0 and at most 4 (no px line height is that small); a letter spacing multiplier is at
+   * most 0.25 either way (0.25 × the font size is already extreme tracking). prism3's ladders run 1.05–1.75 and
+   * -0.04–0.05 (#2423). The exporter passes the value its alias chain resolves to.
+   *
+   * @param variableName Name of the variable, which says line height or letter spacing
+   * @param value The variable's resolved value
+   * @returns True if the value can be a multiplier of the font size
+   */
+  isFontSpacingMultiplierValue(variableName: string, value: unknown): boolean {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return false;
+    }
+    if (this.hasFontSegment(variableName, 'line-height')) {
+      return value > 0 && value <= 4;
+    }
+    return Math.abs(value) <= 0.25;
+  }
+
   // A `font` segment followed by `<word>` (or `<word>-…` / `<word>_…`), or one `font<sep><word>` segment.
   // Whole segments only, so `fontweightless` or `iconfont/weight` do not match.
   private hasFontSegment(variableName: string, word: string): boolean {

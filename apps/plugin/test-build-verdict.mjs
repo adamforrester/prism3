@@ -825,6 +825,14 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   });
   // #3129 Q3129.10 A: the queue is the file's, so one set queued (Button) is what the sets step builds.
   await openUpdate(page, { present: [], setUp: false, queued: ['button'] });
+  // #3712 (Q-UD3 A, 2026-11-14): Components opens by itself only for a blocked or due set, so with To add alone it is
+  // folded, its chip "1 to add" (Q-UD2 A, approved as written); its chevron opens it for the reads below.
+  // MUTATION: `compsOpensOf` back to always-open → `#3712 Q-UD3 A: To add alone`, by name.
+  const foldTo = await page.evaluate(() => ({ open: document.querySelector('[data-p3="update-components-fold"]')?.getAttribute('aria-expanded') ?? null,
+    chip: document.querySelector('[data-p3="update-components-chip"]')?.textContent ?? null }));
+  ok(foldTo.open === 'false' && foldTo.chip === '1 to add', `#3712 Q-UD3 A: To add alone: on a file not set up, Components holding To add alone stays folded, its chip "1 to add" — read ${JSON.stringify(foldTo)}`);
+  await hooks.click(page.locator('[data-p3="update-components-fold"]'));
+  await hooks.need(page, '[data-p3="update-add-row"]');
   const first = await page.evaluate(() => ({
     setup: document.querySelector('[data-p3="update-check-setup"]')?.getAttribute('aria-checked') ?? null,
     theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,
@@ -1942,7 +1950,7 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
   const toExport = async (page, artifact) => {
     await hooks.click(page.locator('[data-p3="rail-export"]'), { timeout: 4000 }).catch(() => {});
     await hooks.need(page, '[data-p3="export-page"]', { timeout: 4000 }).catch(() => {});
-    // Anchored: the import slot reads "↑ Brand brief…" too, and a loose match is refused as ambiguous.
+    // Anchored (callers pass `/^…$/`), so the match is the artifact's own button and no other that merely contains its name.
     await hooks.click(page.locator('[data-p3="export-page"] button', { hasText: artifact }), { timeout: 4000 }).catch(() => {});
     return page.evaluate(() => ({
       off: document.querySelector('[data-p3="export-page"] [data-p3="dialog-confirm"]')?.disabled ?? null,
@@ -2489,7 +2497,7 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
 // the iframe refuses it, selects the text and says so.
 {
   const { page, errors } = await openPanel();
-  const publish = 'Before Prism3 updated tag. Engine 0.237.0. Token contract 14.7.0.\nNo breaking changes.';
+  const publish = 'Prism3 updated tag. Engine 0.237.0. Token contract 14.7.0.\nNo breaking changes.';
   await post(page, { type: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 'tag: 3 updated in place.', lines: ['tag: 3 updated in place.'], publish });
   await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-head"]'), null, { timeout: 5000 }).catch(() => {});
   // An ok result with no run before it leaves the drawer closed: open it, then the row.
@@ -2528,5 +2536,12 @@ console.log(`\n${failed === 0 ? '✅' : '❌'} ${executed - failed} of ${execute
 if (failed) {
   console.error(`\n${failed} failing:`);
   for (const f of failures) console.error(`  · ${f}`);
+}
+// #1066 M23: the count above was printed and read by nothing, so a neutered `ok()` read "0 of 0 assertions pass" at exit
+// 0. An authored floor, the suite's count when it was written: lower it only in the PR that shrinks the suite, saying why.
+const MIN_ASSERTIONS = 425;
+if (executed < MIN_ASSERTIONS) {
+  console.error(`\n❌ only ${executed} assertions ran, below this suite's floor of ${MIN_ASSERTIONS} — the suite shrank or collapsed (#1066)`);
+  process.exit(1);
 }
 process.exit(failed === 0 ? 0 : 1);

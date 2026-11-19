@@ -4,9 +4,10 @@
  * component whose whole job is to bind the semantic `veil.*` roles into a component surface.
  *
  * No KB brief: the catalogue has no veil or scrim brief, and nothing below cites one. Category
- * `foundations` — a media surface beside `image-placeholder`, whose brief (`image.md`) is Foundations.
- * Not `overlay`: in the KB that category is the floating layers (dialog, popover, tooltip), and a veil is
- * a wash inside the layout, not a layer above it.
+ * `overlay` — the owner's choice (#4045 A, 2026-11-18), out of `foundations` to match the Figma file, which
+ * places Veil under Components. It was `foundations`, a media surface beside `image-placeholder`; the KB's
+ * `overlay` is otherwise the floating layers (dialog, popover, tooltip), and a veil is still a wash over
+ * media inside the layout, not a layer above the page.
  *
  * ── WHAT IT IS, AND THE ONE THING IT IS NOT ─────────────────────────────────────────────────────
  *
@@ -93,8 +94,9 @@ export const veil: ComponentDef = {
   id: 'veil',
   name: 'Veil',
   aliases: ['wash', 'photo-wash', 'image-overlay', 'image-scrim', 'media-wash', 'photo-overlay'],
-  // `foundations` (#1700) — no brief, so a stated choice; the header gives the reason.
-  category: 'foundations',
+  // `overlay` (#1700, #4045 A) — no brief, so a stated choice: the owner's, out of `foundations` to match the
+  // Figma file, which places Veil under Components. `test.ts` holds it against the decision's literal.
+  category: 'overlay',
   status: 'draft',
   summary: 'Wash over media so text stays legible, solid or fading from one edge. Verify contrast.',
   description:
@@ -230,7 +232,7 @@ export const veil: ComponentDef = {
   },
 
   accessibility: {
-    role: 'none — a presentational overlay. The veil conveys no information of its own; it is a wash behind text, so it is aria-hidden and the text on top carries the accessible content.',
+    role: 'none — a presentational overlay. The veil conveys no information of its own; it is a wash behind text, so it is `aria-hidden` and the text on top carries the accessible content.',
     wcag: [
       '1.4.3 Contrast (Minimum) — the veil exists to help text on an image clear 4.5:1 (or 3:1 for large text), but it cannot guarantee it: the result depends on the photo, so the contrast is verified against the real image, not assumed from the wash',
       '1.4.11 Non-text Contrast — where content on the veil is itself a UI boundary, the same per-image verification applies',

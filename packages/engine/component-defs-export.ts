@@ -48,8 +48,10 @@ import { brandTheme, weightAvailability } from './theme';
 import type { BrandInput, Theme } from './theme';
 import { at, buildTree, pxOf } from './tree';
 import { CONTRACT_VERSION, ENGINE_VERSION } from './version';
+import { localeFreeCompare } from './locale-free-order';
 
-export const COMPONENT_DEFS_FORMAT = 'prism3-component-defs/1.2';
+// 1.5 (#576): `settings.button.borderWeight`, the outline button's border weight.
+export const COMPONENT_DEFS_FORMAT = 'prism3-component-defs/1.5';
 /** The Specs schema version the projection is written against, and checked against (`packages/tokens/check-specs.mjs`). */
 export const SPECS_SCHEMA_VERSION = '0.39.0';
 
@@ -104,6 +106,7 @@ const leversOf = (input: BrandInput | null): Levers => {
         minWidthMultiplier: input?.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
         labelWeight: input?.buttonLabelWeight ?? DEFAULT_BUTTON_LAYOUT.labelWeight,
         textHover: input?.buttonTextHover ?? DEFAULT_BUTTON_LAYOUT.textHover,
+        borderWeight: input?.buttonBorderWeight ?? DEFAULT_BUTTON_LAYOUT.borderWeight,
       },
       radioDot: input?.radioDot ?? RADIO_DOT_DEFAULT,
       raisedSurface: input?.raisedSurface ?? 'card',
@@ -116,7 +119,7 @@ export const brandMaterializer = (input: BrandInput | null): ((def: ComponentDef
   const { settings: s, sizes } = leversOf(input);
   const px = sizeRefPx(sizes);
   return (def) => applyMinWidthRatio(applyButtonLayout(
-    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyCurrentIndicator(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, s.controlShape), fieldStyleFor(def.id, input)), s.tagStyle), s.dialogTitleSize), s.bannerStyle), s.currentIndicator), s.weightAvailability), s.outlineInteraction), s.density),
+    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyCurrentIndicator(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, s.controlShape), fieldStyleFor(def, input)), s.tagStyle), s.dialogTitleSize), s.bannerStyle), s.currentIndicator), s.weightAvailability), s.outlineInteraction), s.density),
     s.button, px), px);
 };
 
@@ -133,6 +136,9 @@ export type ComponentDefsExport = {
   format: typeof COMPONENT_DEFS_FORMAT;
   generated: true;
   engineVersion: string;
+  /** #3698 R1 (format 1.3): the build identity, `<engineVersion>+pending.<n>`, on an export written live (the MCP, the
+   *  CLI) between folds. Absent from the committed brand-neutral export and from a folded build. */
+  build?: string;
   contractVersion: string;
   note: string;
   /** `null` in the brand-neutral export. */
@@ -157,7 +163,7 @@ const NOTE_BRAND =
   'resolves, and each `spec` is built with them, so its token names are the ones this brand binds. A spacing or ' +
   'size token carries its px in the brand\'s default mode. Generated, never edited: change the definition or the brand.';
 
-export const exportComponentDefs = (defs: readonly ComponentDef[], opts: { brand?: BrandInput } = {}): ComponentDefsExport => {
+export const exportComponentDefs = (defs: readonly ComponentDef[], opts: { brand?: BrandInput; build?: string } = {}): ComponentDefsExport => {
   const input = opts.brand ?? null;
   let brand: ComponentDefsExport['brand'] = null;
   let materialize: (def: ComponentDef) => ComponentDef = specMaterialize;
@@ -180,6 +186,8 @@ export const exportComponentDefs = (defs: readonly ComponentDef[], opts: { brand
     format: COMPONENT_DEFS_FORMAT,
     generated: true,
     engineVersion: ENGINE_VERSION,
+    // #3698 R1: only when the caller has one and it says more than the version (see `build-identity.ts`).
+    ...(opts.build && opts.build !== ENGINE_VERSION ? { build: opts.build } : {}),
     contractVersion: CONTRACT_VERSION,
     note: input ? NOTE_BRAND : NOTE_NEUTRAL,
     brand,
@@ -211,13 +219,16 @@ export const exportComponentDefs = (defs: readonly ComponentDef[], opts: { brand
 //   padding*/gap/height/width/min*/max* → styles.padding (Sides) / itemSpacing / height / width / minHeight /
 //                                         minWidth / maxWidth; a token → TokenReference {$token, $type: dimension},
 //                                         a literal or derived px → a number
+//   radius* / strokeWidth* (#3506)      → styles.cornerRadius / strokeWeight: a scalar when uniform, a Corners /
+//                                         Sides object (logical directions) when they differ
 //   textStyle                           → styles.typography TokenReference {$type: typography}
 //   fill / stroke / ink / icon          → backgroundColor / strokes / textColor / fillColor, TokenReference {$type: color}
 //                                         (`icon` sits on its part's element, usually an `instance`: Specs
 //                                         describes fillColor as glyph-only, in prose, not as a constraint)
 //   per-brand px                        → TokenReference.$extensions["com.prism3"].px
 //
-//   OMITTED (kept in the Prism3 export): accessibility, content, docs, ai (incl. avoidWhen), motion, composition
+//   OMITTED (kept in the Prism3 export): accessibility, content, docs, ai (incl. avoidWhen), motion (the def's prose and
+//   the spec's `motion` bindings, #3506: Specs has no motion key), the spec's `focusRing` (#3506), composition
 //   (relationships), aliases/category/status/summary/description, axis kinds beyond the prop extension, nesting rules
 //   (follows/exposes/when/where), Figma component properties, rowGap, buildWidth/buildHeight, computed values,
 //   gradients, the provider `literal` record, brand settings. Specs `metadata` is omitted: it requires a Figma
@@ -236,19 +247,28 @@ const dimension = (v: SpecValue, root: string | null): unknown =>
   'token' in v ? tokenRef(v.token, 'dimension', root, v.px) : 'px' in v ? v.px : undefined;
 
 const SIDE: Record<string, string> = { paddingTop: 'top', paddingRight: 'end', paddingBottom: 'bottom', paddingLeft: 'start' };
-const SCALAR: Record<string, string> = { gap: 'itemSpacing', height: 'height', minHeight: 'minHeight', width: 'width', minWidth: 'minWidth', maxWidth: 'maxWidth' };
+const SCALAR: Record<string, string> = { gap: 'itemSpacing', height: 'height', minHeight: 'minHeight', width: 'width', minWidth: 'minWidth', maxWidth: 'maxWidth', radius: 'cornerRadius', strokeWidth: 'strokeWeight' };
+// #3506: a corner or stroke side that differs from the others → Specs' `Corners` / `Sides` object, logical directions.
+const CORNER: Record<string, string> = { radiusTopLeft: 'topStart', radiusTopRight: 'topEnd', radiusBottomRight: 'bottomEnd', radiusBottomLeft: 'bottomStart' };
+const STROKE_SIDE: Record<string, string> = { strokeWidthTop: 'top', strokeWidthRight: 'end', strokeWidthBottom: 'bottom', strokeWidthLeft: 'start' };
 
 const geometryStyles = (values: Partial<Record<string, SpecValue>>, root: string | null): Json => {
   const out: Json = {};
   const padding: Json = {};
+  const corners: Json = {};
+  const strokeSides: Json = {};
   for (const [k, v] of Object.entries(values)) {
     if (!v) continue;
     const val = dimension(v, root);
     if (val === undefined) continue;                     // a computed value has no number and no token: omitted
     if (SIDE[k]) padding[SIDE[k]] = val;
+    else if (CORNER[k]) corners[CORNER[k]] = val;
+    else if (STROKE_SIDE[k]) strokeSides[STROKE_SIDE[k]] = val;
     else if (SCALAR[k]) out[SCALAR[k]] = val;
   }
   if (Object.keys(padding).length) out.padding = padding;
+  if (Object.keys(corners).length) out.cornerRadius = corners;
+  if (Object.keys(strokeSides).length) out.strokeWeight = strokeSides;
   return out;
 };
 
@@ -310,7 +330,7 @@ export const toSpecsComponent = (entry: ComponentDefEntry, root: string | null):
     if (!Object.keys(styles).length) return;
     // One variant per coordinate, whatever key order the row wrote it in: redline and color rows can name the same
     // coordinate as `{tone, width}` and `{width, tone}`, and keying on the raw object made two variants of it.
-    const coord: SpecWhere = Object.fromEntries(Object.entries(where).sort(([a], [b]) => axisRank(a) - axisRank(b) || a.localeCompare(b)));
+    const coord: SpecWhere = Object.fromEntries(Object.entries(where).sort(([a], [b]) => axisRank(a) - axisRank(b) || localeFreeCompare(a, b)));
     const id = isDefault(coord) ? '' : JSON.stringify(coord);
     if (!rows.has(id)) rows.set(id, { where: coord, elements: new Map() });
     const els = rows.get(id)!.elements;
@@ -343,8 +363,7 @@ export const toSpecsComponents = (doc: ComponentDefsExport): { components: Recor
   components: Object.fromEntries(Object.entries(doc.components).map(([id, e]) => [id, toSpecsComponent(e, doc.brand ? doc.brand.root : null)])),
 });
 
-/** The file names an export is written under: `component-defs.json` brand-neutral, `<brand>.component-defs.json` for a brand. */
-export const componentDefsFileNames = (brandId: string | null): { defs: string; specs: string } => {
-  const stem = brandId ? `${brandId}.component-defs` : 'component-defs';
-  return { defs: `${stem}.json`, specs: `${stem}.specs.json` };
-};
+// The file names an export is written under, and the two stems they use, live in `component-defs-names.ts`, a module
+// with no imports, so the web studio can list them before it loads the definitions (#3429). Re-exported here for this
+// module's own readers.
+export { COMPONENT_CONTRACTS_STEM, COMPONENT_DEFS_COMPAT_STEM, componentDefsFileNames } from './component-defs-names';

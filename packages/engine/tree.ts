@@ -13,13 +13,20 @@
  * sandbox bundle. `emit-dtcg.ts` re-exports `buildTree` for existing importers.
  */
 import { bandPhrase } from './figma-description';
-import { RGB, contrast, hex, hexToRgb, emittedAlpha } from './color';
+import { RGB, contrast, floorRatio, hex, hexToRgb, emittedAlpha } from './color';
 import { Step } from './ramp';
 import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, FacePin, ResolvedUnderline, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER, SPIN_ROLE, SWEEP_ROLE, BODY_XS_DESCRIPTION, gridGapLink } from './theme';
 import { SizeStep, ControlSizeStep, controlRadius, AAA_TARGET_PX } from './scale';
 import { resolveAllModes, ModeResult, OPACITY_STEPS } from './modes';
 import { orderedRoleKeys } from './color-order';
 import { ENGINE_VERSION } from './version';
+
+/** A value the caller has established is present (a key just walked, a list known non-empty); a named throw,
+ *  not a silent `undefined` (#1182, `noUncheckedIndexedAccess`). */
+const must = <T>(x: T | undefined, what: string): T => {
+  if (x === undefined) throw new Error(`tree: ${what} is missing`);
+  return x;
+};
 
 const WHITE: RGB = { r: 255, g: 255, b: 255 };
 const BLACK: RGB = { r: 0, g: 0, b: 0 };
@@ -65,7 +72,7 @@ const primitiveLeaf = (theme: Theme, paletteDesc: string, s: Step, isAnchor: boo
     // The band is glossed with what it holds and its real step range in THIS ramp (#1623 DT/T-8), so the
     // name is readable without a key: `Quarter-Tone band (light tints, steps 100–350)`.
     $description: `${paletteDesc} ${s.key} — ${bandPhrase(s.band, ramp.filter((x) => x.band === s.band).map((x) => x.key))}${role ? ` — ${role}` : ''}`,
-    $extensions: { prism3: { generated: true, source: 'oklch', oklch: { l: round(s.oklch.l), c: round(s.oklch.c), h: round(s.oklch.h, 2) }, hex: s.hex, band: s.band, anchor: isAnchor, contrastOnWhite: round(contrast(s.rgb, WHITE), 2), ...(hueSource ? { hueSource } : {}) } },
+    $extensions: { prism3: { generated: true, source: 'oklch', oklch: { l: round(s.oklch.l), c: round(s.oklch.c), h: round(s.oklch.h, 2) }, hex: s.hex, band: s.band, anchor: isAnchor, contrastOnWhite: floorRatio(contrast(s.rgb, WHITE)), ...(hueSource ? { hueSource } : {}) } },
   };
 };
 const baseLeaf = (theme: Theme, rgb: RGB, description: string, band: string): Token => ({
@@ -126,17 +133,23 @@ export const GLASS_BLUR_PX = 32;
 // $extensions.prism3.modes.dark carries the REDUCED dark shadow (lift-primary — the
 // surface ladder does dark elevation). Materializes as a Figma Effect Style (colour
 // + numerics bindable per layer; verified in the Figma round-trip research).
-const shadowLayerValue = (colorRgb: RGB, l: ShadowLayer, fmt: 'rgb' | 'hex') => ({
+// `inset: true` is DTCG's own shadow field for an inner shadow (#3603, owner decision A). Without it a
+// consumer reads the layer as a drop shadow: stock Style Dictionary wrote `--pds3-shadow-inset` with no
+// `inset` keyword, so `box-shadow: var(--pds3-shadow-inset)` drew outside the box. Every mode carries it,
+// because every mode's layers pass through here. Drop shadows omit the field (DTCG's default is false).
+const shadowLayerValue = (colorRgb: RGB, l: ShadowLayer, fmt: 'rgb' | 'hex', inset: boolean) => ({
   color: alphaColorValue(colorRgb, l.alpha, fmt),
   offsetX: `${l.offsetX}px`, offsetY: `${l.offsetY}px`, blur: `${l.blur}px`, spread: `${l.spread}px`,
+  ...(inset ? { inset: true } : {}),
 });
 const shadowLeaf = (theme: Theme, step: ShadowStep, description: string): Token => {
   const fmt = theme.colorFormat;
   const base = theme.shadow.colorRgb;
-  const lightVals = step.light.map((l) => shadowLayerValue(base, l, fmt));
+  const inset = step.name === 'inset';
+  const lightVals = step.light.map((l) => shadowLayerValue(base, l, fmt, inset));
   // dark shadow reduction only when the brand generates dark (docs/11 Pillar 1) — a light-only brand
   // carries no mode overrides on shadow either.
-  const darkVals = theme.modes.includes('dark') ? step.dark.map((l) => shadowLayerValue(base, l, fmt)) : undefined;
+  const darkVals = theme.modes.includes('dark') ? step.dark.map((l) => shadowLayerValue(base, l, fmt, inset)) : undefined;
   const modes: Record<string, unknown> = {};
   // WRAPPED IN `$value`, like every other mode entry — see #708. This shape is not cosmetic: it is the
   // one thing `emit-dtcg-overlay.ts` needs to recognize a mode entry at all. Shadow used to write the
@@ -152,7 +165,7 @@ const shadowLeaf = (theme: Theme, step: ShadowStep, description: string): Token 
   // shadowByMode → nothing emitted here.
   for (const [mode, sm] of Object.entries(theme.shadow.shadowByMode ?? {})) {
     const layers = sm.layers[step.name];
-    if (layers) modes[mode] = { $value: layers.map((l) => shadowLayerValue(sm.colorRgb, l, fmt)) };
+    if (layers) modes[mode] = { $value: layers.map((l) => shadowLayerValue(sm.colorRgb, l, fmt, inset)) };
   }
   return {
     $type: 'shadow',
@@ -186,9 +199,9 @@ const gradientLeaf = (g: ResolvedGradient, fmt: 'rgb' | 'hex'): Token => {
   const geom = g.kind === 'radial' ? { center: g.center, shape: g.shape } : { angle: g.angle };
   // #2422: each ink is judged on its OWN measured worst case. The old free-text note tested
   // min(white, black) < 4.5 and so said "neither clears" whenever either side failed — false for white
-  // at 5.36:1. Compared un-rounded (CR-01); the rounded ratios are for display.
+  // at 5.36:1. Compared un-rounded (CR-01); the floored ratios are for display.
   const clears = { white: g.worstOnWhite >= TEXT_ON_GRADIENT_FLOOR, black: g.worstOnBlack >= TEXT_ON_GRADIENT_FLOOR };
-  const wOnW = round(g.worstOnWhite, 2), wOnB = round(g.worstOnBlack, 2); // rounded for display/emit
+  const wOnW = floorRatio(g.worstOnWhite), wOnB = floorRatio(g.worstOnBlack); // floored for display/emit (#3759)
   return {
     $type: 'gradient',
     $value: g.stops.map((s) => ({ color: `{${s.aliasOf}}`, position: round3(s.position) })),
@@ -223,7 +236,7 @@ const dimAlias = (path: string, description: string, extra: Record<string, unkno
 // starter; the engine applies the same reassembly in `familyOf` for its own preview,
 // and in the Figma emit for the variable description).
 const fontFamilyLeaf = (stack: string[], variable: boolean, description: string): Token => ({
-  $type: 'fontFamily', $value: stack[0], $description: description,
+  $type: 'fontFamily', $value: must(stack[0], 'a font stack\'s first family'), $description: description,
   $extensions: { prism3: { generated: true, variable, fallbackStack: stack.slice(1), figma: { kind: 'style-part', field: 'fontFamily', scope: 'FONT_FAMILY' } } },
 });
 // `font.family.<category>` is a semantic alias onto a typeface primitive — the same shape as
@@ -402,7 +415,140 @@ const EASING_NOTE: Record<string, string> = {
 type Stats = {
   colorLeaves: number; dimLeaves: number; spaceTokens: number; radiusTokens: number; sizeSteps: number;
   fontSizes: number; fontWeights: number; typeComposites: number;
-  aliases: number; resolved: number; modeChecks: number; modePass: number; broken: { path: string; ref: string }[];
+  aliases: number; resolved: number; modeChecks: number; modePass: number; broken: AliasFault[];
+};
+
+/** #3555 Q-MD2 A: every token name a `$description` mentions is written as code, `background.secondary`, so a reader (the
+ *  sidecar copies these, and its schema promises every name is backticked and resolves) can tell a name from prose.
+ *  One pass over the finished tree, rather than a backtick at each of the ~60 sites that compose a description: a
+ *  dotted name that opens with a token family is quoted unless it already sits in backticks. Whether each quoted name
+ *  resolves is the sidecar gate's job (`test.ts`), read from the emitted tree, not from this pattern. */
+const PATH_FAMILIES = 'text|icon|background|foreground|border|interactive|disabled|field|scrim|veil|inverse|type|core|color|font|space|radius|size|motion|control|focus|blur|shadow|opacity|glass';
+const DESCRIPTION_PATH = new RegExp(`(?<![\\w.\`/-])((?:${PATH_FAMILIES})\\.[a-z0-9*][a-z0-9*-]*(?:\\.[a-z0-9*][a-z0-9*-]*)*)`, 'g');
+export const quotePaths = (s: string): string =>
+  s.split(/(`[^`]*`)/).map((seg, i) => (i % 2 ? seg : seg.replace(DESCRIPTION_PATH, '`$1`'))).join('');
+const quoteDescriptionPaths = (node: any): void => {
+  if (!node || typeof node !== 'object') return;
+  for (const [k, v] of Object.entries(node)) {
+    if (k === '$description' && typeof v === 'string') node[k] = quotePaths(v);
+    else if (k === 'modes' && v && typeof v === 'object') for (const m of Object.values<any>(v)) { if (m && typeof m.description === 'string') m.description = quotePaths(m.description); quoteDescriptionPaths(m); }
+    else quoteDescriptionPaths(v);
+  }
+};
+
+/**
+ * The most hops an alias chain may take from the aliasing leaf to a literal (#3698 finding 7b). `deref` stops at this
+ * many and reports the leaf missing, and `pxOf` / `numOf` turn missing into `0`, so a chain one hop longer would emit
+ * cleanly and then read as zero everywhere it is consumed. The validator refuses it instead. The corpus's deepest chain
+ * was 2 hops when this was set.
+ */
+export const ALIAS_MAX_HOPS = 10;
+
+/** Why an alias is refused: its target does not exist, its chain returns to a leaf it already passed, or its chain is
+ *  longer than {@link ALIAS_MAX_HOPS}. */
+export type AliasFault = { path: string; ref: string; reason: 'dangling' | 'cycle' | 'too-deep'; mode?: string; chain?: string[] };
+
+/**
+ * THE ALIAS VALIDATOR, over a built (or any) DTCG tree. Every `{ref}` the tree carries is collected (the leaf's
+ * `$value`, composite sub-values and array entries, each per-mode value, the fluid-typography ends), then:
+ *   · DANGLING  the ref names no token.
+ *   · CYCLE     following the chain (in the alias's own mode where a link has one, else the link's `$value`) reaches
+ *               a token already on it, the aliasing leaf included, so a self-alias is a cycle of one.
+ *   · TOO-DEEP  the chain takes more than {@link ALIAS_MAX_HOPS} hops to reach a literal.
+ * A chain that dangles part-way is not reported here: the dangling link is an alias of its own and is reported as one.
+ * Pure: no `node:` import, so the surfaces can run it.
+ */
+export const aliasFaults = (tree: any): { aliases: { path: string; ref: string; mode?: string }[]; faults: AliasFault[] } => {
+  const resolvePath = (path: string): boolean => {
+    let node: any = tree;
+    for (const seg of path.split('.')) { node = node?.[seg]; if (node === undefined) return false; }
+    return node && node.$type !== undefined;
+  };
+  const aliases: { path: string; ref: string; mode?: string }[] = [];
+  const walk = (node: any, path: string[]) => {
+    if (node && typeof node === 'object') {
+      if (node.$type !== undefined) {
+        const v = node.$value;
+        if (typeof v === 'string') {
+          const m = v.match(/^\{(.+)\}$/);
+          if (m?.[1] !== undefined) aliases.push({ path: path.join('.'), ref: m[1] });
+        } else if (v && typeof v === 'object' && !Array.isArray(v)) {
+          // composite token (e.g. transition): validate aliases in sub-values
+          for (const sv of Object.values(v)) if (typeof sv === 'string') {
+            const m = sv.match(/^\{(.+)\}$/);
+            if (m?.[1] !== undefined) aliases.push({ path: path.join('.'), ref: m[1] });
+          }
+        } else if (Array.isArray(v)) {
+          // composite-array token (gradient stops): validate aliases in each entry's
+          // sub-values (shadow layer arrays carry raw colours → no brace matches).
+          for (const item of v) if (item && typeof item === 'object') for (const sv of Object.values(item)) if (typeof sv === 'string') {
+            const m = sv.match(/^\{(.+)\}$/);
+            if (m?.[1] !== undefined) aliases.push({ path: path.join('.'), ref: m[1] });
+          }
+        }
+        // Per-mode value overrides: each $extensions.prism3.modes.<m> carries this mode's value —
+        // either a `$value` (the colour role layer: a string alias) or, for a COMPOSITE, the raw
+        // sub-value shape itself (shadow's modes.<m> is a layer ARRAY; a per-mode transition would be
+        // an object).
+        //
+        // Composite sub-values are walked here too (#301). They carry no aliases today, so this
+        // changes no count and no artifact — but the branch used to read ONLY a string `$value`,
+        // which meant an alias placed in a per-mode array was invisible to the gate while the
+        // light-mode half of the very same leaf was validated by the array branch above. A future
+        // composite tiering would have shipped dangling per-mode refs with the gate reporting clean:
+        // the #281 failure shape exactly. Found while running the #301 spike.
+        const pushRef = (v: unknown, mode?: string): void => {
+          if (typeof v !== 'string') return;
+          const m = v.match(/^\{(.+)\}$/);
+          if (m?.[1] !== undefined) aliases.push({ path: path.join('.'), ref: m[1], ...(mode ? { mode } : {}) });
+        };
+        const modeOv = node.$extensions?.prism3?.modes;
+        if (modeOv && typeof modeOv === 'object' && !Array.isArray(modeOv)) {
+          for (const [mode, mv] of Object.entries(modeOv)) {
+            const pushModeRef = (x: unknown): void => pushRef(x, mode);
+            if (Array.isArray(mv)) { for (const item of mv) if (item && typeof item === 'object') Object.values(item).forEach(pushModeRef); continue; }
+            const sv = (mv as any)?.$value;
+            pushModeRef(sv);
+            if (Array.isArray(sv)) { for (const item of sv) if (item && typeof item === 'object') Object.values(item).forEach(pushModeRef); }
+            else if (sv && typeof sv === 'object') Object.values(sv).forEach(pushModeRef);
+          }
+        }
+        // Fluid-typography refs (M-11): a fluid composite carries its mobile/desktop size
+        // aliases in $extensions.prism3.responsive.{min,max}.ref — validate them too, else a
+        // ladder edit ships a dangling {root.font.size.NN} while the alias gate reports clean.
+        const resp = node.$extensions?.prism3?.responsive;
+        if (resp?.fluid) for (const end of [resp.min, resp.max]) {
+          const sv = end?.ref;
+          if (typeof sv === 'string') { const m = sv.match(/^\{(.+)\}$/); if (m?.[1] !== undefined) aliases.push({ path: path.join('.'), ref: m[1] }); }
+        }
+        return;
+      }
+      for (const [k, v] of Object.entries(node)) if (!k.startsWith('$')) walk(v, [...path, k]);
+    }
+  };
+  for (const [k, v] of Object.entries(tree ?? {})) if (!k.startsWith('$')) walk(v, [k]);
+  const nodeAt = (path: string): any => path.split('.').reduce((n: any, s) => n?.[s], tree);
+  const refOf = (node: any, mode?: string): string | undefined => {
+    const v = (mode ? node?.$extensions?.prism3?.modes?.[mode]?.$value : undefined) ?? node?.$value;
+    const m = typeof v === 'string' ? /^\{(.+)\}$/.exec(v) : null;
+    return m ? m[1] : undefined;
+  };
+  const faults: AliasFault[] = [];
+  for (const a of aliases) {
+    if (!resolvePath(a.ref)) { faults.push({ ...a, reason: 'dangling' }); continue; }
+    if (a.ref === a.path) { faults.push({ ...a, reason: 'cycle', chain: [a.path, a.ref] }); continue; }
+    const chain = [a.path, a.ref];
+    let hops = 1;
+    let next = refOf(nodeAt(a.ref), a.mode);
+    while (next !== undefined) {
+      if (chain.includes(next)) { faults.push({ ...a, reason: 'cycle', chain: [...chain, next] }); break; }
+      chain.push(next);
+      if (++hops > ALIAS_MAX_HOPS) { faults.push({ ...a, reason: 'too-deep', chain }); break; }
+      if (!resolvePath(next)) break;
+      next = refOf(nodeAt(next), a.mode);
+    }
+  }
+  return { aliases, faults };
 };
 
 export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats: Stats } => {
@@ -471,8 +617,9 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   for (const m of modes) {
     for (const [key, r] of Object.entries(m.roles)) {
       if (!key.startsWith('glass.') || key === 'glass.surface') continue;
-      const [family, step] = r.path.slice(theme.namespace.length + 1).split('.');
+      const [family = '', stepOrNone] = r.path.slice(theme.namespace.length + 1).split('.');
       if (family === 'white-alpha' || family === 'black-alpha') continue;
+      const step = must(stepOrNone, `${key}'s alpha step (${r.path})`); // a glass role names `<family>-alpha.<step>`
       const node = (palette[family] ??= {});
       if (node[step]) continue;
       const source = family.replace(/-alpha$/, '').replace(/-(\d+)$/, '.$1');
@@ -508,7 +655,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const lightMode = byMode.get('light')!;
   const colorRoles: Record<string, any> = {};
   for (const roleKey of orderedRoleKeys(Object.keys(lightMode.roles))) {
-    const lr = lightMode.roles[roleKey];
+    const lr = must(lightMode.roles[roleKey], `light role '${roleKey}'`); // `roleKey` is one of its keys
     const modeOverrides: Record<string, any> = {};
     for (const m of OVERRIDE_MODES) {
       const rr = byMode.get(m)?.roles[roleKey];
@@ -523,8 +670,8 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
       // to keep only light's, so every dark and high-contrast overlay carried light-mode prose beside a
       // different value. Absent means "same as `$description`", which keeps the unchanged majority lean.
       modeOverrides[m] = rr.tint
-        ? { $value: tintValue(rr), tint: tintRefs(rr), contrast: round(rr.ratio, 2), against: rr.against, ...washFields(rr), ...(rr.min > 0 ? { min: rr.min } : {}), ...(rr.description !== lr.description ? { description: rr.description } : {}) }
-        : { $value: `{${rr.path}}`, aliasOf: rr.path, contrast: round(rr.ratio, 2), against: rr.against, ...washFields(rr), ...(rr.min > 0 ? { min: rr.min } : {}), ...(rr.description !== lr.description ? { description: rr.description } : {}) };
+        ? { $value: tintValue(rr), tint: tintRefs(rr), contrast: floorRatio(rr.ratio), against: rr.against, ...washFields(rr), ...(rr.min > 0 ? { min: rr.min } : {}), ...(rr.description !== lr.description ? { description: rr.description } : {}) }
+        : { $value: `{${rr.path}}`, aliasOf: rr.path, contrast: floorRatio(rr.ratio), against: rr.against, ...washFields(rr), ...(rr.min > 0 ? { min: rr.min } : {}), ...(rr.description !== lr.description ? { description: rr.description } : {}) };
     }
     if (lr.tint) {
       // A `solid-tint` SUBTLE FILL (#1614): the existing fill at an existing opacity step, translucent. There
@@ -537,28 +684,26 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
         $type: 'color', $value: tintValue(lr), $description: lr.description,
         $extensions: { prism3: {
           role: 'semantic', tint: tintRefs(lr),
-          contrast: round(lr.ratio, 2), against: lr.against, ...washFields(lr), ...(lr.min > 0 ? { min: lr.min } : {}),
+          contrast: floorRatio(lr.ratio), against: lr.against, ...washFields(lr), ...(lr.min > 0 ? { min: lr.min } : {}),
           modes: modeOverrides,
           figma: { collection: 'color', modes: ['light', ...OVERRIDE_MODES] },
         } },
       };
       const parts = roleKey.split('.');
       let node = colorRoles;
-      for (let i = 0; i < parts.length - 1; i++) node = (node[parts[i]] ??= {});
-      node[parts[parts.length - 1]] = leaf;
+      for (const [i, seg] of parts.entries()) if (i < parts.length - 1) node = (node[seg] ??= {}); else node[seg] = leaf;
       continue;
     }
     // Elevation is not a colour group — a component composes a foreground tier +
     // a shadow step (see docs/06). No parallel `elevation.*` tree is emitted.
     const leaf = aliasLeaf(lr.path, lr.description, {
-      contrast: round(lr.ratio, 2), against: lr.against, ...washFields(lr), ...(lr.min > 0 ? { min: lr.min } : {}),
+      contrast: floorRatio(lr.ratio), against: lr.against, ...washFields(lr), ...(lr.min > 0 ? { min: lr.min } : {}),
       modes: modeOverrides,
       figma: { collection: 'color', modes: ['light', ...OVERRIDE_MODES] },
     });
     const parts = roleKey.split('.'); // property-led, may nest (group / variant / state)
     let node = colorRoles;
-    for (let i = 0; i < parts.length - 1; i++) node = (node[parts[i]] ??= {});
-    node[parts[parts.length - 1]] = leaf;
+    for (const [i, seg] of parts.entries()) if (i < parts.length - 1) node = (node[seg] ??= {}); else node[seg] = leaf;
   }
 
   /**
@@ -794,10 +939,11 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const lineBoxFrom: Record<string, string> = {};
   for (const c of theme.typography.composites) {
     if (c.group !== 'body') continue;
-    const rung = c.path.split('.')[1]; // 'body.md.default' → 'md'
+    const rung = must(c.path.split('.')[1], `${c.path}'s rung`); // 'body.md.default' → 'md'
     const px = Math.round(c.sizePx * (lhRatio.get(c.lineHeight) ?? 1));
-    if (bodyLineBox[rung] !== undefined && bodyLineBox[rung] !== px)
-      throw new Error(`control.size.${rung}.line-box is ambiguous: ${lineBoxFrom[rung]} gives ${bodyLineBox[rung]}px but ${c.path} gives ${px}px. Every body composite at one rung must share a size and line height (#1220).`);
+    const had = bodyLineBox[rung];
+    if (had !== undefined && had !== px)
+      throw new Error(`control.size.${rung}.line-box is ambiguous: ${lineBoxFrom[rung]} gives ${had}px but ${c.path} gives ${px}px. Every body composite at one rung must share a size and line height (#1220).`);
     bodyLineBox[rung] = px;
     lineBoxFrom[rung] ??= c.path;
   }
@@ -818,10 +964,11 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     const from: Record<string, string> = {};
     for (const c of theme.typography.composites) {
       if (c.group !== group) continue;
-      const rung = c.path.split('.')[1]; // 'label.md.emphasis' → 'md'
+      const rung = must(c.path.split('.')[1], `${c.path}'s rung`); // 'label.md.emphasis' → 'md'
       const px = Math.round(c.sizePx * (lhRatio.get(c.lineHeight) ?? 1));
-      if (box[rung] !== undefined && box[rung] !== px)
-        throw new Error(`type.${group}.${rung}.line-box is ambiguous: ${from[rung]} gives ${box[rung]}px but ${c.path} gives ${px}px. Every ${group} composite at one rung must share a size and line height (#2586, as #1220).`);
+      const had = box[rung];
+      if (had !== undefined && had !== px)
+        throw new Error(`type.${group}.${rung}.line-box is ambiguous: ${from[rung]} gives ${had}px but ${c.path} gives ${px}px. Every ${group} composite at one rung must share a size and line height (#2586, as #1220).`);
       box[rung] = px;
       from[rung] ??= c.path;
     }
@@ -878,7 +1025,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     // dimension, and a mode that resized the body ramp would re-derive this from the same product.
     const lineBoxPx = bodyLineBox[c.name];
     const lineBox = lineBoxPx !== undefined
-      ? dimLeaf(lineBoxPx, `control.size.${c.name} line-box — ${lineBoxPx}px, the height of one line of the \`body.${c.name}\` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.`)
+      ? dimLeaf(lineBoxPx, `control.size.${c.name} line-box — ${lineBoxPx}px, the height of one line of the \`type.body.${c.name}\` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.`)
       : undefined;
     // #3153 (owner Q852, Q3153.1 A) — the OPTION ROW's label sits one body rung below its control's rung (a medium
     // row is a 20px box beside a 14px `body.sm` label), and the row's control cell is that label's own line box,
@@ -891,13 +1038,13 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     // `line-box`, one value per rung with NO per-mode override: a literal may not re-value by mode (#296), and the
     // Figma `control` collection is single-mode, so a `controlsByMode` brand (none in the corpus) keeps the default
     // mode's inset in a mode whose control is a different size. The code projection can compute it there.
+    // A rung with no body line box (no corpus brand, but a theme without that body rung) gets no `label-inset`.
     const rowLine = bodyLineBox[ROW_LABEL_RUNG[c.name] ?? ''];
-    const inset = (box: number) => Math.max(0, (box - rowLine) / 2);
     const rowInsets: Record<string, Token> = {};
     if (rowLine !== undefined) {
       const lr = ROW_LABEL_RUNG[c.name];
-      const li = inset(c.height);
-      rowInsets['label-inset'] = dimLeaf(li, `control.size.${c.name} label-inset — ${li}px, how far an option row's label starts below the top of its control cell: half of the ${c.height}px box less the ${rowLine}px \`body.${lr}\` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.`);
+      const li = Math.max(0, (c.height - rowLine) / 2);
+      rowInsets['label-inset'] = dimLeaf(li, `control.size.${c.name} label-inset — ${li}px, how far an option row's label starts below the top of its control cell: half of the ${c.height}px box less the ${rowLine}px \`type.body.${lr}\` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.`);
     }
     // #1015 — the corner, clamped to this rung's own edge (see `controlRadiusLeaf` above).
     const radiusPx = controlRadius(c.height, radiusSmPx);
@@ -1046,13 +1193,14 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // with it, which is the coupling #390's per-composite familyMap existed to work around.
   const family: Record<string, Token> = {};
   for (const f of ty.families) {
-    const slug = typefaceSlug(f.stack[0]);
-    const leaf = familySemanticAlias(`${root}.${CORE_TIER}.font.typeface.${slug}`, f.stack[0], `font family \u2014 ${f.group} \u2192 ${f.stack[0]}`);
+    const face = must(f.stack[0], `${f.group}'s first family`);
+    const slug = typefaceSlug(face);
+    const leaf = familySemanticAlias(`${root}.${CORE_TIER}.font.typeface.${slug}`, face, `font family \u2014 ${f.group} \u2192 ${face}`);
     const modeOverrides: Record<string, unknown> = {};
     for (const [mode, fams] of Object.entries(familiesByMode)) {
       const mf = fams.find((x) => x.group === f.group);
       if (!mf || stackKey(mf.stack) === stackKey(f.stack)) continue;   // same stack -> no diff -> no override
-      const mslug = typefaceSlug(mf.stack[0]);
+      const mslug = typefaceSlug(must(mf.stack[0], `${mf.group}'s first family in ${mode}`));
       modeOverrides[mode] = { $value: `{${root}.${CORE_TIER}.font.typeface.${mslug}}`, aliasOf: `${root}.${CORE_TIER}.font.typeface.${mslug}`, face: mf.stack[0] };
     }
     if (Object.keys(modeOverrides).length) leaf.$extensions.prism3.modes = modeOverrides;
@@ -1124,9 +1272,10 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     const leaf = rungRoleAlias(`${root}.${CORE_TIER}.font.line-height.${lineHeightStepKey(lh.value)}`, lh.value,
       `line-height role '${lh.key}' → ${lh.value}× — a relative-emphasis name a mode may re-point; the step itself never changes`);
     const modes: Record<string, any> = {};
-    for (const [m, byRole] of Object.entries(ty.lineHeightRoleByMode ?? {}))
-      if (byRole[lh.key] !== undefined)
-        modes[m] = { $value: `{${root}.${CORE_TIER}.font.line-height.${lineHeightStepKey(byRole[lh.key])}}` };
+    for (const [m, byRole] of Object.entries(ty.lineHeightRoleByMode ?? {})) {
+      const to = byRole[lh.key];
+      if (to !== undefined) modes[m] = { $value: `{${root}.${CORE_TIER}.font.line-height.${lineHeightStepKey(to)}}` };
+    }
     if (Object.keys(modes).length) (leaf.$extensions as any).prism3.modes = modes;
     lineHeightRole[lh.key] = leaf;
   }
@@ -1135,9 +1284,10 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     const leaf = rungRoleAlias(`${root}.${CORE_TIER}.font.letter-spacing.${letterSpacingStepKey(ls.em)}`, ls.em,
       `letter-spacing role '${ls.key}' → ${ls.em} × the font size — a relative-emphasis name a mode may re-point; the step itself never changes`);
     const modes: Record<string, any> = {};
-    for (const [m, byRole] of Object.entries(ty.letterSpacingRoleByMode ?? {}))
-      if (byRole[ls.key] !== undefined)
-        modes[m] = { $value: `{${root}.${CORE_TIER}.font.letter-spacing.${letterSpacingStepKey(byRole[ls.key])}}` };
+    for (const [m, byRole] of Object.entries(ty.letterSpacingRoleByMode ?? {})) {
+      const to = byRole[ls.key];
+      if (to !== undefined) modes[m] = { $value: `{${root}.${CORE_TIER}.font.letter-spacing.${letterSpacingStepKey(to)}}` };
+    }
     if (Object.keys(modes).length) (leaf.$extensions as any).prism3.modes = modes;
     letterSpacingRole[ls.key] = leaf;
   }
@@ -1154,33 +1304,32 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // primitive (title.xs and body.lg at 18px) — distinct by category/line-height/
   // weight, resolved via the composite, not the size. The shared ladder stays
   // single-source; font.size.* aliased_by then shows the overlap explicitly.
-  const faceOf: Record<string, string> = Object.fromEntries(ty.families.map((f) => [f.group, f.stack[0]]));
+  const faceOf: Record<string, string> = Object.fromEntries(ty.families.map((f) => [f.group, must(f.stack[0], `${f.group}'s first family`)]));
   const typeGroup: Record<string, any> = {};
   for (const c of ty.composites) {
-    const leaf = typographyLeaf(root, c, faceOf[c.group], ty.minViewport, ty.maxViewport, ty.underline);
+    const leaf = typographyLeaf(root, c, must(faceOf[c.group], `the '${c.group}' family`), ty.minViewport, ty.maxViewport, ty.underline);
     // Nest by the full composite path (group / size? / weight / link?).
     const parts = c.path.split('.');
     let node: Record<string, any> = typeGroup;
-    for (let i = 0; i < parts.length - 1; i++) node = (node[parts[i]] ??= {});
-    node[parts[parts.length - 1]] = leaf;
+    for (const [i, seg] of parts.entries()) if (i < parts.length - 1) node = (node[seg] ??= {}); else node[seg] = leaf;
   }
   // #2586 — the label's alignment box (see `labelLineBox` above), a dimension beside the composites it
   // measures, baked and mode-free like `control.size.*.line-box`.
   for (const [rung, px] of Object.entries(labelLineBox)) {
     if (!typeGroup.label?.[rung]) continue;
-    typeGroup.label[rung]['line-box'] = dimLeaf(px, `type.label.${rung} line-box — ${px}px, the height of one line of the \`label.${rung}\` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.`);
+    typeGroup.label[rung]['line-box'] = dimLeaf(px, `type.label.${rung} line-box — ${px}px, the height of one line of the \`type.label.${rung}\` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.`);
   }
   // #3475 — the caption twin: the small inline Badge's dot cell is one line of its `caption.md` label.
   for (const [rung, px] of Object.entries(captionLineBox)) {
     if (!typeGroup.caption?.[rung]) continue;
-    typeGroup.caption[rung]['line-box'] = dimLeaf(px, `type.caption.${rung} line-box — ${px}px, the height of one line of the \`caption.${rung}\` type (font size × line height). A mark beside a caption sits in a box this tall and centers within it, so it stays on the caption's first line when the caption wraps.`);
+    typeGroup.caption[rung]['line-box'] = dimLeaf(px, `type.caption.${rung} line-box — ${px}px, the height of one line of the \`type.caption.${rung}\` type (font size × line height). A mark beside a caption sits in a box this tall and centers within it, so it stays on the caption's first line when the caption wraps.`);
   }
   // #3153 — the body twin (owner Q852): an option row's control cell is its label's OWN line box, and the label is
   // body one rung below the control's (`ROW_LABEL_RUNG`), so the cell reads `type.body.{label rung}.line-box`
   // rather than the control rung's `control.size.*.line-box`. Same bake, same agreement check (`bodyLineBox`).
   for (const [rung, px] of Object.entries(bodyLineBox)) {
     if (!typeGroup.body?.[rung]) continue;
-    typeGroup.body[rung]['line-box'] = dimLeaf(px, `type.body.${rung} line-box — ${px}px, the height of one line of the \`body.${rung}\` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.`);
+    typeGroup.body[rung]['line-box'] = dimLeaf(px, `type.body.${rung} line-box — ${px}px, the height of one line of the \`type.body.${rung}\` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.`);
   }
 
   // ---- shadow / elevation axis (Phase A) ----
@@ -1256,75 +1405,8 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     },
   };
 
-  // ---- validate aliases + count ----
-  const resolvePath = (path: string): boolean => {
-    let node: any = tree;
-    for (const seg of path.split('.')) { node = node?.[seg]; if (node === undefined) return false; }
-    return node && node.$type !== undefined;
-  };
-  const aliases: { path: string; ref: string }[] = [];
-  const walk = (node: any, path: string[]) => {
-    if (node && typeof node === 'object') {
-      if (node.$type !== undefined) {
-        const v = node.$value;
-        if (typeof v === 'string') {
-          const m = v.match(/^\{(.+)\}$/);
-          if (m) aliases.push({ path: path.join('.'), ref: m[1] });
-        } else if (v && typeof v === 'object' && !Array.isArray(v)) {
-          // composite token (e.g. transition): validate aliases in sub-values
-          for (const sv of Object.values(v)) if (typeof sv === 'string') {
-            const m = sv.match(/^\{(.+)\}$/);
-            if (m) aliases.push({ path: path.join('.'), ref: m[1] });
-          }
-        } else if (Array.isArray(v)) {
-          // composite-array token (gradient stops): validate aliases in each entry's
-          // sub-values (shadow layer arrays carry raw colours → no brace matches).
-          for (const item of v) if (item && typeof item === 'object') for (const sv of Object.values(item)) if (typeof sv === 'string') {
-            const m = sv.match(/^\{(.+)\}$/);
-            if (m) aliases.push({ path: path.join('.'), ref: m[1] });
-          }
-        }
-        // Per-mode value overrides: each $extensions.prism3.modes.<m> carries this mode's value —
-        // either a `$value` (the colour role layer: a string alias) or, for a COMPOSITE, the raw
-        // sub-value shape itself (shadow's modes.<m> is a layer ARRAY; a per-mode transition would be
-        // an object).
-        //
-        // Composite sub-values are walked here too (#301). They carry no aliases today, so this
-        // changes no count and no artifact — but the branch used to read ONLY a string `$value`,
-        // which meant an alias placed in a per-mode array was invisible to the gate while the
-        // light-mode half of the very same leaf was validated by the array branch above. A future
-        // composite tiering would have shipped dangling per-mode refs with the gate reporting clean:
-        // the #281 failure shape exactly. Found while running the #301 spike.
-        const pushRef = (v: unknown): void => {
-          if (typeof v !== 'string') return;
-          const m = v.match(/^\{(.+)\}$/);
-          if (m) aliases.push({ path: path.join('.'), ref: m[1] });
-        };
-        const modeOv = node.$extensions?.prism3?.modes;
-        if (modeOv && typeof modeOv === 'object' && !Array.isArray(modeOv)) {
-          for (const mv of Object.values(modeOv)) {
-            if (Array.isArray(mv)) { for (const item of mv) if (item && typeof item === 'object') Object.values(item).forEach(pushRef); continue; }
-            const sv = (mv as any)?.$value;
-            pushRef(sv);
-            if (Array.isArray(sv)) { for (const item of sv) if (item && typeof item === 'object') Object.values(item).forEach(pushRef); }
-            else if (sv && typeof sv === 'object') Object.values(sv).forEach(pushRef);
-          }
-        }
-        // Fluid-typography refs (M-11): a fluid composite carries its mobile/desktop size
-        // aliases in $extensions.prism3.responsive.{min,max}.ref — validate them too, else a
-        // ladder edit ships a dangling {root.font.size.NN} while the alias gate reports clean.
-        const resp = node.$extensions?.prism3?.responsive;
-        if (resp?.fluid) for (const end of [resp.min, resp.max]) {
-          const sv = end?.ref;
-          if (typeof sv === 'string') { const m = sv.match(/^\{(.+)\}$/); if (m) aliases.push({ path: path.join('.'), ref: m[1] }); }
-        }
-        return;
-      }
-      for (const [k, v] of Object.entries(node)) if (!k.startsWith('$')) walk(v, [...path, k]);
-    }
-  };
-  walk(brand, [root]);
-  const broken = aliases.filter((a) => !resolvePath(a.ref));
+  // ---- validate aliases + count ---- (`aliasFaults`, #3698 finding 7b: dangling refs, cycles, chains past the readers' cap)
+  const { aliases, faults: broken } = aliasFaults({ [root]: brand });
 
   let modeChecks = 0, modePass = 0;
   for (const mr of modes) for (const r of Object.values(mr.roles)) if (r.min > 0) { modeChecks++; if (r.ratio >= r.min) modePass++; }
@@ -1346,6 +1428,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // 3 base swatches: white, black, and the alpha-0 `transparent` primitive (#1341).
   // `+ glassAlphaLeaves` — the brand glass roles' alpha steps (#3073), one per distinct color and alpha the modes read.
   const colorLeaves = 3 + theme.palettes.reduce((n, p) => n + p.steps.length, 0) + alphaLeaves + glassAlphaLeaves;
+  quoteDescriptionPaths(tree);
   return { tree, modes, stats: { colorLeaves, dimLeaves: theme.dims.grid.length, spaceTokens: theme.dims.space.length, radiusTokens: theme.dims.radius.length, sizeSteps: theme.dims.sizes.length, fontSizes: theme.typography.sizesPx.length, fontWeights: theme.typography.weightsRef.length, typeComposites: theme.typography.composites.length, aliases: aliases.length, resolved: aliases.length - broken.length, broken, modeChecks, modePass } };
 };
 
@@ -1358,7 +1441,7 @@ export const at = (tree: TreeNode, path: string): TreeNode => path.split('.').re
 export const deref = (tree: TreeNode, node: TreeNode): TreeNode => {
   let cur = node, guard = 0;
   while (cur && typeof cur.$value === 'string' && /^\{.+\}$/.test(cur.$value)) {
-    if (guard++ >= 10) return undefined; // cycle / runaway chain — report missing, not a mid-chain alias node (L-05)
+    if (guard++ >= ALIAS_MAX_HOPS) return undefined; // cycle / runaway chain — report missing, not a mid-chain alias node (L-05); `aliasFaults` refuses both at emit (#3698)
     cur = at(tree, cur.$value.slice(1, -1));
   }
   return cur;

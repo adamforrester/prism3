@@ -87,6 +87,8 @@ export const OP_TITLE: Readonly<Record<OpKey, string>> = {
   'apply': 'Theme', components: 'Build set', filesetup: 'Set up file', styleguide: 'Style guides', prune: 'Prune stale', readback: 'Read-back',
   // #2830 Q713 A: Documentation › Specs' Draw specs, a row of its own. DRAFT wording (Q685 A).
   specs: 'Specs',
+  // #3394 Q3394.7 A: the agent link's color overrides, their own row.
+  override: 'Color override',
 };
 /** #3326 PR 2 (Q3326.4 A): each row's title, Update file's run among them (the approved renders' words). */
 export const ROW_TITLE: Readonly<Record<RowKey, string>> = { ...OP_TITLE, update: 'Update file' };
@@ -406,11 +408,15 @@ export const mountActivity = (opts: { readonly lend: ActivityLend; readonly narr
   sheetHead.append(close, h('b', 'p3-drawer-title', 'Activity'), h('span', 'p3-spacer'), sheetCounts);
   body.append(sheetHead, linkDetail, rows, note);
   // #2069 (Q116 A): Report a problem, the drawer's last line, where the session's results are. DRAFT placement and words.
+  // The owner (2026-11-17): less prominent. A ghost icon button at the line's end (the drawer's bottom corner), not a
+  // full-width button: the glyph the web rail draws for it (#3524), named and titled by its words, as Close Activity is.
   if (opts.lend.report) {
     const report = opts.lend.report;
-    const rep = hook(h('button', 'p3-btn p3-btn-page p3-drawer-report'), 'activity-report');
+    const rep = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon p3-drawer-report'), 'activity-report');
     rep.type = 'button';
-    rep.textContent = REPORT_COPY.open;
+    rep.setAttribute('aria-label', REPORT_COPY.open);
+    rep.title = REPORT_COPY.open;
+    rep.append(glyph('report'));
     rep.onclick = () => report(rep);
     body.append(rep);
   }

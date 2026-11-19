@@ -49,17 +49,18 @@
  * `PACE_MS` test dropped) → `apply/paced`.
  */
 import { makeShim } from './component-shim';
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
+import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, componentDefs } from '@prism3/engine/components';
 import { SWAP_TARGET } from './src/build-deps';
 import type { Node } from './component-shim';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import type { BrandInput } from '@prism3/engine/theme';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
+import type { BrandInput } from '@prism3/engine';
 import { runApplyTheme, themePlans } from './src/apply-theme';
 import { FileShim } from './file-shim';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -423,5 +424,5 @@ ok(J(SETS.map((id) => membersOf(id).length)) === J([14, 50, 45]), `premise: the 
     'apply/agent: an agent\'s Apply Theme posts no reading');
 }
 
-console.log(failed ? `\n${failed} failed` : '\nall passed');
+console.log(`${failed ? `\n${failed} failed` : '\nall passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

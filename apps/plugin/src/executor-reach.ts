@@ -32,7 +32,7 @@
  * NOT A BUMP OF ITS OWN. Neither file is reached from `write-components.ts`, so `lint-executor-revision.ts` never asks
  * for a revision when only the record changes.
  */
-import { currentDefId } from '@prism3/engine/component-renames';
+import { currentDefId } from '@prism3/engine';
 import table from './executor-reach.json';
 
 /** A revision's entry: the def ids it redraws, or every set. */

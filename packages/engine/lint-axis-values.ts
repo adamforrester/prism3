@@ -577,7 +577,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['medium', 'small', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab-item', 'tabs', 'segmented-control-segment', 'segmented-control', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter', 'search-field', 'card-number-field', 'pagination-item', 'pagination', '_slider-thumb', 'slider', 'wallet-button', 'sign-in-button'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tag-group', 'tab-item', 'tabs', 'segmented-control-segment', 'segmented-control', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter', 'search-field', 'card-number-field', 'pagination-item', 'pagination', '_slider-thumb', 'slider', 'wallet-button', 'sign-in-button'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, led by `medium` (#2752, owner decision Q1 B, 2026-10-16). Canonical on weight of use: '
@@ -591,11 +591,11 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'size',
-    values: ['medium', 'small', 'large', 'xlarge'],
+    values: ['medium', 'small', 'large', 'x-large'],
     defs: ['code-input', 'code-input-cell'],
     relation: 'superset',
     reason:
-      'Code input\'s four cell sizes (#2428, owner decision Q330 A): the field ladder plus `xlarge`, the 68×72 display '
+      'Code input\'s four cell sizes (#2428, owner decision Q330 A): the field ladder plus `x-large`, the 68×72 display '
       + 'cell with a 40px character meant for four-character codes. Led by `medium`, the code default and so the set\'s '
       + 'first member (owner decisions Q347 and Q359), as every size ladder is (#2752, Q1 B); the code enum keeps the '
       + 'ladder\'s own order (`lint-rung-names.ts` DEFAULT_FIRST). The cell carries the same values, so it follows the '
@@ -708,14 +708,16 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'style',
     values: ['outline'],
-    defs: ['text-field', 'textarea', 'password-field', 'search-field', 'card-number-field'],
+    defs: ['text-field', 'textarea', 'password-field', 'search-field', 'card-number-field', 'select', 'code-input-cell'],
     relation: 'canonical',
     reason:
       'An axis of ONE, declared rather than dropped. Underline is a BRAND choice since #2695 (the Field style '
       + 'lever, applied to the def before projection), not a value here: a second value would be a per-instance '
       + 'code coordinate, which Q14 A rules out. The axis keeps filled a place to land without a later API break. '
       + 'The cost of an axis of one is real (`modifiers`, #845) and it is being paid deliberately here. '
-      + '`canonical` since Link (#2580) declared a second `style` set against it.',
+      + '`canonical` since Link (#2580) declared a second `style` set against it. Select joined with Q-CC3 A (#3554): '
+      + 'the Field style setting reaches its control, so it carries the same one-value axis. CodeInput.Cell joined '
+      + 'with Q193 A (#3554), for the same reason: `FIELD_FRAME_PARTS` reaches the cell.',
   },
   {
     axis: 'style',
@@ -842,7 +844,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'status',
     values: ['default', 'error'],
-    defs: ['checkbox-control', 'checkbox-row', 'checkbox-group', 'switch-control', 'switch-row', 'radio-control', 'radio-row', 'radio-group', 'code-input'],
+    defs: ['checkbox-control', 'checkbox-row', 'checkbox-group', 'switch-control', 'switch-row', 'radio-control', 'radio-row', 'radio-group', 'code-input', 'code-input-cell'],
     relation: 'subset',
     reason:
       'The choice controls\' validation outcome (owner Q354, #2751): every control that can be invalid takes the '
@@ -851,7 +853,8 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'field, which is what lets a group follow its `status` into its rows and its nested `field-message` by '
       + 'name. The canonical set became `canonical` (from `sole`) when this one joined. Code input (#2428, owner '
       + 'decision Q321.9 A) carries the same two: a one-time code is right or wrong, and a right code moves the user '
-      + 'on, so success is the page\'s to announce and warning has no case.',
+      + 'on, so success is the page\'s to announce and warning has no case. Its cell carries the same two since Q-CC1 A '
+      + '(#3554): error left the cell\'s state axis, and the field follows its `status` into its default cells by name.',
   },
   {
     axis: 'status',

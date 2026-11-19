@@ -14,7 +14,7 @@
  * the label promises independent of any one step: trailing zeros stripped, and a real minus sign.
  */
 import { emToPercentLabel } from './src/em-percent';
-import { LETTER_SPACING_LADDER } from '@prism3/engine/theme';
+import { LETTER_SPACING_LADDER } from '@prism3/engine';
 
 let failed = 0;
 let executed = 0;

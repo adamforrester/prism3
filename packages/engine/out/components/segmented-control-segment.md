@@ -11,7 +11,7 @@
 
 One option in a segmented control: a cell as tall as a button, holding the option label and an optional leading icon. A selected option shows a flat pill in the page surface color inside the cell, and its label is set in the emphasis weight. Every option keeps the width of its bold label, so selecting one never moves the others. At hover, an unselected option shows a light neutral wash on the track. SegmentedControl places the options and owns the selection.
 
-- **Purpose:** One option inside a segmented control.
+- **Purpose:** Offer one option inside a segmented control.
 - **Use when:** Only as a child of a SegmentedControl. Generate the SegmentedControl, which places its options and sets which one is selected.
 - **Avoid when:** Anywhere outside a segmented control: a single toggle is a switch or a select tag, and a lone action is a button.
 
@@ -44,6 +44,8 @@ Shown on the default member: selection `unselected`, size `medium`.
 
 Use inside SegmentedControl only. An option names one value; selecting it changes the current view or the form value in place.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Give every option in a control the same kind of content: all labels, or all labels with icons
@@ -74,9 +76,9 @@ Use inside SegmentedControl only. An option names one value; selecting it change
 
 ### Motion
 
-- **Enter:** None. On selection the pill moves to this option, or cross-fades, over a short duration.
+- **Enter:** None. On selection the pill travels to this option on motion.transition.default, or cross-fades.
 - **Exit:** None.
-- **Reduced motion:** The indicator moves at once; only the color change remains.
+- **Reduced motion:** The indicator moves at once; only the color change remains, fading on motion.duration-reduced.fast.
 
 ## Content guidelines
 
@@ -133,6 +135,7 @@ Keyed by `size`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | `space.050` | — | `size.md.height` | — | — | build width 120px (literal) |
+| `container/indicator` | — | — | — | — | — | radius `radius.sm` |
 | `container/indicator/content` | `space.0` / `space.200` / `space.0` / `space.200` | `space.100` | — | — | — | — |
 | `container/indicator/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/indicator/content/labelBox/reserve` | — | — | `space.0` | — | — | — |
@@ -142,6 +145,7 @@ Keyed by `size`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | `space.050` | — | `size.sm.height` | — | — | build width 120px (literal) |
+| `container/indicator` | — | — | — | — | — | radius `radius.sm` |
 | `container/indicator/content` | `space.0` / `space.150` / `space.0` / `space.150` | `space.075` | — | — | — | — |
 | `container/indicator/content/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/indicator/content/labelBox/reserve` | — | — | `space.0` | — | — | — |
@@ -151,6 +155,7 @@ Keyed by `size`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | `space.050` | — | `size.lg.height` | — | — | build width 120px (literal) |
+| `container/indicator` | — | — | — | — | — | radius `radius.sm` |
 | `container/indicator/content` | `space.0` / `space.250` / `space.0` / `space.250` | `space.100` | — | — | — | — |
 | `container/indicator/content/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/indicator/content/labelBox/reserve` | — | — | `space.0` | — | — | — |

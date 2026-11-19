@@ -46,11 +46,9 @@
  * as a no-op, reads the same on both sides (docs/34 shape 17, both sides share the host model), and an executor branch
  * only some other lever combination reaches. `executor-reach.ts` says what an author does about each.
  */
-import * as AF from '@prism3/engine/anatomy-figma';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
-import type { ComponentDef } from '@prism3/engine/component-schema';
-import type { BrandInput } from '@prism3/engine/theme';
+import * as AF from '@prism3/engine/components';
+import { type AnatomyPlan, componentDefs, type ComponentDef } from '@prism3/engine/components';
+import type { BrandInput } from '@prism3/engine';
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';

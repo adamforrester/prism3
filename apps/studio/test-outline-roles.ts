@@ -18,10 +18,8 @@
  * `inverse ground reads no page role` and the literal-key checks below BY NAME.
  */
 import { outlineStateRoles } from './src/outline-roles';
-import { brandTheme } from '@prism3/engine/theme';
-import type { BrandInput } from '@prism3/engine/theme';
-import { resolveAllModes } from '@prism3/engine/modes';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { brandTheme, type BrandInput, resolveAllModes } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 
 let failed = 0;
 let executed = 0;

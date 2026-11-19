@@ -307,7 +307,11 @@ export type NestingRelation =
   | { kind: 'nest-fixed'; variant: Record<string, string>; follow?: readonly string[]; variantWhen?: NestVariantWhen; variantWhere?: NestVariantWhere }
   | { kind: 'nest-exposed'; variant: Record<string, string>; expose: readonly string[]; follow?: readonly string[]; variantWhen?: NestVariantWhen; variantWhere?: NestVariantWhere };
 
-export type PartDef = {
+/** EVERY FIELD A PART MAY CARRY, as one bag — the field DOCS live here (#3698 R5 item 3). A def never types a part as
+ *  this: `PartDef` below is the union of one type per `kind`, each picking the fields that kind may carry and stating
+ *  every other field `never`. So this bag is where a field is documented, and the per-kind lists are where it is
+ *  admitted; a field added here and admitted by no kind fails the `PartFieldsPlaced` check under the union. */
+export type PartFields = {
   kind: PartKind;
   /** `target` marks the single a11y/interaction target — the node that owns the hit area and the
    *  focus ring. Exactly one part per anatomy may claim it.
@@ -347,12 +351,22 @@ export type PartDef = {
    *  `role`'s own rule) and on a part binding neither `size` nor both `width` and `height` (a target with an
    *  unbound side cannot be measured against the floor on that side). */
   innerTarget?: true;
-  /** Ordered. Order IS the visual order — a materializer appends children in this sequence. */
+  /** Ordered. Order IS the visual order — a materializer appends children in this sequence.
+   *  `box` only (#3698 Q-PU1 A): only a box becomes a frame that holds children. A TEXT node holds none, a slot or
+   *  overlay builds as an instance, and an absolute, nest or vector has its own refusal. Refused on every other kind. */
   children?: string[];
   layout?: LayoutDef;
   padding?: PaddingDef;
   gap?: string;
+  /** THE SPACE BETWEEN WRAPPED LINES (#1739): the binding key for a wrapping row's line gap, CSS `row-gap`. A row that
+   *  wraps (`layout.wrap`) otherwise takes the host's default between its lines, which is none, so wrapped items would
+   *  touch. PROJECTS `bound.counterAxisSpacing`; both executors bind `bound` after the layout and the wrap, so it needs
+   *  no executor change. `box` only, and refused on a box whose layout does not wrap: Figma reads the line gap on a
+   *  wrapping frame only. Tag.Group binds it to the same step as `gap`, so tags sit as far apart down as across. */
+  rowGap?: string;
   height?: string;
+  /** The binding key for the four corner radii. `box` only (#3698 Q-PU1 A): the projector binds it only in the box
+   *  branch. Refused on every other kind (a vector's corners are `tileEdge.radius`). */
   radius?: string;
   /** The binding key giving the width of the stroke THIS part draws INSIDE its own bounds — #740's
    *  field, opened by #1266 for the one part that is nothing but a stroke.
@@ -420,7 +434,8 @@ export type PartDef = {
    *  whose length its parent does not fix, because a parent hugging one child is exactly as long as the
    *  child and every alignment lands in the same place. */
   width?: string;
-  /** For `text` parts: the binding key giving the composite type style. */
+  /** The binding key giving the composite type style. `text` only (#3698 Q-PU2 A): the projector reads it only on a
+   *  text part, and only a TEXT node takes a text style — a frame or an instance has no `setTextStyleIdAsync` (#3783). */
   type?: string;
   /** For `text` parts: WHICH ink slot this part asks the paint grammar for. Defaults to `label`,
    *  which is what every text part in the corpus but one wants (#796).
@@ -761,7 +776,7 @@ export type PartDef = {
    *  (`placementWidth`, a fixed width) or uses `center`, with an `axis` that is not a projected variant axis, with a
    *  `widths` key that is not a value of it or a per-size map whose keys are not exactly the `size` values, with a
    *  `heights` key that is not a `widths` key, with a non-positive number, and with a `grow` that is not a child of
-   *  the root. */
+   *  the root, or that is not a `box` or a `nest` (#3779: the build writes `grow` onto it, a field only those take). */
   /** For a `box` with `layout`: its DIRECTION PER MEMBER (#2661, owner decision Q363.9). At the value of `axis` the
    *  member holds, the box reads as if its `layout.direction` were the one named; at any other coordinate, and in a
    *  structure-only plan, it is the box as authored. Button group's `items` slot is a row inline and at fill and a
@@ -922,11 +937,34 @@ export type PartDef = {
    *  otherwise takes its host's icon ink on every vector inside it (`descendantFills`), which is what lets a
    *  glyph follow its button's state; on a provider logo it is the retint the provider forbids. With this flag the
    *  part carries no `descendantFills` and no paint binding, and the plan says so (`FigmaNodePlan.fixedPaint`),
-   *  so a gate can hold the outcome independently of the projector's branch. A `nest` takes no host ink today;
-   *  the flag there is the same promise, kept if that ever changes.
+   *  so a gate can hold the outcome independently of the projector's branch. A `nest` takes no host ink unless it
+   *  declares `hostInk`; the flag there is the same promise, and the two are refused together.
    *
    *  Refused on any other kind and beside `paintSlot` (a part cannot both keep its own paint and name an ink). */
   fixedPaint?: true;
+  /** HOST-TO-NEST PAINT (owner decisions Q-FL1 A and Q-FL1.1 A, #3554): the slot of the HOST's paint that this nested
+   *  instance's glyph takes. A nest otherwise keeps the paint its own component draws, which is right everywhere but
+   *  where the host lays a ground under it that the nested component cannot know about: the disabled outline Counter
+   *  paints `color.disabled.fill`, and the nested FlushIconButton (no fill of its own) still inks its glyph for the
+   *  page, `color.disabled.icon`. A flush button has no member whose glyph takes the on-fill ink, so no `variantWhen`
+   *  can reach one.
+   *
+   *  So the host answers the slot itself. At each coordinate the projector resolves the named slot through the HOST's
+   *  paint keys, the same lookup a glyph part of the host would get, the cross-cutting disabled branch included: where
+   *  the host's disabled fill lands, the on-fill form (`disabled.icon.on-fill`) is asked for first. Where the slot
+   *  resolves, the ink is written as `descendantFills` on the `NESTED_INSTANCE`, and both executors paint it on every
+   *  VECTOR inside the instance (a per-instance override, as on a swapped icon, #2380). Where it resolves nothing, the
+   *  plan carries nothing and the nested component keeps its own ink, so a host binds only the coordinates it needs
+   *  to change: the Counter binds `disabled.icon.on-fill` and no `disabled.icon`, so its ghost members, which draw no
+   *  fill, push nothing.
+   *
+   *  ITS COST, STATED: in Figma the ink is an override on the instance. A designer who sets one nested button back
+   *  to `rest` on a disabled Counter keeps the on-fill ink on it until the host is updated.
+   *
+   *  `icon` only, the one slot a nested glyph has. On a `nest` part that is `nest-fixed` or `nest-exposed` only,
+   *  refused beside `fixedPaint` (a part cannot both keep its content's paint and push the host's), and refused on a
+   *  def that binds no key for the slot (a host ink no coordinate can resolve). */
+  hostInk?: 'icon';
   /** READS THE DEF'S LITERAL RECORD (#2343 PR 5, `ComponentDef.literal`). `surface` on a `box`: its fills are the
    *  entry's `fill` with the entry's `wash` for the member's state laid over it, and its stroke is `edge`, drawn
    *  inside. `label` on a `text` part: its fill is `ink`, its copy `text` (no TEXT property claims it) and its font
@@ -1099,7 +1137,8 @@ export type PartDef = {
    *  does carry). The field is not switch-shaped — it names no component and no axis — but it is
    *  three-position-shaped, and that is a property of the projection target, not of this schema. */
   positionWhen?: Record<string, Record<string, 'start' | 'center' | 'end'>>;
-  /** For `overlay`: the part whose position it takes (width-preserving, per the brief).
+  /** For `overlay`: the part whose position it takes (width-preserving, per the brief). Refused on every other kind
+   *  (#3698 Q-PU1 A).
    *
    *  An ORDERED LIST of candidates as of #848, resolved to the FIRST one present at this coordinate.
    *  A single string is still accepted and means a one-entry list — every existing def reads the same.
@@ -1123,7 +1162,7 @@ export type PartDef = {
    *  writing it first. */
   replaces?: string | string[];
   /** For `overlay`: what to do when NONE of the parts named in `replaces` is present at this
-   *  coordinate.
+   *  coordinate. Refused on every other kind (#3698 Q-PU1 A).
    *
    *  The part named here is overlaid OUT OF FLOW — the overlay takes no cell, and the named part is
    *  rendered at zero opacity so it keeps its space. Absent this field, an overlay whose `replaces`
@@ -1151,7 +1190,8 @@ export type PartDef = {
    *
    *  An `overlay` names ONE state. An `absolute` part may name a LIST (#2318): the focus ring rings the field at
    *  `focus-visible` AND at `focus-visible-filled`, one part at both states rather than two rings. Read it through
-   *  `whenStates`, never as a string. */
+   *  `whenStates`, never as a string. Refused on every other kind (#3698 Q-PU1 A): an in-flow part gates on state
+   *  through `presentWhen`. */
   when?: string | readonly string[];
   /** For `absolute`: the NAME of a component that must already exist in the file, which this part
    *  materializes as an INSTANCE of rather than authoring from nothing.
@@ -1178,7 +1218,8 @@ export type PartDef = {
   /** How this part relates to the component it points at (#681). REQUIRED on every part that points
    *  at one — a `slot` (whose content is swapped), an `absolute` (out-of-flow instance) and a `nest`
    *  (in-flow instance, #1226 PR-A) — and rejected on the kinds that point at nothing. A `nest` is
-   *  `nest-fixed` only (`nest-exposed` stays refused, #761; `swap` is a slot's relation).
+   *  `nest-fixed` or `nest-exposed` (#1330 reversed #761's refusal of the latter; `anatomyErrors` accepts
+   *  both). `swap` is refused on a `nest`: it is a slot's relation.
    *
    *  Separate from `nests` because the two answer different questions and `nests` already has an
    *  answer: `nests` names WHICH component, this names the RELATIONSHIP to it. A `slot` has no `nests`
@@ -1402,8 +1443,96 @@ export type PartDef = {
    *  node), under a parent that is not an auto-layout `box` binding `size`, when the glyph binds a different size from
    *  its parent, and under a parent with no in-flow child to draw over. */
   stackCentered?: true;
+  /** What the part does in right-to-left text (#3986, owner decision Q-RTL1 A): the component contract states it, code
+   *  proves it, and Figma, which draws left to right only, shows it as a note. Filled from each def's right-to-left
+   *  prose, and the #3986 arm in `test.ts` fails a def whose prose and fields disagree.
+   *
+   *    - `reverses`  — a box whose row reverses: what sits at the start moves to the other edge. A box only.
+   *    - `mirrors`   — a glyph, or what a slot or nest holds, flips to face the other way. Not a box or a text.
+   *    - `never`     — never mirrors: a glyph drawn as it is in every script, a row that keeps its order (a code's
+   *                    cells), digits that stay left to right.
+   *    - `per-glyph` — an icon, flipped or not by which glyph it is (`RTL_MIRRORED_GLYPHS` in `icon-set.ts`): the Icon's
+   *                    own glyph, and a slot that holds one. Not a box or a text.
+   *
+   *  Absent says nothing. It is not projected into the Figma member: no executor reads it. */
+  mirror?: Mirror;
   note?: string;
 };
+
+/** A part's right-to-left behavior (`PartFields.mirror`, #3986). */
+export type Mirror = 'mirrors' | 'never' | 'reverses' | 'per-glyph';
+/** Every `Mirror` value, for a reader that walks them. */
+export const MIRRORS: readonly Mirror[] = ['reverses', 'mirrors', 'never', 'per-glyph'];
+
+// ---------------------------------------------------------------------------------------
+// PartDef — DISCRIMINATED BY `kind` (#3698 F4, R5 item 3).
+//
+// Until this, PartDef was one bag of optional fields under a `PartKind` string, so `{ kind: 'text', layout: ... }`
+// typechecked and only `anatomyErrors` refused it, at run time. Each kind below admits exactly the fields the
+// validator lets it carry today; every other field is typed `never`, so a def that sets one fails `tsc` naming the
+// field, and a READ of any field on any part still compiles (it is `undefined` on the kinds that do not admit it).
+//
+// THE RULE THE LISTS FOLLOW: a field is admitted on a kind unless `anatomyErrors` refuses it there, directly (`is kind
+// 'X' but declares 'f'`) or through a field it requires (`footShare` needs `foot`, a box field; `slotSettings` needs
+// `contentSlot`). A field the validator never refuses by kind is in `PartBaseKey`, admitted everywhere. #3698 Q-PU1 A
+// tightened the documented-kind ones the projector reads on their own kinds alone: `radius` is a box's, `replaces` and
+// `overlaysWhenAbsent` an overlay's, `when` an overlay's and an absolute's, and `children` a box's; #3698 Q-PU2 A made
+// `type` a text part's (the validator's `KIND_ONLY` table says why, field by field). The per-kind refusals in `anatomyErrors` stay — a def reaching the engine from JSON is
+// not typechecked. `lint-part-union.ts` proves the union bites.
+
+/** Fields every kind admits: the validator refuses none of them by kind. `role`, `optional` and `note` say nothing a
+ *  projection builds from per kind. */
+export type PartBaseKey = 'role' | 'optional' | 'note' | 'mirror';
+
+/** A kind's part: its `kind`, the base fields, the fields `F` it admits, and every other field `never`. */
+type PartOf<K extends PartKind, F extends Exclude<keyof PartFields, 'kind' | PartBaseKey>> =
+  { kind: K } & Pick<PartFields, PartBaseKey | F> & { [X in Exclude<keyof PartFields, 'kind' | PartBaseKey | F>]?: never };
+
+/** The fields a box admits — the one kind that lays out, paints a surface and becomes a frame. */
+export type BoxKey =
+  | 'innerTarget' | 'children' | 'size' | 'presentWhen' | 'positionWhen' | 'height' | 'crossAxisFill' | 'grow' | 'literal'
+  | 'radius' | 'layout' | 'padding' | 'gap' | 'rowGap' | 'strokeWidth' | 'strokeEdges' | 'width' | 'paddingTop' | 'firstLine'
+  | 'contentSlot' | 'slotSettings' | 'preferred' | 'preferredWhenBuilt' | 'paintSlots' | 'paintGroup' | 'gradient'
+  | 'clipsContent' | 'scroll' | 'minWidth' | 'placementWidth' | 'placementHeight' | 'directionWhen' | 'sizingWhen'
+  | 'builtSize' | 'elevation' | 'radiusEdges' | 'minHeight' | 'minWidthKey' | 'minWidthRatio' | 'flush' | 'center'
+  | 'aspectRatio' | 'foot' | 'footShare';
+export type TextKey =
+  | 'innerTarget' | 'size' | 'presentWhen' | 'positionWhen' | 'literal' | 'paintSlot' | 'type'
+  | 'verticalAlign' | 'wrap' | 'lines' | 'characters';
+export type SlotKey =
+  | 'innerTarget' | 'size' | 'presentWhen' | 'positionWhen' | 'height' | 'aspectLock' | 'fixedPaint' | 'nesting'
+  | 'pin' | 'swapDefault';
+export type OverlayKey = 'innerTarget' | 'size' | 'fixedPaint' | 'nests' | 'nesting' | 'replaces' | 'overlaysWhenAbsent' | 'when';
+export type AbsoluteKey = 'when' | 'presentWhen' | 'inset' | 'nests' | 'nesting' | 'overrides' | 'strokeInset' | 'drawnInside';
+export type NestKey =
+  | 'innerTarget' | 'size' | 'presentWhen' | 'positionWhen' | 'height' | 'crossAxisFill' | 'grow' | 'aspectLock' | 'fixedPaint'
+  | 'literal' | 'nests' | 'nesting' | 'overrides' | 'hostInk' | 'prefersWhenBuilt' | 'nestItemPrefers' | 'nestTexts'
+  | 'nestPaddingBlock';
+export type VectorKey =
+  | 'innerTarget' | 'size' | 'presentWhen' | 'positionWhen' | 'paintSlot' | 'inset'
+  | 'glyph' | 'glyphScale' | 'glyphPx' | 'tileEdge' | 'corner' | 'scaleWithParent' | 'stackCentered';
+
+export interface BoxPart extends PartOf<'box', BoxKey> {}
+export interface TextPart extends PartOf<'text', TextKey> {}
+export interface SlotPart extends PartOf<'slot', SlotKey> {}
+export interface OverlayPart extends PartOf<'overlay', OverlayKey> {}
+export interface AbsolutePart extends PartOf<'absolute', AbsoluteKey> {}
+export interface NestPart extends PartOf<'nest', NestKey> {}
+export interface VectorPart extends PartOf<'vector', VectorKey> {}
+
+export type PartDef = BoxPart | TextPart | SlotPart | OverlayPart | AbsolutePart | NestPart | VectorPart;
+
+/** The part of kind `K`, for a consumer that narrows on `kind`. */
+export type PartOfKind<K extends PartKind> = Extract<PartDef, { kind: K }>;
+
+// Two compile-time checks, types only (nothing here reaches the emitted JS): the union covers every `PartKind`, and
+// every field in `PartFields` is admitted by at least one kind — a field documented and admitted nowhere could be
+// read but never written.
+type AssertTrue<T extends true> = T;
+export type PartKindsCovered = AssertTrue<[PartKind] extends [PartDef['kind']] ? true : false>;
+export type PartFieldsPlaced = AssertTrue<
+  [Exclude<keyof PartFields, 'kind' | PartBaseKey | BoxKey | TextKey | SlotKey | OverlayKey | AbsoluteKey | NestKey | VectorKey>] extends [never] ? true : false
+>;
 
 /** An overlay's `replaces` as an ordered candidate LIST, whatever shape the def wrote it in (#848).
  *
@@ -1416,7 +1545,7 @@ export type PartDef = {
  *  shadows were silently dropped from every overlay in all four brands. One shape, read once.
  *
  *  Returns `[]` for an absent field so callers can test `.length` and never hold `undefined`. */
-export const replacesCandidates = (p: PartDef): string[] =>
+export const replacesCandidates = (p: Pick<PartFields, 'replaces'>): string[] =>
   p.replaces === undefined ? [] : Array.isArray(p.replaces) ? p.replaces : [p.replaces];
 
 /** Parse a `W:H` aspect-ratio string (e.g. `16:9`) to the numeric proportion `W / H` (#1316). Returns
@@ -1781,7 +1910,8 @@ export type FigmaProperties = {
  * nothing read or checked the value. The KB catalogue (`components/index.md`) groups every brief under
  * exactly seven headings, and each brief's frontmatter names one of them, so this list is those seven,
  * lower-cased, in the catalogue's order. `media` is not among them; `veil` and `image-placeholder` moved
- * to `foundations` (image.md's category, and veil's stated choice in its header).
+ * to `foundations` (image.md's category, and veil's stated choice in its header; veil is `overlay` since
+ * #4045 A).
  *
  * A def TAKES ITS BRIEF'S CATEGORY. That is gated in `test.ts` (#1700, the brief-citation arm) against
  * an authored table of the briefs and their KB categories, not against this list: this list says what a
@@ -1790,6 +1920,39 @@ export type FigmaProperties = {
  */
 export const COMPONENT_CATEGORIES = ['foundations', 'layout', 'form', 'navigation', 'feedback', 'data', 'overlay'] as const;
 export type ComponentCategory = (typeof COMPONENT_CATEGORIES)[number];
+
+/**
+ * THE BRAND STYLE SETTINGS A DEF TAKES, as data (#3698 R5 refactor 4; the shape is held for an owner decision on the
+ * PR, so every key is one rename away). One entry per setting, keyed by the `BrandInput` field it serves:
+ *
+ *   · `controlShape` — `capsules`: the token REFS every shape but Rounded rebinds to its rung (`applyControlShape`): Pill
+ *     to `radius.capsule`, Boxed to `radius.none`, Hairline to `radius.hairline`. The buttons' `radius.md` corner (Q-CS5 B,
+ *     #3765: all of Control shape's reach lives here, Pill included). `squares`: the refs Boxed and Hairline alone rebind,
+ *     which Pill leaves as they are. The fields' `radius.sm` box corner; Checkbox's per-size control radius. A def names
+ *     either list or both, never one ref in both.
+ *   · `fieldStyle` — `frame`: the box part Underline redraws (`applyFieldStyle`). `setting: 'searchFieldStyle'` draws the
+ *     def in the Search field style instead of Field style, unless that is Follow (`fieldStyleFor`).
+ *   · `tagStyle` — the four parts Underline reaches (`applyTagStyle`): the bordered `frame`, the inset content `row`, the
+ *     `labelRow` holding the label and the check, and the remove `slot`.
+ *   · `buttonLabelWeight` — `labels: true`: "Control label weight" rebinds the def's per-size label type to the rung's
+ *     `default` role (`applyButtonLayout`, #2945). The button family takes the setting by being the button family; this
+ *     opts in a def outside it (Tag). Until #3786 that reach rode on `tagStyle`'s presence.
+ *   · `dialogTitleSize` — `titleType`: the key holding the title's `type.label.<rung>.<role>` (`applyDialogTitleSize`).
+ *   · `bannerStyle` — `fills`: the `<tone>.fill` keys Outlined rebinds to the page color (`applyBannerStyle`).
+ *   · `currentIndicator` — `bar`: the foot bar Partial draws at a share of the title's width (`applyCurrentIndicator`).
+ *   · `outlineInteraction` — `opaqueFill: true`: the outline and text hover takes the opaque fill under `opaque-fill`
+ *     (`applyOutlineInteraction`); every def without it keeps the wash.
+ */
+export type ComponentLevers = {
+  controlShape?: { capsules?: readonly string[]; squares?: readonly string[] };
+  fieldStyle?: { frame: string; setting?: 'searchFieldStyle' };
+  tagStyle?: { frame: string; row: string; labelRow: string; slot: string };
+  buttonLabelWeight?: { labels: true };
+  dialogTitleSize?: { titleType: string };
+  bannerStyle?: { fills: readonly string[] };
+  currentIndicator?: { bar: string };
+  outlineInteraction?: { opaqueFill: true };
+};
 
 export type ComponentDef = {
   // ---- identity (§15) + specs-schema Component.id/name ----
@@ -1970,6 +2133,14 @@ export type ComponentDef = {
    *  stack gap the def fixes — stays off the list. Validated: every expanded key is bound, to a step of the
    *  space ladder. */
   densitySpacing?: string[];
+
+  /** WHICH BRAND STYLE SETTINGS REACH THIS DEF, AND WHERE (#3698 R5 refactor 4). Each key is a brand setting whose
+   *  materializer (`apply*` in `anatomy-figma.ts`) rewrites a def before projection. The entry names the parts and
+   *  token keys that setting touches on this def. The setting's LOGIC stays shared engine code, and this field is only
+   *  its reach. Until #3698 the reach was tables keyed by def id inside the projector, so a new styled component had to
+   *  edit the projector. Absent, or a key absent, means that setting leaves the def as authored. See `ComponentLevers`.
+   *  Maintainer data: no emitted shape carries it (`project-def.ts` projects named fields). Validated (`leverErrors`). */
+  levers?: ComponentLevers;
 
   /** A LAYER GAP DERIVED FROM THE GAP THE EYE SEES (owner, 2026-09-29, the dismissible Tag). Each entry names
    *  three `tokens` keys (`{size}` expands as in `densitySpacing`): `visible`, the distance the eye reads, a
@@ -2299,6 +2470,7 @@ export const validateComponentDef = (
   // the spacing that follows density (the spacing model). Optional; when present, every key binds a ladder step.
   if (def.densitySpacing) errors.push(...densitySpacingErrors(def));
   if (def.visibleGaps) errors.push(...visibleGapErrors(def));
+  if (def.levers !== undefined) errors.push(...leverErrors(def));
 
   // anatomy — the structural layer (#327). Optional; when present it must be COMPLETE.
   if (def.anatomy) errors.push(...anatomyErrors(def));
@@ -2463,7 +2635,9 @@ export const gridColumnAxis = (
 ): string | undefined => {
   if (!varying.length) return undefined;
   if (declared && varying.some((v) => v.name === declared)) return declared;
-  return varying.reduce((best, v) => (v.values > best.values ? v : best), varying[0]).name;
+  // No seed: `varying` is non-empty (returned above), so reduce starts from its first entry — the same
+  // entry the old explicit seed named, and `>` never replaces it with itself.
+  return varying.reduce((best, v) => (v.values > best.values ? v : best)).name;
 };
 
 /** How many variants the declared surface projects — the product of every axis's cardinality, less the
@@ -2494,7 +2668,10 @@ export const figmaVariantCount = (def: ComponentDef): number => {
   const boxSize = (subset: Record<string, string[]>[]): number =>
     axes.reduce((n, a) => {
       let vals = declared(a);
-      for (const entry of subset) if (a in entry) vals = vals.filter((v) => entry[a].includes(v));
+      for (const entry of subset) {
+        const allowed = entry[a];
+        if (allowed) vals = vals.filter((v) => allowed.includes(v));
+      }
       return n * vals.length;
     }, 1);
   let excluded = 0;
@@ -2671,8 +2848,10 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
       }
     });
     if (wellFormed) {
-      const excluded = (c: Record<string, string>): boolean =>
-        fp.excludeCoordinates!.some((entry) => Object.keys(entry).every((a) => entry[a].includes(c[a])));
+      // `string | undefined` per axis: an axis whose declared value list is empty has no first value, and
+      // `first` / `codeDefault` below carry that absence rather than pretending to a string.
+      const excluded = (c: Record<string, string | undefined>): boolean =>
+        fp.excludeCoordinates!.some((entry) => Object.entries(entry).every(([a, vs]) => { const v = c[a]; return v !== undefined && vs.includes(v); }));
       let grid: Record<string, string>[] = [{}];
       for (const a of axes) grid = grid.flatMap((c) => values(a).map((v) => ({ ...c, [a]: v })));
       const kept = grid.filter((c) => !excluded(c));
@@ -2682,7 +2861,7 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
       const first = Object.fromEntries(axes.map((a) => [a, values(a)[0]]));
       if (excluded(first))
         e.push(`figmaProperties.excludeCoordinates removes the set's first member (${axes.map((a) => `${a}=${first[a]}`).join(', ')}) — Figma's default variant is the first member, so the default would point at a member that does not exist`);
-      const codeDefault: Record<string, string> = {};
+      const codeDefault: Record<string, string | undefined> = {};
       for (const a of axes) {
         const d = (def.props ?? []).find((p) => p.name === a)?.default;
         codeDefault[a] = d !== undefined && values(a).includes(String(d)) ? String(d) : values(a)[0];
@@ -2790,7 +2969,7 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
     const values = (a: string): string[] => (variantsOf(def)[a] ?? []).map(String);
     let grid: Record<string, string>[] = [{}];
     for (const a of axes) grid = grid.flatMap((c) => values(a).map((val) => ({ ...c, [a]: val })));
-    const kept = grid.filter((c) => !(fp.excludeCoordinates ?? []).some((entry) => Object.keys(entry).length > 0 && Object.keys(entry).every((a) => (entry[a] ?? []).includes(c[a]))));
+    const kept = grid.filter((c) => !(fp.excludeCoordinates ?? []).some((entry) => Object.keys(entry).length > 0 && Object.entries(entry).every(([a, vs]) => { const v = c[a]; return v !== undefined && (vs ?? []).includes(v); })));
     // AND across axes; an axis the member does not carry reads as ABSENT — the projector's reading.
     const builds = (part: string, c: Record<string, string>): boolean =>
       Object.entries(parts[part]!.presentWhen ?? {}).every(([a, vs]) => c[a] !== undefined && vs.includes(c[a]));
@@ -2978,9 +3157,9 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
  */
 export const expandKey = (key: string, axisValues: Record<string, readonly string[]>): string[] => {
   let out = [key];
-  for (const axis of Object.keys(axisValues)) {
+  for (const [axis, values] of Object.entries(axisValues)) {
     if (!out.some((k) => k.includes(`{${axis}}`))) continue;
-    out = out.flatMap((k) => axisValues[axis].map((v) => k.replace(`{${axis}}`, v)));
+    out = out.flatMap((k) => values.map((v) => k.replace(`{${axis}}`, v)));
   }
   return out;
 };
@@ -3837,7 +4016,8 @@ const NESTED_WITHOUT_ANATOMY: Record<string, string[]> = {
 
 /** Every `{placeholder}` in a paint-key template, in order of appearance. */
 export const paintKeyPlaceholders = (template: string): string[] =>
-  [...template.matchAll(/\{([^}]+)\}/g)].map((m) => m[1]);
+  // `!`: group 1 is not optional, so every match captures it.
+  [...template.matchAll(/\{([^}]+)\}/g)].map((m) => m[1]!);
 
 /**
  * Fill one paint-key template at one coordinate, or `undefined` if it cannot be filled (#758).
@@ -3936,7 +4116,8 @@ const paintKeyErrors = (def: ComponentDef): string[] => {
    * paint anything either.
    */
   /** Every PLACEHOLDER segment of `template`, paired with the value `key` fills it with. */
-  const segmentsOf = (template: string, key: string): { ph: string; value: string }[] => {
+  // `value` is `undefined` where `key` has fewer segments than `template`; both callers test for it.
+  const segmentsOf = (template: string, key: string): { ph: string; value: string | undefined }[] => {
     const parts = key.split('.');
     return template
       .split('.')
@@ -4197,7 +4378,8 @@ const paintKeyErrors = (def: ComponentDef): string[] => {
       let slot = 'fill'; // a template with no `{slot}` answers a primary slot; `fill` stands for it
       segs.forEach((seg, i) => {
         const ph = seg.startsWith('{') ? seg.slice(1, -1) : undefined;
-        if (ph === 'slot') slot = parts[i];
+        // `!`: `key` passed `matcher(template)`, which matches one key segment per template segment.
+        if (ph === 'slot') slot = parts[i]!;
         else if (ph) coord[ph] = parts[i];
       });
       const winner = keys.find(
@@ -4250,7 +4432,7 @@ const visibleGapErrors = (def: ComponentDef): string[] => {
   const following = new Set(densitySpacingKeys(def));
   const stepPx = (ref: string | undefined): number | undefined => {
     const m = ref === undefined ? null : /^space\.([0-9]+)$/.exec(ref);
-    return m && SPACE_LADDER.includes(m[1]) ? (Number(m[1]) / 100) * SPACE_BASE : undefined;
+    return m?.[1] !== undefined && SPACE_LADDER.includes(m[1]) ? (Number(m[1]) / 100) * SPACE_BASE : undefined;
   };
   for (const g of visibleGapKeys(def)) {
     const px: Record<string, number | undefined> = {};
@@ -4269,7 +4451,8 @@ const visibleGapErrors = (def: ComponentDef): string[] => {
       e.push(`visibleGaps: '${g.gap}' is ${gp}px at comfortable, but '${g.visible}' (${vp}px) − '${g.inset}' (${ip}px) is ${Math.max(0, vp - ip)}px`);
     if (vp !== undefined && ip !== undefined && following.has(g.visible) && !following.has(g.inset))
       for (const d of ['compact', 'spacious'] as const) {
-        const v = stepPx(densitySpacingStep(g.visible, def.tokens[g.visible], d))!;
+        // `!` on the token: `vp` is defined only when `stepPx` read a ref from `def.tokens[g.visible]`.
+        const v = stepPx(densitySpacingStep(g.visible, def.tokens[g.visible]!, d))!;
         const diff = Math.max(0, v - ip);
         if (!SPACE_LADDER.some((k) => (Number(k) / 100) * SPACE_BASE === diff))
           e.push(`visibleGaps: at ${d} density '${g.visible}' steps to ${v}px and '${g.inset}' is ${ip}px, so '${g.gap}' would be ${diff}px, which is not a step of the space ladder`);
@@ -4281,6 +4464,81 @@ const visibleGapErrors = (def: ComponentDef): string[] => {
 /** `densitySpacing`'s rules: each expanded key is bound, to a step of the space ladder, and no key is named
  *  twice. The ladder is read from `scale.ts` so a step the scale does not hold is refused here, not at the
  *  first projection that tries to move it. */
+/** `levers` (#3698 R5 refactor 4): each entry names parts and keys that exist, of the kind its materializer rewrites.
+ *  Every materializer is the identity, or throws, on a name that does not resolve, so a wrong name would silently drop
+ *  the setting from the def. This refuses it at authoring instead. A def arriving as data meets only this check. */
+const LEVER_KEYS: Record<string, readonly string[]> = {
+  controlShape: ['capsules', 'squares'], fieldStyle: ['frame', 'setting'], tagStyle: ['frame', 'row', 'labelRow', 'slot'], buttonLabelWeight: ['labels'],
+  dialogTitleSize: ['titleType'], bannerStyle: ['fills'], currentIndicator: ['bar'], outlineInteraction: ['opaqueFill'],
+};
+const leverErrors = (def: ComponentDef): string[] => {
+  const errors: string[] = [];
+  const lv = def.levers as Record<string, Record<string, unknown> | undefined> | undefined;
+  if (!lv || typeof lv !== 'object' || Array.isArray(lv)) return [`levers must be an object keyed by brand setting (got ${JSON.stringify(lv)})`];
+  const parts = def.anatomy?.parts ?? {};
+  const part = (setting: string, field: string, name: unknown, box: boolean): void => {
+    if (typeof name !== 'string' || !parts[name]) { errors.push(`levers.${setting}.${field} names '${String(name)}', which is not a declared anatomy part`); return; }
+    if (box && parts[name].kind !== 'box') errors.push(`levers.${setting}.${field} names '${name}', a '${parts[name].kind}' part; the setting redraws a box`);
+  };
+  const keys = (setting: string, field: string, list: unknown): void => {
+    if (!Array.isArray(list) || list.length === 0) { errors.push(`levers.${setting}.${field} must be a non-empty list`); return; }
+    for (const k of list) if (def.tokens[k as string] === undefined) errors.push(`levers.${setting}.${field} names '${String(k)}', which is not a bound tokens key`);
+  };
+  for (const [setting, entry] of Object.entries(lv)) {
+    const allowed = LEVER_KEYS[setting];
+    if (!allowed) { errors.push(`levers.${setting} is not a brand setting a def can take (${Object.keys(LEVER_KEYS).join(' | ')})`); continue; }
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) { errors.push(`levers.${setting} must be an object`); continue; }
+    for (const f of Object.keys(entry)) if (!allowed.includes(f)) errors.push(`levers.${setting}.${f} is not a field of that setting (${allowed.join(' | ')})`);
+    // The refs are not required to be bound: a materialized def keeps its `levers`, and an earlier materializer (Underline's
+    // `radius.none`) may already have rebound the corner it names. Each must still read as a token ref.
+    // WHY NOT HERE (#3787, measured): Boxed rebinds every shipped def's `squares` refs and Underline the fields', so each
+    // one is unbound on the materialized def, and materialized defs reach this validator (`test.ts` validates the
+    // Underline text field and tag). Nothing on a def tells authored from materialized, so a binding refusal here would
+    // refuse those. `test.ts` holds the binding on the authored
+    // registry instead (`componentDefs`, before any materializer): every ref is a value one of the def's tokens binds.
+    if (setting === 'controlShape') {
+      if (entry.capsules === undefined && entry.squares === undefined) errors.push('levers.controlShape must name capsules, squares or both');
+      for (const field of ['capsules', 'squares'] as const) {
+        const list = entry[field];
+        if (list === undefined) continue;
+        if (!Array.isArray(list) || list.length === 0) errors.push(`levers.controlShape.${field} must be a non-empty list`);
+        else for (const r of list) if (typeof r !== 'string' || !/^[a-z][a-z0-9-]*(\.[a-z0-9-]+)+$/.test(r)) errors.push(`levers.controlShape.${field} names '${String(r)}', which is not a token ref`);
+      }
+      // One ref in both lists would read as "Pill rounds it" and "Pill leaves it", and the materializer could honor one.
+      const caps = Array.isArray(entry.capsules) ? entry.capsules : [];
+      // Each `capsules` ref is the def's own corner, so it must be bound: a def without that corner is refused, and so is a
+      // typo. The one exception is a def Control shape has already materialized, which binds the shape's rung where the
+      // ref was (`applyControlShape`, `CONTROL_SHAPE_RUNG`; restated here because the schema cannot import the
+      // materializer). No authored def that names `capsules` binds one of those rungs, so the exception never covers an
+      // authored typo; `test.ts` holds that on the registry. `squares` keeps #3787's rule below: Underline rebinds the
+      // fields' corner under Rounded too, where no shape rung is bound.
+      const bound = new Set(Object.values(def.tokens ?? {}));
+      const shaped = ['radius.capsule', 'radius.none', 'radius.hairline'].some((r) => bound.has(r));
+      if (!shaped) for (const r of caps) if (typeof r === 'string' && !bound.has(r)) errors.push(`levers.controlShape.capsules names '${r}', which no tokens key binds: the def has no such corner`);
+      if (Array.isArray(entry.squares)) for (const r of entry.squares) if (caps.includes(r)) errors.push(`levers.controlShape names '${String(r)}' in both capsules and squares`);
+    }
+    if (setting === 'fieldStyle') {
+      part(setting, 'frame', entry.frame, true);
+      if (entry.setting !== undefined && entry.setting !== 'searchFieldStyle') errors.push(`levers.fieldStyle.setting must be 'searchFieldStyle' when set (got ${JSON.stringify(entry.setting)})`);
+    }
+    if (setting === 'tagStyle') { part(setting, 'frame', entry.frame, true); for (const f of ['row', 'labelRow', 'slot']) part(setting, f, entry[f], false); }
+    if (setting === 'dialogTitleSize' && (typeof entry.titleType !== 'string' || def.tokens[entry.titleType] === undefined))
+      errors.push(`levers.dialogTitleSize.titleType names '${String(entry.titleType)}', which is not a bound tokens key`);
+    if (setting === 'bannerStyle') keys(setting, 'fills', entry.fills);
+    if (setting === 'currentIndicator') {
+      part(setting, 'bar', entry.bar, true);
+      const bar = typeof entry.bar === 'string' ? parts[entry.bar] : undefined;
+      if (bar?.kind === 'box' && bar.foot !== true) errors.push(`levers.currentIndicator.bar names '${entry.bar}', which is not a foot bar (\`foot: true\`)`);
+    }
+    if (setting === 'buttonLabelWeight') {
+      if (entry.labels !== true) errors.push(`levers.buttonLabelWeight.labels must be true when set (got ${JSON.stringify(entry.labels)})`);
+      else if (!(def.variants?.size ?? []).length) errors.push('levers.buttonLabelWeight needs a size axis: the setting rebinds each size\'s label type');
+    }
+    if (setting === 'outlineInteraction' && entry.opaqueFill !== true) errors.push(`levers.outlineInteraction.opaqueFill must be true when set (got ${JSON.stringify(entry.opaqueFill)})`);
+  }
+  return errors;
+};
+
 const densitySpacingErrors = (def: ComponentDef): string[] => {
   const e: string[] = [];
   const keys = densitySpacingKeys(def);
@@ -4293,7 +4551,7 @@ const densitySpacingErrors = (def: ComponentDef): string[] => {
     const ref = def.tokens?.[k];
     if (ref === undefined) { e.push(`densitySpacing names '${k}', which is not a slot in tokens`); continue; }
     const m = /^space\.([0-9]+)$/.exec(ref);
-    if (!m || !SPACE_LADDER.includes(m[1]))
+    if (m?.[1] === undefined || !SPACE_LADDER.includes(m[1]))
       e.push(`densitySpacing names '${k}' → '${ref}', which is not a step of the space ladder — density moves a spacing one step along space.*, so it must bind one`);
     else if (isGapKey(k) && (Number(m[1]) / 100) * SPACE_BASE < GAP_FLOOR_PX)
       e.push(`densitySpacing names the gap '${k}' → '${ref}', under the ${GAP_FLOOR_PX}px gap floor at comfortable — no gap goes below ${GAP_FLOOR_PX}px at any density`);
@@ -4308,7 +4566,7 @@ const literalErrors = (def: ComponentDef): string[] => {
   const e: string[] = [];
   const lit = def.literal!;
   const projected = def.figmaProperties?.variantAxes ?? [];
-  const holes = [...lit.key.matchAll(/\{([^}]+)\}/g)].map((m) => m[1]);
+  const holes = paintKeyPlaceholders(lit.key);
   if (!holes.length) e.push(`literal.key '${lit.key}' names no axis — one entry would paint every member, which is a token's job, not a literal's`);
   for (const h of holes) if (!projected.includes(h)) e.push(`literal.key '${lit.key}' names '{${h}}', which is not a projected variant axis [${projected.join(', ') || 'none'}]`);
   if (!Object.keys(lit.entries).length) e.push('literal.entries is empty');
@@ -4335,7 +4593,10 @@ const literalErrors = (def: ComponentDef): string[] => {
 const anatomyErrors = (def: ComponentDef): string[] => {
   const e: string[] = [];
   const a = def.anatomy!;
-  const parts = a.parts ?? {};
+  // READ AS THE WIDE BAG, not the per-kind union (#3698 R5 item 3): this validator exists to refuse the combinations
+  // the union rules out, for a def that reached the engine without a typecheck (JSON, a plain-JS host). Read through
+  // `PartDef`, each `is kind 'X' but declares 'f'` refusal would narrow to `never` and read as dead code. Type-only.
+  const parts: Readonly<Record<string, PartFields>> = a.parts ?? {};
   const names = Object.keys(parts);
   const sizes = def.variants?.size ?? [];
 
@@ -4355,12 +4616,11 @@ const anatomyErrors = (def: ComponentDef): string[] => {
 
   // Exactly one interaction target. Zero means nothing owns the hit area; two means the
   // materializer has no single node to attach the a11y role and focus ring to.
-  const targets = names.filter((n) => parts[n].role === 'target');
+  const targets = Object.entries(parts).filter(([, p]) => p.role === 'target').map(([n]) => n);
   if (targets.length !== 1) e.push(`anatomy: exactly one part must have role 'target' (found ${targets.length}${targets.length ? `: ${targets.join(', ')}` : ''})`);
   // AN INNER TARGET (#1741) is a second place the pointer lands, measured by `lint-hit-target.ts` through its
   // own bound side. Each way the marker would validate and then measure nothing is refused by name.
-  for (const n of names) {
-    const p = parts[n];
+  for (const [n, p] of Object.entries(parts)) {
     if (p.innerTarget === undefined) continue;
     if ((p.innerTarget as unknown) !== true)
       e.push(`anatomy part '${n}' declares innerTarget ${JSON.stringify(p.innerTarget)} — the marker is 'true' or absent`);
@@ -4384,28 +4644,29 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // `color/interactive/primary/fill/selected`. A def that genuinely needs a second painted box needs a
   // second SLOT for it, which is a `PAINT_SLOTS` decision and deliberately a harder one to make.
   const claimants = new Map<string, string[]>();
-  for (const n of names)
-    for (const slot of parts[n].kind === 'box' ? parts[n].paintSlots ?? [] : [])
+  for (const [n, p] of Object.entries(parts))
+    for (const slot of p.kind === 'box' ? p.paintSlots ?? [] : [])
       claimants.set(slot, [...(claimants.get(slot) ?? []), n]);
   // THE ONE ADMISSION (#3051): every claimant names the same `paintGroup`, so they are one surface in pieces.
   const grouped = (who: string[]) => {
-    const g = parts[who[0]].paintGroup;
-    return g !== undefined && who.every((n) => parts[n].paintGroup === g);
+    const gs = who.map((n) => parts[n]?.paintGroup);
+    const g = gs[0];
+    return g !== undefined && gs.every((x) => x === g);
   };
   for (const [slot, who] of claimants)
     if (who.length > 1 && !grouped(who))
       e.push(`anatomy: parts [${who.join(', ')}] all declare paintSlots '${slot}' — the projector resolves a slot once, so every one of them would bind the same variable rather than each getting its own`);
   const groups = new Map<string, string[]>();
-  for (const n of names) {
-    const g = parts[n].paintGroup;
+  for (const [n, p] of Object.entries(parts)) {
+    const g = p.paintGroup;
     if (g === undefined) continue;
-    if (parts[n].kind !== 'box') e.push(`anatomy part '${n}' is kind '${parts[n].kind}' but declares paintGroup — only a box paints a surface that can be split into pieces`);
-    else if (!(parts[n].paintSlots ?? []).length) e.push(`anatomy part '${n}' declares paintGroup '${g}' but paints nothing (no paintSlots) — a group shares a paint, so every member must take one`);
+    if (p.kind !== 'box') e.push(`anatomy part '${n}' is kind '${p.kind}' but declares paintGroup — only a box paints a surface that can be split into pieces`);
+    else if (!(p.paintSlots ?? []).length) e.push(`anatomy part '${n}' declares paintGroup '${g}' but paints nothing (no paintSlots) — a group shares a paint, so every member must take one`);
     groups.set(g, [...(groups.get(g) ?? []), n]);
   }
   for (const [g, who] of groups) {
     if (who.length < 2) e.push(`anatomy: paintGroup '${g}' has one member (${who[0]}) — a group admits a shared slot, and one part shares nothing`);
-    const slots = new Set(who.map((n) => JSON.stringify(parts[n].paintSlots ?? [])));
+    const slots = new Set(who.map((n) => JSON.stringify(parts[n]?.paintSlots ?? [])));
     if (slots.size > 1) e.push(`anatomy: paintGroup '${g}' members [${who.join(', ')}] declare different paintSlots — one surface in pieces takes one paint, so every piece names the same slots`);
   }
 
@@ -4416,10 +4677,9 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // filled circle with no child at all, so there is nothing behind it to obscure. A box that claims the
   // slot AND has a glyph or text child is exactly the configuration the exclusion existed for, so the
   // widening is scoped to the case that motivated it rather than taken on trust.
-  for (const n of names) {
-    const p = parts[n];
+  for (const [n, p] of Object.entries(parts)) {
     if (p.kind !== 'box' || !(p.paintSlots ?? []).includes('indicator')) continue;
-    const drawn = (p.children ?? []).filter((c) => parts[c] && (parts[c].kind === 'vector' || parts[c].kind === 'text'));
+    const drawn = (p.children ?? []).filter((c) => parts[c]?.kind === 'vector' || parts[c]?.kind === 'text');
     // A `size`+`radius` DISC is the one shape allowed to parent a glyph (#1354, the switch thumb). #864's
     // case was an SVG WRAPPER FRAME — a box with no shape of its own — whose fill landed as an incidental
     // SQUARE behind the glyph; the fix was "move the ink to the drawing part's slot". A Prism 2 switch
@@ -4431,13 +4691,13 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // parents its `mark` the same way, using `fill` (never refused).
     const isShapedDisc = p.size !== undefined && p.radius !== undefined;
     if (drawn.length && !isShapedDisc)
-      e.push(`anatomy part '${n}' declares paintSlots 'indicator' and has ${parts[drawn[0]].kind} child${drawn.length > 1 ? 'ren' : ''} [${drawn.join(', ')}] — a box may take an ink slot only when it DRAWS the mark itself, the fill lands behind the node that does (#864), or it is a deliberately-shaped filled mark (binds 'size' AND 'radius', e.g. the switch thumb carrying a state glyph — #1354). Move the ink to the drawing part's own slot, or shape the box.`);
+      // `!` twice: `drawn` is non-empty here (the guard), and filtered to children that are declared parts.
+      e.push(`anatomy part '${n}' declares paintSlots 'indicator' and has ${parts[drawn[0]!]!.kind} child${drawn.length > 1 ? 'ren' : ''} [${drawn.join(', ')}] — a box may take an ink slot only when it DRAWS the mark itself, the fill lands behind the node that does (#864), or it is a deliberately-shaped filled mark (binds 'size' AND 'radius', e.g. the switch thumb carrying a state glyph — #1354). Move the ink to the drawing part's own slot, or shape the box.`);
   }
   // A BOX CLAIMING `caret` DRAWS THE CARET ITSELF, and nothing else (owner decision, 2026-09-26). The bar
   // is the whole mark, so a child under it is either content the caret's fill would sit behind (#864) or
   // a caret that is secretly a container.
-  for (const n of names) {
-    const p = parts[n];
+  for (const [n, p] of Object.entries(parts)) {
     const caretSlot = (p.paintSlots ?? []).find((s) => s === 'caret' || s === 'caret-end');
     if (p.kind !== 'box' || !caretSlot) continue;
     if ((p.children ?? []).length)
@@ -4450,8 +4710,8 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // product. Under the `{size}`-only expansion a `size.{size}.{weight}.text` key expanded to three
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
-  const bindingKeys = (p: PartDef): string[] =>
-    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.tileEdge?.radius, p.tileEdge?.strokeWidth, p.strokeEdges?.top, p.strokeEdges?.right, p.strokeEdges?.bottom, p.strokeEdges?.left, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key, p.firstLine?.glyph, p.nestPaddingBlock]
+  const bindingKeys = (p: PartFields): string[] =>
+    [p.gap, p.rowGap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.tileEdge?.radius, p.tileEdge?.strokeWidth, p.strokeEdges?.top, p.strokeEdges?.right, p.strokeEdges?.bottom, p.strokeEdges?.left, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key, p.firstLine?.glyph, p.nestPaddingBlock]
       .filter((k): k is string => typeof k === 'string');
   // A TYPE KEY MAY ALSO NAME `{state}` (#2580): a standalone Link sets its label in the underlined style at hover,
   // pressed and focus-visible and the plain one at rest, so its text style moves with the interaction state while
@@ -4461,29 +4721,29 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // the node and leave it out of the auto-layout size (`strokesIncludedInLayout: false`), so a state-keyed weight
   // moves no box, which is the footprint rule's whole concern. AND A `strokeWidth` KEY (#3399, owner decision Q22 A), for
   // the same reason: a focused field's border becomes the 2px focus edge, drawn inside, so the box keeps its size.
-  const keyAxes = (p: PartDef, key: string): Record<string, readonly string[]> =>
+  const keyAxes = (p: PartFields, key: string): Record<string, readonly string[]> =>
     key === p.type || key === p.strokeWidth || (p.strokeEdges && Object.values(p.strokeEdges).includes(key)) ? { ...(def.variants ?? {}), state: statesOf(def) } : (def.variants ?? {});
-  for (const n of names)
-    for (const key of bindingKeys(parts[n]))
-      for (const expanded of expandKey(key, keyAxes(parts[n], key)))
+  for (const [n, p] of Object.entries(parts))
+    for (const key of bindingKeys(p))
+      for (const expanded of expandKey(key, keyAxes(p, key)))
         if (!(expanded in (def.tokens ?? {})))
           e.push(`anatomy part '${n}': binding key '${expanded}'${expanded === key ? '' : ` (from '${key}')`} is not a slot in tokens`);
   // A placeholder naming no declared axis expands to NOTHING and would otherwise reach the loop above
   // as an unexpanded literal — reported as a missing token rather than as the typo it is. Asked here
   // so the message names the axis, and asked against `variants` because that is where the axis would
   // have to be declared for the projector to have a value to substitute.
-  for (const n of names)
-    for (const key of bindingKeys(parts[n]))
+  for (const [n, p] of Object.entries(parts))
+    for (const key of bindingKeys(p))
       for (const ph of paintKeyPlaceholders(key))
-        if (!(ph in keyAxes(parts[n], key)))
+        if (!(ph in keyAxes(p, key)))
           e.push(`anatomy part '${n}': binding key '${key}' names placeholder '{${ph}}', which is not an axis in variants — the projector fills a binding key from the member's coordinate, so a placeholder no axis supplies can never be filled`);
-  if (sizes.length === 0 && names.some((n) => bindingKeys(parts[n]).some((k) => k.includes('{size}'))))
+  if (sizes.length === 0 && Object.values(parts).some((p) => bindingKeys(p).some((k) => k.includes('{size}'))))
     e.push("anatomy uses the {size} placeholder but variants.size is empty — nothing to expand over");
 
   // Tree shape: children exist, nothing is claimed twice, everything is reachable from root.
   const claimed = new Map<string, string>();
-  for (const n of names)
-    for (const c of parts[n].children ?? []) {
+  for (const [n, p] of Object.entries(parts))
+    for (const c of p.children ?? []) {
       if (!parts[c]) { e.push(`anatomy part '${n}': child '${c}' is not a declared part`); continue; }
       if (claimed.has(c)) e.push(`anatomy part '${c}' is claimed as a child twice ('${claimed.get(c)}' and '${n}')`);
       else claimed.set(c, n);
@@ -4531,8 +4791,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     for (const c of parts[n].children ?? []) walk(c);
   };
   walk(a.root);
-  for (const n of names) {
-    const p = parts[n];
+  for (const [n, p] of Object.entries(parts)) {
     if (p.kind === 'overlay') {
       // `replaces` is a string OR an ordered list since #848. Normalized once here and read as a list
       // from this point down, so every rule below states itself over candidates rather than over the
@@ -4564,7 +4823,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       // `optional: false`, which is what makes it a valid floor.
       if (p.overlaysWhenAbsent) {
         if (!parts[p.overlaysWhenAbsent]) e.push(`anatomy part '${n}': overlaysWhenAbsent '${p.overlaysWhenAbsent}', which is not a declared part`);
-        else if (parts[p.overlaysWhenAbsent].optional) e.push(`anatomy part '${n}': overlaysWhenAbsent '${p.overlaysWhenAbsent}' is optional — the fallback must be a part that is always present, or there is still a coordinate where the overlay takes a cell of its own`);
+        else if (parts[p.overlaysWhenAbsent]?.optional) e.push(`anatomy part '${n}': overlaysWhenAbsent '${p.overlaysWhenAbsent}' is optional — the fallback must be a part that is always present, or there is still a coordinate where the overlay takes a cell of its own`);
         if (replacesList.includes(p.overlaysWhenAbsent)) e.push(`anatomy part '${n}': overlaysWhenAbsent duplicates a 'replaces' candidate ('${p.overlaysWhenAbsent}') — the fallback exists for the case EVERY candidate is absent, so naming one of them says nothing`);
       } else if (replacesList.length && replacesList.every((r) => parts[r]?.optional)) {
         // Every candidate OPTIONAL means a coordinate exists where the overlay lands nowhere, so the
@@ -4628,10 +4887,34 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     }
   }
 
+  // ---- THE DOCUMENTED-KIND FIELDS (#3698, owner decisions Q-PU1 A and Q-PU2 A) ----
+  // Each field below was documented for some kinds and refused on none, so a part of any other kind validated clean
+  // carrying it, and no projection reads it there. The kinds are the projector's: `radius` is bound only in the `box`
+  // branch of `figmaAnatomyPlan`; `replaces` and `overlaysWhenAbsent` only off the active overlay, found by
+  // `kind === 'overlay'`; `when` only by the overlay lookup and the `absolute` presence rule; and `children` builds a
+  // subtree only under a FRAME, which only a `box` becomes — a TEXT node holds no children, and a slot or overlay is
+  // an INSTANCE, which Figma refuses an append into. `absolute`, `nest` and `vector` children keep their own refusals
+  // above and below, so `children` is asked here only of the three kinds that had none. `type` names a text style,
+  // which only a TEXT node takes, so only a `text` part carries one (Q-PU2 A; since #3783 `figmaAnatomyPlan` reads it on
+  // no other kind either). The union under `PartFields` says the same at the type layer, and `lint-part-union` proves
+  // it does.
+  const KIND_ONLY: readonly { field: 'radius' | 'replaces' | 'overlaysWhenAbsent' | 'when' | 'children' | 'type'; kinds: readonly PartKind[]; asked?: readonly PartKind[]; why: string }[] = [
+    { field: 'radius', kinds: ['box'], why: "the corners are bound only on a box's frame" },
+    { field: 'replaces', kinds: ['overlay'], why: 'only an overlay takes another part\'s cell' },
+    { field: 'overlaysWhenAbsent', kinds: ['overlay'], why: "it is an overlay's fallback when none of its 'replaces' is present" },
+    { field: 'when', kinds: ['overlay', 'absolute'], why: "only those two kinds are gated by state; an in-flow part gates on it through 'presentWhen'" },
+    { field: 'children', kinds: ['box'], asked: ['text', 'slot', 'overlay'], why: 'only a box builds a frame that holds children — a text node holds none, and a slot or overlay is an instance, which takes no appends' },
+    { field: 'type', kinds: ['text'], why: 'it names a text style, and only a text node takes one — a frame or an instance has no text style to set' },
+  ];
+  for (const [n, p] of Object.entries(parts)) {
+    for (const k of KIND_ONLY)
+      if (p[k.field] !== undefined && (k.asked ?? [p.kind]).includes(p.kind) && !k.kinds.includes(p.kind))
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares '${k.field}' — only ${k.kinds.map((x) => `a '${x}'`).join(' or ')} takes it: ${k.why}`);
+  }
+
   // Only a box lays out children; a text/slot/overlay/absolute carrying layout means the tree is
   // mis-shaped and the materializer would emit an auto-layout frame where a leaf belongs.
-  for (const n of names) {
-    const p = parts[n];
+  for (const [n, p] of Object.entries(parts)) {
     // ---- VARIANT-GATED PRESENCE (#910) ----
     // Six rules, and each one is a way the field can be authored so that it validates and then makes the
     // part vanish from every coordinate — the direction that ships, because a node that is never there
@@ -4802,8 +5085,11 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // from the child's side; stated here too, because a track may bind a width for its own sake.
     if (p.kind === 'box' && p.width && p.layout && p.layout.sizing.x !== 'fixed')
       e.push(`anatomy part '${n}' binds 'width' but its main-axis sizing is '${p.layout.sizing.x}' — a bound dimension needs 'fixed': with 'hug' the content decides the length, and with 'fill' the parent does, so either way the binding is overridden`);
-    if (p.kind !== 'box' && (p.layout || p.padding || p.gap !== undefined))
+    if (p.kind !== 'box' && (p.layout || p.padding || p.gap !== undefined || p.rowGap !== undefined))
       e.push(`anatomy part '${n}' is kind '${p.kind}' but carries layout/padding/gap — only a 'box' lays out`);
+    // THE LINE GAP (#1739) needs lines: Figma reads `counterAxisSpacing` on a wrapping frame only.
+    if (p.kind === 'box' && p.rowGap !== undefined && !p.layout?.wrap)
+      e.push(`anatomy part '${n}' binds 'rowGap' but its layout does not wrap — the space between lines exists only on a row that wraps (layout.wrap)`);
     // ---- THE WRAPPING LABEL (#1424) ----
     // `wrap` fills the parent's main axis and reflows (`layoutGrow: 1` + `textAutoResize: 'HEIGHT'`), which
     // is a TEXT-only capability — a box sizes with `sizing`, a slot/vector by its artboard.
@@ -4863,7 +5149,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
         const gapKey = pp.gap;
         const refs = gapKey === undefined ? [] : Object.entries(def.tokens ?? {})
           .filter(([k]) => new RegExp(`^${gapKey.replace(/\./g, '\\.').replace(/\{[^}]+\}/g, '[^.]+')}$`).test(k)).map(([, v]) => v);
-        const offLadder = refs.filter((r) => { const m = /^space\.([0-9]+)$/.exec(r); return !m || !SPACE_LADDER.includes(m[1]); });
+        const offLadder = refs.filter((r) => { const m = /^space\.([0-9]+)$/.exec(r); return m?.[1] === undefined || !SPACE_LADDER.includes(m[1]); });
         if (!refs.length || offLadder.length)
           e.push(`anatomy part '${n}' declares wrap 'hug' but its parent '${parent}' has siblings and its gap '${gapKey ?? '(none)'}' does not bind a step of the space ladder (${offLadder.join(', ') || 'unbound'}) — the max width subtracts one gap per sibling, in px`);
       }
@@ -4922,6 +5208,11 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       }
       if (b.grow !== undefined && !(p.children ?? []).includes(b.grow))
         e.push(`anatomy part '${n}' declares builtSize.grow '${b.grow}', which is not a child of the root — only a flow child of the column can take the height the rest does not`);
+      // AND OF A KIND THAT GROWS (#3779): the projector writes `grow: true` onto the named part (`builtSizeAt`), and
+      // `grow` is a field only a 'box' or a 'nest' takes, so naming a text, slot or glyph would build a part carrying
+      // a field its own kind is refused for.
+      else if (b.grow !== undefined && parts[b.grow] && parts[b.grow]?.kind !== 'box' && parts[b.grow]?.kind !== 'nest')
+        e.push(`anatomy part '${n}' declares builtSize.grow '${b.grow}', which is kind '${parts[b.grow]?.kind}' — only a 'box' or a 'nest' takes an in-flow cell that grows along its parent's main axis, and the build writes 'grow' onto the part this names`);
       if (b.heights && Object.keys(b.heights).length && b.grow === undefined)
         e.push(`anatomy part '${n}' declares builtSize heights with no 'grow' part — a member built taller than its content needs one part to take the rest, or the slack sits under the last child`);
     }
@@ -5083,7 +5374,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       if (n === a.root)
         e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'corner' — a corner belongs to a parent, and the root has none`);
       else {
-        const parent = Object.keys(parts).find((k) => (parts[k].children ?? []).includes(n));
+        const parent = Object.keys(parts).find((k) => (parts[k]?.children ?? []).includes(n));
         const pp = parent ? parts[parent] : undefined;
         if (!pp || pp.kind !== 'box' || !pp.layout)
           e.push(`anatomy part '${n}' declares corner '${p.corner}' under '${parent ?? '(none)'}', which is not an auto-layout 'box' — Figma ignores 'layoutPositioning' on a child of a frame with no auto-layout, silently, so the glyph would take a cell in the flow`);
@@ -5113,7 +5404,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       if (n === a.root)
         e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'foot' — a bottom edge belongs to a parent, and the root has none`);
       else {
-        const parent = Object.keys(parts).find((k) => (parts[k].children ?? []).includes(n));
+        const parent = Object.keys(parts).find((k) => (parts[k]?.children ?? []).includes(n));
         const pp = parent ? parts[parent] : undefined;
         if (!pp || pp.kind !== 'box' || !pp.layout)
           e.push(`anatomy part '${n}' declares 'foot' under '${parent ?? '(none)'}', which is not an auto-layout 'box' — Figma ignores 'layoutPositioning' on a child of a frame with no auto-layout, silently, so the bar would take a cell in the flow`);
@@ -5367,8 +5658,9 @@ const anatomyErrors = (def: ComponentDef): string[] => {
           const values = axis === 'state' ? (def.figmaProperties?.stateAxis?.values ?? []) : ((variantsOf(def)[axis] ?? []) as readonly string[]);
           if (!values.includes(value)) e.push(`${at} at ${axis}='${value}', which is not a projected value of '${axis}' [${values.join(', ')}] — no member carries it`);
         }
-        if (shape(entry.when) !== shape(vw[0].when))
-          e.push(`${at} matches on [${shape(entry.when)}] while entry 0 matches on [${shape(vw[0].when)}] — two entries could match one member, and which wins would be declaration order. Name the same host axes in every entry`);
+        // `!`: this runs inside `vw.forEach`, so `vw` has an entry 0.
+        if (shape(entry.when) !== shape(vw[0]!.when))
+          e.push(`${at} matches on [${shape(entry.when)}] while entry 0 matches on [${shape(vw[0]!.when)}] — two entries could match one member, and which wins would be declaration order. Name the same host axes in every entry`);
         const k = JSON.stringify(Object.entries(entry.when).sort());
         if (seen.has(k)) e.push(`${at} repeats a 'when' an earlier entry already maps`);
         seen.add(k);
@@ -5692,6 +5984,19 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       if (p.size !== undefined || p.width !== undefined)
         e.push(`anatomy part '${n}' declares 'aspectLock' and binds '${p.size !== undefined ? 'size' : 'width'}' — a locked node keeps only the last of two dimension bindings, so a locked part binds its height alone`);
     }
+    // HOST-TO-NEST PAINT (Q-FL1.1 A, #3554): see `PartDef.hostInk`.
+    if (p.hostInk !== undefined) {
+      const builds = p.kind === 'nest' && (p.nesting?.kind === 'nest-fixed' || p.nesting?.kind === 'nest-exposed');
+      if (!builds)
+        e.push(`anatomy part '${n}' declares 'hostInk' but is kind '${p.kind}'${p.nesting ? ` with nesting '${p.nesting.kind}'` : ''} — only a 'nest' part that is 'nest-fixed' or 'nest-exposed' builds an instance the host can push its ink into (#3554)`);
+      if (p.hostInk !== 'icon')
+        e.push(`anatomy part '${n}' declares hostInk '${String(p.hostInk)}' — only 'icon' is a slot a nested glyph has (#3554)`);
+      if (p.fixedPaint)
+        e.push(`anatomy part '${n}' declares both 'hostInk' and 'fixedPaint' — a part cannot keep its content's own paint and push the host's into it (#3554)`);
+      const slotKey = new RegExp(`(^|\\.)${p.hostInk}(\\.|$)`);
+      if (!Object.keys(def.tokens ?? {}).some((k) => slotKey.test(k)))
+        e.push(`anatomy part '${n}' declares hostInk '${String(p.hostInk)}' but the def binds no '${String(p.hostInk)}' paint key — no coordinate could resolve the ink it pushes (#3554)`);
+    }
     if (p.fixedPaint !== undefined) {
       if (p.kind !== 'slot' && p.kind !== 'overlay' && p.kind !== 'nest')
         e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'fixedPaint' — only a 'slot', an 'overlay' or a 'nest' hosts another component whose paint it could push into`);
@@ -5824,8 +6129,21 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // validates and draws somewhere else: on a kind the projector does not read it on, on the root, beside another
     // placement, under a parent Figma ignores `layoutPositioning` in, at a size other than the parent's (it would sit
     // off the drawing under it), or with nothing in the flow to draw over.
+    // `mirror` (#3986): each value on the kinds it can describe. A row reverses only in a box; a text or a box has no
+    // shape to flip; `per-glyph` is the Icon's own glyph (its name is a template) or a slot that holds an icon.
+    if (p.mirror !== undefined) {
+      const m = p.mirror as string;
+      if (!(MIRRORS as readonly string[]).includes(m))
+        e.push(`anatomy part '${n}' declares mirror '${m}' — the values are ${MIRRORS.join(', ')}`);
+      else if (m === 'reverses' && p.kind !== 'box')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares mirror 'reverses' — only a box has a row to reverse`);
+      else if ((m === 'mirrors' || m === 'per-glyph') && (p.kind === 'box' || p.kind === 'text'))
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares mirror '${m}' — a ${p.kind} has no shape to flip; a box's row is 'reverses'`);
+      else if (m === 'per-glyph' && p.kind !== 'slot' && !(p.kind === 'vector' && /\{/.test(p.glyph ?? '')))
+        e.push(`anatomy part '${n}' declares mirror 'per-glyph' — only a slot, or a vector whose glyph is chosen by name, holds an icon whose glyph decides`);
+    }
     if (p.stackCentered !== undefined) {
-      const parent = Object.keys(parts).find((k) => (parts[k].children ?? []).includes(n));
+      const parent = Object.keys(parts).find((k) => (parts[k]?.children ?? []).includes(n));
       const pp = parent ? parts[parent] : undefined;
       if (p.kind !== 'vector')
         e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'stackCentered' — only a 'vector' is a glyph the projector lifts and centers over its parent`);
@@ -5854,7 +6172,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
           e.push(`anatomy part '${n}' declares 'scaleWithParent' but no 'glyphPx' — the SCALE constraint resizes the glyph, and a glyph sized by a bound 'size' holds the binding's value against it; state its size as a literal`);
         if (p.corner !== undefined)
           e.push(`anatomy part '${n}' declares BOTH 'scaleWithParent' and 'corner' — two out-of-flow placements for one node, and the executor would keep whichever it wrote last`);
-        const parent = Object.keys(parts).find((k) => (parts[k].children ?? []).includes(n));
+        const parent = Object.keys(parts).find((k) => (parts[k]?.children ?? []).includes(n));
         const pp = parent ? parts[parent] : undefined;
         if (!pp || pp.kind !== 'box' || !pp.layout)
           e.push(`anatomy part '${n}' declares 'scaleWithParent' under '${parent ?? '(none)'}', which is not an auto-layout 'box' — Figma ignores 'layoutPositioning' on a child of a frame with no auto-layout, silently, so the glyph would stay in the flow at its fixed size`);

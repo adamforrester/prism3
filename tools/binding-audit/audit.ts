@@ -80,6 +80,7 @@ import {
   buildLedger,
 } from './ledger';
 import { runReconcile } from './reconcile';
+import { localeFreeCompare } from '../../packages/engine/locale-free-order';
 
 /**
  * The ROLE FAMILY WORD — the structural slot a role paints, independent of intent, state and the
@@ -337,7 +338,7 @@ const main = (): void => {
   console.log('── Ledger (expected part→variable binds) ' + '─'.repeat(38));
   let totalMembers = 0;
   let totalBinds = 0;
-  for (const s of ledgerStats.sort((a, b) => a.component.localeCompare(b.component))) {
+  for (const s of ledgerStats.sort((a, b) => localeFreeCompare(a.component, b.component))) {
     totalMembers += s.members;
     totalBinds += s.bindings;
     console.log(`  ${s.component.padEnd(24)} ${String(s.members).padStart(4)} members · ${String(s.bindings).padStart(5)} slot binds · ${s.declared} declared color keys`);

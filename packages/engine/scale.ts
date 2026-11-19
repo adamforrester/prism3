@@ -119,6 +119,12 @@ export type ButtonLabelWeight = 'default' | 'emphasis';
  *  its label and icon change color and nothing fills. `fill`: the container also takes the overlay wash, on hover
  *  and pressed only — a text button is never filled at rest. Button family only. See `applyButtonLayout`. */
 export type ButtonTextHover = 'text' | 'fill';
+/** #576 (owner decision 2026-11-18, A) — the border weight of an OUTLINE button: one brand-wide value for every button
+ *  set (button, button-neutral, button-destructive), never one per set; the border's color stays per set. `hairline`
+ *  (the default) binds `border-width.hairline`, today's 1px; `thick` binds `border-width.thick`, 2px. No token is added:
+ *  the rebinding picks an existing rung. Button family only. See `applyButtonLayout`. The key and values are a DRAFT
+ *  for the owner. */
+export type ButtonBorderWeight = 'hairline' | 'thick';
 /** The default `buttonMinWidthMultiplier`: Adobe Spectrum's `button-minimum-width-multiplier`, where a
  *  button's `min-inline-size` is `calc(height × multiplier)` (docs/28 §2.2, "derived, not authored"). */
 export const DEFAULT_MIN_WIDTH_MULTIPLIER = 2.25;
@@ -165,7 +171,15 @@ export const dimensionGrid = (base = 4, max = 128, extras: number[] = []): numbe
 // 150 (=12px) and 250 (=20px) are the UI-critical half-steps in the 8→16 and 16→24
 // gaps; Prism2 ships both and the engine had been omitting them — restoring them
 // makes the Prism2 space reproduction complete (18/18 keys).
-const SPACE_KEYS = ['0', '025', '050', '075', '100', '150', '200', '250', '300', '400', '500', '600', '700', '800', '900', '1000', '1100', '1200'];
+const SPACE_LADDER_KEYS = ['0', '025', '050', '075', '100', '150', '200', '250', '300', '400', '500', '600', '700', '800', '900', '1000', '1100', '1200'];
+// 550 (=44px, owner Q-HT1 A on #3408) is the enhanced target size, the hit-target floor a medium or large
+// Button states in code (`size.<s>.hit-target`). It is a step of the SCALE, emitted beside the others, but NOT a
+// step of the density LADDER below: density moves a spacing by the ladder's own rhythm (8px apart above 24), and
+// a target floor is not a rhythm step. Kept off the ladder, no def's density step moves (measured: every
+// component artifact regenerates identically either way today, since no def states a density-following
+// `space.500` or `space.600`). Whether it should join the ladder is an owner question, flagged on the PR.
+const SPACE_OFF_LADDER_KEYS = ['550'];
+const SPACE_KEYS = [...SPACE_LADDER_KEYS, ...SPACE_OFF_LADDER_KEYS].sort((a, b) => Number(a) - Number(b));
 
 /** The space scale for a given rhythm. spaceBase=8 reproduces Prism2 exactly. */
 export const spaceScale = (spaceBase = 8): SpaceStep[] =>
@@ -186,7 +200,7 @@ export const spaceScale = (spaceBase = 8): SpaceStep[] =>
 //
 // DENSITY FOLLOWS BY RULE. A def states its COMFORTABLE step. At generation time (`applySpacingDensity`,
 // before projection) compact moves every density-following step ONE STEP DOWN this ladder and spacious ONE
-// STEP UP. "One step" is one position in `SPACE_KEYS` as written — 0, 025, 050, 075, 100, 150, 200, 250,
+// STEP UP. "One step" is one position in `SPACE_LADDER_KEYS` as written — 0, 025, 050, 075, 100, 150, 200, 250,
 // 300, 400, … — so 16px (`space.200`) goes to 12px (`space.150`) at compact and 20px (`space.250`) at
 // spacious, and 32px (`space.400`) goes to 24px and 40px. The steps are the ladder's own, not a px delta:
 // the ladder is finer at the small end (2px apart below 8) and coarser above 24 (8px apart), and a rule
@@ -208,12 +222,19 @@ export const spaceScale = (spaceBase = 8): SpaceStep[] =>
 // Heights keep their own density window (`componentSizes`, below). This rule replaces the window padding
 // used to ride on.
 /** The space ladder "one step" is measured on, in order. */
-export const SPACE_LADDER: readonly string[] = SPACE_KEYS;
+export const SPACE_LADDER: readonly string[] = SPACE_LADDER_KEYS;
+/** A value the caller has established is present (an in-range index, a key just written); a named throw, not a
+ *  silent `undefined` (#1182, `noUncheckedIndexedAccess`). */
+const must = <T>(x: T | undefined, what: string): T => {
+  if (x === undefined) throw new Error(`scale: ${what} is missing`);
+  return x;
+};
+
 /** A `space.<key>` ref's px on the fixed `SPACE_BASE` rhythm — the same px every brand emits, since the
  *  space scale is not a brand lever. Throws on a ref that is not a step of the ladder. */
 export const spacePx = (ref: string): number => {
   const m = /^space\.([0-9]+)$/.exec(ref);
-  if (!m || !SPACE_KEYS.includes(m[1])) throw new Error(`spacePx: '${ref}' is not a step of the space ladder`);
+  if (m?.[1] === undefined || !SPACE_KEYS.includes(m[1])) throw new Error(`spacePx: '${ref}' is not a step of the space ladder`);
   return (Number(m[1]) / 100) * SPACE_BASE;
 };
 /** How many ladder steps each density moves a comfortable spacing step. */
@@ -223,12 +244,12 @@ export const DENSITY_SPACE_SHIFT: Record<Density, number> = { compact: -1, comfo
  *  density-following binding off the scale has no "one step" to take. */
 export const densitySpace = (ref: string, density: Density, floorPx = 0): string => {
   const m = /^space\.([0-9]+)$/.exec(ref);
-  const i = m ? SPACE_KEYS.indexOf(m[1]) : -1;
-  if (i < 0) throw new Error(`densitySpace: '${ref}' is not a step of the space ladder (${SPACE_KEYS.map((k) => `space.${k}`).join(', ')}), so density has no step to move it`);
-  let j = Math.min(SPACE_KEYS.length - 1, Math.max(0, i + DENSITY_SPACE_SHIFT[density]));
+  const i = m?.[1] !== undefined ? SPACE_LADDER_KEYS.indexOf(m[1]) : -1;
+  if (i < 0) throw new Error(`densitySpace: '${ref}' is not a step of the space ladder (${SPACE_LADDER_KEYS.map((k) => `space.${k}`).join(', ')}), so density has no step to move it`);
+  let j = Math.min(SPACE_LADDER_KEYS.length - 1, Math.max(0, i + DENSITY_SPACE_SHIFT[density]));
   // A floor lifts the step back up the ladder to the first one at or above it (the gap floor, above).
-  while (j < SPACE_KEYS.length - 1 && (Number(SPACE_KEYS[j]) / 100) * SPACE_BASE < floorPx) j++;
-  return `space.${SPACE_KEYS[j]}`;
+  while (j < SPACE_LADDER_KEYS.length - 1 && (Number(SPACE_LADDER_KEYS[j]) / 100) * SPACE_BASE < floorPx) j++;
+  return `space.${SPACE_LADDER_KEYS[j]}`;
 };
 /** The smallest a GAP may be at any density, in px (owner, 2026-09-29). Paddings have no floor. */
 export const GAP_FLOOR_PX = 4;
@@ -249,11 +270,11 @@ export const densitySpacingStep = (key: string, ref: string, density: Density): 
 export const visibleGapStep = (visibleRef: string, insetRef: string): string => {
   const pxOf = (ref: string): number => {
     const m = /^space\.([0-9]+)$/.exec(ref);
-    if (!m || !SPACE_KEYS.includes(m[1])) throw new Error(`visibleGapStep: '${ref}' is not a step of the space ladder`);
+    if (m?.[1] === undefined || !SPACE_LADDER_KEYS.includes(m[1])) throw new Error(`visibleGapStep: '${ref}' is not a step of the space ladder`);
     return (Number(m[1]) / 100) * SPACE_BASE;
   };
   const px = Math.max(0, pxOf(visibleRef) - pxOf(insetRef));
-  const key = SPACE_KEYS.find((k) => (Number(k) / 100) * SPACE_BASE === px);
+  const key = SPACE_LADDER_KEYS.find((k) => (Number(k) / 100) * SPACE_BASE === px);
   if (key === undefined) throw new Error(`visibleGapStep: ${visibleRef} − ${insetRef} = ${px}px, which is not a step of the space ladder`);
   return `space.${key}`;
 };
@@ -302,7 +323,7 @@ const DENSITY_START: Record<Density, number> = { compact: 0, comfortable: 1, spa
  *  to the defs (the spacing model, above). */
 export const componentSizes = (density: Density, _spaceBase = 8): SizeStep[] => {
   const start = DENSITY_START[density];
-  return SIZE_NAMES.map((name, i) => ({ name, height: SIZE_RUNGS[start + i] }));
+  return SIZE_NAMES.map((name, i) => ({ name, height: must(SIZE_RUNGS[start + i], `size rung ${start + i}`) }));
 };
 
 // ---------------------------------------------------------------------------
@@ -549,9 +570,9 @@ export type ControlSizeStep = { name: string; height: number; width: number; dot
  *  traveling thumb has to be, which is the whole of #1425. */
 export const controlSizes = (density: Density, dotShare: RadioDotShare = RADIO_DOT_DEFAULT): ControlSizeStep[] =>
   CONTROL_NAMES.map((name, i) => {
-    const height = CONTROL_RUNGS[DENSITY_START[density] + i];
+    const height = must(CONTROL_RUNGS[DENSITY_START[density] + i], `control rung ${DENSITY_START[density] + i}`);
     const dot = radioDotPx(height, dotShare);
-    const track = SWITCH_TRACK_RUNGS[DENSITY_START[density] + i];
+    const track = must(SWITCH_TRACK_RUNGS[DENSITY_START[density] + i], `switch track rung ${DENSITY_START[density] + i}`);
     const thumb = track * SWITCH_THUMB_RATIO;
     return { name, height, width: track * CONTROL_TRACK_RATIO, dot, inset: controlInset(track, thumb), track, thumb };
   });
@@ -609,9 +630,11 @@ export const radiusScale = (scale: number, baseMd = 4, pill = 128, capsule = 999
   // adjacent rungs onto the same 2px sub-grid, and scale=0 collapses all to sharp
   // — but a rung smaller than its predecessor means a non-monotone (NaN/negative
   // scale, or a broken ladder edit) slipped the Number.isFinite guard upstream.
-  for (let i = 1; i < ramp.length; i++)
-    if (ramp[i].px < ramp[i - 1].px)
-      throw new Error(`radiusScale: non-monotone rung ${ramp[i].name}=${ramp[i].px}px < ${ramp[i - 1].name}=${ramp[i - 1].px}px (scale=${scale})`);
+  for (const [i, cur] of ramp.entries()) {
+    const prev = ramp[i - 1];
+    if (prev && cur.px < prev.px)
+      throw new Error(`radiusScale: non-monotone rung ${cur.name}=${cur.px}px < ${prev.name}=${prev.px}px (scale=${scale})`);
+  }
   // Sentinels, pushed AFTER the monotonicity guard so a fixed unscaled value never trips it — the same
   // sidestep the pills use, and the reason `hairline` (1px < lg) is legal here where the ladder forbids it.
   ramp.push({ name: 'round', px: pill, pill: true });

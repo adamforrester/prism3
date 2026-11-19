@@ -8,7 +8,7 @@
  *  WHAT IT IS HANDED. The section context, the resolved typography, the mode, the section's copy, and how a
  *  face's availability reads on this host (`faceStatus` in `ui/fonts.ts`, bound to the host's font list).
  *  Nothing here reads the session. */
-import type { Theme } from '@prism3/engine/theme';
+import type { Theme } from '@prism3/engine';
 import { drawFace, faceDraw, type FaceStatus, type HostFonts } from '../../ui/fonts';
 import { el, hook, palSection, specimen, subHead, tokenPillSpan, type SgCtx } from './kit';
 

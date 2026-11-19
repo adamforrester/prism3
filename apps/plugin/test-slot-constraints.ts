@@ -21,12 +21,7 @@
  *   · the miss for a preferred def not in the file dropped → `constraints/missing preferred named`;
  *   · the clear on Update dropped (the `hostHas` arm) → `constraints/cleared on update`.
  */
-import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
-import { diffAnatomy } from '@prism3/engine/anatomy-readback';
-import type { HostNode, ReadPorts } from '@prism3/engine/anatomy-readback';
-import type { ComponentDef } from '@prism3/engine/component-schema';
+import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, componentDefs, diffAnatomy, type HostNode, type ReadPorts, type ComponentDef, type PartOfKind } from '@prism3/engine/components';
 import { applyComponentPlan } from './src/write-components';
 import { makeShim, type Node, type Page } from './component-shim';
 
@@ -48,6 +43,8 @@ const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferr
   // Repeating items (#2649, owner decision Q307 A): at least one, the ceiling where one means something, only the item.
   'checkbox-group.items': { slotSettings: { minChildren: 1, allowPreferredValuesOnly: true }, preferred: ['checkbox-row'] },
   'radio-group.items': { slotSettings: { minChildren: 1, allowPreferredValuesOnly: true }, preferred: ['radio-row'] },
+  // #1739: Tag.Group's tags, at least one, no ceiling (a filter set grows with the data), only the tag.
+  'tag-group.items': { slotSettings: { minChildren: 1, allowPreferredValuesOnly: true }, preferred: ['tag'] },
   'tabs.items': { slotSettings: { minChildren: 1, maxChildren: 6, allowPreferredValuesOnly: true }, preferred: ['tab-item'] },
   'list.items': { slotSettings: { minChildren: 1, allowPreferredValuesOnly: true }, preferred: ['list-item'] },
   'segmented-control.items': { slotSettings: { minChildren: 1, maxChildren: 5, allowPreferredValuesOnly: true }, preferred: ['segmented-control-segment'] },
@@ -92,7 +89,7 @@ console.log('the corpus');
 
 const tag = componentDefs.find((d) => d.id === 'tag')!;
 const slotted = (extra: Record<string, unknown> = {}): ComponentDef => ({ ...tag, anatomy: { ...tag.anatomy!, parts: { ...tag.anatomy!.parts,
-  dismiss: { ...tag.anatomy!.parts.dismiss, contentSlot: true, ...extra },
+  dismiss: { ...(tag.anatomy!.parts.dismiss as PartOfKind<'box'>), contentSlot: true, ...extra },
 } } });
 const CONSTRAINED = { slotSettings: { minChildren: 1, maxChildren: 2, allowPreferredValuesOnly: true }, preferred: ['badge'] };
 const planComps = (n: { swapTarget?: string; nestTarget?: string; children: unknown[] }): string[] => [

@@ -22,7 +22,7 @@ Shown on the default member: intent `neutral`.
 1. **Container** — The toast: the inverse surface, its shadow and its corners. It is never shorter than a medium control, and holds the message on the start side and the action and close button on the end side.
 2. **Content** — The glyph and the message. It takes the width the action and close button do not.
 3. **Glyph cell** — One line of the message tall, centering the glyph on the message's first line.
-4. **Check circle glyph** — The success glyph, a circled check, hidden from assistive technology: the message carries the meaning. A neutral toast has no glyph.
+4. **Success glyph** — The success glyph, a circled check, hidden from assistive technology: the message carries the meaning. A neutral toast has no glyph.
 5. **Message** — The message. It wraps onto a second line rather than truncating.
 6. **Controls** — The action and the close button, at the end edge.
 7. **Action** (optional) — The action: a Button, text, small, on the inverse surface, reading "Action" until a designer names it. Off by default.
@@ -36,7 +36,9 @@ Shown on the default member: intent `neutral`.
 
 ## Usage guidelines
 
-Use a Toast to confirm something the user did, when the page already shows the change: "Added to bag", "Address saved", "Code copied". If missing the message would cost the user something, use a banner. A decision before going on is a dialog; a message about one field is a field message.
+Use a Toast to confirm something the user did, when the page already shows the change: "Added to bag", "Address saved", "Code copied". If missing the message would cost the user something, use Banner. A decision before going on is a dialog; a message about one field is a field message.
+
+**In RTL.** The layout mirrors: the start edge is on the right.
 
 ### Do
 
@@ -58,7 +60,7 @@ Use a Toast to confirm something the user did, when the page already shows the c
 
 - **Keyboard:** F6 moves focus into the notifications region, to the newest toast's first control. Tab moves between the action and the close button. Escape or Shift+F6 returns focus to where it was. Enter and Space act on the focused button.
 - **Focus:** Showing a toast never moves focus. Focus enters only by F6, and Escape returns it.
-- **Screen readers:** The toast sits in one shared role="status" live region (polite, aria-atomic="true"), inside a landmark labeled "Notifications". The toast itself takes no role and never takes focus.
+- **Screen readers:** The toast sits in one shared `role="status"` live region (polite, `aria-atomic="true"`), inside a landmark labeled "Notifications". The toast itself takes no role and never takes focus.
 
   The live region is role="status" with aria-atomic="true", present and empty from app start. The success glyph is aria-hidden. The close button's accessible name is "Dismiss" and the region's label is "Notifications"; both are translatable. Nothing mirrors in motion.
 
@@ -90,9 +92,8 @@ Short and factual: the outcome, not a conversation. The glyph carries the tone, 
 
 - **Built from:** `button`, `flush-icon-button-neutral`
 - **Instead, consider:** `dialog`, `field-message`, `banner`
-- **Often used with:** `field-message`, `dialog`
 - **Replaces:**
-  - an alert() after a save
+  - an `alert()` after a save
   - a status message that moves focus
   - a timed message with no pause
 
@@ -124,7 +125,7 @@ Generated from the plan that builds the design-file component: 2 members. Values
 | `container/controls/action` | instance | every member |
 | `container/controls/close` | instance | every member |
 | `container/content/glyphCell` | frame | intent=success |
-| `container/content/glyphCell/checkCircleGlyph` | instance | intent=success |
+| `container/content/glyphCell/successGlyph` | instance | intent=success |
 
 ### Spacing and size
 
@@ -136,11 +137,11 @@ Keyed by nothing: one row covers every member.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.100` / `space.100` / `space.100` / `space.200` | `space.100` | — | — | — | min height `size.md.height`; build width 360px (literal) |
+| `container` | `space.100` / `space.100` / `space.100` / `space.200` | `space.100` | — | — | — | min height `size.md.height`; build width 360px (literal); radius `radius.xl` |
 | `container/content` | — | `space.150` | — | — | — | — |
 | `container/controls` | — | `space.050` | — | — | — | — |
 | `container/content/glyphCell` | — | — | — | — | — | min height `type.body.sm.line-box` |
-| `container/content/glyphCell/checkCircleGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/content/glyphCell/successGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
 ### Type
 
@@ -166,14 +167,14 @@ Keyed by `intent`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.inverse.background.primary` | — | — | — |
-| `container/content/glyphCell/checkCircleGlyph` | — | — | — | `color.inverse.icon.success` |
+| `container/content/glyphCell/successGlyph` | — | — | — | `color.inverse.icon.success` |
 | `container/content/message` | — | — | `color.inverse.text.primary` | — |
 
 ### Nesting and properties
 
 - `container/controls/action` nests `button` at `appearance=text, size=small, surface=inverse, inset=default, state=rest, leading icon=false, trailing icon=false`
 - `container/controls/close` nests `flush-icon-button-neutral` at `shape=flush, size=small, surface=inverse, state=rest`
-- `container/content/glyphCell/checkCircleGlyph` nests `icon/check-circle`
+- `container/content/glyphCell/successGlyph` nests `icon/check-circle`
 
 | Property | Type | Default |
 | --- | --- | --- |

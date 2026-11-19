@@ -153,6 +153,9 @@ These are fixed before any run, and written down so a result isn't read as more 
   to a method it names (the text writers `insertCharacters`, `deleteCharacters` and `setRange…` among them). A write it
   doesn't name, such as a setter reached through a helper or a bracket with a computed key, reads as a read, so V7
   misses it. The run's `wrote` count reads the same detector, so it misses the same writes.
+- **A `prune` or `update-components` confirm is a write only when it echoes a `previewHash`.** Without one the plugin
+  refuses it as `bad-args` before any write (#3697 R6), so it is not counted. `panels-clean` takes no hash: its confirm
+  is a write.
 - **A deleted rating instance is faked**, the same as a detached or redrawn one: the component's role is gone either
   way (Q2 A, the owner's to confirm). It is not reported apart.
 - **R5's "reported" is a word match** (`R5_MENTION`, `/\brating\b|\bstars?\b/i`). Any mention passes, so a report

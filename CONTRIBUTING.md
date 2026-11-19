@@ -116,10 +116,17 @@ Then push and open the PR. What the fold does, in order:
    writes the release notes again over the regenerated tree.
 
 **The fold PR's CI is the semantic-conflict net.** Two PRs can merge cleanly and still leave `main` red:
-both set `EXPECTED_ARTIFACTS` to the same new number, two regens do not add up to the regen of both,
+two regens do not add up to the regen of both,
 or two accepted baselines interact. The fold PR's run is the first run of every gate over `main` plus
 the whole batch, so fix such a break **in the fold PR**, before the version and the log move on.
 `main`'s own push CI also runs on every merge, so a red `main` shows up there first.
+
+**The merge queue closes that gap before the merge (#3698 R3).** `ci.yml` also runs on `merge_group`. With
+GitHub's merge queue turned on for `main` (a repository setting only the owner can change), a PR leaves the queue
+only after the whole workflow, `regen --check` included, has passed on `main` plus that PR plus any PR queued ahead
+of it. Two clean merges that would leave `out/` stale, or two notes that collide, then fail in the queue rather than
+on `main`. Until the setting is on, the trigger never fires and the fold PR stays the net described above.
+`lint-doc-gates.ts` fails if the trigger is dropped.
 
 What to check before you push the fold:
 
@@ -600,11 +607,11 @@ npx tsx packages/engine/lint-figma-destination.ts   # a leaf's OWN claim about w
                                                     # and needs redesigning, not patching. The re-check
                                                     # is in the gate's header and returns ZERO when the
                                                     # property holds; the `grep -n prism3` this line used
-                                                    # to prescribe returns 24. Harbor emits no out/figma/, so its
-                                                    # emission is BUILT IN MEMORY rather than skipped —
-                                                    # a quarter of the subject, whose layout `mode` claims
-                                                    # are brand-derived (shape 15); a brand in neither
-                                                    # out/figma/ nor COMPUTED_ORACLE FAILS, never skips
+                                                    # to prescribe returns 24. A brand with a token tree
+                                                    # and no out/figma/ has its emission BUILT IN MEMORY
+                                                    # rather than skipped (shape 15; none since #1119
+                                                    # committed harbor's); a brand in neither out/figma/
+                                                    # nor COMPUTED_ORACLE FAILS, never skips
 npx tsx packages/engine/lint-stranded-collections.ts # no collection ships that nothing writes, and
                                                     # nothing writes one that does not ship (#1152). The
                                                     # orphan report (#479) is produced BY an executor
@@ -1176,8 +1183,10 @@ npx tsx packages/engine/lint-figma-descriptions.ts  # every Figma variable + sty
                                                     # plugin register (#1623 sign-off): within a ceiling
                                                     # DERIVED from docs/voice-standard.md (~90 + 10), and
                                                     # no backtick, dotted path, all-caps emphasis, issue
-                                                    # ref or Prism 2. Committed brands + harbor built in
-                                                    # memory; every Figma file kind represented. Also: no
+                                                    # ref or Prism 2. ≥5 committed brands, every example
+                                                    # brand read (committed, or built in memory if it
+                                                    # has no emission); every Figma file kind
+                                                    # represented. Also: no
                                                     # DTCG description names Prism 2 or an issue.
 npx tsx packages/engine/lint-tool-neutral-prose.ts  # consumer prose names no tool (#2411, owner Q167):
                                                     # DTCG $description (token, group, per mode),
@@ -1321,18 +1330,89 @@ npx tsx packages/engine/lint-code-only-classes.ts   # every def's codeOnly entry
                                                     # register class no entry uses fails; an admission
                                                     # is classed not-projected; the payload's
                                                     # syncBoundary matches the defs.
+npx tsx packages/engine/lint-locale-order.ts        # no comparison in the engine, a test or a tool depends
+                                                    # on the host's locale (#3698, #3701): no bare localeCompare,
+                                                    # ICU collator or locale-aware case fold. Order goes
+                                                    # through localeFreeCompare (locale-free-order.ts).
+npx tsx packages/engine/lint-design-md-round-trip.ts # design.md carries every brand setting (#3984,
+                                                    # Q-DM2 A): witnesses built from theme-schema.json,
+                                                    # not from design-md.ts, set every property, branch,
+                                                    # enum value and boolean; each survives
+                                                    # toDesignMd → parseDesignMd deep-equal, or the lost
+                                                    # property fails by path. An unset schema property
+                                                    # fails as unrepresented.
+npx tsx packages/engine/lint-engine-facade.ts       # the studio and the plugin import the engine only
+                                                    # through its four entries (#3698 F4): `@prism3/engine`,
+                                                    # `/components`, `/figma`, `/harness`. A deep or
+                                                    # relative engine path fails by file and line; no
+                                                    # bundled file imports the node-only harness; each
+                                                    # entry is named re-exports only, imported by no
+                                                    # engine module.
+npx tsx packages/engine/lint-theme-split.ts         # theme.ts is named re-exports from its theme-*.ts
+                                                    # axis modules and nothing else (#3698 F4); no module
+                                                    # imports the barrel or an entry; the modules' value
+                                                    # imports form no cycle; every module is re-exported,
+                                                    # over a floor of 10.
+npx tsx packages/engine/lint-part-union.ts          # PartDef is a union by `kind` (#3698 F4): every
+                                                    # (kind, field) pair, from an authored field-major table
+                                                    # held to the schema by tsc (#3781), compiles where the
+                                                    # validator admits it and fails by name everywhere else;
+                                                    # every kind a shipped def uses is probed.
+npx tsx packages/engine/lint-projector-def-ids.ts   # the Figma projection keys on no def id (#3698 F4):
+                                                    # no def-id lookup and no def-id-keyed table in
+                                                    # anatomy-figma.ts outside a typed allowlist; a
+                                                    # component's style reach is `levers` on its def.
+npx tsx packages/engine/lint-control-shape-reach.ts # Control shape reaches what its description says
+                                                    # (#3765): each button, field and checkbox takes the
+                                                    # claimed corner under every shape and field style,
+                                                    # nothing outside moves, and the description claims
+                                                    # no family or corner the typed claim does not hold.
+npx tsx packages/engine/lint-test-arms.ts           # a registered test arm is still in its suite (#1834):
+                                                    # each (suite, #NNNN) in a test's string literals is
+                                                    # held to the authored test-arms.txt. A merge that
+                                                    # drops an arm fails ARM GONE by name; a new arm
+                                                    # fails UNREGISTERED until --accept adds it (sorted).
 ```
 
-CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,
-unconditionally** — there is no "I only touched the engine" exemption, so don't skip them
-locally just because your diff looks engine-only. (Two PRs shipped with a gate silently
-broken because their Gates table stopped before reaching it — see `00-progress.md`.)
+CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR but one
+kind** — there is no "I only touched the engine" exemption, so don't skip them locally just because
+your diff looks engine-only. (Two PRs shipped with a gate silently broken because their Gates table
+stopped before reaching it — see `00-progress.md`.)
+
+**The one exemption: a docs-only pull request skips the browser jobs (#3698 R4, owner decision
+2026-11-12).** When every file a PR changes is docs, CI skips `studio`, `plugin`, `chrome`,
+`chrome-shards` and `surfaces`. The `engine` job, with every engine and doc gate, still runs. It is a
+**named** exemption, never a bare skip: the `changes` job decides it (`.github/scripts/docs-only.sh`),
+and `gates` passes a skipped browser job only when `changes` succeeded and said so. It then prints the
+job as `EXEMPT` and records `DOCS-ONLY EXEMPTION (#3698 R4)` in the run summary (`all-gates.sh`).
+Any other skip still fails `gates`.
+
+- **What counts as docs:** a file under `docs/` other than `docs/public/`, or a `.md` file outside
+  `apps/`, `packages/`, `skills/` and `docs/public/` other than the root `README.md`. One other file
+  means no exemption. The root `README.md` is excluded because `lint-us-english` (in `surfaces`) scans it.
+  `docs/public/` is excluded because the studio serves it, and the browser suites and the prose gates in
+  `surfaces` read it. `packages/` is excluded because it holds markdown the studio bundles
+  (`examples/*.design.md`), and `skills/` because it ships. The classifier's header is the one statement
+  of the rule. **No file a prose gate scans counts as docs**, so a PR that touches one still runs the prose
+  gates: the test reads each prose gate's own `--files` list and fails by name (`scope/<gate>`) on any file
+  the classifier calls docs.
+- **Only a pull request qualifies.** A push to `main` runs every job. Every doubt resolves to running
+  everything: an empty diff, a failed diff, or a missing SHA.
+- **The test** is `bash .github/scripts/test-docs-only.sh` (below). `lint-doc-gates.ts` holds the jobs that
+  carry the exemption's `if:` to `EXEMPT_JOBS` in `all-gates.sh`, in both directions, each a browser job.
+- **Locally nothing changes:** `npm run verify` runs every gate whatever you changed.
+
+**Node and tsx are pinned exactly (#3698 R4).** Node is the version in `.node-version`, which every CI
+job reads. `tsx` is an exact root devDependency, so `npm ci` installs the one version the lockfile
+names, and every `npx tsx` (CI, `verify.ts`, the workspace scripts) runs it. Moving either is a
+reviewed change to `.node-version`, or to `package.json` and the lockfile.
 
 ```bash
 npm run typecheck    -w @prism3/studio      # tsc --noEmit — esbuild does NOT typecheck
-npm run test         -w @prism3/studio      # the provenance model (#722). NOT covered by typecheck:
-                                            #   tsconfig.json includes `src` only, so the test file
-                                            #   itself is never compiled — this step is what runs it
+npm run test         -w @prism3/studio      # every suite in suites.json, through run-suites.ts, each
+                                            #   held to its assertion floor (#3904). NOT covered by
+                                            #   typecheck: tsconfig.json includes `src` only, so the
+                                            #   test files are never compiled — this step runs them
 npm run build        -w @prism3/studio
 npm run test:smoke   -w @prism3/studio      # the headless DOM/interaction suite (#767, deciding #333).
                                             #   Run it AFTER build — it drives the built dist/main.js
@@ -1559,6 +1639,12 @@ npx tsx apps/plugin/lint-bundle-prose.ts
                                           # one-line `summary` (the Figma description) present. Runs after
                                           # the plugin build. Mutation: drop the plugin from build.mjs's
                                           # main entry, rebuild — arm A fires once per notes/codeOnly string.
+npx tsx apps/plugin/lint-bundle-prose.ts --web
+                                          # THE SAME THREE ARMS OVER THE WEB SPECS CHUNK (#3429). The web
+                                          # builds the defs into apps/studio/dist/component-specs.js through
+                                          # the same strip; `--web` reads that one file. Runs after the WEB
+                                          # build, in the studio job. Mutation: drop maintainerProsePlugin
+                                          # from apps/studio/build.mjs, rebuild — arm A fires by name.
 npx tsx apps/plugin/lint-release-bundle.ts
                                           # THE RELEASE BUILD CARRIES NO DEV-ONLY CODE (#2530). Each dev-only
                                           # marker, authored in the gate (docs/34), must be FOUND in dist/,
@@ -1578,7 +1664,8 @@ npx tsx apps/plugin/lint-network-reach.ts
                                           # offline means something. Runs after build:release (it builds both).
                                           # Mutation: a fetch outside the PRISM3_NETWORK gate — [fetch] fires
                                           # by name on release-offline/ui.html.
-npm run test      -w @prism3/tokenpress  # the ported suite's 263 assertions, on tsx rather than the
+npm run test      -w @prism3/tokenpress  # the ported 263 assertions, held file by file to the
+                                          # vitest baseline, plus those added since, on tsx rather than the
                                           # vitest it arrived with. The runner asserts a PER-FILE census
                                           # against the pre-port vitest baseline, so a test quietly
                                           # vanishing in a refactor fails here too — a total alone would
@@ -1669,7 +1756,8 @@ npm run check:package -w @prism3/tokens       # #3408 S1, docs/35 §9.3: the SHI
                                           # are the oracle, never read off the build. [VALUE]
                                           # (#3563): each name holds the engine's value for its
                                           # mode, read from out/prism3.tokens.json, which the
-                                          # build never reads
+                                          # build never reads. [OWN FILE] (#3877): each per-mode
+                                          # file (prism3/<mode>.css) runs the same arms itself
 npx tsx packages/engine/lint-us-english.ts # run AFTER the web AND plugin builds — its scope is both
                                           # built bundles: apps/studio/dist/*.js and, since #937,
                                           # apps/plugin/dist (main.js + ui.html), where the component
@@ -1699,6 +1787,13 @@ sh tools/claude-md-freshness/mutations.sh  # the mutation battery for the CLAUDE
                                           # network, no git history), so it runs under CI's depth-1
                                           # checkout — unlike the git-HISTORY gates that need
                                           # fetch-depth: 0. Confirmed from a depth-1 clone before wiring
+bash .github/scripts/test-docs-only.sh   # the docs-only exemption (#3698 R4): the classifier and
+                                          # the aggregator's half, by literal cases. A docs change that
+                                          # also touches an app file is never exempt, and no file a prose
+                                          # gate scans (its --files) counts as docs. No git, no network
+bash .github/scripts/test-all-gates.sh  # the base cases of all-gates.sh, the `gates` step the merge
+                                          # rule reads (#3736): failure, cancelled, skipped, empty and
+                                          # unset NEEDS each fail by job name. No git, no network
 bash .github/scripts/test-install-chromium.sh # the test for install-chromium.sh, which all four
                                           # browser jobs run (#2981). A stand-in install and dpkg
                                           # lock in $TMPDIR: no browser, no network. Its stall/…

@@ -11,8 +11,8 @@
  * reserved names are the decision's (T2: `prism`, `pds3`); the mode sets are the owner's Q3, typed here; and
  * "the engine takes it" is the engine's own `brandTheme`, never the module's opinion of itself.
  */
-import { brandTheme, type BrandInput } from '@prism3/engine/theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { brandTheme, type BrandInput } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as store from './src/state/store';
 import * as B from './src/state/brand-input';
 

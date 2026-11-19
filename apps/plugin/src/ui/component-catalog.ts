@@ -12,8 +12,7 @@
  * Computed ONCE: the definitions are compiled in and brand-invariant, so the catalog cannot change while the plugin
  * is running.
  */
-import { componentDefs } from '@prism3/engine/components/index';
-import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
+import { componentDefs, figmaAnatomySet } from '@prism3/engine/components';
 import { catalogOf, provideCatalog, CATALOG_SWAP_TARGET } from '../../../studio/src/state/component-catalog';
 import { leafForDef } from '../file-taxonomy';
 

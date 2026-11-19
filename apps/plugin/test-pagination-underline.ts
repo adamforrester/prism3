@@ -15,9 +15,7 @@
  * style there is no underline at all. Sizes and styles are typed here, not read off the def's axes, so a def that
  * dropped one fails the count.
  */
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
-import type { ComponentDef } from '@prism3/engine/component-schema';
+import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, componentDefs, type ComponentDef } from '@prism3/engine/components';
 import { applyComponentPlan } from './src/write-components';
 import { makeShim } from './component-shim';
 import type { Node, Page } from './component-shim';
@@ -25,7 +23,9 @@ import { materializeForBrand } from './src/brand-def';
 import { prebuildDependencies } from './src/build-deps';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -145,4 +145,4 @@ ok(paired === current.length && wider.length === 0,
   `#2665 Q537 the current page's cell is as wide as an unselected page at the same size and state (${paired} paired, ${wider.length} off — ${wider.slice(0, 3).join('; ') || 'none'})`);
 
 if (failed) { console.error(`\n${failed} failed`); process.exit(1); }
-console.log('\nall passed');
+console.log(`\nall passed — ${executed} assertions executed`);

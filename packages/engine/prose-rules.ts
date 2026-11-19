@@ -139,8 +139,8 @@ const NOT_EN_GB = new Set([
   'surprise', 'surprises', 'surprised', 'surprising', 'wise', 'otherwise', 'likewise', 'clockwise', 'rise', 'rises',
   'arise', 'arises', 'arising', 'promise', 'promises', 'promised', 'promising', 'precise', 'concise',
   'exercise', 'exercises', 'exercised', 'exercising', 'premise', 'premises', 'compromise', 'compromises',
-  // `revising`/`devising` joined in Q181 A (#3574): the `-ing` forms of listed en-US verbs (a change note's `revising Q280.2 A`).
-  'revise', 'revised', 'revises', 'revising', 'devise', 'devised', 'devises', 'devising', 'supervise', 'enterprise', 'expertise',
+  // `devising` joined in Q181 A (#3574): the `-ing` form of a listed en-US verb (`revising` is listed below).
+  'revise', 'revised', 'revises', 'devise', 'devised', 'devises', 'devising', 'supervise', 'enterprise', 'expertise',
   'noise', 'raise', 'raises', 'raised', 'advertise', 'advertised', 'advertises', 'praise', 'praised',
   'cruise', 'paradise', 'franchise', 'merchandise', 'poise', 'poised', 'guise', 'disguise', 'excise',
   'incise', 'anise', 'demise', 'chastise', 'baptise',
@@ -158,6 +158,11 @@ const NOT_EN_GB = new Set([
   // `-yse` over-catches (#1463): the plural NOUNS of `-lysis` are en-US, and `lyse` is en-US biology.
   'analyses', 'paralyses', 'catalyses', 'dialyses', 'hydrolyses', 'electrolyses', 'psychoanalyses',
   'lyse', 'lysed', 'lyses', 'lysing',
+  'revising', // en-US `revise` + `-ing`; the other forms were already here (first shipped in the 0.238.0 release notes)
+  // A JSON `\n` escape runs into the next word, so `\nraises` reads as `nraises` (the 0.238.0 release notes' `.json`,
+  // which carries each folded note verbatim, line breaks included). The word after the escape is still checked alone
+  // wherever it is not glued to an escape, so these hide no en-GB spelling.
+  'nraises', 'notherwise',
 ]);
 // The ONE place either regex is applied. `scan()` (real files) and SELF_CHECK (samples) both drive
 // this, and that sharing is load-bearing — the exact opposite of the DRY trap, because here the two
@@ -175,8 +180,13 @@ const NOT_EN_GB = new Set([
 // (SELF_CHECK in `lint-us-english.ts` samples both). Each entry must stay a tracked file; a rename to en-US
 // spelling makes its entry stale, and `lint-us-english.ts` fails on a stale one.
 export const EN_GB_FILE_NAMES = ['packages/engine/materialise-to-figma.ts'];
+// BRANCH SLUGS spelled en-GB, the same identifier carve-out as a file name: a fold carries each change note into the
+// release notes under its slug, which is the branch name, and the notes cannot be edited (`lint-release-notes.ts`
+// re-derives them from git). Masked as the WHOLE slug, so the word in prose is still caught. Each entry must stay a
+// `slug` in some `docs/public/releases/*.json`; `lint-us-english.ts` fails on a stale one.
+export const EN_GB_SLUGS = ['claude-3186-centring'];
 const maskFileNames = (txt: string): string =>
-  EN_GB_FILE_NAMES.reduce((t, f) => t.split(f).join(' '.repeat(f.length)), txt);
+  [...EN_GB_FILE_NAMES, ...EN_GB_SLUGS].reduce((t, f) => t.split(f).join(' '.repeat(f.length)), txt);
 export const enGb = (raw: string): { word: string; index: number }[] => {
   const txt = maskFileNames(raw);
   const found: { word: string; index: number }[] = [];
@@ -202,17 +212,16 @@ const BANNED_WORD = /\b(simply|easy|obviously)\b/gi;
 // dropping "just" from BANNED_WORD.
 const JUST = /\bjust\b/gi;
 // `now` (UI redesign S8.2): "Built just now" is the time sense, a moment ago, the same exactly/barely reading as "just
-// below"; it carries no judgment of the reader.
-// `wrote` (Q181 A, #3574): "the theme the run just wrote" in a change note is the same time sense, a moment before.
+// below"; it carries no judgment of the reader. `wrote` is the same time sense ("the theme the run just wrote", a folded
+// change note carried verbatim into the 0.238.0 release notes).
 const JUST_ALLOWED = /^\s+(?:below|above|under|over|beneath|past|outside|inside|shy of|short of|barely|about|enough|right|now|wrote)\b/i;
 
 // ---- Rule 3: filler — §2's "please note, note that" row.
 const FILLER = /\b(please\s+note|note\s+that)\b/gi;
-// …except where "note" is a NOUN (Q181 A, #3574): "the skill drops its note that the def…", "a part note that cites…".
-// Lower-case `note` only (a capital `Note that` opens a sentence, so it is the filler), right after a determiner and
-// at most one more word on the SAME line (a line break is a sentence or heading boundary, never a noun phrase). A false
-// positive here is fixed by widening this context, never by dropping `note that` from FILLER.
-const NOTE_AS_NOUN = /\b(?:a|an|the|its|this|each|every|one|their|his|her|our|your)[ \t]+(?:[A-Za-z-]+[ \t]+)?$/i;
+// "note" as a NOUN is not the filler: "drops its note that the def …", "a part note that cites …" (both folded change
+// notes, carried verbatim into the 0.238.0 release notes). The allow-set is the word directly before "note"; a false
+// positive here is fixed by widening it, never by dropping "note that" from FILLER.
+const FILLER_NOUN_BEFORE = /\b(?:a|an|the|its|their|this|each|every|part)\s+$/i;
 
 // ---- Rule 4: apology copy — §2's "Oops, Sorry" row.
 const APOLOGY = /\b(oops|sorry)\b/gi;
@@ -241,7 +250,7 @@ export const voiceHits = (txt: string): RawHit[] => {
   }
   for (const m of txt.matchAll(FILLER)) {
     const idx = m.index ?? 0;
-    if (m[0].startsWith('note') && NOTE_AS_NOUN.test(txt.slice(Math.max(0, idx - 40), idx))) continue; // "its note that", a noun
+    if (/^note/i.test(m[0]) && FILLER_NOUN_BEFORE.test(txt.slice(Math.max(0, idx - 24), idx))) continue; // "its note that" — a noun
     found.push({ rule: 'filler', match: m[0], index: idx });
   }
   for (const m of txt.matchAll(APOLOGY)) found.push({ rule: 'apology', match: m[0], index: m.index ?? 0 });

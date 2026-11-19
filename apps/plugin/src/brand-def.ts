@@ -35,13 +35,8 @@
  * before. A persisted brand whose theme fails to build falls back the same way — the build still runs,
  * against the defaults, which is what the `controlShape` read already did on an untrusted input.
  */
-import { applyControlShape, applyFieldStyle, fieldStyleFor, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyCurrentIndicator, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_WEIGHT_AVAILABILITY, DEFAULT_BUTTON_LAYOUT } from '@prism3/engine/anatomy-figma';
-import type { WeightAvailability, ButtonLayout } from '@prism3/engine/anatomy-figma';
-import { componentSizes, sizeRefPx, SPACE_BASE } from '@prism3/engine/scale';
-import type { SizeStep, Density } from '@prism3/engine/scale';
-import type { ComponentDef } from '@prism3/engine/component-schema';
-import { brandTheme, weightAvailability } from '@prism3/engine/theme';
-import type { BrandInput, Theme } from '@prism3/engine/theme';
+import { applyControlShape, applyFieldStyle, fieldStyleFor, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyCurrentIndicator, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_WEIGHT_AVAILABILITY, DEFAULT_BUTTON_LAYOUT, type WeightAvailability, type ButtonLayout, type ComponentDef } from '@prism3/engine/components';
+import { componentSizes, sizeRefPx, SPACE_BASE, type SizeStep, type Density, brandTheme, weightAvailability, type BrandInput, type Theme } from '@prism3/engine';
 
 /** The theme-derived levers, off ONE `brandTheme` call — or the defaults when there is no usable brand. */
 const brandLevers = (input: BrandInput | null): { avail: WeightAvailability; outline: Theme['outlineInteraction']; sizes: SizeStep[]; density: Density } => {
@@ -67,6 +62,7 @@ export const brandButtonLayout = (input: BrandInput | null): ButtonLayout => ({
   minWidthMultiplier: input?.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
   labelWeight: input?.buttonLabelWeight ?? DEFAULT_BUTTON_LAYOUT.labelWeight,
   textHover: input?.buttonTextHover ?? DEFAULT_BUTTON_LAYOUT.textHover,
+  borderWeight: input?.buttonBorderWeight ?? DEFAULT_BUTTON_LAYOUT.borderWeight,
 });
 
 /** `def` resolved against the brand: corner shape, then the field style (#2695 — after the corner, which it squares
@@ -85,6 +81,6 @@ export const materializeForBrand = (def: ComponentDef, input: BrandInput | null)
 export const materializerFor = (input: BrandInput | null): ((def: ComponentDef) => ComponentDef) => {
   const { avail, outline, sizes, density } = brandLevers(input);
   return (def) => applyMinWidthRatio(applyButtonLayout(
-    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyCurrentIndicator(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, input?.controlShape ?? 'rounded'), fieldStyleFor(def.id, input)), input?.tagStyle ?? 'pill'), input?.dialogTitleSize ?? 'large'), input?.bannerStyle ?? 'tinted'), input?.currentIndicator ?? 'partial'), avail), outline), density),
+    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyCurrentIndicator(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, input?.controlShape ?? 'rounded'), fieldStyleFor(def, input)), input?.tagStyle ?? 'pill'), input?.dialogTitleSize ?? 'large'), input?.bannerStyle ?? 'tinted'), input?.currentIndicator ?? 'partial'), avail), outline), density),
     brandButtonLayout(input), sizeRefPx(sizes)), sizeRefPx(sizes));
 };

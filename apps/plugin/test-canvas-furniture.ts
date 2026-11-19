@@ -89,9 +89,7 @@
  *
  * Run: `npx tsx apps/plugin/test-canvas-furniture.ts`
  */
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName, planSetLayout } from '@prism3/engine/anatomy-figma';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
+import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName, planSetLayout, type AnatomyPlan, componentDefs } from '@prism3/engine/components';
 import { applyComponentPlan, placeNewSet, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { makeShim, type Node } from './component-shim';
@@ -99,14 +97,16 @@ import { captureBaselines, previewUpdate, previewLine, previewVerdict, type Upda
 import { applyUpdate, applyVerdict, previewHashOf } from './src/update-apply';
 import { BASELINE_KEY } from './src/member-baseline';
 import { NS } from './src/persist-figma';
-import { planFurniture, drawFurniture, seatNewSet, furnishUpdate, furnitureDue, furnitureLayout, furnitureItems, docBlockLine, withFurnitureItems, withTemplateWarning, sentenceCase, pruneFurniture, clearFurniture, hasFurniture, SCRIM_BACKDROPS, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
+import { planFurniture, drawFurniture, seatNewSet, furnishUpdate, furnitureDue, furnitureLayout, furnitureItems, docBlockLine, withFurnitureItems, withTemplateWarning, sentenceCase, pruneFurniture, furniturePruneText, clearFurniture, hasFurniture, SCRIM_BACKDROPS, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
 import { ensureFurnitureTemplates } from './src/furniture-templates';
 import type { Cause } from './src/messages';
 import { allLeaves } from './src/file-taxonomy';
 import type { TemplatesApi } from './src/furniture-templates';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -1020,8 +1020,8 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // Icon, Provider logo (#2343) and Spinner.
   const withSet = componentDefs.filter((d) => d.figmaProperties && !d.figmaProperties.emitAsComponents).map((d) => d.id);
   const single = componentDefs.filter((d) => d.figmaProperties?.emitAsComponents).map((d) => d.id);
-  ok(withSet.length === 59 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'provider-logo', 'spinner']) && !single.some(hasFurniture),
-    `rollout/switch: all 59 defs that build a set have furniture; Icon, Provider logo and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
+  ok(withSet.length === 60 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'provider-logo', 'spinner']) && !single.some(hasFurniture),
+    `rollout/switch: all 60 defs that build a set have furniture; Icon, Provider logo and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
 
   // THE MEMBERS AN EARLIER LAYOUT HOLDS OFF THEIR GROUPED ROW, per def, worked out by hand. Only a def with a `surface`
   // ROW axis regroups. Button and its two siblings: 360, as `MOVES` above. The three icon buttons: 36 rows of 6
@@ -1120,6 +1120,8 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     Switch: ['switch-control', 'switch-row'],
     // #2989 Q656 A: the Code cell joins the Code input page, first.
     'Code input': ['code-input-cell', 'code-input'],
+    // #1739: Tag.Group builds after Tag on the Tag page, so its nested tags resolve there.
+    Tag: ['tag', 'tag-group'],
     Tabs: ['tab-item', 'tabs'],
     'Segmented control': ['segmented-control-segment', 'segmented-control'],
     Accordion: ['_accordion-indicator', 'accordion'],
@@ -1139,7 +1141,7 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // Sets only: Icons & assets holds two defs since #3148, Icon and Provider logo, and both build single components.
   const buildsSet = (id: string): boolean => !componentDefs.find((d) => d.id === id)?.figmaProperties?.emitAsComponents;
   const fromTaxonomy = Object.fromEntries(allLeaves().filter(({ leaf }) => leaf.defs.filter(buildsSet).length > 1).map(({ leaf }) => [leaf.page, [...leaf.defs]]));
-  ok(JSON.stringify(fromTaxonomy) === JSON.stringify(SHARED), `clearance/pages: the fifteen pages that hold more than one set (${JSON.stringify(Object.keys(fromTaxonomy))})`);
+  ok(JSON.stringify(fromTaxonomy) === JSON.stringify(SHARED), `clearance/pages: the sixteen pages that hold more than one set (${JSON.stringify(Object.keys(fromTaxonomy))})`);
   const box = (n: FNode) => ({ x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
   const meets = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   for (const [name, ids] of Object.entries(SHARED)) {
@@ -1516,9 +1518,40 @@ section('prune — furniture whose set is gone');
   const unpiloted = make('icon', 'S:live2');
   const untagged = labelInstance('Top');
   page.appendChild(untagged);
-  const n = pruneFurniture(page.children, (id) => id === 'S:live' || id === 'S:live2');
+  // The live sets sit on this same page: `setParent` answers a live set's parent id, null for a set not in the file.
+  const n = pruneFurniture(page.children, (id) => (id === 'S:live' || id === 'S:live2' ? page.id : null));
   ok(n === 2 && page.children.includes(live) && !page.children.includes(gone) && !page.children.includes(unpiloted) && page.children.includes(untagged),
     `prune/stale: the label of a deleted set and one for a def with no furniture (Icon, single components) go; a live set's label and an untagged node stay (${n})`);
+}
+
+// #2485 (Q294 A): furniture whose set is alive but on ANOTHER parent is stale too. A designer moved the set; the next
+// Build or Update of it clears the old copy (`clearMovedFurniture`), and prune now does as well, for a moved set nobody
+// rebuilds. Still tag-only: an untagged node on the old page stays, and the moved set's copy beside it stays.
+// Mutation: `staleFurniture` back to "set alive" only → `prune/moved`.
+section('prune — furniture a moved set left on its old page (#2485)');
+{
+  const a = makePage('↳ A');
+  const b = makePage('↳ B');
+  const make = (on: ReturnType<typeof makePage>, def: string, set: string) => {
+    const n = labelInstance('Top');
+    on.appendChild(n);
+    (n.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', 'furniture', JSON.stringify({ v: 1, def, set, kind: 'label' }));
+    return n;
+  };
+  const leftBehind = make(a, 'button', 'S:moved');
+  const besideIt = make(b, 'button', 'S:moved');
+  const stayed = make(a, 'button', 'S:stayed');
+  const untagged = labelInstance('Top');
+  a.appendChild(untagged);
+  const home: Record<string, string> = { 'S:moved': b.id, 'S:stayed': a.id };
+  const n = pruneFurniture([...a.children, ...b.children], (id) => home[id] ?? null);
+  ok(n === 1 && !a.children.includes(leftBehind) && b.children.includes(besideIt) && a.children.includes(stayed) && a.children.includes(untagged),
+    `prune/moved: the label a moved set left on ↳ A goes; its copy beside it on ↳ B, a set's label still beside its set, and an untagged node stay (${n} removed; left behind ${a.children.includes(leftBehind) ? 'kept' : 'gone'}, beside ${b.children.includes(besideIt) ? 'kept' : 'gone'}, stayed ${a.children.includes(stayed) ? 'kept' : 'gone'}, untagged ${a.children.includes(untagged) ? 'kept' : 'gone'})`);
+  ok(furniturePruneText(1, false) === '1 canvas label or backdrop belongs to a set that was deleted or moved. Deleting it touches no component.'
+    && furniturePruneText(3, false) === '3 canvas labels or backdrops belong to a set that was deleted or moved. Deleting them touches no component.'
+    && furniturePruneText(3, true) === 'Removed 3 canvas labels or backdrops left from a set that was deleted or moved.'
+    && furniturePruneText(0, true) === '',
+    `prune/moved copy: one sentence family for both causes, as Q294 A wrote it (${JSON.stringify([furniturePruneText(1, false), furniturePruneText(3, true)])})`);
 }
 
 /* ── templates: `_Label` and `_inverse-backdrop` as file setup builds them ──────────────────────────────── */
@@ -1598,5 +1631,5 @@ section('templates — the three file components, against the Q171 spec and #260
   ok(again.built.length === 0 && JSON.stringify(again.present) === JSON.stringify(['_Label', '_inverse-backdrop', '_scrim-backdrop']), `templates/idempotent: a second run builds nothing (${JSON.stringify(again)})`);
 }
 
-console.log(failed ? `\n❌ ${failed} failed` : '\n✅ canvas furniture: all checks passed');
+console.log(`${failed ? `\n❌ ${failed} failed` : '\n✅ canvas furniture: all checks passed'} — ${executed} assertions executed`);
 if (failed) process.exit(1);

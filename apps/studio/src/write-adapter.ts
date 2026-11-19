@@ -41,12 +41,16 @@ export type HostMessage =
       alsoBuilt?: readonly string[] }
   // #2265 — the in-place update's dry run, or a baseline capture: what an update WOULD change, which is not
   // whether a build landed, so it has its own kind and never overwrites the build's verdict.
-  | { kind: 'component-update-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null; publish: string | null; causes: readonly Cause[] | null }
+  | { kind: 'component-update-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null; publish: string | null; causes: readonly Cause[] | null;
+      /** #3711 (Q-UF3 A): the applied update went through every set, some left to check; false when the host did not say. */
+      completed: boolean }
   // #1558 — the outcome of a `file-setup` scaffold. A FOURTH kind of the `{ok, headline, summary}`
   // shape, distinct for the same one-kind-per-fact reason `component-result` is: "did the page
   // skeleton get laid" is separately true and separately actionable from a theme or component write,
   // so it needs its own verdict slot and cannot overwrite theirs.
   | { kind: 'file-setup-result'; ok: boolean; headline: string; summary: string }
+  // #3394 — the agent link's color overrides: a preview, or a write, its own row (Q3394.7 A).
+  | { kind: 'override-result'; ok: boolean; preview: boolean; applied: boolean; headline: string; summary: string; lines: readonly string[] | null }
   // #259 — the outcome of a `style-guide` run, its own slot.
   | { kind: 'style-guide-result'; ok: boolean; headline: string; summary: string; stopped?: { done: number; total: number }; lines: readonly string[] | null;
     /** The cleanup offer (Q412 A, #2816): the tables the generator no longer draws that the run left, empty when none. */
@@ -68,16 +72,18 @@ export type HostMessage =
   // #1521 — a prune preview (`applied: false`, `count` = what would be removed) or its outcome
   // (`applied: true`, `count` = what was removed). The UI reads `count` on a preview to decide
   // whether to open its confirm dialog, and `applied` to tell a preview from a verdict.
-  | { kind: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string; pillOnly?: boolean }
+  | { kind: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string; pillOnly?: boolean; previewHash?: string }
   // UI redesign S11: an agent command's start, its build progress, and its end, for the Activity drawer.
   // `cmd` stays a string here; which commands have an operation to show is the host session's call.
-  | { kind: 'agent-started'; id: string; cmd: string; confirmed?: true }
+  // `def`: the set a `build-components` builds (#2087), so its verdict is recorded against that set.
+  | { kind: 'agent-started'; id: string; cmd: string; confirmed?: true; def?: string }
   // A style guide's reading arrives as phase `table` (#1778): `done` of `total` tables drawn.
   | { kind: 'agent-progress'; id: string; phase: 'build' | 'wire' | 'retry' | 'table'; done: number; total: number }
   | { kind: 'agent-finished'; id: string }
   // #1957: a write the main thread declined because a run of the same operation was already going. Not a
   // verdict, so it is its own kind: `cmd` is the operation's agent-command name, `agent` whose request it was.
-  | { kind: 'refused'; code: 'busy'; cmd: string; agent: boolean; message: string }
+  /** `held`: the write holding the file (#3697 R7), absent from a host older than the one file-wide hold. */
+  | { kind: 'refused'; code: 'busy'; cmd: string; agent: boolean; message: string; held?: string }
   // `present` is the #722 addition: the summary string alone could not distinguish "no Prism3
   // theme in this file" from "a theme is here", and #721's three outcomes need that told apart
   // from `ok`. Deriving it by parsing `summary` would make the UI depend on the host's prose.
@@ -109,6 +115,8 @@ export type HostMessage =
   | { kind: 'panels-clean-result'; applied: boolean; drawn: number; removable: number; removed: number; kept: number; error: string | null }
   // #3129 Q833 A — the answer to a queue write: the add queue after it.
   | { kind: 'add-queue'; queued: readonly string[]; error: string | null }
+  // #2956 — the answer to "Turn off updates" / "Turn updates back on": the set, what was asked, and why it failed.
+  | { kind: 'updates-off'; def: string; off: boolean; error: string | null }
   // #2909 Q2909.8 A — one set's hand edits from the background pass after load, or its end.
   | { kind: 'hand-edits'; def: string; members: number; edited: number }
   | { kind: 'hand-edits-done' }
@@ -121,7 +129,9 @@ export type HostMessage =
 export type SetDueView = { readonly state: 'current' | 'unrecorded' } | { readonly state: 'due'; readonly reason: 'definition' | 'executor' | 'panel' }
   /** #3421 (Q39 A): its last update kept hand edits over changes the plan makes: how many members, and each change. */
   | { readonly state: 'kept'; readonly held: { readonly members: number; readonly changes: readonly string[] } }
-  | { readonly state: 'due'; readonly reason: 'engine'; readonly moved?: MovedView };
+  | { readonly state: 'due'; readonly reason: 'engine'; readonly moved?: MovedView }
+  /** #2956 (owner decisions 2026-11-17): its updates are off, turned off by the update itself (`auto`) or the designer. */
+  | { readonly state: 'off'; readonly by: 'auto' | 'designer' };
 /** What an engine update moved in a set's plans (#3082 Q811 A, `Moved` in `as-built-ledger.ts`), for its reason line. */
 export type MovedView = {
   readonly parts: readonly { readonly part: string; readonly facets: readonly FacetView[] }[];
@@ -134,8 +144,12 @@ export type CheckedSetView = {
   readonly handEdited: number; readonly noBaseline: number; readonly blocked: boolean; readonly upToDate: boolean;
   /** #3421 — blocked only by variables or styles the brand's Theme writes: a run with Theme updates it after Theme. */
   readonly themeBlocked?: true;
+  /** #3713 — a blocked set's reasons, as the check's dry run wrote them. Absent when the set is not blocked. */
+  readonly reasons?: readonly string[];
   /** #2831 — on a published set, what the update breaks for library consumers, as one line. Absent otherwise. */
   readonly breaks?: string;
+  /** #3711 (Q-UF2 A) — those changes, each named, and how many in all, for the callout before the run. Absent otherwise. */
+  readonly changes?: { readonly count: number; readonly lines: readonly string[] };
 };
 
 /** What the library home states about the library a file uses (#2879), as the host found it on the current page. */
@@ -201,8 +215,9 @@ export interface HostCommit {
    *  Figma only, no-op on web — the web host writes CSS custom properties, which have no stale-item
    *  problem). `confirm: false` asks for a preview (a `prune-result` with `applied: false`); `confirm:
    *  true` performs the delete. `input` is the `BrandInput`, typed `unknown` here for the same reason
-   *  `postTheme` is — to keep this DOM layer free of the engine type import. */
-  postPrune(input: unknown, confirm: boolean): void;
+   *  `postTheme` is — to keep this DOM layer free of the engine type import. A delete echoes `previewHash`, the hash
+   *  its preview's `prune-result` carried (#3697 R6); the host refuses one that does not match the file now. */
+  postPrune(input: unknown, confirm: boolean, previewHash?: string): void;
   /** #2830 Q2830.3 A: Documentation › Specs' Draw specs, the spec panels for the current page (`draw-specs`). Figma
    *  only; inert on the web. */
   postDrawSpecs(): void;
@@ -218,6 +233,8 @@ export interface HostCommit {
   /** #3129 Q833 A: queue `ids` in the file's add queue (`on`), or take them out (`add-queue`). Figma only; inert on the
    *  web. */
   postAddQueue(ids: readonly string[], on: boolean): void;
+  /** #2956: turn the set's updates off (`off`) or back on (`updates-off`). Figma only; inert on the web. */
+  postUpdatesOff(def: string, off: boolean): void;
   /** #3309: the panel's own summary of a run of several writes (`activity-note`), kept by the main thread for the agent
    *  link's `activity` command. Figma only; inert on the web. */
   noteActivity(op: 'components' | 'update', ok: boolean, headline: string, lines: readonly string[]): void;
@@ -370,6 +387,8 @@ const dueOf = (x: unknown): Record<string, SetDueView> => {
     const d = v as { state?: unknown; reason?: unknown } | null;
     if (!d || typeof d !== 'object') continue;
     if (d.state === 'current' || d.state === 'unrecorded') out[id] = { state: d.state };
+    // #2956: an Updates off entry that names nobody who turned it off is left out, as any other malformed entry.
+    else if (d.state === 'off') { const by = (d as { by?: unknown }).by; if (by === 'auto' || by === 'designer') out[id] = { state: 'off', by }; }
     else if (d.state === 'kept') {
       const k = (d as { held?: { members?: unknown; changes?: unknown } }).held;
       const members = count(k?.members);
@@ -405,7 +424,15 @@ const checkedSet = (x: unknown): CheckedSetView[] => {
   const n = (['members', 'update', 'add', 'drop', 'handEdited', 'noBaseline'] as const).map((k) => count(c[k]));
   if (n.some((v) => v === null)) return [];
   const [members, update, add, drop, handEdited, noBaseline] = n as number[];
-  return [{ def: c.def, hash: c.hash, members, update, add, drop, handEdited, noBaseline, blocked: c.blocked, upToDate: c.upToDate, ...(c.blocked && c.themeBlocked === true ? { themeBlocked: true as const } : {}), ...(str(c.breaks) ? { breaks: c.breaks } : {}) }];
+  return [{ def: c.def, hash: c.hash, members, update, add, drop, handEdited, noBaseline, blocked: c.blocked, upToDate: c.upToDate, ...(c.blocked && c.themeBlocked === true ? { themeBlocked: true as const } : {}),
+    ...(c.blocked && Array.isArray(c.reasons) && c.reasons.some(str) ? { reasons: (c.reasons as unknown[]).filter(str) } : {}), ...(str(c.breaks) ? { breaks: c.breaks } : {}),
+    ...changesOf(c.changes) }];
+};
+/** #3711 (Q-UF2 A): a set's changes for files that use the library: a count above 0 and every line a string, or none. */
+const changesOf = (x: unknown): { changes?: CheckedSetView['changes'] } => {
+  const c = x as Record<string, unknown> | null;
+  const k = c && typeof c === 'object' ? count(c.count) : null;
+  return k && Array.isArray(c!.lines) && c!.lines.length && c!.lines.every(str) ? { changes: { count: k, lines: [...c!.lines as string[]] } } : {};
 };
 const KINDS: readonly StyleGuideKind[] = ['color', 'dimension', 'font', 'text', 'effect', 'gradient', 'grid'];
 /** The style guide's catalog (S11.2), checked entry by entry: an entry with a field of the wrong type is dropped, and
@@ -454,8 +481,13 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   // panel on "Building…", #870); it reads as a build that did not finish, the claim that needs no evidence.
   'component-result': (m) => ({ ...verdict('component-result', m, '✓ built', '✗ build failed'), completed: m.completed === true, lines: linesOf(m.lines), causes: causesOf(m.causes), ...(linesOf(m.alsoBuilt) ? { alsoBuilt: linesOf(m.alsoBuilt)! } : {}) }),
   'component-update-result': (m) => ({ ...verdict('component-update-result', m, '✓ checked', '✗ check failed'), lines: linesOf(m.lines),   // #2265
-    publish: typeof m.publish === 'string' && m.publish ? m.publish : null, causes: causesOf(m.causes) }),   // #2858, #3326
+    publish: typeof m.publish === 'string' && m.publish ? m.publish : null, causes: causesOf(m.causes), completed: m.completed === true }),   // #2858, #3326, #3711
   'file-setup-result': (m) => verdict('file-setup-result', m, '✓ file set up', '✗ setup failed'),   // #1558
+  // #3394: the plugin always sends a headline; one that arrives without falls back to the summary's first words.
+  'override-result': (m) => {
+    const summary = String(m.summary ?? '');
+    return { kind: 'override-result', ok: !!m.ok, preview: !!m.preview, applied: !!m.applied, headline: typeof m.headline === 'string' && m.headline ? m.headline : summary, summary, lines: linesOf(m.lines) };
+  },
   'style-guide-result': (m) => {   // #259
     // S11.2: a cancelled run says how far it got; a malformed `stopped` is left off rather than guessed.
     const st = m.stopped && typeof m.stopped === 'object' ? tableReading(m.stopped as { done?: unknown; total?: unknown }) : null;
@@ -518,7 +550,8 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
     const count = typeof m.count === 'number' && Number.isFinite(m.count) && m.count >= 0 ? Math.floor(m.count) : null;
     if (count === null) return null;
     // `pillOnly` (the agent link): a preview the panel did not ask for — shown, never opened as a dialog.
-    return { kind: 'prune-result', ok: !!m.ok, applied: !!m.applied, count, summary: String(m.summary ?? ''), ...(m.pillOnly === true ? { pillOnly: true } : {}) };
+    return { kind: 'prune-result', ok: !!m.ok, applied: !!m.applied, count, summary: String(m.summary ?? ''), ...(m.pillOnly === true ? { pillOnly: true } : {}),
+      ...(typeof m.previewHash === 'string' && m.previewHash ? { previewHash: m.previewHash } : {}) };
   },
   // `present` defaults FALSE when a host omits it (an older plugin build against a newer UI):
   // absent → #721's state 3, "not a Prism3 file". That is the safe default because state 3
@@ -602,6 +635,8 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   },
   // #3129 Q833 A. An answer with no queue list is dropped: the panel's own `add-queue` request shares the type and carries
   // none. Ids that are not strings are dropped.
+  // #2956. An answer with no set is dropped; one that is not ok carries its reason, or a fixed one.
+  'updates-off': (m) => (isId(m.def) ? { kind: 'updates-off', def: m.def, off: m.off === true, error: m.ok === true ? null : str(m.error) && m.error ? m.error : 'not written' } : null),
   'add-queue': (m) => (Array.isArray(m.queued) ? { kind: 'add-queue', queued: idsOf(m.queued), error: str(m.error) && m.error ? m.error : null } : null),
   // #2909 Q2909.8 A. A reading with a field of the wrong type is dropped: a guessed count would be a status nobody read.
   'hand-edits': (m) => {
@@ -627,11 +662,12 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
     return p && isId(m.id) ? { kind: 'agent-progress', id: m.id, ...p } : null;
   },
   'agent-log': null,
-  'agent-started': (m) => (isId(m.id) && typeof m.cmd === 'string' ? { kind: 'agent-started', id: m.id, cmd: m.cmd, ...(m.apply === true ? { confirmed: true as const } : {}) } : null),
+  'agent-started': (m) => (isId(m.id) && typeof m.cmd === 'string'
+    ? { kind: 'agent-started', id: m.id, cmd: m.cmd, ...(m.apply === true ? { confirmed: true as const } : {}), ...(isId(m.def) ? { def: m.def } : {}) } : null),
   'agent-finished': (m) => (isId(m.id) ? { kind: 'agent-finished', id: m.id } : null),
   // #1957. Dropped unless every field is usable: a refusal with no operation has no row to land in.
   'refused': (m) => (m.code === 'busy' && typeof m.cmd === 'string' && typeof m.agent === 'boolean' && typeof m.message === 'string' && m.message
-    ? { kind: 'refused', code: 'busy', cmd: m.cmd, agent: m.agent, message: m.message } : null),
+    ? { kind: 'refused', code: 'busy', cmd: m.cmd, agent: m.agent, message: m.message, ...(typeof m.held === 'string' && m.held ? { held: m.held } : {}) } : null),
 };
 
 /** Validate one inbound `MessageEvent.data` and return the UI's `HostMessage`, or `null` to drop it. Pure,
@@ -690,8 +726,8 @@ const figmaCommit = (): HostCommit => ({
   cleanUpStyleGuide(ids) {
     post({ type: 'style-guide-cleanup', ids: [...ids] });
   },
-  postPrune(input, confirm) {
-    post({ type: 'prune', input: input as ApplyTheme['input'], confirm });
+  postPrune(input, confirm, previewHash) {
+    post(confirm ? { type: 'prune', input: input as ApplyTheme['input'], confirm: true, previewHash: previewHash ?? '' } : { type: 'prune', input: input as ApplyTheme['input'], confirm: false });
   },
   requestFileSets(input) {
     post({ type: 'file-sets-request', input: input as ApplyTheme['input'] });
@@ -704,6 +740,9 @@ const figmaCommit = (): HostCommit => ({
   },
   postAddQueue(ids, on) {
     post({ type: 'add-queue', ids: [...ids], on });
+  },
+  postUpdatesOff(def, off) {
+    post({ type: 'updates-off', def, off });
   },
   noteActivity(op, ok, headline, lines) {
     post({ type: 'activity-note', op, ok, headline, lines: [...lines] });
@@ -762,6 +801,7 @@ const webCommit = (): HostCommit => ({
   requestDue() {/* no file on web (#3081) */},
   requestHandEdits() {/* no file on web (#2909) */},
   postAddQueue() {/* no file on web (#3129 Q3129.12 A) */},
+  postUpdatesOff() {/* no file on web */},
   noteActivity() {/* no main thread on web (#3309) */},
   noteRunEnded() {/* no main thread on web (#533) */},
   requestUpdateCheck() {/* no file on web (#2909) */},

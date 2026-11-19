@@ -137,9 +137,11 @@ const OPERABLE = ['button', 'select', 'textarea', 'input:not([type="hidden"])', 
 
 /** The frame width at or below which it lays out as one narrow column (concept v6's `appNarrow`). */
 export const NARROW_MAX = 560;
-/** #1975: the levers pane width below which it is `data-fit="snug"`: narrower than the 380 its pages are laid out for,
- *  which the two panes reach at 640 and 800 (the 42% column). A width class for the same reason as narrow mode. */
-export const LEVERS_SNUG_MAX = 360;
+/** #1975: the levers pane width below which it is `data-fit="snug"`, a width class for the same reason as narrow mode.
+ *  #3553 M2 A raised it from 360 to 480: a fill row (swatch | name | step picker) does not fit one line until the pane is
+ *  about 480 wide, so between 360 and 480 the picker squeezed the name to 20–40px. The two panes reach 480 at a 1200 web
+ *  window (the 42% column is 404 at 1024 and 478 at 1200), so from 1024 to 1200 a row's picker now sits under its name. */
+export const LEVERS_SNUG_MAX = 480;
 
 export type Frame = {
   /** The sticky region: the bar, the notices and the tab row. */

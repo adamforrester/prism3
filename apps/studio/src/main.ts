@@ -19,16 +19,12 @@
  * volatile region (ramps or preview), so knob focus is never lost; a failed brand
  * combination is caught and surfaced with the last-good render preserved.
  */
-import { brandTheme } from '@prism3/engine/theme';
-import type { BrandInput } from '@prism3/engine/theme';
-import { hex, oklchToRgb } from '@prism3/engine/color';
-import { resolveAllModes } from '@prism3/engine/modes';
-import { toDesignMd } from '@prism3/engine/design-md';
-import { componentSpecsExporter } from './state/component-specs-export';
-import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
+import { brandTheme, type BrandInput, formatRatio, hex, oklchToRgb, resolveAllModes, toDesignMd, buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode, ENGINE_VERSION } from '@prism3/engine';
+import { componentSpecsFileNames, loadComponentSpecsExporter } from './state/component-specs-export';
 import { hostCommit, type CheckedSetView, type HostCommit } from './write-adapter';
 import { AGENT_OP, initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type OpKey } from './state/host-session';
 import type { HostFonts } from './ui/fonts';
+import { choice, selectField } from './ui/lever-kit';
 import { emToPercentLabel } from './em-percent';
 import { mountFrame, type Frame } from './shell/frame';
 import { isNewPage, pageOfTab } from './shell/pages';
@@ -36,7 +32,6 @@ import type { StyleGuidesLend } from './shell/style-guides';
 import { kindOf, OP_TITLE, type ActivityLend, type ActivityReading, type OpReading, type UpdateReading } from './shell/activity';
 import type { UpdateFileLend } from './shell/update-file';
 import type { ReportLend } from './shell/report';
-import { ENGINE_VERSION } from '@prism3/engine/version';
 import type { CollisionsLend } from './shell/collisions';
 import { withEarlier } from './state/collisions';
 import type { StatusLend } from './shell/status-strip';
@@ -72,15 +67,16 @@ import { displayNameOf, entryOf } from './state/component-groups';
 // The brand's Control shape, for the Style guide's radius sample (UI redesign S7, owner decision D18 B).
 import { brandControlShape } from './state/shape-input';
 import { shownName } from './state/brand-input';
+import { stillOffered, type UndoLoad } from './state/undo-load';
 // The Elevation and Motion writes moved to `state/depth-motion-input.ts` (UI redesign S9.1), and every Elevation and
 // Motion control to `domains/depth.ts` (S9.2); the Type writes to `state/type-input.ts` and every Type control to
 // `domains/type.ts` (S6.1 to S6.3). Nothing here writes either any more.
 import {
-  needsOverwriteConfirm, isUnrecoverable, editCount,
+  needsOverwriteConfirm, isUnrecoverable, editCount, isDirty,
   type Origin,
 } from './provenance';
 import {
-  ARTIFACTS, METADATA_OPTION, defaultSettings, visibleSettings, exportDtcg, exportFileNames, exportPreview, availableImportSlots,
+  ARTIFACTS, METADATA_OPTION, defaultSettings, visibleSettings, exportDtcg, exportFileNames, exportPreview,
   type ArtifactId, type SettingsState, type ExportSource,
 } from './export-settings';
 // The BrandInput session — the working input, the resolved theme, the last-good rule, the viewed mode
@@ -88,10 +84,11 @@ import {
 // bindings here: read freely, reassigned only through its setters.
 import {
   BRANDS, brandState, provenance, bootProvenance, theme, lastGoodInput, rp, currentMode, lastError, page,
-  firstRun, ensureThemeFresh, loadInput, clearOrigin, setPage,
-  subscribe, invalidate,
+  firstRun, ensureThemeFresh, loadInput, restoreInput, stashForLoad, clearOrigin, setPage,
+  subscribe, invalidate, postedInput, sessionBrandWords,
   type Mode,
 } from './state/store';
+import { brandWords, mergeWords } from './state/report';
 
 // The session starts in `entry.ts` (#896): it reads the web's persisted brand, picks the origin, and
 // hands both to the store's `initSession` before anything renders. `firstRun`, the start screen's
@@ -129,6 +126,14 @@ const syncErrorBar = (): void => {
   // Owner Q189 A (#2146): a brand that arrives starting above 0px gets a one-click fix beside the line.
   else if (lastError) globalErr.show(`That change didn't apply: ${lastError} — you are seeing the last theme that resolved.`,
     firstBreakpointFix(lastError));
+  // #3697 Q-R9.1 A: the offer taken over unsaved edits stages the load, and the usual replace confirm takes the offer's
+  // place: the same sentence and the same two buttons the brand menu draws, under the same hooks.
+  else if (heldRestore && pendingLoad?.origin.kind === 'file') globalErr.show(overwriteText(pendingLoad), [
+    { label: 'Replace brand', run: barActions.replace, hook: 'overwrite-replace' },
+    { label: 'Cancel', run: barActions.cancelReplace, hook: 'overwrite-cancel' },
+  ]);
+  // #3697 R9: the file's brand, held because it arrived after the designer acted, with the action that loads it.
+  else if (heldRestore) globalErr.show(LATE_RESTORE.line, { label: LATE_RESTORE.action, run: takeHeldRestore });
   else globalErr.show(null);
   syncChromeHeight();   // the bar lives in the chrome; showing it moves everything sticky below
 };
@@ -388,13 +393,31 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   advanceUpdate(m, prev);
   // #3081 Q810 A: a write's verdict, or a fresh read of the file's sets, may change what Update file would change.
   if (DUE_AFTER.has(m.kind)) recountDue();
+  // #2956: "Turn off updates" / "Turn updates back on" answered, written or not: Update file reads the file again, against
+  // the brand its Theme tick picked when asked, and its checklist redraws in place from that answer.
+  if (m.kind === 'updates-off') commit.requestFileSets(panelBrand(updatesOffTheme));
   const effect = brandEffectFor(m, prev, host);
+  // #3697 R9: a Theme write that landed stores the panel's brand in the file, so the held one is no longer the file's.
+  if (heldRestore && m.kind === 'apply-result' && m.ok) {
+    heldRestore = null;
+    if (pendingLoad?.origin.kind === 'file') pendingLoad = null;   // its confirm goes with the offer it stood for
+    barChanged(); syncErrorBar();
+  }
   // Origin `file`: this brand IS what the Figma file holds, so it is what a reset returns to and what
   // dirtiness is measured against (#722).
   // #1989: a restore the engine refuses in RESOLUTION leaves `lastGoodInput` on the boot demo, so Apply and
   // Prune go off until a brand resolves (`restoreFailure`). `loadBrand` renders once, before this can know
   // the outcome, so a refusal renders again with the writes off and the bar saying why.
-  if (effect === 'loadBrand' && m.kind === 'restore-input') {
+  // #3697 R9 (the owner's A): THE FILE'S BRAND ARRIVING AFTER THE DESIGNER HAS ACTED. The boot read is asynchronous and the
+  // UI is live before it lands, as for the start moment below. If the designer has already chosen a brand (provenance is
+  // no longer boot's, by identity) or edited the placeholder, the file's brand would replace their work: it is held
+  // instead (`heldRestore`), and the strip offers to load it. Only the boot read is held: a restore the host sends later
+  // (#3394's override sync, which it sends only while the panel's brand is the one it wrote) still loads.
+  const late = effect === 'loadBrand' && m.kind === 'restore-input' && !bootRestoreSeen && userActed();
+  if (m.kind === 'restore-input' || m.kind === 'restore-input-empty' || m.kind === 'restore-input-error' || m.kind === 'restore-input-library') bootRestoreSeen = true;
+  if (late) { heldRestore = structuredClone(m.input as BrandInput); syncErrorBar(); }
+  else if (effect === 'loadBrand' && m.kind === 'restore-input') {
+    heldRestore = null;
     loadBrand(m.input as BrandInput, { kind: 'file' });
     if (lastError) { restoreFailure = { kind: 'unresolved', reason: lastError, brand: failedBrandOf(brandState) }; build(); }
   }
@@ -494,7 +517,7 @@ const contractTableEl = (contracts: typeof rp.contracts, paths = false): HTMLEle
     for (const m of rp.modes) {
       const cell = el('td', 'mcol');
       const r = ct.byMode[m];
-      if (r) { cell.append(el('span', `dot ${r.pass ? 'ok' : 'no'}`), el('span', 'ratio', r.ratio.toFixed(2))); }
+      if (r) { cell.append(el('span', `dot ${r.pass ? 'ok' : 'no'}`), el('span', 'ratio', formatRatio(r.ratio, { bare: true }))); }
       else cell.textContent = '—';
       tr.append(cell);
     }
@@ -601,9 +624,9 @@ const typeComposite = (tree: TreeNode, node: TreeNode, value?: unknown, onTarget
   if (v.letterSpacing) { const ls = deref(tree, t(v.letterSpacing)); const em = ls?.$extensions?.prism3?.em; if (em != null) parts.push(`${em}em · ${emToPercentLabel(em)}`); }
   return parts.join(' · ');
 };
-/** A shadow layer array → a compact CSS box-shadow string (for a monospace cell). */
+/** A shadow layer array → a compact CSS box-shadow string (for a monospace cell). `inset` leads, as in `resolve-preview.ts`'s `cssBoxShadow` (#3603). */
 const shadowCss = (layers: unknown): string => Array.isArray(layers)
-  ? layers.map((l: any) => `${l.offsetX} ${l.offsetY} ${l.blur} ${l.spread ?? '0'} ${l.color}`).join(', ')
+  ? layers.map((l: any) => `${l.inset ? 'inset ' : ''}${l.offsetX} ${l.offsetY} ${l.blur} ${l.spread ?? '0'} ${l.color}`).join(', ')
   : '';
 // ── Preview → Token list, split on the primitive/semantic tier line (#267 pattern) ──────────────
 // Typography carried this split first (#272, via `.pvseg`); this generalises it. Two defects forced
@@ -804,27 +827,23 @@ const renderPreviewTokens = (host: HTMLElement, repaint: () => void): void => {
 
   const bar = el('div', 'tok-ctrls');
   if (tokTier === 'semantic') {
-    const showSel = selectEl();
-    for (const [v, label] of [['both', 'Alias and value'], ['alias', 'Alias only'], ['value', 'Value only']])
-      showSel.append(new Option(label, v));
-    showSel.value = tokShow;
-    showSel.onchange = () => { tokShow = showSel.value as typeof tokShow; repaint(); };
-    bar.append(pfield('Show', showSel));
+    // #3938 (Q-BK1 A): the chrome's shared select (lever-kit `selectField`, `.p3-select`), not the legacy `.select`,
+    // whose taller box dropped its caption below the Alias path control's.
+    const showSel = selectField('p3-token-show', 'Show', 'token-show', (v) => { tokShow = v as typeof tokShow; repaint(); });
+    showSel.set([{ v: 'both', l: 'Alias and value' }, { v: 'alias', l: 'Alias only' }, { v: 'value', l: 'Value only' }], tokShow);
+    bar.append(pfield('Show', showSel.el));
 
-    const pseg = el('div', 'seg');
-    for (const [k, label] of [['full', 'Full'], ['short', 'Short']] as Array<['full' | 'short', string]>) {
-      const b = hook(el('button', 'seg-b' + (tokPath === k ? ' on' : ''), label), `token-path-${k}`) as HTMLButtonElement;
-      b.onclick = () => { if (tokPath !== k) { tokPath = k; repaint(); } };
-      pseg.append(b);
-    }
-    bar.append(pfield('Alias path', pseg));
+    // #3911: the shared segmented control (lever-kit `choice`), not the legacy `.seg`, whose selected segment drew an underline.
+    const pseg = choice('Alias path', 'token-path', [{ v: 'full', l: 'Full' }, { v: 'short', l: 'Short' }] as const, (v) => {
+      if (tokPath !== v) { tokPath = v; repaint(); }
+    });
+    pseg.set(tokPath);
+    bar.append(pfield('Alias path', pseg.el));
   }
-  const catSel = selectEl();
-  catSel.append(new Option('All categories', ''));
-  for (const s of sections) catSel.append(new Option(`${s.cat} (${s.leaves.length})`, s.cat));
-  catSel.value = sections.some((s) => s.cat === tokCat) ? tokCat : (tokCat = '');
-  catSel.onchange = () => { tokCat = catSel.value; repaint(); };
-  bar.append(pfield('Category', catSel));
+  const catSel = selectField('p3-token-category', 'Category', 'token-category', (v) => { tokCat = v; repaint(); });
+  catSel.set([{ v: '', l: 'All categories' }, ...sections.map((s) => ({ v: s.cat, l: `${s.cat} (${s.leaves.length})` }))],
+    sections.some((s) => s.cat === tokCat) ? tokCat : (tokCat = ''));
+  bar.append(pfield('Category', catSel.el));
   host.append(bar);
 
   // ---- sections ----
@@ -1252,6 +1271,9 @@ let importGen = 0;
  *  would measure against the wrong baseline. Storing the pair means the origin travels with the input
  *  it belongs to and the confirm button re-authors nothing. */
 let pendingLoad: { input: BrandInput; origin: Origin } | null = null;
+/** The brand the last load replaced, with its edits, offered back as Undo load until the next edit or load (#1037,
+ *  `state/undo-load.ts`). Null when there is nothing to put back. */
+let undoLoad: UndoLoad | null = null;
 /** True while `loadBrand` is inside `loadInput` — see there. */
 let loading = false;
 
@@ -1291,20 +1313,49 @@ subscribe('brand', () => {
  *
  *  A lint script could have checked the same thing by pattern; the required parameter checks it by
  *  construction, over every call site, with no scan to keep in scope. */
-const loadBrand = (input: BrandInput, origin: Origin): void => {
+const loadBrand = (input: BrandInput, origin: Origin): void => replaceWorking(() => loadInput(input, origin));
+
+/** What every wholesale replacement shares: `loadBrand`'s load, and Undo load's restore (#1037). Any replacement ends
+ *  an Undo load offer; `loadReplacing` sets a new one after it. */
+const replaceWorking = (put: () => void): void => {
   // The store replaces the input, sets the provenance from that same value, and resets the view to
   // the first page and mode (`loadInput`); what is left here is this file's own menus and the render.
   // `loadInput` tells its subscribers once each, after the new brand is resolved (#2487 A13); the `page`
   // subscriber still waits for `loading` to clear, because the `build()` below is this file's one render.
   loading = true;
+  undoLoad = null;
   // #1994: a brand loading is what ends a `rejected` or `unreadable` restore failure (see `restoreFailure`).
   if (restoreFailure && restoreFailure.kind !== 'unresolved') restoreFailure = null;
-  try { loadInput(input, origin); } finally { loading = false; }
+  try { put(); } finally { loading = false; }
   brandMenuOpen = false; importOpen = false; importErr = null; importText = ''; pendingLoad = null;
   startReopened = false;   // a load is a choice: the start window closes with it (S12)
   barChanged();
   build();
 };
+
+/** A load the designer chose (an example, a design.md, a start-window path) that may replace unsaved edits (#1037). The
+ *  brand it replaces is kept for Undo load when it had edits to lose; the guard asked first in that case. */
+const loadReplacing = (input: BrandInput, origin: Origin): void => {
+  const keep = stashForLoad(shownName(brandState));
+  loadBrand(input, origin);
+  undoLoad = keep;
+  barChanged();
+};
+
+/** Undo load (#1037): the replaced brand back, with its edits and its origin, so they are still unsaved and still
+ *  guarded. Offered once: the restore ends the offer. */
+const undoLastLoad = (): void => {
+  const u = undoLoad;
+  if (!u) return;
+  replaceWorking(() => restoreInput(u.input, u.provenance, u.lastGood));
+};
+// "Until the next edit" (Q319.2): the first edit to the loaded brand ends the offer, and a later edit back to the
+// loaded values does not bring it back. A load's own notifications are skipped (`loading`).
+const endUndoOnEdit = (): void => {
+  if (undoLoad && !loading && !stillOffered(undoLoad, brandState, provenance)) { undoLoad = null; barChanged(); }
+};
+subscribe('brand', endUndoOnEdit);
+subscribe('identity', endUndoOnEdit);
 
 /** Trigger a client-side file download (Blob → object URL → anchor click). */
 const download = (filename: string, text: string, mime: string): void => {
@@ -1317,6 +1368,9 @@ const download = (filename: string, text: string, mime: string): void => {
 
 // L-11: a design.md pasted with a bare numeric `id:` (e.g. `id: 2026`) parses `id` as a
 // number; `.trim()` on a number throws and crashes BOTH exports. Coerce to string first.
+/** The brand a post to the host carries: `lastGoodInput`, its words added to the session's first (#3883). A rename
+ *  skips `rebuild()` (`syncIdentity`), so a post is the one moment the brand an Activity line will name is known. */
+const posted = postedInput;   // the note is the store's (`postedInput`), where `test-report.ts` runs it
 const slug = (): string => String(lastGoodInput.id || 'brand').trim().replace(/\s+/g, '-') || 'brand';
 
 // Both exports run off the LAST-GOOD state, never the live one (M-15). Previously tokens.json
@@ -1352,12 +1406,17 @@ const exportTokens = (): void => {
 
 /** #3425 — Export component specs: the component-defs export for the brand on screen (its component settings resolved)
  *  and the same as a Specs components set, from the engine function `regen` and the CLI write theirs with, through the
- *  exporter the plugin provides (`state/component-specs-export.ts`; the web has none). Off the last-good input, like the
- *  tokens, so a failing edit cannot reach it. Two files, two downloads, as the token set. */
-const exportComponentSpecs = (): void => {
-  const exporter = componentSpecsExporter();
+ *  exporter the host provides (`state/component-specs-export.ts`): the plugin's at once, the web's from its chunk,
+ *  loaded on this click (#3429). Off the last-good input, like the tokens, so a failing edit cannot reach it, and that
+ *  input and the slug are read at the click, so an edit made while the chunk loads does not change what downloads.
+ *  One download per file, as the token set (three since #1325). A chunk that fails to load downloads nothing and is
+ *  logged; the dialog has no words for it yet (#3429, held for the owner). */
+const exportComponentSpecs = async (): Promise<void> => {
+  const input = lastGoodInput, name = slug();
+  let exporter;
+  try { exporter = await loadComponentSpecsExporter(); } catch (e) { console.error('component specs: the chunk did not load', e); return; }
   if (!exporter) return;
-  for (const f of exporter.files(lastGoodInput, slug())) download(f.name, f.text, 'application/json');
+  for (const f of exporter.files(input, name)) download(f.name, f.text, 'application/json');
 };
 
 // design.md import (#160): the check, the file reader and the picker's types live in `state/start-input.ts` (S12), so
@@ -1444,7 +1503,12 @@ const overwriteText = (pending: { input: BrandInput; origin: Origin }): string =
 
 /** Tell the top bar its own state moved (UI redesign S13.1). It was `renderBar()`, which drew the bar here; the
  *  shell draws it now (`shell/bar.ts`) and repaints from the store's `bar` topic. */
-const barChanged = (): void => invalidate('bar');
+const barChanged = (): void => {
+  invalidate('bar');
+  // #3697 Q-R9.1 A: a `file` load waiting on the confirm is drawn by the error strip, not the bar, so a change to the
+  // pending load (staged, cancelled, or dropped as a menu closes) repaints the strip too.
+  if (heldRestore) syncErrorBar();
+};
 
 /** The bar's view of this file's state: the brand menu, the import box, the pending load, the dialogs. */
 const barRead = (): BarView => ({
@@ -1460,6 +1524,8 @@ const barRead = (): BarView => ({
   // download) closes. The one mechanism that holds it open (#2995, nit 4).
   exportOpen: exportMenuOpen || page === 'export',
   home: homeBar(homeShown()),
+  // #1037: APPROVED wording (owner decision Q-BK2 A, 2026-11-17), "Back to <brand>, with your edits".
+  undo: undoLoad ? { hint: `Back to ${undoLoad.name}, with your edits` } : null,
 });
 
 /** The export dialog's content (#723, implementing #720), from `export-settings.ts`, which is pure and tested under
@@ -1483,9 +1549,8 @@ const exportView = (): ExportView => {
     const prev = exportPreview(tree, slug(), exportSettings, exportMetadata);
     right.push({ kind: 'previews', files: prev.map((f) => ({ name: prev.length > 1 ? f.name : null, text: f.text })) });
   } else if (exportArtifact === 'component-specs') {
-    const exporter = componentSpecsExporter();
-    if (exporter) {
-      const names = exporter.fileNames(slug());
+    const names = componentSpecsFileNames(slug());
+    if (names) {
       right.push({ kind: 'cap', text: `You get ${names.length} files` });
       right.push({ kind: 'files', text: names.join('\n') });
     } else right.push({ kind: 'note', text: SPECS_WEB_OFF });
@@ -1501,7 +1566,7 @@ const exportView = (): ExportView => {
   }
   // Owner (#2007): after a failed restore the tokens on hand are the DEMO's, so that download is off too.
   const off = exportArtifact === 'design-md' && !briefInput() ? BRIEF_NONE : exportArtifact === 'dtcg' && restoreFailure ? TOKENS_NONE
-    : exportArtifact === 'component-specs' && !componentSpecsExporter() ? SPECS_WEB_OFF
+    : exportArtifact === 'component-specs' && !componentSpecsFileNames(slug()) ? SPECS_WEB_OFF
     : exportArtifact === 'component-specs' && restoreFailure ? SPECS_NONE : null;
   return {
     artifacts: ARTIFACTS.map((a) => ({ id: a.id, label: a.label, on: a.id === exportArtifact })),
@@ -1516,10 +1581,8 @@ const exportView = (): ExportView => {
     // Said out loud rather than left as an empty area: silence reads as a loading state or a bug.
     none: settings.length ? null : exportArtifact === 'component-specs' ? SPECS_NO_SETTINGS : 'Nothing to set — the brief is written one way.',
     right,
-    go: { text: exportArtifact === 'design-md' ? '↓ Download brief' : exportArtifact === 'component-specs' ? '↓ Download component specs' : '↓ Download tokens', off },
-    // The Figma-file path (#677) is absent rather than disabled: `availableImportSlots()` narrows to the copy-bearing
-    // variant, so there is no string to render for a path whose behavior is undecided.
-    imports: availableImportSlots().map((slot) => ({ label: slot.label, desc: slot.desc })),
+    // #3553 Q-UI8 A: the word alone; the bar draws the vendored download icon before it.
+    go: { text: exportArtifact === 'design-md' ? 'Download brief' : exportArtifact === 'component-specs' ? 'Download component contracts' : 'Download tokens', off },
   };
 };
 
@@ -1549,8 +1612,14 @@ const barActions: BarActions = {
       stageImport(read.text, 'file');
     });
   },
-  replace: () => { const p = pendingLoad; if (!p) return; pendingLoad = null; loadBrand(p.input, p.origin); },
+  replace: () => {
+    const p = pendingLoad; if (!p) return; pendingLoad = null;
+    // #1037: the file's own brand is not a load the designer chose to look at, so it offers no Undo load.
+    if (p.origin.kind === 'file') loadBrand(p.input, p.origin); else loadReplacing(p.input, p.origin);
+    if (p.origin.kind === 'file' && heldRestore === p.input) heldRestoreLoaded();   // #3697 Q-R9.1 A: the offer's confirm
+  },
   cancelReplace: () => { pendingLoad = null; barChanged(); },
+  undoLoad: () => undoLastLoad(),
   toggleExport: () => { exportMenuOpen = !exportMenuOpen; brandMenuOpen = false; importOpen = false; barChanged(); },
   closeExport: () => { exportMenuOpen = false; barChanged(); },
   artifact: (id) => { exportArtifact = id as ArtifactId; barChanged(); },
@@ -1562,7 +1631,7 @@ const barActions: BarActions = {
   download: () => {
     // The Export area stays drawn (`exportOpen` in `barRead`, #2909).
     exportMenuOpen = false; barChanged();
-    if (exportArtifact === 'design-md') exportDesignMd(); else if (exportArtifact === 'component-specs') exportComponentSpecs(); else exportTokens();
+    if (exportArtifact === 'design-md') exportDesignMd(); else if (exportArtifact === 'component-specs') void exportComponentSpecs(); else exportTokens();
   },
 };
 
@@ -1570,7 +1639,9 @@ const barActions: BarActions = {
  *  thread recomputes the plan from a fresh read before it acts. Its preview's Cancel deletes nothing. */
 const deletePrune = (): void => {
   if (restoreFailure) return;
-  setHost({ pruneBusy: 'delete', prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, true);
+  // #3697 R6: the Delete echoes its preview's hash, so the host removes exactly the list the designer read.
+  const previewHash = host.prunePreview?.previewHash ?? '';
+  setHost({ pruneBusy: 'delete', prunePreview: null }); hostChanged(); commit.postPrune(posted(), true, previewHash);
 };
 
 
@@ -1751,6 +1822,8 @@ const activityReading = (): ActivityReading => {
       // #2830 Q713 A: Documentation › Specs' Draw specs has a row of its own, like Style guides: "Drawing specs…" while
       // it is out, the panel's or an agent's, then its verdict. The Build set row never shows it.
       specs: opReading('specs', host.specsState === 'pending', verdictOf(host.specsState), fixed(PENDING_TEXT.specs)),
+      // #3394 Q3394.7 A: the agent link's color overrides. Only an agent runs them, so the row is never the panel's pending.
+      override: opReading('override', false, verdictOf(host.overrideState), fixed(null)),
     },
     detail: host.openDetail,
     refused: host.refused,
@@ -1770,7 +1843,8 @@ const activityReading = (): ActivityReading => {
 // Before this, an agent's run left the panel's Apply ready to post a second write over the same variables.
 
 /** True while a write of this kind runs: the panel's own slot is pending, or an agent's command runs it. */
-const applyBusy = (): boolean => host.applyState === 'pending' || agentRunning('apply');
+// #3394: an agent's set-override writes the theme through Theme's own guard, so Theme is busy while it runs.
+const applyBusy = (): boolean => host.applyState === 'pending' || agentRunning('apply') || agentRunning('override');
 const pruneBusy = (): boolean => !!host.pruneBusy || agentRunning('prune');
 const fileSetupBusy = (): boolean => host.fileSetupState === 'pending' || agentRunning('filesetup');
 const componentBusy = (): boolean => host.componentState === 'pending' || host.specsState === 'pending' || agentRunning('components') || agentRunning('specs');
@@ -1807,6 +1881,36 @@ const componentBusy = (): boolean => host.componentState === 'pending' || host.s
  */
 type RestoreFailure = { kind: 'unresolved' | 'rejected' | 'unreadable'; reason: string; brand: BrandInput | null };
 let restoreFailure: RestoreFailure | null = null;
+
+/** #3697 R9 (the owner's A): whether the host has answered the boot read (`restore-input` and its three siblings). */
+let bootRestoreSeen = false;
+/** #3697 R9: the file's brand, held because the boot read arrived after the designer had acted; null when none is held. */
+let heldRestore: BrandInput | null = null;
+/** #3697 R9: the designer has acted — chosen a brand (the sibling guards' identity test) or edited the placeholder. */
+const userActed = (): boolean => provenance !== bootProvenance || isDirty(brandState, bootProvenance);
+/** #3697 R9: the strip's offer while a late restore is held. OWNER DECISION: copy — a DRAFT to `docs/voice-standard.md`,
+ *  a placeholder until approved. So is drawing it in the error strip, which is the strip that already carries an action. */
+export const LATE_RESTORE = {
+  line: 'This file holds a saved brand. Your choice came first, so it stays on screen.',
+  action: 'Load the file\'s brand',
+} as const;
+/** #3697 R9, Q-R9.1 A: the offer taken. It goes through `stageLoad`, the one place that decides whether a replacement
+ *  needs confirming (#1033): with unsaved edits it stages the load and the strip shows the replace confirm in the offer's
+ *  place (`syncErrorBar`); with none it loads straight away. The held brand stays held until it loads, so a Cancel puts
+ *  the offer back and the edits stay. */
+const takeHeldRestore = (): void => {
+  const input = heldRestore;
+  if (!input) return;
+  stageLoad(input, { kind: 'file' });
+  if (!pendingLoad) heldRestoreLoaded();   // no edits to lose: `stageLoad` loaded it (and `loadBrand` clears `pendingLoad`)
+  else syncErrorBar();
+};
+/** #3697 R9: the held brand has loaded as the file's; finish exactly as an early restore would have (#1989's failure). */
+const heldRestoreLoaded = (): void => {
+  heldRestore = null;
+  if (lastError) { restoreFailure = { kind: 'unresolved', reason: lastError, brand: failedBrandOf(brandState) }; build(); }
+  syncErrorBar();
+};
 /** The file's failed brand as a design.md, or null when it cannot be written as one. */
 const failedBrandOf = (input: unknown): BrandInput | null => {
   try { toDesignMd(input as BrandInput); return input as BrandInput; } catch { return null; }
@@ -1814,10 +1918,10 @@ const failedBrandOf = (input: unknown): BrandInput | null => {
 const BRIEF_IS_FAILED = "This is the file's saved brand, which didn't open, not the demo brand on screen.";
 const BRIEF_NONE = "Nothing to export: this file's saved brand couldn't be read.";
 const TOKENS_NONE = "Off after a failed restore: these tokens would be the demo brand's, not this file's.";
-/** #3425 (DRAFT wording for the owner, Q3425.1). */
-const SPECS_NONE = "Off after a failed restore: these specs would be the demo brand's, not this file's.";
-const SPECS_NO_SETTINGS = "Nothing to set — the specs follow this brand's component settings.";
-const SPECS_WEB_OFF = 'In the Figma plugin: the specs are built from the component definitions, which the web Studio leaves out.';
+/** #3425 (DRAFT wording for the owner, Q3425.1); "component contracts" since #1325 (Q-CC1 A, DRAFT). */
+const SPECS_NONE = "Off after a failed restore: these component contracts would be the demo brand's, not this file's.";
+const SPECS_NO_SETTINGS = "Nothing to set — the component contracts follow this brand's component settings.";
+const SPECS_WEB_OFF = 'In the Figma plugin: the component contracts are built from the component definitions, which the web Studio leaves out.';   // a fallback no host reaches since #3429: the plugin provides the exporter, the web a loader
 /** The error bar after a failed restore, by kind (owner, 2026-10-02). `unresolved` says "resolves" because a
  *  rebuild that resolves also ends it; the other two end only when a brand loads. */
 const RESTORE_BAR: Record<RestoreFailure['kind'], (reason: string) => string> = {
@@ -1832,7 +1936,7 @@ const RESTORE_OFF_HINT = "Off until a brand loads. This file's saved brand didn'
  *  the state. */
 const runApply = (): void => {
   if (applyBusy()) return;
-  setHost({ applyState: 'pending', openDetail: null, collisions: null, collisionsChosen: null }); hostChanged(); commit.postTheme(lastGoodInput);
+  setHost({ applyState: 'pending', openDetail: null, collisions: null, collisionsChosen: null }); hostChanged(); commit.postTheme(posted());
 };
 /** #1909 (Q112 A): the collision choice. Apply runs Apply Theme again with a choice for every collision the refusal
  *  named; Cancel closes the list and the refusal stands. Nothing is kept: the choices ride this one post. */
@@ -1842,7 +1946,7 @@ const collisionsLend: CollisionsLend = {
     if (applyBusy()) return;
     // The review of #3518: with the choices this attempt already used, so a renamed name someone else holds asks only once.
     const all = withEarlier(host.collisionsChosen, choices);
-    setHost({ applyState: 'pending', openDetail: null, collisions: null, collisionsChosen: null }); hostChanged(); commit.postTheme(lastGoodInput, all);
+    setHost({ applyState: 'pending', openDetail: null, collisions: null, collisionsChosen: null }); hostChanged(); commit.postTheme(posted(), all);
   },
   cancel: () => { setHost({ collisions: null, collisionsChosen: null }); hostChanged(); },
 };
@@ -1851,7 +1955,7 @@ const runPrune = (): void => {
   // #2909: never after a failed restore either, when the brand on screen is the demo's, not the file's (#1989).
   if (pruneBlocked() || restoreFailure) return;
   clearStripLine();
-  setHost({ pruneBusy: 'preview', pruneVerdict: null, prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, false);
+  setHost({ pruneBusy: 'preview', pruneVerdict: null, prunePreview: null }); hostChanged(); commit.postPrune(posted(), false);
 };
 /** Set up file (#1558). `openDetail` is cleared for the reason the build clears it: the previous run's
  *  detail is stale the instant a new one starts. */
@@ -2034,7 +2138,7 @@ const inPlaceOf = (step: StepKey | null): NonNullable<UpdateRun['update']> | nul
 /** The brand Update file measures against (Q699 A, #3023 Q701 B): the one the panel holds (Apply's own
  *  `lastGoodInput`) when Theme is ticked, as the run's Theme step applies it; with Theme unticked, none, so the host
  *  measures against the brand the file keeps (`brandFor`). The due read, the check and the update agree either way. */
-const panelBrand = (theme: boolean): BrandInput | undefined => brandFor(theme, lastGoodInput);
+const panelBrand = (theme: boolean): BrandInput | undefined => brandFor(theme, posted());
 /** Whether the run out (or the one that just ended, `steps`) writes the theme. */
 const runTheme = (steps: readonly StepKey[] | undefined): boolean => !!steps?.includes('theme');
 const postUpdate = (u: NonNullable<UpdateRun['update']>, previewHash: string): void => {
@@ -2119,7 +2223,9 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
     postUpdate(u, m.previewHash);
     return;
   }
-  if ((step === 'update' || step === 'cover') && updatePhase === 'apply' && m.kind === 'component-update-result') { updatePhase = null; endStep(m.ok, m.headline, false, true); return; }
+  // #3711 (Q-UF3 A): an update that wrote every set, some left to check, did all it was asked: the run goes on (`warn`),
+  // as past a To add step with problems (#3308). A set that stopped or was refused, or a stop asked for, still ends it.
+  if ((step === 'update' || step === 'cover') && updatePhase === 'apply' && m.kind === 'component-update-result') { updatePhase = null; endStep(m.ok, m.headline, m.completed, true); return; }
   // The build queue posts its sets one after another (`runAfterResult`); the step ends with the queue.
   // #3308: a queue that built every set, some with problems, did all it was asked: the run goes on (`warn`). A set that
   // failed, or a stop that left sets unbuilt, still ends it.
@@ -2153,7 +2259,7 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
 let dueSeq = 0;
 let dueTimer: ReturnType<typeof setTimeout> | null = null;
 // #3137: and Documentation's answer (the panels switch moves the Usage panels item) and Clean up's panels removal.
-const DUE_AFTER: ReadonlySet<string> = new Set(['file-sets', 'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'agent-finished', 'doc-settings', 'panels-clean-result']);
+const DUE_AFTER: ReadonlySet<string> = new Set(['file-sets', 'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'agent-finished', 'doc-settings', 'panels-clean-result', 'updates-off']);
 /** Whether the panel holds a brand of its own to count against: one is chosen, and it resolved. */
 const liveShown = (): boolean => !restoreFailure && !firstRun() && provenance !== bootProvenance;
 const recountDue = (): void => {
@@ -2162,7 +2268,7 @@ const recountDue = (): void => {
   dueTimer = setTimeout(() => {
     dueTimer = null;
     if (!liveShown()) return;
-    commit.requestDue(lastGoodInput, ++dueSeq);
+    commit.requestDue(posted(), ++dueSeq);
   }, DUE_DEBOUNCE_MS);
 };
 subscribe('brand', recountDue);
@@ -2221,11 +2327,17 @@ const reportLend: ReportLend = {
     return {
       stamp: PRISM3_BUILD, engine: ENGINE_VERSION, host: commit.isFigma ? 'figma' : 'web',
       activity: (Object.keys(r.ops) as (keyof typeof r.ops)[]).map((k) => ({ title: OP_TITLE[k], verdict: r.ops[k].verdict, lines: r.ops[k].lines ?? (r.ops[k].summary ? [r.ops[k].summary!] : []), agent: r.ops[k].agent })),
-      brand: lastGoodInput as unknown as Record<string, unknown>,
+      // #3883: after a failed restore the brand to include is the file's (`briefInput`, as Export design.md reads it), not
+      // the boot demo's. The scrub list is every brand the session held, plus the live one, the failed restore's and a held one.
+      brand: briefInput() as unknown as Record<string, unknown> | null,
+      seen: mergeWords(sessionBrandWords(), ...[brandState, restoreFailure?.brand, heldRestore].map((b) => brandWords(b as unknown as Record<string, unknown> | null))),
     };
   },
   openUrl: (url) => commit.openIssue(url),
 };
+/** #2956: whether Theme was ticked when Update file last turned a set's updates off or back on: the read that follows
+ *  measures against the brand that tick picks, as the checklist's own reads do. */
+let updatesOffTheme = false;
 const updateFileLend: UpdateFileLend = {
   read: () => ({
     fileSets: host.fileSets, liveDue: liveShown() ? host.liveDue : null, catalog: componentCatalog(), run: updateRun, stopped: updateStopped, off: writeOff(),
@@ -2233,8 +2345,9 @@ const updateFileLend: UpdateFileLend = {
     retired: host.styleGuideRetired, cleanupBusy: host.styleGuideCleanup === 'pending' || host.styleGuideState === 'pending' || agentRunning('styleguide'),
     handEdits: host.handEdits, updateCheck: host.updateCheck, updateProgress: host.updateProgress, queue: host.addQueue, panels: host.docSettings?.panels !== false,
     rowState: (id) => rowState(stripRun, id), stopLabel: () => { const v = statusLend.read(); return v.kind === 'running' ? v.stop.label : null; },
-    panelsOff: host.docSettings?.panels === false, panelsClean: host.panelsClean,
+    panelsOff: host.docSettings?.panels === false, panelsClean: host.panelsClean, updatesOffError: host.updatesOffError,
   }),
+  setUpdatesOff: (def, off, theme) => { if (!commit.isFigma) return; updatesOffTheme = theme; commit.postUpdatesOff(def, off); },
   panelsClean: (confirm) => panelsClean(confirm),
   queueSets,
   check: (theme) => commit.requestFileSets(panelBrand(theme)),
@@ -2353,7 +2466,7 @@ const syncStart = (): void => {
     guardFor: (c: StartChoice) => (needsOverwriteConfirm(brandState, provenance)
       ? guardText(shownName(brandState), originLabel(c.origin, 'arriving'), editCount(brandState, provenance.baseline))
       : null),
-    load: (c: StartChoice) => { home = null; homeStart = false; loadBrand(c.input, c.origin); },
+    load: (c: StartChoice) => { home = null; homeStart = false; loadReplacing(c.input, c.origin); },
   });
 };
 

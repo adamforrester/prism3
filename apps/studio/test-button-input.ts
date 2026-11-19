@@ -17,14 +17,11 @@
  * takes it" is the engine's own `brandTheme`. The reader's fallbacks are literals too (`attached`, `match`, 2.25,
  * `emphasis`), not read from the lever manifest.
  */
-import { brandTheme, type BrandInput } from '@prism3/engine/theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { brandTheme, type BrandInput, buildTree, type ControlShape } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as store from './src/state/store';
 import * as B from './src/state/button-input';
-import { buildTree } from '@prism3/engine/tree';
-import { componentDefs } from '@prism3/engine/components/index';
-import { applyControlShape } from '@prism3/engine/anatomy-figma';
-import type { ControlShape } from '@prism3/engine/scale';
+import { componentDefs, applyControlShape } from '@prism3/engine/components';
 import { buttonCornerPx } from './src/preview/sections/button-layout';
 import { BUTTON_OPTIONS_COPY } from './src/domains/button-options';
 

@@ -48,10 +48,12 @@
  *      committed page's `##` headings are exactly the def's sections, in order, then `Specs` for a def the
  *      committed `specs.json` covers (#2830) (`SECTION PARITY`), and its
  *      Anatomy is the gate's reading of the def: the default member, each noted part's line, and no held-back
- *      note anywhere on the page (`SPECIMEN` / `ANATOMY LINE` / `HELD-BACK NOTE`), with role and ARIA under
- *      one Screen readers row (`SCREEN READERS`); F5 the
+ *      note anywhere on the page (`SPECIMEN` / `ANATOMY LINE` / `HELD-BACK NOTE`), and, since every part note
+ *      became a caption (#3610, owner Q-UG1 A), no Anatomy line without one (`UNCAPTIONED PART`), with role and
+ *      ARIA under one Screen readers row (`SCREEN READERS`); F5 the
  *      maintainer record's `docGaps` names every section not drawn and every part note held back.
- *   G  THE COMPONENT-DEFS EXPORT (#3425). `out/components/component-defs.json` validates against the AUTHORED
+ *   G  THE COMPONENT-DEFS EXPORT (#3425). `out/components/component-contracts.json` (#1325) is byte-identical to its
+ *      compatibility copy `component-defs.json` (`DEFS TWIN`), which validates against the AUTHORED
  *      `schema/component-defs.schema.json`, its `format` names the schema's `$id`, its two version stamps are
  *      `version.ts`'s, and it holds every registered def and no other; each entry's `def` IS its `components.ai.json`
  *      entry and its `spec` IS its `specs.json` entry, and its `digest` is the FNV-1a of the two, recomputed here
@@ -103,9 +105,11 @@ import { docSections } from './component-doc-sections';
 import { componentDefs } from './components/index';
 import { validate } from './json-schema-lite';
 import { codeOnlyText, DISPOSITION_NAMES } from './code-only-register';
-import { exportComponentDefs } from './component-defs-export';
+import { componentDefsFileNames, exportComponentDefs } from './component-defs-export';
+import { buildIdentity } from './build-identity';
 import type { BrandInput } from './theme';
 import { CONTRACT_VERSION, ENGINE_VERSION } from './version';
+import { renderUncommitted, UNCOMMITTED_OUT } from './regen';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const DIR = resolve(here, 'out', 'components');
@@ -152,6 +156,13 @@ const LABEL: Record<string, string> = {
   supersedes: '- **Supersedes:**',
   supersededBy: '- **Superseded by:**',
 };
+
+/** EACH COMPONENT ONCE ACROSS RELATED'S LISTS (#3552 Q-UG3 A), in the owner's order, written here: a component a def
+ *  names in more than one list is on the line of the first list that names it, and on no later one. */
+const RELATED_ORDER = ['composesWith', 'alternativeTo', 'commonPartners', 'supersedes', 'supersededBy'] as const;
+type RelatedKey = (typeof RELATED_ORDER)[number];
+const relatedList = (def: ComponentDef, k: RelatedKey): readonly string[] => (k === 'commonPartners' ? def.ai.commonPartners : def.composition?.[k]) ?? [];
+const firstListOf = (def: ComponentDef, id: string): RelatedKey | undefined => RELATED_ORDER.find((k) => relatedList(def, k).includes(id));
 
 /** THE SECTION MAP — written here, never read from the projector. Each value's own section, and for a
  *  table its own row and column. `none` is a field the page deliberately leaves out. */
@@ -230,7 +241,16 @@ const manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'));
 const pages = new Map(readdirSync(DIR).filter((f) => f.endsWith('.md')).map((f) => [f.replace(/\.md$/, ''), readFileSync(resolve(DIR, f), 'utf8')]));
 // #2830 — the defs the committed spec emission covers. Their pages end with a `Specs` section, after the section
 // model's (F4); it is read off the emitted file, not the emitter's own condition, so the two can disagree.
-const specIds = new Set(Object.keys(JSON.parse(readFileSync(resolve(DIR, 'specs.json'), 'utf8')).components ?? {}));
+// #3698 R3: `specs.json` and the defs export are no longer committed, so they are generated first, into a temp dir, and
+// read from there: CI has no copy in `out/`, and a local copy may be stale. A render that fails is blindness, not clean.
+const rendered = renderUncommitted();
+if ('error' in rendered) {
+  console.error(`❌ lint-component-docs CANNOT RUN — the uncommitted exports did not render (${rendered.error})`);
+  process.exit(1);
+}
+const uncommitted = (name: string): string => rendered.files[UNCOMMITTED_OUT.indexOf(`components/${name}`)];
+const SPECS_FILE = uncommitted('specs.json');
+const specIds = new Set(Object.keys(JSON.parse(readFileSync(SPECS_FILE, 'utf8')).components ?? {}));
 const entries: Record<string, any> = doc.components ?? {};
 const maintEntries: Record<string, any> = maint.components ?? {};
 
@@ -344,9 +364,11 @@ for (const def of componentDefs) {
 
   const onPage = (v: string | number | boolean, path: Path) => {
     if (!page) return; // arm A already named it
-    // A partner the def is already built from is drawn once, on the Built from line (the #846 wireframe).
-    const place = path[0] === 'ai' && path[1] === 'commonPartners' && (def.composition?.composesWith ?? []).includes(String(v))
-      ? { kind: 'list' as const, heading: '## Related components', label: LABEL.composesWith } : SECTION(path);
+    // A component named in more than one Related list is drawn once, on the first list's line (#3552 Q-UG3 A; a partner
+    // the def is built from on the Built from line, as the #846 wireframe drew it).
+    const listKey = (path[0] === 'ai' && path[1] === 'commonPartners') || (path[0] === 'composition' && (RELATED_ORDER as readonly unknown[]).includes(path[1]))
+      ? firstListOf(def, String(v)) : undefined;
+    const place = listKey ? { kind: 'list' as const, heading: '## Related components', label: LABEL[listKey] } : SECTION(path);
     if (!place) { note(`NO SECTION: ${where(path)} has no page section in this gate's SECTION map — add one, or \`none\` with a reason`); return; }
     if (place.kind === 'none') return;
     if (place.kind === 'text' && typeof v !== 'string') return; // numbers and booleans outside tables are JSON-only
@@ -435,9 +457,14 @@ for (const def of componentDefs) {
     extra('the ID line', [def.id], listSpans(page, { heading: null, label: LABEL.id }));
     extra('the Builds on line', def.inherits ? [def.inherits] : [], listSpans(page, { heading: null, label: LABEL.inherits }));
     extra('### States', def.states, listSpans(page, { heading: '### States' }));
-    extra('the Often used with line', (def.ai.commonPartners ?? []).filter((id) => !(def.composition?.composesWith ?? []).includes(id)), listSpans(page, { heading: '## Related components', label: LABEL.commonPartners }));
-    for (const k of ['composesWith', 'alternativeTo', 'supersedes', 'supersededBy'] as const)
-      extra(`the ${LABEL[k]} line`, def.composition?.[k] ?? [], listSpans(page, { heading: '## Related components', label: LABEL[k] }));
+    for (const k of RELATED_ORDER)
+      extra(`the ${LABEL[k]} line`, relatedList(def, k).filter((id) => firstListOf(def, id) === k), listSpans(page, { heading: '## Related components', label: LABEL[k] }));
+    // ONCE (#3552 Q-UG3 A): no component on two of Related's lines.
+    const lines = RELATED_ORDER.flatMap((k) => (listSpans(page, { heading: '## Related components', label: LABEL[k] }) ?? []).map((id) => [id, k] as const));
+    for (const [id, k] of lines) {
+      const other = lines.find(([o, ok]) => o === id && ok !== k);
+      if (other && RELATED_ORDER.indexOf(k) > RELATED_ORDER.indexOf(other[1])) note(`RELATED TWICE: out/components/${def.id}.md names \`${id}\` under ${LABEL[other[1]]} and again under ${LABEL[k]} — a component is listed once, in the first list that names it (#3552 Q-UG3 A)`);
+    }
     for (const [axis, values] of Object.entries(def.variants)) extra(`the Styles \`Values\` cell of \`${axis}\``, values ?? [], cell('## Styles', axis, 'Values'));
     for (const pr of def.props) extra(`the Props \`Default\` cell of \`${pr.name}\``, pr.default === undefined ? [] : [String(pr.default)], cell('### Props', pr.name, 'Default'));
   }
@@ -622,6 +649,9 @@ for (const def of componentDefs) {
         const got = lines[i] === undefined ? undefined : unescape(lines[i]);
         anatomyChecked++;
         if (got !== want) note(`ANATOMY LINE (page): out/components/${def.id}.md part ${i + 1} reads ${JSON.stringify(got?.slice(0, 90) ?? null)}; the def gives ${JSON.stringify(want.slice(0, 90))}${reader ? '' : ' (its note is held back)'}`);
+        // Every Anatomy line carries a caption (#3610): a held-back note lists its part bare, so rewrite the note
+        // for a reader and keep the maintainer half in a code comment beside the part.
+        if (!reader) note(`UNCAPTIONED PART (page): out/components/${def.id}.md lists part \`${id}\` with no caption: its note is held back as maintainer prose — rewrite it for a reader`);
       });
     }
     // F4, Screen readers: the wireframe draws \`accessibility.role\` and \`.aria\` under that one label, role first.
@@ -745,20 +775,28 @@ for (const def of itemsSizeHosts) {
 }
 
 // ---- ARM G: the component-defs export (#3425, owner decision Q45 A) ------------------------------------------------
-// ACTUAL is the committed export on disk. EXPECTED is the two committed projections it composes (each held to the defs
+// ACTUAL is the export as regen writes it, rendered fresh (#3698 R3: no longer committed). EXPECTED is the two committed projections it composes (each held to the defs
 // by the arms above and by `regen --check`), the authored schema, and `version.ts`. The digest is recomputed with this
 // file's own FNV-1a, never the exporter's. A brand export is never committed, so it is held live: for every example
 // brand, and for one brand with every component setting off its default, it validates against the same schema, its
 // `brand.settings` say what the input set (literals here), and a setting that moves a spec moves it.
-const DEFS_FILE = resolve(DIR, 'component-defs.json');
+const DEFS_FILE = uncommitted('component-defs.json');
 const DEFS_SCHEMA = JSON.parse(readFileSync(resolve(here, 'schema', 'component-defs.schema.json'), 'utf8'));
 const fnv = (str: string): string => { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); };
 let defsChecked = 0;
-if (!existsSync(DEFS_FILE)) note('DEFS EXPORT: out/components/component-defs.json does not exist — run `npx tsx packages/engine/regen.ts`');
+// #1325 (owner decision Q-CC1 A): the export is published under its contract name, `component-contracts.json`, and
+// `component-defs.json` stays beside it as a compatibility copy for one release. The copy must be the SAME BYTES, so every
+// check below, made on the old name, holds for the new one; a twin that drifted would be a second export nothing checks.
+// The name is read from the exporter's own constant, the one thing the owner may still rename; the bytes are compared.
+const CONTRACTS_FILE = uncommitted(componentDefsFileNames(null).contracts);
+if (!CONTRACTS_FILE || !existsSync(CONTRACTS_FILE)) note(`DEFS TWIN: the rendered ${componentDefsFileNames(null).contracts} does not exist — the export's contract-named file (#1325)`);
+else if (existsSync(DEFS_FILE) && readFileSync(CONTRACTS_FILE, 'utf8') !== readFileSync(DEFS_FILE, 'utf8'))
+  note(`DEFS TWIN: ${componentDefsFileNames(null).contracts} and its compatibility copy component-defs.json differ — they must be the same bytes (#1325)`);
+if (!existsSync(DEFS_FILE)) note('DEFS EXPORT: the rendered component-defs.json does not exist');
 else {
   const defsText = readFileSync(DEFS_FILE, 'utf8');
   const ex = JSON.parse(defsText);
-  const specsDoc = JSON.parse(readFileSync(resolve(DIR, 'specs.json'), 'utf8'));
+  const specsDoc = JSON.parse(readFileSync(SPECS_FILE, 'utf8'));
   for (const e of validate(DEFS_SCHEMA, ex)) note(`DEFS SCHEMA: ${e}`);
   if (ex.format !== DEFS_SCHEMA.$id) note(`DEFS SCHEMA: the export's format (${ex.format}) does not name the schema's $id (${DEFS_SCHEMA.$id}) — bump both together`);
   if (ex.engineVersion !== ENGINE_VERSION) note(`DEFS VERSION: engineVersion ${ex.engineVersion} is not version.ts's ENGINE_VERSION ${ENGINE_VERSION}`);
@@ -787,6 +825,13 @@ for (const [label, input] of brandCases) {
   for (const e of validate(DEFS_SCHEMA, bx)) note(`DEFS SCHEMA (${label}): ${e}`);
   if (bx.brand?.id !== input.id) note(`DEFS BRAND (${label}): brand.id ${bx.brand?.id} is not the input's ${input.id}`);
   if (Object.keys(bx.components).length !== ids.length) note(`DEFS BRAND (${label}): ${Object.keys(bx.components).length} components, not the registry's ${ids.length}`);
+}
+// #3698 R1 (format 1.3): a LIVE brand export carries `build`, which the cases above never do (they pass none). One case
+// built with a build value, so a schema that drops or mistypes the field fails here by name, not only in a user's hands.
+{
+  const live = exportComponentDefs(componentDefs, { brand: brandCases[0][1], build: buildIdentity(3) });
+  if (live.build !== `${ENGINE_VERSION}+pending.3`) note(`DEFS BUILD: a live export built with build ${buildIdentity(3)} carries ${JSON.stringify(live.build)}`);
+  for (const e of validate(DEFS_SCHEMA, live)) note(`DEFS SCHEMA (live build): ${e}`);
 }
 const off = exportComponentDefs(componentDefs, { brand: brandCases[brandCases.length - 1][1] });
 for (const [k, v] of Object.entries(OFF)) if ((off.brand?.settings as Record<string, unknown> | undefined)?.[k] !== v) note(`DEFS SETTINGS: a brand that sets ${k}: ${v} exports ${k}: ${JSON.stringify((off.brand?.settings as Record<string, unknown> | undefined)?.[k])}`);
@@ -833,6 +878,18 @@ for (const [id, e] of Object.entries<any>(entries)) walkStrings(e, '', (text, pa
   }
 });
 if (unbuiltChecked < 5) note(`NOT BUILT YET floor: only ${unbuiltChecked} "…, not built yet" phrase(s) found in components.ai.json — the scan has stopped seeing them`);
+
+// ---- ARM I: a labeled field states its target size (#3554 M-A) --------------------------------------------------------
+// CardNumberField was the one field host with no 2.5.8 line; every sibling carried one. A def that nests FieldLabel is a
+// labeled form control a pointer must hit, so its WCAG list names 2.5.8. The hosts are read off the anatomy (a part that
+// nests `field-label`), never from a list here.
+let targetChecked = 0;
+for (const def of componentDefs) {
+  if (!Object.values(def.anatomy?.parts ?? {}).some((p) => (p as { nests?: string }).nests === 'field-label')) continue;
+  targetChecked++;
+  if (!(def.accessibility?.wcag ?? []).some((w) => /\b2\.5\.8\b/.test(w))) note(`TARGET SIZE: \`${def.id}\` nests field-label, and its accessibility.wcag names no 2.5.8 Target Size line`);
+}
+if (targetChecked < 8) note(`TARGET SIZE floor: only ${targetChecked} defs nest field-label — the arm is reading almost nothing`);
 
 // ---- report ----------------------------------------------------------------------------------
 if (fail.length) {

@@ -167,7 +167,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
-import { ENGINE_ARTIFACTS, ON_DEMAND_OUT, REPORT_ARTIFACTS, REPORTS_DIR, SCHEMA_ARTIFACTS, renderOnDemand } from './regen';
+import { ENGINE_ARTIFACTS, ON_DEMAND_OUT, UNCOMMITTED_OUT, renderUncommitted, REPORT_ARTIFACTS, REPORTS_DIR, SCHEMA_ARTIFACTS, renderOnDemand } from './regen';
 import { servedToolsList, servedStrings, servedBridgeInstructions } from './mcp-served';
 
 // ---- the RULE, imported (#1117) --------------------------------------------------------------
@@ -177,7 +177,8 @@ import { servedToolsList, servedStrings, servedBridgeInstructions } from './mcp-
 // approval on text that then fails against the wrong file, which is #1117's whole complaint. The
 // #387/#511 property is unchanged — `scan()` below and `SELF_CHECK` both drive the imported `enGb`,
 // so neutering a rule fails this gate's self-check rather than only going quiet in production.
-import { enGb, EN_GB_FILE_NAMES } from './prose-rules.ts';
+import { enGb, EN_GB_FILE_NAMES, EN_GB_SLUGS } from './prose-rules.ts';
+import { printListing } from './files-listing.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
@@ -199,6 +200,13 @@ const onDemand = new Map<string, string>();
   const r = renderOnDemand();
   if ('error' in r) blind.push(`packages/engine/out/${ON_DEMAND_OUT.join(', ')} — the on-demand page did not render (${r.error})`);
   else r.files.forEach((abs, i) => onDemand.set(abs, `packages/engine/out/${ON_DEMAND_OUT[i]} (rendered on demand)`));
+}
+// The same for the exports regen writes and git does not track (#3698 R3): shipped prose, so still scanned, from a
+// fresh render rather than whatever `out/` holds. They share the on-demand map, so findings name their `out/` path.
+{
+  const r = renderUncommitted();
+  if ('error' in r) blind.push(`packages/engine/out/${UNCOMMITTED_OUT.join(', ')} — the uncommitted exports did not render (${r.error})`);
+  else r.files.forEach((abs, i) => onDemand.set(abs, `packages/engine/out/${UNCOMMITTED_OUT[i]} (rendered, not committed)`));
 }
 const shown = (abs: string): string => onDemand.get(abs) ?? relative(repo, abs);
 
@@ -308,7 +316,7 @@ const walkRequired = (dir: string, why: string): string[] => {
 // under this gate automatically instead of quietly widening the blind spot.
 const gated: string[] = [
   ...walkRequired(join(repo, 'packages/engine/out'), 'no emitted artifacts found — run `npx tsx packages/engine/regen.ts`')
-    .filter((f) => !ON_DEMAND_OUT.includes(relative(join(repo, 'packages/engine/out'), f))),
+    .filter((f) => !ON_DEMAND_OUT.includes(relative(join(repo, 'packages/engine/out'), f)) && !UNCOMMITTED_OUT.includes(relative(join(repo, 'packages/engine/out'), f))),
   // The on-demand preview page (Q319.6), rendered fresh above rather than read from `out/`.
   ...onDemand.keys(),
   ...SCHEMA_ARTIFACTS.map((f) => join(repo, 'packages/engine/schema', f)),
@@ -385,6 +393,7 @@ const gated: string[] = [
   // field in it carries a `description` an agent reads to learn `out/components/components.ai.json`.
   join(repo, 'packages/engine/schema/component-docs.schema.json'),
   join(repo, 'packages/engine/schema/component-defs.schema.json'),   // #3425: the component-defs export's authored schema
+  join(repo, 'packages/engine/schema/file-facts.schema.json'),   // #2075: the file facts report's authored schema; every field carries a `description`
   // Shipped skills (#492). Prose an agent reads and follows, so it ships in the same sense `out/**`
   // does — and like the token contract above it is named by hand, because skills are not a `regen`
   // artifact and so inherit none of that list's coverage.
@@ -406,6 +415,20 @@ const gated: string[] = [
   // and its README are committed, so its absence is a scope that shrank. The release record above is carved to match.
   ...walkRequired(join(repo, 'packages/engine/changes'), 'the change-notes directory is missing').filter((f) => f.endsWith('.md')),
 ];
+
+// ---- `--files`: the scanned set, printed (#1117) ----------------------------------------------
+// The scope crossing noted in the header claims "no design-record docs/ file is in this gate's scope". A grep over
+// this source cannot check that claim — it matches the comment making it. This prints the set the
+// gate actually walks, so the claim is decided by the gate rather than by prose about it:
+//
+//   npx tsx packages/engine/lint-us-english.ts --files | grep '^docs/' | grep -vc '^docs/public/'    # must be 0
+//
+// Exits before any scanning, so it is cheap and cannot be confused with a verdict. It also exits before the surface
+// and self checks (#3698 R4), so it lists the walked set in a tree with no build, as `test-docs-only.sh`'s
+// `scope/…` cases read it in CI's engine job: an unbuilt bundle lists no file, and every bundle is under `apps/`.
+// Printed through `printListing`, never `console.log` and `process.exit`: exiting drops whatever the reader had not yet
+// taken, and still exits 0. That cut every schema file off this list in CI five times in a day (#3843).
+if (process.argv.includes('--files')) await printListing(gated.map(shown));
 
 // ---- SELF-CHECK: does the scanner still detect what it claims to? ----
 // Without this, deleting a scan makes the gate go QUIET rather than fail — which is exactly how
@@ -456,6 +479,13 @@ const SELF_CHECK: { sample: string; expect: boolean }[] = [
   { sample: 'run packages/engine/materialise-to-figma.ts <brand>', expect: false }, // the tracked path
   { sample: 'the plugin will materialise it', expect: true },  // the same word in prose
   { sample: 'see materialise-to-figma.ts', expect: true },     // a bare file name is not the masked path
+  // An en-GB BRANCH SLUG, carried into the release notes by a fold, is masked as the whole slug, never as the word.
+  { sample: '### claude-3186-centring (patch)', expect: false }, // the registered slug
+  { sample: 'the centring of the box', expect: true },          // the same word in prose
+  { sample: 'claude-9999-centring', expect: true },              // an unregistered slug is not masked
+  // A JSON `\n` escape glued to an en-US word (NOT_EN_GB), and the en-GB word still caught after one.
+  { sample: 'the change\\nraises the number', expect: false },
+  { sample: 'the change\\nnormalises it', expect: true },
   // Q181 A (#3574) — the `-ing` forms of two listed en-US verbs, found when the change notes joined the scope.
   { sample: 'revising Q280.2 A and devising another', expect: false },
 ];
@@ -463,6 +493,14 @@ const SELF_CHECK: { sample: string; expect: boolean }[] = [
 const staleNames = EN_GB_FILE_NAMES.filter((f) => !existsSync(join(repo, f)));
 if (staleNames.length) {
   console.error(`\n❌ EN_GB_FILE_NAMES in prose-rules.ts names ${staleNames.length} file(s) that no longer exist: ${staleNames.join(', ')}. Remove them.\n`);
+  process.exit(1);
+}
+// …and each masked slug is still a release-notes `slug`, so a mask cannot outlive the record that needed it.
+const releaseSlugs = new Set(readdirSync(join(repo, 'docs/public/releases')).filter((f) => /^\d+\.\d+\.\d+\.json$/.test(f))
+  .flatMap((f) => [...readFileSync(join(repo, 'docs/public/releases', f), 'utf8').matchAll(/"slug":\s*"([^"]+)"/g)].map((m) => m[1])));
+const staleSlugs = EN_GB_SLUGS.filter((s) => !releaseSlugs.has(s));
+if (staleSlugs.length) {
+  console.error(`\n❌ EN_GB_SLUGS in prose-rules.ts names ${staleSlugs.length} slug(s) no release notes carry: ${staleSlugs.join(', ')}. Remove them.\n`);
   process.exit(1);
 }
 // Drives `enGb` — the same function `scan()` calls — so neutering either regex fails HERE. See the
@@ -583,19 +621,6 @@ if (selfFails.length) {
   console.error(`\n❌ the gate's detection is broken — it cannot see what it claims to:\n`);
   for (const f of selfFails) console.error(`    ${f}`);
   process.exit(1);
-}
-
-// ---- `--files`: the scanned set, printed (#1117) ----------------------------------------------
-// The scope crossing noted in the header claims "no design-record docs/ file is in this gate's scope". A grep over
-// this source cannot check that claim — it matches the comment making it. This prints the set the
-// gate actually walks, so the claim is decided by the gate rather than by prose about it:
-//
-//   npx tsx packages/engine/lint-us-english.ts --files | grep '^docs/' | grep -vc '^docs/public/'    # must be 0
-//
-// Exits before any scanning, so it is cheap and cannot be confused with a verdict.
-if (process.argv.includes('--files')) {
-  for (const f of gated) console.log(shown(f));
-  process.exit(0);
 }
 
 const gatedHits = gated.flatMap(scan);

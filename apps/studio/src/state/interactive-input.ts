@@ -18,10 +18,10 @@
  * keeps the legacy semantics exactly, including the palette it reads (`theme.linkPalette`). It is the studio's
  * only link write: Surfaces & fills' link row is gone (#1961, owner decision Q28).
  */
-import { resolveAllModes } from '@prism3/engine/modes';
-import type { Theme } from '@prism3/engine/theme';
+import { resolveAllModes, type Theme } from '@prism3/engine';
 import { brandState, setPath, theme } from './store';
 import { setRoleOverride, stepsOf } from './fills-input';
+import { commitAtomic, removeColumn } from './name-refs';
 
 /** The last dot-segment of a token path: the palette step key (`…primary.650` → `650`). */
 export const stepKeyOf = (path: string | undefined): string => (path ? path.split('.').pop()! : '');
@@ -145,15 +145,42 @@ export const setLinkFamilyOverride = (mode: string, prefix: string, step: string
 
 // ── columns (legacy `renderAddAccentRow`, the column's remove) ──────────────────────────────────────
 
+/** The legacy page's promotable list never offered these: they are the built-in columns' names. */
+const RESERVED_COLUMNS = new Set(['primary', 'neutral', 'destructive']);
+/** What "Add button set" lists (the legacy page's list, Q35): Primary and every brand color, less any palette that
+ *  already has a column, the action palette (`actionPalette`, the theme's `roleToPalette.action`) and the built-in
+ *  columns' names. A palette whose name a column already carries as its explicit `name` stays on the list but is
+ *  `taken` (#3608, the owner's Q-AB1 B: offered disabled, with a reason, never hidden): `addAccent` adds an unnamed
+ *  column, which the engine names after its palette, and the engine refuses a duplicate column name. */
+export const addSetOptions = (actionPalette: string): { palette: string; taken: boolean }[] => {
+  const cols = brandState.interactivePalettes ?? [];
+  const already = new Set(cols.map((e) => e.palette));
+  const named = new Set(cols.map((e) => e.name).filter((n): n is string => n !== undefined));
+  return ['primary', ...(brandState.brandColors ?? []).map((x) => x.name)]
+    .filter((p) => !already.has(p) && p !== actionPalette && !RESERVED_COLUMNS.has(p))
+    .map((palette) => ({ palette, taken: named.has(palette) }));
+};
+/** The palettes "Add button set" can add: `addSetOptions` less the taken ones. */
+export const promotablePalettes = (actionPalette: string): string[] => addSetOptions(actionPalette).filter((o) => !o.taken).map((o) => o.palette);
 /** Promote `palette` to an interactive column; the engine names it after the palette. */
 export const addAccent = (palette: string): void => {
   const arr = brandState.interactivePalettes ?? (brandState.interactivePalettes = []);
   arr.push({ palette });
 };
-/** Remove accent column `i`; an emptied list is pruned. */
-export const removeAccent = (i: number): void => {
-  brandState.interactivePalettes!.splice(i, 1);
-  if (!brandState.interactivePalettes!.length) brandState.interactivePalettes = undefined;
+/** Remove accent column `i`, and every key that named the column (#3697 H3: its anchors, its role overrides, its outline
+ *  hover fill, from the table every name writer reads, `name-refs.ts`), unless a column that stays carries the same
+ *  name. An emptied list is pruned. Atomic (#3697 M1): refused, it returns the engine's message and changes nothing. */
+export const removeAccent = (i: number): string | null => {
+  const cols = brandState.interactivePalettes ?? [];
+  const e = cols[i];
+  if (!e) return null;
+  const col = e.name ?? e.palette;
+  const shared = cols.some((x, j) => j !== i && (x.name ?? x.palette) === col);
+  return commitAtomic((b) => {
+    b.interactivePalettes!.splice(i, 1);
+    if (!b.interactivePalettes!.length) b.interactivePalettes = undefined;
+    if (!shared) removeColumn(b, col);
+  });
 };
 
 // ── the row registry (the Roles hook, like `FILL_ROWS` / `TEXT_ROWS`) ────────────────────────────────
@@ -192,8 +219,8 @@ export const interactiveRowsFor = (col: string, paletteKey: string): Interactive
   withStates(`${inv}.text`, 'Text · inverse', paletteKey, 'override', 'override');
   withStates(`${p}.border`, 'Border', paletteKey, 'override', 'override');
   withStates(`${inv}.border`, 'Border · inverse', paletteKey, 'override', 'override');
-  // The hover group follows the method (Q3335.7 A, and the owner's amendment): a wash has no rest row, so its Hover and
-  // Pressed sit side by side under the group's title. Under Solid fill the page draws the set's own pickers in its place.
+  // The washes' rows. Since #3116 (Q3116.3 A) the page draws them, or under Solid fill the set's own picks, as the Hover
+  // and Pressed of its "Outline & text hover" group under Fill (`color-interactive.ts`), so these group names are not drawn.
   row(`${p}.overlay.hover`, 'Overlay wash', 'Hover', 'neutral', 'readout');
   row(`${p}.overlay.pressed`, 'Overlay wash', 'Pressed', 'neutral', 'readout');
   row(`${p}.subtle-fill.hover`, 'Tinted wash', 'Hover', paletteKey, 'readout');

@@ -26,14 +26,14 @@
  * `cleanup` is deliberately absent. No UI action removes components (the paste harness's `runCleanupPage`
  * is a harness step, not a handler the panel reaches), and this dispatcher routes only to those.
  */
-import { ENGINE_VERSION } from '@prism3/engine/version';
+import { ENGINE_VERSION, type BrandInput } from '@prism3/engine';
 import { AGENT_PROTOCOL_VERSION, READ_COMMANDS, parseCommand, failedResult } from './agent-protocol';
 import type { CollisionChoices } from './collision-choice';
 import type { ActivityArgs, UpdateChoiceArgs } from './agent-protocol';
 import type { AgentResult, AgentTransport, AgentProgress, ValidCommand, AgentCmd, DevCmd } from './agent-protocol';
 import { RUN_CODE, parseRunCode, runCode } from './dev-commands';
 import type { MainToUi, StyleGuideOptions } from './messages';
-import type { BrandInput } from '@prism3/engine/theme';
+import type { OverrideChange } from './set-override';
 import { allLeaves, leafPageName } from './file-taxonomy';
 import { inspect, componentKeys, auditFrames, snapshot, context, ReadRefusal } from './agent-reads';
 import type { ReadHost, ContextFacts } from './agent-reads';
@@ -66,7 +66,8 @@ export type AgentActions = {
   buildComponents(def: string | undefined, sink: ActionSink, options?: { readonly docBlock?: boolean }): Promise<void>;
   fileSetup(sink: ActionSink): Promise<void>;
   styleGuide(options: StyleGuideOptions, sink: ActionSink): Promise<void>;
-  prune(input: BrandInput, confirm: boolean, sink: ActionSink): Promise<void>;
+  /** `previewHash`: `null` for a preview, the preview's hash for a confirm (#3697 R6), as `updateComponents` takes it. */
+  prune(input: BrandInput, confirm: boolean, previewHash: string | null, sink: ActionSink): Promise<void>;
   seedFromFile(sink: ActionSink): Promise<void>;
   /** #2265: the in-place update's dry run (writes nothing) and the one-time baseline capture. */
   /** `previewHash` is `null` for a check and the check's hash for an apply (#2265 PR 2); `choices`, an apply's. */
@@ -81,6 +82,8 @@ export type AgentActions = {
   drawSpecs(def: string | undefined, scope: 'file' | 'page', sink: ActionSink): Promise<void>;
   /** #3137 Q3137.7 A: Clean up's usage panels: a count (`confirm` false), or the removal of the unedited ones. */
   panelsClean(confirm: boolean, sink: ActionSink): Promise<void>;
+  /** #3394: color overrides, previewed (`previewHash` null) or written through `applyTheme`, this table's own entry. */
+  setOverride(changes: readonly OverrideChange[], previewHash: string | null, sink: ActionSink): Promise<void>;
 };
 
 /** The slice of a page node the census reads. */
@@ -162,8 +165,11 @@ type Deps = {
    *  Activity drawer shows an agent's command running the way it shows a button's; the forwarded verdict
    *  alone cannot say when it began, or that a command which threw has ended. Reports only: neither
    *  writes to the file, and a throw from either never fails the command. */
-  /** `apply` marks a confirmed `update-components` (#2265 PR 2), so the panel can tell an update from a check. */
-  onStart?(id: string, cmd: AgentCmd, apply?: boolean): void;
+  /** `apply` marks a confirmed `update-components` (#2265 PR 2), so the panel can tell an update from a check. `def` is
+   *  a `build-components`' def id as sent, `undefined` when it sent none (#2087: the panel records the verdict against it). */
+  /** `confirm` (#2368) is whether the command's args carry `confirm: true`, so a preview that writes nothing is told
+   *  from its write. */
+  onStart?(id: string, cmd: AgentCmd, apply?: boolean, def?: string, confirm?: boolean): void;
   onFinish?(id: string, cmd: AgentCmd): void;
   /** A valid command the plugin declines before it runs (#1957): a write whose operation is already
    *  running. Asked before `onStart`, so a declined command is never shown as running; what it returns is
@@ -186,8 +192,8 @@ export const ROUTES: { [C in Exclude<AgentCmd, DevCmd>]: Route } = {
   'file-setup': (_c, a, sink) => a.fileSetup(sink),
   'style-guide': (c, a, sink) => a.styleGuide((c as Extract<ValidCommand, { cmd: 'style-guide' }>).args, sink),
   prune: (c, a, sink) => {
-    const { input, confirm } = (c as Extract<ValidCommand, { cmd: 'prune' }>).args;
-    return a.prune(input, confirm, sink);
+    const args = (c as Extract<ValidCommand, { cmd: 'prune' }>).args;
+    return a.prune(args.input, args.confirm, args.confirm ? args.previewHash : null, sink);
   },
   'update-components': (c, a, sink) => {
     const args = (c as Extract<ValidCommand, { cmd: 'update-components' }>).args;
@@ -205,6 +211,10 @@ export const ROUTES: { [C in Exclude<AgentCmd, DevCmd>]: Route } = {
   activity: async (c, _a, sink, d) => {
     if (!d.activity) throw new Error('this plugin build keeps no activity log');
     sink.data(d.activity((c as Extract<ValidCommand, { cmd: 'activity' }>).args) as Record<string, unknown>);
+  },
+  'set-override': (c, a, sink) => {
+    const args = (c as Extract<ValidCommand, { cmd: 'set-override' }>).args;
+    return a.setOverride(args.changes, args.confirm ? args.previewHash : null, sink);
   },
   'panels-clean': (c, a, sink) => a.panelsClean((c as Extract<ValidCommand, { cmd: 'panels-clean' }>).args.confirm === true, sink),
   // #3300 B: read-only, the main thread's facts plus a capped walk for the protected nodes (`agent-reads.ts`).
@@ -313,7 +323,10 @@ export const createDispatcher = (deps: Deps) => {
       if (logs.length < LOG_CAP) logs.push(line); else logsDropped++;
       deps.onLog?.(c.id, line);
     };
-    try { deps.onStart?.(c.id, c.cmd, c.cmd === 'update-components' && c.args.confirm === true); } catch { /* a reader; see `forward` */ }
+    try {
+      deps.onStart?.(c.id, c.cmd, c.cmd === 'update-components' && c.args.confirm === true, c.cmd === 'build-components' ? c.args.def : undefined,
+        (c.args as { confirm?: unknown } | undefined)?.confirm === true);
+    } catch { /* a reader; see `forward` */ }
     try {
       // #2530: the dev command is a dev build's only; in a release the branch is folded away with `dev-commands.ts`.
       await teeConsole(onLine, () => (PRISM3_DEV && c.cmd === RUN_CODE

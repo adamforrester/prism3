@@ -53,7 +53,7 @@ Some `node_modules` is required: the repo is buildless (`tsx`, no install) but a
 worktree has none, so `npx tsx` would re-download and the `apps/studio`/`apps/plugin`
 workspace builds would fail outright. Expect `regen --check` to
 report the committed artifact count in a clean worktree — `verify.ts` holds it as
-`EXPECTED_ARTIFACTS` and `ci.yml` asserts the same number; this file deliberately
+`ARTIFACT_FLOOR` (a floor, #3698 R3) and `ci.yml` reads it from there; this file deliberately
 restates neither. The main checkout sometimes shows one more because of an untracked
 stray in `packages/engine/out/`, which is not drift.
 
@@ -207,7 +207,7 @@ take on those two.
 Read the actual numbers, never a baseline remembered from an earlier run. Three gates are worth
 running on their own when you need to read their output:
 - `npx tsx packages/engine/regen.ts --check` — no committed artifact has drifted (`verify.ts`
-  holds the expected count as `EXPECTED_ARTIFACTS`, and `ci.yml` asserts the same number).
+  holds the floor under the count as `ARTIFACT_FLOOR`, and `ci.yml` reads it from there, #3698 R3).
   **It is the ONLY gate that reads the committed artifacts.** Every other engine gate runs the
   engine live and compares it against itself, so a stale committed artifact passes them all
   (this bit #281 for real).
@@ -281,11 +281,11 @@ artifact and no projected component surface moves. A
 PR that edits `ENGINE_VERSION` or its changelog (`packages/engine/CHANGELOG.md`) is blocking unless it is a
 fold; `lint-emission-version.ts` fails it by name. `CONTRACT_VERSION` is still bumped per PR.
 
-**Two numbers move in pairs; check both sides and the open PRs.** `EXPECTED_ARTIFACTS` in
-`verify.ts` and the same number in `ci.yml` move together. `EXECUTOR_REVISION`
+**One number moves with the code; check the open PRs.** (`ARTIFACT_FLOOR` in `verify.ts` no longer
+does: it is a floor that growth leaves alone, #3698 R3. A PR that lowers it should say why.) `EXECUTOR_REVISION`
 (`apps/plugin/src/executor-revision.ts`) must rise when the component executor's code moves
-(`apps/plugin/lint-executor-revision.ts`). For both, look at the other open PRs: two PRs that each
-raise a number to the same value collide on merge, and the second needs a merge-time bump. Say so
+(`apps/plugin/lint-executor-revision.ts`). Look at the other open PRs: two PRs that each
+raise it to the same value collide on merge, and the second needs a merge-time bump. Say so
 in the review.
 
 **Only a fold writes `docs/00-progress.md`.** Any other PR that touches the log fails

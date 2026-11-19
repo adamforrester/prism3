@@ -14,19 +14,19 @@ A control for free-form text expected to wrap across multiple lines — comments
 
 - **Purpose:** Capture multi-line free-form text with an associated label, an optional soft character limit, and a stated sizing model.
 - **Use when:** Comments, descriptions, messages, feedback, notes, commit-message bodies, a multi-line address — any input that predictably runs past the ~40–60 characters a single-line field shows comfortably, or that legitimately needs user-authored line breaks.
-- **Avoid when:** The value is a single line (TextField — and do not substitute a one-row Textarea, the Enter semantics differ), needs formatting or structure such as bold, links, @-mentions or embedded media (a rich-text editor — a \<textarea> holds a plain string and nothing else), is source code (a real code editor, for syntax highlighting and bracket matching), or comes from a known set (Select, or a combobox, not built yet). Also avoid reaching for it as a general "big box of text" when the content is genuinely structured — that is the rich-text signal.
+- **Avoid when:** The value is a single line (TextField — and do not substitute a one-row Textarea, the Enter semantics differ), needs formatting or structure such as bold, links, @-mentions or embedded media (a rich-text editor — a `<textarea>` holds a plain string and nothing else), is source code (a real code editor, for syntax highlighting and bracket matching), or comes from a known set (Select, or a combobox, not built yet). Also avoid reaching for it as a general "big box of text" when the content is genuinely structured — that is the rich-text signal.
 
 ## Anatomy
 
 Shown on the default member: size `medium`, style `outline`, status `default`.
 
 1. **Label** — The accessible name, composed rather than re-declared. Its size follows the field's, one step below the value; its label text, required marker, emphasis and weight surface on the textarea. Starts primary and regular. Fills the field's width; a long name wraps at FieldLabel's max width.
-2. **Caret**
+2. **Caret** — The insertion point in a focused, empty field, right before the placeholder, in the value color.
 3. **Placeholder** — The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. Wraps across the field width and reserves the default rows of its own line height.
 4. **Value** — The entered value, in the value ink. Shown on the filled, focused filled and read-only field. Wraps across the field width and reserves the default rows of its own line height.
-5. **Grip glyph** (optional)
-6. **Message**
-7. **Counter**
+5. **Grip glyph** (optional) — The resize grip in the bottom-right corner, shown by default; it takes no space, so the field keeps its size with it on or off.
+6. **Message** — Helper or validation text, hidden until the field has something to say; it takes the field's status.
+7. **Counter** — The character count at the end of the message row, hidden by default; it shows with or without a message.
 
 ## Styles
 
@@ -42,13 +42,13 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 
 ## Usage guidelines
 
-Use for free-form text expected to exceed one line — comments, descriptions, messages, feedback, multi-line addresses. Pick the sizing model by context: fixed-height-plus-scroll for a field inside a long form (so the form does not reflow as the user types), auto-grow for a composer (so the message box follows the message). Right-size the initial rows to the expected input. Compose FieldLabel above and FieldMessage below exactly as TextField does; the host wires the ids and the aria-describedby chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small field renders at 16px, because a smaller field makes iOS zoom the page on focus.
+Use for free-form text expected to exceed one line — comments, descriptions, messages, feedback, multi-line addresses. Pick the sizing model by context: fixed-height-plus-scroll for a field inside a long form (so the form does not reflow as the user types), auto-grow for a composer (so the message box follows the message). Right-size the initial rows to the expected input. Compose FieldLabel above and FieldMessage below exactly as TextField does; the host wires the ids and the `aria-describedby` chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small field renders at 16px, because a smaller field makes iOS zoom the page on focus.
 
 ### Do
 
-- Set maxRows whenever auto-growing — uncapped growth pushes the submit affordance off-screen on a long paste
+- Set `maxRows` whenever auto-growing — uncapped growth pushes the submit affordance off-screen on a long paste
 - Enforce a character limit softly (allow over, flag invalid, block submit) and count by grapheme, not by string length
-- Announce the over-limit through the live region and aria-invalid — color alone is not a signal
+- Announce the over-limit through the live region and `aria-invalid` — color alone is not a signal
 - Normalize \r\n to \n on paste before counting or storing, and resize once per paste rather than once per inserted line
 - Keep a read-only textarea scrollable and selectable, so the whole value stays reachable — far more text is hidden here than in a single-line field
 - Reserve space in the footer for the validation message and the counter, so an over-limit error does not push the resize handle
@@ -63,9 +63,9 @@ Use for free-form text expected to exceed one line — comments, descriptions, m
 
 ## Accessibility
 
-- **Keyboard:** Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract aria-multiline advertises and the default. submitOnEnter inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.
-- **Focus:** :focus-visible draws Text field's 2px focus edge in place of the border: from the outer edge, at the field's own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color). forwardRef must reach the \<textarea> itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on programmatic value changes (a reset, or AI-inserted text), which is the common auto-grow bug.
-- **Screen readers:** textbox (native \<textarea>), with the implicit aria-multiline="true"
+- **Keyboard:** Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract `aria-multiline` advertises and the default. `submitOnEnter` inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.
+- **Focus:** `:focus-visible` draws Text field's 2px focus edge in place of the border: from the outer edge, at the field's own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color). `forwardRef` must reach the `<textarea>` itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on programmatic value changes (a reset, or AI-inserted text), which is the common auto-grow bug.
+- **Screen readers:** textbox (native `<textarea>`), with the implicit `aria-multiline="true"`
 
   The counter is the central problem and it is two nodes, not one: the visual counter is aria-hidden and updates instantly, while a separate visually-hidden node carries announcements. Two channels — the static limit folded into aria-describedby so tabbing in announces the ceiling, and a threshold-based polite live region that speaks only near the limit (per-keystroke counting makes the field unusable), escalating to assertive only on breach. Over-limit sets aria-invalid and is announced, never color-only. aria-busy while content streams. Preserve the native aria-multiline; do not reconstruct a textarea from contenteditable, which loses undo/redo, spellcheck, reliable IME and form submission. Set dir="auto" so content direction can differ from UI direction, and do not run counting or auto-grow measurement mid-IME-composition.
 
@@ -83,7 +83,7 @@ Use for free-form text expected to exceed one line — comments, descriptions, m
 
 - **Enter:** none (present on mount)
 - **Exit:** none
-- **Reduced motion:** State transitions follow text-field's ~100–150ms token-driven contract. AUTO-GROW HAS NO HEIGHT TRANSITION: the height changes instantly on each keystroke, because an eased height lags behind the typing and reflows the layout below on every frame; if a transition is used at all it stays at or under 100ms and drops under prefers-reduced-motion. While the user drags the resize handle, strip every transition off the node, or the edge lags behind the cursor.
+- **Reduced motion:** State transitions follow text-field's: motion.duration.fast with motion.easing-role.default. AUTO-GROW HAS NO HEIGHT TRANSITION: the height changes instantly on each keystroke, because an eased height lags behind the typing and reflows the layout below on every frame; if a transition is used at all it stays at or under motion.duration.fast and drops under prefers-reduced-motion. While the user drags the resize handle, strip every transition off the node, or the edge lags behind the cursor.
 
 ## Content guidelines
 
@@ -160,43 +160,241 @@ Code-only states, with no design-file member: `pending`, `empty`.
 
 Padding reads top / right / bottom / left when its sides differ.
 
-Keyed by `size`.
+Keyed by `size`, `state`.
 
-**size=medium**
+**size=medium, state=rest**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
-| `container/body/control` | `space.100` / `space.200` / `space.100` / `space.200` | — | — | — | 120px (literal) | — |
+| `container/body/control` | `space.100` / `space.200` / `space.100` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
 | `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/body/messageRow` | — | `space.100` | — | — | — | — |
 | `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
 | `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=medium, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.200` / `space.100` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=medium, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.200` / `space.100` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=medium, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.200` / `space.100` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
 | `container/body/control/caret` | — | — | `control.size.md.line-box` | `border-width.hairline` | — | — |
-
-**size=small**
-
-| Part | Padding | Gap | Height | Width | Min width | Other |
-| --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
-| `container/body/control` | `space.075` / `space.200` / `space.075` / `space.200` | — | — | — | 120px (literal) | — |
 | `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/body/messageRow` | — | `space.100` | — | — | — | — |
 | `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
 | `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=medium, state=focus-visible-filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.200` / `space.100` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=medium, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.200` / `space.100` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=medium, state=read-only**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.200` / `space.100` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=small, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.075` / `space.200` / `space.075` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=small, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.075` / `space.200` / `space.075` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=small, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.075` / `space.200` / `space.075` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=small, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.075` / `space.200` / `space.075` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
 | `container/body/control/caret` | — | — | `control.size.sm.line-box` | `border-width.hairline` | — | — |
-
-**size=large**
-
-| Part | Padding | Gap | Height | Width | Min width | Other |
-| --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
-| `container/body/control` | `space.100` / `space.300` / `space.100` / `space.300` | — | — | — | 120px (literal) | — |
 | `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/body/messageRow` | — | `space.100` | — | — | — | — |
 | `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
 | `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=small, state=focus-visible-filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.075` / `space.200` / `space.075` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=small, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.075` / `space.200` / `space.075` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=small, state=read-only**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.075` / `space.200` / `space.075` / `space.200` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=large, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.300` / `space.100` / `space.300` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=large, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.300` / `space.100` / `space.300` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=large, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.300` / `space.100` / `space.300` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=large, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.300` / `space.100` / `space.300` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
 | `container/body/control/caret` | — | — | `control.size.lg.line-box` | `border-width.hairline` | — | — |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=large, state=focus-visible-filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.300` / `space.100` / `space.300` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=large, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.300` / `space.100` / `space.300` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+
+**size=large, state=read-only**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.300` / `space.100` / `space.300` | — | — | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
 
 ### Type
 

@@ -1,6 +1,6 @@
 # Checkbox.Control
 
-> Checkbox box with check/dash glyph and focus ring. Nested by Checkbox.Row; no label.
+> Checkbox box with check/dash glyph and focus ring. Nested by a checkbox row; no label.
 
 - **ID:** `checkbox-control`
 - **Category:** form
@@ -19,10 +19,10 @@ The atomic checkbox control — the painted square with its check or dash glyph 
 
 Shown on the default member: size `medium`, selection `unchecked`, status `default`.
 
-1. **Control**
-2. **Check glyph**
-3. **Dash glyph**
-4. **Focus ring**
+1. **Control** — The checkbox square; a person clicks the whole labeled row, not the square alone.
+2. **Check glyph** — The check mark, shown when the box is checked.
+3. **Dash glyph** — The dash, shown when the box is partly checked; screen readers announce it as mixed.
+4. **Focus ring** — The shared focus ring, drawn around the square on keyboard focus.
 
 ## Styles
 
@@ -39,6 +39,8 @@ Shown on the default member: size `medium`, selection `unchecked`, status `defau
 ## Usage guidelines
 
 Do not place this on its own as a form control. It is the box Checkbox.Row nests, so a fix to its corner, its border weight or its fill grammar reaches the row and the group without being copied. Build it before the row that nests it (the nest resolves by name against the live file). It is also the unit a host nests when the label is decoupled — a select-all in a table's first column, a card-select where the card is the accessible name, a list or menu row. Nested that way, the host names the control through aria-labelledby, the host owns the hit target (the whole row toggles, unless the row has its own primary action — then the control is a secondary affordance with its own name, such as "Select \<item>"), and the enclosing collection is the group: it owns the selected ids and select-all, so no Checkbox.Group goes inside a list. Resolve every nested case to one model — the whole row is one control, or the control is a named secondary affordance — never a control inside a row that is itself a button or link with no clear click target.
+
+**In RTL.** The check and dash glyphs do not mirror.
 
 ### Do
 
@@ -71,9 +73,9 @@ Do not place this on its own as a form control. It is the box Checkbox.Row nests
 
 ### Motion
 
-- **Enter:** On check, the check glyph draws in as a pen stroke (SVG stroke-dashoffset) while the fill crossfades in, about 100-150ms, eased. Indeterminate to checked morphs the dash into the check.
+- **Enter:** On check, the check glyph draws in as a pen stroke (SVG stroke-dashoffset) while the fill crossfades in, on motion.duration.fast with motion.easing-role.default. Indeterminate to checked morphs the dash into the check.
 - **Exit:** On uncheck, the same glyph transition runs back and the fill crossfades out.
-- **Reduced motion:** Under prefers-reduced-motion, the draw and any spatial animation are bypassed and the box flips instantly; a crossfade under 150ms may remain, since opacity does not trigger vestibular symptoms. No layout motion.
+- **Reduced motion:** Under prefers-reduced-motion, the draw and any spatial animation are bypassed and the box takes its new state at once; the fill's color change fades on motion.duration-reduced.fast, since opacity does not trigger vestibular symptoms. No layout motion.
 
 ## Content guidelines
 
@@ -128,7 +130,7 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `control` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
+| `control` | — | — | `control.size.md.height` | `control.size.md.height` | — | radius `control.size.md.radius`; stroke `border-width.thick` |
 | `control/checkGlyph` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
 | `control/dashGlyph` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
 
@@ -136,7 +138,7 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `control` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
+| `control` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | radius `control.size.sm.radius`; stroke `border-width.thick` |
 | `control/checkGlyph` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
 | `control/dashGlyph` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
 
@@ -144,7 +146,7 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `control` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
+| `control` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | radius `control.size.lg.radius`; stroke `border-width.thick` |
 | `control/checkGlyph` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
 | `control/dashGlyph` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
 

@@ -60,8 +60,9 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
 - ✅ **`verifyReadback(snapshot, declared)`** (pure, engine) — ports the `materialise-to-figma` verify contract:
   modes distinct (collapse-guard), aliases resolve, slot scopes, field family present, retired/renamed
   roles absent, bare `foreground/danger` present, primitives hidden. A live health-check for a themed file.
-- ✅ **Bridge + trigger** — `read-theme` / `read-result`; a "Read current file" button. The snapshot
-  stays main-side until #110 hands it up to **seed the shared UI** from an existing themed file.
+- ✅ **Bridge** — on `ui-ready` the plugin runs the read-back and verify and posts `seed-info`, a summary the
+  shared UI shows: whether an existing Prism3 theme in the file passes the contract. The snapshot itself stays
+  main-side; the knobs are restored from the brand input the file stores (`restoreToUi`, #131).
 - ✅ **Tested**: `test-readback.ts` drives write→read→verify on the shim (`npm test` runs both harnesses).
 
 ## Scope (#110 — one build, two outputs: the no-fork capstone)
@@ -383,8 +384,13 @@ transports: A, the file mailbox, and B, the local desktop bridge.
   `{v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result|error, progress?}`, the
   commands (`AGENT_COMMANDS`: `status`, `apply-theme`, `build-components`, `file-setup`, `style-guide`, `prune`,
   `readback`, `update-components`, `capture-baseline`, `adopt-members`, `draw-specs`, the four read-only node
-  commands below, `activity`, `panels-clean` and `context`) and the validation both transports share. Unknown command, wrong version and malformed args are failed results,
+  commands below, `activity`, `panels-clean`, `context` and `set-override`) and the validation both transports share. Unknown command, wrong version and malformed args are failed results,
   never silence.
+- ✅ **Color overrides** (#3394, Q3394.1–.7 A) — `set-override` (`src/set-override.ts` plans, `main.ts`'s `setOverride`
+  writes) changes Theme color overrides: 1 to 32 changes, all or nothing, judged on the final state. A preview writes
+  nothing and returns a `previewHash`; the confirm echoes it and runs the Theme write through `ACTIONS.applyTheme`. A
+  change that puts a contracted pair below its minimum refuses the whole list, by pair and ratio. Its verdict is
+  `override-result`, the Activity drawer's "Color override" row. `test-agent-link.ts`'s `set-override/*` arms hold it.
 - ✅ **Read-only node commands** (#3147 Phase 2a, Q3147.10 and .14 A) — `inspect`, `component-keys`, `audit-frames`
   and `snapshot` (`src/agent-reads.ts`) read any layer, so a file where Prism3 is open needs no second plugin for the
   reads an agent makes there: keys and properties in the master, the done check on a rebuild, a local picture. They
@@ -445,11 +451,11 @@ carries none of it.
 ## Run
 
 ```bash
-npm install          # from the repo root (workspaces) — installs @figma/plugin-typings
+npm ci               # from the repo root (workspaces) — installs @figma/plugin-typings
 npm run build -w @prism3/plugin      # → apps/plugin/dist/main.js + apps/plugin/dist/ui.html (shared UI inlined)
 npm run watch -w @prism3/plugin      # rebuild on change (watches apps/plugin/src + apps/studio/src)
 npm run typecheck -w @prism3/plugin  # both contexts (main + ui)
-npm test -w @prism3/plugin           # write + read + persist + float + styles + typography executors + the MCP paste parity (in-memory shims)
+npm test -w @prism3/plugin           # every suite in apps/plugin/suites.json, each held to its assertion floor (in-memory shims)
 ```
 
 Then in Figma: **Plugins → Development → Import plugin from manifest…** → pick `apps/plugin/manifest.json`.
@@ -487,9 +493,9 @@ Development → Import plugin from manifest…** and pick `apps/plugin/release/m
 `manifest.json`, `main.js` and `ui.html`. To publish privately to an organization, publish from the imported network
 build in Figma; the manifest's `reasoning` is the text Figma shows for the network access. Tune the brand with the knobs,
 then choose **Update file** (on the top bar), leave **Theme** ticked and choose **Update file** in the dialog, to
-materialize the whole generated system — `core-palette` + `color`, the ten FLOAT collections (`core-dimension`, `space`, `radius`,
-`size`, `icon`, `control`, `border-width`, `focus`, `opacity`, `layout`), shadow/gradient Styles, and font variables +
-Text Styles (#237, see above) — into the current file; the panel reports any existing Prism3 theme
+materialize the whole generated system — every variable collection, with its modes, that the generated
+`docs/public/reference/figma-conventions.json` lists, the shadow, gradient, grid and text Styles, and the font
+variables (#237, see above) — into the current file; the panel reports any existing Prism3 theme
 found on boot.
 
 ## Releasing to the organization (#3147, the owner's Q3147.15 to Q3147.21, all A)

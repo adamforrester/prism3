@@ -14,7 +14,7 @@
  * built from them. The provider-rule arms stay independent of these helpers and of each def's numbers (docs/34):
  * they type each provider's limits again from its guidelines.
  */
-import type { NestingRelation, PartDef } from './component-schema';
+import type { Mirror, NestingRelation, PartDef } from './component-schema';
 
 /** The size axis every branded button carries, medium first (the code default, #2752). */
 export const BRANDED_SIZES = ['medium', 'small', 'large'] as const;
@@ -43,7 +43,8 @@ export const heightTokens = (): Record<string, string> => ({
   'size.large.height': 'size.lg.height',
 });
 
-/** The brand's own corner. No branded button carries a shape axis (Q-W5 A, Q-S12 A). */
+/** The brand's own corner. No branded button carries a shape axis (Q-W5 A, Q-S12 A); Control shape repoints it, as it does
+ *  Button's, through the `levers.controlShape.capsules` each def names (Q-CS3 A, Q-CS5 B, #3765). */
 export const radiusToken = (): Record<string, string> => ({ radius: 'radius.md' });
 
 /** The focus ring's width and its offset outside the button. */
@@ -61,6 +62,8 @@ export const markPart = (o: {
   note: string;
   /** Reads the def's literal record for a glyph tint (Q846 A, SignInButton only). */
   literal?: 'mark';
+  /** In right-to-left text (#3986). */
+  mirror?: Mirror;
 }): PartDef => ({
   kind: 'nest',
   nests: 'provider-logo',
@@ -69,6 +72,7 @@ export const markPart = (o: {
   aspectLock: true,
   fixedPaint: true,
   ...(o.literal ? { literal: o.literal } : {}),
+  ...(o.mirror ? { mirror: o.mirror } : {}),
   note: o.note,
 });
 

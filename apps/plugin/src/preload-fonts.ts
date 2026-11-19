@@ -38,7 +38,7 @@
  * Compiled under `tsconfig.main.json` — has `figma.*`, NO `document`. Declared as a port so the Node
  * harness drives it with a shim; the real `figma` structurally satisfies it.
  */
-import type { TextStylePlan } from '@prism3/engine/write-plan';
+import type { TextStylePlan, VarCollectionPlan } from '@prism3/engine/figma';
 import { resolveFontStyle } from './write-text-styles';
 import type { FontName } from './write-text-styles';
 
@@ -58,6 +58,12 @@ export type FaceOrigin = 'theme' | 'file' | 'crossed';
 export type FontPreloadResult = {
   /** faces successfully loaded, so the write that follows cannot fail on them. */
   loaded: number;
+  /** the BRAND's own faces that loaded: distinct loaded faces some `theme` candidate resolved to (#1090). The
+   *  number the Apply Theme summary reports. `loaded` also counts faces preloaded for the styles the file
+   *  already held (file and crossed), so it grew between two applies of one brand as the file filled up —
+   *  4 on an empty file, 6 once the first run's styles were there — under a sentence that reads as the
+   *  brand's fonts. This depends only on the brand and the host's font list. */
+  brandLoaded: number;
   /** distinct resolved faces passed to `loadFontAsync` (loaded + failed loads). Not `loaded + unavailable
    *  + crossedMisses`: a resolver miss is reported without a load, and a repeat of a failed face is
    *  reported again under its own origin without a second load. */
@@ -161,6 +167,78 @@ export const preloadFonts = async (
 };
 
 /**
+ * The host's real style names per family, from `listAvailableFontsAsync`. Keyed by family because the resolver needs
+ * a family's whole style list, not a membership test on one spelling (#1789). `undefined` when the host offers no
+ * list or the read throws: callers then fall back to the names as planned.
+ */
+export const availableStylesByFamily = async (
+  api: Pick<FontPreloadApi, 'listAvailableFontsAsync'>,
+): Promise<Map<string, string[]> | undefined> => {
+  try {
+    const list = await api.listAvailableFontsAsync?.();
+    if (!list) return undefined;
+    const byFamily = new Map<string, string[]>();
+    for (const { fontName } of list) {
+      const styles = byFamily.get(fontName.family);
+      if (styles) styles.push(fontName.style);
+      else byFamily.set(fontName.family, [fontName.style]);
+    }
+    return byFamily;
+  } catch {
+    return undefined;
+  }
+};
+
+/**
+ * THE CUT VARIABLES, IN EACH FAMILY'S OWN SPELLING, BEFORE THE VARIABLE STAGE WRITES THEM (#1728).
+ *
+ * The engine names a cut one way per weight (`Semi Bold Italic`), and a family may spell it its own way (Playfair's
+ * `SemiBold Italic`). The text-style stage corrects the cut variable (#1296), but the variable stage runs first, so it
+ * wrote the engine's spelling on every apply: a run stopped between the two left the variable naming a style its
+ * family does not have, and every re-apply put the wrong spelling back before correcting it again. This resolves each
+ * cut row's literal per mode against the family the text plan pairs it with (`fontStyleVar` → `fontFamilyVar`, never a
+ * name parse), with the same `resolveFontStyle` the text-style stage uses, so the two cannot disagree.
+ *
+ * Leaves a value as planned when there is no host list, when either row aliases in that mode, when the family is not
+ * on this host, or when the family lacks the weight under every spelling. That last one is a real miss: the preload
+ * and the text-style stage report it, and the guess stays rather than a substitute face (#237). The text-style stage's
+ * reconcile stays as the second reader, for a value this pass could not see. Pure; returns new plans and the count of
+ * values it changed.
+ */
+export const resolveCutPlan = (
+  plans: readonly VarCollectionPlan[],
+  text: TextStylePlan,
+  stylesByFamily: ReadonlyMap<string, readonly string[]> | undefined,
+): { plans: VarCollectionPlan[]; resolved: number } => {
+  if (!stylesByFamily) return { plans: [...plans], resolved: 0 };
+  const familyVarOf = new Map<string, string>();
+  for (const r of text) if (r.fontStyleVar && r.fontFamilyVar) familyVarOf.set(r.fontStyleVar, r.fontFamilyVar);
+  const rowOf = new Map(plans.flatMap((p) => p.rows.map((r) => [r.name, { plan: p, row: r }] as const)));
+  let resolved = 0;
+  const out = plans.map((p) => ({
+    ...p,
+    rows: p.rows.map((row) => {
+      const famName = familyVarOf.get(row.name);
+      const fam = famName ? rowOf.get(famName) : undefined;
+      if (!fam || row.resolvedType !== 'STRING') return row;
+      const valuesByMode = row.valuesByMode.map((cut, i) => {
+        if (typeof cut !== 'string' || row.aliasByMode[i]) return cut;
+        const j = fam.plan.modes.indexOf(p.modes[i]);
+        const family = j < 0 ? undefined : fam.row.valuesByMode[j];
+        if (typeof family !== 'string' || fam.row.aliasByMode[j]) return cut;
+        const avail = stylesByFamily.get(family);
+        const real = avail && resolveFontStyle(avail, cut);
+        if (!real || real === cut) return cut;
+        resolved++;
+        return real;
+      });
+      return { ...row, valuesByMode };
+    }),
+  }));
+  return { plans: out, resolved };
+};
+
+/**
  * The loading half of `preloadFonts`, over an explicit candidate list. Exported so a test can feed an
  * order `facesToPreload` never produces: nothing below may rely on named candidates coming first.
  */
@@ -168,22 +246,8 @@ export const loadPreloadCandidates = async (
   candidates: readonly { face: FontName; origin: FaceOrigin }[],
   api: Pick<FontPreloadApi, 'loadFontAsync' | 'listAvailableFontsAsync'>,
 ): Promise<FontPreloadResult> => {
-  // The host's real styles per family, when it offers the list. Keyed by family because the resolver
-  // needs a family's whole style list, not a membership test on one spelling (#1789).
-  let stylesByFamily: Map<string, string[]> | undefined;
-  try {
-    const list = await api.listAvailableFontsAsync?.();
-    if (list) {
-      stylesByFamily = new Map();
-      for (const { fontName } of list) {
-        const styles = stylesByFamily.get(fontName.family);
-        if (styles) styles.push(fontName.style);
-        else stylesByFamily.set(fontName.family, [fontName.style]);
-      }
-    }
-  } catch {
-    /* no list — fall through to attempting every candidate */
-  }
+  // The host's real styles per family, when it offers the list (#1789). No list: every candidate is attempted.
+  const stylesByFamily = await availableStylesByFamily(api);
 
   let loaded = 0;
   let attempted = 0;
@@ -196,6 +260,9 @@ export const loadPreloadCandidates = async (
    *  not just "seen", is what keeps this independent of candidate order — a named face whose load failed
    *  first under a crossed candidate must not vanish from the report. */
   const tried = new Map<string, { ok: true } | { ok: false; reason: string }>();
+  /** resolved faces a theme candidate loaded (#1090). A set, filled from whichever candidate's outcome is read,
+   *  so it does not depend on a theme candidate being the one that made the attempt. */
+  const brandFaces = new Set<string>();
 
   for (const { face, origin } of candidates) {
     byOrigin[origin]++;
@@ -228,10 +295,13 @@ export const loadPreloadCandidates = async (
       }
       tried.set(key(toLoad), outcome);
     }
-    if (outcome.ok) continue;
+    if (outcome.ok) {
+      if (origin === 'theme') brandFaces.add(key(toLoad));
+      continue;
+    }
     if (origin === 'crossed') crossedMisses++;
     else unavailable.push({ face: key(face), origin, reason: outcome.reason });
   }
 
-  return { loaded, attempted, unavailable, crossedMisses, byOrigin };
+  return { loaded, brandLoaded: brandFaces.size, attempted, unavailable, crossedMisses, byOrigin };
 };

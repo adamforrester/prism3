@@ -31,16 +31,16 @@
  * Mutation this fails by name: `buildComponents` no longer releasing the build's guard when its verdict posts (`main.ts`,
  * the `guard.release` call after `verdictPosted = true`) → `sets/provider-logo: answered by a component-result …` (refused) and
  * `update/after the last set: answered by component-update-result`. `run-guard.ts`'s `finally` deleting the operation
- * whoever holds it (the hold token dropped) → `guard/release: released, …`. The #3325 patch put back (the root's search
+ * whoever holds it (the hold token dropped) → `guard/release: released, …`. `release(cmd)` freeing the file whoever
+ * holds it (`running = null`, #3697 R7) → `guard/release: releasing a write that does not hold the file leaves the holder in place`. The #3325 patch put back (the root's search
  * also returning the raw nodes on the pages, the strict host opted out) → `sets/button: answered by a component-result that
  * completed, clean`, and the same for each set that nests another.
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
-import { componentDefs } from '@prism3/engine/components/index';
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
-import type { BrandInput } from '@prism3/engine/theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { componentDefs, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/components';
+import type { BrandInput } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { SWAP_TARGET } from './src/build-deps';
 import { materializeForBrand } from './src/brand-def';
 import { catalogOf, CATALOG_SWAP_TARGET } from '../studio/src/state/component-catalog';
@@ -48,7 +48,9 @@ import { leafForDef } from './src/file-taxonomy';
 import { createRunGuard } from './src/run-guard';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -173,14 +175,16 @@ ok(upd?.type === 'component-update-result', `update/after the last set: answered
   let endFirst!: () => void;
   const first = g2.run('build-components', () => new Promise<void>((res) => { endFirst = res; }));
   g2.release('build-components');
-  const freed = !g2.busy('build-components');
+  const freed = !g2.busy();
   let endSecond!: () => void;
   const second = g2.run('build-components', () => new Promise<void>((res) => { endSecond = res; }));
   endFirst(); await first;
-  ok(freed && g2.busy('build-components'), `guard/release: released, the operation is free (${freed}); a later run's hold outlives the first run's end (busy ${g2.busy('build-components')})`);
+  ok(freed && g2.holding('build-components'), `guard/release: released, the file is free (${freed}); a later run's hold outlives the first run's end (held ${g2.held()})`);
+  g2.release('prune');
+  ok(g2.held() === 'build-components', `guard/release: releasing a write that does not hold the file leaves the holder in place (held ${g2.held()})`);
   endSecond(); await second;
-  ok(!g2.busy('build-components'), 'guard/release: the later run releases its own hold when it ends');
+  ok(!g2.busy(), 'guard/release: the later run releases its own hold when it ends');
 }
 
-console.log(failed ? `\n${failed} failed` : '\nall passed');
+console.log(`${failed ? `\n${failed} failed` : '\nall passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

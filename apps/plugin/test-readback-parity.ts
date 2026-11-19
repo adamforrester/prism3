@@ -58,13 +58,14 @@
  * #2365), and each wash is then checked AS WRITTEN in the file: its color alias and its opacity alias, by name, in
  * every mode, against the emission's.
  *
- * ── the two style channels no exporter reads ──────────────────────────────────────────────────────
+ * ── the style channels compared as written ────────────────────────────────────────────────────────
  *
- * TokenPress reads variables, text styles and effect styles. It reads no paint styles (#731) and no grid styles, so
- * the gradients and grids Apply Theme writes would pass any export comparison by being absent from both sides.
- * They are compared AS WRITTEN instead, shim against emission: the same style names, descriptions, grids, and
- * gradient stops (position, color within the tolerance above, and the variable each stop is bound to). Not
- * compared: a gradient's transform matrix, which the emission states as an angle in its description.
+ * TokenPress reads variables, text, effect and, since #731, paint styles, so the gradients Apply Theme writes also
+ * cross the export comparison above as DTCG `gradient` tokens. It reads no grid styles, so the grids would pass any
+ * export comparison by being absent from both sides. Both are compared AS WRITTEN as well, shim against emission:
+ * the same style names, descriptions, grids, and gradient stops (position, color within the tolerance above, and the
+ * variable each stop is bound to). Not compared: a gradient's transform matrix, which the emission states as an
+ * angle in its description, and which TokenPress keeps in `$extensions.figma`, outside the compared `$value`.
  *
  * ── motion: the round trip to the engine's DTCG (#2394, #2412) ─────────────────────────────────────
  *
@@ -85,6 +86,16 @@
  * A mode other than `Default` reads the leaf's `$extensions.prism3.modes.<mode>` re-point, as the emitter does.
  * It runs on the shim's export for every applied brand, and on the emission's export for every brand, nb included.
  *
+ * ── text spacing: the round trip to the engine's DTCG (#2423) ────────────────────────────────────────
+ *
+ * The line-height and letter-spacing ladders and their roles go into the file as unscoped FLOAT variables in the
+ * `text-spacing` collection (owner Q175 A), named by their DTCG paths and holding the multiplier. The expected side is
+ * again the engine's DTCG, not either export: every leaf under `<root>.core.font.{line-height, line-height-role,
+ * letter-spacing, letter-spacing-role}` in `out/<brand>.tokens.json`. Each must come back in `shared/text-spacing.json`
+ * at the same path, as a `number`, holding the same alias or the same multiplier (no tolerance), and the export may
+ * hold nothing else there. Apply Theme's file is also checked as written: every variable in `text-spacing` is a FLOAT
+ * with no scopes, and the count is the plan's. Run for every applied brand, and on the emission for every brand.
+ *
  * ── which brands ──────────────────────────────────────────────────────────────────────────────────
  *
  * Every brand with a Figma emission, discovered by listing `out/figma/`, each placed in SOURCES (its design.md) or
@@ -100,7 +111,7 @@
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import type { BrandInput } from '@prism3/engine/theme';
+import type { BrandInput } from '@prism3/engine';
 import { FileShim } from './file-shim';
 import { runApplyTheme, themePlans } from './src/apply-theme';
 import { holdsInput } from './src/persist-figma';
@@ -121,7 +132,7 @@ const ok = (cond: boolean, label: string): void => {
 };
 
 /** The brief each brand's emission was compiled from (`emit-figma.ts`), applied here the way a person would. */
-const SOURCES: Record<string, string> = { prism3: 'prism3.design.md', aurora: 'aurora.design.md', wendys: 'wendys.design.md' };
+const SOURCES: Record<string, string> = { prism3: 'prism3.design.md', aurora: 'aurora.design.md', harbor: 'harbor.design.md', wendys: 'wendys.design.md' };
 const EXCLUDED: Record<string, string> = {
   nb: 'the regression fixture: its emission is built from nbTheme() and the measured reference, not from a BrandInput, so there is no brief to apply',
 };
@@ -287,6 +298,42 @@ const motionFloors = (brand: string, motion: Map<string, any>): void => {
   }
 };
 
+// ── text spacing: the round trip to the engine's DTCG (#2423) ───────────────────────────────────────
+const TEXT_SPACING_GROUPS = ['line-height', 'line-height-role', 'letter-spacing', 'letter-spacing-role'];
+const TEXT_SPACING_FILE = 'shared/text-spacing.json';
+/** Every DTCG leaf of the four text-spacing groups under `<root>.core.font`, by dotted path. */
+const dtcgTextSpacing = (brand: string): Map<string, any> => {
+  const tree = JSON.parse(readFileSync(join(REPO, 'packages/engine/out', `${brand}.tokens.json`), 'utf8'));
+  const root = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+  const out = new Map<string, any>();
+  for (const g of TEXT_SPACING_GROUPS) {
+    for (const [k, leaf] of Object.entries(tree[root]?.core?.font?.[g] ?? {})) if (!k.startsWith('$')) out.set(`${root}.core.font.${g}.${k}`, leaf);
+  }
+  return out;
+};
+/** The export's text-spacing leaves against the DTCG's: ADDED, REMOVED, RETYPED and VALUE, each by `<file>#<path>`. */
+const textSpacingRoundTrip = (exported: Map<string, Leaf>, dtcg: Map<string, any>): Diff[] => {
+  const out: Diff[] = [];
+  for (const [k, a] of exported) {
+    const [f, path] = k.split('#');
+    if (!f.endsWith('/text-spacing.json')) continue;
+    const leaf = f === TEXT_SPACING_FILE ? dtcg.get(path) : undefined;
+    if (!leaf) { out.push({ kind: 'ADDED', key: k, detail: `${a.$type} ${J(a.$value)} — no text-spacing token at this path in the engine's DTCG` }); continue; }
+    if (a.$type !== 'number' || leaf.$type !== 'number') { out.push({ kind: 'RETYPED', key: k, detail: `export ${a.$type}, engine ${leaf.$type} (both must be number)` }); continue; }
+    if (a.$value !== leaf.$value) out.push({ kind: 'VALUE', key: k, detail: `export ${J(a.$value)}, engine ${J(leaf.$value)}` });
+  }
+  for (const path of dtcg.keys()) if (!exported.has(`${TEXT_SPACING_FILE}#${path}`)) out.push({ kind: 'REMOVED', key: `${TEXT_SPACING_FILE}#${path}`, detail: `engine ${J(dtcg.get(path).$value)}, not in the export` });
+  return out;
+};
+/** The floor per group: a brand whose DTCG had none of one would make that group's arm vacuous. */
+const MIN_TEXT_SPACING = 5;
+const textSpacingFloors = (brand: string, ts: Map<string, any>): void => {
+  for (const g of TEXT_SPACING_GROUPS) {
+    const n = [...ts.keys()].filter((p) => p.split('.').slice(-2, -1)[0] === g).length;
+    ok(n >= MIN_TEXT_SPACING, `${brand} text spacing: the engine's DTCG holds ${n} ${g} tokens (at least ${MIN_TEXT_SPACING})`);
+  }
+};
+
 // ── the brands: discovered, then placed ─────────────────────────────────────────────────────────────
 console.log(`Read-back parity (#2351 gap 2, offline) — Apply Theme's file vs the engine's Figma emission\n${'='.repeat(78)}`);
 const discovered = readdirSync(FIGMA_OUT, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();
@@ -347,11 +394,18 @@ for (const brand of GATED) {
       && motionVars.every((v: any) => (v.resolvedType === 'TIMING' || v.resolvedType === 'EASING') && JSON.stringify(v.scopes) === '["ALL_SCOPES"]')
       && motionVars.some((v: any) => v.resolvedType === 'TIMING') && motionVars.some((v: any) => v.resolvedType === 'EASING'),
       `${brand} motion: Apply Theme wrote ${motionVars.length} of ${planned} motion variables, all TIMING or EASING at ALL_SCOPES`);
+    // Text spacing in the file (#2423): every variable in `text-spacing` is a FLOAT with no scopes, so no picker
+    // offers a multiplier for a field Figma binds as pixels, and the count is the plan's.
+    const tsCol = file.collections.find((c: any) => c.name === 'text-spacing');
+    const tsVars = tsCol ? file.vars.filter((v: any) => v.variableCollectionId === tsCol.id) : [];
+    const tsPlanned = applied.plans.floatPlan.filter((p) => p.name === 'text-spacing').reduce((n, p) => n + p.create.length, 0);
+    ok(tsVars.length === tsPlanned && tsPlanned > 0 && tsVars.every((v: any) => v.resolvedType === 'FLOAT' && JSON.stringify(v.scopes) === '[]'),
+      `${brand} text spacing: Apply Theme wrote ${tsVars.length} of ${tsPlanned} text-spacing variables, all FLOAT with no scopes`);
     ok(file.vars.length > 0 && file.styles.text.length > 0 && file.styles.effect.length > 0,
       `${brand}: the file holds what Apply Theme wrote (${file.vars.length} variables, ${file.styles.text.length} text, ${file.styles.effect.length} effect, ${file.styles.grid.length} grid, ${file.styles.paint.length} paint styles)`);
 
     // The shim is a host: TokenPress reads its variables and styles directly, the way it reads Figma's.
-    const fromShim: Adapted = { collections: file.collections, variables: file.vars, textStyles: file.styles.text, effectStyles: file.styles.effect } as unknown as Adapted;
+    const fromShim: Adapted = { collections: file.collections, variables: file.vars, textStyles: file.styles.text, effectStyles: file.styles.effect, paintStyles: file.styles.paint } as unknown as Adapted;
     const actual = leavesOf((await runTokenPress(fromShim)).files);
     const expected = leavesOf((await runTokenPress(adaptBrand(brand, join(FIGMA_OUT, brand)))).files);
     ok(expected.size > 0 && actual.size > 0, `${brand}: both exports hold tokens (shim ${actual.size}, emission ${expected.size})`);
@@ -413,6 +467,11 @@ for (const brand of GATED) {
     motionFloors(brand, motion);
     report(`${brand} motion, Apply Theme's file → DTCG`, motionRoundTrip(actual, motion), ['ADDED', 'REMOVED', 'RETYPED', 'VALUE']);
     report(`${brand} motion, the emission → DTCG`, motionRoundTrip(expected, motion), ['ADDED', 'REMOVED', 'RETYPED', 'VALUE']);
+    // Text spacing, both exports against the engine's DTCG (#2423).
+    const textSpacing = dtcgTextSpacing(brand);
+    textSpacingFloors(brand, textSpacing);
+    report(`${brand} text spacing, Apply Theme's file → DTCG`, textSpacingRoundTrip(actual, textSpacing), ['ADDED', 'REMOVED', 'RETYPED', 'VALUE']);
+    report(`${brand} text spacing, the emission → DTCG`, textSpacingRoundTrip(expected, textSpacing), ['ADDED', 'REMOVED', 'RETYPED', 'VALUE']);
 
     // The two channels no exporter reads, compared as written.
     const varName = (id: string) => file.vars.find((v: any) => v.id === id)?.name;
@@ -425,7 +484,8 @@ for (const brand of GATED) {
   }
 }
 
-// The excluded brands have no brief to apply, but their emission still exports: its motion is held to the DTCG too.
+// The excluded brands have no brief to apply, but their emission still exports: its motion and text spacing are held
+// to the DTCG too.
 for (const brand of Object.keys(EXCLUDED).filter((id) => discovered.includes(id))) {
   console.log(`\n${brand} (emission only)`);
   try {
@@ -433,6 +493,9 @@ for (const brand of Object.keys(EXCLUDED).filter((id) => discovered.includes(id)
     motionFloors(brand, motion);
     const emitted = leavesOf((await runTokenPress(adaptBrand(brand, join(FIGMA_OUT, brand)))).files);
     report(`${brand} motion, the emission → DTCG`, motionRoundTrip(emitted, motion), ['ADDED', 'REMOVED', 'RETYPED', 'VALUE']);
+    const textSpacing = dtcgTextSpacing(brand);
+    textSpacingFloors(brand, textSpacing);
+    report(`${brand} text spacing, the emission → DTCG`, textSpacingRoundTrip(emitted, textSpacing), ['ADDED', 'REMOVED', 'RETYPED', 'VALUE']);
   } catch (e) {
     ok(false, `${brand}: the motion comparison threw — ${(e as Error)?.message ?? String(e)}`);
   }

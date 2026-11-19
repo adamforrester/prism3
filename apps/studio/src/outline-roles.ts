@@ -18,8 +18,7 @@
  * since #3071, `hover-fill`, has its own `inverse.` twin, picked on the band and with the band ink measured on
  * it, so every method reads the band's fill, ink and edge on an inverse ground.
  */
-import { outlineFillRole } from '@prism3/engine/modes';
-import type { Theme } from '@prism3/engine/theme';
+import { outlineFillRole, type Theme } from '@prism3/engine';
 
 export interface OutlineStateRoles {
   /** The hover/pressed fill role, or null at rest and under a method that emits no fill. */

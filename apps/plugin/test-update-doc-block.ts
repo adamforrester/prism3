@@ -56,10 +56,9 @@
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
-import { componentDefs } from '@prism3/engine/components/index';
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
-import type { BrandInput } from '@prism3/engine/theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { componentDefs, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/components';
+import type { BrandInput } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { SWAP_TARGET } from './src/build-deps';
 import { materializeForBrand } from './src/brand-def';
 import { catalogOf, CATALOG_SWAP_TARGET } from '../studio/src/state/component-catalog';
@@ -70,7 +69,9 @@ import { leafForDef } from './src/file-taxonomy';
 import { themePlans } from './src/apply-theme';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -366,5 +367,5 @@ ok(JSON.stringify(queued) === JSON.stringify(['button', 'button-destructive', 'b
     `setup incomplete/repaired: Set up file builds what was listed, and the read lists nothing (${JSON.stringify(back?.setupIncomplete)})`);
 }
 
-console.log(failed ? `\n${failed} failed` : '\nall passed');
+console.log(`${failed ? `\n${failed} failed` : '\nall passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

@@ -28,12 +28,7 @@
  *     before a full repaint reads the set as it was drawn, not as the first click left it. That is the legacy
  *     page's behavior (#831), and the equivalence driver holds it byte for byte.
  */
-import {
-  brandTheme, typefaceSlug, derivedRungFor, shiftRung, REQUIRED_WEIGHT_ROLES, PER_MODE_SIZE_GROUPS,
-  LINE_HEIGHT_KEYS, TRACKING_SHIFT_KEYS, DISPLAY_VARIANTS, TYPE_LINK_DEFAULT, TYPE_LINK_ALWAYS, UNDERLINE_ON_DEFAULT,
-  UNDERLINE_BOUNDS,
-} from '@prism3/engine/theme';
-import type { BrandInput, Theme, TypographyInput, PerModeSizeGroup, FacePin } from '@prism3/engine/theme';
+import { brandTheme, typefaceSlug, derivedRungFor, shiftRung, REQUIRED_WEIGHT_ROLES, PER_MODE_SIZE_GROUPS, LINE_HEIGHT_KEYS, TRACKING_SHIFT_KEYS, DISPLAY_VARIANTS, TYPE_LINK_DEFAULT, TYPE_LINK_ALWAYS, UNDERLINE_ON_DEFAULT, UNDERLINE_BOUNDS, type BrandInput, type Theme, type TypographyInput, type PerModeSizeGroup, type FacePin } from '@prism3/engine';
 import { brandState, theme, getPath, setPath, setModeLever } from './store';
 
 /** The seven text categories, in the order every Type table lists them. `as const` keeps the literal union
@@ -74,7 +69,8 @@ export const addLibraryFace = (raw: string, typefaces: Typography['typefaces'] =
 };
 /** Remove an unbound face from the authored library, by slug. */
 export const removeLibraryFace = (slug: string): void => {
-  setPath(brandState, 'typography.typefaceLibrary', libraryFaces().filter((n) => typefaceSlug(n) !== slug));
+  const next = libraryFaces().filter((n) => typefaceSlug(n) !== slug);
+  setPath(brandState, 'typography.typefaceLibrary', next.length ? next : undefined);
 };
 /** A category's face. In Light: a face name writes `typography.families.<cat>`, `null` writes "no code
  *  styles" (only `code` offers it), and an empty string writes nothing. In another mode: a face writes
@@ -387,32 +383,41 @@ export const modeSizePin = (mode: string, group: PerModeSizeGroup, variant: stri
 /** A #1587 viewport endpoint pin (`sizeOverrides.<g>.<v>.<vp>`), if any. */
 export const viewportPin = (group: PerModeSizeGroup, variant: string, vp: 'desktop' | 'mobile'): number | undefined =>
   brandState.typography?.sizeOverrides?.[group]?.[variant]?.[vp];
-/** Set or clear a brand-wide size, pruning empties so an all-cleared brand stays byte-identical. */
+/** Drop `typography` once a clear has emptied it, so a brand that arrived without the key (a new brand, a
+ *  `design.md` without one) is byte-identical again, not `typography: {}`: `isDirty` is exact equality (#1071).
+ *  The clear paths never create the key, the write paths do, and this is the one place it goes again. */
+const pruneTypography = (): void => {
+  if (brandState.typography && !Object.keys(brandState.typography).length) delete brandState.typography;
+};
+/** Set or clear a brand-wide size, pruning empties (`typography` included) so an all-cleared brand stays
+ *  byte-identical. */
 const setBrandSize = (group: PerModeSizeGroup, variant: string, px: number | undefined): void => {
-  const ty = (brandState.typography ??= {});
   if (px === undefined) {
-    const g = ty.sizes?.[group];
-    if (!g || !ty.sizes) return;
+    const ty = brandState.typography;
+    const g = ty?.sizes?.[group];
+    if (!ty?.sizes || !g) return;
     delete g[variant];
     if (!Object.keys(g).length) delete ty.sizes[group];
     if (!Object.keys(ty.sizes).length) delete ty.sizes;
+    pruneTypography();
     return;
   }
-  ((ty.sizes ??= {})[group] ??= {})[variant] = px;
+  (((brandState.typography ??= {}).sizes ??= {})[group] ??= {})[variant] = px;
 };
 /** Set or clear a viewport endpoint pin, pruning empties one axis deeper than `setBrandSize`. */
 const setViewportSize = (group: PerModeSizeGroup, variant: string, vp: 'desktop' | 'mobile', px: number | undefined): void => {
-  const ty = (brandState.typography ??= {});
   if (px === undefined) {
-    const rung = ty.sizeOverrides?.[group]?.[variant];
-    if (!rung || !ty.sizeOverrides) return;
+    const ty = brandState.typography;
+    const rung = ty?.sizeOverrides?.[group]?.[variant];
+    if (!ty?.sizeOverrides || !rung) return;
     delete rung[vp];
     if (!Object.keys(rung).length) delete ty.sizeOverrides[group]![variant];
     if (ty.sizeOverrides[group] && !Object.keys(ty.sizeOverrides[group]!).length) delete ty.sizeOverrides[group];
     if (!Object.keys(ty.sizeOverrides).length) delete ty.sizeOverrides;
+    pruneTypography();
     return;
   }
-  (((ty.sizeOverrides ??= {})[group] ??= {})[variant] ??= {})[vp] = px;
+  ((((brandState.typography ??= {}).sizeOverrides ??= {})[group] ??= {})[variant] ??= {})[vp] = px;
 };
 /** One heading size: `mode` `null` writes the brand-wide (desktop) size in `typography.sizes`; a mode writes
  *  `modeLevers[mode].typeSizes`. `undefined` clears it, pruned. */
@@ -433,6 +438,7 @@ export const releasePinnedSizes = (): void => {
     const caption = ty.sizes?.caption;
     delete ty.sizes; delete ty.sizeOverrides;
     if (caption) ty.sizes = { caption };
+    pruneTypography();
   }
   for (const m of Object.keys(brandState.modeLevers ?? {})) setModeLever(m, 'typeSizes', undefined);
 };
@@ -469,27 +475,14 @@ export const captionSizePin = (variant: CaptionSizeRung): number | undefined => 
  *  one clash. The engine's own rule, no trial build. */
 export const captionFloorBlocked = (): boolean => (captionSizePin('md') ?? Infinity) <= 10;
 /** Set or clear a caption size. Brand-wide: caption has one size in every mode, so any editable mode writes the same
- *  bytes. `undefined` clears it, pruning the caption map and then `sizes`, so a cleared brand stays byte-identical. */
-export const setCaptionSize = (variant: CaptionSizeRung, px: number | undefined): void => {
-  const ty = (brandState.typography ??= {});
-  if (px === undefined) {
-    const c = ty.sizes?.caption;
-    if (!c || !ty.sizes) return;
-    delete c[variant];
-    if (!Object.keys(c).length) delete ty.sizes.caption;
-    if (!Object.keys(ty.sizes).length) delete ty.sizes;
-    return;
-  }
-  ((ty.sizes ??= {}).caption ??= {})[variant] = px;
-};
+ *  bytes. `undefined` clears it, pruning the caption map, `sizes` and `typography`, so a cleared brand stays byte-identical. */
+export const setCaptionSize = (variant: CaptionSizeRung, px: number | undefined): void =>
+  // `setPath`'s clear prunes every parent it empties, up to `typography` itself (#4208, the #1071 bug).
+  setPath(brandState, `typography.sizes.caption.${variant}`, px);
 /** The letter spacing role a text type is pinned to, if any. */
 export const trackingPinOf = (g: string): string | undefined => (brandState.typography?.tracking as Record<string, string> | undefined)?.[g];
 /** Pin a text type's letter spacing to a role, or `undefined` to follow its size and nudge again, pruning an emptied
- *  `tracking` so a cleared brand stays byte-identical. Brand-wide. */
-export const setTrackingPin = (g: string, role: string | undefined): void => {
-  if (role !== undefined) { setPath(brandState, `typography.tracking.${g}`, role); return; }
-  const ty = brandState.typography, t = ty?.tracking as Record<string, string> | undefined;
-  if (!ty || !t) return;
-  delete t[g];
-  if (!Object.keys(t).length) delete ty.tracking;
-};
+ *  `tracking` and `typography` so a cleared brand stays byte-identical. Brand-wide. */
+export const setTrackingPin = (g: string, role: string | undefined): void =>
+  // A clear prunes an emptied `tracking` and then an emptied `typography` (#4208, the #1071 bug).
+  setPath(brandState, `typography.tracking.${g}`, role);

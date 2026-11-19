@@ -43,15 +43,13 @@
  * of the set DANGLES, which, like a drawn fault, makes the member "to update" whatever its record says. Its blind spots are this module's (`anatomy-readback.ts` lists them). A member whose stamp
  * moved and that shows no field difference is listed as re-applied rather than left out.
  */
-import { planBoundVars, planComponentName, planEffectStyles, planPaintVars, planSetLayout, planSetProperties, planTextStyles } from '@prism3/engine/anatomy-figma';
-import { tailOf } from '@prism3/engine/figma-names';
+import { planBoundVars, planComponentName, planEffectStyles, planPaintVars, planSetLayout, planSetProperties, planTextStyles, type AnatomyPlan, diffAnatomy, type HostNode, type ReadPorts, type ComponentDef } from '@prism3/engine/components';
+import { tailOf } from '@prism3/engine/figma';
 import { planTargets } from './build-deps';
-import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import { diffAnatomy, type HostNode, type ReadPorts } from '@prism3/engine/anatomy-readback';
-import { COMPONENT_RENAMES, coordKey, coordPairs, formerDefIds, partRenames, renameCoordinate, renameProperty, slotMigrationOf, slotTextMigrationOf, type ComponentRename } from '@prism3/engine/component-renames';
-import { captureSlotMigration, migrationLines, type MigNode, type SlotMigration } from './slot-migration';
-import { captureSlotText, holdsSlotText, slotTextLines, type SlotTextMigration, type TextMigNode } from './slot-text-migration';
-import { ENGINE_VERSION } from '@prism3/engine/version';
+import { captureSlotMigration, keptLive, migrationLines, type MigNode, type SlotMigration } from './slot-migration';
+import { carryUnreadable, keptCarry, unreadableLine, withKept, type CarryKind } from './slot-carry';
+import { captureSlotText, holdsSlotText, keptTextLive, slotTextLines, type SlotTextMigration, type TextMigNode } from './slot-text-migration';
+import { ENGINE_VERSION, colorVariablesOutOfOrder, COMPONENT_RENAMES, coordKey, coordPairs, formerDefIds, partRenames, renameCoordinate, renameProperty, slotMigrationOf, slotTextMigrationOf, type ComponentRename } from '@prism3/engine';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { PACE_MS } from './pace';
 import { reaches } from './executor-reach';
@@ -61,7 +59,6 @@ import { labelColumns, readLabelColumn } from './label-columns';
 import { NS } from './persist-figma';
 import { isLiveSpecPanel, readSpecTag } from './spec-tag';
 import { DOC_PANEL_KEY, DOC_PANEL_NS, PANEL_GAP, SPEC_GAP, SPEC_WIDTH, docPanelBlockers, docPanelDue, docPanelReaches, ownerSet, type PanelReach, isLivePanel, panelModes, planDocPanel, readPanelTag, type PanelApi, type PNode } from './doc-panel';
-import type { ComponentDef } from '@prism3/engine/component-schema';
 import type { CheckedSet } from './messages';
 import type { ApplyProgress } from './update-apply';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
@@ -75,8 +72,8 @@ import { whatChangedLines } from './release-summary';
 import { ABOUT_NAME, aboutDue, aboutDueLine, aboutIsWork, type AboutDue } from './about-frame';
 import { readDocSettings } from './doc-settings';
 import { COVER_NAME, coverDue, coverDueLine, coverIsWork, coverPageOnlyLine, type CoverDue } from './cover-frame';
-import { colorVariablesOutOfOrder } from '@prism3/engine/color-order';
 import { isRunRoot, readRun, withRoot, type Criteria } from './run-read';
+import { readUpdatesOff, UPDATES_OFF_COPY, type UpdatesOff } from './updates-off';
 
 /** One member of a set as the dry run reads it. */
 export type HostMember = {
@@ -113,6 +110,9 @@ export type HostSetView = {
   /** #2831 — whether the set is in a published team library, as `getPublishStatusAsync` answers (`publishOf`). A
    *  single-component def reads as its most published component. Absent when the host would not say. */
   publish?: PublishStatus;
+  /** #2956 (owner decisions 2026-11-17) — the set's updates are off (`updates-off.ts`): who turned them off. Absent while
+   *  they are on. */
+  updatesOff?: UpdatesOff;
 };
 
 /** #2831 — Figma's answer to `getPublishStatusAsync`: never published, published and unchanged, or published and edited
@@ -165,6 +165,10 @@ export type SetPreview = {
    *  so an unpublished set's preview, and its hash, are what they were. In the hash: a set published between the check
    *  and the confirm refuses the confirm. */
   publish?: PublishStatus;
+  /** #2956 (owner decisions 2026-11-17) — the set's updates are off, and who turned them off (`updates-off.ts`). The apply
+   *  leaves the set as it is and reports it calmly. In the hash: a set turned off or back on between the check and the
+   *  confirm refuses the confirm. Absent while its updates are on, so such a set's preview, and its hash, are as before. */
+  updatesOff?: UpdatesOff;
   /** #2759 — the set is in the file under an earlier def id, which the apply renames to the current one in place. */
   setRename?: { from: string; to: string };
   /** #2831 — what this update breaks for library consumers (`breakingOf`). Absent for a set that is not published, or
@@ -174,10 +178,14 @@ export type SetPreview = {
    *  acts on count: one with a layer added or removed by hand is skipped whole, so nothing on it is removed. Absent when
    *  none. Never capped. */
   removedLayers?: { path: string; members: number }[];
+  /** #3025 — each layer the update replaces, per member, as `replacements` lists it, but only on members the update acts
+   *  on: one with a layer added or removed by hand, or one that would need replacing itself, is skipped whole, so nothing
+   *  on it is replaced. The member itself (path `.`) is not here. Absent when none. Never capped: `breakingOf` counts it. */
+  replacedLayers?: { member: string; path: string; reason: string }[];
   blockers: string[];
   /** #3421 — every blocker is a variable or a text or effect style the plans name that the file lacks: what the brand's
    *  Theme writes. Update file runs Theme first, so it checks such a set again after Theme and updates it in the same run.
-   *  Absent otherwise. */
+   *  Also a set whose other blockers are only components a target blocked this way adds (#3770). Absent otherwise. */
   themeBlocked?: true;
   axes: { from: string[]; to: string[]; renames: { from: string; to: string }[] };
   properties: { add: Prop[]; edit: Prop[]; rename: Prop[]; retype: Prop[]; remove: Prop[] };
@@ -199,13 +207,24 @@ export type SetPreview = {
    *  order. Collapsing members are not moved: an update refuses a set that has them. */
   moves: { from: string; to: string }[];
   possibleRenames: { from: string; to: string }[];
-  handEdits: { member: string; path: string; conflict: boolean; structural: boolean }[];
+  /** `lost` (#2673): the edit is at or under a layer the update removes or replaces, so an apply that wrote the member
+   *  would rebuild it without the edit. Always a conflict. Under Keep and Accept the apply skips the member. Absent
+   *  otherwise. */
+  handEdits: { member: string; path: string; conflict: boolean; structural: boolean; lost?: true }[];
   /** #2265 PR 2 — every matched member that is not current, with how it reads; what an apply acts on. Current
    *  members are left out, so a set with nothing to do carries an empty list. Never capped: an apply must see all. */
   states: { member: string; state: Exclude<MemberState, 'current'>; earlierRecord?: true;
     /** #2413 — a member edited by hand with a layer added or removed that also draws wrong: its drawn faults, each as
      *  `faultLine` writes it, so the apply's skip names the damage it leaves. Absent otherwise. */
-    damaged?: string[] }[];
+    damaged?: string[];
+    /** #2674 — the same member, its prototype reactions pointing at a member no longer in the set: the apply skips it,
+     *  so they are left dangling, and its skip says so. Absent otherwise. */
+    dangling?: true;
+    /** #2956 point 2 (owner decision 2026-10-23) — a member edited by hand whose update changes its structure: a layer
+     *  the plan adds, removes, replaces or moves into a new frame. Under Keep and Accept the apply skips it whole and
+     *  names it; Overwrite writes it. Absent otherwise, and on a member whose layer was added or removed by hand, which
+     *  every choice skips. */
+    restructured?: true }[];
   /** #2188 Q173 — the members an update moves to their place in the grid, by name (`gridMoves`). Absent when none. */
   positions?: string[];
   /** #2542 (owner decision Q245.2 A) — the WHOLE SET moves on its page, to where a fresh build would place it
@@ -228,6 +247,9 @@ export type SetPreview = {
    *  placed instance whose body needs carrying, and what the update does with it (`slot-text-migration.ts`). In the
    *  set's `previewHash`, as `slotMigration` is. Absent otherwise. */
   slotTextMigration?: SlotTextMigration;
+  /** #3796 review B2 — a slot carry kept on the set that this version can't read (`slot-carry.ts`): ignored, named, and
+   *  cleared by the set's next write. Absent when none. */
+  carryUnreadable?: CarryKind[];
 };
 
 /** The field a reaction difference is named under (#2466). DRAFT wording. */
@@ -308,6 +330,32 @@ export const nestedMemberFaults = (plan: AnatomyPlan['root'], snap: SnapNode, ke
         out.push({ part: at, set: String(main.parent?.name ?? ''), member: String(main.name ?? ''), plan: axes.map(([k, v]) => `${k}=${v}`).join(', ') });
       }
       return;
+    }
+    const kids = sn.children ?? [];
+    for (const c of pn.children ?? []) walk(c, kids.find((k) => k.name === c.name), at === '.' ? c.name : `${at}/${c.name}`);
+  };
+  walk(plan, snap, '.');
+  return out;
+};
+
+/**
+ * #3076: EACH SLOT WHOSE INSTANCE IS NOT THE COMPONENT THE PLAN NAMES FOR IT, by path. `diffAnatomy` holds a slot
+ * (`INSTANCE_SWAP`) only to being an instance (`swapTarget`'s check in `anatomy-readback.ts`: the set's default is a node
+ * id the plan has no side of), so a designer who swapped the search field's clear icon to the brand's own read as a hand
+ * edit that nothing the update writes touches, even under a plan that moves that slot's default. The update does move it
+ * (the apply edits the set's INSTANCE_SWAP default), so the swap is a conflict. Compared by component NAME, as the as-built
+ * record names a main (`member-baseline.ts`, v3): the set's name for a member of a set, the component's own otherwise.
+ * Like every other conflict where the plan moved, it can over-report (the plan moved elsewhere, and the slot differs only
+ * by the designer's swap); it never hides one.
+ */
+export const slotRepoints = (plan: AnatomyPlan['root'], snap: SnapNode): string[] => {
+  const out: string[] = [];
+  const walk = (pn: AnatomyPlan['root'], sn: SnapNode | undefined, at: string): void => {
+    if (!sn) return;
+    if (String(pn.type) === 'INSTANCE_SWAP' && pn.swapTarget && sn.type === 'INSTANCE') {
+      const main = sn.mainComponent as { name?: string; parent?: { name?: string; type?: string } | null } | undefined;
+      const owner = main?.parent?.type === 'COMPONENT_SET' ? main.parent.name : main?.name;
+      if (owner !== undefined && owner !== pn.swapTarget) out.push(at);
     }
     const kids = sn.children ?? [];
     for (const c of pn.children ?? []) walk(c, kids.find((k) => k.name === c.name), at === '.' ? c.name : `${at}/${c.name}`);
@@ -553,6 +601,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   const rev = String(EXECUTOR_REVISION);
   const states: SetPreview['states'] = [];
   const removedLayers = new Map<string, number>();
+  const replacedLayers: { member: string; path: string; reason: string }[] = [];
   const plannedRx = reactionMap(plans.map((p) => planComponentName(p)), plans[0]?.pressState);
   for (const l of matched) {
     const plan = planned.get(l.target)!;
@@ -596,7 +645,9 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     // the stamp (`finishUpdated`), so a member carrying both stopped before its update completed: the next run finishes
     // it and clears the marker. This is what a stopped set's count holds too (`applySet`, #3449).
     const unfinished = m.updating != null;
-    const state: MemberState = (damaged.length && !structural) || rxv.dangling ? 'update'
+    // A LAYER ADDED BY HAND OUTRANKS DANGLING REACTIONS TOO (#2674), as it does drawn damage (#2413): the apply skips the
+    // member, so it counts as edited by hand, and its state says the reactions are left dangling.
+    const state: MemberState = (damaged.length || rxv.dangling) && !structural ? 'update'
       : !m.baseline ? 'noBaseline'
       : edited ? 'handEdited'
       // #3101: a member stamped under another revision is to update only when a revision since reaches this set.
@@ -606,7 +657,11 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     counts[state]++;
     const earlier = state === 'noBaseline' && !!m.earlierRecord;
     if (earlier) counts.earlierRecord = (counts.earlierRecord ?? 0) + 1;
-    const hurt = state === 'handEdited' && structural && damaged.length ? { damaged: damaged.map((f) => faultLine(m.name, f)) } : {};
+    const hurt = state === 'handEdited' && structural ? {
+      ...(damaged.length ? { damaged: damaged.map((f) => faultLine(m.name, f)) } : {}),
+      ...(rxv.dangling ? { dangling: true as const } : {}),
+    } : {};
+    const at = states.length;
     if (state !== 'current') states.push({ member: m.name, state, ...(earlier ? { earlierRecord: true as const } : {}), ...hurt });
     if (state === 'current' || state === 'revisionUnknown') continue;
 
@@ -631,6 +686,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
         replacements.push({ member: m.name, path: part, reason: part === '.'
           ? `the member itself would need replacing (${d.actual} → ${d.expected}); the update refuses this member`
           : `${d.actual} → ${d.expected}` });
+        if (!structural) replacedLayers.push({ member: m.name, path: part, reason: `${d.actual} → ${d.expected}` });
         touched.add(part);
         continue;
       }
@@ -651,11 +707,18 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       if (c.sample.length < 3) c.sample.push(m.name);
       changes.set(k, c);
     }
+    // A slot the plan names another component for (#3076): the apply moves the set's default there.
+    for (const part of slotRepoints(plan.root, snap)) touched.add(part);
     const movedFrom = new Set(moves.map((mv) => mv.from));
+    // THE LAYERS THE UPDATE REBUILDS on this member (#2673): each it removes (not moved, so a renamed part is here
+    // too) and each it replaces for a type change. A hand edit at or under one is not kept by path: the fresh node
+    // is built at another path or as another node, and the old one, edit and all, is removed.
+    const rebuilt: string[] = replacements.filter((r) => r.member === m.name && r.path !== '.').map((r) => r.path);
     const extras: string[] = [];
     extraChildren(plan.root, snap, '.', extras);
     for (const mv of moves) extraChildren(mv.plan, mv.host, mv.to, extras);
     for (const part of extras.filter((x) => !movedFrom.has(x))) {
+      rebuilt.push(part);
       const parent = part.includes('/') ? part.slice(0, part.lastIndexOf('/')) : '.';
       touched.add(parent);
       if (!structural) removedLayers.set(part, (removedLayers.get(part) ?? 0) + 1);
@@ -702,6 +765,12 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       if (c.sample.length < 3) c.sample.push(m.name);
       changes.set(k, c);
     }
+    // A STRUCTURAL UPDATE ON A MEMBER EDITED BY HAND (#2956 point 2, owner decision 2026-10-23: skip the member and
+    // report it). Structural: a planned layer the member lacks, a layer whose type changes, one moved into a frame the
+    // plan inserts, or one the plan no longer has. Its edits could not be trusted to survive the new structure, so the
+    // update leaves the whole member, as it does one with a layer added by hand.
+    if (state === 'handEdited' && !structural && (placed.some(({ d, part }) => d.field === 'children' || (d.field === 'type' && part !== '.')) || moves.length > 0 || extras.some((x) => !movedFrom.has(x))))
+      states[at] = { ...states[at], restructured: true };
     if (state === 'update' && placed.length === 0 && moves.length === 0 && extras.length === 0 && dropped.length === 0 && !(m.drawn ?? []).length && !rxv.differs && !nested.length) {
       counts.reapplied++;
       const k = '.\u0000stamp\u0000\u0000';
@@ -720,8 +789,12 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       // difference on an edited node cannot be split into the edit's part and the plan's part, and it is
       // reported as a conflict. That can over-report; it never hides one.
       const moved = planMoved || (revField !== null && revField !== rev);
-      for (const p of [...edit.changed, ...edit.added, ...edit.removed])
-        handEdits.push({ member: m.name, path: p, conflict: moved && touched.has(p.replace(/#\d+$/, '')), structural });
+      for (const p of [...edit.changed, ...edit.added, ...edit.removed]) {
+        const at = p.replace(/#\d+$/, '');
+        // AN EDIT THE UPDATE WOULD LOSE (#2673) is a conflict whatever moved: the update rebuilds its layer.
+        const lost = rebuilt.some((r) => at === r || at.startsWith(`${r}/`));
+        handEdits.push({ member: m.name, path: p, conflict: lost || (moved && touched.has(at)), structural, ...(lost ? { lost: true as const } : {}) });
+      }
     }
   }
 
@@ -777,6 +850,8 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   if (positions.length) counts.move = positions.length;
 
   const truncated: Record<string, number> = {};
+  const replacedSelf = new Set(replacements.filter((r) => r.path === '.').map((r) => r.member));
+  const acted = replacedLayers.filter((r) => r.path !== '.' && !replacedSelf.has(r.member));
   const cap = <T>(name: string, list: T[]): T[] => {
     if (list.length <= LIST_CAP) return list;
     truncated[name] = list.length - LIST_CAP;
@@ -788,6 +863,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     setKey: host.key,
     counts,
     ...(isPublished(read.publish) ? { publish: read.publish } : {}),
+    ...(read.updatesOff ? { updatesOff: read.updatesOff } : {}),
     blockers,
     axes: { from: hostAxes, to: planAxes, renames: axisRenames },
     properties,
@@ -805,6 +881,8 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     states,
     ...(positions.length ? { positions: cap('positions', positions) } : {}),
     ...(removedLayers.size ? { removedLayers: [...removedLayers].map(([path, members]) => ({ path, members })) } : {}),
+    // A member that would need replacing itself is refused whole, so none of its layers is replaced either.
+    ...(acted.length ? { replacedLayers: acted } : {}),
     needsChoice,
     ...(adoptClears.length ? { adoptClears } : {}),
     ...(Object.keys(truncated).length ? { truncated } : {}),
@@ -880,7 +958,8 @@ export const readSetView = async (set: LiveSet, breathe?: () => Promise<void>, d
   try { key = typeof set.key === 'string' ? set.key : ''; } catch { key = ''; }
   const labelColumn = readLabelColumn(set);
   const publish = await publishOf(set);
-  return { name: String(set.name ?? ''), id: String(set.id ?? ''), key, page: pageOf(set), members, others, definitions, ...(labelColumn ? { labelColumn } : {}), ...(publish ? { publish } : {}) };
+  const updatesOff = readUpdatesOff(set);
+  return { name: String(set.name ?? ''), id: String(set.id ?? ''), key, page: pageOf(set), members, others, definitions, ...(labelColumn ? { labelColumn } : {}), ...(publish ? { publish } : {}), ...(updatesOff ? { updatesOff } : {}) };
 };
 
 /** The reason a member is left out when its node moved between the read and the write (#2301). DRAFT. */
@@ -1429,7 +1508,7 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
   const host = await runHost(file, breathe);
   const ports = await hostPorts(host);
   const out: UpdatePreview = { sets: [], missing: [], refused: [] };
-  const found: { preview: SetPreview; set: LiveSet; lead: boolean }[] = [];
+  const found: { preview: SetPreview; set: LiveSet; lead: boolean; off?: true }[] = [];
   // The file's modes for the panels' Theming, read once, and only when a target has a panel to check.
   let modesRead: ReturnType<typeof panelModes> | undefined;
   const modes = () => (modesRead ??= panelModes(host as unknown as Pick<PanelApi, 'variables'>));
@@ -1457,6 +1536,10 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
   // another target adds (a provider logo's new mark) reads it as there once that target's own read has no blocker; the
   // apply updates them in the same order. Credited only from a target the apply will write, never from a blocked one.
   const addedThisRun = new Set<string>();
+  // WHAT THIS RUN ADDS ONCE ITS THEME HAS RUN: the names a target blocked only by Theme's variables and styles leaves in
+  // the file (#3421 runs such a target after Theme). A set whose only other lack is one of these reads blocked only by
+  // Theme too, so the run updates it after its provider, never "this file doesn't have" a set the file holds.
+  const addedAfterTheme = new Set<string>();
   const rank = new Map(targets.map((t, i) => [t, i] as const));
   const ranked = new Map<SetPreview, number>();
   const byTarget = new Map(viewed.map((x) => [x.t, x] as const));
@@ -1469,9 +1552,23 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
     if (spot.kind === 'missing') { out.missing.push(t.def); told(null); continue; }
     if (spot.kind === 'refused') { out.refused.push({ def: t.def, reason: spot.reason }); told(null); continue; }
     const v = await viewOf(spot, breathe, ports.drawVars, kept) as Extract<Viewed, { kind: 'found' }>;
-    const preview = dryRunSet(t.def, t.plans, v.view, runPorts, ledger);
+    // #2956: the mark read off the live set every check, never from a kept view (#3313): turning updates off or back on
+    // writes plugin data only, which a kept view need not see.
+    const off = t.single ? null : readUpdatesOff(v.set);
+    const { updatesOff: _was, ...seen } = v.view;
+    const preview = dryRunSet(t.def, t.plans, off ? { ...seen, updatesOff: off } : seen, runPorts, ledger);
     // The set is named for the current id from here on: the apply finds its preview by that name, and renames the node.
     if (v.from) { preview.setRename = { from: v.from, to: v.name }; preview.set = v.name; }
+    // UPDATES OFF (#2956): the apply leaves the set as it is, so nothing else here is work for it: no blocker to name, no
+    // furniture, no slot carry, and it holds its place on the page (read as blocked for the page's re-spacing).
+    if (preview.updatesOff) {
+      out.sets.push(preview);
+      ranked.set(preview, rank.get(t)!);
+      found.push({ preview, set: v.set, lead: false, off: true });
+      told(preview);
+      if (progress && breathe) await breathe();
+      continue;
+    }
     // WHAT THE FILE LACKS (#2601), the apply's checks made here, so the confirm lists every set the apply refuses.
     // A NESTED COMPONENT THE FILE DOES NOT HAVE (#2380) is one: since every icon-set glyph is an instance of
     // `icon/<glyph>`, an update can need a component the file was built without — an older field-message
@@ -1485,7 +1582,14 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
     // #3421: every blocker is a variable or a style the brand's Theme writes, so a run whose Theme step goes first can
     // update the set after it (Update file checks it again then). Never in the hash: the blockers already are.
     if (!had && lacks.lines.length && lacks.theme === lacks.lines.length) preview.themeBlocked = true;
+    // A NESTED OR SWAPPED COMPONENT A THEME-BLOCKED TARGET ADDS: the set lacks only what Theme writes, once that target
+    // has run after Theme. Its blockers stay the file's as it is now (the hash, and the reasons with Theme unticked).
+    else if (!had && lacks.lines.length > lacks.theme && addedAfterTheme.size) {
+      const after = await fileBlockers(host, t.plans, v.set, new Set([...have, ...addedThisRun, ...addedAfterTheme]));
+      if (after.theme === after.lines.length) preview.themeBlocked = true;
+    }
     if (!preview.blockers.length) for (const n of providedNames(t, v.name)) addedThisRun.add(n);
+    else if (preview.themeBlocked) for (const n of providedNames(t, v.name)) addedAfterTheme.add(n);
     // THE CANVAS FURNITURE (#2803): what the page lacks of the set's labels and backdrops is a change, so "update again"
     // after Set up file adds a template draws it, and "No changes found" means the furniture is current too.
     if (!t.single && !preview.blockers.length && hasFurniture(t.def)) {
@@ -1510,6 +1614,8 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
       // #3225: a slot whose plain text moves out to a TEXT property lists every placed instance it carries.
       const tmig = await slotTextMigrationFor(t, v.set as TextMigNode, ledger, breathe);
       if (tmig) { preview.slotTextMigration = tmig.migration; preview.previewHash = fnv(JSON.stringify([preview.previewHash, tmig.migration])); }
+      const unreadable = carryUnreadable(v.set);
+      if (unreadable.length) preview.carryUnreadable = unreadable;
     }
     out.sets.push(preview);
     ranked.set(preview, rank.get(t)!);
@@ -1525,9 +1631,9 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
   out.refused.sort((a, b) => defRank.get(a.def)! - defRank.get(b.def)!);
   found.sort((a, b) => ranked.get(a.preview)! - ranked.get(b.preview)!);
   // #2831: what each published set's update breaks for library consumers, once everything above has named its changes.
-  for (const p of out.sets) { const b = breakingOf(p); if (b.length) p.breaking = b; }
+  for (const p of out.sets) { const b = p.updatesOff ? [] : breakingOf(p); if (b.length) p.breaking = b; }
   // #2542: the sets that move on their pages, read once every set has been.
-  const moves = pageSetMoves(found.map((f) => ({ name: f.preview.set, set: f.set, blocked: f.preview.blockers.length > 0, lead: f.lead })), undefined, docPanelReaches(host as unknown as Pick<PanelApi, 'root'>));
+  const moves = pageSetMoves(found.map((f) => ({ name: f.preview.set, set: f.set, blocked: f.preview.blockers.length > 0 || !!f.off, lead: f.lead })), undefined, docPanelReaches(host as unknown as Pick<PanelApi, 'root'>));
   for (const f of found) { const m = moves.get(f.preview.set); if (m) f.preview.setMove = m; }
   // A BLOCKED PANEL THIS UPDATE CLEARS (#846): every node in its way is, or belongs to, a set this update moves, and the
   // move spaces that set past the panel. Then it is due, and the apply draws it once the sets have moved.
@@ -1568,10 +1674,13 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
  * the def has no slot entry in the ledger or the set already holds its rows in the slot (no member has the old rows).
  * Shared by the dry run and the apply, so both read the instances the one way.
  */
-export const slotMigrationFor = async (t: UpdateTarget, set: MigNode, ledger: readonly ComponentRename[] = COMPONENT_RENAMES, breathe?: () => Promise<void>): Promise<Awaited<ReturnType<typeof captureSlotMigration>> | null> => {
+export const slotMigrationFor = async (t: UpdateTarget, set: MigNode, ledger: readonly ComponentRename[] = COMPONENT_RENAMES, breathe?: () => Promise<void>, lookup?: (id: string) => Promise<MigNode | null>): Promise<Awaited<ReturnType<typeof captureSlotMigration>> | null> => {
   const entry = slotMigrationOf(t.def, ledger);
   const plan = t.plans[0];
   if (!entry || !plan) return null;
+  // #3762: a capture an earlier run kept on the set, for the instances it reached and never filled (the plugin closed).
+  // Those hold the slot now, with no rows to read, so only the kept capture still has their content.
+  const kept = keptCarry(set, 'rows');
   const rootPart = plan.root.name;
   const has = (n: MigNode, name: string): MigNode | undefined => (n.name === name ? n : (n.children ?? []).map((k) => has(k, name)).find(Boolean));
   const froms = typeof entry.from === 'string' ? [entry.from] : [...entry.from];
@@ -1579,11 +1688,16 @@ export const slotMigrationFor = async (t: UpdateTarget, set: MigNode, ledger: re
     const from = f === rootPart ? m : has(m, f);
     return !!from && (from.children ?? []).some((c) => entry.rows.includes(String(c.name)));
   }));
-  if (!oldShape) return null;
+  if (!oldShape && !kept) return null;
   const parts = new Set<string>();
   const walk = (n: AnatomyPlan['root']): void => { parts.add(n.name); n.children.forEach(walk); };
   walk(plan.root);
-  return captureSlotMigration(set, entry, rootPart, parts, breathe);
+  const fresh = oldShape ? await captureSlotMigration(set, entry, rootPart, parts, breathe) : null;
+  const { capture, added } = withKept(fresh?.migration ?? null, kept);
+  if (!capture) return null;
+  const live = new Map(fresh?.live ?? []);
+  for (const [id, l] of await keptLive(set, added, lookup, breathe)) live.set(id, l);
+  return { migration: capture, live };
 };
 
 /**
@@ -1593,8 +1707,16 @@ export const slotMigrationFor = async (t: UpdateTarget, set: MigNode, ledger: re
  */
 export const slotTextMigrationFor = async (t: UpdateTarget, set: TextMigNode, ledger: readonly ComponentRename[] = COMPONENT_RENAMES, breathe?: () => Promise<void>): Promise<Awaited<ReturnType<typeof captureSlotText>> | null> => {
   const entry = slotTextMigrationOf(t.def, ledger);
-  if (!entry || !holdsSlotText(set, entry)) return null;
-  return captureSlotText(set, entry, breathe);
+  if (!entry) return null;
+  // #3761, #3762: a capture an earlier run kept on the set. A stop inside the member pass, or a close, renamed every
+  // member's slot already, so the set no longer holds the old shape and only the kept capture still has the text.
+  const kept = keptCarry(set, 'text');
+  const fresh = holdsSlotText(set, entry) ? await captureSlotText(set, entry, breathe) : null;
+  const { capture, added } = withKept(fresh?.migration ?? null, kept);
+  if (!capture) return null;
+  const live = new Map(fresh?.live ?? []);
+  for (const [id, n] of await keptTextLive(set, added, breathe)) live.set(id, n);
+  return { migration: capture, live };
 };
 
 /** The components the plans nest that no COMPONENT or COMPONENT_SET in the file is named (#2380). */
@@ -1617,6 +1739,17 @@ const absentNests = (have: ReadonlySet<string>, plans: readonly AnatomyPlan[]): 
  * the rest and report each as a miss; an update would leave a published set half-changed, which is worse (§7).
  * A host with no `loadFontAsync` checks no font: the plugin's host is `figma`, which always has it.
  */
+/** #3713: a list a blocker line names, cut at three, with how many more it leaves out, so the line never names fewer
+ *  than are missing without saying so. */
+const firstFew = (xs: readonly string[]): string => `${xs.slice(0, 3).join(', ')}${xs.length > 3 ? `, and ${xs.length - 3} more` : ''}`;
+/** #3713 (D3721.6 b): a swap-target list (`icon/close`), cut by SET, not by target: every target of the first three sets
+ *  (the part before `/`), grouped by set, then how many more sets. Studio names one set per entry (`setNames`), so the
+ *  count has to be sets for "Icon, Button, and 1 more" to mean one more set, never one more Icon target. */
+const firstFewSets = (xs: readonly string[]): string => {
+  const setOf = (x: string): string => x.split('/')[0];
+  const sets = [...new Set(xs.map(setOf))];
+  return `${sets.slice(0, 3).flatMap((s) => xs.filter((x) => setOf(x) === s)).join(', ')}${sets.length > 3 ? `, and ${sets.length - 3} more` : ''}`;
+};
 const fileBlockers = async (host: UpdateHost, plans: readonly AnatomyPlan[], set: LiveSet, have: ReadonlySet<string>): Promise<{ lines: string[]; theme: number }> => {
   const out: string[] = [];
   // #3421: how many of `out` are a variable or a text or effect style the plans name: what Apply Theme writes.
@@ -1633,14 +1766,14 @@ const fileBlockers = async (host: UpdateHost, plans: readonly AnatomyPlan[], set
   const wantStyles = [...new Set(roots.flatMap(planTextStyles))];
   const noStyle = wantStyles.filter((s) => !byName.has(s));
   if (noStyle.length) theme++;
-  if (noStyle.length) out.push(`text style${noStyle.length === 1 ? '' : 's'} not in this file: ${noStyle.slice(0, 3).join(', ')}`);
+  if (noStyle.length) out.push(`text style${noStyle.length === 1 ? '' : 's'} not in this file: ${firstFew(noStyle)}`);
   const effects = new Set((await host.getLocalEffectStylesAsync()).map((s) => s.name));
   const noEffect = [...new Set(roots.flatMap(planEffectStyles))].filter((s) => !effects.has(s));
   if (noEffect.length) theme++;
-  if (noEffect.length) out.push(`effect style${noEffect.length === 1 ? '' : 's'} not in this file: ${noEffect.slice(0, 3).join(', ')}`);
+  if (noEffect.length) out.push(`effect style${noEffect.length === 1 ? '' : 's'} not in this file: ${firstFew(noEffect)}`);
   // Nests are named above, with what to build first; a swap target is named here.
   const noSwap = planTargets(plans).filter((n) => !have.has(n) && !absent.includes(n));
-  if (noSwap.length) out.push(`component${noSwap.length === 1 ? '' : 's'} the plan swaps to ${noSwap.length === 1 ? 'is' : 'are'} not in this file: ${noSwap.slice(0, 3).join(', ')}`);
+  if (noSwap.length) out.push(`component${noSwap.length === 1 ? '' : 's'} the plan swaps to ${noSwap.length === 1 ? 'is' : 'are'} not in this file: ${firstFewSets(noSwap)}`);
   if (!host.loadFontAsync) return { lines: out, theme };
   const fonts = new Map<string, { family: string; style: string }>();
   for (const s of wantStyles) { const f = byName.get(s)?.fontName; if (f) fonts.set(`${f.family}|${f.style}`, f); }
@@ -1738,7 +1871,11 @@ const propChanges = (p: SetPreview): number => Object.values(p.properties).reduc
  *  (the owner's own icons, #2325), so a set whose only other members are those reads as having no changes, and the
  *  set's line still counts them. Counted as a change, a file holding them could never read up to date. A member to
  *  rename is a change (#2592): it reads current, and the apply renames it, so a set of renames is never up to date. */
-const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.rename && !p.counts.move && !p.setMove && !p.setRename && !furnitureDueCount(p.furniture) && !propChanges(p);
+const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.rename && !p.counts.move && !p.setMove && !p.setRename && !furnitureDueCount(p.furniture) && !propChanges(p) && !carryDue(p);
+/** #3762: placed instances whose slot carry is still to fill, from a capture an earlier run kept on the set. A set with
+ *  only that left (the plugin closed after the set's write, before its fill) is not up to date: its content is carried. */
+export const carryDue = (p: Pick<SetPreview, 'slotMigration' | 'slotTextMigration'>): boolean =>
+  !!p.slotMigration?.instances.some((c) => !c.nested) || !!p.slotTextMigration?.instances.some((c) => !c.nested);
 /** No changes, and every member current. A member not built by Prism3 that sits on a PLANNED coordinate is one Adopt
  *  could claim (`adoptable`, #2283), so a set holding one reads "no changes", never up to date (owner decision Q191
  *  2B). Off the plan (the owner's own icons, #2464), it doesn't stop a set reading up to date. */
@@ -1746,14 +1883,18 @@ const upToDate = (p: SetPreview): boolean => noChanges(p) && !p.counts.revisionU
 /** Whether the dry run calls the set up to date, for the apply's verdict to say the same (#2495, owner Q205 A). */
 export const setUpToDate = upToDate;
 
-/** One set as Update file's scoped check posts it (#2909): its counts, whether it is blocked or up to date, and, on a
+/** One set as Update file's scoped check posts it (#2909): its counts, whether it is blocked (and, #3713, why) or up to date, and, on a
  *  published set, its consumer-breaking line (#2831). `def` is the target's id, which the preview's set name may not
  *  be. */
 export const checkedSetOf = (p: SetPreview, def: string): CheckedSet => ({
   def, hash: p.previewHash, members: p.counts.members, update: p.counts.update, add: p.counts.add, drop: p.counts.drop,
   handEdited: p.counts.handEdited, noBaseline: p.counts.noBaseline, blocked: p.blockers.length > 0, upToDate: upToDate(p),
   ...(p.themeBlocked ? { themeBlocked: true as const } : {}),
-  ...(p.breaking?.length ? { breaks: breakingSummary(p.breaking) } : {}),
+  // #3713: the reasons themselves, so the dialog names them rather than pointing elsewhere.
+  ...(p.blockers.length ? { reasons: [...p.blockers] } : {}),
+  ...(p.breaking?.length ? { breaks: breakingSummary(p.breaking, p.set) } : {}),
+  // #3711 (Q-UF2 A): each of those changes named, for the callout above Update file's button, and how many in all.
+  ...(p.breaking?.length ? { changes: { count: p.breaking.length, lines: consumerLines(p.set, p.breaking) } } : {}),
 });
 
 /** How many named differences each set's lines carry, so a set that differs everywhere stays a few lines long. */
@@ -1780,6 +1921,8 @@ export const furnitureParts = (d: FurnitureDue | undefined, draw: string, clear:
 
 /** One set's dry run, as one line. */
 export const previewLine = (p: SetPreview): string => {
+  // #2956: a set whose updates are off is left as it is, whatever its plan says.
+  if (p.updatesOff) return UPDATES_OFF_COPY.left(p.set);
   if (p.blockers.length) return `${p.set}: can't be checked. ${p.blockers.join('; ')}.`;
   const c = p.counts;
   const parts = [
@@ -1813,7 +1956,8 @@ export const previewLine = (p: SetPreview): string => {
 
 /** #2831 — what a set's update breaks for library consumers, from what its dry run lists. Empty for a set that is not
  *  published (nothing reaches another file), and for a set the update refuses (it changes nothing). A replacement of
- *  the member itself is left out: the update refuses that member, so it is not replaced. */
+ *  the member itself is left out: the update refuses that member, so it is not replaced. The replacements are read from
+ *  `replacedLayers` (#3025), uncapped and only on members the update acts on, never from the capped `replacements`. */
 export const breakingOf = (p: SetPreview): Breaking[] => {
   if (!isPublished(p.publish) || p.blockers.length) return [];
   const hidden = (name: string): boolean => name.startsWith('_') || name.startsWith('.');
@@ -1823,7 +1967,7 @@ export const breakingOf = (p: SetPreview): Breaking[] => {
     ...p.properties.remove.map((x) => ({ kind: 'property' as const, name: x.name, change: 'removed' as const })),
     ...p.properties.retype.map((x) => ({ kind: 'property' as const, name: x.name, change: 'retyped' as const, from: x.from, to: x.to })),
     ...p.drops.map((member) => ({ kind: 'drop' as const, member })),
-    ...p.replacements.filter((r) => r.path !== '.').map((r) => ({ kind: 'replace' as const, ...r })),
+    ...(p.replacedLayers ?? []).filter((r) => r.path !== '.').map((r) => ({ kind: 'replace' as const, ...r })),
     ...removedLayers(p),
   ];
 };
@@ -1842,53 +1986,71 @@ const removedLayers = (p: SetPreview): Breaking[] => {
   });
 };
 
-/** One breaking change, as a line. DRAFT wording for the owner (#2831). */
-export const breakingLine = (set: string, b: Breaking): string =>
-  b.kind === 'drop' ? `${set} · ${b.member} · dropped — consumer instances of it point at a deprecated member.`
-    : b.kind === 'replace' ? `${set} · ${b.member} / ${b.path} · replaced, not updated in place (${b.reason}) — consumer overrides on it are lost.`
-      : b.kind === 'private' ? `${set} · renamed ${b.from} → ${b.to} — a name starting with _ or . is not published, so the set leaves the library.`
-        : b.kind === 'layer' ? `${set} · ${b.path} · removed from ${n(b.members, 'member')} — consumer overrides on it are lost.${b.added ? ` If ${b.added.join(' or ')} is this layer renamed, declare the rename and the update renames it in place.` : ''}`
-          : b.change === 'removed' ? `${set} · property ${b.name} · removed — consumer overrides of it are dropped.`
-            : `${set} · property ${b.name} · ${b.from} → ${b.to} — consumer overrides of it are dropped.`;
+/** #3711 (Q-UF1 A): whether a change breaks files that use the library, the word "breaks" reserved for these: a property
+ *  removed or retyped, a layer replaced or removed. A member retired (kept and marked deprecated) and a set renamed out
+ *  of the library affect those files without breaking them, and are named by what they do. */
+export const breaksConsumers = (b: Breaking): boolean => b.kind === 'property' || b.kind === 'replace' || b.kind === 'layer';
 
-/** #2831 — a published set's breaking changes as one line for Update file's checklist, beside the set: how many of
- *  each, what breaks, and what the update does about it. Empty when nothing breaks. DRAFT wording for the owner. */
-export const breakingSummary = (breaking: readonly Breaking[] | undefined): string => {
+/** One change that affects files using the library, as a line. DRAFT wording for the owner (#2831, #3711 Q-UF1 A). */
+export const breakingLine = (set: string, b: Breaking): string =>
+  b.kind === 'drop' ? `${set} · ${b.member} · retired — its instances in files that use this library keep working and show as deprecated.`
+    : b.kind === 'replace' ? `${set} · ${b.member} / ${b.path} · replaced, not updated in place (${b.reason}) — breaks files that use this library: overrides on it are lost.`
+      : b.kind === 'private' ? `${set} · renamed ${b.from} → ${b.to} — a name starting with _ or . is not published, so the set leaves the library.`
+        : b.kind === 'layer' ? `${set} · ${b.path} · removed from ${n(b.members, 'member')} — breaks files that use this library: overrides on it are lost.${b.added ? ` If ${b.added.join(' or ')} is this layer renamed, declare the rename and the update renames it in place.` : ''}`
+          : b.change === 'removed' ? `${set} · property ${b.name} · removed — breaks files that use this library: overrides of it are dropped.`
+            : `${set} · property ${b.name} · ${b.from} → ${b.to} — breaks files that use this library: overrides of it are dropped.`;
+
+/** How many changes, and how many of them break those files, as the clause after a count (#3711 Q-UF1 A). */
+const affects = (total: number): string => `${n(total, 'change')} ${total === 1 ? 'affects' : 'affect'} files that use this library`;
+const ofThemBreak = (total: number, broken: number): string => (!broken ? '' : broken === total ? (total === 1 ? ' and breaks them' : ' and break them') : `, ${broken} ${broken === 1 ? 'breaks' : 'break'} them`);
+
+/** #2831 — a published set's changes that affect files using the library, as one line for Update file's checklist,
+ *  beside the set: how many, then each kind by its real effect. Empty when there are none. DRAFT wording for the owner
+ *  (#3711 Q-UF1 A); `set` is the set's name, as the line names its retired members. */
+export const breakingSummary = (breaking: readonly Breaking[] | undefined, set = ''): string => {
   if (!breaking?.length) return '';
   const k = (kind: Breaking['kind']): number => breaking.filter((b) => b.kind === kind).length;
   const props = breaking.filter((b): b is Extract<Breaking, { kind: 'property' }> => b.kind === 'property');
   const layers = breaking.filter((b): b is Extract<Breaking, { kind: 'layer' }> => b.kind === 'layer');
   // A replacement is listed per member; the checklist counts the layers.
   const replaced = new Set(breaking.flatMap((b) => (b.kind === 'replace' ? [b.path] : []))).size;
-  const parts = [
-    k('private') ? 'renamed to a name Figma does not publish, so the set leaves the library' : '',
-    k('drop') ? `${n(k('drop'), 'member')} dropped: kept and marked deprecated, so consumer instances still resolve` : '',
-    props.length ? `${n(props.length, 'property', 'properties')} removed or retyped: consumer overrides of ${props.length === 1 ? 'it' : 'them'} are dropped` : '',
-    replaced ? `${n(replaced, 'layer')} replaced, not updated in place: consumer overrides on ${replaced === 1 ? 'it' : 'them'} are lost` : '',
-    layers.length ? `${n(layers.length, 'layer')} removed: consumer overrides on ${layers.length === 1 ? 'it' : 'them'} are lost${layers.some((l) => l.added) ? '; a declared rename keeps a renamed layer in place' : ''}` : '',
+  const name = set ? `${set} ` : '';
+  const sentences = [
+    k('private') ? `${set || 'The set'} is renamed to a name Figma does not publish, so it leaves the library.` : '',
+    k('drop') ? `${k('drop')} ${name}${k('drop') === 1 ? 'member' : 'members'} retired. ${k('drop') === 1 ? 'Its instances keep' : 'Their instances keep'} working and show as deprecated.` : '',
+    props.length ? `${n(props.length, 'property', 'properties')} removed or retyped, which breaks those files: overrides of ${props.length === 1 ? 'it' : 'them'} are dropped.` : '',
+    replaced ? `${n(replaced, 'layer')} replaced, not updated in place, which breaks those files: overrides on ${replaced === 1 ? 'it' : 'them'} are lost.` : '',
+    layers.length ? `${n(layers.length, 'layer')} removed, which breaks those files: overrides on ${layers.length === 1 ? 'it' : 'them'} are lost.${layers.some((l) => l.added) ? ' A declared rename keeps a renamed layer in place.' : ''}` : '',
   ].filter(Boolean);
-  return `Breaks library consumers: ${parts.join('; ')}.`;
+  return `${affects(breaking.length)}: ${sentences.join(' ')}`;
 };
 
-/** THE "BREAKS LIBRARY CONSUMERS" SECTION (#2831), for the dry run (`made` false) and the apply (`made` true): a head
- *  line counting the changes, then each set's changes named, capped as its differences are. Empty when nothing breaks.
- *  DRAFT wording for the owner. */
+/** THE SECTION FOR CHANGES THAT AFFECT FILES USING THE LIBRARY (#2831), for the dry run (`made` false) and the apply
+ *  (`made` true): a head line counting the changes and those that break, then each set's changes named, capped as its
+ *  differences are. Empty when there are none. DRAFT wording for the owner (#3711 Q-UF1 A). */
 export const breakingSection = (sets: readonly { set: string; breaking?: Breaking[] }[], made: boolean): string[] => {
   const hit = sets.filter((x) => x.breaking?.length);
   const total = hit.reduce((k, x) => k + x.breaking!.length, 0);
   if (!total) return [];
+  const broken = hit.reduce((k, x) => k + x.breaking!.filter(breaksConsumers).length, 0);
   return [
-    `Breaks library consumers: ${n(total, 'change')} ${made ? 'made ' : ''}in ${n(hit.length, 'published set')}, passed on at the next library publish.`,
-    ...hit.flatMap((x) => [
-      ...x.breaking!.slice(0, DIFFERENCE_LINES).map((b) => breakingLine(x.set, b)),
-      ...(x.breaking!.length > DIFFERENCE_LINES ? [`${x.set}: ${x.breaking!.length - DIFFERENCE_LINES} more breaking changes not listed.`] : []),
-    ]),
+    `Files that use this library: ${n(total, 'change')} ${made ? 'made ' : ''}in ${n(hit.length, 'published set')}${broken ? `, ${broken} of them breaking` : ''}, passed on at the next library publish.`,
+    ...hit.flatMap((x) => consumerLines(x.set, x.breaking!)),
   ];
 };
-/** The headline's breaking clause (#2831), or empty. DRAFT wording for the owner. */
+/** One set's changes that affect files using the library, each named (`breakingLine`), capped as its differences are,
+ *  then one line counting the rest. The section's lines for the set, and the lines Update file's callout names before
+ *  the run (#3711 Q-UF2 A). */
+export const consumerLines = (set: string, breaking: readonly Breaking[]): string[] => [
+  ...breaking.slice(0, DIFFERENCE_LINES).map((b) => breakingLine(set, b)),
+  ...(breaking.length > DIFFERENCE_LINES ? [`${set}: ${breaking.length - DIFFERENCE_LINES} more changes not listed.`] : []),
+];
+/** The headline's clause for changes that affect files using the library (#2831), or empty. DRAFT wording for the
+ *  owner (#3711 Q-UF1 A): "breaks" only when some of them do. */
 export const breakingClause = (sets: readonly { breaking?: Breaking[] }[]): string => {
   const total = sets.reduce((k, x) => k + (x.breaking?.length ?? 0), 0);
-  return total ? ` · ${n(total, 'change')} ${total === 1 ? 'breaks' : 'break'} library consumers` : '';
+  const broken = sets.reduce((k, x) => k + (x.breaking?.filter(breaksConsumers).length ?? 0), 0);
+  return total ? ` · ${affects(total)}${ofThemBreak(total, broken)}` : '';
 };
 
 /** Owner-approved wording (#2568, the Q211/Q246 family; Q264 A): the component pages out of alphabetical order, named
@@ -1946,7 +2108,9 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
       // #2649: the rows moving into the slot, every placed instance named with what moves and what can't carry over.
       ...(p.slotMigration && !p.blockers.length ? migrationLines(p.set, p.slotMigration) : []),
       // #3225: the slot text moving into its property, every carried instance named.
-      ...(p.slotTextMigration && !p.blockers.length ? slotTextLines(p.set, p.slotTextMigration) : [])]),
+      ...(p.slotTextMigration && !p.blockers.length ? slotTextLines(p.set, p.slotTextMigration) : []),
+      // #3796 review B2: a kept carry this version can't read, named once per set.
+      ...(p.carryUnreadable?.length ? [unreadableLine(p.set)] : [])]),
     // #2831: what the update breaks for library consumers, in its own section.
     ...breakingSection(r.sets, false),
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),

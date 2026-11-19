@@ -254,6 +254,29 @@
  * ITS LIMITS, STATED. Defs with no `anatomy` cannot be planned (arm 3 prints them). A stroke variable
  * missing from any brand's emission fails rather than skips, so an unresolvable binding cannot pass by
  * being unknown. And the arm fails if it measured no stroke at all.
+ *
+ * ── ARM 6: A HOST'S INK PUSHED INTO A NEST SITS ON THE HOST'S FILL (a rule, asserted at zero — #3554) ──────
+ *
+ * `PartDef.hostInk` (owner decisions Q-FL1 A and Q-FL1.1 A) is the first paint a host pushes into an instance of
+ * ANOTHER component: the Counter's disabled outline inks its nested FlushIconButton's glyphs in
+ * `color.disabled.on-fill`. Arms 1 to 5 each see that binding and none can object to a wrong one: it resolves, its key
+ * carries no intent for arm 1, arm 3 sees it reached (`descendantFills` is collected), and the census pins whatever
+ * the projector returned. What makes a pushed ink right is its GROUND, and nothing above asks about the ground: the
+ * nested component inked its glyph for the page, and the host overrides it only because it lays a fill underneath.
+ *
+ * THE RULE, two halves. (a) On a `nest` part, `descendantFills` appears only where the part declares `hostInk`, so a
+ * host cannot retint a nested component by any other route. (b) Every pushed ink's role, as the TOKEN TIER states it
+ * (the role's own `against`, the surface its contrast contract is measured on), names the fill the nearest painted
+ * ancestor in the plan carries at that coordinate, in every corpus brand and mode. An on-fill ink pushed where no
+ * fill lands, or a page ink pushed onto a fill, fails by name.
+ *
+ * INDEPENDENCE (`docs/34`). ACTUAL is two variable names read off the emitted plan tree: the pushed ink and the
+ * ancestor's fill. EXPECTED is the token tier's own pairing (`resolveAllModes` → `roles[ink].against`), a tier the def
+ * does not author and the projector never reads. The def's key spelling (`disabled.icon.on-fill`) is never consulted.
+ *
+ * ITS LIMITS, STATED. The ancestor is the nearest one in the HOST's plan that paints a fill; a nested component's own
+ * fill is not in the host's plan, so a push into a component that paints its own fill under the glyph is out of reach
+ * (none does today: a flush button has no fill). The arm fails if it measured no push at all.
  */
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -267,6 +290,7 @@ import type { ComponentDef } from './component-schema';
 import { corpus } from './token-contract';
 import { resolveAllModes } from './modes';
 import { contrast, hexToRgb } from './color';
+import { localeFreeCompare } from './locale-free-order';
 
 const repo = join(import.meta.dirname, '../..');
 const CENSUS_PATH = join(repo, 'packages/engine/schema/paint-census.json');
@@ -414,6 +438,18 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     "status `error` maps to the `danger` border role — text-field's filled coordinate, through the shared field factory",
   'card-number-field|error.border.focus-visible-filled':
     "status `error` maps to the `danger` border role — text-field's focused filled coordinate, through the shared field factory",
+  // `code-input-cell` (Q-CC1 A, #3554): error left the cell's state axis for the fields' `status` axis (Q354), so its one
+  // danger border became Text field's status-led keys, at each of the cell's five non-disabled states.
+  'code-input-cell|error.border.rest':
+    "status `error` maps to the `danger` border role — the empty cell in error, Text field's rest coordinate",
+  'code-input-cell|error.border.hover':
+    'status `error` maps to the `danger` border role — the hover coordinate, bound so the error border persists through hover',
+  'code-input-cell|error.border.filled':
+    'status `error` maps to the `danger` border role — a cell holding a character of an invalid code, the old error state\'s look',
+  'code-input-cell|error.border.focus-visible':
+    'status `error` maps to the `danger` border role — the active empty cell, bound so the danger border persists as its 2px focus edge',
+  'code-input-cell|error.border.focus-visible-filled':
+    'status `error` maps to the `danger` border role — the active filled cell, bound so the danger border persists as its 2px focus edge',
   // `divider` (#3382, owner Q15 revised A): `emphasis` leads the rule's stroke key, and its two values are two RUNGS of the
   // one neutral edge ladder, not two families. The tier emits no `color.bold.*` or `color.subtle.*` and must not, so arm 1's
   // premise has nothing to be true of; each key is named rather than the axis exempted, because Badge's `emphasis` paints
@@ -1105,7 +1141,7 @@ const redundantEdges = (): { fails: string[]; notes: string[]; checked: number; 
   const fails: string[] = [];
   const notes: string[] = [];
   let checked = 0;
-  for (const p of [...pairs.values()].sort((a, b) => `${a.def}${a.node}${a.fill}`.localeCompare(`${b.def}${b.node}${b.fill}`))) {
+  for (const p of [...pairs.values()].sort((a, b) => localeFreeCompare(`${a.def}${a.node}${a.fill}`, `${b.def}${b.node}${b.fill}`))) {
     const at = `${p.def}${p.node}`;
     const f = roleOf(p.fill);
     const b = roleOf(p.border);
@@ -1187,7 +1223,7 @@ const strokeScopes = (): { fails: string[]; checked: number; sources: number } =
   }
 
   const fails: string[] = [];
-  for (const e of [...strokes.values()].sort((a, b) => `${a.def}${a.node}${a.v}`.localeCompare(`${b.def}${b.node}${b.v}`))) {
+  for (const e of [...strokes.values()].sort((a, b) => localeFreeCompare(`${a.def}${a.node}${a.v}`, `${b.def}${b.node}${b.v}`))) {
     const missing = scopes.filter((s) => !s.byName.has(e.v)).map((s) => s.source);
     if (missing.length) {
       fails.push(`edge binds ink: ${e.def}${e.node} strokes '${e.v}', which is not in the emitted color collection (${missing.join(', ')}) — a stroke must bind a variable the token tier emits`);
@@ -1203,6 +1239,52 @@ const strokeScopes = (): { fails: string[]; checked: number; sources: number } =
   if (strokes.size === 0) fails.push('edge binds ink: the arm measured ZERO strokes — its scope has gone empty, and a pass over nothing is not a pass');
   if (scopes.length === 0) fails.push('edge binds ink: no emitted color collection found under out/figma — EXPECTED is missing, so nothing was checked');
   return { fails, checked: strokes.size, sources: scopes.length };
+};
+
+/** ARM 6 (#3554): a host's ink pushed into a nest (`hostInk`) sits on the host's fill, as the token tier pairs it. */
+const hostInks = (): { fails: string[]; checked: number; parts: string[] } => {
+  const fails: string[] = [];
+  const roleOf = (v: string) => v.replace(/^color\//, '').replace(/\//g, '.');
+  // EXPECTED, resolved once: each role's contract surface, per brand and mode.
+  const tiers: { at: string; roles: Record<string, { against?: string } | undefined> }[] = [];
+  for (const { id, theme } of corpus())
+    for (const m of resolveAllModes(theme)) tiers.push({ at: `${id.split(' ')[0]}/${m.mode}`, roles: m.roles as Record<string, { against?: string } | undefined> });
+  const pushes = new Map<string, { node: string; ink: string; ground: string | undefined; coords: number }>();
+  const declared: string[] = [];
+  for (const def of censusable()) {
+    const parts = def.anatomy!.parts;
+    for (const [name, p] of Object.entries(parts)) if (p.hostInk) declared.push(`${def.id}.${name}`);
+    const walk = (n: FigmaNodePlan, path: string, ground: string | undefined): void => {
+      const here = `${path}/${n.name}`;
+      const part = parts[n.name];
+      if (n.type === 'NESTED_INSTANCE' && part?.kind === 'nest' && n.descendantFills) {
+        if (!part.hostInk) fails.push(`host ink: ${def.id}${here} pushes '${n.descendantFills}' into its nest without declaring hostInk — a host retints a nested component only through the declared field`);
+        const k = `${def.id}|${here}|${n.descendantFills}|${ground}`;
+        const e = pushes.get(k) ?? { node: `${def.id}${here}`, ink: n.descendantFills, ground, coords: 0 };
+        e.coords++;
+        pushes.set(k, e);
+      }
+      const under = n.paints?.fills ?? ground;
+      for (const c of n.children) walk(c, here, under);
+    };
+    const sizes = (def.variants?.size ?? []).length ? def.variants!.size! : [undefined];
+    const axes = Object.entries(def.variants ?? {}).filter(([a]) => a !== 'size');
+    let combos: Record<string, string>[] = [{}];
+    for (const [a, vs] of axes) combos = combos.flatMap((c) => vs.map((v) => ({ ...c, [a]: v })));
+    const states: (string | undefined)[] = [undefined, ...(def.states ?? [])];
+    for (const size of sizes) for (const c of combos) for (const st of states)
+      if (!excludedFromSet(def, size, c, st))
+        walk(figmaAnatomyPlan(def, size, { ...c, ...(st ? { state: st } : {}), swapTarget: 'FPO-default-icon' } as never).root, '', undefined);
+  }
+  for (const e of pushes.values()) {
+    if (!e.ground) { fails.push(`host ink: ${e.node} pushes '${e.ink}' at ${e.coords} coordinate(s) where no ancestor paints a fill — the nested component's own ink is already right on the page`); continue; }
+    const off = tiers.filter((t) => t.roles[roleOf(e.ink)]?.against !== roleOf(e.ground!))
+      .map((t) => `${t.at} (${t.roles[roleOf(e.ink)] ? `against ${String(t.roles[roleOf(e.ink)]!.against)}` : 'no such role'})`);
+    if (off.length) fails.push(`host ink: ${e.node} pushes '${e.ink}' onto '${e.ground}' at ${e.coords} coordinate(s), but the token tier measures that ink against another surface in ${off.length} of ${tiers.length} brand-modes: ${off.slice(0, 3).join(', ')}`);
+  }
+  if (pushes.size === 0) fails.push(`host ink: the arm measured ZERO pushed inks across ${declared.length} declared hostInk part(s) — its scope has gone empty, and a pass over nothing is not a pass`);
+  if (tiers.length === 0) fails.push('host ink: no corpus brand resolved — EXPECTED is missing, so nothing was checked');
+  return { fails, checked: pushes.size, parts: declared };
 };
 
 const main = (): void => {
@@ -1307,6 +1389,11 @@ const main = (): void => {
   fails.push(...edgeInk.fails);
   console.log(`  edge binds ink … ${edgeInk.fails.length === 0 ? 'ok' : `${edgeInk.fails.length} violation(s)`} (${edgeInk.checked} distinct stroke binding(s) against ${STROKE_SCOPE} in ${edgeInk.sources} emitted color collection(s))`);
 
+  // ── ARM 6 ─────────────────────────────────────────────────────────────────────────────────────
+  const pushed = hostInks();
+  fails.push(...pushed.fails);
+  console.log(`  host ink … ${pushed.fails.length === 0 ? 'ok' : `${pushed.fails.length} violation(s)`} (${pushed.checked} distinct pushed ink(s) from [${pushed.parts.join(', ')}], each against its ground's contract surface in every corpus brand and mode)`);
+
   if (fails.length) {
     console.error(`\n✗ ${fails.length} failure(s):`);
     for (const f of fails) console.error(`  · ${f}`);
@@ -1315,6 +1402,7 @@ const main = (): void => {
     console.error('  A census failure is a CHANGED projection — read the diff, then: npx tsx packages/engine/lint-paint.ts --accept');
     console.error('  An edge-binds-ink failure is a border bound to an icon or text role — rebind it to a border role (Q346), never by widening the scope table.');
     console.error('  A redundant-edge failure is a PAIR of bindings that disagree about the box\'s boundary — remove the BORDER at that coordinate, not the fill, and never by adding a token.');
+    console.error('  A host-ink failure is an ink pushed into a nest that does not sit on the fill its contract names — push the on-fill ink only where the host\'s fill lands (#3554).');
     process.exit(1);
   }
   console.log('\n✓ paint is where the defs say it is');

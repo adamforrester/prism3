@@ -1,6 +1,6 @@
 # Radio.Control
 
-> Outlined radio ring; dot and brand ring on select. Nested by Radio.Row; no label.
+> Outlined radio ring; dot and brand ring on select. Nested by a radio row; no label.
 
 - **ID:** `radio-control`
 - **Category:** form
@@ -19,9 +19,9 @@ The atomic radio control — the painted circle with its inner selection dot and
 
 Shown on the default member: size `medium`, selection `unchecked`, status `default`.
 
-1. **Control**
-2. **Dot**
-3. **Focus ring**
+1. **Control** — The radio's outlined ring, which changes color when selected; a person clicks the whole labeled row, not the ring alone.
+2. **Dot** — The inner dot, shown only when the radio is selected.
+3. **Focus ring** — The shared focus ring, drawn as a circle around the radio on keyboard focus.
 
 ## Styles
 
@@ -38,6 +38,8 @@ Shown on the default member: size `medium`, selection `unchecked`, status `defau
 ## Usage guidelines
 
 Do not place this on its own. It is the circle Radio.Row nests, so a fix to its border weight or its dot geometry reaches the row without being copied. Build it before the row that nests it (the nest resolves by name against the live file). A standalone use is only for a control with an external label and its own aria wiring.
+
+**In RTL.** The control does not mirror.
 
 ### Do
 
@@ -69,9 +71,9 @@ Do not place this on its own. It is the circle Radio.Row nests, so a fix to its 
 
 ### Motion
 
-- **Enter:** On select, the inner dot scales in with a border-color crossfade on the ring, about 100-150ms. The focus ring appears instantly — a fade lags rapid arrow navigation through the group.
-- **Exit:** When a sibling is selected, this dot animates out — the one exit a radio has, since it is never deselected on its own.
-- **Reduced motion:** Under prefers-reduced-motion, the dot snaps in and out through opacity and color only, with no scale.
+- **Enter:** On select, the inner dot scales in from a little under full size with a border-color crossfade on the ring, on motion.duration.fast with motion.easing-role.default. The focus ring appears instantly — a fade lags rapid arrow navigation through the group.
+- **Exit:** When a sibling is selected, this dot scales out on the same timing — the one exit a radio has, since it is never deselected on its own.
+- **Reduced motion:** Under prefers-reduced-motion, the dot has no scale: it fades in and out with the color change, on motion.duration-reduced.fast.
 
 ## Content guidelines
 
@@ -123,22 +125,22 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `control` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
-| `control/dot` | — | — | `control.size.md.dot` | `control.size.md.dot` | — | — |
+| `control` | — | — | `control.size.md.height` | `control.size.md.height` | — | radius `radius.round`; stroke `border-width.thick` |
+| `control/dot` | — | — | `control.size.md.dot` | `control.size.md.dot` | — | radius `radius.round` |
 
 **size=small**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `control` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
-| `control/dot` | — | — | `control.size.sm.dot` | `control.size.sm.dot` | — | — |
+| `control` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | radius `radius.round`; stroke `border-width.thick` |
+| `control/dot` | — | — | `control.size.sm.dot` | `control.size.sm.dot` | — | radius `radius.round` |
 
 **size=large**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `control` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
-| `control/dot` | — | — | `control.size.lg.dot` | `control.size.lg.dot` | — | — |
+| `control` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | radius `radius.round`; stroke `border-width.thick` |
+| `control/dot` | — | — | `control.size.lg.dot` | `control.size.lg.dot` | — | radius `radius.round` |
 
 ### Color
 

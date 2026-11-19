@@ -13,24 +13,25 @@ A control for choosing one value from a known, bounded set — the closed, nativ
 
 - **Purpose:** Choose one value from a known, bounded set, with an associated label and helper/validation message, modeling the closed control.
 - **Use when:** One-of-a-known-set choices too numerous or space-costly to show all at once — a country, a status, a category.
-- **Avoid when:** The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 4–5 options or fewer and worth showing at once (Radio.Group, or SegmentedControl), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).
+- **Avoid when:** The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 7 options or fewer and worth showing at once (Radio.Group, or SegmentedControl), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).
 
 ## Anatomy
 
-Shown on the default member: size `medium`, status `default`.
+Shown on the default member: size `medium`, style `outline`, status `default`.
 
-1. **Label**
+1. **Label** — The field's label, set here on the select (its text, required marker and weight); a long label wraps.
 2. **Leading visual** (optional) — An optional purpose glyph before the value, aria-hidden. Absent by default; the caller nominates the icon.
 3. **Placeholder** — The prompt before a choice is made, in the placeholder ink (the disabled ink when disabled). Shown on the empty control: rest, hover, focus and disabled. Wraps rather than truncating, and the control grows taller.
-4. **Value**
-5. **Chevron glyph**
-6. **Message** (optional)
+4. **Value** — The chosen option, shown when the select is filled or read-only; a long value wraps and the field grows taller.
+5. **Chevron glyph** — The downward chevron that shows the field opens a menu, decorative, in the value's color.
+6. **Message** (optional) — Helper or validation text, hidden until the field has something to say; it takes the field's status and width.
 
 ## Styles
 
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
 | `size` | `medium`, `small`, `large` | once, when authored | Three tiers that scale the value type with the field (small 14px, medium 16px, large 18px, from type.body.sm, md and lg), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. small is for fine pointers only: on a coarse pointer (@media (pointer: coarse)) the code sets the small control to 16px, because iOS Safari zooms the page when it focuses a control under 16px. The same prop, with the same values, as TextField and Textarea. |
+| `style` | `outline` | once, when authored | — |
 | `status` | `default`, `error`, `warning`, `success` | at runtime | — |
 
 ### States
@@ -39,7 +40,7 @@ Shown on the default member: size `medium`, status `default`.
 
 ## Usage guidelines
 
-Use to choose one value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage's status from the validation state. The open menu is the platform's — prefer a native \<select> where its OS menu is acceptable. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.
+Use to choose one value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage's status from the validation state. The open menu is the platform's — prefer a native `<select>` where its OS menu is acceptable. The select band is 8 to about 15 familiar options: at 7 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.
 
 ### Do
 
@@ -58,8 +59,8 @@ Use to choose one value from a known, bounded set where the options are not wort
 ## Accessibility
 
 - **Keyboard:** The closed control is one Tab stop; Space / Enter / Down open it. Inside the open list (not modeled here) arrows move, typeahead jumps, Enter commits, Escape closes and returns focus to the control. SC 1.4.13 (the list stays open while hovered and Escape dismisses it) and SC 2.1.1 (every option, including scrolled ones, is reachable without a pointer) apply to that open list, which the platform or a listbox component owns, so this closed control does not claim them.
-- **Focus:** :focus-visible draws the 2px focus edge on the control in place of its border: from the outer edge, at the control's own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color), boundary ≥3:1 (1.4.11 / 2.4.13). The control is the focus target; forwardRef reaches it so a form can focus the first invalid field on submit.
-- **Screen readers:** Trigger: a native \<select>, or a custom button or role="combobox" (ARIA 1.2) with aria-haspopup="listbox", aria-expanded and aria-controls. Popup: role="listbox" with role="option" children carrying aria-selected — the platform's or a listbox component's, not modeled here.
+- **Focus:** `:focus-visible` draws the 2px focus edge on the control in place of its border: from the outer edge, at the control's own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color), boundary ≥3:1 (1.4.11 / 2.4.13). The control is the focus target; `forwardRef` reaches it so a form can focus the first invalid field on submit.
+- **Screen readers:** Trigger: a native `<select>`, or a custom button or `role="combobox"` (ARIA 1.2) with `aria-haspopup="listbox"`, `aria-expanded` and `aria-controls`. Popup: `role="listbox"` with `role="option"` children carrying `aria-selected` — the platform's or a listbox component's, not modeled here.
 
   The host generates ids, ties the label to the control and the message into aria-describedby, and sets aria-invalid on error. The placeholder is not the accessible name. A custom control mirrors the native listbox contract (aria-expanded, aria-activedescendant); prefer the native \<select> where its OS menu is acceptable, because it is correct for free.
 
@@ -73,9 +74,9 @@ Use to choose one value from a known, bounded set where the options are not wort
 
 ### Motion
 
-- **Enter:** The open list (the platform's or a listbox component's): ~100–150ms opacity fade with a small vertical translate (translateY(-4px) → 0), anchored to the control. The chevron rotates on open under the same rule.
-- **Exit:** The open list closes faster than it opens — ~75ms, a fade without translate — so dismissal reads as instant.
-- **Reduced motion:** Under prefers-reduced-motion, drop the translate and scale and keep an accelerated opacity fade (~50ms); the chevron rotation follows the same rule. The closed control's border and state changes are short token-driven transitions, text-field's ~100–150ms, and resolve to an instant color change under reduced motion.
+- **Enter:** The open list (the platform's or a listbox component's): an opacity fade with a small vertical translate (translateY(-4px) → 0) on motion.duration.fast with motion.easing-role.enter, anchored to the control. The chevron rotates on open under the same rule.
+- **Exit:** The open list closes faster than it opens — a fade without translate on motion.duration.instant with motion.easing-role.exit — so dismissal reads as instant.
+- **Reduced motion:** Under prefers-reduced-motion, drop the translate and scale and keep an opacity fade on motion.duration-reduced.instant both ways; the chevron rotation follows the same rule. The closed control's border and state changes follow text-field's, motion.duration.fast, and run on motion.duration-reduced.fast under reduced motion.
 
 ## Content guidelines
 
@@ -87,10 +88,10 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain n
 ## Related components
 
 - **Built from:** `field-label`, `field-message`
-- **Instead, consider:** `text-field`, `radio-group`, `checkbox-group`, `segmented-control`
+- **Instead, consider:** `text-field`, `radio-group`, `checkbox-group`, `segmented-control`, `textarea`, `radio-row`, `tabs`, `counter`
 - **Often used with:** `icon`
 - **Replaces:**
-  - a bare \<select> with no label wiring
+  - a bare `<select>` with no label wiring
   - placeholder-as-label
 
 ## Building it in code
@@ -101,8 +102,9 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain n
 | --- | --- | --- | --- | --- |
 | `label` | string \| node | — | yes | The visible, persistent label, rendered as the nested FieldLabel. Required — a select always carries a programmatic name. Never the placeholder. |
 | `value` | string | — | no | The displayed text — the selected option's label, or the placeholder when nothing is chosen. Controlled: pair with onChange. When it holds the placeholder the ink is the muted placeholder role; a chosen value shows the full-contrast value ink — the same empty-vs-value polarity text-field uses. This is an internal, content-driven distinction, not a variant a designer picks. |
+| `defaultValue` | string | — | no | Uncontrolled initial value: the option chosen when the select first renders. |
 | `placeholder` | string | — | no | The null state shown before a choice is made — plainly the thing to choose ("Country"), not an instruction ("Select a country from the list"), and omittable when the label suffices. Muted, and never load-bearing — it is not the label, not a real option, and it vanishes once a value is chosen. |
-| `options` | array | — | no | The bounded set of choices. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. |
+| `options` | array | — | no | The bounded set of choices. The select band is 8 to about 15 familiar options: at 7 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. |
 | `onChange` | function | — | no | Fires with the newly chosen value (also onBlur / onFocus). A controlled value with no onChange is read-only by accident. |
 | `helpText` | string \| node | — | no | Persistent guidance, rendered as the nested FieldMessage in its default status; wired via aria-describedby. Show the constraint before failure. |
 | `validation` | enum: 'default' \| 'error' \| 'warning' \| 'success' | `default` | no | The validation state. Each non-default status swaps the control border to its own boundary (border-only — error → danger, warning → warning, success → success) and sets the nested message to the matching status; default is neutral. The values align with FieldMessage's status axis, so this drives the nested message directly. |
@@ -112,6 +114,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain n
 | `required` | boolean | `false` | no | Sets required / aria-required, and turns on the FieldLabel's required marker. |
 | `disabled` | boolean | `false` | no | Native disabled — removed from tab order, not submitted, contrast-exempt. Reserve for a choice irrelevant in the current state. |
 | `readOnly` | boolean | `false` | no | Distinct from disabled: focusable, submitted with the form, and at full contrast, with the value shown and not changeable. Native \<select> has no readonly attribute, only disabled, so a read-only select is the custom control with aria-readonly, or a hidden input mirroring the value beside a non-interactive display. |
+| `autoComplete` | string (WHATWG token) | — | no | Satisfies SC 1.3.5 Identify Input Purpose — an accessibility obligation, not a convenience. Set it on a select that collects the user's own information, such as country. |
 | `isPending` | boolean | `false` | no | Async options are loading — a spinner replaces the chevron and the control sets aria-busy. Not an empty state: the option list is still arriving. The same name Button and TextField use. |
 | `id` | string | — | no | Wiring + form submission; auto-generated with useId if omitted, tying the label to the control and stitching the aria-describedby chain to the message. |
 | `name` | string | — | no | A real control name so the field works uncontrolled, in a native form, and with Server Actions. |
@@ -141,34 +144,214 @@ Code-only states, with no design-file member: `pending`, `empty`.
 
 Padding reads top / right / bottom / left when its sides differ.
 
-Keyed by `size`.
+Keyed by `size`, `state`.
 
-**size=medium**
+**size=medium, state=rest**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
-| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height` |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height`; radius `radius.sm`; stroke `border-width.hairline` |
 | `container/control/content` | — | `space.100` | — | — | — | — |
 | `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
-**size=small**
+**size=medium, state=hover**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
-| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height` |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height`; radius `radius.sm`; stroke `border-width.hairline` |
 | `container/control/content` | — | `space.100` | — | — | — | — |
 | `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
-**size=large**
+**size=medium, state=filled**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
-| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | — | — | 120px (literal) | min height `size.lg.height` |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height`; radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height`; radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium, state=focus-visible-filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height`; radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height`; radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium, state=read-only**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height`; radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height`; radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height`; radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height`; radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height`; radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, state=focus-visible-filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height`; radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height`; radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, state=read-only**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height`; radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | — | — | 120px (literal) | min height `size.lg.height`; radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | — | — | 120px (literal) | min height `size.lg.height`; radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | — | — | 120px (literal) | min height `size.lg.height`; radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | — | — | 120px (literal) | min height `size.lg.height`; radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, state=focus-visible-filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | — | — | 120px (literal) | min height `size.lg.height`; radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | — | — | 120px (literal) | min height `size.lg.height`; radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, state=read-only**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | — | — | 120px (literal) | min height `size.lg.height`; radius `radius.sm`; stroke `border-width.hairline` |
 | `container/control/content` | — | `space.100` | — | — | — | — |
 | `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |

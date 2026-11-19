@@ -1,6 +1,6 @@
 # Switch.Control
 
-> Switch track, thumb, state glyph and focus ring. Nested by Switch.Row; no label.
+> Switch track, thumb, state glyph and focus ring. Nested by a switch row; no label.
 
 - **ID:** `switch-control`
 - **Category:** form
@@ -19,11 +19,11 @@ The atomic switch control — the painted pill track, its traveling thumb, the X
 
 Shown on the default member: size `medium`, selection `off`, status `default`.
 
-1. **Track**
-2. **Thumb**
-3. **On glyph** (optional)
-4. **Off glyph** (optional)
-5. **Focus ring**
+1. **Track** — The pill-shaped track, twice as wide as it is tall; a person clicks the whole labeled row, not the track alone.
+2. **Thumb** — The thumb, which moves from one end of the track to the other and carries the state icon.
+3. **On glyph** (optional) — The check on the thumb when the switch is on, shown by default; the thumb's position already shows the state.
+4. **Off glyph** (optional) — The X on the thumb when the switch is off, shown by default; the thumb's position already shows the state.
+5. **Focus ring** — The shared focus ring, drawn around the track on keyboard focus, never around the moving thumb.
 
 ## Styles
 
@@ -73,7 +73,7 @@ Do not place this on its own. It is the track-and-thumb Switch.Row nests, so a f
 
 - **Enter:** none (present on mount)
 - **Exit:** none
-- **Reduced motion:** The thumb slides across the track in ~150–200ms, ease-in-out, with a synchronized track-color crossfade; it is the receipt that the immediate change registered. Translate the thumb (`transform`), never animate width or layout, and do not spring it. Under prefers-reduced-motion the slide drops and the thumb snaps (0ms); the track-color crossfade may remain if it stays under flashing thresholds. On an async toggle the thumb snaps to the new position and a spinner cross-fades onto it; if the change fails, the thumb slides back.
+- **Reduced motion:** The thumb travels across the track on motion.transition.default, with a synchronized track-color crossfade; it is the receipt that the immediate change registered. Translate the thumb (`transform`), never animate width or layout, and do not spring it. Under prefers-reduced-motion the travel drops and the thumb takes its new place at once; the track-color change fades on motion.duration-reduced.fast. On an async toggle the thumb snaps to the new position and a spinner cross-fades onto it; if the change fails, the thumb slides back.
 
 ## Content guidelines
 
@@ -127,8 +127,8 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `track` | `control.size.md.inset` | — | `control.size.md.track` | `control.size.md.width` | — | — |
-| `track/thumb` | — | — | `control.size.md.thumb` | `control.size.md.thumb` | — | — |
+| `track` | `control.size.md.inset` | — | `control.size.md.track` | `control.size.md.width` | — | radius `radius.round`; stroke `border-width.thick` |
+| `track/thumb` | — | — | `control.size.md.thumb` | `control.size.md.thumb` | — | radius `radius.round` |
 | `track/thumb/offGlyph` | — | — | `control.size.md.thumb` | `control.size.md.thumb` | — | — |
 | `track/thumb/onGlyph` | — | — | `control.size.md.thumb` | `control.size.md.thumb` | — | — |
 
@@ -136,8 +136,8 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `track` | `control.size.sm.inset` | — | `control.size.sm.track` | `control.size.sm.width` | — | — |
-| `track/thumb` | — | — | `control.size.sm.thumb` | `control.size.sm.thumb` | — | — |
+| `track` | `control.size.sm.inset` | — | `control.size.sm.track` | `control.size.sm.width` | — | radius `radius.round`; stroke `border-width.thick` |
+| `track/thumb` | — | — | `control.size.sm.thumb` | `control.size.sm.thumb` | — | radius `radius.round` |
 | `track/thumb/offGlyph` | — | — | `control.size.sm.thumb` | `control.size.sm.thumb` | — | — |
 | `track/thumb/onGlyph` | — | — | `control.size.sm.thumb` | `control.size.sm.thumb` | — | — |
 
@@ -183,7 +183,7 @@ Keyed by `selection`, `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `track` | `color.disabled.fill` | `color.disabled.border` | — | — |
 | `track/thumb` | `color.disabled.on-fill` | — | — | — |
-| `track/thumb/offGlyph` | — | — | — | `color.disabled.border` |
+| `track/thumb/offGlyph` | — | — | — | `color.disabled.fill` |
 
 **selection=off, status=error, state=rest**
 
@@ -223,7 +223,7 @@ Keyed by `selection`, `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `track` | `color.disabled.fill` | `color.disabled.border` | — | — |
 | `track/thumb` | `color.disabled.on-fill` | — | — | — |
-| `track/thumb/offGlyph` | — | — | — | `color.disabled.border` |
+| `track/thumb/offGlyph` | — | — | — | `color.disabled.fill` |
 
 **selection=on, status=default, state=rest**
 
@@ -263,7 +263,7 @@ Keyed by `selection`, `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `track` | `color.disabled.fill` | — | — | — |
 | `track/thumb` | `color.disabled.on-fill` | — | — | — |
-| `track/thumb/onGlyph` | — | — | — | `color.disabled.border` |
+| `track/thumb/onGlyph` | — | — | — | `color.disabled.fill` |
 
 **selection=on, status=error, state=rest**
 
@@ -303,7 +303,7 @@ Keyed by `selection`, `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `track` | `color.disabled.fill` | — | — | — |
 | `track/thumb` | `color.disabled.on-fill` | — | — | — |
-| `track/thumb/onGlyph` | — | — | — | `color.disabled.border` |
+| `track/thumb/onGlyph` | — | — | — | `color.disabled.fill` |
 
 ### Nesting and properties
 

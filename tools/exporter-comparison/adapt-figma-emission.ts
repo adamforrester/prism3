@@ -55,11 +55,11 @@
  *   W3. THREE "COLLECTIONS" ARE NOT VARIABLE COLLECTIONS AT ALL.
  *       `text-styles.json`, `shadow-styles.json` and `gradient-styles.json` have no `variables[]` —
  *       they carry `styles[]`, and they are prism3's spec for Figma STYLES, which reach TokenPress
- *       through `getLocalTextStylesAsync` / `getLocalEffectStylesAsync` instead. text-styles and
- *       shadow-styles are adapted into those two channels. GRADIENTS HAVE NO CHANNEL — Figma paint
- *       styles are not variables and not effect styles, and TokenPress's scanner never asks for
- *       them. aurora's 2 gradients are therefore unreachable by this exporter, which is reported
- *       rather than worked around.
+ *       through `getLocalTextStylesAsync` / `getLocalEffectStylesAsync` /
+ *       `getLocalPaintStylesAsync` instead, and each is adapted into its channel. Gradients had NO
+ *       channel until #731: TokenPress's scanner never asked for paint styles, so aurora's 2
+ *       gradients were unreachable, which was reported rather than worked around. grid-styles still
+ *       has no channel and is reported the same way.
  *
  *   W4. TEXT STYLES REFERENCE BOUND VARIABLES BY NAME, VIA A DIFFERENT SHAPE.
  *       prism3 writes `properties.fontSize = {bound:true, variable:'font-fluid/…', collection:…}`.
@@ -74,6 +74,7 @@
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { localeFreeCompare } from '../../packages/engine/locale-free-order.ts';
 
 // ---- the Figma-shaped output types, as narrow as the exporter's actual reads -------------------
 
@@ -120,12 +121,33 @@ export type AdaptedEffectStyle = {
   effects: unknown[];
 };
 
+/** A Figma PAINT style holding one gradient, as `getLocalPaintStylesAsync` returns it (#731). */
+export type AdaptedPaintStyle = {
+  id: string;
+  type: 'PAINT';
+  name: string;
+  description: string;
+  paints: {
+    type: string;
+    visible: boolean;
+    opacity: number;
+    blendMode: string;
+    gradientTransform: number[][];
+    gradientStops: {
+      position: number;
+      color: { r: number; g: number; b: number; a: number };
+      boundVariables?: { color: FigmaAlias };
+    }[];
+  }[];
+};
+
 /** Everything `scanAll()` returns, plus the measurements the adaptation forced. */
 export type Adapted = {
   collections: AdaptedCollection[];
   variables: AdaptedVariable[];
   textStyles: AdaptedTextStyle[];
   effectStyles: AdaptedEffectStyle[];
+  paintStyles: AdaptedPaintStyle[];
   notes: AdaptationNotes;
 };
 
@@ -147,6 +169,8 @@ export type AdaptationNotes = {
   textStyleBindingsSplit: number;
   /** Text-style bindings whose target variable was not found (should be 0). */
   textStyleBindingsUnresolved: string[];
+  /** Gradient stops whose bound variable was not found (should be 0) — #731. */
+  gradientStopBindingsUnresolved: string[];
 };
 
 // ---- reading the emission ----------------------------------------------------------------------
@@ -213,6 +237,7 @@ export const adaptBrand = (brand: string, figmaDir: string): Adapted => {
     styleChannels: [],
     textStyleBindingsSplit: 0,
     textStyleBindingsUnresolved: [],
+    gradientStopBindingsUnresolved: [],
   };
 
   // W3 — separate the style "collections" from the variable collections.
@@ -244,7 +269,7 @@ export const adaptBrand = (brand: string, figmaDir: string): Adapted => {
 
   const knownNames = new Set(nameToCollection.keys());
 
-  for (const [collName, group] of [...varGroups].sort((a, b) => a[0].localeCompare(b[0]))) {
+  for (const [collName, group] of [...varGroups].sort((a, b) => localeFreeCompare(a[0], b[0]))) {
     // A collection's mode axis is the DISTINCT `$mode` values across its files, not one entry per
     // file (#1097). Since the core fan-in, `core.palette.json` / `core.dimension.json` /
     // `core.font.json` all declare `$collection: 'core'` AND `$mode: 'Default'` — one mode, three
@@ -316,9 +341,9 @@ export const adaptBrand = (brand: string, figmaDir: string): Adapted => {
   }
 
   // W3 + W4 — the style channels.
-  const { textStyles, effectStyles } = adaptStyles(styleFiles, variables, notes);
+  const { textStyles, effectStyles, paintStyles } = adaptStyles(styleFiles, variables, notes);
 
-  return { collections, variables, textStyles, effectStyles, notes };
+  return { collections, variables, textStyles, effectStyles, paintStyles, notes };
 };
 
 // ---- W3/W4: styles -------------------------------------------------------------------------------
@@ -330,6 +355,12 @@ type EmissionTextStyle = {
 };
 
 type EmissionEffectStyle = { name: string; description?: string; effects: unknown[] };
+type EmissionGradientStyle = {
+  name: string;
+  description?: string;
+  paintType: string;
+  stops: { position: number; color: { r: number; g: number; b: number; a: number }; alias: string | null }[];
+};
 
 /** Reads the first mode's value off an adapted variable — the resolved number/string a Figma text
  *  style would show for a bound property. Figma resolves a binding against the mode of the node the
@@ -355,11 +386,16 @@ const adaptStyles = (
   styleFiles: EmissionFile[],
   variables: AdaptedVariable[],
   notes: AdaptationNotes
-): { textStyles: AdaptedTextStyle[]; effectStyles: AdaptedEffectStyle[] } => {
+): {
+  textStyles: AdaptedTextStyle[];
+  effectStyles: AdaptedEffectStyle[];
+  paintStyles: AdaptedPaintStyle[];
+} => {
   const byName = new Map(variables.map((v) => [v.name, v]));
   const byId = new Map(variables.map((v) => [v.id, v]));
   const textStyles: AdaptedTextStyle[] = [];
   const effectStyles: AdaptedEffectStyle[] = [];
+  const paintStyles: AdaptedPaintStyle[] = [];
 
   for (const f of styleFiles) {
     const styles = f.styles ?? [];
@@ -393,16 +429,62 @@ const adaptStyles = (
       continue;
     }
 
-    // W3 — gradients. Figma paint styles are neither variables nor effect styles, and TokenPress's
-    // scanner has no call that would return them. Not adapted, and not silently omitted either.
+    if (f.$collection === 'gradient-styles') {
+      // W3 — gradients are Figma PAINT styles. Until #731 TokenPress's scanner never asked for them;
+      // it now reads `getLocalPaintStylesAsync`. Each stop keeps its color and, where the emission
+      // names one, its bound variable as an id alias. The transform is NOT reproduced: the emission
+      // states the geometry as `angle` / `center`, prism3's DTCG `$value` carries no angle either
+      // (DTCG's gradient has stops only), and the comparison pairs `$value`, so an identity matrix
+      // here cannot make two gradients agree that would otherwise differ.
+      notes.styleChannels.push({
+        collection: f.$collection,
+        channel: 'getLocalPaintStylesAsync',
+        count: styles.length,
+      });
+      for (const s of styles as unknown as EmissionGradientStyle[]) {
+        paintStyles.push({
+          id: `style:${s.name}`,
+          type: 'PAINT',
+          name: s.name,
+          description: s.description ?? '',
+          paints: [
+            {
+              type: s.paintType,
+              visible: true,
+              opacity: 1,
+              blendMode: 'NORMAL',
+              gradientTransform: [
+                [1, 0, 0],
+                [0, 1, 0],
+              ],
+              gradientStops: s.stops.map((stop) => {
+                const out: AdaptedPaintStyle['paints'][number]['gradientStops'][number] = {
+                  position: stop.position,
+                  color: stop.color,
+                };
+                if (stop.alias) {
+                  const target = byName.get(stop.alias);
+                  if (target) out.boundVariables = { color: { type: 'VARIABLE_ALIAS', id: target.id } };
+                  else notes.gradientStopBindingsUnresolved.push(`${s.name} -> ${stop.alias}`);
+                }
+                return out;
+              }),
+            },
+          ],
+        });
+      }
+      continue;
+    }
+
+    // Any other style collection has no channel. Not adapted, and not silently omitted either.
     notes.styleChannels.push({
       collection: f.$collection,
-      channel: 'NONE — no scanner channel exists for paint styles',
+      channel: 'NONE — no scanner channel exists for this style kind',
       count: styles.length,
     });
   }
 
-  return { textStyles, effectStyles };
+  return { textStyles, effectStyles, paintStyles };
 };
 
 /** Figma line-height / letter-spacing property shapes, as the converters read them. */

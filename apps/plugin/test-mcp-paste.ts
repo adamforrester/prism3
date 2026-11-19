@@ -21,6 +21,8 @@
  *     paint styles · grid styles · text styles · mode stamps (#1581) · persisted brand (#131) · every step ok
  *   · idempotent/<brand>: a second paste run creates nothing and changes nothing
  *   · re-theme: brand A then brand B, both paths, same file
+ *   · interrupted (#3742): a paste of brand B stopped after its first write step, then before its persist step, leaves
+ *     no print, so the recount reads the file as due for brand A and brand B; a whole paste stamps it again
  *   · slicing: the plan cut into many more scripts than a real run leaves the same file
  *   · readback: the read-back scripts + `compareReadback` find nothing on a clean file, and name a
  *     changed value and a deleted style when one is planted
@@ -29,6 +31,7 @@
  *   · ledger: on a host that refuses shared plugin data, every step says so, the file is otherwise the
  *     plugin's, and the merged ledger is what lets a second run's pre-flight pass (without it, it refuses)
  *   · pre-flight: a foreign same-named collection is reported and nothing is written
+ *   · binding scope (#1904): a stranded same-named copy of every variable takes no binding on a second paste
  *   · cleanup: removes what the run made, keeps a foreign collection and a designer's style, by name
  *   · shim premise: a removed style, variable or collection is dead, and a collection's removal kills its
  *     variables — without it the next arm is vacuous
@@ -42,14 +45,15 @@
  *     each set is placed once, by its own script, before its first chunk
  */
 import { readFileSync, readdirSync } from 'node:fs';
-import { figmaAnatomySet, planSetChunks } from '@prism3/engine/anatomy-figma';
-import { componentDefs } from '@prism3/engine/components/index';
+import { figmaAnatomySet, planSetChunks, componentDefs } from '@prism3/engine/components';
 import { SWAP_TARGET } from './src/build-deps';
 import { materializeForBrand } from './src/brand-def';
-import type { BrandInput } from '@prism3/engine/theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import type { BrandInput } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { runApplyTheme, themePlans } from './src/apply-theme';
 import { pack, unpack, componentFigma } from './src/mcp-steps';
+import { themeDue, emissionOf, EMISSION_KEY } from './src/theme-emission';
+import { NS } from './src/persist-figma';
 import { fixHostMethods } from './component-shim';
 import { FileShim } from './file-shim';
 import type { FileShimOpts as Opts } from './file-shim';
@@ -60,7 +64,9 @@ import {
 } from './mcp-paste';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -237,6 +243,36 @@ await section('re-theme', async () => {
   for (const [name, pass, why] of arms(snapshot(A), snapshot(B), themePlans(second))) ok(pass, `re-theme: ${name}${why}`);
 });
 
+/* ── interrupted: a paste that stops part-way leaves no "matching" print (#3742) ─────────────────────── */
+await section('interrupted', async () => {
+  // The paste writes its steps as separate scripts, and only `runPersist`, the last, stamps the print. A paste that stops
+  // before it (an agent session ending, a step that throws, the file closed between steps) left the OLD print beside the
+  // half-written variables, so `themeDue` read the file as matching the old brand. Each write step now clears the print
+  // first. Expectations are the recount's answers, as `test-apply-interrupted.ts` reads them for Apply Theme. Mutation:
+  // the clear in `writeStep` dropped → `interrupted/A not matching`, `interrupted/no print`, `interrupted/first step`.
+  const [[, first], [, second]] = PARITY;
+  const printOf = (b: BrandInput): string => emissionOf(themePlans(b));
+  const B = fresh();
+  const root = B.root as any;
+  await runAll(writes(first), B);
+  ok(!themeDue(root, first, () => printOf(first)), 'interrupted: premise — a whole paste of brand A stamps its print, and the recount finds nothing to apply');
+  const all = writes(second);
+  const persistAt = all.findIndex((s) => s.kind === 'persist');
+  ok(persistAt === all.length - 1, `interrupted: premise — the persist step is the paste's last write (${persistAt} of ${all.length})`);
+  // Stopped after the first write script: the print must be gone already, not only by the end.
+  const firstWrite = all.findIndex((s) => s.phase === 'theme');
+  await runAll(all.slice(0, firstWrite + 1), B);
+  ok(!root.getSharedPluginData(NS, EMISSION_KEY), `interrupted/first step: the print is cleared by the paste's first write step (${all[firstWrite]?.label})`);
+  // Stopped just before persist: every write done, nothing stamped.
+  await runAll(all.slice(firstWrite + 1, persistAt), B);
+  ok(themeDue(root, first, () => printOf(first)), 'interrupted/A not matching: the file no longer reads as holding brand A, whose variables the stopped paste replaced');
+  ok(themeDue(root, second, () => printOf(second)), 'interrupted/B due: nor does it read as holding brand B, whose paste never finished');
+  ok(!root.getSharedPluginData(NS, EMISSION_KEY), 'interrupted/no print: the stored print is cleared, not left at brand A\'s');
+  await runAll(all, B);
+  ok(!themeDue(root, second, () => printOf(second)) && root.getSharedPluginData(NS, EMISSION_KEY) === printOf(second),
+    'interrupted/rerun: a whole paste of brand B stamps its print again, and the recount finds nothing to apply');
+});
+
 /* ── slicing: the file does not depend on where the plan is cut ────────────────────────────────────── */
 await section('slicing', async () => {
   // A real run cuts the float aliases into ONE script today, so the rule that every float alias script
@@ -249,10 +285,11 @@ await section('slicing', async () => {
   const B = fresh();
   // 30,000 since #1909: the color executor's `names` argument grew its one-item script past 29,500 less the numbering
   // slack, where it had about 100 characters to spare. 30,000 still cuts the aliases into six scripts, so the arm below
-  // keeps its point, and sits about 500 over the largest one-item script.
-  const scripts = number(themeScripts(input, { sliceCeiling: 30_000 })).filter((s) => s.phase === 'preflight' || s.phase === 'theme');
+  // keeps its point, and sits about 500 over the largest one-item script. 31,000 since #1904: the binding-target index
+  // grew the bundle every script carries, and the largest one-item script with it, past 30,000 less the slack.
+  const scripts = number(themeScripts(input, { sliceCeiling: 31_000 })).filter((s) => s.phase === 'preflight' || s.phase === 'theme');
   const floatAliasScripts = scripts.filter((s) => s.label.startsWith('float aliases')).length;
-  ok(floatAliasScripts >= 3, `slicing/${id}: a 30,000-character slice ceiling cuts the float aliases into ${floatAliasScripts} scripts (${scripts.length} in all)`);
+  ok(floatAliasScripts >= 3, `slicing/${id}: a 31,000-character slice ceiling cuts the float aliases into ${floatAliasScripts} scripts (${scripts.length} in all)`);
   const res = await runAll(scripts, B);
   ok(res.every((r) => r.ok), `slicing/${id}: every step of the finely-cut run is ok${res.filter((r) => !r.ok).slice(0, 2).map((r) => ` — ${r.label}: ${r.threw ?? J(r.misses).slice(0, 120)}`).join('')}`);
   for (const [name, pass, why] of arms(snapshot(A), snapshot(B), themePlans(input))) ok(pass, `slicing/${id}: ${name}${why}`);
@@ -290,6 +327,30 @@ await section('pre-flight', async () => {
   const conflicts = pf.flatMap((r) => (r.conflicts as { kind: string; name: string }[]) ?? []);
   ok(conflicts.some((c) => c.kind === 'collection' && c.name === 'color') && pf.some((r) => !r.ok), `pre-flight/${id}: a foreign same-named 'color' collection is reported as a conflict`);
   ok(J(snapshot(B)) === before, `pre-flight/${id}: the pre-flight scripts wrote nothing`);
+});
+
+/* ── binding scope (#1904): a stranded same-named copy of every variable takes no binding ──────────────── */
+// The paste path's half of `test-write-preflight.ts`'s #1904 arm: a pasted file, then a collection no plan writes holding a
+// same-named, same-typed copy of every variable (listed after the originals), then the paste again. Every text-style
+// binding, gradient stop, glass blur radius and wash opacity must still name a variable in a collection the paste writes.
+// Summed over the parity brands so each kind has rows (only the solid-tint brand carries washes).
+await section('binding scope', async () => {
+  const n = { text: [0, 0], stop: [0, 0], blur: [0, 0], wash: [0, 0] };
+  for (const [, input] of PARITY) {
+    const B = fresh();
+    await runAll(writes(input), B);
+    const stranded = B.createVariableCollection('stranded-1904');
+    for (const v of [...B.vars]) B.createVariable(v.name, stranded, v.resolvedType);
+    const ids = new Set(B.vars.filter((v) => v.variableCollectionId === stranded.id).map((v) => v.id));
+    await runAll(writes(input), B);
+    const tally = (k: keyof typeof n, got: (string | undefined)[]): void => { for (const id of got) if (id) { n[k][1]++; if (ids.has(id)) n[k][0]++; } };
+    tally('text', B.styles.text.flatMap((x) => Object.values(x.boundVariables as Record<string, { id: string }>).map((a) => a.id)));
+    tally('stop', B.styles.paint.flatMap((x) => x.paints.flatMap((p: any) => (p.gradientStops ?? []).map((st: any) => st.boundVariables?.color?.id))));
+    tally('blur', B.styles.effect.flatMap((x) => x.effects.map((e: any) => e.boundVariables?.radius?.id)));
+    tally('wash', B.vars.flatMap((v) => Object.values(v.valuesByMode).map((x: any) => x?.opacity?.id)));
+  }
+  for (const [k, what] of [['text', 'font bindings'], ['stop', 'gradient stop bindings'], ['blur', 'glass blur radius bindings'], ['wash', 'wash opacity aliases']] as const)
+    ok(n[k][1] > 0 && n[k][0] === 0, `binding scope (#1904): ${n[k][0]} of ${n[k][1]} pasted ${what} landed in the stranded collection`);
 });
 
 /* ── ledger: a host that refuses shared plugin data ─────────────────────────────────────────────────── */
@@ -568,5 +629,5 @@ await section('size/one member', async () => {
     `size/one member: a member that will not fit alone throws, naming the def and the member (${thrown ? `"${thrown.slice(0, 220)}"` : 'no throw'})`);
 });
 
-console.log(failed ? `\n${failed} FAILED` : '\nmcp-paste: all assertions pass');
+console.log(`${failed ? `\n${failed} FAILED` : '\nmcp-paste: all assertions pass'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

@@ -196,7 +196,7 @@ const OUT = join(import.meta.dirname, 'out');
  * tree per brand in arm 1. So the gate authors the one thing the artifact cannot tell it and reads the
  * one thing it can.
  *
- * `2xl` is APPENDED (#2428: Code input's xlarge character is `type.title.2xl.strong`), never inserted, so every rung
+ * `2xl` is APPENDED (#2428: Code input's x-large character is `type.title.2xl.strong`), never inserted, so every rung
  * this file computes by index from `md` lands where it did before: the one-below and two-below offsets here, and an
  * upward offset beside them: Progress's ring (#2670) is `md` plus two, which stays `xl` with `2xl` appended.
  * `expectedDefaultRung` and the failure message keep both branches, since the pinned ladder and the ring offset name
@@ -357,6 +357,7 @@ const RUNG_REPEATS: Record<string, { families: string[]; why: string }> = {
   'flush-icon-button-destructive': { families: ['icon.size.*'], why: 'Q283.13 A, as Flush icon button' },
   'flush-icon-button-neutral': { families: ['icon.size.*'], why: 'Q283.13 A, as Flush icon button' },
   'card-number-field': { families: ['icon.size.*'], why: 'the mark tile is the icon rung, 20 at small and medium and 24 at large (#2429 §2)' },
+  'code-input-cell': { families: ['radius.*'], why: '#3551 A: small, medium and large follow the control corner (control.size.{sm,md,lg}.radius = radius.sm), as a same-size text field does; the x-large display cell is the deliberate exception at radius.lg' },
 };
 
 /**
@@ -365,9 +366,7 @@ const RUNG_REPEATS: Record<string, { families: string[]; why: string }> = {
  * instead, and is checked both directions like RUNG_REPEATS. When the issue is answered, the entry moves to
  * RUNG_REPEATS (kept) or is deleted with the def's fix (changed).
  */
-const RUNG_REPEATS_OPEN: Record<string, { families: string[]; issue: string }> = {
-  'code-input-cell': { families: ['radius.*'], issue: '#3551: small, medium and large on radius.sm with md skipped, from the as-built wireframe, no decision cited' },
-};
+const RUNG_REPEATS_OPEN: Record<string, { families: string[]; issue: string }> = {};
 
 /** The default rung EXPECTED for one (def, tier family): the sanctioned offset where listed, else `md`. */
 const expectedDefaultRung = (defId: string, family: string): string =>
@@ -491,6 +490,7 @@ const DEFAULT_FIRST: Record<string, string> = {
   'switch-control': Q1B,
   'switch-row': Q1B,
   tag: Q1B,
+  'tag-group': Q1B,
   'tab-item': Q1B,
   tabs: Q1B,
   '_accordion-indicator': Q1B,
@@ -523,6 +523,7 @@ const DEFAULT_FIRST: Record<string, string> = {
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
   'checkbox-group': 'its inter-row gap is 0px (`space.0`, the rows self-space — #1623 sign-off), so the size axis binds nothing of its own and reaches the nested field-label and checkbox rows by `follow`',
+  'tag-group': 'its one gap is `space.100` at every size (Tag\'s group gap, held at no less than 8px), so the size axis binds nothing of its own and reaches the nested tags by `follow` (#1739)',
   'radio-group': 'mirrors checkbox-group — a 0px inter-row gap (`space.0`, #1623 sign-off), so the size axis reaches the nested field-label and radio rows by `follow` only',
   'tabs': 'the tab list binds no size.* key of its own — its gap is 0px (`space.0`, each tab carries its own padding) and the baseline is a fixed 1px hairline — so the size axis reaches the six nested tabs by `follow` only (#2416)',
   'code-input': 'the field binds no size.* key of its own — its gaps are fixed `space.100` steps — so the size axis reaches the six nested cells by `follow` only; the label keeps one size (#2428)',
@@ -557,7 +558,7 @@ const MUST_COVER = [
   'button', 'button-destructive', 'button-neutral', 'wallet-button', 'sign-in-button',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
-  'field-label', 'text-field', 'textarea', 'select', 'tag', 'counter', 'slider', '_slider-thumb',
+  'field-label', 'text-field', 'textarea', 'select', 'tag', 'tag-group', 'counter', 'slider', '_slider-thumb',
   'badge',
   'tab-item', 'tabs',
   'checkbox-control', 'checkbox-row', 'checkbox-group',

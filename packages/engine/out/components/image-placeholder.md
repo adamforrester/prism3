@@ -12,7 +12,7 @@
 An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick a ratio (portrait 2:3, 3:4 or 4:5; square 1:1; landscape 4:3, 3:2 or 16:9) and the frame keeps that proportion while its size flexes to its container; a designer drops an image fill onto it (not a modeled slot). Before an image arrives it shows a neutral fill and a centered "no image" marker that scales with the frame, and it clips its content so a mismatched photo cannot overflow the frame. Turn the marker off once an image is in.
 
 - **Purpose:** Reserve space for a photograph at a fixed aspect ratio, holding the proportion while the frame flexes to its container, and show a neutral empty state until an image is dropped in.
-- **Use when:** A layout needs a media slot at a known proportion before the image is chosen — a card's photo area, a hero, a gallery cell. Pick a ratio from the media it will hold (2:3, 3:4 or 4:5 portrait, 1:1, 4:3, 3:2 or 16:9 landscape); the frame keeps that ratio as it resizes and clips whatever image is dropped onto it. Once an image is supplied, turn the marker property off so the "no image" marker does not draw over it.
+- **Use when:** A layout needs a media slot at a known proportion before the image is chosen — a card's photo area, a hero, a gallery cell. Pick a ratio from the media it will hold (2:3, 3:4 or 4:5 portrait, 1:1, 4:3, 3:2 or 16:9 landscape); the frame keeps that ratio as it resizes and clips whatever image is dropped onto it.
 - **Avoid when:** The surface is a decorative wash over an existing photo (that is the veil component), the image is already present and fixed (place it directly), or the space needs a play button over the media (not built yet — this is the core empty-state frame only) or a legibility scrim over it (the veil component).
 
 ## Anatomy
@@ -36,7 +36,7 @@ Use an image placeholder wherever a layout reserves space for a photograph befor
 
 - Pick the ratio from the media the frame will hold, and let the lock keep it while the size flexes
 - Drop the photograph on as an image fill — the frame is the container, not a swappable slot — and turn the marker property off once it is in
-- Give an informative image an accessible name and a decorative one an empty alt; keep the empty-state marker decorative and aria-hidden
+- Give an informative image an accessible name and a decorative one an empty `alt`; keep the empty-state marker decorative and `aria-hidden`
 - Let the frame clip — a photo cropped to the ratio reads better than one that overflows the layout
 
 ### Don't
@@ -50,7 +50,7 @@ Use an image placeholder wherever a layout reserves space for a photograph befor
 ## Accessibility
 
 - **Focus:** None of its own — the frame is not focusable as an empty placeholder. If it becomes an interactive media element (a button that opens a picker), that control carries its own focus; the placeholder frame does not invent one.
-- **Screen readers:** img once it holds an image: with a descriptive accessible name when the image is informative, or an empty alt (alt="") when it is decorative, which removes it from the accessibility tree. The empty frame is presentational. The "no image" marker inside it is decorative and aria-hidden; it is a visual affordance, not the accessible content.
+- **Screen readers:** img once it holds an image: with a descriptive accessible name when the image is informative, or an empty `alt` (`alt=""`) when it is decorative, which removes it from the accessibility tree. The empty frame is presentational. The "no image" marker inside it is decorative and `aria-hidden`; it is a visual affordance, not the accessible content.
 
   Once the frame holds a real image, decide whether the image is informative or decorative. Informative: an img role and an accessible name that describes its function, not the picture. Decorative: an empty alt (alt=""), never an omitted one — some screen readers announce the file name when alt is missing. Mark the "no image" marker aria-hidden — it is a decorative affordance, and announcing it would add nothing. Do not rely on the marker as the accessible description of the eventual image.
 

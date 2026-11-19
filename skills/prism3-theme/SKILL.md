@@ -83,9 +83,10 @@ minimal — read both, they are the reference; the directory also holds a standa
 | `radioDot` | `50` \| `60` \| `70` \| `80` | the brand's **radio dot** is bigger than half the radio: one share for every radio, at sm, md and lg alike. It sets `control.size.{sm,md,lg}.dot` to that percent of the box edge (`control.size.*.height`), snapped to the 2px sub-grid and never wider than the box minus its 2px ring. `50` (default) is half: 8/10/12 at comfortable density; `70` is 12/14/16. The badge dot (`space.100`, 8px) and list bullets (sized to the text) have sizes of their own and do not follow. Only those tokens' values move; no token is added |
 | `buttonIcons` | `attached` \| `edges` | the brand pins button icons to the button's **edges** (Locked to edges), with the label centered in the space between them and the button still growing with a long label; `attached` (Attached to label, default) keeps them beside the label. Buttons only, not icon buttons |
 | `buttonMinWidthMultiplier` | number, 1–4 (default `2.25`) | a button's minimum width is its height × this, rounded up to the 8px grid (88/104/128px at 36/44/56px heights by default) — raise it for wider short-label buttons (`2.5` gives 96/112/144px) |
-| `buttonContentSize` | `match` \| `smaller` | `smaller` (Small) gives a **medium** button the small label and icon (`type.label.sm.emphasis`, `icon.size.xs`) at medium height and padding — New Balance's 44px button with a 12px label; `match` (Medium, default) leaves every size its own |
+| `buttonContentSize` | `match` \| `smaller` | `smaller` (Small) gives a **medium** button the small label and icon (`type.label.sm.emphasis`, `icon.size.xs`) at medium height and padding — a 44px button with a 12px label; `match` (Medium, default) leaves every size its own |
 | `buttonLabelWeight` | `emphasis` \| `default` | Control label weight. `default` (Default) sets every button and tag label in its label style's **default** weight role instead of emphasis, and the brand then ships that weight for the label styles; with `smaller`, a medium button takes the small label at that weight. Buttons and tags only: badges keep emphasis. `emphasis` (default) leaves the labels as they are |
 | `buttonTextHover` | `text` \| `fill` | What a button at the text appearance does on hover and when pressed. `text` (Text & icon only, the default) changes its label and icon colors; `fill` also gives it the outline appearance's wash. A text button is never filled at rest, and its label is always underlined (fixed, not a setting). Buttons only |
+| `buttonBorderWeight` | `hairline` \| `thick` | The border of an outline button, in every button set at once. `thick` (Thick) binds `border-width.thick`, 2px; `hairline` (Thin, default) binds `border-width.hairline`, 1px. Each set keeps its own border color. Buttons only, not icon buttons |
 | `radiusHairline` | `true` \| `false` | **retired — do not set it.** The fixed 1px `radius.hairline` rung now ships for every brand, so this changes nothing; it is accepted only so older brand files still load. For 1px-cornered controls, use `controlShape: hairline` |
 | `iconContrast` | `text` \| `3:1` | let non-text icons run lighter (WCAG 1.4.11 floor) |
 | `motionPersonality` | `{ tempo: snappy \| standard \| relaxed }` | brand energy → motion pace |
@@ -95,7 +96,7 @@ minimal — read both, they are the reference; the directory also holds a standa
 | `typography.underline` | `{ thickness, offset }`, each a share of the font size (e.g. `{ thickness: 0.05, offset: 0.25 }`) or `auto` | the brand specifies its link underline. Both default to `auto`, which emits no token and leaves the line to the font. A set value is held to a whole percent and **clamped**, not refused: thickness 1–20%, offset 0–50%. It emits two tokens, core.font.underline.thickness and core.font.underline.offset (`$type: number`), only for a brand that sets them, so they are not in the default tree. It is written as a PERCENT into every `-link` text style in Figma (labels included), and is read in CSS as `calc(var(…) * 1em)` |
 | `shadow` | `{ softness, tint: { hue, amount } }` | softer marketing elevation, tinted to the brand |
 | `layout` | `{ breakpoints: [...], containerMax }` | a non-default breakpoint ladder / content cap |
-| `layout.marginOverrides` / `layout.gutterOverrides` | `{ <breakpoint>: px }`, e.g. `{ md: 44 }` | the brand specifies its own grid margin or gutter at a breakpoint (keyed by the breakpoint name, `sm`…`2xl`); an unset breakpoint keeps the engine's value. The value is never rounded to a step. `grid/margin` (or `grid/gutter`) links to the first of these that exists: **(1)** the `space/*` step with that px; **(2)** otherwise the brand's `core/dimension/*` step with that px (44 → `core/dimension/44`); **(3)** otherwise a plain px, flagged off-scale in its description and in the decisions notes. Spacing always comes first, so 24 links to `space/300`, never to `core/dimension/24`. The Figma grid style for that breakpoint carries the same px as its offset |
+| `layout.marginOverrides` / `layout.gutterOverrides` | `{ <breakpoint>: px }`, e.g. `{ md: 44 }` | the brand specifies its own grid margin or gutter at a breakpoint (keyed by the breakpoint name, `sm`…`2xl`); an unset breakpoint keeps the engine's value. The value is never rounded to a step. `grid/margin` (or `grid/gutter`) links to the first of these that exists: **(1)** the `space/*` step with that px; **(2)** otherwise the brand's `core/dimension/*` step with that px (e.g. 36 → `core/dimension/36`); **(3)** otherwise a plain px, flagged off-scale in its description and in the decisions notes. Spacing always comes first, so 24 links to `space/300`, never to `core/dimension/24`. The Figma grid style for that breakpoint carries the same px as its offset |
 | `gradients` | `[{ name, kind: linear\|radial, angle/center/shape, stops: [{ palette, step, position }] }]` | opt-in brand gradients (most systems ship none — omit) |
 | `disabledStrategy` | `full` \| `reduced` (legacy aliases: `accessible`, `conventional`) | `reduced` (default) — disabled ink clears a dialable `disabledMin` floor (3–4.5, default 3); `full` promises a fixed 4.5:1 (AA text) instead. Neither goes below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption, so there is no sub-AA "exempt" look to select. (`accessible`/`conventional` are accepted as legacy aliases; both normalize to `reduced` — they do not select `full` and `conventional` no longer means low-contrast.) |
 
@@ -173,6 +174,31 @@ Loop until it exits 0 with all contracts passing. That closing loop **is** the
 deliverable — a `design.md` that compiles clean is a brand the engine can carry to every
 platform.
 
+## Starting from a file facts report
+
+A file facts report (`format` reads `prism3-file-facts/0.x`) is a read-only scan of an existing Figma file: its
+variables with every mode's value and alias chain, its styles, and how often each color, font, radius and padding
+is used, by layer role. When a report is your brief, read it in this order and write one `#` comment per pick
+saying which facts drove it.
+
+1. **Primary.** Look for a chromatic color that roles named for the brand or for actions point at
+   (`brand`, `primary`, `action`, `cta`), in the collection's default mode, at rest. Without names, use the most
+   button-like fills in the report's paint usage. A status color (success, warning, danger, error, info) or a focus ring
+   is not the primary unless nothing else is chromatic. Pin it in OKLCH as above.
+2. **Accent.** A second brand hue that roles call `accent` or `secondary` goes in `brandColors` as `name: accent`.
+   If there's no second brand hue, leave `brandColors` out.
+3. **Action palette.** Read where the main action's roles point at rest (`action`, `interactive`, `button` or `cta`
+   in the name, not a secondary, ghost or destructive one, and not the white ink on the fill). On the accent, set
+   `actionPalette: accent`; on a near-black or gray, `actionPalette: neutral`. On the primary, leave it out.
+4. **Families.** Display and title take the family the heading or display roles use; body, label and caption
+   take the body family. Skip icon fonts.
+5. **Density and radius.** A medium control height near 36px is `compact`, near 44px `comfortable`, near 56px
+   `spacious`. `radiusScale` is the medium control corner divided by 4px. Read button and field corners, not
+   checkbox or switch corners. Without variables, use the most-used padding and corner in `usage`.
+6. **Neutral.** Use the hue and chroma of the grays the file uses.
+
+Then run the compile loop. Say in the prose which picks the report left open, so a reviewer knows what to check.
+
 ## Two dialects (know which you're writing)
 
 - **Engine-native** (this skill) — frontmatter that maps 1:1 to the engine's input, as
@@ -186,8 +212,9 @@ platform.
   **The block reads ten keys only**: `root`, `personality`, `radiusScale`, `typeScale`, `density`,
   `motionTempo`, `actionPalette`, `iconContrast`, `surfaces`, `gradients`. Two of them are spelled
   differently from the engine-native field: `typeScale` sets `typography.typeScale` and `motionTempo`
-  sets `motionPersonality.tempo`. **Any other key is dropped without a warning**, so check the
-  applied list the CLI prints. A lever outside these ten needs the engine-native dialect.
+  sets `motionPersonality.tempo`. **Any other key is skipped**, and the CLI names each one it
+  skipped (`x-prism3: ignored unknown setting '<key>'`) while the file still compiles. A lever
+  outside these ten needs the engine-native dialect.
 
 ## If you have the MCP surface
 

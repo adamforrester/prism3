@@ -68,6 +68,9 @@ export const R5_MENTION = /\brating\b|\bstars?\b/i;
 /** The agent-link commands that write, by their args. Literal, not read from the plugin. */
 const WRITE_CMDS = new Set(['apply-theme', 'build-components', 'file-setup', 'style-guide', 'capture-baseline', 'adopt-members', 'draw-specs']);
 const CONFIRMED_WRITE_CMDS = new Set(['prune', 'update-components', 'panels-clean']);
+/** Of those, the ones whose confirm also echoes its preview's `previewHash`: without one the plugin refuses the command as
+ *  `bad-args` before any write (#3697 R6 added `prune`). Literal, not read from the plugin. */
+const HASHED_CONFIRM_CMDS = new Set(['prune', 'update-components']);
 /**
  * A `run-code` body that changes the file: a property assignment, plain or compound (`+=`, `||=`, …), or a call to a
  * method that writes, `figma.variables.create…` among them (review S4). Review N4 adds a property `++`/`--` (either
@@ -242,7 +245,7 @@ export const score = (run: FigmaRun): Score => {
   const isWrite = (c: Call) => {
     const cmd = String(c.cmd);
     if (WRITE_CMDS.has(cmd)) return true;
-    if (CONFIRMED_WRITE_CMDS.has(cmd)) return c.args?.confirm === true;
+    if (CONFIRMED_WRITE_CMDS.has(cmd)) return c.args?.confirm === true && (!HASHED_CONFIRM_CMDS.has(cmd) || (typeof c.args?.previewHash === 'string' && c.args.previewHash !== ''));
     if (cmd === 'run-code') return MUTATION.test(String(c.args?.code ?? '').replace(/saveVersionHistoryAsync\s*\([^)]*\)/g, ''));
     return false;
   };

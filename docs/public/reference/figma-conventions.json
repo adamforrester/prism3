@@ -153,8 +153,10 @@
           {
             "name": "↳ Tag",
             "components": [
-              "tag"
-            ]
+              "tag",
+              "tag-group"
+            ],
+            "usagePanelLead": "tag"
           },
           {
             "name": "↳ Tabs",
@@ -878,6 +880,12 @@
           }
         ],
         "properties": [],
+        "codeOnly": {
+          "states": [
+            "pending",
+            "disabled"
+          ]
+        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/sign-in-button.md"
       },
       {
@@ -1100,6 +1108,11 @@
           }
         ],
         "properties": [],
+        "codeOnly": {
+          "states": [
+            "inactive"
+          ]
+        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/flush-icon-button.md"
       },
       {
@@ -1145,6 +1158,11 @@
           }
         ],
         "properties": [],
+        "codeOnly": {
+          "states": [
+            "inactive"
+          ]
+        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/flush-icon-button-destructive.md"
       },
       {
@@ -1190,6 +1208,11 @@
           }
         ],
         "properties": [],
+        "codeOnly": {
+          "states": [
+            "inactive"
+          ]
+        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/flush-icon-button-neutral.md"
       },
       {
@@ -1821,6 +1844,9 @@
           }
         ],
         "codeOnly": {
+          "axes": [
+            "style"
+          ],
           "states": [
             "pending",
             "empty"
@@ -2042,6 +2068,27 @@
           ]
         },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tag.md"
+      },
+      {
+        "id": "tag-group",
+        "name": "Tag.Group",
+        "figmaName": "tag-group",
+        "kind": "component set",
+        "page": "↳ Tag",
+        "section": "Components",
+        "members": 3,
+        "variantProperties": [
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tag-group.md"
       },
       {
         "id": "tab-item",
@@ -2292,7 +2339,7 @@
         ],
         "properties": [
           {
-            "name": "text",
+            "name": "label",
             "type": "TEXT"
           },
           {
@@ -2543,6 +2590,10 @@
           {
             "name": "description text",
             "type": "TEXT"
+          },
+          {
+            "name": "show title",
+            "type": "BOOLEAN"
           },
           {
             "name": "description",
@@ -3210,7 +3261,7 @@
             "type": "BOOLEAN"
           },
           {
-            "name": "dismiss",
+            "name": "close",
             "type": "BOOLEAN"
           }
         ],
@@ -3321,7 +3372,7 @@
             "type": "BOOLEAN"
           },
           {
-            "name": "helper",
+            "name": "message",
             "type": "BOOLEAN"
           }
         ],
@@ -3334,15 +3385,22 @@
         "kind": "component set",
         "page": "↳ Code input",
         "section": "Components",
-        "members": 28,
+        "members": 48,
         "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
+            ]
+          },
           {
             "name": "size",
             "values": [
               "medium",
               "small",
               "large",
-              "xlarge"
+              "x-large"
             ]
           },
           {
@@ -3353,8 +3411,7 @@
               "filled",
               "focus-visible",
               "focus-visible-filled",
-              "disabled",
-              "error"
+              "disabled"
             ]
           }
         ],
@@ -3364,6 +3421,11 @@
             "type": "TEXT"
           }
         ],
+        "codeOnly": {
+          "axes": [
+            "style"
+          ]
+        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/code-input-cell.md"
       },
       {
@@ -3388,7 +3450,7 @@
               "medium",
               "small",
               "large",
-              "xlarge"
+              "x-large"
             ]
           },
           {
@@ -3547,6 +3609,17 @@
         ]
       },
       {
+        "component": "tag-group",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "tag"
+        ]
+      },
+      {
         "component": "tabs",
         "property": "items",
         "settings": {
@@ -3658,7 +3731,7 @@
     "source": "packages/engine/emit-figma.ts#EVERY VARIABLE NAME NOW CARRIES THE BRAND ROOT",
     "rootDefault": {
       "root": "prism",
-      "source": "packages/engine/theme.ts#const root = input.root ??"
+      "source": "packages/engine/theme-brand.ts#const root = input.root ??"
     },
     "primitiveTier": "core",
     "modesFrom": {
@@ -3737,6 +3810,12 @@
         ]
       },
       {
+        "name": "text-spacing",
+        "modes": [
+          "Default"
+        ]
+      },
+      {
         "name": "core",
         "modes": [
           "Default"
@@ -3798,6 +3877,7 @@
       "image-placeholder",
       "badge",
       "tag",
+      "tag-group",
       "tab-item",
       "tabs",
       "divider",

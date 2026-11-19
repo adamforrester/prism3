@@ -72,7 +72,7 @@ Name an informative mark with the provider's own name, spelled the way the provi
 ## Related components
 
 - **Instead, consider:** `icon`
-- **Often used with:** `icon`, `link`, `button`, `card-number-field`, `wallet-button`, `sign-in-button`
+- **Often used with:** `link`, `button`, `card-number-field`, `wallet-button`, `sign-in-button`
 - **Replaces:**
   - provider logos pasted into a design as images
   - a provider logo recolored to match the palette
@@ -101,7 +101,97 @@ Generated from the plan that builds the design-file component: 86 members. Value
 
 Padding reads top / right / bottom / left when its sides differ.
 
-Keyed by nothing: one row covers every member.
+Keyed by `name`.
+
+**name=payment/affirm**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+
+**name=payment/amazon-pay**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+
+**name=payment/amex**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | — | — | radius `radius.sm` |
+
+**name=payment/apple-pay**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+
+**name=payment/diners-club**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+
+**name=payment/discover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+
+**name=payment/generic**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | — | — | radius `radius.sm` |
+
+**name=payment/google-pay**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+
+**name=payment/klarna**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+
+**name=payment/maestro**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+
+**name=payment/mastercard**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+
+**name=payment/paypal**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | — | — | radius `radius.sm`; stroke `border-width.hairline` |
+
+**name=payment/shop-pay**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | — | — | radius `radius.sm` |
+
+**name=payment/venmo**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | — | — | radius `radius.sm` |
+
+**name=payment/visa**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | — | — | radius `radius.sm`; stroke `border-width.hairline` |
 
 ### Color
 

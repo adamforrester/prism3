@@ -10,22 +10,22 @@
  * Asserts the snapshot round-trips (colour var count + alias targets match the plan) and every
  * contract check passes. Mirrors `test-write.ts`'s shim + dependency-free `ok(...)` style.
  */
-import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import { buildWritePlan } from '@prism3/engine/write-plan';
-import { verifyReadback, verifyFloatReadback, verifyStylesReadback } from '@prism3/engine/read-back';
-import { buildFloatWritePlan, buildStylesPlan } from '@prism3/engine/write-plan';
-import { brandTheme, nbThemeFrom } from '@prism3/engine/theme';
+import { buildFigmaColor, buildWritePlan, verifyReadback, verifyFloatReadback, verifyStylesReadback, buildFloatWritePlan, buildStylesPlan } from '@prism3/engine/figma';
+import { brandTheme, nbThemeFrom, type BrandInput } from '@prism3/engine';
 import { applyWritePlan, applyFloatPlan } from './src/write-figma';
 import { applyStylesPlan } from './src/write-styles';
 import { readFigmaVariables } from './src/read-figma';
 import { persistInput } from './src/persist-figma';
 import { declaredModesOf, seedSummary, SKIP_NO_BRAND, SKIP_UNREADABLE } from './src/seed-modes';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import type { BrandInput } from '@prism3/engine/theme';
-import nbMeasured from '@prism3/engine/schema/nb-measured.json';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
+import { NB_MEASURED_JSON as nbMeasured } from '@prism3/engine/harness';
+/** Code-unit order, which no host locale moves (#3701). Both sides of every comparison here sort the same way. */
+const codeUnitOrder = (x: string, y: string): number => (x < y ? -1 : x > y ? 1 : 0);
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -123,6 +123,13 @@ ok(fverdict.ok, 'verifyFloatReadback: contract holds' + (fverdict.ok ? '' : ` �
 ok(fverdict.checks.aliasesResolve && fverdict.details.danglingAliases.length === 0, 'every FLOAT alias resolves — 0 dangling');
 ok(fverdict.checks.dimensionsHidden, 'core-tier dimension primitives hidden from publishing');
 ok(fverdict.checks.collectionsPresent, 'all expected FLOAT collections present in the read-back');
+// The negative arm (#2423, review nit on #3720): the axis list is only a gate if dropping an axis from the snapshot
+// fails it. `text-spacing` is named here by hand, not read from the expected list.
+{
+  const { 'text-spacing': dropped, ...rest } = snap2.float!;
+  ok(!!dropped && !verifyFloatReadback({ ...snap2, float: rest }, nbTheme.modes.includes('wireframe')).checks.collectionsPresent,
+    'a FLOAT read-back missing text-spacing fails collectionsPresent');
+}
 
 // STYLE axes (shadow/gradient lane) — write Effect + Paint Styles into a styles shim, read the names
 // back (via readFigmaVariables' optional styles arg), verify. Aurora ships dark + gradients.
@@ -310,7 +317,7 @@ const aliasTargetsOf = (s: Awaited<ReturnType<typeof emitAndRead>>): Binding[] =
       const val = v.valuesByMode[m];
       if (val && typeof val === 'object' && 'alias' in val && typeof val.alias === 'string') out.push({ row: v.name, mode: m, target: val.alias });
     }
-  return out.sort((a, b) => `${a.row}@${a.mode}`.localeCompare(`${b.row}@${b.mode}`));
+  return out.sort((a, b) => codeUnitOrder(`${a.row}@${a.mode}`, `${b.row}@${b.mode}`));
 };
 const nativeAliases = aliasTargetsOf(runNative);
 const foreignAliases = aliasTargetsOf(runForeign);
@@ -500,5 +507,5 @@ ok(stopsOf(runForeign).length > 0 && stopsOf(runForeign).every((n) => n.startsWi
   }
 }
 
-console.log(`\nplugin read-back: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
+console.log(`\nplugin read-back: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'} — ${executed} assertions executed`);
 if (failed) process.exit(1);

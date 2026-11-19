@@ -11,7 +11,7 @@
  *
  *  Stamps its root with the shared-section marker (`data-sg-section="weights-by-face"`, `kit.ts`'s header).
  *  WHAT IT IS HANDED. The resolved typography, the mode and the section's copy. Nothing here reads the session. */
-import type { Theme } from '@prism3/engine/theme';
+import type { Theme } from '@prism3/engine';
 import { cutsOf, drawFace, faceDraw, WEIGHT_NAME, type HostFonts } from '../../ui/fonts';
 import { TYPE_GROUP_ORDER } from '../../state/type-input';
 import { el, hook, palSection, subHead } from './kit';

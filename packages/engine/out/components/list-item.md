@@ -11,7 +11,7 @@
 
 One item in a List: a marker in a fixed-width column, then short text that wraps under itself rather than under the marker. The marker is a bullet, a number or an icon, and it sits on the first line of the text however many lines the item runs to. The marker column has one width for each type, so the text of every item in a list starts at one edge. Used inside a List; the List sets the type and size of every item it holds.
 
-- **Purpose:** One item inside a List: a marker in a fixed column, then text that wraps under itself.
+- **Purpose:** Hold one item inside a List: a marker in a fixed column, then text that wraps under itself.
 - **Use when:** Only as a child of a List. Generate a List, which places its items and sets their marker type and size.
 - **Avoid when:** Content a writer edits as normal copy (use a native text list in the text itself), a choice the user makes (a listbox), a command (a menu), or a navigation link (a navigation, not built yet).
 
@@ -22,7 +22,7 @@ Shown on the default member: type `unordered`, size `medium`.
 1. **Row** — The item: the marker column, then the text. Top-aligned, so a wrapping item keeps its marker on the first line.
 2. **Marker box** — The marker column: one width per type and one text line tall, so the marker sits on the first line and the text of every item in the list starts at one edge.
 3. **Bullet** — The bullet: a round dot, in the icon color.
-4. **Number**
+4. **Number** — The item's number, in the item's text style and color; the list counts it.
 5. **Icon** — The icon marker, a check by default and swappable, in the icon color. Decorative: the text carries the meaning.
 6. **Label** — The item text. It fills the rest of the row and wraps under itself, never under the marker.
 
@@ -36,6 +36,8 @@ Shown on the default member: type `unordered`, size `medium`.
 ## Usage guidelines
 
 Use inside a List only. Each item is one short phrase or sentence after its marker. For several sentences, write a paragraph instead.
+
+**In RTL.** The layout mirrors: the start edge is on the right. The icon does not mirror.
 
 ### Do
 
@@ -120,7 +122,7 @@ Keyed by `size`, `type`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
 | `row/markerBox` | — | — | `control.size.md.line-box` | `space.300` | — | — |
-| `row/markerBox/bullet` | — | — | `space.100` | `space.100` | — | — |
+| `row/markerBox/bullet` | — | — | `space.100` | `space.100` | — | radius `radius.round` |
 
 **size=x-small, type=unordered**
 
@@ -128,7 +130,7 @@ Keyed by `size`, `type`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
 | `row/markerBox` | — | — | `type.body.xs.line-box` | `space.200` | — | — |
-| `row/markerBox/bullet` | — | — | `space.075` | `space.075` | — | — |
+| `row/markerBox/bullet` | — | — | `space.075` | `space.075` | — | radius `radius.round` |
 
 **size=small, type=unordered**
 
@@ -136,7 +138,7 @@ Keyed by `size`, `type`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
 | `row/markerBox` | — | — | `control.size.sm.line-box` | `space.250` | — | — |
-| `row/markerBox/bullet` | — | — | `space.075` | `space.075` | — | — |
+| `row/markerBox/bullet` | — | — | `space.075` | `space.075` | — | radius `radius.round` |
 
 **size=large, type=unordered**
 
@@ -144,7 +146,7 @@ Keyed by `size`, `type`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
 | `row/markerBox` | — | — | `control.size.lg.line-box` | `space.400` | — | — |
-| `row/markerBox/bullet` | — | — | `space.100` | `space.100` | — | — |
+| `row/markerBox/bullet` | — | — | `space.100` | `space.100` | — | radius `radius.round` |
 
 **size=medium, type=ordered**
 
@@ -252,7 +254,7 @@ Keyed by `type`.
 
 | Property | Type | Default |
 | --- | --- | --- |
-| `text` | text | `List item` |
+| `label` | text | `List item` |
 | `number` | text | `1.` |
 | `swap icon` | instance swap | — |
 

@@ -18,8 +18,8 @@
  * `brandTheme`, and "it resolves to the edit" reads the engine's resolved shadow and motion axes. A cleared edit
  * is held against the brand as it was loaded, serialized, so pruning is checked byte for byte.
  */
-import { brandTheme, type BrandInput } from '@prism3/engine/theme';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { brandTheme, type BrandInput } from '@prism3/engine';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as store from './src/state/store';
 import * as D from './src/state/depth-motion-input';
 import { oklchOf } from './src/state/palette-input';

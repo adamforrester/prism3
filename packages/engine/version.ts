@@ -73,7 +73,7 @@
  * The code. Bumps on any behaviour change — including one that only moves values. Its history is
  * `CHANGELOG.md` next door, which only `fold.ts` writes (#1807, Q319.3).
  */
-export const ENGINE_VERSION = '0.237.0';
+export const ENGINE_VERSION = '0.238.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -711,7 +711,13 @@ export const ENGINE_VERSION = '0.237.0';
  * default, not a value to bind. No `DEPRECATIONS` entry, the 14.0.0 precedent: there is no one path to point at. The
  * Figma half of the decision (#2423, the primitives as number variables) moves no DTCG name and needs no further bump.
  */
-export const CONTRACT_VERSION = '15.0.0';
+/**
+ * 15.1.0 (owner Q-HT1 A on #3408, 2026-11-16): MINOR. `space.550` (44px, 5.5× the 8px base) joins the guaranteed
+ * surface, beside the half steps `space.150` and `space.250`: the enhanced target size, the code-side hit-target floor a
+ * medium or large Button binds (`size.<size>.hit-target`, owner Q141 revised). One added path; an added path cannot
+ * break a reference. Nothing is removed or retyped. It is a step of the scale, not of the density ladder (`scale.ts`).
+ */
+export const CONTRACT_VERSION = '15.1.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
@@ -924,21 +930,16 @@ export const DEPRECATIONS: Deprecation[] = [
   // The dedupe, not a rename: `border.inverse.default` was byte-identical to `border.inverse.primary` in
   // light and in dark, so it is dropped and its consumers are pointed at the twin. This makes the pair a
   // FAN-IN — two retired paths naming one live target — which the contract table holds happily and the
-  // Figma rename map refuses to APPLY without disambiguation (`ambiguous-source`).
+  // Figma rename map has to resolve at apply time.
   //
-  // **THAT REFUSAL IS RIGHT FOR THIS ENTRY AND WRONG FOR ITS PARTNER, and it is one refusal covering
-  // both.** `planVariableRenames` groups by TARGET, so the group at `inverse/border/primary` holds two
-  // live rows in a designer's file and neither moves. For THIS row — the dedupe — that is correct: a
-  // migration cannot silently pick which of two variables becomes the survivor, and the designer has to
-  // choose. For the OTHER row it is a defect: `border/inverse/primary` → `inverse/border/primary` is an
-  // ordinary one-to-one relocation, in no doubt at all, blocked only by an unrelated dedupe that happens
-  // to name the same target. Its bindings are left pointing at a variable the engine no longer writes —
-  // the stranding #893 built the whole mechanism to prevent, arriving here through the shape of the
-  // group rather than through a missing row.
-  //
-  // Measured on the live map: **111 of the 113 rows at 8.0.0 migrate; these 2 refuse.** Filed as #1142 —
-  // the fix belongs in `planVariableRenames` (a group with one non-dedupe source can still migrate it),
-  // not in this table, which is a record of history and correct as written.
+  // **THE TWO ROWS OF THAT GROUP ARE DIFFERENT OPERATIONS, AND SINCE #1142 THEY ARE RESOLVED APART.**
+  // `planVariableRenames` groups by TARGET. `border/inverse/primary` → `inverse/border/primary` is an
+  // ordinary relocation, in no doubt, and keeps the target's leaf; this entry, the dedupe, names another
+  // role. So the relocation migrates and this row reports `target-occupied`: a migration cannot silently
+  // pick which of two variables survives, and the designer chooses. Before #1142 the group reported
+  // `ambiguous-source` for both, which left the relocation's bindings on a variable the engine no longer
+  // writes. The fix is in `planVariableRenames`, not here: this table is a record of history and correct
+  // as written.
   { path: `color.appearance.${INVERSE_DEDUPED.group}.${INVERSE_DEDUPED.leaf}`, replacedBy: `color.${INVERSE_DEDUPED.replacedBy}`, since: '8.0.0' },
   // ── #1102: THE `core` TIER ──────────────────────────────────────────────────────────────────────
   //

@@ -41,7 +41,7 @@
  * setting changes …`; the reduce keeping an older answer (`m.seq < s.liveDue.seq` dropped) → `Q810 A recount: an
  * answer overtaken by a newer request never shows`.
  */
-import { UPDATE_COPY, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, setupOfferedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
+import { UPDATE_COPY, offSetsOf, offReasonOf, compsOpensOf, goWhyOf, blockedDueOf, blockedLine, blockedReason, keptChoicesOf, libraryChangesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, setupOfferedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
 import type { Catalog } from './src/state/component-catalog';
 import { initialHostSession, reduce } from './src/state/host-session';
 
@@ -140,6 +140,15 @@ ok(startUpdate([], []).done, 'run: a run with no steps is done at once');
   w = stepDone(w, false, '⚠ Built 9 sets · 5 with problems', true);
   ok(!w.done && stepOf(w) === 'guides' && w.results[2].warn === true && w.results[2].ok === false,
     `run/warn goes on: a sets step that built every set, some with problems, moves the run to the style guides (${JSON.stringify({ done: w.done, next: stepOf(w), last: w.results[2] })})`);
+  // #3711 (Q-UF3 A): the owner's run of 2026-11-12. The update wrote all 47 sets, 2 left to check: not ok, but it did all
+  // it was asked, so the run goes on to the style guides, where it read "Stopped at the update". (mutation: `main.ts`
+  // passing `false` for the update's `warn` again is held by test:chrome; here `stepDone` ignoring `warn` → `run/update warn goes on`)
+  const u = stepDone(startUpdate(['theme', 'update', 'guides'], []), true, '✓ applied');
+  const uw = stepDone(u, false, '⚠ Updated 47 sets · 2 to check', true);
+  ok(!uw.done && stepOf(uw) === 'guides' && uw.results[1].warn === true && uw.results[1].headline === '⚠ Updated 47 sets · 2 to check',
+    `run/update warn goes on: an update that wrote every set, 2 to check, moves the run to the style guides (${JSON.stringify({ done: uw.done, next: stepOf(uw), last: uw.results[1] })})`);
+  const ux = stepDone(u, false, '✗ update stopped at tag', false);
+  ok(ux.done && stepOf(ux) === null, 'run/update stop ends: an update with a set stopped still ends the run');
   const ok2 = stepDone(startUpdate(['theme', 'guides'], []), true, '✓ applied', true);
   ok(ok2.results[0].warn === undefined && !ok2.done, 'run/warn: a clean step is never marked warn');
 }
@@ -303,6 +312,172 @@ ok(reduce(s2, fd(3, false)).liveDue?.theme === false, 'Q810 A recount (control):
     '#3421 order: after Theme a theme-blocked set may read otherwise; any other set must read as reviewed');
   ok(UPDATE_COPY.keptLine({ members: 12, changes: ['border → color/x'] }) === '12 members keep out 1 of the plan’s values: border → color/x',
     'Q39 A copy: a Kept edits set\'s line names its members and each change held back');
+}
+
+// #3713: A BLOCKED SET NAMES ITS OWN REASON, in plain words, with the step that clears it where one exists. The blocker
+// lines here are literals copied from `apps/plugin/src/update-plan.ts` (`fileBlockers`, `setRefusal`, `dryRunSet`), not
+// read from it, and the expected lines are literals (docs/34). `apps/plugin/test-update-kept-run.ts` runs a real check's
+// blockers through the same copy. MUTATIONS: the blocked branch back to one fixed line → every arm below; the first
+// reason dropped for the last (`reasons[reasons.length - 1]`) → `#3713 first reason`.
+{
+  // The set names come from the caller's name function (the shell passes `displayNameOf`, owner decision Q392): typed
+  // here as a literal map, never derived from the id, so a line that names a set by its id instead fails.
+  const NAMES: Record<string, string> = { icon: 'Icon', 'provider-logo': 'Provider logo', 'sign-in-button': 'Sign-in button' };
+  const nameOf = (id: string): string => NAMES[id] ?? `?${id}`;
+  const C = (reasons?: string[], themeBlocked = false) => ({ def: 'icon', hash: 'h', members: 4, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: true, upToDate: false, ...(themeBlocked ? { themeBlocked: true as const } : {}), ...(reasons ? { reasons } : {}) });
+  const B = (reasons?: string[]) => UPDATE_COPY.checked(C(reasons), false, nameOf);
+  const BT = (reasons: string[]) => UPDATE_COPY.checked(C(reasons), true, nameOf);
+  const cases: [string, string][] = [
+    ['Not in this file: icon/close, icon/check. Build icon first, then run the update again', 'Can’t update yet — it needs Icon, which this file doesn’t have. Tick Icon on Components first.'],
+    ['3 variables the plan binds are not in this file (a, b, c)', 'Can’t update yet — it needs 3 variables this file doesn’t have. Tick Theme to write them.'],
+    ['1 variable the plan binds is not in this file (a)', 'Can’t update yet — it needs 1 variable this file doesn’t have. Tick Theme to write them.'],
+    ['text styles not in this file: body/md, label/sm', 'Can’t update yet — it needs text styles this file doesn’t have: body/md, label/sm. Tick Theme to write them.'],
+    ['text style not in this file: body/md', 'Can’t update yet — it needs a text style this file doesn’t have: body/md. Tick Theme to write them.'],
+    ['effect styles not in this file: a, b, c, and 2 more', 'Can’t update yet — it needs effect styles this file doesn’t have: a, b, c, and 2 more. Tick Theme to write them.'],
+    ['components the plan swaps to are not in this file: sign-in-button/default, icon/a, icon/b, and 1 more', 'Can’t update yet — it swaps to Sign-in button, Icon, and 1 more, which this file doesn’t have. Tick Sign-in button, Icon, and 1 more on Components first.'],
+    ['component the plan swaps to is not in this file: provider-logo/default', 'Can’t update yet — it swaps to Provider logo, which this file doesn’t have. Tick Provider logo on Components first.'],
+    ['fonts: Inter Bold will not load, so text could not be written', 'Can’t update yet — these fonts won’t load: Inter Bold. Install or turn them on in Figma, then open this again.'],
+    ['an axis the plan removed would collapse members onto one coordinate, and they cannot stay in the set', 'Can’t update yet — a property it drops would merge variants into one.'],
+    ['the axes change, and 12 members not built by Prism3 would be left on the old ones (a; b; c)', 'Can’t update yet — its properties change, and 12 variants not built by Prism3 would be left behind. Studio can’t do this yet.'],
+    ['renaming size=small would give it the name of another member (size=sm)', 'Can’t update yet — renaming size=small would clash with size=sm. Rename or remove one of them in Figma.'],
+    ['2 members share the coordinate size=medium (1:2, 1:3) — the set is refused rather than one picked', 'Can’t update yet — 2 variants share one name, size=medium. Rename or remove the extra one in Figma.'],
+    ["the members disagree on the axis list ([size] vs [size,tone]), so Figma cannot read the set's properties (#1780)", 'Can’t update yet — its variants don’t all have the same properties. Fix the variant names in Figma.'],
+    // D3721.1 b: a shape not known here gets one fixed line and Report a problem, never the engine's words.
+    ["the set's property definitions could not be read", 'Can’t update yet — the check gave a reason Studio doesn’t recognize. Report it with Report a problem.'],
+    ['the plan names a member that is not a coordinate: x (#1234)', 'Can’t update yet — the check gave a reason Studio doesn’t recognize. Report it with Report a problem.'],
+  ];
+  for (const [line, want] of cases) ok(B([line]) === want, `#3713 reason: "${line.slice(0, 40)}…" reads "${want}" (got "${B([line])}")`);
+  ok(B(['3 variables the plan binds are not in this file (a, b, c)', 'text styles not in this file: x', 'fonts: A B will not load, so text could not be written']) === 'Can’t update yet — it needs 3 variables this file doesn’t have. Tick Theme to write them. 2 more reasons.',
+    `#3713 first reason: the line names the first reason and counts the rest (got "${B(['3 variables the plan binds are not in this file (a, b, c)', 'x', 'y'])}")`);
+  ok(B() === 'Can’t update yet — the check gave no reason.' && blockedLine([]) === B(), '#3713 no reason: a blocked set with no reason says so, never points elsewhere');
+  ok(!cases.some(([, w]) => /agent’s update check/.test(w)) && !/agent’s update check/.test(B()), '#3713: no line points at the agent\'s update check');
+  // Theme ticked: the reasons Theme's run clears no longer lead or count, so the row never asks for Theme again and
+  // names what still blocks (the verdict on #3721, should-fix 2). MUTATION: `blockedLine` ignoring `theme` → this arm.
+  ok(BT(['3 variables the plan binds are not in this file (a, b, c)', 'text styles not in this file: x', 'component the plan swaps to is not in this file: provider-logo/default']) === 'Can’t update yet — it swaps to Provider logo, which this file doesn’t have. Tick Provider logo on Components first.',
+    `#3713 theme ticked: the row skips what Theme clears and leads with what still blocks (got "${BT(['3 variables the plan binds are not in this file (a, b, c)', 'text styles not in this file: x', 'component the plan swaps to is not in this file: provider-logo/default'])}")`);
+  ok(B(['3 variables the plan binds are not in this file (a, b, c)', 'component the plan swaps to is not in this file: provider-logo/default']) === 'Can’t update yet — it needs 3 variables this file doesn’t have. Tick Theme to write them. 1 more reason.',
+    '#3713 theme ticked (control): with Theme not ticked, the variables still lead and the swap target is counted');
+  ok(UPDATE_COPY.checked({ def: 'tag', hash: 'h', members: 4, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: true, upToDate: false, themeBlocked: true, reasons: ['1 variable the plan binds is not in this file (a)'] }, true) === 'Updated after Theme — Theme writes the variables and styles it binds first',
+    '#3713 (#3421 kept): a set only Theme blocks, with Theme ticked, still reads Updated after Theme');
+}
+
+
+// #3711 (Q-UF2 A): THE CALLOUT BEFORE THE RUN. The changes the update step passes on to files that use the library, from
+// the sets it runs, each named, and the count the button carries. A set the update does not run adds nothing. Literals.
+// (mutations: `libraryChangesOf` reading every checked set, not the run's → `uf2/only the run's sets`; the button's count
+// dropped → `uf2/button`)
+{
+  const set = (def: string, changes?: { count: number; lines: string[] }) => ({ def, hash: def, members: 4, update: 1, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: false, ...(changes ? { changes } : {}) });
+  const check = { sets: [set('wallet-button', { count: 2, lines: ['Wallet button · variant=a · retired', 'Wallet button · variant=b · retired'] }), set('tag', { count: 1, lines: ['Tag · property label · removed'] }), set('badge')] };
+  ok(same(libraryChangesOf(['wallet-button', 'badge'], check), { count: 2, lines: ['Wallet button · variant=a · retired', 'Wallet button · variant=b · retired'] }),
+    `uf2/only the run's sets: the callout names the changes of the sets the update runs, and counts them (${JSON.stringify(libraryChangesOf(['wallet-button', 'badge'], check))})`);
+  ok(same(libraryChangesOf(['wallet-button', 'tag'], check), { count: 3, lines: ['Wallet button · variant=a · retired', 'Wallet button · variant=b · retired', 'Tag · property label · removed'] }),
+    'uf2/two sets: each set the update runs adds its changes, in run order');
+  ok(same(libraryChangesOf(['badge'], check), { count: 0, lines: [] }) && same(libraryChangesOf(['wallet-button'], null), { count: 0, lines: [] }),
+    'uf2/none: no callout while no set the update runs has changes, or before the check answers');
+  ok(UPDATE_COPY.goLibrary(2) === 'Update, including 2 library changes' && UPDATE_COPY.goLibrary(1) === 'Update, including 1 library change',
+    `uf2/button: the button carries the count (${UPDATE_COPY.goLibrary(2)} | ${UPDATE_COPY.goLibrary(1)})`);
+  ok(UPDATE_COPY.library === 'Files that use this library' && UPDATE_COPY.librarySub(2) === '2 changes in this update reach them at the next library publish:'
+    && UPDATE_COPY.librarySub(1) === '1 change in this update reaches them at the next library publish:', `uf2/callout words: the title and the count line (${UPDATE_COPY.librarySub(1)})`);
+  // Review of #3751 at 6fa8b4cd, S2: THE PANEL'S COUNT PAST THE CAP. The host caps a set's lines at 8 plus one "n more"
+  // line but counts every change (`uf2/checked set past the cap`, plugin side); the panel's count must be the host's
+  // count, not the lines it was sent. Literal: 11 changes arrive as 9 lines. (mutation: `libraryChangesOf` summing
+  // `c.lines.length` → this arm)
+  const nine = [...Array.from({ length: 8 }, (_, i) => `Wallet button · variant=v${i + 1} · retired`), 'wallet-button: 3 more changes not listed.'];
+  const cap = libraryChangesOf(['wallet-button'], { sets: [set('wallet-button', { count: 11, lines: nine })] });
+  ok(cap.count === 11 && cap.lines.length === 9 && UPDATE_COPY.goLibrary(cap.count) === 'Update, including 11 library changes',
+    `uf2/past the cap: the button counts all 11 changes while the callout lists 9 lines (${JSON.stringify({ count: cap.count, lines: cap.lines.length })})`);
+  // Review of #3751, should-fix 2, pinned AS BUILT pending the owner's call: a set the check read as blocked only by
+  // Theme's variables and styles (#3421) carries no `changes`, because the host lists nothing as breaking on a blocked
+  // set (`breakingOf`). With Theme ticked it is in the run, yet adds nothing to the callout or the button. The run checks
+  // it again after Theme and applies it whatever it then passes on. Literal. If the owner picks a different behavior,
+  // this arm is the one that changes.
+  const tb = { ...set('tag'), blocked: true, themeBlocked: true as const, reasons: ['1 variable the plan binds is not in this file (a)'] };
+  const tcheck = { sets: [set('wallet-button', { count: 2, lines: ['Wallet button · variant=a · retired', 'Wallet button · variant=b · retired'] }), tb] };
+  const tticks = { setup: false, theme: true, guides: false, panels: false, update: new Set(['wallet-button', 'tag']), handEdits: 'keep' as const, kept: new Map() };
+  const tdefs = updateDefsOf(tticks, tcheck, []);
+  ok(same(tdefs, ['wallet-button', 'tag']) && same(libraryChangesOf(tdefs, tcheck), { count: 2, lines: ['Wallet button · variant=a · retired', 'Wallet button · variant=b · retired'] }),
+    `uf2/theme-blocked: a set only Theme blocks runs with Theme ticked, and adds nothing to the callout or the count until the owner decides (${JSON.stringify(tdefs)})`);
+}
+
+// #3713 (2 of 4): THE DUE SETS THE ANSWER BLOCKS ARE LISTED APART. Literals (docs/34). MUTATION: `blockedDueOf` returning
+// every Due set, or none → `#3713 apart`.
+{
+  const ck = { sets: [
+    { def: 'button', hash: 'a', members: 4, update: 2, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: false },
+    { def: 'icon', hash: 'b', members: 9, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: true, upToDate: false, reasons: ['2 members share the coordinate size=medium (1:2, 1:3) — the set is refused rather than one picked'] },
+    { def: 'tag', hash: 'c', members: 4, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: true, upToDate: false, themeBlocked: true as const, reasons: ['1 variable the plan binds is not in this file (a)'] },
+  ] };
+  ok(same(blockedDueOf(['button', 'icon', 'tag', 'select'], ck, false), ['icon', 'tag']), '#3713 apart: without Theme, the sets the answer blocks are listed apart, a set it did not read is not');
+  ok(same(blockedDueOf(['button', 'icon', 'tag'], ck, true), ['icon']), '#3713 apart: with Theme ticked, a set only Theme blocks stays in Due (#3421)');
+  ok(same(blockedDueOf(['button', 'icon'], null, false), []), '#3713 apart: before the answer, no set is listed apart');
+  ok(blockedReason(ck.sets[1].reasons) === '2 variants share one name, size=medium. Rename or remove the extra one in Figma.'
+    && blockedReason(undefined) === 'The check gave no reason.' && UPDATE_COPY.blocked === 'Can’t update yet',
+    `#3713 apart copy: the group is "Can't update yet", and each row's reason is a sentence (got "${blockedReason(ck.sets[1].reasons)}")`);
+}
+
+// #3713 (3 of 4): WHY UPDATE FILE IS DISABLED. Literals (docs/34). MUTATION: `goWhyOf` returning null → every arm.
+ok(goWhyOf({ off: null, waiting: false, steps: 0, blocked: ['Icon'] }) === 'Nothing to write: Icon can’t be updated yet.', '#3713 why: one blocked set, nothing else to write');
+ok(goWhyOf({ off: null, waiting: false, steps: 0, blocked: ['Icon', 'Tag'] }) === 'Nothing to write: Icon and Tag can’t be updated yet.'
+  && goWhyOf({ off: null, waiting: false, steps: 0, blocked: ['A', 'B', 'C'] }) === 'Nothing to write: A, B and C can’t be updated yet.'
+  && goWhyOf({ off: null, waiting: false, steps: 0, blocked: ['A', 'B', 'C', 'D'] }) === 'Nothing to write: A, B and 2 more can’t be updated yet.', '#3713 why: the blocked sets, named as a list');
+ok(goWhyOf({ off: null, waiting: false, steps: 0, blocked: [] }) === 'Nothing to write: nothing above is ticked.', '#3713 why: nothing ticked');
+ok(goWhyOf({ off: 'The brand did not restore.', waiting: false, steps: 2, blocked: [] }) === 'The brand did not restore.', '#3713 why: a file whose brand did not restore says so');
+ok(goWhyOf({ off: null, waiting: false, steps: 1, blocked: ['Icon'] }) === null && goWhyOf({ off: null, waiting: true, steps: 0, blocked: [] }) === null, '#3713 why: nothing is said while it can run, or while the check is out');
+
+// #3712 (Q-UD2, direction C): Components' status chip, what its card holds, each part only when it counts. Literals
+// (DRAFT copy, docs/34). MUTATION: a part drawn at 0 → `#3712 chip: only what counts`.
+ok(UPDATE_COPY.compsChip({ add: 0, due: 0, blocked: 1, kept: 5, panels: 0 }) === '1 can’t update yet · 5 with kept edits', '#3712 chip: the owner’s 2026-11-12 run');
+ok(UPDATE_COPY.compsChip({ add: 7, due: 3, blocked: 0, kept: 0, panels: 1 }) === '7 to add · 3 due · 1 usage panel', '#3712 chip: only what counts, in run order');
+ok(UPDATE_COPY.compsChip({ add: 0, due: 0, blocked: 0, kept: 0, panels: 0 }) === '', '#3712 chip: nothing to say, no chip');
+
+// #3712 (Q-UD2 A, the owner's decision of 2026-11-14: the chip copy approved as written). Each part at 0, 1 and 2, alone,
+// so a part's plural is read on its own: "usage panel" is the one part with a noun, so the one that turns plural; the
+// other four read the same at 1 and at 2. At 0 a part is not drawn (the mock's `counts.filter(Boolean)`). Literals, the
+// owner's (docs/34). MUTATIONS: `n.panels === 1 ? '' : 's'` dropped → `#3712 Q-UD2 chip: panels at 2`; a part drawn
+// at 0 (`n.due ?` → `n.due >= 0 ?`) → `#3712 Q-UD2 chip: due at 0`.
+const CHIP_PARTS = {
+  add: ['', '1 to add', '2 to add'],
+  due: ['', '1 due', '2 due'],
+  blocked: ['', '1 can’t update yet', '2 can’t update yet'],
+  kept: ['', '1 with kept edits', '2 with kept edits'],
+  panels: ['', '1 usage panel', '2 usage panels'],
+} as const;
+const NONE = { add: 0, due: 0, blocked: 0, kept: 0, panels: 0 };
+for (const [part, want] of Object.entries(CHIP_PARTS) as [keyof typeof NONE, readonly string[]][]) {
+  for (const n of [0, 1, 2]) {
+    const got = UPDATE_COPY.compsChip({ ...NONE, [part]: n });
+    ok(got === want[n], `#3712 Q-UD2 chip: ${part} at ${n} reads ${JSON.stringify(want[n])} (${JSON.stringify(got)})`);
+  }
+}
+ok(UPDATE_COPY.compsChip({ add: 2, due: 1, blocked: 2, kept: 1, panels: 2 }) === '2 to add · 1 due · 2 can’t update yet · 1 with kept edits · 2 usage panels',
+  '#3712 Q-UD2 chip: every part at once, in the approved order, joined with " · "');
+
+// #3712 (Q-UD3 A, 2026-11-14): Components opens by itself only while it holds something that needs attention, a blocked
+// or a due set; otherwise it stays folded. MUTATIONS: `n.blocked > 0 ||` dropped → `#3712 Q-UD3 open: blocked`; the
+// rule back to "open while it lists anything" (`=> true`) → `#3712 Q-UD3 open: none`.
+ok(compsOpensOf({ blocked: 1, due: 0 }), '#3712 Q-UD3 open: blocked: a set that can’t update yet opens Components');
+ok(compsOpensOf({ blocked: 0, due: 1 }), '#3712 Q-UD3 open: due: a due set opens Components');
+ok(!compsOpensOf({ blocked: 0, due: 0 }), '#3712 Q-UD3 open: none: nothing blocked or due (To add, Kept edits or Usage panels alone) leaves it folded');
+
+// ── #2956 (owner decisions 2026-11-17): Updates off ───────────────────────────────────────────────────────────────────
+// The approved strings are TYPED HERE, never read from the copy table they test. Mutations: `offSetsOf` reading `due` →
+// `#2956 off list`; `offReasonOf` ignoring `by` → `#2956 off reason`; the status not pushed → `#2956 off status`.
+{
+  const CATO = [entry('button'), entry('tag'), entry('badge')] as unknown as Catalog;
+  const FO = { present: ['button', 'tag', 'badge'], setUp: true, error: null,
+    due: { button: { state: 'off', by: 'auto' }, tag: { state: 'off', by: 'designer' }, badge: { state: 'due', reason: 'definition' } } } as const;
+  ok(same(offSetsOf(CATO, FO), ['button', 'tag']) && same(dueSetsOf(CATO, FO), ['badge']) && badgeCount(CATO, FO, null, null) === 1,
+    `#2956 off list: a set whose updates are off is listed under Updates off, never Due, and never counted (${JSON.stringify(offSetsOf(CATO, FO))}; badge ${badgeCount(CATO, FO, null, null)})`);
+  ok(offReasonOf(FO.due.button) === 'Turned off when an update couldn’t apply around your edits.' && offReasonOf(FO.due.tag) === null && offReasonOf(FO.due.badge) === null,
+    '#2956 off reason: the quiet reason line only when the update turned it off by itself');
+  ok(same(statusesOf('tag', FO, new Map(), 'done'), ['off']) && same(statusesOf('button', FO, new Map([['button', { members: 4, edited: 1 }]]), 'done'), ['off', 'hand']),
+    '#2956 off status: the set reads Updates off, beside Hand-edited when both');
+  ok(UPDATE_COPY.off === 'Updates off' && UPDATE_COPY.status.off === 'Updates off' && UPDATE_COPY.turnOff === 'Turn off updates' && UPDATE_COPY.turnOn === 'Turn updates back on',
+    '#2956 off copy: the state and its two actions read as approved');
+  // #4227: the Kept edits line agrees with its count, as offSub does.
+  ok(UPDATE_COPY.keptSub(1).startsWith('1 set holds hand edits ') && UPDATE_COPY.keptSub(2).startsWith('2 sets hold hand edits '),
+    `#4227 keptSub agrees with its count (${UPDATE_COPY.keptSub(1).slice(0, 26)} / ${UPDATE_COPY.keptSub(2).slice(0, 26)})`);
 }
 
 console.log(`\n${executed - failed}/${executed} passed`);

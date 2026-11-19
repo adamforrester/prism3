@@ -14,12 +14,8 @@
  * found in the front matter by name. A JavaScript error out of the engine (a `TypeError` on a missing key) names no
  * line, so it is never guessed at: a wrong line is worse than none.
  */
-import { brandTheme, type BrandInput } from '@prism3/engine/theme';
-import { resolveAllModes } from '@prism3/engine/modes';
+import { brandTheme, type BrandInput, resolveAllModes, hexToRgb, rgbToOklch, storedOklch, parseDesignMd, parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine';
 import { studioMessage } from './floor-refusal';
-import { hexToRgb, rgbToOklch, storedOklch } from '@prism3/engine/color';
-import { parseDesignMd } from '@prism3/engine/design-md';
-import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine/standard-design-md';
 
 // ---- the brands a start path makes ------------------------------------------------------------------
 
@@ -167,12 +163,22 @@ const refusal = (text: string, e: unknown, prefix: string, input?: BrandInput): 
  *  BrandInput, `parseDesignMd`) or STANDARD (a flat `colors:` hex map, `parseStandardDesignMd` +
  *  `standardToBrandInput`). A top-level flat `colors:` map is the standard dialect; engine-native briefs never have
  *  one. The words around each message are today's, unchanged (moved here from `main.ts`). */
+/** #3553 Q-UI4 A: the missing-fence refusal, in the owner's words. Either parser's message (the engine-native and the
+ *  standard dialect each throw their own) reads as two sentences rather than a second colon and a lowercase clause. */
+const NOT_A_DESIGN_MD = "That doesn't read as a design.md: ";
+const NO_FENCE_COPY = "That doesn't read as a design.md. A design.md opens with a '---' YAML front matter fence on its first line.";
+const NO_FENCE_RE = /design\.md must open with a '---' YAML frontmatter fence on the first line/;
+const parseRefusal = (text: string, e: unknown): { error: ImportError } => {
+  const r = refusal(text, e, NOT_A_DESIGN_MD);
+  return NO_FENCE_RE.test((e as Error)?.message ?? '') ? { error: { text: NO_FENCE_COPY, line: r.error.line } } : r;
+};
+
 export const validateDesignMd = (text: string): ImportResult => {
   if (!text.trim()) return { error: { text: 'Nothing to import — the file is empty.', line: null } };
 
   let std;
   try { std = parseStandardDesignMd(text); }
-  catch (e) { return refusal(text, e, "That doesn't read as a design.md: "); }
+  catch (e) { return parseRefusal(text, e); }
   const isStandard = isStandardDesignMd(std);
 
   let input: BrandInput;
@@ -181,7 +187,7 @@ export const validateDesignMd = (text: string): ImportResult => {
     catch (e) { return refusal(text, e, `Parsed as a standard-dialect design.md, but couldn't classify '${std.name}': `); }
   } else {
     try { input = parseDesignMd(text).input; }
-    catch (e) { return refusal(text, e, "That doesn't read as a design.md: "); }
+    catch (e) { return parseRefusal(text, e); }
   }
 
   // The modes resolve too: some refusals are made there, not in `brandTheme` (the contrast floor's, #2227), and a

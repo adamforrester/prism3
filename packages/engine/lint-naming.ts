@@ -76,8 +76,8 @@ import type { ComponentDef } from './component-schema';
 
 // ── THE RULES, AS LITERALS ──────────────────────────────────────────────────────────────────────────
 
-/** The two wordings a private part's `ai.whenToUse` opens with. A Radio row's "Always as a child of a
- *  Radio.Group" is not one of them: Q355's prefixed list leaves it out (#2759 Q-N1). */
+/** The two wordings a private part's `ai.whenToUse` opens with. Radio.Row took the first with #3555 Q-MD11 A, and is a
+ *  slot item (`SLOT_ITEMS`), so it stays unprefixed. */
 const PRIVATE_WORDING: readonly RegExp[] = [/^Only as a child of /, /^Never directly\b/];
 
 /** The owner's prefixed set, by the id each takes: the accordion indicator (Q349), the breadcrumb separator (Q382 A)
@@ -87,7 +87,7 @@ const DECIDED_PRIVATE: readonly string[] = ['_accordion-indicator', '_breadcrumb
 
 /** The owner's slot items (Q394 A): each is a native slot's preferred item, so it stays unprefixed. Exact, not a floor
  *  (#3554 M-B): a slot item whose whenToUse reads as a private part, and that no entry here names, fails. */
-const SLOT_ITEMS: readonly string[] = ['tab-item', 'list-item', 'segmented-control-segment', 'breadcrumb-item', 'pagination-item', 'page-nav-item', 'code-input-cell'];
+const SLOT_ITEMS: readonly string[] = ['tab-item', 'list-item', 'segmented-control-segment', 'breadcrumb-item', 'pagination-item', 'page-nav-item', 'code-input-cell', 'radio-row'];
 
 /** Exempt from the prefix by decision (Q349): each may be used on its own. */
 const STANDALONE: readonly string[] = ['checkbox-control', 'radio-control'];

@@ -58,6 +58,8 @@
 import type { UiToMain } from './messages';
 import type { AgentLinkState } from './agent-protocol';
 import { createBridgeRelay } from './agent-bridge-relay';
+import { agentStartLine, nextAgentBusy } from './agent-run-notice';
+import type { AgentBusy } from './agent-run-notice';
 import type { BridgePairing, WsLike } from './agent-bridge-relay';
 import { codeShaped } from './bridge-auth';
 import { glyph, h, hook, switchEl, tile } from '../../studio/src/shell/dom';
@@ -128,7 +130,8 @@ export const agentLinkWord = (s: AgentLinkState | null, bridgeBuilt = true): { r
 };
 
 /** #3204 (Q3204.1 A): the pairing prompt's words, by where pairing stands. Approved (Q3204.4 A); `wrongCode`, reworded
- *  for the code's 10-minute window (Q3204.5 A), approved as Q3204.7 A. `line` is the
+ *  for the code's 10-minute window (Q3204.5 A), approved as Q3204.7 A; `neededAgain`, shown only after a failed attempt
+ *  forgot a code (#3764), approved as Q-PC1 B. Like `wrongCode`, it clears when the next code is submitted. `line` is the
  *  prompt's one line; `error` is the line under the field, or null. Nothing is asked while pairing is 'none'. Pure. */
 export const PAIR_WORDS = {
   title: 'Pair with the desktop bridge',
@@ -140,12 +143,14 @@ export const PAIR_WORDS = {
   busy: 'Pairing…',
   later: 'Not now',
   wrongCode: 'The bridge did not accept that code. A code works once, for 10 minutes. Ask your agent for a current one.',
+  neededAgain: 'The connection closed before pairing finished. Ask your agent for a new code.',
   badShape: 'A pairing code is 8 letters and digits, such as 7KQ4-M2XR.',
 } as const;
 export const pairPromptText = (p: BridgePairing): { readonly line: string; readonly error: string | null; readonly busy: boolean } | null => {
   if (p === 'none') return null;
   if (p === 'refused') return { line: PAIR_WORDS.refusedLine, error: null, busy: false };
   if (p === 'wrong-code') return { line: PAIR_WORDS.line, error: PAIR_WORDS.wrongCode, busy: false };
+  if (p === 'needed-again') return { line: PAIR_WORDS.line, error: PAIR_WORDS.neededAgain, busy: false };
   return { line: PAIR_WORDS.line, error: null, busy: p === 'pairing' };
 };
 
@@ -223,14 +228,17 @@ export const mountAgentLink = (): void => {
   // switch, at the bar's own size, on the bar ground. It replaced the Agent tile (T7 A), its green dot and the on mark's
   // fill and edge (Q738 A, Q788 C). A click switches the link, the same request the tile posted: the main thread is the
   // authority, so the switch shows only the state it publishes (`set`, in `render`), never its own click. One fixed name,
-  // "Agent" (the owner's Q44 note), and `aria-checked` says on or off; at 380 the label drops and the name stays.
+  // "Agent" (the owner's Q44 note), and `aria-checked` says on or off; at 380 the label is the agent glyph (#3553 Q-UI10 A).
   // The label is a `<label>` beside the switch, not inside it, so the switch stays the chrome's one track-and-knob kind
   // (#2183) and a click on the word turns it too. It is hidden from assistive tech: the switch's own name says "Agent".
   const wrap = h('div', 'p3-popwrap');
   const { el: chip, set: setChip } = switchEl('agent-toggle', 'Agent', () => post({ type: 'agent-link', on: !state?.on }));
   chip.classList.add('p3-agent-switch');
   chip.id = 'p3-agent-switch';
-  const label = h('label', 'p3-agent-switch-label', 'Agent');
+  // #3553 Q-UI10 A: the word at the wide tier, the agent glyph at the narrow one, so the switch is never a bare toggle at
+  // 380 and the brand switcher keeps its room (the word there trimmed the brand name).
+  const label = h('label', 'p3-agent-switch-label');
+  label.append(glyph('agent'), h('span', 'p3-agent-switch-word', 'Agent'));
   label.htmlFor = chip.id;
   label.setAttribute('aria-hidden', 'true');
   // #2949 (Q600 A): Minimize, at the rail's foot since Q731, whether the link is on or off. A plain button: the main thread decides.
@@ -242,7 +250,27 @@ export const mountAgentLink = (): void => {
   // The collapse glyph, two arrows in toward the center, the mirror of the strip's Restore (the owner, 2026-10-26; it was a minus).
   minMark.append(glyph('collapse'));
   minBtn.addEventListener('click', () => post({ type: 'minimize-ui', minimized: true }));
-  wrap.append(label, chip, minBtn);
+  // #2368 (owner decision A): the busy mark, beside the switch while an agent's command that writes the file runs, until
+  // its result is written (`nextAgentBusy`). The chrome's spinner (shown after its anti-flash wait) and "Running", which
+  // drops at the narrow tier as the switch's word does. Its line, also the start notice's, is its tooltip and the switch's
+  // description, so the warning that closing stops the run is in reach of the bar. Approved 2026-11-18.
+  const busyMark = hook(h('span', 'p3-agent-busy'), 'agent-busy');
+  busyMark.hidden = true;
+  const busyWord = h('span', 'p3-agent-busy-word', 'Running');
+  const busyLine = hook(h('span', 'p3-sr'), 'agent-busy-line');
+  busyLine.id = 'p3-agent-busy-line';
+  busyMark.append(h('span', 'p3-spin'), busyWord, busyLine);
+  let busy: AgentBusy = null;
+  const renderBusy = (): void => {
+    busyMark.hidden = !busy;
+    const line = busy ? agentStartLine(busy.cmd) : '';
+    busyLine.textContent = line;
+    if (busy) busyMark.title = line; else busyMark.removeAttribute('title');
+    if (busy) chip.setAttribute('aria-describedby', busyLine.id);
+    else chip.removeAttribute('aria-describedby');
+  };
+  busyWord.setAttribute('aria-hidden', 'true');
+  wrap.append(label, chip, busyMark, minBtn);
 
   /** #3204: draws the bridge's pairing prompt; the network build sets it below, with the relay. */
   let renderPair = (): void => undefined;
@@ -415,6 +443,8 @@ export const mountAgentLink = (): void => {
     const m = e.data && (e.data as { pluginMessage?: { type?: string; state?: AgentLinkState } }).pluginMessage;
     if (m && m.type === 'ui-minimized') { setMinimized((m as { minimized?: unknown }).minimized === true); return; }
     if (!m || typeof m.type !== 'string' || !m.type.startsWith('agent-')) return;
+    const nextBusy = nextAgentBusy(busy, m);
+    if (nextBusy !== busy) { busy = nextBusy; renderBusy(); }
     if (m.type === 'agent-link-state' && m.state && typeof m.state === 'object') {
       state = m.state;
       render();

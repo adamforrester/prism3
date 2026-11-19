@@ -11,7 +11,7 @@
 
 A vertical run of short items, each after a bullet, a number or an icon, with the marker, its size and color, the indent and the space between items all bound to tokens. Unordered when the order carries no meaning, ordered when it does (steps, a ranking), and icon for a set of points such as requirements or features. Every item's text starts at one edge and wraps under itself. Use it for lists a designer lays out: password rules, feature lists, icon checklists, steps. For lists inside running text that a writer edits as normal copy, such as an article body, terms or long help text, use a native text list instead.
 
-- **Purpose:** A short run of text items, each after a bullet, a number or an icon, laid out with bound spacing and markers.
+- **Purpose:** Lay out a short run of text items, each after a bullet, a number or an icon, with bound spacing and markers.
 - **Use when:** A short set of points a designer lays out in UI: password rules, feature lists, icon checklists, steps. Ordered when the order means something.
 - **Avoid when:** Running text, such as an article body, terms or long help text. The test: if a writer could edit it as normal copy, use the native list; if a designer controls its spacing, markers or icons, use the component. Also avoid it for a choice the user makes (Select, or a listbox), a command menu, navigation links, or values compared across columns (a table).
 
@@ -53,7 +53,7 @@ Use a List for a short set of points that a designer lays out: password rules, f
 ## Accessibility
 
 - **Focus:** None. A list is not focusable; a link inside an item takes focus on its own.
-- **Screen readers:** list (a native \<ul> or \<ol> with role="list" set explicitly), its items listitem
+- **Screen readers:** list (a native `<ul>` or `<ol>` with `role="list"` set explicitly), its items listitem
 
   role="list" on the \<ul> or \<ol>, always, because the markers are drawn by the component (see the element note). Markers are not text: a bullet or number drawn by CSS is not read twice, and an icon marker is aria-hidden="true". When icons stand for states (met, not met), each item says its state in text or in visually hidden text.
 
@@ -80,7 +80,7 @@ One phrase or sentence per item, sentence case, every item the same grammatical 
 - **Built from:** `list-item`
 - **Often used with:** `icon`, `text-field`
 - **Replaces:**
-  - a \<ul> with list-style: none and no role="list"
+  - a `<ul>` with `list-style: none` and no `role="list"`
   - a column of text boxes with typed bullet characters
 
 ## Building it in code

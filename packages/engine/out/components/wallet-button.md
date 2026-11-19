@@ -39,6 +39,8 @@ Shown on the default member: provider `apple-pay`, style `any`, size `medium`.
 
 Offer the wallets the checkout accepts as a row or stack of buttons, each the same height, above or beside the card form. Pick each provider's style for the ground, and let the provider draw the button.
 
+**In RTL.** The container does not mirror.
+
 ### Do
 
 - Give every wallet button in a group the same size
@@ -95,7 +97,7 @@ The provider's wording, in the provider's language handling. Nothing to write.
 | `provider` | enum: 'apple-pay' \| 'google-pay' \| 'paypal' \| 'shop-pay' | — | yes | Which wallet. Each needs its provider's script on the page, which draws the button. |
 | `style` | enum: 'any' \| 'black' \| 'white' \| 'white-outline' \| 'gold' \| 'blue' \| 'silver' \| 'purple' | `any` | no | The provider's color style, from its own list, passed to the provider: Apple Pay black, white, white-outline; Google Pay black, white; PayPal gold, blue, silver, white, black; Shop Pay purple. Pick it for the ground the button sits on: dark buttons on light grounds, light ones on dark grounds. any passes no style, so the provider draws its default. A style the provider does not offer is refused. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The height: 36, 44 or 56px. Google Pay and Shop Pay have no small size and PayPal no large one, because each provider sets a smallest and a largest height. |
-| `type` | string | `plain` | no | The provider's wording, from its own list, passed to the provider: plain shows the logo alone; buy, checkout, donate, order, pay and subscribe add the provider's words, translated by the provider. A value the provider does not offer falls back to plain. |
+| `wording` | string | `plain` | no | The provider's wording, from its own list, passed to the provider as its button type: plain shows the logo alone; buy, checkout, donate, order, pay and subscribe add the provider's words, translated by the provider. A value the provider does not offer falls back to plain. |
 
 ## Specs
 
@@ -119,140 +121,140 @@ Keyed by `size`, `style`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.md.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.md.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `icon.size.md` | — | — | — |
 
 **size=small, style=any**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.sm.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.sm.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `icon.size.sm` | — | — | — |
 
 **size=large, style=any**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.lg.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.lg.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `icon.size.lg` | — | — | — |
 
 **size=medium, style=black**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.md.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.md.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `size.md.height` | — | — | — |
 
 **size=small, style=black**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.sm.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.sm.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `size.sm.height` | — | — | — |
 
 **size=large, style=black**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.lg.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.lg.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `size.lg.height` | — | — | — |
 
 **size=medium, style=white**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.md.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.md.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `size.md.height` | — | — | — |
 
 **size=small, style=white**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.sm.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.sm.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `size.sm.height` | — | — | — |
 
 **size=large, style=white**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.lg.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.lg.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `size.lg.height` | — | — | — |
 
 **size=medium, style=white-outline**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.md.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.md.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `size.md.height` | — | — | — |
 
 **size=small, style=white-outline**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.sm.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.sm.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `size.sm.height` | — | — | — |
 
 **size=large, style=white-outline**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.lg.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.lg.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `size.lg.height` | — | — | — |
 
 **size=medium, style=gold**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.md.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.md.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `size.md.height` | — | — | — |
 
 **size=small, style=gold**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.sm.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.sm.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `size.sm.height` | — | — | — |
 
 **size=medium, style=blue**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.md.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.md.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `size.md.height` | — | — | — |
 
 **size=small, style=blue**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.sm.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.sm.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `size.sm.height` | — | — | — |
 
 **size=medium, style=silver**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.md.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.md.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `size.md.height` | — | — | — |
 
 **size=small, style=silver**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.sm.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.sm.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `size.sm.height` | — | — | — |
 
 **size=medium, style=purple**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.md.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.md.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `size.md.height` | — | — | — |
 
 **size=large, style=purple**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.lg.height` | — | 120px (literal) | — |
+| `container` | — | — | `size.lg.height` | — | 120px (literal) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/mark` | — | — | `size.lg.height` | — | — | — |
 
 ### Color

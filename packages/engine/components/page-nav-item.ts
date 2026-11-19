@@ -60,7 +60,7 @@ export const pageNavItem: ComponentDef = {
     root: 'container',
     parts: {
       container: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         // `target` because the schema requires exactly one — NOT an interaction claim: the target is the nested Link.
         role: 'target',
         children: ['link'],
@@ -89,7 +89,7 @@ export const pageNavItem: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
+          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
       },
       {
         class: 'semantics',
@@ -172,7 +172,7 @@ export const pageNavItem: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'One link in a row of sibling pages: another page, plain until hover, or the current page, marked with a bar and aria-current="page".',
+    primaryPurpose: 'Show one link in a row of sibling pages: another page, plain until hover, or the current page, marked with a bar and aria-current="page".',
     whenToUse: 'Only as a child of PageNav. Generate PageNav, which places one item per sibling page and marks the current one.',
     avoidWhen: 'Anywhere outside PageNav: a link on its own is Link, and a tab that shows a panel in place is Tab.Item inside Tabs.',
     commonPartners: ['page-nav', 'link'],
@@ -189,9 +189,9 @@ export const pageNavItem: ComponentDef = {
   },
 
   motion: {
-    enter: 'None. The link\'s color changes over about 150ms at hover and focus.',
+    enter: 'None. The link\'s color changes on motion.duration.fast at hover and focus.',
     exit: 'None.',
-    reduceMotion: 'The color changes at once, with no transition.',
+    reduceMotion: 'The color changes on motion.duration-reduced.fast.',
   },
 
   notes: {

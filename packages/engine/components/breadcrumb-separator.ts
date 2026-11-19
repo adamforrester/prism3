@@ -65,8 +65,8 @@ export const breadcrumbSeparator: ComponentDef = {
         children: ['chevronGlyph', 'slashGlyph'],
         note: 'The mark\'s box, one 16px icon square. Exactly one glyph shows in it.',
       },
-      chevronGlyph: { kind: 'vector', glyph: 'chevron-right', size: 'glyph-size', presentWhen: { type: ['chevron'] }, note: 'A chevron pointing toward the current page.' },
-      slashGlyph: { kind: 'vector', glyph: 'slash', size: 'glyph-size', presentWhen: { type: ['slash'] }, note: 'A forward slash.' },
+      chevronGlyph: { kind: 'vector', mirror: 'mirrors', glyph: 'chevron-right', size: 'glyph-size', presentWhen: { type: ['chevron'] }, note: 'A chevron pointing toward the current page.' },
+      slashGlyph: { kind: 'vector', mirror: 'never', glyph: 'slash', size: 'glyph-size', presentWhen: { type: ['slash'] }, note: 'A forward slash.' },
     },
     codeOnly: [
       {
@@ -121,7 +121,7 @@ export const breadcrumbSeparator: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'The mark between two steps of a Breadcrumbs trail, a chevron or a slash.',
+    primaryPurpose: 'Mark the break between two steps of a Breadcrumbs trail with a chevron or a slash.',
     whenToUse: 'Only as a child of BreadcrumbItem. Generate BreadcrumbItem, which shows the separator in the look its Breadcrumbs sets.',
     avoidWhen: 'Always on its own. Use Breadcrumbs; for a plain icon, use an Icon.',
     commonPartners: ['breadcrumb-item', 'breadcrumbs'],

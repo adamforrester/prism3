@@ -148,7 +148,7 @@ export const list: ComponentDef = {
   },
 
   accessibility: {
-    role: 'list (a native <ul> or <ol> with role="list" set explicitly), its items listitem',
+    role: 'list (a native `<ul>` or `<ol>` with `role="list"` set explicitly), its items listitem',
     wcag: [
       '1.3.1 Info and Relationships (the list and its items are marked up as a list, so the count and each position are announced)',
       '1.4.1 Use of Color (an icon marker never carries meaning alone)',
@@ -180,7 +180,7 @@ export const list: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'A short run of text items, each after a bullet, a number or an icon, laid out with bound spacing and markers.',
+    primaryPurpose: 'Lay out a short run of text items, each after a bullet, a number or an icon, with bound spacing and markers.',
     whenToUse: 'A short set of points a designer lays out in UI: password rules, feature lists, icon checklists, steps. Ordered when the order means something.',
     avoidWhen: 'Running text, such as an article body, terms or long help text. The test: if a writer could edit it as normal copy, use the native list; if a designer controls its spacing, markers or icons, use the component. Also avoid it for a choice the user makes (Select, or a listbox), a command menu, navigation links, or values compared across columns (a table).',
     commonPartners: ['list-item', 'icon', 'text-field'],
@@ -191,7 +191,7 @@ export const list: ComponentDef = {
   composition: {
     composesWith: ['list-item'],
     alternativeTo: [],
-    replacesPatterns: ['a <ul> with list-style: none and no role="list"', 'a column of text boxes with typed bullet characters'],
+    replacesPatterns: ['a `<ul>` with `list-style: none` and no `role="list"`', 'a column of text boxes with typed bullet characters'],
     supersededBy: [],
     planned: ['data-list', 'checklist', 'table', 'menu', 'navigation'],
   },

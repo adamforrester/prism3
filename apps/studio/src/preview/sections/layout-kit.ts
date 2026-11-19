@@ -10,12 +10,14 @@
  *  LABEL FIRST, TOKEN UNDER (the owner's QA-B2): `layoutLabel` draws a name in the ground's ink, its token pill under
  *  it, and its value beside. The ink comes from the ground's own custom properties (`ground()` in `kit.ts`), never
  *  inline, so it follows the previewed mode. Nothing here reads the session. */
-import type { LayoutAxis, Theme } from '@prism3/engine/theme';
+import type { LayoutAxis, Theme } from '@prism3/engine';
 import { el, hook, legibleInkOn, specimen, tokenPillSpan, type SgCtx } from './kit';
 
 export type LayoutCtx = {
   readonly c: SgCtx;
   readonly ly: LayoutAxis;
+  /** Whether type is fluid, so `type-sets` has a mobile and a desktop mode for a breakpoint to start from (#2935). */
+  readonly fluidType: boolean;
   /** The tint for breakpoint `i`. */
   readonly tint: (i: number) => string;
   /** The ink a label takes on `hex`. */
@@ -24,11 +26,11 @@ export type LayoutCtx = {
   readonly gray: string;
 };
 
-export const layoutCtx = (c: SgCtx, t: Pick<Theme, 'palettes' | 'layout'>): LayoutCtx => {
+export const layoutCtx = (c: SgCtx, t: Pick<Theme, 'palettes' | 'layout' | 'typography'>): LayoutCtx => {
   const ramp = t.palettes.find((p) => p.palette === 'primary') ?? t.palettes[0];
   const steps = ramp?.steps ?? [];
   return {
-    c, ly: t.layout,
+    c, ly: t.layout, fluidType: t.typography.fluid,
     tint: (i) => steps[Math.min(steps.length - 1, 2 + i * 3)]?.hex ?? '#808080',
     inkOn: (hex) => legibleInkOn(hex, '#000000', '#ffffff'),
     gray: c.paint(c.cur, 'background.secondary'),

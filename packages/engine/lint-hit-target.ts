@@ -63,7 +63,15 @@
  * EXPECTED is `FLOOR_PX = 44`, the WCAG number transcribed HERE as a literal — deliberately NOT imported
  * from `scale.ts`'s `AAA_TARGET_PX`. The emitter computes `select`'s `min-height` AS `max(md,
  * AAA_TARGET_PX)`, so asserting that emitted value `>= AAA_TARGET_PX` would be `x >= x` (docs/34 shape
- * 2). Written independently, lowering `AAA_TARGET_PX` to 40 fails THIS gate at 44.
+ * 2). The literal keeps the gate honest about the number it compares to.
+ *
+ * WHAT THAT INDEPENDENCE DOES NOT BUY (#4239). Lowering `AAA_TARGET_PX` to 40 passes THIS gate. The floor
+ * is measured on comfortable and spacious only, where `md` is already 44 and 56, so `max(md, 40)` returns
+ * `md` and the constant never decides a value this gate reads. The one density where it does decide one is
+ * compact, and compact is exempt. `AAA_TARGET_PX` is held elsewhere: `test.ts` #1437 ("the floor DOES
+ * work") fails by name on the compact fixture, and `regen --check` reports the emitted trees drifting. The
+ * mutation this gate does catch is the one in the next paragraph: point a control's default hit target at
+ * a smaller rung (`button`'s `size.medium.height` bound to `size.sm.height`) and it fails here by name.
  *
  * ACTUAL is the emitted px of the token a control ACTUALLY binds as its hit target, at its DEFAULT size,
  * read THROUGH the def's own `tokens` map (`def.tokens[bindKey]`) and resolved from a freshly built tree
@@ -110,6 +118,7 @@ import { buildTree } from './tree';
 import { brandTheme } from './theme';
 import { parseDesignMd } from './design-md';
 import { codeOnlyText } from './code-only-register';
+import { COMPONENT_RENAMES } from './component-renames';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -234,6 +243,9 @@ const FLUSH_RULE = [/flush/, /at least 44×44 at medium and large sizes/, /at le
 // …and must not widen the 44×44 back: small, or every size, at 44×44 is the rule over-scoped.
 const FLUSH_OVERSCOPE = /44×44 at small\b|\bsmall, medium\b|every size|all sizes/;
 const FLUSH_SIZES = ['medium', 'large'];
+// The code-side floor each flush member's size binds as a spacing token (owner Q141 revised, Q-HT1 A on #3408):
+// 24px at small (WCAG 2.5.8), 44px at medium and large (2.5.5). Literals, never read off the def or `scale.ts`.
+const CODE_FLOOR_PX: Record<string, number> = { small: 24, medium: 44, large: 44 };
 const FLUSH_SMALL_SIZES = ['small'];
 /** The `codeOnly` entry that states the code-side hit area, or the phrases no entry carries (an over-scoped
  *  entry reports the over-scope pattern). Pure, so the self-check can drive it. */
@@ -284,7 +296,7 @@ const FLUSH_NESTS: Record<string, { parts: readonly string[]; pair?: readonly [s
   // #2808 (Q385 A): the Dialog's close is one code-side target, so there is no second hit area to space it from.
   dialog: { parts: ['close'], why: "the Dialog's close, the one code-side target in its header" },
   // Owner QA 2026-10-19: the Banner's dismiss is a flush FlushIconButton.Neutral, the one code-side target in the row.
-  banner: { parts: ['dismiss'], why: "the Banner's dismiss, the one code-side target in its row" },
+  banner: { parts: ['close'], why: "the Banner's close button, the one code-side target in its row" },
   // #2666: the overflow step's flush icon button is the one code-side target in a breadcrumb item, so there is no second hit area to space it from.
   'breadcrumb-item': { parts: ['overflow'], why: "the collapsed-steps button, the one code-side target in a breadcrumb step" },
   // #2668 (Q386): the Toast's close is one code-side target beside the action Button, which is a separate target measured under its own name.
@@ -340,13 +352,14 @@ const EXCLUDED: Record<string, string> = {
   'progress': 'a progress bar or ring shows system work and is never interactive (#2670) — a retry after an error is the host\'s own control, placed beside it, which is gated',
   'spinner': 'a decorative loading indicator on the icon ladder, never interactive — the tap target is the host control it sits in (a pending button), which is gated',
   'badge': 'a static marker, never interactive (owner decision, 2026-09-27) — a count or dot on an icon button relies on the host\'s target, which is gated',
-  'checkbox-control': 'a nested-only atom — the tap target is the labelled row (checkbox-row), gated here',
-  'radio-control': 'a nested-only atom — the tap target is the labelled row (radio), gated here',
-  'switch-control': 'a nested-only atom — the tap target is the labelled row (switch), gated here; its bare 24–32px track fails SC 2.5.8 in isolation by its own codeOnly',
+  'checkbox-control': 'a nested-only atom — the tap target is the labeled row (checkbox-row), gated here',
+  'radio-control': 'a nested-only atom — the tap target is the labeled row (radio-row), gated here',
+  'switch-control': 'a nested-only atom — the tap target is the labeled row (switch-row), gated here; its bare 24–32px track fails SC 2.5.8 in isolation by its own codeOnly',
   'checkbox-group': 'a group container — its interactive tap targets are the nested checkbox-rows, which are gated',
   'radio-group': 'a group container — its interactive tap targets are the nested radio-rows, which are gated',
+  'tag-group': 'a group container — its tap targets are the nested tags, each measured under its own name (#1739)',
   'pagination': 'a navigation row — its tap targets are the nested page cells, gated as pagination-item, and the previous and next IconButton.Neutral and Button.Neutral, each measured under its own name (#2665)',
-  'tabs': 'a tab list container — its interactive tap targets are the nested tabs, which are gated as tab',
+  'tabs': 'a tab list container — its interactive tap targets are the nested tabs, which are gated as tab-item',
   'link': 'one text line tall in Figma by owner decision (Q289.4 A), so its box is the line, not a control height: code expands the hit area to at least 24px (SC 2.5.8, codeOnly), and an inline link in a sentence is exempt under the inline exception; each size\'s line box is held to 24px below, as drawn or code-side (#3179)',
   // #2428: Code input's target is its row of cells, one target over the one input, built at the owner's literal cell
   // heights (Q330 A: 44, 56, 64, 72px; `builtSize`, no token), so there is no binding here to read. test.ts holds those
@@ -420,6 +433,29 @@ for (const id of Object.keys(INTERACTIVE)) if (!defIds.has(id)) failures.push(`I
 for (const id of Object.keys(EXCLUDED)) if (!defIds.has(id)) failures.push(`EXCLUDED names '${id}', which is not a def in componentDefs — a stale exclusion.`);
 for (const id of Object.keys(CODE_SIDE_TARGETS)) if (!defIds.has(id)) failures.push(`CODE_SIDE_TARGETS names '${id}', which is not a def in componentDefs — a stale entry.`);
 for (const id of SMALL_SIZE) if (!(id in INTERACTIVE)) failures.push(`SMALL_SIZE names '${id}', which is not an INTERACTIVE control — a stale exception entry.`);
+
+// ── RETIRED IDS IN A REASON (#1707) ─────────────────────────────────────────────────────────────────
+// The keys above are checked against componentDefs; the prose was not, so `radio-control`'s reason named the
+// `radio` row id for a year after #1468 renamed it `radio-row`. A reason names the def that carries the target in
+// two set forms: a parenthesized id ("the labeled row (radio-row)") and "gated as <id>". Each id written that way
+// must not be a RETIRED one. Retired is read from the registry, never from this file: a def-kind entry in
+// COMPONENT_RENAMES (`tab` → `tab-item`), or an alias that is a strict prefix of its def's id (`radio` →
+// `radio-row`, the shape test.ts's component-refs arm reads). A parenthesized word that was never an id, such as
+// "(fluid)", is not a hit: the rule is "not retired", not "is a def", so prose keeps its parentheses.
+const retiredIds = new Map<string, string>([
+  ...COMPONENT_RENAMES.flatMap((r): [string, string][] => (r.kind === 'def' ? [[r.def, r.to]] : [])),
+  ...componentDefs.flatMap((d) => (d.aliases ?? []).filter((a) => d.id.startsWith(`${a}-`)).map((a): [string, string] => [a, d.id])),
+].filter(([id]) => !defIds.has(id)));
+if (!retiredIds.has('radio') || !retiredIds.has('tab'))
+  failures.push(`the retired-id set is missing 'radio' or 'tab' (${retiredIds.size} read) — the registry read is broken, so the reason check below asserts nothing.`);
+const citedIds = (why: string): string[] =>
+  [...why.matchAll(/\(([a-z][a-z0-9-]*)\)|gated as ([a-z][a-z0-9-]*)/g)].map((m) => m[1] ?? m[2]);
+let citedRead = 0;
+for (const [id, why] of Object.entries(EXCLUDED)) for (const cited of citedIds(why)) {
+  citedRead++;
+  if (retiredIds.has(cited)) failures.push(`EXCLUDED['${id}']'s reason names '${cited}', a retired def id — name the current one, '${retiredIds.get(cited)}'.`);
+}
+if (citedRead < 5) failures.push(`only ${citedRead} id(s) cited in EXCLUDED reasons were read — the reason check is scanning nothing.`);
 
 /** A control's DEFAULT size — the `size` prop's default, or `single` for the no-size-axis control. */
 const defaultSizeOf = (def: ComponentDef): string | undefined =>
@@ -648,6 +684,23 @@ for (const id of FLUSH_MEMBERS) {
   const gap = flushRuleGap(codeOnlyText(def.anatomy?.codeOnly));
   rows.push(`${id}/inset=flush → width floor dropped; hit area ≥ 44×44 in code at ${FLUSH_SIZES.join(' and ')}, ≥ 24×24 at ${FLUSH_SMALL_SIZES.join(', ')} (codeOnly) [code-side rule, #2408, Q170 B, Q174 B]${gap.length ? '  ✗' : ''}`);
   if (gap.length) failures.push(`${id}/inset=flush: no codeOnly entry states the code-side hit area, 44×44 at medium and large and 24×24 at small (missing or over-scoped: ${gap.join(', ')}) — a flush member has no width floor, so the height measured above does not cover it. State that its hit area is at least 44×44 at medium and large sizes and at least 24×24 at small in code through a ::before extension (owner Q154 A, Q170 B, Q174 B, #2408).`);
+  // THE FLOOR AS A SPACING TOKEN (owner Q141 revised, Q-HT1 A on #3408). The code-side floor above is prose; code
+  // reads it as a token, `size.<size>.hit-target`, a `space.*` step at every size (no dedicated hit-target tokens,
+  // no mixing token types). EXPECTED is CODE_FLOOR_PX, literals here; ACTUAL is the emitted px of the token the def
+  // binds, read through `def.tokens` on every density's build. Re-pointing medium at `space.500` (40px), or binding
+  // a `size.*` rung, fails here by name.
+  for (const s of sizes) {
+    const key = `size.${s}.hit-target`;
+    const ref = def.tokens?.[key];
+    const want = CODE_FLOOR_PX[s];
+    if (want === undefined) { failures.push(`${id}/${s}: CODE_FLOOR_PX states no floor for this size — decide its code-side hit area with the owner, then add it.`); continue; }
+    if (ref === undefined) { failures.push(`${id}/${s}: binds no code-side hit-target floor at tokens['${key}'] — the ${want}px floor must be stated as a spacing token (owner Q141, Q-HT1 A).`); continue; }
+    if (!/^space\.[0-9]+$/.test(ref)) { failures.push(`${id}/${s}: tokens['${key}'] is '${ref}', not a space.* step — hit-target floors bind spacing tokens at every size (owner Q141 revised).`); continue; }
+    const got = [...floorBuilds, compactBuild].map((b) => ({ density: b.density, px: resolvePx(b.tree, b.root, ref) }));
+    const off = got.filter((g) => g.px !== want);
+    rows.push(`${id}/${s} → code-side hit-target floor ${ref} = ${got.map((g) => g.px).join('/')}px (want ${want}) [Q141, Q-HT1 A]${off.length ? '  ✗' : ''}`);
+    if (off.length) failures.push(`${id}/${s}: tokens['${key}'] → ${ref} resolves to ${off.map((g) => `${g.px === undefined ? 'nothing' : `${g.px}px`} on ${g.density}`).join(', ')}, but the code-side hit-target floor at ${s} is ${want}px (owner Q141, Q-HT1 A).`);
+  }
 }
 
 const comfortable = floorBuilds.find((b) => b.density === 'comfortable')!;

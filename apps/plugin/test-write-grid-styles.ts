@@ -21,15 +21,16 @@
  * client's own `sm`, carrying no Prism3 mark and no engine description, is never touched. Every expected
  * name below is typed as a literal, never read off the emitter (docs/34).
  */
-import { buildGridStylePlan } from '@prism3/engine/write-plan';
-import { brandTheme } from '@prism3/engine/theme';
+import { buildGridStylePlan } from '@prism3/engine/figma';
+import { brandTheme, type BrandInput } from '@prism3/engine';
 import { readFileSync } from 'node:fs';
 import { applyGridStylePlan, gridSkippedNote } from './src/write-grid-styles';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import type { BrandInput } from '@prism3/engine/theme';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -210,5 +211,5 @@ ok(gridSkippedNote(['xs', 'sm', 'md', 'lg']) === '⚠ 4 grid styles skipped (alr
     `#2467 client 'Grid / sm': a client's own 'Grid / sm' is not renamed (renamed ${r.renamed}, its name now '${client.name}')`);
 }
 
-console.log(`\nplugin GRID-STYLE write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
+console.log(`\nplugin GRID-STYLE write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'} — ${executed} assertions executed`);
 if (failed) process.exit(1);

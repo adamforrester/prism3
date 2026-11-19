@@ -16,14 +16,15 @@
  * a file missing the palette variables reports misses and still writes correct baked colour; re-apply
  * is idempotent (+0 created, no duplicate styles). Mirrors the other shim tests.
  */
-import { buildStylesPlan } from '@prism3/engine/write-plan';
-import { brandTheme } from '@prism3/engine/theme';
+import { buildStylesPlan } from '@prism3/engine/figma';
+import { brandTheme, type BrandInput } from '@prism3/engine';
 import { applyStylesPlan } from './src/write-styles';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-import type { BrandInput } from '@prism3/engine/theme';
+import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -205,5 +206,5 @@ const noBlurFx = (noBlurShim.effectStyles.find((s) => s.name === 'glass')?.effec
 ok(noBlur.effects.bound === 0 && noBlur.misses.join() === 'ads/blur/glass' && noBlurFx[0]?.radius === 32 && !noBlurFx[0]?.boundVariables,
   `missing blur variable: the glass radius is a reported miss and keeps its literal 32px (${noBlur.misses.join(', ')})`);
 
-console.log(`\nplugin STYLES write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
+console.log(`\nplugin STYLES write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'} — ${executed} assertions executed`);
 if (failed) process.exit(1);

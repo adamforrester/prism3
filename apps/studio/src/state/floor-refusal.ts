@@ -8,8 +8,7 @@
  * `errorLine` reads a key); the mode's valid steps are read off the brand, built with the floor removed, never parsed
  * out of the engine's words.
  */
-import { brandTheme, type BrandInput } from '@prism3/engine/theme';
-import { resolveAllModes } from '@prism3/engine/modes';
+import { brandTheme, type BrandInput, resolveAllModes } from '@prism3/engine';
 
 export type FloorMode = 'light' | 'dark';
 const FLOOR_MODES: readonly FloorMode[] = ['light', 'dark'];

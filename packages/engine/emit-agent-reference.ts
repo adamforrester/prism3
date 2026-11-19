@@ -49,6 +49,7 @@ import { TOOLS as BRIDGE_TOOLS, SERVER_INFO as BRIDGE_INFO } from '../../tools/f
 import { AGENT_COMMANDS, AGENT_PROTOCOL_VERSION, MAILBOX } from '../../apps/plugin/src/agent-protocol';
 import { RUN_CODE } from '../../apps/plugin/src/dev-commands';
 import { BRIDGE_PORT } from '../../apps/plugin/src/agent-bridge-relay';
+import { localeFreeCompare } from './locale-free-order';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '..', '..');
@@ -120,7 +121,7 @@ export const WRITES: Record<string, string> = {
   'build-components': 'Component sets on their component pages, creating a page when it is missing.',
   'file-setup': 'The page structure (cover, dividers, section pages) and the helper components on ↳ File Components; _Doc-block only once badge, tag, list-item, divider and the theme are in the file. Idempotent. The cover is drawn only from a saved brand, and apply-theme does not draw it: run file-setup again after apply-theme.',
   'style-guide': 'Style-guide tables on the canvas.',
-  prune: 'With confirm: false, nothing (a preview of what would go). With confirm: true, deletes the variables and styles the brand no longer emits, recomputed from a fresh read.',
+  prune: 'With confirm: false, nothing: a preview of what would go, whose result carries a previewHash. With confirm: true and that previewHash, saves a named version, then deletes the variables and styles the brand no longer emits, recomputed from a fresh read; refused when the file does not hold the brand sent, or no longer hashes the same.',
   readback: 'Nothing. Reads the file\'s themed state and a census of every component page.',
   'update-components': 'With confirm: false (or none), nothing: a check whose result carries a previewHash. With confirm: true and that previewHash, updates the sets in place; refused when the file no longer hashes the same.',
   'capture-baseline': 'Plugin data only: the as-built record on members built before it existed.',
@@ -133,6 +134,7 @@ export const WRITES: Record<string, string> = {
   activity: 'Nothing. Reads the Activity drawer\'s runs this session from the plugin\'s memory; nothing is kept in the file.',
   'panels-clean': 'With confirm: false (or none), nothing: a count of the live usage panels and how many still hold what was drawn. With confirm: true, removes each of those, re-read now; a panel edited by hand is never removed.',
   context: 'Nothing. Reads the stored brand, the variable collections, the as-built ledger and every page for its protected nodes; pages are loaded, never switched to.',
+  'set-override': 'With confirm: false, nothing: a preview whose result carries a previewHash, each change before and after, and every pair that moved. With confirm: true and that previewHash, the Theme write: the variables, the stored brand and a saved version, through the same handler as apply-theme; refused when a pair would drop below its minimum, the file\'s brand moved after the preview, or Theme has unapplied edits.',
   'run-code': 'Whatever the code writes. Dev builds only; a release build answers unknown-command.',
 };
 
@@ -144,6 +146,21 @@ const docAbove = (src: string[], i: number): string => {
   return src.slice(s, i).join(' ').replace(/\/\*\*|\*\//g, '').replace(/^\s*\*\s?/gm, '').replace(/\s*\*\s+/g, ' ').replace(/\s+/g, ' ').trim();
 };
 
+/** #3555 Q-MD13 A: a doc comment that opens with its tracker reference (`#2265:`, `#3147 Phase 2a.`, `#3137 Q3137.7 A:`)
+ *  ships it to the agent as the description's first words. The issue number and the tracker qualifiers after it (a
+ *  phase, an owner-question id, an answer letter) are maintainer history, so they are dropped with their separator, and
+ *  the rest keeps its words: `#2530, dev builds only: the body …` reads `Dev builds only: the body …`. */
+export const stripTrackerLead = (text: string): string => {
+  const m = /^#\d+(?:\s+(?:[Pp]hase\s+\w+|Q[\d.]+|[A-Z]))*\s*[:.,]\s*/.exec(text);
+  if (!m) return text;
+  const rest = text.slice(m[0].length);
+  return rest.charAt(0).toUpperCase() + rest.slice(1);
+};
+
+/** Each agent-link command whose description still opens with a tracker reference. */
+export const trackerLeads = (ref: { agentLink: { commands: Array<{ name: string; description: string }> } }): string[] =>
+  ref.agentLink.commands.filter((c) => /^#\d/.test(c.description)).map((c) => `${c.name}: ${c.description.slice(0, 60)}`);
+
 /** One `AgentArgs` member: its args type as written and its doc comment. */
 const argsOf = (cmd: string): { args: string; description: string; source: string } => {
   const src = lines(PROTOCOL);
@@ -152,7 +169,7 @@ const argsOf = (cmd: string): { args: string; description: string; source: strin
   const re = new RegExp(`^\\s*(?:'${esc(cmd)}'|${esc(cmd)}): (.+);\\s*$`);
   for (let i = start + 1; i < end; i++) {
     const m = re.exec(src[i]);
-    if (m) return { args: m[1], description: docAbove(src, i), source: anchor(PROTOCOL, `AgentArgs.${cmd}`) };
+    if (m) return { args: m[1], description: stripTrackerLead(docAbove(src, i)), source: anchor(PROTOCOL, `AgentArgs.${cmd}`) };
   }
   throw new Error(`emit-agent-reference: AgentArgs has no member for '${cmd}' in ${PROTOCOL}`);
 };
@@ -250,7 +267,7 @@ const agentLink = () => {
       {
         name: RUN_CODE,
         args: '{ code: string; timeoutMs?: number }',
-        description: docAbove(lines(PROTOCOL), lines(PROTOCOL).findIndex((l) => l.includes(`'${RUN_CODE}': RunCodeArgs`))),
+        description: stripTrackerLead(docAbove(lines(PROTOCOL), lines(PROTOCOL).findIndex((l) => l.includes(`'${RUN_CODE}': RunCodeArgs`)))),
         source: at(DEV, /export type RunCodeArgs/, 'RunCodeArgs'),
         writes: WRITES[RUN_CODE],
         refuses: runCodeRefusals(),
@@ -285,11 +302,13 @@ export const CLI = [
 /** Files that read `process.argv` and are deliberately not listed, each with why. */
 export const CLI_EXCLUDED: Record<string, string> = {
   'packages/engine/test.ts': 'a gate; the gates are listed by `npx tsx verify.ts --list`',
+  'run-suites.ts': 'the runner behind `npm run -w @prism3/studio test` and `-w @prism3/plugin test` (#1066), a gate step; the gates are listed by `npx tsx verify.ts --list`',
   'packages/engine/emit-dtcg.ts': 'a regen step; run regen.ts',
   'packages/engine/emit-figma.ts': 'a regen step; run regen.ts',
   'packages/engine/emit-brandinput.ts': 'a regen step; run regen.ts',
   'packages/engine/emit-component-docs.ts': 'a regen step; run regen.ts',
   'packages/engine/emit-analysis-reports.ts': 'a regen step; run regen.ts',
+  'packages/engine/file-facts-cli.ts': 'the file facts scan over a plain-data snapshot (#2075 part 1), a working tool for the #2075 part 2 comparison harness; its snapshot format is not a published contract yet, so it is not offered to agents',
   'packages/engine/kb-briefs-refresh.ts': 'a maintainer refresh of schema/kb-briefs.json that reads a knowledge-base checkout outside this repository (#2488); nothing an agent can run here',
 };
 /** Gates are excluded by name pattern: there are dozens, and `verify.ts --list` is their reference. */
@@ -357,7 +376,7 @@ const cliEntry = (p: string) => {
     file: p,
     summary,
     usage,
-    flags: [...flags].sort(([a], [b]) => a.localeCompare(b)).map(([flag, source]) => ({ flag, source })),
+    flags: [...flags].sort(([a], [b]) => localeFreeCompare(a, b)).map(([flag, source]) => ({ flag, source })),
   };
 };
 
@@ -469,6 +488,12 @@ if (isMain) {
   if (templates.length) {
     console.error(`❌ the agent reference would ship an unevaluated template literal — resolve it at the source:`);
     for (const h of templates) console.error(`    ${h}`);
+    process.exit(1);
+  }
+  const leads = trackerLeads(JSON.parse(fresh));
+  if (leads.length) {
+    console.error(`❌ the agent reference would open a command description with a tracker id — reword the doc comment, or extend stripTrackerLead:`);
+    for (const h of leads) console.error(`    ${h}`);
     process.exit(1);
   }
   if (process.argv.includes('--check')) {

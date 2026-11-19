@@ -197,6 +197,9 @@ export const textarea: ComponentDef = {
   //     the same `color.border.danger` paints either node. The anatomy below puts the stroke on the
   //     `control` box that wraps the text, which is the container reading; `notes.unverified` keeps
   //     the code-side half.
+  // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
+  levers: { controlShape: { squares: ['radius.sm'] }, fieldStyle: { frame: 'control' } },
+
   tokens: {
     'fill': 'color.field.fill',
     // No hover wash (#2926, text-field's): hover is the border alone, `border.hover` below.
@@ -375,7 +378,10 @@ export const textarea: ComponentDef = {
         // Not on the focused field that holds a value (#2318, owner Q166 C): the value fills the box and wraps, so nothing
         // can follow its last character, and the owner chose no caret there over one at its start.
         presentWhen: { state: ['focus-visible'] },
-        note: 'The insertion point on the focused empty field, immediately before the placeholder, in the value ink. Code draws the native caret, colored by `caret-color`.',
+        // Maintainer detail, out of the reader caption (#3610): The insertion point on the focused empty field,
+        // immediately before the placeholder, in the value ink. Code draws the native caret, colored by `caret-
+        // color`.
+        note: 'The insertion point in a focused, empty field, right before the placeholder, in the value color.',
       },
       // THE TWO TEXT LAYERS (Option C) — text-field's, for #1567's measured reason: a bound TEXT node shows
       // its set's ONE default, so a placeholder and a value can differ per member only as two nodes. Each
@@ -410,7 +416,10 @@ export const textarea: ComponentDef = {
         corner: 'bottom-right',
         inset: 'grip-inset',
         optional: true,
-        note: 'The resize grip at the bottom-right corner, decorative: in code it is the browser\'s own handle. Pinned out of the flow, so the control keeps one size with it on or off. Shown by default (the `resize handle` boolean), since `resize` defaults to `vertical`.',
+        // Maintainer detail, out of the reader caption (#3610): The resize grip at the bottom-right corner,
+        // decorative: in code it is the browser's own handle. Pinned out of the flow, so the control keeps one size
+        // with it on or off. Shown by default (the `resize handle` boolean), since `resize` defaults to `vertical`.
+        note: 'The resize grip in the bottom-right corner, shown by default; it takes no space, so the field keeps its size with it on or off.',
       },
       // THE MESSAGE ROW — the message cell growing from the start and the counter cell hugging its caption at
       // the end, stretched to the field's width. Justified to the END, so with the message off the counter
@@ -440,7 +449,10 @@ export const textarea: ComponentDef = {
         nests: 'field-message',
         nesting: { kind: 'nest-fixed', variant: { status: 'default' }, follow: ['status'] },
         crossAxisFill: true,
-        note: 'Helper or validation text, composed rather than re-declared. Its status follows the field\'s validation by name. Hidden by default (#2926); the `message` boolean shows it, with the space above it.',
+        // Maintainer detail, out of the reader caption (#3610): Helper or validation text, composed rather than re-
+        // declared. Its status follows the field's validation by name. Hidden by default (#2926); the `message`
+        // boolean shows it, with the space above it.
+        note: 'Helper or validation text, hidden until the field has something to say; it takes the field\'s status.',
       },
       // THE COUNTER CELL — the stack gap above the counter, HUGGING the caption at the end of the row, so the
       // counter trails whether or not the message is shown. The `character count` boolean toggles this cell.
@@ -456,7 +468,10 @@ export const textarea: ComponentDef = {
         kind: 'text',
         type: 'counter-type',
         paintSlot: 'indicator',
-        note: 'The character counter, at the end of the message row. Hidden by default (the `character count` boolean), matching `showCount`, and independent of the message: either, both or neither can show. Beside the message it takes no height the row does not already have.',
+        // Maintainer detail, out of the reader caption (#3610): The character counter, at the end of the message row.
+        // Hidden by default (the `character count` boolean), matching `showCount`, and independent of the message:
+        // either, both or neither can show. Beside the message it takes no height the row does not already have.
+        note: 'The character count at the end of the message row, hidden by default; it shows with or without a message.',
       },
     },
     codeOnly: [
@@ -554,7 +569,7 @@ export const textarea: ComponentDef = {
   },
 
   accessibility: {
-    role: 'textbox (native <textarea>), with the implicit aria-multiline="true"',
+    role: 'textbox (native `<textarea>`), with the implicit `aria-multiline="true"`',
     wcag: [
       '4.1.3 Status Messages (the counter and over-limit live region — the most Textarea-specific SC)',
       '1.4.4 Resize Text / 1.4.10 Reflow (the field, counter and resize handle must survive 200% zoom and 320px without colliding or clipping)',
@@ -564,8 +579,8 @@ export const textarea: ComponentDef = {
       '1.4.3 Contrast / 1.4.11 Non-text Contrast (field boundary ≥3:1 — the rest, hover and read-only borders are gated on background.secondary, the darkest permissible ground) / 2.4.13 Focus Appearance / 4.1.2 Name Role Value',
       '2.5.8 Target Size — intent: the resize handle is the browser\'s own control, sized by the browser, so Textarea does not set its target',
     ],
-    keyboard: 'Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract aria-multiline advertises and the default. submitOnEnter inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.',
-    focus: ':focus-visible draws Text field\'s 2px focus edge in place of the border: from the outer edge, at the field\'s own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border\'s color). forwardRef must reach the <textarea> itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on programmatic value changes (a reset, or AI-inserted text), which is the common auto-grow bug.',
+    keyboard: 'Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract `aria-multiline` advertises and the default. `submitOnEnter` inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.',
+    focus: '`:focus-visible` draws Text field\'s 2px focus edge in place of the border: from the outer edge, at the field\'s own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border\'s color). `forwardRef` must reach the `<textarea>` itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on programmatic value changes (a reset, or AI-inserted text), which is the common auto-grow bug.',
     aria: 'The counter is the central problem and it is two nodes, not one: the visual counter is aria-hidden and updates instantly, while a separate visually-hidden node carries announcements. Two channels — the static limit folded into aria-describedby so tabbing in announces the ceiling, and a threshold-based polite live region that speaks only near the limit (per-keystroke counting makes the field unusable), escalating to assertive only on breach. Over-limit sets aria-invalid and is announced, never color-only. aria-busy while content streams. Preserve the native aria-multiline; do not reconstruct a textarea from contenteditable, which loses undo/redo, spellcheck, reliable IME and form submission. Set dir="auto" so content direction can differ from UI direction, and do not run counting or auto-grow measurement mid-IME-composition.',
   },
 
@@ -576,11 +591,11 @@ export const textarea: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use for free-form text expected to exceed one line — comments, descriptions, messages, feedback, multi-line addresses. Pick the sizing model by context: fixed-height-plus-scroll for a field inside a long form (so the form does not reflow as the user types), auto-grow for a composer (so the message box follows the message). Right-size the initial rows to the expected input. Compose FieldLabel above and FieldMessage below exactly as TextField does; the host wires the ids and the aria-describedby chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small field renders at 16px, because a smaller field makes iOS zoom the page on focus.',
+    usage: 'Use for free-form text expected to exceed one line — comments, descriptions, messages, feedback, multi-line addresses. Pick the sizing model by context: fixed-height-plus-scroll for a field inside a long form (so the form does not reflow as the user types), auto-grow for a composer (so the message box follows the message). Right-size the initial rows to the expected input. Compose FieldLabel above and FieldMessage below exactly as TextField does; the host wires the ids and the `aria-describedby` chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small field renders at 16px, because a smaller field makes iOS zoom the page on focus.',
     do: [
-      'Set maxRows whenever auto-growing — uncapped growth pushes the submit affordance off-screen on a long paste',
+      'Set `maxRows` whenever auto-growing — uncapped growth pushes the submit affordance off-screen on a long paste',
       'Enforce a character limit softly (allow over, flag invalid, block submit) and count by grapheme, not by string length',
-      'Announce the over-limit through the live region and aria-invalid — color alone is not a signal',
+      'Announce the over-limit through the live region and `aria-invalid` — color alone is not a signal',
       'Normalize \\r\\n to \\n on paste before counting or storing, and resize once per paste rather than once per inserted line',
       'Keep a read-only textarea scrollable and selectable, so the whole value stays reachable — far more text is hidden here than in a single-line field',
       'Reserve space in the footer for the validation message and the counter, so an over-limit error does not push the resize handle',
@@ -598,7 +613,7 @@ export const textarea: ComponentDef = {
   ai: {
     primaryPurpose: 'Capture multi-line free-form text with an associated label, an optional soft character limit, and a stated sizing model.',
     whenToUse: 'Comments, descriptions, messages, feedback, notes, commit-message bodies, a multi-line address — any input that predictably runs past the ~40–60 characters a single-line field shows comfortably, or that legitimately needs user-authored line breaks.',
-    avoidWhen: 'The value is a single line (TextField — and do not substitute a one-row Textarea, the Enter semantics differ), needs formatting or structure such as bold, links, @-mentions or embedded media (a rich-text editor — a <textarea> holds a plain string and nothing else), is source code (a real code editor, for syntax highlighting and bracket matching), or comes from a known set (Select, or a combobox, not built yet). Also avoid reaching for it as a general "big box of text" when the content is genuinely structured — that is the rich-text signal.',
+    avoidWhen: 'The value is a single line (TextField — and do not substitute a one-row Textarea, the Enter semantics differ), needs formatting or structure such as bold, links, @-mentions or embedded media (a rich-text editor — a `<textarea>` holds a plain string and nothing else), is source code (a real code editor, for syntax highlighting and bracket matching), or comes from a known set (Select, or a combobox, not built yet). Also avoid reaching for it as a general "big box of text" when the content is genuinely structured — that is the rich-text signal.',
     commonPartners: ['field-label', 'field-message', 'button', 'icon', 'spinner'],
     triggerKeywords: ['textarea', 'text area', 'multiline', 'multi-line input', 'comment box', 'message box', 'description field', 'composer'],
     generationPriority: 2,
@@ -620,7 +635,7 @@ export const textarea: ComponentDef = {
   motion: {
     enter: 'none (present on mount)',
     exit: 'none',
-    reduceMotion: 'State transitions follow text-field\'s ~100–150ms token-driven contract. AUTO-GROW HAS NO HEIGHT TRANSITION: the height changes instantly on each keystroke, because an eased height lags behind the typing and reflows the layout below on every frame; if a transition is used at all it stays at or under 100ms and drops under prefers-reduced-motion. While the user drags the resize handle, strip every transition off the node, or the edge lags behind the cursor.',
+    reduceMotion: 'State transitions follow text-field\'s: motion.duration.fast with motion.easing-role.default. AUTO-GROW HAS NO HEIGHT TRANSITION: the height changes instantly on each keystroke, because an eased height lags behind the typing and reflows the layout below on every frame; if a transition is used at all it stays at or under motion.duration.fast and drops under prefers-reduced-motion. While the user drags the resize handle, strip every transition off the node, or the edge lags behind the cursor.',
   },
 
   notes: {

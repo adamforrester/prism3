@@ -56,9 +56,7 @@
  * check has already cleared, and a rename does not change a type); and a host limit on mode COUNT (a plan
  * tier's mode cap) is not knowable from the API before `addMode` hits it.
  */
-import type { WritePlan, FloatCollectionPlan, VarCollectionPlan, StylesPlan, GridStylePlan, TextStylePlan } from '@prism3/engine/write-plan';
-import { renameMap, validateRenameMap, planCollectionRenames, isRefusal, type RenameMap } from '@prism3/engine/rename-map';
-import { CORE_COLLECTION } from '@prism3/engine/emit-figma-color';
+import { type WritePlan, type FloatCollectionPlan, type VarCollectionPlan, type StylesPlan, type GridStylePlan, type TextStylePlan, renameMap, validateRenameMap, planCollectionRenames, isRefusal, type RenameMap, CORE_COLLECTION } from '@prism3/engine/figma';
 import { ownedModeIds, replacesOnRetype, type VarCollection } from './write-figma';
 import { isEngineDescription, type StyleKind } from './prune-figma';
 import { isMarkedOwned, type Markable } from './provenance';
@@ -100,6 +98,13 @@ export type Conflict = {
  *  nor creates it. Every other collection's name is its plan's `name`, so only these two need saying. */
 export type ColorNames = { core: string | null; color: string | null };
 export const COLOR_NAMES: ColorNames = { core: CORE_COLLECTION, color: 'color' };
+
+/**
+ * THE COLLECTIONS A BINDING MAY REACH (#1904): every variable collection the pre-flight checks, by the name the writer
+ * resolves. The style, text-style and wash bindings index their targets from these only (`binding-targets.ts`), so a
+ * binding lands where the pre-flight looked, never on a same-named variable in a foreign or stranded collection.
+ */
+export const bindingCollectionsOf = (plan: PreflightPlan): string[] => [...new Set(plan.variables.map((g) => g.collection))];
 
 /**
  * Assemble the pre-flight plan from the SAME plan objects the executors are handed, so the names checked

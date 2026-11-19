@@ -345,7 +345,7 @@ export const checkboxRow: ComponentDef = {
       // (`minHeight`, #2894), and it centers `content` in it, so a single-line row measures 36/44/56 at
       // comfortable with the slack split above and below. A wrapped label grows the row past the floor.
       row: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'target',
         // CENTER on the cross axis, over ONE child (#2894, owner Q539 Q?3 A). The row centers `content`, which
         // keeps the control and label top-aligned, so the floor's slack splits evenly and a wrapping consent
@@ -421,7 +421,11 @@ export const checkboxRow: ComponentDef = {
         size: 'size.{size}.control',
         // `status` FOLLOWS (owner Q354, #2751): the Row's `status` member nests the control at the same status.
         nesting: { kind: 'nest-exposed', variant: { selection: 'unchecked', state: 'rest', status: 'default' }, expose: ['selection', 'state'], follow: ['size', 'status'] },
-        note: 'An in-flow instance of `checkbox-control` taking the control cell inside the line-box wrapper. It EXPOSES the control\'s selection and state (the consumer drives them from the Row), follows the Row\'s size and status, and binds its own square so it is centered within the taller wrapper rather than stretched to fill it.',
+        // Maintainer detail, out of the reader caption (#3610): An in-flow instance of `checkbox-control` taking the
+        // control cell inside the line-box wrapper. It EXPOSES the control's selection and state (the consumer drives
+        // them from the Row), follows the Row's size and status, and binds its own square so it is centered within
+        // the taller wrapper rather than stretched to fill it.
+        note: 'The checkbox, centered on the label\'s first line; it follows the row\'s size, status and selection.',
       },
       // THE TEXT COLUMN (#3153, owner Q853 A and Q852). The label and, under it, the description, so the description
       // starts at the label's start edge and never under the control. Its top inset is `label-inset`, half of the box
@@ -449,7 +453,11 @@ export const checkboxRow: ComponentDef = {
         // reflows while the top-aligned row holds the control on the first line (#1201). The row's `minWidth`
         // floor is what gives the fill something to resolve against — `anatomyErrors` requires it.
         wrap: true,
-        note: 'The accessible name AND the second half of the hit target. Rich content in code (a consent line carries a link); a plain text node in Figma, where a nested link cannot exist. It WRAPS to a second line rather than overflowing (#1424) — it fills the row\'s main axis and reflows.',
+        // Maintainer detail, out of the reader caption (#3610): The accessible name AND the second half of the hit
+        // target. Rich content in code (a consent line carries a link); a plain text node in Figma, where a nested
+        // link cannot exist. It WRAPS to a second line rather than overflowing (#1424) — it fills the row's main axis
+        // and reflows.
+        note: 'The accessible name, and part of what a person clicks; a long label wraps to a second line.',
       },
       // THE DESCRIPTION (#3153, owner Q853 A). Helper text under the label: one type step below it, in the muted
       // ink, starting at the label's edge (it is the text column's second child), a small fixed gap above it. Hidden
@@ -551,7 +559,7 @@ export const checkboxRow: ComponentDef = {
   },
 
   accessibility: {
-    role: 'checkbox (native <input type="checkbox">), with aria-checked true / false / mixed',
+    role: 'checkbox (native `<input type="checkbox">`), with `aria-checked` `true` / `false` / `mixed`',
     wcag: [
       '2.5.8 Target Size — the intent: the whole row is the target, because the 12–24px box fails in isolation. The row\'s minimum height is the control-height ladder, so every row is at least 24px tall, and the default (medium) row is 44px on comfortable density.',
       '4.1.2 Name Role Value (role, checked and mixed — aria-checked="mixed" must be set explicitly)',
@@ -562,20 +570,20 @@ export const checkboxRow: ComponentDef = {
       '3.3.7 Redundant Entry (repeated consents)',
     ],
     keyboard: 'Each checkbox is its own Tab stop and Space toggles — the key cross-control difference from Radio.Group, which is one Tab stop for the group with arrows moving within it. Never override Enter: Enter submits the enclosing form, and hijacking it breaks universal web behavior.',
-    focus: ':focus-visible ring on the control, offset, at least 3:1 — keyboard traversal only, not mouse or touch. The visual box stays tight while the interactive footprint is generous: the hit target is expanded by padding on the row wrapper (the icon-button parallel), so clicking the label or the surrounding space toggles. The target aims for at least 24x24, scaling to 44 (Apple) / 48 (Material) on touch. The label sits inline-end of the control, not above it.',
+    focus: '`:focus-visible` ring on the control, offset, at least 3:1 — keyboard traversal only, not mouse or touch. The visual box stays tight while the interactive footprint is generous: the hit target is expanded by padding on the row wrapper (the icon-button parallel), so clicking the label or the surrounding space toggles. The target aims for at least 24x24, scaling to 44 or 48 on touch. The label sits inline-end of the control, not above it.',
     aria: 'Prefer the styled native input — appearance: none plus a pseudo-element or SVG keeps role, checked state and Space-to-toggle for free; a role="checkbox" div is a last resort and must reproduce aria-checked (true/false/mixed) exactly. Relying on the visual dash glyph alone to convey indeterminate is an accessibility failure. For a set, role="group" plus aria-labelledby is the default over fieldset/legend — both are valid, but fieldset has flexbox and grid quirks that make it hard to style predictably, and role=group on a div keeps the layout freedom while preserving the shared-label announcement. Group error and required associate to the group and announce once; a row inside a group never owns its own required or error — the group sets its status. A standalone row (a consent line) is the one that sets its own: status=error with aria-invalid on the input and the host\'s message in its aria-describedby. When the control is nested in a host row, the host provides the accessible name through aria-labelledby — never double-label.',
   },
 
   content: {
     labelPattern: 'A positive statement of what becomes true when checked — "Subscribe to newsletter", never "Do not send me emails", which a user has to mentally invert in order to uncheck. Sentence case, no terminal period for a terse single-sentence label; apply punctuation only for multi-sentence or legal labels. Abstract shared words up into the group label, so "Notification preferences" lets its rows read "Email", "SMS", "Push".',
-    errorPattern: 'Group-level for a set — "Select at least one option" — stating what is wrong and how to fix it (SC 3.3.3). Inside a group the group sets status=error on every row and carries the message. A standalone row sets its own status=error ("Accept the terms to continue"), and its host shows the message.',
+    errorPattern: 'Group-level for a set — "Select at least one option" — stating what is wrong and how to fix it (SC 3.3.3). Inside a group the group sets `status=error` on every row and carries the message. A standalone row sets its own `status=error` ("Accept the terms to continue"), and its host shows the message.',
   },
 
   docs: {
-    usage: 'Use a single Checkbox.Row for one independent opt-in (a consent line, "Remember me"), and a Checkbox.Group to select any number — zero to many — from a bounded set. Use the indeterminate state for a select-all broadcasting partial selection over a table or tree. Compose FieldMessage below exactly as TextField does; the host wires the ids and the aria-describedby chain. Past roughly 7-10 options, scanning and vertical space suffer and a filtering multi-select combobox (not built yet) is the better control.',
+    usage: 'Use a single Checkbox.Row for one independent opt-in (a consent line, "Remember me"), and a Checkbox.Group to select any number — zero to many — from a bounded set. Use the indeterminate state for a select-all broadcasting partial selection over a table or tree. Compose FieldMessage below exactly as TextField does; the host wires the ids and the `aria-describedby` chain. Past roughly 7–10 options, scanning and vertical space suffer and a filtering multi-select combobox (not built yet) is the better control.',
     do: [
       'Make the whole row the hit target with padding on the wrapper — the visual box stays tight while the interactive footprint aims for 24x24 and beyond',
-      'Set aria-checked="mixed" explicitly for indeterminate — the dash glyph alone conveys nothing to assistive tech',
+      'Set `aria-checked="mixed"` explicitly for indeterminate — the dash glyph alone conveys nothing to assistive tech',
       'Let the group own required, validation and the value array; a row inside a group never manages its own error',
       'Accept rich content in the label, so a consent line can carry the link it needs',
       'Phrase the label positively, and state exactly what is being agreed to on a consent checkbox',
@@ -594,7 +602,7 @@ export const checkboxRow: ComponentDef = {
   ai: {
     primaryPurpose: 'Capture an independent binary choice that is staged into a form and submitted, with an associated label that doubles as the hit target and an optional indeterminate state for select-all hierarchy.',
     whenToUse: 'A single opt-in (consent, "remember me", "include X"), or any-number-from-a-set selection where the change applies on save rather than instantly. The indeterminate state when a parent row summarizes a partially-selected set of children.',
-    avoidWhen: 'The change takes effect the instant it is toggled (Switch.Row — the boundary is staged versus immediate, and only Checkbox.Row has indeterminate), the options are mutually exclusive (Radio.Group — any-number versus exactly-one; a two-option exclusive choice is Radio.Group, never two checkboxes), the control is really an action with a pressed state in a dense toolbar (a toggle button with aria-pressed, not built yet), or the set runs past roughly 7-10 options (a filtering multi-select combobox or listbox, not built yet).',
+    avoidWhen: 'The change takes effect the instant it is toggled (Switch.Row — the boundary is staged versus immediate, and only Checkbox.Row has indeterminate), the options are mutually exclusive (Radio.Group — any-number versus exactly-one; a two-option exclusive choice is Radio.Group, never two checkboxes), the control is really an action with a pressed state in a dense toolbar (a toggle button with `aria-pressed`, not built yet), or the set runs past roughly 7–10 options (a filtering multi-select combobox or listbox, not built yet).',
     commonPartners: ['checkbox-control', 'checkbox-group', 'field-label', 'field-message', 'focus-ring', 'button'],
     triggerKeywords: ['checkbox', 'check box', 'tickbox', 'check', 'select all', 'consent', 'terms and conditions', 'opt in'],
     generationPriority: 2,
@@ -608,10 +616,10 @@ export const checkboxRow: ComponentDef = {
     // Brief §12's alternatives that exist. `select` is NOT one — it is single-value, and the brief's
     // large-set alternative is a MULTI-select combobox or listbox (#1698); those and a selectable chip
     // are not built yet, so they sit in `planned`.
-    alternativeTo: ['switch-row', 'radio-row'],
+    alternativeTo: ['switch-row', 'radio-row', 'text-field'],
     replacesPatterns: [
-      'a bare <input type="checkbox"> with no label wiring',
-      'a role="checkbox" div where a styled native input would do',
+      'a bare `<input type="checkbox">` with no label wiring',
+      'a `role="checkbox"` div where a styled native input would do',
     ],
     // Nothing supersedes it for a staged binary choice. The brief corrects its own external research
     // pass here, which typed Switch and Combobox as `superseded-by`: they are sibling alternatives
@@ -622,9 +630,9 @@ export const checkboxRow: ComponentDef = {
 
   // Brief §8. The Row draws no motion of its own; the glyph transition belongs to the nested control.
   motion: {
-    enter: 'None of the row\'s own (present on mount). On check, the nested Checkbox.Control draws its glyph and crossfades its fill, about 100-150ms.',
+    enter: 'None of the row\'s own (present on mount). On check, the nested Checkbox.Control draws its glyph and crossfades its fill, on motion.duration.fast.',
     exit: 'None of the row\'s own. On uncheck, the nested control runs the same glyph transition back.',
-    reduceMotion: 'No layout motion. Under prefers-reduced-motion, the nested glyph flips instantly; a crossfade under 150ms may remain.',
+    reduceMotion: 'No layout motion. Under prefers-reduced-motion, the nested glyph is not drawn, and the color change fades on motion.duration-reduced.fast.',
   },
 
   notes: {
@@ -638,7 +646,7 @@ export const checkboxRow: ComponentDef = {
       'The unchecked box has no `pressed` binding. `color.field.border.*` emits `rest` and `hover` only, so a pressed unchecked box falls through to its rest border. Reaching into `color.interactive.neutral.border.pressed` for that one coordinate would put two families on one ladder, which is the inconsistency `lint-paint.ts` arm 1 exists to see in its axis-led form. The checked and indeterminate coordinates DO paint pressed, so the gap is asymmetric — worth knowing before anyone reads the pressed row as covered.',
       '`read-only` is declared and binds nothing (see `states`). The brief calls it "the awkward one" and recommends static text over a styled locked control, so there is no treatment to bind; a consumer choosing `aria-readonly` plus a prevented toggle has no token telling them what it should look like.',
       'The whole-row hit target — at least 24x24 (SC 2.5.8), 44 (Apple) / 48 (Material) on touch. Since #2894 the row\'s floor, `size.*.min-height`, is bound in Figma as well as code, and every row clears 24 by measurement (`test.ts` #2894: 29px at its smallest, small at compact). History: before #1433b gave the row 12px of block padding, an aurora `small` row at compact hugged to 21px, short of 24. `lint-hit-target` holds only the default (medium) row\'s `min-height` to 44px on comfortable and spacious density, which is why `accessibility.wcag` states 2.5.8 as intent (#1698). The heights are measured from emitted tokens and plans, not yet read back from a real host.',
-      'The check-glyph micro-motion (brief §8: an SVG stroke-dasharray draw at roughly 100-150ms, morphing dash to check) is stated in `checkbox-control`\'s `motion`, and nothing checks it: `motion` is prose, and no token binding in either def points at the emitted `motion.duration-ms.*`.',
+      'The check-glyph micro-motion (brief §8: an SVG stroke-dasharray draw, morphing dash to check) is stated in `checkbox-control`\'s `motion` on motion.duration.fast, and nothing checks it: `motion` is prose, and no token binding in either def points at the emitted `motion.duration-ms.*`.',
     ],
     evolution: [
       // Moved from `contested` (#1700): each is decided ("RESOLVED, not open", "Settled by evidence", "CLOSED"),

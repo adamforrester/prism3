@@ -21,7 +21,7 @@
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { contrast } from './color';
+import { contrast, formatRatio } from './color';
 import { Theme, brandTheme, BrandInput } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes, ModeResult } from './modes';
@@ -44,20 +44,32 @@ const outDir = resolve(here, 'out');
 
 // Persist a theme's DTCG tree + AI-metadata sidecar to `outDir`; return the built
 // tree/modes/stats so the caller can print a summary and gate on the contracts.
-export const emitTheme = (theme: Theme, outDir: string): { tree: any; modes: ModeResult[]; stats: Stats } => {
+export const emitTheme = (theme: Theme, outDir: string, opts: { build?: string } = {}): { tree: any; modes: ModeResult[]; stats: Stats } => {
+  // #3875: every file lands directly in `outDir`. `brandTheme` refuses an id that would leave it; this is the
+  // backstop for a theme that reached here another way, checked before anything is written.
+  const dir = resolve(outDir);
+  const fileIn = (name: string): string => {
+    const at = resolve(dir, name);
+    if (dirname(at) !== dir) throw new Error(`'${name}' would be written outside ${dir}, so nothing was written.`);
+    return at;
+  };
+  const files = { tokens: fileIn(`${theme.id}.tokens.json`), ai: fileIn(`${theme.id}.ai.json`), base: fileIn(`${theme.id}.base.tokens.json`) };
   mkdirSync(outDir, { recursive: true });
   const built = buildTree(theme);
-  writeFileSync(resolve(outDir, `${theme.id}.tokens.json`), JSON.stringify(built.tree, null, 2) + '\n');
+  // #3698 R1: a live build (the CLI on a brief) stamps its build identity beside the engine version, before anything
+  // below reads the tree. The committed corpus passes none, so its stamps stay the fold's (`build-identity.ts`).
+  if (opts.build && opts.build !== built.tree.$extensions.generator.version) built.tree.$extensions.generator.build = opts.build;
+  writeFileSync(files.tokens, JSON.stringify(built.tree, null, 2) + '\n');
   // AI-readable metadata sidecar (agent surface for the semantic layer).
-  writeFileSync(resolve(outDir, `${theme.id}.ai.json`), JSON.stringify(buildAiMetadata(theme, built.tree), null, 2) + '\n');
+  writeFileSync(files.ai, JSON.stringify(buildAiMetadata(theme, built.tree), null, 2) + '\n');
   // The CONFORMING projection (#609), and since #2552 the CONSUMER set itself: base + overlay, composed by the
   // consumer's own multi-source merge, with no `$extensions` anywhere — a token carries `$value`, `$type` and
   // `$description`. The tree above stays the source of truth and keeps every extension (its other modes live
   // there); see `emit-dtcg-overlay.ts` for why overlays and not full per-mode trees, and why the strip is safe here.
   const projected = buildOverlaySet(built.tree);
-  writeFileSync(resolve(outDir, `${theme.id}.base.tokens.json`), JSON.stringify(projected.base, null, 2) + '\n');
+  writeFileSync(files.base, JSON.stringify(projected.base, null, 2) + '\n');
   for (const { mode, tree } of projected.overlays) {
-    writeFileSync(resolve(outDir, `${theme.id}.${mode}.overlay.tokens.json`), JSON.stringify(tree, null, 2) + '\n');
+    writeFileSync(fileIn(`${theme.id}.${mode}.overlay.tokens.json`), JSON.stringify(tree, null, 2) + '\n');
   }
   return built;
 };
@@ -129,6 +141,12 @@ const validate = (data: any, schema: any, defs: any, path = ''): string[] => {
   }
   return e;
 };
+/** One row of `modes-report.md`'s contract table. The contrast cell prints through `formatRatio`, FLOORED, so a pair
+ *  measuring 4.496 against a 4.5 floor reads `4.49` beside its ❌, never `4.50` (#3759, the #3697 L3 rule). */
+export const contractReportRow = (roleKey: string, r: { path: string; ratio: number; min: number }, namespace: string): string => {
+  const checked = r.min > 0, pass = !checked || r.ratio >= r.min;
+  return `| ${roleKey} | ${r.path.replace(namespace + '.', '')} | ${checked ? formatRatio(r.ratio, { bare: true }) : '—'} | ${checked ? r.min : '—'} | ${checked ? (pass ? '✅' : '❌') : '·'} |`;
+};
 const brandSchema = JSON.parse(readFileSync(resolve(here, './schema/theme-schema.json'), 'utf8'));
 /** Validate a parsed BrandInput against the canonical theme-schema.json contract. */
 export const validateBrandInput = (input: unknown): string[] => validate(input, brandSchema, brandSchema.$defs ?? {});
@@ -183,7 +201,7 @@ if (isMain) {
     console.log(`  gradient: ${theme.gradient.gradients.length ? theme.gradient.gradients.map((g) => `${g.name}(${g.kind}${g.kind === 'linear' ? ` ${g.angle}°` : ''}, ${g.stops.length} stops, ${g.interpolation}, worst-on-white ${g.worstOnWhite}:1)`).join(' · ') : 'none (opt-in axis)'}`);
     console.log(`  aliases: ${stats.resolved}/${stats.aliases} resolve | mode contracts: ${stats.modePass}/${stats.modeChecks} pass`);
     console.log(`  [written] ${outPath}`);
-    if (stats.broken.length) { ok = false; stats.broken.forEach((b) => console.log(`   ❌ ${b.path} -> {${b.ref}}`)); }
+    if (stats.broken.length) { ok = false; stats.broken.forEach((b) => console.log(`   ❌ ${b.reason}: ${b.path} -> {${b.ref}}${b.mode ? ` (${b.mode})` : ''}${b.chain ? ` — ${b.chain.join(' -> ')}` : ''}`)); }
     if (stats.modePass < stats.modeChecks) ok = false;
 
     md.push(`# Theme: ${theme.id} (${theme.root}.* / ${theme.colorFormat})`, '');
@@ -191,10 +209,7 @@ if (isMain) {
     md.push('', `Palettes: ${theme.palettes.map((p) => p.palette).join(', ')}. Danger draws from \`${theme.roleToPalette.danger}\`.`, '');
     for (const mr of modes) {
       md.push(`## ${theme.id} — color mode: ${mr.mode}`, '', '| role | → step | contrast | floor | result |', '|---|---|---|---|---|');
-      for (const [roleKey, r] of Object.entries(mr.roles)) {
-        const checked = r.min > 0, pass = !checked || r.ratio >= r.min;
-        md.push(`| ${roleKey} | ${r.path.replace(theme.namespace + '.', '')} | ${checked ? r.ratio.toFixed(2) : '—'} | ${checked ? r.min : '—'} | ${checked ? (pass ? '✅' : '❌') : '·'} |`);
-      }
+      for (const [roleKey, r] of Object.entries(mr.roles)) md.push(contractReportRow(roleKey, r, theme.namespace));
       md.push('');
     }
     md.push(`## ${theme.id} — dimension axis`, '', `Grid (${stats.dimLeaves} primitives, px): ${theme.dims.grid.join(', ')}`, '');

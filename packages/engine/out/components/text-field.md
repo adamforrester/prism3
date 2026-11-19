@@ -21,12 +21,12 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 
 1. **Label** — The accessible name, composed rather than re-declared. Its size follows the field's, one step below the input; its label text, required marker, emphasis and weight surface on the text-field. A fix to FieldLabel still reaches this without a copy. Starts primary and regular. Fills the field's width; a long name wraps at FieldLabel's max width.
 2. **Leading visual** (optional) — An optional purpose glyph before the value, aria-hidden. Absent by default; the caller nominates the icon.
-3. **Caret**
+3. **Caret** — The insertion point in a focused, empty field, right before the placeholder, in the value color.
 4. **Caret end** — The insertion point on the focused field that holds a value, immediately after the value, in the value ink. Code draws the native caret where the user is typing.
 5. **Placeholder** — The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. One line; a long one clips at the value row's edge.
-6. **Value**
+6. **Value** — The entered value, on one line: shown when the field is filled or read-only, and a long value scrolls rather than ending in an ellipsis.
 7. **Trailing visual** (optional) — An optional trailing affix at the trailing edge (a clear / reveal glyph), aria-hidden as a glyph. Absent by default; the caller nominates the icon. Its interactive behavior is code-only.
-8. **Message** (optional)
+8. **Message** (optional) — Helper or validation text, hidden until the field has something to say; it takes the field's status and width, and a long message wraps.
 
 ## Styles
 
@@ -42,30 +42,30 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 
 ## Usage guidelines
 
-Use for free-form, non-enumerable single-line input — names, titles, SKUs, identifiers, short queries. Always render a visible label; show the format in helper text before failure; keep validation timing with the form library. The field nests FieldLabel above and FieldMessage below; the host wires the ids and aria-describedby chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small input renders at 16px, because a smaller input makes iOS zoom the page on focus.
+Use for free-form, non-enumerable single-line input — names, titles, SKUs, identifiers, short queries. Always render a visible label; show the format in helper text before failure; keep validation timing with the form library. The field nests FieldLabel above and FieldMessage below; the host wires the ids and `aria-describedby` chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small input renders at 16px, because a smaller input makes iOS zoom the page on focus.
 
 ### Do
 
 - Always render a visible, associated label (FieldLabel) — visually-hidden only for search
-- Distinguish readOnly (copyable, submitted, full-contrast) from disabled (silent, exempt)
-- Emit a real \<input name> so it works uncontrolled, in a native form, with Server Actions
-- Separate a decorative glyph (aria-hidden) from an interactive trailing action (a labeled button)
+- Distinguish `readOnly` (copyable, submitted, full-contrast) from disabled (silent, exempt)
+- Emit a real `<input name>` so it works uncontrolled, in a native form, with Server Actions
+- Separate a decorative glyph (`aria-hidden`) from an interactive trailing action (a labeled button)
 - Follow the error-timing contract: validate on blur, re-validate on input after the first error, move focus to the first invalid field on submit, and show an error summary on a long form (the form library runs it; the field renders it)
 
 ### Don't
 
 - Use the placeholder as the label, or put load-bearing text in it
-- Use type="number" for numeric input — use a number field, not built yet (email/url/tel stay as type here)
+- Use `type="number"` for numeric input — use a number field, not built yet (email/url/tel stay as type here)
 - Bake a validation engine or timing into the field — render the error you are handed
 - Signal error with the border color alone — the message carries the text + icon
 
 ## Accessibility
 
 - **Keyboard:** Native text editing. Tab focuses the input; interactive affixes (clear / reveal) are separate tab stops with their own accessible names. Escape clears when clearable.
-- **Focus:** :focus-visible draws the 2px focus edge in place of the border: from the field's outer edge, at its own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color), boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. forwardRef must reach the \<input>, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.
-- **Screen readers:** textbox (native \<input>)
+- **Focus:** `:focus-visible` draws the 2px focus edge in place of the border: from the field's outer edge, at its own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color), boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. `forwardRef` must reach the `<input>`, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.
+- **Screen readers:** textbox (native `<input>`)
 
-  The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the highest-frequency real a11y failure). placeholder is not the accessible name. Error timing: validate on blur, re-validate on input after the first error, announce politely, and on submit move focus to the first invalid field (with an error summary on a long form). While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir="auto" on the input so content direction can differ from UI direction.
+  The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the most frequent real accessibility failure). placeholder is not the accessible name. Error timing: validate on blur, re-validate on input after the first error, and on submit move focus to the first invalid field (with an error summary on a long form). The message is read through aria-describedby when focus reaches the field, never through a live region on the field; the form's error summary is the only region that announces. While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir="auto" on the input so content direction can differ from UI direction.
 
 ### WCAG
 
@@ -81,7 +81,7 @@ Use for free-form, non-enumerable single-line input — names, titles, SKUs, ide
 
 - **Enter:** none (present on mount)
 - **Exit:** none
-- **Reduced motion:** State transitions — the border color on focus or status, the helper-to-validation message swap — are short, token-driven and eased out, ~100–150ms. A validation message must not jolt the layout: reserve its space or grow the height gently. Under prefers-reduced-motion these resolve to an instant color or position change so the state stays perceivable. The pending spinner is functional; aria-busy carries its state regardless.
+- **Reduced motion:** State transitions — the border color on focus or status, the helper-to-validation message swap — run on motion.duration.fast with motion.easing-role.default. A validation message must not jolt the layout: reserve its space or grow the height gently. Under prefers-reduced-motion a position change is at once and a color change runs on motion.duration-reduced.fast, so the state stays perceivable. The pending spinner is functional; aria-busy carries its state regardless.
 
 ## Content guidelines
 
@@ -94,12 +94,12 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 ## Related components
 
 - **Built from:** `field-label`, `field-message`
-- **Instead, consider:** `textarea`, `select`, `checkbox-row`, `switch-row`, `password-field`, `search-field`
+- **Instead, consider:** `textarea`, `select`, `checkbox-row`, `switch-row`, `password-field`, `search-field`, `counter`, `card-number-field`, `slider`, `code-input`
 - **Often used with:** `icon`, `button`, `spinner`
 - **Replaces:**
   - bare input without label wiring
   - placeholder-as-label
-  - type=number for formatted numeric
+  - `type=number` for formatted numeric
 
 ## Building it in code
 
@@ -159,43 +159,223 @@ Code-only states, with no design-file member: `pending`, `empty`.
 
 Padding reads top / right / bottom / left when its sides differ.
 
-Keyed by `size`.
+Keyed by `size`, `state`.
 
-**size=medium**
+**size=medium, state=rest**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
-| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | — |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
 | `container/control/content` | — | `space.100` | — | — | — | — |
 | `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/control/content/entry/caret` | — | — | `control.size.md.line-box` | `border-width.hairline` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium, state=focus-visible-filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/control/content/entry/caretEnd` | — | — | `control.size.md.line-box` | `border-width.hairline` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
-**size=small**
+**size=medium, state=disabled**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
-| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | — |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
 | `container/control/content` | — | `space.100` | — | — | — | — |
 | `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium, state=read-only**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/control/content/entry/caret` | — | — | `control.size.sm.line-box` | `border-width.hairline` | — | — |
-| `container/control/content/entry/caretEnd` | — | — | `control.size.sm.line-box` | `border-width.hairline` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
-**size=large**
+**size=small, state=focus-visible-filled**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
-| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | `size.lg.height` | — | 120px (literal) | — |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/content/entry/caretEnd` | — | — | `control.size.sm.line-box` | `border-width.hairline` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
 | `container/control/content` | — | `space.100` | — | — | — | — |
 | `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, state=read-only**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, state=rest**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | `size.lg.height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, state=hover**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | `size.lg.height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, state=filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | `size.lg.height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, state=focus-visible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | `size.lg.height` | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/control/content/entry/caret` | — | — | `control.size.lg.line-box` | `border-width.hairline` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, state=focus-visible-filled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | `size.lg.height` | — | 120px (literal) | radius `radius.sm`; stroke `focus.ring.width` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/control/content/entry/caretEnd` | — | — | `control.size.lg.line-box` | `border-width.hairline` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, state=disabled**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | `size.lg.height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, state=read-only**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | `size.lg.height` | — | 120px (literal) | radius `radius.sm`; stroke `border-width.hairline` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
 ### Type
 

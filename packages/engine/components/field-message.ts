@@ -273,21 +273,31 @@ export const fieldMessage: ComponentDef = {
         glyph: 'warning-triangle',
         size: 'glyph-size',
         presentWhen: { status: ['error'] },
-        note: 'The error glyph, aria-hidden — the caption carries the meaning. An exclamation in a triangle, and the only status whose enclosure is not a circle: shape is the channel that survives when the ink cannot be told from `warning`\'s. Its ink is `error.icon`, applied as `descendantFills` (never a fill on the artboard — #864), so the icon+text pairing that satisfies SC 1.4.1 is one token decision rather than two.',
+        // Maintainer detail, out of the reader caption (#3610): The error glyph, aria-hidden — the caption carries
+        // the meaning. An exclamation in a triangle, and the only status whose enclosure is not a circle: shape is
+        // the channel that survives when the ink cannot be told from `warning`'s. Its ink is `error.icon`, applied as
+        // `descendantFills` (never a fill on the artboard — #864), so the icon+text pairing that satisfies SC 1.4.1
+        // is one token decision rather than two.
+        note: 'The error icon, an exclamation in a triangle, decorative because the message carries the meaning; the triangle tells error from warning when the colors are hard to tell apart.',
       },
       warningGlyph: {
         kind: 'vector',
         glyph: 'error-circle',
         size: 'glyph-size',
         presentWhen: { status: ['warning'] },
-        note: 'The warning glyph, aria-hidden. An exclamation in a CIRCLE — the same mark as `error`\'s in a different enclosure, which is what the reference asks for. Its ink is `warning.icon`.',
+        // Maintainer detail, out of the reader caption (#3610): The warning glyph, aria-hidden. An exclamation in a
+        // CIRCLE — the same mark as `error`'s in a different enclosure, which is what the reference asks for. Its ink
+        // is `warning.icon`.
+        note: 'The warning icon, an exclamation in a circle, decorative because the message carries the meaning.',
       },
       successGlyph: {
         kind: 'vector',
         glyph: 'check-circle',
         size: 'glyph-size',
         presentWhen: { status: ['success'] },
-        note: 'The success glyph, aria-hidden — a circled check. Its ink is `success.icon`.',
+        // Maintainer detail, out of the reader caption (#3610): The success glyph, aria-hidden — a circled check. Its
+        // ink is `success.icon`.
+        note: 'The success icon, a check in a circle, decorative because the message carries the meaning.',
       },
       label: {
         kind: 'text',
@@ -299,7 +309,9 @@ export const fieldMessage: ComponentDef = {
         // it, at the host's width where a field stretches the instance and at the root's 320 build width where
         // nothing does (#1757).
         wrap: true,
-        note: 'The message itself. `paintSlot` is absent because the default `label` is right: this is the only text node, and its ink is the status\'s text role.',
+        // Maintainer detail, out of the reader caption (#3610): The message itself. `paintSlot` is absent because the
+        // default `label` is right: this is the only text node, and its ink is the status's text role.
+        note: 'The message itself, in the status\'s text color.',
       },
     },
     codeOnly: [
@@ -319,7 +331,7 @@ export const fieldMessage: ComponentDef = {
         class: 'announcement',
         disposition: 'refused',
         description:
-          'the live region — a message that appears or changes after render must be announced without stealing focus, which the host does by wrapping it in a polite live region. That is a runtime announcement behavior with no visual expression at all: the Figma member for `status=error` looks identical whether the message was there on load or arrived on blur, and the difference is the whole of whether a screen-reader user learns about it.',
+          'the announcement — the message is never a live region of its own (§6, §11). On error the host sets aria-invalid="true" on the field and references this message\'s id in aria-describedby, and focus moves to the invalid field or to the form\'s error summary, so the message is read once, with the field. The one region that announces is the form\'s error summary (§12). A live region on the field fires while focus moves to the field and reads the error twice. That is runtime behavior with no visual expression at all: the Figma member for `status=error` looks identical whether the message was there on load or arrived on submit.',
       },
       {
         class: 'not-projected',
@@ -408,7 +420,7 @@ export const fieldMessage: ComponentDef = {
   },
 
   accessibility: {
-    role: 'none (rendered text; the host associates it via aria-describedby)',
+    role: 'none (rendered text; the host associates it via `aria-describedby`)',
     wcag: [
       '1.4.1 Use of Color (status is carried by icon + text, never color alone)',
       '3.3.1 Error Identification / 3.3.3 Error Suggestion (the error status names the problem and the fix — wired by the host)',
@@ -416,9 +428,9 @@ export const fieldMessage: ComponentDef = {
       '1.4.3 Contrast (caption ink clears 4.5:1; the engine gates text.<role> per mode)',
       '1.4.11 Non-text Contrast (the status glyph\'s ink, icon.<role>, is gated at 3:1 per mode)',
       '1.3.1 Info and Relationships / 4.1.2 Name, Role, Value (the host associates the message through aria-describedby and sets aria-invalid on error)',
-      '4.1.3 Status Messages (a message that arrives without focus moving to its field must still reach assistive tech — the host decides how)',
+      '4.1.3 Status Messages (the form\'s error summary announces; the message itself is read through aria-describedby when focus reaches its field)',
     ],
-    aria: 'The status icon is aria-hidden — the caption text carries the meaning, so a non-default status starts with a visually hidden prefix that names it ("Error:"), announced even where the glyph is not. The prefix is translatable, like the message after it — a hard-coded English prefix before a localized message is a broken reading. The message does not announce itself; the host field references its id in aria-describedby (and sets aria-invalid on error). If the message appears/changes dynamically, the host wraps it in a polite live region so it is announced without stealing focus.',
+    aria: 'The status icon is aria-hidden — the caption text carries the meaning, so a non-default status starts with a visually hidden prefix that names it ("Error:"), announced even where the glyph is not. The prefix is translatable, like the message after it — a hard-coded English prefix before a localized message is a broken reading. The message does not announce itself and is never a live region. On error the host field sets aria-invalid="true" and references the message\'s id in aria-describedby, and focus moves to the invalid field or to the form\'s error summary, so the message is read once, with the field. The form\'s error summary is the only region that announces — a live region on the field fires while focus moves to it and reads the error twice.',
   },
 
   content: {
@@ -427,15 +439,15 @@ export const fieldMessage: ComponentDef = {
   },
 
   docs: {
-    usage: 'Place directly below a field to carry persistent helper guidance (default status) or a validation result (error / warning / success). Reuse the same component under every field control so the icon-plus-text, gated-contrast contract holds everywhere. The field wires it into aria-describedby.',
+    usage: 'Place directly below a field to carry persistent helper guidance (default status) or a validation result (error / warning / success). Reuse the same component under every field control so the icon-plus-text, gated-contrast contract holds everywhere. The field wires it into `aria-describedby`.',
     do: [
       'Show the format/constraint in the default status before the user can fail',
       'Pair the status with an icon so it is never color-only',
-      'Let the host own aria-describedby + aria-invalid; keep this node presentational',
+      'Let the host own `aria-describedby` + `aria-invalid`; keep this node presentational',
     ],
     dont: [
       'Signal error with color alone (fails SC 1.4.1)',
-      'Duplicate the error into a self-announcing live region here and on the host — the host owns announcement',
+      'Wrap the message in a live region — focus moves to the field, so the error is read twice; the form\'s error summary is the only region that announces',
       'Use warning as a hard blocker — it is a soft, non-blocking caution (many systems fold it into helper/error)',
     ],
     // Brief §7.
@@ -445,7 +457,7 @@ export const fieldMessage: ComponentDef = {
   ai: {
     primaryPurpose: 'Carry helper guidance or a validation result below a form field, as icon + caption.',
     whenToUse: 'Under any field control that needs persistent guidance or an error/warning/success message.',
-    avoidWhen: 'As a standalone alert or toast (use an alert/banner) — this is field-scoped and associated to one control. Never as the sole color-coded error signal without text.',
+    avoidWhen: 'As a standalone alert or toast (use Banner or Toast) — this is field-scoped and associated to one control. Never as the sole color-coded error signal without text.',
     // The hosts that nest it (text-field, textarea, select) and the parts it sits beside. A reverse list
     // lives here, not in `composesWith` (#1700).
     commonPartners: ['text-field', 'textarea', 'select', 'checkbox-row', 'counter', 'field-label', 'icon'],
@@ -457,7 +469,7 @@ export const fieldMessage: ComponentDef = {
     // Nests nothing (#1700): its status glyphs are vector parts drawn from the glyph set, not nested `icon`
     // instances. The hosts that nest it are in `ai.commonPartners`.
     composesWith: [],
-    alternativeTo: [],
+    alternativeTo: ['toast', 'banner'],
     // `inline-message` — the brief's name for the SECTION-level message, the one this field-scoped part is
     // not (brief §1).
     planned: ['number-field', 'tooltip', 'inline-message'],

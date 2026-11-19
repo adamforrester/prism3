@@ -13,14 +13,14 @@ A compact row of two to five short options in one neutral track, where exactly o
 
 - **Purpose:** Choose exactly one of two to five short, always-visible options that change a value in place.
 - **Use when:** A short single choice the user changes often or that changes the current view at once, such as list or grid, a time range or a delivery method.
-- **Avoid when:** The options switch panels of content (use tabs), there are more than five or the labels are long (use a select or a radio group), options need descriptions (use a radio group), it is one on/off setting (use a switch), or selecting goes to another page (a navigation of links).
+- **Avoid when:** The options switch panels of content (use Tabs), there are more than five or the labels are long (use Select or Radio.Group), options need descriptions (use Radio.Group), it is one on/off setting (use Switch.Row), or selecting goes to another page (a navigation of links).
 
 ## Anatomy
 
 Shown on the default member: size `medium`.
 
 1. **Container** — The control: a label above the track. It fills its column.
-2. **Label** (optional)
+2. **Label** (optional) — The visible label, naming what is being chosen, shown by default; its text, required marker and weight are set on the control.
 3. **Track** — The track: a neutral fill behind every option, with no outline. Each option fills an equal share of it, and the selected one shows a pill on it.
 4. **Items** — The options: a native slot holding Segment instances, three by default, the first selected. Each option fills an equal share of the track.
 5. **Segment1** — The first option, selected.
@@ -35,7 +35,9 @@ Shown on the default member: size `medium`.
 
 ## Usage guidelines
 
-Use a segmented control for a choice between two to five short options that changes a value in place: a parameter of the current view, such as list or grid, or a form value. Every option stays visible, and one is always selected. Don't use it to switch between panels of content (use tabs), for more than five options or long labels (use a select or a radio group), or for one setting that turns on and off (use a switch).
+Use a segmented control for a choice between two to five short options that changes a value in place: a parameter of the current view, such as list or grid, or a form value. Every option stays visible, and one is always selected. Don't use it to switch between panels of content (use Tabs), for more than five options or long labels (use Select or Radio.Group), or for one setting that turns on and off (use Switch.Row).
+
+**In RTL.** The layout mirrors: the start edge is on the right.
 
 ### Do
 
@@ -54,8 +56,8 @@ Use a segmented control for a choice between two to five short options that chan
 ## Accessibility
 
 - **Keyboard:** view behavior: Tab moves to each option and Enter or Space selects it. form behavior: Tab enters at the selected option, arrow keys move to the next or previous option and select it, wrapping at the ends, and Tab leaves.
-- **Focus:** A focus ring around the focused option's indicator on :focus-visible.
-- **Screen readers:** view behavior: role="group" of buttons, the selected one with aria-current="true". form behavior: a radio group (a fieldset with a legend, or role="radiogroup"), native radios inside. Never role="tablist".
+- **Focus:** A focus ring around the focused option's indicator on `:focus-visible`.
+- **Screen readers:** view behavior: `role="group"` of buttons, the selected one with `aria-current="true"`. form behavior: a radio group (a fieldset with a legend, or `role="radiogroup"`), native radios inside. Never `role="tablist"`.
 
   The label names the group (aria-labelledby, or a legend in the form behavior); without it a screen reader announces options with no subject. Some screen readers do not announce aria-current on a button, so test the view behavior. Every name is translatable, and the row mirrors right to left.
 
@@ -73,9 +75,9 @@ Use a segmented control for a choice between two to five short options that chan
 
 ### Motion
 
-- **Enter:** None. On selection the pill moves to the new option, about 150–200ms, or cross-fades.
+- **Enter:** None. On selection the pill travels to the new option on motion.transition.default, or cross-fades.
 - **Exit:** None.
-- **Reduced motion:** The indicator moves at once; only the color change remains.
+- **Reduced motion:** The indicator moves at once; only the color change remains, fading on motion.duration-reduced.fast.
 
 ## Content guidelines
 
@@ -86,7 +88,7 @@ One or two words per option, nouns, sentence case: "List", not "Show list".
 ## Related components
 
 - **Built from:** `field-label`, `segmented-control-segment`
-- **Instead, consider:** `tabs`, `radio-group`, `select`, `switch-row`
+- **Instead, consider:** `tabs`, `radio-group`, `select`, `switch-row`, `radio-row`, `button-group`, `counter`, `slider`
 - **Often used with:** `icon`
 - **Replaces:**
   - a radio group restyled as a compact switcher for a view that changes at once
@@ -136,7 +138,7 @@ Keyed by `size`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
-| `container/track` | `space.0` | `space.0` | — | — | — | — |
+| `container/track` | `space.0` | `space.0` | — | — | — | radius `radius.md` |
 | `container/track/items` | — | `space.0` | — | — | — | — |
 
 **size=small**
@@ -144,7 +146,7 @@ Keyed by `size`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
-| `container/track` | `space.0` | `space.0` | — | — | — | — |
+| `container/track` | `space.0` | `space.0` | — | — | — | radius `radius.md` |
 | `container/track/items` | — | `space.0` | — | — | — | — |
 
 **size=large**
@@ -152,7 +154,7 @@ Keyed by `size`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
-| `container/track` | `space.0` | `space.0` | — | — | — | — |
+| `container/track` | `space.0` | `space.0` | — | — | — | radius `radius.md` |
 | `container/track/items` | — | `space.0` | — | — | — | — |
 
 ### Color

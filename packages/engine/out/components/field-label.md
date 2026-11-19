@@ -13,14 +13,14 @@ The visible, persistent label above a form field — the field's accessible name
 
 - **Purpose:** Name a form field visibly and programmatically.
 - **Use when:** Above every field control — the accessible name for the input.
-- **Avoid when:** As a section heading or standalone text (use a heading) — this is bound to one control via htmlFor. Never omit it in favor of a placeholder.
+- **Avoid when:** As a section heading or standalone text (use a heading) — this is bound to one control via `htmlFor`. Never omit it in favor of a placeholder.
 
 ## Anatomy
 
 Shown on the default member: size `small`, emphasis `primary`, weight `regular`.
 
-1. **Label**
-2. **Indicator** (optional)
+1. **Label** — The field's accessible name; it wraps at a maximum width, so the required marker stays right after it.
+2. **Indicator** (optional) — The required marker (*), shown when the field is required, right after the name; it is never the only sign that a field is required.
 
 ## Styles
 
@@ -36,13 +36,13 @@ Shown on the default member: size `small`, emphasis `primary`, weight `regular`.
 
 ## Usage guidelines
 
-Place above every field as its accessible name. Wire htmlFor to the field id. Set required per field (on shows the marker, off hides it), consistently across a form. Reuse the same component above every field control so the label-is-always-present contract holds family-wide. The label reads in full-strength ink by default, so it leads and the placeholder in the field reads as the quieter hint; secondary steps it back where a label should not lead. In code the marker flows inline after the name, and the name wraps at the field's width.
+Place above every field as its accessible name. Wire `htmlFor` to the field id. Set required per field (on shows the marker, off hides it), consistently across a form. Reuse the same component above every field control so the label-is-always-present contract holds family-wide. The label reads in full-strength ink by default, so it leads and the placeholder in the field reads as the quieter hint; secondary steps it back where a label should not lead. In code the marker flows inline after the name, and the name wraps at the field's width.
 
 ### Do
 
 - Always render a label, even for search (visually-hidden, still in the DOM)
 - Keep it a short noun phrase in sentence case, no trailing colon
-- Set required consistently across a form, and back the marker with aria-required — never the marker alone
+- Set required consistently across a form, and back the marker with required / `aria-required`, or for a slider, "required" in the thumb's accessible name — never the marker alone
 
 ### Don't
 
@@ -52,9 +52,9 @@ Place above every field as its accessible name. Wire htmlFor to the field id. Se
 
 ## Accessibility
 
-- **Screen readers:** none (native \<label> element)
+- **Screen readers:** none (native `<label>` element)
 
-  Prefer a native \<label for=id>; use aria-label / aria-labelledby only when a visible label genuinely cannot be shown (a search field with a hidden label — and it still exists in the DOM). The required marker is visual; the field carries required / aria-required so the state is not marker-only.
+  Prefer a native \<label for=id>; use aria-label / aria-labelledby only when a visible label genuinely cannot be shown (a search field with a hidden label — and it still exists in the DOM). The required marker is visual; the field carries required / aria-required, or for a slider, "required" in the thumb's accessible name, so the state is not marker-only.
 
 ### WCAG
 
@@ -78,7 +78,7 @@ Write the label as a noun or noun phrase in sentence case, three words or fewer,
 
 - **Often used with:** `text-field`, `password-field`, `search-field`, `card-number-field`, `textarea`, `select`, `checkbox-group`, `radio-group`, `segmented-control`, `counter`, `code-input`, `slider`, `field-message`
 - **Replaces:**
-  - an aria-label standing in for a visible label
+  - an `aria-label` standing in for a visible label
 
 ## Building it in code
 
@@ -88,7 +88,7 @@ Write the label as a noun or noun phrase in sentence case, three words or fewer,
 | --- | --- | --- | --- | --- |
 | `label` | string \| node | — | yes | The label text — a noun phrase, sentence case, ≤3 words, no trailing colon ("Email address", not "Enter your email address here"). |
 | `htmlFor` | string | — | yes | The id of the field it names — a native \<label for>. Set by the host when composed inside a field component (useId). |
-| `required` | boolean | `false` | no | Whether the field is required. On shows the marker beside the label; off, the default, hides it, and the host's own required prop defaults off too. Never the sole signal: the field also carries required / aria-required, so the state is not marker-only. |
+| `required` | boolean | `false` | no | Whether the field is required. On shows the marker beside the label; off, the default, hides it, and the host's own required prop defaults off too. Never the sole signal: the field also carries required / aria-required, or for a slider, "required" in the thumb's accessible name, so the state is not marker-only. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `small` | no | Three steps. Scales the type (type.body.xs, sm and md: 12, 14 and 16px), not padding alone, one body step below the input of the same field size. Every field host passes its own size through, so a small field nests the small label. small, the default, is the 12px label. |
 | `emphasis` | enum: 'primary' \| 'secondary' | `primary` | no | The label's ink. primary, the default, is the full-strength ink every field host nests: the label leads, and the placeholder below it is the quieter hint. secondary is the de-emphasized ink, for a label that should step back. Semantic roles, never shades (color.text.primary and color.text.secondary), so a brand that changes its text palette carries the label with it. |
 | `weight` | enum: 'regular' \| 'bold' | `regular` | no | How heavy the label reads. These are intents, not role names: regular resolves the brand's default body weight, bold the heaviest body weight the brand ships — Bold (700) on a brand that ships it, Medium (500) where that is its heaviest body cut. Use it for a label that has to carry a section, not for emphasis inside a form — a form where every label is bold has no emphasis in it. |

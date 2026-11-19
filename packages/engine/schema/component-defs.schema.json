@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "prism3-component-defs/1.2",
+  "$id": "prism3-component-defs/1.5",
   "$comment": "AUTHORED, NOT GENERATED, and deliberately not a `regen.ts` artifact: a schema regenerated from the exporter would agree with whatever the exporter wrote (`docs/34`). Gated by `packages/engine/lint-component-docs.ts`, which validates `out/components/component-defs.json`, and a brand export for every example brand, against it with `json-schema-lite.ts`. Every object closes `additionalProperties`, so a field the exporter adds, drops or renames fails until this schema and its `$id` move with it. The `def` and its `$defs` restate `component-docs.schema.json`'s `component`, so this file stands alone.",
   "title": "Prism3 component definitions export (component-defs.json)",
   "description": "Every component definition, exported from the TypeScript source, brand-neutral or for one brand. `def` is the definition's shipped fields and `spec` the model of the design-file component built from it. Mappable to the Specs format: `component-defs.specs.json` is the same export as a Specs components set.",
@@ -17,12 +17,17 @@
   ],
   "properties": {
     "format": {
-      "const": "prism3-component-defs/1.2",
+      "const": "prism3-component-defs/1.5",
       "description": "The shape this file follows. Equal to this schema's `$id`; minor for a field added, major for one removed or renamed."
     },
     "generated": {
       "const": true,
       "description": "Always true: nothing here is typed by hand."
+    },
+    "build": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+\\+pending\\.[1-9]\\d*$",
+      "description": "OPTIONAL (format 1.3, #3698 R1). The build identity: engineVersion plus the number of change notes pending since the last fold. Present only on an export written live between folds, so two such exports with one engineVersion are told apart."
     },
     "engineVersion": {
       "type": "string",
@@ -788,6 +793,36 @@
                         },
                         "buildHeight": {
                           "$ref": "#/$defs/value"
+                        },
+                        "radius": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "radiusTopLeft": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "radiusTopRight": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "radiusBottomRight": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "radiusBottomLeft": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "strokeWidth": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "strokeWidthTop": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "strokeWidthRight": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "strokeWidthBottom": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "strokeWidthLeft": {
+                          "$ref": "#/$defs/value"
                         }
                       }
                     }
@@ -1100,6 +1135,43 @@
             }
           },
           "description": "A provider's own values, as the definition authors them."
+        },
+        "focusRing": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Every part that nests the shared focus ring (#3506): the host's offset token, and the ring's own stroke width and style. Absent on a def with none.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "part",
+              "offset",
+              "width",
+              "style"
+            ],
+            "properties": {
+              "part": {
+                "type": "string",
+                "minLength": 1
+              },
+              "offset": {
+                "$ref": "#/$defs/token"
+              },
+              "width": {
+                "$ref": "#/$defs/token"
+              },
+              "style": {
+                "$ref": "#/$defs/token"
+              }
+            }
+          }
+        },
+        "motion": {
+          "type": "object",
+          "description": "The def's motion bindings (#3506): each `tokens` key whose token is a `motion.*` one. Absent on a def with none.",
+          "additionalProperties": {
+            "$ref": "#/$defs/token"
+          }
         }
       }
     },
@@ -1208,7 +1280,8 @@
             "content",
             "minWidthMultiplier",
             "labelWeight",
-            "textHover"
+            "textHover",
+            "borderWeight"
           ],
           "description": "The button settings.",
           "properties": {
@@ -1229,6 +1302,10 @@
               "minLength": 1
             },
             "textHover": {
+              "type": "string",
+              "minLength": 1
+            },
+            "borderWeight": {
               "type": "string",
               "minLength": 1
             }

@@ -46,6 +46,7 @@ import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ICON_SOURCES } from './icon-set';
+import { localeFreeCompare } from './locale-free-order';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const iconsDir = resolve(here, 'icons');
@@ -91,7 +92,7 @@ if (errors.length) fail(errors);
 // ── EXTRACT ─────────────────────────────────────────────────────────────────────────────────────
 const glyphs: Glyph[] = [];
 const shapeErrors: string[] = [];
-for (const [name, source] of Object.entries(ICON_SOURCES).sort(([a], [b]) => a.localeCompare(b))) {
+for (const [name, source] of Object.entries(ICON_SOURCES).sort(([a], [b]) => localeFreeCompare(a, b))) {
   const svg = readFileSync(resolve(iconsDir, `${source}.svg`), 'utf8');
 
   const vb = /viewBox="([^"]*)"/.exec(svg)?.[1];

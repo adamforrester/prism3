@@ -7,7 +7,7 @@
  *  Stamps its root with the shared-section marker (`data-sg-section="shadow-ramp"`, `kit.ts`'s header).
  *  WHAT IT IS HANDED. The section context, the resolved shadows (`rp.shadows`, token path → mode → CSS), the mode in
  *  view and the block's copy. Nothing here reads the session. */
-import type { ResolvedPreview } from '@prism3/engine/resolve-preview';
+import type { ResolvedPreview } from '@prism3/engine';
 import { el, hook, specimen, subHead, tokenPillBadged, type SgCtx } from './kit';
 
 /** The steps, in order. Declared as a bare `const` and exported below, because
