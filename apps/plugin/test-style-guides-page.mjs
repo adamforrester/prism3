@@ -365,6 +365,29 @@ const runGuides = async (page) => {
   ok(sentOf(st, 'doc-settings-save').length === 0, `Q2909.23 A: restoring saves nothing (${sentOf(st, 'doc-settings-save').length})`);
   const ticks = await runGuides(page);
   ok(ticks.theme === 'false' && ticks.guides === 'false', `Q2909.5 A, #3422 Q44 A: on a set-up file that matches the brand the checklist opens with neither the theme nor the style guides ticked (${JSON.stringify(ticks)})`);
+  // #2366 (owner decision A; #4086 review): while the run holds Style guides' Options (`fieldset.p3-sg-plain` disabled),
+  // every segmented choice in it draws Prism3's disabled skin by the `.p3-mode` mapping, as every other held control
+  // does: the checked one the outline skin (disabled text, no fill, the disabled-icon edge), the others the text skin
+  // (disabled text, no edge). Expected colors come from the roles, resolved on a probe, never from the rule under test.
+  // On main's CSS these choices drew their live skin while held.
+  const held = await page.evaluate(() => {
+    const probe = document.createElement('span');
+    document.body.append(probe);
+    const role = (v) => { probe.style.color = `var(${v})`; return getComputedStyle(probe).color; };
+    const want = { text: role('--p3-disabled-text'), edge: role('--p3-disabled-icon') };
+    probe.remove();
+    const tabs = [...document.querySelectorAll('[data-p3^="sg-opt-"].p3-seg-tab')];
+    const clear = (c) => c === 'transparent' || /^rgba\(.*,\s*0\)$/.test(c);
+    const on = (n) => ['aria-checked', 'aria-pressed', 'aria-selected'].some((a) => n.getAttribute(a) === 'true');
+    const bad = tabs.flatMap((n) => {
+      const c = getComputedStyle(n);
+      const ok = n.matches(':disabled') && c.color === want.text && clear(c.backgroundColor) && (on(n) ? c.borderTopColor === want.edge : clear(c.borderTopColor));
+      return ok ? [] : [`${n.getAttribute('data-p3')} (${on(n) ? 'checked' : 'unchecked'}): disabled ${n.matches(':disabled')}, ink ${c.color}, fill ${c.backgroundColor}, edge ${c.borderTopColor}`];
+    });
+    return { n: tabs.length, checked: tabs.filter(on).length, bad, want };
+  });
+  ok(held.n >= 4 && held.checked >= 1 && held.bad.length === 0,
+    `#2366 held options: while the run holds Style guides' Options, each segmented choice draws the .p3-mode mapping: checked, the outline skin; the others, the text skin (${held.n} read, ${held.checked} checked) — ${held.bad.slice(0, 3).join('; ') || JSON.stringify(held.want)}`);
   st = await read(page);
   const drawn = sentOf(st, 'style-guide')[0]?.options;
   const WANT = { header: 'dark', aliases: true, description: true, titleCell: false, rem: true, valueFormat: 'hex', display: 'auto', dimensionDisplay: 'filled',
