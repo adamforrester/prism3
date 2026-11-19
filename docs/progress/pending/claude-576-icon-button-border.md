@@ -18,8 +18,9 @@ factories. Step 6 of `applyButtonLayout` became `withBorderWeight`, which the fa
 call, so the rebinding and its refusal of a mis-bound edge are the same code for all nine sets. The schema refuses the
 opt-in on a def with no `border-width` key. No token is added, so the contract doesn't move.
 
-**Prose.** #4074's skill row said "Buttons only, not icon buttons", and its change note said "icon buttons are
-unchanged". Both are corrected. The Studio description ("in every button set …") is still true, so it's unchanged.
+**Prose.** #4074's skill row said "Buttons only, not icon buttons", and that is corrected. Its change note says "icon
+buttons are unchanged". `lint-emission-version` (ONE WRITER) refuses an edit to another PR's pending note, so this PR's
+own note says it supersedes that line, and the fold writes both. The Studio description ("in every button set …") is still true, so it's unchanged.
 
 **Measured.** The #576 block in `test.ts`:
 
