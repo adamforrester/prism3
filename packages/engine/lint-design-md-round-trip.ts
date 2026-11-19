@@ -10,8 +10,10 @@
  * WHAT IT DOES. It walks `schema/theme-schema.json` and builds brand inputs from it, the WITNESSES:
  *   · the MAIN witness sets every property the schema allows, nested ones included, following `$ref` into `$defs`.
  *     A map (`additionalProperties` with a schema) gets every key its `propertyNames` enum allows, or two sample keys,
- *     one of them a key that needs quoting. An array gets one item. A `oneOf`/`anyOf`/type list takes its first branch.
- *     An `enum` takes its first value.
+ *     one of them a key that needs quoting; a map that states no value shape (`additionalProperties: true`) gets the
+ *     same keys, each holding OPAQUE_VALUE, typed below. An array gets `minItems + 2` items (at least 3, capped at `maxItems`), each
+ *     one distinct where its schema allows, so a loss, merge or reorder past the first item is witnessed (#4087 review,
+ *     docs/34 shape 15). A `oneOf`/`anyOf`/type list takes its first branch. An `enum` takes its first value.
  *   · one VARIANT per other choice: each other `oneOf`/`anyOf` branch, each other enum value and `false` for each
  *     boolean, written into a copy of the main witness at that one path. A choice nested inside a non-first branch is
  *     reached from that branch's variant, so every property under every branch is set somewhere.
@@ -24,9 +26,11 @@
  *                  from, what was sent and what came back: the property that does not survive, BY NAME.
  *   UNPARSEABLE    the serialized witness did not parse at all; the line names each top-level property that fails
  *                  alone, and the witness.
- *   REPRESENTED    a property the schema declares was set by no witness (a schema shape this walker does not reach
- *                  is a shape it would pass unchecked), a top-level property is missing from the main witness, or the
- *                  witness and path counts are under their floors.
+ *   REPRESENTED    a schema node uses a keyword outside the closed list this walker reads or may ignore (READ and
+ *                  IGNORED below), or a `oneOf`/`anyOf` branch it drops carries more than a `required` list: a shape
+ *                  the walker does not reach is a shape it would otherwise pass unchecked (#4087 review, docs/34 shapes
+ *                  12 and 20). Also: a map property no witness sets, a top-level property missing from the main
+ *                  witness, or witness and path counts under their floors.
  *   SELF-CHECK     the generator, the diff and the round trip, run on a planted schema typed below, do not do what is
  *                  planted there.
  *
@@ -40,10 +44,13 @@
  * WHAT IT DOES NOT ASSERT. That the prose after the front matter survives (that is text, and `test.ts` holds it). That
  * a hand-written design.md in block style parses as its flow-style export does: the export is flow style, and the
  * parser's block arms have their own cases in `test.ts`. That every VALUE of an unconstrained string survives: it
- * sends one hard string and one plain one per property, not every string.
+ * sends one hard string and one plain one per property, not every string. That an array longer than its witness
+ * survives: each array is sent with `minItems + 2` items, not every length.
  *
  * Mutation (recorded in the PR): drop `motionPersonality` from `toDesignMd`'s entries → `LOST: motionPersonality`;
- * drop a nested key in `serValue` → `LOST` naming that key's path.
+ * drop a nested key in `serValue` → `LOST` naming that key's path. Review mutations (#4087): a schema property under
+ * `patternProperties` or `if`/`then` → `REPRESENTED: … uses patternProperties`; arrays cut to two items on export →
+ * `LOST: modes`.
  */
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -77,12 +84,28 @@ const STRING_CANDIDATES = [
 /** Keys tried for a map with no `propertyNames` enum: one that needs quoting, with a space at each end, and one plain. */
 const KEY_CANDIDATES = [' A key: "x" #1 ', 'mobile'];
 
+/** THE CLOSED KEYWORD LIST (#4087 review). READ: every keyword the walker below acts on. IGNORED: annotations and
+ *  constraints that add no property and no value shape, so a witness need not reach them. Any other keyword on a node
+ *  the walk visits (`patternProperties`, `if`/`then`/`else`, `dependentSchemas`, `prefixItems`, `not`,
+ *  `unevaluatedProperties`, …) fails REPRESENTED by name: the walker would pass the shape it adds unchecked. Typed
+ *  here, never read from the schema. */
+const READ = new Set(['type', 'properties', 'additionalProperties', 'propertyNames', 'items', 'oneOf', 'anyOf', 'allOf', '$ref', 'enum', 'const', 'pattern', 'minLength', 'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'minItems', 'maxItems']);
+const IGNORED = new Set(['description', 'default', 'examples', 'required', 'title', '$comment', '$schema', '$id', '$defs', 'deprecated', 'readOnly', 'writeOnly', 'maxLength', 'uniqueItems', 'multipleOf', 'format']);
+/** A `oneOf`/`anyOf` branch the walker drops may carry only these: it then constrains which keys are present, and
+ *  shapes nothing a witness must carry. */
+const DROPPABLE_BRANCH = new Set(['required', 'description', 'title', '$comment']);
+/** A map whose schema states no value shape (`additionalProperties: true`: `overrides`, `modeAnchors` today) gets every
+ *  sample key, each holding this value: one of each JSON kind, nested, typed here, so a serializer that loses a kind
+ *  inside an open map is named. It shapes nothing from the schema, which states none. */
+const OPAQUE_VALUE: Json = { [KEY_CANDIDATES[0]]: { s: STRING_CANDIDATES[0], n: 0.37, i: 12, b: false, z: null, a: ['x', 'y', 'z'] }, plain: 'brand-a' };
+
 const pathName = (p: Path): string =>
   p.map((k, i) => (typeof k === 'number' ? `[${k}]` : !/^[A-Za-z_$][\w$-]*$/.test(k) ? `[${JSON.stringify(k)}]` : i === 0 ? k : `.${k}`)).join('') || '(root)';
 
 // ── the walker ─────────────────────────────────────────────────────────────────────────────────────────────────
-export const buildWitnesses = (root: Schema): { main: Json; choices: Choice[]; declared: Set<string>; set: Set<string> } => {
+export const buildWitnesses = (root: Schema): { main: Json; choices: Choice[]; declared: Set<string>; set: Set<string>; unread: string[] } => {
   const choices: Choice[] = [];
+  const unread = new Set<string>(); // each schema node, by schema path, that uses a keyword the walker does not read
   const declared = new Set<string>(); // every property path the schema declares, by schema path
   const set = new Set<string>();      // every one a witness sets
   const deref = (s: Schema, seen: string[]): [Schema, string[]] => {
@@ -100,27 +123,34 @@ export const buildWitnesses = (root: Schema): { main: Json; choices: Choice[]; d
   };
   /** A branch that only constrains (a `required` list) is not a shape. */
   const isShape = (b: Schema): boolean => ['type', 'properties', '$ref', 'enum', 'const', 'items', 'oneOf', 'anyOf', 'additionalProperties'].some((k) => k in b);
-  const branchesOf = (s: Schema): Schema[] | null => {
+  const branchesOf = (s: Schema, sp: string): Schema[] | null => {
     const alt = (s.oneOf ?? s.anyOf) as Schema[] | undefined;
+    for (const b of alt ?? []) {
+      const extra = Object.keys(b).filter((k) => !DROPPABLE_BRANCH.has(k));
+      if (!isShape(b) && extra.length) unread.add(`${sp || '(root)'} has a ${s.oneOf ? 'oneOf' : 'anyOf'} branch that only constrains (${extra.join(', ')}), which this walker drops`);
+    }
     if (alt && alt.some(isShape)) return alt.filter(isShape).map((b) => ({ ...Object.fromEntries(Object.entries(s).filter(([k]) => k !== 'oneOf' && k !== 'anyOf')), ...b }));
     if (Array.isArray(s.type)) return (s.type as string[]).map((t) => ({ ...s, type: t }));
     return null;
   };
-  const stringFor = (s: Schema): string => {
+  /** `ord` is the item's place in an array: item 0 takes the first fit, each later item the next, so items differ
+   *  wherever the schema leaves more than one fit. */
+  const stringFor = (s: Schema, ord: number): string => {
     const re = typeof s.pattern === 'string' ? new RegExp(s.pattern, 'u') : null;
-    const fit = STRING_CANDIDATES.find((c) => (!re || re.test(c)) && c.length >= (s.minLength ?? 0));
-    if (fit === undefined) throw new Error(`no candidate string matches pattern ${s.pattern}`);
-    return fit;
+    const fits = STRING_CANDIDATES.filter((c) => (!re || re.test(c)) && c.length >= (s.minLength ?? 0));
+    if (!fits.length) throw new Error(`no candidate string matches pattern ${s.pattern}`);
+    return fits[ord % fits.length];
   };
-  const numberFor = (s: Schema, integer: boolean): number => {
+  const numberFor = (s: Schema, integer: boolean, ord: number): number => {
     const lo = typeof s.minimum === 'number' ? s.minimum : typeof s.exclusiveMinimum === 'number' ? s.exclusiveMinimum : 0;
     const hi = typeof s.maximum === 'number' ? s.maximum : typeof s.exclusiveMaximum === 'number' ? s.exclusiveMaximum : lo + 10;
-    if (integer) return Math.ceil(lo + (hi - lo) / 2);
-    const mid = lo + (hi - lo) * 0.37;                      // a fraction, not a round number
+    if (integer) { const mid = Math.ceil(lo + (hi - lo) / 2); return mid + ord <= hi ? mid + ord : Math.max(lo, mid - ord); }
+    const mid = lo + (hi - lo) * [0.37, 0.61, 0.83][ord % 3]; // a fraction, not a round number
     return Number(mid.toPrecision(6));
   };
-  /** One value for `s` at `path`, recording each other choice as a variant. `sp` is the schema path, for names. */
-  const gen = (s0: Schema, path: Path, sp: string, trail: string[], depth: number, ctx: Write[]): Json => {
+  /** One value for `s` at `path`, recording each other choice as a variant. `sp` is the schema path, for names. A
+   *  QUIET walk (an array's later items) records no variant: item 0's variants already set every choice there. */
+  const gen = (s0: Schema, path: Path, sp: string, trail: string[], depth: number, ctx: Write[], ord = 0, quiet = false): Json => {
     if (depth > 24) throw new Error(`schema recursion too deep at ${sp}`);
     let [s, tr] = deref(s0, trail);
     // `allOf` adds its members' shapes to this node's: merge them in, each `$ref` followed.
@@ -128,10 +158,13 @@ export const buildWitnesses = (root: Schema): { main: Json; choices: Choice[]; d
       const { allOf, ...rest } = s;
       s = (allOf as Schema[]).reduce<Schema>((acc, m) => { const [d, t] = deref(m, tr); tr = t; return { ...d, ...acc }; }, rest);
     }
-    const branches = branchesOf(s);
+    const foreign = Object.keys(s).filter((k) => !READ.has(k) && !IGNORED.has(k));
+    for (const k of foreign) unread.add(`${sp || '(root)'} uses ${k}, which this walker does not read`);
+    if (Array.isArray(s.items)) unread.add(`${sp || '(root)'} uses a tuple items list, which this walker does not read`);
+    const branches = branchesOf(s, sp);
     if (branches) {
-      const first = gen(branches[0], path, `${sp}<0>`, tr, depth + 1, ctx);
-      for (let i = 1; i < branches.length; i++) {
+      const first = gen(branches[0], path, `${sp}<0>`, tr, depth + 1, ctx, ord, quiet);
+      for (let i = 1; i < branches.length && !quiet; i++) {
         // A choice nested inside this branch is written over the branch's own value, so the holder is in its ctx.
         const holder: Write = { path, value: undefined };
         holder.value = gen(branches[i], path, `${sp}<${i}>`, tr, depth + 1, [...ctx, holder]);
@@ -141,21 +174,22 @@ export const buildWitnesses = (root: Schema): { main: Json; choices: Choice[]; d
     }
     if ('const' in s) return s.const;
     if (Array.isArray(s.enum)) {
-      for (const v of (s.enum as Json[]).slice(1)) choices.push({ path, schemaPath: sp, value: v, label: `enum ${JSON.stringify(v)}`, ctx });
-      return (s.enum as Json[])[0];
+      if (!quiet) for (const v of (s.enum as Json[]).slice(1)) choices.push({ path, schemaPath: sp, value: v, label: `enum ${JSON.stringify(v)}`, ctx });
+      return (s.enum as Json[])[ord % s.enum.length];
     }
     const type = s.type ?? (s.properties || s.additionalProperties ? 'object' : s.items ? 'array' : undefined);
     switch (type) {
-      case 'string': return stringFor(s);
-      case 'number': return numberFor(s, false);
-      case 'integer': return numberFor(s, true);
+      case 'string': return stringFor(s, ord);
+      case 'number': return numberFor(s, false, ord);
+      case 'integer': return numberFor(s, true, ord);
       case 'boolean':
-        choices.push({ path, schemaPath: sp, value: false, label: 'false', ctx });
-        return true;
+        if (!quiet) choices.push({ path, schemaPath: sp, value: false, label: 'false', ctx });
+        return ord % 2 === 0;
       case 'null': return null;
       case 'array': {
-        const n = Math.max(1, s.minItems ?? 1);
-        return Array.from({ length: n }, (_, i) => gen(s.items ?? {}, [...path, i], `${sp}[]`, tr, depth + 1, ctx));
+        // minItems + 2 (#4087 review): a loss, merge or reorder past the first item or two is then witnessed.
+        const n = Math.min(Math.max(1, s.minItems ?? 1) + 2, typeof s.maxItems === 'number' ? s.maxItems : Infinity);
+        return Array.from({ length: n }, (_, i) => gen(s.items ?? {}, [...path, i], `${sp}[]`, tr, depth + 1, ctx, i, quiet || i > 0));
       }
       case 'object': {
         const o: Record<string, Json> = {};
@@ -163,16 +197,21 @@ export const buildWitnesses = (root: Schema): { main: Json; choices: Choice[]; d
           const psp = sp ? `${sp}.${k}` : k;
           declared.add(psp);
           set.add(psp);
-          o[k] = gen(ps, [...path, k], psp, tr, depth + 1, ctx);
+          o[k] = gen(ps, [...path, k], psp, tr, depth + 1, ctx, ord, quiet);
         }
         const ap = s.additionalProperties;
+        if (ap === true) {
+          const msp = `${sp}.*`;
+          declared.add(msp); set.add(msp);
+          for (const k of KEY_CANDIDATES) o[k] = JSON.parse(JSON.stringify(OPAQUE_VALUE));
+        }
         if (ap && typeof ap === 'object') {
           const names = s.propertyNames?.enum as string[] | undefined;
           const keys = names ?? KEY_CANDIDATES.filter((k) => !s.propertyNames?.pattern || new RegExp(s.propertyNames.pattern, 'u').test(k));
           const msp = `${sp}.*`;
           declared.add(msp);
           if (keys.length) set.add(msp);
-          for (const k of keys) o[k] = gen(ap, [...path, k], msp, tr, depth + 1, ctx);
+          for (const k of keys) o[k] = gen(ap, [...path, k], msp, tr, depth + 1, ctx, ord, quiet);
         }
         return o;
       }
@@ -181,7 +220,7 @@ export const buildWitnesses = (root: Schema): { main: Json; choices: Choice[]; d
     }
   };
   const main = gen(root, [], '', [], 0, []);
-  return { main, choices, declared, set };
+  return { main, choices, declared, set, unread: [...unread] };
 };
 
 /** A copy of `base` with `value` written at `path`. */
@@ -212,12 +251,13 @@ export const diff = (a: Json, b: Json, path: Path = []): { path: Path; sent: Jso
 export const roundTrip = (w: Json): Json => parseDesignMd(toDesignMd(w as BrandInput)).input;
 
 export type Witness = { name: string; value: Json };
-export const witnessesOf = (schema: Schema): { witnesses: Witness[]; declared: Set<string>; set: Set<string> } => {
-  const { main, choices, declared, set } = buildWitnesses(schema);
+export const witnessesOf = (schema: Schema): { witnesses: Witness[]; declared: Set<string>; set: Set<string>; unread: string[] } => {
+  const { main, choices, declared, set, unread } = buildWitnesses(schema);
   return {
     witnesses: [{ name: 'main', value: main }, ...choices.map((c) => ({ name: `${c.schemaPath} = ${c.label}`, value: [...c.ctx, c].reduce<Json>((w, x) => withAt(w, x.path, x.value), main) }))],
     declared,
     set,
+    unread,
   };
 };
 
@@ -252,6 +292,7 @@ const selfCheck = (): string[] => {
       ratio: { type: 'number', minimum: 0, maximum: 1 },
       gradients: { oneOf: [{ type: 'boolean' }, { type: 'array', items: { $ref: '#/$defs/stop' } }] },
       levers: { type: 'object', additionalProperties: { type: 'integer', minimum: 4 } },
+      modes: { type: 'array', items: { type: 'string' } },
     },
     $defs: { stop: { type: 'object', properties: { at: { type: 'number' } } } },
   };
@@ -270,6 +311,18 @@ const selfCheck = (): string[] => {
   const dropNested = (w: Json) => { const c: any = JSON.parse(JSON.stringify(w)); if (Array.isArray(c.gradients)) delete c.gradients[0].at; return c; };
   if (!check(witnesses, dropNested).some((l) => l.startsWith('LOST: gradients[0].at —'))) bad.push('a round trip that drops a nested key is not named LOST with its path');
   if (!check(witnesses, () => { throw new Error('boom'); }).every((l) => l.startsWith('UNPARSEABLE'))) bad.push('a round trip that throws is not named UNPARSEABLE');
+  // Arrays (#4087 review): minItems + 2 distinct items, and a trip that cuts an array to two items is named LOST.
+  if (!Array.isArray(main.modes) || main.modes.length !== 3 || new Set(main.modes).size !== 3) bad.push(`an array does not get three distinct items (got ${JSON.stringify(main.modes)})`);
+  const cut = (w: Json) => { const c: any = JSON.parse(JSON.stringify(w)); if (Array.isArray(c.modes)) c.modes = c.modes.slice(0, 2); return c; };
+  if (!check(witnesses, cut).some((l) => l.startsWith('LOST: modes —'))) bad.push('a round trip that cuts an array to two items is not named LOST');
+  const capped = witnessesOf({ type: 'object', properties: { a: { type: 'array', maxItems: 2, items: { type: 'string' } } } }).witnesses[0].value as any;
+  if (capped.a?.length !== 2) bad.push(`an array does not stop at its maxItems (got ${JSON.stringify(capped.a)})`);
+  // The closed keyword list (#4087 review): a planted keyword the walker does not read, and a branch it drops that
+  // carries a constraint, are each reported by name; the planted schema above, which uses none, reports nothing.
+  if (witnessesOf(planted).unread.length) bad.push(`the planted schema reports a keyword it does not use (${witnessesOf(planted).unread.join('; ')})`);
+  const foreign: Schema = { type: 'object', properties: { m: { type: 'object', patternProperties: { '^w': { type: 'number' } } }, c: { type: 'object', if: { properties: { a: { const: 1 } } }, then: { properties: { extra: { type: 'string' } } } }, b: { type: 'number', oneOf: [{ type: 'number' }, { minimum: 5 }] } } };
+  const fu = witnessesOf(foreign).unread;
+  for (const want of ['m uses patternProperties', 'c uses if', 'c uses then', 'b has a oneOf branch that only constrains (minimum)']) if (!fu.some((l) => l.startsWith(want))) bad.push(`a schema node that ${want.replace(/^\S+ /, '')} is not reported (${fu.join('; ')})`);
   if (diff({ a: 1, b: [1, 2] }, { b: [1, 2], a: 1 }).length) bad.push('the diff reads key order as a difference');
   if (diff({ a: '1' }, { a: 1 }).length !== 1) bad.push('the diff does not tell a string from a number');
   return bad;
@@ -280,7 +333,8 @@ const failures: string[] = [];
 for (const b of selfCheck()) failures.push(`SELF-CHECK: ${b}`);
 
 const schema = JSON.parse(readFileSync(SCHEMA_FILE, 'utf8')) as Schema;
-const { witnesses, declared, set } = witnessesOf(schema);
+const { witnesses, declared, set, unread } = witnessesOf(schema);
+for (const u of unread) failures.push(`REPRESENTED: ${u}`);
 // The same loss usually shows in every witness that carries the property: report it once, with its first witness and
 // how many others it showed in.
 {
