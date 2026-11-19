@@ -1543,6 +1543,8 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-tadv { display: grid; gap: var(--p3-space-150); padding-inline-start: var(--p3-space-150); border-inline-start: var(--p3-bw-thick) solid var(--p3-line-2); }
 .p3-tadv-mark { margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
 .p3-tcard { padding: var(--p3-space-150) var(--p3-space-200); border: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-lg); }
+/* A lever inside a card (Caption sizes) keeps the row rhythm above its name, as sibling levers do (#3337). */
+.p3-tcard .p3-lever-ctl > .p3-lever { margin-block-start: calc(var(--p3-space-300) - var(--p3-rhythm-hint)); }
 .p3-tmenus { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--p3-space-150); align-items: start; }
 .p3-tmenu { display: grid; gap: var(--p3-space-100); min-width: 0; }
 .p3-tmenus:has(.p3-picker) { grid-template-columns: minmax(0, 1fr); }

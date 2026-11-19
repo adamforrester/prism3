@@ -21645,7 +21645,9 @@ const RHYTHM_PLACES = {
   brand: { rows: 5, pairs: 1 }, 'color-palettes': { rows: 8, pairs: 4 }, 'color-fills': { rows: 5, pairs: 0 },
   // #3335: the settings card holds 3 levers (2 pairs), Disabled 1, Links 1; the action palette and the neutral emphasis
   // each open a set's card alone.
-  'color-interactive': { rows: 9, pairs: 4 }, type: { rows: 19, pairs: 12 }, shape: { rows: 4, pairs: 1 }, depth: { rows: 4, pairs: 1 },
+  'color-interactive': { rows: 9, pairs: 4 },
+  // #3079: Type's per-text-type levers moved into one card each, a card one row; measured 18 rows and 4 pairs.
+  type: { rows: 18, pairs: 4 }, shape: { rows: 4, pairs: 1 }, depth: { rows: 4, pairs: 1 },
   layout: { rows: 4, pairs: 1 }, components: { rows: 19, pairs: 10 }, export: { rows: 5, pairs: 4 },
 };
 /** Every control the second check holds off a name. */
