@@ -867,12 +867,29 @@
         "typeface": {
           "inter": {
             "$type": "fontFamily",
-            "$value": "Inter",
+            "$value": [
+              "Inter",
+              "system-ui",
+              "-apple-system",
+              "Segoe UI",
+              "Roboto",
+              "Helvetica",
+              "Arial",
+              "sans-serif"
+            ],
             "$description": "typeface — Inter"
           },
           "jetbrains-mono": {
             "$type": "fontFamily",
-            "$value": "JetBrains Mono",
+            "$value": [
+              "JetBrains Mono",
+              "ui-monospace",
+              "SFMono-Regular",
+              "Menlo",
+              "Consolas",
+              "Liberation Mono",
+              "monospace"
+            ],
             "$description": "typeface — JetBrains Mono"
           }
         },

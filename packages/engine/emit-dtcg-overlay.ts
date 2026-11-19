@@ -100,7 +100,8 @@ export const overlayModes = (tree: unknown): string[] => {
 };
 
 /**
- * One leaf as the projection carries it: the `modes` extension removed.
+ * One leaf as the projection carries it: the `modes` extension removed, and a typeface's fallback stack
+ * folded into its `$value` (#4155, below).
  *
  * Removing it is not tidying — it is the whole contract. A consumer that reads this file must not be
  * able to find a second value it is silently ignoring; if `modes` rode along, the base would be the
@@ -116,6 +117,15 @@ const projectLeaf = (n: Node): Node => {
   if (p3 && 'modes' in p3) {
     const { modes: _drop, ...rest } = p3;
     out.$extensions = { ...ext, prism3: rest };
+  }
+  // #4155: a typeface's curated fallback stack moves into `$value`, in DTCG 2025.10 §8.3's array form
+  // (primary first). The canonical tree keeps one family for the Figma and TokenPress round trip (#105.3),
+  // and the handoff strips `$extensions` (#2552), so without this the stack reached no consumer and the
+  // shipped CSS read `Inter;` with no generic family. Stock Style Dictionary's `css` group writes the
+  // array as a comma list, so no consumer transform is needed.
+  const stack = p3?.fallbackStack;
+  if (out.$type === 'fontFamily' && typeof out.$value === 'string' && Array.isArray(stack) && stack.length) {
+    out.$value = [out.$value, ...stack];
   }
   return out;
 };

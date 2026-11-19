@@ -1154,17 +1154,43 @@
         "typeface": {
           "wendysfresh": {
             "$type": "fontFamily",
-            "$value": "wendysFresh",
+            "$value": [
+              "wendysFresh",
+              "system-ui",
+              "-apple-system",
+              "Segoe UI",
+              "Roboto",
+              "Helvetica",
+              "Arial",
+              "sans-serif"
+            ],
             "$description": "typeface — wendysFresh"
           },
           "roboto": {
             "$type": "fontFamily",
-            "$value": "Roboto",
+            "$value": [
+              "Roboto",
+              "system-ui",
+              "-apple-system",
+              "Segoe UI",
+              "Roboto",
+              "Helvetica",
+              "Arial",
+              "sans-serif"
+            ],
             "$description": "typeface — Roboto"
           },
           "jetbrains-mono": {
             "$type": "fontFamily",
-            "$value": "JetBrains Mono",
+            "$value": [
+              "JetBrains Mono",
+              "ui-monospace",
+              "SFMono-Regular",
+              "Menlo",
+              "Consolas",
+              "Liberation Mono",
+              "monospace"
+            ],
             "$description": "typeface — JetBrains Mono"
           }
         },
