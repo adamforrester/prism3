@@ -79,6 +79,7 @@ const ADMITS: Readonly<Record<string, readonly Kind[]>> = {
   layout: ['box'],
   padding: ['box'],
   gap: ['box'],
+  rowGap: ['box'],
   height: ['box', 'slot', 'nest'],
   radius: ['box'],
   strokeWidth: ['box'],
