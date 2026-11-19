@@ -294,9 +294,7 @@ Type: color. Bound by 22 component(s).
 | radio-control | `disabled.border` | control | state: disabled (12 of 60) |
 | search-field | `disabled.border` | control | state: disabled (12 of 84) |
 | select | `disabled.border` | control | state: disabled (12 of 84) |
-| switch-control | `disabled.border`, `disabled.icon.on-fill` | offGlyph | selection: off · state: disabled (4 of 40) |
-|  |  | onGlyph | selection: on · state: disabled (4 of 40) |
-|  |  | track | selection: off · state: disabled (4 of 40) |
+| switch-control | `disabled.border` | track | selection: off · state: disabled (4 of 40) |
 | tab-item | `disabled.fill` | indicator | selection: selected · state: disabled (3 of 30) |
 | tag | `disabled.border` | container | state: disabled (9 of 45) |
 | text-field | `disabled.border` | control | state: disabled (12 of 84) |
@@ -323,7 +321,9 @@ Type: color. Bound by 18 component(s).
 | search-field | `disabled.fill` | control | state: disabled (12 of 84) |
 | select | `disabled.fill` | control | state: disabled (12 of 84) |
 | slider | `disabled.fill` | track | state: disabled (6 of 30) |
-| switch-control | `disabled.fill` | track | state: disabled (8 of 40) |
+| switch-control | `disabled.fill`, `disabled.icon.on-fill` | offGlyph | selection: off · state: disabled (4 of 40) |
+|  |  | onGlyph | selection: on · state: disabled (4 of 40) |
+|  |  | track | state: disabled (8 of 40) |
 | text-field | `disabled.fill` | control | state: disabled (12 of 84) |
 | textarea | `disabled.fill` | control | state: disabled (12 of 84) |
 
