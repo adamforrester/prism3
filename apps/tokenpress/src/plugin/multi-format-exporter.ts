@@ -394,7 +394,9 @@ export class MultiFormatTokenExporter extends TokenExporter {
     const { collections, variables } = await this.scanner.scanAll({
       excludedCollectionNames: (this.options as MultiFormatExportOptions).excludedCollections,
     });
-    const variableMap = new Map(variables.map(v => [v.id, v]));
+    // A team-library alias target names itself rather than 'Unknown' (prism3 #4166).
+    this.setExternalAliasTargets(await this.scanner.resolveExternalAliasTargets(variables));
+    const variableMap = this.variableMapOf(variables);
 
     return {
       variables,

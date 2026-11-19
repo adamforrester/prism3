@@ -104,6 +104,9 @@ const ADDED: Record<string, number> = {
   // prism3 #731 — gradient paint styles were never scanned, so every gradient was missing from the export. Now
   // scanned and written to `gradients.json` as DTCG `gradient` tokens, stop colors bound to variables as aliases.
   'tests/unit/gradient-paint-styles.test.ts': 6,
+  // prism3 #4166 — an alias to a team-library variable exports as a reference by the target's name, marked
+  // `$extensions.figma.externalAlias`, instead of a `{VariableID:…}` the validator called broken.
+  'tests/unit/external-library-alias.test.ts': 5,
 };
 
 // ---- the harness checks itself first -------------------------------------------------------
