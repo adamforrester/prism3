@@ -30,6 +30,8 @@ Keep still holds the swap. The three arms now assert the conflict reading under 
 - the slot's `kept` guard dropped fails `icon swap slot`, root and overlap;
 - `slotRepoints` unwired fails `icon swap slot root conflict` and `icon swap slot overlap conflict`.
 
-**Open, for the owner.** The shim does not model Figma re-pointing a set's bound instances when the apply edits an
-INSTANCE_SWAP property's default. If the host does that, a designer's swap in a slot would be overwritten whatever Keep
-says; nothing was run in Figma here. The guide row in `update-a-file-safely.md` is DRAFT copy.
+**Owner decisions (2026-11-18).** The guide row in `update-a-file-safely.md` is approved as drafted. A swapped icon
+reading as a conflict on every later update of its member is accepted for now (decision 4, A). Option (c), recording a
+swap as a map entry, stays unbuilt until the map PR lands. The shim does not model Figma re-pointing a set's bound
+instances when the apply edits an INSTANCE_SWAP property's default; that check runs in real Figma as an off-repo host
+job, and any follow-up is filed from its result.
