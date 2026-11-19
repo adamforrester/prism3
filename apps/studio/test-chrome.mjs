@@ -12525,7 +12525,7 @@ for (const { w, h } of START_SIZES) {
         // N1 A moved the button, not what it starts: the web saves G13's neutral gray, byte for byte (a literal here).
         if (host === 'web') {
           const blankSaved = await savedBrand(page);
-          ok(blankSaved === '{"v":2,"input":{"id":"untitled","root":"prism","modes":["light"],"primary":{"l":0.5,"c":0.03,"h":250},"neutral":{"hue":250,"chroma":0.004,"auto":true}}}',
+          ok(blankSaved === '{"v":3,"input":{"id":"untitled","root":"prism","modes":["light"],"primary":{"l":0.5,"c":0.03,"h":250},"neutral":{"hue":250,"chroma":0.004,"auto":true}}}',
             `${where}: "Start blank" from the color card saves G13's neutral gray — saved ${blankSaved}`);
         }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
