@@ -15229,6 +15229,10 @@
           "disposition": "REFUSED"
         },
         {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
           "class": "keyboard-and-focus",
           "disposition": "REFUSED"
         },

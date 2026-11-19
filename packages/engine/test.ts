@@ -18805,6 +18805,12 @@ arm: {
       const focusOnOpen = popCode.find((e) => e.class === 'keyboard-and-focus' && /^focus on opening/.test(e.description))?.description ?? '';
       ok(/leaves focus on its trigger/.test(pop.accessibility?.focus ?? '') && /read-only popover[^.]*leaves focus on its trigger/.test(focusOnOpen),
         '#4008 popover focus (K5 B): the focus contract and the focus-on-opening code note both say a read-only popover leaves focus on its trigger');
+      // S1 A (owner, 2026-11-19): a read-only popover announces its content through a polite live region and sits right
+      // after its trigger in the DOM; aria-controls is not the guarantee. Held on the code note, and on the focus note not
+      // claiming aria-controls as the way in.
+      const announce = popCode.find((e) => e.class === 'semantics' && /^read-only announcement/.test(e.description))?.description ?? '';
+      ok(/polite live region \(`role="status"`\)/.test(announce) && /right after its trigger in the DOM/.test(announce) && !/through `aria-controls`/.test(focusOnOpen),
+        '#4008 popover read-only announcement (S1 A): a code note says a read-only popover announces through a polite live region (role="status") and sits right after its trigger in the DOM, and no note relies on aria-controls');
       // OD-P5 A: no automatic switch to a sheet on a small screen.
       ok(popCode.some((e) => e.class === 'responsive-layout' && /^no automatic switch — on a small screen it stays a popover/.test(e.description)),
         '#4008 popover small screen (OD-P5 A): a code note says it stays a popover, with no automatic sheet');
