@@ -47,7 +47,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ComponentDef } from './component-schema';
 import { componentDefs } from './components/index';
-import { CODE_ONLY_CLASSES, DISPOSITION_NAMES } from './code-only-register';
+import { CODE_ONLY_CLASSES, DISPOSITION_MEANINGS, DISPOSITION_NAMES } from './code-only-register';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const failures: string[] = [];
@@ -190,4 +190,5 @@ const counts = CODE_ONLY_CLASSES.map((c) => `${c.id} ${used.get(c.id)}`).join(',
 const dispositions = Object.entries(DISPOSITION_NAMES).map(([k, n]) => `${n} ${byDisposition.get(k) ?? 0}`).join(', ');
 console.log(`· by class: ${counts}`);
 console.log(`· by disposition: ${dispositions}`);
+for (const [k, n] of Object.entries(DISPOSITION_NAMES)) console.log(`    ${n}: ${DISPOSITION_MEANINGS[k as keyof typeof DISPOSITION_MEANINGS]}`);
 console.log(`✅ codeOnly classes: ${entries} entries on ${defsWithEntries} defs, each a registered class (${CODE_ONLY_CLASSES.length} registered, every one in use) with a disposition; every admission is 'not-projected'; components.ai.json's syncBoundary matches, item for item`);
