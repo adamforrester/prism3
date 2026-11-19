@@ -48,9 +48,9 @@
  *
  * ── THE WALL (#2454) ───────────────────────────────────────────────────────────────────────────────────────
  *
- * Dialog is the tranche-4 def with the most behavior (`docs/41` §7). The contract below is framework-neutral and holds
- * under any answer to #2454: a modal `<dialog>` gives the top layer, an inert page, Escape and `::backdrop`; initial focus,
- * backdrop-click dismissal and focus return remain for a behavior layer. Code delivery is pending that decision.
+ * Dialog is the tranche-4 def with the most behavior (`docs/41` §7). The contract below is framework-neutral: a modal
+ * `<dialog>` gives the top layer, an inert page, Escape and `::backdrop`; initial focus, backdrop-click dismissal and
+ * focus return are wired by the developer in plain HTML/CSS and carried by the web component (Q-BH1 A, #2454, docs/41 §7.2).
  */
 import { ComponentDef } from '../component-schema';
 
@@ -401,7 +401,7 @@ export const dialog: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'code delivery pending: behavior layer (#2454) — initial focus placement, backdrop-click dismissal and focus return wait on that decision. The contract above holds under any answer to it.',
+          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it. In plain HTML/CSS that covers initial focus placement, backdrop-click dismissal and focus return.',
       },
     ],
   },

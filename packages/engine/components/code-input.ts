@@ -452,7 +452,7 @@ export const codeInput: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'code delivery pending: behavior layer (#2454). The entries below are a framework-neutral behavior contract.',
+          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
       },
       {
         class: 'semantics',
