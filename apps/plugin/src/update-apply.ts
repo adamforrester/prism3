@@ -966,6 +966,10 @@ const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview
   }, snug);
 };
 
+/** The sets a run changed, for the publish description: any member write, a merge included (#4091 review nit). */
+export const changedSets = (outcomes: readonly SetOutcome[]): string[] =>
+  outcomes.filter((o) => !o.refused && (o.updated.length || o.added || o.renamed || o.deprecated.length || o.merged?.length)).map((o) => o.set);
+
 /**
  * THE ABOUT FRAME AND THE PUBLISH DESCRIPTION (#2858), once a run has written: `res.version` is set by whichever path
  * saved the named version first, the apply's or `settle`'s re-spacing. The frame is redrawn last, so its date is the
@@ -973,10 +977,6 @@ const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview
  * here is named, never thrown: the sets are already written. The description's first sentence is "Prism3 updated <sets>.",
  * naming the sets the run changed; only a run that changed no set falls back to the version's title (#2914).
  */
-/** The sets a run changed, for the publish description: any member write, a merge included (#4091 review nit). */
-export const changedSets = (outcomes: readonly SetOutcome[]): string[] =>
-  outcomes.filter((o) => !o.refused && (o.updated.length || o.added || o.renamed || o.deprecated.length || o.merged?.length)).map((o) => o.set);
-
 const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdatePreview, res: ApplyResult, today: string | undefined): Promise<void> => {
   if (!res.version && !res.aboutOnly) return;
   // THE LIBRARY COVER (#2859) first, so a cover drawn now is the thumbnail the About frame is placed beside. An edited
