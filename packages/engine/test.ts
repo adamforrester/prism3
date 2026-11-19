@@ -12590,9 +12590,10 @@ arm: {
 // drop the page-under-wash ground from `fieldStatusGrounds` under 'page' → (b);
 // drop `!hc` from `pageControls` → (c); let the setting reach the links → (d); drop the enum entry in `theme-brand.ts` → (h).
 {
-  const IN_PAGE = ['field.border.rest', 'field.border.hover', 'disabled.text', 'disabled.icon', 'interactive.primary.fill.rest',
+  // `disabled.border` and its inverse twin share the disabled inks' pick and ground since #2750 (#4085), so they are in scope.
+  const IN_PAGE = ['field.border.rest', 'field.border.hover', 'disabled.text', 'disabled.icon', 'disabled.border', 'interactive.primary.fill.rest',
     'interactive.destructive.fill.rest', 'interactive.destructive.text.rest', 'interactive.destructive.border.rest'];
-  const IN_INV = ['inverse.field.border.rest', 'inverse.field.border.hover', 'inverse.disabled.text', 'inverse.disabled.icon',
+  const IN_INV = ['inverse.field.border.rest', 'inverse.field.border.hover', 'inverse.disabled.text', 'inverse.disabled.icon', 'inverse.disabled.border',
     'inverse.interactive.destructive.text.rest', 'inverse.interactive.destructive.border.rest'];
   const LIGHTEST = ['field.border.rest', 'disabled.text', 'inverse.field.border.rest', 'inverse.disabled.text'];
   const STATUS = ['border.danger', 'border.warning', 'border.success'];
