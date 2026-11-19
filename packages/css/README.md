@@ -89,6 +89,12 @@ reach the input without scripting. States come from the input's own state: `:dis
 emission's `nesting` says: the field's size sizes the label, the field's validation sets the message's status and
 glyph, and a disabled input disables the label's ink. So each is set once, on the field.
 
+**At `error`, `warning` or `success`, the message is always written and shown** (Q-POC2 A, owner decision #1712 A).
+The field writes the `<p class="p3-field-message">` and names its id in the input's `aria-describedby`, whatever
+`showMessage` says, so `aria-invalid` never stands without a description. Its text is `validationMessage`, or
+`helpText` when that's unset. `showMessage` decides only at the default status. Don't hide the message with CSS or
+`hidden` at a status.
+
 ```html
 <div class="p3-text-field" data-component="text-field" data-prop-size="medium" data-prop-validation="error">
   <label class="p3-field-label" data-component="field-label" for="email">
@@ -158,9 +164,9 @@ The password field is the same, with the label in a label row beside the Show/Hi
 | `type` | `text` (default), `email`, `url`, `tel`, `search`, `password` | The input's `type`. |
 | `placeholder` | text | The input's `placeholder`. An example only, never the label. |
 | `helpText` | text | The message's text at the default status. |
-| `validation` | `default` (default), `error`, `warning`, `success` | `data-prop-validation` on the field. At `error`, also `aria-invalid="true"` on the input. |
+| `validation` | `default` (default), `error`, `warning`, `success` | `data-prop-validation` on the field. At `error`, also `aria-invalid="true"` on the input. At any status but `default`, the message is always written and named (above). |
 | `validationMessage` | text | The message's text at a validation status. |
-| `showMessage` | `true`, `false` (default) | `true`: write the `<p class="p3-field-message">` and name its id in the input's `aria-describedby`. `false`: write neither. |
+| `showMessage` | `true`, `false` (default) | At the default status, `true`: write the `<p class="p3-field-message">` and name its id in the input's `aria-describedby`; `false`: write neither. At any other status the message is written either way (Q-POC2 A). |
 | `required` | `true`, `false` (default) | The input's `required`. The label's marker follows it. |
 | `disabled` | `true`, `false` (default) | The input's `disabled`. |
 | `readOnly` | `true`, `false` (default) | The input's `readonly`. |
@@ -186,7 +192,7 @@ The password field is the same, with the label in a label row beside the Show/Hi
 | `onChange` | function | An `input` or `change` listener on the input. |
 | `placeholder` | text | The input's `placeholder`. |
 | `helpText` | text | The message's text at the default status. |
-| `validation` | `default` (default), `error`, `warning`, `success` | As on the text field. The Show/Hide button never takes the status. |
+| `validation` | `default` (default), `error`, `warning`, `success` | As on the text field, including the message at any status but `default`. The Show/Hide button never takes the status. |
 | `validationMessage` | text | The message's text at a validation status. |
 | `showMessage` | `true`, `false` (default) | As on the text field. |
 | `required` | `true`, `false` (default) | The input's `required`. |
@@ -263,7 +269,8 @@ Q86 A (a small script, no element yet), Q-HT1 A (hit areas on spacing tokens), Q
 `data-prop-*`), Q140 A carried over to the fields' 120px minimum width (below).
 
 Owner decisions taken as recommended and flagged in the journal (S3): the Show/Hide button written `hidden` until the
-script runs; the message shown only when written (`showMessage` defaults off, as the def says); the pending spinner in
+script runs; the message shown only when written (`showMessage` defaults off, as the def says, and at a validation
+status it is always written, Q-POC2 A); the pending spinner in
 the box's trailing cell; Tab reaching the Show/Hide button before the input, as the anatomy orders them; and the
 fields' 120px minimum width as a documented raw px.
 

@@ -109,6 +109,7 @@ export class P3PasswordField extends LitElement {
   #adopted = false;
   #auto = `p3-password-field-${++serial}`;
   #refocus = null;
+  #warnedStatus = null;
   #shown = false;
 
   get #inputId() {
@@ -154,9 +155,12 @@ export class P3PasswordField extends LitElement {
         }
         const message = root.querySelector('.p3-field-message');
         if (message) {
-          take('showMessage', true);
+          const atDefault = (root.getAttribute('data-prop-validation') ?? 'default') === 'default';
+          // A message at a validation status is written whatever showMessage says (Q-POC2 A), so only one at the
+          // default status shows the author chose to show it.
+          if (atDefault) take('showMessage', true);
           const text = message.querySelector('.p3-field-message__label')?.textContent.trim();
-          take((root.getAttribute('data-prop-validation') ?? 'default') === 'default' ? 'helpText' : 'validationMessage', text);
+          take(atDefault ? 'helpText' : 'validationMessage', text);
         }
         take('leadingIcon', root.querySelector('.p3-password-field__leading-visual')?.firstElementChild);
       }
@@ -191,6 +195,13 @@ export class P3PasswordField extends LitElement {
       input.focus();
       if (start !== null && end !== null) input.setSelectionRange(start, end);
     }
+    // OWNER DECISION 1 B (#3968): a status with neither validationMessage nor helpText writes an empty message, so the
+    // element warns the developer, once per status it enters, not on every render. DRAFT text.
+    const status = this.validation ?? 'default';
+    const text = status === 'default' ? this.helpText : (this.validationMessage ?? this.helpText);
+    const empty = status !== 'default' && (text === undefined || text === null || text === '');
+    if (empty && this.#warnedStatus !== status) console.warn(`<p3-password-field> has validation="${status}" and no validationMessage or helpText, so its message is empty. Set validationMessage to say why the field is at this status.`);
+    this.#warnedStatus = empty ? status : null;
   }
 
   #onInput = (event) => {
@@ -236,6 +247,9 @@ export class P3PasswordField extends LitElement {
     const messageId = `${inputId}-message`;
     const status = this.validation ?? 'default';
     const messageText = status === 'default' ? this.helpText : (this.validationMessage ?? this.helpText);
+    // Q-POC2 A (#1712 A): at error, warning or success the message is always written and named in aria-describedby,
+    // whatever showMessage says, so aria-invalid never stands without a description. showMessage governs the default.
+    const writeMessage = this.showMessage || status !== 'default';
     const label = html`<label class="p3-field-label" data-component="field-label" for=${inputId}><span class="p3-field-label__label">${this.label}</span><span class="p3-field-label__indicator" aria-hidden="true">*</span></label>`;
     return html`<div class="p3-password-field" data-component="password-field" data-prop-size=${this.size} data-prop-validation=${this.validation}><div class="p3-password-field__label-row"><div class="p3-password-field__label-cell">${label}</div><button type="button" class="p3-button p3-password-field__toggle" data-component="button" data-prop-appearance="text" data-prop-size="small" data-prop-inset="flush" aria-controls=${inputId} ?disabled=${this.disabled} @click=${this.#toggle}><span class="p3-button__label"><span class="p3-password-field__toggle-text">${this.#say(this.#shown ? 'hide' : 'show')}</span><span class="p3-password-field__toggle-suffix">${this.#say('suffix')}</span></span></button></div><div class="p3-password-field__control"><div class="p3-password-field__content">${this.leadingIcon !== undefined && this.leadingIcon !== null
       ? html`<span class="p3-password-field__leading-visual" aria-hidden="true">${this.leadingIcon}</span>`
@@ -243,7 +257,7 @@ export class P3PasswordField extends LitElement {
         placeholder=${this.placeholder ?? nothing} value=${this.defaultValue ?? nothing} autocomplete=${this.autoComplete ?? nothing} spellcheck="false" autocapitalize="none"
         ?required=${this.required} ?disabled=${this.disabled} ?readonly=${this.readOnly}
         aria-busy=${this.isPending ? 'true' : nothing} aria-invalid=${status === 'error' ? 'true' : nothing}
-        aria-describedby=${this.showMessage ? messageId : nothing} @input=${this.#onInput}></div><span class="p3-password-field__spinner" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-opacity="0.2"></circle><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="20.73 62.83" transform="rotate(-90 12 12)"></circle></svg></span></div>${this.showMessage
+        aria-describedby=${writeMessage ? messageId : nothing} @input=${this.#onInput}></div><span class="p3-password-field__spinner" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-opacity="0.2"></circle><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="20.73 62.83" transform="rotate(-90 12 12)"></circle></svg></span></div>${writeMessage
       ? html`<p class="p3-field-message" data-component="field-message" id=${messageId}><span class="p3-field-message__glyph-cell" aria-hidden="true"><span class="p3-field-message__error-glyph"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.865 3.00017L22.3912 19.5002C22.6674 19.9785 22.5035 20.5901 22.0252 20.8662C21.8732 20.954 21.7008 21.0002 21.5252 21.0002H2.47266C1.92037 21.0002 1.47266 20.5525 1.47266 20.0002C1.47266 19.8246 1.51886 19.6522 1.60663 19.5002L11.1329 3.00017C11.4091 2.52187 12.0206 2.358 12.4989 2.63414C12.651 2.72191 12.7772 2.84815 12.865 3.00017ZM4.20471 19.0002H19.7932L11.9989 5.50017L4.20471 19.0002ZM10.9989 16.0002H12.9989V18.0002H10.9989V16.0002ZM10.9989 9.00017H12.9989V14.0002H10.9989V9.00017Z"></path></svg></span><span class="p3-field-message__warning-glyph"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22ZM12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20ZM11 15H13V17H11V15ZM11 7H13V13H11V7Z"></path></svg></span><span class="p3-field-message__success-glyph"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22ZM12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20ZM11.0026 16L6.75999 11.7574L8.17421 10.3431L11.0026 13.1716L16.6595 7.51472L18.0737 8.92893L11.0026 16Z"></path></svg></span></span><span class="p3-field-message__caption-cell"><span class="p3-field-message__label">${messageText}</span></span></p>`
       : nothing}</div>`;
   }

@@ -49,7 +49,7 @@ const MARKUP: Record<string, string> = {
   placeholder: 'the input\'s placeholder',
   helpText: 'the message\'s text at the default status',
   validationMessage: 'the message\'s text at a validation status (the help text when unset)',
-  showMessage: 'writes the <p class="p3-field-message"> and names its id in the input\'s aria-describedby',
+  showMessage: 'writes the <p class="p3-field-message"> and names its id in the input\'s aria-describedby; at error, warning or success the message is written whatever this says (Q-POC2 A, #1712 A)',
   required: 'the input\'s required; the label\'s marker follows it',
   disabled: 'the input\'s disabled (and the Show/Hide button\'s)',
   readOnly: 'the input\'s readonly',
@@ -181,6 +181,7 @@ ${props.map(initializer).join('\n')}
   #adopted = false;
   #auto = \`${P}-\${++serial}\`;
   #refocus = null;
+  #warnedStatus = null;
 ${password ? `  #shown = false;
 ` : ''}
   get #inputId() {
@@ -228,9 +229,12 @@ ${adoptFlag('isPending', "input.getAttribute('aria-busy') === 'true'")}
         }
         const message = root.querySelector('.p3-field-message');
         if (message) {
-          take('showMessage', true);
+          const atDefault = (root.getAttribute('data-prop-validation') ?? 'default') === 'default';
+          // A message at a validation status is written whatever showMessage says (Q-POC2 A), so only one at the
+          // default status shows the author chose to show it.
+          if (atDefault) take('showMessage', true);
           const text = message.querySelector('.p3-field-message__label')?.textContent.trim();
-          take((root.getAttribute('data-prop-validation') ?? 'default') === 'default' ? 'helpText' : 'validationMessage', text);
+          take(atDefault ? 'helpText' : 'validationMessage', text);
         }
         take('leadingIcon', root.querySelector('.${P}__leading-visual')?.firstElementChild);
 ${trailing ? `        take('trailingIcon', root.querySelector('.${P}__trailing-visual')?.firstElementChild);
@@ -266,6 +270,13 @@ ${password ? `
       input.focus();
       if (start !== null && end !== null) input.setSelectionRange(start, end);
     }
+    // OWNER DECISION 1 B (#3968): a status with neither validationMessage nor helpText writes an empty message, so the
+    // element warns the developer, once per status it enters, not on every render. DRAFT text.
+    const status = this.validation ?? 'default';
+    const text = status === 'default' ? this.helpText : (this.validationMessage ?? this.helpText);
+    const empty = status !== 'default' && (text === undefined || text === null || text === '');
+    if (empty && this.#warnedStatus !== status) console.warn(\`<${TAG}> has validation="\${status}" and no validationMessage or helpText, so its message is empty. Set validationMessage to say why the field is at this status.\`);
+    this.#warnedStatus = empty ? status : null;
   }
 
   #onInput = (event) => {
@@ -311,6 +322,9 @@ ${password ? `
     const messageId = \`\${inputId}-message\`;
     const status = this.validation ?? 'default';
     const messageText = status === 'default' ? this.helpText : (this.validationMessage ?? this.helpText);
+    // Q-POC2 A (#1712 A): at error, warning or success the message is always written and named in aria-describedby,
+    // whatever showMessage says, so aria-invalid never stands without a description. showMessage governs the default.
+    const writeMessage = this.showMessage || status !== 'default';
     const label = html\`<label class="p3-field-label" data-component="field-label" for=\${inputId}><span class="p3-field-label__label">\${this.label}</span><span class="p3-field-label__indicator" aria-hidden="true">*</span></label>\`;
     return html\`<div class="${P}" data-component="${id}" data-prop-size=\${this.size} data-prop-validation=\${this.validation}>${password
       ? `<div class="${P}__label-row"><div class="${P}__label-cell">\${label}</div><button type="button" class="p3-button ${P}__toggle" data-component="button" ${toggleAttrs} aria-controls=\${inputId} ?disabled=\${this.disabled} @click=\${this.#toggle}><span class="p3-button__label"><span class="${P}__toggle-text">\${this.#say(this.#shown ? 'hide' : 'show')}</span><span class="${P}__toggle-suffix">\${this.#say('suffix')}</span></span></button></div>`
@@ -320,9 +334,9 @@ ${password ? `
         placeholder=\${this.placeholder ?? nothing} value=\${this.defaultValue ?? nothing} autocomplete=\${this.autoComplete ?? nothing}${password ? ' spellcheck="false" autocapitalize="none"' : ' inputmode=${this.inputMode ?? nothing}'}
         ?required=\${this.required} ?disabled=\${this.disabled} ?readonly=\${this.readOnly}
         aria-busy=\${this.isPending ? 'true' : nothing} aria-invalid=\${status === 'error' ? 'true' : nothing}
-        aria-describedby=\${this.showMessage ? messageId : nothing} @input=\${this.#onInput}></div><span class="${P}__spinner" aria-hidden="true">${SPINNER}</span>${trailing ? `\${this.trailingIcon !== undefined && this.trailingIcon !== null
+        aria-describedby=\${writeMessage ? messageId : nothing} @input=\${this.#onInput}></div><span class="${P}__spinner" aria-hidden="true">${SPINNER}</span>${trailing ? `\${this.trailingIcon !== undefined && this.trailingIcon !== null
       ? html\`<span class="${P}__trailing-visual" aria-hidden="true">\${this.trailingIcon}</span>\`
-      : nothing}` : ''}</div>\${this.showMessage
+      : nothing}` : ''}</div>\${writeMessage
       ? html\`<p class="p3-field-message" data-component="field-message" id=\${messageId}><span class="p3-field-message__glyph-cell" aria-hidden="true">${glyphs}</span><span class="p3-field-message__caption-cell"><span class="p3-field-message__label">\${messageText}</span></span></p>\`
       : nothing}</div>\`;
   }
