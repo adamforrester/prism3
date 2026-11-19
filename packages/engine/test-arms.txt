@@ -591,6 +591,7 @@ apps/studio/test-chrome.mjs #3093
 apps/studio/test-chrome.mjs #3106
 apps/studio/test-chrome.mjs #3113
 apps/studio/test-chrome.mjs #3115
+apps/studio/test-chrome.mjs #3116
 apps/studio/test-chrome.mjs #3117
 apps/studio/test-chrome.mjs #3126
 apps/studio/test-chrome.mjs #3128
@@ -801,8 +802,8 @@ apps/studio/test-smoke.mjs #2812
 apps/studio/test-smoke.mjs #2915
 apps/studio/test-smoke.mjs #2935
 apps/studio/test-smoke.mjs #2942
+apps/studio/test-smoke.mjs #3116
 apps/studio/test-smoke.mjs #330
-apps/studio/test-smoke.mjs #3335
 apps/studio/test-smoke.mjs #3429
 apps/studio/test-smoke.mjs #388
 apps/studio/test-smoke.mjs #3880
