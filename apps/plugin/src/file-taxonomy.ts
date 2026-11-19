@@ -122,6 +122,8 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Veil', defs: ['veil'] },
         // Badge — under Components, owner-decided 2026-10-04 (S8 scope, O1).
         { page: 'Badge', defs: ['badge'] },
+        // Avatar (#4110) — its own page under Components, beside Badge, whose dot it nests. The page is held for the owner.
+        { page: 'Avatar', defs: ['avatar'] },
         // Tag — under Components beside Badge, owner-decided 2026-10-04 (S8 scope, O1). It nests
         // IconButton.Neutral, whose page is earlier in this list, so the nest resolves when the file is built in order.
         // Tag.Group (#1739) beside Tag, built after it so its nested tags resolve on the same page. Held for the owner.

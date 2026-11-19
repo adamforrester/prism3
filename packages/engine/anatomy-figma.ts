@@ -2445,7 +2445,8 @@ export const figmaAnatomyPlan = (
       ...(p.kind === 'absolute' && p.inset && p.strokeInset ? { absoluteStrokeInset: varOf(p.strokeInset) } : {}),
       // THE CORNER PIN (textarea's resize grip): a glyph lifted out of the flow into its parent's corner.
       // Only on a pinned vector, so every other plan is byte-identical; the schema requires the inset.
-      ...(p.kind === 'vector' && p.corner && p.inset ? { cornerInset: varOf(p.inset) } : {}),
+      // A pinned BOX (#4110, Avatar's presence ring) takes the same field: the executors' corner pass reads any node.
+      ...((p.kind === 'vector' || p.kind === 'box') && p.corner && p.inset ? { cornerInset: varOf(p.inset) } : {}),
       // THE FOOT PIN (#2872, Link's current-page bar): a box lifted out of the flow across its parent's bottom edge.
       // Only on such a box, so every other plan is byte-identical.
       ...(p.kind === 'box' && p.foot ? { footPin: true } : {}),
