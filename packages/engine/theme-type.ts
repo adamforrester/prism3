@@ -801,6 +801,11 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
     if (req && !roles.includes(req.role))
       throw new Error(`typography.weights.${g}: the '${g}' category must include '${req.role}', because ${req.why}. Add '${req.role}' back (the set given is ${roles.join('/')}).`);
   }
+  // #3707 (owner decision A, 2026-11-18): an empty `links` is refused, as the schema's `minItems: 1` refuses it, so an
+  // in-memory brief cannot ship without the body and caption link styles the contract guarantees and Link binds.
+  // Wording follows Q-RF1 A's pattern; DRAFT for the owner.
+  if (Array.isArray(t.links) && t.links.length === 0)
+    throw new Error('Link styles must name at least one text type: typography.links is empty.');
   const linkGroups = new Set([...(t.links ?? TYPE_LINK_DEFAULT), ...TYPE_LINK_ALWAYS]);
   const italicGroups = new Set(t.italics ?? []);   // default none — italics are opt-in per role
   // #1296 — categories whose DEFAULT cut is italic (default none). Each is a refusal-checked choice: an

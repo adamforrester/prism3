@@ -366,7 +366,15 @@ await checkPairing();
 await checkPageToPage();
 await checkBindings();
 
-findings.sort((a, b) => a.check - b.check || a.frame.localeCompare(b.frame) || a.role.localeCompare(b.role));
+// Code-unit order after a case fold, the engine's `localeFreeCompare` restated (this file has no import): the same
+// frames give the same table on every machine, whatever its locale (#3701).
+const byCodeUnit = (a, b) => {
+  const x = a.toLowerCase();
+  const y = b.toLowerCase();
+  if (x !== y) return x < y ? -1 : 1;
+  return a < b ? -1 : a > b ? 1 : 0;
+};
+findings.sort((a, b) => a.check - b.check || byCodeUnit(a.frame, b.frame) || byCodeUnit(a.role, b.role));
 const NAMES = { 1: 'control label', 2: 'pairing', 3: 'page to page', 4: 'binding' };
 const byCheck = { 1: 0, 2: 0, 3: 0, 4: 0 };
 for (const f of findings) byCheck[f.check]++;
