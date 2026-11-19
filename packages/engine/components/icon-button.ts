@@ -216,7 +216,9 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
   // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
   // Q-CS5 B (#3765): Control shape reaches the SQUARE shape's corner (`radius.md`) through `capsules`; the circular
   // shape's `radius.round` is intrinsic and not listed, so it stays a circle under every shape (#1353).
-  levers: { controlShape: { capsules: ['radius.md'] }, outlineInteraction: { opaqueFill: true } },
+  // #576 Q6 (owner decision 2026-11-19): "Outline button border" reaches the outline members' edge too, so a Thick brand's
+  // outline icon buttons match its outline text buttons.
+  levers: { controlShape: { capsules: ['radius.md'] }, outlineInteraction: { opaqueFill: true }, buttonBorderWeight: { edge: true } },
 
   tokens: {
     // #1353 — THE PER-SHAPE CORNER RUNG. `shape=square` binds the button's normal rounded rung (`radius.md`,

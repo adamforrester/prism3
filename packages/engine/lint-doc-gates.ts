@@ -144,6 +144,9 @@
  * job-level `if:` is not this arm's: `all-gates.sh` fails a skipped job by name unless the docs-only exemption
  * (arm above, `exemptionGaps`) lists it. Today the rule holds at zero; a step that genuinely needs either key is
  * #888's route, a separate non-required job, and an allowlist for it would be added here in that PR.
+ * A third key neuters a step the same way (#4201 item 1): `shell:` names the program the `run:` text is handed to,
+ * so `shell: true {0}` runs `true <script>` and always passes. A gate step's shell, and a job's or the workflow's
+ * `defaults.run.shell`, is sound only absent or exactly `bash` or `sh`.
  *
  * WHY IMPORTING `verify.ts` IS SAFE: it runs its gates only under a main-module guard, so importing
  * `GATES` costs nothing. It does run its own self-checks at import time, which is deliberate — this
@@ -726,14 +729,25 @@ export const neuteredStepGaps = (tree: YamlValue): string[] => {
   const jobs = (tree as { jobs?: Record<string, Record<string, YamlValue> & { steps?: Record<string, YamlValue>[] }> }).jobs ?? {};
   const problems: string[] = [];
   const soundCoe = (v: YamlValue | undefined): boolean => v === undefined || String(v).trim() === 'false';
+  // #4201 item 1: the program a `run:` is handed to. Only the two shells that run the text as a script are sound.
+  const soundShell = (v: YamlValue | undefined): boolean => v === undefined || /^(bash|sh)$/.test(String(v).trim());
+  const defaultShell = (holder: YamlValue | undefined): YamlValue | undefined =>
+    ((holder as { defaults?: { run?: Record<string, YamlValue> } } | undefined)?.defaults?.run ?? {}).shell;
+  const workflowShell = defaultShell(tree);
   for (const [k, j] of Object.entries(jobs)) {
     const gateSteps = (j.steps ?? []).filter((st) => typeof st.run === 'string' && st.run.trim());
     if (gateSteps.length && !soundCoe(j['continue-on-error']))
       problems.push(`job \`${k}\` carries \`continue-on-error: ${String(j['continue-on-error'])}\`, so its ${gateSteps.length} gate step(s) cannot fail the run`);
+    const jobShell = defaultShell(j);
+    if (gateSteps.length && !soundShell(jobShell))
+      problems.push(`job \`${k}\` sets \`defaults.run.shell: ${String(jobShell)}\`, so its ${gateSteps.length} gate step(s) are handed to that program, not run as a script`);
+    if (gateSteps.length && !soundShell(workflowShell))
+      problems.push(`the workflow sets \`defaults.run.shell: ${String(workflowShell)}\`, so job \`${k}\`'s ${gateSteps.length} gate step(s) are handed to that program, not run as a script`);
     for (const st of gateSteps) {
       const name = typeof st.name === 'string' ? st.name : '(unnamed)';
       if (!soundCoe(st['continue-on-error'])) problems.push(`"${name}" (\`${k}\`) carries \`continue-on-error: ${String(st['continue-on-error'])}\`, so GitHub reports it as \`success\` when the gate fails`);
       if ('if' in st) problems.push(`"${name}" (\`${k}\`) carries a step-level \`if: ${String(st.if)}\`, so the gate runs only when that holds`);
+      if (!soundShell(st.shell)) problems.push(`"${name}" (\`${k}\`) carries \`shell: ${String(st.shell)}\`, so its \`run:\` is handed to that program and the gate passes whatever it says`);
     }
   }
   return problems;
@@ -1526,6 +1540,11 @@ jobs:
   if (!gaps(step("continue-on-error: ${{ github.event_name == 'push' }}")).some((p) => p.includes('"Sample gate"'))) selfFails.push('arm 10 misses a gate step with an expression `continue-on-error`');
   if (!gaps(step('if: false')).some((p) => p.includes('"Sample gate"') && p.includes('if: false'))) selfFails.push('arm 10 misses a gate step with `if: false`');
   if (!gaps(T.replace('    runs-on: ubuntu-latest', '    runs-on: ubuntu-latest\n    continue-on-error: true')).some((p) => p.includes('job `engine`'))) selfFails.push('arm 10 misses a job-level `continue-on-error: true` over gate steps');
+  // #4201 item 1: `shell:` hands the `run:` text to another program.
+  for (const sound of ['shell: bash', 'shell: sh']) if (gaps(step(sound)).length) selfFails.push(`arm 10 flags \`${sound}\`, which runs the step as a script`);
+  if (!gaps(step('shell: true {0}')).some((p) => p.includes('"Sample gate"') && p.includes('shell: true {0}'))) selfFails.push('arm 10 misses a gate step with `shell: true {0}` (it cannot fail)');
+  if (!gaps(T.replace('    runs-on: ubuntu-latest', '    runs-on: ubuntu-latest\n    defaults:\n      run:\n        shell: true {0}')).some((p) => p.includes('job `engine`') && p.includes('defaults.run.shell'))) selfFails.push('arm 10 misses a job-level `defaults.run.shell: true {0}` over gate steps');
+  if (!gaps(T.replace('jobs:', 'defaults:\n  run:\n    shell: true {0}\njobs:')).some((p) => p.includes('the workflow') && p.includes('defaults.run.shell'))) selfFails.push('arm 10 misses a workflow-level `defaults.run.shell: true {0}` over gate steps');
 }
 
 // 7. ARM 6 — a retired gate's token is found in a place, and a place without it is clean.
@@ -1725,7 +1744,7 @@ const realSteps = parseSteps(readFileSync(CI_PATH, 'utf8'));
 // ARM 10 (#3881), on the real file: no gate step that cannot fail.
 {
   const problems = neuteredStepGaps(ciTree);
-  console.log('    neutered steps: every job and every step with a `run:` checked for `continue-on-error` and a step `if:`');
+  console.log('    neutered steps: every job and every step with a `run:` checked for `continue-on-error`, a step `if:` and a `shell:` other than bash or sh');
   if (problems.length) {
     console.error(`\n❌ ${problems.length} gate step(s) or job(s) in ci.yml cannot fail (#3881):\n`);
     for (const p of problems) console.error(`    ${p}`);

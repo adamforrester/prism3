@@ -9985,6 +9985,65 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     const moved = t.filter((c) => ['body', 'label', 'caption', 'code'].includes(c.group) && baseSize.get(key(c)) !== c.sizePx);
     ok(moved.length === 0, `[#328] typeScale '${scale}' leaves body/label/caption/code untouched (moved: ${moved.map(key).join(',') || 'none'})`);
   }
+  // #4198 / #4199 — `check()` driven by STUB steps, over this tree. #4198: the stopped-emission detector (#1059) had
+  // no arm, so deleting it left every gate green; a step that exits 0 and writes nothing must be named `silent`, and
+  // every committed artifact it left unwritten must be named. #4199: a step that FAILS used to `process.exit` from
+  // inside `check()`, skipping the restore, so `--check` left committed files rewritten, their mtimes at the epoch and
+  // its temp directory behind. The oracle here is this arm's own walk of the artifact directories (bytes and mtimes),
+  // not regen's `artifactPaths`, and the temp directories counted in `tmpdir()`.
+  {
+    type Report = { inSync: boolean; failed: string | null; silent: string[]; unwritten: string[] };
+    const checkFn = (regenModule as Record<string, unknown>).check as ((steps: Array<{ label: string; args: string[] }>, opts?: { quiet?: boolean }) => Report) | undefined;
+    ok(typeof checkFn === 'function', '#4198: regen.ts exports check(steps), so a stub step can drive the drift gate');
+    if (typeof checkFn === 'function') {
+      const engineDir = new URL('./', import.meta.url).pathname, root4198 = resolve(engineDir, '..', '..');
+      const dirs = [join(engineDir, 'out'), join(engineDir, 'schema'), join(root4198, 'docs/public/reports'), join(root4198, 'docs/public/reference')];
+      const files = (d: string): string[] => readdirSync(d, { recursive: true }).map((f) => join(d, String(f))).filter((p) => statSync(p).isFile());
+      // Path and bytes, and the mtime separately: the restore has always set timestamps to the millisecond, so a
+      // checkout's sub-millisecond mtime comes back within 1 ms of itself, while a skipped restore leaves the epoch.
+      type Print = { bytes: string; mtimes: Map<string, number> };
+      const fingerprint = (): Print => {
+        const paths = [...dirs.flatMap(files), ...readdirSync(engineDir).map((f) => join(engineDir, f)).filter((p) => statSync(p).isFile())].sort();
+        return { bytes: paths.map((p) => `${relative(root4198, p)} ${createHash('sha1').update(readFileSync(p)).digest('hex')}`).join('\n'),
+          mtimes: new Map(paths.map((p) => [relative(root4198, p), statSync(p).mtimeMs])) };
+      };
+      const differs = (a: Print, b: Print): string => {
+        const la = a.bytes.split('\n'), lb = b.bytes.split('\n');
+        const byte = la.find((l, i) => l !== lb[i]);
+        if (byte !== undefined || la.length !== lb.length) return `bytes: ${byte ?? 'file count'}`;
+        const time = [...a.mtimes].find(([p, t]) => Math.abs((b.mtimes.get(p) ?? -1e15) - t) > 1);
+        return time ? `mtime: ${time[0]} ${time[1]} → ${b.mtimes.get(time[0])}` : '';
+      };
+      const temps = (): number => readdirSync(tmpdir()).filter((f) => f.startsWith('prism3-regen-')).length;
+      const stubs = mkdtempSync(join(tmpdir(), 'prism3-4198-'));
+      try {
+        const quiet = join(stubs, 'quiet.ts'), rewrite = join(stubs, 'rewrite.ts'), fail = join(stubs, 'fail.ts');
+        writeFileSync(quiet, 'export {};\n');
+        writeFileSync(rewrite, "import { appendFileSync } from 'node:fs';\nappendFileSync(process.argv[2], '\\n');\n");
+        writeFileSync(fail, 'process.exit(3);\n');
+        const victim = join(engineDir, 'out', 'aurora.ai.json');
+
+        const print0 = fingerprint(), temps0 = temps();
+        let r: Report | null = null, threw: unknown = null;
+        try { r = checkFn([{ label: 'stub quiet', args: [quiet] }], { quiet: true }); } catch (e) { threw = e; }
+        ok(!threw && !!r && !r.inSync && r.silent.length === 1 && r.silent[0].includes(quiet),
+          `#4198: regen --check names a step that exits 0 and writes nothing as silent (WROTE NOTHING, #1059) (silent ${JSON.stringify(r?.silent)}; threw ${String(threw)})`);
+        ok(!!r && r.unwritten.includes('packages/engine/out/aurora.ai.json') && r.unwritten.includes('packages/engine/schema/lever-manifest.json'),
+          `#4198: regen --check names a committed artifact no step wrote as stale, in out/ and in the named lists (${r?.unwritten.length ?? 0} named)`);
+        const silentDiff = differs(print0, fingerprint());
+        ok(silentDiff === '', `#4198: regen --check over a silent step leaves every artifact byte-identical with its own mtime (${silentDiff || 'same'})`);
+
+        r = null; threw = null;
+        try { r = checkFn([{ label: 'stub rewrite', args: [rewrite, victim] }, { label: 'stub fail', args: [fail] }], { quiet: true }); } catch (e) { threw = e; }
+        ok(!threw && !!r && !r.inSync && !!r.failed && r.failed.includes(fail),
+          `#4199: regen --check reports a failed step by name and returns, never exits mid-check (failed ${JSON.stringify(r?.failed)}; threw ${String(threw)})`);
+        const failDiff = differs(print0, fingerprint());
+        ok(failDiff === '',
+          `#4199: regen --check puts every artifact back, bytes and mtimes, when a step fails after another rewrote one (${failDiff || 'same'})`);
+        ok(temps() === temps0, `#4199: regen --check removes its temp directory when a step fails (${temps() - temps0} left)`);
+      } finally { rmSync(stubs, { recursive: true, force: true }); }
+    }
+  }
 }
 
 // ---- weight axis + link modifier ----
@@ -18073,9 +18132,11 @@ arm: {
     // THE SET: exactly the three text buttons; icon-button is outside it and every lever is its identity.
     ok(componentDefs.filter(isButtonFamily).map((d) => d.id).sort().join(',') === 'button,button-destructive,button-neutral',
       `#1667 button levers: the set is button + button-destructive + button-neutral (${componentDefs.filter(isButtonFamily).map((d) => d.id).join(', ')})`);
+    // Every setting but "Outline button border", which reaches the icon buttons by their own opt-in since #576 Q6 (held
+    // in the #576 block); at its default it is the identity here too.
     ok([iconButton, iconButtonDestructive, iconButtonNeutral].every((d) =>
-      applyButtonLayout(d, { icons: 'edges', content: 'smaller', minWidthMultiplier: 4 }, () => 44) === d),
-      '#1667 button levers: icon-button is untouched by every setting — the same object back');
+      applyButtonLayout(d, { icons: 'edges', content: 'smaller', minWidthMultiplier: 4, borderWeight: 'hairline' } as never, () => 44) === d),
+      '#1667 button levers: icon-button is untouched by every setting but Outline button border — the same object back');
 
     // (1) THE PER-SIZE FLOOR — every brand × family × size, at the default 2.25 and at 2.5.
     for (const [bid, t] of BL_BRANDS) for (const def of FAMILY) for (const m of [2.25, 2.5]) {
@@ -30837,18 +30898,32 @@ arm: {
   }
 }
 
-// #576 (owner decision 2026-11-18, A) — ONE OUTLINE BORDER WEIGHT FOR EVERY BUTTON SET ("Outline button border", a DRAFT
-// name). The weight is brand-wide and the color stays per set. ORACLES are literals: the three set ids, the one key and
-// the two rung names are spelled here, never read off the materializer or the def it rebinds.
+// #576 (owner decision 2026-11-18, A) — ONE OUTLINE BORDER WEIGHT FOR EVERY BUTTON SET ("Outline button border").
+// The weight is brand-wide and the color stays per set. Since Q6 (owner decision 2026-11-19) it also reaches the icon
+// buttons: IconButton's outline members and FlushIconButton's round members, in all three families each, opting in with
+// `levers.buttonBorderWeight`. ORACLES are literals: the set ids, the one key and the two rung names are spelled here,
+// never read off the materializer, the def it rebinds or the def's `levers`.
 {
   const thick = { ...DEFAULT_BUTTON_LAYOUT, borderWeight: 'thick' as const };
-  const SETS_576 = [button, buttonNeutral, buttonDestructive];
-  // (1) SCOPE: across every def, Thick moves exactly the three text-button sets. Icon buttons keep their own edge.
+  // Each set with the member marker of the members that DRAW the edge: the outline appearance, or Flush's round shape.
+  const SETS_576: Array<[ComponentDef, string]> = [
+    [button, 'appearance=outline'], [buttonNeutral, 'appearance=outline'], [buttonDestructive, 'appearance=outline'],
+    [iconButton, 'appearance=outline'], [iconButtonNeutral, 'appearance=outline'], [iconButtonDestructive, 'appearance=outline'],
+    [flushIconButton, 'shape=round'], [flushIconButtonNeutral, 'shape=round'], [flushIconButtonDestructive, 'shape=round'],
+  ];
+  // (1) SCOPE: across every def, Thick moves exactly the nine sets: the three text-button sets and, since Q6, the six
+  //     icon-button sets. Q6 is asserted on its own, so dropping the icon buttons fails by their names.
   const moved576 = componentDefs.filter((d) => JSON.stringify(applyButtonLayout(d, thick, () => 44))
-    !== JSON.stringify(applyButtonLayout(d, DEFAULT_BUTTON_LAYOUT, () => 44))).map((d) => d.id).sort().join(',');
-  ok(moved576 === 'button,button-destructive,button-neutral',
-    `#576 scope: across all ${componentDefs.length} defs, Outline button border: Thick moves exactly button, button-destructive and button-neutral (got ${moved576 || 'none'})`);
-  for (const def of SETS_576) {
+    !== JSON.stringify(applyButtonLayout(d, DEFAULT_BUTTON_LAYOUT, () => 44))).map((d) => d.id).sort();
+  const WANT_576 = ['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive',
+    'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral'];
+  ok(moved576.join(',') === WANT_576.join(','),
+    `#576 scope: across all ${componentDefs.length} defs, Outline button border: Thick moves exactly the ${WANT_576.length} button and icon-button sets (got ${moved576.join(',') || 'none'})`);
+  const ICON_576 = WANT_576.filter((id) => id.includes('icon-button'));
+  const iconMissed = ICON_576.filter((id) => !moved576.includes(id));
+  ok(iconMissed.length === 0,
+    `#576 Q6: Outline button border: Thick reaches every icon-button and flush-icon-button set (missed: ${iconMissed.join(', ') || 'none'})`);
+  for (const [def, edgeMarker] of SETS_576) {
     const base = applyButtonLayout(def, DEFAULT_BUTTON_LAYOUT, () => 44);
     const m = applyButtonLayout(def, thick, () => 44);
     const changed = Object.keys(m.tokens).filter((k) => m.tokens[k] !== base.tokens[k]).sort();
@@ -30862,9 +30937,9 @@ arm: {
     const weights = new Set(thickSet.map((pl) => (pl.root as unknown as { bound?: Record<string, string> }).bound?.strokeWeight ?? 'UNBOUND'));
     const paintsMoved = thickSet.filter((pl, i) => JSON.stringify((pl.root as unknown as { paints?: unknown }).paints)
       !== JSON.stringify((thinSet[i]?.root as unknown as { paints?: unknown } | undefined)?.paints)).map(planComponentName);
-    const outlineMembers = thickSet.filter((pl) => planComponentName(pl).includes('appearance=outline')).length;
+    const outlineMembers = thickSet.filter((pl) => planComponentName(pl).includes(edgeMarker)).length;
     ok(thickSet.length === thinSet.length && outlineMembers > 0 && JSON.stringify([...weights]) === JSON.stringify(['border-width/thick']) && paintsMoved.length === 0,
-      `#576 ${def.id}: projected at Thick, all ${thickSet.length} members (${outlineMembers} outline) bind border-width/thick as their stroke weight, and no member's paints move (weights: ${[...weights].join(', ')}; paints moved: ${paintsMoved.slice(0, 3).join('; ') || 'none'})`);
+      `#576 ${def.id}: projected at Thick, all ${thickSet.length} members (${outlineMembers} ${edgeMarker}) bind border-width/thick as their stroke weight, and no member's paints move (weights: ${[...weights].join(', ')}; paints moved: ${paintsMoved.slice(0, 3).join('; ') || 'none'})`);
     // (4) THIN IS THE IDENTITY: the default and an explicit Thin are the same def back.
     ok(JSON.stringify(applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, borderWeight: 'hairline' }, () => 44)) === JSON.stringify(base),
       `#576 ${def.id}: Outline button border: Thin builds the default def`);
@@ -30874,6 +30949,15 @@ arm: {
   try { applyButtonLayout({ ...button, tokens: { ...button.tokens, 'border-width': 'border-width.heavy' } }, thick, () => 44); } catch (e) { threw576 = (e as Error).message; }
   ok(threw576.includes('button') && threw576.includes('border-width.heavy'),
     `#576 a button whose edge binds another rung is refused by name, not silently kept (${threw576 || 'did NOT throw'})`);
+  let threwIcon576 = '';
+  try { applyButtonLayout({ ...iconButton, tokens: { ...iconButton.tokens, 'border-width': 'border-width.heavy' } }, thick, () => 44); } catch (e) { threwIcon576 = (e as Error).message; }
+  ok(threwIcon576.includes('icon-button') && threwIcon576.includes('border-width.heavy'),
+    `#576 Q6: an icon button whose edge binds another rung is refused by name, not silently kept (${threwIcon576 || 'did NOT throw'})`);
+  // (5b) THE OPT-IN IS VALIDATED: `levers.buttonBorderWeight` on a def with no `border-width` key is refused by name.
+  const { 'border-width': _bw576, ...noEdge } = iconButton.tokens;
+  const edgeless576 = validateComponentDef({ ...iconButton, tokens: noEdge } as ComponentDef).errors.join(' | ');
+  ok(edgeless576.includes('levers.buttonBorderWeight'),
+    `#576 Q6: the schema refuses levers.buttonBorderWeight on a def that binds no border-width key (${edgeless576 || 'accepted'})`);
   // (6) THE RUNG IS 2PX, read off every brand's committed Figma emission, which knows nothing about any def.
   const thickPx = readdirSync(resolve(HERE, './out/figma')).sort().map((brand) => {
     const vars = (JSON.parse(readFileSync(resolve(HERE, `./out/figma/${brand}/border-width.json`), 'utf8')) as { variables: { name: string; value?: unknown }[] }).variables;
@@ -32116,7 +32200,10 @@ arm: {
 
   const g = mkFake();
   mcpCallTool('export_theme', { brand: xbrand, outDir: './t2', include: ['tokens'] }, undefined, g.io);
-  ok(g.files.size === 1 && g.files.has('./t2/tokens.json'), 'export_theme: include:[tokens] writes only the DTCG tree');
+  // #4144: the tokens family is the DTCG tree under the CLI's name, its base + overlay set, and the old unprefixed
+  // name for one release, and nothing from another family.
+  ok([...g.files.keys()].every((k) => /^\.\/t2\/(x\.tokens|x\.base\.tokens|x\.[a-z-]+\.overlay\.tokens|tokens)\.json$/.test(k)) && g.files.has('./t2/x.tokens.json') && g.files.has('./t2/tokens.json'),
+    `export_theme: include:[tokens] writes only the DTCG tree and its projections (${[...g.files.keys()].join(', ')})`);
   ok(mcpCallTool('export_theme', { brand: xbrand, outDir: './t3', include: ['nope'] }, undefined, mkFake().io).isError === true,
     'export_theme: an unknown include section errors rather than silently writing nothing');
   ok(EXPORT_SECTIONS.length === 4, 'export_theme: four artifact families');
@@ -32125,7 +32212,9 @@ arm: {
   ok(![...f.files.keys()].some((k) => k.includes('component-defs')), 'export_theme: the default call writes no component-defs export (opt-in)');
   const cs = mkFake();
   ok(!mcpCallTool('export_theme', { brand: xbrand, outDir: './cs', include: ['componentSpecs'] }, undefined, cs.io).isError, 'export_theme: include:[componentSpecs] writes');
-  ok(cs.files.size === 3 && cs.files.has('./cs/component-contracts.json') && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json')
+  // #4144: each under the brand-prefixed name and, for one release, the unprefixed one.
+  ok(cs.files.size === 6 && cs.files.has('./cs/component-contracts.json') && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json')
+    && cs.files.has('./cs/x.component-contracts.json') && cs.files.has('./cs/x.component-defs.json') && cs.files.has('./cs/x.component-defs.specs.json')
     && cs.files.get('./cs/component-contracts.json') === cs.files.get('./cs/component-defs.json'),
     `#1325 export_theme: include:[componentSpecs] writes exactly the component contracts, their compatibility copy (the same bytes) and the Specs projection (${[...cs.files.keys()].join(', ')})`);
   const csDoc = JSON.parse(cs.files.get('./cs/component-defs.json') ?? '{}');
@@ -40936,9 +41025,53 @@ arm: {
   // THE PROPERTIES: two texts and three toggles, `dividers` driving both rules together, off.
   ok(JSON.stringify(planSetProperties(plans).filter((x) => x.type !== 'SLOT')) === JSON.stringify([
     { name: 'title', type: 'TEXT', default: 'Dialog title' }, { name: 'description text', type: 'TEXT', default: 'Supporting text' },
+    { name: 'show title', type: 'BOOLEAN', default: true },
     { name: 'description', type: 'BOOLEAN', default: false }, { name: 'close', type: 'BOOLEAN', default: true }, { name: 'dividers', type: 'BOOLEAN', default: false },
   ]) && plans.every((p) => find(p.root as DN, 'headerDivider')?.visibleProp === 'dividers'),
-    `#2609 dialog properties: title "Dialog title", description text "Supporting text", description off, close on, dividers off over both rules (got ${JSON.stringify(planSetProperties(plans))})`);
+    `#2609 dialog properties: title "Dialog title", description text "Supporting text", show title on, description off, close on, dividers off over both rules (got ${JSON.stringify(planSetProperties(plans))})`);
+
+  // ── #2895 SHOW TITLE (owner Q692 A; the wireframe's Q1–Q7 all A, approved 2026-11-18). EXPECTED is typed here from the
+  // wireframe; ACTUAL is the projected plans and the def's code contract. Q1 A: Figma `show title`, default on; the code
+  // prop is `hideTitle`, default off (owner decision B, 2026-11-18: Q-CC7 A's one hidden-label convention, `hideLabel`). Q4 A: on every member. Q2 A, Q3 A, Q6 A: nothing else moves (the description, close and divider keep
+  // their own toggles, and the title keeps its text property and style binding while hidden). Q5 A and Q7 A: the code
+  // contract. Remove the boolean, flip its default, or drop a code line, and the arm it breaks fails by name.
+  {
+    const st = dg.props.find((x) => x.name === 'hideTitle');
+    const fb = (dg.figmaProperties?.booleans as Record<string, unknown> | undefined)?.showTitle as { figmaName?: string; figmaOnly?: boolean } | undefined;
+    ok(st?.type === 'boolean' && st.default === false && st.required === false && !dg.props.some((x) => x.name === 'showTitle')
+      && fb?.figmaName === 'show title' && fb.figmaOnly === true && dg.props.find((x) => x.name === 'title')?.required === true,
+      `#2895 dialog hideTitle: the code prop is hideTitle, an optional boolean, default false, with no showTitle prop (owner decision B, Q-CC7 A's hideLabel convention); the Figma "show title" switch is figma-only; title stays required as the accessible name (got ${JSON.stringify({ st, fb })})`);
+    const titleBad = plans.filter((p) => {
+      const t = find(p.root as DN, 'title') as (DN & { visibleProp?: string; visible?: boolean; textStyle?: string; propertyRef?: { prop: string } }) | undefined;
+      return !(t && t.visibleProp === 'show title' && t.visible !== false && t.propertyRef?.prop === 'title' && /^label\/(lg|md|sm)\/emphasis$/.test(t.textStyle ?? ''));
+    });
+    ok(plans.length === 24 && titleBad.length === 0,
+      `#2895 dialog show title: every one of the 24 members binds the title's visibility to "show title", shown by default, keeping its title text property and its label emphasis style (${titleBad.length ? `WRONG: ${titleBad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 24'})`);
+    const desc = plans.every((p) => (find(p.root as DN, 'description') as { visibleProp?: string } | undefined)?.visibleProp === 'description');
+    ok(desc, '#2895 dialog show title Q2 A: the description keeps its own toggle, independent of the title');
+    // Q3 A: the header collapses to its content, so a hidden title takes its gap with it. That holds only while the header
+    // (a row: its height is the counter axis) and the titleBox (a column: its height is the primary axis) both hug on y,
+    // with no minimum height on either. ACTUAL is the projected frames, not the def's sizing literals.
+    const q3Bad = plans.filter((p) => {
+      const h = find(p.root as DN, 'header') as Record<string, unknown> | undefined;
+      const tb = find(p.root as DN, 'titleBox') as Record<string, unknown> | undefined;
+      const noMin = (n: Record<string, unknown>) => n.minHeight === undefined && (n.bound as Record<string, unknown> | undefined)?.minHeight === undefined;
+      return !(h && tb && h.layoutMode === 'HORIZONTAL' && h.counterAxisSizingMode === 'AUTO' && noMin(h)
+        && tb.layoutMode === 'VERTICAL' && tb.primaryAxisSizingMode === 'AUTO' && noMin(tb));
+    });
+    ok(plans.length === 24 && q3Bad.length === 0,
+      `#2895 dialog show title Q3 A: on every member the header and the titleBox hug their height with no minimum, so a hidden title collapses the header (${q3Bad.length ? `WRONG: ${q3Bad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 24'})`);
+    const co =codeOnlyText(dg.anatomy!.codeOnly);
+    ok(co.some((e) => /^labeling — /.test(e) && /`hideTitle` the `<h2>` stays in the DOM, visually hidden/.test(e) && /`aria-labelledby` still points at it/.test(e) && /never `display: none`/.test(e)),
+      '#2895 dialog show title Q7 A: a hidden title is a visually hidden <h2> that aria-labelledby still points at, never display: none');
+    ok(co.some((e) => /^focus in — /.test(e) && /`hideTitle`, never to the hidden title/.test(e) && /first control in the body/.test(e)),
+      '#2895 dialog show title Q7 A: with the title hidden, focus on open goes to the first body control, never the hidden title');
+    ok(co.some((e) => /^the hidden title on an alertdialog — an alertdialog always shows its title/.test(e) && /ignores `hideTitle` with `role="alertdialog"` and warns in development/.test(e))
+      && /An alertdialog always shows its title/.test(st?.description ?? '') && dg.docs.dont.some((x) => /^Hide the title of an alertdialog/.test(x)),
+      '#2895 dialog show title Q5 A: an alertdialog always shows its title; code ignores hideTitle there and warns in development, and the prop and docs say so');
+    ok(/Turn the title off only when tabs or a heading in the body already name the content, most often in a full-screen dialog or a bottom sheet/.test(dg.docs.usage ?? ''),
+      '#2895 dialog show title Q4 A: the docs recommend hiding the title for full and bottom when tabs or a heading name the content');
+  }
 
   // THE ALERTDIALOG HIDES CLOSE, in the docs: the role prop and the code contract both say so (Q303.9 A).
   const role = dg.props.find((x) => x.name === 'role');
@@ -41549,7 +41682,7 @@ arm: {
     ['focus held line', line('focus held'), 'focus held — Tab and Shift+Tab cycle inside the dialog at every placement, and the page behind is inert. A modal `<dialog>` makes the page inert natively.'],
     ['backdrop line', line('the backdrop'), 'the backdrop — `color.scrim.default` on `::backdrop`, at every placement but full, an end panel included. It is not part of the component: the Figma page draws it behind each example as canvas furniture.'],
     ['accessibility.role', dg.accessibility.role, '`role="dialog"` with `aria-modal="true"`, or `role="alertdialog"` for a confirmation that needs an answer. A native `<dialog>` opened with `showModal()` provides the dialog role, the modal state, the top layer and an inert page.'],
-    ['accessibility.aria', dg.accessibility.aria, 'aria-modal="true"; aria-labelledby pointing at the title; aria-describedby pointing at the description when there is one. The close button\'s accessible name is "Close". Hide the dividers from assistive technology.'],
+    ['accessibility.aria', dg.accessibility.aria, 'aria-modal="true"; aria-labelledby pointing at the title, a heading that stays in place, visually hidden, when the title is hidden; aria-describedby pointing at the description when there is one. The close button\'s accessible name is "Close". Hide the dividers from assistive technology.'],
   ];
   const moved = pinned.filter(([, actual, expected]) => actual !== expected).map(([name]) => name);
   ok(moved.length === 0 && carved.length === 0,
@@ -43926,6 +44059,28 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
     const err = r.stderr ?? '';
     ok(r.status === 1 && err.includes("✖ could not write 'clean'") && !/\n\s+at /.test(err),
       `#3875 the CLI reports a failed write through fail(), with no stack trace (exit ${r.status}; stderr ${JSON.stringify(err.slice(0, 300))})`);
+    // #4153: the CLI printed `[written]` for two of the six token files it writes, and --help named the same two. The
+    // oracle is the directory the run wrote into, read here, never the CLI's own list.
+    const out4153 = join(dir, 'out-4153');
+    const w = spawnSync('npx', ['tsx', resolve(HERE, 'cli.ts'), resolve(HERE, 'examples', 'harbor.design.md'), '--out', out4153], { cwd: HERE, encoding: 'utf8' });
+    const printed = [...(w.stdout ?? '').matchAll(/\[written\] (\S+)/g)].map((m) => m[1]!.slice(out4153.length + 1)).sort();
+    const onDisk = existsSync(out4153) ? readdirSync(out4153).sort() : [];
+    ok(w.status === 0 && onDisk.length >= 6 && JSON.stringify(printed) === JSON.stringify(onDisk),
+      `#4153 the CLI prints a [written] line for every file it writes (printed ${JSON.stringify(printed)}; on disk ${JSON.stringify(onDisk)})`);
+    const help = spawnSync('npx', ['tsx', resolve(HERE, 'cli.ts'), '--help'], { cwd: HERE, encoding: 'utf8' }).stdout ?? '';
+    ok(help.includes('<id>.base.tokens.json') && help.includes('<id>.<mode>.overlay.tokens.json'),
+      `#4153 --help names the base and per-mode overlay files beside <id>.tokens.json (got ${JSON.stringify(help.split('\n').find((l) => l.includes('--out')))})`);
+    // #4170: a failed contrast contract printed only a count. The issue's brief (a dark tinted light page) fails some;
+    // each failure must be listed with its mode, pair, ratio and floor, and the listing must account for the whole count.
+    const brief4170 = join(dir, 'fernway.design.md');
+    writeFileSync(brief4170, '---\nid: fernway\nprimary: { l: 0.479, c: 0.078, h: 161 }\nneutral: { hue: 160, chroma: 0.006 }\nsurfaces: { light: { base: 300 } }\n---\n');
+    const f = spawnSync('npx', ['tsx', resolve(HERE, 'cli.ts'), brief4170, '--out', join(dir, 'out-4170')], { cwd: HERE, encoding: 'utf8' });
+    const ferr = f.stderr ?? '';
+    const total = Number(/❌ (\d+) mode contrast contract\(s\) failed/.exec(ferr)?.[1] ?? NaN);
+    const listed = [...ferr.matchAll(/❌ (light|dark|hc-light|hc-dark|wireframe|[a-z-]+): (\S+) is (\d+(?:\.\d+)?):1 against (\S+), below its (\d+(?:\.\d+)?):1 floor/g)];
+    const more = Number(/… and (\d+) more/.exec(ferr)?.[1] ?? 0);
+    ok(f.status === 1 && total > 0 && listed.length > 0 && listed.length + more === total && listed.every((m) => Number(m[3]) < Number(m[5])),
+      `#4170 the CLI lists each failed contrast contract by mode, pair, ratio and floor, accounting for every failure (exit ${f.status}; ${listed.length} listed + ${more} more of ${total}; stderr ${JSON.stringify(ferr.slice(0, 400))})`);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -43987,6 +44142,23 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(rising === '', `#3872 rising breakpoints [0, 768.5, 1024] still build (got ${JSON.stringify(rising)})`);
 }
 
+// #3375 — List.Item's icon marker stays on `icon.size.sm/md/lg` (owner decision A, 2026-11-18), and the comment that
+// states its sizes must say what those bindings draw. It said 16/20/24 while the code drew 20/24/32. The comment is
+// authored prose and the px come from the def's bindings through the icon ladder, so the two halves are independent.
+{
+  const li = componentDefs.find((d) => d.id === 'list-item');
+  const tokens = (li?.tokens ?? {}) as Record<string, string>;
+  const drawn = ['small', 'medium', 'large'].map((sz) => {
+    const rung = /^icon\.size\.(\w+)$/.exec(tokens[`size.${sz}.icon`] ?? '')?.[1];
+    return ICON_SIZES.find((s) => s.name === rung)?.px;
+  });
+  const src = readFileSync(join(import.meta.dirname, 'components', 'list-item.ts'), 'utf8');
+  const at = src.indexOf('// THE ICON MARKER');
+  const stated = at < 0 ? null : /(\d+)\/(\d+)\/(\d+)/.exec(src.slice(at, src.indexOf('\n    \'', at)))?.slice(1).map(Number);
+  ok(drawn.join('/') === '20/24/32', `#3375 List.Item binds its small, medium and large icon marker at 20/24/32 (got ${drawn.join('/')})`);
+  ok(stated?.join('/') === drawn.join('/'), `#3375 List.Item's ICON MARKER comment states the sizes its bindings draw (comment ${stated?.join('/')}, drawn ${drawn.join('/')})`);
+}
+
 // #3984 — a line break in a string setting survives the design.md round trip. The serializer wrote it raw inside the
 // double quotes, so the second line became a frontmatter line of its own and the export would not import again. It is
 // now written as YAML's `\n` escape (and `\r` as `\r`), which the parser decodes; a backslash before an `n` that was
@@ -44024,14 +44196,100 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
 
 // #3551 — the code input cell's radius ladder (sm, sm, sm, lg) is intended (owner decision A, 2026-11-18): the three
 // smaller cells follow the control corner and the display cell is the exception. So `lint-rung-names` admits the
-// repeat as a DECIDED entry in RUNG_REPEATS citing #3551, and the open-question register no longer holds it. Read from
-// the gate's source, because the gate runs at import and exports nothing.
+// repeat as a DECIDED entry in RUNG_REPEATS citing #3551, and the open-question register no longer holds it. The gate
+// runs at import and exports nothing, so each register is read from its source and EVALUATED, never matched as text:
+// a check that the open register "does not include" a string passed when its regex stopped finding the declaration
+// (#4242). Each declaration is found by name alone (any type annotation), must occur exactly once, and its object
+// literal must evaluate, or the arm fails by name. MUTATIONS VERIFIED (#4242, each fails an arm here by name): the
+// open register re-declared with another annotation, holding code-input-cell · the decided entry's `why` without
+// #3551 · the def's x-large corner moved to radius.sm.
 {
   const src = readFileSync(join(import.meta.dirname, 'lint-rung-names.ts'), 'utf8');
-  const body = (name: string): string => src.match(new RegExp(`const ${name}: Record<[^>]*> = \\{([\\s\\S]*?)\\n?\\};`))?.[1] ?? '';
-  const decided = body('RUNG_REPEATS').split('\n').find((l) => l.includes("'code-input-cell'")) ?? '';
-  ok(decided.includes("'radius.*'") && decided.includes('#3551'), `#3551 RUNG_REPEATS admits code-input-cell's radius.* repeat, citing #3551 (got ${JSON.stringify(decided)})`);
-  ok(!body('RUNG_REPEATS_OPEN').includes("'code-input-cell'"), '#3551 RUNG_REPEATS_OPEN no longer holds code-input-cell: the question is answered');
+  const register = (name: string): { value?: Record<string, { families: string[]; why?: string; issue?: string }>; why: string } => {
+    const decls = [...src.matchAll(new RegExp(`\\b(?:const|let|var)\\s+${name}\\b[^=]*=\\s*\\{`, 'g'))];
+    if (decls.length !== 1) return { why: `${decls.length} declarations of ${name}, not one` };
+    const open = decls[0].index! + decls[0][0].length - 1;
+    let depth = 0, end = -1, quote = '';
+    for (let i = open; i < src.length && end < 0; i++) {
+      const c = src[i];
+      if (quote) { if (c === '\\') i++; else if (c === quote) quote = ''; continue; }
+      if (c === "'" || c === '"' || c === '`') quote = c;
+      else if (c === '{') depth++;
+      else if (c === '}' && --depth === 0) end = i;
+    }
+    if (end < 0) return { why: `${name}'s object literal never closes` };
+    try { return { value: new Function(`return (${src.slice(open, end + 1)});`)() as never, why: '' }; }
+    catch (e) { return { why: `${name}'s object literal does not evaluate: ${(e as Error).message}` }; }
+  };
+  const decided = register('RUNG_REPEATS'), pending = register('RUNG_REPEATS_OPEN');
+  ok(!!decided.value && !!pending.value, `#4242 both rung-repeat registers are read from lint-rung-names.ts as values (${decided.why || 'RUNG_REPEATS ok'}; ${pending.why || 'RUNG_REPEATS_OPEN ok'})`);
+  const entry = decided.value?.['code-input-cell'];
+  ok(!!entry && entry.families.includes('radius.*') && /#3551\b/.test(entry.why ?? ''), `#3551 RUNG_REPEATS admits code-input-cell's radius.* repeat, citing #3551 (got ${JSON.stringify(entry)})`);
+  ok(!!pending.value && !('code-input-cell' in pending.value), `#3551 RUNG_REPEATS_OPEN no longer holds code-input-cell: the question is answered (got ${JSON.stringify(pending.value)})`);
+  // The decided behavior itself, from the def: small, medium and large on the control corner, x-large on radius.lg.
+  const cell = componentDefs.find((d) => d.id === 'code-input-cell');
+  const ladder = ['small', 'medium', 'large', 'x-large'].map((s) => (cell?.tokens as Record<string, string> | undefined)?.[`size.${s}.radius`]);
+  ok(JSON.stringify(ladder) === JSON.stringify(['radius.sm', 'radius.sm', 'radius.sm', 'radius.lg']), `#3551 the code input cell's corner ladder is sm, sm, sm, lg, as decided (got ${JSON.stringify(ladder)})`);
+}
+
+// #4120 (owner decision A, 2026-11-19) — every brand-taking MCP tool takes `{ brand }`. validate_brand took the
+// BrandInput bare, so the documented pre-flight (validate_brand, then theme_brand, one object) failed its first call;
+// the bare form is still read for one release. A missing `brand` is named, not reported as "(root): expected object".
+{
+  const b4120 = { id: 'acme', primary: { l: 0.55, c: 0.18, h: 265 }, neutral: { hue: 'cool', chroma: 0.01 } };
+  const vb = (a: unknown) => mcpCallTool('validate_brand', a).structuredContent as { valid: boolean; errors: string[] };
+  const wrapped = vb({ brand: b4120 }), bare = vb(b4120);
+  ok(wrapped.valid === true && wrapped.errors.length === 0, `#4120 validate_brand accepts { brand } (got ${JSON.stringify(wrapped)})`);
+  ok(bare.valid === true, `#4120 validate_brand still accepts a bare BrandInput for one release (got ${JSON.stringify(bare)})`);
+  const vbDef = toolDefs({}).find((t) => t.name === 'validate_brand')!.inputSchema as { required?: string[]; properties?: Record<string, unknown> };
+  ok(JSON.stringify(vbDef.required) === '["brand"]' && 'brand' in (vbDef.properties ?? {}),
+    `#4120 validate_brand's inputSchema declares { brand }, as theme_brand's does (got ${JSON.stringify(vbDef)})`);
+  const io4120 = { mkdir: () => {}, writeFile: () => {} };
+  for (const [tool, a] of [['export_theme', { id: 'acme', outDir: './unw' }], ['score_consumption', { refs: ['color.text.primary'] }]] as const) {
+    const r = mcpCallTool(tool, a, undefined, io4120);
+    const msg = JSON.parse(r.content[0].text).error as string;
+    ok(r.isError === true && msg === `${tool} requires \`brand\`: a BrandInput object`,
+      `#4120 ${tool} with no \`brand\` names the missing argument (got ${JSON.stringify(msg)})`);
+  }
+}
+
+// #4141 (owner decision A, 2026-11-19) — export_theme's `include` REPLACES the default, as theme_brand's does. The
+// description said "add componentSpecs", so an agent that named it alone got no tokens. Semantics are unchanged;
+// the description and the include property say "replaces", and include:["componentSpecs"] still writes no tokens.
+{
+  const et = toolDefs({}).find((t) => t.name === 'export_theme')!;
+  const incDesc = ((et.inputSchema as { properties: { include: { description: string } } }).properties.include.description);
+  ok(/replac/i.test(et.description) && !/add "componentSpecs"/.test(et.description) && /replac/i.test(incDesc),
+    `#4141 export_theme says include replaces the default (description ${JSON.stringify(et.description.slice(0, 80))}…, include ${JSON.stringify(incDesc)})`);
+  const files = new Map<string, string>();
+  mcpCallTool('export_theme', { brand: { id: 'x', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } }, outDir: './c', include: ['componentSpecs'] },
+    undefined, { mkdir: () => {}, writeFile: (q: string, c: string) => { files.set(q, c); } });
+  ok(files.size > 0 && ![...files.keys()].some((k) => /tokens\.json$|ai/.test(k.replace('./c/', ''))),
+    `#4141 include:["componentSpecs"] writes the component files only, as the description now says (${[...files.keys()].join(', ')})`);
+}
+
+// #4144 (owner decision A, 2026-11-19) — export_theme writes the CLI's names: <id>.tokens.json, <id>.ai.json, the base +
+// overlay set, <id>.component-contracts.json; the unprefixed names stay for one release. The prefixed ai.json points at
+// <id>.tokens.json, so it sits beside a CLI tree. The overlay set is byte-identical to what the CLI writes.
+{
+  const brand = { id: 'acme', primary: { l: 0.55, c: 0.18, h: 265 }, neutral: { hue: 262, chroma: 0.01 }, modes: ['light', 'dark'] };
+  const files = new Map<string, string>();
+  const r = mcpCallTool('export_theme', { brand, outDir: './e', include: ['tokens', 'aiMetadata', 'componentSpecs'] },
+    undefined, { mkdir: () => {}, writeFile: (q: string, c: string) => { files.set(q, c); } });
+  ok(!r.isError, `#4144 export_theme writes (got ${r.content[0].text.slice(0, 160)})`);
+  const want = ['acme.tokens.json', 'acme.base.tokens.json', 'acme.dark.overlay.tokens.json', 'acme.ai.json',
+    'acme.component-contracts.json', 'acme.component-defs.json', 'acme.component-defs.specs.json'];
+  const missing = want.filter((n) => !files.has(`./e/${n}`));
+  ok(missing.length === 0, `#4144 export_theme writes the CLI's file names (missing ${missing.join(', ') || 'none'}; wrote ${[...files.keys()].join(', ')})`);
+  const legacy = ['tokens.json', 'ai-metadata.json', 'component-contracts.json', 'component-defs.json', 'component-defs.specs.json'].filter((n) => !files.has(`./e/${n}`));
+  ok(legacy.length === 0, `#4144 the unprefixed names are still written for one release (missing ${legacy.join(', ') || 'none'})`);
+  const ai = JSON.parse(files.get('./e/acme.ai.json') ?? '{}');
+  ok(JSON.stringify(ai).includes('companion to acme.tokens.json') && !JSON.stringify(ai).includes('companion to tokens.json'),
+    `#4144 acme.ai.json names acme.tokens.json as its tree, so it sits beside the CLI's files`);
+  const projected = buildOverlaySet(JSON.parse(files.get('./e/acme.tokens.json') ?? '{}'));
+  ok(files.get('./e/acme.base.tokens.json') === JSON.stringify(projected.base, null, 2) + '\n'
+    && files.get('./e/acme.dark.overlay.tokens.json') === JSON.stringify(projected.overlays.find((o) => o.mode === 'dark')?.tree, null, 2) + '\n',
+    '#4144 the base + overlay files are the projection of the tree written beside them, as the CLI writes it');
 }
 
 if (pass + fails.length < MIN_ASSERTIONS) {
