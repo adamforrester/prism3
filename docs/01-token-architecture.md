@@ -163,6 +163,8 @@ Merges Prism2's role/weight composites with NB's viewport handling. Three-tier (
 - **Core:** `core.dimension.<step>` — unitless modular scale (NB's explicit dimension tier, generalized).
 - **Semantic:** `space.{inline,stack,inset}.{xs…3xl}` aliasing dimension steps. **Density** parameterizes which dimension step each semantic step maps to (compact = one step tighter), generated and committed as literals — not a runtime expression.
 
+> **As built: spacing ships in `px` (2026-11-19, #4175, owner decision A).** Font sizes ship in `rem`. Spacing, radius, control heights, icon sizes and border widths ship in `px`. There are three reasons. First, control geometry stays on the 4px grid at every root font size, while `rem` drifts off it at a non-16px base. Second, the Figma variables carry the same numbers the code does. Third, WCAG 1.4.4 (resize text) is met by page zoom, which scales `px` and `rem` alike. The cost is that a user who raises only the browser's default font size gets larger text inside controls and gaps that don't grow. Primer Primitives ships every size in `rem`, so this is a recorded difference, not an oversight.
+
 ### 4.4 Radius
 - **Core:** `core.dimension.*` (shared spine).
 - **Semantic:** `radius.{none,sm,md,lg,pill,full}` and role aliases `radius.{action,surface,control,input}`. **Brand radius** (the form-factor input) scales the whole set; a sharp brand collapses `sm/md/lg` toward 0, a soft brand expands them.
@@ -203,6 +205,8 @@ The heart of Prism3. A brand input (§7) is expanded into the full `core.*` + se
 - **~20 steps per ramp (the Univers step density).** The default ramp is the NB-style 20-step scale (`025, 050, 100, 150 … 950`) — enough shades to always have a usable tint/shade to hand without manual interpolation. This is an engine constant (not a per-brand input — it stays out of the schema to honor input minimalism), aligned to what NB already ships.
 - **Per-hue chroma ceilings are mandatory** (e.g. yellow caps far lower than blue) so vivid hues don't clamp to mud. OKLCH is a space, not a gamut. Per-brand override via `chromaCeiling`.
 - **Render targets:** author in OKLCH; emit sRGB (hex fallback) + optional Display-P3 for brand-critical surfaces. Declare a per-platform fidelity contract; **test converted native colors against the design source.** DTCG Color Module `colorSpace` carries this.
+
+> **Deferred (2026-11-19, #4169, owner decision A): Display-P3 isn't built.** Every color ships as sRGB, as `hex` or `rgb()`, and the ramps are gamut-mapped into sRGB when they're built (`color.ts`). No `displayP3` lever exists (§7). The work waits on the value form (#4123): a string hex can't carry a color space, and the DTCG Color module's object form (`colorSpace`, `components`, a `hex` fallback) can. When it's picked up, it adds `display-p3` components beside the sRGB `hex`, plus one stock Style Dictionary run under `@media (color-gamut: p3)` for the CSS. Which rendering the contrast floors are measured on is a decision for that work, not settled here.
 
 ### 5.1a Multiple brand colors — fit or split
 Brands rarely have exactly one brand color. A client may run **two brand blues** (e.g. a light and a dark), or several distinct hues. The engine intakes any number of brand colors (`primaryColor` + `brandColors[]`) and decides, per pair, whether they **share one ramp** or **spin into separate scales**:
@@ -294,7 +298,7 @@ A brand is defined by a **small validated input set**. Below five inputs, brands
 **Optional (the disciplined extensions):**
 - `secondaryColor` / `accentColor` — additional brand hues.
 - `statusColors` — override system `success/warning/danger/info` (defaulted; overriding is discouraged).
-- `displayP3` — emit P3 render targets for brand-critical surfaces.
+- `displayP3` — emit P3 render targets for brand-critical surfaces. **Not built: deferred** (§5.1, #4169).
 - `motionPersonality` — the 6th input; brand easing/duration character.
 - `brand` — id, name, logo URI, voice notes (metadata, drives docs/`.ai.json`, not values).
 

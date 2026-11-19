@@ -404,6 +404,13 @@
       "title": "the scrim's steps are declared taste, not a derivation",
       "doc": "docs/20-interactive-color-system.md",
       "section": "8.3"
+    },
+    {
+      "date": "2026-11-19",
+      "issue": 4163,
+      "title": "no rename; the primitive placement is recorded, not changed",
+      "doc": "docs/35-naming-and-packaging.md",
+      "section": "10.1"
     }
   ]
 }

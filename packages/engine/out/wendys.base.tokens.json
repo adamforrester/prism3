@@ -4595,12 +4595,12 @@
       "round": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.128}",
-        "$description": "radius round — 128px (pill)"
+        "$description": "radius round — 128px (pill. For small fixed-size parts, such as a switch track, a radio or a badge count. A pill button binds `radius.capsule`)"
       },
       "capsule": {
         "$type": "dimension",
         "$value": "999px",
-        "$description": "radius capsule — 999px (off-grid literal)"
+        "$description": "radius capsule — 999px (off-grid literal. The pill a button binds under `controlShape: pill`, full at any height. Small fixed-size parts bind `radius.round`)"
       },
       "hairline": {
         "$type": "dimension",
