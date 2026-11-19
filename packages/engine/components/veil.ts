@@ -4,9 +4,10 @@
  * component whose whole job is to bind the semantic `veil.*` roles into a component surface.
  *
  * No KB brief: the catalogue has no veil or scrim brief, and nothing below cites one. Category
- * `foundations` — a media surface beside `image-placeholder`, whose brief (`image.md`) is Foundations.
- * Not `overlay`: in the KB that category is the floating layers (dialog, popover, tooltip), and a veil is
- * a wash inside the layout, not a layer above it.
+ * `overlay` — the owner's choice (#4045 A, 2026-11-18), out of `foundations` to match the Figma file, which
+ * places Veil under Components. It was `foundations`, a media surface beside `image-placeholder`; the KB's
+ * `overlay` is otherwise the floating layers (dialog, popover, tooltip), and a veil is still a wash over
+ * media inside the layout, not a layer above the page.
  *
  * ── WHAT IT IS, AND THE ONE THING IT IS NOT ─────────────────────────────────────────────────────
  *
@@ -93,8 +94,9 @@ export const veil: ComponentDef = {
   id: 'veil',
   name: 'Veil',
   aliases: ['wash', 'photo-wash', 'image-overlay', 'image-scrim', 'media-wash', 'photo-overlay'],
-  // `foundations` (#1700) — no brief, so a stated choice; the header gives the reason.
-  category: 'foundations',
+  // `overlay` (#1700, #4045 A) — no brief, so a stated choice: the owner's, out of `foundations` to match the
+  // Figma file, which places Veil under Components. `test.ts` holds it against the decision's literal.
+  category: 'overlay',
   status: 'draft',
   summary: 'Wash over media so text stays legible, solid or fading from one edge. Verify contrast.',
   description:

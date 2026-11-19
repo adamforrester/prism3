@@ -6813,7 +6813,7 @@
         "media-wash",
         "photo-overlay"
       ],
-      "category": "foundations",
+      "category": "overlay",
       "status": "draft",
       "summary": "Wash over media so text stays legible, solid or fading from one edge. Verify contrast.",
       "description": "A designer-selectable wash placed over a photograph or video so text set on top of it stays legible. Full-bleed, and chosen per image: pick a dark wash under light text or a light wash under dark text (the value axis), then the intensity for how much the image needs muting, then the direction — a solid wash over the whole image, or one strongest at the edge the text sits on and fading to clear at the opposite edge. The intensity is a magnitude — a stronger wash mutes the image more — not a contrast guarantee, because the result depends on the specific photo; verify contrast against your own image. Not the modal backdrop, which is a separate mode-varying fill (scrim.default) that dialogs reference directly.",
@@ -8265,7 +8265,7 @@
         "rule",
         "hr"
       ],
-      "category": "foundations",
+      "category": "layout",
       "status": "draft",
       "summary": "A thin rule between groups of content. Horizontal or vertical, or broken by a short centered label.",
       "description": "A 1px rule that separates groups of content when spacing alone leaves the grouping unclear: sections of a page, rows of an accordion, or a cluster of controls in a toolbar. Horizontal by default, spanning the width of its container; vertical between items in a row, spanning its height. It can run edge to edge or sit inset from the start or from both ends. Bold by default; subtle draws it in the lighter border color, for a quieter break. A labeled divider breaks the rule with one short centered word, such as Or between two ways to sign in: a line on each side, 24px clear of the label (12px when vertical), and the label in the secondary text color, which clears 4.5:1 against the page. It has no interaction states. Decorative by default, so assistive technology ignores it; set decorative to false when the rule marks a real break in the content, and it becomes a separator. A labeled divider is read as its label.",

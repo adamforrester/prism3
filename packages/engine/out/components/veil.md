@@ -3,7 +3,7 @@
 > Wash over media so text stays legible, solid or fading from one edge. Verify contrast.
 
 - **ID:** `veil`
-- **Category:** foundations
+- **Category:** overlay
 - **Status:** draft
 - **Also known as:** wash, photo-wash, image-overlay, image-scrim, media-wash, photo-overlay
 

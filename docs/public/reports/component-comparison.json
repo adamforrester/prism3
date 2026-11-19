@@ -1741,7 +1741,7 @@
     {
       "id": "divider",
       "name": "Divider",
-      "category": "foundations",
+      "category": "layout",
       "states": [],
       "projectedStates": [],
       "axes": {
@@ -5283,7 +5283,7 @@
     {
       "id": "veil",
       "name": "Veil",
-      "category": "foundations",
+      "category": "overlay",
       "states": [],
       "projectedStates": [],
       "axes": {
