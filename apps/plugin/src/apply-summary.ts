@@ -267,3 +267,10 @@ export const partialWriteNote = (f: PartialWriteFacts): string => {
   const item = partialWriteItem(f);
   return item ? ` — ${item}` : '';
 };
+
+/** #4185 B (owner decision 2026-11-19, option b): the build's engine-internal miss lines (`<part>.<field> -> UNCLAIMED`,
+ *  `-> DISCARDED`, issue numbers) leave the designer's screen. Activity shows this one line per set instead; the lines
+ *  themselves go to the file's run log (`activityLog.annotate`, which an agent and a maintainer read) and the console.
+ *  Empty for no miss. DRAFT wording for the owner. */
+export const missesLine = (n: number): string =>
+  n ? `⚠ ${n} part${n === 1 ? '' : 's'} not drawn as Prism3 expects. The details are kept in the file’s run log for a maintainer.` : '';

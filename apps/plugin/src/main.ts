@@ -18,7 +18,7 @@
  * Compiled under `tsconfig.main.json` (plugin-typings, `lib` WITHOUT `dom`), so any accidental
  * `document`/`window` reference is a COMPILE error — the two-context split is enforced by types.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, failureDetail, conflictHeadline, componentHeadline, staleNote, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, failureDetail, conflictHeadline, componentHeadline, staleNote, missesLine, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
 import { ENGINE_VERSION, formerDefIds, serializeBrandInput, resolveAllModes, brandTheme, type BrandInput } from '@prism3/engine';
 import { appendBuildNote, buildNote, parseBuildId } from '../../studio/src/build-identity';
 import { isIssueUrl } from '../../studio/src/state/report';
@@ -1053,9 +1053,11 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
     const settleMs = await verdictBeforeSettle(measureSettle, () => {
       // Cap the miss list rather than the count: `summary` is read in a chrome row that wraps, but a
       // starved file can produce one miss per binding per member and the whole list is not a summary.
-      const missNote = r.misses.length
-        ? `⚠ ${r.misses.length} misses (${r.misses.slice(0, 3).join('; ')}${r.misses.length > 3 ? '; …' : ''})`
-        : '';
+      // #4185 B (option b): the miss lines are engine vocabulary, so the screen gets one line and the run log and the
+      // console get each line. A member skipped as already built or stale is not a miss here: the stale note says it.
+      const real = r.misses.filter((x) => !/^member .* -> (ALREADY PRESENT|STALE) /.test(x));
+      const missNote = missesLine(real.length);
+      if (real.length) console.log(`[prism3] build ${def.id}: ${real.length} misses\n${real.join('\n')}`);
       // THE STALE REASON, appended once (#827) — see `staleNote` for why the reason and the remedy are
       // one clause. Placed after `missNote` because the per-member STALE lines are inside that list, and
       // this is what explains them.
@@ -1073,11 +1075,14 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
           ? [`nothing built — set '${r.axesChanged.set}' on this page varies by different axes and was left as it is`]
         : r.set === null
           ? ['nothing assembled — no set on this page and no member built']
-          : [`set '${r.set}': ${r.variants} variants (+${r.added} built, ${r.skipped} already present` +
-            `${r.stale ? `, ${r.stale} stale` : ''}), ` +
-            `grid ${r.grid[0]}×${r.grid[1]}, ${Math.round(r.size[0])}×${Math.round(r.size[1])}px, ` +
-            `axes ${r.axes.join('/') || '—'}, properties ${r.properties.join('/') || '—'}, ` +
-            `${r.refs} refs across ${r.wiredMembers} members`, ...refsItems(r.refsRelinked, r.refsUnsetBy)];
+          // #4185 B row 2 (DRAFT): the set, its variants and its axes on screen; the grid, size, properties and links,
+          // which only a maintainer reads, in the console below.
+          : [`${r.set}: ${r.variants} variants (${r.added} new, ${r.skipped} already there` +
+            `${r.stale ? `, ${r.stale} stale` : ''}), axes ${r.axes.join('/') || '—'}`, ...refsItems(r.refsRelinked, r.refsUnsetBy)];
+      if (r.set !== null && r.emittedComponents === undefined && !r.axesChanged) {
+        console.log(`[prism3] build ${def.id}: grid ${r.grid[0]}×${r.grid[1]}, ${Math.round(r.size[0])}×${Math.round(r.size[1])}px, ` +
+          `properties ${r.properties.join('/') || '—'}, ${r.refs} refs across ${r.wiredMembers} members`);
+      }
       // The stale note is the no-set and set arms' only: a refusal built nothing, so nothing in it can be stale.
       const staleItem = r.emittedComponents !== undefined || (!r.axesChanged && r.set !== null) ? stale ?? '' : '';
       // #1633: what was built first, so a designer is not surprised by a set they did not ask for.
@@ -1093,10 +1098,9 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
       // #3326 PR 1 (Q3326.1 A): why the build is not clean, by the rule its `ok` reads: a miss that is not a skipped or
       // stale member, the stale note once, or no set at all. The template line's causes join in `withTemplateWarning`.
       const ok = r.set !== null && r.misses.length === r.skipped;
-      const real = r.misses.filter((x) => !/^member .* -> (ALREADY PRESENT|STALE) /.test(x));
       const buildCauses = ok ? [] : r.set === null
-        ? [cause('bad', def.id, CAUSE_WHAT.failed, [head[0], ...real])]
-        : [cause('warn', def.id, CAUSE_WHAT.built, [...real, ...(r.stale && staleItem ? [staleItem] : [])])];
+        ? [cause('bad', def.id, CAUSE_WHAT.failed, [head[0], ...(missNote ? [missNote] : [])])]
+        : [cause('warn', def.id, CAUSE_WHAT.built, [...(missNote ? [missNote] : []), ...(r.stale && staleItem ? [staleItem] : [])])];
       // A missing furniture template makes the run a warning (Q284.3 A, `withTemplateWarning`); a missing `_Doc-block` is
       // the run's note, with the fix that works on this file (#3467 Q2 A, Q5 A; `fix` is read before the settle, above).
       postVerdict(withTemplateWarning({
