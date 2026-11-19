@@ -1132,16 +1132,18 @@ const open = async ({ host, theme, w, h, store, query = '', brand = 'prism3', pr
  *  last check that passed. Section 21 stalled that way three times in 26 hours on CI, after its QA-B17 check had passed,
  *  so the log blamed a check that held. `within` races `work` against `ms` and throws on the bound with `label` and
  *  whether the page still renders a frame (busy, waiting on something else) or none (stuck). The case's own catch
- *  reports it by name. 30s matches Playwright's own action timeout, the bound every click on the same path already has. */
+ *  reports it by name. 30s matches Playwright's own action timeout, the bound every click on the same path already has.
+ *  The message carries no issue number: the label names the step, and `lint-test-arms` reads `#4127` in a literal as
+ *  the arm itself, so a number here would keep the registry line green with the self-check arm deleted (review). */
 const STEP_MS = 30000;
 const within = async (page, label, work, ms = STEP_MS) => {
   let timer;
   const out = await Promise.race([work.then((v) => ({ v }), (e) => ({ e })), new Promise((r) => { timer = setTimeout(() => r(null), ms); })]);
   clearTimeout(timer);
-  if (out?.e) throw out.e;
+  if (out && 'e' in out) throw out.e;
   if (out) return out.v;
   const live = await rendersFrame(page);
-  throw new Error(`${label} did not settle within ${ms / 1000}s; the page ${live ? 'still renders frames, so the wait was on something else' : 'renders no frame'} (#4127)`);
+  throw new Error(`${label} did not settle within ${ms / 1000}s; the page ${live ? 'still renders frames, so the wait was on something else' : 'renders no frame'}`);
 };
 
 /** Reach a place through the tab row (the select, when narrow), and wait for the frame to show it. */
@@ -8919,7 +8921,7 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
       const t0 = Date.now();
       const stall = await frames('preview', '#4127 self-check', 3000).then(() => 'returned', (e) => String(e?.message ?? e));
       const took = Date.now() - t0;
-      await page.evaluate(() => { window.requestAnimationFrame = window.__p3Raf; window.__p3Held = []; });
+      await page.evaluate(() => { const held = window.__p3Held; window.requestAnimationFrame = window.__p3Raf; window.__p3Held = []; held.forEach((cb) => window.requestAnimationFrame(cb)); });
       ok(stall.startsWith("#4127 self-check: the preview pane's frames did not settle within 3s; the page renders no frame") && took < 15000,
         `#4127: a frame wait that never settles fails by name within its bound, not at the 600s watchdog (${took}ms: ${stall.slice(0, 160)})`);
     }
