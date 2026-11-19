@@ -13,7 +13,7 @@ The engine's clean list (`NUIA_CLEAN`) and its second tsc run are deleted, as th
 The studio tsconfig reported 352 errors in 78 files. This stage cleans the 22 studio files with one or two errors each (37 errors) and leaves 289. The flag stays off in the studio tsconfig. The 22 files and the new `apps/studio/src/must.ts` are listed under `apps/studio/tsconfig.json` in `NUIA_CLEAN_BY_TSCONFIG`, so they're held clean from this merge.
 
 - **`must`** (`apps/studio/src/must.ts`) is the engine's guard: the value, or a throw that names what was missing. It's used only where the read is an invariant, such as a constant list's first entry, a table built over the same list, or a regex group that always captures. In each case the old code would have thrown a bare TypeError a line later, or carried the `undefined` on.
-- **No guard where the type can say it.** `SG_SURFACES` is typed as a non-empty tuple, so `SG_SURFACES[0]` is a `SgSurface`. That's a type change with no runtime change.
+- **No guard where the type can say it.** `SG_SURFACES` is typed as a non-empty tuple, so `SG_SURFACES[0]` is a `SgSurface`. Button options' `WRITES` is keyed by the `BUTTON_OPTION_KEYS` union, so `WRITES[key]` is defined for every key a chip carries, and the spelling `test-shell-imports.ts` pins is kept. Both are type changes with no runtime change.
 - **Equivalent rewrites.** `w[0]` on a non-empty string became `w.charAt(0)`. `Object.keys(m).find((k) => m[k]…)` became `Object.entries(m).find(…)?.[0]`, which visits the same keys in the same order. `build-identity.ts` is import-free by its own header, so its two regex groups are read through `m?.[1] !== undefined` there, not through `must`.
 
 ### Proof

@@ -55,7 +55,7 @@ export const BUTTON_OPTIONS_COPY = {
 } as const;
 
 /** The option writes, by key, each through `state/button-input.ts`. */
-const WRITES: Readonly<Record<string, (v: string) => void>> = {
+const WRITES: Readonly<Record<ButtonOptionKey, (v: string) => void>> = {
   buttonIcons: (v) => setButtonIcons(v as ButtonIcons),
   buttonContentSize: (v) => setButtonContentSize(v as ButtonContentSize),
   buttonLabelWeight: (v) => setButtonLabelWeight(v as ButtonLabelWeight),
@@ -66,6 +66,8 @@ const WRITES: Readonly<Record<string, (v: string) => void>> = {
 /** The chip options, in the order the page has always drawn them. #576's Outline button border comes last, after the
  *  Outline hover line (placement DRAFT, for the owner). */
 export const BUTTON_OPTION_KEYS = ['buttonIcons', 'buttonContentSize', 'buttonLabelWeight', 'buttonTextHover', 'buttonBorderWeight'] as const;
+/** One of the option keys: `WRITES` holds one write per key, so `WRITES[key]` is always defined (#1182). */
+type ButtonOptionKey = (typeof BUTTON_OPTION_KEYS)[number];
 
 /** Everything a pointer or keyboard can operate, held in a derived mode. */
 const OPERABLE = 'button, input, select, [role="radio"], [role="slider"], [role="checkbox"], [tabindex]:not([tabindex="-1"])';
@@ -116,12 +118,12 @@ export const mountButtonOptions = (hostEl: HTMLElement, cleanups: (() => void)[]
     role: 'components-outline-hover', label: BUTTON_OPTIONS_COPY.outlineLabel, value: optionLabel('outlineInteraction'),
     link: BUTTON_OPTIONS_COPY.outlineLink, go: () => setPage('interactive'),
   });
-  const chips = (key: string): HTMLElement => {
+  const chips = (key: ButtonOptionKey): HTMLElement => {
     const L = leverOf(key);
     const b = leverBlock(key, { group: true });
     const opts = (L?.options ?? []).map((o) => ({ v: String(o.value), l: o.label }));
     const role = `${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}-choice`;
-    const c = choice(L?.label ?? key, role, opts, (v) => edit(key, () => must(WRITES[key], `the ${key} write`)(v)));
+    const c = choice(L?.label ?? key, role, opts, (v) => edit(key, () => WRITES[key](v)));
     const v = String(getPath(brandState, key) ?? L?.default ?? '');
     c.set(v);
     b.ctl.append(c.el);
