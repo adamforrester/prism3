@@ -42,8 +42,8 @@
  * missing overlay cannot remove itself from the scope. A self-check feeds each matcher known-bad and known-good
  * input before the real scan (shape 9).
  *
- * Stated limits: a tool not on the list is not seen. EQUALS re-derives the projection's RULE (#609, #642, #1623)
- * from the canonical tree; whether the canonical tree's values are right is every other gate's question.
+ * Stated limits: a tool not on the list is not seen. EQUALS re-derives the projection's RULE (#609, #642, #1623,
+ * and #4155: a typeface's `$value` is its family followed by its `fallbackStack`, as one array) from the canonical tree; whether the canonical tree's values are right is every other gate's question.
  */
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -86,18 +86,23 @@ const pick = (leaf: Record<string, unknown>, value: unknown, description: unknow
   }
   return out;
 };
+/** #4155: a `fontFamily` value with a curated stack ships as one array, the family first. */
+const stacked = (n: Record<string, unknown>, v: unknown): unknown => {
+  const stack = (n.$extensions as any)?.prism3?.fallbackStack;
+  return n.$type === 'fontFamily' && typeof v === 'string' && Array.isArray(stack) && stack.length ? [v, ...stack] : v;
+};
 /** This gate's own derivation of one consumer file from the canonical tree. `mode` undefined is the base. */
 const derive = (canonical: unknown, mode?: string): unknown => {
   const walk = (n: unknown): unknown => {
     if (!isObj(n)) return undefined;
     if ('$value' in n) {
       if (typeof n.$type !== 'string' || !DTCG_TYPES.has(n.$type)) return undefined;
-      if (mode === undefined) return pick(n, n.$value, n.$description);
+      if (mode === undefined) return pick(n, stacked(n, n.$value), n.$description);
       const m = ((n.$extensions as any)?.prism3?.modes ?? {})[mode];
       if (!isObj(m)) return undefined;
       const desc = typeof m.description === 'string' ? m.description : n.$description;
       if (JSON.stringify(m.$value) === JSON.stringify(n.$value) && desc === n.$description) return undefined;
-      return pick(n, m.$value, desc);
+      return pick(n, stacked(n, m.$value), desc);
     }
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(n)) {
@@ -190,8 +195,9 @@ const shapeDefects = (file: string, tree: unknown, read: Read): string[] => {
   const canon = { r: {
     a: { $type: 'color', $value: '#fff', $description: 'Light', $extensions: { prism3: { modes: { dark: { $value: '#000', description: 'Dark' } } } } },
     b: { $type: 'color', $value: '#111', $description: 'Same', $extensions: { prism3: { modes: { dark: { $value: '#111' } } } } },
-    s: { $type: 'spring', $value: { stiffness: 1 } } } };
-  if (serialize(derive(canon)) !== serialize({ r: { a: { $type: 'color', $value: '#fff', $description: 'Light' }, b: { $type: 'color', $value: '#111', $description: 'Same' } } })) fail('SELF-CHECK the base derivation is wrong');
+    s: { $type: 'spring', $value: { stiffness: 1 } },
+    f: { $type: 'fontFamily', $value: 'Face', $extensions: { prism3: { fallbackStack: ['Arial', 'sans-serif'] } } } } };
+  if (serialize(derive(canon)) !== serialize({ r: { a: { $type: 'color', $value: '#fff', $description: 'Light' }, b: { $type: 'color', $value: '#111', $description: 'Same' }, f: { $type: 'fontFamily', $value: ['Face', 'Arial', 'sans-serif'] } } })) fail('SELF-CHECK the base derivation is wrong');
   if (serialize(derive(canon, 'dark')) !== serialize({ r: { a: { $type: 'color', $value: '#000', $description: 'Dark' } } })) fail('SELF-CHECK the overlay derivation is wrong');
 }
 

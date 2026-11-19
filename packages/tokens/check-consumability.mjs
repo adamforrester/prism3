@@ -123,10 +123,14 @@ const readSource = (brand, file = SOURCE(brand)) => {
   // Paths, not just a count: a non-conforming type has to be NAMED to be actionable, and a bare
   // number would leave whoever hits this failure hunting for which token it means.
   const byType = {};
+  // #4155: typefaces carrying a curated fallback stack, which the projection ships as `[family, ...stack]`.
+  const stacked = [];
   const walk = (node, path = '') => {
     if (!node || typeof node !== 'object') return;
     if ('$value' in node) {
       leaves++;
+      const stack = node.$extensions?.prism3?.fallbackStack;
+      if (node.$type === 'fontFamily' && typeof node.$value === 'string' && Array.isArray(stack) && stack.length) stacked.push(path);
       if (node.$type) {
         types.add(node.$type);
         (byType[node.$type] ??= []).push(path);
@@ -145,7 +149,7 @@ const readSource = (brand, file = SOURCE(brand)) => {
     .filter(([t]) => !DTCG_TYPES.has(t))
     .flatMap(([t, paths]) => paths.map((p) => `${p} (\`${t}\`)`))
     .sort();
-  return { leaves, modes: [...modes].sort(), types: [...types].sort(), root, nonConforming };
+  return { leaves, modes: [...modes].sort(), types: [...types].sort(), root, nonConforming, stacked };
 };
 
 /** Variables in the emitted CSS, their values, and its selectors. Parses the CSS — NOT the JSON. */
@@ -305,9 +309,17 @@ for (const brand of brands) {
   const missing = Object.keys(css.byName).filter((k) => base.byName[k] === undefined);
   ok(missing.length === expectedAbsent.size && missing.every((k) => expectedAbsent.has(k)),
     `${brand}: [#642] exactly the non-DTCG tokens are absent from the base (${missing.length}/${expectedAbsent.size})${missing.some((k) => !expectedAbsent.has(k)) ? ` — UNEXPECTED: ${missing.filter((k) => !expectedAbsent.has(k)).slice(0, 3).join(', ')}` : ''}`);
-  const baseDrift = Object.keys(css.byName).filter((k) => base.byName[k] !== undefined && css.byName[k] !== base.byName[k]);
+  // #4155 is the one deliberate difference, and it is asserted BY NAME the same way: a typeface the source tree
+  // gives a fallback stack is, in the base, the canonical family FOLLOWED by more families. Every other token
+  // must still match value for value.
+  const expectedStacked = new Set(src.stacked.map(varOf));
+  const drifted = Object.keys(css.byName).filter((k) => base.byName[k] !== undefined && css.byName[k] !== base.byName[k]);
+  const baseDrift = drifted.filter((k) => !expectedStacked.has(k));
   ok(baseDrift.length === 0,
-    `${brand}: [#609] the base projection reproduces the canonical build value-for-value, for every token it carries${baseDrift.length ? ` — ${baseDrift.length} differ, e.g. ${baseDrift.slice(0, 2).join(', ')}` : ''}`);
+    `${brand}: [#609] the base projection reproduces the canonical build value-for-value, for every token it carries but the stacked typefaces${baseDrift.length ? ` — ${baseDrift.length} differ, e.g. ${baseDrift.slice(0, 2).join(', ')}` : ''}`);
+  const unstacked = [...expectedStacked].filter((k) => !(base.byName[k] ?? '').startsWith(`${css.byName[k]}, `));
+  ok(expectedStacked.size > 0 && unstacked.length === 0,
+    `${brand}: [#4155] each typeface in the base is the canonical family followed by its fallback stack (${expectedStacked.size - unstacked.length}/${expectedStacked.size})${unstacked.length ? ` — e.g. ${unstacked.slice(0, 2).map((k) => `${k}: ${base.byName[k]}`).join('; ')}` : ''}`);
 
   for (const mode of src.modes) {
     const m = readEmitted(await buildProjected(brand, mode));
