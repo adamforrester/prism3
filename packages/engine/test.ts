@@ -18718,7 +18718,17 @@ arm: {
       ok(footer.kind === 'nest' && footer.nests === 'button-group' && pop.figmaProperties?.booleans?.footer?.default === false,
         '#4008 popover footer: a nested Button group behind the footer toggle, off by default');
       // K5 B: a read-only popover leaves focus on its trigger.
-      ok(/leaves focus on its trigger/.test(pop.accessibility?.focus ?? ''), '#4008 popover focus (K5 B): the focus contract says a read-only popover leaves focus on its trigger');
+      // Held on BOTH fields that state it: the focus contract and the keyboard-and-focus code note for focus on opening.
+      const popCode = (pop.anatomy.codeOnly ?? []) as { class: string; description: string }[];
+      const focusOnOpen = popCode.find((e) => e.class === 'keyboard-and-focus' && /^focus on opening/.test(e.description))?.description ?? '';
+      ok(/leaves focus on its trigger/.test(pop.accessibility?.focus ?? '') && /read-only popover[^.]*leaves focus on its trigger/.test(focusOnOpen),
+        '#4008 popover focus (K5 B): the focus contract and the focus-on-opening code note both say a read-only popover leaves focus on its trigger');
+      // OD-P5 A: no automatic switch to a sheet on a small screen.
+      ok(popCode.some((e) => e.class === 'responsive-layout' && /^no automatic switch — on a small screen it stays a popover/.test(e.description)),
+        '#4008 popover small screen (OD-P5 A): a code note says it stays a popover, with no automatic sheet');
+      // OD-P6 A: focus leaving the popover closes it, in the keyboard contract and the code note.
+      ok(/leaving closes it/.test(pop.accessibility?.keyboard ?? '') && popCode.some((e) => e.class === 'keyboard-and-focus' && /Focus leaving by Tab or a press outside closes it/.test(e.description)),
+        '#4008 popover focus leaving (OD-P6 A): the keyboard contract and the focus-not-held code note both say focus leaving closes it');
       // OD-P1 A: the role is a non-modal dialog.
       ok(/role="dialog"/.test(pop.accessibility?.role ?? '') && /no `aria-modal`/.test(pop.accessibility?.role ?? ''), '#4008 popover role (OD-P1 A): role="dialog" with no aria-modal');
     }
@@ -43576,7 +43586,7 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
 // defs is written out here by hand, not read from the defs, so a def that drops the note fails by its id (docs/34 shape 1).
 {
   const DECIDED = 'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.';
-  const INTERACTIVE = ['breadcrumb-item', 'breadcrumbs', 'code-input', 'dialog', 'link', 'page-nav-item', 'page-nav', 'pagination', 'segmented-control-segment', 'segmented-control', 'slider', 'tab-item', 'tabs'];
+  const INTERACTIVE = ['breadcrumb-item', 'breadcrumbs', 'code-input', 'dialog', 'link', 'page-nav-item', 'page-nav', 'pagination', 'popover', 'segmented-control-segment', 'segmented-control', 'slider', 'tab-item', 'tabs'];
   const all = componentDefs;
   for (const id of INTERACTIVE) {
     const d = all.find((x) => x.id === id);

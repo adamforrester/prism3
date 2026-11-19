@@ -245,7 +245,7 @@ export const popover: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'code delivery pending: the behavior layer — initial focus, Tab-out dismissal and focus return wait on that decision. The contract above holds under any answer to it.',
+          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it. In plain HTML/CSS that covers initial focus, Tab-out dismissal and focus return.',
       },
     ],
   },
