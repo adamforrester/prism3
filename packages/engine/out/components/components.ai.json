@@ -4048,7 +4048,7 @@
           "name": "helpText",
           "type": "string | node",
           "required": false,
-          "description": "Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format before failure."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the field as a FieldMessage in its default status. Show the format before failure."
         },
         {
           "name": "validation",
@@ -4396,7 +4396,7 @@
           "name": "helpText",
           "type": "string | node",
           "required": false,
-          "description": "Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format and any length limit before failure. The same prop as TextField's."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the field as a FieldMessage in its default status. Show the format and any length limit before failure. The same prop as TextField's."
         },
         {
           "name": "showMessage",
@@ -4930,7 +4930,7 @@
           "name": "description",
           "type": "node",
           "required": false,
-          "description": "Optional helper beneath the label, describedby-wired — the detail that qualifies the choice without lengthening the label."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the label: the detail that qualifies the choice without lengthening the label."
         },
         {
           "name": "onChange",
@@ -5579,7 +5579,7 @@
           "name": "description",
           "type": "node",
           "required": false,
-          "description": "Per-option helper beneath the label, describedby-wired. This is where the detail that makes an option distinguishable goes — the price, the delivery estimate, the caveat."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the label: the detail that makes an option distinguishable — the price, the delivery estimate, the caveat."
         },
         {
           "name": "validation",
@@ -6235,7 +6235,7 @@
           "name": "description",
           "type": "node",
           "required": false,
-          "description": "Helper beneath the label, describedby-wired. Where the consequence of the setting goes — what turning it on will actually do."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the label: the consequence of the setting, what turning it on does."
         },
         {
           "name": "labelPosition",
@@ -6507,7 +6507,7 @@
           "name": "helpText",
           "type": "string | node",
           "required": false,
-          "description": "Persistent guidance, rendered as the nested FieldMessage in its default status; wired via aria-describedby. Show the constraint before failure."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the field as the nested FieldMessage in its default status. Show the constraint before failure."
         },
         {
           "name": "validation",
@@ -10564,7 +10564,7 @@
           "name": "helpText",
           "type": "string | node",
           "required": false,
-          "description": "Persistent guidance (rendered as FieldMessage, default status), wired via aria-describedby. State the rules for a new password here, before the user types."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the field as a FieldMessage in its default status. State the rules for a new password here, before the user types."
         },
         {
           "name": "validation",
@@ -11687,7 +11687,7 @@
           "name": "helpText",
           "type": "string | node",
           "required": false,
-          "description": "Text below the counter, such as the reason for a limit (\"Limit 5 per order\"). Added to the value's description."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the counter, such as the reason for a limit (\"Limit 5 per order\")."
         },
         {
           "name": "showMessage",
@@ -12766,7 +12766,7 @@
           "name": "helpText",
           "type": "string | node",
           "required": false,
-          "description": "Persistent guidance (rendered as FieldMessage, default status), wired via aria-describedby. Off by default in most searches."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the field as a FieldMessage in its default status. Off by default in most searches."
         },
         {
           "name": "validation",
@@ -13086,7 +13086,7 @@
           "name": "helpText",
           "type": "string | node",
           "required": false,
-          "description": "Persistent guidance (rendered as FieldMessage, default status), wired via aria-describedby, such as \"The card type shows when you start typing.\""
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the field as a FieldMessage in its default status, such as \"The card type shows when you start typing.\""
         },
         {
           "name": "validation",
@@ -13962,7 +13962,7 @@
           "name": "helpText",
           "type": "string | node",
           "required": false,
-          "description": "Guidance under the slider, in a field message."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the slider, in a field message."
         },
         {
           "name": "showMessage",
@@ -14447,7 +14447,7 @@
           "name": "helpText",
           "type": "string | node",
           "required": false,
-          "description": "Persistent guidance (rendered as FieldMessage): how many characters and where the code was sent."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the cells as a FieldMessage: how many characters and where the code was sent."
         },
         {
           "name": "validation",

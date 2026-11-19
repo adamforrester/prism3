@@ -117,7 +117,7 @@ The label is a noun ("Quantity"). Button names are a verb with the object. A lim
 | `step` | number | `1` | no | How much one press or one arrow key changes the value. |
 | `appearance` | enum: 'outline' \| 'ghost' | `outline` | no | outline draws the field edge around the row, with the minus and plus glyphs inside it. ghost draws no box, and the minus and plus are light circles at each end. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The row height (36, 44 or 56px), the value type (14, 16 or 18px) and the glyph (20, 20 or 24px). Each button keeps a hit area of at least 44×44px in code at every size. |
-| `helpText` | string \| node | — | no | Text below the counter, such as the reason for a limit ("Limit 5 per order"). Added to the value's description. |
+| `helpText` | string \| node | — | no | Helper text, read by assistive tech through aria-describedby. Shown under the counter, such as the reason for a limit ("Limit 5 per order"). |
 | `showMessage` | boolean | `false` | no | Shows the help text below the counter. Off by default. |
 | `decrementLabel` | string | — | no | The minus button's accessible name. Defaults to "Decrease" followed by the label, such as "Decrease quantity". In a list of line items, include the item: "Decrease quantity, Trail runner". |
 | `incrementLabel` | string | — | no | The plus button's accessible name. Defaults to "Increase" followed by the label. In a list of line items, include the item. |

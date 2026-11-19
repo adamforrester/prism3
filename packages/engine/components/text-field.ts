@@ -730,7 +730,7 @@ export const textField: ComponentDef = makeTextField({
     { name: 'onChange', type: 'function', required: false, description: 'Change handler (also onBlur / onFocus).' },
     { name: 'type', type: "enum: 'text' | 'email' | 'url' | 'tel' | 'search' | 'password'", values: ['text', 'email', 'url', 'tel', 'search', 'password'], default: 'text', required: false, description: 'Attribute-only variants (mobile keyboard + autofill). Not number: numeric input needs a number field (not built yet). search / password are better served by their thin specializations.' },
     { name: 'placeholder', type: 'string', required: false, description: 'An example only ("name@example.com"); vanishes on input; nothing load-bearing lives here.' },
-    { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format before failure.' },
+    { name: 'helpText', type: 'string | node', required: false, description: 'Helper text, read by assistive tech through aria-describedby. Shown under the field as a FieldMessage in its default status. Show the format before failure.' },
     // #1623 sign-off (C1/TF-5) — validation is the `validation` + `validationMessage` pair, select's exact
     // prop names and value set, so one concept has one name across the field family. The Figma `status`
     // variant axis maps to `validation` value-for-value (the axis keeps field-message's name so the nested

@@ -44241,6 +44241,19 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
     '#4144 the base + overlay files are the projection of the tree written beside them, as the CLI writes it');
 }
 
+// #4204 (owner decision 1 b, 2026-11-19) — the helper line under a label is one thing under two prop names, `description` on
+// the selection rows and `helpText` on the fields, until the next contract bump unifies them. Both are described by the same
+// lead sentence, typed here, and each def keeps its own guidance after it. The props are found by name across the registry
+// and asserted represented, so a def that adds one joins the arm. Mutation: one prop's lead reworded → this arm, by name.
+{
+  const LEAD = 'Helper text, read by assistive tech through aria-describedby.';
+  const ROWS = ['checkbox-row', 'radio-row', 'switch-row'];
+  const helpers = componentDefs.flatMap((d) => (d.props ?? []).filter((p) => p.name === 'helpText' || (p.name === 'description' && ROWS.includes(d.id))).map((p) => ({ def: d.id, prop: p.name, text: p.description ?? '' })));
+  const off = helpers.filter((h) => !h.text.startsWith(LEAD + ' '));
+  ok(helpers.length >= 12 && ROWS.every((r) => helpers.some((h) => h.def === r && h.prop === 'description')) && off.length === 0,
+    `#4204 the helper-text props open with one sentence: ${helpers.length} of them (${off.map((h) => `${h.def}.${h.prop}: "${h.text.slice(0, 50)}"`).join(' | ') || 'all hold'})`);
+}
+
 if (pass + fails.length < MIN_ASSERTIONS) {
   console.log(`  ❌ only ${pass + fails.length} assertions ran, expected at least ${MIN_ASSERTIONS} — the harness collapsed, so "0 failed" means nothing.`);
   process.exitCode = 1;
