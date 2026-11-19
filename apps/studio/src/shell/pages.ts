@@ -58,13 +58,9 @@ export const FACES_DESC = 'The font families in the brand, and the family each t
  *  (owner decision Q23; Scale limits pairs with the preview's Scale, `PREVIEW_HEADING` in `preview/follow-edit.ts`).
  *  APPROVED (owner, 2026-10-03, #2036). */
 export const SCALE_DESC = 'The size of each heading style on desktop and mobile, and the scale they step along.';
+export const TYPE_SCALE_LEVER_DESC = 'The scale every heading size steps along, and how headings move between mobile and desktop.'; // #3079, DRAFT
 export const WEIGHTS_DESC = 'The weight behind each name, the weights each text type ships, and its italic and link styles.';
 export const SPACING_DESC = 'The step each line height and letter spacing name uses, and how far each text type moves from it.';
-/** #3079 (owner decision 2026-11-18 A): the Type levers' own section copy, now that the levers are laid out around the
- *  text types. The preview keeps its sections and their copy above. DRAFT, pending the owner's approval. */
-export const TYPE_SCALE_LEVER_DESC = 'The scale every heading size steps along, and how headings move between mobile and desktop.';
-export const TEXT_TYPES_DESC = 'Each text type’s sizes, line height, letter spacing and weights.';
-export const EVERY_TEXT_TYPE_DESC = 'Settings all text types share.';
 /** The Depth & motion sections' copy (S9.2), each shared by the levers section and the preview section that pairs with
  *  it (owner decision Q23; Shadow tint pairs with the preview's Elevation). APPROVED (owner, 2026-10-04). */
 export const ELEVATION_DESC = 'How soft the shadows are. Dark modes get lighter shadows automatically.';
@@ -133,8 +129,6 @@ export type InspectId = (typeof INSPECT)[number][0];
 
 /** One row of the levers panel: its control, the manifest keys it edits, and the schema inputs it edits
  *  that are not manifest levers. `drive` names the preview part the row drives (Q4, deferred). */
-/** `advanced`: the row is drawn only with the page's Show advanced settings on, inside a section that is not (#3079, Type's
- *  one switch, Q3079.2 A). A row without it takes its section's tier. */
 export type Row = { readonly ctl: string; readonly keys?: readonly string[]; readonly schemaOnly?: readonly string[]; readonly drive?: string; readonly advanced?: boolean };
 export type Section = {
   readonly title: string; readonly desc?: string; readonly advanced?: boolean; readonly rows: readonly Row[];
@@ -292,13 +286,19 @@ export const DOMAINS = [
       { title: 'Typeface library', rows: [{ ctl: 'library', schemaOnly: ['typography.typefaceLibrary'] }] },
       { title: 'Font family for each text type', rows: [{ ctl: 'families', keys: ['typography.families'] }] },
       // #3079 (owner decision 2026-11-18 A): Scale, then one card per text type, then Every text type (advanced only),
-      // with the page's one Show advanced settings switch (Q3079.2 A). A row marked `advanced` draws only with it on.
+      // with the page's one Show advanced settings switch (Q3079.2 A). A row marked `advanced` (`Row.advanced`) draws only
+      // with it on, inside a section that is not; a row without it takes its section's tier. The levers' own copy is
+      // DRAFT, pending the owner; the preview keeps its sections and their copy (SCALE_DESC, WEIGHTS_DESC, SPACING_DESC).
       { title: 'Scale', desc: TYPE_SCALE_LEVER_DESC, rows: [
         { ctl: 'typeScale', keys: ['typography.typeScale'] },
         { ctl: 'responsive', keys: ['typography.responsive'], advanced: true },
       ] },
       {
-        title: 'Text types', desc: TEXT_TYPES_DESC, rows: [
+        title: 'Text types', desc: 'Each text type’s sizes, line height, letter spacing and weights.', rows: [
+          // Each card holds, in order: the family it uses (read-only; set in Font family for each text type), its Line
+          // height and Letter spacing menus, its size rows, then, advanced, its extra small sizes that are off, the
+          // display ceiling (Display only), the weights it ships, its italic styles and its font style pins. The rows
+          // below name what the cards write; `domains/type.ts` draws them.
           // Each card's size rows (Q3079.3 A: shown): heading sizes, mobile pins, each mode's sizes and caption md / lg.
           { ctl: 'sizes', schemaOnly: ['typography.sizes', 'typography.sizeOverrides'] },
           // Each card's Line height and Letter spacing menus (Q808 A): the pins they write and the nudges they show.
@@ -312,7 +312,7 @@ export const DOMAINS = [
         ],
       },
       {
-        title: 'Every text type', desc: EVERY_TEXT_TYPE_DESC, advanced: true, rows: [
+        title: 'Every text type', desc: 'Settings all text types share.', advanced: true, rows: [
           { ctl: 'weightRoles', keys: ['typography.weightRoles'] },
           { ctl: 'links', keys: ['typography.links'] },
           // #2942 (owner Q3 A): beside Underlined link styles, because it writes tokens and the -link text styles.
