@@ -20,7 +20,7 @@ One minimal call per tool. Each line is the `params` of a `tools/call` request, 
 {"name": "export_theme", "arguments": {"brand": {"id": "acme", "primary": {"l": 0.55, "c": 0.18, "h": 265}, "neutral": {"hue": "cool", "chroma": 0.01}}, "outDir": "./tokens"}}
 ```
 
-`theme_brand` returns the contrast results and the decisions log; add `"include": ["tokens"]` for the token tree, or use `export_theme` to write the files instead.
+`theme_brand` returns the contrast results and the decisions log; pass `"include": ["notes", "tokens"]` for the token tree as well (`include` replaces the default, so name `notes` to keep the log), or use `export_theme` to write the files instead.
 
 ## Reference
 
