@@ -23320,6 +23320,54 @@ if (runs('markup-audit')) {
     } finally { await ctx.close(); }
   }
 } // markup-audit
+if (runs('4235')) {
+  console.log(`\nAn edit's reveal reads layout a frame after the repaint, not in the callback that rebuilt the preview (#4235)\n${'='.repeat(78)}`);
+  // `revealGroup` reads the pane's and the palette's boxes. Read in the frame that just rebuilt the preview, that read
+  // forces a synchronous layout on every edit. The probe counts frames, notes the last frame in which the document
+  // changed (a MutationObserver, plus `takeRecords()` at the read, which returns a change made earlier in the same
+  // callback and not yet delivered), and logs each box read of a palette against both.
+  // EXPECTED (typed here): every read lands in a frame the document has not changed in yet, so its layout is clean.
+  // Mutation that fails here BY NAME: `palettes.ts` calling `revealGroup` straight after `render()` → `#4235 … reads`.
+  const where = '4235 web light 1280, Color › Palettes, a Neutral hue edit';
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  let step = 'boot';
+  try {
+    await goPlace(page, 'color-palettes');
+    await hooks.need(page, '[data-p3="neutral-hue-slider"]');
+    await settle(page);
+    step = 'the probe';
+    const reads = await page.evaluate(async () => {
+      let frame = 0, live = true;
+      const tick = () => { frame++; if (live) requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+      let changed = -1;
+      const mo = new MutationObserver(() => { changed = frame; });
+      mo.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
+      const orig = Element.prototype.getBoundingClientRect;
+      const log = [];
+      Element.prototype.getBoundingClientRect = function () {
+        if (this.matches?.('[data-p3="palette"]')) {
+          if (mo.takeRecords().length) changed = frame;
+          log.push({ changed, at: frame });
+        }
+        return orig.call(this);
+      };
+      try {
+        await new Promise((r) => requestAnimationFrame(() => r()));
+        const sl = document.querySelector('[data-p3="neutral-hue-slider"]');
+        sl.value = String((Number(sl.value) + 20) % 360);
+        sl.dispatchEvent(new Event('input', { bubbles: true }));
+        for (let i = 0; i < 4; i++) await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
+      } finally { Element.prototype.getBoundingClientRect = orig; mo.disconnect(); live = false; }
+      return log;
+    });
+    ok(reads.length > 0 && reads.every((x) => x.changed < x.at),
+      `#4235 ${where}: the reveal reads each palette's box in a frame the document has not changed in, never straight after the repaint (${JSON.stringify(reads)})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+} // 4235
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the

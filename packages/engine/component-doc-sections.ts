@@ -48,6 +48,7 @@
  */
 import type { ComponentDef, PropDef } from './component-schema';
 import { axisKindOf } from './component-schema';
+import { rtlNote } from './rtl-mirror';
 
 /** The sections, in the order every surface draws them. */
 export const DOC_SECTIONS = [
@@ -80,7 +81,8 @@ export type DocSection =
   | { id: 'overview'; title: string; description: string; fields: DocField[] }
   | { id: 'anatomy'; title: string; specimen: { axis: string; value: string }[]; parts: DocPart[] }
   | { id: 'styles'; title: string; axes: DocAxis[]; states: string[] }
-  | { id: 'usage'; title: string; usage?: string; do: string[]; dont: string[] }
+  /** `rtl` (#3986): the short "In RTL" note, generated from the parts' `mirror` fields (`rtl-mirror.ts`). DRAFT wording. */
+  | { id: 'usage'; title: string; usage?: string; do: string[]; dont: string[]; rtl?: string }
   | { id: 'accessibility'; title: string; fields: DocField[]; wcag: string[]; motion: DocField[] }
   | { id: 'content'; title: string; guidelines?: string; patterns: DocField[] }
   | { id: 'theming'; title: string; modes: string[] }
@@ -154,11 +156,12 @@ export const docSections = (def: ComponentDef, ctx: DocContext = {}): { sections
   {
     const d = [...(def.docs.do ?? [])];
     const dn = [...(def.docs.dont ?? [])];
+    const rtl = rtlNote(def);
     if (!has(def.docs.usage)) gap('usage', 'docs.usage');
     if (!d.length) gap('usage', 'docs.do');
     if (!dn.length) gap('usage', 'docs.dont');
     all.push(has(def.docs.usage) || d.length || dn.length
-      ? { id: 'usage', title: title('usage'), ...(has(def.docs.usage) ? { usage: def.docs.usage } : {}), do: d, dont: dn } : undefined);
+      ? { id: 'usage', title: title('usage'), ...(has(def.docs.usage) ? { usage: def.docs.usage } : {}), do: d, dont: dn, ...(rtl ? { rtl } : {}) } : undefined);
   }
 
   // Accessibility, with Motion beside it.
