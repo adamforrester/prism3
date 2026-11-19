@@ -17213,7 +17213,7 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
 //   · Title floor 16px under Compact (S63.titleFloorCompact): Type scale on Compact; lifted by Type scale Default.
 //   · Title floor 18px while title 2xs is set individually (S63.titleFloorPinned): Expressive, title floor 16px, then
 //     title 2xs's desktop size set to its first free value; lifted by resetting that size.
-//   · Caption floor 10px while caption md is set to 10px (S63.captionFloorPinned, #3084): caption md set to 10px through
+//   · Caption floor 10px while caption md is set to 10px (#3079: caption sm's switch, TYPE_VIEW_COPY.captionSmRefused): caption md set to 10px through
 //     its picker; lifted by resetting that size.
 //   · Italic only on a text type that pins a font style (S63.italicPinned): body's default weight pinned to "Medium";
 //     lifted by clearing the pin.
@@ -17236,10 +17236,10 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
 //     described by the reason (read {"role":"radiogroup","description":""})`, and each other case's (ii) (12);
 //   · (c) the line sent to the live region (drawn as a warning) → `§43 web light 1280 Title floor 16px under Compact: (iii) a
 //     hint doesn't announce: the drawn reason is in no live region (drawn 1, 1 live region(s) carrying it)`, each case (12).
-//   · (d) #3121: the caption floor's refusal on the 11px chip (`v: '11'` in `type.ts`), which disables the selected chip
-//     and leaves 10px live → `§43 web light 1280 Caption floor 10px with caption md at 10px: [data-p3="caption-floor-10"]
-//     is disabled, and every other chip in its group live (disabled: ["caption-floor-11"] of [...])` (4); survived before;
-//   · (e) #3121: the Compact refusal on the 18px chip → the same arm for `title-floor-16`, disabled: ["title-floor-18"] (4).
+//   · (d) #3121, and since #3079 the extra small sizes' switches: caption sm's refusal dropped (`captionSmRefused` not
+//     passed in `captionRows`) → `§43 web light 1280 Caption floor 10px with caption md at 10px: … is disabled, and every
+//     other chip in its group live (disabled: [] …)`, and its (i)–(iii) arms;
+//   · (e) the Compact refusal dropped from title 2xs's off row → the same arm for title 2xs under Compact.
 // =============================================================================================
 if (runs('43')) {
 console.log(`\nRefusal reasons drawn as hint lines: Title floor, Caption floor and Italic only (#2451, #3084)\n${'='.repeat(78)}`);
