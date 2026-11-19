@@ -530,8 +530,7 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
     // One item per axis and per note, each joined by `, ` (#2177: one line each in the Activity drawer).
     const { summary, lines } = fromClauses([
       `palette ${r.paletteTotal} (+${r.paletteCreated})`, `color ${r.colorTotal} (+${r.colorCreated})`,
-      // #4185 B row 3 (DRAFT): words, not abbreviations.
-      `Layout: ${f.collections.length} collections (+${floatCreated})`,
+      `Layout: ${f.collections.length} collections (+${floatCreated})`,   // #4185 B row 3 (DRAFT): words, not abbreviations
       `styles ${s.effects.total} effects (+${s.effects.created}, ${s.effects.bound} bound) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound) / ${gs.total} grid styles (+${gs.created})`,
       `Type: ${pf.brandLoaded} fonts, ${fontVarTotal} font variables (+${fontVarCreated}), ${ts.total} text styles (+${ts.created})`,
       `Motion: ${motionTotal} variables (+${motionCreated})`,
@@ -1054,10 +1053,8 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
     const settleMs = await verdictBeforeSettle(measureSettle, () => {
       // Cap the miss list rather than the count: `summary` is read in a chrome row that wraps, but a
       // starved file can produce one miss per binding per member and the whole list is not a summary.
-      // #4185 B (option b): the miss lines are engine vocabulary, so the screen gets one line and the run log and the
-      // console get each line. A member skipped as already built or stale is not a miss here: the stale note says it.
-      const real = r.misses.filter((x) => !/^member .* -> (ALREADY PRESENT|STALE) /.test(x));
-      const missNote = missesLine(real.length);
+      const real = r.misses.filter((x) => !/^member .* -> (ALREADY PRESENT|STALE) /.test(x));   // #4185 B: one line on screen;
+      const missNote = missesLine(real.length);   // each engine-internal miss line goes to the run log (`annotate`) and the console
       if (real.length) console.log(`[prism3] build ${def.id}: ${real.length} misses\n${real.join('\n')}`);
       // THE STALE REASON, appended once (#827) — see `staleNote` for why the reason and the remedy are
       // one clause. Placed after `missNote` because the per-member STALE lines are inside that list, and
@@ -1076,13 +1073,11 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
           ? [`nothing built — set '${r.axesChanged.set}' on this page varies by different axes and was left as it is`]
         : r.set === null
           ? ['nothing assembled — no set on this page and no member built']
-          // #4185 B row 2 (DRAFT): the set, its variants and its axes on screen; the grid, size, properties and links,
-          // which only a maintainer reads, in the console below.
-          : [`${r.set}: ${r.variants} variants (${r.added} new, ${r.skipped} already there` +
-            `${r.stale ? `, ${r.stale} stale` : ''}), axes ${r.axes.join('/') || '—'}`, ...refsItems(r.refsRelinked, r.refsUnsetBy)];
+          // #4185 B row 2 (DRAFT): the set's variants and axes on screen; its grid, size, properties and links in the console.
+          : [`${r.set}: ${r.variants} variants (${r.added} new, ${r.skipped} already there${r.stale ? `, ${r.stale} stale` : ''}), axes ${r.axes.join('/') || '—'}`,
+            ...refsItems(r.refsRelinked, r.refsUnsetBy)];
       if (r.set !== null && r.emittedComponents === undefined && !r.axesChanged) {
-        console.log(`[prism3] build ${def.id}: grid ${r.grid[0]}×${r.grid[1]}, ${Math.round(r.size[0])}×${Math.round(r.size[1])}px, ` +
-          `properties ${r.properties.join('/') || '—'}, ${r.refs} refs across ${r.wiredMembers} members`);
+        console.log(`[prism3] build ${def.id}: grid ${r.grid[0]}×${r.grid[1]}, ${Math.round(r.size[0])}×${Math.round(r.size[1])}px, properties ${r.properties.join('/') || '—'}, ${r.refs} refs across ${r.wiredMembers} members`);
       }
       // The stale note is the no-set and set arms' only: a refusal built nothing, so nothing in it can be stale.
       const staleItem = r.emittedComponents !== undefined || (!r.axesChanged && r.set !== null) ? stale ?? '' : '';
