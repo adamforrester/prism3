@@ -214,8 +214,11 @@ const FIGMA_OUT = 'packages/engine/out/figma';
  *  #707 recommended gating "once the harness runs on more than the two brands here", so 3 is that
  *  recommendation as an assertion. It is a floor and not an equality on purpose: a fourth brand
  *  gaining a Figma emission should extend this gate's coverage, not fail it. `wendys` is the third
- *  and was already emitting when this gate was written — the floor was met, not waived. */
-const MIN_BRANDS = 3;
+ *  and was already emitting when this gate was written — the floor was met, not waived.
+ *
+ *  #1119 raised it to 5: nb, prism3, aurora, harbor and wendys all emit, and harbor's emission exists so that this
+ *  gate covers it (owner decision, 2026-11-18). A floor still at 3 would pass with harbor's directory gone. */
+const MIN_BRANDS = 5;
 
 /**
  * prism3-only paths that are known-unreachable by TokenPress, with the reason, per brand.
@@ -245,10 +248,11 @@ const MIN_BRANDS = 3;
  * unreachable because Figma has no variable type to hold them (line height was one until #2423); a gradient has a paint style sitting
  * right there behind an API call nobody makes. Filed as #731.
  *
- * Which is exactly why the entry carries `owner` and an issue: when #731 lands, aurora's gradients
- * become reachable, THIS GATE GOES RED, and whoever fixed it deletes the entry. That is the intended
- * lifecycle. An arm asserted at 0 with a comment explaining the exception would have gone green
- * forever instead, and nothing would have connected the exception to its fix.
+ * Which is exactly why an entry carries `owner` and an issue, and #731 is the case this design was for:
+ * when it landed, aurora's gradients became reachable, THIS GATE WENT RED, and the entries were deleted
+ * (below). That is the intended lifecycle, and the live entries follow it. An arm asserted at 0 with a
+ * comment explaining the exception would have gone green forever instead, and nothing would have
+ * connected the exception to its fix.
  */
 const KNOWN_UNREACHABLE: Record<string, { path: string; why: string; owner: string; issue: string }[]> = {
   // aurora's two gradients (`gradient.brand`, `gradient.glow`) were here until #731 gave TokenPress's scanner a

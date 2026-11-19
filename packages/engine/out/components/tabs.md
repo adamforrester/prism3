@@ -37,6 +37,8 @@ Shown on the default member: size `medium`, alignment `start`.
 
 Use tabs to switch between peer sections of related content in one place, one at a time, such as a product's description, specifications and reviews. Don't use tabs to go to another page (use PageNav), to change a setting or filter the current view (use SegmentedControl or Select), or for content people need to compare side by side.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Keep labels short, parallel nouns
@@ -72,7 +74,7 @@ Use tabs to switch between peer sections of related content in one place, one at
 
 - **Enter:** None. On a change, the underline slides to the new tab and the panel cross-fades, on motion.transition.default.
 - **Exit:** The outgoing panel fades out under the incoming one. Panels never slide sideways.
-- **Reduced motion:** The underline snaps and the panel swaps with no transition.
+- **Reduced motion:** Under prefers-reduced-motion the underline snaps to the new tab, and the incoming panel fades in on motion.duration-reduced.fast.
 
 ## Content guidelines
 

@@ -50,7 +50,8 @@ import { at, buildTree, pxOf } from './tree';
 import { CONTRACT_VERSION, ENGINE_VERSION } from './version';
 import { localeFreeCompare } from './locale-free-order';
 
-export const COMPONENT_DEFS_FORMAT = 'prism3-component-defs/1.4';
+// 1.5 (#576): `settings.button.borderWeight`, the outline button's border weight.
+export const COMPONENT_DEFS_FORMAT = 'prism3-component-defs/1.5';
 /** The Specs schema version the projection is written against, and checked against (`packages/tokens/check-specs.mjs`). */
 export const SPECS_SCHEMA_VERSION = '0.39.0';
 
@@ -105,6 +106,7 @@ const leversOf = (input: BrandInput | null): Levers => {
         minWidthMultiplier: input?.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
         labelWeight: input?.buttonLabelWeight ?? DEFAULT_BUTTON_LAYOUT.labelWeight,
         textHover: input?.buttonTextHover ?? DEFAULT_BUTTON_LAYOUT.textHover,
+        borderWeight: input?.buttonBorderWeight ?? DEFAULT_BUTTON_LAYOUT.borderWeight,
       },
       radioDot: input?.radioDot ?? RADIO_DOT_DEFAULT,
       raisedSurface: input?.raisedSurface ?? 'card',
@@ -361,8 +363,7 @@ export const toSpecsComponents = (doc: ComponentDefsExport): { components: Recor
   components: Object.fromEntries(Object.entries(doc.components).map(([id, e]) => [id, toSpecsComponent(e, doc.brand ? doc.brand.root : null)])),
 });
 
-/** The file names an export is written under: `component-defs.json` brand-neutral, `<brand>.component-defs.json` for a brand. */
-export const componentDefsFileNames = (brandId: string | null): { defs: string; specs: string } => {
-  const stem = brandId ? `${brandId}.component-defs` : 'component-defs';
-  return { defs: `${stem}.json`, specs: `${stem}.specs.json` };
-};
+// The file names an export is written under, and the two stems they use, live in `component-defs-names.ts`, a module
+// with no imports, so the web studio can list them before it loads the definitions (#3429). Re-exported here for this
+// module's own readers.
+export { COMPONENT_CONTRACTS_STEM, COMPONENT_DEFS_COMPAT_STEM, componentDefsFileNames } from './component-defs-names';

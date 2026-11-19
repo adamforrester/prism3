@@ -343,6 +343,10 @@ result was the alternative. A parity gate compares the package's components with
 (props and values) and the specs (token bindings per part, size and state), and a mutation of either
 side fails it by name (`34`). This is §1's "everything else a projection" made literal for the code leg.
 
+Since #1325 (owner decision Q-CC1 A) the export is published as **component contracts**,
+`out/components/component-contracts.json`, and `component-defs.json` is the same file kept under its old name for
+one release. A generator written after that reads the contract-named file.
+
 ### 10.2 Decided (2026-11-07, #3408): `password-field` is in the POC as a third top-level component
 
 Q100 A. The brief's password Show/Hide button lives in the `password-field` def, not in `text-field`,

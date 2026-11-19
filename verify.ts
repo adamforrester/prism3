@@ -610,8 +610,10 @@ export const environmentProblems = async (): Promise<string[]> => {
  *  failure this check exists for: an artifact list going SHORT, an emitter or schema file leaving the compared set,
  *  which `--check` alone reports as a clean, smaller run. Growth needs no edit, so adding artifacts no longer
  *  collides. Raise the floor when the set grows, if you like; lower it only on purpose, in the PR that shrinks the set,
- *  and say why. What a floor cannot see: a shrink and a growth of the same size in one PR. */
-export const ARTIFACT_FLOOR = 226;
+ *  and say why. What a floor cannot see: a shrink and a growth of the same size in one PR.
+ *
+ *  259 since #1119, raised to the set's size when harbor's 29-file Figma emission joined it, so losing it fails here. */
+export const ARTIFACT_FLOOR = 259;
 
 /* #775's window closed 2026-08-20 and the smoke suite gates in both CI and this runner, so the
  * date constant and its clock read are GONE rather than left at a passed date. They existed to stop
@@ -1196,6 +1198,13 @@ export const GATES: Gate[] = [
     why: 'it reads the dist/main.js and dist/ui.html the plugin build just wrote',
   },
   {
+    id: 'lint-web-bundle-prose',
+    ciStep: 'The built web specs chunk ships no maintainer notes and no Prism 2 in component text (#3429)',
+    cmd: [...TSX, 'apps/plugin/lint-bundle-prose.ts', '--web'],
+    after: ['build-web'],
+    why: 'it reads the dist/component-specs.js the web build just wrote',
+  },
+  {
     id: 'lint-release-bundle',
     ciStep: 'The release build carries no dev-only code (#2530)',
     cmd: [...TSX, 'apps/plugin/lint-release-bundle.ts'],
@@ -1274,6 +1283,13 @@ export const GATES: Gate[] = [
     id: 'lint-locale-order',
     ciStep: 'No engine comparison depends on the host locale (#3698)',
     cmd: engine('lint-locale-order.ts'),
+  },
+  {
+    // #3984, owner Q-DM2 A — reads theme-schema.json and runs design-md.ts's serializer and parser in memory; needs no
+    // build and no `after`.
+    id: 'lint-design-md-round-trip',
+    ciStep: 'design.md carries every brand setting the schema allows (#3984)',
+    cmd: engine('lint-design-md-round-trip.ts'),
   },
   {
     // #3698 F4, R5 item 3 — reads the surfaces' and the engine's tracked source text and the engine's package.json;

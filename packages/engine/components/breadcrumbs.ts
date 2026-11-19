@@ -108,7 +108,7 @@ export const breadcrumbs: ComponentDef = {
       },
       // THE ITEMS SLOT (Q307 A): BreadcrumbItem instances, two ancestors and the current page by default.
       items: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'presentation',
         contentSlot: true,
         presentWhen: { path: ['full'] },
@@ -125,7 +125,7 @@ export const breadcrumbs: ComponentDef = {
       item2: item('ancestor', 'A second step, a link to the parent page.'),
       item3: item('current', 'The current page, last and not a link.'),
       backGlyph: {
-        kind: 'vector',
+        kind: 'vector', mirror: 'mirrors',
         glyph: 'chevron-left',
         size: 'back-icon',
         presentWhen: { path: ['parent'] },
@@ -145,7 +145,7 @@ export const breadcrumbs: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
+          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
       },
       {
         class: 'semantics',
