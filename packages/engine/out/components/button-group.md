@@ -38,6 +38,8 @@ Shown on the default member: layout `inline`.
 
 Use a Button.Group for the actions that close a task: the foot of a dialog, the actions of a card, the buttons under a form. Inline for a row at the end edge on a wide surface; stacked for full-width buttons on a phone or a bottom sheet; fill for a row whose buttons share the width. Put the main action last inline and at fill, and first when stacked.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Keep to one main action, the filled Button
