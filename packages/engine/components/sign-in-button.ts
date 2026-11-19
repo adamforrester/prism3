@@ -203,7 +203,7 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
       root: 'container',
       parts: {
         container: {
-          kind: 'box',
+          kind: 'box', mirror: 'reverses',
           role: 'target',
           children: ['mark', 'label', 'focusRing'],
           layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },
@@ -217,6 +217,7 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
           note: 'The provider\'s button: its fill, and a 1px edge where the provider draws one. Hover and pressed lay a light wash over the fill, which never changes.',
         },
         mark: markPart({
+          mirror: 'never',
           nesting: {
             kind: 'nest-fixed',
             variant: { name: first.rule.mark },

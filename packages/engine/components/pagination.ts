@@ -226,7 +226,7 @@ export const paginationItem: ComponentDef = {
     root: 'container',
     parts: {
       container: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'target',
         paintSlots: ['overlay', 'border'],
         children: ['previousGlyph', 'previousText', 'labelBox', 'gapGlyph', 'nextText', 'nextGlyph', 'focusRing'],
@@ -240,7 +240,7 @@ export const paginationItem: ComponentDef = {
         note: 'The cell: as tall as an icon button and at least as wide as it is tall, and the whole pointer target. The current page has a light gray border in the border style; another page and an unlabeled previous or next take a light neutral wash at hover and press. A labeled previous or next has no fill.',
       },
       previousGlyph: {
-        kind: 'vector',
+        kind: 'vector', mirror: 'mirrors',
         glyph: 'chevron-left',
         size: 'size.{size}.icon',
         presentWhen: { type: ['previous'] },
@@ -323,7 +323,7 @@ export const paginationItem: ComponentDef = {
         note: 'The number again, in the emphasis weight, never seen: it sets the underline\'s width.',
       },
       gapGlyph: {
-        kind: 'vector',
+        kind: 'vector', mirror: 'never',
         glyph: 'more-horizontal-filled',
         size: 'size.{size}.icon',
         presentWhen: { type: ['ellipsis'] },
@@ -338,7 +338,7 @@ export const paginationItem: ComponentDef = {
         note: 'The word "Next" before the chevron, on a labeled cell only (Pagination\'s simple type).',
       },
       nextGlyph: {
-        kind: 'vector',
+        kind: 'vector', mirror: 'mirrors',
         glyph: 'chevron-right',
         size: 'size.{size}.icon',
         presentWhen: { type: ['next'] },
@@ -605,7 +605,7 @@ export const pagination: ComponentDef = {
         note: 'The navigation landmark: one row of controls. It hugs its row; a simple pagination is built wider so its two cells sit at opposite ends.',
       },
       row: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'presentation',
         presentWhen: { type: ['numbered', 'compact'] },
         children: ['previous', 'items', 'status', 'next'],
@@ -743,7 +743,7 @@ export const pagination: ComponentDef = {
         class: 'implementation',
         disposition: 'refused',
         description:
-          'A headless usePagination — returning the item list (page, ellipsis, previous, next, with current and disabled) — is the brief\'s shape for the window. code delivery pending: behavior layer (#2454) decides whether it ships beside the component.',
+          'A headless usePagination — returning the item list (page, ellipsis, previous, next, with current and disabled) — is the brief\'s shape for the window. Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
       },
     ],
   },

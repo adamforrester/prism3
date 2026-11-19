@@ -305,6 +305,26 @@ ok(authoredOn.includes('hds/color/interactive/seaside/fill/rest') && authoredOn.
   }
 }
 
+// ── #4257 review: a bare line, no head in front, thrown as a class that is not an `…Error` ──
+// Update file's four `main.ts` catches (the check or apply, Record as built, Adopt, Draw specs) post `failureDetail(e)`
+// as the whole line. With no head, only `DETAIL`'s class rule cuts it, so a host's `…Exception` must be a class there
+// too; an ordinary `Word: …` line is not a class and stays whole.
+{
+  const SECRET = 'in get_name: node "SecretLayer" on page "SecretPage"';
+  const bad: string[] = [];
+  for (const cls of ['DOMException', 'FigmaException', 'Exception', 'TypeError']) {
+    for (const [posted, reported] of [[`${cls}: ${SECRET}`, cls], [`Run stopped (${cls}: ${SECRET})`, `Run stopped (${cls})`]]) {
+      const rep = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Run', verdict: '✗ check failed', lines: [posted], agent: false }] });
+      const line = rep.split('\n').find((l) => l.startsWith('  - ')) ?? '';
+      if (line !== `  - ${reported}` || /Secret/.test(rep)) bad.push(line);
+    }
+  }
+  ok(bad.length === 0, `#4257 review: a bare line thrown as an …Exception keeps the class, not the host's message (${JSON.stringify(bad)})`);
+  const plain = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Run', verdict: '✓ done', lines: ['Note: keep this line', 'Exceptions: none', 'Exception counts: 0 (button)'], agent: false }] });
+  ok(plain.includes('  - Note: keep this line\n') && plain.includes('  - Exceptions: none\n') && plain.includes('  - Exception counts: 0 (button)'),
+    '#4257 review: a line that is not a class and its message is left as it is');
+}
+
 // ── #3702 second review: a line terminator inside a line, after every head a site posts ──
 // JS's `.` matches none of CR, U+2028 or U+2029, so a detail cut with `.*$` stopped short of them and the line went
 // through whole. `failureDetail` collapses them at the source; the report holds the cut whatever the producer does.
