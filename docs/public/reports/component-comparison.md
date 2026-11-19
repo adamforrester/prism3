@@ -202,7 +202,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | code-input-cell | form | rest, hover, filled, focus-visible, focus-visible-filled, disabled | rest, hover, filled, focus-visible, focus-visible-filled, disabled |
 | counter | form | rest, focus-visible, disabled | rest, focus-visible, disabled |
 | dialog | overlay | — | — |
-| divider | foundations | — | — |
+| divider | layout | — | — |
 | field-label | form | rest, disabled | rest, disabled |
 | field-message | feedback | — | — |
 | flush-icon-button | form | rest, hover, pressed, focus-visible, disabled, inactive | rest, hover, pressed, focus-visible, disabled |
@@ -243,7 +243,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | textarea | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
 | toast | feedback | — | — |
 | tooltip | overlay | — | — |
-| veil | foundations | — | — |
+| veil | overlay | — | — |
 | wallet-button | form | rest, focus-visible | rest, focus-visible |
 
 ### State vocabulary

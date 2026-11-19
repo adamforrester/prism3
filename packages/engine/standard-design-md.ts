@@ -193,7 +193,16 @@ export const applyXPrism3 = (input: BrandInput, x: Record<string, unknown>): str
   return applied;
 };
 
-export type StandardConversion = { input: BrandInput; classification: ColorClassification; xApplied: string[] };
+/** The keys `applyXPrism3` reads, in its order. A key outside this list is not applied, and is warned by name
+ *  (#2678, owner decision Q-XP1 A): the file keeps compiling and says what it skipped, never silently. */
+export const X_PRISM3_KEYS = ['radiusScale', 'personality', 'root', 'typeScale', 'density', 'motionTempo', 'actionPalette', 'iconContrast', 'surfaces', 'gradients'] as const;
+
+/** One warning per `x-prism3:` key the block carries and `applyXPrism3` does not read, in the file's order.
+ *  Wording is DRAFT, held for the owner's voice pass (#2678). */
+export const xPrism3Warnings = (x: Record<string, unknown>): string[] =>
+  Object.keys(x).filter((k) => !(X_PRISM3_KEYS as readonly string[]).includes(k)).map((k) => `x-prism3: ignored unknown setting '${k}'`);
+
+export type StandardConversion = { input: BrandInput; classification: ColorClassification; xApplied: string[]; xWarnings: string[] };
 
 /** Convert a parsed standard `design.md` into a `BrandInput` (+ the classification
  *  and applied levers, for reporting). `id` overrides the name-derived slug. */
@@ -210,5 +219,5 @@ export const standardToBrandInput = (std: StandardDesignMd, id?: string): Standa
     typography: { families: deriveFamilies(std.typography) },   // typeScale via x-prism3 or engine default
   };
   const xApplied = Object.keys(std.xPrism3).length ? applyXPrism3(input, std.xPrism3) : [];
-  return { input, classification, xApplied };
+  return { input, classification, xApplied, xWarnings: xPrism3Warnings(std.xPrism3) };
 };

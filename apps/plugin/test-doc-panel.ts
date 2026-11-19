@@ -63,6 +63,11 @@
  *                   the print read whole (`printView` in `panelPrint`) → `own draw/untouched`; overrides ignored →
  *                   `own draw/text edit`, `fill edit`, `hidden layer`; a second-form print read in the third form →
  *                   `own draw/v2 unchanged`.
+ *                   #4070: each specimen's own root follows its member too (`liveSpecimen`), so `untouched` also moves
+ *                   the fill and corner a redraw of the member's root gives it; `specimen fill` (a fill set on the
+ *                   specimen itself) keeps the panel aside; a third-form print is replaced while it matches (`v3
+ *                   unchanged`). Mutations: a specimen read whole again (`specimenView` returning `printView`) →
+ *                   `own draw/untouched`; a specimen read with none of its own overrides → `own draw/specimen fill`.
  *   orphan/…        before a def is built again, its deleted set's unedited panel is removed and an edited one kept.
  *                   Mutation: `clearOrphanPanels` without its `panelUnedited` check (M4) → `orphan/edited kept`.
  *   census/…        the sets with no usage panel (#3137, Q3137.3 A): one search for panel tags; a lead whose live panel
@@ -223,7 +228,7 @@ import { componentDefs, docSections, MAINTAINER_REGISTER, NAMES_A_TOOL, type Com
 import { applyComponentPlan } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { fixHostMethods, makeShim, type Node } from './component-shim';
-import { anatomyEntry, anatomyMarks, clearOrphanPanels, containerSides, leftColumns, panelUnedited, codeRuns, docPanelReach, docPanelReaches, drawDocPanel, docPanelDue, lastChangedKey, leadsPanel, planDocPanel, panelItems, printV2, PANEL_FORMAT, type PanelApi, type PNode } from './src/doc-panel';
+import { anatomyEntry, anatomyMarks, clearOrphanPanels, containerSides, leftColumns, panelUnedited, codeRuns, docPanelReach, docPanelReaches, drawDocPanel, docPanelDue, lastChangedKey, leadsPanel, planDocPanel, panelItems, printV2, printV3, PANEL_FORMAT, type PanelApi, type PNode } from './src/doc-panel';
 import { dueOf, entryFor, readLedger, recordSets, type LedgerEntry } from './src/as-built-ledger';
 import { RELEASES } from './src/library-about';
 import { EXECUTOR_REVISION } from './src/executor-revision';
@@ -508,7 +513,7 @@ const blockInstance = (type: string): N => {
   const body: N[] =
     type === 'Field' ? [mk('FRAME', 'row', [t('label'), t('text')], { layoutMode: 'HORIZONTAL' })]
       : type === 'Do-Dont' ? [mk('FRAME', 'columns', ['do', 'dont'].map((c) => mk('FRAME', c, [mk('FRAME', 'rule'), t('heading'), ...[1, 2, 3, 4].map((k) => { const it = prism3Instance(LIST_ITEM_TEXT); it.name = `item${k}`; return it; })], { layoutMode: 'VERTICAL', itemSpacing: 8 })), { layoutMode: 'HORIZONTAL' })]
-        : type === 'Specimen' ? [mk('FRAME', 'stage', [mk('INSTANCE', 'specimen', [], { _h: 40, layoutSizingHorizontal: 'HUG' })], { layoutMode: 'VERTICAL', paddingTop: 24, paddingBottom: 24, paddingLeft: 24, paddingRight: 24, counterAxisAlignItems: 'CENTER', layoutSizingHorizontal: 'FILL' }), t('caption')]
+        : type === 'Specimen' ? [mk('FRAME', 'stage', [liveSpecimen(mk('INSTANCE', 'specimen', [], { _h: 40, layoutSizingHorizontal: 'HUG' }))], { layoutMode: 'VERTICAL', paddingTop: 24, paddingBottom: 24, paddingLeft: 24, paddingRight: 24, counterAxisAlignItems: 'CENTER', layoutSizingHorizontal: 'FILL' }), t('caption')]
           : type === 'Part-marker' ? [(() => { const m = prism3Instance('count'); m.name = 'marker'; m._w = 20; m._h = 20; return m; })()]
             : type === 'Chips' ? [t('label'), mk('FRAME', 'chips', Array.from({ length: 16 }, (_, k) => { const c = prism3Instance('label'); c.name = `chip${k + 1}`; c._h = 32; return c; }), { layoutMode: 'HORIZONTAL' }), t('note')]
               : type === 'Divider' ? [mk('INSTANCE', 'divider', [], { _h: 1 })]
@@ -564,6 +569,24 @@ function live(inst: N): N {
     if (q.type === 'INSTANCE') Object.defineProperty(q, 'overrides', { configurable: true, get: () => liveLayers(q).filter((x) => (x._ovr as Set<string> | undefined)?.size).map((x) => ({ id: String(x.id), overriddenFields: [...(x._ovr as Set<string>)] })) });
   }
   return inst;
+}
+/**
+ * A SPECIMEN'S OWN ROOT FOLLOWS ITS MEMBER (#4070), as a Figma instance's does: its fills, strokes, corners, effects,
+ * stroke weight, opacity and visibility read the member's (`_inh`, copied at the swap, `instanceOf`) until something is
+ * set on the specimen itself, and `overrides` lists what was, under the specimen's id. Its layers are the member's copy
+ * and stay plain: the print never reads them. Only for the arms that turn `liveInstances` on.
+ */
+const SPECIMEN_TRACKED = ['fills', 'strokes', 'cornerRadius', 'effects', 'strokeWeight', 'opacity', 'visible'];
+function liveSpecimen(sp: N): N {
+  if (!liveInstances) return sp;
+  const ovr = new Set<string>(), own: Record<string, unknown> = {}, inh: Record<string, unknown> = {};
+  for (const f of SPECIMEN_TRACKED) {
+    inh[f] = sp[f];
+    Object.defineProperty(sp, f, { configurable: true, enumerable: true, get: () => (ovr.has(f) ? own[f] : inh[f]), set: (v: unknown) => { ovr.add(f); own[f] = v; } });
+  }
+  sp._ovr = ovr; sp._inh = inh;
+  Object.defineProperty(sp, 'overrides', { configurable: true, get: () => (ovr.size ? [{ id: String(sp.id), overriddenFields: [...ovr] }] : []) });
+  return sp;
 }
 /** ENGINE N+1 REBUILDS THE COMPONENTS THE PANEL NESTS (#3303): every inherited value under each block moves, a layer
  *  is added to each block's main, and the Specimen swap points at a rebuilt member. Nobody touches the panel. */
@@ -636,6 +659,9 @@ const instanceOf = (sp: N, member: N): void => {
   // The root's own padding and spacing, as the instance mirrors its main's (#2830's redlines read them).
   const own = copyLayer({ ...(member as unknown as Record<string, unknown>), children: [] });
   for (const k of ['paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom']) if (typeof own[k] === 'number') sp[k] = own[k];
+  // #4070: a live specimen's own root reads its member's look, never set on it.
+  const inh = sp._inh as Record<string, unknown> | undefined;
+  if (inh) for (const f of SPECIMEN_TRACKED) if (member[f] !== undefined) inh[f] = member[f];
   // THE SWAP KEEPS THE INSTANCE'S OWN SIZING (#2970): the placeholder's hug stays until the panel sets the member's, and
   // the main's width is what a fixed instance takes.
   sp._hug = true;
@@ -2167,6 +2193,18 @@ section('own draw/… — Update redraws a panel nobody touched in place, the co
   ok(c.kept.length === 1 && c.kept[0] === c.old && c.live.length === 1, `own draw/fill edit: a fill set on a nested item keeps the panel aside`, `panels ${c.all.map((n) => n.name).join(' | ')}`);
   const e = await run('hidden layer', (old) => { walk(old).find((q) => q.name === 'heading' && q._inh)!.visible = false; });
   ok(e.kept.length === 1 && e.kept[0] === e.old && e.live.length === 1, `own draw/hidden layer: a layer hidden inside a block keeps the panel aside`, `panels ${e.all.map((n) => n.name).join(' | ')}`);
+  // #4070: A SPECIMEN'S OWN ROOT. `own draw/untouched` moves every specimen's inherited fill and corner (the member's root
+  // redrawn, as Control shape redrew Wallet and Sign-in buttons') and must still read untouched; a fill a designer sets
+  // on a specimen itself is theirs, and keeps the panel aside.
+  const specimens = (old: N) => walk(old).filter((q) => q.type === 'INSTANCE' && q.name === 'specimen');
+  const h = await run('specimen fill', (old) => { specimens(old)[0].fills = [{ type: 'SOLID', color: { r: 1, g: 0, b: 0 } }]; });
+  ok(specimens(h.old).length > 0 && specimens(h.old).every((q) => q._inh) && h.kept.length === 1 && h.kept[0] === h.old && h.live.length === 1,
+    `own draw/specimen fill (#4070): a fill set on a specimen itself keeps the panel aside`, `${specimens(h.old).length} specimens; panels ${h.all.map((n) => n.name).join(' | ')}`);
+  // A PANEL PRINTED IN THE THIRD FORM (before #4070), untouched and its components as drawn, still matches in that form.
+  const v3 = (old: N) => printV3(old).then((pr) => old.setSharedPluginData!('prism3', 'docPanelPrint', pr));
+  const i3 = await run('v3 unchanged', keepMains, v3);
+  ok(i3.all.length === 1 && i3.live.length === 1 && i3.old.removed === true, `own draw/v3 unchanged (#4070): a panel printed in the third form, untouched and its components as drawn, is replaced`,
+    `panels ${i3.all.map((n) => n.name).join(' | ')}`);
   // THE SAFE RULE FOR A PANEL DRAWN BEFORE #3303 (its print in the second form): unchanged since, it is replaced; once a
   // component it nests is rebuilt, the second form cannot tell that from a hand edit, so it is kept, as before.
   const v2 = (old: N) => printV2(old).then((pr) => old.setSharedPluginData!('prism3', 'docPanelPrint', pr));
