@@ -1246,6 +1246,8 @@ export const KEPT_FIELD_WORD: Record<string, string> = {
   width: 'size', height: 'size',
   minWidth: 'min width', minHeight: 'min height',
   itemSpacing: 'gap',
+  // #1739: the space between a wrapping row's lines (Tag.Group). DRAFT wording.
+  counterAxisSpacing: 'line gap',
   paddingTop: 'padding', paddingRight: 'padding', paddingBottom: 'padding', paddingLeft: 'padding',
   strokeWeight: 'border width', strokeTopWeight: 'border width', strokeRightWeight: 'border width',
   strokeBottomWeight: 'border width', strokeLeftWeight: 'border width',
