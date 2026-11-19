@@ -26,7 +26,7 @@
  * `localStorage` and the plugin writes nothing, and the entry — the one module allowed to know which
  * host it is in — wires that. Unset, a rebuild persists nothing, which is what a Node test wants.
  */
-import { brandTheme, type BrandInput, type Theme, resolvePreview, type ResolvedPreview } from '@prism3/engine';
+import { brandTheme, type BrandInput, type Theme, resolvePreview, type ResolvedPreview, withRestLinkKeys } from '@prism3/engine';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { resolvedModes } from './verdict';
 import { stashBefore, type UndoLoad } from './undo-load';
@@ -190,9 +190,15 @@ export const releasePersist = (): void => {
  *  before booting on it, and falls back to an example if it does not. `baseline`, when given, is what
  *  the input is measured against: a web reload restores the one it persisted (#3880). Without it, the
  *  input is its own baseline, as every other boot is. */
+/** #4165: a brand saved before the link rename names `….link.default` in its overrides. The engine reads that key as
+ *  `….link.rest`, but the studio's link rows read and clear `rest` only, so the row showed Auto while the pin still
+ *  applied, and Auto could not remove it. The studio holds the renamed key instead, from the moment a brand comes in. */
+const withRestLinks = (input: BrandInput): BrandInput =>
+  input.overrides ? { ...input, overrides: withRestLinkKeys(input.overrides) } : input;
+
 export const initSession = (input: BrandInput, origin: Origin, baseline?: BrandInput): void => {
-  brandState = input;
-  provenance = provenanceOf(origin, baseline ?? brandState);
+  brandState = withRestLinks(input);
+  provenance = provenanceOf(origin, baseline ? withRestLinks(baseline) : brandState);
   bootProvenance = provenance;
   theme = brandTheme(brandState);
   lastGoodInput = structuredClone(brandState);
@@ -279,7 +285,7 @@ export const ensureThemeFresh = (): void => {
  *  than passing and leaving `provenance` describing the previous load. `main.ts`'s `loadBrand` is the
  *  one caller; it resets its own menus and re-renders around this. */
 export const loadInput = (input: BrandInput, origin: Origin): void => {
-  brandState = structuredClone(input);
+  brandState = withRestLinks(structuredClone(input));
   // Set from the SAME value assigned above, before any edit can land — the baseline is what was
   // loaded, not what the state happens to hold when someone next asks.
   provenance = provenanceOf(origin, brandState);

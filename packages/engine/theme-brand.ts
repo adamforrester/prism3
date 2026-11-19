@@ -12,11 +12,17 @@ import { type BrandInputAuthored, type Theme, type BrandInput, ALL_MODES, VALID_
 import { PALETTE_NAME_RE, RESERVED_PALETTES, STATUS_DEFAULTS, statusRamp, inRedTerritory, hueDist, RED_CHROMA_FLOOR, normalizeDisabledStrategy, normalizeDisabledMin } from './theme-color';
 import { buildDims } from './theme-dims';
 
-/** #4165 (CONTRACT 16.0.0): the resting link state was `….link.default` and is `….link.rest`. A brand input saved
+import { buildMotion, type MotionAxis } from './theme-motion';
+import { LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, DISPLAY_VARIANTS, buildTypography, withLabelDefault, WEIGHT_ROLE_DEFAULT, type FontFamilyBinding, type WeightRole, deriveFamilies, WEIGHT_ROLE_ORDER, type TypeGroup, deriveTypefaces, PER_MODE_SIZE_GROUPS, type PerModeSizeGroup, HEADING_SIZE_FLOOR, mobileEndpoint, TYPE_GROUPS } from './theme-type';
+import { buildShadow, type ShadowAxis, type ShadowStep, type ShadowLayer } from './theme-shadow';
+import { buildLayout, gridGapNotes } from './theme-layout';
+import { buildGradient } from './theme-gradient';
+
+/** #4165 (held for the #1421 contract batch): the resting link state was `….link.default` and is `….link.rest`. A brand input saved
  *  before the rename still names the old role in `overrides`, and an override for a role a mode does not emit is
  *  skipped without a word (`modes.ts`), so the pinned link would silently fall back to the derived one. The old key is
  *  read as the new one instead; where both are set, the new one wins. Only these four roles: they are the rename this
- *  release carries, and an older retired key is out of scope here. */
+ *  batch carries, and an older retired key is out of scope here. */
 export const withRestLinkKeys = <O extends Partial<Record<string, Record<string, unknown>>>>(overrides: O | undefined): O | undefined => {
   if (!overrides) return overrides;
   const out: Partial<Record<string, Record<string, unknown>>> = {};
@@ -29,11 +35,6 @@ export const withRestLinkKeys = <O extends Partial<Record<string, Record<string,
   }
   return out as O;
 };
-import { buildMotion, type MotionAxis } from './theme-motion';
-import { LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, DISPLAY_VARIANTS, buildTypography, withLabelDefault, WEIGHT_ROLE_DEFAULT, type FontFamilyBinding, type WeightRole, deriveFamilies, WEIGHT_ROLE_ORDER, type TypeGroup, deriveTypefaces, PER_MODE_SIZE_GROUPS, type PerModeSizeGroup, HEADING_SIZE_FLOOR, mobileEndpoint, TYPE_GROUPS } from './theme-type';
-import { buildShadow, type ShadowAxis, type ShadowStep, type ShadowLayer } from './theme-shadow';
-import { buildLayout, gridGapNotes } from './theme-layout';
-import { buildGradient } from './theme-gradient';
 
 /** A value the caller has established is present (an in-range index, a key just written); a named throw, not a
  *  silent `undefined` (#1182, `noUncheckedIndexedAccess`). */

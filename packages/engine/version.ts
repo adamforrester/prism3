@@ -717,17 +717,17 @@ export const ENGINE_VERSION = '0.238.0';
  * medium or large Button binds (`size.<size>.hit-target`, owner Q141 revised). One added path; an added path cannot
  * break a reference. Nothing is removed or retyped. It is a step of the scale, not of the density ladder (`scale.ts`).
  */
-/**
- * 16.0.0 (#4165, owner decision A, 2026-11-19): MAJOR. The resting link state is `rest`, the name every other
- * interactive role gives it (`interactive.*.fill.rest`, `field.border.rest`). It was `default`, which is also a weight
- * role, an easing role, a transition and a scrim. Each link family's `default` leaf is renamed `rest`: `text.link`,
- * `icon.link`, `inverse.text.link` and `inverse.icon.link`: 4 removed, 4 added. A pure name change: every value is the
- * one the old name had. Each removal ships a `DEPRECATIONS` entry pointing at its `rest` twin, and the eight older
- * entries that pointed at a `….link.default` now point at the `rest` twin. The Figma variable rename is derived from
- * them (`rename-map.ts`). A brand input whose `overrides` still name `….link.default` is read as
- * `….link.rest` (`withRestLinkKeys`, `theme-brand.ts`).
+/*
+ * HELD FOR THE #1421 BATCH (#4165, owner batching note, 2026-11-19): the resting link state is renamed
+ * `….link.default` → `….link.rest` in this tree (4 removed, 4 added: MAJOR), but CONTRACT_VERSION is NOT raised here
+ * and the baseline is not accepted. The owner ships this rename and #1421 B (one transparency family) in ONE major
+ * bump, made once, when #1421's build joins this one. Until then `token-contract.ts --check` and
+ * `lint-contract-version` fail on the unbumped rename: that is what held means. The `since: '16.0.0'` stamps below name
+ * that batch's version. When the batch lands, its doc block goes here: the four families (`text.link`, `icon.link`,
+ * `inverse.text.link`, `inverse.icon.link`), the DEPRECATIONS entries pointing at each `rest` twin, the eight older
+ * entries that now follow it, the derived Figma rename (`rename-map.ts`), and `withRestLinkKeys` (`theme-brand.ts`).
  */
-export const CONTRACT_VERSION = '16.0.0';
+export const CONTRACT_VERSION = '15.1.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

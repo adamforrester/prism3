@@ -430,7 +430,7 @@ lands without a second bump.
 |---|---|---|
 | 15.1.0 | (#3408, Q-HT1 A) | `space.550`, the 44px step beside the half steps `space.150` and `space.250`: the hit-target floor a medium or large Button binds in code |
 
-### The resting link state is `rest` (16.0.0, #4165)
+### The resting link state is `rest` (#4165, held for the #1421 batch)
 
 Owner decision A on #4165 (2026-11-19). One state had two names. The links called the resting,
 un-hovered state `default`, and every other interactive role calls it `rest`
@@ -449,7 +449,9 @@ transition and a scrim, so a developer typed `--pds3-color-text-link-default` ne
   (`withRestLinkKeys`, `theme-brand.ts`). Otherwise an override for a role no longer emitted would be
   skipped without a word.
 
-`CONTRACT_VERSION` 15.1.0 → 16.0.0, accepted with `token-contract.ts --accept` after the bump.
+Held for the #1421 batch (owner note, 2026-11-19): this rename and #1421 B ship in one MAJOR bump.
+`CONTRACT_VERSION` is raised, and the baseline accepted with `token-contract.ts --accept`, once, when
+#1421's build joins this one. The `since: '16.0.0'` stamps name that batch's version.
 
 ## Change classification
 

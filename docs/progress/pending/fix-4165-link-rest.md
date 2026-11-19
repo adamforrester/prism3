@@ -1,9 +1,9 @@
-## (2026-11-19) — The resting link state is `rest` (CONTRACT 16.0.0, #4165)
+## (2026-11-19) — The resting link state is `rest`, held for the #1421 contract batch (#4165)
 
 The owner chose A on #4165: rename the four `….link.default` tokens to `….link.rest`, with deprecation pointers. The links were the one family whose resting state wasn't `rest`, and `default` is also a weight role, an easing role, a transition and a scrim.
 
 ### What changed
-- **Engine.** `LINK_STATES` in `modes.ts` and `color-order.ts` reads `rest`. `CONTRACT_VERSION` 15.1.0 → 16.0.0, with `token-contract.ts --accept` after the bump. The guaranteed diff is exactly 4 removed and 4 added.
+- **Engine.** `LINK_STATES` in `modes.ts` and `color-order.ts` reads `rest`. The guaranteed diff is exactly 4 removed and 4 added, a MAJOR change. Per the owner's batching note, `CONTRACT_VERSION` stays 15.1.0 and the baseline is not accepted: this rename and #1421 B ship in one MAJOR bump, made when #1421's build joins this one. Until then `token-contract.ts --check` and `lint-contract-version` fail on the unbumped rename, by design.
 - **`DEPRECATIONS`.** Four new entries, `since: '16.0.0'`, listed literally in `LINK_REST_FAMILIES`. Eight older entries pointed at a `….link.default` (the #891 / #1140 on-inverse ones and the #1148 appearance-tier ones). They now follow it to `….link.rest` through `followLinkRest`: `path` is history, `replacedBy` follows the live name.
 - **Old override keys.** `withRestLinkKeys` (`theme-brand.ts`) reads an override keyed `….link.default` as `….link.rest`. `modes.ts` skips an override for a role a mode doesn't emit, without a word, so a saved brand input would otherwise lose its pinned link with no warning.
 - **Consumers.** Link and Breadcrumbs bindings, the preview spec, Studio's link-family controls and Links preview (the state label now reads "rest"), `lint-skills` / `lint-voice` fixtures, `prism3-rebind`, and every test that named the old leaf.

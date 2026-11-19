@@ -22,6 +22,7 @@ import * as store from './src/state/store';
 import * as I from './src/state/interactive-input';
 import * as O from './src/state/outline-hover-input';
 import * as P from './src/state/palette-input';
+import { overrideOf } from './src/state/fills-input';
 
 let executed = 0, failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -163,6 +164,23 @@ I.writeInteractiveRow('light', row('inverse.text.link.rest'), '450');
 ok(pins('inverse.text', 'light').split(', ').length === 5 && !pins('inverse.text', 'light').includes('-'), `the Text link · inverse row pins its family's five states (${pins('inverse.text', 'light')})`);
 I.writeInteractiveRow('light', row('inverse.text.link.rest'), undefined);
 ok(pristine(), 'and its Auto clears them');
+// #4165: a brand saved before the link rename names `text.link.default`. The studio reads it as the rest pin, and Auto
+// clears it: before, the row read Auto while the engine still applied the pin, and Auto left the old key in place.
+{
+  const legacy = structuredClone(prism3) as BrandInput;
+  legacy.overrides = { light: { 'text.link.default': { palette: 'primary', step: '900' } } } as BrandInput['overrides'];
+  for (const [how, load] of [
+    ['a restored brand (initSession)', () => store.initSession(structuredClone(legacy), { kind: 'example', id: 'prism3' })],
+    ['a loaded brand (loadInput)', () => store.loadInput(structuredClone(legacy), { kind: 'example', id: 'prism3' })],
+  ] as const) {
+    load();
+    ok(overrideOf('light', 'text.link.rest') === '900', `#4165 ${how}: a saved text.link.default pin reads as the rest row's pin (${overrideOf('light', 'text.link.rest')})`);
+    I.setLinkFamilyOverride('light', 'text', undefined);
+    const keys = Object.keys(store.brandState.overrides?.light ?? {});
+    ok(keys.length === 0, `#4165 ${how}: Auto clears the saved link pin, the old key included (left: ${keys.join(', ') || 'none'})`);
+  }
+  reset();
+}
 I.setLinkRung('hover', 3);
 I.setLinkRung('visited', 1);
 ok(same(store.brandState.linkStateRungs, { hover: 3, visited: 1 }), `setLinkRung writes the rung per state (${JSON.stringify(store.brandState.linkStateRungs)})`);
