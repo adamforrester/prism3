@@ -295,7 +295,7 @@ import { figmaInstances, fixHostMethods, makeShim, STYLE_FONT, type Node, type P
 import { adoptMembers, breakingClause, breakingLine, breakingOf, consumerLines, breakingSection, breakingSummary, captureBaselines, checkedSetOf, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type Breaking, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
-import { applyUpdate, applyVerdict as applyVerdictOf, ledgerAfter, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
+import { applyUpdate, applyVerdict as applyVerdictOf, fallbackLine, ledgerAfter, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
 import { headerFor } from './src/page-header';
 import { readFileSync } from 'node:fs';
 
@@ -7258,9 +7258,13 @@ section("fallback — a declared font fallback that landed is reported as a fall
   const plans = plansOf(id);
   const google = plans.filter((p) => JSON.stringify(p.root).includes('"family":"Google Sans"')).map(planComponentName);
   ok(plans.length === 96 && google.length === 36, `fallback/premise: 96 members, 36 of them on Google Sans (${plans.length}, ${google.length})`);
-  const run = async (refused: readonly string[]) => {
+  const deep = (n: Node, name: string): Node | undefined => (n.children as Node[] | undefined)?.reduce<Node | undefined>((f, c) => f ?? (c.name === name ? c : deep(c, name)), undefined);
+  const labelsOf = (set: Node): Node[] => membersOf(set).filter((m) => google.includes(String(m.name))).map((m) => deep(m, 'label')).filter((l): l is Node => !!l);
+  // `hold` runs on the host's own built label nodes before the update, for a host that does not keep a font write.
+  const run = async (refused: readonly string[], hold?: (label: Node) => void) => {
     const allowMisses: string[] = [];
     const w = await world(id, plans, { extraVars: ['space/999'], allowMisses });
+    if (hold) for (const l of labelsOf(w.set())) hold(l);
     // The host's own refusal, in Figma's words, for each face the test names; the shim's methods are fixed, so a copy.
     const api = { ...w.api, loadFontAsync: async (fn: { family: string; style: string }) => {
       if (refused.includes(`${fn.family} ${fn.style}`)) throw new Error(`The font "${fn.family} ${fn.style}" could not be loaded`);
@@ -7276,8 +7280,7 @@ section("fallback — a declared font fallback that landed is reported as a fall
   {
     const { w, o, v } = await run(['Google Sans Medium']);
     // The witness is the host's own label nodes, never the update's report.
-    const deep = (n: Node, name: string): Node | undefined => (n.children as Node[] | undefined)?.reduce<Node | undefined>((f, c) => f ?? (c.name === name ? c : deep(c, name)), undefined);
-    const labels = membersOf(w.set()).filter((m) => google.includes(String(m.name))).map((m) => deep(m, 'label')?.fontName as { family: string; style: string } | undefined);
+    const labels = labelsOf(w.set()).map((l) => l.fontName as { family: string; style: string } | undefined);
     ok(labels.length === 36 && labels.every((f) => f?.family === 'Roboto' && f.style === 'Medium'),
       `fallback/premise written: the host's 36 Google labels hold Roboto Medium (${labels.length}; ${JSON.stringify(labels[0])})`);
     ok(o.updated.length === 96 && JSON.stringify(o.fallbacks) === JSON.stringify([{ part: 'label', face: 'Google Sans Medium', used: 'Roboto Medium', count: 36 }]),
@@ -7304,6 +7307,36 @@ section("fallback — a declared font fallback that landed is reported as a fall
       && !v.lines.some((l) => l.includes("isn't installed")) && v.headline.startsWith('⚠') && v.lines.includes('To check: sign-in-button. The lines above say what differs on each.'),
       `fallback/miss line: the 108 font misses read as parts not written, the set to check, no fallback line (${v.headline}; ${line.slice(0, 200)})`);
   }
+  // THE FALLBACK LOADED BUT WAS NOT KEPT: Google Sans refused, Roboto Medium loads, and the host keeps the face the label
+  // already holds when the executor writes Roboto (no throw). The face misses must stay misses: "uses Roboto Medium"
+  // would be false. Mutation: the `DISCARDED` clause of `notLanded` dropped → `fallback/discarded kept`.
+  {
+    const { o, v } = await run(['Google Sans Medium'], (l) => {
+      let held = l.fontName;
+      Object.defineProperty(l, 'fontName', { configurable: true, enumerable: true, get: () => held, set: (f: { family: string }) => { if (f.family !== 'Roboto') held = f; } });
+    });
+    const gone = o.misses.filter((x) => x.startsWith('label.literalFont -> DISCARDED (set Roboto Medium ')).length;
+    const face = o.misses.filter((x) => x.startsWith('label.font -> Google Sans Medium (')).length;
+    ok(gone === 36 && face >= 36 && !o.fallbacks && !v.lines.some((l) => l.includes("isn't installed")),
+      `fallback/discarded kept: 36 discarded Roboto writes keep every face miss a miss, no fallback line (${gone}, ${face}, ${JSON.stringify(o.fallbacks)})`);
+  }
+  // THE FALLBACK'S WRITE THREW: Google Sans refused, Roboto Medium loads, the font lands but the size write throws. The
+  // miss names the fallback through `literalFont ->` alone (the size already read as planned, so no DISCARDED), and the
+  // face misses stay misses. Mutation: the `literalFont -> <fallback>` clause of `notLanded` dropped → `fallback/thrown kept`.
+  {
+    const { o, v } = await run(['Google Sans Medium'], (l) => {
+      const size = l.fontSize;
+      Object.defineProperty(l, 'fontSize', { configurable: true, enumerable: true, get: () => size, set: () => { throw new Error('fontSize is read-only here'); } });
+    });
+    const thrown = o.misses.filter((x) => x.startsWith('label.literalFont -> Roboto Medium ')).length;
+    const gone = o.misses.filter((x) => x.startsWith('label.literalFont -> DISCARDED')).length;
+    ok(thrown === 36 && gone === 0 && !o.fallbacks && !v.lines.some((l) => l.includes("isn't installed")),
+      `fallback/thrown kept: 36 thrown Roboto writes, none read as discarded, keep every face miss a miss, no fallback line (${thrown}, ${gone}, ${JSON.stringify(o.fallbacks)})`);
+  }
+  // ONE PART: the singular form of the line. Mutation: the verb swapped → `fallback/line one`.
+  ok(fallbackLine('sign-in-button', { part: 'label', face: 'Google Sans Medium', used: 'Roboto Medium', count: 1 })
+    === "sign-in-button: Google Sans Medium isn't installed, so 1 label uses Roboto Medium, as the component allows.",
+    `fallback/line one: one label reads in the singular (${fallbackLine('sign-in-button', { part: 'label', face: 'Google Sans Medium', used: 'Roboto Medium', count: 1 })})`);
 }
 
 // #4067, THE SAME RUN: ONE SUMMARY GAVE THREE SET COUNTS, "6 sets updated" (Update file's run line, from the in-place

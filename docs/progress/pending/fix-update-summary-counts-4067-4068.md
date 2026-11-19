@@ -47,4 +47,8 @@ furniture-only set, one with nothing to write and one with nothing to write that
 name. Mutations, each failing by name: the split not called → `fallback/reported`, `/not a miss`, `/line`;
 `notLanded` dropped → `fallback/miss kept`, `/miss line`; `wroteTo` counting `asPreviewed` → `counts/headline`,
 `counts/sets`; the To check line dropped → `counts/to check named`; the run line reading the progress → `verdict/update
-count`; the adapter dropping `sets` → `accepts component-update-result with its sets count`.
+count`; the adapter dropping `sets` → `accepts component-update-result with its sets count`. Review follow-up: `fallback/discarded kept` (the host keeps
+Google Sans when Roboto is written, so 36 `literalFont -> DISCARDED` misses) and `fallback/thrown kept` (the size write
+throws, so 36 `literalFont -> Roboto Medium` misses and no DISCARDED) pin the other two "fallback did not land" reads,
+and `fallback/line one` pins the singular. Dropping either `notLanded` clause, or swapping the singular verb, fails its
+arm by name.
