@@ -78,9 +78,9 @@ export const familyAuto = (face: string): string => `Auto: follows Light (${face
 /** The page's own copy (S6.2). APPROVED by the owner on 2026-10-02 unless marked otherwise. */
 export const TYPE_COPY = {
   libraryLabel: 'Typeface library',
-  libraryTip: 'The font families this brand can use. A family is in the library while a text type uses it, or once you add it.',
+  libraryTip: 'The font families the brand can use: those a text type uses, and any you add.',
   familiesLabel: 'Font family for each text type',
-  familiesTip: 'Each text type’s font.family token names one family from the library. Swapping the family keeps every reference to the token.',
+  familiesTip: 'The family each text type uses. Swapping it keeps every reference to the token.',
   faceHead: 'Family',
   addPlaceholder: 'Font family name',
   addLabel: 'Add a font family to the library',
@@ -113,7 +113,7 @@ export const S63 = {
   // The lever's own description, word for word (#2070, owner 2026-10-04; #2089). `test-lever-tips.ts` holds it to
   // `lever-manifest.json`, so keep it a literal here: importing the lever text would make that test compare a value
   // with itself (docs/34).
-  scaleTip: 'Moves every heading size one step up or down the size ladder. Body, label, caption and code stay put.',
+  scaleTip: 'Moves every heading size one step up or down. Body, label, caption and code stay.',
   scaleClash: 'Some sizes you set would clash at this scale. Release them to switch.',
   /** Compact refused for the 16px title floor, on the chip and under the chips (owner decision Q55 B, APPROVED, #2194). */
   scaleTitleFloor: "Compact can't be used while the title floor is 16px. Raise the title floor to use it.",
@@ -121,7 +121,7 @@ export const S63 = {
   pinned: (n: number): string => `${n} ${n === 1 ? 'size is' : 'sizes are'} set individually. They keep their size when the scale moves.`,
   unresolved: (paths: readonly string[]): string => `${paths.length === 1 ? 'One text style' : `${paths.length} text styles`} the preview uses ${paths.length === 1 ? 'is' : 'are'} not in this brand: ${paths.join(', ')}. The preview shows a fallback.`,
   sizesLabel: 'Individual sizes',
-  sizesTip: 'Set any heading size directly. Desktop is the size on wide screens; Mobile is the size on phones, while headings scale between them.',
+  sizesTip: 'Set any heading size directly, for wide screens and for phones.',
   desktop: 'Desktop',
   mobile: 'Mobile',
   mobileBrandWide: 'Mobile sizes apply to every mode.',
@@ -138,7 +138,7 @@ export const S63 = {
   underMobile: (px: number): string => `Smaller than its mobile size, ${px}px.`,
   // Scale limits
   fluidLabel: 'Headings scale between mobile and desktop',   // APPROVED (Q70)
-  fluidTip: 'Display, title and eyebrow sizes shrink smoothly from desktop to mobile between these two screen widths. Body text keeps one size.',
+  fluidTip: 'Headings shrink smoothly from desktop to mobile between these widths. Body stays.',
   /** Off, while a mobile size is set individually (#2055). DRAFT, pending the owner's approval. */
   fluidPinned: (sizes: readonly string[]): string => sizes.length === 1
     ? `Removes the mobile size of ${sizes[0]}, which you set individually.`
@@ -151,7 +151,7 @@ export const S63 = {
   /** A ceiling that would trim a display size set individually (owner, 2026-10-04, #2044). */
   ceilingPinned: (size: string): string => `Smaller than display ${size}, which you set individually.`,
   titleFloorLabel: 'Smallest title size',
-  titleFloorTip: '16px adds a title at body size. The Compact scale already places a title at 16px, so the engine refuses 16px with it.',
+  titleFloorTip: '16px adds a title at body size. The Compact scale already has one.',
   /** The 16px chip's reason under Compact: the approved info text's second sentence (owner, B8b). */
   titleFloorCompact: 'The Compact scale already places a title at 16px, so the engine refuses 16px with it.',
   /** The 18px chip's reason while title 2xs is set individually (#2054). DRAFT, pending the owner's approval. */
@@ -172,13 +172,13 @@ export const S63 = {
   heavierThan: (r: string, n: number): string => `Heavier than ${r} (${n}). Weights stay in order.`,
   orderWarn: 'A weight now reads lighter than the name before it. The names read in order, from subtle to max.',
   matrixLabel: 'Weights each text type ships',
-  matrixTip: 'Each weight a text type ships is a text style at every size. Link adds an underlined style for each.',
+  matrixTip: 'Each weight a text type ships is a text style at every size. Link adds an underline.',
   link: 'Link',
   styles: (n: number): string => `${n} ${n === 1 ? 'style' : 'styles'}`,
   // #2942 — DRAFT placeholders (owner Q2 A): the owner replaces this wording before merge. `underlineTip` is the
   // lever's own description, word for word (`test-lever-tips.ts` holds it to the manifest).
   underlineLabel: 'Underline thickness and offset',
-  underlineTip: 'The underline on every link style, as a share of the font size: 5% thickness is 0.8px on 16px text, and a 25% offset puts the line 4px below the text. Auto leaves it to the font.',
+  underlineTip: 'The link underline\'s thickness and offset, as a share of the font size.',
   underlineSwitch: 'Custom underline',
   underlineThickness: 'Underline thickness, %',
   underlineOffset: 'Underline offset, %',
@@ -186,10 +186,10 @@ export const S63 = {
   underlineOffsetHint: 'Space between the text and the line, as a share of the font size: 25% is 4px on 16px text. Auto leaves it to the font.',
   underlineRange: (lo: number, hi: number): string => `A whole number from ${lo} to ${hi}. A value outside it is set to the nearest end.`,
   italicsLabel: 'Italic styles',
-  italicsTip: 'Upright ships no italic. Upright + italic adds an italic style for each weight. Italic only makes italic the one style.',
+  italicsTip: 'Upright ships no italic; Upright + italic adds one per weight; Italic only is italic.',
   italicPinned: 'This text type pins a font style. Clear the pin first: Italic only sets the style from the weight.',
   pinLabel: 'Pin a font style',
-  pinTip: 'Set one weight’s font style exactly as Figma names it, such as Light Condensed: a width a weight number can’t reach. The font family is the one the text type uses.',
+  pinTip: 'Set one weight’s font style as Figma names it, such as Light Condensed.',
   pinField: (g: string, role: string): string => `Font style for ${g}, ${role}`,
   pinPlaceholder: 'Derived from weight',
   pinStale: (was: string, now: string): string => `Pinned to ${was}, but this text type now uses ${now}. Enter the style again to pin it to ${now}, or the pin is dropped at export.`,
@@ -207,7 +207,7 @@ export const S63 = {
   lhSample: 'Line height sets the space between the lines of a paragraph, so a long passage reads evenly.',
   lsSample: 'Letter spacing',
   nudgeLabel: 'One step looser or tighter',
-  nudgeTip: 'Moves a text type’s line height or letter spacing along the names, for every size it ships. Larger headings start tighter.',
+  nudgeTip: 'Moves a text type’s line height or letter spacing, for every size it ships.',
   nudgeOpt: (v: number): string => (v === 0 ? 'Default' : `${Math.abs(v)} ${Math.abs(v) === 1 ? 'step' : 'steps'} ${v > 0 ? 'looser' : 'tighter'}`),
   landsOn: (names: string): string => `Uses ${names}`,
 } as const;
@@ -219,7 +219,7 @@ export const TYPE_PIN_COPY = {
   captionName: (v: string): string => `Caption ${v}`,
   captionHint: 'Caption sizes stay in order, on the size ladder, at 10px or more.',
   trackLabel: 'Letter spacing for each text type',
-  trackTip: 'Pin a text type to one letter spacing at every size. A pinned text type no longer follows its size or its nudge.',
+  trackTip: 'Pins a text type to one letter spacing at every size, over its size and nudge.',
   trackField: (g: string): string => `${g}, letter spacing`,
   trackFollow: 'Follows size',
   trackOpt: (name: string, pct: string): string => `${name} · ${pct}`,

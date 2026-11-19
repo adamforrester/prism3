@@ -53,7 +53,9 @@ export const leverBlock = (key: string, opts: { label?: string; group?: boolean;
   // manifest description, so its page hands one in (concept v6's words) or shows no info button. A page may
   // also hand one in over a manifest lever's (Surfaces & fills' Background fills, S4c): the Studio's words
   // for that page, while the engine's description stays what MCP, the manifest and the emission read.
-  const desc = opts.desc ?? L?.description ?? '';
+  // #4193 decision 1: the ⓘ shows the lever's short `tip` (≤ 90 characters) where it has one; search still reads the
+  // full description, through `manifestWords` below.
+  const desc = opts.desc ?? L?.tip ?? L?.description ?? '';
   const el = hook(h(opts.group ? 'fieldset' : 'div', 'p3-lever'), leverHook(key));
   el.id = `p3-lv-${slug(key)}`;
   const head = h(opts.group ? 'legend' : 'div', 'p3-lever-head');

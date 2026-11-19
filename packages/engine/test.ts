@@ -44329,6 +44329,20 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
     '#4144 the base + overlay files are the projection of the tree written beside them, as the CLI writes it');
 }
 
+// #4193 decision 1 (owner, 2026-11-19): each lever's ⓘ in the UI is one line of at most 90 characters (voice standard
+// §4), its `tip`; the long `description` stays for agents. Read from the EMITTED manifest on disk, so the arm also holds
+// the emission to carrying the tip. The 90 is the standard's number, typed here. Mutations that fail BY NAME: a tip
+// lengthened past 90 → `#4193 every lever's UI line …`; a tip dropped from a long lever → `#4193 a lever has a tip …`.
+{
+  const manifest = JSON.parse(readFileSync(new URL('./schema/lever-manifest.json', import.meta.url), 'utf8')) as { levers: { key: string; description: string; tip?: string }[] };
+  const long = manifest.levers.filter((l) => (l.tip ?? l.description).length > 90).map((l) => `${l.key} (${(l.tip ?? l.description).length})`);
+  ok(manifest.levers.length > 40 && long.length === 0, `#4193 every lever's UI line (its tip, or a short description) is at most 90 characters (over: ${long.join(', ') || 'none'})`);
+  const mismatched = manifest.levers.filter((l) => (l.description.length > 90) !== (l.tip !== undefined)).map((l) => l.key);
+  ok(mismatched.length === 0, `#4193 a lever has a tip exactly when its description runs past 90 characters (mismatched: ${mismatched.join(', ') || 'none'})`);
+  const notShorter = manifest.levers.filter((l) => l.tip !== undefined && !(l.tip.length < l.description.length && l.tip.trim() === l.tip && l.tip.length > 20)).map((l) => l.key);
+  ok(notShorter.length === 0, `#4193 each tip is a real line, shorter than its description (${notShorter.join(', ') || 'none'})`);
+}
+
 if (pass + fails.length < MIN_ASSERTIONS) {
   console.log(`  ❌ only ${pass + fails.length} assertions ran, expected at least ${MIN_ASSERTIONS} — the harness collapsed, so "0 failed" means nothing.`);
   process.exitCode = 1;

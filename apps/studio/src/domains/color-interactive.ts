@@ -62,7 +62,7 @@ export const PRIMARY_ACTION_PALETTE = 'Primary Action Palette';
 export const HOVER_FILL_GROUP = 'Outline & text hover';
 export const WASH_COPY = {
   label: 'Wash opacity',
-  info: 'How strong the hover and pressed wash is on outline and text controls, as a step of the opacity scale. Pressed sits above hover; selected follows pressed.',
+  info: 'How strong the hover and pressed wash is, as an opacity step. Selected follows pressed.',
   option: (n: number, tinted: boolean): string => (tinted ? `${n}%, stepped per set where needed` : `${n}%`),
   hint: {
     'overlay-neutral': 'A black wash on light grounds, a white one on dark. Tags, segmented controls and pagination hover with it too.',

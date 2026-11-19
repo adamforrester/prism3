@@ -57,9 +57,9 @@ export const DEPTH_COPY = {
   next: 'Continue to Layout',
   /** DRAFT: the easing rows' group label (concept v6's), and the tempo and tint info text, in D16's plain words. */
   easingLabel: 'Easing per motion role',
-  easingTip: 'Which of the six curves each kind of motion follows. Transitions name a role, so changing a role changes every transition that uses it.',
-  tempoTip: 'How fast every duration runs: Snappy is 0.8×, Standard 1×, Relaxed 1.3×. Reduced motion is set for you.',
-  tintTip: 'How far the shadow color moves off pure black, and toward which hue. Amount 0 is pure black.',
+  easingTip: 'Which of the six curves each kind of motion follows, by its role.',
+  tempoTip: 'How fast every duration runs: Snappy 0.8×, Standard 1×, Relaxed 1.3×.',
+  tintTip: 'How far shadows move off pure black, and toward which hue. 0 is pure black.',
   /** The two tint sliders' names (the legacy page's). */
   hue: 'Tint hue',
   amount: 'Tint amount',
