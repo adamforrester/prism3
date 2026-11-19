@@ -11198,8 +11198,8 @@ for (const host of ['web', 'figma']) {
       ok(!!r.rO && r.rO.title === 'Radio options' && r.rO.desc === 'How big the dot in a selected radio is.' && JSON.stringify(r.rO.chips) === JSON.stringify(['Default', '60%', '70%', '80%']),
         `#3086: ${host} ${w}: Radio options: its drafted title and description, and Radio dot size's chips, Default to 80% (${JSON.stringify(r.rO)})`);
       const T = r.tags;
-      ok(!!T && JSON.stringify(T.ids) === JSON.stringify(['tag']) && T.folds + T.families === 0,
-        `#2931 Q579 A: ${host} ${w}: the Tag section lists Tag as a row, with no family row and no fold (${JSON.stringify({ ids: T?.ids, folds: T?.folds, families: T?.families })})`);
+      ok(!!T && JSON.stringify(T.ids) === JSON.stringify(['tag', 'tag-group']) && T.folds + T.families === 0,
+        `#2931 Q579 A, #1739: ${host} ${w}: the Tag section lists the Tag page's two sets, Tag and Tag.Group, in one row, with no family row and no fold (${JSON.stringify({ ids: T?.ids, folds: T?.folds, families: T?.families })})`);
       ok(!!r.to && r.to.title === 'Tag options' && r.to.desc === 'How tags draw their shape.' && JSON.stringify(r.to.chips) === JSON.stringify(['Pill', 'Underline']),
         `#2931 Q579 A, #2905 Q10 A: ${host} ${w}: Tag options: its drafted title and description, and Tag style's chips (${JSON.stringify(r.to)})`);
       const B = r.buttons, F = r.fields;
@@ -19407,7 +19407,10 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 if (runs('3129')) {
 console.log(`\n#3129 — the add queue: Components' boxes, Update file's To add and Due\n${'='.repeat(78)}`);
 const S_PRESENT = ['icon', 'focus-ring', 'button', 'button-destructive', 'button-neutral', 'button-group', 'field-label', 'field-message', 'text-field', 'select',
-  'checkbox-control', 'checkbox-row', 'checkbox-group', 'badge', 'tag', 'divider', 'spinner', 'veil'];
+  'checkbox-control', 'checkbox-row', 'checkbox-group', 'badge', 'tag', 'tag-group', 'divider', 'spinner', 'veil'];
+// #1739: Tag.Group joined Tag's family, so the sample file holds both, keeping Tag a family the file holds whole (the
+// `sec=tags` in-file box below). A file holding Tag alone keeps an active Tag box (#3439 Q-IF.3 A, `boxOfSets`); the
+// Radio arm below holds that rule, and `test-component-groups.ts` holds the Tag case by name.
 const S_DUE = { ...Object.fromEntries(S_PRESENT.map((id) => [id, { state: 'current' }])), button: { state: 'due', reason: 'engine' }, 'text-field': { state: 'due', reason: 'definition' }, tag: { state: 'due', reason: 'definition' } };
 // Queued in an order that is not the list's, so the list order is read, not echoed.
 const S_QUEUED = ['radio-control', 'banner', '_accordion-indicator', 'search-field', 'accordion', 'dialog', 'password-field'];
@@ -23315,6 +23318,54 @@ if (runs('3938')) {
     } finally { await ctx.close(); }
   }
 } // 3938
+if (runs('4235')) {
+  console.log(`\nAn edit's reveal reads layout a frame after the repaint, not in the callback that rebuilt the preview (#4235)\n${'='.repeat(78)}`);
+  // `revealGroup` reads the pane's and the palette's boxes. Read in the frame that just rebuilt the preview, that read
+  // forces a synchronous layout on every edit. The probe counts frames, notes the last frame in which the document
+  // changed (a MutationObserver, plus `takeRecords()` at the read, which returns a change made earlier in the same
+  // callback and not yet delivered), and logs each box read of a palette against both.
+  // EXPECTED (typed here): every read lands in a frame the document has not changed in yet, so its layout is clean.
+  // Mutation that fails here BY NAME: `palettes.ts` calling `revealGroup` straight after `render()` → `#4235 … reads`.
+  const where = '4235 web light 1280, Color › Palettes, a Neutral hue edit';
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  let step = 'boot';
+  try {
+    await goPlace(page, 'color-palettes');
+    await hooks.need(page, '[data-p3="neutral-hue-slider"]');
+    await settle(page);
+    step = 'the probe';
+    const reads = await page.evaluate(async () => {
+      let frame = 0, live = true;
+      const tick = () => { frame++; if (live) requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+      let changed = -1;
+      const mo = new MutationObserver(() => { changed = frame; });
+      mo.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
+      const orig = Element.prototype.getBoundingClientRect;
+      const log = [];
+      Element.prototype.getBoundingClientRect = function () {
+        if (this.matches?.('[data-p3="palette"]')) {
+          if (mo.takeRecords().length) changed = frame;
+          log.push({ changed, at: frame });
+        }
+        return orig.call(this);
+      };
+      try {
+        await new Promise((r) => requestAnimationFrame(() => r()));
+        const sl = document.querySelector('[data-p3="neutral-hue-slider"]');
+        sl.value = String((Number(sl.value) + 20) % 360);
+        sl.dispatchEvent(new Event('input', { bubbles: true }));
+        for (let i = 0; i < 4; i++) await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
+      } finally { Element.prototype.getBoundingClientRect = orig; mo.disconnect(); live = false; }
+      return log;
+    });
+    ok(reads.length > 0 && reads.every((x) => x.changed < x.at),
+      `#4235 ${where}: the reveal reads each palette's box in a frame the document has not changed in, never straight after the repaint (${JSON.stringify(reads)})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+} // 4235
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
