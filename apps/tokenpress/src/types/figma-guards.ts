@@ -20,3 +20,23 @@ export const isVariableAlias = (value: unknown): value is VariableAlias =>
 
 /** True when a Figma color carries an alpha channel. `RGB` does not; `RGBA` does. */
 export const hasAlpha = (color: RGB | RGBA): color is RGBA => 'a' in color;
+
+/**
+ * A COLOR variable's composed value: a color (an alias, or a literal) laid at an opacity (a percent, or an alias to a
+ * FLOAT holding one). Figma's `VariableComposedColor`; prism3's Apply Theme writes the alias-and-alias form for a
+ * tinted wash (prism3 #1646, #2365). Not in `VariableValue`'s declared union in older plugin typings, so it is its own
+ * shape here.
+ */
+export interface ComposedColor {
+  color: VariableAlias | RGB | RGBA;
+  opacity: number | VariableAlias;
+}
+
+/** True when a variable value is a composed color (`{ color, opacity }`) rather than a plain color or alias. */
+export const isComposedColor = (value: unknown): value is ComposedColor =>
+  typeof value === 'object' &&
+  value !== null &&
+  'color' in value &&
+  'opacity' in value &&
+  typeof (value as ComposedColor).color === 'object' &&
+  (value as ComposedColor).color !== null;
