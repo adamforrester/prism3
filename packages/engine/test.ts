@@ -38698,6 +38698,17 @@ arm: {
     const r = spawnSync(process.execPath, [...process.execArgv, join(clone, file)], { cwd: clone, encoding: 'utf8', env: { ...env, ...extra }, maxBuffer: 64 * 1024 * 1024 });
     return { status: r.status, out: `${r.stdout ?? ''}${r.stderr ?? ''}` };
   };
+  // #4236: the same run as `tsx`, without blocking, so independent gate runs share the wall clock. `dir` is a worktree of
+  // the clone when the run needs a tree the clone's own checkout does not hold.
+  const tsxAsync = async (file: string, extra: Record<string, string>, dir = clone): Promise<{ status: number | null; out: string }> => {
+    const { spawn } = await import('node:child_process');
+    return new Promise((done) => {
+      const c = spawn(process.execPath, [...process.execArgv, join(dir, file)], { cwd: dir, env: { ...env, ...extra } });
+      let out = '';
+      c.stdout.on('data', (d) => { out += d; }); c.stderr.on('data', (d) => { out += d; });
+      c.on('close', (status) => done({ status, out }));
+    });
+  };
   const said = (r: { out: string }, re: RegExp) => r.out.split('\n').filter((l) => re.test(l)).join(' | ').slice(0, 400);
   const PR = { GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'poc' };
   const EMITTED = 'packages/engine/out/figma/prism3/focus.json';
@@ -38811,6 +38822,25 @@ arm: {
     // executor-reach imports `@prism3/engine`; the clone has no install, so point the name at its own engine.
     mkdirSync(join(clone, 'node_modules', '@prism3'), { recursive: true });
     symlinkSync(join(clone, 'packages', 'engine'), join(clone, 'node_modules', '@prism3', 'engine'), 'dir');
+    // #4236 — THE FOLD'S REGEN, NARROWED IN THE CLONE ONLY. fold.ts runs the whole of regen.ts to move every stamp, and
+    // that was about half this replay's time. The gates replayed here read the fold's version, changelog, notes and
+    // release files, and the moved artifacts' DIFF (emission-version), never the whole emitted corpus: a half-restamped
+    // corpus is regen --check's to catch (lint-emission-version.ts' header, limit 1). So the clone's regen.ts keeps the
+    // two emitters whose stamps the token and Figma trees carry, and the fold still moves committed artifacts. The edit
+    // goes into W, so no commit after it diffs it, and it is only in this clone: a real fold runs the whole of regen.
+    // `component-surface`, `component-axes`, `token-contract` and `components.ai.json`, the records the release notes
+    // compare, take no stamp, so their content at the fold is W's either way. MUTATION VERIFIED (#4236): the narrowing
+    // removed fails `#4236 the replay's fold …` by name, and the replay's own mutations still fail theirs.
+    const KEPT_STEPS = ['emit-dtcg', 'emit-figma'];
+    {
+      const regenPath = join(clone, 'packages/engine/regen.ts');
+      const regenSrc = readFileSync(regenPath, 'utf8');
+      const narrowed = regenSrc.replace(/^const STEPS: [^\n]*= \[\n[\s\S]*?\n\];\n/m,
+        (decl) => `${decl}STEPS.splice(0, STEPS.length, ...STEPS.filter((s) => ${JSON.stringify(KEPT_STEPS)}.includes(s.label.split(' ')[0])));\n`);
+      if (narrowed === regenSrc) throw new Error('#4236 replay: no `const STEPS` declaration in the clone\'s regen.ts to narrow');
+      writeFileSync(regenPath, narrowed);
+      git(['add', '-A']); git(['commit', '-q', '--amend', '--no-edit']);
+    }
 
     note('replay-main-minor', 'minor'); fragment('replay-main-minor'); const m0 = commit('m0: a pending minor note');
     git(['checkout', '-q', '-b', 'poc', m0]); fragment('replay-poc-own'); const p0 = commit('p0: the branch\'s own entry');
@@ -38818,6 +38848,9 @@ arm: {
     git(['checkout', '-q', 'main']); git(['update-ref', 'refs/remotes/origin/main', m0]);
     const fold = tsx('fold.ts', {});
     if (fold.status !== 0) throw new Error(`#3833 replay: fold.ts failed in the clone: ${fold.out.slice(-1500)}`);
+    const regenRan = [...fold.out.matchAll(/^ {2}(\S+) .* … (ok \(\d+ written\)|WROTE NOTHING)$/gm)].map((m) => `${m[1]} ${m[2]}`);
+    ok(regenRan.length === KEPT_STEPS.length && regenRan.every((r, i) => r.startsWith(`${KEPT_STEPS[i]} ok (`)),
+      `#4236 the replay's fold runs regen over the stamped token and Figma trees only, and each step writes (ran: ${JSON.stringify(regenRan)})`);
     commit('m1: the fold');
     note('replay-main-patch', 'patch'); fragment('replay-main-patch'); const m2 = commit('m2: a patch note');
     git(['update-ref', 'refs/remotes/origin/main', m2]);
@@ -38870,17 +38903,16 @@ arm: {
       git(['checkout', '-q', '-b', 'remerge', sq]); git(['merge', '-q', '--no-ff', '-m', 'merge main for real', m2]);
       fragment('replay-remerge'); const rm = commit('the real merge\'s entry');
       git(['update-ref', 'refs/remotes/origin/poc2', sq]);
-      const ref = tsx(RN, POC2);
+      // #4236: the five release-notes runs are independent reads, so they run side by side, in two groups because two
+      // need `origin/poc2` at the squash and three at the real merge. The trees the clone's checkout does not hold are
+      // read from worktrees of the clone (lint-release-notes reads the repository its own file is in).
+      const [ref, head] = await Promise.all([tsxAsync(RN, POC2), tsxAsync(RN, {})]);
       ok(ref.status === 0 && ref.out.includes(`..${m1.slice(0, 8)} — `) && ref.out.includes('folds read from origin/main at'),
         `#3863 release-notes: a real merge of main into a squash-refreshed branch reads ${v}'s fold from the main it carries (${m1.slice(0, 8)}), not the squash (exit ${ref.status}: ${said(ref, /folds read|\.\.|NOTES|❌/)})`);
-      const head = tsx(RN, {});
       ok(head.status === 1 && head.out.includes(NOT_FOLDED) && head.out.includes(`..${sq.slice(0, 8)} — `),
         `#3863 release-notes: the same tree walked from HEAD (no GITHUB_BASE_REF, as before the fix) reads the squash as the fold and fails NOTES by name (exit ${head.status}: ${said(head, /NOTES|\.\./)})`);
       git(['checkout', '-q', '-b', 'poc2-ordinary', rm]); fragment('replay-poc2-ordinary'); commit('an ordinary PR into the refreshed branch');
       git(['update-ref', 'refs/remotes/origin/poc2', rm]);
-      const later = tsx(RN, POC2);
-      ok(later.status === 0 && later.out.includes(`..${m1.slice(0, 8)} — `),
-        `#3863 release-notes: an ordinary PR into the branch after the refresh, which brings no new main, still reads the fold from main, not the squash on the branch's chain (exit ${later.status}: ${said(later, /folds read|\.\.|NOTES|❌/)})`);
       // Teeth: a release that drops a note its fold folded fails on main and on the integration branch alike.
       const dropNote = () => {
         const p = join(clone, `docs/public/releases/${v}.json`);
@@ -38889,11 +38921,17 @@ arm: {
         writeFileSync(p, `${JSON.stringify(rel, null, 2)}\n`);
       };
       git(['checkout', '-q', '-b', 'main-drop', m2]); dropNote(); commit('main: the release drops a folded note');
-      const onMain = tsx(RN, { GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'main' });
+      git(['checkout', '-q', '-b', 'poc2-drop', rm]); dropNote(); commit('poc2: the release drops a folded note');
+      const worktree = (branch: string): string => { const d = join(work, `wt-${branch}`); git(['worktree', 'add', '-q', d, branch]); return d; };
+      const [later, onMain, onPoc] = await Promise.all([
+        tsxAsync(RN, POC2, worktree('poc2-ordinary')),
+        tsxAsync(RN, { GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'main' }, worktree('main-drop')),
+        tsxAsync(RN, POC2),
+      ]);
+      ok(later.status === 0 && later.out.includes(`..${m1.slice(0, 8)} — `),
+        `#3863 release-notes: an ordinary PR into the branch after the refresh, which brings no new main, still reads the fold from main, not the squash on the branch's chain (exit ${later.status}: ${said(later, /folds read|\.\.|NOTES|❌/)})`);
       ok(onMain.status === 1 && onMain.out.includes(DROPPED) && onMain.out.includes('folds read from HEAD\'s own history'),
         `#3863 release-notes: on a PR into main the walk is HEAD's, and a release missing a note its fold folded fails NOTES by name (exit ${onMain.status}: ${said(onMain, /NOTES|folds read/)})`);
-      git(['checkout', '-q', '-b', 'poc2-drop', rm]); dropNote(); commit('poc2: the release drops a folded note');
-      const onPoc = tsx(RN, POC2);
       ok(onPoc.status === 1 && onPoc.out.includes(DROPPED),
         `#3863 release-notes: on a PR into the integration branch, a release missing a note main's fold folded still fails NOTES by name (exit ${onPoc.status}: ${said(onPoc, /NOTES|folds read/)})`);
     }
