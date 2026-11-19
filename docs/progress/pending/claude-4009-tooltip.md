@@ -46,6 +46,11 @@ shape: a surface), and the canvas furniture switch, the page taxonomy and the st
   symmetric and name registered defs, and Popover (#4252) has not merged, so Tooltip keeps `popover` in `planned`
   here; the swap of both sides lands with whichever of #4251 and #4252 merges second.
 
+**Right-to-left (#3986, Q-RTL1 A).** The side arrows (`startGlyph`, `endGlyph`) declare `mirror: 'mirrors'`, filled
+from the right-to-left entry, which now says the arrow flips to point at the trigger; the top and bottom arrows are
+symmetric and declare nothing. The usage section takes the generated "In RTL" note. The K7 A arm also rejects a size
+change worded any other way (grow, shrink, zoom, transform, a percentage), not only the word scale.
+
 **Follow-up, not in this PR.** IconButton's `aria` line still reads "aria-label is the accessible name (required)",
 which K6 B qualifies on an icon-only control with a label-mode tooltip; filed as #4250.
 
