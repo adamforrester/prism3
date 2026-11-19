@@ -16,7 +16,7 @@ import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, densitySpace, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { codeOnlyText } from './code-only-register';
 import { at, deref, pxOf, buildTree, familyOf, aliasFaults, type AliasFault } from './tree';
-import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, type Theme } from './theme';
+import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, defaultTypeMode, type Theme } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes, overrideGroundRgb, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS, pureExtremeInk } from './modes';
 import { groundsOf } from './grounds';
@@ -24,7 +24,7 @@ import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
 import { isInverseRole } from './inverse-roles';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
 import { applyIconMap } from './icon-map';
-import { parseStandardDesignMd, standardToBrandInput, applyXPrism3, isStandardDesignMd } from './standard-design-md';
+import { parseStandardDesignMd, standardToBrandInput, applyXPrism3, isStandardDesignMd, xPrism3Warnings } from './standard-design-md';
 import { classifyColors } from './classify-colors';
 import { SLIDER_STOPS, TRAITS, resolveVocabulary } from './vocabulary';
 import { leverManifest, leverGroups, buildLeverManifest, identityFields } from './levers';
@@ -6339,6 +6339,28 @@ arm: {
     'A2b(d): an empty modeAnchors map produces byte-identical output');
 }
 
+// #2076 (owner decision 2026-11-18, A): `controlShape`'s schema description is the lever manifest's wording, with the
+// token names an agent reads kept. Held: it names each shape's rung, and none of the words #2050 retired from visible
+// copy or the claim #2059 made false ("implies the hairline rung": radius.hairline ships for every brand). The token
+// names are typed here, not read from the emitter.
+{
+  const cs = JSON.parse(readFileSync(resolve(HERE, 'schema', 'theme-schema.json'), 'utf8')).properties.controlShape.description as string;
+  const missing = ['radius.none', 'radius.hairline', 'radius.md', 'radius.capsule'].filter((t) => !cs.includes(t));
+  ok(missing.length === 0, `#2076: controlShape's schema description names every shape's token (missing: ${missing.join(', ') || 'none'})`);
+  const stale = ['implies', 'pill-able', 'rung'].filter((w) => cs.toLowerCase().includes(w));
+  ok(stale.length === 0, `#2076: controlShape's schema description carries none of the retired words or the false claim (found: ${stale.join(', ') || 'none'})`);
+}
+// #4019 (#2343 Q-B6 A): Link's usage carries the social follow-link example, and the mark it names is one the set ships.
+// The set is read from the artwork folder on disk, not from the glyph table the defs import.
+{
+  const usage = componentDefs.find((d) => d.id === 'link')!.docs.usage;
+  const named = usage.match(/social\/[a-z0-9-]+-mono/)?.[0];
+  const shipped = readdirSync(resolve(HERE, 'marks', 'social')).filter((f) => f.endsWith('.svg')).map((f) => `social/${f.slice(0, -4)}`);
+  ok(/follow link/i.test(usage) && !!named && shipped.includes(named),
+    `#4019: Link's usage gives the social follow-link example around a one-color mark the set ships (${named ?? 'none named'})`);
+  ok(/aria-label/.test(usage) && /aria-hidden/.test(usage), "#4019: the follow-link example names the link by aria-label and hides the mark");
+}
+
 // USER-ADDED CUSTOM MODES (Phase C1) — a custom mode `{ name, base }` LIVE-INHERITS a customizable
 // built-in (light/dark): it re-derives EXACTLY like its base each build, then its own overrides/
 // modeAnchors deviate it. Reserved/duplicate/bad-base/bad-slug names throw; byte-identical when absent.
@@ -10227,6 +10249,30 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(tinted.colorRgb.r + tinted.colorRgb.g + tinted.colorRgb.b > 0, 'tinted shadow base is not pure black');
 }
 
+// ------------------------------------------------- #2935: the default type mode per breakpoint
+// Owner decision 2026-11-18 (A): mobile below 1024px, desktop from 1024px up. The expectations are typed here,
+// per floor, never computed from `defaultTypeMode` or `DESKTOP_TYPE_FROM_PX` (docs/34): a rule that moved its
+// threshold, flipped its comparison or returned one mode everywhere fails a named arm below.
+{
+  const cases: [number, 'mobile' | 'desktop'][] = [[0, 'mobile'], [360, 'mobile'], [768, 'mobile'], [1023, 'mobile'], [1024, 'desktop'], [1440, 'desktop'], [1920, 'desktop']];
+  for (const [px, want] of cases) ok(defaultTypeMode(px) === want, `#2935 TYPE MODE: a ${px}px breakpoint defaults to ${want} type (got ${defaultTypeMode(px)})`);
+  // The emitted Figma description carries it, per breakpoint variable, for the default five and for a two-breakpoint brand.
+  const desc = (t: Theme): Record<string, string> => Object.fromEntries((buildFigmaLayout(t)[0]?.variables ?? [])
+    .filter((v) => /\/breakpoint\//.test(v.name)).map((v) => [v.name.split('/').pop() as string, v.description ?? '']));
+  const base = { primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  const five = desc(brandTheme({ id: 'tm5', ...base }));
+  const wantFive: Record<string, string> = { sm: 'mobile', md: 'mobile', lg: 'desktop', xl: 'desktop', '2xl': 'desktop' };
+  for (const [bp, m] of Object.entries(wantFive))
+    ok((five[bp] ?? '').endsWith(`uses ${m} type by default`), `#2935 TYPE MODE: breakpoint/${bp} says ${m} type in its Figma description (got "${five[bp]}")`);
+  const two = desc(brandTheme({ id: 'tm2', ...base, layout: { breakpoints: [0, 768] } } as BrandInput));
+  ok((two.sm ?? '').endsWith('uses mobile type by default') && (two.md ?? '').endsWith('uses mobile type by default'),
+    `#2935 TYPE MODE: a 0/768 brand's sm and md both default to mobile type (got "${two.sm}" / "${two.md}")`);
+  // Static type: `type-sets` has no modes, so no breakpoint names one.
+  const flat = desc(brandTheme({ id: 'tmS', ...base, typography: { responsive: { fluid: false } } } as BrandInput));
+  ok(Object.keys(flat).length === 5 && Object.values(flat).every((d) => !/ type by default/.test(d)),
+    `#2935 TYPE MODE: with static type no breakpoint names a type mode (got ${JSON.stringify(flat)})`);
+}
+
 // ------------------------------------------------- layout / breakpoint invariants
 {
   const lyBrand = (id: string, layout: any) => brandTheme({ id, primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, layout });
@@ -11204,6 +11250,32 @@ arm: {
   // compiles on engine defaults, and this is now stated where no brand's future can rot it.
   ok(standardToBrandInput(parseStandardDesignMd('---\nname: Plain\ncolors:\n  primary: "#3366cc"\n  neutral: "#888888"\n---\n')).xApplied.length === 0,
     'dialect: a base-spec brief with NO x-prism3 block applies no levers — the plain-spec guarantee, witnessed independently of any shipped brand');
+  // #2678 (owner decision Q-XP1 A, option a): an x-prism3 key the dialect does not read is WARNED by name, and the file
+  // keeps compiling. EXPECTED is typed here from the issue's list of the ten keys the block reads, never from
+  // `X_PRISM3_KEYS`, so a key added to or dropped from the list moves this arm. The issue's reproduction is the input:
+  // `controlShape` and `linkPalette` used to pass silently. Mutations: the filter dropped (every key warns) →
+  // `#2678 known keys`; `xWarnings` returned empty → `#2678 unknown keys` and `#2678 cli`.
+  {
+    const KNOWN_2678 = ['radiusScale', 'personality', 'root', 'typeScale', 'density', 'motionTempo', 'actionPalette', 'iconContrast', 'surfaces', 'gradients'];
+    const knownWarned = KNOWN_2678.filter((k) => xPrism3Warnings({ [k]: 1 }).length > 0);
+    ok(knownWarned.length === 0, `#2678 known keys: none of the ten keys the block reads is warned (warned: [${knownWarned.join(', ')}])`);
+    const brief2678 = '---\nname: Unknown Keys\ncolors:\n  primary: "#3366cc"\n  neutral: "#888888"\nx-prism3:\n  controlShape: pill\n  root: uk\n  linkPalette: bogus-palette\n---\n';
+    let conv: ReturnType<typeof standardToBrandInput> | undefined;
+    try { conv = standardToBrandInput(parseStandardDesignMd(brief2678)); } catch { /* recorded below */ }
+    ok(!!conv && conv.xWarnings?.join(' | ') === "x-prism3: ignored unknown setting 'controlShape' | x-prism3: ignored unknown setting 'linkPalette'" && conv.xApplied.join(' | ') === 'root=uk',
+      `#2678 unknown keys: each unknown x-prism3 key is warned by name, in file order, and the known one still applies (warnings ${JSON.stringify(conv?.xWarnings)}; applied ${JSON.stringify(conv?.xApplied)})`);
+    const dir2678 = mkdtempSync(join(tmpdir(), 'p3-2678-'));
+    try {
+      const file = join(dir2678, 'unknown-keys.design.md');
+      writeFileSync(file, brief2678);
+      const r = spawnSync('npx', ['tsx', resolve(HERE, 'cli.ts'), file, '--out', join(dir2678, 'out')], { cwd: HERE, encoding: 'utf8' });
+      const so = r.stdout ?? '';
+      ok(r.status === 0 && so.includes("⚠ x-prism3: ignored unknown setting 'controlShape'") && so.includes("⚠ x-prism3: ignored unknown setting 'linkPalette'") && !so.includes("unknown setting 'root'"),
+        `#2678 cli: the CLI names each skipped x-prism3 key in its notes and still compiles (exit ${r.status}; stdout ${JSON.stringify(so.slice(0, 400))}; stderr ${JSON.stringify((r.stderr ?? '').slice(0, 300))})`);
+    } finally {
+      rmSync(dir2678, { recursive: true, force: true });
+    }
+  }
   ok(validateBrandInput(input).length === 0, 'wendys standard: classified BrandInput schema-conforms');
   const theme = exampleTheme('wendys', () => brandTheme(input));
   if (!theme) break arm;
@@ -11536,6 +11608,31 @@ arm: {
   for (const s of ['full', 'reduced', 'conventional']) {
     const r = dRoles({ ...seed, disabledStrategy: s, disabledMin: 3 }, 'hc-light')['disabled.text'];
     ok((r?.min ?? 0) >= 4.5, `#290 disabled: high-contrast escalates '${s}' to >=4.5 (got ${r?.min})`);
+  }
+
+  // THE DISABLED EDGE FOLLOWS THE LEVERS (#2750; owner decision lettered A, text = option B, 2026-11-18). `disabled.border` (and its inverse
+  // twin) clears the same floor as the disabled inks, so both levers move it. On main it was the fixed `neutralLow()`
+  // step rated `min: 0`: the same hex at every setting, 1.5–1.8:1 against the page. The expectations are the lever's
+  // own numbers (4.5 for 'full', the dial for 'reduced', >=4.5 in high contrast), never read from `modes.ts`.
+  {
+    const settings: [string, any, number][] = [
+      ['full', { ...seed, disabledStrategy: 'full' }, 4.5],
+      ['reduced 3', { ...seed, disabledStrategy: 'reduced', disabledMin: 3 }, 3],
+      ['reduced 4.5', { ...seed, disabledStrategy: 'reduced', disabledMin: 4.5 }, 4.5],
+    ];
+    const misses: string[] = [];
+    for (const [label, input, want] of settings) for (const m of ['light', 'dark', 'hc-light']) {
+      const floor = m.startsWith('hc') ? Math.max(want, 4.5) : want;
+      const roles = dRoles(input, m) as Record<string, { ratio?: number; min?: number; hex?: string } | undefined>;
+      for (const k of ['disabled.border', 'inverse.disabled.border']) {
+        const r = roles[k];
+        if (!r || r.min !== floor || (r.ratio ?? 0) < floor) misses.push(`${label} ${m} ${k} min ${r?.min} ratio ${r?.ratio}`);
+      }
+    }
+    ok(misses.length === 0, `#2750 disabled.border clears the disabled levers' floor in every setting, mode and context — misses: ${misses.join('; ') || 'none'}`);
+    const hexAt = (input: any) => (dRoles(input, 'light') as Record<string, { hex?: string } | undefined>)['disabled.border']?.hex;
+    const lo = hexAt(settings[1]![1]), hi = hexAt(settings[2]![1]);
+    ok(!!lo && !!hi && lo !== hi, `#2750 disabledMin moves disabled.border (reduced 3 ${lo}, reduced 4.5 ${hi})`);
   }
 
   // The schema must REJECT a sub-3 floor rather than rely on the engine clamp — the clamp protects
@@ -22057,6 +22154,20 @@ arm: {
       return Object.keys(kbBriefs).find((f) => names.includes(f.slice(0, -3)))
         ?? Object.keys(kbBriefs).find((f) => kbBriefs[f].aliases.some((a) => names.includes(a.toLowerCase())));
     };
+    // THE OWNER'S CATEGORY DECISION #4045 A (2026-11-18), typed here from the decision and never read from a def. Veil
+    // and Divider leave `foundations` to match the Figma file, which places both under Components
+    // (`apps/plugin/src/file-taxonomy.ts`). Mutations: Veil or Divider back on `foundations` → `#4045 veil:` /
+    // `#4045 divider:`; Divider's `OWNER_CATEGORY` entry dropped → `#1700 divider: category is …`.
+    const DECIDED_CATEGORY_4045: Record<string, string> = { veil: 'overlay', divider: 'layout' };
+    for (const id of Object.keys(DECIDED_CATEGORY_4045))
+      ok(componentDefs.find((d) => d.id === id)?.category === DECIDED_CATEGORY_4045[id],
+        `#4045 ${id}: is filed under '${DECIDED_CATEGORY_4045[id]}', out of foundations, as the Figma file places it under Components (got '${componentDefs.find((d) => d.id === id)?.category}')`);
+    // THE OWNER'S DEPARTURES FROM A BRIEF'S CATEGORY, typed from the decision and admitted by name, never by pattern.
+    // Each entry records the brief and the category it departs from, so the entry fails if the brief moves under it.
+    // Veil has no brief, so its choice is the header's stated category and needs no entry here.
+    const OWNER_CATEGORY: Record<string, { brief: string; from: string; category: string }> = {
+      divider: { brief: 'divider.md', from: 'foundations', category: 'layout' },
+    };
     const defDir = resolve(HERE, './components');
     const defFiles = readdirSync(defDir).filter((f) => f.endsWith('.ts') && f !== 'index.ts').sort();
     const fileOf = new Map<string, string>();
@@ -22076,7 +22187,14 @@ arm: {
         if (cites.length === 1) {
           const want = KB_BRIEF_CATEGORY[cites[0]];
           ok(want !== undefined, `#1700 ${d.id}: cites \`components/${cites[0]}\`, which \`schema/kb-briefs.json\` lacks — refresh it with \`npx tsx packages/engine/kb-briefs-refresh.ts <kb checkout>\`, never by hand`);
-          ok(d.category === want, `#1700 ${d.id}: category is '${d.category}', and its brief \`components/${cites[0]}\` files it under '${want}' — a def takes its brief's category`);
+          const owned = OWNER_CATEGORY[d.id];
+          if (owned) {
+            // An owner's departure from the brief, admitted by name, and only while the brief still says what it departs from.
+            ok(owned.brief === cites[0] && owned.from === want && d.category === owned.category,
+              `#4045 ${d.id}: the owner moved it from its brief's '${owned.from}' to '${owned.category}' (\`components/${owned.brief}\`) — got category '${d.category}', brief \`components/${cites[0]}\` says '${want}'`);
+          } else {
+            ok(d.category === want, `#1700 ${d.id}: category is '${d.category}', and its brief \`components/${cites[0]}\` files it under '${want}' — a def takes its brief's category`);
+          }
         } else if (noBrief) {
           // A NAME COLLISION, admitted by name and never by pattern (#2427): the KB's badge brief lists "Counter" as
           // an alias for a count badge (a number shown on another element). The Counter def is the quantity control,
@@ -35322,7 +35440,7 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
 //       contract, so (c) can see the floor this migration had to clear.
 //
 // Mutations, each failing here by name:
-//   (1) the fixture's `border.rest` step 400 → 350 → `#3336 light: all 232 contracts pass on the neutral palette (want 232) —
+//   (1) the fixture's `border.rest` step 400 → 350 → `#3336 light: all 234 contracts pass on the neutral palette (want 234 …) —
 //       FAILED: interactive.primary.border.rest 2.81<3`, `#3336 light: interactive.primary.border.rest is neutral.400 #8f8d8d
 //       at 3.30:1 …` and `#3336 light: the action family resolves to the decided neutral step and hex …`
 //   (2) the `brand-neutral` brand color restored to the fixture → `#3336 the reference brand carries no brand-neutral palette …`
@@ -35379,7 +35497,7 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
       ok(stale.length === 0, `#3336 ${m.mode}: no role aliases brand-neutral${stale.length ? ` — ${stale.slice(0, 5).join(', ')}${stale.length > 5 ? ` and ${stale.length - 5} more` : ''}` : ''}`);
       // (c)
       const { checked, broken } = contracts(roles);
-      ok(checked.length === 232 && broken.length === 0, `#3336 ${m.mode}: all ${checked.length} contracts pass on the neutral palette (want 232)${broken.length ? ` — FAILED: ${failed(broken)}` : ''}`);
+      ok(checked.length === 234 && broken.length === 0, `#3336 ${m.mode}: all ${checked.length} contracts pass on the neutral palette (want 234: #2750 rates the two disabled borders)${broken.length ? ` — FAILED: ${failed(broken)}` : ''}`);
       // (d)
       const b = roles['interactive.primary.border.rest'];
       ok(!!b && b.hex === '#8f8d8d' && /\.palette\.neutral\.400$/.test(b.path) && Math.abs(b.ratio - 3.30) < 0.005 && b.min === 3 && b.against === 'background.primary',
@@ -43236,6 +43354,23 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   const bypass = brandTheme(base); (bypass as any).actionAnchorStep = 37;
   const backstop = refusal(() => resolveAllModes(bypass));
   ok(backstop.includes('step 37 is not on the primary ramp'), `#3873 pickBrand refuses an exact anchor off the ramp rather than falling back to 500 (got ${JSON.stringify(backstop.slice(0, 160))})`);
+}
+
+// #3874 — the global shadow tint's lightness and chroma both scale with `amount`, and the lever had only a minimum:
+// `amount: 50` compiled cleanly into white shadows (#ffffff1f), invisible on a white page. The per-mode tint, its
+// schema and the studio's slider already stop at 1; the global lever now does too, in brandTheme and the schema.
+{
+  const base = { id: 's3874', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 } } as unknown as BrandInput;
+  const refusal = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const withTint = (amount: unknown) => ({ ...base, shadow: { tint: { hue: 0, amount } } }) as unknown as BrandInput;
+  for (const amount of [50, 1.01, -0.1]) {
+    const msg = refusal(() => brandTheme(withTint(amount)));
+    ok(msg.startsWith(`shadow.tint.amount: ${amount} is out of range`), `#3874 a global shadow tint amount of ${amount} is refused by name (got ${JSON.stringify(msg)})`);
+  }
+  const edge = refusal(() => brandTheme(withTint(1)));
+  ok(edge === '', `#3874 a global shadow tint amount of 1 still builds (got ${JSON.stringify(edge)})`);
+  const schemaErrs = validateBrandInput(withTint(50));
+  ok(schemaErrs.some((e) => e.includes('shadow.tint.amount')), `#3874 the schema refuses a global shadow tint amount of 50 (errors: ${JSON.stringify(schemaErrs)})`);
 }
 
 // #3875 — the brand id names every file the CLI writes (`<id>.tokens.json` and five more), and nothing checked it:
