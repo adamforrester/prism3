@@ -27,10 +27,13 @@
  */
 import { ComponentDef } from '../component-schema';
 
-const step = (status: 'complete' | 'current' | 'upcoming', note: string) => ({
+// `number` is the step's position, not copy: StepItem's `number` text defaults to "1", so the second and third items set
+// theirs (`nestTexts`, #2317) and an inserted Steps reads 1, 2, 3 (#3055 review). The complete step shows a check.
+const step = (status: 'complete' | 'current' | 'upcoming', note: string, number?: string) => ({
   kind: 'nest' as const,
   nests: 'step-item',
   nesting: { kind: 'nest-fixed' as const, variant: { status, orientation: 'horizontal', size: 'medium' }, follow: ['orientation', 'size'] },
+  ...(number ? { nestTexts: { number } } : {}),
   note,
 });
 
@@ -95,8 +98,8 @@ export const steps: ComponentDef = {
         note: 'The steps: a native slot holding StepItem instances in a row or a column, one complete, one current and one not started by default.',
       },
       step1: step('complete', 'A complete step, with a check and a link back.'),
-      step2: step('current', 'The current step, its disc filled.'),
-      step3: step('upcoming', 'A step not started yet, its disc outlined.'),
+      step2: step('current', 'The current step, its disc filled.', '2'),
+      step3: step('upcoming', 'A step not started yet, its disc outlined.', '3'),
     },
     codeOnly: [
       {

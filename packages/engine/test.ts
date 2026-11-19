@@ -22726,7 +22726,7 @@ arm: {
   //   the disc's fill, outline, number, check or error glyph at the wrong status (decisions 2, 4) → `#3055 steps/marker`;
   //   a link at a status other than complete, or a text name on a complete step (decision 3) → `#3055 steps/name`;
   //   a chevron or a missing line, or the line in the wrong color (decision 7) → `#3055 steps/connector`;
-  //   the slot's minimum, preferred item, default statuses or direction → `#3055 steps/slot`;
+  //   the slot's minimum, preferred item, default statuses, the discs' numbers or direction → `#3055 steps/slot`;
   //   the names, aliases, the hidden status words or aria-current (decisions 1, 8) → `#3055 steps/identity`;
   //   a painted role under its floor in any committed cell → `#3055 steps/contrast`.
   {
@@ -22802,9 +22802,11 @@ arm: {
         const s = find(p.root, 'items');
         return !(s && s.type === 'CONTENT_SLOT' && s.layoutMode === (p.orient === 'horizontal' ? 'HORIZONTAL' : 'VERTICAL')
           && JSON.stringify(s.slotSettings) === '{"minChildren":2,"allowPreferredValuesOnly":true}' && JSON.stringify(s.slotPreferred) === '["step-item"]'
-          && JSON.stringify(s.children.map((c) => [c.nestTarget, c.nestVariant?.status, c.nestVariant?.orientation, c.nestVariant?.size])) === JSON.stringify(['complete', 'current', 'upcoming'].map((st) => ['step-item', st, p.orient, p.size])));
+          && JSON.stringify(s.children.map((c) => [c.nestTarget, c.nestVariant?.status, c.nestVariant?.orientation, c.nestVariant?.size])) === JSON.stringify(['complete', 'current', 'upcoming'].map((st) => ['step-item', st, p.orient, p.size]))
+          // The discs read 2 and 3 (the complete step shows a check): StepItem's own default is "1" (#3055 review).
+          && JSON.stringify(s.children.map((c) => c.nestTexts?.number ?? null)) === JSON.stringify([null, '2', '3']));
       });
-      ok(slotOff.length === 0, `#3055 steps/slot: Steps holds a native items slot, at least 2, StepItem only, defaulting to complete, current, upcoming at its own orientation and size, a row across and a column down${slotOff.length ? ` — OFF: ${slotOff.map((p) => `${p.orient}/${p.size}`).join(', ')}` : ''}`);
+      ok(slotOff.length === 0, `#3055 steps/slot: Steps holds a native items slot, at least 2, StepItem only, defaulting to complete, current, upcoming at its own orientation and size, the discs numbered 2 and 3 after the check, a row across and a column down${slotOff.length ? ` — OFF: ${slotOff.map((p) => `${p.orient}/${p.size}`).join(', ')}` : ''}`);
 
       // IDENTITY AND WORDING (decisions 1, 8): the names and aliases, a navigation landmark around a list, aria-current
       // "step", and the four hidden status words (DRAFT copy, typed here so a rewording fails by name).
