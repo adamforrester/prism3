@@ -133,9 +133,10 @@ const planNames = (n: FigmaNodePlan, out: Set<string>): Set<string> => {
  *   - A def whose projection READS a shared key as a value (#3225: a gap or padding a hugging text's max width is
  *     derived from) throws on the probe names, as `banner` does. Such a def takes the per-key path, which skips only
  *     the key that throws, as before.
- *   - `test.ts` (#4229) compares the two paths over the defs whose answer is not empty and whose sets are small enough
- *     to probe per key in a test (`divider`, `checkbox-row`, `radio-row`, `icon`, `tag`, `badge`, `wallet-button`)
- *     and over `banner`. A rule that compares refs and moves one of their answers fails it by name.
+ *   - `test.ts` (#4229) compares the two paths over every def whose answer is not empty (17 when written, the button
+ *     family and the fields included), over `banner`, and over a banner stub whose fallback answer is not empty. A
+ *     rule that compares refs and moves one of their answers fails it by name. A NEW def with a non-empty answer is
+ *     not compared until its id is added to that list: `regen.ts` would rewrite the report with the one-pass answer.
  */
 const sharedKeys = (def: ComponentDef): string[] => {
   const byRef = new Map<string, string[]>();

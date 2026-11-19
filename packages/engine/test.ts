@@ -34817,7 +34817,12 @@ arm: {
   ok(typeof onePass === 'function' && typeof perKey === 'function', '#4229: emit-analysis-reports exports keysNotDrawn (one pass) and keysNotDrawnPerKey (the oracle)');
   if (typeof onePass === 'function' && typeof perKey === 'function') {
     const byId = new Map((componentDefs as Def[]).map((d) => [(d as { id: string }).id, d]));
-    for (const id of ['divider', 'checkbox-row', 'radio-row', 'icon', 'tag', 'badge', 'wallet-button', 'banner']) {
+    // Every def whose answer is not empty is compared, the button family and the fields included (#4278 review): leaving
+    // one out leaves a ref-comparing rule that moves only its answer to a report diff, which `regen.ts` rewrites and no
+    // gate reads.
+    for (const id of ['divider', 'checkbox-row', 'radio-row', 'icon', 'tag', 'badge', 'wallet-button',
+      'button', 'button-destructive', 'button-neutral', 'link', 'text-field', 'textarea', 'select', 'password-field',
+      'search-field', 'card-number-field', 'banner']) {
       const def = byId.get(id);
       if (!def) { ok(false, `#4229: ${id} is a def, so the one-pass probe can be compared on it`); continue; }
       const want = [...perKey(def)].sort().join(', ');
@@ -34828,6 +34833,18 @@ arm: {
       if (id === 'banner') ok(got.via === 'per key', `#4229: banner's projection reads a shared key as a value, so it takes the per-key path (via ${got.via})`);
       else ok(got.via === 'one pass' && want !== '', `#4229: ${id} is answered in one projection, and has keys no plan draws, so the comparison is not of two empty sets (via ${got.via}; per key [${want}])`);
     }
+    // The fallback's ANSWER, not only that banner takes it (#4278 review): banner's true answer is empty, so a fallback
+    // returning an empty set passed. A key no part binds, sharing a token with banner's `gap`, is not drawn by any
+    // member, and the per-key path must say so.
+    const banner = byId.get('banner') as (Def & { tokens?: Record<string, string> }) | undefined;
+    const gapRef = banner?.tokens?.gap;
+    if (banner && gapRef) {
+      const stub = { ...banner, tokens: { ...banner.tokens, 'zz-unbound': gapRef } } as Def;
+      let got: { dropped: Set<string>; via: string } | undefined;
+      try { got = onePass(stub); } catch (err) { ok(false, `#4229: the banner stub's probe threw instead of answering: ${(err as Error).message.slice(0, 160)}`); }
+      if (got) ok(got.via === 'per key' && got.dropped.has('zz-unbound') && [...got.dropped].sort().join(', ') === [...perKey(stub)].sort().join(', '),
+        `#4229: the per-key fallback answers, not just runs: a banner key no part binds reads as not drawn (via ${got.via}; [${[...got.dropped].sort().join(', ')}])`);
+    } else ok(false, '#4229: banner declares a gap token, so the per-key fallback can be given a key no part binds');
   }
 }
 

@@ -4,13 +4,13 @@
 
 ### What changed
 
-`keysNotDrawn` points every shared key at its own probe name (`zz-report-probe.<key>`) in ONE projection, and reads which probes the members bind. That matches the per-key answer as long as no projection rule compares two keys' refs. Measured before switching, over all 61 projected defs: identical sets for 60 of them. The 61st, `banner`, throws, because its projection reads the shared `gap` as a space-ladder value (#3225). A def that throws that way takes the old per-key path, kept as `keysNotDrawnPerKey`, which skips only the refusing key.
+`keysNotDrawn` points every shared key at its own probe name (`zz-report-probe.<key>`) in ONE projection, and reads which probes the members bind. That matches the per-key answer as long as no projection rule compares two keys' refs. Measured before switching, over all 61 projected defs then (63 on main since, re-checked): identical sets for every one but `banner`, which throws because its projection reads the shared `gap` as a space-ladder value (#3225). A def that throws that way takes the old per-key path, kept as `keysNotDrawnPerKey`, which skips only the refusing key.
 
 Timing, `npx tsx packages/engine/emit-analysis-reports.ts`, twice each on one machine: main 13.5 s and 13.8 s; this branch 1.7 s and 1.5 s. `git status` stays clean after the emitter runs, so every report is byte-identical.
 
 ### The arm, and its mutations
 
-A new `test.ts` arm, at the end of the section holding #3157's divider arm, compares the two paths. It covers the seven defs whose answer is not empty and whose sets are cheap to probe per key (`divider`, `checkbox-row`, `radio-row`, `icon`, `tag`, `badge`, `wallet-button`), plus `banner`, which must report `via per key`. It takes about a second. It also asserts each compared answer is non-empty, so it is never comparing two empty sets.
+A new `test.ts` arm, at the end of the section holding #3157's divider arm, compares the two paths. It covers every def whose answer is not empty, 17 of them (`divider`, `checkbox-row`, `radio-row`, `icon`, `tag`, `badge`, `wallet-button`, the button family with `link`, and the six text fields), plus `banner`, which must report `via per key`, and a banner stub with one key no part binds, so the fallback's answer is checked and not only that banner takes it. It takes about 13 s. It also asserts each compared answer is non-empty, so it is never comparing two empty sets.
 
 - On main's emitter: `#4229: emit-analysis-reports exports keysNotDrawn (one pass) and keysNotDrawnPerKey (the oracle)`.
 - With the per-key fallback deleted: `#4229: banner's one-pass probe threw instead of answering: spacePx: 'zz-report-probe.gap' is not a step of the space ladder`.
@@ -18,4 +18,4 @@ A new `test.ts` arm, at the end of the section holding #3157's divider arm, comp
 
 ### Trap
 
-The button family (576 members, 40 probes each) is not in the arm, because probing it per key is the cost this change removes. Its one-pass answer was compared offline with the per-key one and matched. A future rule that compares refs and changes only the button family's answer would move `docs/public/reports/token-usage.*`, so `regen --check` would name the drift, not this arm.
+A new def whose answer is not empty is not compared until its id joins the arm's list. `regen --check` does not cover it: `regen.ts` rewrites `docs/public/reports/token-usage.*` with the one-pass answer, so a ref-comparing rule that moved only that def's answer shows up only as a report diff in review. The review of #4278 found this gap in the first draft, which left the button family and the fields out of the arm.
