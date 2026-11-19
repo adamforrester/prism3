@@ -1847,12 +1847,15 @@ service it depends on), **run it as a separate job that branch protection does n
 conclusion is honest, it shows in the PR's checks list, and the evidence reads straight off the run
 conclusions, with no clock, flag or summary workaround. The cost is a red X on PRs while probation runs.
 That is chosen on purpose: the invisible alternative is what made #775's evidence almost unreadable.
+Today that job cannot sit in `ci.yml`: `lint-doc-gates.ts` holds every `ci.yml` job to `gates`' `needs`
+(Q503 A), so a job there is required whether you mean it to be or not.
 
 **A required gate step never carries `continue-on-error`, or a step-level `if:` that skips it.** With
 `continue-on-error: true`, GitHub reports the step's own conclusion as `success` when its command exits
 non-zero, not only the job's. Measured on #775, not assumed. So the step leaves no evidence in any
 status check or API read, only an `##[error]` inside its log, which is the opposite of what a probation
-period is for. `lint-doc-gates.ts` fails a gate step carrying either (#3881, #3958).
+period is for. `lint-doc-gates.ts` fails a gate step carrying either, or a job-level `continue-on-error` over one
+(#3881, #3958).
 
 Two rules hold whichever route a gate takes:
 
