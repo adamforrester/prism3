@@ -65,7 +65,7 @@ import { setupIncompleteOf, type IncompleteApi } from './setup-incomplete';
 import { builtDocBlockItem, ensureDocBlock, docBlockNote, docBlockThemed, DOC_BLOCK_DEFS, DOC_BLOCK_SET, type DocBlockApi, type DocBlockResult } from './doc-block';
 import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
 import { clearOrphanSpecPanels, drawSpecPanel, specItems, specTargets, type SpecApi, type SpecOutcome } from './spec-panel';
-import { COVER_OFF, readDocSettings, writeDocSettings } from './doc-settings';
+import { COVER_OFF, readDocSettings, writeDocSettings } from './doc-settings'; import { readRecord, writeRecord } from './file-record';
 import { livePanels, livePanelsOf, panelLeadsOf, paneledOf, panelsCleanCount, removeUneditedPanels, unpaneledOf, type CensusRoot } from './panel-census';
 import { DOC_PANEL_KEY, DOC_PANEL_NS, clearOrphanPanels, docPanelReach, drawDocPanel, findDocBlock, lastChangedKey, leadsPanel, PANEL_FORMAT, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
@@ -192,10 +192,10 @@ const FILE_ID_KEY = 'prism3:file-id';
 const STRIP_AT_KEY = 'prism3:strip-at:';
 const fileId = (make: boolean): string | null => {
   try {
-    const was = figma.root.getPluginData(FILE_ID_KEY);
+    const was = readRecord(figma.root, FILE_ID_KEY);   // #4154: both builds read one id
     if (was || !make) return was || null;
     const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-    figma.root.setPluginData(FILE_ID_KEY, id);
+    writeRecord(figma.root, FILE_ID_KEY, id);
     return id;
   } catch { return null; }
 };
