@@ -164,25 +164,36 @@ const inputFromDesignFile = (path: string): BrandInput => {
 
 const themeFromDesignFile = (path: string): Theme => brandTheme(inputFromDesignFile(path));
 
+/** The brands that HAVE an emission to scan — discovered, so a brand added to `emit-figma.ts` is
+ *  scannable the day it lands rather than the day someone edits a list here. */
+const brandsOnDisk = (): string[] => {
+  const dir = resolve(engineDir, 'out/figma');
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();
+};
+
 /**
- * Brand id → the committed design file its config is read from.
+ * Brand id → the committed design file its config is read from: each brand with an emission on disk that has an
+ * `examples/<id>.design.md` (#4212). Derived, not listed: the hand list missed harbor (#4035) and prism3, so the scan
+ * threw for both. A brand on disk with no design file still has no entry, and `--selftest` arm 3 fails it by name.
  *
  * `nb` is absent ON PURPOSE and is not an omission: it has no `design.md` at all. It is a
  * hand-written regression fixture (`nb-fixture.ts`), which is the point of it — the brand whose numbers
  * were transcribed from the real New Balance tokens rather than generated from a brief.
  */
-const DESIGN_OF: Record<string, string> = {
-  aurora: 'examples/aurora.design.md',
-  wendys: 'examples/wendys.design.md',
-};
+const DESIGN_OF: Record<string, string> = Object.fromEntries(
+  brandsOnDisk()
+    .map((brand) => [brand, `examples/${brand}.design.md`] as const)
+    .filter(([, rel]) => existsSync(resolve(engineDir, rel))),
+);
 
 /**
  * Brand id → the Theme its contrast contract, and (for `--design`) its whole projection, is built from.
  *
- * A FOURTH hand-maintained copy of this table (`emit-figma.ts`, `token-contract.ts`,
- * `lint-figma-destination.ts` each keep their own) and deliberately not a fifth abstraction: the repo
- * has no exported brand registry, every existing site keeps a local table, and inventing a shared one
- * here would be a refactor of three files this task has no business touching.
+ * Not a hand-maintained copy of the brand table (`emit-figma.ts`, `token-contract.ts`,
+ * `lint-figma-destination.ts` each keep their own) since #4212: it is read off `out/figma/` and the
+ * design files, the same two places the scan reads, so a new brand needs no edit here. Still no shared
+ * registry: the repo has none, and inventing one would be a refactor of three files outside this tool.
  *
  * Every design-file brand is now built by the SAME loader an operator's `--design` goes through, which
  * is why the two entries below collapsed into `DESIGN_OF`. Before #1569 aurora went through
@@ -202,14 +213,6 @@ const THEME_OF: Record<string, () => Theme> = {
       () => themeFromDesignFile(resolve(engineDir, rel)),
     ]),
   ),
-};
-
-/** The brands that HAVE an emission to scan — discovered, so a brand added to `emit-figma.ts` is
- *  scannable the day it lands rather than the day someone edits a list here. */
-const brandsOnDisk = (): string[] => {
-  const dir = resolve(engineDir, 'out/figma');
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();
 };
 
 type EmittedVar = {
@@ -825,6 +828,15 @@ const selftest = (): boolean => {
       canon(disk) === canon(mem),
       `disk-only [${disk.filter((f) => !mem.includes(f)).join(' ')}] memory-only [${mem.filter((f) => !disk.includes(f)).join(' ')}]`,
     );
+  }
+
+  // ── ARM 3 (#4212): every brand with an emission on disk can be built ─────────────────────────────
+  // The scan reads `out/figma/<brand>/` and needs a THEME_OF entry for each. harbor (#4035) and prism3 were on disk
+  // with none, so `expected.ts <brand>` threw for both and nothing here noticed: arm 2 walks THEME_OF's design files,
+  // never the disk. Each brand is its own named row, so the one a list missed is the one that fails.
+  for (const brand of brandsOnDisk()) {
+    check(`arm 3 ${brand}: an emission on disk has a THEME_OF entry, so the scan can build its expectation`,
+      typeof THEME_OF[brand] === 'function', `THEME_OF has ${Object.keys(THEME_OF).sort().join(', ')}`);
   }
 
   console.log(`\nSELF-CHECK: ${ok ? 'PASS' : 'FAIL'}`);
