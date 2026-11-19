@@ -3829,6 +3829,33 @@ const main = async (): Promise<void> => {
     ok(now.length === 1 && now[0] === was && was.name === 'Style guide — Icon size' && wasTitle.characters === 'Icon size' && was.pluginData['prism3-style-guide-title'] === 'Icon size'
       && again.tables.find((t) => t.key === KEY)?.status === 'updated' && again.deleted.length === 0 && again.stale.length === 0 && again.replaced.length === 0,
       `35e: a rerun retitles the earlier "Icon" table in place to "Icon size", same frame, same key, nothing deleted (${now.length} frame(s); "${was.name}"; "${wasTitle.characters}"; deleted ${again.deleted.join(', ') || 'none'})`);
+
+    // #2729 (owner decision A): A DIMENSION COLLECTION NAMED LIKE A COLOR FAMILY. The semantic `space` collection renamed
+    // `border`, beside the color tables: its table would be titled "Border", the border colors' title on the same page.
+    // It takes its collection in parentheses, "Border (border)", the way two phase-2 tables that share a title do; the
+    // color table keeps "Border". Expected titles typed here.
+    const clashCols = f.cols.map((c) => c.id === 'VariableCollectionId:space' ? { ...c, name: 'border' } : c);
+    const clash = planStyleGuide({ collections: [...palCols, ...clashCols], variables: [...palVars, ...f.vars], textStyles: f.styles }, contract);
+    const spaceT = clash.tables.find((t) => t.collectionId === 'VariableCollectionId:space' && t.type === 'dimension');
+    const borderColor = clash.tables.filter((t) => t.type === 'color' && t.page === SEM && t.title === 'Border');
+    const clashTitles = clash.tables.filter((t) => t.page === SEM).map((t) => t.title);
+    const clashDupes = clashTitles.filter((t, i) => clashTitles.indexOf(t) !== i);
+    ok(spaceT?.title === 'Border (border)' && spaceT.page === SEM && borderColor.length === 1 && clashDupes.length === 0,
+      `#2729: a semantic dimension collection named "border" is titled "Border (border)" beside the border colors' "Border", every Semantic tokens title unique (${spaceT?.title}; ${borderColor.length} color "Border"; repeated: ${clashDupes.join(', ') || 'none'})`);
+    // The table filter matches a title: "Border" now draws only the colors, "Border (border)" only the dimensions.
+    const onlyColor = planStyleGuide({ collections: [...palCols, ...clashCols], variables: [...palVars, ...f.vars], textStyles: f.styles }, contract, { tables: ['Border'] } as StyleGuideOptions);
+    ok(onlyColor.tables.length > 0 && onlyColor.tables.every((t) => t.type === 'color'),
+      `#2729: a tables filter for "Border" draws the border colors only, not the dimension table (${onlyColor.tables.map((t) => `${t.type}:${t.title}`).join(', ') || 'none'})`);
+    // PER PAGE: the clash is a title a color table ON THE SAME PAGE has. A primitive dimension table titled "Border",
+    // drawn on Primitive tokens, is not beside the border colors (Semantic tokens), so it keeps its plain title.
+    const rawCol = { id: 'VariableCollectionId:rawborder', name: 'outline', modes: [{ modeId: 'rawborder:0', name: 'Default' }], defaultModeId: 'rawborder:0' };
+    const rawVars = [['sm', 1], ['md', 2]].map(([s, n], i) => ({ id: `VariableID:rawborder:${i}`, name: `border/${s}`, variableCollectionId: rawCol.id,
+      resolvedType: 'FLOAT', description: '', scopes: ['GAP'], valuesByMode: { 'rawborder:0': n } }));
+    const apartPlan = planStyleGuide({ collections: [...palCols, ...f.cols, rawCol], variables: [...palVars, ...f.vars, ...rawVars], textStyles: f.styles } as Parameters<typeof planStyleGuide>[0], contract);
+    const rawT = apartPlan.tables.find((t) => t.collectionId === rawCol.id && t.type === 'dimension');
+    const semBorder = apartPlan.tables.filter((t) => t.type === 'color' && t.page === SEM && t.title === 'Border');
+    ok(rawT?.title === 'Border' && rawT.page === PRIM && semBorder.length === 1,
+      `#2729 per page: a primitive dimension table titled "Border" on Primitive tokens keeps its title beside the border colors on Semantic tokens (${rawT?.title}, ${rawT?.page}; ${semBorder.length} color "Border" on Semantic tokens)`);
   }
 
   console.log('36. batch 2a (#2353): the effect styles and the gradient paint styles, each a table with its specimen bound to the style');
