@@ -210,8 +210,8 @@ export const xPrism3Warnings = (x: Record<string, unknown>): string[] =>
  *  channel as the skipped `x-prism3:` keys (#2678's rule: compile on what it carries, and say what it skipped). A token
  *  whose face IS read, under any name, is not named: nothing of it was lost. Wording is DRAFT, held for the owner's
  *  voice pass. */
-export const typeFaceWarnings = (typography: StandardDesignMd['typography'], families: Record<string, string>): string[] => {
-  const read = new Set(Object.values(families));
+export const typeFaceWarnings = (typography: StandardDesignMd['typography'], families: Record<string, unknown>): string[] => {
+  const read = new Set(Object.values(families).flat().filter((f): f is string => typeof f === 'string'));
   return Object.entries(typography)
     .filter(([, tok]) => tok?.fontFamily && !read.has(tok.fontFamily))
     .map(([name, tok]) => `typography: ignored the '${name}' face (${tok.fontFamily}); only heading and body faces are read`);
