@@ -30,8 +30,8 @@
  *
  * ── BOTH BUILDS (#2530) ───────────────────────────────────────────────────────────────────────────
  *
- * The release build (`release/main.js`, `build.mjs --release`) is built with `minifySyntax`, which rewrites the
- * bundle's syntax, so it is scanned as well as `dist/main.js`, and each must be present: a missing one is a FAIL
+ * The release build (`release/main.js`, `build.mjs --release`) is built with `minifySyntax` and, since #4232,
+ * `minifyWhitespace`, which rewrite the bundle's syntax and spacing (`import (` can become `import(`), so it is scanned as well as `dist/main.js`, and each must be present: a missing one is a FAIL
  * that names the build to run, never a skip. So is the offline variant's (`release-offline/main.js`, #3138).
  *
  * ── SCOPED TO main.js, DELIBERATELY (not ui.html) ─────────────────────────────────────────────────
