@@ -70,6 +70,36 @@ export const WASH_COPY = {
     'opaque-fill': 'Buttons take the hover fills set in each color below. Tags, segmented controls and pagination keep this wash.',
   },
 } as const;
+/** #3116 (the owner's Q3116.2 A, 2026-11-19; labels DRAFT): the outline hover method as two short choices. "Hover fill"
+ *  picks whether there is a fill and which kind; "Wash color", drawn only under Wash, picks the wash. Together they write
+ *  the same four `outlineInteraction` values as the four chips they replace. */
+export const METHOD_COPY = {
+  label: 'Hover fill',
+  fill: [['wash', 'Wash'], ['solid', 'Solid'], ['none', 'None']],
+  washLabel: 'Wash color',
+  wash: [['neutral', 'Neutral'], ['tinted', 'Tinted']],
+} as const;
+type HoverFillChoice = typeof METHOD_COPY.fill[number][0];
+type WashColorChoice = typeof METHOD_COPY.wash[number][0];
+/** A method's two choices, and back. A method the chooser does not know reads as the neutral wash, the lever's default. */
+export const choicesOf = (method: string): { fill: HoverFillChoice; wash: WashColorChoice } => ({
+  fill: method === 'opaque-fill' ? 'solid' : method === 'none' ? 'none' : 'wash',
+  wash: method === 'solid-tint' ? 'tinted' : 'neutral',
+});
+export const methodOf = (fill: HoverFillChoice, wash: WashColorChoice): string =>
+  fill === 'solid' ? 'opaque-fill' : fill === 'none' ? 'none' : wash === 'tinted' ? 'solid-tint' : 'overlay-neutral';
+/** #3116 (the owner's Q3116.3 A and Q3116.1 A; DRAFT copy): the "Outline & text hover" group, under Fill in every set's
+ *  card, under every method. Its Rest row (outline and text buttons have no fill at rest), the line under a wash that
+ *  says where the wash changes, the one line under No hover fill, and why Pressed waits for Hover under Solid. */
+export const HOVER_COPY = {
+  rest: 'No fill at rest',
+  wash: {
+    'overlay-neutral': 'Neutral wash. Change it, and its opacity, in Interactive settings.',
+    'solid-tint': 'Tinted wash. Change it, and its opacity, in Interactive settings.',
+  },
+  none: 'No hover fill. Outline and text buttons keep their rest fill on hover and press. Change it in Interactive settings.',
+  locked: 'Follows Hover until Hover is picked',
+} as const;
 /** The button sets lever's info text (owner-approved, 2026-10-02). Since #3335 (Q3335.2 A) a visible line above Add
  *  button set. */
 export const BUTTON_SET_TOOLTIP = 'Add a button set from any brand color on Palettes. Each set gets fill, text, border and state colors in every mode.';
@@ -149,15 +179,40 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
 
   // ── an enum lever as chips (#1675's rule: two to four options) ──────────────────────────────────
   const enumLever = (key: string): Item => {
+    if (key === 'outlineInteraction') return methodLever();
     const L = leverOf(key)!;
     const b = leverBlock(key, { group: true });
     const role = `${b.el.getAttribute('data-p3')!.slice('lever-'.length)}-chips`;
-    // #3071: leaving the opaque fill drops its step picks, which the engine refuses under another method.
-    const write = key === 'outlineInteraction' ? setOutlineInteraction : (v: string) => setLever(key, v);
-    const c = choice(L.label, role, (L.options ?? []).map((o) => ({ v: String(o.value), l: o.label })), (v) => edit(key, () => write(v)));
+    const c = choice(L.label, role, (L.options ?? []).map((o) => ({ v: String(o.value), l: o.label })), (v) => edit(key, () => setLever(key, v)));
     c.set(String(getPath(brandState, key) ?? L.default));
     b.ctl.append(c.el);
     return { el: b.el, said: b.said, key, block: b };
+  };
+
+  // ── The outline hover method, as two short choices (#3116, the owner's Q3116.2 A; labels DRAFT) ─────────────
+  /** The wash color last shown, so Solid or None and back to Wash returns to it within the session. */
+  let lastWash: WashColorChoice = 'neutral';
+  const methodLever = (): Item => {
+    const L = leverOf('outlineInteraction')!;
+    const now = choicesOf(String(getPath(brandState, 'outlineInteraction') ?? L.default));
+    if (now.fill === 'wash') lastWash = now.wash;
+    const words = [...METHOD_COPY.fill.map(([, l]) => l), METHOD_COPY.washLabel, ...METHOD_COPY.wash.map(([, l]) => l)].join(' ');
+    const b = leverBlock('outlineInteraction', { group: true, label: METHOD_COPY.label, alsoSays: words });
+    // #3071: leaving the opaque fill drops its step picks, which the engine refuses under another method.
+    const write = (m: string): void => edit('outlineInteraction', () => setOutlineInteraction(m));
+    const fill = choice(METHOD_COPY.label, 'outline-method-chips', METHOD_COPY.fill.map(([v, l]) => ({ v, l })), (v) => write(methodOf(v, lastWash)));
+    fill.set(now.fill);
+    b.ctl.append(fill.el);
+    if (now.fill === 'wash') {
+      const f = hook(h('div', 'p3-field'), 'outline-wash-color');
+      const lab = h('span', 'p3-field-label', METHOD_COPY.washLabel);
+      lab.id = 'p3-outline-wash-color-label';
+      const wash = choice(METHOD_COPY.washLabel, 'outline-wash-color-chips', METHOD_COPY.wash.map(([v, l]) => ({ v, l })), (v) => write(methodOf('wash', v)));
+      wash.set(now.wash);
+      f.append(lab, wash.el);
+      b.ctl.append(f);
+    }
+    return { el: b.el, said: b.said, key: 'outlineInteraction', block: b };
   };
 
   // ── Wash opacity (#3335, the owner's Q3335.3 A and Q3335.4 A; every string a DRAFT for the owner) ─────────
@@ -188,42 +243,62 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     return [{ el: b.el, said: `${b.said} ${said.join(' ')}`.toLowerCase(), key: 'outlineWash', block: b }];
   };
 
-  // ── Outline & text hover, per button set (#3071; per set since #3335, the owner's Q3335.5 A; DRAFT copy) ───────
-  /** Under Solid fill, a set's own Hover and Pressed fill for the page ground, in the mode the preview shows, in place of
-   *  the wash swatches (which no longer reach that set's buttons). Auto names the step the set takes unpicked: the
-   *  mode-wide pick a brief may carry, else the engine's default rule. The line under it is the set's own worst label
-   *  and icon on each fill, read from the resolved roles. Hover and Pressed sit side by side: the group has no rest row. */
-  const setHoverFill = (col: string): { el: HTMLElement; items: Item[] } => {
-    const roles = rolesIn(currentMode);
-    const own = readOutlineHoverFill()[currentMode]?.sets?.[col];
-    const steps = theme.palettes.flatMap((p) => p.steps.map((st) => ({ v: `${p.palette}.${st.key}`, l: `${p.palette} ${st.key}` })));
-    const shown = (st: string): string => (roles[`interactive.${col}.hover-fill.${st}`]?.path ?? '').split('.').slice(-2).join(' ');
-    const g = hook(h('div', 'p3-irow-group p3-irow-flat'), 'int-row-group');
-    g.dataset.group = HOVER_FILL_GROUP;
-    g.dataset.rest = 'false';
+  // ── Outline & text hover, per button set (#3071; per set since #3335, Q3335.5 A; under Fill since #3116; DRAFT copy) ──
+  /** #3116 (the owner's Q3116.3 A and Q3116.1 A, 2026-11-19): one group, always titled "Outline & text hover", directly
+   *  under Fill in every set's card, under every method, set up as every other color group is: a Rest row, with Hover and
+   *  Pressed inset under it. Outline and text buttons have no fill at rest, so Rest reads that. Under Solid fill, Hover and
+   *  Pressed are the set's own fills, picked with the card's step picker in the mode the preview shows (Pressed follows
+   *  Hover until Hover is picked), and the set's worst label and icon line follows. Under a wash, the same rows read the
+   *  wash out, and a line says where it changes. Under No hover fill, one line. The fill only is customizable here: the
+   *  label and border keep their shared rows in Text and Border. */
+  const hoverGroup = (col: string, method: string): { el: HTMLElement; items: Item[] } => {
     const items: Item[] = [];
-    for (const st of ['hover', 'pressed'] as const) {
-      const f = hook(h('div', 'p3-field p3-ihover'), `outline-hover-fill-${st}`);
-      f.dataset.column = col;
-      const id = `p3-outline-hover-${col}-${st}`;
-      const lab = h('label', 'p3-field-label', capWord(st));
-      lab.htmlFor = id;
-      const sel = selectField(id, `${capWord(col)} ${st} fill`, `outline-hover-fill-${st}-select`, (v) => edit('outlineHoverFill', () => setOutlineHoverSetStep(currentMode, col, st, v || undefined)));
-      sel.set([{ v: '', l: `Auto · ${shown(st) || 'default'}` }, ...steps], (st === 'hover' ? own?.hover : own?.pressed) ?? '');
-      // Pressed follows hover until the set's hover is picked: its Auto is the next step past it.
-      sel.select.disabled = st === 'pressed' && !own;
-      f.append(lab, sel.el);
-      g.append(f);
-      items.push({ el: f, said: `${HOVER_FILL_GROUP} ${capWord(st)} ${col} outline hover fill`.toLowerCase(), key: 'outlineHoverFill' });
+    const list = h('div', 'p3-fillrows');
+    if (method === 'none') {
+      list.append(hook(subLine(HOVER_COPY.none), 'outline-hover-none'));
+      return { el: stateGroup(HOVER_FILL_GROUP, list), items };
     }
-    const worst = (st: string): number | undefined => {
-      const fill = roles[`interactive.${col}.hover-fill.${st}`];
-      const rs = ['text', 'icon'].map((part) => roles[`interactive.${col}.${part}.${st}`]).filter((ink) => fill && ink).map((ink) => contrast(hexToRgb(ink!.hex), hexToRgb(fill!.hex)));
-      return rs.length ? Math.min(...rs) : undefined;
-    };
-    const wh = worst('hover'), wp = worst('pressed');
-    if (wh !== undefined && wp !== undefined) g.append(hook(subLine(`Labels and icons on it, at worst: ${fmtRatio(wh)} hover, ${fmtRatio(wp)} pressed. They shift where they need to, to stay legible.`), 'outline-hover-fill-ratio'));
-    return { el: g, items };
+    const g = hook(h('div', 'p3-irow-group'), 'int-row-group');
+    g.dataset.group = HOVER_FILL_GROUP;
+    g.dataset.rest = 'true';
+    // The Rest row: no role and no picker, since there is no fill at rest to pick.
+    const restWrap = h('div', 'p3-fillrow-wrap');
+    const rest = hook(h('div', 'p3-fillrow'), 'outline-hover-rest');
+    const sw = h('span', 'p3-fill-sw');
+    sw.dataset.content = '';
+    // No mono line under the label: that line is always a token path (QA-B2), and Rest has no token.
+    const nm = h('div', 'p3-fill-name');
+    nm.append(h('b', 'p3-fill-label', REST_LABEL));
+    rest.append(sw, nm, hook(h('span', 'p3-pick-read', HOVER_COPY.rest), 'int-readout'));
+    restWrap.append(rest);
+    g.append(restWrap);
+    items.push({ el: restWrap, said: `${HOVER_FILL_GROUP} ${REST_LABEL} ${HOVER_COPY.rest} outline hover fill`.toLowerCase(), key: `row:${col}.hover-rest` });
+    const states = hook(h('div', 'p3-irow-states'), 'int-row-states');
+    g.append(states);
+    const solid = method === 'opaque-fill';
+    const part = solid ? 'hover-fill' : method === 'solid-tint' ? 'subtle-fill' : 'overlay';
+    for (const st of ['hover', 'pressed'] as const) {
+      const r: InteractiveRow = { role: `interactive.${col}.${part}.${st}`, group: HOVER_FILL_GROUP, label: capWord(st),
+        paletteKey: 'neutral', write: solid ? 'override' : 'readout', column: col };
+      const it = rowOf(r, true, solid ? { col, st } : undefined);
+      if (!it) continue;
+      states.append(it.el);
+      items.push(it);
+    }
+    list.append(g);
+    if (solid) {
+      const roles = rolesIn(currentMode);
+      const worst = (st: string): number | undefined => {
+        const fill = roles[`interactive.${col}.hover-fill.${st}`];
+        const rs = ['text', 'icon'].map((p) => roles[`interactive.${col}.${p}.${st}`]).filter((ink) => fill && ink).map((ink) => contrast(hexToRgb(ink!.hex), hexToRgb(fill!.hex)));
+        return rs.length ? Math.min(...rs) : undefined;
+      };
+      const wh = worst('hover'), wp = worst('pressed');
+      if (wh !== undefined && wp !== undefined) list.append(hook(subLine(`Labels and icons on it, at worst: ${fmtRatio(wh)} hover, ${fmtRatio(wp)} pressed. They shift where they need to, to stay legible.`), 'outline-hover-fill-ratio'));
+    } else {
+      list.append(hook(subLine(HOVER_COPY.wash[method as keyof typeof HOVER_COPY.wash] ?? HOVER_COPY.wash['overlay-neutral']), 'outline-hover-wash-line'));
+    }
+    return { el: stateGroup(HOVER_FILL_GROUP, list), items };
   };
 
   // ── Actions ────────────────────────────────────────────────────────────────────────────────────
@@ -290,8 +365,10 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     return [strip, follow];
   };
 
-  /** One row: the swatch, the name and role, and the picker button, or a read-out for a wash. */
-  const rowOf = (r: InteractiveRow, nested: boolean): Item | null => {
+  /** One row: the swatch, the name and role, and the picker button, or a read-out for a wash. `hf` (#3116) makes it a
+   *  Solid fill row of the Outline & text hover group: its pick writes the set's own `outlineHoverFill` step in the mode,
+   *  from any palette, and its Pressed waits for its Hover. */
+  const rowOf = (r: InteractiveRow, nested: boolean, hf?: { col: string; st: 'hover' | 'pressed' }): Item | null => {
     const mode = currentMode;
     const roles = rolesIn(mode) as Record<string, IRole | undefined>;
     const res = roles[r.role];
@@ -305,7 +382,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     sw.dataset.content = '';
     const nm = tokenLabel(r.role, label);
     const wrap = h('div', 'p3-fillrow-wrap');
-    const said = `${r.group} ${label} ${r.role}`.toLowerCase();
+    const said = `${r.group} ${label} ${r.role}${hf ? ` ${hf.col} outline hover fill` : ''}`.toLowerCase();
 
     // A translucent wash (#1210): painted over the ground it declares, and read out, never picked.
     if (r.write === 'readout') {
@@ -325,15 +402,23 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     }
 
     sw.style.background = res.hex;
-    const palette = interactivePaletteOf(r);
+    const at = stepOfPath(res.path);
+    // A Solid fill row's pick, as `palette.step`, and whether its Pressed still follows its Hover (#3116).
+    const hfOwn = hf ? readOutlineHoverFill()[mode]?.sets?.[hf.col] : undefined;
+    const hfHeld = hf ? (hf.st === 'hover' ? hfOwn?.hover : hfOwn?.pressed) : undefined;
+    const locked = !!hf && hf.st === 'pressed' && !hfOwn;
+    const palette = hf ? (hfHeld ? hfHeld.slice(0, hfHeld.lastIndexOf('.')) : at?.palette ?? theme.roleToPalette.neutral) : interactivePaletteOf(r);
     const steps = stepsOf(palette);
     if (!steps.length) return null;
-    const at = stepOfPath(res.path);
     // What the row holds now, and what its Auto names.
     let overridden: boolean;
     let current: { palette: string; step: string } | null;
     let autoName: string;
-    if (r.write === 'anchor') {
+    if (hf) {
+      overridden = !!hfHeld;
+      current = hfHeld ? { palette, step: hfHeld.slice(hfHeld.lastIndexOf('.') + 1) } : at;
+      autoName = at ? `${at.palette} ${at.step}` : 'default';
+    } else if (r.write === 'anchor') {
       const v = anchorOf(mode, r.column!);
       overridden = v !== undefined;
       current = overridden ? { palette, step: steps.find((k) => Number(k) === v) ?? String(v) } : at && at.palette === palette ? at : null;
@@ -376,7 +461,8 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
       btn.append(rr);
     }
     btn.append(glyph('chev'));
-    btn.setAttribute('aria-label', `${label}: ${now}${ratio !== null ? `, ${fmtRatio(ratio)}` : ''}${below ? ', below floor' : ''}. Pick a step`);
+    btn.setAttribute('aria-label', `${label}: ${now}${ratio !== null ? `, ${fmtRatio(ratio)}` : ''}${below ? ', below floor' : ''}. ${locked ? HOVER_COPY.locked : 'Pick a step'}`);
+    if (locked) { btn.disabled = true; btn.title = HOVER_COPY.locked; }
     btn.onclick = () => {
       const opening = openRole !== r.role;
       openRole = opening ? r.role : null;
@@ -392,8 +478,9 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     if (open) {
       const key = `row:${r.role}`;
       const palOf = (p: string): PickerPalette => ({ palette: p, steps: (theme.palettes.find((x) => x.palette === p)?.steps ?? []).map((s) => ({ key: s.key, hex: s.hex })) });
-      // The row's own ramp, the inverse fill's neutral one (#1384), and the palette a held override names (#3406).
-      const palettes = pickerPalettesOf(mode, r).map(palOf);
+      // The row's own ramp, the inverse fill's neutral one (#1384), and the palette a held override names (#3406). A Solid
+      // fill row offers every palette, the one it holds first (#3071's select did).
+      const palettes = (hf ? [palette, ...theme.palettes.map((x) => x.palette).filter((x) => x !== palette)] : pickerPalettesOf(mode, r)).map(palOf);
       const against = res.against && res.against !== 'self' && (res.min ?? 0) > 0
         ? textLink ? linkGround(res, roles) : { hex: againstHex(res, roles), name: res.against, floor: res.min! }
         : null;
@@ -406,8 +493,8 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
         // A text link can't be pinned below its floor (#2990, Q2990.5 A): the engine would move the pick (#1510).
         blockBelow: textLink,
         overridden,
-        onPick: (p, step) => edit(key, () => writeInteractiveRow(mode, r, r.write === 'inverse-fill' || p !== palette ? `${p}::${step}` : step)),
-        onAuto: () => edit(key, () => writeInteractiveRow(mode, r, undefined)),
+        onPick: (p, step) => edit(key, () => hf ? setOutlineHoverSetStep(mode, hf.col, hf.st, `${p}.${step}`) : writeInteractiveRow(mode, r, r.write === 'inverse-fill' || p !== palette ? `${p}::${step}` : step)),
+        onAuto: () => edit(key, () => hf ? setOutlineHoverSetStep(mode, hf.col, hf.st, undefined) : writeInteractiveRow(mode, r, undefined)),
         onClose: () => { openRole = null; render(); root.querySelector<HTMLElement>(`#${btn.id}`)?.focus(); },
       });
       wrap.append(pk.el);
@@ -418,8 +505,8 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   };
 
   /** One state group of a set's card (#3335, the owner's Q3335.7 A and amendment): a small title, then its rows. A group
-   *  with a rest row draws Rest, then its Hover and Pressed nested under it (Q33). A group with no rest row (a wash)
-   *  draws its Hover and Pressed side by side at the group's own level, neither nested under the other. */
+   *  with a rest row draws Rest, then its Hover and Pressed nested under it (Q33); since #3116 the Outline & text hover
+   *  group is one, under every method. A group with no rest row (On-fill text) draws its rows at the group's own level. */
   const stateGroup = (title: string, body: HTMLElement): HTMLElement => {
     const g = hook(h('section', 'p3-icol p3-igroup'), 'int-group');
     g.dataset.group = title;
@@ -432,18 +519,10 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     const groups: HTMLElement[] = [];
     const method = String(getPath(brandState, 'outlineInteraction') ?? theme.outlineInteraction);
     let at: { name: string; list: HTMLElement; group: HTMLElement; states: HTMLElement | null } | null = null;
+    let hover: Item[] = [];
     for (const r of rows) {
-      // Under Solid fill the wash no longer reaches this set's buttons: its swatches give way to the set's own pickers.
-      if (method === 'opaque-fill' && r.role.includes('.overlay.')) {
-        if (r.label === 'Hover') {
-          const x = setHoverFill(col);
-          out.push(...x.items);
-          const list = h('div', 'p3-fillrows');
-          list.append(x.el);
-          groups.push(stateGroup(HOVER_FILL_GROUP, list));
-        }
-        continue;
-      }
+      // #3116 (Q3116.3 A): the two washes fold into the Outline & text hover group, drawn under Fill below.
+      if (/\.(overlay|subtle-fill)\./.test(r.role)) continue;
       const child = r.label === 'Hover' || r.label === 'Pressed';
       const nested = child && !!at?.states && at.name === r.group;
       const it = rowOf(r, nested);
@@ -461,7 +540,11 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
       list.append(g);
       groups.push(stateGroup(r.group, list));
       at = { name: r.group, list, group: g, states };
+      // #3116 (Q3116.3 A): the Outline & text hover group sits directly under Fill, under every method.
+      if (r.group === 'Fill') { const x = hoverGroup(col, method); groups.push(x.el); hover = x.items; }
     }
+    // Its items follow Fill's rows, in the order drawn.
+    if (hover.length) { const i = out.findIndex((it) => it.key.startsWith(`row:interactive.${col}.fill.pressed`)); out.splice(i < 0 ? out.length : i + 1, 0, ...hover); }
     return groups;
   };
 
@@ -744,10 +827,9 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     const shown = items.filter((it) => it.said);
     for (const it of shown) it.el.hidden = !!q && !it.said.includes(q);
     for (const g of root.querySelectorAll<HTMLElement>('.p3-irow-group')) g.hidden = !!q && !g.querySelector('.p3-fillrow-wrap:not([hidden])');
-    for (const g of root.querySelectorAll<HTMLElement>('.p3-irow-group')) if (!g.hidden && g.querySelector('.p3-ihover')) g.hidden = !!q && !g.querySelector('.p3-ihover:not([hidden])');
-    for (const g of root.querySelectorAll<HTMLElement>('.p3-icol')) g.hidden = !!q && !g.querySelector(':is(.p3-fillrow-wrap, .p3-lever, .p3-ihover):not([hidden])');
+    for (const g of root.querySelectorAll<HTMLElement>('.p3-icol')) g.hidden = !!q && !g.querySelector(':is(.p3-fillrow-wrap, .p3-lever):not([hidden])');
     for (const s of root.querySelectorAll<HTMLElement>('.p3-lsec')) {
-      s.hidden = !!q && !s.querySelector(':is(.p3-lever[data-p3], .p3-fillrow-wrap, .p3-ihover):not([hidden])');
+      s.hidden = !!q && !s.querySelector(':is(.p3-lever[data-p3], .p3-fillrow-wrap):not([hidden])');
     }
     for (const n of root.querySelectorAll<HTMLElement>('.p3-intro, .p3-nextrow, .p3-jump, [data-p3="interactive-mode-line"]')) n.hidden = !!q;
     // #3335 (Q3335.2 A): the button sets lever draws no block of its own; it is the set cards and Add button set. A search

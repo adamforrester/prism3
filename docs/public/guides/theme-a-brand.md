@@ -21,7 +21,7 @@ To come back to these later, open the brand menu at the left of the top bar and 
 
 ## Set the levers
 
-A lever is one brand setting, such as the primary color, the type scale or the corner radius. The **Theme** area of the rail groups them into tabs. <!-- src: apps/studio/src/shell/pages.ts:514 -->
+A lever is one brand setting, such as the primary color, the type scale or the corner radius. The **Theme** area of the rail groups them into tabs. <!-- src: apps/studio/src/shell/pages.ts:516 -->
 
 | Tab | What it holds |
 |---|---|
@@ -34,7 +34,7 @@ A lever is one brand setting, such as the primary color, the type scale or the c
 | **Depth & motion** | **Elevation**, **Motion** and the shadow tint. <!-- src: apps/studio/src/shell/pages.ts:353-357 --> |
 | **Layout** | **Grid**, **Breakpoints** and **Containers**. <!-- src: apps/studio/src/shell/pages.ts:365-370 --> |
 
-Component settings, such as how buttons place their icons, are in the **Components** area, beside the list of component sets. See [Build components](build-components.md). <!-- src: apps/studio/src/shell/pages.ts:383-422 -->
+Component settings, such as how buttons place their icons, are in the **Components** area, beside the list of component sets. See [Build components](build-components.md). <!-- src: apps/studio/src/shell/pages.ts:383-424 -->
 
 Some sections start folded. Open them with the "Show N advanced" button under the section list. <!-- src: apps/studio/src/domains/color-palettes.ts:331 -->
 
@@ -62,7 +62,7 @@ If a stored brand can't be opened, the web studio offers it as a `design.md` dow
 
 ## Import and export a design.md brief
 
-A `design.md` is a brand written as a short document: settings at the top, prose below. <!-- src: packages/engine/mcp.ts:335 -->
+A `design.md` is a brand written as a short document: settings at the top, prose below. <!-- src: packages/engine/mcp.ts:336 -->
 The studio reads both the Prism3 form and the standard design.md form, <!-- src: apps/studio/src/state/start-input.ts:176-190#569bb71c --> which lists colors as a flat `colors:` map. <!-- src: packages/engine/standard-design-md.ts:109-110 -->
 
 - Import: **Import design.md…** in the brand menu, then paste the brief and choose **Load**, or choose **Upload .md**. The **Import a design.md** card in the start window works the same way. <!-- src: apps/studio/src/shell/bar.ts:237-293 -->

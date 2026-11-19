@@ -1498,8 +1498,9 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-irow-states { display: grid; gap: var(--p3-rhythm-row); padding-left: var(--p3-space-300); border-left: var(--p3-bw-hairline) dashed var(--p3-line-1); }
 /* #3335 (the owner's Q3335.1 A and Q3335.7 A, with the amendment): each button set is a card of its own, its title on one
    line with its palette and, for an accent, Remove; its state groups below on the group rhythm, the first without the
-   hairline the card's own edge already draws. A group with no rest row (a wash, or Solid fill's pickers) is `.p3-irow-flat`:
-   its Hover and Pressed are its own rows, side by side at its level, with no states column to indent them. */
+   hairline the card's own edge already draws. A group with no rest row (On-fill text) is `.p3-irow-flat`:
+   its rows sit at its level, with no states column to indent them. Since #3116 the washes and Solid fill's picks are the
+   Outline & text hover group, which has a Rest row, so they nest as Fill's states do. */
 .p3-icard:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 .p3-icard-line { display: flex; align-items: center; gap: var(--p3-space-100); }
 .p3-icard-pal { color: var(--p3-text-2); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-default); letter-spacing: normal; }
