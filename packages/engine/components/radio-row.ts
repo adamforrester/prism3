@@ -300,7 +300,7 @@ export const radioRow: ComponentDef = {
       // and it centers `content` in it, so a single-line option measures 36/44/56 at comfortable with the
       // slack split above and below. A wrapped label grows the row past the floor by its padding.
       row: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'target',
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         minHeight: 'size.{size}.min-height',
