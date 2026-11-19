@@ -345,7 +345,7 @@ export const checkboxRow: ComponentDef = {
       // (`minHeight`, #2894), and it centers `content` in it, so a single-line row measures 36/44/56 at
       // comfortable with the slack split above and below. A wrapped label grows the row past the floor.
       row: {
-        kind: 'box', mirror: 'reverses',
+        kind: 'box',
         role: 'target',
         // CENTER on the cross axis, over ONE child (#2894, owner Q539 Q?3 A). The row centers `content`, which
         // keeps the control and label top-aligned, so the floor's slack splits evenly and a wrapping consent

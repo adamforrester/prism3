@@ -45,8 +45,6 @@ Shown on the default member: size `medium`, status `default`.
 
 Use for a short, fixed-length code sent by text message, email or an authenticator app. Say in the helper text how many characters the code has and where it was sent. For a code of variable length, use TextField with `one-time-code` `autocomplete`.
 
-**In RTL.** The items do not mirror.
-
 ### Do
 
 - Accept a pasted or autofilled code in full, ignoring spaces and hyphens

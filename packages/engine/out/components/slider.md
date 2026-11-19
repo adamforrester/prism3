@@ -57,8 +57,6 @@ Shown on the default member: size `medium`, type `single`.
 
 Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use TextField, or turn on the paired inputs. Don't use a slider for a few named options (use SegmentedControl or Radio.Group) or for on and off (use Switch.Row).
 
-**In RTL.** The layout mirrors: the start edge is on the right.
-
 ### Do
 
 - Name the dimension with a visible label

@@ -168,7 +168,7 @@ export const segmentedControlSegment: ComponentDef = {
         note: 'The indicator, inset 4px inside the cell and as wide as the cell allows. Selected, it is a flat pill in the page surface color, with no border or shadow, and it does not change at hover or press; unselected, it is clear at rest and takes a light neutral wash over the track at hover and press.',
       },
       content: {
-        kind: 'box', mirror: 'reverses',
+        kind: 'box',
         role: 'presentation',
         children: ['leadingVisual', 'labelBox'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
@@ -432,7 +432,7 @@ export const segmentedControl: ComponentDef = {
       // options, three by default with the first selected. It grows across the track, so the options inside it
       // still share the track's width equally (Q269.6). A designer adds, removes and reorders options in place.
       items: {
-        kind: 'box', mirror: 'reverses',
+        kind: 'box',
         role: 'presentation',
         contentSlot: true,
         // Owner decision Q307 A: at least one item, at most 5, and only a segmented-control-segment (#2646's slot constraints).

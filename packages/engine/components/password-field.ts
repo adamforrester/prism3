@@ -24,10 +24,8 @@
  */
 import { ComponentDef } from '../component-schema';
 import { FOCUS_EDGE_DEFAULT_NOTE, FOCUS_EDGE_STATUS_NOTE, makeTextField } from './text-field';
-import { withMirrors } from '../rtl-mirror';
 
-// #3986: what the def's right-to-left entry says, as `mirror` fields.
-export const passwordField: ComponentDef = withMirrors(makeTextField({
+export const passwordField: ComponentDef = makeTextField({
   id: 'password-field',
   levers: { controlShape: { squares: ['radius.sm'] }, fieldStyle: { frame: 'control' } },
   name: 'PasswordField',
@@ -225,4 +223,4 @@ export const passwordField: ComponentDef = withMirrors(makeTextField({
       'A later idea (owner, Q301.6): the Show/Hide button as its own subcomponent with a shown and a hidden variant, the field\'s value still changed by hand. Filed separately; not part of this def.',
     ],
   },
-}), { labelRow: 'reverses' });
+});

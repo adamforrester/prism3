@@ -43,8 +43,6 @@ Shown on the default member: appearance `filled`, size `medium`, width `auto`, s
 
 Use for an immediate action in the current context — submit/save/reset a form, trigger a UI state change (open modal, toggle drawer), or fire async work. Color is the component (Button / Button.Destructive / Button.Neutral — pick by semantics); rank actions within a view by appearance (filled > outline > text), with exactly one filled button per view or region.
 
-**In RTL.** The layout mirrors: the start edge is on the right. An icon in the leading visual or trailing visual flips only if it points a direction, such as an arrow.
-
 ### Do
 
 - Lead with a verb, name the object ("Publish post", not "Submit")

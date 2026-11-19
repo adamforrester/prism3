@@ -154,7 +154,7 @@ export const walletButton: ComponentDef = {
     root: 'container',
     parts: {
       container: {
-        kind: 'box', mirror: 'never',
+        kind: 'box',
         role: 'target',
         children: ['mark', 'focusRing'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },

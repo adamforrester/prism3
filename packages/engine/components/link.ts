@@ -163,7 +163,7 @@ export const link: ComponentDef = {
     root: 'container',
     parts: {
       container: {
-        kind: 'box', mirror: 'reverses',
+        kind: 'box',
         role: 'target',
         children: ['label', 'trailingVisual', 'bar', 'focusRing'],
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
@@ -176,7 +176,7 @@ export const link: ComponentDef = {
         note: 'The link text in the link color. Standalone: plain at rest, underlined at hover, pressed and focus. Inline: underlined at every state. The current page stays plain at every state: the bar is its line.',
       },
       trailingVisual: {
-        kind: 'slot', mirror: 'mirrors',
+        kind: 'slot',
         optional: true,
         presentWhen: { style: ['standalone'] },
         size: 'size.{size}.icon',

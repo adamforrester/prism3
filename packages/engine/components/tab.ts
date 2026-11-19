@@ -140,7 +140,7 @@ export const tab: ComponentDef = {
         note: 'The tab body: a fixed-height column holding the label row above the underline. It hugs its label and paints nothing itself: no wash at hover or pressed.',
       },
       content: {
-        kind: 'box', mirror: 'reverses',
+        kind: 'box',
         role: 'presentation',
         children: ['leadingVisual', 'labelBox', 'count'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fill' } },

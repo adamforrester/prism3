@@ -79,7 +79,7 @@ export const tabs: ComponentDef = {
       // THE ITEMS SLOT (#2649, owner decision Q307 A): a native Figma slot (#2417) holding the tabs, three by default
       // with the first selected. A designer adds, removes and reorders tabs on an instance in place, up to six (Q179).
       items: {
-        kind: 'box', mirror: 'reverses',
+        kind: 'box',
         role: 'presentation',
         contentSlot: true,
         // Owner decision Q307 A: at least one item, at most 6, and only a tab (#2646's slot constraints).

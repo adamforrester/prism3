@@ -39,8 +39,6 @@ Shown on the default member: path `full`, separator `chevron`, size `medium`.
 
 Use breadcrumbs on a site three or more levels deep, to show where a page sits and to climb back up. They follow the site's structure, not the visitor's history, and supplement the main navigation. For a one or two level site, use a single link back, or nothing. To go back in history, use the browser's Back or a Link. To switch between peers at one level, use Tabs.
 
-**In RTL.** The layout mirrors: the start edge is on the right. The back glyph flips to point the other way.
-
 ### Do
 
 - Start at the root and end at the current page

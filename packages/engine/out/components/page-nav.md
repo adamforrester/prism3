@@ -35,8 +35,6 @@ Shown on the default member: size `medium`.
 
 Use page navigation to move between two to six sibling pages that share a heading area, such as Log in and Create account, or an account's Overview, Orders and Profile pages. Each item is a link to its own page, so the browser's back button and bookmarks work. Use Tabs when the content switches in place on one page, and Breadcrumbs to show where a page sits in a hierarchy.
 
-**In RTL.** The layout mirrors: the start edge is on the right.
-
 ### Do
 
 - Mark the page the user is on as the current item

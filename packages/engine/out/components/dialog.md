@@ -46,8 +46,6 @@ Shown on the default member: placement `center`, size `medium`, footer `inline`.
 
 Use a Dialog when the user must make a decision or finish a short task before going on, and needs the page behind for context: a confirmation, a short form, a choice. Center it on every screen by default; on a small screen, open it as a bottom sheet for a short choice within thumb reach, or full screen for a form that needs the whole screen. On a wide screen, open a panel the user works in beside the page, such as sign-in or filters, at the end edge; below 768px, switch it to full for a form or bottom for a short list. Use role alertdialog for a confirmation that interrupts, such as deleting something.
 
-**In RTL.** The layout mirrors: the start edge is on the right.
-
 ### Do
 
 - Name the task in the title, and the action in the main button

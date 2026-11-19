@@ -39,8 +39,6 @@ Shown on the default member: size `medium`, status `default`.
 
 Use for a binary on/off setting that applies immediately — notifications, dark mode, Wi-Fi, a feature flag in a settings panel. Compose into a list or settings row with the label leading and the switch at the trailing edge, which is the habitat this control comes from. There is no group: a panel of switches is a list of rows, and each switch owns its own independent boolean and fires its own mutation. Default to optimistic updates with revert-and-message on failure, and reach for pending only where an inconsistent intermediate would genuinely harm.
 
-**In RTL.** The layout mirrors: the start edge is on the right. The control flips to point the other way.
-
 ### Do
 
 - Apply the change the instant it is toggled — the immediacy is the contract

@@ -37,8 +37,6 @@ Shown on the default member: size `medium`.
 
 Use a segmented control for a choice between two to five short options that changes a value in place: a parameter of the current view, such as list or grid, or a form value. Every option stays visible, and one is always selected. Don't use it to switch between panels of content (use Tabs), for more than five options or long labels (use Select or Radio.Group), or for one setting that turns on and off (use Switch.Row).
 
-**In RTL.** The layout mirrors: the start edge is on the right.
-
 ### Do
 
 - Name what is being chosen, with a visible label or an accessible name
