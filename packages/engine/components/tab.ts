@@ -330,7 +330,7 @@ export const tab: ComponentDef = {
   motion: {
     enter: 'None. On selection the underline slides from the previous tab to this one, on motion.transition.default.',
     exit: 'None.',
-    reduceMotion: 'The underline snaps to the selected tab; the panel swaps with no transition.',
+    reduceMotion: 'Under prefers-reduced-motion the underline snaps to the selected tab, and the incoming panel fades in on motion.duration-reduced.fast.',
   },
 
   notes: {
