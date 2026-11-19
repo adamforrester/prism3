@@ -41,6 +41,17 @@ console.log('\n1. #4206: a current brand comes through untouched');
   const other = plant({ surfaces: { light: { base: 'grey' } } });
   const o = migrateStoredInput(other);
   ok(o.input === other && o.notes.length === 0 && refusal(o.input) !== null, '#4206 current: a brand refused for a reason no migration covers stays refused, unchanged');
+  // Review S1 (#4285): a current brand with something for each fix to touch. An unnamed interactive column is named after its
+  // palette, and a named one by its name; both key a valid modeAnchors entry, so a migration that misreads either column
+  // drops a valid anchor from a brand the engine accepts.
+  const cols = plant({
+    brandColors: [...(aurora.brandColors ?? []), { name: 'teal', oklch: { l: 0.6, c: 0.11, h: 190 } }, { name: 'coral', oklch: { l: 0.65, c: 0.15, h: 30 } }],
+    interactivePalettes: [{ palette: 'teal' }, { name: 'promo', palette: 'coral' }],
+    modeAnchors: { dark: { teal: 400, promo: 300 } },
+  });
+  ok(refusal(cols) === null, `#4206 current columns premise: the engine accepts the brand with an unnamed and a named interactive column (${refusal(cols)})`);
+  const c = migrateStoredInput(cols);
+  ok(c.input === cols && c.notes.length === 0, `#4206 current columns: a brand whose anchors key an unnamed and a named interactive column is returned as given, with no note (${JSON.stringify(c.notes)})`);
 }
 
 console.log('\n2. #4206: typography.links: [] (written by the Studio before #3707)');

@@ -41,7 +41,7 @@
     { "file": "test-run-ended.ts", "floor": 7 },
     { "file": "test-collisions.ts", "floor": 22 },
     { "file": "test-name-refs.ts", "floor": 460 },
-    { "file": "test-legacy-input.ts", "floor": 21 }
+    { "file": "test-legacy-input.ts", "floor": 23 }
   ],
   "elsewhere": {}
 }
