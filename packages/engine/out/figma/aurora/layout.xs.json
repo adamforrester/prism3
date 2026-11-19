@@ -8,7 +8,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Min-width 0px (mobile-first)",
+      "description": "Min-width 0px (mobile-first). A frame at this breakpoint uses mobile type by default",
       "value": 0,
       "alias": null
     },
@@ -18,7 +18,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Min-width 480px (mobile-first)",
+      "description": "Min-width 480px (mobile-first). A frame at this breakpoint uses mobile type by default",
       "value": 480,
       "alias": null
     },
@@ -28,7 +28,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Min-width 768px (mobile-first)",
+      "description": "Min-width 768px (mobile-first). A frame at this breakpoint uses mobile type by default",
       "value": 768,
       "alias": null
     },
@@ -38,7 +38,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Min-width 1024px (mobile-first)",
+      "description": "Min-width 1024px (mobile-first). A frame at this breakpoint uses desktop type by default",
       "value": 1024,
       "alias": null
     },
@@ -48,7 +48,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Min-width 1440px (mobile-first)",
+      "description": "Min-width 1440px (mobile-first). A frame at this breakpoint uses desktop type by default",
       "value": 1440,
       "alias": null
     },
@@ -58,7 +58,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Min-width 1920px (mobile-first)",
+      "description": "Min-width 1920px (mobile-first). A frame at this breakpoint uses desktop type by default",
       "value": 1920,
       "alias": null
     },
