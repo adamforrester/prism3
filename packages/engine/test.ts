@@ -44058,6 +44058,14 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
     ok(tHex.notes.includes(line), `#4133 the notes record the ${at} conversion (want ${JSON.stringify(line)}; got ${JSON.stringify(tHex.notes.filter((n) => n.includes('hex')))})`);
   }
   ok(!tOk.notes.some((n) => n.includes('converted to OKLCH')), '#4133 an OKLCH brand gets no conversion note');
+  // #4312 review (docs/34): the arms above build their EXPECTED with `hexToAnchor`, the function under test, so they
+  // cannot see the conversion itself change. These pin it to typed literals: a saturated green, a tinted gray (chroma
+  // 0.0072, which keeps its hue) and a pure gray (hue 0, #2280).
+  for (const [h, l, c, hue] of [['#2f6b4f', 0.4794, 0.078, 161.08], ['#6b6e72', 0.537, 0.0072, 255.51], ['#808080', 0.5999, 0, 0]] as const) {
+    const o = hexToAnchor(h);
+    ok(Math.abs(o.l - l) < 5e-5 && Math.abs(o.c - c) < 5e-5 && Math.abs(o.h - hue) < 5e-3,
+      `#4312 ${h} converts to the literal OKLCH { l: ${l}, c: ${c}, h: ${hue} } (got ${formatAnchor(o)})`);
+  }
   const bad = validateBrandInput({ ...base, primary: '#zz0000' });
   ok(bad.length === 1 && /OKLCH object/.test(bad[0]) && /hex color/.test(bad[0]), `#4133 a malformed hex is refused, naming both forms the anchor takes (got ${JSON.stringify(bad)})`);
 }

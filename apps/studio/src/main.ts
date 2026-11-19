@@ -48,7 +48,7 @@ import { firstBreakpointFix } from './domains/layout';
 import { openStart, type StartChoice, type StartMode, type StartWindow } from './shell/start';
 import { HOME_COPY, libraryTitle, type HomeView } from './shell/home';
 import {
-  IMPORT_ACCEPT, guardText, importErrorText, readDesignMdFile, validateDesignMd, validatePaste,
+  IMPORT_ACCEPT, guardText, importErrorText, readDesignMdFile, storedInput, validateDesignMd, validatePaste,
 } from './state/start-input';
 // The Style guide's shared color sections and the helpers they draw with (UI redesign S4a, owner decision Q5):
 // Color › Surfaces & fills draws the same five sections from the same modules.
@@ -415,10 +415,10 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   // (#3394's override sync, which it sends only while the panel's brand is the one it wrote) still loads.
   const late = effect === 'loadBrand' && m.kind === 'restore-input' && !bootRestoreSeen && userActed();
   if (m.kind === 'restore-input' || m.kind === 'restore-input-empty' || m.kind === 'restore-input-error' || m.kind === 'restore-input-library') bootRestoreSeen = true;
-  if (late) { heldRestore = structuredClone(m.input as BrandInput); syncErrorBar(); }
+  if (late) { heldRestore = storedInput(structuredClone(m.input)); syncErrorBar(); }
   else if (effect === 'loadBrand' && m.kind === 'restore-input') {
     heldRestore = null;
-    loadBrand(m.input as BrandInput, { kind: 'file' });
+    loadBrand(storedInput(m.input), { kind: 'file' });
     if (lastError) { restoreFailure = { kind: 'unresolved', reason: lastError, brand: failedBrandOf(brandState) }; build(); }
   }
   // #1994: the two restores that load nothing. `reduce` dropped a blob `brandTheme` refuses with no effect,

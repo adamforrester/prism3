@@ -190,5 +190,25 @@ for (const hx of ['#808080', '#333333']) {
     `#2241 starting from a real color (#3366cc), the neutral still leans to its hue (got ${JSON.stringify(seed.neutral)}, primary hue ${seed.primary.h})`);
 }
 
+// #4312 review: a design.md that writes a hex anchor (#4133) is stored as OKLCH, so the color fields can read it;
+// it used to pass validation and keep the string, and the primary field showed #NaNNaNNaN. The numbers are the note's
+// own literal for #2f6b4f, typed here, not computed by the conversion under test.
+{
+  const r = S.validateDesignMd('---\nid: probe\nprimary: "#2f6b4f"\nneutral: { hue: 160, chroma: 0.008, anchor: "#2f6b4f" }\nbrandColors:\n  - { name: accent, oklch: "#2f6b4f" }\n---\n');
+  const inp = ('input' in r ? r.input : null) as any;
+  const near = (o: any): boolean => !!o && typeof o === 'object' && Math.abs(o.l - 0.4794) < 5e-5 && Math.abs(o.c - 0.078) < 5e-5 && Math.abs(o.h - 161.08) < 5e-3;
+  ok(near(inp?.primary) && near(inp?.neutral?.anchor) && near(inp?.brandColors?.[0]?.oklch),
+    `#4312 a hex-anchored design.md is stored as OKLCH { l: 0.4794, c: 0.078, h: 161.08 } at primary, neutral.anchor and brandColors (got ${JSON.stringify(inp ?? r)})`);
+}
+
+// #4312 review: the file's stored brand loads through the same `storedInput` (main.ts's restore-input), so a hex anchor an
+// agent's apply-theme stored arrives as OKLCH too. Same typed literal.
+{
+  const inp = S.storedInput({ id: 'b', primary: '#2f6b4f', neutral: { hue: 160, chroma: 0.008, anchor: '#2f6b4f' }, brandColors: [{ name: 'accent', oklch: '#2f6b4f' }] }) as any;
+  const near = (o: any): boolean => !!o && typeof o === 'object' && Math.abs(o.l - 0.4794) < 5e-5 && Math.abs(o.c - 0.078) < 5e-5 && Math.abs(o.h - 161.08) < 5e-3;
+  ok(near(inp.primary) && near(inp.neutral?.anchor) && near(inp.brandColors?.[0]?.oklch),
+    `#4312 a stored brand with a hex anchor loads as OKLCH at primary, neutral.anchor and brandColors (got ${JSON.stringify(inp)})`);
+}
+
 console.log(`\n${executed - failed}/${executed} passed.`);
 if (failed) process.exit(1);

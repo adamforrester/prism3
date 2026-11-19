@@ -80,6 +80,9 @@ const STRING_CANDIDATES = [
   'color.surface-a',
   'white',
   'Inter',
+  // #4312 review: a hex anchor (`$defs.hexColor`). Appended, because candidate 0 is what a pattern-free string gets;
+  // `#` starts a YAML comment, so this witness is what proves a hex survives toDesignMd → parseDesignMd.
+  '#2f6b4f',
 ];
 /** Keys tried for a map with no `propertyNames` enum: one that needs quoting, with a space at each end, and one plain. */
 const KEY_CANDIDATES = [' A key: "x" #1 ', 'mobile'];
