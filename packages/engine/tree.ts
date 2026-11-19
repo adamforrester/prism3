@@ -551,7 +551,31 @@ export const aliasFaults = (tree: any): { aliases: { path: string; ref: string; 
   return { aliases, faults };
 };
 
-export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats: Stats } => {
+type BuiltTree = { tree: any; modes: ModeResult[]; stats: Stats };
+
+/** #4230: ONE TREE PER THEME, WHILE A CALLER ASKS FOR IT. Each Figma emitter starts from `buildTree(theme)`, so the
+ *  plugin's Apply Theme (`themePlans`, seven plans over one theme) built the same tree about nine times: 129 ms of its
+ *  158 ms. Inside `withSharedTree(f)`, a theme's tree is built once and handed to every caller; outside it nothing is
+ *  kept, so a caller that changes the tree it was given (a test plants a fault in it) changes no one else's. Scoped,
+ *  not global, for that reason: the cache holds only for the synchronous run of `f`. `treeBuilds` counts the builds,
+ *  so a test can hold the sharing by a number rather than a timing. */
+let shared: WeakMap<Theme, BuiltTree> | null = null;
+let builds = 0;
+export const treeBuilds = (): number => builds;
+export const withSharedTree = <T>(f: () => T): T => {
+  const was = shared;
+  shared ??= new WeakMap();
+  try { return f(); } finally { shared = was; }
+};
+export const buildTree = (theme: Theme): BuiltTree => {
+  if (!shared) return buildTreeOnce(theme);
+  let t = shared.get(theme);
+  if (!t) shared.set(theme, t = buildTreeOnce(theme));
+  return t;
+};
+
+const buildTreeOnce = (theme: Theme): BuiltTree => {
+  builds++;
   const root = theme.root;
 
   // ---- colour primitives (the reference tier) → `palette.*` ----

@@ -26,6 +26,7 @@
  */
 
 import { facade } from './host-facade';
+import { searchComponents } from './component-search';
 
 /** A search's criteria, as `findAllWithCriteria` takes them. */
 export type Criteria = { types: readonly string[]; sharedPluginData?: { namespace: string; keys: readonly string[] } };
@@ -63,7 +64,7 @@ const coverOf = (criteria: readonly Criteria[], c: Criteria): number => criteria
 const searchPage = async (page: PageLike, criteria: readonly Criteria[], breathe?: Breathe): Promise<unknown[][]> => {
   const out: unknown[][] = [];
   for (const c of criteria) {
-    out.push([...page.findAllWithCriteria!(c)]);
+    out.push(searchComponents(c.sharedPluginData ? undefined : c.types, () => [...page.findAllWithCriteria!(c)]));
     if (breathe) await breathe();
   }
   return out;
