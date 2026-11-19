@@ -213,7 +213,7 @@ export const tabs: ComponentDef = {
   ai: {
     primaryPurpose: 'Switch between peer panels of related content in place, one at a time.',
     whenToUse: 'Two to about six peer sections of one subject, viewed one at a time, where switching is quick and the address need not change.',
-    avoidWhen: 'The selection changes the page or the address (PageNav, a navigation of links), filters or re-sorts the current view (SegmentedControl, or Select), is a required sequence (a stepper, not built yet), or has many independent sections (Accordion).',
+    avoidWhen: 'The selection changes the page or the address (PageNav, a navigation of links), filters or re-sorts the current view (SegmentedControl, or Select), is a required sequence (Steps), or has many independent sections (Accordion).',
     commonPartners: ['tab-item', 'badge', 'icon'],
     triggerKeywords: ['tabs', 'tab list', 'tab bar', 'tabbed panels', 'tabbed content', 'switch panels'],
     generationPriority: 2,

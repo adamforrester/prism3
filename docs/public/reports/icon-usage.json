@@ -501,6 +501,33 @@
       ],
       "iconSlots": []
     },
+    "step-item": {
+      "glyphs": [
+        {
+          "part": "checkGlyph",
+          "glyph": "check",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "status": [
+              "complete"
+            ]
+          }
+        },
+        {
+          "part": "errorGlyph",
+          "glyph": "error-circle",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "status": [
+              "error"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
+    },
     "switch-control": {
       "glyphs": [
         {
@@ -611,6 +638,7 @@
     "check": [
       "checkbox-control",
       "list-item",
+      "step-item",
       "switch-control",
       "tag"
     ],
@@ -644,7 +672,8 @@
     ],
     "error-circle": [
       "banner",
-      "field-message"
+      "field-message",
+      "step-item"
     ],
     "error-circle-filled": [],
     "external-link-filled": [],

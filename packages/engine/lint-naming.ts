@@ -87,7 +87,7 @@ const DECIDED_PRIVATE: readonly string[] = ['_accordion-indicator', '_breadcrumb
 
 /** The owner's slot items (Q394 A): each is a native slot's preferred item, so it stays unprefixed. Exact, not a floor
  *  (#3554 M-B): a slot item whose whenToUse reads as a private part, and that no entry here names, fails. */
-const SLOT_ITEMS: readonly string[] = ['tab-item', 'list-item', 'segmented-control-segment', 'breadcrumb-item', 'pagination-item', 'page-nav-item', 'code-input-cell', 'radio-row'];
+const SLOT_ITEMS: readonly string[] = ['tab-item', 'list-item', 'segmented-control-segment', 'breadcrumb-item', 'pagination-item', 'page-nav-item', 'step-item', 'code-input-cell', 'radio-row'];
 
 /** Exempt from the prefix by decision (Q349): each may be used on its own. */
 const STANDALONE: readonly string[] = ['checkbox-control', 'radio-control'];

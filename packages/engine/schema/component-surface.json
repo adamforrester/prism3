@@ -856,6 +856,22 @@
       "properties": [
         "items:SLOT"
       ]
+    },
+    "step-item": {
+      "members": 16,
+      "sha256": "9af0853b81b252c10bb04d991315c982353a981234838e47ef6b68fa345e14f8",
+      "properties": [
+        "connector:BOOLEAN",
+        "label:TEXT",
+        "number:TEXT"
+      ]
+    },
+    "steps": {
+      "members": 4,
+      "sha256": "b5cafb849a4a55e756c5d5338f75900b4a3de574bfa72b92f4997f4e6d83a457",
+      "properties": [
+        "items:SLOT"
+      ]
     }
   }
 }

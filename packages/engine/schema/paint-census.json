@@ -756,6 +756,30 @@
         "assignments": 0,
         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       }
+    },
+    "step-item": {
+      "set": {
+        "members": 16,
+        "assignments": 56,
+        "sha256": "afb7b8c1ee3ee480f0ce859ee1a1891ebc1a106310f3839264e7e8a516ab323f"
+      },
+      "grid": {
+        "members": 16,
+        "assignments": 56,
+        "sha256": "2e485a73062223f56fb330c40492b368f6634a77543960f43f502d33702a7327"
+      }
+    },
+    "steps": {
+      "set": {
+        "members": 4,
+        "assignments": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "grid": {
+        "members": 4,
+        "assignments": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
     }
   }
 }
