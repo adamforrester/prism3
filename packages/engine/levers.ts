@@ -194,6 +194,11 @@ export const leverManifest: Lever[] = [
   { key: 'buttonTextHover', group: 'form', kind: 'value', label: 'Text button hover', control: 'enum', default: 'text',
     options: enumOpts(['text', 'Text & icon only'], ['fill', 'Fill']),
     description: 'What a text button does on hover and when pressed. Text & icon only changes the label and icon colors. Fill also fills the button. A text button is never filled at rest.' },
+  // #576 (owner decision 2026-11-18, A): ONE weight for every outline button set; the border's color stays per set. The
+  // key, values, label, option labels and description are a DRAFT for the owner (on the build PR).
+  { key: 'buttonBorderWeight', group: 'form', kind: 'value', label: 'Outline button border', control: 'enum', default: 'hairline',
+    options: enumOpts(['hairline', 'Thin (1px)'], ['thick', 'Thick (2px)']),
+    description: 'How thick the border of an outline button is, in every button set. Each set keeps its own border color. Filled and text buttons draw no border.' },
   { key: 'buttonMinWidthMultiplier', group: 'form', kind: 'value', label: 'Button minimum width', control: 'slider', default: 2.25, min: 1, max: 4, step: 0.25, unit: '× height',
     description: 'A button is at least its height times this wide, rounded up to the 8px grid, so a short label never makes a stubby button.' },
   { key: 'baseMd', group: 'form', kind: 'value', label: 'Base radius', control: 'slider', advanced: true, default: 4, min: 2, max: 12, step: 1, unit: 'px',
