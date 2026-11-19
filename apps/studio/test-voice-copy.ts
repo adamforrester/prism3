@@ -19,7 +19,8 @@
  *
  * Mutations this fails by name: `advancedLabel` without its noun → `#4190 V4 the advanced fold names its settings`;
  * `sliderReadout` back to " px" → `#4189 a px readout has no space`; `SET_CARD_TITLE` back to Title Case →
- * `#4190 V1 the set card title is sentence case`.
+ * `#4190 V1 the set card title is sentence case`; the import refusals without their next step (`refusal`'s `step` empty)
+ * → `#4193 D an import refusal ends on its next step`.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -31,6 +32,7 @@ import { healthLine } from './src/state/verdict';
 import { PAIR_ICONS_CONFIRM } from './src/state/fills-input';
 import { S63 } from './src/domains/type';
 import { listNameOf } from './src/state/component-groups';
+import { validateDesignMd, importErrorText } from './src/state/start-input';
 
 let failed = 0;
 let executed = 0;
@@ -133,6 +135,19 @@ for (const f of files) {
 }
 ok(files.length > 100 && count > 5000, `#4190 scope: apps/studio/src is represented (${files.length} files, ${count} literals)`);
 for (const [, n] of RETIRED) { const h = hits.get(n)!; ok(h.length === 0, `${n} is in no shipped string`, h.slice(0, 6).join('\n      ')); }
+
+// #4193 D: an import that loaded but could not be used ends on what to do next. The expected sentence is typed here,
+// not read from `IMPORT_NEXT_STEP`, so a step that changed or went missing fails by name.
+const NEXT = 'Fix it in the design.md, then import it again.';
+for (const [what, text] of [
+  ['a standard-dialect design.md with a color it cannot read', '---\nname: Acme\ncolors:\n  primary: "#zzzzzz"\n---\n'],
+  ['an engine-native design.md the engine refuses', '---\nid: x\nsurfaces:\n  light:\n    base: 12345\n---\n'],
+] as const) {
+  const r = validateDesignMd(text);
+  const shown = 'error' in r ? importErrorText(r.error) : '';
+  ok(/loaded, but/.test(shown) && shown.endsWith(` ${NEXT}`) && shown.split(NEXT).length === 2,
+    `#4193 D an import refusal ends on its next step: ${what}`, JSON.stringify(shown));
+}
 
 // The two CSS decisions (#4189), read from the chrome's stylesheet: a face this device lacks is a warning, never the
 // error ink, and displayed hex keeps its own (lowercase) case.

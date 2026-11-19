@@ -143,7 +143,11 @@ export const errorLine = (text: string, message: string, internal: boolean): num
   return null;
 };
 
-const refusal = (text: string, e: unknown, prefix: string, input?: BrandInput): { error: ImportError } => {
+/** #4193 D: the next step after a design.md that loaded but could not be used (DRAFT, for the owner). A refusal the
+ *  studio rewords already ends on its own fix (the contrast floor's, Q76 A), so this follows the raw message only. */
+export const IMPORT_NEXT_STEP = 'Fix it in the design.md, then import it again.';
+
+const refusal = (text: string, e: unknown, prefix: string, input?: BrandInput, next = ''): { error: ImportError } => {
   const message = (e as Error)?.message ?? String(e);
   const internal = e instanceof TypeError || e instanceof ReferenceError || e instanceof RangeError;
   const line = errorLine(text, message, internal);
@@ -152,7 +156,9 @@ const refusal = (text: string, e: unknown, prefix: string, input?: BrandInput): 
   // still found from the engine's key.
   const shown = input ? studioMessage(message, input, 'import') : message;
   const said = line !== null ? shown.replace(/\s+at line \d+\b/, '') : shown;
-  return { error: { text: `${prefix}${said}`.trim(), line } };
+  const step = next && shown === message ? ` ${next}` : '';
+  const body = step && !/[.!?]$/.test(said.trim()) ? `${said.trim()}.` : said;
+  return { error: { text: `${prefix}${body}${step}`.trim(), line } };
 };
 
 /** Engine acceptance IS the validation: parse the design.md, then confirm the engine builds it. Returns the
@@ -184,7 +190,7 @@ export const validateDesignMd = (text: string): ImportResult => {
   let input: BrandInput;
   if (isStandard) {
     try { input = standardToBrandInput(std).input; }
-    catch (e) { return refusal(text, e, `This design.md ('${std.name}') loaded, but Prism3 couldn't read its settings: `); }
+    catch (e) { return refusal(text, e, `This design.md ('${std.name}') loaded, but Prism3 couldn't read its settings: `, undefined, IMPORT_NEXT_STEP); }
   } else {
     try { input = parseDesignMd(text).input; }
     catch (e) { return parseRefusal(text, e); }
@@ -193,7 +199,7 @@ export const validateDesignMd = (text: string): ImportResult => {
   // The modes resolve too: some refusals are made there, not in `brandTheme` (the contrast floor's, #2227), and a
   // brief that passed here would otherwise load and fail as the next edit.
   try { resolveAllModes(brandTheme(input)); }
-  catch (e) { return refusal(text, e, 'This design.md loaded, but the engine refused it: ', input); }
+  catch (e) { return refusal(text, e, 'This design.md loaded, but the engine refused it: ', input, IMPORT_NEXT_STEP); }
   return { input };
 };
 
