@@ -79,7 +79,7 @@ export const tabs: ComponentDef = {
       // THE ITEMS SLOT (#2649, owner decision Q307 A): a native Figma slot (#2417) holding the tabs, three by default
       // with the first selected. A designer adds, removes and reorders tabs on an instance in place, up to six (Q179).
       items: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'presentation',
         contentSlot: true,
         // Owner decision Q307 A: at least one item, at most 6, and only a tab (#2646's slot constraints).
@@ -110,7 +110,7 @@ export const tabs: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'code delivery pending: behavior layer (#2454). The owner built the Figma components first (Q178.3); the entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
+          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
       },
       {
         class: 'semantics',
@@ -230,7 +230,7 @@ export const tabs: ComponentDef = {
   motion: {
     enter: 'None. On a change, the underline slides to the new tab and the panel cross-fades, on motion.transition.default.',
     exit: 'The outgoing panel fades out under the incoming one. Panels never slide sideways.',
-    reduceMotion: 'The underline snaps and the panel swaps with no transition.',
+    reduceMotion: 'Under prefers-reduced-motion the underline snaps to the new tab, and the incoming panel fades in on motion.duration-reduced.fast.',
   },
 
   notes: {

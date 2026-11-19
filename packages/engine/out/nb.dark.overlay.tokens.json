@@ -745,8 +745,8 @@
         },
         "border": {
           "$type": "color",
-          "$value": "{nbds.core.palette.neutral.750}",
-          "$description": "Disabled control border — muted neutral"
+          "$value": "{nbds.core.palette.neutral.550}",
+          "$description": "Disabled control border — reduced contrast, legible; clears 3:1"
         }
       },
       "glass": {
@@ -1468,8 +1468,8 @@
           },
           "border": {
             "$type": "color",
-            "$value": "{nbds.core.palette.neutral.250}",
-            "$description": "Disabled control border on an inverse surface — muted neutral"
+            "$value": "{nbds.core.palette.neutral.450}",
+            "$description": "Disabled control border on an inverse surface — reduced contrast, legible; clears 3:1"
           }
         },
         "field": {

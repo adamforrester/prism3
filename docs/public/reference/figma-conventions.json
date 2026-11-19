@@ -153,8 +153,10 @@
           {
             "name": "↳ Tag",
             "components": [
-              "tag"
-            ]
+              "tag",
+              "tag-group"
+            ],
+            "usagePanelLead": "tag"
           },
           {
             "name": "↳ Tabs",
@@ -2068,6 +2070,27 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tag.md"
       },
       {
+        "id": "tag-group",
+        "name": "Tag.Group",
+        "figmaName": "tag-group",
+        "kind": "component set",
+        "page": "↳ Tag",
+        "section": "Components",
+        "members": 3,
+        "variantProperties": [
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tag-group.md"
+      },
+      {
         "id": "tab-item",
         "name": "Tab.Item",
         "figmaName": "tab-item",
@@ -3582,6 +3605,17 @@
         ]
       },
       {
+        "component": "tag-group",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "tag"
+        ]
+      },
+      {
         "component": "tabs",
         "property": "items",
         "settings": {
@@ -3839,6 +3873,7 @@
       "image-placeholder",
       "badge",
       "tag",
+      "tag-group",
       "tab-item",
       "tabs",
       "divider",

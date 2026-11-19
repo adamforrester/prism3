@@ -33,6 +33,8 @@ Shown on the default member: selection `unselected`, size `medium`.
 
 Items make up a PageNav row and are set inside it: one current page and links to its sibling pages. Change which item is current in the row; never place an item on its own.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Make the page the user is on the current item
