@@ -34,9 +34,10 @@
  * So both long loops here — building members, and wiring property references across them — run in chunks
  * with a `yieldTo` between them, and report progress at every boundary. See `ComponentApplyOptions`.
  *
- * UNDO IS ONE STEP FOR THE WHOLE SET, and we get that by NOT calling `figma.commitUndo()` anywhere: by
+ * UNDO IS ONE STEP FOR THE WHOLE SET, and we get that by NOT calling `figma.commitUndo()` during a run: by
  * Figma's own default, plugin actions are not committed to undo history individually, so the entire run
- * collapses into a single undo entry. Chunking would let us commit per chunk and it is deliberately not
+ * collapses into a single undo entry. The one call is as a write STARTS (`guarded`, `main.ts`, #4158), which
+ * closes the step an earlier run is in, so the step is this run's alone. Chunking would let us commit per chunk and it is deliberately not
  * done — a designer who did not mean to build presses ⌘Z once and the set is gone, because "Build Button
  * set" was one action from where they were standing. This is the one host behavior here that is a
  * DECISION rather than a measurement, so it is stated rather than left to be inferred from an absence.
@@ -1669,7 +1670,7 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
 // does is press the button again — on top of them.
 //
 // WHY MARK RATHER THAN DELETE, since deleting is the obvious repair. `figma.commitUndo()` is called
-// nowhere in this plugin (see the header), so the whole run is ONE undo entry and a single undo already
+// only as a write starts (see the header), so the whole run is ONE undo entry and a single undo already
 // unwinds a partial write completely. A cleanup pass would therefore duplicate an unwind that exists,
 // spend hundreds of host calls on the least reliable code path available — a host that has just refused a
 // call — and destroy the evidence a designer or an agent needs to diagnose the failure. So the nodes stay
