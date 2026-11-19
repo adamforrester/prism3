@@ -37,6 +37,8 @@ Shown on the default member: placement `top`.
 
 Use a Tooltip to name an icon-only control or to add a short description to a control, shown on hover and keyboard focus. Touch has no hover, so the tooltip never holds the only copy of what it says. Anything interactive, or content that opens on a press, is a Popover; a status after an action is a Toast; help under a field is a field message.
 
+**In RTL.** The start and end glyphs flip to point the other way.
+
 ### Do
 
 - Use label mode when an icon-only control has a tooltip

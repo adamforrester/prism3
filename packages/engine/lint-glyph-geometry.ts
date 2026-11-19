@@ -228,7 +228,7 @@ const RING_VAR_PX: Record<string, number> = { 'icon/size/md': 24, 'icon/size/xl'
 const STOP_PX = 4;
 
 /**
- * TOOLTIP'S ARROW (#4009, OD-T6: an 8-unit arrow; OD-TB2 A pending: a right-angled tip half the base deep) — four
+ * TOOLTIP'S ARROW (#4009, OD-T6: an 8-unit arrow; OD-TB2 A, decided 2026-11-19: a right-angled tip half the base deep) — four
  * component-owned glyphs of ONE filled triangle each, measured here against numbers typed in this file and never read
  * from `component-glyphs.ts`, which is the subject:
  *

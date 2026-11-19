@@ -858,7 +858,7 @@
     },
     "tooltip": {
       "members": 4,
-      "sha256": "6ff1fb8b27d638f2d8bdb26a6d90a583f0e9054bb805de30777993019ce4ae7e",
+      "sha256": "ec6aa6942c2a3d25592ee83295771594c073c08e03eddd1a7d8ed78084532b00",
       "properties": [
         "arrow:BOOLEAN",
         "label:TEXT"

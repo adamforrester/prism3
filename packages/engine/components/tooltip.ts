@@ -36,7 +36,7 @@
  * an 8px base and a 4px tip. A vector part is square, so the far half of the arrow's 8px box is clear. The max width,
  * 240px, has no Figma projection: `wrap: 'hug'` (the field label's max-width wrap) requires the text's parent to be
  * the root, and the label sits inside the padded bubble. So Figma's bubble hugs its label on one line, and the wrap at
- * 240px is code (`codeOnly`). That is OWNER DECISION OD-TB1, pending (the progress entry and the PR). The offset from
+ * 240px is code (`codeOnly`). That is OWNER DECISION OD-TB1 A, decided (owner, 2026-11-19). The offset from
  * the trigger, `space.100` to the arrow's tip, is code: Figma has no trigger.
  */
 import { ComponentDef } from '../component-schema';
@@ -140,6 +140,7 @@ export const tooltip: ComponentDef = {
       },
       startGlyph: {
         kind: 'vector',
+        mirror: 'mirrors',
         glyph: 'tooltip-arrow-end',
         glyphPx: 8,
         paintSlot: 'fill',
@@ -149,6 +150,7 @@ export const tooltip: ComponentDef = {
       },
       endGlyph: {
         kind: 'vector',
+        mirror: 'mirrors',
         glyph: 'tooltip-arrow-start',
         glyphPx: 8,
         paintSlot: 'fill',
@@ -204,7 +206,7 @@ export const tooltip: ComponentDef = {
         class: 'right-to-left',
         disposition: 'unsupported',
         description:
-          'RTL — start and end are logical: in right-to-left text a start tooltip sits on the trigger\'s right, its arrow drawn mirrored, with no rename. The text is set in the document direction.',
+          'RTL — start and end are logical: in right-to-left text a start tooltip sits on the trigger\'s right and its arrow flips to point at it, with no rename. The text is set in the document direction.',
       },
       {
         class: 'localization',
@@ -307,7 +309,7 @@ export const tooltip: ComponentDef = {
     ],
     evolution: [
       'Owner decisions (2026-11-19, on #4251), all as recommended: OD-TB1 A (the design file\'s bubble hugs one line; the 240px wrap is code only); OD-TB2 A (an 8px base and a 4px right-angled tip); OD-TB3 A (its own Tooltip page under Components; Popover gets its own page too); K7 A (a fade alone, with no scale, replacing the K7 B fade plus scale); N1 A (docs.do: use label mode when an icon-only control has a tooltip); Popover and Tooltip list each other in alternativeTo, replacing the planned entries, which lands with whichever of #4251 and #4252 merges second, because the list must be symmetric.',
-      'Owner decisions: the proposal on #4009 with every OD at its recommendation (Q-FL2, 2026-11-19), read with the KB brief check on #4009 (8 agree, 2 conflict, 2 silent). K6 B: label mode on an icon-only trigger, not an `aria-hidden` twin of the `aria-label`. K7 B was built first and reopened (see the next entry). K8 A: an owned positioning layer on the platform for the POC. OD-X2 A: logical sides. OD-T6: max width 240, offset `space.100`, an 8-unit arrow, `type.body.sm.default`, built as placeholders. Generation priority 3, as Badge: the proposal\'s Identity section, adopted with the rest in Q-FL2 (not the Tier 1 of #4001\'s table, a different scale).',
+      'Owner decisions: the proposal on #4009 with every OD at its recommendation (Q-FL2, 2026-11-19), read with the KB brief check on #4009 (8 agree, 2 conflict, 2 silent). K6 B: label mode on an icon-only trigger, not an `aria-hidden` twin of the `aria-label`. K7 B was built first and reopened (see the previous entry). K8 A: an owned positioning layer on the platform for the POC. OD-X2 A: logical sides. OD-T6: max width 240, offset `space.100`, an 8-unit arrow, `type.body.sm.default`, built as placeholders. Generation priority 3, as Badge: the proposal\'s Identity section, adopted with the rest in Q-FL2 (not the Tier 1 of #4001\'s table, a different scale).',
       'Motion presets: no preset registry exists in the engine yet (#2857 is a wireframe), so the proposed Tooltip / show and Tooltip / hide are this def\'s `motion` field and `codeOnly` entry only; nothing was added to a preset set.',
       'The brief\'s close delay and shared skip delay are props and a provider setting here; their default values go to the motion gap batch (#3486).',
     ],
