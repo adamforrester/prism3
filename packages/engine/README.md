@@ -1,9 +1,9 @@
-# Prism3 engine (prototype)
+# Prism3 engine
 
-A thin, dependency-free TypeScript prototype of the Prism3 generation engine.
+The dependency-free TypeScript generation engine of Prism3.
 It does two things:
 
-1. **Proves the color thesis against New Balance** — generates NB's ramps from
+1. **Proves the color thesis against the reference brand** — generates its ramps from
    the reverse-engineered schema and diffs them against the real hand-built
    tokens (`nb-regression.ts`).
 2. **Proves the white-label claim** — takes a brand input (primary + neutral +
@@ -14,8 +14,8 @@ It does two things:
    (`emit-dtcg.ts`, second theme `aurora`).
 
 This is not the production engine, and it is well past color-thesis-only: from a
-small per-brand input it generates a **complete token layer end-to-end** for two
-brands (NB + a synthetic violet brand) across every axis — color, semantic roles,
+small per-brand input it generates a **complete token layer end-to-end** for every
+brand in `out/` across every axis — color, semantic roles,
 dimension (space/radius/sizes), typography, shadow & elevation, motion, layout,
 opt-in gradients, and the mode-invariant primitives (border-width, focus,
 opacity/alpha) — emitted as
@@ -42,7 +42,7 @@ npx tsx packages/engine/cli.ts packages/engine/examples/harbor.design.md --out <
 npx tsx packages/engine/emit-levers.ts     # (re)emit schema/lever-manifest.json — the shared-control contract (plugin/playground/MCP)
 npx tsx packages/engine/emit-preview.ts    # (re)emit schema/preview-spec.json — the shared live-preview spec (plugin/playground)
 npx tsx packages/engine/emit-brandinput.ts # (re)emit schema/example-brands.json — validated boot brands for the browser hosts
-npx tsx packages/engine/emit-figma.ts      # (re)emit out/figma/<id>/ — the Figma import artifact (color axis; see docs/10 §7 for the emitter remit)
+npx tsx packages/engine/emit-figma.ts      # (re)emit out/figma/<id>/ — the Figma import artifact (every axis: a folder per collection; see docs/10 §7 for the emitter remit)
 ```
 
 The individual emitters above still work and are useful when iterating on one axis. But **prefer

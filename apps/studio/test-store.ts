@@ -455,5 +455,24 @@ ok(store.getPath(o, 'a.b.c') === 3 && store.getPath(o, 'a.x.c') === undefined, '
   ok(rp.colors[ref]?.[modes[0]!.mode] === '#123456', `#4234 resolvePreview reads the modes it is given (${ref}: ${rp.colors[ref]?.[modes[0]!.mode]})`);
 }
 
+// ---- Undo load back to the boot brand (#4215) ---------------------------------------------------------------------------
+// `provenance === bootProvenance` reads "nothing chosen in this session" (#1197), and `main.ts` guards a late host read
+// with it. An Undo load back to the brand boot put there restored the boot OBJECT, so a slow boot read arriving after a
+// load and its undo behaved as if nothing had been chosen. Restored, the provenance is equal by value and a new object.
+// Mutation that fails here BY NAME: `restoreInput` assigning `prov` as given → `#4215 restoreInput: …`.
+{
+  const ids = Object.keys(exampleBrands);
+  store.initSession(structuredClone((exampleBrands as Record<string, BrandInput>)[ids[0]]), { kind: 'example', id: ids[0] });
+  ok(store.provenance === store.bootProvenance, '#4215 premise: the session starts on the boot provenance');
+  store.brandState.name = 'edited at boot';
+  const u = stashBefore(store.brandState, store.provenance, 'edited at boot', store.lastGoodInput);
+  store.loadInput((exampleBrands as Record<string, BrandInput>)[ids[1]], { kind: 'example', id: ids[1] });
+  store.restoreInput(u!.input, u!.provenance, u!.lastGood);
+  ok(store.provenance !== store.bootProvenance, '#4215 restoreInput: an Undo load back to the boot brand is a choice, never the boot provenance by identity');
+  ok(JSON.stringify(store.provenance) === JSON.stringify(store.bootProvenance) && Object.isFrozen(store.provenance) && Object.isFrozen(store.provenance.baseline),
+    '#4215 restoreInput: the restored provenance is the boot one by value, and frozen as every provenance is');
+  ok(isDirty(store.brandState, store.provenance), '#4215 restoreInput: the boot brand\'s edit comes back still unsaved');
+}
+
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);

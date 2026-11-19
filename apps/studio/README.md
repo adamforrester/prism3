@@ -1,10 +1,10 @@
-# @prism3/studio — the web dashboard
+# @prism3/studio — the web Studio
 
 The first **rendering host** over the Prism3 engine core (see `../../docs/09-architecture-and-repos.md`
-and `08-theming-interfaces.md`). It imports the same pure engine modules the Figma
-plugin will, and renders from the shared contracts:
+and `08-theming-interfaces.md`). It imports the same pure engine modules as the Figma
+plugin, which runs this UI whole in its panel, and renders from the shared contracts:
 
-- **Knobs** from the lever manifest (`packages/engine/levers.ts`).
+- **Settings** from the lever manifest (`packages/engine/levers.ts`).
 - **Live component preview + per-mode contrast overlay** from `previewSpec`
   (`preview.ts`) resolved through `resolvePreview(theme)` (`resolve-preview.ts`).
 - **Generated palette ramps** straight off `brandTheme(input).palettes`.
@@ -14,7 +14,7 @@ Figma plugin without touching either UI (docs/08 §4).
 
 ## Shell
 
-The shell is a rail of areas: Theme · Components · Documentation · Export (#2909, IA v2;
+The shell is a rail of areas: Theme · Components · Docs · Export (#2909, IA v2;
 `src/shell/pages.ts`). Theme holds the levers as a tab row in the order a theme composes:
 Brand, Color, Type, Shape, Depth & motion, Layout. Each page puts its levers beside the live
 preview, which has its own mode selector. What each area holds today: **Scope**, below.
@@ -94,8 +94,8 @@ Two smaller traps worth inheriting rather than rediscovering:
 
 ## Scope (what's here vs. next)
 
-- ✅ **The shell (IA v2, #2909):** a rail of areas, Theme · Components · Documentation · Export
-  (`RAIL_AREAS`, `src/shell/pages.ts`). The web hides Documentation, which documents a Figma file
+- ✅ **The shell (IA v2, #2909):** a rail of areas, Theme · Components · Docs · Export
+  (`RAIL_AREAS`, `src/shell/pages.ts`). The web hides Docs, which documents a Figma file
   (`railAreas`). Theme's pages are a tab row: Brand, Color (Palettes, Surfaces & fills, Interactive),
   Type, Shape, Depth & motion and Layout (`DOMAINS`, `THEME_TABS`). Every lever edit runs the
   engine again, and the preview redraws.
