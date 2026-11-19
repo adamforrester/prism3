@@ -20727,6 +20727,12 @@ for (const theme of ['light', 'dark']) {
 //   `isOpen` reading a leaving menu as open → `… reads as closed`; an exit rule dropped → `#3150 DECLARED: … declares no
 //   motion` and its LIVE exit arm; the drawer's exit unscoped from `data-closing` (#3217) → `#3150 LIVE … at boot the closed drawer plays no exit` and
 //   `… a narrow → wide resize under the closed drawer plays no exit`.
+//   #3245 (owner decision 2026-11-18, A), the agent link's pairing prompt, measured 2026-11-18: main's `chrome.css` (the
+//   prompt hidden with no exit) → the three `#3150 DECLARED: … .p3-menu.p3-agent-pair …` arms, `#3245 #3150 LIVE … the
+//   pairing prompt, hidden, stays drawn and leaves as the menus' fade … (display none; read [])` and both REDUCED exit
+//   arms; the reduced block's `.p3-popwrap > .p3-menu.p3-agent-pair` rule alone dropped (the menus' reduced line then
+//   drops `display`, so the fade ends at once) → `#3150 DECLARED: reduced …`, `#3245 #3150 REDUCED … stays drawn through
+//   its exit under reduced motion (display none)` and `… #3245 the pairing prompt leaving: it crossfades on 100ms`.
 // =============================================================================================
 if (runs('3150')) {
 console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n${'='.repeat(78)}`);
@@ -20752,6 +20758,8 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
     ['rule', '.p3-drawer-bar .p3-status-dot[data-leaving="true"]'],
     // Shift: a menu.
     ['rule', '.p3-menu'], ['start', '.p3-menu'], ['rule', '.p3-menu[data-leaving="true"]'],
+    // #3245: the agent link's pairing prompt, a menu's surface that is hidden rather than removed, with the menu's exit fade.
+    ['rule', '.p3-menu.p3-agent-pair'], ['rule', '.p3-menu.p3-agent-pair[hidden]'],
     // Fade: a tooltip; the error strip and the notices row it sits in; the Update file rows that land.
     ['rule', '.p3-tile-tip'], ['start', '.p3-tile:is(:hover, :focus-visible):not([aria-expanded="true"]) > .p3-tile-tip'],
     ['rule', '.p3-notices'], ['rule', '.p3-errstrip'], ['rule', '.p3-errstrip[hidden]'], ['start', '.p3-errstrip'],
@@ -20770,6 +20778,7 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
     ['reduced-start', '.p3-drawer-body'],
     ['reduced', ':is(.p3-drawer-body, .p3-errstrip, .p3-errstrip[hidden])'],
     ['reduced', ':is(.p3-frame[data-w="narrow"] .p3-drawer, .p3-drawer-bar .p3-status-dot[data-state="unread"], .p3-menu, .p3-tile-tip, .p3-upd [data-land="true"], :is(.p3-bardlg-scrim, .p3-scrim), :is(.p3-advbody, .p3-op-body, .p3-op-history > ul, .p3-op-entry > :not(summary), .p3-sg-titles-body))'],
+    ['reduced', '.p3-popwrap > .p3-menu.p3-agent-pair'],
   ];
   /** Every rule in the chrome's stylesheet that declares a transition or an animation, with its context. */
   const declared = (page) => page.evaluate(() => {
@@ -21008,6 +21017,33 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       await page.keyboard.press('Escape');
       await settleAll(page, cdp);
       ok(await goneNow(page, '[data-p3="inspect-menu"]'), `${where}: settled, the Inspect menu is removed once its exit ends`);
+
+      // #3245 (owner decision 2026-11-18, A): the agent link's pairing prompt. Drawn as a menu, it shifts in as one, and it is
+      // hidden (`hidden`), not removed, so it has its own exit: the menu's fade, drawn through it. Driven directly, as the
+      // error strip is: the bridge that asks for a code is not in the page.
+      step = 'the pairing prompt';
+      const PAIR = '[data-p3="bar-agent"] [data-p3="agent-pair"]';
+      ok(await page.evaluate((s) => document.querySelector(s)?.hidden === true, PAIR), `#3245 ${where}: premise, the pairing prompt is in the bar's agent slot, hidden (${PAIR})`);
+      await slow();
+      await change(page, (s) => { document.querySelector(s).hidden = false; }, PAIR);
+      const pIn = await movesOf(page, PAIR);
+      if (!reduced) {
+        const o = one(pIn, 'opacity'), t = one(pIn, 'translate');
+        ok(!!o && !!t && o.dur === SMALL && t.dur === SMALL && o.ease === ENTER && t.ease === ENTER, `#3245 ${where}: the pairing prompt shifts in as a menu does, opacity and a short offset on ${SMALL}ms, the enter curve (read ${fmt(pIn)})`);
+      } else reducedOk(pIn?.filter((a) => a.name !== 'display'), '#3245 the pairing prompt appearing');
+      await settleAll(page, cdp);
+      ok(atRest(await restOf(page, PAIR)), `#3245 ${where}: settled, the pairing prompt sits at rest (${fmt(await restOf(page, PAIR))})`);
+      await slow();
+      const pDrawn = await change(page, (s) => { const p = document.querySelector(s); p.hidden = true; return getComputedStyle(p).display; }, PAIR);
+      const pOut = (await movesOf(page, PAIR))?.filter((a) => a.name !== 'display');
+      if (!reduced) ok(pDrawn !== 'none' && !!pOut && one(pOut, 'opacity')?.dur === OUT && one(pOut, 'opacity')?.ease === EXIT && pOut.every((a) => a.moves.length === 0),
+        `#3245 ${where}: the pairing prompt, hidden, stays drawn and leaves as the menus' fade, opacity on ${OUT}ms, the exit curve, moving nothing (display ${pDrawn}; read ${fmt(pOut)})`);
+      else {
+        ok(pDrawn !== 'none', `#3245 ${where}: the pairing prompt, hidden, stays drawn through its exit under reduced motion (display ${pDrawn})`);
+        reducedOk(pOut, '#3245 the pairing prompt leaving');
+      }
+      await settleAll(page, cdp);
+      ok((await restOf(page, PAIR))?.display === 'none', `#3245 ${where}: settled, the pairing prompt is undrawn`);
 
       // A dialog: Scale in; a repaint of the open dialog does not scale it again; the checklist fades in when it lands.
       step = 'the Update file dialog';
@@ -23101,6 +23137,66 @@ if (runs('3911')) {
     } finally { await ctx.close(); }
   }
 } // 3911
+// ── #3938: the token list's dropdowns are the shared select, and its caption row lines up ───────────────────────
+// The owner's Q-BK1 A (2026-11-17): the token list's Show and Category dropdowns move off the legacy `.select` onto the
+// chrome's `.p3-select` (lever-kit `selectField`). The legacy box was taller than the Alias path segmented control
+// beside it, and `.tok-ctrls` aligns its fields at the bottom, so those two captions sat about 5px below Alias path's.
+// INDEPENDENCE (docs/34): the arm reads where each caption is DRAWN (`getBoundingClientRect`), the row the person sees,
+// and compares the captions with each other; it reads no height, class or rule from the stylesheet that sets them.
+// MUTATIONS (each after a `wip:` commit, on both rebuilt bundles):
+//   · the two dropdowns put back on `selectEl()` (main before #3938) → `#3938 … the token list's dropdowns are the shared
+//     select` and `#3938 … every caption in the token list's control row sits on one line`;
+//   · `.tok-ctrls .p3-select { min-height: var(--p3-ctl-h); }` dropped from chrome.css (owner decision A, 2026-11-18:
+//     the selects take the segmented control's height) → `#3938 … every caption … sits on one line, offset 0` (3.00px);
+//   · that rule at `--p3-ctl-h-sm` → the same arm, by name.
+if (runs('3938')) {
+  console.log(`\nThe token list's dropdowns are the shared select, and its captions line up (#3938)\n${'='.repeat(78)}`);
+  const readRow = (page) => page.evaluate(() => {
+    const bar = document.querySelector('.tok-ctrls');
+    if (!bar) return null;
+    const caps = [...bar.querySelectorAll('.pfield > .pfk')].map((c) => ({ text: c.textContent.trim(), top: Math.round(c.getBoundingClientRect().top * 100) / 100, ctl: Math.round(c.nextElementSibling.getBoundingClientRect().height * 100) / 100, field: Math.round(c.parentElement.getBoundingClientRect().height * 100) / 100 }));
+    const selects = [...bar.querySelectorAll('select')].map((x) => ({ hook: x.getAttribute('data-p3'), cls: x.className }));
+    return { caps, selects };
+  });
+  for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+    const where = `3938 ${host} ${theme} 1280`;
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    let step = 'boot';
+    try {
+      step = 'Inspect › Token list';
+      await goPlace(page, 'brand');
+      await hooks.click(page.locator('[data-p3="inspect-open"]'), WAIT);
+      await hooks.click(page.locator('[data-p3="inspect-option-tokens"]'), WAIT);
+      for (const [tier, tab] of [['semantic', '[data-p3="token-tier-semantic"]'], ['primitive', '[data-p3="token-tier-primitive"]']]) {
+        step = `tier ${tier}`;
+        await hooks.click(page.locator(tab), WAIT);
+        await hooks.need(page, '.tok-ctrls .pfield');
+        await settle(page);
+        const row = await readRow(page);
+        const want = tier === 'semantic' ? ['token-show', 'token-category'] : ['token-category'];
+        ok(!!row && row.selects.length === want.length && row.selects.every((x, i) => x.hook === want[i] && /\bp3-select\b/.test(x.cls) && !/(^|\s)select(\s|$)/.test(x.cls)),
+          `#3938 ${where} / ${tier}: the token list's dropdowns are the shared select (.p3-select, not .select): ${JSON.stringify(row?.selects)}`);
+        const tops = (row?.caps ?? []).map((c) => c.top);
+        const spread = tops.length ? Math.max(...tops) - Math.min(...tops) : NaN;
+        // Owner decision A (2026-11-18): the offset is held at 0, read to the hundredth of a pixel.
+        ok(tops.length === (tier === 'semantic' ? 3 : 1) && spread === 0,
+          `#3938 ${where} / ${tier}: every caption in the token list's control row sits on one line, offset 0 (spread ${Number.isNaN(spread) ? 'none' : spread.toFixed(2)}px over ${JSON.stringify(row?.caps)})`);
+        if (tier === 'semantic') {
+          step = 'Category: color';
+          await page.locator('[data-p3="token-category"]').selectOption('color');
+          await settle(page);
+          const picked = await page.evaluate(() => ({ v: document.querySelector('[data-p3="token-category"]')?.value, sections: document.querySelectorAll('.pv-tscroll').length }));
+          ok(picked.v === 'color' && picked.sections === 1, `#3938 ${where}: choosing a category in the shared select filters the list to it (${JSON.stringify(picked)})`);
+          await page.locator('[data-p3="token-category"]').selectOption('');
+          await settle(page);
+        }
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3938
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the

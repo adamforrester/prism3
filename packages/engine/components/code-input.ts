@@ -104,6 +104,9 @@ export const codeInputCell: ComponentDef = {
   tokens: {
     // ── GEOMETRY ───────────────────────────────────────────────────────────────────────────────────────────
     // The x-large cell's corner (as-built wireframe): a 6px corner on the 68×72 display cell, 2px on the others.
+    // Intended, owner decision #3551 A: the three smaller cells follow the control corner
+    // (`control.size.{sm,md,lg}.radius` = `radius.sm`), so they match a same-size text field, and the display cell is
+    // the deliberate exception at `radius.lg`. `lint-rung-names` admits the repeat by name in RUNG_REPEATS.
     'size.medium.radius': 'radius.sm',
     'size.small.radius': 'radius.sm',
     'size.large.radius': 'radius.sm',
