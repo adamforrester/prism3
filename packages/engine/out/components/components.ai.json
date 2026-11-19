@@ -5320,7 +5320,8 @@
           "radio-group",
           "switch-row",
           "select",
-          "tag"
+          "tag",
+          "tag-group"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -7380,8 +7381,8 @@
         "role": "none. A status label is plain text and announces itself; a count or dot is `aria-hidden` and its meaning is in the host's accessible name.",
         "wcag": [
           "1.4.1 Use of Color, as intent (the text carries the meaning, so a tone or a dot is not the only signal)",
-          "1.4.3 Contrast (the label ink clears 4.5:1 on its own fill, measured in every mode of the example brands; an inline label clears 4.5:1 against the page and card surfaces)",
-          "1.4.11 Non-text Contrast (applies to the dot, which has no text, so the colored circle is the information: its bold fill clears 3:1 against the page, measured in every mode of the example brands. For a status label or count the text carries the meaning, and the separation from the page is design intent rather than a 1.4.11 requirement: the subtle label's 1px edge and every bold fill clear 3:1 against the page in the same measurement. The same holds for the inline style's dot: its label says the same thing, so 1.4.11 does not require 3:1, and the dot clears 3:1 against the page and card surfaces as design intent)",
+          "1.4.3 Contrast (the label ink clears 4.5:1 on its own fill, measured in every mode of the example brands. The bold neutral label, `color.inverse.text.primary` on `color.inverse.foreground.tertiary`, is also a mode contract at 4.5:1, so the engine checks it for every brand in every mode and names any shortfall. An inline label clears 4.5:1 against the page and card surfaces)",
+          "1.4.11 Non-text Contrast (applies to the dot, which has no text, so the colored circle is the information. The neutral dot's fill, `color.inverse.foreground.tertiary`, is a mode contract against the page at the non-text bar, 3:1 and 4.5:1 in high contrast, so the engine checks it for every brand in every mode. The tone dots' bold fills clear 3:1 against the page as measured in every mode of the example brands; that is a measurement, not a contract. For a status label or count the text carries the meaning, and the separation from the page is design intent rather than a 1.4.11 requirement. The subtle label's 1px neutral edge, `color.border.tertiary`, is a mode contract at the same bar on every page and surface tier, and the bold neutral fill is contracted as above. The bold tone fills clear 3:1 against the page in the same measurement, not by contract. The same holds for the inline style's dot: its label says the same thing, so 1.4.11 does not require 3:1, and the dot clears 3:1 against the page and card surfaces as design intent)",
           "4.1.2 Name, Role, Value (a count or dot joins its host's accessible name, so the host says what it means)",
           "4.1.3 Status Messages (a count that changes after render reaches assistive technology through a polite live region)"
         ],
@@ -7617,7 +7618,7 @@
         }
       },
       "accessibility": {
-        "role": "By type. Select: a `<button>` with `aria-pressed`, or a `role=\"checkbox\"` or listbox option when a group owns the selection (a radiogroup for single choice). Dismissible: the remove control is a real button named \"Remove\" followed by the label; in a group of dismissible tags it sits in a `role=\"grid\"` row.",
+        "role": "By type. Select: a `<button>` with `aria-pressed`; in a group of select tags (Tag.Group) it is one of the pressed buttons in a `role=\"toolbar\"`, and any number may be pressed. Dismissible: the remove control is a real button named \"Remove\" followed by the label; in a group of dismissible tags it sits in a `role=\"grid\"` row.",
         "wcag": [
           "1.4.1 Use of Color (a selected tag adds a 2px outline and, by default, a check mark to its tint, never color alone)",
           "1.4.3 Contrast (the label ink clears 4.5:1 on the tag at rest in every mode, on the page unselected and on the tint selected)",
@@ -7630,9 +7631,9 @@
           "2.5.5 Target Size (Enhanced) (44×44, as intent — under Tag style Pill a medium tag and its × slot clear 44px on comfortable and spacious density and miss it at compact (36px), and a small tag reaches 44 only at spacious density; elsewhere, and at every size under Underline, a code-side hit area reaches it)",
           "1.1.1 Non-text Content / 4.1.2 Name, Role, Value (the remove control is named \"Remove\" followed by the label, and a select tag exposes its state)"
         ],
-        "keyboard": "Select: Space or Enter toggles. In a single-choice group, arrows move and select, as radios do. Dismissible: Enter or Space on the remove control removes the tag; in a group, one tab stop enters the group, Left and Right arrows move between tags, and Delete or Backspace removes the focused tag.",
+        "keyboard": "Select: Space or Enter toggles. In a group, one tab stop enters the group and Left and Right arrows move focus between tags without toggling them. Dismissible: Enter or Space on the remove control removes the tag; in a group, one tab stop enters the group, Left and Right arrows move between tags, and Delete or Backspace removes the focused tag.",
         "focus": "A focus ring around the whole tag on `:focus-visible`. In a group of dismissible tags, focus moves to the next tag after a removal, else the previous one, else the group or its input, and never to `<body>`.",
-        "aria": "Name the remove control \"Remove\" followed by the label (\"Remove Marketing\"), or aria-label=\"Remove\" plus aria-labelledby pointing at the label. Never a bare \"Remove\" or \"×\". A select tag exposes its state with aria-pressed, aria-checked or aria-selected, matching the role its group gives it. The check mark and a leading icon are aria-hidden. Every name is translatable, and the row mirrors under right-to-left layout."
+        "aria": "Name the remove control \"Remove\" followed by the label (\"Remove Marketing\"), or aria-label=\"Remove\" plus aria-labelledby pointing at the label. Never a bare \"Remove\" or \"×\". A select tag exposes its state with aria-pressed, alone or in a group. The check mark and a leading icon are aria-hidden. Every name is translatable, and the row mirrors under right-to-left layout."
       },
       "content": {
         "labelPattern": "One word where possible; two or three short words only for a specific entity, such as a name, an email address or a category. Sentence case, or the casing the user typed, the same across the set. The remove control is \"Remove\" followed by the label."
@@ -7661,6 +7662,7 @@
         "whenToUse": "Inline filters toggled on and off (select), applied filters the user can remove, or recipients or keywords entered into a field (dismissible), usually in a group.",
         "avoidWhen": "Nobody can act on it (use Badge), it runs an action (use Button), or it is a structured choice in a form submission (use Checkbox.Group or Radio.Group).",
         "commonPartners": [
+          "tag-group",
           "badge",
           "icon",
           "checkbox-group",
@@ -7702,7 +7704,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "tag-group",
           "combobox",
           "toggle-button",
           "avatar",
@@ -7782,6 +7783,207 @@
         {
           "class": "hit-target",
           "disposition": "UNSUPPORTED"
+        }
+      ]
+    },
+    "tag-group": {
+      "id": "tag-group",
+      "name": "Tag.Group",
+      "aliases": [
+        "chip-group",
+        "chip-set",
+        "tag-list",
+        "filter-chips",
+        "filter-bar",
+        "token-list"
+      ],
+      "category": "foundations",
+      "status": "draft",
+      "summary": "A wrapping row of Tags. The group owns which tags are pressed, arrow keys and removal. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
+      "description": "A labeled set of tags in a row that wraps onto more lines, with the same space between tags across and down. Any number of select tags can be pressed at once, each a toggle button. A dismissible tag in the group is removed with its × or with Delete. The group owns the pressed values, one Tab stop with arrow keys between tags, and where focus goes after a removal. Not a form choice submitted with other fields (Checkbox.Group), not exactly one choice (SegmentedControl or Radio.Group), and not a single tag on its own (Tag).",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "The group's accessible name, naming the decision its tags answer (\"Filter by color\"). It is not drawn; a visible heading above the group belongs to the page."
+        },
+        {
+          "name": "items",
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "tag"
+          ],
+          "minItems": 1,
+          "description": "The tags, each a Tag, in order. Three by default; a designer adds, removes and reorders them in place."
+        },
+        {
+          "name": "value",
+          "type": "string[]",
+          "required": false,
+          "description": "The controlled array of pressed tag values. The group owns it, and each select tag's pressed state is derived from it, never wired on the tag. Pair with onChange; use defaultValue for the uncontrolled form."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string[]",
+          "required": false,
+          "description": "The uncontrolled initial set of pressed tag values."
+        },
+        {
+          "name": "onChange",
+          "type": "(value: string[], event) => void",
+          "required": false,
+          "description": "Fires with the new array of pressed values when a select tag toggles. The group dispatches it; a tag inside the group never owns its own toggle."
+        },
+        {
+          "name": "onRemove",
+          "type": "(value: string, event) => void",
+          "required": false,
+          "description": "Fires with the tag's value when a dismissible tag is removed, by its × or by Delete or Backspace on the focused tag. The group then moves focus to the next tag, else the previous one, else the group."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "Scales every tag in the group, passed to each one. The space between tags is the same at every size."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "A group of select tags is `role=\"toolbar\"`, named by `aria-label` or `aria-labelledby`, holding the tags in order. Each select tag is a `<button>` with `aria-pressed`, and any number may be pressed. A group of dismissible tags whose × slot alone is the target is `role=\"grid\"`: each tag a row, its label one gridcell and its remove control a second.",
+        "wcag": [
+          "1.3.1 Info and Relationships (the group's name ties its tags to the decision they answer)",
+          "1.4.10 Reflow (the row wraps rather than scrolling sideways, so every tag stays visible in a narrow column)",
+          "2.1.1 Keyboard (every tag can be reached, toggled or removed from the keyboard)",
+          "2.4.3 Focus Order (after a removal, focus moves to the next tag, the previous one or the group, never to the top of the page)",
+          "4.1.2 Name, Role, Value (each select tag exposes its pressed state; each remove control is named)"
+        ],
+        "keyboard": "One Tab stop enters the group. Left and Right arrows move focus between tags without toggling them, and Up and Down move across wrapped lines. Space or Enter toggles a select tag; Delete or Backspace removes the focused dismissible tag.",
+        "focus": "The focus ring is on the focused tag; the group itself draws none. After a removal, focus moves to the next tag, else the previous one, else the group or the input that owns it, and never to `<body>`.",
+        "aria": "Name the group for the decision its tags answer (\"Filter by color\"). Each select tag exposes its state with `aria-pressed`, set from the group's value. Each remove control is named \"Remove\" followed by the tag's label. Every name is translatable, and the row and the arrow keys mirror under right-to-left layout."
+      },
+      "content": {
+        "labelPattern": "Name the group for the decision its tags answer (\"Filter by color\"). Each tag keeps its own short label, one word where possible, in the same casing across the set."
+      },
+      "docs": {
+        "usage": "Use a tag group for a set of tags the user toggles or removes in place: filters above a list, applied filters, or recipients in a field. Any number of select tags can be pressed. Give the group a name, let it own the pressed values, and let the row wrap. For a structured choice submitted with a form, use Checkbox.Group; for exactly one choice, SegmentedControl or Radio.Group.",
+        "do": [
+          "Name the group for the decision its tags answer",
+          "Let the group own the pressed values, and derive each tag's pressed state from them",
+          "Move focus to the next tag after a removal, else the previous one, else the group",
+          "Let the row wrap, so every tag stays visible"
+        ],
+        "dont": [
+          "Wire a pressed state or a toggle handler on a tag inside the group. Both belong to the group.",
+          "Put dismissible tags in a listbox. A listbox option cannot contain the remove control.",
+          "Use a tag group for exactly one choice. That is a segmented control or a radio group.",
+          "Disable every tag in a group. Hide the group instead."
+        ],
+        "contentGuidelines": "The group name says what the tags filter or hold; the tags carry the short values, in the words the data or the user supplies."
+      },
+      "ai": {
+        "primaryPurpose": "Lay out a set of Tags in a wrapping row, with the group owning which select tags are pressed, the one Tab stop with arrow keys, and removal with focus kept in the group.",
+        "whenToUse": "A set of filters the user toggles in place, any number at once (above a list or search results), or a set of applied filters, recipients or keywords the user removes.",
+        "avoidWhen": "One tag on its own (Tag), a structured choice submitted with a form (Checkbox.Group), exactly one choice (SegmentedControl or Radio.Group), or a row of actions (Button.Group).",
+        "commonPartners": [
+          "tag",
+          "search-field",
+          "list"
+        ],
+        "triggerKeywords": [
+          "tag group",
+          "chip group",
+          "chip set",
+          "filter chips",
+          "filter bar",
+          "tag list",
+          "token list",
+          "applied filters",
+          "multi-select tags"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "None for the group. A tag added to it takes Tag's own entrance.",
+        "exit": "A removed tag takes Tag's exit; the tags after it then slide into its place, and a tag that changes line moves there on the same duration.",
+        "reduceMotion": "Under prefers-reduced-motion the tags after a removal take their new places at once; only the fade remains."
+      },
+      "composition": {
+        "composesWith": [
+          "tag"
+        ],
+        "alternativeTo": [
+          "checkbox-group"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "combobox",
+          "popover"
+        ],
+        "replacesPatterns": [
+          "a removable token list built as a listbox",
+          "a row of tags each its own Tab stop, with no group name",
+          "tags that scroll sideways out of view instead of wrapping"
+        ]
+      },
+      "syncBoundary": [
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "LOWERED"
         }
       ]
     },

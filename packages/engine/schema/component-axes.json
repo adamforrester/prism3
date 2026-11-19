@@ -1543,6 +1543,19 @@
       "↳ swap leading icon": "INSTANCE_SWAP"
     }
   },
+  "tag-group": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ]
+    },
+    "members": 3,
+    "properties": {
+      "items": "SLOT"
+    }
+  },
   "text-field": {
     "axes": {
       "size": [

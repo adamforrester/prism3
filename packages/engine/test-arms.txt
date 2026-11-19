@@ -495,6 +495,7 @@ apps/studio/test-chrome-shards.mjs #2898
 apps/studio/test-chrome.mjs #1031
 apps/studio/test-chrome.mjs #1196
 apps/studio/test-chrome.mjs #12345
+apps/studio/test-chrome.mjs #1739
 apps/studio/test-chrome.mjs #1770
 apps/studio/test-chrome.mjs #1821
 apps/studio/test-chrome.mjs #1855
@@ -641,6 +642,7 @@ apps/studio/test-chrome.mjs #3878
 apps/studio/test-chrome.mjs #3910
 apps/studio/test-chrome.mjs #3911
 apps/studio/test-chrome.mjs #3938
+apps/studio/test-chrome.mjs #4235
 apps/studio/test-chrome.mjs #533
 apps/studio/test-chrome.mjs #574
 apps/studio/test-chrome.mjs #831
@@ -649,6 +651,7 @@ apps/studio/test-collisions.ts #1909
 apps/studio/test-collisions.ts #3518
 apps/studio/test-component-catalog.ts #1623
 apps/studio/test-component-catalog.ts #2350
+apps/studio/test-component-groups.ts #1739
 apps/studio/test-component-groups.ts #2343
 apps/studio/test-component-groups.ts #2427
 apps/studio/test-component-groups.ts #2428
@@ -819,6 +822,8 @@ apps/studio/test-store.ts #1037
 apps/studio/test-store.ts #2487
 apps/studio/test-store.ts #3878
 apps/studio/test-store.ts #3880
+apps/studio/test-store.ts #4209
+apps/studio/test-store.ts #4234
 apps/studio/test-style-guides.ts #2372
 apps/studio/test-type-input.ts #1071
 apps/studio/test-type-input.ts #1727
@@ -842,6 +847,7 @@ apps/studio/test-update-file.ts #3421
 apps/studio/test-update-file.ts #3467
 apps/studio/test-update-file.ts #3712
 apps/studio/test-update-file.ts #3713
+apps/studio/test-update-file.ts #4227
 apps/studio/test-write-adapter.ts #1840
 apps/studio/test-write-adapter.ts #2087
 apps/studio/test-write-adapter.ts #3697
@@ -870,6 +876,7 @@ packages/engine/test.ts #103
 packages/engine/test.ts #1035
 packages/engine/test.ts #1039
 packages/engine/test.ts #1040
+packages/engine/test.ts #1043
 packages/engine/test.ts #1053
 packages/engine/test.ts #1084
 packages/engine/test.ts #1087
@@ -1008,6 +1015,7 @@ packages/engine/test.ts #1712
 packages/engine/test.ts #1718
 packages/engine/test.ts #1720
 packages/engine/test.ts #1726
+packages/engine/test.ts #1739
 packages/engine/test.ts #1743
 packages/engine/test.ts #1745
 packages/engine/test.ts #1746
@@ -1023,6 +1031,7 @@ packages/engine/test.ts #1763
 packages/engine/test.ts #1764
 packages/engine/test.ts #1768
 packages/engine/test.ts #1773
+packages/engine/test.ts #1775
 packages/engine/test.ts #1779
 packages/engine/test.ts #1781
 packages/engine/test.ts #1782
@@ -1034,6 +1043,7 @@ packages/engine/test.ts #1812
 packages/engine/test.ts #1814
 packages/engine/test.ts #1816
 packages/engine/test.ts #1852
+packages/engine/test.ts #1863
 packages/engine/test.ts #1867
 packages/engine/test.ts #1868
 packages/engine/test.ts #1880
@@ -1138,6 +1148,7 @@ packages/engine/test.ts #2759
 packages/engine/test.ts #2786
 packages/engine/test.ts #2791
 packages/engine/test.ts #2804
+packages/engine/test.ts #2814
 packages/engine/test.ts #2817
 packages/engine/test.ts #2830
 packages/engine/test.ts #2836
@@ -1259,6 +1270,7 @@ packages/engine/test.ts #3876
 packages/engine/test.ts #388
 packages/engine/test.ts #390
 packages/engine/test.ts #391
+packages/engine/test.ts #3949
 packages/engine/test.ts #3985
 packages/engine/test.ts #4019
 packages/engine/test.ts #4045

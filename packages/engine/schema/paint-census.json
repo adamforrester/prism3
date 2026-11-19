@@ -385,6 +385,18 @@
         "sha256": "5849e8f79634ac928643973de4ff3f320808d2417f4d784bacf36a39dcd2f1ea"
       }
     },
+    "tag-group": {
+      "set": {
+        "members": 3,
+        "assignments": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "grid": {
+        "members": 3,
+        "assignments": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
     "tab-item": {
       "set": {
         "members": 30,

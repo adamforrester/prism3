@@ -29,7 +29,7 @@ an `engine: minor` change note, plus the component-surface and axes baselines ac
 
 **Measured.** Plugin shim, `test-update-apply.ts` section `dialog size`:
 - Setup: the old def is rebuilt by putting the axis back. Its projection matches origin/main's surface baseline exactly
-  (24 members, sha 17ff3a9b…).
+  (24 members, sha 5a835955… since #4084; it was 17ff3a9b… before).
 - After the update the set holds 16 members, none on `size`, no two on one coordinate, none deprecated. The medium
   member keeps its node, id and key. Two placed small instances and one large one point at the medium member at 400
   and 720. The medium instance is not swapped, and every member reads current after.
@@ -38,3 +38,8 @@ an `engine: minor` change note, plus the component-surface and axes baselines ac
   'size' is gone"); the width restore dropped (`placed small`, `placed large`).
 - `test.ts`: the Dialog shape arms now type the 16-member contract, with new `#3392` arms for the axes and the code
   prop. On main's `dialog.ts`, 11 fail by name.
+
+**Owner decisions (2026-11-19, all as recommended).**
+1. Dialog's `size` code prop is kept (400 / 560 / 720px).
+2. An update may delete members, only on an axis the ledger declares as a `merge`.
+3. The strings "N merged into another member" and "✓ N merged into another member" are approved.
