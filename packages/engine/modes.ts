@@ -2017,7 +2017,11 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   { const d = onDisabled(); put('disabled.on-fill', d.r, `Label / icon on a disabled fill — muted but clears ${d.min}:1`, 'disabled.fill', d.min); }
   { const d = disabledText(); put('disabled.text', d.r, `Disabled text — ${dBranch}; clears ${disabledTarget}:1`, d.against, d.min); }
   { const d = disabledText(); put('disabled.icon', d.r, `Disabled icon — ${dBranch}; clears ${disabledTarget}:1`, d.against, d.min); }
-  put('disabled.border', rated(neutralLow(), baseRgb), 'Disabled control border — muted neutral', 'background.primary', 0);
+  // The disabled EDGE takes the disabled levers' target too (#2750; owner decision lettered A, text = option B): it clears the
+  // same floor as the disabled inks, against the same worst-case surface. Before #2750 it was the
+  // fixed `neutralLow()` step `disabled.fill` uses, rated `min: 0`, so no lever moved it and a disabled
+  // outlined control measured 1.5–1.8:1. It no longer matches `disabled.fill` by construction.
+  { const d = disabledText(); put('disabled.border', d.r, `Disabled control border — ${dBranch}; clears ${disabledTarget}:1`, d.against, d.min); }
 
   // The same five for a disabled control on a dark hero / inverse band (#892 step 5).
   //
@@ -2036,8 +2040,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   { const ig = pageControls ? 'inverse.background.primary' : 'inverse.background.secondary';
     const r = pickMinPass(textCands, pageControls ? asGround('inverse.background.primary', invRgb) : invFloorRgb, disabledTarget);
     put('inverse.disabled.text', r, `Disabled text on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, ig, disabledTarget);
-    put('inverse.disabled.icon', r, `Disabled icon on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, ig, disabledTarget); }
-  put('inverse.disabled.border', rated(neutralLowInverse(), invRgb), 'Disabled control border on an inverse surface — muted neutral', 'inverse.background.primary', 0);
+    put('inverse.disabled.icon', r, `Disabled icon on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, ig, disabledTarget);
+    // The inverse edge follows the page's (#2750), on the same declared ground (#3339).
+    put('inverse.disabled.border', r, `Disabled control border on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, ig, disabledTarget); }
 
   // ---- field — form-element chrome (docs/20 §17). Deliberately MINIMAL + gated: a field
   // surface, a PERCEIVABLE resting border, and a READABLE placeholder. Everything stateful

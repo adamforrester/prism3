@@ -570,7 +570,7 @@
           "description": "Hue-shifts the shadow base off pure black. Default a subtle neutral tint; set a brand hue + higher amount for brand-hued marketing shadows.",
           "properties": {
             "hue": { "type": "number", "description": "Shadow tint hue (deg). Defaults to the neutral ramp hue." },
-            "amount": { "type": "number", "minimum": 0, "description": "Tint strength (0 ≈ pure black; ~1 ≈ clearly hue-tinted). Default 0.15." }
+            "amount": { "type": "number", "minimum": 0, "maximum": 1, "description": "Tint strength, 0 to 1 (0 ≈ pure black; 1 ≈ clearly hue-tinted). Default 0.15." }
           }
         }
       }
