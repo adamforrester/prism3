@@ -40,6 +40,8 @@ Shown on the default member: shape `flush`, size `medium`, surface `default`.
 
 Use inside another component where the icon is itself the control: the minus and plus of a counter, or the close on a card. Use flush where the glyph must line up with the content edge, such as inside a counter that draws its own box. Use round where the buttons stand on their own beside a value, such as a counter with no box. For an icon action with its own padded box in a toolbar, use the IconButton of the same color.
 
+**In RTL.** The icon flips only if it points a direction, such as an arrow.
+
 ### Do
 
 - Always give it an accessible name (a verb)

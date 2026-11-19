@@ -65,8 +65,8 @@ export const breadcrumbSeparator: ComponentDef = {
         children: ['chevronGlyph', 'slashGlyph'],
         note: 'The mark\'s box, one 16px icon square. Exactly one glyph shows in it.',
       },
-      chevronGlyph: { kind: 'vector', glyph: 'chevron-right', size: 'glyph-size', presentWhen: { type: ['chevron'] }, note: 'A chevron pointing toward the current page.' },
-      slashGlyph: { kind: 'vector', glyph: 'slash', size: 'glyph-size', presentWhen: { type: ['slash'] }, note: 'A forward slash.' },
+      chevronGlyph: { kind: 'vector', mirror: 'mirrors', glyph: 'chevron-right', size: 'glyph-size', presentWhen: { type: ['chevron'] }, note: 'A chevron pointing toward the current page.' },
+      slashGlyph: { kind: 'vector', mirror: 'never', glyph: 'slash', size: 'glyph-size', presentWhen: { type: ['slash'] }, note: 'A forward slash.' },
     },
     codeOnly: [
       {
