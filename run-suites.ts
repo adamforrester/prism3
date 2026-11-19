@@ -21,6 +21,11 @@
  *      place it runs instead — and every listed file exists. A suite dropped from the chain used to
  *      vanish silently; now it fails by name.
  *
+ * THE PARSER PROVES ITSELF FIRST (#4197). Every run starts with the self-test below, and a failure stops the run
+ * before any suite: a `countOf` that read every count as 99999 certified a collapsed suite, and the self-test that
+ * would have caught it ran only behind `--self-test`, which nothing passed. `lint-test-arms.ts` gates its scan the
+ * same way.
+ *
  * INDEPENDENCE (docs/34). The floor is a number a person wrote, in `suites.json`; the count is what the
  * suite measured at run time. Neither is derived from the other, and `--accept`-style regeneration is
  * deliberately absent: a gate allowed to rewrite what it reads has no memory (CLAUDE.md principle 5).
@@ -80,9 +85,9 @@ export const verdictOf = (file: string, floor: number, status: number | null, st
   return null;
 };
 
-const selfTest = (): number => {
+const selfTest = (quiet = false): number => {
   let bad = 0;
-  const expect = (cond: boolean, label: string): void => { if (!cond) { bad++; console.error(`  ✗ ${label}`); } else console.log(`  ✓ ${label}`); };
+  const expect = (cond: boolean, label: string): void => { if (!cond) { bad++; console.error(`  ✗ ${label}`); } else if (!quiet) console.log(`  ✓ ${label}`); };
   expect(countOf('x\n\n✅ ALL PASS — 33 assertions executed\n') === 33, 'reads "— N assertions executed"');
   expect(countOf('\n460/460 name cascade assertions passed.\n') === 460, 'reads "P/N … passed"');
   expect(countOf('\n✗ 2 of 41 failed') === 41, 'reads "F of N failed"');
@@ -97,11 +102,14 @@ const selfTest = (): number => {
   expect(tableDefects(t, ['test-a.ts', 'test-b.ts', 'test-c.ts'])[0]?.startsWith('test-c.ts: a test file this table does not list') === true, 'an unlisted test file fails by name');
   expect(tableDefects(t, ['test-a.ts'])[0]?.startsWith('test-b.ts: listed, but no such file') === true, 'a listed file that is gone fails by name');
   expect(tableDefects({ suites: [{ file: 'test-a.ts', floor: 0 }], elsewhere: {} }, ['test-a.ts']).length === 1, 'a floor of 0 is refused');
-  console.log(bad ? `\n✗ run-suites self-test: ${bad} failed` : '\n✓ run-suites self-test: all passed');
+  if (bad) console.error(`\n✗ run-suites self-test: ${bad} failed — the count parser or the table check is broken, so no suite was run`);
+  else if (!quiet) console.log('\n✓ run-suites self-test: all passed');
   return bad ? 1 : 0;
 };
 
 if (process.argv.includes('--self-test')) process.exit(selfTest());
+// #4197: every run proves its parser before it reads a count, so a broken `countOf` cannot certify a collapsed suite.
+if (selfTest(true)) process.exit(1);
 
 const dir = process.cwd();
 const tablePath = join(dir, 'suites.json');

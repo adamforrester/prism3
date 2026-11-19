@@ -59,7 +59,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repo = join(here, '..', '..');
 const REGISTRY = join(here, 'test-arms.txt');
 
-/** The `#NNNN` tags inside a source's string and template literals. Comments and regex literals are skipped. */
+/** The `#NNNN` tags inside a source's string and template literals. Comments and regex literals are skipped, and so
+ *  is everything inside a `console.*(…)` call's arguments (#4196): a suite's header log names the issues it covers,
+ *  and it stays when every assertion that carried the tag is gone, so a log line is never an arm. */
 export const armTagsOf = (src: string): Set<string> => {
   const out = new Set<string>();
   const n = src.length;
@@ -67,7 +69,9 @@ export const armTagsOf = (src: string): Set<string> => {
   let depth = 0;
   let prev = '';
   const holes: number[] = []; // brace depth at each `${` of an open template
-  const take = (text: string): void => { for (const m of text.matchAll(/#([1-9]\d{2,4})\b/g)) out.add(`#${m[1]}`); };
+  let parens = 0;
+  const mutes: number[] = []; // paren depth outside each open `console.*(` call, so its `)` is found
+  const take = (text: string): void => { if (mutes.length) return; for (const m of text.matchAll(/#([1-9]\d{2,4})\b/g)) out.add(`#${m[1]}`); };
   // A `/` starts a regex literal where an expression may start, which is after punctuation or a keyword.
   const regexMayStart = (): boolean => prev === '' || /[(,=:[!&|?{};+\-*%<>~^]$/.test(prev) || /^(return|typeof|case|in|of|void|yield|await)$/.test(prev);
   const template = (): void => {
@@ -111,6 +115,8 @@ export const armTagsOf = (src: string): Set<string> => {
         while (i < n && /[a-z]/.test(src[i])) i++;
         prev = 'x'; continue;
       }
+      if (c === '(') parens++;
+      if (c === ')') { parens--; if (mutes.length && parens === mutes[mutes.length - 1]) mutes.pop(); }
       if (c === '{') depth++;
       if (c === '}') {
         depth--;
@@ -119,7 +125,11 @@ export const armTagsOf = (src: string): Set<string> => {
       if (/[A-Za-z0-9_$]/.test(c)) {
         let j = i;
         while (j < n && /[A-Za-z0-9_$]/.test(src[j])) j++;
-        prev = src.slice(i, j); i = j; continue;
+        prev = src.slice(i, j);
+        // `console.log(` and its siblings: mute the literals until the call's own `)` (#4196).
+        const call = prev === 'console' ? /^\s*\.\s*(?:log|error|warn|info|debug|table|dir|group|trace)\s*\(/.exec(src.slice(j, j + 40)) : null;
+        if (call) { mutes.push(parens); parens++; i = j + call[0].length; prev = '('; continue; }
+        i = j; continue;
       }
       if (!/\s/.test(c)) prev = c;
       i++;
@@ -172,6 +182,11 @@ const selfTest = (quiet = false): number => {
   expect(tags('const r = a / b; ok(x, "#4321 / #4322");') === '#4321,#4322', 'division is not a regex, so the label after it is still read');
   expect(tags("ok(x, 'it\\'s #3000');") === '#3000', 'an escaped quote does not end the literal');
   expect(tags('const u = "a://b#12"; ok(x, `x`);') === '', 'a two-digit fragment is not an issue tag');
+  // #4196: a log line names the issues a suite covers and outlives the assertions that carried them.
+  expect(tags("console.log('MCP paste (#111/#1553) — header');\nok(x, 'plain');") === '', '#4196: a suite whose only tag is in a console.log reads as having no arm');
+  expect(tags('console.error(`✗ #1812 ${f("#2000")} (${a.map((b) => `#2001`)})`); ok(x, "#3000");') === '#3000', '#4196: nothing inside a console.error call is an arm, nested calls and templates included; the label after it is');
+  expect(tags("console . warn ( '#1812' , ok(x, '#2000') ); ok(y, '#2001');") === '#2001', '#4196: a console call is muted to its own closing paren, and no further');
+  expect(tags("const log = (s) => s; log('#1812'); ok(x, (console, '#2000'));") === '#1812,#2000', '#4196: only a console.<method>( call is muted, not the word console');
   const actual = new Map([['a.ts', new Set(['#1812', '#2000'])]]);
   const v = judge(['a.ts #1812', 'a.ts #2000'], actual);
   expect(!v.gone.length && !v.unregistered.length, 'a registry that matches the suites is clean');
