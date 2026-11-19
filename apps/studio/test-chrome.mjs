@@ -23137,6 +23137,66 @@ if (runs('3911')) {
     } finally { await ctx.close(); }
   }
 } // 3911
+// ── #3938: the token list's dropdowns are the shared select, and its caption row lines up ───────────────────────
+// The owner's Q-BK1 A (2026-11-17): the token list's Show and Category dropdowns move off the legacy `.select` onto the
+// chrome's `.p3-select` (lever-kit `selectField`). The legacy box was taller than the Alias path segmented control
+// beside it, and `.tok-ctrls` aligns its fields at the bottom, so those two captions sat about 5px below Alias path's.
+// INDEPENDENCE (docs/34): the arm reads where each caption is DRAWN (`getBoundingClientRect`), the row the person sees,
+// and compares the captions with each other; it reads no height, class or rule from the stylesheet that sets them.
+// MUTATIONS (each after a `wip:` commit, on both rebuilt bundles):
+//   · the two dropdowns put back on `selectEl()` (main before #3938) → `#3938 … the token list's dropdowns are the shared
+//     select` and `#3938 … every caption in the token list's control row sits on one line`;
+//   · `.tok-ctrls .p3-select { min-height: var(--p3-ctl-h); }` dropped from chrome.css (owner decision A, 2026-11-18:
+//     the selects take the segmented control's height) → `#3938 … every caption … sits on one line, offset 0` (3.00px);
+//   · that rule at `--p3-ctl-h-sm` → the same arm, by name.
+if (runs('3938')) {
+  console.log(`\nThe token list's dropdowns are the shared select, and its captions line up (#3938)\n${'='.repeat(78)}`);
+  const readRow = (page) => page.evaluate(() => {
+    const bar = document.querySelector('.tok-ctrls');
+    if (!bar) return null;
+    const caps = [...bar.querySelectorAll('.pfield > .pfk')].map((c) => ({ text: c.textContent.trim(), top: Math.round(c.getBoundingClientRect().top * 100) / 100, ctl: Math.round(c.nextElementSibling.getBoundingClientRect().height * 100) / 100, field: Math.round(c.parentElement.getBoundingClientRect().height * 100) / 100 }));
+    const selects = [...bar.querySelectorAll('select')].map((x) => ({ hook: x.getAttribute('data-p3'), cls: x.className }));
+    return { caps, selects };
+  });
+  for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+    const where = `3938 ${host} ${theme} 1280`;
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    let step = 'boot';
+    try {
+      step = 'Inspect › Token list';
+      await goPlace(page, 'brand');
+      await hooks.click(page.locator('[data-p3="inspect-open"]'), WAIT);
+      await hooks.click(page.locator('[data-p3="inspect-option-tokens"]'), WAIT);
+      for (const [tier, tab] of [['semantic', '[data-p3="token-tier-semantic"]'], ['primitive', '[data-p3="token-tier-primitive"]']]) {
+        step = `tier ${tier}`;
+        await hooks.click(page.locator(tab), WAIT);
+        await hooks.need(page, '.tok-ctrls .pfield');
+        await settle(page);
+        const row = await readRow(page);
+        const want = tier === 'semantic' ? ['token-show', 'token-category'] : ['token-category'];
+        ok(!!row && row.selects.length === want.length && row.selects.every((x, i) => x.hook === want[i] && /\bp3-select\b/.test(x.cls) && !/(^|\s)select(\s|$)/.test(x.cls)),
+          `#3938 ${where} / ${tier}: the token list's dropdowns are the shared select (.p3-select, not .select): ${JSON.stringify(row?.selects)}`);
+        const tops = (row?.caps ?? []).map((c) => c.top);
+        const spread = tops.length ? Math.max(...tops) - Math.min(...tops) : NaN;
+        // Owner decision A (2026-11-18): the offset is held at 0, read to the hundredth of a pixel.
+        ok(tops.length === (tier === 'semantic' ? 3 : 1) && spread === 0,
+          `#3938 ${where} / ${tier}: every caption in the token list's control row sits on one line, offset 0 (spread ${Number.isNaN(spread) ? 'none' : spread.toFixed(2)}px over ${JSON.stringify(row?.caps)})`);
+        if (tier === 'semantic') {
+          step = 'Category: color';
+          await page.locator('[data-p3="token-category"]').selectOption('color');
+          await settle(page);
+          const picked = await page.evaluate(() => ({ v: document.querySelector('[data-p3="token-category"]')?.value, sections: document.querySelectorAll('.pv-tscroll').length }));
+          ok(picked.v === 'color' && picked.sections === 1, `#3938 ${where}: choosing a category in the shared select filters the list to it (${JSON.stringify(picked)})`);
+          await page.locator('[data-p3="token-category"]').selectOption('');
+          await settle(page);
+        }
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3938
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
