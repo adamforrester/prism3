@@ -785,6 +785,7 @@ apps/studio/test-smoke.mjs #2550
 apps/studio/test-smoke.mjs #2585
 apps/studio/test-smoke.mjs #2812
 apps/studio/test-smoke.mjs #2915
+apps/studio/test-smoke.mjs #2935
 apps/studio/test-smoke.mjs #2942
 apps/studio/test-smoke.mjs #330
 apps/studio/test-smoke.mjs #3335
@@ -1139,6 +1140,7 @@ packages/engine/test.ts #2912
 packages/engine/test.ts #2924
 packages/engine/test.ts #2926
 packages/engine/test.ts #2930
+packages/engine/test.ts #2935
 packages/engine/test.ts #2942
 packages/engine/test.ts #2945
 packages/engine/test.ts #2958
