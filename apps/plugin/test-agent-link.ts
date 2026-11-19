@@ -1724,7 +1724,7 @@ section('set-override — color overrides: a preview that writes nothing, refusa
   const target = vars.find((x: any) => x.id === v?.valuesByMode?.[light?.modeId]?.id);
   ok(target?.name === 'ads/core/palette/neutral/400', `set-override/variable: light's border aliases ads/core/palette/neutral/400 (${target?.name})`);
   ok(versions.length === 1, `set-override/version: the Theme write saved one version first (${versions.join(' | ')})`);
-  ok(verdictOf(go)?.applied === true && verdictOf(go)?.headline === 'Saved 1 color override — 972 of 972 pairs at or above their minimum.',
+  ok(verdictOf(go)?.applied === true && verdictOf(go)?.headline === 'Saved 1 color override — 980 of 980 pairs at or above their minimum.',
     `set-override/saved: "${verdictOf(go)?.headline}"`);
   const restore = posted.filter((m) => m.type === 'restore-input').pop();
   ok(JSON.stringify(restore?.input?.overrides) === JSON.stringify({ light: LIGHT }), 'set-override/restore: the panel is sent the brand the file now holds');
