@@ -5304,6 +5304,7 @@ ok(setPage.children.length === 1 && setPage.children[0].type === 'COMPONENT_SET'
     ['buttonIcons', 'edges'],
     ['buttonMinWidthMultiplier', 1], ['buttonMinWidthMultiplier', 4],
     ['buttonTextHover', 'fill'],
+    ['buttonBorderWeight', 'thick'],
     ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
     // #2695: Field style moves only the field defs' geometry and paints, never the tree.
     ['fieldStyle', 'underline'],
