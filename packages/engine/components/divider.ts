@@ -444,7 +444,7 @@ export const divider: ComponentDef = {
     // Accordion (#2417) nests the divider as its item rule, so it is a host here. List (#2319) is registered now and
     // sits beside it, though its first cut nests none. The brief's other partners (menu, card, stack, toolbar) are not
     // registered defs yet, so they wait in `composition.planned`.
-    commonPartners: ['accordion', 'list'],
+    commonPartners: ['accordion', 'list', 'menu'],
     triggerKeywords: ['divider', 'separator', 'rule', 'horizontal rule', 'vertical rule', 'hr', 'line between sections', 'section break', 'or divider', 'labeled divider', 'text divider', 'subtle divider', 'light divider'],
     generationPriority: 3,
   },
@@ -457,7 +457,7 @@ export const divider: ComponentDef = {
       'a hand-drawn line or a border-bottom on one item standing in for a separator',
     ],
     supersededBy: [],
-    planned: ['menu', 'card', 'stack', 'toolbar'],
+    planned: ['card', 'stack', 'toolbar'],
   },
 
   notes: {

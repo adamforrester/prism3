@@ -27,6 +27,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 | icon | glyph | `{name}` | any (prop) | drawn | always |
 | image-placeholder | markerGlyph | `image` | icon set | drawn | always |
 | list-item | icon | `check` | icon set | swap default | type: icon |
+| menu-item | checkGlyph | `check` | icon set | drawn | always |
+|  | chevronGlyph | `chevron-right` | icon set | drawn | type: submenu |
 | pagination-item | gapGlyph | `more-horizontal-filled` | icon set | drawn | type: ellipsis |
 |  | nextGlyph | `chevron-right` | icon set | drawn | type: next |
 |  | previousGlyph | `chevron-left` | icon set | drawn | type: previous |
@@ -64,6 +66,7 @@ Parts that take any icon from the set. The file nominates the default unless the
 | icon-button-neutral | icon |
 | link | trailingVisual |
 | list-item | icon |
+| menu-item | leadingVisual |
 | password-field | leadingVisual |
 | search-field | leadingVisual, trailingVisual |
 | segmented-control-segment | leadingVisual |
@@ -76,11 +79,11 @@ Parts that take any icon from the set. The file nominates the default unless the
 
 | Glyph | Drawn by |
 |---|---|
-| `check` | checkbox-control, list-item, switch-control, tag |
+| `check` | checkbox-control, list-item, menu-item, switch-control, tag |
 | `check-circle` | banner, field-message, toast |
 | `chevron-down` | _accordion-indicator, select |
 | `chevron-left` | breadcrumbs, pagination-item |
-| `chevron-right` | _breadcrumb-separator, pagination-item |
+| `chevron-right` | _breadcrumb-separator, menu-item, pagination-item |
 | `chevron-up` | _accordion-indicator |
 | `close` | switch-control, tag |
 | `close-filled` | search-field |

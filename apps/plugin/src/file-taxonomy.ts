@@ -149,6 +149,9 @@ export const TAXONOMY: Taxonomy = {
         // Popover (#4008, owner Q-FL2) — its own page under Components, beside Dialog. Which section it belongs in is the
         // owner's call, held in the PR as Link's and Banner's were. It nests FlushIconButton.Neutral and the Button group.
         { page: 'Popover', defs: ['popover'] },
+        // Menu (#4007, owner Q-FL2) — its own page under Components, its item and group beside it (Q656 A: a part only its
+        // family nests shares that family's page). The item builds first, then the group, so both slots resolve on the page.
+        { page: 'Menu', defs: ['menu-item', 'menu-group', 'menu'], lead: 'menu' },
         // Banner (#2579, Q327) — its own page under Components. The proposal named a feedback section; none exists, so the
         // section is held as an owner item in the PR, as Link's was. It nests Button.Neutral and FlushIconButton.Neutral.
         { page: 'Banner', defs: ['banner'] },

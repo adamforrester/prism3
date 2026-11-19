@@ -5680,6 +5680,8 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'sign-in-button',
   // #3345: Page navigation and its item, Breadcrumbs' shape.
   'page-nav-item', 'page-nav',
+  // #4007: Menu.Item, a set of 15 with state columns. Menu and Menu.Group build one member each, so they have no grid.
+  'menu-item',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {

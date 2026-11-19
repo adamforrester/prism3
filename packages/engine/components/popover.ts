@@ -245,7 +245,7 @@ export const popover: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'code delivery pending: the behavior layer — initial focus, Tab-out dismissal and focus return wait on that decision. The contract above holds under any answer to it.',
+          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it. In plain HTML/CSS that covers initial focus, Tab-out dismissal and focus return.',
       },
     ],
   },
@@ -313,10 +313,10 @@ export const popover: ComponentDef = {
 
   composition: {
     composesWith: ['flush-icon-button-neutral', 'button-group'],
-    alternativeTo: ['dialog'],
+    alternativeTo: ['dialog', 'menu'],
     replacesPatterns: ['an absolutely positioned div with a hand-written click-outside handler', 'a dialog used for a few lines of detail'],
     supersededBy: [],
-    planned: ['tooltip', 'menu'],
+    planned: ['tooltip'],
   },
 
   motion: {
