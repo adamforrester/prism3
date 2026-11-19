@@ -7,7 +7,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 - Web studio: the studio in a browser. <!-- src: apps/studio/build-site.mjs:1-8#7ef7bf24 -->
 - Figma plugin: the same studio inside Figma <!-- src: apps/plugin/src/ui/entry.ts:10-38#6258203d -->, plus **Update file**, which writes to the file. <!-- src: apps/studio/src/state/update-file.ts:330 -->
 - Agent, through the agent link: an AI agent driving the open plugin. See [Use the agent link](agent-link.md). <!-- src: apps/plugin/src/agent-protocol.ts:42#6bb39596 -->
-- Agent, through the Prism3 MCP server: an AI agent using the engine directly, with no Figma file. <!-- src: packages/engine/mcp.ts:242-378#915cdea4 -->
+- Agent, through the Prism3 MCP server: an AI agent using the engine directly, with no Figma file. <!-- src: packages/engine/mcp.ts:242-378#9b380787 -->
 
 ✓ means the surface can do it. – means it can't.
 
@@ -18,11 +18,11 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 | Start from a color, an example or a `design.md` | ✓ | ✓ | – | ✓ from a `design.md` (`theme_from_brief`) |
 | Set levers with a live preview | ✓ | ✓ | – | ✓ list the levers (`list_levers`), no preview |
 | Check contrast in every mode | ✓ Inspect › Contrast <!-- src: apps/studio/src/shell/pages.ts:118-120#9232e735 --> | ✓ Inspect › Contrast | – | ✓ `theme_brand`, `theme_from_brief` |
-| Keep the working brand | ✓ in this browser <!-- src: apps/studio/src/persist-local.ts:39-78#7bd91f4c --> | ✓ in the Figma file, when Update file writes the theme <!-- src: apps/plugin/src/persist-figma.ts:29-34#ba150bb3 --> | – | – |
+| Keep the working brand | ✓ in this browser <!-- src: apps/studio/src/persist-local.ts:39-102#8ee27da6 --> | ✓ in the Figma file, when Update file writes the theme <!-- src: apps/plugin/src/persist-figma.ts:29-34#ba150bb3 --> | – | – |
 | Import a `design.md` brief | ✓ | ✓ | – | ✓ `theme_from_brief` |
-| Export a `design.md` brief | ✓ <!-- src: apps/studio/src/main.ts:1389 --> | ✓ | – | – |
+| Export a `design.md` brief | ✓ <!-- src: apps/studio/src/main.ts:1386 --> | ✓ | – | – |
 
-<!-- src: apps/studio/src/shell/start.ts:167-218#9e39b78a --> <!-- src: packages/engine/mcp.ts:248-394#d810bcff -->
+<!-- src: apps/studio/src/shell/start.ts:167-218#9e39b78a --> <!-- src: packages/engine/mcp.ts:248-394#26cdc9cc -->
 
 ## Figma file
 
@@ -47,7 +47,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 | Write the Figma variable files to a folder | – | – | – | ✓ `export_theme` |
 | Score how generated UI used the tokens | – | – | – | ✓ `score_consumption` |
 
-<!-- src: packages/engine/mcp.ts:348-382#c8235700 --> <!-- src: packages/engine/mcp.ts:296-331#a6aa6b2c -->
+<!-- src: packages/engine/mcp.ts:348-382#7289623a --> <!-- src: packages/engine/mcp.ts:296-331#a6aa6b2c -->
 
 TokenPress, a separate Figma plugin, exports any Figma file's variables and styles as DTCG token files. See [Export tokens](export-tokens.md#export-any-figma-file-with-tokenpress). <!-- src: apps/tokenpress/README.md:3#9efac648 -->
 
