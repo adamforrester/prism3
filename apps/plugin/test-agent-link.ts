@@ -114,7 +114,9 @@ import { ACTIVITY_KEEP } from './src/activity-log';
 import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { storeResult } from './src/agent-link';
 import { envelope, sendSnippet, readSnippet, linkSnippet } from './agent-snippets';
-import { agentLinkShortStatus, agentLinkStatusText, agentLinkWord, agentStripText, agentAge } from './src/agent-link-ui';
+import { agentLinkShortStatus, agentLinkStatusText, agentLinkWord, agentStripText, agentAge, AGENT_CMD_WORDS } from './src/agent-link-ui';
+import { AGENT_RUN_WORDS, nextAgentBusy } from './src/agent-run-notice';
+import type { AgentBusy } from './src/agent-run-notice';
 import { createRunGuard, TITLE } from './src/run-guard';
 import { restorePlacement, stripPlacement } from './src/window-place';
 import { createDispatcher, ROUTES } from './src/agent-dispatch';
@@ -1242,7 +1244,70 @@ section('run-notice — a run that ends while minimized shows one short host not
   delete host.notify;
 }
 
-/* ── strip-place (#3327) ─────────────────────────────────────────────────────────────────────────────── */
+/* ── agent-run (#2368, owner decision A) ─────────────────────────────────────────────────────────────── */
+section('agent-run — a command that writes the file is announced: busy on the bar and a host notice until its result is written (#2368)');
+{
+  // Expected words typed here (DRAFT, the owner's to change), never read from `agent-run-notice.ts`.
+  type Notice = { message: string; timeout?: number; cancelled: boolean; resultStored: boolean };
+  const notices: Notice[] = [];
+  let watching: string | null = null;
+  const stored = (id: string | null): boolean => !!id && !!root.getSharedPluginData(MAILBOX.ns, resultKey(id));
+  host.notify = (message: string, o: { timeout?: number } = {}) => {
+    const n: Notice = { message, timeout: o.timeout, cancelled: false, resultStored: stored(watching) };
+    notices.push(n);
+    return { cancel: () => { n.cancelled = true; } };
+  };
+  // The busy mark's state, through the panel's own reducer, over every message the main thread posts.
+  const busyAt: { type: string; busy: boolean }[] = [];
+  let busy: AgentBusy = null;
+  const replay = (): void => { busy = null; busyAt.length = 0; for (const m of posted) { busy = nextAgentBusy(busy, m); busyAt.push({ type: String(m.type), busy: !!busy }); } };
+  let during: { notices: string[]; timeouts: (number | undefined)[]; busy: boolean } | null = null;
+
+  // A WRITE: Set up file. While its handler runs, the start notice is up and the bar reads busy.
+  posted.length = 0;
+  const go = await send('file-setup', {}, 'run-2368-a');
+  watching = go.id;
+  duringCall = () => { replay(); during = { notices: notices.map((n) => n.message), timeouts: notices.map((n) => n.timeout), busy: !!busy }; };
+  await tick();
+  duringCall = null;
+  const r = (await read(go.id)) as AgentResult;
+  const started = posted.find((m) => m.type === 'agent-started' && m.id === go.id) as { busy?: unknown } | undefined;
+  ok(started?.busy === true, `#2368 busy/started: agent-started for a write carries busy (${JSON.stringify(started)})`);
+  ok(JSON.stringify(during?.notices) === JSON.stringify(['Agent running Set up file — closing Prism3 now stops it partway.']) && during?.timeouts[0] === Infinity,
+    `#2368 notice/start: while the write runs, one host notice says it is running and that closing stops it, and it stays up (${JSON.stringify(during)})`);
+  ok(during?.busy === true, `#2368 busy/during: the bar reads busy while the handler runs (${JSON.stringify(during)})`);
+  // BUSY UNTIL THE RESULT IS WRITTEN: still busy at agent-finished, idle at the link state that publishes the result.
+  replay();
+  const fin = busyAt.findIndex((x) => x.type === 'agent-finished');
+  const idle = busyAt.findIndex((x, i) => i > fin && !x.busy);
+  ok(fin >= 0 && busyAt[fin].busy === true && idle > fin && busyAt[idle].type === 'agent-link-state' && !busy,
+    `#2368 busy/until-result: the bar is still busy at agent-finished and goes idle at the link state that publishes the result (${JSON.stringify(busyAt.slice(Math.max(0, fin - 1), idle + 1))})`);
+  const head = String(r.result?.verdict && (r.result.verdict as { headline?: unknown }).headline || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();
+  const done = notices[1];
+  ok(notices.length === 2 && notices[0].cancelled && done?.message === `${r.ok ? 'Agent finished Set up file' : "Agent's Set up file did not finish"}${head ? ` — ${head}` : '.'}` && done.timeout === 6000,
+    `#2368 notice/finish: at the finish the start notice is cancelled and one 6000 ms notice gives the headline (${JSON.stringify(notices)})`);
+  ok(!notices[0].resultStored && done?.resultStored === true,
+    `#2368 notice/after-result: the finish notice is shown only once the result is in the mailbox (${JSON.stringify(notices.map((n) => n.resultStored))})`);
+
+  // READS AND PREVIEWS: status, a read-back and a prune preview are not announced and leave the bar idle.
+  notices.length = 0; posted.length = 0;
+  for (const [cmd, args] of [['status', {}], ['readback', {}], ['prune', { input: brand, confirm: false }]] as const) {
+    const s = await send(cmd, args);
+    await tick();
+    await read(s.id);
+  }
+  replay();
+  ok(notices.length === 0 && busyAt.every((x) => !x.busy) && !posted.some((m) => m.type === 'agent-started' && m.busy === true),
+    `#2368 quiet/reads: status, a read-back and a prune preview show no notice and no busy (${JSON.stringify(notices.map((n) => n.message))})`);
+
+  // WORDS: the main thread's copy of the operation words matches the panel's, where the panel has one.
+  const differ = Object.entries(AGENT_RUN_WORDS).filter(([k, v]) => k in AGENT_CMD_WORDS && AGENT_CMD_WORDS[k] !== v).map(([k]) => k);
+  ok(differ.length === 0, `#2368 words: each announced command's words match the panel's (${differ.join(', ') || 'all match'})`);
+  watching = null;
+  delete host.notify;
+}
+
+/* ── strip-place (#3327)─────────────────────────────────────────────────────────────────────────────── */
 section('strip-place — where Minimize and Restore put the window, against literals (#3327, #3416)');
 {
   // One visible canvas, read at zoom 1 and at zoom 2 (the same screen: the bounds halve). Expected canvas positions
@@ -1659,7 +1724,7 @@ section('set-override — color overrides: a preview that writes nothing, refusa
   const target = vars.find((x: any) => x.id === v?.valuesByMode?.[light?.modeId]?.id);
   ok(target?.name === 'ads/core/palette/neutral/400', `set-override/variable: light's border aliases ads/core/palette/neutral/400 (${target?.name})`);
   ok(versions.length === 1, `set-override/version: the Theme write saved one version first (${versions.join(' | ')})`);
-  ok(verdictOf(go)?.applied === true && verdictOf(go)?.headline === 'Saved 1 color override — 972 of 972 pairs at or above their minimum.',
+  ok(verdictOf(go)?.applied === true && verdictOf(go)?.headline === 'Saved 1 color override — 980 of 980 pairs at or above their minimum.',
     `set-override/saved: "${verdictOf(go)?.headline}"`);
   const restore = posted.filter((m) => m.type === 'restore-input').pop();
   ok(JSON.stringify(restore?.input?.overrides) === JSON.stringify({ light: LIGHT }), 'set-override/restore: the panel is sent the brand the file now holds');

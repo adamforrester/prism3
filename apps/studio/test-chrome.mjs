@@ -143,7 +143,7 @@
  *   · ONE HOME PER PAGE (V1): every place names its literal home view and title (`EXPECT_HOME`), visited in
  *     two orders; scrolling the page and focusing its controls never changes it; nothing offers "Keep this
  *     view" (V12).
- *   · INSPECT (F1): the verdict reads the decided count (956; 884 until #3346) and opens Inspect › Contrast over the legacy
+ *   · INSPECT (F1): the verdict reads the decided count (964; 956 until #2750, 884 until #3346) and opens Inspect › Contrast over the legacy
  *     frame, with Health first and its literal lines; Tokens redraws in place from its own controls (the Decisions
  *     log, its third view, was cut by #2909 Q2909.7 A; its two unique notes are on their levers); Back and Escape close it to the page, its scroll
  *     and the opener's focus; a tab change closes it. Measured at every width, both themes, both hosts.
@@ -330,8 +330,8 @@
  *   · v5 answer 4: Brand name and Token namespace side by side at 1280, 640 and 380, both hosts.
  *   · T2: the placeholder (`pds3`) and the reserved (`prism`) namespaces warn in v6's words; a draft reaches
  *     nothing until Rename namespace and its confirm; Escape closes the confirm back to the field.
- *   · Q3: dark off asks first, naming high contrast dark and the verdict's new count (478 of 956, from Health's
- *     literal 239 per mode); Cancel keeps it; confirming drops both; high contrast dark stays locked off with
+ *   · Q3: dark off asks first, naming high contrast dark and the verdict's new count (482 of 964, from Health's
+ *     literal 241 per mode); Cancel keeps it; confirming drops both; high contrast dark stays locked off with
  *     its reason until dark is back, and dark back does not bring it back.
  *   · The name reaches the bar per keystroke (the `identity` topic) and the persisted brand; personality and the
  *     custom modes reach the brand; the Style guide's own select redraws it inside the preview (the lent repaint).
@@ -695,7 +695,8 @@ const DISABLED_APPEARANCE = (o) => {
   const c = new Set(o.cls.split(/\s+/));
   // The preview's mode control, held on Palettes (#2321): a segment takes the skin of what it draws at rest. The one
   // selected draws an edge, so outline; the others draw none, so text (as X4 A maps the outline and ghost buttons).
-  if (c.has('p3-mode')) return o.checked === 'true' ? 'outline' : 'text';
+  // #2366 (owner decision A): every other segmented choice takes the same mapping when a derived mode holds it.
+  if (c.has('p3-mode') || c.has('p3-seg-tab')) return o.checked === 'true' ? 'outline' : 'text';
   if (['p3-btn-primary', 'p3-next', 'p3-btn-danger'].some((k) => c.has(k))) return 'filled';
   if (['p3-btn-ghost', 'p3-check'].some((k) => c.has(k))) return 'text';
   return 'outline';
@@ -2755,11 +2756,11 @@ if (runs('7')) for (const host of ['web', 'figma']) {
 // =============================================================================================
 if (runs('8')) console.log(`\nInspect — the verdict opens Contrast, with Health first\n${'='.repeat(78)}`);
 /** The verdict, as the owner decided it (v4 review Q2, v5 Q2) and concept v6 words it: literals. */
-const VERDICT_LINE = 'All 956 pairs at or above floor';   // 884 until #3346 added the 18 selection-mark roles per mode
+const VERDICT_LINE = 'All 964 pairs at or above floor';   // 956 until #2750 rated disabled.border and its inverse; 884 until #3346 added the 18 selection-mark roles per mode
 // #3366 (owner decision Q3366.3 A): Health says "minimum" for a pair's own ratio; the bar keeps "floor".
-const HEALTH_LINE = 'All 956 pairs at or above their minimum.';
+const HEALTH_LINE = 'All 964 pairs at or above their minimum.';
 const HEALTH_FLOOR_LINE = 'Most text, icon and fill colors are checked against the contrast floor: neutral 050 in Light, neutral 900 in Dark.';
-const HEALTH_MODES = ['Light: 239 of 239 at or above', 'Dark: 239 of 239 at or above', 'High contrast light: 239 of 239 at or above', 'High contrast dark: 239 of 239 at or above'];
+const HEALTH_MODES = ['Light: 241 of 241 at or above', 'Dark: 241 of 241 at or above', 'High contrast light: 241 of 241 at or above', 'High contrast dark: 241 of 241 at or above'];
 /** #2909 Q2909.7 A: the Decisions log, Inspect's third view, is cut; its two notes no lever said are on their levers
  *  (section "IA v2 phase 2" holds them). The notes still ship: the committed default theme still records them. */
 const INSPECT_TABS = ['Contrast', 'Tokens'];
@@ -4975,12 +4976,12 @@ const SOFT_SETS = [['radiusScale', 'soft'], ['shadow.softness', 'soft']];
 /** T2 (v4 review) in concept v6's words: the namespace warning for each reserved or placeholder value. */
 const NS_WARN = { pds3: 'pds3 is the default theme’s placeholder. Set your brand’s namespace before you export.',
   prism: 'prism is reserved for the shipped catalog. Set your brand’s namespace before you export.' };
-/** Q3 (v4 review 3, v5): the confirm's sentence for the default theme, 239 gated pairs per mode (Health's literal). */
+/** Q3 (v4 review 3, v5): the confirm's sentence for the default theme, 241 gated pairs per mode (Health's literal). */
 const DARK_OFF_TITLE = 'Turn off Dark and high contrast dark';
 /** The Dark-off confirm's line when a custom mode is based on dark (orchestrator review of #1939), the reviewer's
  *  decision in the words chosen for it, typed here. */
 const BASED_ON_DARK = 'Custom mode custom-1 is based on Dark, so turning Dark off is refused until it is based on Light or removed.';
-const DARK_OFF_LINE = 'High contrast dark follows dark, so it turns off too. The two modes’ 478 pairs leave the verdict (956 becomes 478).';
+const DARK_OFF_LINE = 'High contrast dark follows dark, so it turns off too. The two modes’ 482 pairs leave the verdict (964 becomes 482).';
 const persisted = (page) => page.evaluate(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input ?? null; } catch { return null; } });
 const modeRadios = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]')].map((b) => b.dataset.mode));
 const checkState = (page, sel) => page.evaluate((x) => { const b = document.querySelector(x); return b ? { checked: b.getAttribute('aria-checked'), locked: b.getAttribute('aria-disabled') === 'true', note: b.querySelector('.p3-check-note')?.textContent } : null; }, sel);
@@ -5101,7 +5102,7 @@ for (const host of ['web', 'figma']) {
   await page.waitForFunction(() => document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]').length === 2);
   const hcd = await checkState(page, '[data-p3="mode-on-hc-dark"]');
   const verdictNow = await page.evaluate(() => document.querySelector('[data-p3="verdict-tip"]')?.textContent);
-  ok(JSON.stringify(await modeRadios(page)) === '["light","hc-light"]' && verdictNow === 'All 478 pairs at or above floor', `Q3: confirming turns off dark and high contrast dark (modes ${await modeRadios(page)}, verdict "${verdictNow}")`);
+  ok(JSON.stringify(await modeRadios(page)) === '["light","hc-light"]' && verdictNow === 'All 482 pairs at or above floor', `Q3: confirming turns off dark and high contrast dark (modes ${await modeRadios(page)}, verdict "${verdictNow}")`);
   ok(hcd?.checked === 'false' && hcd.locked && hcd.note === 'Off while dark is off: it follows dark.', `Q3: high contrast dark stays off and locked while dark is off, and says why (${JSON.stringify(hcd)})`);
   // A locked check keeps its focus stop (aria-disabled), so it is activated the way a keyboard user would:
   // Playwright refuses a click on an aria-disabled element, which is itself the pointer half of the claim.
@@ -5631,9 +5632,9 @@ for (const host of ['web', 'figma']) {
   // issue's measured table: 47 roles in six groups, typed here, never read off the module (docs/34 shape 1).
   const WANT_FLOOR = {
     head: 'Contrast floor', label: 'Measured on', sub: 'A setting, not a token', info: false,
-    line: 'The background 47 text, icon and fill colors are checked against for contrast. A step further from the page moves them further from it too. Auto uses background.secondary.',
+    line: 'The background 48 text, icon and fill colors are checked against for contrast. A step further from the page moves them further from it too. Auto uses background.secondary.',
     groups: [['links', 'Links (10)', true], ['status', 'Brand and status text, icons (10)', true], ['secondary', 'Secondary and tertiary text, placeholder (5)', true],
-      ['disabled', 'Disabled text and icon (2)', true], ['bold', 'Bold fills (5)', true], ['buttons', 'Button fills (15)', true]],
+      ['disabled', 'Disabled text, icon and border (3)', true], ['bold', 'Bold fills (5)', true], ['buttons', 'Button fills (15)', true]],
     not: 'Field borders, button borders and the focus ring are not checked against it.',
   };
   ok(JSON.stringify(copy.floor) === JSON.stringify(WANT_FLOOR),
@@ -9849,7 +9850,9 @@ for (const host of ['web', 'figma']) {
       ok(d.scheme === theme && first?.disabled === true && got.fill === want.fill && got.edge === want.edge && got.style === 'solid' && got.ink === want.ink,
         `F1 A: Layout: ${host} ${theme}: the fixed first breakpoint field draws Prism3's disabled text field: fill color.disabled.fill ${want.fill}, a solid edge color.disabled.border ${want.edge}, value color.disabled.on-fill ${want.ink} — drew ${JSON.stringify(got)} (disabled ${first?.disabled}, chrome ${d.scheme})`);
       const rest = d.fields.slice(1).map(skin);
-      ok(d.fields.length === 5 && d.fields.slice(1).every((f) => !f.disabled) && rest.every((x) => x.fill !== want.fill && x.edge !== want.edge && x.ink !== want.ink),
+      // The edge is not compared (#2750): the disabled levers now set `color.disabled.border`'s contrast, and at the default
+      // theme's floor it lands on the same step as an editable field's rest edge. The skin still differs by fill and value.
+      ok(d.fields.length === 5 && d.fields.slice(1).every((f) => !f.disabled) && rest.every((x) => x.fill !== want.fill && x.ink !== want.ink),
         `F1 A: Layout: ${host} ${theme}: no editable breakpoint field takes the disabled skin — ${JSON.stringify(rest)}`);
       if (SHOTS) await page.locator('[data-p3="levers-pane"] [data-p3="bp-list"]').screenshot({ path: join(SHOTS, `f1-${host === 'web' ? 'web' : 'plugin'}-${theme}.png`) });
       ok(errors.length === 0, `F1 A Layout ${host} ${theme}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
@@ -11775,7 +11778,7 @@ for (const { w, h } of WIDTHS) {
 // 29b. The owner's "A · Menu bar" (2026-10-05), three behaviors held directly, both hosts, both themes:
 //   · CONTRAST'S MARK FOLLOWS THE VERDICT: a check and no count while every pair passes; a warning glyph and the
 //     count below floor once an edit puts pairs below it. The web's edit is test-verdict-count.ts's two-mode
-//     fixture, whose count is derived by hand there: 2 of 956, 2 modes. The plugin's is a restore of a one-mode
+//     fixture, whose count is derived by hand there: 2 of 964, 2 modes. The plugin's is a restore of a one-mode
 //     brand with the same Light override; its count is read from its own line.
 //   · THE PLUGIN'S THEME MENU: Match Figma, Light and Dark, in that order, Match Figma checked by default and the
 //     chrome on Figma's theme; a choice applies, is posted to the main thread as `set-theme-pref`, and, after a
@@ -11825,7 +11828,7 @@ for (const host of ['web', 'figma']) {
         await page.waitForFunction(() => document.querySelector('[data-p3="verdict"]')?.dataset.state === 'fail', null, { timeout: 5000 }).catch(() => {});
         const c1 = await page.evaluate(CONTRAST_PROBE);
         const lead = /^(\d+) of \d+ below floor, \d+ modes?$/.exec(c1.tip ?? '');
-        ok(c1.state === 'fail' && c1.warn && !c1.check && (host === 'web' ? c1.tip === '2 of 956 below floor, 2 modes' && c1.count === '2' : !!lead && c1.count === lead[1]),
+        ok(c1.state === 'fail' && c1.warn && !c1.check && (host === 'web' ? c1.tip === '2 of 964 below floor, 2 modes' && c1.count === '2' : !!lead && c1.count === lead[1]),
           `${where}: Contrast: pairs below floor, so its mark is the warning glyph and the count below floor (${JSON.stringify(c1)})`);
         ok(c1.name === `Verdict: ${c1.tip}. Open Inspect, Contrast`, `${where}: Contrast keeps its name, the full line ("${c1.name}")`);
 
@@ -13025,6 +13028,8 @@ for (const host of ['web', 'figma']) {
 // edge on any of them (#2155: no chrome control draws a dashed edge to mean disabled), and every disabled button draws
 // its appearance's Prism3 disabled roles. Counted, with a floor, so a sweep that found no disabled button fails.
 const DERIVED_OFF_FLOOR = 100;
+/** #2366: the held segmented choices the sweep must read, a floor under the count measured when it was written. */
+const DERIVED_CHOICE_FLOOR = 20;
 for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
     const where = `X4 A derived: ${host} ${theme}`;
@@ -13036,6 +13041,8 @@ for (const host of ['web', 'figma']) {
       const scheme = await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
       let buttons = 0, controls = 0;
       const bad = [], dashed = [];
+      // #2366: the held segmented choices, each by its hook, against the .p3-mode mapping (checked: outline; others: text).
+      const choices = [], badChoices = [];
       for (const place of ['color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components']) {
         await goPlace(page, place);
         if (place === 'type') await openTypeAdvanced(page).catch(() => {});
@@ -13050,6 +13057,12 @@ for (const host of ['web', 'figma']) {
           if (!r) continue;
           controls++;
           if (r.dashed.length) dashed.push(`${place} ${r.hook ?? r.cls}: ${r.dashed.join(', ')}`);
+          if (/\bp3-seg-tab\b/.test(r.cls) && !/\bp3-mode\b/.test(r.cls)) {
+            choices.push(r.hook);
+            const v = skinVerdict(r, scheme);
+            if (!v.pass) badChoices.push(`${place} ${r.hook ?? r.cls} (${v.appearance}): ${JSON.stringify(v.drew)}`);
+            continue;
+          }
           if (!/\bp3-(btn|vpick)\b/.test(r.cls)) continue;
           buttons++;
           const v = skinVerdict(r, scheme);
@@ -13066,6 +13079,16 @@ for (const host of ['web', 'figma']) {
       console.log(`  ${where}: ${controls} disabled controls read, ${buttons} of them buttons`);
       ok(buttons >= DERIVED_OFF_FLOOR, `${where}: HC light switched off ${buttons} chrome buttons across the places (floor ${DERIVED_OFF_FLOOR})`);
       ok(bad.length === 0, `${where}: every disabled chrome button draws its appearance's Prism3 disabled roles (${buttons} read)${bad.length ? ` — ${bad.slice(0, 4).join(' | ')}` : ''}`);
+      // #2366 (owner decision A): the levers' segmented choices a derived mode holds draw the .p3-mode mapping (#2321): the
+      // checked one Prism3's disabled outline skin, the others its text skin. Named, so Type's scale, Shape's density and
+      // Depth & motion's tempo are each read.
+      const NAMED_CHOICES = ['type-scale-', 'density-choice-', 'tempo-'];
+      const missing = NAMED_CHOICES.filter((p) => !choices.some((h) => (h ?? '').startsWith(p)));
+      console.log(`  ${where}: ${choices.length} held segmented choices read`);
+      ok(choices.length >= DERIVED_CHOICE_FLOOR && missing.length === 0,
+        `#2366 ${where}: HC light holds ${choices.length} segmented choices across the places (floor ${DERIVED_CHOICE_FLOOR}), Type's scale, Shape's density and Depth & motion's tempo among them${missing.length ? ` — not read: ${missing.join(', ')}` : ''}`);
+      ok(badChoices.length === 0,
+        `#2366 ${where}: every held segmented choice draws the .p3-mode mapping: checked, Prism3's disabled outline; the others, its text skin (${choices.length} read)${badChoices.length ? ` — ${badChoices.slice(0, 4).join(' | ')}` : ''}`);
       ok(!!fixed && dashed.length === 0, `${where}: no disabled chrome control, and not the fixed Light row (mode-on-light, read ${!!fixed}), draws a dashed edge (${controls} read)${dashed.length ? ` — ${dashed.slice(0, 4).join(' | ')}` : ''}`);
       // The fixed Light row's box against the emission's disabled check box roles (`PRISM3_DISABLED`, resolved from the
       // committed emission, never from the studio's CSS): fill `disabled.fill`, a solid `disabled.border` edge on all

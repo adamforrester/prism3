@@ -2469,7 +2469,7 @@
           "THE STATE GLYPH IS ONE FIGMA BOOLEAN (`state icon`, default on) OVER TWO SELECTION-GATED PARTS, not a variant axis (owner, 2026-09-28). A `showStateLabel` boolean VARIANT axis would add a name to the closed `VARIANT_AXES` family vocabulary for one def AND double the member count (24 → 48). The node-visibility boolean does neither: the check and the X are each built at their own `selection` value and each carries the property, so a designer turns the glyph off once, in the panel, and the set stays at 24. The cost is a narrowing of #1331's refusal — a boolean may now target parts that are `presentWhen`-gated, but only when they share one axis and cover all its values, so every member still has a node to toggle.",
           "THE OFF TRACK IS A LIGHT SURFACE STEP (`background.tertiary`) WITH A DARK THUMB, not the neutral button fill (owner, 2026-09-28). The neutral button fill is the one the `neutralEmphasis` lever darkens, and under `strong` emphasis on a brand-neutral action palette it made the off and on tracks both near-black (NB master theme: #2D2C2C off, #34383D on). A surface step no interactive lever moves keeps off light in every brand; the dark thumb in the border's ink is Material 3's unselected shape and Prism 2's. The cost: hover and pressed do not step the off fill (no darker surface step exists, and the overlay wash replaces a fill rather than layering on it).",
           "OFF HOVER AND PRESSED SHOW NO VISIBLE CHANGE, like checkbox and radio at unchecked (owner-decided, 2026-09-28). The off fill holds its rest value — the tier has no surface step darker than `background.tertiary`, and the interactive overlay wash REPLACES a box's fill (one `fills` array) rather than layering on it, so a 10% wash over the page would read lighter than `tertiary`. The `off.border.hover`/`.pressed` keys stay bound and resolve to the rest border in this tier. The rejected alternative was a new darker surface role, a token mint and a CONTRACT MINOR.",
-          "THE DISABLED GLYPH TAKES `disabled.border`, not the thumb's `disabled.on-fill` (#1764, owner-directed 2026-09-28). Both keys bound `disabled.on-fill` before, so the glyph drew in its own thumb's color and could not be seen — and the glyph now defaults on. `disabled.border` equals the disabled track in every corpus mode, so the glyph repeats the rest-state inversion, 3.04–5.49:1 against the thumb. `disabled.text` was measured and rejected at 1.21–1.79:1."
+          "THE DISABLED GLYPH TAKES `disabled.fill`, not the thumb's `disabled.on-fill` (#1764, owner-directed 2026-09-28; `disabled.border` until #2750). Both keys bound `disabled.on-fill` before, so the glyph drew in its own thumb's color and could not be seen — and the glyph now defaults on. `disabled.fill` is the disabled track, so the glyph repeats the rest-state inversion, 3.04–5.49:1 against the thumb. `disabled.text` was measured and rejected at 1.21–1.79:1."
         ],
         "unverified": [
           "THE GLYPH IN THE THUMB IS UNVERIFIED ON A REAL HOST for legibility at its smallest size. The thumb is `control.size.*.thumb` = 0.75 × the track (Prism 2's 24-in-32, #1425), its own tier field rather than radio's `dot`. In every corpus brand the thumb is 18px at `small` and 24px at `medium`, so its ~71%-inset glyph is ~12.7px and ~17px. The smallest case is compact density `small`, a 16px track with a 12px thumb and a ~8.5px glyph. The affordance is most useful at `medium`, and the row, not the atom, is what reaches SC 2.5.8.",
@@ -3346,7 +3346,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer (#2454). The owner built the Figma components first (Q178.3); the entries below are a framework-neutral behavior contract for whichever layer the project's developers choose."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "semantics",
@@ -3447,7 +3447,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer (#2454). The owner built the Figma components first (Q178.3); the entries below are a framework-neutral behavior contract for whichever layer the project's developers choose."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "semantics",
@@ -4091,7 +4091,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "semantics",
@@ -4190,7 +4190,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract for whichever layer the project's developers choose."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "runtime-behavior",
@@ -4291,7 +4291,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project's developers choose."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "semantics",
@@ -4588,7 +4588,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer (#2454) — initial focus placement, backdrop-click dismissal and focus return wait on that decision. The contract above holds under any answer to it."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it. In plain HTML/CSS that covers initial focus placement, backdrop-click dismissal and focus return."
         }
       ],
       "notes": {
@@ -5008,7 +5008,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project's developers choose."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "semantics",
@@ -5111,7 +5111,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project's developers choose."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "semantics",
@@ -5537,7 +5537,7 @@
         {
           "class": "implementation",
           "disposition": "REFUSED",
-          "description": "A headless usePagination — returning the item list (page, ellipsis, previous, next, with current and disabled) — is the brief's shape for the window. code delivery pending: behavior layer (#2454) decides whether it ships beside the component."
+          "description": "A headless usePagination — returning the item list (page, ellipsis, previous, next, with current and disabled) — is the brief's shape for the window. Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         }
       ],
       "notes": {
@@ -6195,7 +6195,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "implementation",
@@ -6455,7 +6455,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer (#2454). The entries below are a framework-neutral behavior contract."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "semantics",
@@ -6564,7 +6564,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project's developers choose."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "semantics",
@@ -6663,7 +6663,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project's developers choose."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "semantics",
