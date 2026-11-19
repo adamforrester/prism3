@@ -612,9 +612,10 @@
       "additionalProperties": false,
       "description": "OPTIONAL. The brand's own icons in generated components. 'map' names which brand icon stands in for each Prism3 icon, everywhere a component uses it; a mapped Prism3 icon is no longer built into the brand's file. 'glyphs' carries the brand's art, one path each on a 24×24 artboard; a glyph named like a Prism3 icon redraws it. A key in 'map' must be a Prism3 icon, its value a Prism3 icon or a key in 'glyphs', and a value may not itself be mapped.",
       "properties": {
-        "map": { "type": "object", "additionalProperties": { "type": "string", "pattern": "^[A-Za-z0-9]+(-[A-Za-z0-9]+)*$" }, "description": "Prism3 icon name → the icon that replaces it, for example { plus: add, check: checkmark }." },
+        "map": { "type": "object", "additionalProperties": { "type": "string", "pattern": "^([a-z0-9]+(-[a-z0-9]+)*|FPO-default-icon)$" }, "description": "Prism3 icon name → the icon that replaces it, for example { plus: add, check: checkmark }." },
         "glyphs": {
           "type": "object",
+          "propertyNames": { "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
           "additionalProperties": {
             "type": "object",
             "additionalProperties": false,

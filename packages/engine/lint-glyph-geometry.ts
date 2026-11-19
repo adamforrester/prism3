@@ -122,6 +122,7 @@ import { canonicalShape, GlyphPathError } from './glyph-shape';
 import type { ComponentDef } from './component-schema';
 import { readFileSync } from 'node:fs';
 import { PROVIDER_LOGO_SOURCES } from './provider-logo-set';
+import { applyIconMap } from './icon-map';
 
 /**
  * The scope floor. `docs/34`: a gate with a scope asserts each promised surface is REPRESENTED, never
@@ -1419,6 +1420,74 @@ let derivedChecks = 0;
     if (bent.length) failures.push(`DERIVED ${name}: SHAPE — not ${from} under one uniform scale (${+k.toFixed(5)}) and move: ${bent.join(', ')}, so the artwork was redrawn rather than resized`);
   }
   if (derivedChecks !== Object.keys(DERIVED_MARK).length) failures.push(`DERIVED: measured ${derivedChecks} of ${Object.keys(DERIVED_MARK).length} derived glyph(s) — the arm checked less than it lists`);
+}
+
+// ── BRAND ART (#3076, Q1 A: the proposal's Design B and its gate 5) ─────────────────────────────────────────────────
+// A brand's icon map carries its own art, and the brand's icon set is Prism3's names less the mapped ones plus each
+// brand glyph. The arms above read the CORE set only; this one projects the icon def through a brand's map and holds the
+// brand's set to the same measures: one filled path per member, the member's OWN outline (the brand's art where it has
+// one, Prism3's otherwise), non-zero ink inside the artboard, its fill rule kept, and no two members drawing one shape
+// unless DUPLICATE_SHAPES declares it. No example brand commits art (the PR's Q2 flag), so the brand is this fixture,
+// written in the absolute commands this file's walkers read. EXPECTED is typed here: the fixture's own art and the core
+// vocabulary, never `brandIconNames` or the projector's lookup. ACTUAL is the submitted `glyphSvg`, read back.
+const BRAND_ICONS = {
+  map: { plus: 'add', 'plus-filled': 'add', minus: 'subtract', 'minus-filled': 'subtract', check: 'checkmark', 'close-filled': 'close' } as Record<string, string>,
+  glyphs: {
+    add: { path: 'M11 4H13V11H20V13H13V20H11V13H4V11H11Z' },
+    subtract: { path: 'M4 11H20V13H4Z' },
+    checkmark: { path: 'M9.5 15.6L5.4 11.5L4 12.9L9.5 18.4L20 7.9L18.6 6.5Z' },
+    // Named like a Prism3 icon, so it redraws `icon/close` for this brand (Q5 A), and cuts with evenodd.
+    close: { path: 'M6.4 5L5 6.4L10.6 12L5 17.6L6.4 19L12 13.4L17.6 19L19 17.6L13.4 12L19 6.4L17.6 5L12 10.6Z', fillRule: 'evenodd' as const },
+  } as Record<string, { path: string; fillRule?: 'evenodd' }>,
+};
+{
+  const iconDef = (componentDefs as ComponentDef[]).find((d) => d.id === ICON_DEF);
+  const partName = Object.entries(iconDef?.anatomy?.parts ?? {}).find(([, p]) => (p as { kind?: string }).kind === 'vector')?.[0];
+  if (!iconDef || !partName) failures.push(`BRAND ART: no '${ICON_DEF}' def with a vector part to project a brand's set through`);
+  else {
+    const want = new Map<string, { path: string; fillRule?: string }>();
+    for (const n of ICON_NAMES) if (!(n in BRAND_ICONS.map)) want.set(n, { path: (ICON_PATHS as Record<string, string>)[n] });
+    for (const [n, g] of Object.entries(BRAND_ICONS.glyphs)) want.set(n, g);
+    let plans: AnatomyPlan[] = [];
+    try { plans = figmaAnatomySet(applyIconMap(iconDef, BRAND_ICONS), { swapTarget: SWAP_TARGET }); }
+    catch (err) { failures.push(`BRAND ART: the icon def does not project under a brand's map — ${(err as Error).message}`); }
+    const drawn = new Map<string, string>();
+    for (const plan of plans) {
+      const member = (plan.coord as Record<string, string | undefined>).name ?? '(no name)';
+      const at = `BRAND ART ${ICON_DEF}.${partName} @ name=${member}`;
+      const exp = want.get(member);
+      if (!exp) { failures.push(`${at}: the brand's set builds a member it should not hold — a mapped Prism3 icon, or a name neither Prism3's nor the brand's`); continue; }
+      const nodes = glyphNodes(plan).filter((g) => g.part === partName);
+      const svg = nodes[0]?.node.glyphSvg;
+      const paths = typeof svg === 'string' ? [...svg.matchAll(/<path\b[^>]*>/g)].map((m) => m[0]) : [];
+      if (nodes.length !== 1 || paths.length !== 1) { failures.push(`${at}: ${nodes.length} GLYPH node(s) carrying ${paths.length} <path>(s), expected exactly one of each`); continue; }
+      const d = /\bd="([^"]*)"/.exec(paths[0])?.[1];
+      const fill = /\bfill="([^"]*)"/.exec(paths[0])?.[1];
+      const rule = /\bfill-rule="([^"]*)"/.exec(paths[0])?.[1];
+      if (d !== exp.path) { failures.push(`${at}: draws a path this member does not own — expected ${member in BRAND_ICONS.glyphs ? "the brand's art" : `ICON_PATHS['${member}']`} ('${exp.path.slice(0, 24)}…'), got '${(d ?? 'no d').slice(0, 24)}…'`); continue; }
+      if (!fill || fill === 'none' || fill === 'transparent') failures.push(`${at}: the <path> has fill="${fill ?? 'absent'}", so it draws nothing`);
+      if (member in BRAND_ICONS.glyphs && rule !== exp.fillRule) failures.push(`${at}: the brand's art declares fill rule '${exp.fillRule ?? 'nonzero'}' and the document carries '${rule ?? 'nonzero'}'`);
+      let ink: Box;
+      try { ink = inkBox(d); } catch (err) { failures.push(`${at}: the outline could not be measured — ${(err as Error).message}`); continue; }
+      if (ink.w <= 0 || ink.h <= 0) failures.push(`${at}: the outline measures ${ink.w}×${ink.h}, an invisible glyph`);
+      if (ink.x < vb.minX || ink.y < vb.minY || ink.x + ink.w > vb.minX + vb.w || ink.y + ink.h > vb.minY + vb.h)
+        failures.push(`${at}: the outline occupies ${ink.x},${ink.y} ${ink.w}×${ink.h}, outside the ${vb.w}×${vb.h} artboard`);
+      drawn.set(member, d);
+      glyphChecks++;
+    }
+    const missing = [...want.keys()].filter((n) => !drawn.has(n));
+    if (missing.length) failures.push(`BRAND ART: ${missing.length} member(s) the brand's set should hold drew nothing measurable — [${missing.slice(0, 6).join(', ')}${missing.length > 6 ? ', …' : ''}]`);
+    // Core ∪ brand: no two members draw one picture, unless the collision is one DUPLICATE_SHAPES already declares.
+    const byShape = new Map<string, string[]>();
+    for (const [n, d] of drawn) {
+      try { const k = canonicalShape(d); byShape.set(k, [...(byShape.get(k) ?? []), n].sort()); }
+      catch (e) { failures.push(`BRAND ART: the outline for '${n}' cannot be compared by shape — ${e instanceof GlyphPathError ? e.message : String(e)}`); }
+    }
+    for (const ns of byShape.values())
+      if (ns.length > 1 && !DUPLICATE_SHAPES[ns.join('|')])
+        failures.push(`BRAND ART: [${ns.join(', ')}] all draw ONE shape in the brand's set, and no DUPLICATE_SHAPES entry declares it — a brand glyph duplicating an icon the map leaves in place puts two of one picture in the file`);
+    notes.push(`BRAND ART ${ICON_DEF}.${partName}: ${drawn.size}/${want.size} member(s) of a mapped brand's set measured (${Object.keys(BRAND_ICONS.glyphs).length} brand glyph(s), ${Object.keys(BRAND_ICONS.map).length} mapped name(s)), ${byShape.size} distinct shape(s)`);
+  }
 }
 
 // The tile arm ran on something: a mark set with payment tiles and no file read as a tile is an arm that checked nothing.

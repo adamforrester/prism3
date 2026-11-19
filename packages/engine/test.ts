@@ -43363,6 +43363,11 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   const closeDoc = JSON.stringify(memberOf('close') ?? null);
   ok(closeDoc.includes(GLYPHS.close.path) && closeDoc.includes('evenodd'), '#3076 a brand glyph named close redraws icon/close with the brand\'s art and its fill rule (Q5 A)');
   ok(iconPlans.length === 46 - 6 + 3, `#3076 the icon set is Prism3's 46 less the 6 mapped plus the 3 new brand names (got ${iconPlans.length})`);
+  // The icon def's own `name` property lists the same set its axis builds, so a reader of the materialized def (the
+  // export's spec, an agent) sees no mapped name offered and every brand name.
+  const nameProp = mapped.find((d) => d.id === 'icon')!.props.find((p) => p.name === 'name')?.values ?? [];
+  ok(nameProp.length === 43 && !nameProp.includes('plus') && !nameProp.includes('check') && ['add', 'subtract', 'checkmark', 'close'].every((n) => nameProp.includes(n)),
+    `#3076 the mapped icon def's name property offers the brand's 43 names, no mapped one (got ${nameProp.length}: ${nameProp.slice(-4).join(', ')})`);
   // No map, no change: every def comes back as the same object, so every plan is the one component-surface.json pins.
   const same = componentDefs.filter((d) => applyIconMap(d, undefined) !== d || applyIconMap(d, {}) !== d || applyIconMap(d, { map: {}, glyphs: {} }) !== d).map((d) => d.id);
   ok(same.length === 0, `#3076 a brand with no icon map leaves every def as authored (rewrote ${same.join(', ')})`);
@@ -43378,11 +43383,27 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
     ['art for a mapped name', { map: { plus: 'add' }, glyphs: { ...GLYPHS, plus: { path: ADD } } }, 'icons.glyphs.plus'],
     ['art that is not one path', { glyphs: { add: { path: '<path d="M0 0"/>' } } }, 'icons.glyphs.add.path'],
     ['a glyph name in the wrong shape', { glyphs: { Add_Icon: { path: ADD } } }, 'icons.glyphs.Add_Icon'],
+    ['a glyph named like one a component draws itself', { glyphs: { spinner: { path: ADD } } }, 'icons.glyphs.spinner'],
+    ['a fill rule other than evenodd', { glyphs: { add: { path: ADD, fillRule: 'nonzero' } } }, 'icons.glyphs.add.fillRule'],
+    // The art itself, measured offline (Q1 A, the proposal's Design B: one path on the 24×24 artboard, with ink).
+    ['art drawn on a 512 artboard, as most icon packages ship it', { map: { plus: 'add' }, glyphs: { add: { path: 'M0 0h512v512H0z' } } }, 'icons.glyphs.add.path'],
+    ['a move with no numbers', { glyphs: { add: { path: 'M' } } }, 'icons.glyphs.add.path'],
+    ['art that draws nothing', { glyphs: { add: { path: 'M4 4' } } }, 'icons.glyphs.add.path'],
+    ['path characters that do not parse', { glyphs: { add: { path: 'M,,,eee---' } } }, 'icons.glyphs.add.path'],
+    ['an arc that leaves the artboard between two endpoints inside it', { glyphs: { add: { path: 'M1 2A11 11 0 0 1 23 2Z' } } }, 'icons.glyphs.add.path'],
   ];
   for (const [what, icons, names] of RULES) ok(refusal(icons).includes(names), `#3076 ${what} is refused, naming ${names} (got ${JSON.stringify(refusal(icons))})`);
+  // Art an icon package ships in its own grammar still builds: arcs, relative commands, and a curve whose handles leave the
+  // artboard while the curve stays on it (its ink, measured by hand: 2..22 across, 0..12 down).
+  for (const [what, path] of [['a circle drawn with relative arcs', 'M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20z'], ['a curve whose handles leave the artboard', 'M2 12C2 -4 22 -4 22 12Z'], ['smooth and quadratic curves', 'M4 12s2-4 4 0t4 0Q14 8 16 12z']])
+    ok(refusal({ glyphs: { add: { path } } }) === '', `#3076 ${what} builds as brand art (got ${JSON.stringify(refusal({ glyphs: { add: { path } } }))})`);
   // The contract describes the block: a valid one passes the schema, an unknown key in it does not.
   ok(validateBrandInput({ ...base, icons: ICONS }).length === 0, `#3076 theme-schema.json accepts the icons block (${validateBrandInput({ ...base, icons: ICONS }).join('; ')})`);
   ok(validateBrandInput({ ...base, icons: { maps: MAP } }).some((e) => e.includes('icons.maps')), '#3076 theme-schema.json refuses an unknown key in the icons block');
+  // The schema holds the engine's name shapes: lowercase words joined by hyphens, or a Prism3 icon as a map value.
+  ok(validateBrandInput({ ...base, icons: { map: { plus: 'Add' } } }).some((e) => e.includes('icons.map.plus')), '#3076 theme-schema.json refuses a map value outside the icon-name shape');
+  ok(validateBrandInput({ ...base, icons: { glyphs: { Add_Icon: { path: ADD } } } }).some((e) => e.includes('icons.glyphs.Add_Icon')), '#3076 theme-schema.json refuses a glyph name outside the icon-name shape');
+  ok(validateBrandInput({ ...base, icons: { map: { check: 'FPO-default-icon' } } }).length === 0, `#3076 theme-schema.json accepts a Prism3 icon as a map value (${validateBrandInput({ ...base, icons: { map: { check: 'FPO-default-icon' } } }).join('; ')})`);
   // The design.md round trip (#3984's rule, for this block): three round trips keep it deep-equal, art and all.
   let rt: any = { ...base, icons: ICONS };
   for (let i = 0; i < 3; i++) rt = parseDesignMd(toDesignMd(rt)).input;

@@ -22,7 +22,13 @@ and every committed plan are unmoved.
 **Gates (docs/34).** The expected side is typed from #3076's own table of where the core icons are used, plus the
 counter (the proposal's finding 2), never read from `icon-map.ts`.
 - `test.ts`: no mapped core icon in any plan; each listed component instances the brand's icon; the icon set's 43
-  members; identity with no map; seven refusals by name; the schema; three design.md round trips; the export; `.ai.json`.
+  members; identity with no map; the refusals by name; the schema; three design.md round trips; the export; `.ai.json`.
+- The brand's art is measured offline (Q1 A, the proposal's Design B), in review: `glyphInkBox` reads the whole SVG
+  path grammar, sampling curves and arcs, and `iconMapErrors` refuses art that does not parse, draws nothing, or leaves
+  the 24×24 artboard (a 512 artboard, as icon packages ship it). `lint-glyph-geometry.ts` gained a BRAND ART arm that
+  projects the icon set through a fixture brand's map and holds core ∪ brand to its own measures: one filled path per
+  member, the member's own outline, its fill rule kept, ink inside the artboard, no undeclared shape collision.
+  `theme-schema.json` holds the engine's name shapes, and the brand validator learned `propertyNames`.
 - `test-roundtrip.ts`: builds every def the map rewrites and the brand's icon set (under its own id: the projector knows
   the set by it), reading the brand's path back off the built vector. It also holds the plugin's chain equal to the
   engine's for a brand with the map.
@@ -43,6 +49,7 @@ the projector treat it as a consumer of itself (86 divergences), so that row bui
 nested sets unmaterialized, where the plugin's own `project` materializes them, so it now takes the brand's map for
 those too.
 
-**Not built, for the owner.** The opt-in retire step for a stamped core icon the map leaves unused (Q4 A): today it is a
-drop, kept and marked deprecated, as before. The file dry run on the brand file (Q6 A) needs the bridge. A per-brand
-icon module in `out/` and the web preview following the map are later phases.
+**Not built, filed.** The opt-in retire step for a stamped core icon the map leaves unused (Q4 A, #4100): today it is a
+drop, kept and marked deprecated, as before. The file dry run on the brand file (Q6 A, #4101) needs the bridge. A
+per-brand icon module in `out/` with core names as aliases (#4102) and the web preview following the map (#4103) are
+later phases.
