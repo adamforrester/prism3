@@ -1867,7 +1867,7 @@ written by hand from the defs' right-to-left prose, as `check-aria.ts`'s `HAS` r
 ### What was built
 
 - **A direction toolbar** in `.storybook/preview.js` (the issue's "Storybook gets an RTL toggle"): a `dir` global
-  that puts `dir` on the story frame. Every part inherits it. Its title and item labels are DRAFT.
+  that puts `dir` on the story frame. Every part inherits it. Its wording is owner decision A (Decisions, below).
 - **`a11y-harness.ts`:** `open` takes a direction and refuses a frame whose `dir` isn't the one asked for.
   `represented` now holds both directions, so a story left out of the right-to-left run fails by id, with "(rtl)".
   Every check carries a third represented mutant for it.
