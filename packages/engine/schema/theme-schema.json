@@ -383,7 +383,7 @@
         "presets": {
           "type": "object",
           "additionalProperties": { "type": "string", "enum": ["instant", "fast", "normal", "moderate", "slow", "slower", "long", "longer", "longest"] },
-          "propertyNames": { "enum": ["dialog/enter", "dialog/exit", "drawer/enter", "drawer/exit", "toast/enter", "toast/exit", "tooltip/show", "accordion/expand", "hover", "pressed", "fade/in"] },
+          "propertyNames": { "enum": ["state", "fade", "crossfade", "move", "reveal", "draw", "surface", "expand", "step", "settle"] },
           "description": "OPTIONAL (#2857). Which step of the duration scale each motion preset plays on, brand-wide. A preset binds the step (motion.duration.<step>), never its own duration token. Absent entries keep the engine's default mapping. An unknown preset or step is refused by name. Deep-validated by brandTheme()."
         },
         "brandOnly": {

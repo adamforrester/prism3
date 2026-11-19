@@ -57,7 +57,7 @@ export type MotionAxis = {
   easingRoles: { role: string; curve: string }[];
   // Only modes that actually re-point get an entry; absent ⇒ byte-identical emit.
   easingRolesByMode?: Record<string, Record<string, string>>;
-  // Every starter preset, resolved through the brand's mapping (#2857). Emitted to the agent sidecar, not the tree.
+  // Every default preset (the ten of Q-MP1), resolved through the brand's mapping (#2857). Emitted to the agent sidecar, not the tree.
   presets: MotionPreset[];
   // The brand-only group, validated, in input order. Absent when the brand sets none.
   brandOnly?: Record<string, MotionBrandOnly>;
@@ -79,23 +79,36 @@ const DURATION_BASE: Record<string, number> = { instant: 50, fast: 100, normal: 
 /** The steps of the semantic duration scale, shortest to longest: what a preset may map to. Loop periods are not steps. */
 export const DURATION_STEPS: readonly string[] = Object.keys(DURATION_BASE);
 /**
- * The default preset → step mapping (#2857, owner Q-MP7 option 3 item 2): the #2857 starter set, each on the step
- * its wireframe card plays (`docs/superpowers/2857-motion-presets-wireframe.html`). A brand overrides `duration`
- * per preset with `motionPersonality.presets`; the easing role and the reduced step are the preset's own. The preset
- * names and the set are DRAFT (Q-MP1 to Q-MP6 are open).
+ * The default preset → step mapping (#2857, owner Q-MP7 option 3 item 2): the ten presets of owner decision Q-MP1 A
+ * (2026-11-19), each on a step of the shared scale. A brand overrides `duration` per preset with
+ * `motionPersonality.presets`; the easing role and the reduced step are the preset's own. The names are DRAFT (Q-MP2
+ * is open), and every step, easing role and reduced step below is a DRAFT default for the owner, read against the
+ * 2026-11-19 field benchmark on #2857:
+ * - state: a micro state change or press, 50–150ms in the field → `fast`, in place.
+ * - fade: an opacity change, 110–300ms → `normal`, arriving.
+ * - crossfade: one thing replaced by another in place → `normal`.
+ * - move: a change of position within the layout; dialog-sized moves run 200–300ms → `moderate`, in place.
+ * - reveal: content arriving on view. No field figure → `slow`, arriving.
+ * - draw: a line drawn on. No field figure → `slow`, in place; reduced to 0 (the step's own reduced twin).
+ * - surface: a dialog, sheet or drawer arriving, 200–300ms → `moderate`, arriving.
+ * - expand: a height change, 100–200ms → `normal`. The field splits between an in-place and an arriving curve;
+ *   this keeps the arriving one the skill's accordion recipe uses.
+ * - step: a carousel advancing one item. Only spring data exists → `moderate`, in place.
+ * - settle: a moved thing coming to rest. Only spring data exists → `slow`, arriving.
+ * Every preset but `state` and `draw` reduces to a short fade on `motion.duration-reduced.normal`; `state` keeps its
+ * own step, since a state change is not movement.
  */
 export const MOTION_PRESET_DEFAULTS: readonly MotionPreset[] = [
-  { preset: 'dialog/enter', duration: 'moderate', easing: 'enter', reduced: 'normal' },
-  { preset: 'dialog/exit', duration: 'normal', easing: 'exit', reduced: 'normal' },
-  { preset: 'drawer/enter', duration: 'moderate', easing: 'enter', reduced: 'normal' },
-  { preset: 'drawer/exit', duration: 'normal', easing: 'exit', reduced: 'normal' },
-  { preset: 'toast/enter', duration: 'normal', easing: 'enter', reduced: 'normal' },
-  { preset: 'toast/exit', duration: 'fast', easing: 'exit', reduced: 'normal' },
-  { preset: 'tooltip/show', duration: 'fast', easing: 'enter', reduced: 'fast' },
-  { preset: 'accordion/expand', duration: 'normal', easing: 'enter', reduced: 'normal' },
-  { preset: 'hover', duration: 'fast', easing: 'default', reduced: 'fast' },
-  { preset: 'pressed', duration: 'fast', easing: 'default', reduced: 'fast' },
-  { preset: 'fade/in', duration: 'normal', easing: 'enter', reduced: 'normal' },
+  { preset: 'state', duration: 'fast', easing: 'default', reduced: 'fast' },
+  { preset: 'fade', duration: 'normal', easing: 'enter', reduced: 'normal' },
+  { preset: 'crossfade', duration: 'normal', easing: 'default', reduced: 'normal' },
+  { preset: 'move', duration: 'moderate', easing: 'default', reduced: 'normal' },
+  { preset: 'reveal', duration: 'slow', easing: 'enter', reduced: 'normal' },
+  { preset: 'draw', duration: 'slow', easing: 'default', reduced: 'slow' },
+  { preset: 'surface', duration: 'moderate', easing: 'enter', reduced: 'normal' },
+  { preset: 'expand', duration: 'normal', easing: 'enter', reduced: 'normal' },
+  { preset: 'step', duration: 'moderate', easing: 'default', reduced: 'normal' },
+  { preset: 'settle', duration: 'slow', easing: 'enter', reduced: 'normal' },
 ];
 /** The fields each brand-only kind takes, and which are required. */
 const BRAND_ONLY_FIELDS: Record<MotionBrandOnly['kind'], { required: string[]; optional: string[] }> = {

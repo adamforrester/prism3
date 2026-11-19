@@ -9434,58 +9434,53 @@
     }
   },
   "motion_presets": {
-    "dialog/enter": {
-      "duration": "motion.duration.moderate",
-      "easing": "motion.easing-role.enter",
-      "reduced_duration": "motion.duration-reduced.normal"
-    },
-    "dialog/exit": {
-      "duration": "motion.duration.normal",
-      "easing": "motion.easing-role.exit",
-      "reduced_duration": "motion.duration-reduced.normal"
-    },
-    "drawer/enter": {
-      "duration": "motion.duration.moderate",
-      "easing": "motion.easing-role.enter",
-      "reduced_duration": "motion.duration-reduced.normal"
-    },
-    "drawer/exit": {
-      "duration": "motion.duration.normal",
-      "easing": "motion.easing-role.exit",
-      "reduced_duration": "motion.duration-reduced.normal"
-    },
-    "toast/enter": {
-      "duration": "motion.duration.normal",
-      "easing": "motion.easing-role.enter",
-      "reduced_duration": "motion.duration-reduced.normal"
-    },
-    "toast/exit": {
-      "duration": "motion.duration.fast",
-      "easing": "motion.easing-role.exit",
-      "reduced_duration": "motion.duration-reduced.normal"
-    },
-    "tooltip/show": {
-      "duration": "motion.duration.fast",
-      "easing": "motion.easing-role.enter",
-      "reduced_duration": "motion.duration-reduced.fast"
-    },
-    "accordion/expand": {
-      "duration": "motion.duration.normal",
-      "easing": "motion.easing-role.enter",
-      "reduced_duration": "motion.duration-reduced.normal"
-    },
-    "hover": {
+    "state": {
       "duration": "motion.duration.fast",
       "easing": "motion.easing-role.default",
       "reduced_duration": "motion.duration-reduced.fast"
     },
-    "pressed": {
-      "duration": "motion.duration.fast",
-      "easing": "motion.easing-role.default",
-      "reduced_duration": "motion.duration-reduced.fast"
-    },
-    "fade/in": {
+    "fade": {
       "duration": "motion.duration.normal",
+      "easing": "motion.easing-role.enter",
+      "reduced_duration": "motion.duration-reduced.normal"
+    },
+    "crossfade": {
+      "duration": "motion.duration.normal",
+      "easing": "motion.easing-role.default",
+      "reduced_duration": "motion.duration-reduced.normal"
+    },
+    "move": {
+      "duration": "motion.duration.moderate",
+      "easing": "motion.easing-role.default",
+      "reduced_duration": "motion.duration-reduced.normal"
+    },
+    "reveal": {
+      "duration": "motion.duration.slow",
+      "easing": "motion.easing-role.enter",
+      "reduced_duration": "motion.duration-reduced.normal"
+    },
+    "draw": {
+      "duration": "motion.duration.slow",
+      "easing": "motion.easing-role.default",
+      "reduced_duration": "motion.duration-reduced.slow"
+    },
+    "surface": {
+      "duration": "motion.duration.moderate",
+      "easing": "motion.easing-role.enter",
+      "reduced_duration": "motion.duration-reduced.normal"
+    },
+    "expand": {
+      "duration": "motion.duration.normal",
+      "easing": "motion.easing-role.enter",
+      "reduced_duration": "motion.duration-reduced.normal"
+    },
+    "step": {
+      "duration": "motion.duration.moderate",
+      "easing": "motion.easing-role.default",
+      "reduced_duration": "motion.duration-reduced.normal"
+    },
+    "settle": {
+      "duration": "motion.duration.slow",
       "easing": "motion.easing-role.enter",
       "reduced_duration": "motion.duration-reduced.normal"
     }

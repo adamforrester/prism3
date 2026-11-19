@@ -43586,20 +43586,31 @@ arm: {
   const sidecar = (input: BrandInput) => { const th = brandTheme(input); return buildAiMetadata(th, buildTree(th).tree) as any; };
   const treeOf = (input: BrandInput) => buildTree(brandTheme(input)).tree.prism;
 
-  // (1) THE DEFAULT MAPPING IS IDENTITY ON TODAY'S EMISSION. EXPECTED is the #2857 wireframe's own PATTERNS table (each
-  // card's data name, duration role, easing role and reduced duration role), read from the HTML, never from the
-  // engine's MOTION_PRESET_DEFAULTS. ACTUAL is the sidecar the engine emits for the canonical brand.
-  const html = readFileSync(join(import.meta.dirname, '../../docs/superpowers/2857-motion-presets-wireframe.html'), 'utf8');
-  const cards = [...html.matchAll(/data: '([^']+)'[\s\S]*?dur: '([a-z]+)', ease: '([a-z]+)'[\s\S]*?rdur: '([a-z]+)'/g)]
-    .map(([, data, dur, ease, rdur]) => ({ data, dur, ease, rdur }));
+  // (1) THE DEFAULT MAPPING IS THE OWNER'S TEN (Q-MP1 A, #2857, 2026-11-19). EXPECTED is written here by hand, never
+  // read from the engine's MOTION_PRESET_DEFAULTS: the names are the decision's own list, in its order, and each row is
+  // the DRAFT default the Ready comment puts to the owner (step, easing role, reduced step). ACTUAL is the sidecar the
+  // engine emits for the canonical brand, so a preset added, dropped, renamed or moved fails here by name.
+  const QMP1 = 'state, fade, crossfade, move, reveal, draw, surface, expand, step and settle'.split(/, | and /);
+  const DRAFT_DEFAULTS: Record<string, [string, string, string]> = {
+    state: ['fast', 'default', 'fast'], fade: ['normal', 'enter', 'normal'], crossfade: ['normal', 'default', 'normal'],
+    move: ['moderate', 'default', 'normal'], reveal: ['slow', 'enter', 'normal'], draw: ['slow', 'default', 'slow'],
+    surface: ['moderate', 'enter', 'normal'], expand: ['normal', 'enter', 'normal'], step: ['moderate', 'default', 'normal'],
+    settle: ['slow', 'enter', 'normal'],
+  };
+  const cards = QMP1.map((data) => { const [dur, ease, rdur] = DRAFT_DEFAULTS[data] ?? ['?', '?', '?']; return { data, dur, ease, rdur }; });
   const prism3Input = readExampleBrand('./examples/prism3.design.md');
   const stockPresets = sidecar(prism3Input).motion_presets ?? {};
   const wrongCards = cards.filter((c) => {
     const p = stockPresets[c.data];
     return !p || p.duration !== `motion.duration.${c.dur}` || p.easing !== `motion.easing-role.${c.ease}` || p.reduced_duration !== `motion.duration-reduced.${c.rdur}`;
   });
-  ok(cards.length >= 11 && wrongCards.length === 0 && Object.keys(stockPresets).length === cards.length,
-    `#2857 default mapping: every wireframe card's preset plays on its own step, easing role and reduced step for prism3 (${cards.length} cards, ${Object.keys(stockPresets).length} emitted)${wrongCards.length ? ` — wrong: ${wrongCards.map((c) => `${c.data} wants ${c.dur}/${c.ease}/${c.rdur}, got ${JSON.stringify(stockPresets[c.data])}`).join('; ')}` : ''}`);
+  const emittedNames = Object.keys(stockPresets);
+  ok(QMP1.length === 10 && Object.keys(DRAFT_DEFAULTS).length === 10 && wrongCards.length === 0 && JSON.stringify(emittedNames) === JSON.stringify(QMP1),
+    `#2857 default mapping: the owner's ten Q-MP1 presets, in order, each on its DRAFT step, easing role and reduced step for prism3 (${QMP1.length} named, ${emittedNames.length} emitted: ${emittedNames.join(', ')})${wrongCards.length ? ` — wrong: ${wrongCards.map((c) => `${c.data} wants ${c.dur}/${c.ease}/${c.rdur}, got ${JSON.stringify(stockPresets[c.data])}`).join('; ')}` : ''}`);
+  // The owner's own examples (Q-MP7 option 3) name `crossfade` and `surface`: a brand can map both.
+  const mapped = sidecar({ ...prism3Input, motionPersonality: { ...(prism3Input.motionPersonality ?? {}), presets: { crossfade: 'long', surface: 'longest' } } } as BrandInput).motion_presets ?? {};
+  ok(mapped.crossfade?.duration === 'motion.duration.long' && mapped.surface?.duration === 'motion.duration.longest',
+    `#2857 default mapping: the owner's Q-MP7 examples map (crossfade → long, surface → longest; got ${JSON.stringify([mapped.crossfade?.duration, mapped.surface?.duration])})`);
   // Every path a preset names is a real tree leaf, so a preset resolves through the mapping to the semantic step.
   const p3tree = buildTree(brandTheme(prism3Input)).tree;
   const p3root = Object.keys(p3tree)[0];
@@ -43613,7 +43624,7 @@ arm: {
   ok(moved.length === 0, `#2857 default mapping: no existing duration step moves for prism3${moved.length ? ` — moved: ${moved.map(([k]) => `${k} → ${p3tree[p3root].motion.duration[k]?.$value}`).join('; ')}` : ''}`);
   const spelled = { ...prism3Input, motionPersonality: { ...(prism3Input.motionPersonality ?? {}), presets: Object.fromEntries(cards.map((c) => [c.data, c.dur])) } } as BrandInput;
   ok(JSON.stringify(buildTree(brandTheme(spelled)).tree) === JSON.stringify(p3tree) && JSON.stringify(sidecar(spelled)) === JSON.stringify(sidecar(prism3Input)),
-    '#2857 default mapping: writing the wireframe mapping into the input is byte-identical to leaving it out (tree and sidecar)');
+    '#2857 default mapping: writing the default mapping into the input is byte-identical to leaving it out (tree and sidecar)');
 
   // The long steps: three steps past `slower`, tempo-scaled like every step, 0ms under reduced motion. Values frozen.
   for (const [tempo, f] of [['snappy', 0.8], ['standard', 1], ['relaxed', 1.3]] as const) {
@@ -43627,20 +43638,20 @@ arm: {
   // (2) AN OVERRIDE MOVES EXACTLY ONE PRESET, and only in the sidecar: a preset is not a token, so the tree is
   // byte-identical.
   const stock = sidecar(withMotion({})).motion_presets;
-  const over = sidecar(withMotion({ presets: { 'dialog/enter': 'longest' } })).motion_presets;
+  const over = sidecar(withMotion({ presets: { surface: 'longest' } })).motion_presets;
   const differ = Object.keys({ ...stock, ...over }).filter((k) => JSON.stringify(stock[k]) !== JSON.stringify(over[k]));
-  ok(differ.length === 1 && differ[0] === 'dialog/enter' && over['dialog/enter']?.duration === 'motion.duration.longest'
-    && over['dialog/enter']?.easing === stock['dialog/enter']?.easing && over['dialog/enter']?.reduced_duration === stock['dialog/enter']?.reduced_duration,
-    `#2857 override: presets {'dialog/enter': 'longest'} moves exactly that preset's step and nothing else (moved: ${JSON.stringify(differ)}, now ${JSON.stringify(over['dialog/enter'])})`);
-  ok(JSON.stringify(treeOf(withMotion({ presets: { 'dialog/enter': 'longest' } }))) === JSON.stringify(treeOf(withMotion({}))),
+  ok(differ.length === 1 && differ[0] === 'surface' && over.surface?.duration === 'motion.duration.longest'
+    && over.surface?.easing === stock.surface?.easing && over.surface?.reduced_duration === stock.surface?.reduced_duration,
+    `#2857 override: presets {surface: 'longest'} moves exactly that preset's step and nothing else (moved: ${JSON.stringify(differ)}, now ${JSON.stringify(over.surface)})`);
+  ok(JSON.stringify(treeOf(withMotion({ presets: { surface: 'longest' } }))) === JSON.stringify(treeOf(withMotion({}))),
     '#2857 override: a preset mapping moves no token (the tree is byte-identical)');
 
   // (3) AN UNKNOWN ENTRY IS REFUSED BY NAME: an unknown preset, an unknown step, a loop period (not a step), and in
   // the brand-only group an unknown kind and an unknown field.
   const refusals: Array<[string, Record<string, unknown>, RegExp]> = [
-    ['unknown preset', { presets: { 'modal/enter': 'normal' } }, /motionPersonality\.presets: unknown preset 'modal\/enter'/],
-    ['unknown step', { presets: { 'toast/exit': 'huge' } }, /motionPersonality\.presets\.toast\/exit: unknown duration step 'huge'/],
-    ['a loop period', { presets: { 'toast/exit': 'spin' } }, /motionPersonality\.presets\.toast\/exit: unknown duration step 'spin'/],
+    ['unknown preset', { presets: { 'dialog/enter': 'normal' } }, /motionPersonality\.presets: unknown preset 'dialog\/enter'/],
+    ['unknown step', { presets: { fade: 'huge' } }, /motionPersonality\.presets\.fade: unknown duration step 'huge'/],
+    ['a loop period', { presets: { fade: 'spin' } }, /motionPersonality\.presets\.fade: unknown duration step 'spin'/],
     ['unknown brand-only kind', { brandOnly: { thumb: { kind: 'wobble' } } }, /motionPersonality\.brandOnly\.thumb: unknown kind 'wobble'/],
     ['unknown brand-only field', { brandOnly: { coast: { kind: 'gesture', friction: 2 } } }, /motionPersonality\.brandOnly\.coast: unknown field 'friction'/],
     ['missing brand-only field', { brandOnly: { thumb: { kind: 'spring', damping: 0.7 } } }, /motionPersonality\.brandOnly\.thumb: kind 'spring' needs 'stiffness'/],
@@ -43649,7 +43660,7 @@ arm: {
     const msg = refusal(() => brandTheme(withMotion(mp)));
     ok(want.test(msg), `#2857 refused by name: ${label} (got ${JSON.stringify(msg)})`);
   }
-  ok(validateBrandInput(withMotion({ presets: { 'toast/exit': 'huge' } }) as never).some((e) => /motionPersonality\.presets\.toast\/exit: "huge" not in/.test(String(e))),
+  ok(validateBrandInput(withMotion({ presets: { fade: 'huge' } }) as never).some((e) => /motionPersonality\.presets\.fade: "huge" not in/.test(String(e))),
     '#2857 refused by name: the schema refuses an unknown step too');
 
   // (4) THE BRAND-ONLY GROUP STAYS OUT OF THE CONTRACT. A brand that sets it gets custom-typed leaves under

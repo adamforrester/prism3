@@ -5,9 +5,10 @@
    the standard tempo and scale with tempo like every step; their reduced twins are 0ms, the existing rule for any step
    above 200ms. The `duration-ms` primitives they alias appear on their own, because that tier is the union of every
    reachable value. Six guaranteed names: `CONTRACT_VERSION` 15.1.0 → 15.2.0, raised first, then
-   `token-contract.ts --accept`. No short step: every starter preset already lands on an existing step.
+   `token-contract.ts --accept`. No short step: every default preset already lands on an existing step.
 2. **`motionPersonality.presets`** maps a preset to a step. `MOTION_PRESET_DEFAULTS` (`theme-motion.ts`) is the
-   default mapping, the eleven #2857 wireframe cards on the step each plays. A preset is not a token, per the owner's
+   default mapping: the owner's ten Q-MP1 presets (state, fade, crossfade, move, reveal, draw, surface, expand, step,
+   settle), each on a DRAFT step read against the #2857 field benchmark. A preset is not a token, per the owner's
    "no per-preset duration tokens": the resolved presets go to the agent sidecar as `motion_presets` (schema 0.6),
    each naming `motion.duration.<step>`, `motion.easing-role.<role>` and `motion.duration-reduced.<step>`. The future
    Figma animation styles bind those same role variables. `buildMotion` refuses an unknown preset and an unknown step
@@ -23,9 +24,11 @@ their primitives and the sidecar's new block.
 
 **DRAFT for the owner.** The step names and values (recommended `long`/`longer`/`longest`; the alternative is a
 t-shirt scale, `xl`/`2xl`/`3xl`, which renames the existing steps and so belongs in the batched MAJOR, #4165 with
-#1421). The preset names and set (Q-MP1 to Q-MP6 are open). The reduced step staying the preset's own rather than
+#1421). The preset names (Q-MP2 is open) and each preset's default step, easing role and reduced step (Q-MP1 named the
+presets, not their steps). The reduced step staying the preset's own rather than
 the brand's. The brand-only group's name (`motion.brand`) and fields. The reference brand's mapping waits on the
 brand-team questions.
 
 **Trap.** #3998 (springs to CSS) also raises the contract to 15.2.0. Whichever lands second re-raises to 15.3.0 and
-re-runs `--accept`.
+re-runs `--accept`. #4096 also raises the agent sidecar schema to `prism3-ai-metadata/0.6`: whichever lands second
+takes 0.7 and re-raises both `$id`s together.

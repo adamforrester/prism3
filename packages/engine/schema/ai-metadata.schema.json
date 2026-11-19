@@ -43,7 +43,7 @@
     },
     "motion_presets": {
       "type": "object",
-      "description": "Motion presets (`dialog/enter`, `hover`), keyed by preset name. A preset is not a token: it names the step of the shared duration scale it plays on, from the brand's preset mapping, with its easing role and its reduced-motion duration. Each value is a path in the `motion` tier.",
+      "description": "Motion presets (`surface`, `crossfade`), keyed by preset name. A preset is not a token: it names the step of the shared duration scale it plays on, from the brand's preset mapping, with its easing role and its reduced-motion duration. Each value is a path in the `motion` tier.",
       "additionalProperties": false,
       "patternProperties": { "^[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*)?$": { "$ref": "#/$defs/presetEntry" } }
     },
