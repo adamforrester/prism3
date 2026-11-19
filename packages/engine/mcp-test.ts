@@ -468,6 +468,24 @@ await new Promise((r) => setTimeout(r, 3000));
   const bogus = await server.callJson('theme_from_brief', { brief: 'no frontmatter, just prose' });
   ok(bogus.isError, 'journey ⑥: a malformed brief is an actionable tool error the model can retry');
   ok(/frontmatter/i.test(JSON.stringify(bogus.payload)), 'journey ⑥: the error says what was wrong with it');
+
+  // ⑦ A STANDARD-dialect brief (a flat `colors:` hex map, `typography:` tokens, an `x-prism3:` block), the
+  // shape an extraction exports. The CLI reads it; the tool refused it as a malformed BrandInput (#4118).
+  const stdBrief = ['---', 'version: alpha', 'name: Lumen Coffee', 'x-prism3:', '  root: lcds', '  density: compact', '  tempo: brisk',
+    'colors:', '  primary: "#6B3E26"', '  secondary: "#D9A441"', '  neutral-900: "#2A2522"', '  neutral-100: "#F4F0EC"',
+    '  white: "#FFFFFF"', '  error: "#B3261E"', 'typography:', '  body: { fontFamily: Inter, fontSize: 16px, fontWeight: 400 }',
+    '---', '# Lumen Coffee'].join('\n');
+  const std = await server.callJson('theme_from_brief', { brief: stdBrief });
+  ok(!std.isError, `#4118 theme_from_brief generates from a standard-dialect brief (${std.isError ? JSON.stringify(std.payload).slice(0, 200) : 'ok'})`);
+  ok(std.payload?.dialect === 'standard' && std.payload?.derivedBrandInput?.id === 'lumen-coffee',
+    '#4118 theme_from_brief reports the standard dialect and the id it slugged from the name');
+  ok(std.payload?.derivedBrandInput?.root === 'lcds' && (std.payload?.xApplied ?? []).includes('density=compact'),
+    '#4118 theme_from_brief applies the x-prism3 levers and lists them in xApplied');
+  ok(JSON.stringify(std.payload?.xWarnings ?? []).includes("'tempo'"),
+    '#4118 theme_from_brief names the x-prism3 key it skipped in xWarnings, as the CLI does');
+  ok(Array.isArray(std.payload?.classification) && std.payload.classification.length > 0,
+    '#4118 theme_from_brief returns the color classification, so a misread swatch is visible');
+  ok(gen.payload.dialect === 'engine-native', '#4118 theme_from_brief reports the engine-native dialect for an engine-native brief');
 }
 
 server.stop();
