@@ -22,7 +22,7 @@
  * ── THE BUILT WIDTH ─────────────────────────────────────────────────────────────────────────────────────────────
  *
  * The proposal's 240 min and 360 max are literals, as Dialog's widths (Q303.5 A). The member is BUILT at 320, between
- * them, with the 240 floor as Figma's min width; the 360 cap is code only. The 320 is this build's, held for the owner.
+ * them, with the 240 floor as Figma's min width; the 360 cap is code only. The 320 is the owner's (decision 2, 2026-11-19).
  */
 import { ComponentDef } from '../component-schema';
 
@@ -53,8 +53,8 @@ export const popover: ComponentDef = {
   states: [],
   // ONE MEMBER (OD-P2 A: no arrow, so nothing in the drawing changes with the side). The engine projects no set without
   // an axis, so the one member carries the default side, `placement: bottom`; the other three sides are code only (the
-  // collision entry in codeOnly). HELD FOR THE OWNER: a one-value axis, or an engine change that builds an axis-less
-  // def as a plain component.
+  // collision entry in codeOnly). Decided (owner, 2026-11-19): a one-value axis, rather than an engine change that
+  // builds an axis-less def as a plain component.
   variants: { placement: ['bottom'] },
   axisKinds: { placement: 'authoring' },
 
@@ -92,7 +92,7 @@ export const popover: ComponentDef = {
         elevation: 'shadow',
         radius: 'radius',
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
-        // Built at 320, between the 240 floor and the 360 cap (held for the owner); an instance a designer resizes keeps
+        // Built at 320, between the 240 floor and the 360 cap (owner decision 2, 2026-11-19); an instance a designer resizes keeps
         // the floor.
         placementWidth: 320,
         minWidth: 240,
@@ -102,7 +102,7 @@ export const popover: ComponentDef = {
         note: 'The panel: the raised surface, its edge, its shadow and its corners. It pads all four sides.',
       },
       header: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',   // as Dialog's header (#3986): the close button moves to the start edge in RTL
         role: 'presentation',
         // Dialog's and the accordion's title row (Q262 A): the title beside the close button, top-aligned, so a wrapped
         // title keeps the close button beside its first line.
@@ -179,7 +179,13 @@ export const popover: ComponentDef = {
         class: 'keyboard-and-focus',
         disposition: 'refused',
         description:
-          'focus on opening — a popover that holds controls moves focus to `initialFocus`, or to its first control. A read-only popover (text, an explanation) leaves focus on its trigger, and a screen reader reaches the content through `aria-controls` or as the next thing in reading order. The `popover` attribute moves no focus, so code does.',
+          'focus on opening — a popover that holds controls moves focus to `initialFocus`, or to its first control. A read-only popover (text, an explanation) leaves focus on its trigger; the next entry is how a screen reader reaches its content. The `popover` attribute moves no focus, so code does.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'read-only announcement — a read-only popover (the toggletip case: an explanation behind an info button) announces its content through a polite live region (`role="status"`) when it opens, and sits right after its trigger in the DOM, so it is also the next thing in reading order. The trigger\'s `aria-controls` stays, but most screen readers do not announce it, so it is not how the content is reached.',
       },
       {
         class: 'keyboard-and-focus',
@@ -326,17 +332,14 @@ export const popover: ComponentDef = {
   },
 
   notes: {
-    contested: [
-      'HELD FOR THE OWNER: the set is one member, as OD-P2 A decided, but the engine cannot project a set with no variant axis (no def had one before). This build gives the one member a one-value axis, placement=bottom, the default side. The alternative is an engine and executor change that builds an axis-less def as a plain component rather than a set.',
-      'HELD FOR THE OWNER: the built width, 320px between the proposal\'s 240px floor and 360px cap, and the placeholder copy.',
-      'HELD FOR THE OWNER: the brief\'s §3 additions trapFocus and modal (both default false) are not props. A trapped or modal popover is a Dialog, so adding them would blur OD-P1 A; restoreFocus is always on and collision padding is the fixed space.200 margin.',
-      'HELD FOR THE OWNER: motion.duration.fast resolves to 100ms on the reference brand, under the briefs\' 120–180ms range. The tempo lever moves it per brand; whether the Popover / open preset should bind a slower role is the owner\'s.',
-    ],
+    contested: [],
     unverified: [
       'That the header row collapses when both the title and close toggles are off (no gap left above the body). The plan hides both nodes; no live file has read the header\'s height back.',
       'The Popover / open and Popover / close motion preset is described here but not built: the #2857 starter set exists only as a wireframe, so there is no preset to bind yet.',
     ],
     evolution: [
+      'Owner decisions (2026-11-19, on #4252), all as recommended: (1) the set is one member on a one-value axis, placement=bottom, the default side, because the engine projects no set without an axis; (2) the member is built 320px wide, between the proposal\'s 240px floor and 360px cap; (3) the brief\'s trapFocus and modal are not props, because a trapped or modal popover is a Dialog (OD-P1 A), and restoreFocus is always on; (4) the motion keeps motion.duration.fast, 100ms on the reference brand, which the tempo lever moves per brand; (5) Popover has its own page under Components; (6) the copy is approved.',
+      'Owner decision S1 A (2026-11-19, on #4252): a read-only popover announces its content through a polite live region (role="status") and sits right after its trigger in the DOM. aria-controls is not relied on, because most screen readers do not announce it.',
       'Owner decision Q-FL2 (2026-11-19, on #4007 and #4008): the proposal\'s recommendations OD-P1 to OD-P6 and OD-X1 to OD-X5, read with the KB brief check; K4 B (the aliases overlay and flyout, as the brief lists them); K5 B (a read-only popover leaves focus on its trigger); K8 A for the POC (an owned, dependency-free positioning layer, the library question going to the developers).',
     ],
   },

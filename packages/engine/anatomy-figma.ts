@@ -24,7 +24,7 @@
  */
 import type { AxisKind, ComponentDef, LiteralEntry, LiteralFont, NestVariantWhen, NestVariantWhere, PartDef } from './component-schema';
 import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, variantAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
-import type { ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle, CurrentIndicator, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
+import type { ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle, CurrentIndicator, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, ButtonBorderWeight, Density } from './scale';
 import { buttonMinWidth, CURRENT_INDICATOR_PARTIAL_SHARE, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ICON_SIZES, ratioMinWidth, spacePx, visibleGapStep } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
@@ -1934,6 +1934,8 @@ export const figmaAnatomyPlan = (
     if (p.kind === 'nest' && p.nestPaddingBlock) { bound.paddingTop = varOf(p.nestPaddingBlock); bound.paddingBottom = varOf(p.nestPaddingBlock); }
     if (p.kind === 'box') {
       if (p.gap) bound.itemSpacing = varOf(p.gap);
+      // THE LINE GAP of a wrapping row (#1739, `PartDef.rowGap`). Both executors bind `bound` after `layoutWrap`.
+      if (p.rowGap) bound.counterAxisSpacing = varOf(p.rowGap);
       if (p.height) bound.height = varOf(p.height);
       // A token-bound height FLOOR: the row still hugs, and measures max(floor, tallest child).
       if (p.minHeight) bound.minHeight = varOf(p.minHeight);
@@ -2995,9 +2997,14 @@ export const MIN_WIDTH_DERIVATION = 'min-width';
 /** True when `def` is in the button family the #1667 levers reach — it declares the `min-width` derivation. */
 export const isButtonFamily = (def: ComponentDef): boolean => !!def.anatomy?.derived?.[MIN_WIDTH_DERIVATION];
 
-/** The button settings, as `materializeForBrand` reads them off a brand: #1667's three and #1752's label weight. */
-export type ButtonLayout = { icons: ButtonIcons; content: ButtonContentSize; minWidthMultiplier: number; labelWeight: ButtonLabelWeight; textHover: ButtonTextHover };
-export const DEFAULT_BUTTON_LAYOUT: ButtonLayout = { icons: 'attached', content: 'match', minWidthMultiplier: DEFAULT_MIN_WIDTH_MULTIPLIER, labelWeight: 'emphasis', textHover: 'text' };
+/** The button settings, as `materializeForBrand` reads them off a brand: #1667's three, #1752's label weight, #2324's
+ *  text hover and #576's outline border weight. */
+export type ButtonLayout = { icons: ButtonIcons; content: ButtonContentSize; minWidthMultiplier: number; labelWeight: ButtonLabelWeight; textHover: ButtonTextHover; borderWeight: ButtonBorderWeight };
+export const DEFAULT_BUTTON_LAYOUT: ButtonLayout = { icons: 'attached', content: 'match', minWidthMultiplier: DEFAULT_MIN_WIDTH_MULTIPLIER, labelWeight: 'emphasis', textHover: 'text', borderWeight: 'hairline' };
+/** "Outline button border" (#576): the key every button-family def binds its edge's thickness to, and the rung it binds
+ *  at `hairline`, the default. The setting rebinds that one key to `border-width.<weight>`; no token is added. */
+export const BORDER_WEIGHT_KEY = 'border-width';
+const BORDER_WEIGHT_DEFAULT_REF = 'border-width.hairline';
 
 /** "One step smaller" (#1667): the ONE size whose content moves, and the size it borrows from. Medium only,
  *  and deliberately: New Balance's 44px button (our `size.md.height`) carries a 12px label and a 16px icon,
@@ -3063,6 +3070,11 @@ export const TEXT_FILL_STATES = ['hover', 'pressed'] as const;
  *      moves (#2324), and the text appearance keeps its underline: `emphasis-link` becomes `default-link`.
  *   5. "Text button hover" (`textHover: 'fill'`, #2324). The text appearance takes the outline appearance's hover
  *      and pressed wash. `text`, the default, keys none: the label and icon change color, and nothing fills.
+ *   6. "Outline button border" (`borderWeight: 'thick'`, #576). The container's `border-width` key binds
+ *      `border-width.thick` instead of `border-width.hairline`, in every button set at once: one brand-wide weight
+ *      (owner decision 2026-11-18, A). The key sits on the shared container, so filled and text members carry it too
+ *      and paint no stroke, exactly as they carry the hairline today. The border's COLOR is untouched: it stays the
+ *      set's own `outline.border.*`. `hairline`, the default, is the identity. Icon buttons are outside the family.
  *
  * THROWS when a size's number does not resolve: a button with no floor, or a pinned icon with no reserve,
  * at one size is the silent-loss shape, and the caller always has the brand's numbers in hand.
@@ -3105,6 +3117,13 @@ export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (
       const wash = tokens[`outline.overlay.${st}`];
       if (wash) tokens[`text.overlay.${st}`] = wash;
     }
+  }
+  // 6. "Outline button border" (#576). THROWS when the def's edge is not bound to the default rung: a def that moved
+  //    its border onto another key or rung would otherwise keep it while this reported the weight applied.
+  if (layout.borderWeight !== 'hairline') {
+    if (tokens[BORDER_WEIGHT_KEY] !== BORDER_WEIGHT_DEFAULT_REF)
+      throw new Error(`${def.id}: "Outline button border" rebinds ${BORDER_WEIGHT_KEY} from ${BORDER_WEIGHT_DEFAULT_REF} to border-width.${layout.borderWeight}, and the def binds ${tokens[BORDER_WEIGHT_KEY] ?? 'nothing'} there`);
+    tokens = { ...tokens, [BORDER_WEIGHT_KEY]: `border-width.${layout.borderWeight}` };
   }
   // A def key (`size.{size}.gap`) at one size → px, through the (possibly rebound) token map.
   const at = (key: string, v: string, what: string): number => {
@@ -5666,7 +5685,7 @@ for(const [name,key] of bare)if(!referenced.has(key))propMiss.push('property '+n
 export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control',
-  'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab-item', 'tabs',
+  'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tag-group', 'tab-item', 'tabs',
   'divider', '_accordion-indicator', 'accordion', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item',
   'list', 'segmented-control-segment', 'segmented-control', 'link',
   'button-group', 'dialog', 'password-field', 'counter', 'pagination-item', 'pagination', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', '_slider-thumb', 'slider',

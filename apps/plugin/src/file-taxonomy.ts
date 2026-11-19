@@ -124,7 +124,8 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Badge', defs: ['badge'] },
         // Tag — under Components beside Badge, owner-decided 2026-10-04 (S8 scope, O1). It nests
         // IconButton.Neutral, whose page is earlier in this list, so the nest resolves when the file is built in order.
-        { page: 'Tag', defs: ['tag'] },
+        // Tag.Group (#1739) beside Tag, built after it so its nested tags resolve on the same page. Held for the owner.
+        { page: 'Tag', defs: ['tag', 'tag-group'], lead: 'tag' },
         // Tabs — its own page under Components, owner-decided 2026-10-09 (#2416 Q177.14: no navigation grouping,
         // no new section). Tab builds first, so the list's nested tabs resolve against it on the same page.
         { page: 'Tabs', defs: ['tab-item', 'tabs'], lead: 'tabs' },
@@ -146,8 +147,8 @@ export const TAXONOMY: Taxonomy = {
         // Dialog (#2609, owner decision Q303.12 A) — its own page under Components, every placement on it. It nests the
         // Neutral IconButton, the Divider and the Button, which the build places first wherever their pages sort.
         { page: 'Dialog', defs: ['dialog'] },
-        // Popover (#4008, owner Q-FL2) — its own page under Components, beside Dialog. Which section it belongs in is the
-        // owner's call, held in the PR as Link's and Banner's were. It nests FlushIconButton.Neutral and the Button group.
+        // Popover (#4008, owner Q-FL2) — its own page under Components, beside Dialog (owner decision 5 on #4252,
+        // 2026-11-19). It nests FlushIconButton.Neutral and the Button group.
         { page: 'Popover', defs: ['popover'] },
         // Menu (#4007, owner Q-FL2) — its own page under Components, its item and group beside it (Q656 A: a part only its
         // family nests shares that family's page). The item builds first, then the group, so both slots resolve on the page.

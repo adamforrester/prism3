@@ -53,7 +53,7 @@ export {
   densitySpacingStep, sizeRefPx,
 } from './scale';
 export type {
-  BannerStyle, ButtonContentSize, ButtonIcons, ButtonLabelWeight, ButtonTextHover, ControlShape, CurrentIndicator,
+  BannerStyle, ButtonBorderWeight, ButtonContentSize, ButtonIcons, ButtonLabelWeight, ButtonTextHover, ControlShape, CurrentIndicator,
   Density, DialogTitleSize, FieldStyle, RadioDotShare, SearchFieldStyle, SizeStep, TagStyle,
 } from './scale';
 export { CONTRACT_VERSION, ENGINE_VERSION } from './version';
@@ -78,3 +78,5 @@ export {
   slotMigrationOf, slotTextMigrationOf,
 } from './component-renames';
 export type { ComponentRename } from './component-renames';
+// The component-defs export's file names (#3429): no imports, so the web lists them before it loads the definitions.
+export { componentDefsFileNames } from './component-defs-names';

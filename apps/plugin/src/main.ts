@@ -28,6 +28,7 @@ import { restorePlacement, stripPlacement } from './window-place';
 import type { Point, WindowAt } from './window-place';
 import type { MainToUi, UiToMain, StyleGuideOptions, RunProgressKind } from './messages';
 import { createRunGuard, guardFor, writes, busyMessage } from './run-guard';
+import { announces, agentStartLine, agentDoneNotice } from './agent-run-notice';
 import type { WriteCmd } from './run-guard';
 import { strandedCollections, ownedModeIds } from './write-figma';
 import { classifyFile, libraryFileOf, outcomeOf, probeFile, type FileKindApi } from './file-kind';
@@ -1904,7 +1905,7 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
     const items = [...furnitureItems(furniture, 'update'), ...[docBlockLine(furniture, 'update', fix)].filter(Boolean)];
     postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), items), furniture, 'update', fix), ...(r.publish ? { publish: r.publish } : {}) }, sink);
   } catch (e) {
-    const why = (e as Error)?.message ?? String(e);
+    const why = failureDetail(e);
     const headline = previewHash === null ? '✗ check failed' : '✗ update failed';
     postVerdict({ type: 'component-update-result', ok: false, headline, summary: why, lines: [why], causes: [runCause(headline, why)] }, sink);
   }
@@ -1922,7 +1923,7 @@ const captureBaseline = async (defId: string | undefined, sink: ActionSink): Pro
     sink.data({ update: { mode: 'capture', ...r } });
     postVerdict({ type: 'component-update-result', ...captureVerdictText(r) }, sink);
   } catch (e) {
-    const why = (e as Error)?.message ?? String(e);
+    const why = failureDetail(e);
     postVerdict({ type: 'component-update-result', ok: false, headline: '✗ record failed', summary: why, lines: [why] }, sink);
   }
 };
@@ -1939,7 +1940,7 @@ const adoptMembers = async (defId: string | undefined, sink: ActionSink): Promis
     sink.data({ update: { mode: 'adopt', ...r } });
     postVerdict({ type: 'component-update-result', ...adoptVerdictText(r) }, sink);
   } catch (e) {
-    const why = (e as Error)?.message ?? String(e);
+    const why = failureDetail(e);
     postVerdict({ type: 'component-update-result', ok: false, headline: '✗ adopt failed', summary: why, lines: [why] }, sink);
   }
 };
@@ -1982,7 +1983,7 @@ const drawSpecs = async (defId: string | undefined, scope: 'file' | 'page', sink
     const causes = clean ? [] : [{ ...runCause(headline, ''), reasons: targets.length ? [...items] : [summary] }];
     postVerdict({ type: 'component-update-result', ok: clean, headline, summary, lines: targets.length ? [`Drew ${drawn.length} of ${targets.length}.`, ...items] : [summary], causes }, sink);
   } catch (e) {
-    const why = (e as Error)?.message ?? String(e);
+    const why = failureDetail(e);
     postVerdict({ type: 'component-update-result', ok: false, headline: '✗ draw specs failed', summary: why, lines: [why], causes: [runCause('✗ draw specs failed', why)] }, sink);
   }
 };
@@ -2447,6 +2448,8 @@ export const ACTIONS: AgentActions = {
  */
 /** #3309: the agent command running now, so the activity log can name what an agent's forwarded verdict answered. */
 let agentCmd: string | null = null;
+/** #2368: the announced agent run, with its start notice, until the link publishes its result. */
+let announced: { id: string; cmd: string; notice: NotificationHandler | null } | null = null;
 const dispatch = createDispatcher({
   actions: ACTIONS,
   // Streamed to the panel, which forwards them to the desktop bridge for the commands it delivered.
@@ -2454,9 +2457,19 @@ const dispatch = createDispatcher({
   onLog: (id, line) => postToUi({ type: 'agent-log', id, line }),
   // The Activity drawer's agent rows (UI redesign S11): when a command starts, and when it has ended.
   // #2087: a build names its set (no def builds Button, as `buildComponents` does), so the Components page records its verdict.
-  onStart: (id, cmd, apply, def) => {
+  // #2368 (owner decision A): a command that writes the file is announced. The panel's bar shows it busy, and a host
+  // notice says it is running and that closing Prism3 stops it; the notice stays up until its result is written.
+  onStart: (id, cmd, apply, def, confirm) => {
     agentCmd = cmd;
-    postToUi({ type: 'agent-started', id, cmd, ...(apply ? { apply: true as const } : {}), ...(cmd === 'build-components' ? { def: def ?? button.id } : {}) });
+    const busy = announces(cmd, confirm === true);
+    postToUi({ type: 'agent-started', id, cmd, ...(apply ? { apply: true as const } : {}), ...(cmd === 'build-components' ? { def: def ?? button.id } : {}),
+      ...(busy ? { busy: true as const } : {}) });
+    if (busy) {
+      try { announced?.notice?.cancel(); } catch { /* a notice; never fails the command */ }
+      let notice: NotificationHandler | null = null;
+      try { notice = figma.notify(agentStartLine(cmd), { timeout: Infinity }); } catch { /* a notice; see above */ }
+      announced = { id, cmd, notice };
+    }
   },
   onFinish: (id, cmd) => { agentCmd = null; postToUi({ type: 'agent-finished', id, cmd }); },
   // #1957, #3697 R7: an agent's write is declined before it starts while any write holds the file.
@@ -2544,7 +2557,16 @@ export const agentLink = createAgentLink({
   build: PRISM3_BUILD,
   schedule: (fn, ms) => setTimeout(fn, ms),
   cancel: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
-  onState: (state) => postToUi({ type: 'agent-link-state', state }),
+  onState: (state) => {
+    postToUi({ type: 'agent-link-state', state });
+    // #2368: the announced run's result is written once the link publishes it as its last command: its start notice
+    // gives way to the finish notice, with the command's headline.
+    const done = agentDoneNotice(announced, state.lastCommand);
+    if (!done || !announced) return;
+    try { announced.notice?.cancel(); } catch { /* a notice; never fails the command */ }
+    announced = null;
+    try { figma.notify(done.message, { timeout: done.timeout }); } catch { /* a notice; see above */ }
+  },
 });
 // Closing the plugin ends the session, so the link record says so — an agent reading `link` then knows
 // nobody is listening rather than waiting on a poll that will never come.

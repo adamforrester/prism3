@@ -404,5 +404,56 @@ ok(store.getPath(o, 'a.b.c') === 3 && store.getPath(o, 'a.x.c') === undefined, '
   ok(!map.has(ORIGIN_KEY) && map.has(BRAND_KEY), '#3880 persist: the empty state keeps no origin entry, and the brand is still kept');
 }
 
+// ---- #4209: Undo load saves the restored brand, so a reload opens it with its origin and baseline ------------------
+// `restoreInput` saves only through `resolve()`'s write. The #1037 arms above cover the refused-edit branch, not this
+// one. Expected values come from outside the store: the example as the engine ships it, and the rename typed here.
+// Mutation that fails here BY NAME: `restoreInput` resolving without the write → `#4209 Undo load, then reload: …`.
+{
+  const map = new Map<string, string>();
+  const local: LocalStore = { getItem: (k) => map.get(k) ?? null, setItem: (k, v) => { map.set(k, v); }, removeItem: (k) => { map.delete(k); } };
+  const ids = Object.keys(exampleBrands);
+  const [mine, other] = [ids[0], ids[1]];
+  const shipped = (exampleBrands as Record<string, BrandInput>)[mine];
+  store.setPersist((input, prov) => persistInput(local, input, prov));
+  store.initSession(structuredClone(shipped), { kind: 'example', id: mine });
+  store.brandState.name = 'renamed before the load';
+  store.rebuild();
+  const u = store.stashForLoad('renamed before the load');
+  store.loadInput(structuredClone((exampleBrands as Record<string, BrandInput>)[other]), { kind: 'example', id: other });
+  store.restoreInput(u!.input, u!.provenance, u!.lastGood);
+  store.setPersist(null);
+  const r = restoreSession(local);
+  ok(r !== null && r.input.name === 'renamed before the load' && same(r.origin, { kind: 'example', id: mine }) && same(r.baseline, shipped),
+    `#4209 Undo load, then reload: the saved copy is the restored brand, with its origin and baseline (name ${r?.input.name}, origin ${JSON.stringify(r?.origin)})`);
+}
+
+// ---- #4234: one edit resolves every mode once — the store's resolve fills the cache the verdict reads -------------
+// Before #4234, `resolvePreview` ran `resolveAllModes` itself and the verdict ran it again on the same theme. Two
+// readings, neither derived from the subject: the cache's own run count across a rebuild and a verdict read, and a
+// preview resolved over a hand-altered copy of the modes (a hex typed here), which only shows if the modes are used.
+// Mutations that fail here BY NAME: the store calling `resolvePreview(t)` without the cached modes → `#4234 one resolve
+// per edit: …`; `resolvePreview` ignoring its `modes` → `#4234 resolvePreview reads the modes it is given`.
+{
+  const verdict = await import('./src/state/verdict');
+  // Read through `?.` so a build without the counter fails the arm by name rather than throwing.
+  const runs = (): number => (verdict as { resolveRuns?: () => number }).resolveRuns?.() ?? NaN;
+  const { resolvePreview, resolveAllModes } = await import('@prism3/engine');
+  store.initSession(structuredClone((exampleBrands as Record<string, BrandInput>).aurora), { kind: 'example', id: 'aurora' });
+  store.brandState.primary.h = (store.brandState.primary.h + 30) % 360;
+  const before = runs();
+  store.rebuild();
+  const byRebuild = runs() - before;
+  verdict.verdictOf(store.theme, store.rp.modes);
+  const total = runs() - before;
+  ok(store.lastError === null && byRebuild === 1 && total === 1,
+    `#4234 one resolve per edit: the rebuild resolves the modes once and the verdict reads that copy (rebuild ${byRebuild}, after the verdict ${total})`);
+  const modes = structuredClone(resolveAllModes(store.theme));
+  const ref = Object.keys(store.rp.colors)[0]!;
+  const role = modes[0]!.roles[ref.replace(/^color\./, '')]!;
+  role.hex = '#123456'; role.alpha = undefined;
+  const rp = (resolvePreview as (...a: unknown[]) => typeof store.rp)(store.theme, undefined, modes);
+  ok(rp.colors[ref]?.[modes[0]!.mode] === '#123456', `#4234 resolvePreview reads the modes it is given (${ref}: ${rp.colors[ref]?.[modes[0]!.mode]})`);
+}
+
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);

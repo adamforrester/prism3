@@ -1906,6 +1906,54 @@
       }
     },
     {
+      "from": "tag-group",
+      "to": "tag",
+      "part": "tag1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "select",
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "tag-group",
+      "to": "tag",
+      "part": "tag2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "select",
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "tag-group",
+      "to": "tag",
+      "part": "tag3",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "select",
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
       "from": "text-field",
       "to": "field-label",
       "part": "label",
@@ -2544,6 +2592,7 @@
         "tab-item",
         "tabs",
         "tag",
+        "tag-group",
         "toast",
         "wallet-button"
       ],
@@ -3037,6 +3086,22 @@
       "nestsTransitively": [
         "focus-ring"
       ],
+      "nestedBy": [
+        "tag-group"
+      ],
+      "affectedByChange": [
+        "tag-group"
+      ],
+      "inheritedBy": []
+    },
+    "tag-group": {
+      "nests": [
+        "tag"
+      ],
+      "nestsTransitively": [
+        "focus-ring",
+        "tag"
+      ],
       "nestedBy": [],
       "affectedByChange": [],
       "inheritedBy": []
@@ -3173,6 +3238,7 @@
     "tab-item": 1,
     "tabs": 2,
     "tag": 1,
+    "tag-group": 2,
     "text-field": 1,
     "textarea": 1,
     "toast": 2,

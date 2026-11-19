@@ -11,15 +11,23 @@ Menu will bind too (OD-X1 A); `test.ts` pins the five roles to the proposal's li
 **Trap: the engine cannot project a set with no axes.** OD-P2 A gives one member and no axes, and no def had ever had
 zero: `checkAnatomySet` refuses a member with no coordinate, by design (#795). This build gives the one member a
 one-value axis, `placement: [bottom]`, the default side, joined to `lint-axis-values` as a subset of Dialog's word.
-Held for the owner: keep that, or build an axis-less def as a plain component (an engine and executor change).
+The owner kept it (2026-11-19), rather than an engine and executor change that builds an axis-less def as a plain
+component.
 
-**Held for the owner (on the PR).**
+**Decided by the owner (2026-11-19, on the PR), all as recommended.**
 - The one-value axis above.
 - The built width: 320px, between the proposal's 240px floor (Figma's min width) and 360px cap (code only).
 - The brief's extra props `trapFocus` and `modal`: left out, because a trapped popover is a Dialog.
-- `motion.duration.fast` is 100ms on the reference brand, under the briefs' 120–180ms range.
+- `motion.duration.fast` stays, though it is 100ms on the reference brand, under the briefs' 120–180ms range.
 - The page: Popover has its own page under Components, beside Dialog.
-- The placeholder copy (DRAFT).
+- The placeholder copy is approved.
+- S1 A: a read-only popover (the toggletip case) announces its content through a polite live region
+  (`role="status"`) and sits right after its trigger in the DOM. `aria-controls` is no longer the stated way in,
+  because most screen readers do not announce it. A named arm in `test.ts` holds it.
+
+**Tooltip (#4251).** Popover keeps `tooltip` in `composition.planned` until Tooltip is registered. The owner decided
+the two list each other in `alternativeTo`; that has to be symmetric, so the swap lands with whichever PR merges
+second.
 
 **The motion preset is not built.** The Popover / open and Popover / close pattern (OD-X5 A) is written into the
 `motion` field and `codeOnly` as token roles, but the #2857 starter set exists only as a wireframe, so no preset

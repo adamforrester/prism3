@@ -572,9 +572,13 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
   // PHASE 2 TITLES ARE UNIQUE (proposed, owner to confirm): two collections can both hold a font-size table (`core`
   // and `type-sets`), so a title two phase-2 tables share names its collection, "Font size (core)". The tables filter
   // matches a title, so a shared one would draw both. Color titles are phase 1's and unchanged.
+  // A PHASE-2 TITLE THAT A COLOR TABLE ON THE SAME PAGE ALREADY HAS takes its collection the same way (#2729, owner
+  // decision A): a dimension collection named like a color family (`border`) is "Border (border)" beside the border
+  // colors' "Border".
   const phase2 = tables.filter((t) => t.type !== 'color');
+  const colorTitles = new Set(tables.filter((t) => t.type === 'color').map((t) => `${t.page}\n${t.title}`));
   const shared = new Set(phase2.filter((t) => phase2.filter((u) => u.title === t.title).length > 1).map((t) => t.title));
-  for (const t of phase2) if (shared.has(t.title)) {
+  for (const t of phase2) if (shared.has(t.title) || colorTitles.has(`${t.page}\n${t.title}`)) {
     const col = catalog.collections.find((c) => c.id === t.collectionId);
     if (col) t.title = `${t.title} (${col.name})`;
   }

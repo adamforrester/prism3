@@ -24,7 +24,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | field-label | card-number-field, checkbox-group, code-input, counter, password-field, radio-group, search-field, segmented-control, select, slider, text-field, textarea | card-number-field, checkbox-group, code-input, counter, password-field, radio-group, search-field, segmented-control, select, slider, text-field, textarea |
 | field-message | card-number-field, checkbox-group, code-input, counter, password-field, progress, radio-group, search-field, select, slider, text-field, textarea | card-number-field, checkbox-group, code-input, counter, password-field, progress, radio-group, search-field, select, slider, text-field, textarea |
 | flush-icon-button-neutral | banner, breadcrumb-item, counter, dialog, popover, toast | banner, breadcrumb-item, breadcrumbs, counter, dialog, popover, toast |
-| focus-ring | _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, menu-item, pagination-item, radio-control, segmented-control-segment, sign-in-button, switch-control, tab-item, tag, wallet-button | _slider-thumb, accordion, banner, breadcrumb-item, breadcrumbs, button, button-destructive, button-group, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, menu, menu-group, menu-item, page-nav, page-nav-item, pagination, pagination-item, password-field, popover, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, sign-in-button, slider, switch-control, switch-row, tab-item, tabs, tag, toast, wallet-button |
+| focus-ring | _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, menu-item, pagination-item, radio-control, segmented-control-segment, sign-in-button, switch-control, tab-item, tag, wallet-button | _slider-thumb, accordion, banner, breadcrumb-item, breadcrumbs, button, button-destructive, button-group, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, menu, menu-group, menu-item, page-nav, page-nav-item, pagination, pagination-item, password-field, popover, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, sign-in-button, slider, switch-control, switch-row, tab-item, tabs, tag, tag-group, toast, wallet-button |
 | link | banner, breadcrumb-item, breadcrumbs, page-nav-item | banner, breadcrumb-item, breadcrumbs, page-nav, page-nav-item |
 | list-item | list | list |
 | menu-item | menu, menu-group | menu, menu-group |
@@ -37,6 +37,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | spinner | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral | banner, button, button-destructive, button-group, button-neutral, dialog, icon-button, icon-button-destructive, icon-button-neutral, password-field, popover, toast |
 | switch-control | switch-row | switch-row |
 | tab-item | tabs | tabs |
+| tag | tag-group | tag-group |
 | text-field | slider | slider |
 
 A component not in this table is nested by nothing; a change to it reaches only itself.
@@ -106,6 +107,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | tab-item | 1 | badge, focus-ring | badge, focus-ring |
 | tabs | 2 | tab-item | badge, focus-ring, tab-item |
 | tag | 1 | focus-ring | focus-ring |
+| tag-group | 2 | tag | focus-ring, tag |
 | text-field | 1 | field-label, field-message | field-label, field-message |
 | textarea | 1 | field-label, field-message | field-label, field-message |
 | toast | 2 | button, flush-icon-button-neutral | button, flush-icon-button-neutral, focus-ring, spinner |
@@ -250,6 +252,9 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | tabs | tab2 | nest | tab-item | nest-fixed | selection=unselected, size=medium, state=rest | size | — |
 | tabs | tab3 | nest | tab-item | nest-fixed | selection=unselected, size=medium, state=rest | size | — |
 | tag | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
+| tag-group | tag1 | nest | tag | nest-fixed | type=select, selection=unselected, size=medium, state=rest | size | — |
+| tag-group | tag2 | nest | tag | nest-fixed | type=select, selection=unselected, size=medium, state=rest | size | — |
+| tag-group | tag3 | nest | tag | nest-fixed | type=select, selection=unselected, size=medium, state=rest | size | — |
 | text-field | label | nest | field-label | nest-exposed | size=medium, emphasis=primary, weight=regular, state=rest | size | emphasis, weight |
 | text-field | message | nest | field-message | nest-fixed | status=default | status | — |
 | textarea | label | nest | field-label | nest-exposed | size=medium, emphasis=primary, weight=regular, state=rest | size | emphasis, weight |

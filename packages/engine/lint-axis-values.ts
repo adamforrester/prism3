@@ -597,7 +597,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['medium', 'small', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab-item', 'tabs', 'segmented-control-segment', 'segmented-control', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter', 'search-field', 'card-number-field', 'pagination-item', 'pagination', '_slider-thumb', 'slider', 'wallet-button', 'sign-in-button'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tag-group', 'tab-item', 'tabs', 'segmented-control-segment', 'segmented-control', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter', 'search-field', 'card-number-field', 'pagination-item', 'pagination', '_slider-thumb', 'slider', 'wallet-button', 'sign-in-button'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, led by `medium` (#2752, owner decision Q1 B, 2026-10-16). Canonical on weight of use: '
@@ -1045,7 +1045,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       'The side of its trigger a popover opens on (#4008, owner decision Q-FL2 on OD-P2 A and OD-X2 A): Dialog\'s word for '
       + 'where a layer sits, and its `bottom` means the same edge. Code takes top, bottom, start or end; with no arrow the '
       + 'panel draws the same on every side, so the set is one member at the default side, and a one-value axis is how '
-      + 'the engine projects one member (held for the owner on #4008). Same vocabulary, shorter.',
+      + 'the engine projects one member (owner decision 1 on #4252, 2026-11-19). Same vocabulary, shorter.',
   },
   {
     axis: 'kind',

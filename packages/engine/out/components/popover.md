@@ -38,6 +38,8 @@ Shown on the default member: placement `bottom`.
 
 Use a Popover for content the user asks for that belongs next to the control that opened it: a few details, a short form such as a filter or a date, a set of links, or the explanation behind an info button. It opens on a press and leaves the page usable. For a decision the user must make before going on, use a Dialog; for a hint on hover, a tooltip; for a list of actions, a Menu.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Open it from a button, on a press

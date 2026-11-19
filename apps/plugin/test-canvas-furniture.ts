@@ -1125,6 +1125,8 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     Switch: ['switch-control', 'switch-row'],
     // #2989 Q656 A: the Code cell joins the Code input page, first.
     'Code input': ['code-input-cell', 'code-input'],
+    // #1739: Tag.Group builds after Tag on the Tag page, so its nested tags resolve there.
+    Tag: ['tag', 'tag-group'],
     Tabs: ['tab-item', 'tabs'],
     'Segmented control': ['segmented-control-segment', 'segmented-control'],
     Accordion: ['_accordion-indicator', 'accordion'],

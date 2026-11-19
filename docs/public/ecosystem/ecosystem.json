@@ -312,6 +312,7 @@
           "spinner",
           "badge",
           "tag",
+          "tag-group",
           "tab-item",
           "tabs",
           "divider",
