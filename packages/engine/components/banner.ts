@@ -55,6 +55,8 @@ import { ComponentDef } from '../component-schema';
 /** The tone glyph. One part per tone because `glyph` substitutes the axis VALUE verbatim (FieldMessage's header). */
 const toneGlyph = (tone: string, glyph: string, shape: string) => ({
   kind: 'vector' as const,
+  // #3986: no tone glyph mirrors in right-to-left text (the def's right-to-left entry).
+  mirror: 'never' as const,
   glyph,
   size: 'glyph-size',
   presentWhen: { tone: [tone] },
@@ -160,7 +162,7 @@ export const banner: ComponentDef = {
     root: 'container',
     parts: {
       container: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         // The paint and geometry owner, in the schema's sense; the banner takes no focus (FieldMessage's reading).
         role: 'target',
         paintSlots: ['fill', 'border'],
@@ -324,7 +326,7 @@ export const banner: ComponentDef = {
         class: 'motion',
         disposition: 'refused',
         description:
-          'motion — appears with an opacity fade; a dismiss collapses the height and fades, on `motion.transition.exit`, so the content below does not jump. Under `prefers-reduced-motion` both are instant. A banner inserted at the top of a page later reserves its space. Figma shows the banner at rest.',
+          'motion — appears with an opacity fade; a dismiss collapses the height and fades, on `motion.transition.exit`, so the content below does not jump. Under `prefers-reduced-motion` both fade only, on `motion.duration-reduced.normal`, and the height changes at once. A banner inserted at the top of a page later reserves its space. Figma shows the banner at rest.',
       },
       {
         class: 'right-to-left',
@@ -473,7 +475,7 @@ export const banner: ComponentDef = {
   motion: {
     enter: 'Fades in. A banner inserted at the top of a page reserves its space, so the content below does not jump.',
     exit: 'Collapses its height and fades on motion.transition.exit, so the content below moves up smoothly.',
-    reduceMotion: 'Under prefers-reduced-motion it appears and goes instantly.',
+    reduceMotion: 'Under prefers-reduced-motion it fades only, on motion.duration-reduced.normal to appear and to go, and its height changes at once when it is dismissed.',
   },
 
   notes: {
