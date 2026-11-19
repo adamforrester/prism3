@@ -14,7 +14,7 @@
 #
 #   D* — DENIED, one per bare form: pop, apply, drop; with options only; `stash` and `refs/stash` as the
 #        ref (git reads both as stash@{0}); after `cd`, through `git -C`, inside `bash -c`, after another
-#        command. Each must deny, print both entries of the stack, and name the `git show` remedy. D1 also
+#        command, behind a wrapper (`time`) or an env prefix, inside `bash -lc`, and git by its path. Each must deny, print both entries of the stack, and name the `git show` remedy. D1 also
 #        asserts the stack is unchanged afterwards (the hook only reads it).
 #   A* — ALLOWED, the false-denial direction: `stash@{n}`, a bare index, a SHA, `refs/stash@{n}`, options
 #        around an explicit ref, `git stash` / `push` / `list` / `show`, a guarded command spelled inside
@@ -28,6 +28,10 @@
 #        M5 every guarded command is denied            → A1 must report DENIED
 #        M6 the stack is left out of the reason        → D1 must report NOSTACK
 #        M7 `drop` is no longer guarded                → D3 must report ALLOWED
+#        M8 wrappers (`time`, `env`, …) are not skipped → D11 must report ALLOWED
+#        M9 an env prefix (`VAR=1`) is not skipped     → D12 must report ALLOWED
+#        M10 only an exact `-c` is read (not `-lc`)    → D13 must report ALLOWED
+#        M11 git is matched only by its bare name      → D14 must report ALLOWED
 #
 # SELF-CHECKS ON THE MUTATION ITSELF. A `sed` that matches nothing yields an unmutated copy, which passes
 # (docs/34 corollary 2), so every mutant is compared to the subject and the arm fails if they are
@@ -121,6 +125,10 @@ D3='git stash drop'
 D5='git stash pop stash'
 D8='git -C sub stash pop'
 D9="bash -c 'git stash pop'"
+D11='time git stash pop'
+D12='GIT_TRACE=1 git stash apply'
+D13="bash -lc 'git stash pop'"
+D14='/usr/bin/git stash pop'
 
 echo "── denied: every bare form, with the stack and the remedy in the reason"
 expect "D1 git stash pop"                       OK "$(denied "$HOOK" "$D1")"
@@ -133,6 +141,10 @@ expect "D7 cd <dir> && git stash pop"           OK "$(denied "$HOOK" 'cd sub && 
 expect "D8 git -C <dir> stash pop"              OK "$(denied "$HOOK" "$D8")"
 expect "D9 bash -c '<bare pop>'"                OK "$(denied "$HOOK" "$D9")"
 expect "D10 after another command"              OK "$(denied "$HOOK" 'git stash -u; git stash pop 2>&1')"
+expect "D11 behind a wrapper (time)"            OK "$(denied "$HOOK" "$D11")"
+expect "D12 behind an env prefix (VAR=1)"       OK "$(denied "$HOOK" "$D12")"
+expect "D13 bash -lc (combined -c flag)"        OK "$(denied "$HOOK" "$D13")"
+expect "D14 git by its path (/usr/bin/git)"     OK "$(denied "$HOOK" "$D14")"
 
 echo "── allowed: an explicit entry, or no guarded command at all, passes silently"
 expect "A1 explicit entry applies what it names" OK "$(runs "$HOOK")"
@@ -167,6 +179,14 @@ mutant M6 's/The stack now:\\n\${stackOf(hit.dir)}/The stack now: (omitted)/'
 [ -n "$M" ] && expect "M6 stack left out of reason → D1"   NOSTACK "$(denied "$M" "$D1")"
 mutant M7 "s/new Set(\['pop', 'apply', 'drop'\])/new Set(['pop', 'apply'])/"
 [ -n "$M" ] && expect "M7 drop not guarded → D3"           ALLOWED "$(denied "$M" "$D3")"
+mutant M8 "s/^const WRAPPERS = new Set(\[.*\]);/const WRAPPERS = new Set([]);/"
+[ -n "$M" ] && expect "M8 wrappers not skipped → D11"      ALLOWED "$(denied "$M" "$D11")"
+mutant M9 "s/(\/^\[A-Za-z_\]\[A-Za-z0-9_\]\*=\/.test(words\[k\]) || /(false || /"
+[ -n "$M" ] && expect "M9 env prefix not skipped → D12"    ALLOWED "$(denied "$M" "$D12")"
+mutant M10 "s/^const SHELL_C = .*/const SHELL_C = \/^-c\$\/;/"
+[ -n "$M" ] && expect "M10 only an exact -c read → D13"    ALLOWED "$(denied "$M" "$D13")"
+mutant M11 "s/^const gitWord = .*/const gitWord = (w) => w === 'git';/"
+[ -n "$M" ] && expect "M11 git only by bare name → D14"    ALLOWED "$(denied "$M" "$D14")"
 
 echo
 echo "stash-guard: $PASS passed, $FAIL failed"
