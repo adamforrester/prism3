@@ -226,7 +226,7 @@ export const drawAbout = async (
   o: { updated: string; engine?: string; contract?: string; ix?: ReleaseIndex },
 ): Promise<AboutOutcome> => {
   const page = coverPage(root);
-  if (!page) return { drawn: false, skipped: 'the file has no Cover page. Run Set up file, then Update', fontMisses: [] };
+  if (!page) return { drawn: false, skipped: 'the file has no Cover page. Run Update file — its first run sets the file up', fontMisses: [] };
   const engine = o.engine ?? ENGINE_VERSION;
   const contract = o.contract ?? CONTRACT_VERSION;
   const own = ownFrame(page);

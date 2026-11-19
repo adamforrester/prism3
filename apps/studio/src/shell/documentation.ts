@@ -67,7 +67,7 @@ export const DOCS_COPY = {
   cover: 'Cover',
   coverDesc: 'The library cover, with the brand’s name and the Prism3 version, on the Cover page. Update file draws it and keeps it current, and sets it as the file thumbnail while Figma’s default is in place.',
   coverOff: 'Off: Update file leaves the Cover page and the file thumbnail alone.',
-  specs: 'Spec sheets',
+  specs: 'Spec drawings',  // #4184 decision 5 A: "Spec drawings" (DRAFT), so "specs" alone is Export's Component specs.
   specsDesc: 'Measured specs for each component set on this page, drawn beside its usage panel. Build and Update file never draw them.',
   specsDraw: 'Draw specs',
   specsBusy: 'Drawing specs',

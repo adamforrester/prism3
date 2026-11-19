@@ -108,9 +108,9 @@ export const OVERRIDE_COPY = {
   notCustomizable: (mode: string): string => `${modeLabel(mode)} is generated, not edited — override Light or Dark instead.`,
   themeUnsaved: "Not saved — Theme has changes that aren't in the file yet. Run Update file or discard them, then send this again.",
   brandMoved: "Not saved — the file's brand changed after the preview. Preview again.",
-  noBrand: 'Not saved — this file holds no Prism3 brand. Write a theme first.',
+  noBrand: 'Not saved — this file holds no Prism3 brand. Run Update file with Theme ticked first.',
   /** DRAFT (OWNER DECISION on #3394's PR): a stored brand this build can't read (`restoreInput` throws). */
-  unreadableBrand: "Not saved — this file's brand was saved by a build this plugin can't read.",
+  unreadableBrand: "Not saved — this file's brand was saved by a Prism3 build this plugin can't read. Update the plugin, then try again.",
   headlineBelow: (n: number): string => `Not saved — ${n} ${plural(n, 'change puts', 'changes put')} a pair below its minimum.`,
   /** DRAFT (OWNER DECISION on #3394's PR): a list refused for any reason other than contrast alone. */
   headlineRefused: (n: number): string => `Not saved — ${n} ${plural(n, 'change', 'changes')} can't be made as sent.`,

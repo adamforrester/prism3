@@ -166,7 +166,7 @@ const ROW_AFTER_THEME = 'Updated after Theme — Theme writes the variables and 
   const lacking = { ...host, root: { ...host.root, findAllWithCriteria: (c: { types: string[] }) => host.root.findAllWithCriteria(c).filter((n) => String((n as { name?: unknown }).name) !== 'icon/close') } } as unknown as ApplyHost;
   const p = (await previewUpdate(lacking, targetsOf(['tag']))).sets[0];
   const c = checkedSetOf(p, 'tag');
-  ok(p.blockers.some((b) => b.startsWith('Not in this file: icon/close.')) && p.blockers.some((b) => b.includes('the plan binds') && b.includes('not in this file')),
+  ok(p.blockers.some((b) => b.startsWith('Not in this file: icon/close.')) && p.blockers.some((b) => b.includes('Prism3 binds') && b.includes('not in this file')),
     `theme only/premise nest: tag lacks icon/close and the indicator variables (${JSON.stringify(p.blockers)})`);
   ok(c.blocked && c.themeBlocked === undefined && UPDATE_COPY.checked(c, true, nameOf) === ROW_NEST && UPDATE_COPY.checked(c, true, nameOf) !== ROW_AFTER_THEME,
     `theme only/nest: a set that also lacks a nested component is not theme-blocked, and its row does not read "Updated after Theme" (${JSON.stringify([c.themeBlocked ?? null, UPDATE_COPY.checked(c, true, nameOf)])})`);
@@ -178,7 +178,7 @@ const ROW_AFTER_THEME = 'Updated after Theme — Theme writes the variables and 
   const stray = { ...plans[0], gridAxisOrder: [], coord: {}, size: undefined, slotAxes: [] } as unknown as AnatomyPlan;
   const p = (await previewUpdate(host, [{ def: 'tag', plans: [...plans, stray] }])).sets[0];
   const c = checkedSetOf(p, 'tag');
-  ok(p.blockers[0]?.startsWith('the plan names a member that is not a coordinate: ') && p.blockers.slice(1).length > 0 && p.blockers.slice(1).every((b) => b.includes('the plan binds') && b.includes('not in this file')),
+  ok(p.blockers[0]?.startsWith('Prism3 names a variant that is not a coordinate: ') && p.blockers.slice(1).length > 0 && p.blockers.slice(1).every((b) => b.includes('Prism3 binds') && b.includes('not in this file')),
     `theme only/premise dry run: the dry run refuses a member first, and the file lacks only the indicator variables (${JSON.stringify(p.blockers)})`);
   ok(c.blocked && c.themeBlocked === undefined && UPDATE_COPY.checked(c, true, nameOf) === ROW_DRY && UPDATE_COPY.checked(c, true, nameOf) !== ROW_AFTER_THEME,
     `theme only/dry run: a set the dry run already refuses is not theme-blocked, and its row does not read "Updated after Theme" (${JSON.stringify([c.themeBlocked ?? null, UPDATE_COPY.checked(c, true, nameOf)])})`);
@@ -241,7 +241,7 @@ const held = f1.due['radio-control']?.state === 'kept' ? (f1.due['radio-control'
 const line = verdict?.lines.find((l) => l.startsWith('radio-control: hand edits kept on')) ?? '';
 ok(!!held && held.members === shouldHold.length && ['rest', 'hover', 'pressed'].every((st) => held.changes.includes(`border → color/interactive/primary/indicator/${st}`))
   && !held.changes.some((c) => c.includes('color/disabled/') || c.includes('color/border/danger')), `held/recorded: the ledger holds what was kept back (${JSON.stringify(held)})`);
-ok(!!line && line.includes(`${held?.members ?? '?'} members`) && (held?.changes ?? []).every((c) => line.includes(c)) && line.includes('Kept edits'),
+ok(!!line && line.includes(`${held?.members ?? '?'} variants`) && (held?.changes ?? []).every((c) => line.includes(c)) && line.includes('Kept edits'),
   `held/named: the verdict names the set, its members and the changes held back (${JSON.stringify(line)})`);
 ok(!!verdict && verdict.headline.includes('kept edits over changes'), `held/headline: the headline says a set kept edits over changes (${JSON.stringify(verdict?.headline)})`);
 

@@ -418,7 +418,7 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
   const contractByMode = new Map((contract ?? []).map((m) => [m.mode.toLowerCase(), m.roles]));
   const roleKeys = new Set<string>();
   for (const m of contract ?? []) for (const k of Object.keys(m.roles)) roleKeys.add(k);
-  if (!contract && wantColor) notes.push('No saved brand in this file, so the contrast column reads "—" — Apply theme saves one');
+  if (!contract && wantColor) notes.push('No saved brand in this file, so the contrast column reads "—". Run Update file with Theme ticked to save one.');
   // Every variable some other variable aliases, in any mode — the fact a primitive table's header states.
   const referenced = new Set<string>();
   for (const v of catalog.variables) for (const val of Object.values(v.valuesByMode)) { const a = aliasId(val); if (a) referenced.add(a); }
@@ -3098,7 +3098,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       const k = f.getPluginData?.(TABLE_KEY) || '';
       return !!k && !everyKey.has(k) && newCols.has(k.split('|')[1]);
     }).map((f) => String(f.name));
-    if (left.length) notes.push(`${left.join(', ')} ${left.length === 1 ? 'stays' : 'stay'} in place: the generator no longer draws ${left.length === 1 ? 'it' : 'them'}, and a run filtered to named tables deletes nothing. The next run without a Tables filter decides whether to delete ${left.length === 1 ? 'it' : 'them'}`);
+    if (left.length) notes.push(`${left.join(', ')} ${left.length === 1 ? 'stays' : 'stay'} in place: Prism3 no longer draws ${left.length === 1 ? 'it' : 'them'}, and a run filtered to named tables deletes nothing. The next run without a Tables filter decides whether to delete ${left.length === 1 ? 'it' : 'them'}`);
   }
 
   // INVERSE COLORS IS ITS OWN GROUP (owner decision, 2026-10-19, superseding the second row of #2801 and Q412 A of
@@ -3633,7 +3633,7 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   // reason each was kept; a table from before the fingerprint apart, with what to do about it. Wording proposed,
   // owner to confirm (docs/45 §8).
   const list = (xs: readonly string[]): string => (xs.length > 3 ? `${xs.slice(0, 3).join(', ')} and ${xs.length - 3} more` : xs.join(', '));
-  const noLonger = (n: number): string => `${n} table${n === 1 ? '' : 's'} the generator no longer draws ${n === 1 ? 'was' : 'were'}`;
+  const noLonger = (n: number): string => `${n} table${n === 1 ? '' : 's'} Prism3 no longer draws ${n === 1 ? 'was' : 'were'}`;
   if (r.deleted.length) parts.push(`${noLonger(r.deleted.length)} deleted, unedited: ${list(r.deleted)}`);
   // The groups (#2801): what this run drew, took over and removed, by title.
   const groupsOf = (n: number): string => `${n} group${n === 1 ? '' : 's'}`;
@@ -3656,11 +3656,11 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   const unrecorded = r.kept.filter((k) => k.reason === 'unrecorded').map((k) => k.name);
   if (unrecorded.length) {
     const one = unrecorded.length === 1;
-    parts.push(`${noLonger(unrecorded.length)} left in place — drawn before edits were tracked, so the generator never deletes ${one ? 'it' : 'them'}; delete ${one ? 'it' : 'them'} by hand if no longer needed: ${list(unrecorded)}`);
+    parts.push(`${noLonger(unrecorded.length)} left in place — drawn before edits were tracked, so Prism3 never deletes ${one ? 'it' : 'them'}; delete ${one ? 'it' : 'them'} by hand if no longer needed: ${list(unrecorded)}`);
   }
   // THE CLEANUP OFFER (Q412 A): said in the run's result; the page asks before it removes anything.
   const offered = r.retired?.length ?? 0;
-  if (offered) parts.push(`${tables(offered)} the generator no longer draws can be removed on the Style guides page, once you confirm`);
+  if (offered) parts.push(`${tables(offered)} Prism3 no longer draws can be removed on the Style guides page, once you confirm`);
   parts.push(...r.notes, ...r.misses);
   const drawn = made.length + upd.length;
   // A partial run is not a pass: a skipped table is a page the designer expected and does not have, and an

@@ -950,7 +950,7 @@ console.log('\n#3697 R6 — each removal tried, running counts, the confirm guar
     .then(() => '', (e: Error) => e.message);
   ok(threw === 'host lost the collection' && counts.variables === 2 && sh2.liveVarNames().size === 0,
     `R6/running counts: a throw after two removals leaves the caller holding 2, not 0 (threw ${JSON.stringify(threw)}, counts ${counts.variables})`);
-  ok(PRUNE_COPY.stopped(counts, threw) === 'Prune stopped — host lost the collection. Removed 2 stale items before it stopped: 2 variables.',
+  ok(PRUNE_COPY.stopped(counts, threw) === 'Clean up stopped — host lost the collection. Removed 2 stale items before it stopped: 2 variables.',
     `R6/stopped: the verdict for a stopped prune says what was removed (${PRUNE_COPY.stopped(counts, threw)})`);
 
   // #3709 N1: the same per-removal `try` for every kind the executor removes, not only variables. One mode,
@@ -980,7 +980,7 @@ console.log('\n#3697 R6 — each removal tried, running counts, the confirm guar
   const plan = { variables: [{ collection: 'color', names: ['nbds/color/a'] }], collections: [], modes: [], styles: [] };
   const h = prunePreviewHashOf(plan, []);
   ok(pruneConfirmRefusal({ holdsInput: true, previewHash: h, currentHash: h }) === null, 'R6/guard: the file holds the input and the hash matches → go ahead');
-  ok(pruneConfirmRefusal({ holdsInput: false, previewHash: h, currentHash: h }) === "Nothing removed — the file doesn't hold this brand yet. Apply the theme first, then check again.",
+  ok(pruneConfirmRefusal({ holdsInput: false, previewHash: h, currentHash: h }) === "Nothing removed — the file doesn't hold this brand yet. Run Update file with Theme ticked, then check again.",
     'R6/guard: an input the file does not hold is refused, even with the right hash');
   ok(pruneConfirmRefusal({ holdsInput: true, previewHash: '', currentHash: h }) === 'Nothing removed — the file changed after the check. Check again.', 'R6/guard: a missing hash is refused');
   ok(pruneConfirmRefusal({ holdsInput: true, previewHash: h, currentHash: prunePreviewHashOf({ ...plan, collections: ['x'] }, []) }) === 'Nothing removed — the file changed after the check. Check again.',

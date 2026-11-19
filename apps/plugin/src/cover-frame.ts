@@ -547,7 +547,7 @@ export const drawCover = async (api: CoverApi, root: CoverRoot, o: { brand?: str
   const { brand, unnamed } = nameFor(root, o);
   const named = unnamed !== undefined ? { unnamed } : {};
   const page = coverPage(root);
-  if (!page) return { did: 'none', skipped: 'not drawn, the file has no Cover page. Run Set up file, then Update', fontMisses: [] };
+  if (!page) return { did: 'none', skipped: 'not drawn, the file has no Cover page. Run Update file — its first run sets the file up', fontMisses: [] };
   const own = ownCover(page);
   if (!own) {
     if (brand === null) return { did: 'none', skipped: 'the file has no brand yet. Run Update file with Theme ticked, then it draws the cover', fontMisses: [] };

@@ -137,7 +137,7 @@ section('catalog — what the page is told before a run');
     { id: 'C:more', name: 'more', modes: ['Value'], items: [{ name: 'more/fade/50', table: 2, value: '#000000 · 50%' }, { name: 'more/opacity/50', table: 3, value: '50%' }, { name: 'more/breakpoint/md', table: -1, value: '768px' }] },
     { id: 'text-styles', name: 'Text styles', modes: [], textStyles: true, items: [{ name: 'body/md', table: 4, value: '' }] },
   ]), `catalog/request: each collection's variables with their table (-1 for the later-phase breakpoint) and default-mode value, then the text styles (${JSON.stringify(c?.collections?.map((x: any) => x.items))})`);
-  ok(c?.setUp === true && JSON.stringify(c?.notes) === JSON.stringify(['No saved brand in this file, so the contrast column reads "—" — Apply theme saves one', 'Not drawn until a later phase: 1 breakpoint variable']),
+  ok(c?.setUp === true && JSON.stringify(c?.notes) === JSON.stringify(['No saved brand in this file, so the contrast column reads "—". Run Update file with Theme ticked to save one.', 'Not drawn until a later phase: 1 breakpoint variable']),
     `catalog/request: set up, and the planner's notes for an unfiltered run (${JSON.stringify(c?.notes)})`);
 
   const setUpWith = async (sets: boolean | 'swatch' | 'text', pages: string[]): Promise<unknown> => {

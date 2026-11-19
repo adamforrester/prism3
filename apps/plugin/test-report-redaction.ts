@@ -6,7 +6,7 @@
  * WHY THIS EXISTS. `apps/studio/test-report.ts` feeds `buildReport` lines typed by hand, so a NEW line carrying a new
  * kind of brand string passes it: the review at d773b85 found `typefaces unavailable (<face>, …)` (`main.ts`), printed
  * exactly when a brand's licensed typeface is not installed, going into a report untouched, and raw host messages
- * (`write failed: …`, `prune failed: …`) going in as the host wrote them. Here the lines come from the plugin itself:
+ * (`write failed: …`, `Clean up failed: …`) going in as the host wrote them. Here the lines come from the plugin itself:
  * its Apply Theme and Prune run over the file shim (`file-shim.ts`), the same host the export-parity suites write
  * into, and each posted verdict goes through `buildReport` as the panel's Activity drawer hands it over.
  *
@@ -171,13 +171,13 @@ console.log('Report a problem over the plugin\'s own lines (#3697 H4)\n');
   const posted = (await run((sink) => (main.ACTIONS.prune as (...a: unknown[]) => Promise<void>)(BRAND, true, undefined, sink))).filter((m) => m.type === 'prune-result');
   figmaShim.getLocalTextStylesAsync = real;
   const raw = rawText(posted);
-  ok(posted.length === 1 && /prune failed/.test(raw), `#3697 H4 premise: a thrown prune posts its failure (${JSON.stringify(posted[0]?.summary)})`);
-  ok(posted[0]?.summary === 'prune failed: Error: in get_name: node "Checkout Hero / Q3 launch" on page "Unannounced"',
+  ok(posted.length === 1 && /Clean up failed/.test(raw), `#3697 H4 premise: a thrown prune posts its failure (${JSON.stringify(posted[0]?.summary)})`);
+  ok(posted[0]?.summary === 'Clean up failed: Error: in get_name: node "Checkout Hero / Q3 launch" on page "Unannounced"',
     `#3697 H4 D3703.1 B a thrown prune: the drawer line keeps the host's message (${JSON.stringify(posted[0]?.summary)})`);
   const text = report('Prune', posted);
   ok(!text.includes('Checkout Hero') && !text.includes('Unannounced') && !text.includes('get_name'),
     `#3697 H4 a thrown prune: the host's message is not in the report (${JSON.stringify(posted[0]?.summary)})`);
-  ok(text.includes('  - prune failed: Error\n') || text.endsWith('  - prune failed: Error'), '#3697 H4 a thrown prune: the report says the error\'s class');
+  ok(text.includes('  - Clean up failed: Error\n') || text.endsWith('  - Clean up failed: Error'), '#3697 H4 a thrown prune: the report says the error\'s class');
 }
 
 /* ── 4–9. #3702: every other action that posts a host's message (D3703.1 B: the drawer keeps it; the report cuts it) ── */
@@ -213,7 +213,7 @@ const boom = async (): Promise<never> => { throw new TypeError(HOST_SECRET); };
   await ui.onmessage?.({ type: 'style-guide-cleanup', ids: ['tables'] });
   for (let i = 0; i < 50 && !cleaned.length; i++) await new Promise((r) => setTimeout(r, 10));
   ui.postMessage = realPost;
-  thrown('Clean up style guide', cleaned, cleaned[0]?.summary, `Cleanup failed: ${TE}`, 'Cleanup failed: TypeError');
+  thrown('Clean up style guide', cleaned, cleaned[0]?.summary, `Clean up failed: ${TE}`, 'Clean up failed: TypeError');
   figmaShim.loadAllPagesAsync = real;
 }
 {
@@ -284,7 +284,7 @@ const boom = async (): Promise<never> => { throw new TypeError(HOST_SECRET); };
 // `reduceFailure` admits any class only after a head it knows (`DETAIL_HEADS`), so a new site would leak a
 // `DOMException`'s message. Read from the plugin's source, independent of the list: every `${failureDetail(` in a
 // template is preceded by one of the report's heads, or by `write failed: ` (cut by its own rule). The two calls
-// outside a template are named: prune's (`prune failed: ${why}`, its own rule; `PRUNE_COPY.stopped`, filed as #3865)
+// outside a template are named: prune's stopped line (`PRUNE_COPY.stopped`, filed as #3865; its thrown-prune line, `Clean up failed: ${failureDetail(e)}`, is a template since #4184)
 // and its version note (`PRUNE_COPY.noVersion`, whose head is checked in `prune-figma.ts`), and since #4205 the four
 // Update file catches (`const why = failureDetail(e)`: the check or apply, Record, Adopt, Draw specs), held in 11.
 {

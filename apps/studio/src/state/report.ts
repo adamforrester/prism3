@@ -153,7 +153,7 @@ export const scrub = (text: string, words: readonly BrandWord[] = []): string =>
 
 /** A failure line the plugin posts when a write or a prune throws: `write failed: <Class>: <host message>`
  *  (`failureDetail` in `plugin/src/apply-summary.ts`). The class is one word, then `:`, `.` (a build note follows) or the end. */
-const FAILED = /^((?:write|prune) failed): (?:([A-Za-z][A-Za-z0-9]*)(?=[:.]|$))?[\s\S]*$/;
+const FAILED = /^((?:write|Clean up) failed): (?:([A-Za-z][A-Za-z0-9]*)(?=[:.]|$))?[\s\S]*$/;
 
 /** A failure line as the report carries it: the error's class alone (`write failed: TypeError`), never the host's
  *  message (#3697 H4, D3703.1 B). The Activity drawer shows the message, so the designer keeps Figma's reason, but the
@@ -177,7 +177,7 @@ const CLASS = '[A-Za-z][A-Za-z0-9]*';
  *  #4205 Update file's lines in `update-apply.ts` and `canvas-furniture.ts`).
  *  `test-report-redaction.ts` holds this list against every `failureDetail(` site in the plugin's source. */
 export const DETAIL_HEADS: readonly string[] = [
-  'component build failed: ', 'file setup failed: ', 'style guide failed: ', 'read-back failed: ', 'Cleanup failed: ',
+  'component build failed: ', 'file setup failed: ', 'style guide failed: ', 'read-back failed: ', 'Clean up failed: ',
   'Figma refused the write (', 'the engine could not plan it (', 'the named version could not be saved (',
   // #4205: Update file's stopped set (`<set>: stopped (…)`) and its run that threw (`The update failed: …`).
   ': stopped (', 'The update failed: ',
@@ -265,7 +265,7 @@ export const REPORT_COPY = {
   fieldEngine: 'Engine',
   fieldHost: 'Host',
   hostFigma: 'Figma plugin',
-  hostWeb: 'Web studio',
+  hostWeb: 'Web Studio',
   bodyActivity: '### Recent activity',
   noActivity: '- Nothing has run in this session.',
   byAgent: 'agent',

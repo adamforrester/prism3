@@ -34,6 +34,7 @@ apps/plugin/test-apply-summary.ts #2412
 apps/plugin/test-apply-summary.ts #2695
 apps/plugin/test-apply-summary.ts #2887
 apps/plugin/test-apply-summary.ts #2888
+apps/plugin/test-apply-summary.ts #4185
 apps/plugin/test-apply-summary.ts #483
 apps/plugin/test-apply-summary.ts #913
 apps/plugin/test-as-built-ledger.ts #2759
@@ -433,6 +434,7 @@ apps/plugin/test-write-components.ts #3200
 apps/plugin/test-write-components.ts #3360
 apps/plugin/test-write-components.ts #3731
 apps/plugin/test-write-components.ts #3783
+apps/plugin/test-write-components.ts #4185
 apps/plugin/test-write-components.ts #487
 apps/plugin/test-write-components.ts #680
 apps/plugin/test-write-components.ts #681
@@ -488,6 +490,7 @@ apps/studio/test-build-identity.ts #474
 apps/studio/test-build-identity.ts #836
 apps/studio/test-button-input.ts #2049
 apps/studio/test-button-input.ts #2918
+apps/studio/test-canonical-names.ts #4184
 apps/studio/test-chrome-shards.mjs #2898
 apps/studio/test-chrome.mjs #1031
 apps/studio/test-chrome.mjs #1196
@@ -640,6 +643,8 @@ apps/studio/test-chrome.mjs #3878
 apps/studio/test-chrome.mjs #3910
 apps/studio/test-chrome.mjs #3911
 apps/studio/test-chrome.mjs #3938
+apps/studio/test-chrome.mjs #4184
+apps/studio/test-chrome.mjs #4185
 apps/studio/test-chrome.mjs #4235
 apps/studio/test-chrome.mjs #533
 apps/studio/test-chrome.mjs #574

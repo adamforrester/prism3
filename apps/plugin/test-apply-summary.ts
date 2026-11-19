@@ -144,18 +144,20 @@ ok(componentHeadline(648, 0, 0) === componentHeadline(648, 0, 0, 0) && component
 ok(staleNote(0, '9.9.9') === null, 'no stale members, no note — the caller appends nothing rather than an empty clause');
 const n1 = staleNote(1, '0.18.0')!;
 const n2 = staleNote(4, '0.18.0')!;
-ok(/\b1 member in this set was built from an earlier plan and was left in place\b/.test(n1), `singular agreement throughout (${n1})`);
-ok(/\b4 members in this set were built from an earlier plan and were left in place\b/.test(n2), `plural agreement throughout (${n2})`);
-ok(!/\bwere\b/.test(n1.split('—')[0]) && !/\bwas\b/.test(n2.split('—')[0]),
-  'neither reading leaks the other\'s verb — the trap in a note with three agreeing clauses');
+ok(/^1 variant was built by an earlier version of Prism3 \(this build is engine [0-9.]+\) and kept, so placed instances stay linked\. Run Update file to update it in place\.$/.test(n1), `singular agreement throughout (${n1})`);
+ok(/^4 variants were built by an earlier version of Prism3 \(this build is engine [0-9.]+\) and kept, so placed instances stay linked\. Run Update file to update them in place\.$/.test(n2), `plural agreement throughout (${n2})`);
+ok(!/\bwere\b/.test(n1) && !/\bwas\b/.test(n2),
+  'neither reading leaks the other\'s verb — the trap in a note with agreeing clauses');
 // THE WORDING RULE, asserted rather than left to a reviewer: the remedy must not stand alone. The reason
-// appears in the SAME sentence as the outcome, ahead of the sentence that says what to do.
-const [outcome, remedy] = [n2.split('.')[0], n2.slice(n2.indexOf('This build is'))];
-ok(/left in place, because rebuilding them would orphan/.test(outcome),
-  `the outcome sentence carries its own reason (${outcome})`);
-ok(/tracks its main component by id/.test(n2), 'and names the mechanism, which is what makes the reason checkable rather than a claim');
-ok(/delete those members and run again/.test(remedy) && remedy.includes('0.18.0'),
-  `the remedy follows the reason and reports which build this is (${remedy})`);
+// appears in the SAME sentence as the outcome, ahead of the sentence that says what to do. #4185 C (owner decision
+// 2026-11-19, DRAFT words): the remedy is Update file, which updates in place, never deleting the variants, which is what
+// the old line warned breaks placed instances.
+const [outcome, remedy] = [n2.split('. ')[0], n2.slice(n2.indexOf('Run Update file'))];
+ok(/kept, so placed instances stay linked/.test(outcome),
+  `#4185 the outcome sentence carries its own reason (${outcome})`);
+ok(/^Run Update file to update them in place\.$/.test(remedy) && n2.includes('0.18.0') && !/delete/i.test(n2),
+  `#4185 the remedy follows the reason, is Update file, never a delete, and the note reports which build this is (${remedy})`);
+ok(!/\b(?:orphan|delete)\b/i.test(n1) && !/\b(?:orphan|delete)\b/i.test(n2), '#4185 neither note offers a delete, the step that would orphan placed instances');
 ok(!/^\s*(?:Delete|To pick)/.test(n2), 'the note never OPENS on an instruction, which is the reading that makes a protective decline sound like a failure');
 ok(!/\b(simply|just|easy|obviously|sorry|oops)\b/i.test(n2) && !/!/.test(n2),
   'and it carries none of voice-standard.md §2\'s banned vocabulary (also gated repo-wide by lint-voice.ts, asserted here where the string is authored)');
@@ -321,11 +323,11 @@ ok(motionReplacedItem(0) === '', `#2412: nothing replaced, no clause (${JSON.str
   const b = { brandColors: [] } as unknown as BrandInput;
   const under = { ...b, fieldStyle: 'underline' } as BrandInput;
   const outline = { ...b, fieldStyle: 'outline' } as BrandInput;
-  ok(fieldStyleNote(outline, under) === 'Field style is now Underline. Update components to redraw the field sets.',
+  ok(fieldStyleNote(outline, under) === 'Field style is now Underline. Run Update file to redraw the field sets.',
     `#2695 Q16: outline → underline says so and points at Update (${fieldStyleNote(outline, under)})`);
-  ok(fieldStyleNote(under, b) === 'Field style is now Outline. Update components to redraw the field sets.',
+  ok(fieldStyleNote(under, b) === 'Field style is now Outline. Run Update file to redraw the field sets.',
     `#2695 Q16: underline → unset reads as Outline, the default (${fieldStyleNote(under, b)})`);
-  ok(fieldStyleNote(null, under) === 'Field style is now Underline. Update components to redraw the field sets.',
+  ok(fieldStyleNote(null, under) === 'Field style is now Underline. Run Update file to redraw the field sets.',
     '#2695 Q16: a file with no stored brand was built in outline, so underline is a change');
   ok(fieldStyleNote(under, under) === '' && fieldStyleNote(null, b) === '' && fieldStyleNote(b, outline) === '',
     '#2695 Q16: no change, no clause (unset and outline are the same style)');
@@ -343,10 +345,10 @@ ok(motionReplacedItem(0) === '', `#2412: nothing replaced, no clause (${JSON.str
 {
   const b = { brandColors: [] } as unknown as BrandInput;
   const with_ = (o: Record<string, string>) => ({ ...b, ...o }) as BrandInput;
-  const SAY_UNDER = 'Search field style is now Underline. Update components to redraw the search field.';
+  const SAY_UNDER = 'Search field style is now Underline. Run Update file to redraw the search field.';
   ok(searchFieldStyleNote(b, with_({ searchFieldStyle: 'underline' })) === SAY_UNDER,
     `#2888: Follow (unset) over outline fields → Underline says so and points at Update (${searchFieldStyleNote(b, with_({ searchFieldStyle: 'underline' }))})`);
-  ok(searchFieldStyleNote(with_({ fieldStyle: 'underline', searchFieldStyle: 'outline' }), with_({ fieldStyle: 'underline' })) === 'Search field style is now Follow field style. Update components to redraw the search field.',
+  ok(searchFieldStyleNote(with_({ fieldStyle: 'underline', searchFieldStyle: 'outline' }), with_({ fieldStyle: 'underline' })) === 'Search field style is now Follow field style. Run Update file to redraw the search field.',
     '#2888: Outline → unset over underline fields reads as Follow field style, the default, and the edge moves');
   ok(searchFieldStyleNote(null, with_({ searchFieldStyle: 'underline' })) === SAY_UNDER,
     '#2888: a file with no stored brand was built following outline fields, so underline is a change');
@@ -365,11 +367,11 @@ ok(motionReplacedItem(0) === '', `#2412: nothing replaced, no clause (${JSON.str
   const b = { brandColors: [] } as unknown as BrandInput;
   const under = { ...b, tagStyle: 'underline' } as BrandInput;
   const pill = { ...b, tagStyle: 'pill' } as BrandInput;
-  ok(tagStyleNote(pill, under) === 'Tag style is now Underline. Update components to redraw the tag set.',
+  ok(tagStyleNote(pill, under) === 'Tag style is now Underline. Run Update file to redraw the tag set.',
     `#2887: pill → underline says so and points at Update (${tagStyleNote(pill, under)})`);
-  ok(tagStyleNote(under, b) === 'Tag style is now Pill. Update components to redraw the tag set.',
+  ok(tagStyleNote(under, b) === 'Tag style is now Pill. Run Update file to redraw the tag set.',
     `#2887: underline → unset reads as Pill, the default (${tagStyleNote(under, b)})`);
-  ok(tagStyleNote(null, under) === 'Tag style is now Underline. Update components to redraw the tag set.',
+  ok(tagStyleNote(null, under) === 'Tag style is now Underline. Run Update file to redraw the tag set.',
     '#2887: a file with no stored brand was built in pill, so underline is a change');
   ok(tagStyleNote(under, under) === '' && tagStyleNote(null, b) === '' && tagStyleNote(b, pill) === '' && tagStyleNote({ ...b, fieldStyle: 'underline' } as BrandInput, b) === '',
     '#2887: no change, no clause (unset and pill are the same style; a field style change is not a tag style change)');

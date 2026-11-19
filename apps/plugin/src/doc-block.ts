@@ -340,6 +340,6 @@ export const docBlockNote = (r: DocBlockResult): string => {
   if (r.status === 'present') return '';
   if (r.status === 'built') return `, built ${DOC_BLOCK_SET}${r.misses.length ? ` (⚠ not found: ${r.misses.slice(0, 3).join('; ')})` : ''}`;
   const sets = r.missing.filter((m) => m !== 'theme');
-  const needs = [...(r.missing.includes('theme') ? ['apply the theme'] : []), ...(sets.length ? [`build ${sets.join(', ')}`] : [])];
+  const needs = [...(r.missing.includes('theme') ? ['run Update file with Theme ticked'] : []), ...(sets.length ? [`build ${sets.join(', ')}`] : [])];
   return `, ${DOC_BLOCK_SET} not built: usage panels need it. ${needs.join(' and ').replace(/^./, (c) => c.toUpperCase())}, then run Set up file again`;
 };

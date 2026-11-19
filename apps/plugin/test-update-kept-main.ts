@@ -217,7 +217,7 @@ ok(JSON.stringify(stateOf(fStop)) === '{"radio-control":"due","tag":"due"}',
   `main/stopped stays due: after a run that stopped inside tag, main.ts still reads tag due, not current (${JSON.stringify(stateOf(fStop))})`);
 
 // 3. The update, as Update file posts it: Keep for every set. Checked again first: the stopped run moved tag. Running
-// the update again finishes tag (#3424: the verdict's "Run the update again to finish").
+// the update again finishes tag (#3424: the verdict's "Run Update file again to finish").
 const c1b = await send({ type: 'update-check-request', defs: [...IDS] }, ['update-check']);
 const u = await send({ type: 'update-sets', defs: [...IDS], previewHash: c1b?.previewHash, handEdits: 'keep' }, ['component-update-result']);
 ok(u?.type === 'component-update-result' && u.ok === true && String(u.headline).includes('1 set kept edits over changes'),
@@ -250,7 +250,7 @@ const cK = await send({ type: 'update-check-request', defs: ['radio-control'] },
 const uK = await send({ type: 'update-sets', defs: ['radio-control'], previewHash: cK?.previewHash, handEdits: 'keep' }, ['component-update-result']);
 const ringsRed = (setOf('radio-control').children as Node[]).filter((m) => String(m.name).includes('selection=checked') && JSON.stringify((m as any).strokes ?? []).includes('"r":0.8')).length;
 ok(uK?.ok === true && cK?.sets?.[0]?.handEdited === 30 && ringsRed === 30,
-  `premise: the second Keep run answers ok, its check still reads 30 members edited by hand, and all 30 rings still hold the designer's red (${JSON.stringify({ headline: uK?.headline, handEdited: cK?.sets?.[0]?.handEdited, ringsRed })})`);
+  `premise: the second Keep run answers ok, its check still reads 30 variants edited by hand, and all 30 rings still hold the designer's red (${JSON.stringify({ headline: uK?.headline, handEdited: cK?.sets?.[0]?.handEdited, ringsRed })})`);
 const heldK = (readLedger(root as never) as Record<string, { held?: { members: number; changes: readonly string[] } }>)['radio-control']?.held;
 ok(!!heldK && heldK.members === 12 && ['rest', 'hover', 'pressed'].every((st) => heldK.changes.includes(`border → color/interactive/primary/indicator/${st}`)),
   `main/held survives a second Keep: radio-control's entry still records what its kept edits hold back (${JSON.stringify(heldK)})`);
@@ -267,7 +267,7 @@ const checked = (setOf('radio-control').children as Node[]).filter((m) => String
 const ringBound = checked.filter((m) => JSON.stringify((m as any).strokes ?? []).includes('indicator')).length;
 ok(u2?.ok === true && f2?.due?.['radio-control']?.state === 'current' && ringBound === 12,
 
-  `main/overwrite chosen: Overwrite chosen for the kept set alone replaces its edits: the 12 rings the plan binds to the indicator hold it, and the set reads current (${JSON.stringify({ headline: u2?.headline, state: f2?.due?.['radio-control']?.state, ringBound })})`);
+  `main/overwrite chosen: Overwrite chosen for the kept set alone replaces its edits: the 12 rings Prism3 binds to the indicator hold it, and the set reads current (${JSON.stringify({ headline: u2?.headline, state: f2?.due?.['radio-control']?.state, ringBound })})`);
 
 // 6. #3870 — THE PANELS SWITCH TURNED ON MID-RUN: Documentation's usage panels off, tag checked and updated, and the
 // switch turned on while the update runs (`doc-settings-save` is never guarded). The run drew no panel for tag, so the

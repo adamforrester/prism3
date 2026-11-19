@@ -577,13 +577,13 @@ export const drawFurniture = async (
     return { def: defId, parent: '', columns: 0, rows: 0, backdrops: 0, scrims: 0, cleared: 0, skipped: [`No canvas labels for ${defId}: the set has no parent to place them on`], fontMisses: [] };
   const out: FurnitureOutcome = { def: defId, parent: parent.name ?? '', columns: 0, rows: 0, backdrops: 0, scrims: 0, cleared: clearFurniture(parent, defId) + clearMovedFurniture(api, set, parent), skipped: [], fontMisses: [] };
   let members = gridMembers(set, layout.cells);
-  if (!members.length) { out.skipped.push(`No canvas labels for ${defId}: the set has no member this plan lays out`); return out; }
+  if (!members.length) { out.skipped.push(`No labels for ${defId}: the set has no variant Prism3 lays out`); return out; }
   // ONLY OVER ONE INVERSE BLOCK (#2188 Q173): a set still laid out the earlier way has a band of inverse rows per
   // appearance, and would get a backdrop and an "Inverse" bracket on each. Its old furniture is cleared above; none
   // is drawn until the set is regrouped. DRAFT wording for the owner.
   // A def whose `surface` is the GRID axis (Focus ring) has its inverse members in a column, beside the default ones,
   // never in rows of their own; there is no row block to wait for, and no backdrop is planned (#2502).
-  if (layout.rowKeys.includes('surface') && !inverseContiguous(members)) { out.skipped.push(`No canvas labels for ${defId}: its inverse rows are not in one block yet. Run Update to move them, then the labels are drawn`); return out; }
+  if (layout.rowKeys.includes('surface') && !inverseContiguous(members)) { out.skipped.push(`No labels for ${defId}: its inverse rows aren't together yet. Run Update file to move them, then the labels are drawn`); return out; }
   let plan = planFurniture({ x: set.x ?? 0, y: set.y ?? 0 }, members, layout, defId);
   const setTag = { v: 1 as const, def: defId, set: String(set.id ?? '') };
 
@@ -830,7 +830,7 @@ export const templatesLine = (outcomes: readonly FurnitureOutcome[], action: 'bu
   if (!missing.length) return '';
   const what = missing.map((t) => (t === LABEL_SET ? 'canvas labels' : t === SCRIM_COMPONENT ? 'scrim backdrops' : 'inverse backdrops')).join(' or ');
   const names = missing.join(' or ');
-  return `No ${what} drawn: this file has no ${names} component. Run Set up file, then ${action === 'build' ? 'build' : 'update'} again`;
+  return `No ${what} drawn: this file has no ${names} component. Run Set up file, then ${action === 'build' ? 'build again' : 'run Update file again'}`;
 };
 
 /** What the file holds of what `_Doc-block` is built from (#3467 Q5 A): whether the theme is in the file, and the def
@@ -845,11 +845,12 @@ export type DocBlockFix = { readonly theme: boolean; readonly lacks: readonly st
  */
 export const docBlockParts = (outcomes: readonly FurnitureOutcome[], action: 'build' | 'update', fix: DocBlockFix | null): [string, string] | null => {
   if (!outcomes.some((o) => o.missing?.includes(DOC_BLOCK_SET))) return null;
-  const again = action === 'build' ? 'build' : 'update';
+  // #4184: Update file by its whole name, never the short "update".
+  const again = action === 'build' ? 'build again' : 'run Update file again';
   const head = `No usage panels drawn: this file has no ${DOC_BLOCK_SET} component`;
-  if (fix && !fix.theme) return [`${head}, and it is built from the theme`, `Apply the theme, then ${again} again`];
-  if (fix?.lacks.length) return [head, `Build ${fix.lacks.join(', ')}, then run Set up file and ${again} again`];
-  return [head, `Run Set up file, then ${again} again`];
+  if (fix && !fix.theme) return [`${head}, and it is built from the theme`, `Run Update file with Theme ticked, then ${again}`];
+  if (fix?.lacks.length) return [head, `Build ${fix.lacks.join(', ')}, then run Set up file and ${again}`];
+  return [head, `Run Set up file, then ${again}`];
 };
 /** The usage-panel line as one sentence for a verdict's summary and lines. */
 export const docBlockLine = (outcomes: readonly FurnitureOutcome[], action: 'build' | 'update', fix: DocBlockFix | null): string => {
@@ -871,8 +872,8 @@ export const furnitureItems = (outcomes: readonly FurnitureOutcome[], action: 'b
   for (const o of outcomes) {
     parts.push(...o.skipped);
     if (o.fontMisses.length) parts.push(`Some canvas labels for ${o.def} kept their placeholder text (${[...new Set(o.fontMisses)].join('; ')})`);
-    if (o.backdropBinding === 'no-variable') parts.push(`The inverse backdrop for ${o.def} is not bound yet: apply the theme, then build again`);
-    if (o.scrimBinding === 'no-variable') parts.push(`The scrim backdrop for ${o.def} is not bound yet: apply the theme, then build again`);
+    if (o.backdropBinding === 'no-variable') parts.push(`The inverse backdrop for ${o.def} is not bound yet: run Update file with Theme ticked, then build again`);
+    if (o.scrimBinding === 'no-variable') parts.push(`The scrim backdrop for ${o.def} is not bound yet: run Update file with Theme ticked, then build again`);
     parts.push(...panelItems(o.panel));
   }
   return parts;

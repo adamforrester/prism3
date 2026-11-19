@@ -146,6 +146,31 @@ are fine, passive voice and ceremony are not.
 
 ---
 
+## 7. Names — one per feature
+
+The name on the control is the name everywhere: in hints, Activity, busy messages, errors, canvas
+text and guides. Never a short form. The reasoning: `29-tone-of-voice.md` §6b (#4184).
+`apps/studio/test-canonical-names.ts` fails on a retired name in shipped source.
+
+| Feature | Say | Not |
+|---|---|---|
+| Removing what the brand no longer writes | **Clean up** | "Prune", "Prune stale", "Cleanup" |
+| The one global write | **Update file** | "Update", "Update components", "Update sets" |
+| Writing the theme, as a step | **Run Update file with Theme ticked**; its Activity row is **Apply theme** | "Apply the theme", "Write a theme" |
+| The product | **Studio**; **the web Studio** when the host matters | "the studio", "web studio", "dashboard", "playground" |
+| The per-component export | **Component specs** | "component contracts" |
+| Docs' measured drawings | **Spec drawings** | "Spec sheets" |
+| The agent switch | **Agent link** | "Agent" alone |
+| Bringing in a design.md | **Import**, with **Upload…** for a file | "Load", "Upload .md" |
+| The Brand tab's preview | **Brand overview** | "Style guide" (that is Docs' token tables) |
+| One cell of a component set | **variant** | "member" (internal) |
+| What Prism3 would write | **Prism3's values**, **what Prism3 expects** | "the plan" |
+| A brand's settings | **settings** | "knobs" |
+| The canvas frame | **About this library** | "About frame" |
+| Keeping a hand edit | **Accept as baseline**, **accepted as baseline** | "accepted as built" |
+
+---
+
 *Applies to: `apps/studio/src` UI strings · `packages/engine/levers.ts` · `packages/engine/ai-metadata.ts`
 (generated `meaning` / `when_to_use` / `avoid_when`) · emitted `$description` prose in `out/**`
 · `packages/engine/README.md` · reports. Most Prism3 prose is **generated, not typed** — so
