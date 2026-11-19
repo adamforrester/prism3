@@ -11588,6 +11588,8 @@ arm: {
       ['buttonMinWidthMultiplier', 1], ['buttonMinWidthMultiplier', 4],
       // #2324: "Text button hover: Fill" moves only the materialized button defs (the text appearance's wash).
       ['buttonTextHover', 'fill'],
+      // #576: "Outline button border: Thick" adds no token; it rebinds only the materialized button defs' edge.
+      ['buttonBorderWeight', 'thick'],
       // `hairline` joined `boxed` and `pill` with #2053: the rung is always emitted now, so the shape moves only the
       // materialized defs (its radius binding), as the other two do.
       ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
@@ -30835,6 +30837,57 @@ arm: {
   }
 }
 
+// #576 (owner decision 2026-11-18, A) — ONE OUTLINE BORDER WEIGHT FOR EVERY BUTTON SET ("Outline button border", a DRAFT
+// name). The weight is brand-wide and the color stays per set. ORACLES are literals: the three set ids, the one key and
+// the two rung names are spelled here, never read off the materializer or the def it rebinds.
+{
+  const thick = { ...DEFAULT_BUTTON_LAYOUT, borderWeight: 'thick' as const };
+  const SETS_576 = [button, buttonNeutral, buttonDestructive];
+  // (1) SCOPE: across every def, Thick moves exactly the three text-button sets. Icon buttons keep their own edge.
+  const moved576 = componentDefs.filter((d) => JSON.stringify(applyButtonLayout(d, thick, () => 44))
+    !== JSON.stringify(applyButtonLayout(d, DEFAULT_BUTTON_LAYOUT, () => 44))).map((d) => d.id).sort().join(',');
+  ok(moved576 === 'button,button-destructive,button-neutral',
+    `#576 scope: across all ${componentDefs.length} defs, Outline button border: Thick moves exactly button, button-destructive and button-neutral (got ${moved576 || 'none'})`);
+  for (const def of SETS_576) {
+    const base = applyButtonLayout(def, DEFAULT_BUTTON_LAYOUT, () => 44);
+    const m = applyButtonLayout(def, thick, () => 44);
+    const changed = Object.keys(m.tokens).filter((k) => m.tokens[k] !== base.tokens[k]).sort();
+    // (2) ONE KEY, ONE RUNG. The edge's thickness moves to the 2px rung; nothing else, the border COLOR included.
+    ok(base.tokens['border-width'] === 'border-width.hairline' && m.tokens['border-width'] === 'border-width.thick'
+      && JSON.stringify(changed) === JSON.stringify(['border-width']) && JSON.stringify(m.anatomy) === JSON.stringify(base.anatomy),
+      `#576 ${def.id}: Thick rebinds border-width from border-width.hairline to border-width.thick and moves nothing else (moved: ${changed.join(', ') || 'none'})`);
+    // (3) AS PROJECTED: every member binds the thick rung as its stroke weight, and every member's paints are the
+    //     Thin projection's, so each set's outline keeps its own border color in every state.
+    const thinSet = figmaAnatomySet(base), thickSet = figmaAnatomySet(m);
+    const weights = new Set(thickSet.map((pl) => (pl.root as unknown as { bound?: Record<string, string> }).bound?.strokeWeight ?? 'UNBOUND'));
+    const paintsMoved = thickSet.filter((pl, i) => JSON.stringify((pl.root as unknown as { paints?: unknown }).paints)
+      !== JSON.stringify((thinSet[i]?.root as unknown as { paints?: unknown } | undefined)?.paints)).map(planComponentName);
+    const outlineMembers = thickSet.filter((pl) => planComponentName(pl).includes('appearance=outline')).length;
+    ok(thickSet.length === thinSet.length && outlineMembers > 0 && JSON.stringify([...weights]) === JSON.stringify(['border-width/thick']) && paintsMoved.length === 0,
+      `#576 ${def.id}: projected at Thick, all ${thickSet.length} members (${outlineMembers} outline) bind border-width/thick as their stroke weight, and no member's paints move (weights: ${[...weights].join(', ')}; paints moved: ${paintsMoved.slice(0, 3).join('; ') || 'none'})`);
+    // (4) THIN IS THE IDENTITY: the default and an explicit Thin are the same def back.
+    ok(JSON.stringify(applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, borderWeight: 'hairline' }, () => 44)) === JSON.stringify(base),
+      `#576 ${def.id}: Outline button border: Thin builds the default def`);
+  }
+  // (5) REFUSED, NOT IGNORED: a button whose edge is not on the default rung throws, naming the def and the key.
+  let threw576 = '';
+  try { applyButtonLayout({ ...button, tokens: { ...button.tokens, 'border-width': 'border-width.heavy' } }, thick, () => 44); } catch (e) { threw576 = (e as Error).message; }
+  ok(threw576.includes('button') && threw576.includes('border-width.heavy'),
+    `#576 a button whose edge binds another rung is refused by name, not silently kept (${threw576 || 'did NOT throw'})`);
+  // (6) THE RUNG IS 2PX, read off every brand's committed Figma emission, which knows nothing about any def.
+  const thickPx = readdirSync(resolve(HERE, './out/figma')).sort().map((brand) => {
+    const vars = (JSON.parse(readFileSync(resolve(HERE, `./out/figma/${brand}/border-width.json`), 'utf8')) as { variables: { name: string; value?: unknown }[] }).variables;
+    return [brand, vars.find((v) => v.name.endsWith('/border-width/thick'))?.value] as const;
+  });
+  ok(thickPx.length >= 4 && thickPx.every(([, v]) => v === 2),
+    `#576 the rung Thick binds measures 2px in every committed brand (${thickPx.map(([b, v]) => `${b} ${String(v)}`).join(', ')})`);
+  // (7) IN THE BRAND INPUT: the engine accepts both values and refuses any other, by name.
+  let refused576 = '';
+  try { brandTheme({ ...(exampleBrands()['prism3'] as BrandInput), buttonBorderWeight: 'heavy' as never }); } catch (e) { refused576 = (e as Error).message; }
+  ok(refused576.includes('buttonBorderWeight'),
+    `#576 brandTheme refuses an unknown buttonBorderWeight by name (${refused576 || 'did NOT throw'})`);
+}
+
 // #1786 — EVERY BRAND THE PLUGIN CAN EMIT, inside the `figma_execute` ceiling, and the chunked
 // `color-aliases` pass EXECUTED rather than only measured.
 //
@@ -32081,7 +32134,7 @@ arm: {
     && cs.files.get('./cs/component-contracts.json') === cs.files.get('./cs/component-defs.json'),
     `#1325 export_theme: include:[componentSpecs] writes exactly the component contracts, their compatibility copy (the same bytes) and the Specs projection (${[...cs.files.keys()].join(', ')})`);
   const csDoc = JSON.parse(cs.files.get('./cs/component-defs.json') ?? '{}');
-  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.4' && Object.keys(csDoc.components ?? {}).length >= 40,
+  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.5' && Object.keys(csDoc.components ?? {}).length >= 40,
     `export_theme: the component-defs export is the brand's (${csDoc.brand?.id}), in its format, with every component (${Object.keys(csDoc.components ?? {}).length})`);
 
   // A bad brand must fail BEFORE anything is written — a partial export is worse than none.
@@ -36387,6 +36440,7 @@ arm: {
         minWidthMultiplier: input.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
         labelWeight: input.buttonLabelWeight ?? DEFAULT_BUTTON_LAYOUT.labelWeight,
         textHover,
+        borderWeight: input.buttonBorderWeight ?? DEFAULT_BUTTON_LAYOUT.borderWeight,
       },
       sizeRefPx(t.dims.sizes));
 
