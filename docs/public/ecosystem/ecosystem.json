@@ -311,6 +311,7 @@
           "image-placeholder",
           "spinner",
           "badge",
+          "avatar",
           "tag",
           "tag-group",
           "tab-item",
