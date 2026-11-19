@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   blocks the export, and the raw Figma format named the target `Unknown`.
   Targets are looked up with `figma.variables.getVariableByIdAsync`, which
   needs no new permission. An id it can't resolve is still reported as broken.
+  With a namespace set, the reference takes this export's namespace, so it
+  resolves where the library is exported under the same one.
 - **Gradients are exported.** Gradient paint styles now export to
   `gradients.json` (`shared/gradients.json` in a multi-mode export) as DTCG
   `gradient` tokens: an array of `{ color, position }` stops, with a stop bound

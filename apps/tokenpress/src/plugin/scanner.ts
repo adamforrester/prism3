@@ -61,15 +61,6 @@ export class TokenScanner {
   }
 
   /**
-   * Organizes variables into a hierarchical structure grouped by collection and mode.
-   * Creates a two-level map: Collection ID -> Mode ID -> Variables array.
-   * This structure enables efficient lookup and processing during token export.
-   *
-   * @param variables Array of all Figma variables to organize
-   * @param collections Array of variable collections containing mode information
-   * @returns Map of collection IDs to maps of mode IDs to variable arrays
-   */
-  /**
    * The alias targets that are not in `variables` (prism3 #4166). A local variable can alias a
    * variable from an enabled team library, which `getLocalVariablesAsync` does not list, so the
    * export had no record of it and wrote the raw `{VariableID:…}`. `getVariableByIdAsync` resolves
@@ -112,6 +103,15 @@ export class TokenScanner {
     return { variables: found, collectionNames };
   }
 
+  /**
+   * Organizes variables into a hierarchical structure grouped by collection and mode.
+   * Creates a two-level map: Collection ID -> Mode ID -> Variables array.
+   * This structure enables efficient lookup and processing during token export.
+   *
+   * @param variables Array of all Figma variables to organize
+   * @param collections Array of variable collections containing mode information
+   * @returns Map of collection IDs to maps of mode IDs to variable arrays
+   */
   getVariablesByCollectionAndMode(variables: Variable[], collections: VariableCollection[]) {
     const result: Map<string, Map<string, Variable[]>> = new Map();
 
