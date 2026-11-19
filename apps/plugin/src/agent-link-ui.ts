@@ -58,6 +58,8 @@
 import type { UiToMain } from './messages';
 import type { AgentLinkState } from './agent-protocol';
 import { createBridgeRelay } from './agent-bridge-relay';
+import { agentStartLine, nextAgentBusy } from './agent-run-notice';
+import type { AgentBusy } from './agent-run-notice';
 import type { BridgePairing, WsLike } from './agent-bridge-relay';
 import { codeShaped } from './bridge-auth';
 import { glyph, h, hook, switchEl, tile } from '../../studio/src/shell/dom';
@@ -248,7 +250,27 @@ export const mountAgentLink = (): void => {
   // The collapse glyph, two arrows in toward the center, the mirror of the strip's Restore (the owner, 2026-10-26; it was a minus).
   minMark.append(glyph('collapse'));
   minBtn.addEventListener('click', () => post({ type: 'minimize-ui', minimized: true }));
-  wrap.append(label, chip, minBtn);
+  // #2368 (owner decision A): the busy mark, beside the switch while an agent's command that writes the file runs, until
+  // its result is written (`nextAgentBusy`). The chrome's spinner (shown after its anti-flash wait) and "Running", which
+  // drops at the narrow tier as the switch's word does. Its line, also the start notice's, is its tooltip and the switch's
+  // description, so the warning that closing stops the run is in reach of the bar. Approved 2026-11-18.
+  const busyMark = hook(h('span', 'p3-agent-busy'), 'agent-busy');
+  busyMark.hidden = true;
+  const busyWord = h('span', 'p3-agent-busy-word', 'Running');
+  const busyLine = hook(h('span', 'p3-sr'), 'agent-busy-line');
+  busyLine.id = 'p3-agent-busy-line';
+  busyMark.append(h('span', 'p3-spin'), busyWord, busyLine);
+  let busy: AgentBusy = null;
+  const renderBusy = (): void => {
+    busyMark.hidden = !busy;
+    const line = busy ? agentStartLine(busy.cmd) : '';
+    busyLine.textContent = line;
+    if (busy) busyMark.title = line; else busyMark.removeAttribute('title');
+    if (busy) chip.setAttribute('aria-describedby', busyLine.id);
+    else chip.removeAttribute('aria-describedby');
+  };
+  busyWord.setAttribute('aria-hidden', 'true');
+  wrap.append(label, chip, busyMark, minBtn);
 
   /** #3204: draws the bridge's pairing prompt; the network build sets it below, with the relay. */
   let renderPair = (): void => undefined;
@@ -421,6 +443,8 @@ export const mountAgentLink = (): void => {
     const m = e.data && (e.data as { pluginMessage?: { type?: string; state?: AgentLinkState } }).pluginMessage;
     if (m && m.type === 'ui-minimized') { setMinimized((m as { minimized?: unknown }).minimized === true); return; }
     if (!m || typeof m.type !== 'string' || !m.type.startsWith('agent-')) return;
+    const nextBusy = nextAgentBusy(busy, m);
+    if (nextBusy !== busy) { busy = nextBusy; renderBusy(); }
     if (m.type === 'agent-link-state' && m.state && typeof m.state === 'object') {
       state = m.state;
       render();
