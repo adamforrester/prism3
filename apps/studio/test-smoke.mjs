@@ -4730,7 +4730,9 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
 // Before #3880 the reload restored the brand as its own baseline (origin `file`), and the pick replaced it, and the only
 // stored copy, with no confirm. EXPECTED typed here: the rename and the sentence, which names the example at risk.
 // Mutation that fails here BY NAME: `bootBrand` restoring origin `file` with the brand as its baseline, as before
-// (entry.ts) → `#3880 after a reload, an example load over the edits still asks first`.
+// (entry.ts) → `#3880 after a reload, an example load over the edits still asks first`. The leave prompt agrees with the
+// confirm straight after the reload (#3982): dropping entry.ts's `syncLeaving()` after `initSession` fails
+// `#3982 after a reload with unsaved edits, leaving asks first` by name.
 {
   const [atRisk, arriving] = BRANDS;
   const { ctx, page, drain } = await openBrand(atRisk);
@@ -4739,6 +4741,8 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.name === 'renamed-in-smoke'; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
   await page.reload({ waitUntil: 'networkidle' });
   await hooks.need(page, '[data-p3="frame"]');
+  const leaveAsksNow = await page.evaluate(() => { const e = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(e); return e.defaultPrevented; });
+  ok(leaveAsksNow === true, `#3982 after a reload with unsaved edits, leaving asks first, before any further edit (${leaveAsksNow})`);
   await hooks.click(page.locator('[data-p3="brand-switcher"]'));
   await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-example"]');
   await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-example"]').filter({ hasText: arriving }).first());

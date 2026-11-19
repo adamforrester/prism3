@@ -1362,7 +1362,11 @@ subscribe('identity', endUndoOnEdit);
  *  confirm asks (`needsOverwriteConfirm`), and disarmed otherwise (`state/leave-guard.ts`). Web only: closing the
  *  plugin is Figma's to handle, and its panel is not a page the designer navigates away from. */
 const leaving = commit.isFigma ? null : leaveGuard(window);
-const syncLeaving = (): void => leaving?.sync(needsOverwriteConfirm(brandState, provenance));
+/** Arms or disarms the leave prompt from the current provenance. Exported for `entry.ts`, which calls it once after
+ *  `initSession`: a reload that restores unsaved edits (#3880) publishes no topic, so without that call the prompt
+ *  would stay off until the next edit while the replace confirm already asks. Not called here at module load:
+ *  `provenance` is not set until `initSession` runs. */
+export const syncLeaving = (): void => leaving?.sync(needsOverwriteConfirm(brandState, provenance));
 subscribe('brand', syncLeaving);
 subscribe('identity', syncLeaving);
 subscribe('origin', syncLeaving);
