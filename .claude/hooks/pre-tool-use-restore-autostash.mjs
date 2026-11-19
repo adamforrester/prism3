@@ -241,7 +241,9 @@ function conflictSnapshot(dir, name) {
     // The paths the merge staged that HEAD may not have (added on one side, or both), as they stand on disk.
     const staged = [...git(top, ['diff', '--cached', '--name-only', '-z']).split('\0'), ...git(top, ['ls-files', '-u', '-z']).split('\0').map((l) => l.split('\t')[1])]
       .filter((p) => p && existsSync(join(top, p)));
-    if (staged.length) git(top, ['--literal-pathspecs', 'add', '--', ...new Set(staged)], env);
+    // `-f`: each path is already in the real index (staged or unmerged), so an ignore rule that matches it
+    // (a path force-added upstream) must not refuse the save and turn it into a deny (#4357 review).
+    if (staged.length) git(top, ['--literal-pathspecs', 'add', '-f', '--', ...new Set(staged)], env);
     const tree = git(top, ['write-tree'], env).trim();
     const index = git(top, ['commit-tree', 'HEAD^{tree}', '-p', 'HEAD', '-m', `index on ${name}: unmerged, so not recorded`]).trim();
     return git(top, ['commit-tree', tree, '-p', 'HEAD', '-p', index, '-m', name]).trim();
