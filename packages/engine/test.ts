@@ -41396,7 +41396,7 @@ arm: {
     ['label mode on an icon-only trigger, with no aria-label (K6 B)', JSON.stringify(kind?.values) === '["description","label"]' && /`aria-labelledby` pointing at it and no `aria-label`/.test(co)],
     ['Escape hides it without moving focus, and it never takes focus (OD-T1 A)', /Escape hides it without moving focus/.test(co) && /It never takes focus/.test(co)],
     ['at once on keyboard focus, after the delay on hover, at once in the skip window (OD-T4 A)', /after `delay`, at once on keyboard focus/.test(co) && /within the shared skip window/.test(co)],
-    ['a fade plus a scale from 0.95, no animation in the skip window, the scale dropped when reduced (K7 B)', /a scale from 0\.95 to 1/.test(co) && /Inside the skip window it appears with no animation/.test(co) && /the scale is dropped/.test(co)],
+    ['a fade alone with no scale, no animation in the skip window, the reduced fade both ways (K7 A)', /show: opacity 0 to 1, a fade alone with no scale/.test(co) && !/scale from/.test(co) && !/scale/.test(td.motion?.enter ?? '') && !/scale/.test(td.motion?.reduceMotion ?? '') && /Inside the skip window it appears with no animation/.test(co) && /both ways fade on `motion\.duration-reduced\.fast`/.test(co)],
     ['an owned positioning layer on the platform, no library (K8 A)', /`popover="manual"`/.test(co) && /CSS anchor positioning/.test(co) && /No positioning library/.test(co)],
     ['max width 240, offset space.100 (OD-T6)', /up to 240px/.test(co) && /offset `space\.100` from the trigger to the arrow\\'s tip|offset `space\.100` from the trigger to the arrow's tip/.test(co)],
     ['logical sides that mirror in right-to-left (OD-X2 A)', /start and end are logical/.test(co)],

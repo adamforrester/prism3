@@ -11,9 +11,8 @@
  * `top | bottom | start | end`, so start and end swap under right-to-left with no rename. OD-T4 A: the show delay on
  * hover, at once on keyboard focus, at once inside the skip window. K6 B (overriding OD-T5's second half): description
  * by default; on an icon-only trigger the tooltip IS the name (label mode, `aria-labelledby`), never a hidden twin of
- * an `aria-label`. K7 B (the brief's §8, overriding the proposal's fade-only; reopened for the owner and held as
- * pending in `notes.contested`): a fade plus a small scale (about 95 to
- * 100%), no animation inside the skip window, the scale dropped under reduced motion. K8 A: an owned, dependency-free
+ * an `aria-label`. K7 A (owner, 2026-11-19, after the KB brief moved to a fade alone): a fade alone, with no
+ * scale, no animation inside the skip window, and the reduced-motion fade under reduced motion. K8 A: an owned, dependency-free
  * positioning layer on the platform for the code proof of concept.
  *
  * ── THE SET: `placement` × 4, NO SCHEMA CHANGE ─────────────────────────────────────────────────────────────────────
@@ -199,7 +198,7 @@ export const tooltip: ComponentDef = {
         class: 'motion',
         disposition: 'refused',
         description:
-          'motion — show: opacity 0 to 1 and a scale from 0.95 to 1, with `transform-origin` on the edge facing the trigger, on `motion.duration.fast` and `motion.easing-role.enter`. Hide: a fade on `motion.duration.instant` and `motion.easing-role.exit`. Inside the skip window it appears with no animation. Under `prefers-reduced-motion` the scale is dropped and both ways fade on `motion.duration-reduced.fast`. The 0.95 starting scale has no token.',
+          'motion — show: opacity 0 to 1, a fade alone with no scale, on `motion.duration.fast` and `motion.easing-role.enter`. Hide: a fade on `motion.duration.instant` and `motion.easing-role.exit`. Inside the skip window it appears with no animation. Under `prefers-reduced-motion` both ways fade on `motion.duration-reduced.fast`.',
       },
       {
         class: 'right-to-left',
@@ -261,7 +260,7 @@ export const tooltip: ComponentDef = {
   docs: {
     usage: 'Use a Tooltip to name an icon-only control or to add a short description to a control, shown on hover and keyboard focus. Touch has no hover, so the tooltip never holds the only copy of what it says. Anything interactive, or content that opens on a press, is a Popover; a status after an action is a Toast; help under a field is a field message.',
     do: [
-      'Name every icon-only control with a tooltip in label mode',
+      'Use label mode when an icon-only control has a tooltip',
       'Keep it to a few words of plain text',
       'Keep the words the same as the control\'s accessible name',
       'Use `aria-disabled="true"` on an unavailable control that has a tooltip',
@@ -294,25 +293,21 @@ export const tooltip: ComponentDef = {
   },
 
   motion: {
-    enter: 'A fade and a scale from slightly under full size, from the edge facing the control (motion.duration.fast, motion.easing-role.enter). Moving from one tooltip to the next soon after, it appears with no animation.',
+    enter: 'A fade (motion.duration.fast, motion.easing-role.enter). Moving from one tooltip to the next soon after, it appears with no animation.',
     exit: 'A fade (motion.duration.instant, motion.easing-role.exit).',
-    reduceMotion: 'Under prefers-reduced-motion, the fade only, with no scale, at motion.duration-reduced.fast both ways.',
+    reduceMotion: 'Under prefers-reduced-motion, the same fade, at motion.duration-reduced.fast both ways.',
   },
 
   notes: {
-    contested: [
-      'OWNER DECISION OD-TB1 (pending; built at its recommendation, A): the 240px maximum width has no Figma projection. `wrap: \'hug\'` requires the text\'s parent to be the root, and the label sits in the padded bubble, so the design file\'s bubble hugs one line and the wrap is code. A (built): code only, stated in `codeOnly`. B: extend `wrap: \'hug\'` to a padded child box, an engine change, so the design file wraps at 240 too. C: build the bubble at a fixed 240 width (Toast\'s `placementWidth` pattern), which makes every short tooltip 240 wide in Figma.',
-      'OWNER DECISION OD-TB2 (pending; built at its recommendation, A): the arrow\'s depth. OD-T6 fixes an 8-unit arrow and not its depth. A (built): an 8px base and a 4px right-angled tip, with the far half of the 8px square clear, because a vector part is square. B: a tip as deep as its base (8 by 8), which fills the square and reads as a sharp spike.',
-      'OWNER DECISION OD-TB3 (pending; built at its recommendation, A): the Components page Tooltip sits on. A (built): its own page, Tooltip, under Components, beside Toast. B: an Overlays page shared with the coming Menu and Popover.',
-      'OWNER DECISION K7 (reopened for the owner after Q-FL2, pending; built as K7 B): a KB change may make the brief default to a fade alone. B (built): a fade plus a scale from 0.95 to 1, the scale dropped under reduced motion. A: a fade alone. Moving to A changes the `codeOnly` motion entry, `motion.enter` and `motion.reduceMotion`, and the `#4009 tooltip code-side contract` arm in `test.ts` that reads "a scale from 0.95 to 1".',
-    ],
+    contested: [],
     unverified: [
       'That Figma builds a `glyphPx` vector inside an auto-layout column and row with the arrow centered on the bubble and abutting it, on a real file: the shim models it, no live file has measured it yet.',
       'That `motion.duration.fast` sits in the briefs\' 120 to 180ms range at every tempo (the Q-FL2 note).',
       'CSS anchor positioning\'s `position-try-fallbacks` support across the target browsers, against the owned fallback the positioning entry names.',
     ],
     evolution: [
-      'Owner decisions: the proposal on #4009 with every OD at its recommendation (Q-FL2, 2026-11-19), read with the KB brief check on #4009 (8 agree, 2 conflict, 2 silent). K6 B: label mode on an icon-only trigger, not an `aria-hidden` twin of the `aria-label`. K7 B: a fade plus a small scale, no animation inside the skip window (since reopened; see `contested`). K8 A: an owned positioning layer on the platform for the POC. OD-X2 A: logical sides. OD-T6: max width 240, offset `space.100`, an 8-unit arrow, `type.body.sm.default`, built as placeholders. Generation priority 3, as Badge: the proposal\'s Identity section, adopted with the rest in Q-FL2 (not the Tier 1 of #4001\'s table, a different scale).',
+      'Owner decisions (2026-11-19, on #4251), all as recommended: OD-TB1 A (the design file\'s bubble hugs one line; the 240px wrap is code only); OD-TB2 A (an 8px base and a 4px right-angled tip); OD-TB3 A (its own Tooltip page under Components; Popover gets its own page too); K7 A (a fade alone, with no scale, replacing the K7 B fade plus scale); N1 A (docs.do: use label mode when an icon-only control has a tooltip); Popover and Tooltip list each other in alternativeTo, replacing the planned entries, which lands with whichever of #4251 and #4252 merges second, because the list must be symmetric.',
+      'Owner decisions: the proposal on #4009 with every OD at its recommendation (Q-FL2, 2026-11-19), read with the KB brief check on #4009 (8 agree, 2 conflict, 2 silent). K6 B: label mode on an icon-only trigger, not an `aria-hidden` twin of the `aria-label`. K7 B was built first and reopened (see the next entry). K8 A: an owned positioning layer on the platform for the POC. OD-X2 A: logical sides. OD-T6: max width 240, offset `space.100`, an 8-unit arrow, `type.body.sm.default`, built as placeholders. Generation priority 3, as Badge: the proposal\'s Identity section, adopted with the rest in Q-FL2 (not the Tier 1 of #4001\'s table, a different scale).',
       'Motion presets: no preset registry exists in the engine yet (#2857 is a wireframe), so the proposed Tooltip / show and Tooltip / hide are this def\'s `motion` field and `codeOnly` entry only; nothing was added to a preset set.',
       'The brief\'s close delay and shared skip delay are props and a provider setting here; their default values go to the motion gap batch (#3486).',
     ],

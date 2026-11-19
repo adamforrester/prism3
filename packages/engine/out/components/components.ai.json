@@ -15154,7 +15154,7 @@
       "docs": {
         "usage": "Use a Tooltip to name an icon-only control or to add a short description to a control, shown on hover and keyboard focus. Touch has no hover, so the tooltip never holds the only copy of what it says. Anything interactive, or content that opens on a press, is a Popover; a status after an action is a Toast; help under a field is a field message.",
         "do": [
-          "Name every icon-only control with a tooltip in label mode",
+          "Use label mode when an icon-only control has a tooltip",
           "Keep it to a few words of plain text",
           "Keep the words the same as the control's accessible name",
           "Use `aria-disabled=\"true\"` on an unavailable control that has a tooltip"
@@ -15188,9 +15188,9 @@
         "generationPriority": 3
       },
       "motion": {
-        "enter": "A fade and a scale from slightly under full size, from the edge facing the control (motion.duration.fast, motion.easing-role.enter). Moving from one tooltip to the next soon after, it appears with no animation.",
+        "enter": "A fade (motion.duration.fast, motion.easing-role.enter). Moving from one tooltip to the next soon after, it appears with no animation.",
         "exit": "A fade (motion.duration.instant, motion.easing-role.exit).",
-        "reduceMotion": "Under prefers-reduced-motion, the fade only, with no scale, at motion.duration-reduced.fast both ways."
+        "reduceMotion": "Under prefers-reduced-motion, the same fade, at motion.duration-reduced.fast both ways."
       },
       "composition": {
         "composesWith": [],

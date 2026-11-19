@@ -9,12 +9,12 @@ swap in right-to-left text with no rename; `placement` was already a `VARIANT_AX
 the two cannot drift. The label is `type.body.sm.default`, padding 4/8 at comfortable (OD-T6). `align` is code only
 (OD-T3 A). Generation priority 3 (as Badge; decided in Q-FL2), category overlay, `states: []`.
 
-**The owner's three KB-conflict calls, as built (K7 since reopened; see below).**
+**The owner's three KB-conflict calls, as built (K7 reopened and decided A; see below).**
 - K6 B: `kind="label"` on an icon-only control makes the tooltip the control's name (`aria-labelledby`, no
   `aria-label`); `description` stays the default.
-- K7 B: a fade plus a scale from 0.95, `motion.duration.fast` / `easing-role.enter`; the hide a fade on `instant` /
-  `easing-role.exit`; no animation inside the skip window; the scale dropped under reduced motion. The 0.95 has no
-  token.
+- K7 A (owner, 2026-11-19, replacing the first build's K7 B fade plus scale): a fade alone,
+  `motion.duration.fast` / `easing-role.enter`; the hide a fade on `instant` / `easing-role.exit`; no animation
+  inside the skip window; both ways on `motion.duration-reduced.fast` under reduced motion.
 - K8 A: an owned positioning layer on the platform (`popover="manual"`, CSS anchor positioning with
   `position-try-fallbacks`, a small owned fallback), no library, for the proof of concept.
 
@@ -30,22 +30,21 @@ preset either (no open PR carries one).
 
 **Fallout, all mechanical.** Button, IconButton and TextField had Tooltip in `composition.planned`; it moves to
 `ai.commonPartners` (FieldMessage's to `alternativeTo`, which Tooltip names back), and IconButton's usage drops "(not
-built yet)". The prism3-build-ui skill's worked example of a missing component was Tooltip; it is Popover now (DRAFT
-copy). Dialog's placement value set becomes the canonical entry, Tooltip's an overlapping one sharing `bottom` and `end`.
+built yet)". The prism3-build-ui skill's worked example of a missing component was Tooltip; it is Menu now (owner,
+2026-11-19: Popover is being built in #4252). Dialog's placement value set becomes the canonical entry, Tooltip's an overlapping one sharing `bottom` and `end`.
 Every hand-listed gate register takes Tooltip (hit target excluded: never a pointer target; no size axis; outside Control
 shape: a surface), and the canvas furniture switch, the page taxonomy and the studio groups test list it.
 
-**Held for the owner (built at the recommendation, pending).**
-- **OD-TB1, the max width in Figma.** 240px has no Figma projection: `wrap: 'hug'` requires the text's parent to be the
-  root, and the label sits in the padded bubble. A (built): Figma's bubble hugs one line; the wrap is code. B: extend
-  `wrap: 'hug'` to a padded child, an engine change. C: build the bubble at a fixed 240.
-- **OD-TB2, the arrow's depth.** A (built): 8px base, 4px right-angled tip. B: 8 by 8.
-- **OD-TB3, the page.** A (built): its own Tooltip page under Components. B: an Overlays page shared with Menu and
-  Popover.
-- **K7, the show motion (reopened after Q-FL2).** A KB change may make the brief default to a fade alone. B (built): a
-  fade plus a scale from 0.95. A: a fade alone, which changes the `codeOnly` motion entry, `motion.enter` and
-  `motion.reduceMotion`, and the `#4009 tooltip code-side contract` arm's `a scale from 0.95 to 1`.
-- **New strings are DRAFT** (voice standard): every shipped field of the def, the build-ui skill's worked example.
+**Decided by the owner (2026-11-19, on the PR), all as recommended.**
+- **OD-TB1 A:** Figma's bubble hugs one line; the 240px wrap is code only.
+- **OD-TB2 A:** an 8px base and a 4px right-angled tip.
+- **OD-TB3 A:** its own Tooltip page under Components (Popover gets its own page too).
+- **K7 A, a fade alone.** The `codeOnly` motion entry, `motion.enter` and `motion.reduceMotion` drop the scale, and the
+  `#4009 tooltip code-side contract` arm now requires the fade alone and no scale.
+- **N1 A:** `docs.do` reads "Use label mode when an icon-only control has a tooltip".
+- **Popover and Tooltip list each other in `alternativeTo`**, replacing the `planned` entries. The list must be
+  symmetric and name registered defs, and Popover (#4252) has not merged, so Tooltip keeps `popover` in `planned`
+  here; the swap of both sides lands with whichever of #4251 and #4252 merges second.
 
 **Follow-up, not in this PR.** IconButton's `aria` line still reads "aria-label is the accessible name (required)",
 which K6 B qualifies on an icon-only control with a label-mode tooltip; filed as #4250.

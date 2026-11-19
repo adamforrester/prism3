@@ -39,7 +39,7 @@ Use a Tooltip to name an icon-only control or to add a short description to a co
 
 ### Do
 
-- Name every icon-only control with a tooltip in label mode
+- Use label mode when an icon-only control has a tooltip
 - Keep it to a few words of plain text
 - Keep the words the same as the control's accessible name
 - Use `aria-disabled="true"` on an unavailable control that has a tooltip
@@ -71,9 +71,9 @@ Use a Tooltip to name an icon-only control or to add a short description to a co
 
 ### Motion
 
-- **Enter:** A fade and a scale from slightly under full size, from the edge facing the control (motion.duration.fast, motion.easing-role.enter). Moving from one tooltip to the next soon after, it appears with no animation.
+- **Enter:** A fade (motion.duration.fast, motion.easing-role.enter). Moving from one tooltip to the next soon after, it appears with no animation.
 - **Exit:** A fade (motion.duration.instant, motion.easing-role.exit).
-- **Reduced motion:** Under prefers-reduced-motion, the fade only, with no scale, at motion.duration-reduced.fast both ways.
+- **Reduced motion:** Under prefers-reduced-motion, the same fade, at motion.duration-reduced.fast both ways.
 
 ## Content guidelines
 
