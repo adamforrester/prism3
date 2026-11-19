@@ -972,6 +972,10 @@ const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview
  * here is named, never thrown: the sets are already written. The description's first sentence is "Prism3 updated <sets>.",
  * naming the sets the run changed; only a run that changed no set falls back to the version's title (#2914).
  */
+/** The sets a run changed, for the publish description: any member write, a merge included (#4091 review nit). */
+export const changedSets = (outcomes: readonly SetOutcome[]): string[] =>
+  outcomes.filter((o) => !o.refused && (o.updated.length || o.added || o.renamed || o.deprecated.length || o.merged?.length)).map((o) => o.set);
+
 const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdatePreview, res: ApplyResult, today: string | undefined): Promise<void> => {
   if (!res.version && !res.aboutOnly) return;
   // THE LIBRARY COVER (#2859) first, so a cover drawn now is the thumbnail the About frame is placed beside. An edited
@@ -995,7 +999,7 @@ const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdateP
   }
   // With no version, no set changed: the library has nothing new to publish, and the description has no title.
   if (!res.version) return;
-  const changed = res.outcomes.filter((o) => !o.refused && (o.updated.length || o.added || o.renamed || o.deprecated.length || o.merged?.length)).map((o) => o.set);
+  const changed = changedSets(res.outcomes);
   res.publish = publishDescription({
     title: res.version, sets: changed, from: res.about?.from ?? (preview.about?.state === 'stale' ? preview.about.from.engine : null),
     consumerBreaks: res.outcomes.reduce((k, o) => k + (o.breaking?.filter(breaksConsumers).length ?? 0), 0),   // #3711 (Q-UF1 A): a retired member is not breaking

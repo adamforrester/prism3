@@ -296,7 +296,7 @@ import { figmaInstances, fixHostMethods, makeShim, STYLE_FONT, type Node, type P
 import { adoptMembers, breakingClause, breakingLine, breakingOf, breaksConsumers, consumerLines, breakingSection, breakingSummary, captureBaselines, checkedSetOf, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type Breaking, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
-import { applyUpdate, applyVerdict as applyVerdictOf, ledgerAfter, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
+import { applyUpdate, applyVerdict as applyVerdictOf, ledgerAfter, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, changedSets, type ApplyHost } from './src/update-apply';
 import { headerFor } from './src/page-header';
 import { readFileSync } from 'node:fs';
 
@@ -7453,6 +7453,9 @@ section('dialog size — a set built with the width-only size axis leaves 16 mem
   const mv = applyVerdict({ ...res, outcomes: [mergeOnly] });
   ok(mv.headline === '✓ 8 merged into another member' && mv.lines.some((l) => l.includes('8 merged into another member')),
     `dialog size/merge only: a set whose only write was the merge reads as written, never idle (${mv.headline}; ${mv.lines[0]})`);
+  // #4091 review nit: a set whose only write was a merge is named in the publish description's set list.
+  const listed = changedSets([mergeOnly!]);
+  ok(listed.length === 1 && listed[0] === o?.set, `dialog size/publish: a merge-only set is listed as changed in the publish description (${JSON.stringify(listed)})`);
   const after = membersOf(w.set()).map((m) => String(m.name));
   const keys = after.map((n) => coordKey(n));
   ok(after.length === 16 && !after.some((n) => n.includes('size=')) && new Set(keys).size === 16 && !membersOf(w.set()).some((m) => String(m.description ?? '').startsWith(DEPRECATED_PREFIX)),
