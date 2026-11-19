@@ -19,6 +19,10 @@ UPDATE_COPY.<key>)` in `shell/update-file.ts`, titled from `state/update-file.ts
 in `update-a-file-safely.md`. The label check could only hold what a guide says, never what it leaves out. Against
 main's guide it names the two missing groups. Its first bold matcher (`[^*]+`) paired the `**` of a label holding
 `*N*` with the next label's, so it passed or failed by the parity of earlier labels; it is non-greedy now.
+GROUPS also holds the guide's "in this order" table to the order the dialog draws the groups, because presence
+alone let the new **Can't update yet** row sit below **Usage panels**, which the dialog draws after it (review
+follow-up). The row now sits under **Components › Due**, and it and **Kept edits** carry the **Components ›** prefix
+their sibling rows have, since both groups draw inside Components.
 
 ### READMEs
 The root README says **Studio**, and TokenPress exports variables, text, effect and gradient paint styles. The engine
