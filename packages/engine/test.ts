@@ -12702,9 +12702,10 @@ arm: {
 // is identical under either value; (d) out-of-scope roles do not move; (e) nothing fails under 'page' that passes under
 // 'floor'; (f) the setting moves the field border in the two brands the PR measured (450 → 400 in light); (g) an
 // override's flag reads the declared ground; (h) the input is validated and the schema lists the same values;
-// (i) it survives the design.md round trip.
+// (i) it survives the design.md round trip; (j) under 'page' the field status borders only get lighter, and do in the default brand.
 // MUTATIONS, each failing by name: measure `field.border` on `background.secondary` while it names the page → (b);
-// drop the page-under-wash ground from `fieldStatusGrounds` under 'page' → (b);
+// drop the page-under-wash ground from `fieldStatusGrounds` under 'page' → (b); let `fieldStatusGrounds` ignore
+// `pageControls`, keeping the inset grounds under 'page' → (j);
 // drop `!hc` from `pageControls` → (c); let the setting reach the links → (d); drop the enum entry in `theme-brand.ts` → (h).
 {
   // `disabled.border` and its inverse twin share the disabled inks' pick and ground since #2750 (#4085), so they are in scope.
@@ -12723,7 +12724,8 @@ arm: {
   ];
   type R = Record<string, { path: string; hex: string; against: string; min: number; ratio: number }>;
   const offA: string[] = [], offB: string[] = [], offC: string[] = [], offD: string[] = [], offE: string[] = [];
-  let cellsB = 0, cellsBW = 0, cellsD = 0;
+  let cellsB = 0, cellsBW = 0, cellsD = 0, cellsJ = 0;
+  const offJ: string[] = [], strictJ: string[] = [];
   for (const [id, t] of brands) {
     const unset = resolveAllModes({ ...t, interactiveGround: undefined } as Theme);
     const floor = resolveAllModes({ ...t, interactiveGround: 'floor' } as Theme);
@@ -12768,6 +12770,15 @@ arm: {
             const y = contrast(hexToRgb(r.hex), washed);
             if (y < r.min - 1e-9) offB.push(`${id} ${pm.mode} ${k}: ${r.hex} ${y.toFixed(2)} < ${r.min} on background.primary under the hover wash (${hex({ r: Math.round(washed.r), g: Math.round(washed.g), b: Math.round(washed.b) })})`);
           }
+          // (j) The other direction (#4077 delta review M-B): 'page' only relaxes the status borders, so on the page they
+          // carry no more contrast than under 'floor', and in the default brand's light mode strictly less.
+          const fr = F[k];
+          if (fr) {
+            cellsJ++;
+            const xf = contrast(hexToRgb(fr.hex), pageRgb);
+            if (x > xf + 1e-9) offJ.push(`${id} ${pm.mode} ${k}: ${x.toFixed(2)} under 'page' > ${xf.toFixed(2)} under 'floor' on background.primary`);
+            if (id === 'prism3' && pm.mode === 'light' && x < xf - 1e-9) strictJ.push(k);
+          }
         }
       }
       for (const k of OUT) { if (!F[k]) continue; cellsD++; if (P[k]?.path !== F[k].path || P[k]?.against !== F[k].against) offD.push(`${id} ${pm.mode} ${k}: ${F[k].path} → ${P[k]?.path}`); }
@@ -12782,6 +12793,8 @@ arm: {
   ok(offC.length === 0, `#3339 (c) high contrast is identical under 'floor' and 'page'${offC.length ? ` — moved: ${offC.slice(0, 4).join(', ')}` : ''}`);
   ok(cellsD >= 100 && offD.length === 0, `#3339 (d) out-of-scope roles (text, links, focus, the button borders that follow their label, surfaces) do not move under 'page' (${cellsD} cells${offD.length ? ` — ${offD.slice(0, 3).join('; ')}` : ''})`);
   ok(offE.length === 0, `#3339 (e) nothing fails under 'page' that passes under 'floor' (${offE.length ? offE.slice(0, 4).join('; ') : 'none'})`);
+  ok(cellsJ >= 30 && offJ.length === 0 && strictJ.length === STATUS.length,
+    `#3339 (j) under 'page' the field status borders carry no more contrast on the page than under 'floor', and in the default brand's light mode all three carry less (${cellsJ} cells; lighter in prism3 light: ${strictJ.join(', ') || 'none'}${offJ.length ? ` — ${offJ.slice(0, 3).join('; ')}` : ''})`);
 
   // (f) It does something: the field border in light, measured by the build PR, typed here.
   const fieldStep = (t: Theme, g?: 'page') => String((resolveAllModes({ ...t, interactiveGround: g } as Theme).find((m) => m.mode === 'light')!.roles as R)['field.border.rest'].path).split('.').slice(-1)[0];
