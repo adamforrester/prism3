@@ -39,6 +39,8 @@ Shown on the default member: size `medium`, shape `circle`, type `initials`.
 
 Use an avatar to show who something belongs to: the author of a comment, the person in a list row, the owner of a card, the signed-in user. Use the circle for a person and the square for a team, an organization or an app. Pick the size from the density around it: x-small or small in a dense list or an inline mention, medium by default, x-large in a profile header. Mark it decorative when the name is visible beside it. Add presence only where status matters to the task, such as a chat or a team list. Drop a photo onto the image member as an image fill, and set the initials on the initials member.
 
+**In RTL.** The layout mirrors: the start edge is on the right. The person and organization glyphs do not mirror.
+
 ### Do
 
 - Pass the name as the interface shows it, so the initials and the accessible name both come from it

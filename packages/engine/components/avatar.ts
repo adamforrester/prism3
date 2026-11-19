@@ -148,6 +148,8 @@ export const avatar: ComponentDef = {
         size: 'size.{size}.box',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         children: ['mask', 'presenceRing'],
+        // RTL: the presence dot is anchored to the bottom inline-end corner, so it moves to the bottom left.
+        mirror: 'reverses',
         note: 'The bounding square. It sets the size and clips nothing, so the presence dot can sit on its corner and overhang the picture.',
       },
       mask: {
@@ -171,6 +173,8 @@ export const avatar: ComponentDef = {
       personGlyph: {
         kind: 'vector',
         glyph: 'person',
+        // RTL: a person and a building are drawn as they are in every script.
+        mirror: 'never',
         size: 'glyph.{size}',
         paintSlot: 'icon',
         presentWhen: { type: ['icon'], shape: ['circle'] },
@@ -179,6 +183,8 @@ export const avatar: ComponentDef = {
       organizationGlyph: {
         kind: 'vector',
         glyph: 'organization',
+        // RTL: a person and a building are drawn as they are in every script.
+        mirror: 'never',
         size: 'glyph.{size}',
         paintSlot: 'icon',
         presentWhen: { type: ['icon'], shape: ['square'] },

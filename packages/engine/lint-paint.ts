@@ -315,6 +315,9 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
   // List.Item (#2319): the key is the `icon` PAINT SLOT (the icon marker's ink), whose spelling matches the `type` value
   // `icon`. It is the slot that leads, not the axis value: the key binds at every type, and only the icon member draws
   // the slot it paints.
+  // Avatar (#4110): List.Item's case again, the slot and a `type` value share a spelling.
+  'avatar|icon':
+    "the key is the `icon` paint slot, not the `type` value `icon`; the two share a spelling. It binds the icon role, `color.icon.secondary`, for the person and organization glyphs, which only the icon type draws",
   'list-item|icon':
     "the key is the `icon` paint slot, not the `type` value `icon`; the two share a spelling. It binds the icon role, `color.icon.primary`, for the icon marker, which only the icon type draws",
   // Progress (#2670): its end-state axis is `status`, active / complete / error. `complete` is the success role and
