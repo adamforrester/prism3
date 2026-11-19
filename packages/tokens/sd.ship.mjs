@@ -11,7 +11,7 @@
  *   standard config options only.
  *
  * What it builds: the house brand, `prism3`, from the projection the engine emits for the web
- * (`prism3.base.web.tokens.json` plus one `prism3.<mode>.overlay.tokens.json` per theme mode), one stock
+ * (`prism3.web.base.tokens.json` plus one `prism3.<mode>.overlay.tokens.json` per theme mode), one stock
  * Style Dictionary run per mode — the shape the consumer build already proves. The base run (the light
  * defaults) writes under `:root`; each mode writes under `[data-theme="<mode>"]`. Names keep stock Style
  * Dictionary's root prefix, `--pds3-…` (Q98 A): no `prefix` option, no rename.
@@ -51,7 +51,7 @@ export const discoverModes = () => [
 const buildMode = async (mode) => {
   const sd = new StyleDictionary({
     source: [
-      resolve(OUT_ROOT, `${BRAND}.base.web.tokens.json`),
+      resolve(OUT_ROOT, `${BRAND}.web.base.tokens.json`),
       ...(mode === 'base' ? [] : [resolve(OUT_ROOT, `${BRAND}.${mode}.overlay.tokens.json`)]),
     ],
     usesDtcg: true,

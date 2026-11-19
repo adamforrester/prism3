@@ -20,6 +20,11 @@ the CLI writes one for a client's brand too. `sd.ship.mjs` sources it in place o
 overlays: typefaces don't vary by mode. Stock Style Dictionary's `css` group writes the array as a comma list, so
 the package stays free of custom code.
 
+The name ends in `.base.tokens.json` on purpose. Every brand discovery in the gates (`check-consumability`,
+`check-platforms`, `test.ts`) sorts `out/` by the suffix `\.(base|<mode>\.overlay)\.tokens\.json$`; the first
+name tried, `<brand>.base.web.tokens.json`, read there as a brand called `aurora.base.web`, and `consumability`
+failed on it. A name inside the existing convention needed no gate's scope changed.
+
 Registered: `payload-manifest.json` classifies the new kind `web-base`, and `ARTIFACT_FLOOR` rises to 265, the
 set's new size, so losing the five files fails the drift meta-check. `schema/` gains nothing, so
 `lint-schema-classification` has nothing to classify.

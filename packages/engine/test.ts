@@ -32609,7 +32609,7 @@ arm: {
 // Owner decision B (2026-11-19). The canonical tree holds one family per typeface (#105.3, for the Figma and
 // TokenPress round trip) and the curated stack under `$extensions.prism3.fallbackStack`, which every projection
 // strips. The platform-neutral base must STAY single-family: stock Style Dictionary's android group would write a
-// stack as one unusable `<string>`. The web base (`<brand>.base.web.tokens.json`, what `@prism3/tokens` builds from)
+// stack as one unusable `<string>`. The web base (`<brand>.web.base.tokens.json`, what `@prism3/tokens` builds from)
 // carries the stack as DTCG 2025.10 §8.3's array, primary first, ending in a CSS generic family, and differs from
 // the base in nothing else. Read from the COMMITTED files, so this holds what a consumer gets (`regen --check` ties
 // them to the engine). The generic list is CSS Fonts 4 §4.1.1, written here, not read off the engine.
@@ -32624,7 +32624,7 @@ arm: {
     const read = (f: string) => JSON.parse(readFileSync(resolve(OUT, f), 'utf8'));
     const canonFaces = Object.entries((rootOf(read(`${b}.tokens.json`))?.core?.font?.typeface ?? {}) as Record<string, any>);
     const base = read(`${b}.base.tokens.json`);
-    const webFile = `${b}.base.web.tokens.json`;
+    const webFile = `${b}.web.base.tokens.json`;
     const web = existsSync(resolve(OUT, webFile)) ? read(webFile) : undefined;
     ok(web !== undefined, `#4155 ${b}: the web base ${webFile} is emitted`);
     const baseFaces = (rootOf(base)?.core?.font?.typeface ?? {}) as Record<string, any>;

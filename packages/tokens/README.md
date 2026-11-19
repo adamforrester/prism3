@@ -62,7 +62,7 @@ projection, so it isn't in the CSS (#642).
 Each typeface ships with its fallback stack, ending in a generic family:
 `--pds3-core-font-typeface-inter: Inter, system-ui, …, sans-serif` (#4155). If a face doesn't load, text
 falls back to the same kind of face rather than the browser default. The build reads the web base,
-`prism3.base.web.tokens.json`, which is the conforming base with each stack as its DTCG array value. The
+`prism3.web.base.tokens.json`, which is the conforming base with each stack as its DTCG array value. The
 platform-neutral `prism3.base.tokens.json` keeps one family per typeface, because a comma list isn't a font
 name on Android. `check-package.mjs`'s [FALLBACK] arm checks the generic family in every block.
 

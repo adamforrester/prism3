@@ -41,7 +41,7 @@
  * generic family, so a face that does not load falls back to its kind (sans-serif, monospace, …), not to the
  * browser default. The generic list is this gate's own transcription of CSS Fonts 4 §4.1.1. For [VALUE], a
  * `fontFamily` leaf's engine value is its `$value` followed by its `fallbackStack`, the stack the engine
- * curates in the tree and the web base (`<brand>.base.web.tokens.json`, the one `sd.ship.mjs` builds from)
+ * curates in the tree and the web base (`<brand>.web.base.tokens.json`, the one `sd.ship.mjs` builds from)
  * carries as the DTCG array form. The platform-neutral base stays single-family; `test.ts` holds that side.
  *
  * [OWN FILE] (#3877): each block also ships alone at `@prism3/tokens/prism3/<mode>.css`, and each of those

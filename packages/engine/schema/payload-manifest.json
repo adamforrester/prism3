@@ -40,7 +40,7 @@
     },
     {
       "kind": "web-base",
-      "pattern": "out/{brand}.base.web.tokens.json",
+      "pattern": "out/{brand}.web.base.tokens.json",
       "why": "The web flavor of the conforming base (#4155, owner decision B): identical to `{brand}.base.tokens.json` except that each typeface's `$value` is its curated fallback stack as the DTCG array, primary first and ending in a CSS generic family. PAYLOAD because the web build reads it in place of the base: `@prism3/tokens` (`sd.ship.mjs`) builds the shipped CSS from it with each `{brand}.{mode}.overlay.tokens.json`. A separate file so the platform-neutral base stays single-family for every other platform, where a stack is not a font name. No `$extensions`, like the base."
     },
     {

@@ -613,7 +613,7 @@ export const environmentProblems = async (): Promise<string[]> => {
  *  and say why. What a floor cannot see: a shrink and a growth of the same size in one PR.
  *
  *  259 since #1119, raised to the set's size when harbor's 29-file Figma emission joined it, so losing it fails here.
- *  265 since #4155, the set's size once each brand's web base (`<brand>.base.web.tokens.json`) joined it. */
+ *  265 since #4155, the set's size once each brand's web base (`<brand>.web.base.tokens.json`) joined it. */
 export const ARTIFACT_FLOOR = 265;
 
 /* #775's window closed 2026-08-20 and the smoke suite gates in both CI and this runner, so the

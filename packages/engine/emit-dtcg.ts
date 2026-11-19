@@ -73,7 +73,7 @@ export const emitTheme = (theme: Theme, outDir: string, opts: { build?: string }
   }
   // #4155 (owner decision B): the WEB flavor of the base, which only the web build reads. Each typeface carries its
   // fallback stack as the DTCG array; the base above stays single-family for every other platform.
-  writeFileSync(fileIn(`${theme.id}.base.web.tokens.json`), JSON.stringify(buildWebBase(built.tree), null, 2) + '\n');
+  writeFileSync(fileIn(`${theme.id}.web.base.tokens.json`), JSON.stringify(buildWebBase(built.tree), null, 2) + '\n');
   return built;
 };
 

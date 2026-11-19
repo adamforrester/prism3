@@ -11,7 +11,7 @@
  *
  *     <brand>.base.tokens.json          every DTCG-typed token, default-mode values, NO `$extensions`
  *     <brand>.<mode>.overlay.tokens.json  ONLY the leaves whose value differs from base, NO `$extensions`
- *     <brand>.base.web.tokens.json      the base, each typeface's `$value` its fallback stack (#4155; web only)
+ *     <brand>.web.base.tokens.json      the base, each typeface's `$value` its fallback stack (#4155; web only)
  *
  * Since #2552 (owner decision Q250 A) this set IS the consumer handoff: no `$extensions` anywhere, so no
  * vendor key, no build data and no internal prose travels to a client — see `buildOverlaySet`.
