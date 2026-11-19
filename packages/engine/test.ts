@@ -43283,7 +43283,9 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
     ok(!!d && codeOnlyText(d.anatomy?.codeOnly).some((e) => e.includes(DECIDED)),
       `#2454 interactive def ${id} carries the decided behavior-contract note in its code notes`);
   }
-  const pending = all.filter((d) => codeOnlyText(d.anatomy?.codeOnly).some((e) => /code delivery pending|behavior layer/i.test(e))).map((d) => d.id);
+  // Scan the def's `notes` as well as its code notes: the pending note could as easily sit in `notes.contested`.
+  const notesText = (d: (typeof all)[number]): string[] => Object.values((d as { notes?: Record<string, unknown> }).notes ?? {}).flat().filter((e): e is string => typeof e === 'string');
+  const pending = all.filter((d) => [...codeOnlyText(d.anatomy?.codeOnly), ...notesText(d)].some((e) => /code delivery pending|behavior layer/i.test(e))).map((d) => d.id);
   ok(pending.length === 0, `#2454 no def still says code delivery is pending a behavior layer (got ${JSON.stringify(pending)})`);
 }
 
