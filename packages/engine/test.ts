@@ -42813,6 +42813,47 @@ arm: {
   }
 }
 
+// #4178, #4179, #4182, #4183: the build skills state what the engine does. Each arm reads its oracle from the engine,
+// the CLI or a gate's source, never from the skill it checks.
+{
+  const ui = readFileSync(resolve(HERE, '../../skills/prism3-build-ui/SKILL.md'), 'utf8');
+  const bc = readFileSync(resolve(HERE, '../../skills/prism3-build-component/SKILL.md'), 'utf8');
+  // #4178: the on-fill ink is promised on the rest fill only, so the self-check must not call hover and pressed failures.
+  const ai = JSON.parse(readFileSync(resolve(HERE, 'out/prism3.ai.json'), 'utf8'));
+  const onFill = ai?.color?.['interactive.primary.on-fill'];
+  const sitsOn: string[] = onFill?.sits_on ?? [];
+  ok(sitsOn.includes('interactive.primary.fill.rest') && !sitsOn.some((x) => /fill\.(hover|pressed)$/.test(x)),
+    `#4178 oracle: interactive.primary.on-fill sits on fill.rest and not on hover or pressed (sits_on: ${sitsOn.join(', ') || 'none'})`);
+  const selfCheck = ui.slice(ui.indexOf('## The self-check'), ui.indexOf('Then reread the brief against what you built.'));
+  ok(/`interactive\.primary\.on-fill` is\s+promised only on `interactive\.primary\.fill\.rest`/.test(selfCheck) && /#1626/.test(selfCheck),
+    "#4178 prism3-build-ui: the self-check says on-fill is promised only on fill.rest, and cites #1626 for hover and pressed");
+  // #4179: the skill names where a brand's resolved component bindings come from, and both routes exist.
+  const cli = readFileSync(resolve(HERE, 'cli.ts'), 'utf8');
+  ok(cli.includes("a === '--component-specs'") && ui.includes('--component-specs'),
+    '#4179 prism3-build-ui: names `cli.ts --component-specs`, the flag cli.ts accepts, for a brand\'s resolved component bindings');
+  ok((EXPORT_SECTIONS as readonly string[]).includes('componentSpecs') && /`export_theme`[^\n]*\n?[^\n]*`componentSpecs`/.test(ui),
+    "#4179 prism3-build-ui: names MCP `export_theme` with `componentSpecs`, one of export_theme's sections");
+  ok(!/a Button is `radius\.md`\. /.test(ui),
+    '#4179 prism3-build-ui: the radius row no longer states a Button is `radius.md` for every brand');
+  // #4182: §7's table names the hand lists a new def or part kind joins, each read as declared in its gate.
+  const sec7 = bc.slice(bc.indexOf('## 7. Verification'), bc.indexOf('## 8. Versioning'));
+  const declares = (file: string, name: string) => new RegExp(`(?:const|let)\\s+${name}\\b`).test(readFileSync(resolve(HERE, '../..', file), 'utf8'));
+  for (const [file, name] of [['packages/engine/lint-part-union.ts', 'ADMITS'], ['packages/engine/lint-motion-literals.ts', 'RECIPE_DEFS'], ['apps/plugin/src/executor-revision.ts', 'EXECUTOR_REVISION']] as const)
+    ok(declares(file, name) && sec7.includes(`\`${name}\``), `#4182 prism3-build-component: §7 names \`${name}\`, declared in ${file}`);
+  // #4183: the closing checklist counts the baselines §7 lists, and every top-level ComponentDef field is named.
+  const accepted = bc.match(/(\w+) baselines move with a new or changed projection/)?.[1] ?? '';
+  const listed = (bc.slice(bc.indexOf('baselines move with a new or changed projection')).split('Read the diff')[0].match(/`lint-[a-z-]+`/g) ?? []).length;
+  const words: Record<string, number> = { Two: 2, Three: 3, Four: 4 };
+  const item8 = bc.match(/^8\. The def is in every gate list[\s\S]*?(?=^9\. )/m)?.[0] ?? '';
+  ok(words[accepted] === listed && new RegExp(`all ${accepted.toLowerCase()} baselines`).test(item8),
+    `#4183 prism3-build-component: "Before you finish" item 8 accepts all ${listed} baselines §7 lists (§7 says "${accepted}")`);
+  const schemaSrc = readFileSync(resolve(HERE, 'component-schema.ts'), 'utf8');
+  const defSrc = schemaSrc.slice(schemaSrc.indexOf('export type ComponentDef ='));
+  const defFields = [...defSrc.slice(0, defSrc.indexOf('\n};\n')).matchAll(/^  (?:readonly )?([A-Za-z]+)\??:/gm)].map((m) => m[1]);
+  const unnamed = defFields.filter((f) => !new RegExp('`' + f + '\\b').test(bc));
+  ok(defFields.length > 20 && unnamed.length === 0,
+    `#4183 prism3-build-component: names every top-level ComponentDef field (${defFields.length} read; unnamed: ${unnamed.join(', ') || 'none'})`);
+}
 // ---- #3346 (owner Q1 revised A, E1 A, E3 A; 2026-11-03): THE SELECTION MARK, `interactive.<c>.indicator.*` ----
 // A shape that marks a control as selected or on binds its own role, the bold value: the label's ink as RESOLVED,
 // overrides included. Every expectation below is a literal typed from the decision on #3346, never read off the defs,
