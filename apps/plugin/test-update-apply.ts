@@ -7368,6 +7368,14 @@ section('dialog size — a set built with the width-only size axis leaves 16 mem
   const o = res.outcomes[0];
   ok(applyVerdict(res).ok && o?.renamed === 16 && o?.merged?.length === 8 && o.deprecated.length === 0,
     `dialog size/apply: ${applyVerdict(res).headline} (${o?.renamed} renamed, ${o?.merged?.length ?? 0} merged, ${o?.deprecated.length} deprecated${o?.refused ? `; ${o.refused}` : ''})`);
+  // #4091 review S1: the done line confirms the merge, as `marked deprecated` confirms a drop (DRAFT wording).
+  const doneLine = applyVerdict(res).lines.find((l) => l.startsWith(`${o?.set}: `)) ?? '';
+  ok(doneLine.includes('8 merged into another member'), `dialog size/verdict: the set's done line names the 8 merges (${doneLine})`);
+  // A set whose only write was a merge is not idle ("not updated"): its members were removed and its instances moved.
+  const mergeOnly = { ...o!, updated: [], added: 0, renamed: 0, deprecated: [], moved: 0, setMoved: false, skipped: [{ member: 'x', reason: 'y' }] } as typeof o;
+  const mv = applyVerdict({ ...res, outcomes: [mergeOnly] });
+  ok(mv.headline === '✓ 8 merged into another member' && mv.lines.some((l) => l.includes('8 merged into another member')),
+    `dialog size/merge only: a set whose only write was the merge reads as written, never idle (${mv.headline}; ${mv.lines[0]})`);
   const after = membersOf(w.set()).map((m) => String(m.name));
   const keys = after.map((n) => coordKey(n));
   ok(after.length === 16 && !after.some((n) => n.includes('size=')) && new Set(keys).size === 16 && !membersOf(w.set()).some((m) => String(m.description ?? '').startsWith(DEPRECATED_PREFIX)),

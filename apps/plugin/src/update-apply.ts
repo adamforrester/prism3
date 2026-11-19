@@ -995,7 +995,7 @@ const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdateP
   }
   // With no version, no set changed: the library has nothing new to publish, and the description has no title.
   if (!res.version) return;
-  const changed = res.outcomes.filter((o) => !o.refused && (o.updated.length || o.added || o.renamed || o.deprecated.length)).map((o) => o.set);
+  const changed = res.outcomes.filter((o) => !o.refused && (o.updated.length || o.added || o.renamed || o.deprecated.length || o.merged?.length)).map((o) => o.set);
   res.publish = publishDescription({
     title: res.version, sets: changed, from: res.about?.from ?? (preview.about?.state === 'stale' ? preview.about.from.engine : null),
     consumerBreaks: res.outcomes.reduce((k, o) => k + (o.breaking?.filter(breaksConsumers).length ?? 0), 0),   // #3711 (Q-UF1 A): a retired member is not breaking
@@ -1318,7 +1318,7 @@ const haltedLine = (h: NonNullable<ApplyResult['halted']>): string =>
 const coverDid = (c: CoverOutcome | undefined): boolean => !!c && c.did !== 'none';
 
 /** A set the apply entered and wrote nothing to (see `idle` in `applyVerdict`). */
-const isIdle = (o: SetOutcome): boolean => !o.refused && !o.stopped && o.skipped.length > 0 && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length && !o.moved && !o.setMoved;
+const isIdle = (o: SetOutcome): boolean => !o.refused && !o.stopped && o.skipped.length > 0 && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length && !o.merged?.length && !o.moved && !o.setMoved;
 
 /** #3711 (Q-UF3 A): `completed` is true when the run went through every set it was given: none stopped, none refused or
  *  left not updated, and no stop asked for. A run that wrote every set and left some to check is `completed` and not
@@ -1343,6 +1343,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
   const updated = r.outcomes.reduce((k, o) => k + done(o), 0);
   const added = r.outcomes.reduce((k, o) => k + o.added, 0);
   const deprecated = r.outcomes.reduce((k, o) => k + o.deprecated.length, 0);
+  const merged = r.outcomes.reduce((k, o) => k + (o.merged?.length ?? 0), 0);
   const renamed = r.outcomes.reduce((k, o) => k + o.renamed, 0);
   const moved = r.outcomes.reduce((k, o) => k + (o.moved ?? 0), 0);
   const setsMoved = r.outcomes.filter((o) => o.setMoved).length;
@@ -1372,6 +1373,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
       o.added ? `${o.added} added` : '',
       o.renamed ? `${o.renamed} renamed` : '',
       o.deprecated.length ? `${o.deprecated.length} marked deprecated` : '',
+      // #3392 (DRAFT wording for the owner, #4091 review S1): the dry run's "to merge into another member" as done.
+      o.merged?.length ? `${o.merged.length} merged into another member` : '',
       // DRAFT wording for the owner (#2188 Q173), the dry run's "to move" as done.
       o.moved ? `${o.moved} moved` : '',
       // Wording approved, Q246 A (#2542, Q245.2 A), the dry run's "moves to its place on the page" as done.
@@ -1448,6 +1451,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
         : updated ? `✓ updated ${updated} in place`
           : added ? `✓ added ${added}`
             : deprecated ? `✓ ${deprecated} marked deprecated`
+              // DRAFT wording for the owner (#3392, #4091 review S1): a run whose only member write was a merge.
+              : merged ? `✓ ${merged} merged into another member`
               : renamed ? `✓ renamed ${renamed}`
                 : moved ? `✓ moved ${moved}`
                   // DRAFT wording for the owner: sets moved AND pages reordered in one run, the two approved headlines

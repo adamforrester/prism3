@@ -45,7 +45,7 @@ Choose **Update file** again during a run to follow it: "Step 2 of 4 · Theme", 
 
 If a step fails, the dialog opens next time with "The last update stopped at" and the step and its reason. <!-- src: apps/studio/src/state/update-file.ts:436 -->
 
-If the update writes every set and some still differ from the plan, the run goes on to its next step and ends as a warning: it counts the sets written and those still "to check". Activity names what differs in each set to check. A set that stopped or was not updated still ends the run. <!-- src: apps/plugin/src/update-apply.ts:1447 -->
+If the update writes every set and some still differ from the plan, the run goes on to its next step and ends as a warning: it counts the sets written and those still "to check". Activity names what differs in each set to check. A set that stopped or was not updated still ends the run. <!-- src: apps/plugin/src/update-apply.ts:1450 -->
 
 ## The rules every write follows
 
