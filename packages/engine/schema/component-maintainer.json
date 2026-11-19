@@ -2102,7 +2102,7 @@
         {
           "class": "right-to-left",
           "disposition": "UNSUPPORTED",
-          "description": "RTL — the row mirrors (the control moves to the reading-start side through logical properties), and the disc and dot are symmetrical, so this atom has nothing to mirror (brief §9). Figma members are drawn left to right."
+          "description": "RTL — the disc and dot are symmetrical, so this atom has nothing to mirror; the row it sits in mirrors and moves it to the reading-start side (brief §9). Figma members are drawn left to right."
         }
       ],
       "notes": {
@@ -2847,7 +2847,7 @@
         {
           "class": "right-to-left",
           "disposition": "UNSUPPORTED",
-          "description": "right-to-left — the turn stays clockwise and does not mirror (Spectrum's rule, brief §9). Clockwise reads as time moving forward; counter-clockwise reads as undo or going back. Layout mirrors through logical properties, and the rotation is the deliberate exception, so no `[dir=\"rtl\"]` rule flips it."
+          "description": "right-to-left — the turn stays clockwise and does not mirror (Spectrum's rule, brief §9). Clockwise reads as time moving forward; counter-clockwise reads as undo or going back. The page around it mirrors, and the rotation is the deliberate exception, so no `[dir=\"rtl\"]` rule flips it."
         },
         {
           "class": "motion",

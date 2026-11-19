@@ -1284,7 +1284,8 @@
             "content",
             "minWidthMultiplier",
             "labelWeight",
-            "textHover"
+            "textHover",
+            "borderWeight"
           ],
           "description": "The button settings.",
           "properties": {
@@ -1305,6 +1306,10 @@
               "minLength": 1
             },
             "textHover": {
+              "type": "string",
+              "minLength": 1
+            },
+            "borderWeight": {
               "type": "string",
               "minLength": 1
             }

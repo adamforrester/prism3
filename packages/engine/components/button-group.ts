@@ -94,7 +94,7 @@ export const buttonGroup: ComponentDef = {
         note: 'The group: a column holding the items slot. It fills the width it is given.',
       },
       items: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'presentation',
         contentSlot: true,
         // Owner decisions Q363.4 A and Q363.6 A: one to three buttons, the Button family only. The primary Button is the

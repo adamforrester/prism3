@@ -348,7 +348,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
       // recorded in `figmaProperties` below rather than here: presence is not a question, so there is no
       // slot-presence axis, so the grid does not double.
       icon: {
-        kind: 'slot',
+        kind: 'slot', mirror: 'per-glyph',
         size: 'size.{size}.icon',
         nesting: { kind: 'swap' },
         // Maintainer detail, out of the reader caption (#3610): The single icon, and the entire content. Rendered

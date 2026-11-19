@@ -55,6 +55,8 @@ import { ComponentDef } from '../component-schema';
 /** The tone glyph. One part per tone because `glyph` substitutes the axis VALUE verbatim (FieldMessage's header). */
 const toneGlyph = (tone: string, glyph: string, shape: string) => ({
   kind: 'vector' as const,
+  // #3986: no tone glyph mirrors in right-to-left text (the def's right-to-left entry).
+  mirror: 'never' as const,
   glyph,
   size: 'glyph-size',
   presentWhen: { tone: [tone] },
@@ -160,7 +162,7 @@ export const banner: ComponentDef = {
     root: 'container',
     parts: {
       container: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         // The paint and geometry owner, in the schema's sense; the banner takes no focus (FieldMessage's reading).
         role: 'target',
         paintSlots: ['fill', 'border'],

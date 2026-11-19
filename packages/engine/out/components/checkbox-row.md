@@ -41,6 +41,8 @@ Shown on the default member: size `medium`, status `default`.
 
 Use a single Checkbox.Row for one independent opt-in (a consent line, "Remember me"), and a Checkbox.Group to select any number — zero to many — from a bounded set. Use the indeterminate state for a select-all broadcasting partial selection over a table or tree. Compose FieldMessage below exactly as TextField does; the host wires the ids and the `aria-describedby` chain. Past roughly 7–10 options, scanning and vertical space suffer and a filtering multi-select combobox (not built yet) is the better control.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Accept rich content in the label, so a consent line can carry the link it needs

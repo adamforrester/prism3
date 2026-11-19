@@ -235,7 +235,7 @@ export const switchRow: ComponentDef = {
       // and it centers `content` in it, so a single-line row measures 36/44 at comfortable with the slack split
       // above and below.
       row: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'target',
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         minHeight: 'size.{size}.min-height',
@@ -295,7 +295,7 @@ export const switchRow: ComponentDef = {
       // box (#1299's nest-height mechanism; the control is non-square, so the Row pins height only and the
       // control's own variant carries the 2× width).
       control: {
-        kind: 'nest',
+        kind: 'nest', mirror: 'mirrors',
         nests: 'switch-control',
         height: 'size.{size}.control',
         nesting: { kind: 'nest-exposed', variant: { selection: 'off', state: 'rest', status: 'default' }, expose: ['selection', 'state', 'showStateLabel'], follow: ['size', 'status'] },

@@ -199,7 +199,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
         note: 'Flush: the glyph square, with no padding, fill or border; in code, an invisible overlay extends the hit area to at least 44×44px around it. Round: a circle with a light edge, the glyph centered in it.',
       },
       icon: {
-        kind: 'slot',
+        kind: 'slot', mirror: 'per-glyph',
         size: 'size.{size}.icon',
         nesting: { kind: 'swap' },
         note: 'The single icon, and the entire visible control. Rendered aria-hidden; the button owns the accessible name.',

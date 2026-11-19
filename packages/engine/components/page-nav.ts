@@ -79,7 +79,7 @@ export const pageNav: ComponentDef = {
         note: 'The navigation: a row that hugs its items, with no padding, no fill and no baseline.',
       },
       items: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'presentation',
         contentSlot: true,
         // At least two pages and at most six (Q8 A), and only a PageNav.Item.

@@ -265,7 +265,7 @@ export const radioControl: ComponentDef = {
       // `radius.round`, the geometric difference from checkbox and the whole visual distinction between the
       // two controls. `paintSlots: ['border']` only — the ring has no fill in the Prism 2 model (#1348).
       control: {
-        kind: 'box',
+        kind: 'box', mirror: 'never',
         role: 'target',
         paintSlots: ['border'],
         size: 'size.{size}.control',
@@ -351,7 +351,7 @@ export const radioControl: ComponentDef = {
         class: 'right-to-left',
         disposition: 'unsupported',
         description:
-          'RTL — the row mirrors (the control moves to the reading-start side through logical properties), and the disc and dot are symmetrical, so this atom has nothing to mirror (brief §9). Figma members are drawn left to right.',
+          'RTL — the disc and dot are symmetrical, so this atom has nothing to mirror; the row it sits in mirrors and moves it to the reading-start side (brief §9). Figma members are drawn left to right.',
       },
     ],
   },

@@ -254,7 +254,7 @@ export const checkboxControl: ComponentDef = {
       // the `check` artwork draws renders at 0.8 of that, matching Prism 2's `checkFill` (16) sitting at 0.80
       // of its 20px control square (see the header for the measurement and why no smaller size is bound).
       checkGlyph: {
-        kind: 'vector',
+        kind: 'vector', mirror: 'never',
         glyph: 'check',
         size: 'size.{size}.control',
         glyphScale: 0.8,
@@ -269,7 +269,7 @@ export const checkboxControl: ComponentDef = {
       // its `subtractFill` identically to `checkFill` (both 16 in the 20px box), so the dash takes the
       // same 0.80 ratio as the check.
       dashGlyph: {
-        kind: 'vector',
+        kind: 'vector', mirror: 'never',
         glyph: 'minus',
         size: 'size.{size}.control',
         glyphScale: 0.8,
