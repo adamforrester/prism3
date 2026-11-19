@@ -23,13 +23,17 @@ import '@prism3/web-components/password-field';
 // The element stories' controls and docs come from the analyzer's manifest, not from a list written here.
 setCustomElementsManifest(manifest);
 
-/** The ground a story sits on: the theme from the toolbar, and the inverse band for a story whose surface is inverse. */
+/**
+ * The ground a story sits on: the theme and the direction from the toolbar, and the inverse band for a story whose
+ * surface is inverse. The direction is a `dir` on the frame, which every part inherits (#3986 part 2): the components
+ * mirror through logical properties, so nothing else changes.
+ */
 const frame = (story, { globals, parameters }) => {
   const inverse = parameters.surface === 'inverse';
   const style = inverse
     ? 'background: var(--pds3-color-inverse-background-primary); color: var(--pds3-color-inverse-text-primary); padding: var(--pds3-space-400);'
     : 'background: var(--pds3-color-background-primary); color: var(--pds3-color-text-primary); padding: var(--pds3-space-400);';
-  return html`<div data-theme=${globals.theme} data-story-frame style=${style}>${story()}</div>`;
+  return html`<div data-theme=${globals.theme} dir=${globals.dir ?? 'ltr'} data-story-frame style=${style}>${story()}</div>`;
 };
 
 export default {
@@ -38,8 +42,13 @@ export default {
       description: 'Theme',
       toolbar: { title: 'Theme', items: ['light', 'dark'], dynamicTitle: true },
     },
+    // The toolbar's title and item labels: owner decision A, 2026-11-18, on #4059 (#3986).
+    dir: {
+      description: 'Direction',
+      toolbar: { title: 'Direction', items: [{ value: 'ltr', title: 'Left to right' }, { value: 'rtl', title: 'Right to left' }], dynamicTitle: true },
+    },
   },
-  initialGlobals: { theme: 'light' },
+  initialGlobals: { theme: 'light', dir: 'ltr' },
   decorators: [frame],
   parameters: { layout: 'fullscreen' },
 };

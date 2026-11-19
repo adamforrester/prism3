@@ -1415,7 +1415,8 @@ export const GATES: Gate[] = [
     precondition: chromiumPrecondition,
   },
   {
-    // #3408 S5 — axe, the ARIA snapshots of both forms, and the keyboard suite, over storybook-static.
+    // #3408 S5 — axe, the ARIA snapshots of both forms, and the keyboard suite, over storybook-static; each also
+    // right to left, plus the RTL layout check (#3986 part 2).
     id: 'storybook-a11y',
     ciStep: '@prism3/storybook passes axe, the ARIA snapshots and the keyboard suite (#3408 S5)',
     cmd: ws('@prism3/storybook', 'check:a11y'),

@@ -8,6 +8,10 @@
  * records the stories it actually checked, and `main` runs `represented` on every run: each expected story the run was
  * meant to visit and did not is a failure by id, and a case checked in one form only is a failure by name (review of
  * #3971; CLAUDE.md §4, a scope asserts each promised surface is represented, not a count).
+ *
+ * RIGHT TO LEFT (#3986 part 2, Q-RTL1 A): every check runs each story twice, left to right and right to left. `open`
+ * sets the Storybook toolbar's `dir` global, which puts `dir` on the story frame, and refuses a story whose frame did
+ * not take it. `represented` holds both directions: a story checked left to right only fails by id, with "(rtl)".
  */
 import { createRequire } from 'node:module';
 import { createServer, type Server } from 'node:http';
@@ -21,6 +25,13 @@ export const STATIC = resolve(HERE, 'storybook-static');
 export const require = createRequire(import.meta.url);
 
 export type Story = { id: string; component: string; form: 'element' | 'html'; case: string };
+export type Dir = 'ltr' | 'rtl';
+/** The directions every check promises. Written here, not read from the build. */
+export const DIRS: readonly Dir[] = ['ltr', 'rtl'];
+/** How a failure names a story in a direction: the id alone left to right (as before RTL), "(rtl)" right to left. */
+export const at = (s: Story, dir: Dir): string => (dir === 'ltr' ? s.id : `${s.id} (rtl)`);
+/** The directions a run visits for a story: both, unless a mutant's `ltrOnly` leaves one out, as a filter would. */
+export const dirsFor = (s: Story, plant: Plant = {}): Dir[] => DIRS.filter((d) => d === 'ltr' || !plant.ltrOnly?.includes(s.id));
 export const COMPONENTS = ['button', 'text-field', 'password-field'] as const;
 
 /** Every story in the build, parsed from its id: `components-<component>-<form>--<case>`. */
@@ -63,22 +74,23 @@ const FORCED: Record<string, string> = { hover: 'pseudo-hover-all', pressed: 'ps
 /**
  * What a self-test mutant plants: `init` runs before the page's own scripts, `after` once the story has settled,
  * and `css` is added after that. `drop` removes story ids from the suite's enumeration, as a filter slipped into
- * `stories()` would: the represented check must then name each one.
+ * `stories()` would: the represented check must then name each one. `ltrOnly` leaves story ids out of the
+ * right-to-left run.
  */
-export type Plant = { init?: string; after?: string; css?: string; drop?: string[] };
+export type Plant = { init?: string; after?: string; css?: string; drop?: string[]; ltrOnly?: string[] };
 
 /**
- * Opens one story in `theme` and waits until it has settled: the component is in the root, every element has
+ * Opens one story in `theme` and direction `dir` and waits until it has settled: the component is in the root, every element has
  * finished its update, a forced pseudo-state's class is on the root, the password field's Show/Hide button is
  * revealed, a story that presses Show reads "Hide", and finite animations have ended. Throws, with the reason, if it
- * never settles.
+ * never settles, or if the story frame's `data-theme` or `dir` is not the one asked for.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const open = async (page: any, origin: string, s: Story, theme: 'light' | 'dark', plant: Plant = {}): Promise<void> => {
+export const open = async (page: any, origin: string, s: Story, theme: 'light' | 'dark', plant: Plant = {}, dir: Dir = 'ltr'): Promise<void> => {
   const errors: string[] = [];
   page.removeAllListeners('pageerror');
   page.on('pageerror', (e: Error) => errors.push(e.message));
-  await page.goto(`${origin}/iframe.html?id=${s.id}&viewMode=story&globals=theme:${theme}`);
+  await page.goto(`${origin}/iframe.html?id=${s.id}&viewMode=story&globals=theme:${theme};dir:${dir}`);
   await page.waitForSelector('#storybook-root [data-component]', { timeout: 15000 });
   if (FORCED[s.case]) await page.waitForSelector(`#storybook-root.${FORCED[s.case]}`, { timeout: 10000 });
   if (s.component === 'password-field') {
@@ -94,6 +106,8 @@ export const open = async (page: any, origin: string, s: Story, theme: 'light' |
   })()`);
   const theme_ = await page.evaluate(() => (document.querySelector('[data-story-frame]') as HTMLElement | null)?.dataset.theme);
   if (theme_ !== theme) throw new Error(`the story frame's data-theme is ${theme_}, not ${theme}`);
+  const dir_ = await page.evaluate(() => (document.querySelector('[data-story-frame]') as HTMLElement | null)?.dir);
+  if (dir_ !== dir) throw new Error(`the story frame's dir is ${dir_ || '(none)'}, not ${dir}`);
   if (plant.after) await page.evaluate(plant.after);
   if (plant.css) await page.addStyleTag({ content: plant.css });
   if (errors.length) throw new Error(`page error: ${errors.join(' / ')}`);
@@ -119,7 +133,8 @@ export const context = async (browser: any, plant: Plant = {}) => {
 
 /**
  * The represented-story mutants every check carries (review of #3971): one story dropped from the enumeration must be
- * named as not checked, and its case named as checked in one form only. The id and the wording are literals here.
+ * named as not checked, and its case named as checked in one form only; and one story left out of the right-to-left
+ * run must be named as not checked in it (#3986). The id and the wording are literals here.
  */
 export const DROPPED = (label: string) => {
   const plant: Plant = { drop: ['components-text-field-html--error'] };
@@ -127,10 +142,11 @@ export const DROPPED = (label: string) => {
   return [
     { name: 'a story dropped from the suite', plant, only, mustName: new RegExp(`^components-text-field-html--error: not checked by ${label}`) },
     { name: 'a case left in one form only', plant, only, mustName: new RegExp(`^text-field--error: only the element form was checked by ${label}`) },
+    { name: 'a story left out of the right-to-left run', plant: { ltrOnly: ['components-text-field-html--error'] }, only, mustName: new RegExp(`^components-text-field-html--error \\(rtl\\): not checked by ${label}`) },
   ];
 };
 
-/** `checked`: the ids of the stories this run actually checked, read by `represented`. */
+/** `checked`: what this run actually checked, each story as `at(story, dir)`, read by `represented`. */
 export type Result = { failures: string[]; passed: number; notes: string[]; checked: Set<string>; ok: (cond: boolean, what: string) => void };
 export const result = (): Result => {
   const r: Result = { failures: [], passed: 0, notes: [], checked: new Set(), ok: (cond, what) => { if (cond) r.passed++; else r.failures.push(what); } };
@@ -142,17 +158,20 @@ export const expectedStories = (): Story[] => Object.entries(EXPECTED).flatMap((
   forms.flatMap((form) => cases.map((c) => ({ id: `components-${component}-${form}--${c}`, component, form: form as Story['form'], case: c }))));
 
 /**
- * Each expected story the run was meant to visit (`only`) is in `r.checked`, or it fails by id; and a case is never
- * checked in one form only, which would leave the form comparison skipped, or it fails by name.
+ * Each expected story the run was meant to visit (`only`) is in `r.checked` in each of `DIRS`, or it fails by id
+ * (with "(rtl)" right to left); and a case is never checked in one form only, which would leave the form comparison
+ * skipped, or it fails by name.
  */
 export const represented = (r: Result, label: string, only: (s: Story) => boolean): void => {
   const want = expectedStories().filter(only);
-  for (const s of want) if (!r.checked.has(s.id)) r.failures.push(`${s.id}: not checked by ${label}`);
-  const byCase = new Map<string, Story[]>();
-  for (const s of want) byCase.set(`${s.component}--${s.case}`, [...(byCase.get(`${s.component}--${s.case}`) ?? []), s]);
-  for (const [key, ss] of byCase) {
-    const done = ss.filter((s) => r.checked.has(s.id));
-    if (ss.length > 1 && done.length === 1) r.failures.push(`${key}: only the ${done[0].form} form was checked by ${label}`);
+  for (const dir of DIRS) {
+    for (const s of want) if (!r.checked.has(at(s, dir))) r.failures.push(`${at(s, dir)}: not checked by ${label}`);
+    const byCase = new Map<string, Story[]>();
+    for (const s of want) byCase.set(`${s.component}--${s.case}`, [...(byCase.get(`${s.component}--${s.case}`) ?? []), s]);
+    for (const [key, ss] of byCase) {
+      const done = ss.filter((s) => r.checked.has(at(s, dir)));
+      if (ss.length > 1 && done.length === 1) r.failures.push(`${key}${dir === 'ltr' ? '' : ' (rtl)'}: only the ${done[0].form} form was checked by ${label}`);
+    }
   }
 };
 

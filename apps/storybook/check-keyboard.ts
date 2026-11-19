@@ -24,14 +24,20 @@
  *    are focused but draw no outline. (A text input matches `:focus-visible` on a click too, by the HTML spec, so the
  *    field's box is not held to keyboard-only.)
  *
+ * RIGHT TO LEFT (#3986 part 2): all four run again with each story under `dir="rtl"`, against the same expectations.
+ * The password field's def says "Tab order follows the visual order in left-to-right and right-to-left layouts", and
+ * the DOM order doesn't move with direction, so the stops are the same list (#3967's exception included). Failures
+ * right to left carry "(rtl)" after the story id. NO ARROW KEYS: none of the three defs names one (the text field's
+ * is "native text editing"), and this suite held none before RTL, so there is no arrow expectation to hold.
+ *
  * NOT HERE: a form-level focus move on submit to the field or the error summary (#1712 A). It is page behavior, and
  * no story has a form.
  *
- * SELF-TEST: six mutants, each must fail by name.
+ * SELF-TEST: nine mutants, each must fail by name.
  */
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { context, DROPPED, main, open, result, stories, type Plant, type Story, type Result } from './a11y-harness.ts';
+import { at, context, DIRS, dirsFor, DROPPED, main, open, result, stories, type Dir, type Plant, type Story, type Result } from './a11y-harness.ts';
 
 const NAME: Record<string, string> = { pending: 'Saving', 'with-visuals': 'Add item' };
 const LABEL: Record<string, string> = { 'text-field': 'Email address', 'password-field': 'Password' };
@@ -83,35 +89,37 @@ export const run = async (browser: unknown, origin: string, plant: Plant = {}, o
   const page = await ctx.newPage();
   const all = stories(plant).filter(only);
   const orders: Record<string, Partial<Record<Story['form'], string[]>>> = {};
-  const at = (s: Story) => open(page, origin, s, 'light', plant);
-  const find = (c: string, form: string, cs: string) => all.find((s) => s.component === c && s.form === form && s.case === cs);
+  let dir: Dir = 'ltr';
+  const go = (s: Story) => open(page, origin, s, 'light', plant, dir);
+  const find = (c: string, form: string, cs: string) => all.find((s) => s.component === c && s.form === form && s.case === cs && dirsFor(s, plant).includes(dir));
   try {
     // 1. Tab order
-    for (const s of all) {
-      try { await at(s); } catch (e) { r.failures.push(`${s.id}: did not settle: ${(e as Error).message.split('\n')[0]}`); continue; }
+    for (const s of all) for (dir of dirsFor(s, plant)) {
+      const where = at(s, dir);
+      try { await go(s); } catch (e) { r.failures.push(`${where}: did not settle: ${(e as Error).message.split('\n')[0]}`); continue; }
       const got = await tabStops(page);
-      r.checked.add(s.id);
-      (orders[`${s.component}--${s.case}`] ??= {})[s.form] = got;
+      r.checked.add(where);
+      (orders[`${s.component}--${s.case}${dir === 'rtl' ? ' (rtl)' : ''}`] ??= {})[s.form] = got;
       const want = DEF_ORDER(s);
       if (KNOWN.applies(s)) {
         const known = KNOWN.order(s);
         if (show(got) === show(known)) { r.passed++; continue; }
-        if (show(got) === show(want)) r.failures.push(`${s.id}: Tab stops now match the def (${show(want)}), so the known exception ${KNOWN.issue} no longer holds: remove KNOWN`);
-        else r.failures.push(`${s.id}: Tab stops are ${show(got)}; the def wants ${show(want)} (known exception ${KNOWN.issue}: ${show(known)})`);
+        if (show(got) === show(want)) r.failures.push(`${where}: Tab stops now match the def (${show(want)}), so the known exception ${KNOWN.issue} no longer holds: remove KNOWN`);
+        else r.failures.push(`${where}: Tab stops are ${show(got)}; the def wants ${show(want)} (known exception ${KNOWN.issue}: ${show(known)})`);
         continue;
       }
-      r.ok(show(got) === show(want), `${s.id}: Tab stops are ${show(got)}; the def wants ${show(want)}`);
+      r.ok(show(got) === show(want), `${where}: Tab stops are ${show(got)}; the def wants ${show(want)}`);
     }
     for (const [key, f] of Object.entries(orders)) {
       if (f.element && f.html) r.ok(show(f.element) === show(f.html), `${key}: the two forms' Tab stops differ — element ${show(f.element)}, html ${show(f.html)}`);
     }
 
-    for (const form of ['element', 'html'] as const) {
+    for (dir of DIRS) for (const form of ['element', 'html'] as const) {
       // 2. Space and Enter on the button
       for (const cs of ['rest', 'inactive', 'pending']) {
         const s = find('button', form, cs);
         if (!s) continue;
-        await at(s);
+        await go(s);
         await page.evaluate((f: string) => {
           const w = window as unknown as { acts: number };
           w.acts = 0;
@@ -124,29 +132,29 @@ export const run = async (browser: unknown, origin: string, plant: Plant = {}, o
           await page.keyboard.press(key);
           await settle(page);
           const acts = await page.evaluate(() => (window as unknown as { acts: number }).acts);
-          if (cs === 'rest') r.ok(acts === n, `${s.id}: ${key} on the button ran the action ${acts} times in all, want ${n}`);
-          else if (form === 'element') r.ok(acts === 0, `${s.id}: ${key} on a ${cs} button ran the action ${acts} times; the def suppresses it`);
-          r.ok(await focused(page) === name, `${s.id}: after ${key}, focus is on ${await focused(page)}, not the ${name}`);
+          if (cs === 'rest') r.ok(acts === n, `${at(s, dir)}: ${key} on the button ran the action ${acts} times in all, want ${n}`);
+          else if (form === 'element') r.ok(acts === 0, `${at(s, dir)}: ${key} on a ${cs} button ran the action ${acts} times; the def suppresses it`);
+          r.ok(await focused(page) === name, `${at(s, dir)}: after ${key}, focus is on ${await focused(page)}, not the ${name}`);
         }
       }
 
       // 3. Show/Hide by keyboard
       const pw = find('password-field', form, 'rest');
       if (pw) {
-        await at(pw);
+        await go(pw);
         let reached = false;
         for (let i = 0; i < 4 && !reached; i++) { await page.keyboard.press('Tab'); reached = (await focused(page)) === 'button "Show password"'; }
-        r.ok(reached, `${pw.id}: Tab never reached the Show/Hide button`);
+        r.ok(reached, `${at(pw, dir)}: Tab never reached the Show/Hide button`);
         if (reached) {
           const type = () => page.evaluate(() => (document.querySelector('#storybook-root input') as HTMLInputElement).type);
           await page.keyboard.press('Space');
           await settle(page);
-          r.ok(await type() === 'text', `${pw.id}: Space on Show/Hide left the input type ${await type()}, want text (shown)`);
-          r.ok(await focused(page) === 'button "Hide password"', `${pw.id}: after Space, focus left the Show/Hide button or its name is not "Hide password" (${await focused(page)})`);
+          r.ok(await type() === 'text', `${at(pw, dir)}: Space on Show/Hide left the input type ${await type()}, want text (shown)`);
+          r.ok(await focused(page) === 'button "Hide password"', `${at(pw, dir)}: after Space, focus left the Show/Hide button or its name is not "Hide password" (${await focused(page)})`);
           await page.keyboard.press('Enter');
           await settle(page);
-          r.ok(await type() === 'password', `${pw.id}: Enter on Show/Hide left the input type ${await type()}, want password (hidden)`);
-          r.ok(await focused(page) === 'button "Show password"', `${pw.id}: after Enter, focus left the Show/Hide button or its name is not "Show password" (${await focused(page)})`);
+          r.ok(await type() === 'password', `${at(pw, dir)}: Enter on Show/Hide left the input type ${await type()}, want password (hidden)`);
+          r.ok(await focused(page) === 'button "Show password"', `${at(pw, dir)}: after Enter, focus left the Show/Hide button or its name is not "Show password" (${await focused(page)})`);
         }
       }
 
@@ -158,26 +166,26 @@ export const run = async (browser: unknown, origin: string, plant: Plant = {}, o
       for (const [c, sel, label] of [['button', '#storybook-root .p3-button', 'the button'], ['password-field', '#storybook-root .p3-password-field__toggle', 'the Show/Hide button']] as const) {
         const s = find(c, form, 'rest');
         if (!s) continue;
-        await at(s);
+        await go(s);
         let k = await ring();
         for (let i = 0; i < 3; i++) {
           await page.keyboard.press('Tab');
           if (await page.evaluate((q: string) => document.activeElement === document.querySelector(q), sel)) break;
         }
         k = await ring();
-        r.ok(k.inRoot && k.fv && k.outline !== 'none', `${s.id}: ${label} reached by Tab should match :focus-visible and draw its outline (focus-visible ${k.fv}, outline ${k.outline})`);
-        await at(s);
+        r.ok(k.inRoot && k.fv && k.outline !== 'none', `${at(s, dir)}: ${label} reached by Tab should match :focus-visible and draw its outline (focus-visible ${k.fv}, outline ${k.outline})`);
+        await go(s);
         await page.click(sel);
         const m = await ring();
-        r.ok(m.inRoot, `${s.id}: a mouse click did not focus ${label}`);
-        r.ok(!m.fv && m.outline === 'none', `${s.id}: a mouse click drew the focus ring on ${label} (focus-visible ${m.fv}, outline ${m.outline}); it is for keyboard focus only`);
+        r.ok(m.inRoot, `${at(s, dir)}: a mouse click did not focus ${label}`);
+        r.ok(!m.fv && m.outline === 'none', `${at(s, dir)}: a mouse click drew the focus ring on ${label} (focus-visible ${m.fv}, outline ${m.outline}); it is for keyboard focus only`);
       }
       const tf = find('text-field', form, 'rest');
       if (tf) {
-        await at(tf);
+        await go(tf);
         await page.keyboard.press('Tab');
         const edge = await page.evaluate(() => getComputedStyle(document.querySelector('#storybook-root .p3-text-field__control')!).outlineStyle);
-        r.ok(edge !== 'none', `${tf.id}: the field reached by Tab draws no focus edge on its box (outline ${edge})`);
+        r.ok(edge !== 'none', `${at(tf, dir)}: the field reached by Tab draws no focus edge on its box (outline ${edge})`);
       }
     }
   } finally {
@@ -227,8 +235,26 @@ const MUTANTS = [
     only: (s: Story) => s.component === 'button' && s.case === 'disabled',
     mustName: /components-button-(element|html)--disabled: Tab stops are button "Save changes"; the def wants \(none\)/,
   },
+  {
+    name: 'the Show/Hide button taken out of the tab order right to left only',
+    plant: { after: 'if (document.querySelector("[data-story-frame]")?.dir === "rtl") document.querySelectorAll("#storybook-root .p3-password-field__toggle").forEach((b) => b.setAttribute("tabindex", "-1"))' },
+    only: rest('password-field'),
+    mustName: /components-password-field-(element|html)--rest \(rtl\): Tab stops are textbox "Password"; the def wants/,
+  },
+  {
+    name: 'Space swallowed on every button right to left only',
+    plant: { init: 'for (const t of ["keydown", "keyup"]) document.addEventListener(t, (e) => { if (e.key === " " && e.target instanceof Element && e.target.closest("[dir=rtl] button")) e.preventDefault(); }, true);' },
+    only: (s: Story) => rest('button')(s) || rest('password-field')(s),
+    mustName: /components-button-(element|html)--rest \(rtl\): Space on the button ran the action 0 times in all, want 1/,
+  },
+  {
+    name: 'the focus ring dropped right to left only',
+    plant: { css: '#storybook-root [dir="rtl"] .p3-button:focus-visible { outline: none !important; }' },
+    only: rest('button'),
+    mustName: /components-button-(element|html)--rest \(rtl\): the button reached by Tab should match :focus-visible and draw its outline/,
+  },
 ];
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  await main('keyboard', 'Tab order (every story, both forms agreeing), Space and Enter on the button, the Show/Hide toggle by keyboard, and focus-visible on keyboard only.', run as never, [...MUTANTS, ...DROPPED('keyboard')]);
+  await main('keyboard', 'Tab order (every story, both forms agreeing), Space and Enter on the button, the Show/Hide toggle by keyboard, and focus-visible on keyboard only, left to right and right to left.', run as never, [...MUTANTS, ...DROPPED('keyboard')]);
 }

@@ -1956,3 +1956,93 @@ registers.
 - **The `hc-light` and `hc-dark` themes.** The toolbar shows light and dark only.
 - **Other browsers and real assistive tech.** Every check is Chromium. No WebKit or Firefox runs here, and no screen
   reader pass (VoiceOver, NVDA).
+
+## S5 right to left — every story under `dir="rtl"`, in both forms (#3986 part 2)
+
+Owner decision Q-RTL1 A on #3986: part 2 is RTL tests in the POC. This adds them to S5's suites for the button,
+the text field and the password field, in both forms.
+
+### Where the expectations come from
+
+**#4030's structured `mirror` field is not on `poc/arm-1`.** It's an open PR against `main`. So every expectation is
+written by hand from the defs' right-to-left prose, as `check-aria.ts`'s `HAS` rows are:
+- **Button** (`codeOnly` `right-to-left`): logical properties mirror the whole row, so the leading and trailing
+  visuals swap sides. Only directional glyphs flip, per icon, never a blanket `scaleX(-1)` on the slot.
+- **Password field** (`codeOnly` `right-to-left`): the label row mirrors, so the button sits at the row's left end.
+  Its keyboard line says Tab follows the visual order in both directions.
+- **Text field, field label, field message:** none. #4005 already files that. Their rows come from #4005's audit:
+  the leading and trailing icons swap edges, the required indicator follows the label at the inline end, and the
+  status glyph leads the caption at the inline start.
+
+### What was built
+
+- **A direction toolbar** in `.storybook/preview.js` (the issue's "Storybook gets an RTL toggle"): a `dir` global
+  that puts `dir` on the story frame. Every part inherits it. Its wording is owner decision A (Decisions, below).
+- **`a11y-harness.ts`:** `open` takes a direction and refuses a frame whose `dir` isn't the one asked for.
+  `represented` now holds both directions, so a story left out of the right-to-left run fails by id, with "(rtl)".
+  Every check carries a third represented mutant for it.
+- **`check-axe.ts`:** every story in light and dark, in both directions (400 axe runs).
+- **`check-aria.ts`:** every story in both directions. The right-to-left tree must equal the left-to-right tree of
+  the same form, and also pass the form comparison, the accepted snapshot and `HAS` on its own. `--accept` writes
+  the left-to-right tree only, and refuses while a right-to-left one differs.
+- **`check-keyboard.ts`:** all four sections run again right to left, against the same expectations. The Tab
+  stops are the same list, #3967's exception included.
+- **`check-rtl.ts`** (new), the layout, measured from the boxes in Chromium:
+  1. the component computes `direction` equal to the story's;
+  2. each start/end pair swaps sides: the button's and the fields' leading and trailing visuals, the required
+     indicator, the status glyph, and the label cell before the Show/Hide button. A part that should be drawn and
+     isn't fails too;
+  3. the Show/Hide button sits at the label row's right end left to right, its left end right to left;
+  4. no button slot is transformed, and the add glyph is never flipped.
+
+**No arrow keys.** None of the three defs names one (the text field's line is "native text editing"), and the
+suite held none before. So "the arrow expectations still hold" has nothing to hold.
+
+### Found, filed, held as named exceptions
+
+- **#4052: directional glyphs don't flip.** The `WithVisuals` button's right arrow stays pointing right under
+  `dir="rtl"`, in both forms. `@prism3/css`'s README already lists per-icon `autoMirror` as "left for S4 or later",
+  but no issue tracked it.
+- **#4051: the text field's input has no `dir="auto"`,** which its def's aria line asks for. Neither form writes it.
+
+Each is held as `KNOWN` in `check-rtl.ts`: the check asserts today's state and fails by name once it changes, so a
+fix means deleting the exception.
+
+### What was checked, and how
+
+All four checks pass, with every mutant failing by name:
+
+| Check | Checks | Mutants (new) | Time |
+|---|---|---|---|
+| axe | 800 | 8 (2) | 3m40s |
+| aria | 1,522 | 10 (3) | 46s |
+| keyboard | 388 | 12 (4) | 1m18s |
+| rtl | 438 | 15 (15) | 46s |
+
+`check:a11y` now takes about 6.5 minutes locally, inside the CI step's 15-minute limit.
+
+**Two hand mutations on disk,** each after a `wip:` commit and restored with `git show`:
+- `preview.js` ignoring the toolbar (`dir=ltr`): `check-rtl` fails 200 checks, each right-to-left story by name
+  ("did not settle: the story frame's dir is ltr, not rtl") and then as not checked.
+- `password-field.css` with `.p3-password-field__label-row { direction: ltr; }`: `check-rtl` fails 70 checks, each
+  password field story by name ("the Show/Hide button is not at the label row's left end").
+
+### Surprises and learnings
+
+- Every part already mirrors. The POC CSS uses logical properties and flex rows throughout, so nothing failed on
+  layout. The two gaps are the two things logical properties can't do: flip a glyph, and set an input's own
+  direction.
+- The ARIA tree is identical in both directions, as expected: `dir` moves boxes, not DOM order.
+
+### Decisions
+
+**The direction toolbar's wording: owner decision A (2026-11-18, on #4059).** Title "Direction", items "Left to
+right" and "Right to left", approved as built. (B was "LTR" and "RTL".)
+
+### S5: still missing, after this
+
+Removed from the list: **right-to-left Tab order.** Added: #4051 and #4052, held as exceptions. Still open:
+- the snapshots are Chromium's only;
+- RTL text (an Arabic or Hebrew label) isn't in any story, so bidi inside the label isn't exercised;
+- the "visual snapshots" the issue names. The layout is measured by boxes, not compared as images. Filed as #4079,
+  with the owner's choice between building image snapshots and accepting box measurement.
