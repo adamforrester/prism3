@@ -14,7 +14,8 @@
  *
  * BY-NAME MUTATIONS: make `writeRecord` write `setPluginData` only → `#4154: the offline build reads the doc settings
  * the online build wrote` fails; drop the private fallback from `readRecord` → `#4154: a file saved before keeps its
- * doc settings` fails; put `figma.root.getPluginData(FILE_ID_KEY)` back in main.ts → the register arm names main.ts.
+ * doc settings` fails; set `RECORD_NS` to any other value → `#4154: the record is kept in shared data under the prism3
+ * namespace` fails; put `figma.root.getPluginData(FILE_ID_KEY)` back in main.ts → the register arm names main.ts.
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -53,6 +54,9 @@ console.log('Plugin records both builds read (#4154)\n');
   writeDocSettings(file.as(OFFLINE), { panels: true, cover: false, styleGuide: null });
   const on = readDocSettings(file.as(ONLINE));
   ok(on.cover === false && on.panels === true, `#4154: and the online build reads the offline build's change (${JSON.stringify(on)})`);
+  // The namespace is pinned here, not read from file-record.ts: a record under any other namespace is one the
+  // ownership marks and the brand input (provenance.ts, persist-figma.ts) do not share.
+  ok(file.shared.has(`prism3/${DOC_SETTINGS_KEY}`), `#4154: the record is kept in shared data under the prism3 namespace (keys: ${[...file.shared.keys()].join(', ')})`);
 }
 {
   // A file saved before #4154: the online build kept the record privately.
@@ -94,5 +98,7 @@ const PRIVATE_DATA: Record<string, string> = {
   ok(stale.length === 0, `#4154: every file in the register still has a private read or write (stale: ${stale.join(', ') || 'none'})`);
 }
 
-console.log(`\nfile records: ${pass} passed, ${fails.length} failed`);
-if (fails.length) { fails.forEach((f) => console.log(`  ❌ ${f}`)); process.exitCode = 1; }
+// The count goes last, in the form run-suites.ts reads, so the runner can hold this suite to its floor.
+fails.forEach((f) => console.log(`  ❌ ${f}`));
+console.log(fails.length ? `\n❌ ${fails.length} FAILED — ${pass + fails.length} assertions executed` : `\n✅ ALL PASS — ${pass} assertions executed`);
+if (fails.length) process.exitCode = 1;
