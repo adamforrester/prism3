@@ -724,7 +724,7 @@ export const prunePreviewSummary = (p: PrunePlan): string => {
   }
   const one = count === 1;
   return (
-    `${parts(styles, modes, vars, p.collections.length)} the brand no longer ${one ? 'uses' : 'use'}, all within this theme's namespace. ` +
+    `${parts(styles, modes, vars, p.collections.length)} the brand no longer uses, all within this theme's namespace. ` +
     `Deleting ${one ? 'it' : 'them'} unbinds any layer that uses ${one ? 'it' : 'them'}; nothing outside the namespace is touched.` +
     varNote(p) +
     modeNote(p) +

@@ -30,5 +30,7 @@ dropped those lines to "a reason Studio doesn't recognize" until the matchers mo
 - The style-guide layer names (`Style guides — …` vs `Style guide — …`, #4185 D) stay: the plugin finds its own
   tables by those names, so a rename needs a migration of files already drawn.
 - #4185 B (engine-internal miss lines to the dev log) is its own PR.
+- #4191 T5 ("See Components" to "Set it in Components") is not here: `test-chrome.mjs` pins "See Components" as
+  approved copy (2026-10-04), so it goes to the Studio lane (#4193) with the owner's read.
 
 `docs/voice-standard.md` §7 lists the names; `29-tone-of-voice.md` §6b holds the reasoning.

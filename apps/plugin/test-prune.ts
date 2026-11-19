@@ -338,6 +338,9 @@ ok(prunePlanCount(plan) === 9,
 const preview = prunePreviewSummary(plan);
 ok(/style/.test(preview) && /mode/.test(preview) && /variable/.test(preview) && /collection/.test(preview) && /namespace/.test(preview),
   'prunePreviewSummary names each kind and the namespace scope');
+// #4317 review: the verb's subject is "the brand", always singular, whatever the item count (9 here).
+ok(/\bthe brand no longer uses, /.test(preview) && !/\bno longer use, /.test(preview),
+  `prunePreviewSummary: "the brand no longer uses" for many items too — the verb agrees with the brand, not the count ("${preview.slice(0, preview.indexOf(' all within'))}")`);
 ok(/layout → sm, lg/.test(preview),
   `prunePreviewSummary NAMES the modes per collection — the one arm whose items are spelled out, because a mode carries no provenance ("${preview.slice(preview.indexOf('The modes'))}")`);
 
