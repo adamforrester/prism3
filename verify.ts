@@ -913,6 +913,21 @@ export const GATES: Gate[] = [
     precondition: chromiumPrecondition,
   },
   {
+    // #2997 gate 1 — renders the shadcn projection itself and measures it in Chromium (hence the precondition and
+    // the studio job, where CI installs the browser). Reads no bundle, so no `after`.
+    id: 'lint-shadcn-contrast',
+    ciStep: 'The shadcn theme clears its contrast floors in Chromium (#2997)',
+    cmd: engine('lint-shadcn-contrast.ts'),
+    precondition: chromiumPrecondition,
+  },
+  {
+    // #2997 gate 2 — the same render, each oklch() parsed by Chromium back to the emitted color.
+    id: 'lint-shadcn-roundtrip',
+    ciStep: 'Every shadcn oklch() is the emitted color, through Chromium (#2997)',
+    cmd: engine('lint-shadcn-roundtrip.ts'),
+    precondition: chromiumPrecondition,
+  },
+  {
     // The FOURTH component-tier suite, and the only one whose ACTUAL comes from the HOST rather than
     // from the plan. `plugin-test` drives the executor and asserts what the executor reports;
     // this reads the built tree back and diffs it against the plan, which is the direction that

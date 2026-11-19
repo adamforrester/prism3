@@ -1380,6 +1380,12 @@ npx tsx packages/engine/lint-shadcn-contract.ts     # the shadcn map follows the
                                                     # each anchored variable maps to the role Button, Text
                                                     # Field, Select or Focus Ring binds; every row anchored
                                                     # or declared unanchored; every mapped role guaranteed.
+npx tsx packages/engine/lint-shadcn-contrast.ts     # the shadcn theme clears its contrast floors (#2997),
+                                                    # measured in Chromium on the emitted CSS: a typed pair
+                                                    # list, each floor the higher of WCAG and the engine's
+                                                    # own min. Needs Chromium (CI: the studio job).
+npx tsx packages/engine/lint-shadcn-roundtrip.ts    # every shadcn oklch() lands on its emitted 8-bit color
+                                                    # (#2997), parsed by Chromium, against the full tree.
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR but one
