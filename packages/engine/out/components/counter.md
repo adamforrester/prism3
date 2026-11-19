@@ -44,6 +44,8 @@ Shown on the default member: appearance `outline`, size `medium`.
 
 Use for a small whole-number quantity that usually changes by one, such as the item count on a product card or in a bag. Set min and max where they apply, and say why a limit applies in the message. Use ghost where the counter stands on its own beside product text; use outline where it should read as a field. For a number the user types, such as a price or a measurement, use a number input.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Set max when stock or a per-order limit exists, and state the limit in the message

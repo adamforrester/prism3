@@ -156,6 +156,7 @@ apps/plugin/test-rename-parity.ts #1024
 apps/plugin/test-rename-parity.ts #3857
 apps/plugin/test-report-redaction.ts #3697
 apps/plugin/test-report-redaction.ts #3702
+apps/plugin/test-report-redaction.ts #4205
 apps/plugin/test-roundtrip.ts #1318
 apps/plugin/test-roundtrip.ts #1331
 apps/plugin/test-roundtrip.ts #1332
@@ -757,6 +758,7 @@ apps/studio/test-report.ts #3561
 apps/studio/test-report.ts #3697
 apps/studio/test-report.ts #3702
 apps/studio/test-report.ts #3883
+apps/studio/test-report.ts #4257
 apps/studio/test-run-ended.ts #533
 apps/studio/test-run-time.ts #3471
 apps/studio/test-shape-input.ts #2053
@@ -872,6 +874,7 @@ packages/engine/test.ts #103
 packages/engine/test.ts #1035
 packages/engine/test.ts #1039
 packages/engine/test.ts #1040
+packages/engine/test.ts #1043
 packages/engine/test.ts #1053
 packages/engine/test.ts #1084
 packages/engine/test.ts #1087
@@ -1026,6 +1029,7 @@ packages/engine/test.ts #1763
 packages/engine/test.ts #1764
 packages/engine/test.ts #1768
 packages/engine/test.ts #1773
+packages/engine/test.ts #1775
 packages/engine/test.ts #1779
 packages/engine/test.ts #1781
 packages/engine/test.ts #1782
@@ -1037,6 +1041,7 @@ packages/engine/test.ts #1812
 packages/engine/test.ts #1814
 packages/engine/test.ts #1816
 packages/engine/test.ts #1852
+packages/engine/test.ts #1863
 packages/engine/test.ts #1867
 packages/engine/test.ts #1868
 packages/engine/test.ts #1880
@@ -1263,7 +1268,9 @@ packages/engine/test.ts #388
 packages/engine/test.ts #390
 packages/engine/test.ts #391
 packages/engine/test.ts #3949
+packages/engine/test.ts #3984
 packages/engine/test.ts #3985
+packages/engine/test.ts #3986
 packages/engine/test.ts #4008
 packages/engine/test.ts #4019
 packages/engine/test.ts #4045
