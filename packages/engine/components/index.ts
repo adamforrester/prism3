@@ -89,6 +89,7 @@ import { passwordField } from './password-field';
 import { searchField } from './search-field';
 import { cardNumberField } from './card-number-field';
 import { toast } from './toast';
+import { tooltip } from './tooltip';
 import { breadcrumbSeparator } from './breadcrumb-separator';
 import { breadcrumbItem } from './breadcrumb-item';
 import { breadcrumbs } from './breadcrumbs';
@@ -103,7 +104,7 @@ import { progress } from './progress';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, providerLogo, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, cardNumberField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, progress, banner, paginationItem, pagination, codeInputCell, codeInput, sliderThumb, slider, walletButton, signInButton, pageNavItem, pageNav };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, providerLogo, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, cardNumberField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, progress, banner, paginationItem, pagination, codeInputCell, codeInput, sliderThumb, slider, walletButton, signInButton, pageNavItem, pageNav, tooltip };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -277,4 +278,7 @@ export const componentDefs: readonly ComponentDef[] = [
   // The item nests `link`, above; the row nests the item in its items slot, so it comes after it.
   pageNavItem,
   pageNav,
+  // `tooltip` (#4009, owner Q-FL2) — a short label or description on the inverse surface, shown on hover and keyboard
+  // focus. It nests nothing; its arrow is a component-owned glyph.
+  tooltip,
 ];

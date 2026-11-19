@@ -2636,14 +2636,14 @@
       ],
       "description": "Disabled control border — muted neutral",
       "value": {
-        "r": 0.5137255191802979,
-        "g": 0.5058823823928833,
-        "b": 0.4941176474094391,
+        "r": 0.2235294133424759,
+        "g": 0.21568627655506134,
+        "b": 0.2078431397676468,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "hds/core/palette/neutral/450"
+        "name": "hds/core/palette/neutral/750"
       }
     },
     {
@@ -5316,14 +5316,14 @@
       ],
       "description": "Disabled control border — muted neutral",
       "value": {
-        "r": 0.46666666865348816,
-        "g": 0.4588235318660736,
-        "b": 0.4470588266849518,
+        "r": 0.7098039388656616,
+        "g": 0.7019608020782471,
+        "b": 0.6980392336845398,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "hds/core/palette/neutral/500"
+        "name": "hds/core/palette/neutral/250"
       }
     },
     {

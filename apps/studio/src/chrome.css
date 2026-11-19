@@ -1395,9 +1395,6 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 /* QA-B5, QA-B18: every select and step-picker button in the levers pane is one control: the field's height (40),
    12px text set from the left, and the caret at the far right (the select's sits where the button's does). */
 .p3-levers :is(.p3-select, .p3-btn.p3-pick) { min-height: var(--p3-ctl-h); font-size: var(--p3-fs-12); text-align: left; }
-/* #3938 (owner decision A, 2026-11-18): the token list's dropdowns take the height of the Alias path segmented control
-   beside them, the convention the levers above use, so `.tok-ctrls`' bottom-aligned captions sit on one line. */
-.tok-ctrls .p3-select { min-height: var(--p3-ctl-h); }
 /* A read-only row's value in place of the picker: the scrim's primitive and opacity (S4c). */
 .p3-fill-read { color: var(--p3-text-2); font-size: var(--p3-fs-14); white-space: nowrap; }
 .p3-pick-ratio { display: inline-flex; align-items: center; gap: var(--p3-space-025); color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }

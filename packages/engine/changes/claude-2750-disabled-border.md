@@ -1,4 +1,0 @@
----
-engine: minor
----
-`color.disabled.border` and `color.inverse.disabled.border` now clear the disabled levers' contrast floor (#2750: the owner decision lettered A, whose text is option B's): 4.5:1 under `disabledStrategy: full`, the `disabledMin` dial (3–4.5) under `reduced`, and at least 4.5:1 in high contrast, against the same worst-case surface as the disabled inks. They were a fixed muted neutral rated `min: 0`, so no lever moved them and a disabled outlined control measured 1.5–1.8:1. The border no longer matches `disabled.fill`. Every control that binds the role moves (Button, IconButton, Tag, text field, select, textarea, the selection controls, Counter, Code input, Slider, Tab's disabled bar). Switch's disabled glyph now binds `color.disabled.fill`, the track value it was drawn to repeat, so it looks the same as before. No token names change.

@@ -5281,6 +5281,81 @@
       "sizes": []
     },
     {
+      "id": "tooltip",
+      "name": "Tooltip",
+      "category": "overlay",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "placement": [
+          "top",
+          "bottom",
+          "start",
+          "end"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "placement",
+          "default": "top",
+          "values": [
+            "top",
+            "bottom",
+            "start",
+            "end"
+          ]
+        },
+        {
+          "name": "align",
+          "default": "center",
+          "values": [
+            "start",
+            "center",
+            "end"
+          ]
+        },
+        {
+          "name": "arrow",
+          "default": true
+        },
+        {
+          "name": "kind",
+          "default": "description",
+          "values": [
+            "description",
+            "label"
+          ]
+        },
+        {
+          "name": "delay"
+        },
+        {
+          "name": "closeDelay"
+        },
+        {
+          "name": "open"
+        },
+        {
+          "name": "defaultOpen",
+          "default": false
+        },
+        {
+          "name": "onOpenChange"
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "children"
+        }
+      ],
+      "sizes": []
+    },
+    {
       "id": "veil",
       "name": "Veil",
       "category": "foundations",
@@ -6061,6 +6136,17 @@
         "components": [
           "dialog"
         ]
+      },
+      {
+        "values": [
+          "bottom",
+          "end",
+          "start",
+          "top"
+        ],
+        "components": [
+          "tooltip"
+        ]
       }
     ],
     "provider": [
@@ -6602,6 +6688,17 @@
         ]
       }
     ],
+    "align": [
+      {
+        "id": "tooltip",
+        "default": "center",
+        "values": [
+          "start",
+          "center",
+          "end"
+        ]
+      }
+    ],
     "alignment": [
       {
         "id": "tabs",
@@ -6736,6 +6833,12 @@
         "id": "switch-control"
       }
     ],
+    "arrow": [
+      {
+        "id": "tooltip",
+        "default": true
+      }
+    ],
     "asChild": [
       {
         "id": "link",
@@ -6829,12 +6932,20 @@
       },
       {
         "id": "list-item"
+      },
+      {
+        "id": "tooltip"
       }
     ],
     "clearable": [
       {
         "id": "text-field",
         "default": false
+      }
+    ],
+    "closeDelay": [
+      {
+        "id": "tooltip"
       }
     ],
     "collapse": [
@@ -6891,6 +7002,12 @@
         "default": false
       }
     ],
+    "defaultOpen": [
+      {
+        "id": "tooltip",
+        "default": false
+      }
+    ],
     "defaultPage": [
       {
         "id": "pagination",
@@ -6939,6 +7056,9 @@
       {
         "id": "progress",
         "default": 400
+      },
+      {
+        "id": "tooltip"
       }
     ],
     "description": [
@@ -7104,6 +7224,10 @@
       },
       {
         "id": "textarea",
+        "default": false
+      },
+      {
+        "id": "tooltip",
         "default": false
       }
     ],
@@ -7655,6 +7779,14 @@
           "current",
           "overflow"
         ]
+      },
+      {
+        "id": "tooltip",
+        "default": "description",
+        "values": [
+          "description",
+          "label"
+        ]
       }
     ],
     "label": [
@@ -7768,6 +7900,9 @@
       },
       {
         "id": "textarea"
+      },
+      {
+        "id": "tooltip"
       }
     ],
     "labelPosition": [
@@ -8231,6 +8366,9 @@
     "onOpenChange": [
       {
         "id": "dialog"
+      },
+      {
+        "id": "tooltip"
       }
     ],
     "onPageChange": [
@@ -8247,6 +8385,9 @@
       {
         "id": "dialog",
         "default": false
+      },
+      {
+        "id": "tooltip"
       }
     ],
     "options": [
@@ -8310,6 +8451,16 @@
           "center",
           "bottom",
           "full",
+          "end"
+        ]
+      },
+      {
+        "id": "tooltip",
+        "default": "top",
+        "values": [
+          "top",
+          "bottom",
+          "start",
           "end"
         ]
       }
@@ -10195,6 +10346,15 @@
         "divider"
       ],
       "detail": "the inset axis takes 2 value sets — [default, flush] in button, button-destructive, button-neutral; [inset, middle-inset, none] in divider"
+    },
+    {
+      "kind": "axis values",
+      "subject": "axis placement",
+      "components": [
+        "dialog",
+        "tooltip"
+      ],
+      "detail": "the placement axis takes 2 value sets — [bottom, center, end, full] in dialog; [bottom, end, start, top] in tooltip"
     },
     {
       "kind": "axis values",

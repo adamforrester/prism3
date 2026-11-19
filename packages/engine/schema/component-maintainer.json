@@ -2469,7 +2469,7 @@
           "THE STATE GLYPH IS ONE FIGMA BOOLEAN (`state icon`, default on) OVER TWO SELECTION-GATED PARTS, not a variant axis (owner, 2026-09-28). A `showStateLabel` boolean VARIANT axis would add a name to the closed `VARIANT_AXES` family vocabulary for one def AND double the member count (24 → 48). The node-visibility boolean does neither: the check and the X are each built at their own `selection` value and each carries the property, so a designer turns the glyph off once, in the panel, and the set stays at 24. The cost is a narrowing of #1331's refusal — a boolean may now target parts that are `presentWhen`-gated, but only when they share one axis and cover all its values, so every member still has a node to toggle.",
           "THE OFF TRACK IS A LIGHT SURFACE STEP (`background.tertiary`) WITH A DARK THUMB, not the neutral button fill (owner, 2026-09-28). The neutral button fill is the one the `neutralEmphasis` lever darkens, and under `strong` emphasis on a brand-neutral action palette it made the off and on tracks both near-black (NB master theme: #2D2C2C off, #34383D on). A surface step no interactive lever moves keeps off light in every brand; the dark thumb in the border's ink is Material 3's unselected shape and Prism 2's. The cost: hover and pressed do not step the off fill (no darker surface step exists, and the overlay wash replaces a fill rather than layering on it).",
           "OFF HOVER AND PRESSED SHOW NO VISIBLE CHANGE, like checkbox and radio at unchecked (owner-decided, 2026-09-28). The off fill holds its rest value — the tier has no surface step darker than `background.tertiary`, and the interactive overlay wash REPLACES a box's fill (one `fills` array) rather than layering on it, so a 10% wash over the page would read lighter than `tertiary`. The `off.border.hover`/`.pressed` keys stay bound and resolve to the rest border in this tier. The rejected alternative was a new darker surface role, a token mint and a CONTRACT MINOR.",
-          "THE DISABLED GLYPH TAKES `disabled.fill`, not the thumb's `disabled.on-fill` (#1764, owner-directed 2026-09-28; `disabled.border` until #2750). Both keys bound `disabled.on-fill` before, so the glyph drew in its own thumb's color and could not be seen — and the glyph now defaults on. `disabled.fill` is the disabled track, so the glyph repeats the rest-state inversion, 3.04–5.49:1 against the thumb. `disabled.text` was measured and rejected at 1.21–1.79:1."
+          "THE DISABLED GLYPH TAKES `disabled.border`, not the thumb's `disabled.on-fill` (#1764, owner-directed 2026-09-28). Both keys bound `disabled.on-fill` before, so the glyph drew in its own thumb's color and could not be seen — and the glyph now defaults on. `disabled.border` equals the disabled track in every corpus mode, so the glyph repeats the rest-state inversion, 3.04–5.49:1 against the thumb. `disabled.text` was measured and rejected at 1.21–1.79:1."
         ],
         "unverified": [
           "THE GLYPH IN THE THUMB IS UNVERIFIED ON A REAL HOST for legibility at its smallest size. The thumb is `control.size.*.thumb` = 0.75 × the track (Prism 2's 24-in-32, #1425), its own tier field rather than radio's `dot`. In every corpus brand the thumb is 18px at `small` and 24px at `medium`, so its ~71%-inset glyph is ~12.7px and ~17px. The smallest case is compact density `small`, a 16px track with a 12px thumb and a ~8.5px glyph. The affordance is most useful at `medium`, and the row, not the atom, is what reaches SC 2.5.8.",
@@ -6747,6 +6747,131 @@
         {
           "section": "content",
           "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
+    },
+    "tooltip": {
+      "codeOnly": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED",
+          "description": "the tooltip element — `role=\"tooltip\"` with an `id`, rendered in the top layer through the `popover=\"manual\"` attribute, never inside the trigger. In description mode (the default) the trigger carries `aria-describedby` pointing at it; in label mode the trigger carries `aria-labelledby` pointing at it and no `aria-label`, so the name is announced once. The element stays in the DOM while hidden, so the reference always resolves. Never the `title` attribute."
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED",
+          "description": "showing and hiding — it shows on pointer hover after `delay`, at once on keyboard focus (`:focus-visible`), and at once with no entry animation when the pointer moves from one tooltip trigger to another within the shared skip window. It hides when both the pointer and focus have left, after `closeDelay`, so the pointer can cross onto it; Escape hides it without moving focus. It never takes focus, never holds a focusable element, and never hides on a timer while it is hovered or focused."
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED",
+          "description": "timing defaults — `delay`, `closeDelay` and the skip window are shared settings of a provider mounted once, so every tooltip on a page keeps the same rhythm. Their default values have no tokens yet; the field ranges (open about 700 to 1500ms, close about 300 to 500ms, skip about 300ms) are with the motion gap batch."
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED",
+          "description": "positioning — anchored to the trigger with CSS anchor positioning, offset `space.100` from the trigger to the arrow's tip. With no room on its side it flips to the opposite one (`position-try-fallbacks: flip-block, flip-inline`), then shifts along its side to stay a `space.100` collision margin inside the viewport; a small owned fallback does the same where anchor positioning is missing. When it shifts, the arrow stays pointed at the trigger's center and never enters the bubble's corner radius, and a flipped tooltip turns its arrow with it. It never covers its own trigger. No positioning library."
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED",
+          "description": "the maximum width — the bubble hugs its text up to 240px (`max-width: 240px`), then the text wraps onto more lines; it never truncates and never scrolls. The design file draws the bubble hugging one line."
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED",
+          "description": "the alignment along a side — one centered member per side keeps the set at four, and the alignment is a position the layer computes. In code, the `align` prop's start and end line the bubble up with the matching edge of the trigger, and the arrow stays pointed at the trigger's center."
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED",
+          "description": "motion — show: opacity 0 to 1 and a scale from 0.95 to 1, with `transform-origin` on the edge facing the trigger, on `motion.duration.fast` and `motion.easing-role.enter`. Hide: a fade on `motion.duration.instant` and `motion.easing-role.exit`. Inside the skip window it appears with no animation. Under `prefers-reduced-motion` the scale is dropped and both ways fade on `motion.duration-reduced.fast`. The 0.95 starting scale has no token."
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED",
+          "description": "RTL — start and end are logical: in right-to-left text a start tooltip sits on the trigger's right, its arrow drawn mirrored, with no rename. The text is set in the document direction."
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED",
+          "description": "text expansion — a translated label wraps at the maximum width onto more lines, never truncates; the bubble grows taller, not wider."
+        },
+        {
+          "class": "content-rule",
+          "disposition": "REFUSED",
+          "description": "the trigger — always focusable. On a control that is unavailable, use `aria-disabled=\"true\"` (an IconButton's `isInactive`), never native `disabled`, which takes it out of the focus order so the tooltip can never be reached by keyboard."
+        },
+        {
+          "class": "deferred",
+          "disposition": "REFUSED",
+          "description": "out of scope — the Toggletip (an \"i\" button that opens on press, announced through a `role=\"status\"` live region and usable on touch), rich content, links and buttons inside the bubble: each is a Popover."
+        }
+      ],
+      "notes": {
+        "contested": [
+          "OWNER DECISION OD-TB1 (pending; built at its recommendation, A): the 240px maximum width has no Figma projection. `wrap: 'hug'` requires the text's parent to be the root, and the label sits in the padded bubble, so the design file's bubble hugs one line and the wrap is code. A (built): code only, stated in `codeOnly`. B: extend `wrap: 'hug'` to a padded child box, an engine change, so the design file wraps at 240 too. C: build the bubble at a fixed 240 width (Toast's `placementWidth` pattern), which makes every short tooltip 240 wide in Figma.",
+          "OWNER DECISION OD-TB2 (pending; built at its recommendation, A): the arrow's depth. OD-T6 fixes an 8-unit arrow and not its depth. A (built): an 8px base and a 4px right-angled tip, with the far half of the 8px square clear, because a vector part is square. B: a tip as deep as its base (8 by 8), which fills the square and reads as a sharp spike.",
+          "OWNER DECISION OD-TB3 (pending; built at its recommendation, A): the Components page Tooltip sits on. A (built): its own page, Tooltip, under Components, beside Toast. B: an Overlays page shared with the coming Menu and Popover.",
+          "OWNER DECISION OD-TB4 (pending; built at its recommendation, A): generation priority. A (built): tier 3, a component that supports another (as Badge), which the proposal recommends. B: tier 2, if the owner reads it as a top-level component an agent places on its own."
+        ],
+        "unverified": [
+          "That Figma builds a `glyphPx` vector inside an auto-layout column and row with the arrow centered on the bubble and abutting it, on a real file: the shim models it, no live file has measured it yet.",
+          "That `motion.duration.fast` sits in the briefs' 120 to 180ms range at every tempo (the Q-FL2 note).",
+          "CSS anchor positioning's `position-try-fallbacks` support across the target browsers, against the owned fallback the positioning entry names."
+        ],
+        "evolution": [
+          "Owner decisions: the proposal on #4009 with every OD at its recommendation (Q-FL2, 2026-11-19), read with the KB brief check on #4009 (8 agree, 2 conflict, 2 silent). K6 B: label mode on an icon-only trigger, not an `aria-hidden` twin of the `aria-label`. K7 B: a fade plus a small scale, no animation inside the skip window. K8 A: an owned positioning layer on the platform for the POC. OD-X2 A: logical sides. OD-T6: max width 240, offset `space.100`, an 8-unit arrow, `type.body.sm.default`, built as placeholders.",
+          "Motion presets: no preset registry exists in the engine yet (#2857 is a wireframe), so the proposed Tooltip / show and Tooltip / hide are this def's `motion` field and `codeOnly` entry only; nothing was added to a preset set.",
+          "The brief's close delay and shared skip delay are props and a provider setting here; their default values go to the motion gap batch (#3486)."
+        ],
+        "projection": []
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
           "reason": "empty"
         },
         {

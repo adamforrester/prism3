@@ -345,10 +345,7 @@ export const figmaFocusDescription = (key: string, px: number): string => {
 
 // ── layout ───────────────────────────────────────────────────────────────────────────────────────
 
-/** `typeMode` (#2935) is the `type-sets` mode a frame at this breakpoint uses by default, or undefined when type is
- *  static and `type-sets` has no modes to pick from. */
-export const figmaBreakpointDescription = (px: number, typeMode?: 'mobile' | 'desktop'): string =>
-  `Min-width ${px}px (mobile-first)${typeMode ? `. A frame at this breakpoint uses ${typeMode} type by default` : ''}`;
+export const figmaBreakpointDescription = (px: number): string => `Min-width ${px}px (mobile-first)`;
 export const figmaContainerDescription = (key: string, px: number): string => {
   if (key === 'max') return `Content width cap — ${px}px (fluid below it)`;
   if (key === 'narrow') return `Reading measure — ${px}px`;

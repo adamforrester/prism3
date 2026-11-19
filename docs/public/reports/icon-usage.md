@@ -45,6 +45,10 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | closeGlyph | `close` | icon set | drawn | type: dismissible |
 | textarea | gripGlyph | `resize-grip` | icon set | drawn | always |
 | toast | successGlyph | `check-circle` | icon set | drawn | intent: success |
+| tooltip | bottomGlyph | `tooltip-arrow-up` | component-owned | drawn | placement: bottom |
+|  | endGlyph | `tooltip-arrow-start` | component-owned | drawn | placement: end |
+|  | startGlyph | `tooltip-arrow-end` | component-owned | drawn | placement: start |
+|  | topGlyph | `tooltip-arrow-down` | component-owned | drawn | placement: top |
 
 ### Icon slots
 
@@ -95,6 +99,10 @@ Parts that take any icon from the set. The file nominates the default unless the
 | `search` | search-field |
 | `slash` | _breadcrumb-separator |
 | `spinner` | spinner |
+| `tooltip-arrow-down` | tooltip |
+| `tooltip-arrow-end` | tooltip |
+| `tooltip-arrow-start` | tooltip |
+| `tooltip-arrow-up` | tooltip |
 | `warning-triangle` | banner, field-message |
 
 ## Glyphs no component names (28)

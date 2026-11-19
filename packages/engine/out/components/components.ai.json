@@ -992,7 +992,8 @@
           "icon",
           "spinner",
           "focus-ring",
-          "button-group"
+          "button-group",
+          "tooltip"
         ],
         "triggerKeywords": [
           "button",
@@ -1024,7 +1025,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "tooltip",
           "menu",
           "popover",
           "toggle-button",
@@ -1321,7 +1321,8 @@
           "icon",
           "spinner",
           "focus-ring",
-          "button-group"
+          "button-group",
+          "tooltip"
         ],
         "triggerKeywords": [
           "destructive button",
@@ -1352,7 +1353,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "tooltip",
           "menu",
           "popover",
           "toggle-button",
@@ -1648,7 +1648,8 @@
           "icon",
           "spinner",
           "focus-ring",
-          "button-group"
+          "button-group",
+          "tooltip"
         ],
         "triggerKeywords": [
           "neutral button",
@@ -1676,7 +1677,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "tooltip",
           "menu",
           "popover",
           "toggle-button",
@@ -2360,7 +2360,7 @@
         "labelPattern": "The accessible name is a verb naming the action (\"Close\", \"Edit\", \"More actions\") — never the icon's shape (\"X\", \"three dots\"). If a tooltip is shown, its text should match the accessible name."
       },
       "docs": {
-        "usage": "Use for a self-evident action where space is tight and a text label would be redundant or not fit — toolbar actions, a close affordance, row-level edit/delete. Color is the component (IconButton / IconButton.Destructive / IconButton.Neutral — pick by semantics); rank actions within a view by appearance (filled > outline > ghost). Always provide the accessible name; pair with a tooltip (not built yet) for the visible name on hover/focus.",
+        "usage": "Use for a self-evident action where space is tight and a text label would be redundant or not fit — toolbar actions, a close affordance, row-level edit/delete. Color is the component (IconButton / IconButton.Destructive / IconButton.Neutral — pick by semantics); rank actions within a view by appearance (filled > outline > ghost). Always provide the accessible name; pair with a Tooltip for the visible name on hover/focus.",
         "do": [
           "Always give it an accessible name (a verb)",
           "Use recognizable, conventional icons (close = ×, more = ⋯); pair novel icons with a visible label instead",
@@ -2380,7 +2380,8 @@
         "commonPartners": [
           "icon",
           "spinner",
-          "focus-ring"
+          "focus-ring",
+          "tooltip"
         ],
         "triggerKeywords": [
           "icon button",
@@ -2408,7 +2409,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "tooltip",
           "menu",
           "popover"
         ],
@@ -2619,7 +2619,7 @@
         "labelPattern": "The accessible name is a verb naming the action (\"Close\", \"Edit\", \"More actions\") — never the icon's shape (\"X\", \"three dots\"). If a tooltip is shown, its text should match the accessible name."
       },
       "docs": {
-        "usage": "Use for a self-evident action where space is tight and a text label would be redundant or not fit — toolbar actions, a close affordance, row-level edit/delete. Color is the component (IconButton / IconButton.Destructive / IconButton.Neutral — pick by semantics); rank actions within a view by appearance (filled > outline > ghost). Always provide the accessible name; pair with a tooltip (not built yet) for the visible name on hover/focus.",
+        "usage": "Use for a self-evident action where space is tight and a text label would be redundant or not fit — toolbar actions, a close affordance, row-level edit/delete. Color is the component (IconButton / IconButton.Destructive / IconButton.Neutral — pick by semantics); rank actions within a view by appearance (filled > outline > ghost). Always provide the accessible name; pair with a Tooltip for the visible name on hover/focus.",
         "do": [
           "Always give it an accessible name (a verb)",
           "Use recognizable, conventional icons (close = ×, more = ⋯); pair novel icons with a visible label instead",
@@ -2640,7 +2640,8 @@
         "commonPartners": [
           "icon",
           "spinner",
-          "focus-ring"
+          "focus-ring",
+          "tooltip"
         ],
         "triggerKeywords": [
           "delete icon button",
@@ -2668,7 +2669,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "tooltip",
           "menu",
           "popover"
         ],
@@ -2879,7 +2879,7 @@
         "labelPattern": "The accessible name is a verb naming the action (\"Close\", \"Edit\", \"More actions\") — never the icon's shape (\"X\", \"three dots\"). If a tooltip is shown, its text should match the accessible name."
       },
       "docs": {
-        "usage": "Use for a self-evident action where space is tight and a text label would be redundant or not fit — toolbar actions, a close affordance, row-level edit/delete. Color is the component (IconButton / IconButton.Destructive / IconButton.Neutral — pick by semantics); rank actions within a view by appearance (filled > outline > ghost). Always provide the accessible name; pair with a tooltip (not built yet) for the visible name on hover/focus.",
+        "usage": "Use for a self-evident action where space is tight and a text label would be redundant or not fit — toolbar actions, a close affordance, row-level edit/delete. Color is the component (IconButton / IconButton.Destructive / IconButton.Neutral — pick by semantics); rank actions within a view by appearance (filled > outline > ghost). Always provide the accessible name; pair with a Tooltip for the visible name on hover/focus.",
         "do": [
           "Always give it an accessible name (a verb)",
           "Use recognizable, conventional icons (close = ×, more = ⋯); pair novel icons with a visible label instead",
@@ -2899,7 +2899,8 @@
         "commonPartners": [
           "icon",
           "spinner",
-          "focus-ring"
+          "focus-ring",
+          "tooltip"
         ],
         "triggerKeywords": [
           "close button",
@@ -2927,7 +2928,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "tooltip",
           "menu",
           "popover"
         ],
@@ -3951,13 +3951,13 @@
         "composesWith": [],
         "alternativeTo": [
           "toast",
-          "banner"
+          "banner",
+          "tooltip"
         ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
           "number-field",
-          "tooltip",
           "inline-message"
         ],
         "replacesPatterns": []
@@ -4263,7 +4263,8 @@
           "field-message",
           "icon",
           "button",
-          "spinner"
+          "spinner",
+          "tooltip"
         ],
         "triggerKeywords": [
           "text field",
@@ -4302,7 +4303,6 @@
         "supersededBy": [],
         "planned": [
           "form",
-          "tooltip",
           "combobox",
           "number-field",
           "date-picker"
@@ -9722,7 +9722,7 @@
         "labelPattern": "Names the destination and makes sense on its own: \"Shipping and returns\", \"Annual report (PDF, 2 MB)\". Link the noun phrase, not the whole sentence. Never a bare \"click here\" or \"learn more\", and never a raw URL."
       },
       "docs": {
-        "usage": "Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use Button. Keep x-small for dense metadata, such as an order row or a legal line, not running body text. A link inside small print is a text range with that text's own link style. A social follow link, such as a footer row of networks, is a link too, not a sign-in or wallet button: a standalone Link around the network's one-color mark (ProviderLogo, such as social/instagram-mono, at 24px) with a 44 by 44 target. The link carries the name in aria-label (\"Instagram\", plus \"opens in new tab\" when it does), and the mark is aria-hidden. The link's ink, hover and focus ring are the theme's; the mark keeps the provider's drawing.",
+        "usage": "Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use Button. Keep x-small for dense metadata, such as an order row or a legal line, not running body text. A link inside small print is a text range with that text's own link style.",
         "do": [
           "Write link text that names the destination",
           "State the format and size of a file link",
@@ -14810,6 +14810,246 @@
         {
           "class": "right-to-left",
           "disposition": "UNSUPPORTED"
+        }
+      ]
+    },
+    "tooltip": {
+      "id": "tooltip",
+      "name": "Tooltip",
+      "aliases": [
+        "hint",
+        "infotip",
+        "info-tip"
+      ],
+      "category": "overlay",
+      "status": "draft",
+      "summary": "A short text label for the control under the pointer or focus. It never takes focus.",
+      "description": "A short line of plain text that names or describes a control. It shows when the pointer rests on the control or keyboard focus reaches it, and hides when both leave or the user presses Escape. It never takes focus and holds nothing interactive, and touch has no hover, so the information it shows must also be available another way. On an icon-only control it is the control's name; anywhere else it adds a description. Not a popover (anything interactive, or content opened by a press), not a toast (a status after an action), and not a field message (help or an error under a field).",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "The text, a few words in plain text with no links or buttons. It wraps at the maximum width and never truncates."
+        },
+        {
+          "name": "placement",
+          "type": "enum: 'top' | 'bottom' | 'start' | 'end'",
+          "default": "top",
+          "required": false,
+          "values": [
+            "top",
+            "bottom",
+            "start",
+            "end"
+          ],
+          "description": "The side of the control the tooltip prefers. It moves to the opposite side when there is no room. start and end follow the reading direction: start is the left in left-to-right text and the right in right-to-left text."
+        },
+        {
+          "name": "align",
+          "type": "enum: 'start' | 'center' | 'end'",
+          "default": "center",
+          "required": false,
+          "values": [
+            "start",
+            "center",
+            "end"
+          ],
+          "description": "Where the tooltip lines up along its side of the control. The arrow stays pointed at the control's center."
+        },
+        {
+          "name": "arrow",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Shows the arrow that points at the control. On by default."
+        },
+        {
+          "name": "kind",
+          "type": "enum: 'description' | 'label'",
+          "default": "description",
+          "required": false,
+          "values": [
+            "description",
+            "label"
+          ],
+          "description": "description adds a description to a control that already has a name. label makes the tooltip the control's name, for an icon-only control, so the name is announced once."
+        },
+        {
+          "name": "delay",
+          "type": "number",
+          "required": false,
+          "description": "How long the pointer rests on the control before the tooltip shows, in milliseconds. Keyboard focus shows it at once."
+        },
+        {
+          "name": "closeDelay",
+          "type": "number",
+          "required": false,
+          "description": "How long the tooltip stays after the pointer leaves, in milliseconds, so the pointer can move onto it."
+        },
+        {
+          "name": "open",
+          "type": "boolean",
+          "required": false,
+          "description": "Whether the tooltip shows, when the app controls it. Leave it unset and the tooltip shows and hides by itself."
+        },
+        {
+          "name": "defaultOpen",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the tooltip shows at first, when the app does not control it."
+        },
+        {
+          "name": "onOpenChange",
+          "type": "function",
+          "required": false,
+          "description": "Called with true when the tooltip shows and false when it hides, for any reason."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Stops the tooltip showing. The control itself is unaffected."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true,
+          "description": "The control the tooltip belongs to: one element that can take keyboard focus."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "placement": {
+          "values": [
+            "top",
+            "bottom",
+            "start",
+            "end"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "`role=\"tooltip\"`. It never takes focus. By default the control it belongs to points at it with `aria-describedby`; on an icon-only control the control points at it with `aria-labelledby` instead, and the tooltip is its name.",
+        "wcag": [
+          "1.4.13 Content on Hover or Focus (Escape dismisses it without moving focus, the pointer can move onto it, and it stays while it is hovered or focused)",
+          "1.4.3 Contrast (Minimum) (the text clears 4.5:1 on the inverse surface)",
+          "1.4.4 Resize Text (targets it: the text wraps at the maximum width rather than truncating)",
+          "2.1.1 Keyboard (keyboard focus shows it, the same as hover)",
+          "2.5.3 Label in Name (in label mode the tooltip is the control's name, so the visible words and the name match)",
+          "4.1.2 Name, Role, Value (in label mode the control takes its name from the tooltip)"
+        ],
+        "keyboard": "Tab to the control shows the tooltip at once. Escape hides it and leaves focus on the control. Moving focus away hides it. The tooltip itself is never in the focus order.",
+        "focus": "Focus stays on the control. The tooltip never takes focus and holds nothing focusable.",
+        "aria": "role=\"tooltip\" on the tooltip. aria-describedby on the control by default, or aria-labelledby on an icon-only control, which then carries no aria-label. The tooltip stays in the page while hidden, so the reference always resolves. On an unavailable control use aria-disabled=\"true\", never the native disabled attribute. The text is translatable; start and end swap sides in right-to-left text."
+      },
+      "content": {
+        "labelPattern": "A few words in sentence case, with no period: \"Add to favorites\", \"Copy link\". On an icon-only control, name the action as a verb, never the icon's shape (\"Close\", not \"X\")."
+      },
+      "docs": {
+        "usage": "Use a Tooltip to name an icon-only control or to add a short description to a control, shown on hover and keyboard focus. Touch has no hover, so the tooltip never holds the only copy of what it says. Anything interactive, or content that opens on a press, is a Popover; a status after an action is a Toast; help under a field is a field message.",
+        "do": [
+          "Name every icon-only control with a tooltip in label mode",
+          "Keep it to a few words of plain text",
+          "Keep the words the same as the control's accessible name",
+          "Use `aria-disabled=\"true\"` on an unavailable control that has a tooltip"
+        ],
+        "dont": [
+          "Put a link, a button or anything focusable in a tooltip. Use a popover.",
+          "Put information only in a tooltip. Touch has no hover.",
+          "Attach a tooltip to a natively disabled control. Keyboard focus cannot reach it.",
+          "Use the title attribute instead",
+          "Repeat a visible text label in a tooltip"
+        ],
+        "contentGuidelines": "Short and plain: the name of the action or one fact about it. No punctuation at the end, no formatting, nothing to click."
+      },
+      "ai": {
+        "primaryPurpose": "Name or describe a control with a few words shown on hover and keyboard focus.",
+        "whenToUse": "An icon-only control needs a visible name, or a control needs one short fact that its label does not carry, and the same information is also reachable without hover.",
+        "avoidWhen": "The content has a link, a button or anything to act on, or opens on a press (a popover); it reports the result of an action (a toast); it is help or an error for a field (a field message); or it is the only place the information lives.",
+        "commonPartners": [
+          "icon-button",
+          "flush-icon-button",
+          "button"
+        ],
+        "triggerKeywords": [
+          "tooltip",
+          "hint",
+          "hover text",
+          "hover label",
+          "icon label",
+          "info tip"
+        ],
+        "generationPriority": 3
+      },
+      "motion": {
+        "enter": "A fade and a scale from slightly under full size, from the edge facing the control (motion.duration.fast, motion.easing-role.enter). Moving from one tooltip to the next soon after, it appears with no animation.",
+        "exit": "A fade (motion.duration.instant, motion.easing-role.exit).",
+        "reduceMotion": "Under prefers-reduced-motion, the fade only, with no scale, at motion.duration-reduced.fast both ways."
+      },
+      "composition": {
+        "composesWith": [],
+        "alternativeTo": [
+          "field-message"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "popover"
+        ],
+        "replacesPatterns": [
+          "the `title` attribute",
+          "a hover-only label with no keyboard route",
+          "a tooltip on a natively disabled control"
+        ]
+      },
+      "syncBoundary": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "content-rule",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
         }
       ]
     }

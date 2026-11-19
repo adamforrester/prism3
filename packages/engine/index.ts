@@ -33,7 +33,7 @@ export {
   LETTER_SPACING_KEYS, LETTER_SPACING_LADDER, LINE_HEIGHT_KEYS, LINE_HEIGHT_LADDER, LOOP_ROLES,
   OUTLINE_WASH_DEFAULTS, OUTLINE_WASH_STEPS, PER_MODE_SIZE_GROUPS, REQUIRED_WEIGHT_ROLES, SHIPPED_GLASS_ROLE,
   SPIN_ROLE, TRACKING_SHIFT_KEYS, TYPE_LINK_ALWAYS, TYPE_LINK_DEFAULT, UNDERLINE_BOUNDS, UNDERLINE_ON_DEFAULT,
-  brandTheme, defaultTypeMode, derivedRungFor, isReservedPalette, nbThemeFrom, normalizeDisabledStrategy, shiftRung, typefaceSlug,
+  brandTheme, derivedRungFor, isReservedPalette, nbThemeFrom, normalizeDisabledStrategy, shiftRung, typefaceSlug,
   weightAvailability,
 } from './theme';
 export type {

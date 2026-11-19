@@ -596,6 +596,55 @@
         }
       ],
       "iconSlots": []
+    },
+    "tooltip": {
+      "glyphs": [
+        {
+          "part": "bottomGlyph",
+          "glyph": "tooltip-arrow-up",
+          "source": "component-owned",
+          "how": "drawn",
+          "when": {
+            "placement": [
+              "bottom"
+            ]
+          }
+        },
+        {
+          "part": "endGlyph",
+          "glyph": "tooltip-arrow-start",
+          "source": "component-owned",
+          "how": "drawn",
+          "when": {
+            "placement": [
+              "end"
+            ]
+          }
+        },
+        {
+          "part": "startGlyph",
+          "glyph": "tooltip-arrow-end",
+          "source": "component-owned",
+          "how": "drawn",
+          "when": {
+            "placement": [
+              "start"
+            ]
+          }
+        },
+        {
+          "part": "topGlyph",
+          "glyph": "tooltip-arrow-down",
+          "source": "component-owned",
+          "how": "drawn",
+          "when": {
+            "placement": [
+              "top"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
     }
   },
   "glyphs": {
@@ -699,6 +748,18 @@
     ],
     "spinner": [
       "spinner"
+    ],
+    "tooltip-arrow-down": [
+      "tooltip"
+    ],
+    "tooltip-arrow-end": [
+      "tooltip"
+    ],
+    "tooltip-arrow-start": [
+      "tooltip"
+    ],
+    "tooltip-arrow-up": [
+      "tooltip"
     ],
     "warning-triangle": [
       "banner",

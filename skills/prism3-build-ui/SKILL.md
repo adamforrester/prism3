@@ -52,12 +52,12 @@ When the brief asks for something the system doesn't have:
    substitute; the report doesn't make it acceptable.
 3. **Build everything else as asked.** One gap doesn't stop the rest of the work.
 
-**A worked negative: a tooltip.** The brief asks for an icon button with a tooltip that explains it.
-The component catalog has `icon-button`; `tooltip` appears only in its `planned` list. Tempting: a
-positioned `div` that shows on hover, styled with `background.primary` and a shadow. Wrong: it has no
-keyboard or touch trigger, no dismissal and no measured contrast, so it fails every user who doesn't
-hover with a mouse. Build the icon button with its accessible name, leave the tooltip out, and write in the
-report: "Not built: the tooltip on the settings button. Prism3 has no tooltip component yet (it is
+**A worked negative: a popover.** The brief asks for an icon button that opens a small panel with a share link.
+The component catalog has `icon-button`; `popover` appears only in its `planned` list. Tempting: a
+positioned `div` that opens on click, styled with `background.primary` and a shadow. Wrong: it has no
+focus handling, no Escape or outside-click dismissal and no measured contrast, so it fails every keyboard and
+screen reader user. Build the icon button with its accessible name, leave the panel out, and write in the
+report: "Not built: the share panel on the share button. Prism3 has no popover component yet (it is
 planned), so I left it out rather than build a stand-in."
 
 ## The four layers (reach for the right one)

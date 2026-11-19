@@ -1008,13 +1008,26 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     axis: 'placement',
     values: ['center', 'bottom', 'full', 'end'],
     defs: ['dialog'],
-    relation: 'sole',
+    relation: 'canonical',
     reason:
       'Where a layer sits over the page (#2609, owner decision Q303.1): centered, attached to the bottom edge as a bottom '
       + 'sheet, filling a small screen, or attached to the end edge as a side sheet (#2877, Q483 A, named `end` by Q488 A: '
       + 'the writing direction\'s end, so it mirrors in right-to-left text and a `start` can join it with no rename). `center` LEADS because it is the code '
-      + 'default on every screen and Figma\'s default member. One def carries it, so there is no other to stand in a '
-      + 'relation with. Distinct from `alignment` and `direction`, argued in `VARIANT_AXES`.',
+      + 'default on every screen and Figma\'s default member. The canonical set: Tooltip\'s side placement is described against it '
+      + '(#4009). Distinct from `alignment` and `direction`, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'placement',
+    values: ['top', 'bottom', 'start', 'end'],
+    defs: ['tooltip'],
+    relation: 'overlapping',
+    reason:
+      'Which side of its trigger a tooltip sits on (#4009, owner OD-X2 A): above, below, at the start or at the end, in '
+      + 'writing-direction terms, so `start` and `end` swap sides in right-to-left text with no rename. `top` LEADS because '
+      + 'it is the code default and Figma\'s default member. OVERLAPPING with Dialog\'s canonical set by design: both use '
+      + '`end` for the writing direction\'s end edge (Q488 A) and `bottom` for the bottom edge, and each adds what its layer '
+      + 'needs. A dialog is placed against the viewport (centered, or full screen), a tooltip against its trigger, which is '
+      + 'why it has `top` and `start` and no `center` or `full`. The two words they share mean the same edge.',
   },
   {
     axis: 'kind',

@@ -427,7 +427,7 @@
     },
     "switch-control": {
       "members": 40,
-      "sha256": "d51e42e38d80b75c8c2261c1fabdd7db695fd93859805776d7db7bbb05cd9308",
+      "sha256": "5089cf41bee2b6662614ec1bfc8ce6dd2cdaba89ef33a21654efd1897dc75221",
       "properties": [
         "state icon:BOOLEAN"
       ]
@@ -847,6 +847,14 @@
       "sha256": "ea176c9df67998801a2098da45006d93fa5dffec96302160ec0bb42986a1d19b",
       "properties": [
         "items:SLOT"
+      ]
+    },
+    "tooltip": {
+      "members": 4,
+      "sha256": "3c259775a9d0dd5f8653750817f5fc832ce71038c8abed0b02161cbc3df09ee5",
+      "properties": [
+        "arrow:BOOLEAN",
+        "label:TEXT"
       ]
     }
   }
