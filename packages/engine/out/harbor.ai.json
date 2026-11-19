@@ -3976,18 +3976,26 @@
       ]
     },
     "disabled.border": {
-      "$description": "Disabled control border — muted neutral",
+      "$description": "Disabled control border — reduced contrast, legible; clears 3:1",
       "meaning": "Unavailable / inactive state",
       "when_to_use": "The border of a disabled outline control.",
       "avoid_when": "Do not use as a page divider (use `border.primary`) or on an enabled control (use `interactive.*` borders).",
       "mode_overrides": {
-        "light": "{hds.core.palette.neutral.200}",
-        "dark": "{hds.core.palette.neutral.750}",
-        "hc-light": "{hds.core.palette.neutral.200}",
-        "hc-dark": "{hds.core.palette.neutral.750}"
+        "light": "{hds.core.palette.neutral.500}",
+        "dark": "{hds.core.palette.neutral.550}",
+        "hc-light": "{hds.core.palette.neutral.600}",
+        "hc-dark": "{hds.core.palette.neutral.450}"
       },
       "tracks": [
         "disabled.fill"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.secondary",
+          "min": "3:1",
+          "ratio": 3.32,
+          "requirement": "MUST clear 3:1 against `background.secondary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
+        }
       ]
     },
     "inverse.disabled.fill": {
@@ -4079,18 +4087,26 @@
       ]
     },
     "inverse.disabled.border": {
-      "$description": "Disabled control border on an inverse surface — muted neutral",
+      "$description": "Disabled control border on an inverse surface — reduced contrast, legible; clears 3:1",
       "meaning": "Unavailable / inactive state (inverse ground)",
       "when_to_use": "The border of a disabled outline control. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `disabled.border`. Do not use as a page divider (use `inverse.border.primary`) or on an enabled control (use `interactive.*` borders).",
       "mode_overrides": {
-        "light": "{hds.core.palette.neutral.800}",
-        "dark": "{hds.core.palette.neutral.250}",
-        "hc-light": "{hds.core.palette.neutral.800}",
-        "hc-dark": "{hds.core.palette.neutral.250}"
+        "light": "{hds.core.palette.neutral.550}",
+        "dark": "{hds.core.palette.neutral.450}",
+        "hc-light": "{hds.core.palette.neutral.500}",
+        "hc-dark": "{hds.core.palette.neutral.500}"
       },
       "tracks": [
         "inverse.disabled.fill"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.background.secondary",
+          "min": "3:1",
+          "ratio": 3.23,
+          "requirement": "MUST clear 3:1 against `inverse.background.secondary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes."
+        }
       ]
     },
     "field.fill": {
@@ -9470,7 +9486,6 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.primary",
-        "color.disabled.border",
         "color.disabled.fill",
         "color.foreground.tertiary",
         "color.interactive.neutral.border.pressed",
@@ -9500,7 +9515,6 @@
         "color.border.secondary",
         "color.interactive.neutral.fill.hover",
         "color.inverse.border.secondary",
-        "color.inverse.disabled.border",
         "color.inverse.disabled.fill"
       ]
     },
@@ -9551,12 +9565,14 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.disabled.border",
         "color.disabled.icon",
         "color.disabled.on-fill",
         "color.disabled.text",
         "color.field.placeholder",
         "color.icon.secondary",
         "color.icon.tertiary",
+        "color.inverse.disabled.border",
         "color.inverse.disabled.icon",
         "color.inverse.disabled.text",
         "color.inverse.field.border.rest",
@@ -9578,12 +9594,14 @@
       "aliased_by": [
         "color.border.primary",
         "color.border.tertiary",
+        "color.disabled.border",
         "color.disabled.icon",
         "color.disabled.text",
         "color.field.border.rest",
         "color.icon.tertiary",
         "color.inverse.border.primary",
         "color.inverse.border.secondary",
+        "color.inverse.disabled.border",
         "color.inverse.disabled.icon",
         "color.inverse.disabled.on-fill",
         "color.inverse.disabled.text",
@@ -9601,11 +9619,13 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.tertiary",
+        "color.disabled.border",
         "color.disabled.icon",
         "color.disabled.on-fill",
         "color.disabled.text",
         "color.field.border.rest",
         "color.icon.tertiary",
+        "color.inverse.disabled.border",
         "color.inverse.disabled.icon",
         "color.inverse.disabled.text",
         "color.inverse.field.border.rest",
@@ -9624,6 +9644,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.disabled.border",
         "color.disabled.icon",
         "color.disabled.text",
         "color.field.placeholder",
@@ -9677,7 +9698,6 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.primary",
-        "color.disabled.border",
         "color.disabled.fill",
         "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.fill.hover",
@@ -9699,7 +9719,6 @@
       "aliased_by": [
         "color.foreground.tertiary",
         "color.inverse.border.primary",
-        "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.foreground.tertiary",
         "color.inverse.interactive.destructive.fill.pressed",

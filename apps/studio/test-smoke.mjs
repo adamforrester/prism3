@@ -2707,11 +2707,25 @@ const emittedLayout = async (brand) => {
   const grid = Object.fromEntries(Object.entries(root.grid ?? {}).filter(([k]) => !k.startsWith('$')).map(([k, v]) => [k, { columns: px(v.columns?.$value), gutter: px(v.gutter?.$value), margin: px(v.margin?.$value) }]));
   return { bps, grid, max: px(root.container?.max?.$value), narrow: px(root.container?.narrow?.$value) };
 };
+/** The type mode each breakpoint's COMMITTED Figma description names (#2935): `{ bp: 'mobile' | 'desktop' | null }`, null
+ *  where the description names none (static type). Read from `out/figma/<brand>/layout.*.json`, the emission, never
+ *  from the engine's rule, so the Studio label is checked against what Figma ships (#4042 review, docs/34). Every
+ *  layout mode file carries the same descriptions; the first one read is the oracle. */
+const figmaTypeModes = async (brand) => {
+  const dir = join(OUT_DIR, 'figma', brand.toLowerCase());
+  const file = readdirSync(dir).filter((f) => /^layout\..+\.json$/.test(f)).sort()[0];
+  const vars = JSON.parse(await readFile(join(dir, file), 'utf8')).variables;
+  return Object.fromEntries(vars.filter((v) => /(^|\/)breakpoint\/[^/]+$/.test(v.name))
+    .map((v) => [v.name.split('/').pop(), /uses (mobile|desktop) type by default/.exec(v.description ?? '')?.[1] ?? null]));
+};
 let layoutStates = 0;
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
   const emission = await loadEmission(brand);
   const want = await emittedLayout(brand);
+  const wantType = await figmaTypeModes(brand);
+  ok(Object.keys(wantType).length === Object.keys(want.bps).length,
+    `${brand} / Layout: the committed Figma emission describes ${Object.keys(wantType).length} breakpoints, the tokens carry ${Object.keys(want.bps).length} (the #2935 oracle)`);
   ok(Object.keys(want.bps).length >= 2 && Object.keys(want.grid).length === Object.keys(want.bps).length && want.max > 0,
     `${brand} / Layout: the emission carries ${Object.keys(want.bps).length} breakpoints, a grid for each, and the containers (the oracle)`);
   await gotoLayout(page);
@@ -2735,7 +2749,13 @@ for (const brand of BRANDS) {
       const h = document.querySelector(sel);
       const read = (attr) => Object.fromEntries([...h.querySelectorAll(`[data-${attr}]`)].map((n) => [n.dataset[attr], parseFloat(n.textContent)]));
       const cont = Object.fromEntries([...h.querySelectorAll('[data-p3="layout-container"]')].map((r) => [r.dataset.token, parseFloat(r.querySelector('.lyv-val')?.textContent ?? '')]));
-      return { bps: read('bppx'), cols: read('bpcol'), gut: read('bpgut'), mar: read('bpmar'), cont };
+      // #2935: the type mode a breakpoint row names, as a reader sees it (`768px, mobile type`) and as the row's
+      // `data-bptype` says it; each is read on its own, so neither can stand in for the other.
+      const types = Object.fromEntries([...h.querySelectorAll('[data-bppx]')].map((n) => [n.dataset.bppx, {
+        text: /, (\w+) type$/.exec(n.textContent.trim())?.[1] ?? null,
+        attr: n.closest('[data-p3="layout-label"]')?.dataset.bptype ?? null,
+      }]));
+      return { bps: read('bppx'), cols: read('bpcol'), gut: read('bpgut'), mar: read('bpmar'), cont, types };
     }, SG_LAYOUT);
     const off = [];
     for (const [bp, px] of Object.entries(want.bps)) if (shown.bps[bp] !== px) off.push(`breakpoint.${bp} shows ${shown.bps[bp]}, emits ${px}`);
@@ -2747,6 +2767,14 @@ for (const brand of BRANDS) {
     if (shown.cont['container.max'] !== want.max) off.push(`container.max shows ${shown.cont['container.max']}, emits ${want.max}`);
     if (shown.cont['container.narrow'] !== want.narrow) off.push(`container.narrow shows ${shown.cont['container.narrow']}, emits ${want.narrow}`);
     const extra = Object.keys(shown.bps).filter((bp) => !(bp in want.bps));
+    // #2935 (#4042 review): each breakpoint names the type mode its committed Figma description names, and none where
+    // that description names none (static type), in its text and its marker. MUTATIONS: `breakpoints.ts` writing
+    // `desktop type` for every row → `… breakpoint.sm reads desktop type, Figma says mobile`; its `data-bptype` set to
+    // `desktop` → `… breakpoint.sm is marked desktop type, Figma says mobile`.
+    const typeOff = Object.entries(wantType).flatMap(([bp, t]) => ['text', 'attr']
+      .filter((k) => (shown.types[bp]?.[k] ?? null) !== t)
+      .map((k) => `breakpoint.${bp} ${k === 'text' ? 'reads' : 'is marked'} ${shown.types[bp]?.[k] ?? 'no'} type, Figma says ${t ?? 'none'}`));
+    ok(typeOff.length === 0, `${where}: every breakpoint names the type mode the committed Figma description names (#2935)${typeOff.length ? ` — ${typeOff.slice(0, 4).join(' | ')}` : ''}`);
     ok(off.length === 0 && extra.length === 0, `${where}: every breakpoint, grid and container value reads the emission's${off.length || extra.length ? ` — ${[...off, ...extra.map((b) => `${b} drawn, not emitted`)].slice(0, 4).join(' | ')}` : ''}`);
     await settle(page, where);
     const probe = await page.evaluate(LEGIBILITY_PROBE, SG_LAYOUT);

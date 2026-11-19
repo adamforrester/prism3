@@ -2636,14 +2636,14 @@
       ],
       "description": "Disabled control border — muted neutral",
       "value": {
-        "r": 0.21568627655506134,
-        "g": 0.21960784494876862,
-        "b": 0.22745098173618317,
+        "r": 0.40392157435417175,
+        "g": 0.4117647111415863,
+        "b": 0.41960784792900085,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/750"
+        "name": "pds3/core/palette/neutral/550"
       }
     },
     {
@@ -5316,14 +5316,14 @@
       ],
       "description": "Disabled control border — muted neutral",
       "value": {
-        "r": 0.7019608020782471,
-        "g": 0.7058823704719543,
-        "b": 0.7098039388656616,
+        "r": 0.501960813999176,
+        "g": 0.5098039507865906,
+        "b": 0.5176470875740051,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/250"
+        "name": "pds3/core/palette/neutral/450"
       }
     },
     {
