@@ -112,6 +112,9 @@ export type ContractCompliance = {
   checked: number;        // (pair, mode) combinations where BOTH roles resolved to a colour
   pass: number;           // combinations that cleared the floor (on the RAW ratio — CR-01)
   rate: number;           // pass / checked  (1 when nothing resolved — vacuous; see `unresolved`)
+  /** #4200 owner decision 3 (b), 2026-11-19: true when no pair resolved in any mode, so `rate: 1` measured nothing.
+   *  Additive: `rate` keeps its value, and a reader that knew to check `checked` keeps working. */
+  vacuous: boolean;
   failures: { pair: string; mode: string; ratio: number; min: number }[];
   unresolved: string[];   // pairs naming a role that isn't a resolvable colour role (unique, sorted)
 };
@@ -143,5 +146,5 @@ export const scoreContractCompliance = (pairs: UsedPair[], theme: any): Contract
     }
     if (!anyResolved) unresolved.add(label);
   }
-  return { checked, pass, rate: checked ? pass / checked : 1, failures, unresolved: [...unresolved].sort() };
+  return { checked, pass, rate: checked ? pass / checked : 1, vacuous: checked === 0, failures, unresolved: [...unresolved].sort() };
 };
