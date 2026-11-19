@@ -20,6 +20,11 @@ exporter as a separate chunk only when Download component specs is clicked. Unti
   `vercel-ignore-check.mjs` builds both outputs and reads each on its own: no definition bytes in `main.js`, Button's
   among the chunk's, no third output, and the run-time import present. `build-site.mjs`'s publish manifest lists the
   chunk and its map.
+- **The chunk's strip and deploy trigger (review).** A new CI step in the studio job, `lint-bundle-prose.ts --web`, reads
+  `dist/component-specs.js` against the real definitions with the plugin gate's three arms: no `notes` or `codeOnly`
+  prose, no Prism 2, every summary. Dropping the strip from `build.mjs` fails it ("A component-specs.js: maintainer text
+  from icon.notes.contested[0] shipped"). `vercel-ignore.sh` now lists `apps/plugin/strip-maintainer-prose.mjs`, which
+  `build-site.mjs` runs over the deployed chunk, and `vercel-ignore-check.mjs` holds a change to it alone to BUILD.
 
 **Measured.** `apps/studio/dist/main.js` (the `build.mjs` output, against the same `main`): 1,747,681 bytes before,
 1,748,861 after (+1,180, the loader and the names module); gzipped 515,205 → 515,572 (+367). The chunk is 1,465,501

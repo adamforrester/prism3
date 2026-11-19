@@ -1924,7 +1924,7 @@ const TOKENS_NONE = "Off after a failed restore: these tokens would be the demo 
 /** #3425 (DRAFT wording for the owner, Q3425.1); "component contracts" since #1325 (Q-CC1 A, DRAFT). */
 const SPECS_NONE = "Off after a failed restore: these component contracts would be the demo brand's, not this file's.";
 const SPECS_NO_SETTINGS = "Nothing to set — the component contracts follow this brand's component settings.";
-const SPECS_WEB_OFF = 'In the Figma plugin: the component contracts are built from the component definitions, which the web Studio leaves out.';
+const SPECS_WEB_OFF = 'In the Figma plugin: the component contracts are built from the component definitions, which the web Studio leaves out.';   // a fallback no host reaches since #3429: the plugin provides the exporter, the web a loader
 /** The error bar after a failed restore, by kind (owner, 2026-10-02). `unresolved` says "resolves" because a
  *  rebuild that resolves also ends it; the other two end only when a brand loads. */
 const RESTORE_BAR: Record<RestoreFailure['kind'], (reason: string) => string> = {
