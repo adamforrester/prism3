@@ -159,7 +159,7 @@ const openStart = async (host) => {
     await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'restore-input-empty' } }, '*'));
   }
   await hooks.need(page, '[data-p3="start-example"]');
-  const chips = await page.locator('[data-p3="start-example"]').allTextContents();
+  const chips = await page.locator('[data-p3="start-example"]').evaluateAll((els) => els.map((e) => e.dataset.example));   // #4191 T3: the example ids, carried as data
   return { ctx, page, errors, chips: chips.map((s) => s.trim()) };
 };
 

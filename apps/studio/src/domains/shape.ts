@@ -33,10 +33,10 @@ import { brandState, currentMode, getPath, lastError, searchQuery, setPage, setS
 import { isDerived } from '../state/verdict';
 import { brandBaseMd, brandControlShape, densityIn, radiusScaleIn, setBaseMd, setDensity, setRadiusScale } from '../state/shape-input';
 import type { Density } from '@prism3/engine';
-import { DOMAINS, pageOfTab, type PageData, type Section } from '../shell/pages';
+import { BASE_RADIUS_DESC, DOMAINS, pageOfTab, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { choice, leverBlock, leverOf, promoteLever, slider, sliderReadout, stateLine, subLine, type LeverBlock, keepFocus, pageEdit, filterLevers } from '../ui/lever-kit';
+import { advancedLabel, choice, leverBlock, leverOf, promoteLever, slider, sliderReadout, stateLine, subLine, type LeverBlock, keepFocus, pageEdit, filterLevers } from '../ui/lever-kit';
 import { valuePicker } from '../ui/value-picker';
 import { homeLine } from '../ui/home-line';
 import type { PageLends } from '../preview/brand';
@@ -47,12 +47,12 @@ const PAGE = DOMAINS.find((d) => d.id === 'shape') as PageData;
 export const SHAPE_COPY = {
   /** Q22, Type's approved line. */
   editing: (m: string): string => `Editing ${m}, the mode the preview shows.`,
-  auto: (v: string): string => `Auto: follows Light (${v})`,
+  auto: (v: string): string => `Auto · follows Light (${v})`,
   toAuto: 'Return to Auto',
   /** The decided per-mode density sentence (owner, 2026-09-29, docs/28 §5.4.3), kept. */
   densityMode: 'Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.',
   padding: 'Padding is set per component.',
-  paddingLink: 'See Components',
+  paddingLink: 'Set it in Components',
   next: 'Continue to Depth & motion',
   // DRAFT, pending the owner: the labels and tooltips in plain words (D16, E2).
   densityTip: 'Sets every control height, and moves each component’s padding and gaps one step on the spacing scale.',
@@ -63,7 +63,7 @@ export const SHAPE_COPY = {
   shapeTip: 'Hairline gives buttons, fields and checkboxes a 1px corner, and Boxed gives them a sharp 0px corner. Rounded follows radius softness. Pill rounds buttons fully at any height; fields and checkboxes keep their own corner. An underline field has no corners.',
   baseLabel: 'Base radius',
   baseTip: 'The medium radius at standard softness, from 2 to 12px. Every other radius size is a multiple of it.',
-  baseHint: 'The medium radius at standard softness. The other sizes scale from it.',
+  baseHint: BASE_RADIUS_DESC,   // #4193 A: one string for the medium radius, where it was three
   /** #2909 Q2909.4 A: Control shape's line. DRAFT placeholder (Q2909.10 A). */
   shapeLink: 'Set it in Components',
 } as const;
@@ -235,7 +235,7 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
     btn.id = 'p3-adv-shape';
     btn.setAttribute('aria-expanded', String(open));
     btn.setAttribute('aria-controls', 'p3-advb-shape');
-    btn.append(glyph(open ? 'chev' : 'chevr'), h('span', 'p3-btn-label', `${open ? 'Hide' : 'Show'} ${n} advanced`));
+    btn.append(glyph(open ? 'chev' : 'chevr'), h('span', 'p3-btn-label', advancedLabel(open, n)));
     btn.onclick = () => { advOpen = !advOpen; render(); };
     const b = h('div', 'p3-advbody');
     b.id = 'p3-advb-shape';

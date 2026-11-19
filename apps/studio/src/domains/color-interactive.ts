@@ -57,8 +57,8 @@ import { WASH_HOVER_STEPS, WASH_PRESSED_STEPS, readOutlineHoverFill, readOutline
 
 /** #3335 (the proposal's §4, DRAFT for the owner's final read): the per-set card's title, the Primary card's first lever,
  *  the Solid fill group's title, and the Wash opacity lever. */
-export const SET_CARD_TITLE = (name: string): string => `${name} Interactive Colors`;
-export const PRIMARY_ACTION_PALETTE = 'Primary Action Palette';
+export const SET_CARD_TITLE = (name: string): string => `${name} interactive colors`;   // #4190 V1 A: sentence case
+export const PRIMARY_ACTION_PALETTE = 'Primary action palette';
 export const HOVER_FILL_GROUP = 'Outline & text hover';
 export const WASH_COPY = {
   label: 'Wash opacity',
@@ -131,7 +131,7 @@ export const DISABLED_SWITCH = {
   off: 'Disabled controls drop to the floor you pick.',
 } as const;
 /** The link palette's Auto (owner decision Q36). */
-export const LINK_AUTO = 'Auto: follows action palette';
+export const LINK_AUTO = 'Auto · follows action palette';
 /** The text-link rows' added lines (#2990; owner decision Q2990 A, APPROVED as drafted). */
 export const LINK_COPY = {
   modes: 'Contrast in every mode',
@@ -694,7 +694,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
       const lab = h('label', 'p3-field-label', capWord(st));
       lab.htmlFor = id;
       const s = selectField(id, `${capWord(st)} link state`, `link-rung-${st}`, (v) => edit('linkStateRungs', () => setLinkRung(st, v === '' ? undefined : Number(v))));
-      s.set([{ v: '', l: 'Auto: tuned walk' }, ...[1, 2, 3, 4, 5, 6, 7, 8].map((k) => ({ v: String(k), l: `${k} step${k > 1 ? 's' : ''}` }))],
+      s.set([{ v: '', l: 'Auto · tuned walk' }, ...[1, 2, 3, 4, 5, 6, 7, 8].map((k) => ({ v: String(k), l: `${k} step${k > 1 ? 's' : ''}` }))],
         String(brandState.linkStateRungs?.[st] ?? ''));
       f.append(lab, s.el);
       grid.append(f);

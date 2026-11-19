@@ -100,7 +100,7 @@ export const PALETTE_REFS: readonly NameRef[] = [
     field: 'accentPalette', kind: 'palette',
     rename: (b, p, n) => { if (b.accentPalette === p) b.accentPalette = n; },
     remove: (b, x) => { if (b.accentPalette === x) delete b.accentPalette; },
-    effects: (b, x) => (b.accentPalette === x && !b.interactivePalettes ? ['Its accent column is removed.'] : []),
+    effects: (b, x) => (b.accentPalette === x && !b.interactivePalettes ? ['Its accent button set is removed.'] : []),
   },
   {
     field: 'roleColors.<role>', kind: 'palette',
@@ -122,7 +122,7 @@ export const PALETTE_REFS: readonly NameRef[] = [
       b.interactivePalettes = b.interactivePalettes.filter((e) => e.palette !== x);
       if (!b.interactivePalettes.length) b.interactivePalettes = undefined;
     },
-    effects: (b, x) => (b.interactivePalettes?.some((e) => e.palette === x) ? ['Its interactive color column is removed.'] : []),
+    effects: (b, x) => (b.interactivePalettes?.some((e) => e.palette === x) ? ['Its button set is removed.'] : []),
   },
   {
     field: 'gradients[].stops[].palette', kind: 'palette',

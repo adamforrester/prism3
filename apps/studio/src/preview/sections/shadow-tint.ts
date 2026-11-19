@@ -36,7 +36,7 @@ export const shadowTintSection = (shadow: Theme['shadow'], mode: string,
   const row = el('div', 'sh-tintout');
   row.append(swatch(copy.full, base, 'full'), swatch(copy.painted, `${base}1f`, 'painted'));   // 1f: 12%, mid-steps
   const note = el('p', 'sh-tintnote');
-  note.append(el('b', undefined, `${base.toUpperCase()} `), document.createTextNode(copy.note));
+  note.append(el('b', undefined, `${base.toLowerCase()} `), document.createTextNode(copy.note));   // #4189: displayed hex is lowercase, as the emitted tokens are
   wrap.append(subHead(copy.title), row, note);
   return wrap;
 };

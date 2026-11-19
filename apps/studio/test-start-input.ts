@@ -113,7 +113,7 @@ console.log('\nImport errors name their line (S7)\n');
     ['a surface the ramp lacks', '---\nid: x\nprimary: { l: 0.5, c: 0.1, h: 200 }\nneutral: { hue: 1, chroma: 0.01 }\nsurfaces:\n  light:\n    base: banana\n---\n', 7, /is not a surface/],
     ['a bad namespace', '---\nid: x\nroot: "a b"\nprimary: { l: 0.5, c: 0.1, h: 200 }\nneutral: { hue: 1, chroma: 0.01 }\n---\n', 3, /root namespace/],
     // A JavaScript error out of the engine names no line, and none is guessed.
-    ['no primary at all', '---\nid: x\nneutral: { hue: 1, chroma: 0.01 }\n---\n', null, /engine rejected it/],
+    ['no primary at all', '---\nid: x\nneutral: { hue: 1, chroma: 0.01 }\n---\n', null, /engine refused it/],
     ['an unclosed front matter', '---\nid: x\n', null, /not closed/],
   ];
   for (const [what, text, line, says] of cases) {

@@ -84,7 +84,7 @@ export const verdictLine = (v: Verdict): string =>
  *  a pair's own ratio, so "floor" names one thing on this panel, the contrast floor setting its pointer leads to. The bar's
  *  line (`verdictLine`) is not Health and keeps v6's words. */
 export const healthLine = (v: Verdict): string =>
-  v.fail ? `${v.fail} of ${v.total} pairs below their minimum in ${plural(v.modesFailing, 'mode')}.` : `All ${v.total} pairs at or above their minimum.`;
+  v.fail ? `${v.fail} of ${v.total} pairs below their floor in ${plural(v.modesFailing, 'mode')}.` : `All ${v.total} pairs at or above their floor.`;   // #4190 V3 A: "floor" everywhere
 
 /** Health's pointer to the contrast floor setting (#3366, owner decision Q3366.2 A; the DRAFT copy as rendered for
  *  option C): the floor in each standard mode, named as the floor's picker names a step, then the way to it. `floors`

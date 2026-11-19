@@ -3826,7 +3826,7 @@ for (const brand of BRANDS) {
       `#1854 (Q22): ${brand}: previewing Dark, Return to Auto clears modeLevers.dark.tempo (persisted ${JSON.stringify(b?.modeLevers?.dark ?? null)})`);
     const autoLine = await page.evaluate(() => document.querySelector('[data-p3="tempo-auto"]:not([hidden])')?.textContent ?? null);
     const label = LEVER_TEMPO_LABEL(lightTempo);
-    ok(autoLine === `Auto: follows Light (${label})`, `Q22: ${brand}: previewing Dark under Auto, the tempo says "Auto: follows Light (${label})" (says ${JSON.stringify(autoLine)})`);
+    ok(autoLine === `Auto · follows Light (${label})`, `Q22: ${brand}: previewing Dark under Auto, the tempo says "Auto · follows Light (${label})" (says ${JSON.stringify(autoLine)})`);
     await checkShown(`${brand}/Dark/Auto`, lightTempo);
     // The Auto-chip rule (#2078): on Auto, Light's tempo chip is the checked one; choosing it writes nothing.
     const onAuto = (await persistedBrand(page))?.modeLevers?.dark?.tempo === undefined && await waitChecked(page, TEMPO, lightTempo);
@@ -4093,7 +4093,7 @@ let easingTrips = 0;
   ok(b2?.modeLevers?.dark?.easings?.[role] === undefined,
     `Q22: ${brand}: previewing Dark, picking Light's own curve (${lightCurve}) for ${role} returns it to Auto (dark ${JSON.stringify(b2?.modeLevers?.dark ?? null)})`);
   const label = await page.evaluate((r) => document.querySelector(`[data-p3="easing-pick"][data-role="${r}"] .p3-btn-label`)?.textContent ?? null, role);
-  ok(label === `Auto: follows Light (${lightCurve})`, `Q22: ${brand}: under Auto, the ${role} row says "Auto: follows Light (${lightCurve})" (says ${JSON.stringify(label)})`);
+  ok(label === `Auto · follows Light (${lightCurve})`, `Q22: ${brand}: under Auto, the ${role} row says "Auto · follows Light (${lightCurve})" (says ${JSON.stringify(label)})`);
   const errs = drain();
   ok(errs.length === 0, `${brand} / easing: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();

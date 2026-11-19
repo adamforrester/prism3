@@ -34,7 +34,7 @@ import { glyph, h, hook, isLeaving, leave, unleave } from './dom';
 export type BarView = {
   readonly brand: { readonly name: string; readonly hex: string };
   readonly menuOpen: boolean;
-  readonly examples: readonly { readonly name: string; readonly hex: string; readonly current: boolean }[];
+  readonly examples: readonly { readonly name: string; readonly label: string; readonly hex: string; readonly current: boolean }[];
   /** A load waiting on the overwrite confirm (#160, #722, #1033): beneath the examples for an example, in place of
    *  the import box for an import. `text` is `main.ts`'s sentence, which names both origins. */
   readonly confirm: { readonly at: 'example' | 'import'; readonly text: string } | null;
@@ -228,12 +228,13 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
       const b = hook(h('button', 'p3-menu-item'), 'brand-menu-example');
       b.type = 'button';
       if (ex.current) b.setAttribute('aria-current', 'true');
+      b.dataset.example = ex.name;
       const s = h('span', 'p3-swatch p3-swatch-sm');
       const d = h('span');
       d.setAttribute('data-content', '');
       d.style.background = ex.hex;
       s.append(d);
-      b.append(s, h('span', 'p3-menu-label', ex.name));
+      b.append(s, h('span', 'p3-menu-label', ex.label));   // #4191 T3 A: the brand's name; `name` stays the example's id
       b.onclick = () => act.example(ex.name);
       menu.append(b);
     }
@@ -289,7 +290,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     if (v.confirm?.at === 'import') return confirmBox(v.confirm.text);
     const box = h('div', 'p3-import');
     const ta = hook(h('textarea', 'p3-textarea'), 'import-text');
-    ta.placeholder = 'Paste a design.md — --- YAML frontmatter --- then prose…';
+    ta.placeholder = 'Paste a design.md: YAML front matter between --- lines, then prose';   // #4190 V5 A
     ta.spellcheck = false;
     ta.value = v.importText;
     ta.oninput = () => act.importText(ta.value);

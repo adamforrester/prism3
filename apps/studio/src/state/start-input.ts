@@ -184,7 +184,7 @@ export const validateDesignMd = (text: string): ImportResult => {
   let input: BrandInput;
   if (isStandard) {
     try { input = standardToBrandInput(std).input; }
-    catch (e) { return refusal(text, e, `Parsed as a standard-dialect design.md, but couldn't classify '${std.name}': `); }
+    catch (e) { return refusal(text, e, `This design.md ('${std.name}') loaded, but Prism3 couldn't read its settings: `); }
   } else {
     try { input = parseDesignMd(text).input; }
     catch (e) { return parseRefusal(text, e); }
@@ -193,7 +193,7 @@ export const validateDesignMd = (text: string): ImportResult => {
   // The modes resolve too: some refusals are made there, not in `brandTheme` (the contrast floor's, #2227), and a
   // brief that passed here would otherwise load and fail as the next edit.
   try { resolveAllModes(brandTheme(input)); }
-  catch (e) { return refusal(text, e, 'Parsed, but the engine rejected it: ', input); }
+  catch (e) { return refusal(text, e, 'This design.md loaded, but the engine refused it: ', input); }
   return { input };
 };
 
@@ -219,7 +219,7 @@ export const readDesignMdFile = (file: File): Promise<{ text: string } | { error
   return new Promise((resolve) => {
     const r = new FileReader();
     r.onload = () => resolve({ text: String(r.result ?? '') });
-    r.onerror = () => resolve({ error: `Couldn't read "${file.name}".` });
+    r.onerror = () => resolve({ error: `Couldn't read "${file.name}". Choose the file again, or paste its text.` });
     r.readAsText(file);
   });
 };

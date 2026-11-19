@@ -71,7 +71,7 @@ export const DOCS_COPY = {
   specsDesc: 'Measured specs for each component set on this page, drawn beside its usage panel. Build and Update file never draw them.',
   specsDraw: 'Draw specs',
   specsBusy: 'Drawing specs',
-  saveError: 'Couldn’t save the setting in this file.',
+  saveError: 'Couldn’t save the setting in this file. Check you can edit this file, then try again.',
 } as const;
 
 /** The tab open, kept for the session: leaving the area and coming back returns to it. */
