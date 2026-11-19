@@ -1,14 +1,16 @@
 ## (2026-11-18) — The component contract and the component schema get their own versions (#1325, Q-CC1 A)
 
 The owner decided #1325 on 2026-11-18 (Q-CC1 A): adopt "component contract" and "component schema" in Nathan Curtis's
-sense, and build #1326 decision 3's mechanism now. This is the mechanism. Wording and the contract-named published file
-are a separate PR.
+sense, and build #1326 decision 3's mechanism now. This is the mechanism. The wording and the contract-named published
+file landed first, as #3992.
 
 ### What landed
 
-- `version.ts` gains `COMPONENT_CONTRACT_VERSION` (1.0.0) and `COMPONENT_SCHEMA_VERSION` (1.4.0), apart from the token
-  `CONTRACT_VERSION`. The schema version starts at 1.4.0 because the export already declared `prism3-component-defs/1.4`:
-  a consumer reading that number sees no move.
+- `version.ts` gains `COMPONENT_CONTRACT_VERSION` (1.1.0) and `COMPONENT_SCHEMA_VERSION` (1.5.0), apart from the token
+  `CONTRACT_VERSION`. The first baseline was cut at 1.0.0 and 1.4.0, the shape the export then declared. Two MINOR
+  moves on `main` landed before this did, and the gate classified them on the refresh: `tag-group` was added (contract
+  1.1.0), and #4074's `prism3-component-defs/1.5` added the button's `borderWeight` setting (schema 1.5.0). So the
+  schema number still equals the export's `format`, and a consumer reading it sees no move.
 - `component-contract.ts` builds both surfaces live and gates them against `schema/component-contract.json`, which only
   `--accept` writes, after each bump. Both modes compare the numbers as `token-contract.ts` does (#1768): behind, or
   ahead with nothing to record, fails. It also holds the schema version's MAJOR.MINOR, the schema's `$id` and
@@ -49,7 +51,6 @@ are a separate PR.
 - Both sides of the number comparison are in the tree, so an old number written back into `version.ts` and the
   baseline passes. `lint-contract-version.ts` closes this for the token contract from the merge base; the component
   twin is filed as a follow-up.
-- OWNER DECISION: whether projected Figma property and layer names join the component contract (#1325's open scope
-  question). They are detected under `ENGINE_VERSION` today, not classified.
-- OWNER DECISION: whether the component contract starts at 1.0.0 (built) while every def is draft, and whether drafts
-  should stay in the guarantee (built: yes, with status recorded).
+- Owner decision Q-CV2 (2026-11-18), confirmed as built: projected Figma property and layer names stay outside the
+  component contract for now, and are detected under `ENGINE_VERSION`, not classified. Drafts are in the guarantee,
+  with status recorded, and the contract started at 1.0.0. A moved default is PATCH.

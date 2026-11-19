@@ -1,6 +1,6 @@
 {
-  "componentContractVersion": "1.0.0",
-  "componentSchemaVersion": "1.4.0",
+  "componentContractVersion": "1.1.0",
+  "componentSchemaVersion": "1.5.0",
   "note": "Written by packages/engine/component-contract.ts --accept alone; do not hand-edit, and never regenerate it. `components` is the component-contract surface: per component, its name and status, its props (type, required, default, values), states, variant axes and values, and slots. `schema.shape` is the component schema: the shape of one published entry, read from the JSON schema named in `schema.source`, with its prose left out. Removing or renaming a name is a MAJOR change, adding one is MINOR, and moving a default is a PATCH; docs/30 has the full table.",
   "schema": {
     "source": "packages/engine/schema/component-defs.schema.json",
@@ -291,12 +291,16 @@
       "#/$defs/settings/properties/bannerStyle enum∋\"tinted\"",
       "#/$defs/settings/properties/button",
       "#/$defs/settings/properties/button additionalProperties=false",
+      "#/$defs/settings/properties/button required∋borderWeight",
       "#/$defs/settings/properties/button required∋content",
       "#/$defs/settings/properties/button required∋icons",
       "#/$defs/settings/properties/button required∋labelWeight",
       "#/$defs/settings/properties/button required∋minWidthMultiplier",
       "#/$defs/settings/properties/button required∋textHover",
       "#/$defs/settings/properties/button type=\"object\"",
+      "#/$defs/settings/properties/button/properties/borderWeight",
+      "#/$defs/settings/properties/button/properties/borderWeight minLength=1",
+      "#/$defs/settings/properties/button/properties/borderWeight type=\"string\"",
       "#/$defs/settings/properties/button/properties/content",
       "#/$defs/settings/properties/button/properties/content minLength=1",
       "#/$defs/settings/properties/button/properties/content type=\"string\"",
@@ -2298,6 +2302,10 @@
             "none",
             "stacked"
           ]
+        },
+        "hideTitle": {
+          "type": "boolean",
+          "default": false
         },
         "onOpenChange": {
           "type": "function"
@@ -5307,6 +5315,54 @@
       "slots": [
         "leadingVisual"
       ]
+    },
+    "tag-group": {
+      "name": "Tag.Group",
+      "status": "draft",
+      "props": {
+        "defaultValue": {
+          "type": "string[]"
+        },
+        "items": {
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "tag"
+          ],
+          "minItems": 1
+        },
+        "label": {
+          "type": "string",
+          "required": true
+        },
+        "onChange": {
+          "type": "(value: string[], event) => void"
+        },
+        "onRemove": {
+          "type": "(value: string, event) => void"
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "value": {
+          "type": "string[]"
+        }
+      },
+      "states": [],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ]
+      },
+      "slots": []
     },
     "text-field": {
       "name": "TextField",
