@@ -3860,7 +3860,12 @@ const writeComponentSet = async (
       const twiceHeld = names.filter((n) => byName.get(n)!.length > 1);
       const preferredValues: SlotPreferredValue[] = names.filter((n) => byName.get(n)!.length === 1 && byName.get(n)![0].key).map((n) => ({ type: 'COMPONENT', key: byName.get(n)![0].key! }));
       if (twiceHeld.length) misses.push(`property ${p.name}.preferred -> ${twiceHeld.length} icon name(s) held by more than one component (${twiceHeld.slice(0, 3).join(', ')}; not offered in the swap. Rename or remove the stale copies, then rebuild)`);
-      if (!preferredValues.length) { misses.push(`property ${p.name}.preferred -> no ${prefix}* component in this file (build the icons first, then rebuild this one; until then the swap lists no icons first)`); continue; }
+      if (!preferredValues.length) {
+        misses.push(names.length
+          ? `property ${p.name}.preferred -> the ${prefix}* components carry no key on this host (not offered in the swap)`
+          : `property ${p.name}.preferred -> no ${prefix}* component in this file (build the icons first, then rebuild this one; until then the swap lists no icons first)`);
+        continue;
+      }
       const edit = liveSet().editComponentProperty;
       if (!edit) { misses.push(`property ${p.name}.preferred -> NOT WRITTEN (this host cannot edit a component property)`); continue; }
       try { edit.call(liveSet(), key, { preferredValues }); }
