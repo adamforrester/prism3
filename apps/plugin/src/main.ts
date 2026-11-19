@@ -1938,7 +1938,7 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
     const items = [...furnitureItems(furniture, 'update'), ...[docBlockLine(furniture, 'update', fix)].filter(Boolean)];
     postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), items), furniture, 'update', fix), ...(r.publish ? { publish: r.publish } : {}) }, sink);
   } catch (e) {
-    const why = (e as Error)?.message ?? String(e);
+    const why = failureDetail(e);
     const headline = previewHash === null ? '✗ check failed' : '✗ update failed';
     postVerdict({ type: 'component-update-result', ok: false, headline, summary: why, lines: [why], causes: [runCause(headline, why)] }, sink);
   }
@@ -1956,7 +1956,7 @@ const captureBaseline = async (defId: string | undefined, sink: ActionSink): Pro
     sink.data({ update: { mode: 'capture', ...r } });
     postVerdict({ type: 'component-update-result', ...captureVerdictText(r) }, sink);
   } catch (e) {
-    const why = (e as Error)?.message ?? String(e);
+    const why = failureDetail(e);
     postVerdict({ type: 'component-update-result', ok: false, headline: '✗ record failed', summary: why, lines: [why] }, sink);
   }
 };
@@ -1973,7 +1973,7 @@ const adoptMembers = async (defId: string | undefined, sink: ActionSink): Promis
     sink.data({ update: { mode: 'adopt', ...r } });
     postVerdict({ type: 'component-update-result', ...adoptVerdictText(r) }, sink);
   } catch (e) {
-    const why = (e as Error)?.message ?? String(e);
+    const why = failureDetail(e);
     postVerdict({ type: 'component-update-result', ok: false, headline: '✗ adopt failed', summary: why, lines: [why] }, sink);
   }
 };
@@ -2016,7 +2016,7 @@ const drawSpecs = async (defId: string | undefined, scope: 'file' | 'page', sink
     const causes = clean ? [] : [{ ...runCause(headline, ''), reasons: targets.length ? [...items] : [summary] }];
     postVerdict({ type: 'component-update-result', ok: clean, headline, summary, lines: targets.length ? [`Drew ${drawn.length} of ${targets.length}.`, ...items] : [summary], causes }, sink);
   } catch (e) {
-    const why = (e as Error)?.message ?? String(e);
+    const why = failureDetail(e);
     postVerdict({ type: 'component-update-result', ok: false, headline: '✗ draw specs failed', summary: why, lines: [why], causes: [runCause('✗ draw specs failed', why)] }, sink);
   }
 };
