@@ -20850,16 +20850,25 @@ arm: {
       ['nb', nbTheme()],
       ['aurora', exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput))],
       ['harbor', exampleTheme('harbor', () => brandTheme(exampleBrands()['harbor'] as BrandInput))],
+      ['wendys', exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))],
     ]);
+    // The pair is read off the plans, what the def binds, not typed here: a rebound ink or backdrop is the pair measured
+    // (#4110 review). Each distinct (ink, backdrop) pair at the initials members is measured in every brand and mode.
+    const role = (v: unknown): string => typeof v === 'string' ? v.replace(/^color\//, '').replace(/\//g, '.') : '';
+    const pairs = [...new Set(plans.filter((p) => p.coord.type === 'initials')
+      .map((p) => `${role(find(p.root, 'initials')?.paints?.fills)}|${role(kid(p.root, 'mask')?.paints?.fills)}`))];
     const low: string[] = []; let cells = 0;
-    for (const [b, th] of avThemes) for (const m of resolveAllModes(th)) {
-      const x = m.roles['text.primary'], y = m.roles['background.tertiary'];
-      if (!x?.hex || !y?.hex) { low.push(`${b}/${m.mode}: missing`); continue; }
-      cells++;
-      const r = contrast(hexToRgb(x.hex), hexToRgb(y.hex));
-      if (r < 4.5) low.push(`${b}/${m.mode} ${r.toFixed(2)}`);
+    for (const pair of pairs) {
+      const [ink, ground] = pair.split('|');
+      for (const [b, th] of avThemes) for (const m of resolveAllModes(th)) {
+        const x = m.roles[ink], y = m.roles[ground];
+        if (!x?.hex || !y?.hex) { low.push(`${b}/${m.mode} ${ink} on ${ground}: missing`); continue; }
+        cells++;
+        const r = contrast(hexToRgb(x.hex), hexToRgb(y.hex));
+        if (r < 4.5) low.push(`${b}/${m.mode} ${ink} on ${ground} ${r.toFixed(2)}`);
+      }
     }
-    ok(cells === 16 && low.length === 0, `#4110 avatar: the initials (text.primary) clear 4.5:1 on the backdrop (background.tertiary) in all ${cells} of 16 brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
+    ok(pairs.length === 1 && cells === 20 && low.length === 0, `#4110 avatar: the initials' ink clears 4.5:1 on the backdrop the def binds (${pairs.join(', ').replace(/\|/g, ' on ')}) in all ${cells} of 20 brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
   }
 
   // #2713 — `ai.generationPriority` follows the build-component skill's written scale. Before it, each def's
