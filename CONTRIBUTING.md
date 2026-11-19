@@ -1638,6 +1638,12 @@ npx tsx apps/plugin/lint-bundle-prose.ts
                                           # one-line `summary` (the Figma description) present. Runs after
                                           # the plugin build. Mutation: drop the plugin from build.mjs's
                                           # main entry, rebuild — arm A fires once per notes/codeOnly string.
+npx tsx apps/plugin/lint-bundle-prose.ts --web
+                                          # THE SAME THREE ARMS OVER THE WEB SPECS CHUNK (#3429). The web
+                                          # builds the defs into apps/studio/dist/component-specs.js through
+                                          # the same strip; `--web` reads that one file. Runs after the WEB
+                                          # build, in the studio job. Mutation: drop maintainerProsePlugin
+                                          # from apps/studio/build.mjs, rebuild — arm A fires by name.
 npx tsx apps/plugin/lint-release-bundle.ts
                                           # THE RELEASE BUILD CARRIES NO DEV-ONLY CODE (#2530). Each dev-only
                                           # marker, authored in the gate (docs/34), must be FOUND in dist/,

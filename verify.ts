@@ -1198,6 +1198,13 @@ export const GATES: Gate[] = [
     why: 'it reads the dist/main.js and dist/ui.html the plugin build just wrote',
   },
   {
+    id: 'lint-web-bundle-prose',
+    ciStep: 'The built web specs chunk ships no maintainer notes and no Prism 2 in component text (#3429)',
+    cmd: [...TSX, 'apps/plugin/lint-bundle-prose.ts', '--web'],
+    after: ['build-web'],
+    why: 'it reads the dist/component-specs.js the web build just wrote',
+  },
+  {
     id: 'lint-release-bundle',
     ciStep: 'The release build carries no dev-only code (#2530)',
     cmd: [...TSX, 'apps/plugin/lint-release-bundle.ts'],

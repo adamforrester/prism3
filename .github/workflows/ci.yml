@@ -1038,6 +1038,12 @@ jobs:
       - name: Vercel ignore list matches the real bundle
         run: npm run -w @prism3/studio check:ignore
 
+      # The web builds the component definitions into a second output, dist/component-specs.js, through the
+      # plugin's maintainer-prose strip (#3429). The plugin job's step reads only the plugin's bundles, so this
+      # one reads the web chunk against the same real defs: no notes or codeOnly prose, no Prism 2, every summary.
+      - name: The built web specs chunk ships no maintainer notes and no Prism 2 in component text (#3429)
+        run: npx tsx apps/plugin/lint-bundle-prose.ts --web
+
       # The studio enforces contrast on every brand it GENERATES; this holds it to the same bar for
       # the chrome it renders those contracts in. #355 fixed a real failure there by hand and parked
       # the ink tiers ON the AA floor, which is a correct decision with no memory. STATIC — it reads

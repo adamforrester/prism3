@@ -3346,7 +3346,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer (#2454). The owner built the Figma components first (Q178.3); the entries below are a framework-neutral behavior contract for whichever layer the project's developers choose."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "semantics",
@@ -3447,7 +3447,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer (#2454). The owner built the Figma components first (Q178.3); the entries below are a framework-neutral behavior contract for whichever layer the project's developers choose."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "semantics",
@@ -4091,7 +4091,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "semantics",
@@ -4190,7 +4190,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract for whichever layer the project's developers choose."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "runtime-behavior",
@@ -4291,7 +4291,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project's developers choose."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "semantics",
@@ -4588,7 +4588,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer (#2454) — initial focus placement, backdrop-click dismissal and focus return wait on that decision. The contract above holds under any answer to it."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it. In plain HTML/CSS that covers initial focus placement, backdrop-click dismissal and focus return."
         }
       ],
       "notes": {
@@ -5008,7 +5008,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project's developers choose."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "semantics",
@@ -5111,7 +5111,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project's developers choose."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "semantics",
@@ -5537,7 +5537,7 @@
         {
           "class": "implementation",
           "disposition": "REFUSED",
-          "description": "A headless usePagination — returning the item list (page, ellipsis, previous, next, with current and disabled) — is the brief's shape for the window. code delivery pending: behavior layer (#2454) decides whether it ships beside the component."
+          "description": "A headless usePagination — returning the item list (page, ellipsis, previous, next, with current and disabled) — is the brief's shape for the window. Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         }
       ],
       "notes": {
@@ -6195,7 +6195,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "implementation",
@@ -6455,7 +6455,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer (#2454). The entries below are a framework-neutral behavior contract."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "semantics",
@@ -6564,7 +6564,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project's developers choose."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "semantics",
@@ -6663,7 +6663,7 @@
         {
           "class": "deferred",
           "disposition": "REFUSED",
-          "description": "code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project's developers choose."
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
         },
         {
           "class": "semantics",
