@@ -374,9 +374,11 @@ export const radioGroup: ComponentDef = {
     usage: 'Use to choose exactly one of 2 to 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Give the group a label that names the decision; let it own the shared name, the single scalar value, required and validation, and derive each row\'s checked state from the value rather than wiring it on the row. Compose the rows as items. Prefer vertical orientation, which scans better and lets long labels wrap safely. Past 7 options a Select or a filtering combobox (not built yet) scans better; for any-number selection use Checkbox.Group, and for an immediate-effect setting Switch.Row.',
     do: [
       'Give the group a label that names the decision, so its rows can read the short abstracted-up remainder',
+      'Give an optional group an explicit "None" option — a radio cannot be deselected, so a stray click is otherwise permanent',
+    ],
+    implementation: [
       'Let the group own the shared name, the single scalar value, required and validation — an option never manages its own',
       'Derive each row\'s checked state from the group\'s scalar value; never wire checked on a row in a group',
-      'Give an optional group an explicit "None" option — a radio cannot be deselected, so a stray click is otherwise permanent',
       'Keep required and error at the group level, announced once (aria-required / aria-invalid on the group)',
       'Prefer role="radiogroup" + aria-labelledby over fieldset/legend for the layout freedom',
     ],

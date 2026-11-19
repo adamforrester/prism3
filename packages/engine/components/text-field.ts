@@ -861,8 +861,10 @@ export const textField: ComponentDef = makeTextField({
     do: [
       'Always render a visible, associated label (FieldLabel) — visually-hidden only for search',
       'Distinguish `readOnly` (copyable, submitted, full-contrast) from disabled (silent, exempt)',
-      'Emit a real `<input name>` so it works uncontrolled, in a native form, with Server Actions',
       'Separate a decorative glyph (`aria-hidden`) from an interactive trailing action (a labeled button)',
+    ],
+    implementation: [
+      'Emit a real `<input name>` so it works uncontrolled, in a native form, with Server Actions',
       'Follow the error-timing contract: validate on blur, re-validate on input after the first error, move focus to the first invalid field on submit, and show an error summary on a long form (the form library runs it; the field renders it)',
     ],
     dont: [

@@ -475,7 +475,8 @@ export const paginationItem: ComponentDef = {
 
   docs: {
     usage: 'Use inside Pagination only. Pagination works out which pages to show, marks the current one, places the ellipses, and sets previous and next inactive at an end.',
-    do: ['Let Pagination set the current page and the ellipses', 'Keep every page cell the same size as the previous and next cells beside it'],
+    do: ['Keep every page cell the same size as the previous and next cells beside it'],
+    implementation: ['Let Pagination set the current page and the ellipses'],
     dont: ['Place a page cell outside a pagination row', 'Make the ellipsis a control'],
     contentGuidelines: 'Numbers only on a page. The accessible name adds "Page". Previous and next read "Previous" and "Next", sentence case.',
   },
@@ -789,8 +790,10 @@ export const pagination: ComponentDef = {
       'Place it below the content it pages',
       'Give pages an address, so they can be bookmarked and shared',
       'Leave previous and next in place at an end',
-      'Move focus to the top of the results after an in-place change',
       'Leave it out when there is only one page',
+    ],
+    implementation: [
+      'Move focus to the top of the results after an in-place change',
     ],
     dont: [
       'Use it for a feed with no useful end. Use a load more Button.',

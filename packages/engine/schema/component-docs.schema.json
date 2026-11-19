@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "prism3-component-docs/1.1",
+  "$id": "prism3-component-docs/1.2",
   "$comment": "AUTHORED, NOT GENERATED, and deliberately not a `regen.ts` artifact: a schema regenerated from the projector would agree with whatever the projector wrote. Gated by `packages/engine/lint-component-docs.ts`, which validates `out/components/components.ai.json` against it with `json-schema-lite.ts`. Every object closes `additionalProperties`, so a field the projector adds, drops or renames fails until this schema and its `$id` version move with it.",
   "title": "Prism3 component documentation (components.ai.json)",
   "description": "Documentation for every registered component, projected from its definition: usage guidance, the accessibility contract, the code API and the decision surface for choosing a component. Brand-independent: a definition binds token names, and each brand's `<brand>.ai.json` resolves them. Field names mirror the definition schema, so `docs.usage` here is `docs.usage` in the definition.",
@@ -8,7 +8,7 @@
   "additionalProperties": false,
   "required": ["$schema", "generated", "engineVersion", "note", "components"],
   "properties": {
-    "$schema": { "const": "prism3-component-docs/1.1", "description": "The schema version this file follows. Equal to this schema's `$id`." },
+    "$schema": { "const": "prism3-component-docs/1.2", "description": "The schema version this file follows. Equal to this schema's `$id`." },
     "generated": { "const": true, "description": "Always true: every field is projected from a component definition, none is typed here." },
     "engineVersion": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$", "description": "The engine version that wrote this file." },
     "note": { "type": "string", "minLength": 1, "description": "A one-paragraph guide to the file, for a reader without this schema." },
@@ -107,6 +107,7 @@
             "usage": { "$ref": "#/$defs/text", "description": "When and how to use the component." },
             "do": { "$ref": "#/$defs/texts", "description": "Practices to follow." },
             "dont": { "$ref": "#/$defs/texts", "description": "Practices to avoid, each with its reason." },
+            "implementation": { "$ref": "#/$defs/texts", "description": "How to build it in code: the rules a developer acts on and a designer placing it does not." },
             "contentGuidelines": { "$ref": "#/$defs/text", "description": "Guidance for the text inside the component." }
           }
         },

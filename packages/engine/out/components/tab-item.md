@@ -49,7 +49,6 @@ Use inside Tabs only. A tab names one panel of related content; selecting it sho
 
 - Keep labels short, parallel nouns
 - Use nouns, not verbs ("Activity", not "View activity")
-- Let the tab list set selected from its value
 
 ### Don't
 
@@ -93,6 +92,8 @@ One or two words, a noun, sentence case.
   - a styled button that shows and hides a div with no tab semantics
 
 ## Building it in code
+
+- Let the tab list set selected from its value
 
 ### Props
 

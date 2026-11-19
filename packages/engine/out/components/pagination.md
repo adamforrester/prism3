@@ -53,7 +53,6 @@ Use Pagination below a long list, a grid of results or a table, to move between 
 - Place it below the content it pages
 - Give pages an address, so they can be bookmarked and shared
 - Leave previous and next in place at an end
-- Move focus to the top of the results after an in-place change
 - Leave it out when there is only one page
 
 ### Don't
@@ -111,6 +110,8 @@ Use Pagination below a long list, a grid of results or a table, to move between 
   - infinite scroll on a page with a footer
 
 ## Building it in code
+
+- Move focus to the top of the results after an in-place change
 
 ### Props
 

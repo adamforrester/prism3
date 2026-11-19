@@ -112,7 +112,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -211,7 +211,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -328,11 +328,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -436,11 +431,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -544,11 +534,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -652,11 +637,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -770,7 +750,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -898,7 +878,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -988,11 +968,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -1082,11 +1057,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -1176,11 +1146,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -1271,11 +1236,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -1366,11 +1326,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -1461,11 +1416,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -1563,7 +1513,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -1657,11 +1607,6 @@
           "section": "related",
           "field": "composition.replacesPatterns",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -1763,11 +1708,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -1879,11 +1819,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -1952,11 +1887,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2046,11 +1976,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2154,11 +2079,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2231,11 +2151,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2317,11 +2232,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2426,11 +2336,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2511,11 +2416,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2610,11 +2510,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2708,11 +2603,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2812,11 +2702,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2933,7 +2818,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -3060,11 +2945,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -3171,7 +3051,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -3333,11 +3213,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -3434,11 +3309,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -3543,7 +3413,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -3685,7 +3555,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -3770,7 +3640,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -3877,7 +3747,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -3981,7 +3851,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -4082,7 +3952,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -4181,7 +4051,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -4278,11 +4148,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -4400,7 +4265,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -4494,7 +4359,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -4645,11 +4510,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -4764,11 +4624,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -4910,7 +4765,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -4999,7 +4854,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -5102,7 +4957,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -5229,7 +5084,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -5338,11 +5193,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -5459,11 +5309,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -5590,11 +5435,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -5724,7 +5564,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -5827,11 +5667,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -5948,11 +5783,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -6094,11 +5924,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -6149,6 +5974,11 @@
       },
       "docGaps": [
         {
+          "section": "usage",
+          "field": "docs.do",
+          "reason": "empty"
+        },
+        {
           "section": "content",
           "field": "content.errorPattern",
           "reason": "empty"
@@ -6182,11 +6012,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -6329,11 +6154,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -6446,7 +6266,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -6551,11 +6371,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -6654,7 +6469,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -6758,11 +6573,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     }

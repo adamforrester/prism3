@@ -53,7 +53,6 @@ Use a Banner for an important message the user should see and may need to act on
 - Give the action a verb that says what it does
 - Use the neutral tone for an announcement or an offer, which carries no status
 - End a one-line message with an inline link when its action goes somewhere
-- Move focus to a sensible place after a dismiss
 
 ### Don't
 
@@ -108,6 +107,8 @@ Titles are short, specific and in sentence case, with no period. The body states
   - an error shown as a toast that disappears
 
 ## Building it in code
+
+- Move focus to a sensible place after a dismiss
 
 ### Props
 

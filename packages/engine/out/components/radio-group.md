@@ -40,11 +40,7 @@ Use to choose exactly one of 2 to 7 mutually exclusive, all-visible options wher
 ### Do
 
 - Give the group a label that names the decision, so its rows can read the short abstracted-up remainder
-- Let the group own the shared name, the single scalar value, required and validation — an option never manages its own
-- Derive each row's checked state from the group's scalar value; never wire checked on a row in a group
 - Give an optional group an explicit "None" option — a radio cannot be deselected, so a stray click is otherwise permanent
-- Keep required and error at the group level, announced once (aria-required / aria-invalid on the group)
-- Prefer role="radiogroup" + aria-labelledby over fieldset/legend for the layout freedom
 
 ### Don't
 
@@ -96,6 +92,11 @@ The group label names the decision; the rows carry the short options. Group erro
   - per-option required / error scattered across the options instead of owned by the group
 
 ## Building it in code
+
+- Let the group own the shared name, the single scalar value, required and validation — an option never manages its own
+- Derive each row's checked state from the group's scalar value; never wire checked on a row in a group
+- Keep required and error at the group level, announced once (aria-required / aria-invalid on the group)
+- Prefer role="radiogroup" + aria-labelledby over fieldset/legend for the layout freedom
 
 ### Props
 

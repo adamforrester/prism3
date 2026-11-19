@@ -47,7 +47,6 @@ Use to choose one value from a known, bounded set where the options are not wort
 - Render a visible, associated label (FieldLabel) above the control
 - Show a muted placeholder as a prompt, never as the label or a real option
 - Drive validation through the status axis so the border and the nested message agree
-- Prefer the native control where its OS menu is acceptable — the listbox contract is correct for free
 
 ### Don't
 
@@ -95,6 +94,8 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain n
   - placeholder-as-label
 
 ## Building it in code
+
+- Prefer the native control where its OS menu is acceptable — the listbox contract is correct for free
 
 ### Props
 

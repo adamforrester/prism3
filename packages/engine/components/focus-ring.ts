@@ -398,8 +398,10 @@ export const focusRing: ComponentDef = {
     usage:
       'Build this component first, then leave it to hosts: every focusable component nests it by name. Don\'t place it in a layout. In code it is an outline with an outline offset, so it survives forced-colors mode.',
     do: [
-      'Nest the shared ring rather than re-authoring a focus treatment per component',
       'Pick the inverse surface on a dark or brand-filled ground, where the default ring loses its 3:1 separation',
+    ],
+    implementation: [
+      'Nest the shared ring rather than re-authoring a focus treatment per component',
       'Pick the field offset for inputs, whose own border already supplies the separation',
       'Keep the ring outside the host\'s bounds and the host un-clipped, so the ring is never cut off (2.4.7)',
     ],

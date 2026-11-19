@@ -181,6 +181,7 @@ const SECTION = (path: Path): Place | undefined => {
       return a === 'usage' ? { kind: 'text', heading: '## Usage guidelines' }
         : a === 'do' ? { kind: 'text', heading: '### Do' }
         : a === 'dont' ? { kind: 'text', heading: "### Don't" }
+        : a === 'implementation' ? { kind: 'text', heading: '## Building it in code' }
         : a === 'contentGuidelines' ? { kind: 'text', heading: '## Content guidelines' }
         : undefined;
     case 'content':
@@ -561,8 +562,8 @@ const RULE: { id: string; title: string; sources: Src[]; strip: (d: any) => void
     ],
     strip: (d) => { d.ai = { ...d.ai, commonPartners: [] }; d.composition = { planned: d.composition?.planned }; } },
   { id: 'code', title: 'Building it in code',
-    sources: [src('props', (d) => d.props.map((p) => [p.name, p.description]))],
-    strip: (d) => { d.props = []; } },
+    sources: [src('docs.implementation', (d) => d.docs.implementation), src('props', (d) => d.props.map((p) => [p.name, p.description]))],
+    strip: (d) => { d.docs = { ...d.docs, implementation: [] }; d.props = []; } },
 ];
 const BRAND_MODES = ['light', 'dark'];
 /** The sections the def's data gives, by the rule above. */

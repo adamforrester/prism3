@@ -305,7 +305,8 @@ export const tab: ComponentDef = {
 
   docs: {
     usage: 'Use inside Tabs only. A tab names one panel of related content; selecting it shows that panel in place.',
-    do: ['Keep labels short, parallel nouns', 'Use nouns, not verbs ("Activity", not "View activity")', 'Let the tab list set selected from its value'],
+    do: ['Keep labels short, parallel nouns', 'Use nouns, not verbs ("Activity", not "View activity")'],
+    implementation: ['Let the tab list set selected from its value'],
     dont: ['Use a tab to go to another page; that is a link in PageNav', 'Set selected on a tab inside a list by hand', 'Wrap a label onto a second line; shorten it, or reconsider how many tabs the list needs'],
     contentGuidelines: 'One or two words, a noun, sentence case.',
   },

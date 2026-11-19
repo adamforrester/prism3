@@ -358,10 +358,12 @@ export const checkboxControl: ComponentDef = {
   docs: {
     usage: 'Do not place this on its own as a form control. It is the box Checkbox.Row nests, so a fix to its corner, its border weight or its fill grammar reaches the row and the group without being copied. Build it before the row that nests it (the nest resolves by name against the live file). It is also the unit a host nests when the label is decoupled — a select-all in a table\'s first column, a card-select where the card is the accessible name, a list or menu row. Nested that way, the host names the control through aria-labelledby, the host owns the hit target (the whole row toggles, unless the row has its own primary action — then the control is a secondary affordance with its own name, such as "Select <item>"), and the enclosing collection is the group: it owns the selected ids and select-all, so no Checkbox.Group goes inside a list. Resolve every nested case to one model — the whole row is one control, or the control is a named secondary affordance — never a control inside a row that is itself a button or link with no clear click target.',
     do: [
+      'Supply an external `aria-label` only when using the control genuinely alone, with no labeled row to name it',
+      'Nest it in a table cell, card or list row when the label is decoupled — the host row supplies the name and the collection owns the selection',
+    ],
+    implementation: [
       'Nest this from Checkbox.Row rather than redrawing the box per host',
       'Let the host row expose selection and state and follow its size, so the nested control tracks the row',
-      'Supply an external aria-label only when using the control genuinely alone, with no labeled row to name it',
-      'Nest it in a table cell, card or list row when the label is decoupled — the host row supplies the name and the collection owns the selection',
     ],
     dont: [
       'Place a bare control square as the clickable element — it fails SC 2.5.8 in isolation; the labeled row is the hit target',

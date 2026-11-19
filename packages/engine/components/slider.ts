@@ -228,6 +228,8 @@ export const sliderThumb: ComponentDef = {
   docs: {
     usage: 'Part of a Slider. The Slider places one thumb for a single value and two for a range, and sets each thumb\'s name, value, size and state.',
     do: [
+    ],
+    implementation: [
       'Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward',
       'Let the Slider name each thumb, so a range announces "Minimum" and "Maximum", not "slider, slider"',
     ],
@@ -692,6 +694,8 @@ export const slider: ComponentDef = {
       'Name the dimension with a visible label',
       'Format the value with its unit or currency, and use the same text for `aria-valuetext`',
       'Turn on the paired inputs when an exact value matters',
+    ],
+    implementation: [
       'Bind costly work, such as a network filter, to `onChangeEnd`',
     ],
     dont: [

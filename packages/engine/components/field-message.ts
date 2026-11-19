@@ -443,6 +443,8 @@ export const fieldMessage: ComponentDef = {
     do: [
       'Show the format/constraint in the default status before the user can fail',
       'Pair the status with an icon so it is never color-only',
+    ],
+    implementation: [
       'Let the host own `aria-describedby` + `aria-invalid`; keep this node presentational',
     ],
     dont: [
