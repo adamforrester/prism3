@@ -38,6 +38,8 @@ Shown on the default member: intent `neutral`.
 
 Use a Toast to confirm something the user did, when the page already shows the change: "Added to bag", "Address saved", "Code copied". If missing the message would cost the user something, use Banner. A decision before going on is a dialog; a message about one field is a field message.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Confirm the user's own action in a few words

@@ -168,7 +168,7 @@ export const segmentedControlSegment: ComponentDef = {
         note: 'The indicator, inset 4px inside the cell and as wide as the cell allows. Selected, it is a flat pill in the page surface color, with no border or shadow, and it does not change at hover or press; unselected, it is clear at rest and takes a light neutral wash over the track at hover and press.',
       },
       content: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'presentation',
         children: ['leadingVisual', 'labelBox'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
@@ -224,7 +224,7 @@ export const segmentedControlSegment: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract.',
+          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
       },
       {
         class: 'semantics',
@@ -432,7 +432,7 @@ export const segmentedControl: ComponentDef = {
       // options, three by default with the first selected. It grows across the track, so the options inside it
       // still share the track's width equally (Q269.6). A designer adds, removes and reorders options in place.
       items: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'presentation',
         contentSlot: true,
         // Owner decision Q307 A: at least one item, at most 5, and only a segmented-control-segment (#2646's slot constraints).
@@ -453,7 +453,7 @@ export const segmentedControl: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
+          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
       },
       {
         class: 'runtime-behavior',

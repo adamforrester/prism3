@@ -396,6 +396,8 @@ export const DOMAINS = [
           { ctl: 'enum', keys: ['buttonTextHover'], drive: 'button' },
           // #2909 Q2909.4 A: Outline hover's read-only line (its home Theme › Color › Interactive).
           { ctl: 'outlineLink' },
+          // #576 (owner decision 2026-11-18, A): one outline border weight for every button set. Placement DRAFT.
+          { ctl: 'enum', keys: ['buttonBorderWeight'], drive: 'button' },
           { ctl: 'slider', keys: ['buttonMinWidthMultiplier'], drive: 'button' },
         ],
       },

@@ -66,6 +66,18 @@
  * `v` holds, and a record written before it existed holds no `tint` and is compared whole, as it always was. One
  * limit: a designer who sets a bound paint's opacity by hand is not seen.
  *
+ * AND WHAT THE HOST SET ON EACH INSTANCE, ITS PROPERTIES READ AS ITS OWN (#4070), as one hash per instance beside the
+ * nodes' (`Baseline.inst`). `InstanceNode.overrides` lists `componentProperties` as ONE field, so `own` kept the whole
+ * property list once the host set any value: every property the nested set defines, by its full name, with its current
+ * value, defaults and all. A property added to the nested set, renamed there (List.Item's `text` → `label`, #3623,
+ * renamed in place by Update) or given a new default moved the hash of every member that nests it, and each read as
+ * hand-edited (36 on List, 2026-11-18). Here a property is named by its id (the `#…` suffix, which a rename keeps), a
+ * variant entry is left out (`main` names the member), and an entry at the main's own default is left out, so only a
+ * value set on the instance counts. Where both records hold it, `baselineDiff` compares this hash in place of `own`.
+ * Beside the node hashes for `reactions`' reason: a record written before it existed holds no `inst` and is compared
+ * as it was. Limits: a value set to what is the main's default reads as not set, and where the main's definitions
+ * cannot be read (a library main), every entry is kept, as `own` keeps them.
+ *
  * `v` is the format's version. A change to what is hashed changes every hash, so it raises `v`, and a
  * dry run that reads an older `v` reports the member as having no baseline rather than as hand-edited.
  *
@@ -101,7 +113,7 @@ export type SnapNode = Record<string, unknown> & { name: string; type: string; c
  *  beside the node hashes rather than in the root's, so a record written before reactions existed hashes every node
  *  as it did and reads unchanged: a record without the field makes no claim about reactions either way, and the
  *  same `v` reads both. Absent too where the host has no reactions to read. */
-export type Baseline = { v: number; id?: string; nodes: Record<string, string>; reactions?: string; art?: Record<string, string>; own?: Record<string, string>; tint?: Record<string, string> };
+export type Baseline = { v: number; id?: string; nodes: Record<string, string>; reactions?: string; art?: Record<string, string>; own?: Record<string, string>; tint?: Record<string, string>; inst?: Record<string, string> };
 
 /** A stamp Prism3 wrote (#2300): the engine version, a 16-hex plan stamp or `adopted`, and the executor revision
  *  (absent on a stamp from before #1098). Anything else is not Prism3's, however it got there. */
@@ -177,6 +189,31 @@ const describeMain = (m: Record<string, unknown> | null): Record<string, unknown
   try { key = typeof m.key === 'string' && m.key ? m.key : undefined; } catch { key = undefined; }
   return { name: String(m.name ?? ''), type: String(m.type ?? ''), ...(key ? { key } : {}), parent };
 };
+
+/** THE MAIN'S PROPERTY DEFAULTS (#4070), by property id: a variant's are its set's, a plain component's its own, read once
+ *  per holder per snapshot (`seen`). `null` where they cannot be read (a library main, a throwing getter): the
+ *  instance's entries are then all kept. */
+const defaultsOf = (m: Record<string, unknown>, seen: Map<unknown, Record<string, unknown> | null>): Record<string, unknown> | null => {
+  let holder: unknown;
+  try { const p = m.parent as Record<string, unknown> | null | undefined; holder = p && p.type === 'COMPONENT_SET' ? p : m; } catch { return null; }
+  if (seen.has(holder)) return seen.get(holder)!;
+  const read = readDefaults(holder as Record<string, unknown>);
+  seen.set(holder, read);
+  return read;
+};
+const readDefaults = (holder: Record<string, unknown>): Record<string, unknown> | null => {
+  let defs: unknown;
+  try { defs = holder.componentPropertyDefinitions; } catch { return null; }
+  if (!defs || typeof defs !== 'object') return null;
+  const out: Record<string, unknown> = {};
+  for (const [k, d] of Object.entries(defs as Record<string, { type?: unknown; defaultValue?: unknown }>)) {
+    if (d?.type === 'VARIANT') continue;
+    out[propId(k)] = plain(d?.defaultValue);
+  }
+  return out;
+};
+/** A property's id: the `#…` suffix the host keeps across a rename, or its name where it has none (a variant). */
+const propId = (k: string): string => (k.includes('#') ? k.slice(k.lastIndexOf('#')) : k);
 
 /**
  * A member as plain data: one object per node, the fields above copied once, each read in its own
@@ -257,6 +294,7 @@ const instanceVectors = (n: LiveNode): SnapNode[] => {
 };
 
 export const snapshotMember = async (root: unknown): Promise<SnapNode> => {
+  const seen = new Map<unknown, Record<string, unknown> | null>();
   const walk = async (raw: unknown, parentWidth: unknown, parentHeight: unknown, isRoot = false): Promise<SnapNode> => {
     const n = raw as LiveNode;
     const out: SnapNode = { name: String(n.name ?? ''), type: String(n.type ?? '') };
@@ -274,7 +312,9 @@ export const snapshotMember = async (root: unknown): Promise<SnapNode> => {
     if (out.type === 'INSTANCE') {
       const live = await liveMainOf(n);
       const main = describeMain(live);
-      if (main) out.mainComponent = main;
+      // Its property defaults (#4070), beside its name: `instSignature` leaves an entry at its default out.
+      const defaults = live ? defaultsOf(live, seen) : null;
+      if (main) out.mainComponent = defaults ? { ...main, defaults } : main;
       const own = ownOverrides(n, live);
       if (own) out.overridden = own;
       // THE VECTORS INSIDE (#3393; the owner's Update file run, 2026-11-12). The walk stops here, but the read-back's `literalTint`
@@ -421,6 +461,25 @@ export const ownSignature = (n: SnapNode): string | null => {
   return JSON.stringify(Object.fromEntries(Object.entries(sig).filter(([k]) => mine(k))));
 };
 
+/**
+ * WHAT THE HOST SET ON AN INSTANCE, ITS PROPERTIES READ AS ITS OWN (#4070): `ownSignature`, with `props` cut to the
+ * entries set on the instance: each by its id, never a variant's, never one at the main's default. `null` where
+ * `ownSignature` is. See the header for why `own` alone read a change to the nested set as a hand edit.
+ */
+export const instSignature = (n: SnapNode): string | null => {
+  const own = ownSignature(n);
+  if (own === null) return null;
+  const sig = JSON.parse(own) as Record<string, unknown>;
+  if (!('props' in sig)) return own;
+  const defaults = (n.mainComponent as { defaults?: Record<string, unknown> } | undefined)?.defaults;
+  const props = n.componentProperties as Record<string, { type?: unknown; value?: unknown }> | undefined;
+  sig.props = Object.entries(props ?? {})
+    .filter(([k, p]) => p?.type !== 'VARIANT' && !(defaults && propId(k) in defaults && JSON.stringify(defaults[propId(k)]) === JSON.stringify(p?.value)))
+    .map(([k, p]) => [propId(k), p?.type, p?.value])
+    .sort(([a], [b]) => (String(a) < String(b) ? -1 : 1));
+  return JSON.stringify(sig);
+};
+
 /** Every node of a snapshot under its path: `.` for the member root, then child names joined by `/`, and
  *  `#2`, `#3` … on a sibling whose name an earlier sibling already used. By name, so a reordered child
  *  keeps its path and its own hash; the reorder shows in the parent's child list instead. */
@@ -447,16 +506,19 @@ export const baselineOf = (snap: SnapNode): Baseline => {
   const art: Record<string, string> = {};
   const own: Record<string, string> = {};
   const tint: Record<string, string> = {};
+  const inst: Record<string, string> = {};
   for (const [path, n] of nodesByPath(snap)) {
     nodes[path] = fnv(nodeSignature(n));
     const t = tintSignature(n);
     if (t !== null) tint[path] = fnv(t);
     const o = ownSignature(n);
     if (o !== null) own[path] = fnv(o);
+    const i = instSignature(n);
+    if (i !== null) inst[path] = fnv(i);
     const sig = artworkSignature(n);
     if (sig !== null) art[path] = fnv(sig);
   }
-  return { v: BASELINE_V, nodes, ...(snap.reactions ? { reactions: fnv(reactionsSignature(snap.reactions)) } : {}), ...(Object.keys(art).length ? { art } : {}), ...(Object.keys(own).length ? { own } : {}), ...(Object.keys(tint).length ? { tint } : {}) };
+  return { v: BASELINE_V, nodes, ...(snap.reactions ? { reactions: fnv(reactionsSignature(snap.reactions)) } : {}), ...(Object.keys(art).length ? { art } : {}), ...(Object.keys(own).length ? { own } : {}), ...(Object.keys(tint).length ? { tint } : {}), ...(Object.keys(inst).length ? { inst } : {}) };
 };
 
 /** The ARTWORK a node holds (#2343 PR 2): the geometry of its VECTOR children, in order, or `null` for a node that
@@ -505,6 +567,8 @@ export const baselineDiff = (stored: Baseline, now: Baseline): { changed: string
   const changed: string[] = [], added: string[] = [], removed: string[] = [];
   for (const [p, h] of Object.entries(stored.nodes)) {
     if (!(p in now.nodes)) removed.push(p);
+    // An instance both records hold its own properties of (#4070): `own`, with only the values set on it.
+    else if (stored.inst?.[p] !== undefined && now.inst?.[p] !== undefined) { if (now.inst[p] !== stored.inst[p]) changed.push(p); }
     // An instance both records hold its own part of (#3474): what the host set on it, and nothing its main hands it.
     else if (stored.own?.[p] !== undefined && now.own?.[p] !== undefined) { if (now.own[p] !== stored.own[p]) changed.push(p); }
     // A node with a bound paint both records hold (#3527): everything but that paint's opacity, which the host derives.

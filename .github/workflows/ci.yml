@@ -905,6 +905,13 @@ jobs:
       - name: No engine comparison depends on the host locale (#3698)
         run: npx tsx packages/engine/lint-locale-order.ts
 
+      # #3984, owner decision Q-DM2 A — design.md is the one import and export format for brand settings. Witnesses
+      # built from theme-schema.json, independently of design-md.ts, set every property the schema allows (every
+      # branch, enum value and boolean in a variant); each must survive toDesignMd → parseDesignMd deep-equal, and a
+      # property that does not fails by path. A schema property no witness sets fails as unrepresented.
+      - name: design.md carries every brand setting the schema allows (#3984)
+        run: npx tsx packages/engine/lint-design-md-round-trip.ts
+
       # #3698 F4, R5 item 3 — the studio and the plugin import the engine only through its four public entries
       # (`@prism3/engine`, `/components`, `/figma`, `/harness`), so a file move inside the engine edits an entry, not a
       # surface. A deep or relative engine path fails by file and line; a bundled file importing the node-only harness
@@ -1030,6 +1037,12 @@ jobs:
       # esbuild's real metafile.
       - name: Vercel ignore list matches the real bundle
         run: npm run -w @prism3/studio check:ignore
+
+      # The web builds the component definitions into a second output, dist/component-specs.js, through the
+      # plugin's maintainer-prose strip (#3429). The plugin job's step reads only the plugin's bundles, so this
+      # one reads the web chunk against the same real defs: no notes or codeOnly prose, no Prism 2, every summary.
+      - name: The built web specs chunk ships no maintainer notes and no Prism 2 in component text (#3429)
+        run: npx tsx apps/plugin/lint-bundle-prose.ts --web
 
       # The studio enforces contrast on every brand it GENERATES; this holds it to the same bar for
       # the chrome it renders those contracts in. #355 fixed a real failure there by hand and parked

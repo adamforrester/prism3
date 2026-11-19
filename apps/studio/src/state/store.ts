@@ -28,6 +28,7 @@
  */
 import { brandTheme, type BrandInput, type Theme, resolvePreview, type ResolvedPreview } from '@prism3/engine';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
+import { resolvedModes } from './verdict';
 import { stashBefore, type UndoLoad } from './undo-load';
 import { provenanceOf, noOrigin, type Origin, type Provenance } from '../provenance';
 import type { PageKey } from '../shell/pages';
@@ -160,10 +161,12 @@ export const invalidate = (topic: Topic): void => {
 
 // ---- persistence (injected) ------------------------------------------------------------------------
 
-let persist: ((input: BrandInput) => void) | null = null;
+/** A persist call gets the brand and the provenance it is measured against, so a host can keep both (#3880). */
+type Persist = (input: BrandInput, provenance: Provenance) => void;
+let persist: Persist | null = null;
 /** Wire the host's persistence. The web entry passes a `localStorage` writer; the plugin passes none,
  *  because Figma shared-data is written by the plugin's main thread on Apply, not from here. */
-export const setPersist = (fn: ((input: BrandInput) => void) | null): void => { persist = fn; };
+export const setPersist = (fn: Persist | null): void => { persist = fn; };
 
 /** While a drag is held (`holdPersist`, a slider from its first `input` to its release), a good rebuild owes a write
  *  instead of making one, and the release writes the last-good brand once (#2487 B1): a drag stores once, not on
@@ -172,28 +175,30 @@ let persistHolds = 0;
 let persistOwed = false;
 const writePersist = (): void => {
   if (persistHolds) persistOwed = true;
-  else persist?.(brandState);
+  else persist?.(brandState, provenance);
 };
 export const holdPersist = (): void => { persistHolds++; };
 export const releasePersist = (): void => {
   if (!persistHolds || --persistHolds) return;
-  if (persistOwed) { persistOwed = false; persist?.(lastGoodInput); }
+  if (persistOwed) { persistOwed = false; persist?.(lastGoodInput, provenance); }
 };
 
 // ---- lifecycle -------------------------------------------------------------------------------------
 
 /** Start the session on `input`: resolve it, take it as the last-good input and the boot provenance,
  *  and view its first mode. The input must already resolve — the entry validates a restored brand
- *  before booting on it, and falls back to an example if it does not. */
-export const initSession = (input: BrandInput, origin: Origin): void => {
+ *  before booting on it, and falls back to an example if it does not. `baseline`, when given, is what
+ *  the input is measured against: a web reload restores the one it persisted (#3880). Without it, the
+ *  input is its own baseline, as every other boot is. */
+export const initSession = (input: BrandInput, origin: Origin, baseline?: BrandInput): void => {
   brandState = input;
-  provenance = provenanceOf(origin, brandState);
+  provenance = provenanceOf(origin, baseline ?? brandState);
   bootProvenance = provenance;
   theme = brandTheme(brandState);
   lastGoodInput = structuredClone(brandState);
   seenWords = [];
   noteBrandWords(lastGoodInput);
-  rp = resolvePreview(theme);
+  rp = resolvePreview(theme, undefined, resolvedModes(theme));
   currentMode = rp.modes[0];
   lastError = null;
 };
@@ -203,7 +208,7 @@ export const initSession = (input: BrandInput, origin: Origin): void => {
 const resolve = (): void => {
   try {
     const t = brandTheme(brandState);
-    rp = resolvePreview(t);
+    rp = resolvePreview(t, undefined, resolvedModes(t));   // the verdict's cached copy: one resolve per edit (#4234)
     theme = t;
     lastGoodInput = structuredClone(brandState);   // M-16: anchor badges read this, not the (maybe failing) live state
     noteBrandWords(lastGoodInput);   // #3883
@@ -248,7 +253,7 @@ export const syncIdentity = (): void => {
   if (brandState.name === undefined) delete lastGoodInput.name;
   else lastGoodInput.name = brandState.name;
   lastGoodInput.root = brandState.root;
-  persist?.(lastGoodInput);   // web reopen reads the fresh identity
+  persist?.(lastGoodInput, provenance);   // web reopen reads the fresh identity
   invalidate('identity');     // S3: the bar's brand name follows the Brand page's name field
 };
 
@@ -307,10 +312,10 @@ export const restoreInput = (input: BrandInput, prov: Provenance, lastGood: Bran
   // refusal, so the field still flags the edit, as it did before the load.
   if (lastError !== null) {
     theme = brandTheme(lastGood);
-    rp = resolvePreview(theme);
+    rp = resolvePreview(theme, undefined, resolvedModes(theme));
     lastGoodInput = structuredClone(lastGood);
     if (persistHolds) persistOwed = true;
-    else persist?.(lastGoodInput);
+    else persist?.(lastGoodInput, provenance);
   }
   currentMode = rp.modes[0];
   page = 'palettes';
