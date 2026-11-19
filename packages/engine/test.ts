@@ -32475,6 +32475,24 @@ arm: {
 
   const set = buildOverlaySet(t);
   ok(set.overlays.length === modes.length, `overlay: the set carries one overlay per mode (${set.overlays.length})`);
+
+  // #4155: a typeface primitive's `$value` is ONE family in the canonical tree (#105.3, for the Figma and
+  // TokenPress round trip), and its curated fallback stack sat only in `$extensions`, which the projection
+  // strips — so the shipped CSS read `Inter;` with no generic family. In the projection the value is the
+  // DTCG 2025.10 §8.3 array form, primary first, ending in a CSS generic family (this list is the CSS Fonts 4
+  // §4.1.1 set, written here, not read off the engine).
+  const GENERIC = new Set(['serif', 'sans-serif', 'monospace', 'cursive', 'fantasy', 'system-ui', 'ui-serif',
+    'ui-sans-serif', 'ui-monospace', 'ui-rounded', 'math', 'emoji', 'fangsong']);
+  const rootOf = (x: any) => x[Object.keys(x).find((k) => !k.startsWith('$'))!];
+  const faces = Object.entries(rootOf(t).core.font.typeface as Record<string, any>);
+  const baseFaces = rootOf(set.base).core.font.typeface as Record<string, any>;
+  ok(faces.length > 0 && faces.every(([, f]) => typeof f.$value === 'string'),
+    `#4155: the canonical tree keeps each typeface's $value a single family (${faces.length} faces)`);
+  for (const [k, f] of faces) {
+    const v = baseFaces?.[k]?.$value;
+    ok(Array.isArray(v) && v[0] === f.$value && GENERIC.has(v[v.length - 1]),
+      `#4155: the projection's typeface \`${k}\` is a fallback stack, primary first, ending in a CSS generic family (got ${JSON.stringify(v)})`);
+  }
 }
 
 // ---- Arc 2's primitives: `icon` and `focus-ring` as real defs (#741) ---------------------------
