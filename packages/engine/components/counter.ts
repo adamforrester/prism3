@@ -85,7 +85,7 @@ export const counter: ComponentDef = {
   status: 'draft',
   summary: 'A whole-number quantity between a minus and a plus button, such as an item count in a bag.',
   description:
-    'A small whole-number quantity shown between a minus and a plus button, such as the item count on a product card or a bag line. The buttons change the value by one; the value itself is shown, not typed. Min and max are settable, with min 0 by default, and at a limit the matching button is inactive (`aria-disabled`). Outline draws the field\'s edge around the row, with the glyphs inside it. Ghost draws no box, and each button is a light circle. For typed numeric entry in a form, use a number input.',
+    'A small whole-number quantity shown between a minus and a plus button, such as the item count on a product card or a bag line. The buttons change the value by one; the value itself is shown, not typed. Min and max are settable, with min 0 by default, and at a limit the matching button is inactive. Outline draws the field\'s edge around the row, with the glyphs inside it. Ghost draws no box, and each button is a light circle. For typed numeric entry in a form, use a number input.',
 
   props: [
     { name: 'label', type: 'string | node', required: true, description: 'What is counted, such as "Quantity". The accessible name of the value, always present in code; shown above the counter unless hideLabel is set.' },

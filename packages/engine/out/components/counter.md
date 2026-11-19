@@ -9,7 +9,7 @@
 
 ## Overview
 
-A small whole-number quantity shown between a minus and a plus button, such as the item count on a product card or a bag line. The buttons change the value by one; the value itself is shown, not typed. Min and max are settable, with min 0 by default, and at a limit the matching button is inactive (`aria-disabled`). Outline draws the field's edge around the row, with the glyphs inside it. Ghost draws no box, and each button is a light circle. For typed numeric entry in a form, use a number input.
+A small whole-number quantity shown between a minus and a plus button, such as the item count on a product card or a bag line. The buttons change the value by one; the value itself is shown, not typed. Min and max are settable, with min 0 by default, and at a limit the matching button is inactive. Outline draws the field's edge around the row, with the glyphs inside it. Ghost draws no box, and each button is a light circle. For typed numeric entry in a form, use a number input.
 
 - **Purpose:** Set a small whole-number quantity with a minus and a plus button around the displayed value.
 - **Use when:** An item count on a product card or a bag line, a number of guests or tickets: a small count, usually changed by one, with a known minimum and often a maximum.
