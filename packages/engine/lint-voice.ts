@@ -449,6 +449,8 @@ const gated: string[] = [
   // The docs/34 shape-index baseline (#786) — the third, same reason. Its shape titles are quoted
   // verbatim in that gate's failure messages, so they are contributor-facing prose.
   join(repo, 'packages/engine/schema/shape-index.json'),
+  // The pinned shadcn/ui variable set (#2997 gate 3) — kept out of `regen`, named by hand as lint-us-english.ts names it.
+  join(repo, 'packages/engine/schema/shadcn-vars.json'),
   // The decisions-index baseline (#886) — the fourth, same reason. Its decision titles are quoted
   // verbatim in that gate's failure messages, so they are contributor-facing prose the same way a
   // shape title is.
