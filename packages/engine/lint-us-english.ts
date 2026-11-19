@@ -488,6 +488,7 @@ const SELF_CHECK: { sample: string; expect: boolean }[] = [
   { sample: 'the change\\nnormalises it', expect: true },
   // Q181 A (#3574) — the `-ing` forms of two listed en-US verbs, found when the change notes joined the scope.
   { sample: 'revising Q280.2 A and devising another', expect: false },
+  { sample: 'the artifacts are compared pairwise', expect: false },   // `-wise`, an en-US adverb ending, not `-ise`
 ];
 // …and each masked file name is still a tracked file, so a rename cannot leave a mask behind that hides nothing.
 const staleNames = EN_GB_FILE_NAMES.filter((f) => !existsSync(join(repo, f)));

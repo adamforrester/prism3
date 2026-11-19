@@ -16,11 +16,18 @@ decision Q181 A: move the check upstream, and read the release pages' carried no
 - `RELEASE_SELF_CHECK` in each gate samples every edge through `scanText`, the path `scan()` runs. A first draft
   sampled the carve function directly, and removing the carve from `scan()` then failed only on real notes, not by
   name. The split fixed that.
-- False positives found on the existing notes, fixed by widening allow-sets: `revising`/`devising` in `NOT_EN_GB`
-  (the `-ing` forms of listed verbs), `wrote` in `JUST_ALLOWED` ("the run just wrote"), and a new `NOTE_AS_NOUN`
-  context for the `note that` filler. A lower-case `note` right after a determiner, on the same line, is a noun
-  ("its note that the def…"). The four real hits are corrected in their notes by the companion PR, under the same
-  decision.
+- False positives found on the notes, fixed by widening allow-sets: `devising` and `pairwise` in `NOT_EN_GB`. The
+  four real hits were corrected in their notes by #3618, under the same decision.
+
+### How it sits beside the 0.238.0 fold (#3798)
+
+While this PR waited, the 0.238.0 fold (#3798) put the release pages in full scope and cleared their false positives
+with allow-sets instead: `EN_GB_SLUGS`, `revising`, `nraises`/`notherwise` in `NOT_EN_GB`, `wrote` in `JUST_ALLOWED`,
+and `FILLER_NOUN_BEFORE` for "note" as a noun. Those stay. They are widenings, so they are harmless beside the carve,
+which blanks the carried notes before any of them is consulted. This PR's own `NOTE_AS_NOUN` was dropped in the
+refresh in favor of `FILLER_NOUN_BEFORE`, so there is one noun context, and its `revising` and `wrote` duplicates went
+with it. What this PR adds that `main` does not have is part 1 of Q181 A: the notes are read in `changes/`, before
+they merge.
 
 ### Verification
 
@@ -33,7 +40,7 @@ Mutations, each failing by name in the gate it targets:
 - dropping the slug carve gives `…notes[].slug is the dated record`;
 - passing a page with no heading gives `…a release page with no In detail heading is blind, not clean`;
 - dropping the `changes/` walk gives `the gate's SCOPE shrank … the pending change notes`;
-- letting `NOTE_AS_NOUN` cross a newline, or ignore case, and dropping `revising`, each fail their own sample.
+- dropping `pairwise` from `NOT_EN_GB` fails its own self-check sample.
 
 Against the real 0.238.0 pages from #3570, placed in the tree: with the carve, both pages pass both gates. Without
 it, #3570 measured 23 and 4 hits on the same pages.
